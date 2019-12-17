@@ -33,7 +33,7 @@
 
 #include "tbs_tables.h"
 
-#define min(a,b) (a<b?a:b)
+#define min(a, b) (a < b ? a : b)
 
 /* Convert Type2 scheduling L_crb and RB_start to RIV value */
 uint32_t srslte_ra_type2_to_riv(uint32_t L_crb, uint32_t RB_start, uint32_t nof_prb)
@@ -59,7 +59,8 @@ void srslte_ra_type2_from_riv(uint32_t riv, uint32_t* L_crb, uint32_t* RB_start,
 }
 
 /* RBG size for type0 scheduling as in table 7.1.6.1-1 of 36.213 */
-uint32_t srslte_ra_type0_P(uint32_t nof_prb) {
+uint32_t srslte_ra_type0_P(uint32_t nof_prb)
+{
   if (nof_prb <= 10) {
     return 1;
   } else if (nof_prb <= 26) {
@@ -72,13 +73,15 @@ uint32_t srslte_ra_type0_P(uint32_t nof_prb) {
 }
 
 /* Returns N_rb_type1 according to section 7.1.6.2 */
-uint32_t srslte_ra_type1_N_rb(uint32_t nof_prb) {
+uint32_t srslte_ra_type1_N_rb(uint32_t nof_prb)
+{
   uint32_t P = srslte_ra_type0_P(nof_prb);
-  return (uint32_t) ceilf((float) nof_prb / P) - (uint32_t) ceilf(log2f((float) P)) - 1;
+  return (uint32_t)ceilf((float)nof_prb / P) - (uint32_t)ceilf(log2f((float)P)) - 1;
 }
 
 /* Table 6.2.3.2-1 in 36.211 */
-uint32_t srslte_ra_type2_ngap(uint32_t nof_prb, bool ngap_is_1) {
+uint32_t srslte_ra_type2_ngap(uint32_t nof_prb, bool ngap_is_1)
+{
   if (nof_prb <= 10) {
     return nof_prb / 2;
   } else if (nof_prb == 11) {
@@ -101,7 +104,8 @@ uint32_t srslte_ra_type2_ngap(uint32_t nof_prb, bool ngap_is_1) {
 }
 
 /* Table 7.1.6.3-1 in 36.213 */
-uint32_t srslte_ra_type2_n_rb_step(uint32_t nof_prb) {
+uint32_t srslte_ra_type2_n_rb_step(uint32_t nof_prb)
+{
   if (nof_prb < 50) {
     return 2;
   } else {
@@ -110,12 +114,13 @@ uint32_t srslte_ra_type2_n_rb_step(uint32_t nof_prb) {
 }
 
 /* as defined in 6.2.3.2 of 36.211 */
-uint32_t srslte_ra_type2_n_vrb_dl(uint32_t nof_prb, bool ngap_is_1) {
+uint32_t srslte_ra_type2_n_vrb_dl(uint32_t nof_prb, bool ngap_is_1)
+{
   uint32_t ngap = srslte_ra_type2_ngap(nof_prb, ngap_is_1);
   if (ngap_is_1) {
     return 2 * (ngap < (nof_prb - ngap) ? ngap : nof_prb - ngap);
   } else {
-    return ((uint32_t) nof_prb / ngap) * 2 * ngap;
+    return ((uint32_t)nof_prb / ngap) * 2 * ngap;
   }
 }
 
@@ -206,19 +211,20 @@ int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb)
 /* Returns lowest nearest index of TBS value in table 7.1.7.2 on 36.213
  * or -1 if the TBS value is not within the valid TBS values
  */
-int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb) {
+int srslte_ra_tbs_to_table_idx(uint32_t tbs, uint32_t n_prb)
+{
   uint32_t idx;
   if (n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
 
-    if (tbs <= tbs_table[0][n_prb-1]) {
+    if (tbs <= tbs_table[0][n_prb - 1]) {
       return 0;
     }
-    if (tbs >= tbs_table[26][n_prb-1]) {
+    if (tbs >= tbs_table[26][n_prb - 1]) {
       return 27;
     }
     for (idx = 0; idx < 26; idx++) {
-      if (tbs_table[idx][n_prb-1] <= tbs && tbs_table[idx+1][n_prb-1] >= tbs) {
-        return idx+1;
+      if (tbs_table[idx][n_prb - 1] <= tbs && tbs_table[idx + 1][n_prb - 1] >= tbs) {
+        return idx + 1;
       }
     }
   }

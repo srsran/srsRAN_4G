@@ -138,8 +138,8 @@ private:
   ue_rnti_t uernti;
 
   /* Multiplexing/Demultiplexing Units */
-  mux           mux_unit;
-  demux         demux_unit;
+  mux   mux_unit;
+  demux demux_unit;
 
   /* DL/UL HARQ */
   dl_harq_entity_vector dl_harq;
@@ -147,13 +147,13 @@ private:
   ul_harq_cfg_t         ul_harq_cfg;
 
   /* MAC Uplink-related Procedures */
-  ra_proc       ra_procedure;
-  sr_proc       sr_procedure; 
-  bsr_proc      bsr_procedure; 
-  phr_proc      phr_procedure; 
-  
+  ra_proc  ra_procedure;
+  sr_proc  sr_procedure;
+  bsr_proc bsr_procedure;
+  phr_proc phr_procedure;
+
   /* Buffers for PCH reception (not included in DL HARQ) */
-  const static uint32_t  pch_payload_buffer_sz = 8*1024;
+  const static uint32_t  pch_payload_buffer_sz = 8 * 1024;
   srslte_softbuffer_rx_t pch_softbuffer;
   uint8_t                pch_payload_buffer[pch_payload_buffer_sz];
 
@@ -175,7 +175,7 @@ private:
 
   mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
 
-  bool initialized = false;
+  bool initialized    = false;
   bool enable_ra_proc = true;
 };
 

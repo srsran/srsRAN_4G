@@ -200,7 +200,7 @@ int main(int argc, char** argv)
   uint8_t  bch_payload[SRSLTE_MIB_NB_LEN] = {};
   int      ret                            = SRSLTE_ERROR;
   uint32_t nof_tx_ports                   = 0;
-  int      sfn_offset = 0;
+  int      sfn_offset                     = 0;
 
   if (argc < 3) {
     usage(argv[0]);

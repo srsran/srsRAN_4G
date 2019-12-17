@@ -22,8 +22,8 @@
 /******************************************************************************
  *  File:         dci.h
  *
- *  Description:  Downlink control information (DCI). 
- *                Packing/Unpacking functions to convert between bit streams 
+ *  Description:  Downlink control information (DCI).
+ *                Packing/Unpacking functions to convert between bit streams
  *                and packed DCI UL/DL grants defined in ra.h
  *
  *  Reference:    3GPP TS 36.212 version 10.0.0 Release 10 Sec. 5.3.3
@@ -38,7 +38,7 @@
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/phch/ra.h"
 
-#define SRSLTE_DCI_MAX_BITS  128
+#define SRSLTE_DCI_MAX_BITS 128
 #define SRSLTE_RAR_GRANT_LEN 20
 
 #define SRSLTE_DCI_IS_TB_EN(tb) (!(tb.mcs_idx == 0 && tb.rv == 1))
@@ -180,7 +180,7 @@ typedef struct SRSLTE_API {
   uint32_t rba;
   uint32_t trunc_mcs;
   uint32_t tpc_pusch;
-  bool ul_delay;
+  bool     ul_delay;
   bool     cqi_request;
   bool     hopping_flag;
 } srslte_dci_rar_grant_t;
@@ -191,44 +191,40 @@ SRSLTE_API void srslte_dci_rar_pack(srslte_dci_rar_grant_t* rar, uint8_t payload
 
 SRSLTE_API int srslte_dci_rar_to_ul_dci(srslte_cell_t* cell, srslte_dci_rar_grant_t* rar, srslte_dci_ul_t* dci_ul);
 
-SRSLTE_API int srslte_dci_msg_pack_pusch(srslte_cell_t* cell,
+SRSLTE_API int srslte_dci_msg_pack_pusch(srslte_cell_t*      cell,
                                          srslte_dl_sf_cfg_t* sf,
-                                         srslte_dci_cfg_t* cfg,
-                                         srslte_dci_ul_t* dci,
-                                         srslte_dci_msg_t* msg);
+                                         srslte_dci_cfg_t*   cfg,
+                                         srslte_dci_ul_t*    dci,
+                                         srslte_dci_msg_t*   msg);
 
-SRSLTE_API int srslte_dci_msg_unpack_pusch(srslte_cell_t* cell,
+SRSLTE_API int srslte_dci_msg_unpack_pusch(srslte_cell_t*      cell,
                                            srslte_dl_sf_cfg_t* sf,
-                                           srslte_dci_cfg_t* cfg,
-                                           srslte_dci_msg_t* msg,
-                                           srslte_dci_ul_t* dci);
+                                           srslte_dci_cfg_t*   cfg,
+                                           srslte_dci_msg_t*   msg,
+                                           srslte_dci_ul_t*    dci);
 
-SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_cell_t* cell,
+SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_cell_t*      cell,
                                          srslte_dl_sf_cfg_t* sf,
-                                         srslte_dci_cfg_t* cfg, srslte_dci_dl_t* dci, srslte_dci_msg_t* msg);
+                                         srslte_dci_cfg_t*   cfg,
+                                         srslte_dci_dl_t*    dci,
+                                         srslte_dci_msg_t*   msg);
 
-SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_cell_t* cell,
+SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_cell_t*      cell,
                                            srslte_dl_sf_cfg_t* sf,
-                                           srslte_dci_cfg_t* cfg,
-                                           srslte_dci_msg_t* msg,
-                                           srslte_dci_dl_t* dci);
+                                           srslte_dci_cfg_t*   cfg,
+                                           srslte_dci_msg_t*   msg,
+                                           srslte_dci_dl_t*    dci);
 
 SRSLTE_API uint32_t srslte_dci_format_sizeof(srslte_cell_t*      cell,
                                              srslte_dl_sf_cfg_t* sf,
                                              srslte_dci_cfg_t*   cfg,
                                              srslte_dci_format_t format);
 
-SRSLTE_API void srslte_dci_dl_fprint(FILE* f,
-                                     srslte_dci_dl_t* dci,
-                                     uint32_t nof_prb);
+SRSLTE_API void srslte_dci_dl_fprint(FILE* f, srslte_dci_dl_t* dci, uint32_t nof_prb);
 
-SRSLTE_API uint32_t srslte_dci_dl_info(srslte_dci_dl_t* dci_dl,
-                                       char* str,
-                                       uint32_t str_len);
+SRSLTE_API uint32_t srslte_dci_dl_info(srslte_dci_dl_t* dci_dl, char* str, uint32_t str_len);
 
-SRSLTE_API uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul,
-                                       char* info_str,
-                                       uint32_t len);
+SRSLTE_API uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t len);
 
 SRSLTE_API srslte_dci_format_t srslte_dci_format_from_string(char* str);
 
@@ -236,9 +232,7 @@ SRSLTE_API char* srslte_dci_format_string(srslte_dci_format_t format);
 
 SRSLTE_API char* srslte_dci_format_string_short(srslte_dci_format_t format);
 
-SRSLTE_API int srslte_dci_location_set(srslte_dci_location_t* c,
-                                       uint32_t L,
-                                       uint32_t nCCE);
+SRSLTE_API int srslte_dci_location_set(srslte_dci_location_t* c, uint32_t L, uint32_t nCCE);
 
 SRSLTE_API bool srslte_dci_location_isvalid(srslte_dci_location_t* c);
 

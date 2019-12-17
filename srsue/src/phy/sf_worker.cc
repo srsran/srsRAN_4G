@@ -19,9 +19,10 @@
  *
  */
 
-#include "srslte/srslte.h"
-#include "srsue/hdr/phy/sf_worker.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslte.h"
+
+#include "srsue/hdr/phy/sf_worker.h"
 #include <string.h>
 #include <unistd.h>
 
@@ -60,10 +61,10 @@ sf_worker::sf_worker(uint32_t            max_prb,
                      srslte::log*        log_phy_lib_h_,
                      chest_feedback_itf* chest_loop_)
 {
-  phy                 = phy_;
-  log_h               = log_h_;
-  log_phy_lib_h       = log_phy_lib_h_;
-  chest_loop          = chest_loop_;
+  phy           = phy_;
+  log_h         = log_h_;
+  log_phy_lib_h = log_phy_lib_h_;
+  chest_loop    = chest_loop_;
 
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t r = 0; r < phy->args->nof_carriers; r++) {
@@ -89,13 +90,12 @@ void sf_worker::reset()
 
 bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
 {
-  bool ret = false;
   std::lock_guard<std::mutex> lock(mutex);
 
   if (cc_idx < cc_workers.size()) {
     if (!cc_workers[cc_idx]->set_cell(cell_)) {
       Error("Setting cell for cc=%d\n", cc_idx);
-      goto unlock;
+      return false;
     }
   } else {
     Error("Setting cell for cc=%d; Not enough CC workers (%zd);\n", cc_idx, cc_workers.size());
@@ -104,11 +104,10 @@ bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
   if (cc_idx == 0) {
     cell           = cell_;
     cell_initiated = true;
+    cell_init_cond.notify_one();
   }
-  ret = true;
 
-unlock:
-  return ret;
+  return true;
 }
 
 cf_t* sf_worker::get_buffer(uint32_t carrier_idx, uint32_t antenna_idx)
@@ -424,8 +423,8 @@ static float       sync_buffer[SYNC_PLOT_LEN];
 
 void* plot_thread_run(void* arg)
 {
-  auto              worker    = (srsue::sf_worker*)arg;
-  uint32_t          row_count = 0;
+  auto     worker    = (srsue::sf_worker*)arg;
+  uint32_t row_count = 0;
 
   sdrgui_init();
   for (uint32_t tx = 0; tx < worker->get_cell_nof_ports(); tx++) {
@@ -467,6 +466,9 @@ void* plot_thread_run(void* arg)
   plot_scatter_addToWindowGrid(&psync, (char*)"srsue", 1, row_count++);
 #endif /* SYNC_PLOT_LEN > 0 */
 
+  uint32_t num_tx = worker->get_cell_nof_ports();
+  uint32_t num_rx = worker->get_rx_nof_antennas();
+
   int n;
   int readed_pdsch_re = 0;
   while (!plot_quit) {
@@ -476,8 +478,8 @@ void* plot_thread_run(void* arg)
       n = worker->read_pdsch_d(&tmp_plot2[readed_pdsch_re]);
       readed_pdsch_re += n;
     } else {
-      for (uint32_t tx = 0; tx < worker->get_cell_nof_ports(); tx++) {
-        for (uint32_t rx = 0; rx < worker->get_rx_nof_antennas(); rx++) {
+      for (uint32_t tx = 0; tx < num_tx; tx++) {
+        for (uint32_t rx = 0; rx < num_rx; rx++) {
           n = worker->read_ce_abs(tmp_plot, tx, rx);
           if (n > 0) {
             plot_real_setNewData(&pce[tx][rx], tmp_plot, n);
@@ -501,7 +503,6 @@ void* plot_thread_run(void* arg)
 
 void init_plots(srsue::sf_worker* worker)
 {
-
   if (sem_init(&plot_sem, 0, 0)) {
     perror("sem_init");
     exit(-1);
@@ -509,7 +510,7 @@ void init_plots(srsue::sf_worker* worker)
 
   pthread_attr_t     attr;
   struct sched_param param = {};
-  param.sched_priority = 0;
+  param.sched_priority     = 0;
   pthread_attr_init(&attr);
   pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
   pthread_attr_setschedpolicy(&attr, SCHED_OTHER);

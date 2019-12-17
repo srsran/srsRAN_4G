@@ -32,32 +32,27 @@
 #ifndef SRSLTE_RESAMPLE_ARB_H
 #define SRSLTE_RESAMPLE_ARB_H
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <complex.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "srslte/config.h"
 
-
-#define SRSLTE_RESAMPLE_ARB_N_35 35 
-#define SRSLTE_RESAMPLE_ARB_N    32  // Polyphase filter rows
-#define SRSLTE_RESAMPLE_ARB_M    8   // Polyphase filter columns
+#define SRSLTE_RESAMPLE_ARB_N_35 35
+#define SRSLTE_RESAMPLE_ARB_N 32 // Polyphase filter rows
+#define SRSLTE_RESAMPLE_ARB_M 8  // Polyphase filter columns
 
 typedef struct SRSLTE_API {
-  float rate;                // Resample rate
-  float step;                // Step increment through filter
-  float acc;                 // Index into filter
-  bool interpolate;
-  cf_t reg[SRSLTE_RESAMPLE_ARB_M];  // Our window of samples
-   
+  float rate; // Resample rate
+  float step; // Step increment through filter
+  float acc;  // Index into filter
+  bool  interpolate;
+  cf_t  reg[SRSLTE_RESAMPLE_ARB_M]; // Our window of samples
+
 } srslte_resample_arb_t;
 
-SRSLTE_API void srslte_resample_arb_init(srslte_resample_arb_t *q, 
-                                         float rate, bool interpolate);
+SRSLTE_API void srslte_resample_arb_init(srslte_resample_arb_t* q, float rate, bool interpolate);
 
-SRSLTE_API int srslte_resample_arb_compute(srslte_resample_arb_t *q, 
-                                           cf_t *input, 
-                                           cf_t *output, 
-                                           int n_in);
+SRSLTE_API int srslte_resample_arb_compute(srslte_resample_arb_t* q, cf_t* input, cf_t* output, int n_in);
 
 #endif // SRSLTE_RESAMPLE_ARB_

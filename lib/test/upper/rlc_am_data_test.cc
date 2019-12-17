@@ -24,15 +24,15 @@
 #include <iostream>
 
 // Fixed header only
-uint8_t pdu1[] = {0x88, 0x06};
+uint8_t  pdu1[]   = {0x88, 0x06};
 uint32_t PDU1_LEN = 2;
 
 // Fixed + 2 LI fields (each 1500)
-uint8_t pdu2[] = {0x8C, 0x00, 0xDD, 0xC5, 0xDC};
+uint8_t  pdu2[]   = {0x8C, 0x00, 0xDD, 0xC5, 0xDC};
 uint32_t PDU2_LEN = 5;
 
 // Fixed + 3 LI fields (each 1500)
-uint8_t pdu3[] = {0x8C, 0x00, 0xDD, 0xCD, 0xDC, 0x5D, 0xC0};
+uint8_t  pdu3[]   = {0x8C, 0x00, 0xDD, 0xCD, 0xDC, 0x5D, 0xC0};
 uint32_t PDU3_LEN = 7;
 
 // D/C = 1 = Data PDU
@@ -46,7 +46,7 @@ uint32_t PDU3_LEN = 7;
 // LI1 = 1010011 1110 (1342 Dec)
 // E  = 0
 // LI2 = 10111011100 (1500 Dec)
-uint8_t pdu4[] = {0x9C, 0x02, 0xD3, 0xE5, 0xDC };
+uint8_t  pdu4[]   = {0x9C, 0x02, 0xD3, 0xE5, 0xDC};
 uint32_t PDU4_LEN = 5;
 
 using namespace srslte;

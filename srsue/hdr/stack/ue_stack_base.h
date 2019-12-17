@@ -76,9 +76,9 @@ public:
 
   virtual std::string get_type() = 0;
 
-  virtual void stop()             = 0;
-  virtual bool switch_on()        = 0;
-  virtual bool switch_off()       = 0;
+  virtual void stop()       = 0;
+  virtual bool switch_on()  = 0;
+  virtual bool switch_off() = 0;
 
   // UE metrics interface
   virtual bool get_metrics(stack_metrics_t* metrics) = 0;

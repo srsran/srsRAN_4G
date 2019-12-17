@@ -228,8 +228,11 @@ int srslte_nsss_corr_init(srslte_nsss_synch_t* q)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_nsss_sync_find(
-    srslte_nsss_synch_t* q, cf_t* input, float* corr_peak_value, uint32_t* cell_id, uint32_t* sfn_partial)
+int srslte_nsss_sync_find(srslte_nsss_synch_t* q,
+                          cf_t*                input,
+                          float*               corr_peak_value,
+                          uint32_t*            cell_id,
+                          uint32_t*            sfn_partial)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 

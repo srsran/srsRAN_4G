@@ -19,75 +19,78 @@
  *
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
+#include <unistd.h>
 
+#include "srslte/srslte.h"
 #include <sys/time.h>
 #include <time.h>
-#include "srslte/srslte.h"
 
 uint32_t long_cb = 0;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s\n", prog);
   printf("\t-l long_cb [Default %u]\n", long_cb);
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "lv")) != -1) {
     switch (opt) {
-    case 'l':
-      long_cb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'l':
+        long_cb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-uint8_t input_bytes[6144/8];
+uint8_t input_bytes[6144 / 8];
 uint8_t input_bits[6144];
-uint8_t parity[3*6144+12];
-uint8_t parity_bits[3*6144+12];
-uint8_t output_bits[3*6144+12];
-uint8_t output_bits2[3*6144+12];
+uint8_t parity[3 * 6144 + 12];
+uint8_t parity_bits[3 * 6144 + 12];
+uint8_t output_bits[3 * 6144 + 12];
+uint8_t output_bits2[3 * 6144 + 12];
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
 
   parse_args(argc, argv);
-  
+
   srslte_tcod_t tcod;
   srslte_tcod_init(&tcod, 6144);
 
-  uint32_t st=0, end=187;
+  uint32_t st = 0, end = 187;
   if (long_cb) {
-    st=srslte_cbsegm_cbindex(long_cb);
-    end=st;
+    st  = srslte_cbsegm_cbindex(long_cb);
+    end = st;
   }
-  
-  for (uint32_t len=st;len<=end;len++) {
-    long_cb = srslte_cbsegm_cbsize(len); 
+
+  for (uint32_t len = st; len <= end; len++) {
+    long_cb = srslte_cbsegm_cbsize(len);
     printf("Checking long_cb=%d\n", long_cb);
-    for (int i=0;i<long_cb/8;i++) {
-      input_bytes[i] = rand()%256;
+    for (int i = 0; i < long_cb / 8; i++) {
+      input_bytes[i] = rand() % 256;
     }
-    
+
     srslte_bit_unpack_vector(input_bytes, input_bits, long_cb);
 
     if (SRSLTE_VERBOSE_ISINFO()) {
       printf("Input bits:\n");
-      for (int i=0;i<long_cb/8;i++) {
-        srslte_vec_fprint_b(stdout, &input_bits[i*8], 8);
+      for (int i = 0; i < long_cb / 8; i++) {
+        srslte_vec_fprint_b(stdout, &input_bits[i * 8], 8);
       }
     }
 
@@ -102,27 +105,27 @@ int main(int argc, char **argv) {
     srslte_tcod_encode(&tcod, input_bits, output_bits, long_cb);
     srslte_tcod_encode_lut(&tcod, &crc_tb, NULL, input_bytes, parity, len, false);
 
-    srslte_bit_unpack_vector(parity, parity_bits, 2*(long_cb+4));
-    
-    for (int i=0;i<long_cb;i++) {
-      output_bits2[3*i] = input_bits[i];
-      output_bits2[3*i+1] = parity_bits[i];
-      output_bits2[3*i+2] = parity_bits[i+long_cb+4];
+    srslte_bit_unpack_vector(parity, parity_bits, 2 * (long_cb + 4));
+
+    for (int i = 0; i < long_cb; i++) {
+      output_bits2[3 * i]     = input_bits[i];
+      output_bits2[3 * i + 1] = parity_bits[i];
+      output_bits2[3 * i + 2] = parity_bits[i + long_cb + 4];
     }
 
     if (SRSLTE_VERBOSE_ISINFO()) {
-      srslte_vec_fprint_b(stdout, output_bits2, 3*long_cb); 
-      srslte_vec_fprint_b(stdout, output_bits, 3*long_cb);       
+      srslte_vec_fprint_b(stdout, output_bits2, 3 * long_cb);
+      srslte_vec_fprint_b(stdout, output_bits, 3 * long_cb);
       printf("\n");
-    }  
-    for (int i=0;i<2*long_cb;i++) {
-      if (output_bits2[long_cb+i] != output_bits[long_cb+i]) {
+    }
+    for (int i = 0; i < 2 * long_cb; i++) {
+      if (output_bits2[long_cb + i] != output_bits[long_cb + i]) {
         printf("error in bit %d, len=%d\n", i, len);
         exit(-1);
       }
     }
   }
-  
+
   srslte_tcod_free(&tcod);
   printf("Done\n");
   exit(0);

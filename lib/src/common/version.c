@@ -21,20 +21,25 @@
 
 #include "srslte/version.h"
 
-char* srslte_get_version() {
+char* srslte_get_version()
+{
   return SRSLTE_VERSION_STRING;
 }
 
-int   srslte_get_version_major() {
+int srslte_get_version_major()
+{
   return SRSLTE_VERSION_MAJOR;
 }
-int   srslte_get_version_minor() {
+int srslte_get_version_minor()
+{
   return SRSLTE_VERSION_MINOR;
 }
-int   srslte_get_version_patch() {
+int srslte_get_version_patch()
+{
   return SRSLTE_VERSION_PATCH;
 }
 
-int  srslte_check_version(int major, int minor, int patch) {
-  return (SRSLTE_VERSION >= SRSLTE_VERSION_ENCODE(major,minor,patch));
+int srslte_check_version(int major, int minor, int patch)
+{
+  return (SRSLTE_VERSION >= SRSLTE_VERSION_ENCODE(major, minor, patch));
 }

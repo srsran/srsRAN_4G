@@ -799,8 +799,11 @@ int srslte_ue_dl_select_ri(srslte_ue_dl_t* q, uint32_t* ri, float* cn)
   return ret;
 }
 
-void srslte_ue_dl_gen_cqi_periodic(
-    srslte_ue_dl_t* q, srslte_ue_dl_cfg_t* cfg, uint32_t wideband_value, uint32_t tti, srslte_uci_data_t* uci_data)
+void srslte_ue_dl_gen_cqi_periodic(srslte_ue_dl_t*     q,
+                                   srslte_ue_dl_cfg_t* cfg,
+                                   uint32_t            wideband_value,
+                                   uint32_t            tti,
+                                   srslte_uci_data_t*  uci_data)
 {
   if (srslte_cqi_periodic_ri_send(&cfg->cfg.cqi_report, tti, q->cell.frame_type)) {
     /* Compute RI, PMI and SINR */
@@ -1027,8 +1030,8 @@ static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_dat
 }
 
 // Table 7.3-1
-static const uint32_t multiple_acknack[10][2] = {
-    {0, 0}, {1, 1}, {1, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 1}};
+static const uint32_t multiple_acknack[10][2] =
+    {{0, 0}, {1, 1}, {1, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 1}};
 
 /* UE downlink procedure for reporting HARQ-ACK bits in TDD, Section 7.3 36.213
  */

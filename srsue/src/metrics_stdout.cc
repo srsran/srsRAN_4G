@@ -21,24 +21,43 @@
 
 #include "srsue/hdr/metrics_stdout.h"
 
-#include <unistd.h>
-#include <sstream>
-#include <stdlib.h>
-#include <math.h>
 #include <float.h>
 #include <iomanip>
 #include <iostream>
+#include <math.h>
+#include <sstream>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include <stdio.h>
 
 using namespace std;
 
-namespace srsue{
+namespace srsue {
 
-char const * const prefixes[2][9] =
-{
-  {   "",   "m",   "u",   "n",    "p",    "f",    "a",    "z",    "y", },
-  {   "",   "k",   "M",   "G",    "T",    "P",    "E",    "Z",    "Y", },
+char const* const prefixes[2][9] = {
+    {
+        "",
+        "m",
+        "u",
+        "n",
+        "p",
+        "f",
+        "a",
+        "z",
+        "y",
+    },
+    {
+        "",
+        "k",
+        "M",
+        "G",
+        "T",
+        "P",
+        "E",
+        "Z",
+        "Y",
+    },
 };
 
 metrics_stdout::metrics_stdout() : do_print(false), n_reports(10), ue(nullptr)
@@ -46,7 +65,7 @@ metrics_stdout::metrics_stdout() : do_print(false), n_reports(10), ue(nullptr)
   // Do nothing
 }
 
-void metrics_stdout::set_ue_handle(ue_metrics_interface *ue_)
+void metrics_stdout::set_ue_handle(ue_metrics_interface* ue_)
 {
   ue = ue_;
 }
@@ -56,7 +75,7 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
-void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
+void metrics_stdout::set_metrics(ue_metrics_t& metrics, const uint32_t period_usec)
 {
   if (ue == nullptr) {
     return;
@@ -76,8 +95,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
     return;
   }
 
-  if(++n_reports > 10)
-  {
+  if (++n_reports > 10) {
     n_reports = 0;
     cout << endl;
     cout << "--------Signal--------------DL-------------------------------------UL----------------------" << endl;
@@ -133,15 +151,15 @@ std::string metrics_stdout::float_to_eng_string(float f, int digits)
   std::string factor;
 
   if (abs(degree) < 9) {
-    if(degree < 0)
-      factor = prefixes[0][ abs( degree ) ];
+    if (degree < 0)
+      factor = prefixes[0][abs(degree)];
     else
-      factor = prefixes[1][ abs( degree ) ];
+      factor = prefixes[1][abs(degree)];
   } else {
     return "failed";
   }
 
-  const double scaled = f * pow( 1000.0, -degree );
+  const double scaled = f * pow(1000.0, -degree);
   if (degree != 0) {
     return float_to_string(scaled, digits) + factor;
   } else {

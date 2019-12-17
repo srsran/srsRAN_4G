@@ -19,6 +19,8 @@
  *
  */
 
+typedef _Complex float cf_t;
+
 #define BPSK_LEVEL M_SQRT1_2
 
 #define QPSK_LEVEL M_SQRT1_2
@@ -31,7 +33,8 @@
 #define QAM64_LEVEL_3 (5.0f / sqrtf(42.0f))
 #define QAM64_LEVEL_4 (7.0f / sqrtf(42.0f))
 
-/* HARD DEMODULATION Thresholds, necessary for obtaining the zone of received symbol for optimized LLR approx implementation */
+/* HARD DEMODULATION Thresholds, necessary for obtaining the zone of received symbol for optimized LLR approx
+ * implementation */
 #define QAM16_THRESHOLD (2.0f / sqrtf(10.0f))
 #define QAM64_THRESHOLD_1 (2.0f / sqrtf(42.0f))
 #define QAM64_THRESHOLD_2 (4.0f / sqrtf(42.0f))
@@ -41,9 +44,6 @@
 #define QAM64_LEVEL_x 2 / sqrtf(42)
 /* this is not an QAM64 level, but, rather, an auxiliary value that can be used for computing the
  * symbol from the bit sequence */
-
-
-
 
 void set_BPSKtable(cf_t* table);
 

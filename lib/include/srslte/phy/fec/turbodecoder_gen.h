@@ -35,23 +35,28 @@
 #define SRSLTE_TURBODECODER_GEN_H
 
 #include "srslte/config.h"
-#include "srslte/phy/fec/tc_interl.h"
 #include "srslte/phy/fec/cbsegm.h"
+#include "srslte/phy/fec/tc_interl.h"
 
 #define SRSLTE_TCOD_RATE 3
 #define SRSLTE_TCOD_TOTALTAIL 12
 
-#define SRSLTE_TCOD_MAX_LEN_CB     6144
+#define SRSLTE_TCOD_MAX_LEN_CB 6144
 
 typedef struct SRSLTE_API {
   uint32_t max_long_cb;
-  int16_t *beta;
+  int16_t* beta;
 } tdec_gen_t;
 
-int tdec_gen_init(void **h, uint32_t max_long_cb);
-void tdec_gen_free(void *h);
-void tdec_gen_dec(void *h, int16_t * input, int16_t *app, int16_t * parity, int16_t *output, uint32_t long_cb);
-void tdec_gen_extract_input(int16_t *input, int16_t *syst, int16_t *parity0, int16_t *parity1, int16_t *app2, uint32_t long_cb);
-void tdec_gen_decision_byte(int16_t *app1, uint8_t *output, uint32_t long_cb);
+int  tdec_gen_init(void** h, uint32_t max_long_cb);
+void tdec_gen_free(void* h);
+void tdec_gen_dec(void* h, int16_t* input, int16_t* app, int16_t* parity, int16_t* output, uint32_t long_cb);
+void tdec_gen_extract_input(int16_t* input,
+                            int16_t* syst,
+                            int16_t* parity0,
+                            int16_t* parity1,
+                            int16_t* app2,
+                            uint32_t long_cb);
+void tdec_gen_decision_byte(int16_t* app1, uint8_t* output, uint32_t long_cb);
 
 #endif // SRSLTE_TURBODECODER_GEN_H

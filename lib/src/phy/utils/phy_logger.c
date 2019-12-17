@@ -31,21 +31,23 @@
 /*********************************************************************
     Functions for external logging
 *********************************************************************/
-static phy_log_handler_t phy_log_handler; 
-static void *callback_ctx = NULL; 
+static phy_log_handler_t phy_log_handler;
+static void*             callback_ctx = NULL;
 
-void srslte_phy_log_register_handler(void *ctx, phy_log_handler_t handler) {
-  phy_log_handler  = handler; 
-  callback_ctx = ctx; 
+void srslte_phy_log_register_handler(void* ctx, phy_log_handler_t handler)
+{
+  phy_log_handler = handler;
+  callback_ctx    = ctx;
   handler_registered++;
 }
 
- void srslte_phy_log_print(phy_logger_level_t log_level, const char *format, ...) {
-  char tmp[256];
-  va_list   args;
+void srslte_phy_log_print(phy_logger_level_t log_level, const char* format, ...)
+{
+  char    tmp[256];
+  va_list args;
   va_start(args, format);
   if (phy_log_handler) {
-    if(vsnprintf(tmp, 256, format, args) > 0) {
+    if (vsnprintf(tmp, 256, format, args) > 0) {
       phy_log_handler(log_level, callback_ctx, tmp);
     }
   }

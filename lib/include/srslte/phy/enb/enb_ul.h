@@ -44,8 +44,8 @@
 #include "srslte/phy/phch/pusch_cfg.h"
 #include "srslte/phy/phch/ra.h"
 
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 #include "srslte/config.h"
 
@@ -63,22 +63,18 @@ typedef struct SRSLTE_API {
 } srslte_enb_ul_t;
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t *q,
-                                  cf_t *in_buffer,
-                                  uint32_t max_prb);
+SRSLTE_API int srslte_enb_ul_init(srslte_enb_ul_t* q, cf_t* in_buffer, uint32_t max_prb);
 
-SRSLTE_API void srslte_enb_ul_free(srslte_enb_ul_t *q);
+SRSLTE_API void srslte_enb_ul_free(srslte_enb_ul_t* q);
 
 SRSLTE_API int
 srslte_enb_ul_set_cell(srslte_enb_ul_t* q, srslte_cell_t cell, srslte_refsignal_dmrs_pusch_cfg_t* pusch_cfg);
 
-SRSLTE_API int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, 
-                                      uint16_t rnti); 
+SRSLTE_API int srslte_enb_ul_add_rnti(srslte_enb_ul_t* q, uint16_t rnti);
 
-SRSLTE_API void srslte_enb_ul_rem_rnti(srslte_enb_ul_t *q, 
-                                      uint16_t rnti); 
+SRSLTE_API void srslte_enb_ul_rem_rnti(srslte_enb_ul_t* q, uint16_t rnti);
 
-SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t *q);
+SRSLTE_API void srslte_enb_ul_fft(srslte_enb_ul_t* q);
 
 SRSLTE_API int srslte_enb_ul_get_pucch(srslte_enb_ul_t*    q,
                                        srslte_ul_sf_cfg_t* ul_sf,

@@ -19,21 +19,21 @@
  *
  */
 
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/ringbuffer.h"
 #include "srslte/phy/utils/vector.h"
 
-int srslte_ringbuffer_init(srslte_ringbuffer_t *q, int capacity)
+int srslte_ringbuffer_init(srslte_ringbuffer_t* q, int capacity)
 {
   q->buffer = srslte_vec_malloc(capacity);
   if (!q->buffer) {
-    return -1; 
+    return -1;
   }
-  q->active     = true;
-  q->capacity   = capacity;
+  q->active   = true;
+  q->capacity = capacity;
   pthread_mutex_init(&q->mutex, NULL);
   pthread_cond_init(&q->write_cvar, NULL);
   pthread_cond_init(&q->read_cvar, NULL);
@@ -42,7 +42,7 @@ int srslte_ringbuffer_init(srslte_ringbuffer_t *q, int capacity)
   return 0;
 }
 
-void srslte_ringbuffer_free(srslte_ringbuffer_t *q)
+void srslte_ringbuffer_free(srslte_ringbuffer_t* q)
 {
   if (q) {
     srslte_ringbuffer_stop(q);
@@ -56,32 +56,32 @@ void srslte_ringbuffer_free(srslte_ringbuffer_t *q)
   }
 }
 
-void srslte_ringbuffer_reset(srslte_ringbuffer_t *q)
+void srslte_ringbuffer_reset(srslte_ringbuffer_t* q)
 {
   // Check first if it is initiated
   if (q->capacity != 0) {
     pthread_mutex_lock(&q->mutex);
     q->count = 0;
-    q->wpm = 0;
-    q->rpm = 0;
+    q->wpm   = 0;
+    q->rpm   = 0;
     pthread_mutex_unlock(&q->mutex);
   }
 }
 
-int srslte_ringbuffer_status(srslte_ringbuffer_t *q)
+int srslte_ringbuffer_status(srslte_ringbuffer_t* q)
 {
   return q->count;
 }
 
-int srslte_ringbuffer_space(srslte_ringbuffer_t *q)
+int srslte_ringbuffer_space(srslte_ringbuffer_t* q)
 {
   return q->capacity - q->count;
 }
 
-int srslte_ringbuffer_write(srslte_ringbuffer_t *q, void *p, int nof_bytes)
+int srslte_ringbuffer_write(srslte_ringbuffer_t* q, void* p, int nof_bytes)
 {
-  uint8_t *ptr = (uint8_t*) p;
-  int w_bytes = nof_bytes;
+  uint8_t* ptr     = (uint8_t*)p;
+  int      w_bytes = nof_bytes;
   pthread_mutex_lock(&q->mutex);
   if (!q->active) {
     pthread_mutex_unlock(&q->mutex);
@@ -152,11 +152,11 @@ int srslte_ringbuffer_write_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes
   return w_bytes;
 }
 
-int srslte_ringbuffer_read(srslte_ringbuffer_t *q, void *p, int nof_bytes)
+int srslte_ringbuffer_read(srslte_ringbuffer_t* q, void* p, int nof_bytes)
 {
-  uint8_t *ptr = (uint8_t*) p;
+  uint8_t* ptr = (uint8_t*)p;
   pthread_mutex_lock(&q->mutex);
-  while(q->count < nof_bytes && q->active) {
+  while (q->count < nof_bytes && q->active) {
     pthread_cond_wait(&q->write_cvar, &q->mutex);
   }
   if (!q->active) {
@@ -229,7 +229,8 @@ int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes,
   return ret;
 }
 
-void srslte_ringbuffer_stop(srslte_ringbuffer_t *q) {
+void srslte_ringbuffer_stop(srslte_ringbuffer_t* q)
+{
   pthread_mutex_lock(&q->mutex);
   q->active = false;
   pthread_cond_broadcast(&q->write_cvar);

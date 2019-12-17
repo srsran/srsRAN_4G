@@ -134,7 +134,7 @@ void phy_common::set_ue_ul_cfg(srslte_ue_ul_cfg_t* ue_ul_cfg)
 {
   // Setup uplink configuration
   bzero(ue_ul_cfg, sizeof(srslte_ue_ul_cfg_t));
-  ue_ul_cfg->cfo_en                              = true;
+  ue_ul_cfg->cfo_en = true;
   if (args->force_ul_amplitude > 0.0f) {
     ue_ul_cfg->force_peak_amplitude = args->force_ul_amplitude;
     ue_ul_cfg->normalize_mode       = SRSLTE_UE_UL_NORMALIZE_MODE_FORCE_AMPLITUDE;
@@ -303,7 +303,7 @@ bool phy_common::get_ul_pending_ack(srslte_dl_sf_cfg_t*   sf,
                                     srslte_dci_ul_t*      dci_ul)
 {
   std::lock_guard<std::mutex> lock(pending_ul_ack_mutex);
-  bool ret = false;
+  bool                        ret = false;
   if (pending_ul_ack[TTIMOD(sf->tti)][cc_idx][phich_grant->I_phich].enable) {
     *phich_grant = pending_ul_ack[TTIMOD(sf->tti)][cc_idx][phich_grant->I_phich].phich_grant;
     *dci_ul      = pending_ul_ack[TTIMOD(sf->tti)][cc_idx][phich_grant->I_phich].dci_ul;
@@ -317,7 +317,7 @@ bool phy_common::get_ul_pending_ack(srslte_dl_sf_cfg_t*   sf,
 bool phy_common::is_any_ul_pending_ack()
 {
   std::lock_guard<std::mutex> lock(pending_ul_ack_mutex);
-  bool ret = false;
+  bool                        ret = false;
   for (int i = 0; i < TTIMOD_SZ && !ret; i++) {
     for (int n = 0; n < SRSLTE_MAX_CARRIERS && !ret; n++) {
       for (int j = 0; j < 2 && !ret; j++) {
@@ -362,7 +362,7 @@ void phy_common::set_ul_pending_grant(srslte_dl_sf_cfg_t* sf, uint32_t cc_idx, s
 bool phy_common::get_ul_pending_grant(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, uint32_t* pid, srslte_dci_ul_t* dci)
 {
   std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
-  bool ret = false;
+  bool                        ret = false;
   if (pending_ul_grant[TTIMOD(sf->tti)][cc_idx].enable) {
     Debug("Reading grant sf->tti=%d idx=%d\n", sf->tti, TTIMOD(sf->tti));
     if (pid) {
@@ -379,8 +379,11 @@ bool phy_common::get_ul_pending_grant(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, u
 }
 
 // SF->TTI at which PHICH is received
-void phy_common::set_ul_received_ack(
-    srslte_dl_sf_cfg_t* sf, uint32_t cc_idx, bool ack_value, uint32_t I_phich, srslte_dci_ul_t* dci_ul)
+void phy_common::set_ul_received_ack(srslte_dl_sf_cfg_t* sf,
+                                     uint32_t            cc_idx,
+                                     bool                ack_value,
+                                     uint32_t            I_phich,
+                                     srslte_dci_ul_t*    dci_ul)
 {
   std::lock_guard<std::mutex> lock(received_ul_ack_mutex);
   received_ul_ack[TTIMOD(tti_pusch_hi(sf))][cc_idx].hi_present = true;
@@ -393,7 +396,7 @@ void phy_common::set_ul_received_ack(
 bool phy_common::get_ul_received_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, bool* ack_value, srslte_dci_ul_t* dci_ul)
 {
   std::lock_guard<std::mutex> lock(received_ul_ack_mutex);
-  bool ret = false;
+  bool                        ret = false;
   if (received_ul_ack[TTIMOD(sf->tti)][cc_idx].hi_present) {
     if (ack_value) {
       *ack_value = received_ul_ack[TTIMOD(sf->tti)][cc_idx].hi_value;
@@ -490,8 +493,8 @@ das_index_t das_table[7][10] = {
 bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srslte_pdsch_ack_cc_t* ack)
 {
   std::lock_guard<std::mutex> lock(pending_dl_ack_mutex);
-  bool     ret = false;
-  uint32_t M;
+  bool                        ret = false;
+  uint32_t                    M;
   if (cell.frame_type == SRSLTE_FDD) {
     M = 1;
   } else {
@@ -646,7 +649,7 @@ void phy_common::set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& 
 {
   if (sync_metrics_read) {
     sync_metrics[cc_idx] = m;
-    sync_metrics_count = 1;
+    sync_metrics_count   = 1;
     if (cc_idx == 0)
       sync_metrics_read = false;
   } else {
@@ -795,7 +798,7 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
           uint32_t            mbsfn_per_frame =
               mcch.pmch_info_list[0].sf_alloc_end / enum_to_number(mcch.pmch_info_list[0].mch_sched_period);
           uint32_t                     frame_alloc_idx = sfn % enum_to_number(mcch.common_sf_alloc_period);
-          uint32_t sf_alloc_idx    = frame_alloc_idx * mbsfn_per_frame + ((sf < 4) ? sf - 1 : sf - 3);
+          uint32_t                     sf_alloc_idx = frame_alloc_idx * mbsfn_per_frame + ((sf < 4) ? sf - 1 : sf - 3);
           std::unique_lock<std::mutex> lock(mtch_mutex);
           while (!have_mtch_stop) {
             mtch_cvar.wait(lock);

@@ -28,13 +28,20 @@
 #include "srsenb/hdr/phy/sf_worker.h"
 #include "srsenb/hdr/phy/txrx.h"
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)                                                                                                \
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...)                                                                                              \
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)                                                                                                 \
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)                                                                                                \
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  log_h->debug(fmt, ##__VA_ARGS__)
 
-using namespace std; 
-
+using namespace std;
 
 namespace srsenb {
 
@@ -50,14 +57,14 @@ bool txrx::init(srslte::radio_interface_phy* radio_h_,
                 srslte::log*                 log_h_,
                 uint32_t                     prio_)
 {
-  radio_h      = radio_h_;
-  log_h        = log_h_;     
-  workers_pool = workers_pool_;
-  worker_com   = worker_com_;
-  prach        = prach_; 
-  tx_worker_cnt = 0; 
-  running      = true; 
-  
+  radio_h       = radio_h_;
+  log_h         = log_h_;
+  workers_pool  = workers_pool_;
+  worker_com    = worker_com_;
+  prach         = prach_;
+  tx_worker_cnt = 0;
+  running       = true;
+
   nof_workers = workers_pool->get_nof_workers();
   worker_com->set_nof_workers(nof_workers);
 
@@ -66,7 +73,7 @@ bool txrx::init(srslte::radio_interface_phy* radio_h_,
   }
 
   start(prio_);
-  return true; 
+  return true;
 }
 
 void txrx::stop()
@@ -84,7 +91,7 @@ void txrx::run_thread()
   uint32_t           sf_len                   = SRSLTE_SF_LEN_PRB(worker_com->cell.nof_prb);
 
   float samp_rate = srslte_sampling_freq_hz(worker_com->cell.nof_prb);
-  log_h->console("Setting Sampling frequency %.2f MHz\n", (float) samp_rate/1000000);
+  log_h->console("Setting Sampling frequency %.2f MHz\n", (float)samp_rate / 1000000);
 
   // Configure radio
   radio_h->set_rx_srate(0, samp_rate);
@@ -128,8 +135,8 @@ void txrx::run_thread()
             worker->get_id());
 
       worker->set_time(tti, tx_worker_cnt, tx_time);
-      tx_worker_cnt = (tx_worker_cnt+1)%nof_workers;
-      
+      tx_worker_cnt = (tx_worker_cnt + 1) % nof_workers;
+
       // Trigger phy worker execution
       workers_pool->start_worker(worker);
 
@@ -139,11 +146,9 @@ void txrx::run_thread()
       }
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
-      running = false; 
+      running = false;
     }
   }
 }
 
-
-  
-}
+} // namespace srsenb

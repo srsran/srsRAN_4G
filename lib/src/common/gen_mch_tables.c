@@ -21,12 +21,11 @@
 
 #include "srslte/common/gen_mch_tables.h"
 
-
 /******************************************************************************
  * Key Generation
  *****************************************************************************/
 
-void generate_frame_table(uint8_t *table, uint8_t alloc)
+void generate_frame_table(uint8_t* table, uint8_t alloc)
 {
   table[1] = (alloc >> 5) & 0x01;
   table[2] = (alloc >> 4) & 0x01;
@@ -36,21 +35,21 @@ void generate_frame_table(uint8_t *table, uint8_t alloc)
   table[8] = (alloc >> 0) & 0x01;
 }
 
-void generate_mch_table(uint8_t *table, uint32_t sf_alloc, uint8_t num_frames)
+void generate_mch_table(uint8_t* table, uint32_t sf_alloc, uint8_t num_frames)
 {
-  if(num_frames == 1){
-    uint8_t alloc = (sf_alloc) & 0x3F;
+  if (num_frames == 1) {
+    uint8_t alloc = (sf_alloc)&0x3F;
     generate_frame_table(table, alloc);
-  } else if(num_frames == 4){
-    for(uint32_t j=0; j<4; j++){
-      uint8_t alloc = (sf_alloc >> 6*(3-j)) & 0x3F;
-      generate_frame_table(&table[j*10], alloc);
+  } else if (num_frames == 4) {
+    for (uint32_t j = 0; j < 4; j++) {
+      uint8_t alloc = (sf_alloc >> 6 * (3 - j)) & 0x3F;
+      generate_frame_table(&table[j * 10], alloc);
     }
   }
 }
 
-void generate_mcch_table(uint8_t *table, uint32_t sf_alloc)
+void generate_mcch_table(uint8_t* table, uint32_t sf_alloc)
 {
-  uint8_t alloc = (sf_alloc) & 0x3F;
+  uint8_t alloc = (sf_alloc)&0x3F;
   generate_frame_table(table, alloc);
 }

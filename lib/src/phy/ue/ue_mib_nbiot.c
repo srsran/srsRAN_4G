@@ -186,7 +186,7 @@ int srslte_ue_mib_nbiot_decode(srslte_ue_mib_nbiot_t* q,
 
 int srslte_ue_mib_sync_nbiot_init_multi(
     srslte_ue_mib_sync_nbiot_t* q,
-    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
     uint32_t nof_rx_antennas,
     void*    stream_handler)
 {
@@ -247,7 +247,7 @@ int srslte_ue_mib_sync_nbiot_decode(srslte_ue_mib_sync_nbiot_t* q,
   int mib_ret = SRSLTE_UE_MIB_NBIOT_NOTFOUND;
 
   if (q != NULL) {
-    int ret = SRSLTE_SUCCESS;
+    int      ret        = SRSLTE_SUCCESS;
     uint32_t nof_frames = 0;
     do {
       mib_ret = SRSLTE_UE_MIB_NBIOT_NOTFOUND;

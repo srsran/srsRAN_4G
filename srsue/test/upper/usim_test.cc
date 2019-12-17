@@ -60,20 +60,20 @@ uint8_t autn_enb[] = {0xd7, 0x44, 0x51, 0x9b, 0x25, 0xaa, 0x80, 0x00, 0x84, 0xba
 uint16 mcc = 208;
 uint16 mnc = 93;
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   srslte::log_filter usim_log("USIM");
-  uint8_t res[16];
-  int res_len;
-  uint8_t k_asme[32];
+  uint8_t            res[16];
+  int                res_len;
+  uint8_t            k_asme[32];
 
   usim_args_t args;
-  args.algo = "milenage";
-  args.imei = "356092040793011";
-  args.imsi = "208930000000001";
-  args.k = "8BAF473F2F8FD09487CCCBD7097C6862";
+  args.algo     = "milenage";
+  args.imei     = "356092040793011";
+  args.imsi     = "208930000000001";
+  args.k        = "8BAF473F2F8FD09487CCCBD7097C6862";
   args.using_op = true;
-  args.op = "11111111111111111111111111111111";
+  args.op       = "11111111111111111111111111111111";
 
   srsue::usim usim(&usim_log);
   usim.init(&args);

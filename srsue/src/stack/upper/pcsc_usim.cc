@@ -56,7 +56,7 @@ int pcsc_usim::init(usim_args_t* args)
   }
 
   // Read IMSI from SIM card
-  char tmp[15];
+  char   tmp[15];
   size_t tmp_len = 15; // set to max IMSI length
   if (sc.get_imsi(tmp, &tmp_len)) {
     log->error("Error reading IMSI from SIM.\n");
@@ -65,11 +65,10 @@ int pcsc_usim::init(usim_args_t* args)
   imsi_str.assign(tmp, tmp_len);
 
   // Check extracted IMSI and convert
-  if(15 == imsi_str.length()) {
-    const char *imsi_c = imsi_str.c_str();
-    imsi = 0;
-    for(int i = 0; i < 15; i++)
-    {
+  if (15 == imsi_str.length()) {
+    const char* imsi_c = imsi_str.c_str();
+    imsi               = 0;
+    for (int i = 0; i < 15; i++) {
       imsi *= 10;
       imsi += imsi_c[i] - '0';
     }
@@ -80,11 +79,10 @@ int pcsc_usim::init(usim_args_t* args)
   }
 
   // Check IMEI
-  if(15 == args->imei.length()) {
-    const char *imei_c = args->imei.c_str();
-    imei = 0;
-    for(int i = 0; i < 15; i++)
-    {
+  if (15 == args->imei.length()) {
+    const char* imei_c = args->imei.c_str();
+    imei               = 0;
+    for (int i = 0; i < 15; i++) {
       imei *= 10;
       imei += imei_c[i] - '0';
     }
@@ -99,14 +97,12 @@ int pcsc_usim::init(usim_args_t* args)
   log->debug("MNC length %d\n", mnc_length);
 
   initiated = true;
-  ret = SRSLTE_SUCCESS;
+  ret       = SRSLTE_SUCCESS;
 
   return ret;
 }
 
-void pcsc_usim::stop()
-{}
-
+void pcsc_usim::stop() {}
 
 /*******************************************************************************
   NAS interface
@@ -128,13 +124,13 @@ bool pcsc_usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
     return false;
   }
 
-  if(NULL == imsi_ || n < 15) {
+  if (NULL == imsi_ || n < 15) {
     log->error("Invalid parameters to get_imsi_vec");
     return false;
   }
 
   uint64_t temp = imsi;
-  for(int i=14;i>=0;i--) {
+  for (int i = 14; i >= 0; i--) {
     imsi_[i] = temp % 10;
     temp /= 10;
   }
@@ -148,14 +144,13 @@ bool pcsc_usim::get_imei_vec(uint8_t* imei_, uint32_t n)
     return false;
   }
 
-  if(NULL == imei_ || n < 15) {
+  if (NULL == imei_ || n < 15) {
     log->error("Invalid parameters to get_imei_vec");
     return false;
   }
 
   uint64 temp = imei;
-  for(int i=14;i>=0;i--)
-  {
+  for (int i = 14; i >= 0; i--) {
     imei_[i] = temp % 10;
     temp /= 10;
   }
@@ -175,12 +170,12 @@ bool pcsc_usim::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
   std::ostringstream plmn_str;
 
   int mcc_len = 3;
-  for (int i=0;i<mcc_len;i++) {
+  for (int i = 0; i < mcc_len; i++) {
     plmn_str << (int)imsi_vec[i];
   }
 
   int mnc_len = sc.get_mnc_len();
-  for (int i=mcc_len;i<mcc_len+mnc_len;i++) {
+  for (int i = mcc_len; i < mcc_len + mnc_len; i++) {
     plmn_str << (int)imsi_vec[i];
   }
 
@@ -194,13 +189,13 @@ bool pcsc_usim::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
   return true;
 }
 
-auth_result_t pcsc_usim::generate_authentication_response(uint8_t  *rand,
-                                                          uint8_t  *autn_enb,
-                                                          uint16_t  mcc,
-                                                          uint16_t  mnc,
-                                                          uint8_t  *res,
-                                                          int      *res_len,
-                                                          uint8_t  *k_asme)
+auth_result_t pcsc_usim::generate_authentication_response(uint8_t* rand,
+                                                          uint8_t* autn_enb,
+                                                          uint16_t mcc,
+                                                          uint16_t mnc,
+                                                          uint8_t* res,
+                                                          int*     res_len,
+                                                          uint8_t* k_asme)
 {
   auth_result_t ret = AUTH_FAILED;
   if (!initiated) {
@@ -231,8 +226,8 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t  *rand,
   memset(ak, 0x00, AK_LEN);
 
   // Extract sqn from autn
-  uint8_t  sqn[SQN_LEN];
-  for(int i=0;i<6;i++) {
+  uint8_t sqn[SQN_LEN];
+  for (int i = 0; i < 6; i++) {
     sqn[i] = autn_enb[i] ^ ak[i];
   }
 
@@ -242,13 +237,7 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t  *rand,
   log->debug_hex(ak, AK_LEN, "AK:\n");
   log->debug_hex(sqn, SQN_LEN, "SQN:\n");
   log->debug("mcc=%d, mnc=%d\n", mcc, mnc);
-  security_generate_k_asme( ck,
-                            ik,
-                            ak,
-                            sqn,
-                            mcc,
-                            mnc,
-                            k_asme);
+  security_generate_k_asme(ck, ik, ak, sqn, mcc, mnc, k_asme);
   log->info_hex(k_asme, KEY_LEN, "K_ASME:\n");
 
   ret = AUTH_OK;
@@ -256,11 +245,11 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t  *rand,
   return ret;
 }
 
-void pcsc_usim::generate_nas_keys(uint8_t *k_asme,
-                             uint8_t *k_nas_enc,
-                             uint8_t *k_nas_int,
-                             CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                             INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+void pcsc_usim::generate_nas_keys(uint8_t*                    k_asme,
+                                  uint8_t*                    k_nas_enc,
+                                  uint8_t*                    k_nas_int,
+                                  CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                  INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if (!initiated) {
     ERROR("USIM not initiated!\n");
@@ -268,25 +257,21 @@ void pcsc_usim::generate_nas_keys(uint8_t *k_asme,
   }
 
   // Generate K_nas_enc and K_nas_int
-  security_generate_k_nas( k_asme,
-                           cipher_algo,
-                           integ_algo,
-                           k_nas_enc,
-                           k_nas_int);
+  security_generate_k_nas(k_asme, cipher_algo, integ_algo, k_nas_enc, k_nas_int);
 }
 
 /*******************************************************************************
   RRC interface
 *******************************************************************************/
 
-void pcsc_usim::generate_as_keys(uint8_t *k_asme,
-                            uint32_t count_ul,
-                            uint8_t *k_rrc_enc,
-                            uint8_t *k_rrc_int,
-                            uint8_t *k_up_enc,
-                            uint8_t *k_up_int,
-                            CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                            INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+void pcsc_usim::generate_as_keys(uint8_t*                    k_asme,
+                                 uint32_t                    count_ul,
+                                 uint8_t*                    k_rrc_enc,
+                                 uint8_t*                    k_rrc_int,
+                                 uint8_t*                    k_up_enc,
+                                 uint8_t*                    k_up_int,
+                                 CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                 INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if (!initiated) {
     ERROR("USIM not initiated!\n");
@@ -294,62 +279,50 @@ void pcsc_usim::generate_as_keys(uint8_t *k_asme,
   }
 
   // Generate K_enb
-   security_generate_k_enb( k_asme,
-                            count_ul,
-                            k_enb);
+  security_generate_k_enb(k_asme, count_ul, k_enb);
 
   memcpy(this->k_asme, k_asme, 32);
 
   // Generate K_rrc_enc and K_rrc_int
-  security_generate_k_rrc( k_enb,
-                           cipher_algo,
-                           integ_algo,
-                           k_rrc_enc,
-                           k_rrc_int);
+  security_generate_k_rrc(k_enb, cipher_algo, integ_algo, k_rrc_enc, k_rrc_int);
 
   // Generate K_up_enc and K_up_int
-  security_generate_k_up( k_enb,
-                          cipher_algo,
-                          integ_algo,
-                          k_up_enc,
-                          k_up_int);
+  security_generate_k_up(k_enb, cipher_algo, integ_algo, k_up_enc, k_up_int);
 
   current_ncc = 0;
 }
 
-void pcsc_usim::generate_as_keys_ho(uint32_t pci,
-                               uint32_t earfcn,
-                               int ncc,
-                               uint8_t *k_rrc_enc,
-                               uint8_t *k_rrc_int,
-                               uint8_t *k_up_enc,
-                               uint8_t *k_up_int,
-                               CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                               INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+void pcsc_usim::generate_as_keys_ho(uint32_t                    pci,
+                                    uint32_t                    earfcn,
+                                    int                         ncc,
+                                    uint8_t*                    k_rrc_enc,
+                                    uint8_t*                    k_rrc_int,
+                                    uint8_t*                    k_up_enc,
+                                    uint8_t*                    k_up_int,
+                                    CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                    INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if (!initiated) {
     ERROR("USIM not initiated!\n");
     return;
   }
 
-  uint8_t *enb_star_key = k_enb;
+  uint8_t* enb_star_key = k_enb;
 
   if (ncc < 0) {
     ncc = current_ncc;
   }
 
   // Generate successive NH
-  while(current_ncc != (uint32_t) ncc) {
-    uint8_t *sync = NULL;
+  while (current_ncc != (uint32_t)ncc) {
+    uint8_t* sync = NULL;
     if (current_ncc) {
       sync = nh;
     } else {
       sync = k_enb;
     }
     // Generate NH
-    security_generate_nh(k_asme,
-                         sync,
-                         nh);
+    security_generate_nh(k_asme, sync, nh);
 
     current_ncc++;
     if (current_ncc == 7) {
@@ -359,45 +332,33 @@ void pcsc_usim::generate_as_keys_ho(uint32_t pci,
   }
 
   // Generate K_enb
-  security_generate_k_enb_star( enb_star_key,
-                                pci,
-                                earfcn,
-                                k_enb_star);
+  security_generate_k_enb_star(enb_star_key, pci, earfcn, k_enb_star);
 
   // K_enb becomes K_enb*
   memcpy(k_enb, k_enb_star, 32);
 
   // Generate K_rrc_enc and K_rrc_int
-  security_generate_k_rrc( k_enb,
-                           cipher_algo,
-                           integ_algo,
-                           k_rrc_enc,
-                           k_rrc_int);
+  security_generate_k_rrc(k_enb, cipher_algo, integ_algo, k_rrc_enc, k_rrc_int);
 
   // Generate K_up_enc and K_up_int
-  security_generate_k_up( k_enb,
-                          cipher_algo,
-                          integ_algo,
-                          k_up_enc,
-                          k_up_int);
+  security_generate_k_up(k_enb, cipher_algo, integ_algo, k_up_enc, k_up_int);
 }
 
 /*******************************************************************************
   Helpers
 *******************************************************************************/
 
-
 /*********************************
  * PC/SC class
  ********************************/
 
 // return 0 if initialization was successfull, -1 otherwies
-int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
+int pcsc_usim::scard::init(usim_args_t* args, srslte::log* log_)
 {
-  int ret_value = SRSLTE_ERROR;
-  uint pos = 0; // SC reader
+  int  ret_value    = SRSLTE_ERROR;
+  uint pos          = 0; // SC reader
   bool reader_found = false;
-  //int transaction = 1;
+  // int transaction = 1;
   size_t blen;
   log = log_;
 
@@ -409,13 +370,13 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
   }
 
   unsigned long len = 0;
-  ret = SCardListReaders(scard_context, NULL, NULL, &len);
+  ret               = SCardListReaders(scard_context, NULL, NULL, &len);
   if (ret != SCARD_S_SUCCESS) {
     log->error("SCardListReaders(): %s\n", pcsc_stringify_error(ret));
     return ret_value;
   }
 
-  char *readers = (char *)malloc(len);
+  char* readers = (char*)malloc(len);
   if (readers == NULL) {
     log->error("Malloc failed\n");
     return ret_value;
@@ -431,26 +392,30 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
     return ret_value;
   }
 
-
   /* readers: NULL-separated list of reader names, and terminating NULL */
   pos = 0;
-  while (pos < len-1) {
-      log->info("Available Card Reader: %s\n", &readers[pos]);
-      while (readers[pos] != '\0' && pos < len) {
-        pos++;
-      }
-      pos++; // skip separator
+  while (pos < len - 1) {
+    log->info("Available Card Reader: %s\n", &readers[pos]);
+    while (readers[pos] != '\0' && pos < len) {
+      pos++;
+    }
+    pos++; // skip separator
   }
 
   reader_found = false;
-  pos = 0;
+  pos          = 0;
 
   // If no reader specified, test all available readers for SIM cards. Otherwise consider specified reader only.
   if (args->reader.length() == 0) {
     while (pos < len && !reader_found) {
       log->info("Trying Card Reader: %s\n", &readers[pos]);
       // Connect to card
-      ret = SCardConnect(scard_context, &readers[pos], SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &scard_handle, &scard_protocol);
+      ret = SCardConnect(scard_context,
+                         &readers[pos],
+                         SCARD_SHARE_SHARED,
+                         SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
+                         &scard_handle,
+                         &scard_protocol);
       if (ret == SCARD_S_SUCCESS) {
         reader_found = true;
       } else {
@@ -462,7 +427,7 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
         log->info("Failed to use Card Reader: %s\n", &readers[pos]);
 
         // proceed to next reader
-        while (pos < len && readers[pos] != '\0' ) {
+        while (pos < len && readers[pos] != '\0') {
           pos++;
         }
         pos++; // skip separator
@@ -476,7 +441,7 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
         log->info("Card Reader found: %s\n", args->reader.c_str());
       } else {
         // next reader
-        while (pos < len && readers[pos] != '\0' ) {
+        while (pos < len && readers[pos] != '\0') {
           pos++;
         }
         pos++; // skip separator
@@ -485,7 +450,12 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
     if (!reader_found) {
       log->error("Cannot find reader: %s\n", args->reader.c_str());
     } else {
-      ret = SCardConnect(scard_context, &readers[pos], SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &scard_handle, &scard_protocol);
+      ret = SCardConnect(scard_context,
+                         &readers[pos],
+                         SCARD_SHARE_SHARED,
+                         SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1,
+                         &scard_handle,
+                         &scard_protocol);
       if (ret == SCARD_S_SUCCESS) {
         // successfully connected to card
       } else {
@@ -504,7 +474,9 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
   readers = NULL;
 
   log->info("Card=0x%x active_protocol=%lu (%s)\n",
-                 (unsigned int)scard_handle, (unsigned long)scard_protocol, scard_protocol == SCARD_PROTOCOL_T0 ? "T0" : "T1");
+            (unsigned int)scard_handle,
+            (unsigned long)scard_protocol,
+            scard_protocol == SCARD_PROTOCOL_T0 ? "T0" : "T1");
 
   ret = SCardBeginTransaction(scard_handle);
   if (ret != SCARD_S_SUCCESS) {
@@ -537,7 +509,7 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
     }
   } else {
     unsigned char aid[32];
-    int aid_len;
+    int           aid_len;
 
     aid_len = get_aid(aid, sizeof(aid));
     if (aid_len < 0) {
@@ -593,7 +565,7 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
 
   ret = SCardEndTransaction(scard_handle, SCARD_LEAVE_CARD);
   if (ret != SCARD_S_SUCCESS) {
-    log->debug("SCARD: Could not end transaction: 0x%x\n", (unsigned int) ret);
+    log->debug("SCARD: Could not end transaction: 0x%x\n", (unsigned int)ret);
     goto clean_exit;
   }
 
@@ -607,19 +579,23 @@ clean_exit:
   return ret_value;
 }
 
-
-int pcsc_usim::scard::_select_file(unsigned short file_id, unsigned char *buf, size_t *buf_len, sim_types_t sim_type, unsigned char *aid, size_t aidlen)
+int pcsc_usim::scard::_select_file(unsigned short file_id,
+                                   unsigned char* buf,
+                                   size_t*        buf_len,
+                                   sim_types_t    sim_type,
+                                   unsigned char* aid,
+                                   size_t         aidlen)
 {
-  long ret;
+  long          ret;
   unsigned char resp[3];
-  unsigned char cmd[50] = { SIM_CMD_SELECT };
-  int cmdlen;
-  unsigned char get_resp[5] = { SIM_CMD_GET_RESPONSE };
-  size_t len, rlen;
+  unsigned char cmd[50] = {SIM_CMD_SELECT};
+  int           cmdlen;
+  unsigned char get_resp[5] = {SIM_CMD_GET_RESPONSE};
+  size_t        len, rlen;
 
   if (sim_type == SCARD_USIM) {
-    cmd[0] = USIM_CLA;
-    cmd[3] = 0x04;
+    cmd[0]      = USIM_CLA;
+    cmd[3]      = 0x04;
     get_resp[0] = USIM_CLA;
   }
 
@@ -628,7 +604,7 @@ int pcsc_usim::scard::_select_file(unsigned short file_id, unsigned char *buf, s
     log->debug_hex(aid, aidlen, "SCARD: select file by AID");
     if (5 + aidlen > sizeof(cmd))
       return -1;
-    cmd[2] = 0x04; /* Select by AID */
+    cmd[2] = 0x04;   /* Select by AID */
     cmd[4] = aidlen; /* len */
     memcpy(cmd + 5, aid, aidlen);
     cmdlen = 5 + aidlen;
@@ -670,7 +646,7 @@ int pcsc_usim::scard::_select_file(unsigned short file_id, unsigned char *buf, s
   log->debug("SCARD: trying to get response (%d bytes)\n", resp[1]);
 
   rlen = *buf_len;
-  ret = transmit(get_resp, sizeof(get_resp), buf, &rlen);
+  ret  = transmit(get_resp, sizeof(get_resp), buf, &rlen);
   if (ret == SCARD_S_SUCCESS) {
     *buf_len = resp[1] < rlen ? resp[1] : rlen;
     return 0;
@@ -680,25 +656,25 @@ int pcsc_usim::scard::_select_file(unsigned short file_id, unsigned char *buf, s
   return -1;
 }
 
-
-int pcsc_usim::scard::select_file(unsigned short file_id,unsigned char *buf, size_t *buf_len)
+int pcsc_usim::scard::select_file(unsigned short file_id, unsigned char* buf, size_t* buf_len)
 {
   return _select_file(file_id, buf, buf_len, sim_type, NULL, 0);
 }
 
-
-long pcsc_usim::scard::transmit(unsigned char *_send, size_t send_len, unsigned char *_recv, size_t *recv_len)
+long pcsc_usim::scard::transmit(unsigned char* _send, size_t send_len, unsigned char* _recv, size_t* recv_len)
 {
-  long ret;
+  long          ret;
   unsigned long rlen;
 
   log->debug_hex(_send, send_len, "SCARD: scard_transmit: send\n");
-  rlen = *recv_len;
-  ret = SCardTransmit(scard_handle,
-                      scard_protocol == SCARD_PROTOCOL_T1 ?
-                      SCARD_PCI_T1 : SCARD_PCI_T0,
-                      _send, (unsigned long) send_len,
-                      NULL, _recv, &rlen);
+  rlen      = *recv_len;
+  ret       = SCardTransmit(scard_handle,
+                      scard_protocol == SCARD_PROTOCOL_T1 ? SCARD_PCI_T1 : SCARD_PCI_T0,
+                      _send,
+                      (unsigned long)send_len,
+                      NULL,
+                      _recv,
+                      &rlen);
   *recv_len = rlen;
   if (ret == SCARD_S_SUCCESS) {
     log->debug_hex(_recv, rlen, "SCARD: SCardTransmit: recv\n");
@@ -708,7 +684,7 @@ long pcsc_usim::scard::transmit(unsigned char *_send, size_t send_len, unsigned 
   return ret;
 }
 
-int pcsc_usim::scard::pin_needed(unsigned char *hdr, size_t hlen)
+int pcsc_usim::scard::pin_needed(unsigned char* hdr, size_t hlen)
 {
   if (sim_type == SCARD_GSM_SIM) {
     if (hlen > SCARD_CHV1_OFFSET && !(hdr[SCARD_CHV1_OFFSET] & SCARD_CHV1_FLAG))
@@ -730,15 +706,13 @@ int pcsc_usim::scard::pin_needed(unsigned char *hdr, size_t hlen)
   return -1;
 }
 
-
-
 int pcsc_usim::scard::get_pin_retry_counter()
 {
-  long ret;
+  long          ret;
   unsigned char resp[3];
-  unsigned char cmd[5] = { SIM_CMD_VERIFY_CHV1 };
-  size_t len;
-  uint16_t val;
+  unsigned char cmd[5] = {SIM_CMD_VERIFY_CHV1};
+  size_t        len;
+  uint16_t      val;
 
   log->info("SCARD: fetching PIN retry counter\n");
 
@@ -769,9 +743,7 @@ int pcsc_usim::scard::get_pin_retry_counter()
   return 0;
 }
 
-
-
-int pcsc_usim::scard::get_aid(unsigned char *aid, size_t maxlen)
+int pcsc_usim::scard::get_aid(unsigned char* aid, size_t maxlen)
 {
   int rlen, rec;
   struct efdir {
@@ -781,14 +753,14 @@ int pcsc_usim::scard::get_aid(unsigned char *aid, size_t maxlen)
     unsigned char aid_len;
     unsigned char rid[5];
     unsigned char appl_code[2]; /* 0x1002 for 3G USIM */
-  } *efdir;
+  } * efdir;
   unsigned char buf[127], *aid_pos;
-  size_t blen;
-  unsigned int aid_len = 0;
+  size_t        blen;
+  unsigned int  aid_len = 0;
 
-  efdir = (struct efdir *) buf;
+  efdir   = (struct efdir*)buf;
   aid_pos = &buf[4];
-  blen = sizeof(buf);
+  blen    = sizeof(buf);
   if (select_file(SCARD_FILE_EF_DIR, buf, &blen)) {
     log->debug("SCARD: Failed to read EF_DIR\n");
     return -1;
@@ -802,7 +774,7 @@ int pcsc_usim::scard::get_aid(unsigned char *aid, size_t maxlen)
       return -1;
     }
     blen = sizeof(buf);
-    if (rlen > (int) blen) {
+    if (rlen > (int)blen) {
       log->debug("SCARD: Too long EF_DIR record\n");
       return -1;
     }
@@ -859,9 +831,9 @@ int pcsc_usim::scard::get_aid(unsigned char *aid, size_t maxlen)
 int pcsc_usim::scard::get_record_len(unsigned char recnum, unsigned char mode)
 {
   unsigned char buf[255];
-  unsigned char cmd[5] = { SIM_CMD_READ_RECORD /* , len */ };
-  size_t blen;
-  long ret;
+  unsigned char cmd[5] = {SIM_CMD_READ_RECORD /* , len */};
+  size_t        blen;
+  long          ret;
 
   if (sim_type == SCARD_USIM)
     cmd[0] = USIM_CLA;
@@ -870,7 +842,7 @@ int pcsc_usim::scard::get_record_len(unsigned char recnum, unsigned char mode)
   cmd[4] = sizeof(buf);
 
   blen = sizeof(buf);
-  ret = transmit(cmd, sizeof(cmd), buf, &blen);
+  ret  = transmit(cmd, sizeof(cmd), buf, &blen);
   if (ret != SCARD_S_SUCCESS) {
     log->debug("SCARD: failed to determine file length for record %d\n", recnum);
     return -1;
@@ -886,13 +858,12 @@ int pcsc_usim::scard::get_record_len(unsigned char recnum, unsigned char mode)
   return buf[1];
 }
 
-
-int pcsc_usim::scard::read_record(unsigned char *data, size_t len, unsigned char recnum, unsigned char mode)
+int pcsc_usim::scard::read_record(unsigned char* data, size_t len, unsigned char recnum, unsigned char mode)
 {
-  unsigned char cmd[5] = { SIM_CMD_READ_RECORD /* , len */ };
-  size_t blen = len + 3;
-  unsigned char *buf;
-  long ret;
+  unsigned char  cmd[5] = {SIM_CMD_READ_RECORD /* , len */};
+  size_t         blen   = len + 3;
+  unsigned char* buf;
+  long           ret;
 
   if (sim_type == SCARD_USIM)
     cmd[0] = USIM_CLA;
@@ -910,7 +881,7 @@ int pcsc_usim::scard::read_record(unsigned char *data, size_t len, unsigned char
     return -2;
   }
   if (blen != len + 2) {
-    log->debug("SCARD: record read returned unexpected length %ld (expected %ld)\n", (long) blen, (long) len + 2);
+    log->debug("SCARD: record read returned unexpected length %ld (expected %ld)\n", (long)blen, (long)len + 2);
     free(buf);
     return -3;
   }
@@ -927,7 +898,6 @@ int pcsc_usim::scard::read_record(unsigned char *data, size_t len, unsigned char
   return 0;
 }
 
-
 /**
  * scard_get_imsi - Read IMSI from SIM/USIM card
  * @scard: Pointer to private data from scard_init()
@@ -942,18 +912,18 @@ int pcsc_usim::scard::read_record(unsigned char *data, size_t len, unsigned char
  * file is PIN protected, scard_set_pin() must have been used to set the
  * correct PIN code before calling scard_get_imsi().
  */
-int pcsc_usim::scard::get_imsi(char *imsi, size_t *len)
+int pcsc_usim::scard::get_imsi(char* imsi, size_t* len)
 {
   unsigned char buf[100];
-  size_t blen, imsilen, i;
-  char *pos;
+  size_t        blen, imsilen, i;
+  char*         pos;
 
   log->debug("SCARD: reading IMSI from (GSM) EF-IMSI\n");
   blen = sizeof(buf);
   if (select_file(SCARD_FILE_GSM_EF_IMSI, buf, &blen))
     return -1;
   if (blen < 4) {
-    log->warning("SCARD: too short (GSM) EF-IMSI header (len=%ld)\n", (long) blen);
+    log->warning("SCARD: too short (GSM) EF-IMSI header (len=%ld)\n", (long)blen);
     return -2;
   }
 
@@ -966,12 +936,12 @@ int pcsc_usim::scard::get_imsi(char *imsi, size_t *len)
     blen = file_size;
   }
   if (blen < 2 || blen > sizeof(buf)) {
-    log->debug("SCARD: invalid IMSI file length=%ld\n", (long) blen);
+    log->debug("SCARD: invalid IMSI file length=%ld\n", (long)blen);
     return -3;
   }
 
   imsilen = (blen - 2) * 2 + 1;
-  log->debug("SCARD: IMSI file length=%ld imsilen=%ld\n", (long) blen, (long) imsilen);
+  log->debug("SCARD: IMSI file length=%ld imsilen=%ld\n", (long)blen, (long)imsilen);
   if (blen < 2 || imsilen > *len) {
     *len = imsilen;
     return -4;
@@ -980,7 +950,7 @@ int pcsc_usim::scard::get_imsi(char *imsi, size_t *len)
   if (read_file(buf, blen))
     return -5;
 
-  pos = imsi;
+  pos    = imsi;
   *pos++ = '0' + (buf[1] >> 4 & 0x0f);
   for (i = 2; i < blen; i++) {
     unsigned char digit;
@@ -1002,12 +972,12 @@ int pcsc_usim::scard::get_imsi(char *imsi, size_t *len)
   return 0;
 }
 
-int pcsc_usim::scard::read_file(unsigned char *data, size_t len)
+int pcsc_usim::scard::read_file(unsigned char* data, size_t len)
 {
-  unsigned char cmd[5] = { SIM_CMD_READ_BIN /* , len */ };
-  size_t blen = len + 3;
-  unsigned char *buf;
-  long ret;
+  unsigned char  cmd[5] = {SIM_CMD_READ_BIN /* , len */};
+  size_t         blen   = len + 3;
+  unsigned char* buf;
+  long           ret;
 
   cmd[4] = len;
 
@@ -1023,7 +993,7 @@ int pcsc_usim::scard::read_file(unsigned char *data, size_t len)
     return -2;
   }
   if (blen != len + 2) {
-    log->error("SCARD: file read returned unexpected length %ld (expected %ld)\n", (long) blen, (long) len + 2);
+    log->error("SCARD: file read returned unexpected length %ld (expected %ld)\n", (long)blen, (long)len + 2);
     free(buf);
     return -3;
   }
@@ -1040,8 +1010,7 @@ int pcsc_usim::scard::read_file(unsigned char *data, size_t len)
   return 0;
 }
 
-
-int pcsc_usim::scard::parse_fsp_templ(unsigned char *buf, size_t buf_len, int *ps_do, int *file_len)
+int pcsc_usim::scard::parse_fsp_templ(unsigned char* buf, size_t buf_len, int* ps_do, int* file_len)
 {
   unsigned char *pos, *end;
 
@@ -1068,11 +1037,11 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char *buf, size_t buf_len, int *p
     unsigned char type, len;
 
     type = pos[0];
-    len = pos[1];
+    len  = pos[1];
     log->debug("SCARD: file header TLV 0x%02x len=%d\n", type, len);
     pos += 2;
 
-    if (len > (unsigned int) (end - pos))
+    if (len > (unsigned int)(end - pos))
       break;
 
     switch (type) {
@@ -1086,7 +1055,7 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char *buf, size_t buf_len, int *p
         log->debug_hex(pos, len, "SCARD: DF name (AID) TLV\n");
         break;
       case USIM_TLV_PROPR_INFO:
-        log->debug_hex(pos, len,"SCARD: Proprietary information TLV\n");
+        log->debug_hex(pos, len, "SCARD: Proprietary information TLV\n");
         break;
       case USIM_TLV_LIFE_CYCLE_STATUS:
         log->debug_hex(pos, len, "SCARD: Life Cycle Status Integer TLV\n");
@@ -1095,7 +1064,7 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char *buf, size_t buf_len, int *p
         log->debug_hex(pos, len, "SCARD: File size TLV\n");
         if ((len == 1 || len == 2) && file_len) {
           if (len == 1) {
-            *file_len = (int) pos[0];
+            *file_len = (int)pos[0];
           } else {
             *file_len = to_uint16(pos);
           }
@@ -1107,10 +1076,9 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char *buf, size_t buf_len, int *p
         break;
       case USIM_TLV_PIN_STATUS_TEMPLATE:
         log->debug_hex(pos, len, "SCARD: PIN Status Template DO TLV\n");
-        if (len >= 2 && pos[0] == USIM_PS_DO_TAG &&
-            pos[1] >= 1 && ps_do) {
+        if (len >= 2 && pos[0] == USIM_PS_DO_TAG && pos[1] >= 1 && ps_do) {
           log->debug("SCARD: PS_DO=0x%02x\n", pos[2]);
-          *ps_do = (int) pos[2];
+          *ps_do = (int)pos[2];
         }
         break;
       case USIM_TLV_SHORT_FILE_ID:
@@ -1122,7 +1090,7 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char *buf, size_t buf_len, int *p
         log->debug_hex(pos, len, "SCARD: Security attribute TLV\n");
         break;
       default:
-        log->debug_hex(pos, len,"SCARD: Unrecognized TLV\n");
+        log->debug_hex(pos, len, "SCARD: Unrecognized TLV\n");
         break;
     }
 
@@ -1133,8 +1101,6 @@ int pcsc_usim::scard::parse_fsp_templ(unsigned char *buf, size_t buf_len, int *p
   }
   return -1;
 }
-
-
 
 /**
  * scard_deinit - Deinitialize SIM/USIM connection
@@ -1159,8 +1125,6 @@ void pcsc_usim::scard::deinit()
   }
 }
 
-
-
 /**
  * scard_get_mnc_len - Read length of MNC in the IMSI from SIM/USIM card
  * @scard: Pointer to private data from scard_init()
@@ -1174,15 +1138,15 @@ void pcsc_usim::scard::deinit()
 int pcsc_usim::scard::get_mnc_len()
 {
   unsigned char buf[100];
-  size_t blen;
-  int file_size;
+  size_t        blen;
+  int           file_size;
 
   log->debug("SCARD: reading MNC len from (GSM) EF-AD\n");
   blen = sizeof(buf);
   if (select_file(SCARD_FILE_GSM_EF_AD, buf, &blen))
     return -1;
   if (blen < 4) {
-    log->debug("SCARD: too short (GSM) EF-AD header (len=%ld)\n", (long) blen);
+    log->debug("SCARD: too short (GSM) EF-AD header (len=%ld)\n", (long)blen);
     return -2;
   }
 
@@ -1196,8 +1160,8 @@ int pcsc_usim::scard::get_mnc_len()
     log->debug("SCARD: MNC length not available\n");
     return -7;
   }
-  if (file_size < 4 || file_size > (int) sizeof(buf)) {
-    log->debug("SCARD: invalid file length=%ld\n", (long) file_size);
+  if (file_size < 4 || file_size > (int)sizeof(buf)) {
+    log->debug("SCARD: invalid file length=%ld\n", (long)file_size);
     return -4;
   }
 
@@ -1205,13 +1169,12 @@ int pcsc_usim::scard::get_mnc_len()
     return -5;
   buf[3] = buf[3] & 0x0f; /* upper nibble reserved for future use  */
   if (buf[3] < 2 || buf[3] > 3) {
-    log->debug("SCARD: invalid MNC length=%ld\n", (long) buf[3]);
+    log->debug("SCARD: invalid MNC length=%ld\n", (long)buf[3]);
     return -6;
   }
-  log->debug("SCARD: MNC length=%ld\n", (long) buf[3]);
+  log->debug("SCARD: MNC length=%ld\n", (long)buf[3]);
   return buf[3];
 }
-
 
 /**
  * scard_umts_auth - Run UMTS authentication command on USIM card
@@ -1233,17 +1196,19 @@ int pcsc_usim::scard::get_mnc_len()
  * synchronization failure, the received AUTS value will be written into auts
  * buffer. In this case, RES, IK, and CK are not valid.
  */
-int pcsc_usim::scard::umts_auth(const unsigned char *_rand,
-                               const unsigned char *autn,
-                               unsigned char *res, int *res_len,
-                               unsigned char *ik, unsigned char *ck, unsigned char *auts)
+int pcsc_usim::scard::umts_auth(const unsigned char* _rand,
+                                const unsigned char* autn,
+                                unsigned char*       res,
+                                int*                 res_len,
+                                unsigned char*       ik,
+                                unsigned char*       ck,
+                                unsigned char*       auts)
 {
-  unsigned char cmd[5 + 1 + AKA_RAND_LEN + 1 + AKA_AUTN_LEN] = { USIM_CMD_RUN_UMTS_ALG };
-  unsigned char get_resp[5] = { USIM_CMD_GET_RESPONSE };
+  unsigned char cmd[5 + 1 + AKA_RAND_LEN + 1 + AKA_AUTN_LEN] = {USIM_CMD_RUN_UMTS_ALG};
+  unsigned char get_resp[5]                                  = {USIM_CMD_GET_RESPONSE};
   unsigned char resp[3], buf[64], *pos, *end;
-  size_t len;
-  long ret;
-
+  size_t        len;
+  long          ret;
 
   if (sim_type == SCARD_GSM_SIM) {
     log->debug("SCARD: Non-USIM card - cannot do UMTS auth\n");
@@ -1270,8 +1235,8 @@ int pcsc_usim::scard::umts_auth(const unsigned char *_rand,
     log->warning("SCARD: UMTS auth failed - MAC != XMAC\n");
     return -1;
   } else if (len != 2 || resp[0] != 0x61) {
-    log->warning("SCARD: unexpected response for UMTS auth request (len=%ld resp=%02x %02x)\n",
-                      (long) len, resp[0], resp[1]);
+    log->warning(
+        "SCARD: unexpected response for UMTS auth request (len=%ld resp=%02x %02x)\n", (long)len, resp[0], resp[1]);
     return -1;
   }
   get_resp[4] = resp[1];
@@ -1333,13 +1298,12 @@ int pcsc_usim::scard::umts_auth(const unsigned char *_rand,
   return -1;
 }
 
-
-int pcsc_usim::scard::verify_pin(const char *pin)
+int pcsc_usim::scard::verify_pin(const char* pin)
 {
-  long ret;
+  long          ret;
   unsigned char resp[3];
-  unsigned char cmd[5 + 8] = { SIM_CMD_VERIFY_CHV1 };
-  size_t len;
+  unsigned char cmd[5 + 8] = {SIM_CMD_VERIFY_CHV1};
+  size_t        len;
 
   log->debug("SCARD: verifying PIN\n");
 
@@ -1364,6 +1328,5 @@ int pcsc_usim::scard::verify_pin(const char *pin)
   log->debug("SCARD: PIN verified successfully\n");
   return SCARD_S_SUCCESS;
 }
-
 
 } // namespace srsue

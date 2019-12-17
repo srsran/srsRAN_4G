@@ -21,9 +21,9 @@
 
 #include "srslte/config.h"
 
-#define MAKE_CALL(a)  CONCAT2(a,type_name)
-#define MAKE_VEC(a)   CONCAT2(a,vec_suffix)
-#define PRINT         CONCAT2(srslte_vec_fprint,print_suffix)
+#define MAKE_CALL(a) CONCAT2(a, type_name)
+#define MAKE_VEC(a) CONCAT2(a, vec_suffix)
+#define PRINT CONCAT2(srslte_vec_fprint, print_suffix)
 
 #ifdef LLR_IS_8BIT
 #define llr_t int8_t
@@ -35,59 +35,63 @@
 #define input_is_interleaved 1
 #else
 #ifdef LLR_IS_16BIT
-  #define llr_t int16_t
-  #define vec_suffix _sss
-  #define print_suffix _s
-  #define decptr h->dec16[h->current_dec]
-  #define dechdlr h->dec16_hdlr[h->current_dec]
-  #define input_is_interleaved (h->current_dec > 0)
+#define llr_t int16_t
+#define vec_suffix _sss
+#define print_suffix _s
+#define decptr h->dec16[h->current_dec]
+#define dechdlr h->dec16_hdlr[h->current_dec]
+#define input_is_interleaved (h->current_dec > 0)
 #define type_name _16bit
-  #else
+#else
 #pragma message "Unsupported LLR mode"
 #endif
 #endif
 
 #define debug_enabled_iter 0
-#define debug_len     20 
+#define debug_len 20
 
-#define debug_vec(a) if (debug_enabled_iter) {printf("%s it=%d: ", STRING(a), n_iter);PRINT(stdout, a, debug_len);}
+#define debug_vec(a)                                                                                                   \
+  if (debug_enabled_iter) {                                                                                            \
+    printf("%s it=%d: ", STRING(a), n_iter);                                                                           \
+    PRINT(stdout, a, debug_len);                                                                                       \
+  }
 
-
-static void MAKE_CALL(extract_input_tail_sb)(llr_t *input, llr_t *syst, llr_t *app2, llr_t *parity0, llr_t *parity1, uint32_t long_cb)
+static void MAKE_CALL(
+    extract_input_tail_sb)(llr_t* input, llr_t* syst, llr_t* app2, llr_t* parity0, llr_t* parity1, uint32_t long_cb)
 {
   for (int i = long_cb; i < long_cb + 3; i++) {
-    syst[i]    = input[3*(long_cb+32) + 2*(i - long_cb)];
-    parity0[i] = input[3*(long_cb+32)+ 2*(i - long_cb) + 1];
+    syst[i]    = input[3 * (long_cb + 32) + 2 * (i - long_cb)];
+    parity0[i] = input[3 * (long_cb + 32) + 2 * (i - long_cb) + 1];
 
-    app2[i]    = input[3*(long_cb+32) + 6 + 2*(i - long_cb)];
-    parity1[i] = input[3*(long_cb+32) + 6 + 2*(i - long_cb) + 1];
+    app2[i]    = input[3 * (long_cb + 32) + 6 + 2 * (i - long_cb)];
+    parity1[i] = input[3 * (long_cb + 32) + 6 + 2 * (i - long_cb) + 1];
   }
 }
 
 /* Runs 1 turbo decoder iteration */
-void MAKE_CALL(run_tdec_iteration)(srslte_tdec_t * h, llr_t * input)
+void MAKE_CALL(run_tdec_iteration)(srslte_tdec_t* h, llr_t* input)
 {
 
   if (h->current_cbidx >= 0) {
-    uint16_t *inter   = h->interleaver[h->current_inter_idx][h->current_cbidx].forward;
-    uint16_t *deinter = h->interleaver[h->current_inter_idx][h->current_cbidx].reverse;
-    llr_t *syst    = (llr_t*) h->syst0;
-    llr_t *parity0 = (llr_t*) h->parity0;
-    llr_t *parity1 = (llr_t*) h->parity1;
+    uint16_t* inter   = h->interleaver[h->current_inter_idx][h->current_cbidx].forward;
+    uint16_t* deinter = h->interleaver[h->current_inter_idx][h->current_cbidx].reverse;
+    llr_t*    syst    = (llr_t*)h->syst0;
+    llr_t*    parity0 = (llr_t*)h->parity0;
+    llr_t*    parity1 = (llr_t*)h->parity1;
 
-    llr_t *app1 = (llr_t*) h->app1;
-    llr_t *app2 = (llr_t*) h->app2;
-    llr_t *ext1 = (llr_t*) h->ext1;
-    llr_t *ext2 = (llr_t*) h->ext2;
+    llr_t* app1 = (llr_t*)h->app1;
+    llr_t* app2 = (llr_t*)h->app2;
+    llr_t* ext1 = (llr_t*)h->ext1;
+    llr_t* ext2 = (llr_t*)h->ext2;
 
     uint32_t long_cb = h->current_long_cb;
     uint32_t n_iter  = h->n_iter;
-    
+
     if (SRSLTE_TDEC_EXPECT_INPUT_SB && !h->force_not_sb && input_is_interleaved) {
       syst = input;
       // align to 32 bytes (warning: must be same alignment as in rm_turbo.c)
-      parity0 = &input[long_cb+32];
-      parity1 = &input[2*(long_cb+32)];
+      parity0 = &input[long_cb + 32];
+      parity1 = &input[2 * (long_cb + 32)];
       if (n_iter == 0) {
         MAKE_CALL(extract_input_tail_sb)(input, syst, app2, parity0, parity1, long_cb);
       }
@@ -96,8 +100,8 @@ void MAKE_CALL(run_tdec_iteration)(srslte_tdec_t * h, llr_t * input)
         decptr->tdec_extract_input(input, syst, app2, parity0, parity1, long_cb);
       }
     }
-    
-    if ((n_iter%2) == 0) {
+
+    if ((n_iter % 2) == 0) {
 
       // Add apriori information to decoder 1
       if (n_iter) {
@@ -106,10 +110,9 @@ void MAKE_CALL(run_tdec_iteration)(srslte_tdec_t * h, llr_t * input)
 
       // Run MAP DEC #1
       decptr->tdec_dec(dechdlr, syst, n_iter ? app1 : NULL, parity0, ext1, long_cb);
-
     }
     // Interleave extrinsic output of DEC1 to form apriori info for decoder 2
-    if (n_iter%2) {
+    if (n_iter % 2) {
       // Convert aposteriori information into extrinsic information
       if (n_iter > 1) {
         MAKE_VEC(srslte_vec_sub)(ext1, app1, ext1, long_cb);
@@ -121,8 +124,7 @@ void MAKE_CALL(run_tdec_iteration)(srslte_tdec_t * h, llr_t * input)
       decptr->tdec_dec(dechdlr, app2, NULL, parity1, ext2, long_cb);
 
       // Deinterleaved extrinsic bits become apriori info for decoder 1
-     MAKE_VEC(srslte_vec_lut)(ext2, inter, app1, long_cb);
-
+      MAKE_VEC(srslte_vec_lut)(ext2, inter, app1, long_cb);
     }
 
     if (h->n_iter == 0) {

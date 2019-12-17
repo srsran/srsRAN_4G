@@ -31,40 +31,37 @@
 #ifndef SRSLTE_AGC_H
 #define SRSLTE_AGC_H
 
+#include <complex.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <complex.h>
 
 #include "srslte/config.h"
 
 #define SRSLTE_AGC_DEFAULT_TARGET 0.3
-#define SRSLTE_AGC_DEFAULT_BW     0.7
+#define SRSLTE_AGC_DEFAULT_BW 0.7
 
-typedef enum SRSLTE_API {
-  SRSLTE_AGC_MODE_ENERGY = 0, 
-  SRSLTE_AGC_MODE_PEAK_AMPLITUDE  
-} srslte_agc_mode_t; 
+typedef enum SRSLTE_API { SRSLTE_AGC_MODE_ENERGY = 0, SRSLTE_AGC_MODE_PEAK_AMPLITUDE } srslte_agc_mode_t;
 
-typedef struct SRSLTE_API{
+typedef struct SRSLTE_API {
   float bandwidth;
   float gain;
   float min_gain_db;
   float max_gain_db;
   float y_out;
-  bool lock;
+  bool  lock;
   bool  isfirst;
   void* uhd_handler;
   float (*set_gain_callback)(void*, float);
-  srslte_agc_mode_t mode; 
-  float target;
-  uint32_t nof_frames; 
-  uint32_t frame_cnt; 
-  float *y_tmp;
+  srslte_agc_mode_t mode;
+  float             target;
+  uint32_t          nof_frames;
+  uint32_t          frame_cnt;
+  float*            y_tmp;
 } srslte_agc_t;
 
-SRSLTE_API int srslte_agc_init(srslte_agc_t *q, srslte_agc_mode_t mode);
+SRSLTE_API int srslte_agc_init(srslte_agc_t* q, srslte_agc_mode_t mode);
 
-SRSLTE_API int srslte_agc_init_acc(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_frames);
+SRSLTE_API int srslte_agc_init_acc(srslte_agc_t* q, srslte_agc_mode_t mode, uint32_t nof_frames);
 
 SRSLTE_API int srslte_agc_init_uhd(srslte_agc_t*     q,
                                    srslte_agc_mode_t mode,
@@ -72,32 +69,26 @@ SRSLTE_API int srslte_agc_init_uhd(srslte_agc_t*     q,
                                    float(set_gain_callback)(void*, float),
                                    void* uhd_handler);
 
-SRSLTE_API void srslte_agc_free(srslte_agc_t *q);
+SRSLTE_API void srslte_agc_free(srslte_agc_t* q);
 
-SRSLTE_API void srslte_agc_reset(srslte_agc_t *q);
+SRSLTE_API void srslte_agc_reset(srslte_agc_t* q);
 
-SRSLTE_API void srslte_agc_set_gain_range(srslte_agc_t *q, float min_gain_db, float max_gain_db);
+SRSLTE_API void srslte_agc_set_gain_range(srslte_agc_t* q, float min_gain_db, float max_gain_db);
 
-SRSLTE_API void srslte_agc_set_bandwidth(srslte_agc_t *q, 
-                                         float bandwidth);
+SRSLTE_API void srslte_agc_set_bandwidth(srslte_agc_t* q, float bandwidth);
 
-SRSLTE_API void srslte_agc_set_target(srslte_agc_t *q, 
-                                      float target);
+SRSLTE_API void srslte_agc_set_target(srslte_agc_t* q, float target);
 
-SRSLTE_API float srslte_agc_get_rssi(srslte_agc_t *q);
+SRSLTE_API float srslte_agc_get_rssi(srslte_agc_t* q);
 
-SRSLTE_API float srslte_agc_get_output_level(srslte_agc_t *q); 
+SRSLTE_API float srslte_agc_get_output_level(srslte_agc_t* q);
 
-SRSLTE_API float srslte_agc_get_gain(srslte_agc_t *q);
+SRSLTE_API float srslte_agc_get_gain(srslte_agc_t* q);
 
-SRSLTE_API void srslte_agc_set_gain(srslte_agc_t *q, 
-                                    float init_gain_value_db);
+SRSLTE_API void srslte_agc_set_gain(srslte_agc_t* q, float init_gain_value_db);
 
-SRSLTE_API void srslte_agc_lock(srslte_agc_t *q, 
-                                bool enable);
+SRSLTE_API void srslte_agc_lock(srslte_agc_t* q, bool enable);
 
-SRSLTE_API void srslte_agc_process(srslte_agc_t *q, 
-                                   cf_t *signal,
-                                   uint32_t len);
+SRSLTE_API void srslte_agc_process(srslte_agc_t* q, cf_t* signal, uint32_t len);
 
 #endif // SRSLTE_AGC_H

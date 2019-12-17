@@ -22,12 +22,11 @@
 #ifndef SRSUE_DL_HARQ_H
 #define SRSUE_DL_HARQ_H
 
-
-#include "srslte/common/log.h"
-#include "srslte/common/timers.h"
 #include "demux.h"
 #include "dl_sps.h"
+#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/timers.h"
 
 #include "srslte/interfaces/ue_interfaces.h"
 
@@ -72,7 +71,8 @@ private:
   private:
     const static int RESET_DUPLICATE_TIMEOUT = 6;
 
-    class dl_tb_process {
+    class dl_tb_process
+    {
     public:
       dl_tb_process(void);
       ~dl_tb_process();
@@ -90,23 +90,23 @@ private:
 
       pthread_mutex_t mutex;
 
-      bool is_initiated;
-      dl_harq_entity *harq_entity;
-      srslte::log *log_h;
+      bool            is_initiated;
+      dl_harq_entity* harq_entity;
+      srslte::log*    log_h;
 
       bool is_first_tb;
       bool is_new_transmission;
 
       bool     is_bcch;
-      uint32_t pid;     /* HARQ Proccess ID   */
-      uint32_t tid;     /* Transport block ID */
-      uint8_t *payload_buffer_ptr;
-      bool ack;
+      uint32_t pid; /* HARQ Proccess ID   */
+      uint32_t tid; /* Transport block ID */
+      uint8_t* payload_buffer_ptr;
+      bool     ack;
 
       uint32_t n_retx;
 
       mac_interface_phy_lte::mac_grant_dl_t cur_grant;
-      srslte_softbuffer_rx_t softbuffer;
+      srslte_softbuffer_rx_t                softbuffer;
     };
 
     /* Transport blocks */

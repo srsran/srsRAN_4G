@@ -168,7 +168,7 @@ struct gtpc_create_session_request {
   bool                  pgw_addr_present;
   struct gtpc_f_teid_ie pgw_addr; // C
 
-  char apn[MAX_APN_LENGTH];                                     // M
+  char apn[MAX_APN_LENGTH]; // M
   // bool selection_mode_present;
   // enum selection_mode_ selection_mode;                       // C/CO
   // bool pdn_type_present;
@@ -384,11 +384,11 @@ struct gtpc_delete_session_request {
 };
 
 /****************************************************************************
-  *
-  * GTP-C v2 Delete Session Response
-  * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.10.1-1
-  *
-  ***************************************************************************/
+ *
+ * GTP-C v2 Delete Session Response
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.10.1-1
+ *
+ ***************************************************************************/
 struct gtpc_delete_session_response {
   struct gtpc_cause_ie cause;
   // Recovery
@@ -402,17 +402,16 @@ struct gtpc_delete_session_response {
  * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.11.1-1
  *
  ***************************************************************************/
-struct gtpc_downlink_data_notification
-{
-  bool cause_present;
+struct gtpc_downlink_data_notification {
+  bool                 cause_present;
   struct gtpc_cause_ie cause;
-  bool eps_bearer_id_present;
-  uint8_t eps_bearer_id;
-  bool allocation_retention_priority_present;
+  bool                 eps_bearer_id_present;
+  uint8_t              eps_bearer_id;
+  bool                 allocation_retention_priority_present;
   // struct gtpc_allocation_rention_priority_ie
-  bool imsi_present;
+  bool     imsi_present;
   uint64_t imsi;
-  //Private extension
+  // Private extension
 };
 
 /****************************************************************************
@@ -421,12 +420,11 @@ struct gtpc_downlink_data_notification
  * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.11.2-1
  *
  ***************************************************************************/
-struct gtpc_downlink_data_notification_acknowledge
-{
+struct gtpc_downlink_data_notification_acknowledge {
   struct gtpc_cause_ie cause;
-  //Data Notification Delay
-  //Recovery
-  //Private extension
+  // Data Notification Delay
+  // Recovery
+  // Private extension
 };
 
 /****************************************************************************
@@ -435,10 +433,9 @@ struct gtpc_downlink_data_notification_acknowledge
  * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.11.3-1
  *
  ***************************************************************************/
-struct gtpc_downlink_data_notification_failure_indication
-{
+struct gtpc_downlink_data_notification_failure_indication {
   struct gtpc_cause_ie cause;
-  //Private extension
+  // Private extension
 };
 
 /****************************************************************************

@@ -216,8 +216,12 @@ int srslte_refsignal_nrs_put_sf(srslte_nbiot_cell_t cell, uint32_t port_id, cf_t
         uint32_t fidx = srslte_refsignal_dl_nbiot_fidx(cell, l, port_id, m) + cell.nbiot_prb * SRSLTE_NRE;
         sf_symbols[SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx)] = pilots[SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1)];
 #if EXTRA_DEBUG
-        DEBUG("port: %d, re_idx: %d, pilot_idx: %d, %+2.2f%+2.2fi\n", port_id, SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx), SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(i,l, 1),
-               __real__ sf_symbols[SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx)], __imag__ sf_symbols[SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx)]);
+        DEBUG("port: %d, re_idx: %d, pilot_idx: %d, %+2.2f%+2.2fi\n",
+              port_id,
+              SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx),
+              SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(i, l, 1),
+              __real__ sf_symbols[SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx)],
+              __imag__ sf_symbols[SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx)]);
 #endif
       }
     }
@@ -246,16 +250,21 @@ int srslte_refsignal_nrs_get_sf(srslte_nbiot_cell_t cell, uint32_t port_id, cf_t
         uint32_t fidx = srslte_refsignal_dl_nbiot_fidx(cell, l, port_id, m) + cell.nbiot_prb * SRSLTE_NRE;
         pilots[SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1)] = sf_symbols[SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx)];
 #if EXTRA_DEBUG
-        DEBUG("port: %d, pilot_idx: %d, re_idx: %d, %+2.2f%+2.2fi\n", port_id, SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1), SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx),
-               __real__ pilots[SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1)], __imag__ pilots[SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1)]);
+        DEBUG("port: %d, pilot_idx: %d, re_idx: %d, %+2.2f%+2.2fi\n",
+              port_id,
+              SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1),
+              SRSLTE_RE_IDX(cell.base.nof_prb, nsymbol, fidx),
+              __real__ pilots[SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1)],
+              __imag__ pilots[SRSLTE_NBIOT_REFSIGNAL_PILOT_IDX(m, l, 1)]);
 #endif
       }
     }
 
 #if EXTRA_DEBUG
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      DEBUG("SAVED FILE chest_nbiot_rx_after_demapping.bin: NRS after demapping\n",0);
-      srslte_vec_save_file("chest_nbiot_rx_after_demapping.bin", pilots, SRSLTE_REFSIGNAL_NUM_SF(1, port_id) * sizeof(cf_t));
+      DEBUG("SAVED FILE chest_nbiot_rx_after_demapping.bin: NRS after demapping\n", 0);
+      srslte_vec_save_file(
+          "chest_nbiot_rx_after_demapping.bin", pilots, SRSLTE_REFSIGNAL_NUM_SF(1, port_id) * sizeof(cf_t));
     }
 #endif
     return SRSLTE_SUCCESS;

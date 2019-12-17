@@ -19,8 +19,8 @@
  *
  */
 
-#include <stdio.h>
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "srslte/phy/common/phy_common.h"
@@ -28,26 +28,32 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-int srslte_layermap_single(cf_t *d, cf_t *x, int nof_symbols) {
+int srslte_layermap_single(cf_t* d, cf_t* x, int nof_symbols)
+{
   memcpy(x, d, sizeof(cf_t) * nof_symbols);
   return nof_symbols;
 }
 
-int srslte_layermap_diversity(cf_t *d, cf_t *x[SRSLTE_MAX_LAYERS], int nof_layers, int nof_symbols) {
+int srslte_layermap_diversity(cf_t* d, cf_t* x[SRSLTE_MAX_LAYERS], int nof_layers, int nof_symbols)
+{
   int i, j;
-  for (i=0;i<nof_symbols/nof_layers;i++) {
-    for (j=0;j<nof_layers;j++) {
-      x[j][i] = d[nof_layers*i+j];
+  for (i = 0; i < nof_symbols / nof_layers; i++) {
+    for (j = 0; j < nof_layers; j++) {
+      x[j][i] = d[nof_layers * i + j];
     }
   }
   return i;
 }
 
-int srslte_layermap_multiplex(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_LAYERS], int nof_cw, int nof_layers,
-    int nof_symbols[SRSLTE_MAX_CODEWORDS]) {
+int srslte_layermap_multiplex(cf_t* d[SRSLTE_MAX_CODEWORDS],
+                              cf_t* x[SRSLTE_MAX_LAYERS],
+                              int   nof_cw,
+                              int   nof_layers,
+                              int   nof_symbols[SRSLTE_MAX_CODEWORDS])
+{
   if (nof_cw == nof_layers) {
     for (int i = 0; i < nof_cw; i++) {
-      srs_vec_cf_cpy(d[i], x[i], (uint32_t) nof_symbols[0]);
+      srs_vec_cf_cpy(d[i], x[i], (uint32_t)nof_symbols[0]);
     }
     return nof_symbols[0];
   } else if (nof_cw == 1) {
@@ -58,7 +64,7 @@ int srslte_layermap_multiplex(cf_t *d[SRSLTE_MAX_CODEWORDS], cf_t *x[SRSLTE_MAX_
     n[1] = nof_layers - n[0];
     if (nof_symbols[0] / n[0] == nof_symbols[1] / n[1]) {
 
-      srslte_layermap_diversity(d[0],  x,       n[0], nof_symbols[0]);
+      srslte_layermap_diversity(d[0], x, n[0], nof_symbols[0]);
       srslte_layermap_diversity(d[1], &x[n[0]], n[1], nof_symbols[1]);
       return nof_symbols[0] / n[0];
 
@@ -95,7 +101,7 @@ int srslte_layermap_type(cf_t*              d[SRSLTE_MAX_CODEWORDS],
     return -1;
   }
 
-  switch(type) {
+  switch (type) {
     case SRSLTE_TXSCHEME_PORT0:
       if (nof_cw == 1 && nof_layers == 1) {
         return srslte_layermap_single(d[0], x[0], nof_symbols[0]);
@@ -125,40 +131,39 @@ int srslte_layermap_type(cf_t*              d[SRSLTE_MAX_CODEWORDS],
   return 0;
 }
 
-
-
-
-
-
-
-
-
-int srslte_layerdemap_single(cf_t *x, cf_t *d, int nof_symbols) {
+int srslte_layerdemap_single(cf_t* x, cf_t* d, int nof_symbols)
+{
   memcpy(d, x, sizeof(cf_t) * nof_symbols);
   return nof_symbols;
 }
-int srslte_layerdemap_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *d, int nof_layers, int nof_layer_symbols) {
+int srslte_layerdemap_diversity(cf_t* x[SRSLTE_MAX_LAYERS], cf_t* d, int nof_layers, int nof_layer_symbols)
+{
   int i, j;
-  for (i=0;i<nof_layer_symbols;i++) {
-    for (j=0;j<nof_layers;j++) {
-      d[nof_layers*i+j] = x[j][i];
+  for (i = 0; i < nof_layer_symbols; i++) {
+    for (j = 0; j < nof_layers; j++) {
+      d[nof_layers * i + j] = x[j][i];
     }
   }
   return nof_layer_symbols * nof_layers;
 }
 
-int srslte_layerdemap_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *d[SRSLTE_MAX_CODEWORDS], int nof_layers, int nof_cw,
-    int nof_layer_symbols, int nof_symbols[SRSLTE_MAX_CODEWORDS]) {
+int srslte_layerdemap_multiplex(cf_t* x[SRSLTE_MAX_LAYERS],
+                                cf_t* d[SRSLTE_MAX_CODEWORDS],
+                                int   nof_layers,
+                                int   nof_cw,
+                                int   nof_layer_symbols,
+                                int   nof_symbols[SRSLTE_MAX_CODEWORDS])
+{
   if (nof_cw == 1) {
     return srslte_layerdemap_diversity(x, d[0], nof_layers, nof_layer_symbols);
   } else {
     int n[2];
-    n[0] = nof_layers / nof_cw;
-    n[1] = nof_layers - n[0];
+    n[0]           = nof_layers / nof_cw;
+    n[1]           = nof_layers - n[0];
     nof_symbols[0] = n[0] * nof_layer_symbols;
     nof_symbols[1] = n[1] * nof_layer_symbols;
 
-    nof_symbols[0] = srslte_layerdemap_diversity(x,      d[0], n[0], nof_layer_symbols);
+    nof_symbols[0] = srslte_layerdemap_diversity(x, d[0], n[0], nof_layer_symbols);
     nof_symbols[1] = srslte_layerdemap_diversity(&x[n[0]], d[1], n[1], nof_layer_symbols);
   }
   return 0;
@@ -191,7 +196,7 @@ int srslte_layerdemap_type(cf_t*              x[SRSLTE_MAX_LAYERS],
     return -1;
   }
 
-  switch(type) {
+  switch (type) {
     case SRSLTE_TXSCHEME_PORT0:
       if (nof_cw == 1 && nof_layers == 1) {
         nof_symbols[0] = srslte_layerdemap_single(x[0], d[0], nof_layer_symbols);

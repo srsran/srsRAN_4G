@@ -190,7 +190,11 @@ public:
   // logging
   typedef enum { Rx = 0, Tx } direction_t;
   template <class T>
-  void log_rrc_message(const std::string& source, direction_t dir, const srslte::byte_buffer_t* pdu, const T& msg);
+  void log_rrc_message(const std::string&           source,
+                       direction_t                  dir,
+                       const srslte::byte_buffer_t* pdu,
+                       const T&                     msg,
+                       const std::string&           msg_type);
 
   // Notifier for user connect
   class connect_notifier

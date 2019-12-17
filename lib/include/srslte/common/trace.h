@@ -34,64 +34,67 @@
 #include <vector>
 
 namespace srslte {
-  
-template<class elemType>
+
+template <class elemType>
 class trace
 {
 public:
-  
-  trace(uint32_t nof_elems_) : tti(nof_elems_), data(nof_elems_) {
-    rpm=0;
-    nof_elems=nof_elems_;
-    wrapped = false;
+  trace(uint32_t nof_elems_) : tti(nof_elems_), data(nof_elems_)
+  {
+    rpm       = 0;
+    nof_elems = nof_elems_;
+    wrapped   = false;
   };
-  void push_cur_time_us(uint32_t cur_tti) {
-    struct timeval t; 
-    gettimeofday(&t, NULL); 
-    elemType us = t.tv_sec*1e6+t.tv_usec;
+  void push_cur_time_us(uint32_t cur_tti)
+  {
+    struct timeval t;
+    gettimeofday(&t, NULL);
+    elemType us = t.tv_sec * 1e6 + t.tv_usec;
     push(cur_tti, us);
   }
-  void push(uint32_t value_tti, elemType value) {
+  void push(uint32_t value_tti, elemType value)
+  {
     tti[rpm]  = value_tti;
     data[rpm] = value;
     rpm++;
     if (rpm >= nof_elems) {
-      rpm = 0; 
+      rpm     = 0;
       wrapped = true;
     }
   }
-  bool writeToBinary(std::string filename) {
-    FILE *f = fopen(filename.c_str(), "w");
+  bool writeToBinary(std::string filename)
+  {
+    FILE* f = fopen(filename.c_str(), "w");
     if (f != NULL) {
-      uint32_t st=wrapped?(rpm+1):0;
+      uint32_t st = wrapped ? (rpm + 1) : 0;
       do {
-        writeToBinaryValue(f, st++);        
+        writeToBinaryValue(f, st++);
         if (st >= nof_elems) {
-          st=0;
+          st = 0;
         }
-      } while(st!=rpm);
+      } while (st != rpm);
       fclose(f);
-      return true; 
+      return true;
     } else {
       perror("fopen");
-      return false; 
+      return false;
     }
   }
-   
+
 private:
   std::vector<uint32_t> tti;
   std::vector<elemType> data;
-  uint32_t rpm;
-  uint32_t nof_elems;
-  bool wrapped; 
-  
-  void writeToBinaryValue(FILE *f, uint32_t idx) {
-    fwrite(&tti[idx],  1, sizeof(uint32_t), f);
+  uint32_t              rpm;
+  uint32_t              nof_elems;
+  bool                  wrapped;
+
+  void writeToBinaryValue(FILE* f, uint32_t idx)
+  {
+    fwrite(&tti[idx], 1, sizeof(uint32_t), f);
     fwrite(&data[idx], 1, sizeof(elemType), f);
   }
-
 };
 
 } // namespace srslte
-  
+
 #endif // SRSLTE_TRACE_H

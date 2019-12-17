@@ -54,8 +54,8 @@
 #include "srslte/phy/enb/enb_ul.h"
 #include "srslte/phy/ue/ue_dl.h"
 
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 #include "srslte/config.h"
 
@@ -66,8 +66,8 @@ typedef struct SRSLTE_API {
 
   cf_t* sf_symbols[SRSLTE_MAX_PORTS];
 
-  srslte_ofdm_t   ifft[SRSLTE_MAX_PORTS];
-  srslte_ofdm_t   ifft_mbsfn;
+  srslte_ofdm_t ifft[SRSLTE_MAX_PORTS];
+  srslte_ofdm_t ifft_mbsfn;
 
   srslte_pbch_t   pbch;
   srslte_pcfich_t pcfich;
@@ -75,8 +75,8 @@ typedef struct SRSLTE_API {
   srslte_pdcch_t  pdcch;
   srslte_pdsch_t  pdsch;
   srslte_pmch_t   pmch;
-  srslte_phich_t  phich; 
-  
+  srslte_phich_t  phich;
+
   srslte_refsignal_t csr_signal;
   srslte_refsignal_t mbsfnr_signal;
 
@@ -93,14 +93,11 @@ typedef struct {
 } srslte_enb_dl_phich_t;
 
 /* This function shall be called just after the initial synchronization */
-SRSLTE_API int srslte_enb_dl_init(srslte_enb_dl_t *q,
-                                  cf_t *out_buffer[SRSLTE_MAX_PORTS],
-                                  uint32_t max_prb);
+SRSLTE_API int srslte_enb_dl_init(srslte_enb_dl_t* q, cf_t* out_buffer[SRSLTE_MAX_PORTS], uint32_t max_prb);
 
-SRSLTE_API void srslte_enb_dl_free(srslte_enb_dl_t *q);
+SRSLTE_API void srslte_enb_dl_free(srslte_enb_dl_t* q);
 
-SRSLTE_API int srslte_enb_dl_set_cell(srslte_enb_dl_t *q,
-                                      srslte_cell_t cell);
+SRSLTE_API int srslte_enb_dl_set_cell(srslte_enb_dl_t* q, srslte_cell_t cell);
 
 SRSLTE_API int srslte_enb_dl_add_rnti(srslte_enb_dl_t* q, uint16_t rnti);
 
@@ -121,8 +118,11 @@ SRSLTE_API int srslte_enb_dl_put_pmch(srslte_enb_dl_t* q, srslte_pmch_cfg_t* pmc
 
 SRSLTE_API void srslte_enb_dl_gen_signal(srslte_enb_dl_t* q);
 
-SRSLTE_API bool srslte_enb_dl_gen_cqi_periodic(
-    srslte_cell_t* cell, srslte_dl_cfg_t* dl_cfg, uint32_t tti, uint32_t ri, srslte_cqi_cfg_t* cqi_cfg);
+SRSLTE_API bool srslte_enb_dl_gen_cqi_periodic(srslte_cell_t*    cell,
+                                               srslte_dl_cfg_t*  dl_cfg,
+                                               uint32_t          tti,
+                                               uint32_t          ri,
+                                               srslte_cqi_cfg_t* cqi_cfg);
 
 SRSLTE_API bool
 srslte_enb_dl_gen_cqi_aperiodic(srslte_cell_t* cell, srslte_dl_cfg_t* dl_cfg, uint32_t ri, srslte_cqi_cfg_t* cqi_cfg);

@@ -39,7 +39,8 @@ srslte_cell_t cell = {
 
 };
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [recv]\n", prog);
 
   printf("\t-r nof_prb [Default %d]\n", cell.nof_prb);
@@ -50,36 +51,38 @@ void usage(char *prog) {
   printf("\t-v increase verbosity\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "recv")) != -1) {
-    switch(opt) {
-    case 'r':
-      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'e':
-      cell.cp = SRSLTE_CP_EXT;
-      break;
-    case 'c':
-      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'r':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'e':
+        cell.cp = SRSLTE_CP_EXT;
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-int main(int argc, char **argv) {
-  srslte_refsignal_ul_t refs;
+int main(int argc, char** argv)
+{
+  srslte_refsignal_ul_t             refs;
   srslte_refsignal_dmrs_pusch_cfg_t pusch_cfg;
-  cf_t *signal = NULL;
-  int ret = -1;
-  
-  parse_args(argc,argv);
+  cf_t*                             signal = NULL;
+  int                               ret    = -1;
+
+  parse_args(argc, argv);
 
   if (srslte_refsignal_ul_init(&refs, cell.nof_prb)) {
     ERROR("Error initializing UL reference signal\n");
@@ -97,40 +100,40 @@ int main(int argc, char **argv) {
     goto do_exit;
   }
   printf("Running tests for %d PRB\n", cell.nof_prb);
-    
-  for (int n=6;n<cell.nof_prb;n++) {
-    for (int delta_ss=29;delta_ss<SRSLTE_NOF_DELTA_SS;delta_ss++) {
-      for (int cshift=0;cshift<SRSLTE_NOF_CSHIFT;cshift++) {
-        for (int h=0;h<3;h++) {
-          for (int sf_idx=0;sf_idx<10;sf_idx++) {
-            for (int cshift_dmrs=0;cshift_dmrs<SRSLTE_NOF_CSHIFT;cshift_dmrs++) {
-              
-              uint32_t nof_prb = n;
-              pusch_cfg.cyclic_shift = cshift;
-              pusch_cfg.delta_ss = delta_ss;        
-              bool group_hopping_en = false; 
-              bool sequence_hopping_en = false; 
-              
+
+  for (int n = 6; n < cell.nof_prb; n++) {
+    for (int delta_ss = 29; delta_ss < SRSLTE_NOF_DELTA_SS; delta_ss++) {
+      for (int cshift = 0; cshift < SRSLTE_NOF_CSHIFT; cshift++) {
+        for (int h = 0; h < 3; h++) {
+          for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
+            for (int cshift_dmrs = 0; cshift_dmrs < SRSLTE_NOF_CSHIFT; cshift_dmrs++) {
+
+              uint32_t nof_prb         = n;
+              pusch_cfg.cyclic_shift   = cshift;
+              pusch_cfg.delta_ss       = delta_ss;
+              bool group_hopping_en    = false;
+              bool sequence_hopping_en = false;
+
               if (!h) {
-                group_hopping_en = false;
-                sequence_hopping_en = false;                
+                group_hopping_en    = false;
+                sequence_hopping_en = false;
               } else if (h == 1) {
-                group_hopping_en = false;
-                sequence_hopping_en = true;                
+                group_hopping_en    = false;
+                sequence_hopping_en = true;
               } else if (h == 2) {
-                group_hopping_en = true;
+                group_hopping_en    = true;
                 sequence_hopping_en = false;
               }
 
-              printf("nof_prb: %d, ",nof_prb);
-              printf("cyclic_shift: %d, ",pusch_cfg.cyclic_shift);
+              printf("nof_prb: %d, ", nof_prb);
+              printf("cyclic_shift: %d, ", pusch_cfg.cyclic_shift);
               printf("cyclic_shift_for_dmrs: %d, ", cshift_dmrs);
-              printf("delta_ss: %d, ",pusch_cfg.delta_ss);
+              printf("delta_ss: %d, ", pusch_cfg.delta_ss);
               printf("SF_idx: %d\n", sf_idx);
-              struct timeval t[3]; 
-              
+              struct timeval t[3];
+
               gettimeofday(&t[1], NULL);
-              pusch_cfg.group_hopping_en = group_hopping_en; 
+              pusch_cfg.group_hopping_en    = group_hopping_en;
               pusch_cfg.sequence_hopping_en = sequence_hopping_en;
 
               srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, cshift_dmrs, signal);
@@ -162,9 +165,9 @@ do_exit:
   }
 
   srslte_refsignal_ul_free(&refs);
-  
+
   if (!ret) {
     printf("OK\n");
-  } 
+  }
   exit(ret);
 }

@@ -51,5 +51,11 @@ target_link_libraries(srslte_asn1_nas_test srslte_common srslte_phy srslte_asn1)
 add_test(srslte_asn1_nas_test srslte_asn1_nas_test)
 
 add_executable(rrc_asn1_test rrc_asn1_test.cc)
-target_link_libraries(rrc_asn1_test rrc_asn1 srslte_common)
+target_link_libraries(rrc_asn1_test rrc_asn1 asn1_utils srslte_common)
 add_test(rrc_asn1_test rrc_asn1_test)
+
+if (ENABLE_5GNR)
+    add_executable(ngap_asn1_test ngap_asn1_test.cc)
+    target_link_libraries(ngap_asn1_test ngap_nr_asn1 srslte_common)
+    add_test(ngap_asn1_test ngap_asn1_test)
+endif(ENABLE_5GNR)

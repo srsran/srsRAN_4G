@@ -40,17 +40,17 @@
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/scrambling/scrambling.h"
 
-#define SRSLTE_PHICH_NORM_NSEQUENCES  8
-#define SRSLTE_PHICH_EXT_NSEQUENCES   4
-#define SRSLTE_PHICH_NBITS                   3
+#define SRSLTE_PHICH_NORM_NSEQUENCES 8
+#define SRSLTE_PHICH_EXT_NSEQUENCES 4
+#define SRSLTE_PHICH_NBITS 3
 
-#define SRSLTE_PHICH_NORM_MSYMB     SRSLTE_PHICH_NBITS * 4
-#define SRSLTE_PHICH_EXT_MSYMB      SRSLTE_PHICH_NBITS * 2
-#define SRSLTE_PHICH_MAX_NSYMB      SRSLTE_PHICH_NORM_MSYMB
-#define SRSLTE_PHICH_NORM_C         1
-#define SRSLTE_PHICH_EXT_C          2
-#define SRSLTE_PHICH_NORM_NSF       4
-#define SRSLTE_PHICH_EXT_NSF        2
+#define SRSLTE_PHICH_NORM_MSYMB SRSLTE_PHICH_NBITS * 4
+#define SRSLTE_PHICH_EXT_MSYMB SRSLTE_PHICH_NBITS * 2
+#define SRSLTE_PHICH_MAX_NSYMB SRSLTE_PHICH_NORM_MSYMB
+#define SRSLTE_PHICH_NORM_C 1
+#define SRSLTE_PHICH_EXT_C 2
+#define SRSLTE_PHICH_NORM_NSF 4
+#define SRSLTE_PHICH_EXT_NSF 2
 
 /* phich object */
 typedef struct SRSLTE_API {
@@ -71,7 +71,7 @@ typedef struct SRSLTE_API {
 
   /* bit message */
   uint8_t data[SRSLTE_PHICH_NBITS];
-  float data_rx[SRSLTE_PHICH_NBITS];
+  float   data_rx[SRSLTE_PHICH_NBITS];
 
   /* tx & rx objects */
   srslte_modem_table_t mod;
@@ -97,11 +97,9 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int srslte_phich_init(srslte_phich_t* q, uint32_t nof_rx_antennas);
 
-SRSLTE_API void srslte_phich_free(srslte_phich_t *q);
+SRSLTE_API void srslte_phich_free(srslte_phich_t* q);
 
-SRSLTE_API int srslte_phich_set_cell(srslte_phich_t *q,
-                                     srslte_regs_t *regs,
-                                     srslte_cell_t cell);
+SRSLTE_API int srslte_phich_set_cell(srslte_phich_t* q, srslte_regs_t* regs, srslte_cell_t cell);
 
 SRSLTE_API void srslte_phich_set_regs(srslte_phich_t* q, srslte_regs_t* regs);
 

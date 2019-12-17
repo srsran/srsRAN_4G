@@ -19,97 +19,65 @@
  *
  */
 
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <strings.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 
-#include "srslte/phy/phch/uci.h"
+#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/convcoder.h"
 #include "srslte/phy/fec/crc.h"
 #include "srslte/phy/fec/rm_conv.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/utils/vector.h"
+#include "srslte/phy/phch/uci.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
-
+#include "srslte/phy/utils/vector.h"
 
 /* Table 5.2.2.6.4-1: Basis sequence for (32, O) code */
-static uint8_t M_basis_seq[32][11]={
-                                    {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-                                    {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1 },
-                                    {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1 },
-                                    {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1 },
-                                    {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1 },
-                                    {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1 },
-                                    {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1 },
-                                    {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1 },
-                                    {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1 },
-                                    {1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1 },
-                                    {1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1 },
-                                    {1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1 },
-                                    {1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1 },
-                                    {1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1 },
-                                    {1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1 },
-                                    {1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1 },
-                                    {1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0 },
-                                    {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0 },
-                                    {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0 },
-                                    {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0 },
-                                    {1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1 },
-                                    {1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1 },
-                                    {1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1 },
-                                    {1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1 },
-                                    {1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0 },
-                                    {1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1 },
-                                    {1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0 },
-                                    {1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0 },
-                                    {1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0 },
-                                    {1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0 },
-                                    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
-                                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                                    };
+static uint8_t M_basis_seq[32][11] = {
+    {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1}, {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},
+    {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1}, {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1}, {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1},
+    {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1}, {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1}, {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1},
+    {1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1}, {1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1}, {1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1},
+    {1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1}, {1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1}, {1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1},
+    {1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1}, {1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0}, {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0},
+    {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0}, {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0}, {1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1},
+    {1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1}, {1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1}, {1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1},
+    {1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0}, {1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 1}, {1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0},
+    {1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0}, {1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0}, {1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0},
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+};
 
+static uint8_t M_basis_seq_pucch[20][13] = {
+    {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
+    {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1}, {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1},
+    {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1}, {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1},
+    {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1}, {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1},
+    {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1}, {1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1},
+    {1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1}, {1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1},
+    {1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1}, {1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1},
+    {1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1}, {1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1},
+    {1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1}, {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1},
+    {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0}, {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0},
+};
 
-static uint8_t M_basis_seq_pucch[20][13]={
-                                  {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0},
-                                  {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
-                                  {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1},
-                                  {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1},
-                                  {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1},
-                                  {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1},
-                                  {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1},
-                                  {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1},
-                                  {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1},
-                                  {1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 1},
-                                  {1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1},
-                                  {1, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1},
-                                  {1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1},
-                                  {1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1},
-                                  {1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1},
-                                  {1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1},
-                                  {1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0, 1, 1},
-                                  {1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1},
-                                  {1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0},
-                                  {1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0},
-                                  };
-
-void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t *q) {
+void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t* q)
+{
   uint8_t word[16];
 
   uint32_t nwords = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
-  q->cqi_table = srslte_vec_malloc(nwords * sizeof(int8_t *));
-  q->cqi_table_s = srslte_vec_malloc(nwords * sizeof(int16_t *));
+  q->cqi_table    = srslte_vec_malloc(nwords * sizeof(int8_t*));
+  q->cqi_table_s  = srslte_vec_malloc(nwords * sizeof(int16_t*));
 
   for (uint32_t w = 0; w < nwords; w++) {
-    q->cqi_table[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B * sizeof(int8_t));
+    q->cqi_table[w]   = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B * sizeof(int8_t));
     q->cqi_table_s[w] = srslte_vec_malloc(SRSLTE_UCI_CQI_CODED_PUCCH_B * sizeof(int16_t));
-    uint8_t *ptr = word;
+    uint8_t* ptr      = word;
     srslte_bit_unpack(w, &ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
     srslte_uci_encode_cqi_pucch(word, SRSLTE_UCI_MAX_CQI_LEN_PUCCH, q->cqi_table[w]);
     for (int j = 0; j < SRSLTE_UCI_CQI_CODED_PUCCH_B; j++) {
@@ -118,9 +86,10 @@ void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t *q) {
   }
 }
 
-void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q) {
-  uint32_t nwords      = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
-  for (uint32_t w=0;w<nwords;w++) {
+void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t* q)
+{
+  uint32_t nwords = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
+  for (uint32_t w = 0; w < nwords; w++) {
     if (q->cqi_table[w]) {
       free(q->cqi_table[w]);
     }
@@ -132,17 +101,17 @@ void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q) {
   free(q->cqi_table_s);
 }
 
-/* Encode UCI CQI/PMI as described in 5.2.3.3 of 36.212 
+/* Encode UCI CQI/PMI as described in 5.2.3.3 of 36.212
  */
-int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
+int srslte_uci_encode_cqi_pucch(uint8_t* cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
 {
   if (cqi_len <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH) {
-    for (uint32_t i=0;i<SRSLTE_UCI_CQI_CODED_PUCCH_B;i++) {
-      uint64_t x=0;
-      for (uint32_t n=0;n<cqi_len;n++) {
-        x += cqi_data[n]*M_basis_seq_pucch[i][n];
+    for (uint32_t i = 0; i < SRSLTE_UCI_CQI_CODED_PUCCH_B; i++) {
+      uint64_t x = 0;
+      for (uint32_t n = 0; n < cqi_len; n++) {
+        x += cqi_data[n] * M_basis_seq_pucch[i][n];
       }
-      b_bits[i] = (uint8_t) (x%2);
+      b_bits[i] = (uint8_t)(x % 2);
     }
     return SRSLTE_SUCCESS;
   } else {
@@ -150,11 +119,14 @@ int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_b
   }
 }
 
-int srslte_uci_encode_cqi_pucch_from_table(srslte_uci_cqi_pucch_t *q, uint8_t *cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
+int srslte_uci_encode_cqi_pucch_from_table(srslte_uci_cqi_pucch_t* q,
+                                           uint8_t*                cqi_data,
+                                           uint32_t                cqi_len,
+                                           uint8_t                 b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B])
 {
   if (cqi_len <= SRSLTE_UCI_MAX_CQI_LEN_PUCCH) {
     bzero(&cqi_data[cqi_len], SRSLTE_UCI_MAX_CQI_LEN_PUCCH - cqi_len);
-    uint8_t *ptr = cqi_data;
+    uint8_t* ptr    = cqi_data;
     uint32_t packed = srslte_bit_pack(&ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
     memcpy(b_bits, q->cqi_table[packed], SRSLTE_UCI_CQI_CODED_PUCCH_B);
 
@@ -164,22 +136,19 @@ int srslte_uci_encode_cqi_pucch_from_table(srslte_uci_cqi_pucch_t *q, uint8_t *c
   }
 }
 
-/* Decode UCI CQI/PMI over PUCCH 
+/* Decode UCI CQI/PMI over PUCCH
  */
 int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
                                     int16_t                 b_bits[SRSLTE_CQI_MAX_BITS],
                                     uint8_t*                cqi_data,
                                     uint32_t                cqi_len)
 {
-  if (cqi_len           < SRSLTE_UCI_MAX_CQI_LEN_PUCCH     &&
-      b_bits            != NULL  &&
-      cqi_data          != NULL) 
-  {
-    uint32_t max_w = 0;
-    int32_t max_corr = INT32_MIN;
-    uint32_t nwords      = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
-    for (uint32_t w=0;w<nwords;w += 1<<(SRSLTE_UCI_MAX_CQI_LEN_PUCCH - cqi_len)) {
-          
+  if (cqi_len < SRSLTE_UCI_MAX_CQI_LEN_PUCCH && b_bits != NULL && cqi_data != NULL) {
+    uint32_t max_w    = 0;
+    int32_t  max_corr = INT32_MIN;
+    uint32_t nwords   = 1 << SRSLTE_UCI_MAX_CQI_LEN_PUCCH;
+    for (uint32_t w = 0; w < nwords; w += 1 << (SRSLTE_UCI_MAX_CQI_LEN_PUCCH - cqi_len)) {
+
       // Calculate correlation with pregenerated word and select maximum
       int32_t corr = srslte_vec_dot_prod_sss(q->cqi_table_s[w], b_bits, SRSLTE_UCI_CQI_CODED_PUCCH_B);
       if (corr > max_corr) {
@@ -188,9 +157,9 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
       }
     }
     // Convert word to bits again
-    uint8_t *ptr = cqi_data; 
+    uint8_t* ptr = cqi_data;
     srslte_bit_unpack(max_w, &ptr, SRSLTE_UCI_MAX_CQI_LEN_PUCCH);
-    
+
     INFO("Decoded CQI: w=%d, corr=%d\n", max_w, max_corr);
     return max_corr;
   } else {
@@ -200,9 +169,9 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
 
 void encode_cqi_pusch_block(uint8_t* data, uint32_t nof_bits, uint8_t output[32])
 {
-  for (int i=0;i<32;i++) {
+  for (int i = 0; i < 32; i++) {
     output[i] = 0;
-    for (int n=0;n<nof_bits;n++) {
+    for (int n = 0; n < nof_bits; n++) {
       output[i] = (output[i] + data[n] * M_basis_seq[i][n]) % 2;
     }
   }
@@ -213,26 +182,28 @@ void srslte_uci_encode_ack_sr_pucch3(uint8_t* data, uint32_t nof_bits, uint8_t o
   encode_cqi_pusch_block(data, nof_bits, output);
 }
 
-void cqi_pusch_pregen(srslte_uci_cqi_pusch_t *q) {
-  uint8_t word[11]; 
-    
-  for (int i=0;i<11;i++) {
-    uint32_t nwords   = (1<<(i+1));
-    q->cqi_table[i]   = srslte_vec_malloc(sizeof(uint8_t)*nwords*32);
+void cqi_pusch_pregen(srslte_uci_cqi_pusch_t* q)
+{
+  uint8_t word[11];
+
+  for (int i = 0; i < 11; i++) {
+    uint32_t nwords   = (1 << (i + 1));
+    q->cqi_table[i]   = srslte_vec_malloc(sizeof(uint8_t) * nwords * 32);
     q->cqi_table_s[i] = srslte_vec_malloc(sizeof(int16_t) * nwords * 32);
-    for (uint32_t w=0;w<nwords;w++) {
-      uint8_t *ptr = word; 
-      srslte_bit_unpack(w, &ptr, i+1);
+    for (uint32_t w = 0; w < nwords; w++) {
+      uint8_t* ptr = word;
+      srslte_bit_unpack(w, &ptr, i + 1);
       encode_cqi_pusch_block(word, i + 1, &q->cqi_table[i][32 * w]);
-      for (int j=0;j<32;j++) {
-        q->cqi_table_s[i][32*w+j] = 2*q->cqi_table[i][32*w+j]-1;
+      for (int j = 0; j < 32; j++) {
+        q->cqi_table_s[i][32 * w + j] = 2 * q->cqi_table[i][32 * w + j] - 1;
       }
     }
   }
 }
 
-void cqi_pusch_pregen_free(srslte_uci_cqi_pusch_t *q) {
-  for (int i=0;i<11;i++) {
+void cqi_pusch_pregen_free(srslte_uci_cqi_pusch_t* q)
+{
+  for (int i = 0; i < 11; i++) {
     if (q->cqi_table[i]) {
       free(q->cqi_table[i]);
     }
@@ -242,24 +213,25 @@ void cqi_pusch_pregen_free(srslte_uci_cqi_pusch_t *q) {
   }
 }
 
-int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t *q) {
+int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t* q)
+{
   if (srslte_crc_init(&q->crc, SRSLTE_LTE_CRC8, 8)) {
     return SRSLTE_ERROR;
   }
-  int poly[3] = { 0x6D, 0x4F, 0x57 };
+  int poly[3] = {0x6D, 0x4F, 0x57};
   if (srslte_viterbi_init(&q->viterbi, SRSLTE_VITERBI_37, poly, SRSLTE_UCI_MAX_CQI_LEN_PUSCH, true)) {
     return SRSLTE_ERROR;
   }
-  
+
   cqi_pusch_pregen(q);
-  
+
   return SRSLTE_SUCCESS;
 }
 
-void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t *q) 
+void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t* q)
 {
   srslte_viterbi_free(&q->viterbi);
-  
+
   cqi_pusch_pregen_free(q);
 }
 
@@ -270,7 +242,7 @@ static uint32_t Q_prime_cqi(srslte_pusch_cfg_t* cfg, uint32_t O, float beta, uin
 
   uint32_t Q_prime = 0;
   uint32_t L       = (O < 11) ? 0 : 8;
-  uint32_t x = 999999;
+  uint32_t x       = 999999;
 
   if (K > 0) {
     x = (uint32_t)ceilf((float)(O + L) * cfg->grant.L_prb * SRSLTE_NRE * cfg->grant.nof_symb * beta / K);
@@ -278,85 +250,71 @@ static uint32_t Q_prime_cqi(srslte_pusch_cfg_t* cfg, uint32_t O, float beta, uin
 
   Q_prime = SRSLTE_MIN(x, cfg->grant.L_prb * SRSLTE_NRE * cfg->grant.nof_symb - Q_prime_ri);
 
-  return Q_prime; 
+  return Q_prime;
 }
 
 /* Encode UCI CQI/PMI for payloads equal or lower to 11 bits (Sec 5.2.2.6.4)
  */
-int encode_cqi_short(srslte_uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
+int encode_cqi_short(srslte_uci_cqi_pusch_t* q, uint8_t* data, uint32_t nof_bits, uint8_t* q_bits, uint32_t Q)
 {
-  if (nof_bits          <= 11    &&
-      nof_bits          > 0      && 
-      q                 != NULL  &&
-      data              != NULL  &&
-      q_bits            != NULL) 
-  {
-    uint8_t *ptr = data;
-    uint32_t w = srslte_bit_pack(&ptr, nof_bits);
-    
-    for (int i=0;i<Q;i++) {
-      q_bits[i] = q->cqi_table[nof_bits-1][w*32+(i%32)];
+  if (nof_bits <= 11 && nof_bits > 0 && q != NULL && data != NULL && q_bits != NULL) {
+    uint8_t* ptr = data;
+    uint32_t w   = srslte_bit_pack(&ptr, nof_bits);
+
+    for (int i = 0; i < Q; i++) {
+      q_bits[i] = q->cqi_table[nof_bits - 1][w * 32 + (i % 32)];
     }
     return SRSLTE_SUCCESS;
   } else {
-    return SRSLTE_ERROR_INVALID_INPUTS;     
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
 // For decoding the block-encoded CQI we use ML decoding
-int decode_cqi_short(srslte_uci_cqi_pusch_t *q, int16_t *q_bits, uint32_t Q, uint8_t *data, uint32_t nof_bits)
+int decode_cqi_short(srslte_uci_cqi_pusch_t* q, int16_t* q_bits, uint32_t Q, uint8_t* data, uint32_t nof_bits)
 {
-  if (nof_bits          <= 11    &&
-      nof_bits          > 0      && 
-      q                 != NULL  &&
-      data              != NULL  &&
-      q_bits            != NULL) 
-  {
-    // Accumulate all copies of the 32-length sequence 
-    if (Q>32) {
-      int i=1; 
-      for (;i<Q/32;i++) {
-        srslte_vec_sum_sss(&q_bits[i*32], q_bits, q_bits, 32);
+  if (nof_bits <= 11 && nof_bits > 0 && q != NULL && data != NULL && q_bits != NULL) {
+    // Accumulate all copies of the 32-length sequence
+    if (Q > 32) {
+      int i = 1;
+      for (; i < Q / 32; i++) {
+        srslte_vec_sum_sss(&q_bits[i * 32], q_bits, q_bits, 32);
       }
-      srslte_vec_sum_sss(&q_bits[i*32], q_bits, q_bits, Q%32);
+      srslte_vec_sum_sss(&q_bits[i * 32], q_bits, q_bits, Q % 32);
     }
-    
-    uint32_t max_w = 0;
-    int32_t max_corr = INT32_MIN;   
-    for (uint32_t w=0;w<(1<<nof_bits);w++) {
-          
+
+    uint32_t max_w    = 0;
+    int32_t  max_corr = INT32_MIN;
+    for (uint32_t w = 0; w < (1 << nof_bits); w++) {
+
       // Calculate correlation with pregenerated word and select maximum
-      int32_t corr = srslte_vec_dot_prod_sss(&q->cqi_table_s[nof_bits-1][w*32], q_bits, SRSLTE_MIN(32, Q));
+      int32_t corr = srslte_vec_dot_prod_sss(&q->cqi_table_s[nof_bits - 1][w * 32], q_bits, SRSLTE_MIN(32, Q));
       if (corr > max_corr) {
-        max_corr = corr; 
-        max_w = w; 
+        max_corr = corr;
+        max_w    = w;
       }
     }
     // Convert word to bits again
-    uint8_t *ptr = data; 
+    uint8_t* ptr = data;
     srslte_bit_unpack(max_w, &ptr, nof_bits);
-    
+
     INFO("Decoded CQI: w=%d, corr=%d\n", max_w, max_corr);
     return SRSLTE_SUCCESS;
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;
-  }  
+  }
 }
 
 /* Encode UCI CQI/PMI for payloads greater than 11 bits (go through CRC, conv coder and rate match)
  */
-int encode_cqi_long(srslte_uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits, uint8_t *q_bits, uint32_t Q)
+int encode_cqi_long(srslte_uci_cqi_pusch_t* q, uint8_t* data, uint32_t nof_bits, uint8_t* q_bits, uint32_t Q)
 {
   srslte_convcoder_t encoder;
 
-  if (nof_bits + 8 < SRSLTE_UCI_MAX_CQI_LEN_PUSCH &&
-      q            != NULL             &&
-      data         != NULL             &&
-      q_bits       != NULL) 
-  {    
-    int poly[3] = { 0x6D, 0x4F, 0x57 };
-    encoder.K = 7;
-    encoder.R = 3;
+  if (nof_bits + 8 < SRSLTE_UCI_MAX_CQI_LEN_PUSCH && q != NULL && data != NULL && q_bits != NULL) {
+    int poly[3]         = {0x6D, 0x4F, 0x57};
+    encoder.K           = 7;
+    encoder.R           = 3;
     encoder.tail_biting = true;
     memcpy(encoder.poly, poly, 3 * sizeof(int));
 
@@ -365,9 +323,9 @@ int encode_cqi_long(srslte_uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits,
 
     DEBUG("cqi_crc_tx=");
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      srslte_vec_fprint_b(stdout, q->tmp_cqi, nof_bits+8);
+      srslte_vec_fprint_b(stdout, q->tmp_cqi, nof_bits + 8);
     }
-    
+
     srslte_convcoder_encode(&encoder, q->tmp_cqi, q->encoded_cqi, nof_bits + 8);
 
     DEBUG("cconv_tx=");
@@ -376,23 +334,18 @@ int encode_cqi_long(srslte_uci_cqi_pusch_t *q, uint8_t *data, uint32_t nof_bits,
     }
 
     srslte_rm_conv_tx(q->encoded_cqi, 3 * (nof_bits + 8), q_bits, Q);
-    
+
     return SRSLTE_SUCCESS;
   } else {
-    return SRSLTE_ERROR_INVALID_INPUTS; 
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
 
-int decode_cqi_long(srslte_uci_cqi_pusch_t *q, int16_t *q_bits, uint32_t Q, 
-                    uint8_t *data, uint32_t nof_bits)
+int decode_cqi_long(srslte_uci_cqi_pusch_t* q, int16_t* q_bits, uint32_t Q, uint8_t* data, uint32_t nof_bits)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-  if (nof_bits + 8 < SRSLTE_UCI_MAX_CQI_LEN_PUSCH &&
-      q            != NULL             &&
-      data         != NULL             &&
-      q_bits       != NULL) 
-  {    
-    
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  if (nof_bits + 8 < SRSLTE_UCI_MAX_CQI_LEN_PUSCH && q != NULL && data != NULL && q_bits != NULL) {
+
     srslte_rm_conv_rx_s(q_bits, Q, q->encoded_cqi_s, 3 * (nof_bits + 8));
 
     DEBUG("cconv_rx=");
@@ -401,24 +354,24 @@ int decode_cqi_long(srslte_uci_cqi_pusch_t *q, int16_t *q_bits, uint32_t Q,
     }
 
     srslte_viterbi_decode_s(&q->viterbi, q->encoded_cqi_s, q->tmp_cqi, nof_bits + 8);
-    
+
     DEBUG("cqi_crc_rx=");
     if (SRSLTE_VERBOSE_ISDEBUG()) {
-      srslte_vec_fprint_b(stdout, q->tmp_cqi, nof_bits+8);
+      srslte_vec_fprint_b(stdout, q->tmp_cqi, nof_bits + 8);
     }
-    
+
     ret = srslte_crc_checksum(&q->crc, q->tmp_cqi, nof_bits + 8);
-   if (ret == 0) {
-      memcpy(data, q->tmp_cqi, nof_bits*sizeof(uint8_t));
+    if (ret == 0) {
+      memcpy(data, q->tmp_cqi, nof_bits * sizeof(uint8_t));
       ret = 1;
     } else {
-      ret = 0; 
+      ret = 0;
     }
   }
-  return ret;   
+  return ret;
 }
 
-/* Encode UCI CQI/PMI 
+/* Encode UCI CQI/PMI
  */
 int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
                                 srslte_pusch_cfg_t*     cfg,
@@ -431,7 +384,7 @@ int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
 {
   if (beta < 0) {
     ERROR("Error beta is reserved\n");
-    return -1; 
+    return -1;
   }
   uint32_t Q_prime = Q_prime_cqi(cfg, cqi_len, beta, Q_prime_ri);
   uint32_t Qm      = srslte_mod_bits_x_symbol(cfg->grant.tb.mod);
@@ -446,23 +399,23 @@ int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
     ret = decode_cqi_long(q, q_bits, Q_prime * Qm, cqi_data, cqi_len);
     if (ret == 1) {
       if (cqi_ack) {
-        *cqi_ack = true; 
+        *cqi_ack = true;
       }
-      ret = 0; 
+      ret = 0;
     } else if (ret == 0) {
       if (cqi_ack) {
-        *cqi_ack = false; 
+        *cqi_ack = false;
       }
     }
   }
   if (ret) {
     return ret;
   } else {
-    return (int) Q_prime;
+    return (int)Q_prime;
   }
 }
 
-/* Encode UCI CQI/PMI as described in 5.2.2.6 of 36.212 
+/* Encode UCI CQI/PMI as described in 5.2.2.6 of 36.212
  */
 int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
                                 srslte_pusch_cfg_t*     cfg,
@@ -494,19 +447,22 @@ int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
 }
 
 /* Generates UCI-ACK bits and computes position in q bits */
-static int uci_ulsch_interleave_ack_gen(
-    uint32_t ack_q_bit_idx, uint32_t Qm, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_uci_bit_t* ack_bits)
+static int uci_ulsch_interleave_ack_gen(uint32_t          ack_q_bit_idx,
+                                        uint32_t          Qm,
+                                        uint32_t          H_prime_total,
+                                        uint32_t          N_pusch_symbs,
+                                        srslte_uci_bit_t* ack_bits)
 {
 
   const uint32_t ack_column_set_norm[4] = {2, 3, 8, 9};
-  const uint32_t ack_column_set_ext[4] = {1, 2, 6, 7};
+  const uint32_t ack_column_set_ext[4]  = {1, 2, 6, 7};
 
   if (H_prime_total / N_pusch_symbs >= 1 + ack_q_bit_idx / 4) {
-    uint32_t row = H_prime_total/N_pusch_symbs-1-ack_q_bit_idx/4;
-    uint32_t colidx = (3*ack_q_bit_idx)%4;
+    uint32_t row    = H_prime_total / N_pusch_symbs - 1 - ack_q_bit_idx / 4;
+    uint32_t colidx = (3 * ack_q_bit_idx) % 4;
     uint32_t col    = N_pusch_symbs > 10 ? ack_column_set_norm[colidx] : ack_column_set_ext[colidx];
-    for(uint32_t k=0; k<Qm; k++) {
-      ack_bits[k].position = row *Qm + (H_prime_total/N_pusch_symbs)*col*Qm + k;
+    for (uint32_t k = 0; k < Qm; k++) {
+      ack_bits[k].position = row * Qm + (H_prime_total / N_pusch_symbs) * col * Qm + k;
     }
     return SRSLTE_SUCCESS;
   } else {
@@ -519,21 +475,24 @@ static int uci_ulsch_interleave_ack_gen(
 }
 
 /* Inserts UCI-RI bits into the correct positions in the g buffer before interleaving */
-static int uci_ulsch_interleave_ri_gen(
-    uint32_t ri_q_bit_idx, uint32_t Qm, uint32_t H_prime_total, uint32_t N_pusch_symbs, srslte_uci_bit_t* ri_bits)
+static int uci_ulsch_interleave_ri_gen(uint32_t          ri_q_bit_idx,
+                                       uint32_t          Qm,
+                                       uint32_t          H_prime_total,
+                                       uint32_t          N_pusch_symbs,
+                                       srslte_uci_bit_t* ri_bits)
 {
-  
-  static uint32_t ri_column_set_norm[4]  = {1, 4, 7, 10};
+
+  static uint32_t ri_column_set_norm[4] = {1, 4, 7, 10};
   static uint32_t ri_column_set_ext[4]  = {0, 3, 5, 8};
 
-  if (H_prime_total/N_pusch_symbs >= 1+ri_q_bit_idx/4) {
-    uint32_t row = H_prime_total/N_pusch_symbs-1-ri_q_bit_idx/4;
-    uint32_t colidx = (3*ri_q_bit_idx)%4;
+  if (H_prime_total / N_pusch_symbs >= 1 + ri_q_bit_idx / 4) {
+    uint32_t row    = H_prime_total / N_pusch_symbs - 1 - ri_q_bit_idx / 4;
+    uint32_t colidx = (3 * ri_q_bit_idx) % 4;
     uint32_t col    = N_pusch_symbs > 10 ? ri_column_set_norm[colidx] : ri_column_set_ext[colidx];
 
-    for(uint32_t k=0; k<Qm; k++) {
+    for (uint32_t k = 0; k < Qm; k++) {
       ri_bits[k].position = row * Qm + (H_prime_total / N_pusch_symbs) * col * Qm + k;
-    }    
+    }
     return SRSLTE_SUCCESS;
   } else {
     ERROR("Error interleaving UCI-RI bit idx %d for H_prime_total=%d and N_pusch_symbs=%d\n",
@@ -544,12 +503,12 @@ static int uci_ulsch_interleave_ri_gen(
   }
 }
 
-static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t *cfg, 
-                               uint32_t O, uint32_t O_cqi, float beta) {
+static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t* cfg, uint32_t O, uint32_t O_cqi, float beta)
+{
 
   if (beta < 0) {
     ERROR("Error beta is reserved\n");
-    return -1; 
+    return -1;
   }
 
   uint32_t K = cfg->K_segm;
@@ -577,7 +536,7 @@ static uint32_t encode_ri_ack(uint8_t data[2], uint32_t O_ack, uint8_t Qm, srslt
   if (O_ack == 1) {
     q_encoded_bits[i++].type = data[0] ? UCI_BIT_1 : UCI_BIT_0;
     q_encoded_bits[i++].type = UCI_BIT_REPETITION;
-    while(i < Qm) {
+    while (i < Qm) {
       q_encoded_bits[i++].type = UCI_BIT_PLACEHOLDER;
     }
   } else if (O_ack == 2) {
@@ -593,7 +552,7 @@ static uint32_t encode_ri_ack(uint8_t data[2], uint32_t O_ack, uint8_t Qm, srslt
     }
     q_encoded_bits[i++].type = data[1] ? UCI_BIT_1 : UCI_BIT_0;
     q_encoded_bits[i++].type = (data[0] ^ data[1]) ? UCI_BIT_1 : UCI_BIT_0;
-    while(i<Qm*3) {
+    while (i < Qm * 3) {
       q_encoded_bits[i++].type = UCI_BIT_PLACEHOLDER;
     }
   }
@@ -624,7 +583,7 @@ encode_ack_long(uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_prime, sr
 
 /* Decode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212
  */
-static int32_t decode_ri_ack_1bit(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos)
+static int32_t decode_ri_ack_1bit(int16_t* q_bits, uint8_t* c_seq, srslte_uci_bit_t* pos)
 {
   uint32_t p0 = pos[0].position;
   uint32_t p1 = pos[1].position;
@@ -639,7 +598,7 @@ static int32_t decode_ri_ack_1bit(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bi
   return (q0 + q1);
 }
 
-static void decode_ri_ack_2bits(int16_t *q_bits, uint8_t *c_seq, srslte_uci_bit_t *pos, uint32_t Qm, int32_t data[3])
+static void decode_ri_ack_2bits(int16_t* q_bits, uint8_t* c_seq, srslte_uci_bit_t* pos, uint32_t Qm, int32_t data[3])
 {
   uint32_t p0 = pos[Qm * 0 + 0].position;
   uint32_t p1 = pos[Qm * 0 + 1].position;
@@ -779,12 +738,12 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
     }
   }
 
-  data[0] = (uint8_t) (sum[0] > 0);
+  data[0] = (uint8_t)(sum[0] > 0);
   if (nof_bits == 2) {
-    data[1] = (uint8_t) (sum[1] > 0);
+    data[1] = (uint8_t)(sum[1] > 0);
   }
 
-  return (int) Qprime;
+  return (int)Qprime;
 }
 
 uint32_t srslte_uci_cfg_total_ack(srslte_uci_cfg_t* uci_cfg)

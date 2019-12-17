@@ -19,15 +19,15 @@
  *
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <stdint.h>
 
 #include "srslte/phy/fec/tc_interl.h"
 #include "srslte/phy/utils/debug.h"
 
-#define TURBO_SRSLTE_TCOD_RATE 	3
+#define TURBO_SRSLTE_TCOD_RATE 3
 
 uint32_t mcd(uint32_t x, uint32_t y);
 
@@ -37,19 +37,19 @@ uint32_t mcd(uint32_t x, uint32_t y);
  *
  ************************************************/
 
-#define MAX_ROWS 	20
-#define MAX_COLS 	256
+#define MAX_ROWS 20
+#define MAX_COLS 256
 
-const unsigned short table_p[52] = { 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43,
-    47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127,
-    131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199,
-    211, 223, 227, 229, 233, 239, 241, 251, 257 };
-const uint8_t table_v[52] = { 3, 2, 2, 3, 2, 5, 2, 3, 2, 6, 3, 5, 2, 2, 2,
-    2, 7, 5, 3, 2, 3, 5, 2, 5, 2, 6, 3, 3, 2, 3, 2, 2, 6, 5, 2, 5, 2, 2, 2, 19,
-    5, 2, 3, 2, 3, 2, 6, 3, 7, 7, 6, 3 };
+const unsigned short table_p[52] = {7,   11,  13,  17,  19,  23,  29,  31,  37,  41,  43,  47,  53,
+                                    59,  61,  67,  71,  73,  79,  83,  89,  97,  101, 103, 107, 109,
+                                    113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181,
+                                    191, 193, 197, 199, 211, 223, 227, 229, 233, 239, 241, 251, 257};
+const uint8_t        table_v[52] = {3, 2, 2, 3, 2, 5, 2, 3, 2, 6, 3, 5, 2, 2,  2, 2, 7, 5, 3, 2, 3, 5, 2, 5, 2, 6,
+                             3, 3, 2, 3, 2, 2, 6, 5, 2, 5, 2, 2, 2, 19, 5, 2, 3, 2, 3, 2, 6, 3, 7, 7, 6, 3};
 
-int srslte_tc_interl_init(srslte_tc_interl_t *h, uint32_t max_long_cb) {
-  int ret = -1;
+int srslte_tc_interl_init(srslte_tc_interl_t* h, uint32_t max_long_cb)
+{
+  int ret    = -1;
   h->forward = malloc(sizeof(uint32_t) * max_long_cb);
   if (!h->forward) {
     perror("malloc");
@@ -61,14 +61,16 @@ int srslte_tc_interl_init(srslte_tc_interl_t *h, uint32_t max_long_cb) {
     goto clean_exit;
   }
   h->max_long_cb = max_long_cb;
-  ret = 0;
-  clean_exit: if (ret == -1) {
+  ret            = 0;
+clean_exit:
+  if (ret == -1) {
     srslte_tc_interl_free(h);
   }
   return ret;
 }
 
-void srslte_tc_interl_free(srslte_tc_interl_t *h) {
+void srslte_tc_interl_free(srslte_tc_interl_t* h)
+{
   if (h->forward) {
     free(h->forward);
   }
@@ -78,17 +80,18 @@ void srslte_tc_interl_free(srslte_tc_interl_t *h) {
   bzero(h, sizeof(srslte_tc_interl_t));
 }
 
-int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
+int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t* h, uint32_t long_cb)
+{
 
-  uint32_t i, j;
-  uint32_t res, prim, aux;
-  uint32_t kp, k;
+  uint32_t  i, j;
+  uint32_t  res, prim, aux;
+  uint32_t  kp, k;
   uint16_t *per, *desper;
-  uint8_t v;
-  uint16_t p;
-  uint16_t s[MAX_COLS], q[MAX_ROWS], r[MAX_ROWS], T[MAX_ROWS];
-  uint16_t U[MAX_COLS * MAX_ROWS];
-  uint32_t M_Rows, M_Cols, M_long;
+  uint8_t   v;
+  uint16_t  p;
+  uint16_t  s[MAX_COLS], q[MAX_ROWS], r[MAX_ROWS], T[MAX_ROWS];
+  uint16_t  U[MAX_COLS * MAX_ROWS];
+  uint32_t  M_Rows, M_Cols, M_long;
 
   M_long = long_cb;
 
@@ -100,16 +103,15 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
   /* Find R*/
   if ((40 <= M_long) && (M_long <= 159))
     M_Rows = 5;
-  else if (((160 <= M_long) && (M_long <= 200))
-      || ((481 <= M_long) && (M_long <= 530)))
+  else if (((160 <= M_long) && (M_long <= 200)) || ((481 <= M_long) && (M_long <= 530)))
     M_Rows = 10;
   else
     M_Rows = 20;
 
   /* Find p i v*/
   if ((481 <= M_long) && (M_long <= 530)) {
-    p = 53;
-    v = 2;
+    p      = 53;
+    v      = 2;
     M_Cols = p;
   } else {
     i = 0;
@@ -118,12 +120,11 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
       v = table_v[i];
       i++;
     } while (M_long > (M_Rows * (p + 1)));
-
   }
 
   /* Find C*/
-  if ((M_long) <= (M_Rows) * ((p) - 1))
-    M_Cols = (p) - 1;
+  if ((M_long) <= (M_Rows) * ((p)-1))
+    M_Cols = (p)-1;
   else if (((M_Rows) * (p - 1) < M_long) && (M_long <= (M_Rows) * (p)))
     M_Cols = p;
   else if ((M_Rows) * (p) < M_long)
@@ -151,8 +152,7 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
     T[2] = 2;
     T[3] = 1;
     T[4] = 0;
-  } else if ((M_long <= 200 && M_long >= 160)
-      || (M_long <= 530 && M_long >= 481)) {
+  } else if ((M_long <= 200 && M_long >= 160) || (M_long <= 530 && M_long >= 481)) {
     T[0] = 9;
     T[1] = 8;
     T[2] = 7;
@@ -163,18 +163,17 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
     T[7] = 2;
     T[8] = 1;
     T[9] = 0;
-  } else if ((M_long <= 2480 && M_long >= 2281)
-      || (M_long <= 3210 && M_long >= 3161)) {
-    T[0] = 19;
-    T[1] = 9;
-    T[2] = 14;
-    T[3] = 4;
-    T[4] = 0;
-    T[5] = 2;
-    T[6] = 5;
-    T[7] = 7;
-    T[8] = 12;
-    T[9] = 18;
+  } else if ((M_long <= 2480 && M_long >= 2281) || (M_long <= 3210 && M_long >= 3161)) {
+    T[0]  = 19;
+    T[1]  = 9;
+    T[2]  = 14;
+    T[3]  = 4;
+    T[4]  = 0;
+    T[5]  = 2;
+    T[6]  = 5;
+    T[7]  = 7;
+    T[8]  = 12;
+    T[9]  = 18;
     T[10] = 16;
     T[11] = 13;
     T[12] = 17;
@@ -186,16 +185,16 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
     T[18] = 8;
     T[19] = 10;
   } else {
-    T[0] = 19;
-    T[1] = 9;
-    T[2] = 14;
-    T[3] = 4;
-    T[4] = 0;
-    T[5] = 2;
-    T[6] = 5;
-    T[7] = 7;
-    T[8] = 12;
-    T[9] = 18;
+    T[0]  = 19;
+    T[1]  = 9;
+    T[2]  = 14;
+    T[3]  = 4;
+    T[4]  = 0;
+    T[5]  = 2;
+    T[6]  = 5;
+    T[7]  = 7;
+    T[8]  = 12;
+    T[9]  = 18;
     T[10] = 10;
     T[11] = 8;
     T[12] = 13;
@@ -226,16 +225,16 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
   } else if (M_Cols == p + 1) {
     for (i = 0; i < M_Rows; i++) {
       U[i * M_Cols + p - 1] = 0;
-      U[i * M_Cols + p] = p;
+      U[i * M_Cols + p]     = p;
     }
     if (M_long == M_Cols * M_Rows) {
-      aux = U[(M_Rows - 1) * M_Cols + p];
+      aux                          = U[(M_Rows - 1) * M_Cols + p];
       U[(M_Rows - 1) * M_Cols + p] = U[(M_Rows - 1) * M_Cols + 0];
       U[(M_Rows - 1) * M_Cols + 0] = aux;
     }
   }
 
-  per = h->forward;
+  per    = h->forward;
   desper = h->reverse;
 
   k = 0;
@@ -244,17 +243,17 @@ int srslte_tc_interl_UMTS_gen(srslte_tc_interl_t *h, uint32_t long_cb) {
       kp = T[i] * M_Cols + U[i * M_Cols + j];
       if (kp < M_long) {
         desper[kp] = k;
-        per[k] = kp;
+        per[k]     = kp;
         k++;
       }
     }
   }
 
   return 0;
-
 }
 
-uint32_t mcd(uint32_t x, uint32_t y) {
+uint32_t mcd(uint32_t x, uint32_t y)
+{
   uint32_t r = 1;
 
   while (r) {

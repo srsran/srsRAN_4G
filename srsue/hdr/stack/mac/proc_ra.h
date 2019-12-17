@@ -25,24 +25,24 @@
 #include <mutex>
 #include <stdint.h>
 
-#include "srslte/common/log.h"
-#include "srslte/common/timers.h"
-#include "mux.h"
 #include "demux.h"
-#include "srslte/common/pdu.h"
+#include "mux.h"
+#include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/pdu.h"
+#include "srslte/common/timers.h"
 
 /* Random access procedure as specified in Section 5.1 of 36.321 */
-
 
 namespace srsue {
 
 class ra_proc : public srslte::timer_callback
 {
 public:
-  ra_proc() : rar_pdu_msg(20) {
+  ra_proc() : rar_pdu_msg(20)
+  {
     bzero(&softbuffer_rar, sizeof(srslte_softbuffer_rx_t));
-    pcap = NULL;
+    pcap                      = NULL;
     backoff_interval_start    = 0;
     backoff_interval          = 0;
     received_target_power_dbm = 0;
@@ -162,7 +162,7 @@ private:
   void read_params();
 
   phy_interface_mac_lte* phy_h;
-  srslte::log*       log_h;
+  srslte::log*           log_h;
   mux*                   mux_unit;
   srslte::mac_pcap*      pcap;
   rrc_interface_mac*     rrc;
@@ -179,9 +179,9 @@ private:
   std::mutex mutex;
 
   bool     ra_is_ho;
-  bool started_by_pdcch;
+  bool     started_by_pdcch;
   uint32_t rar_grant_nbytes;
-  bool rar_received;
+  bool     rar_received;
 };
 
 } // namespace srsue

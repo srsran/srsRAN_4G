@@ -300,8 +300,12 @@ void srslte_refsignal_dl_sync_run(srslte_refsignal_dl_sync_t* q, cf_t* buffer, u
   }
 }
 
-void srslte_refsignal_dl_sync_measure_sf(
-    srslte_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t sf_idx, float* rsrp, float* rssi, float* cfo)
+void srslte_refsignal_dl_sync_measure_sf(srslte_refsignal_dl_sync_t* q,
+                                         cf_t*                       buffer,
+                                         uint32_t                    sf_idx,
+                                         float*                      rsrp,
+                                         float*                      rssi,
+                                         float*                      cfo)
 {
   float              rsrp_lin  = 0.0f;
   float              rssi_lin  = 0.0f;

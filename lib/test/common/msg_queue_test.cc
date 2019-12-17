@@ -19,7 +19,7 @@
  *
  */
 
-#define NMSGS    1000000
+#define NMSGS 1000000
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/upper/rlc_tx_queue.h"
@@ -28,14 +28,14 @@
 using namespace srslte;
 
 typedef struct {
-  rlc_tx_queue   *q;
-}args_t;
+  rlc_tx_queue* q;
+} args_t;
 
-void* write_thread(void *a) {
-  args_t *args = (args_t*)a;
+void* write_thread(void* a)
+{
+  args_t*           args = (args_t*)a;
   byte_buffer_pool* pool = byte_buffer_pool::get_instance();
-  for(uint32_t i=0;i<NMSGS;i++)
-  {
+  for (uint32_t i = 0; i < NMSGS; i++) {
     unique_byte_buffer_t b = srslte::allocate_unique_buffer(*pool, true);
     memcpy(b->msg, &i, 4);
     b->N_bytes = 4;
@@ -44,7 +44,8 @@ void* write_thread(void *a) {
   return NULL;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   bool                 result;
   rlc_tx_queue         q;
   unique_byte_buffer_t b;
@@ -57,11 +58,10 @@ int main(int argc, char **argv) {
 
   pthread_create(&thread, NULL, &write_thread, &args);
 
-  for(uint32_t i=0;i<NMSGS;i++)
-  {
+  for (uint32_t i = 0; i < NMSGS; i++) {
     b = q.read();
     memcpy(&r, b->msg, 4);
-    if(r != i)
+    if (r != i)
       result = false;
   }
 
@@ -71,10 +71,10 @@ int main(int argc, char **argv) {
     result = false;
   }
 
-  if(result) {
+  if (result) {
     printf("Passed\n");
     exit(0);
-  }else{
+  } else {
     printf("Failed\n;");
     exit(1);
   }

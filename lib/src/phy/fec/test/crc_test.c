@@ -19,22 +19,23 @@
  *
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
+#include <unistd.h>
 
-#include "srslte/srslte.h"
 #include "crc_test.h"
+#include "srslte/srslte.h"
 
-int num_bits = 5001, crc_length = 24;
+int      num_bits = 5001, crc_length = 24;
 uint32_t crc_poly = 0x1864CFB;
-uint32_t seed = 1;
+uint32_t seed     = 1;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [nlps]\n", prog);
   printf("\t-n num_bits [Default %d]\n", num_bits);
   printf("\t-l crc_length [Default %d]\n", crc_length);
@@ -42,33 +43,35 @@ void usage(char *prog) {
   printf("\t-s seed [Default 0=time]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "nlps")) != -1) {
     switch (opt) {
-    case 'n':
-      num_bits = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'l':
-      crc_length = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'p':
-      crc_poly = (uint32_t) strtoul(argv[optind], NULL, 16);
-      break;
-    case 's':
-      seed = (uint32_t) strtoul(argv[optind], NULL, 0);
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'n':
+        num_bits = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'l':
+        crc_length = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'p':
+        crc_poly = (uint32_t)strtoul(argv[optind], NULL, 16);
+        break;
+      case 's':
+        seed = (uint32_t)strtoul(argv[optind], NULL, 0);
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-int main(int argc, char **argv) {
-  int i;
-  uint8_t *data;
-  uint32_t crc_word, expected_word;
+int main(int argc, char** argv)
+{
+  int          i;
+  uint8_t*     data;
+  uint32_t     crc_word, expected_word;
   srslte_crc_t crc_p;
 
   parse_args(argc, argv);
@@ -89,7 +92,7 @@ int main(int argc, char **argv) {
     data[i] = rand() % 2;
   }
 
-  //Initialize CRC params and tables
+  // Initialize CRC params and tables
   if (srslte_crc_init(&crc_p, crc_poly, crc_length)) {
     exit(-1);
   }
@@ -100,8 +103,7 @@ int main(int argc, char **argv) {
   free(data);
 
   // check if generated word is as expected
-  if (get_expected_word(num_bits, crc_length, crc_poly, seed,
-      &expected_word)) {
+  if (get_expected_word(num_bits, crc_length, crc_poly, seed, &expected_word)) {
     ERROR("Test parameters not defined in test_results.h\n");
     exit(-1);
   }

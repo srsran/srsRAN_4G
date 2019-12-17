@@ -33,16 +33,16 @@
 #ifndef SRSLTE_UE_UL_H
 #define SRSLTE_UE_UL_H
 
-#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/ch_estimation/chest_dl.h"
-#include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
-#include "srslte/phy/phch/pusch.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/phch/dci.h"
+#include "srslte/phy/phch/pusch.h"
 #include "srslte/phy/phch/ra.h"
 #include "srslte/phy/sync/cfo.h"
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 #include "srslte/config.h"
 
@@ -54,13 +54,13 @@ typedef struct {
   float p0_nominal_pucch;
   float delta_f_pucch[5];
   float delta_preamble_msg3;
-  
+
   // Dedicated configuration
   float p0_ue_pusch;
   bool  delta_mcs_based;
   bool  acc_enabled;
   float p0_ue_pucch;
-  float p_srs_offset;  
+  float p_srs_offset;
 } srslte_ue_ul_powerctrl_t;
 
 typedef struct SRSLTE_API {
@@ -85,10 +85,10 @@ typedef struct SRSLTE_API {
   uint32_t        cc_idx;
 
   srslte_ue_ul_normalize_mode_t normalize_mode;
-  float force_peak_amplitude;
-  bool  cfo_en;
-  float cfo_tol;
-  float cfo_value;
+  float                         force_peak_amplitude;
+  bool                          cfo_en;
+  float                         cfo_tol;
+  float                         cfo_value;
 
 } srslte_ue_ul_cfg_t;
 
@@ -151,7 +151,10 @@ SRSLTE_API void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
                                                       srslte_uci_cfg_t*   uci_cfg,
                                                       srslte_uci_value_t* uci_data);
 
-SRSLTE_API bool srslte_ue_ul_info(
-    srslte_ue_ul_cfg_t* cfg, srslte_ul_sf_cfg_t* sf, srslte_uci_value_t* uci_data, char* str, uint32_t str_len);
+SRSLTE_API bool srslte_ue_ul_info(srslte_ue_ul_cfg_t* cfg,
+                                  srslte_ul_sf_cfg_t* sf,
+                                  srslte_uci_value_t* uci_data,
+                                  char*               str,
+                                  uint32_t            str_len);
 
 #endif // SRSLTE_UE_UL_H

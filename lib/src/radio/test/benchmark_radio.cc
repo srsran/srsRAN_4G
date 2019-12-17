@@ -41,17 +41,17 @@ static char radios_args[SRSLTE_MAX_RADIOS][64] = {"auto", "auto", "auto"};
 
 log_filter  log_h;
 std::string file_pattern = "radio%d.dat";
-double freq = 2630e6;
+double      freq         = 2630e6;
 uint32_t    nof_radios   = 1;
 uint32_t    nof_ports    = 1;
-double srate = 1.92e6; /* Hz */
+double      srate        = 1.92e6; /* Hz */
 double      duration     = 0.01;   /* in seconds, 10 ms by default */
 cf_t*       buffers[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS];
-bool tx_enable = false;
-bool        measure_delay       = false;
-bool        capture             = false;
-bool        agc_enable          = true;
-float       rf_gain             = -1.0;
+bool        tx_enable     = false;
+bool        measure_delay = false;
+bool        capture       = false;
+bool        agc_enable    = true;
+float       rf_gain       = -1.0;
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
@@ -89,7 +89,8 @@ void usage(char* prog)
   printf("\t-h show this message\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "foabcderpsStvhmFxwg")) != -1) {
     switch (opt) {
@@ -259,7 +260,7 @@ int main(int argc, char** argv)
   /* Parse args */
   parse_args(argc, argv);
 
-  uint32_t nof_samples = (uint32_t) (duration * srate);
+  uint32_t nof_samples = (uint32_t)(duration * srate);
   uint32_t frame_size  = (uint32_t)(srate / 1000.0); /* 1 ms at srate */
   uint32_t nof_frames  = (uint32_t)ceil(nof_samples / frame_size);
 

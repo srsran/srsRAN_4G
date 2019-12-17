@@ -42,7 +42,7 @@ public:
               uint32_t                   lcid_,
               srsue::pdcp_interface_rlc* pdcp_,
               srsue::rrc_interface_rlc*  rrc_,
-              srslte::timer_handler*            timers_);
+              srslte::timer_handler*     timers_);
   virtual ~rlc_um_base();
   void reestablish();
   void stop();
@@ -64,7 +64,7 @@ public:
   int      get_increment_sequence_num();
 
   rlc_bearer_metrics_t get_metrics();
-  void     reset_metrics();
+  void                 reset_metrics();
 
 protected:
   // Transmitter sub-class base
@@ -122,7 +122,7 @@ protected:
   protected:
     byte_buffer_pool*          pool   = nullptr;
     srslte::log*               log    = nullptr;
-    srslte::timer_handler*            timers = nullptr;
+    srslte::timer_handler*     timers = nullptr;
     srsue::pdcp_interface_rlc* pdcp   = nullptr;
     srsue::rrc_interface_rlc*  rrc    = nullptr;
 
@@ -145,7 +145,7 @@ protected:
   srsue::rrc_interface_rlc*  rrc    = nullptr;
   srsue::pdcp_interface_rlc* pdcp   = nullptr;
   srslte::log*               log    = nullptr;
-  srslte::timer_handler*            timers = nullptr;
+  srslte::timer_handler*     timers = nullptr;
   uint32_t                   lcid   = 0;
   rlc_config_t               cfg    = {};
   std::string                rb_name;
@@ -156,8 +156,8 @@ protected:
   std::unique_ptr<rlc_um_base_tx> tx;
   std::unique_ptr<rlc_um_base_rx> rx;
 
-  bool     tx_enabled   = false;
-  bool     rx_enabled   = false;
+  bool tx_enabled = false;
+  bool rx_enabled = false;
 
   rlc_bearer_metrics_t metrics = {};
 };

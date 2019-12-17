@@ -34,7 +34,7 @@ using namespace srsue;
 
 namespace srsue {
 
-char *csv_file_name = NULL;
+char* csv_file_name = NULL;
 
 // fake classes
 class ue_dummy : public ue_metrics_interface
@@ -59,17 +59,19 @@ public:
 
   bool is_rrc_connected() { return (rand() % 2 == 0); }
 };
-}
+} // namespace srsue
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s -o csv_output_file\n", prog);
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
 
   while ((opt = getopt(argc, argv, "o")) != -1) {
-    switch(opt) {
+    switch (opt) {
       case 'o':
         csv_file_name = argv[optind];
         break;
@@ -84,10 +86,9 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-  float period = 1.0;
+  float    period = 1.0;
   ue_dummy ue;
 
   if (argc < 3) {
@@ -95,7 +96,7 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   // the default metrics type for stdout output
   metrics_stdout metrics_screen;

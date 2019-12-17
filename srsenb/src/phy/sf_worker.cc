@@ -258,7 +258,6 @@ void sf_worker::work_imp()
     sem_post(&plot_sem);
   }
 #endif
-
 }
 
 /************ METRICS interface ********************/
@@ -400,7 +399,7 @@ void init_plots(srsenb::sf_worker* worker)
 
   pthread_attr_t     attr;
   struct sched_param param = {};
-  param.sched_priority = 0;
+  param.sched_priority     = 0;
   pthread_attr_init(&attr);
   pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
   pthread_attr_setschedpolicy(&attr, SCHED_OTHER);

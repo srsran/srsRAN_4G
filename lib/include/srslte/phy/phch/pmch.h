@@ -39,10 +39,10 @@
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/dci.h"
 #include "srslte/phy/phch/pdsch.h"
+#include "srslte/phy/phch/ra_dl.h"
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/phch/sch.h"
 #include "srslte/phy/scrambling/scrambling.h"
-#include "srslte/phy/phch/ra_dl.h"
 typedef struct {
   srslte_sequence_t seq[SRSLTE_NOF_SF_X_FRAME];
 } srslte_pmch_seq_t;
@@ -55,27 +55,27 @@ typedef struct SRSLTE_API {
 /* PMCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
-  
+
   uint32_t nof_rx_antennas;
-  
+
   uint32_t max_re;
-  
+
   /* buffers */
   // void buffers are shared for tx and rx
-  cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  cf_t *symbols[SRSLTE_MAX_PORTS];
-  cf_t *x[SRSLTE_MAX_PORTS];
-  cf_t *d;
-  void *e;
+  cf_t* ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  cf_t* symbols[SRSLTE_MAX_PORTS];
+  cf_t* x[SRSLTE_MAX_PORTS];
+  cf_t* d;
+  void* e;
 
   /* tx & rx objects */
   srslte_modem_table_t mod[4];
-  
+
   // This is to generate the scrambling seq for multiple MBSFN Area IDs
-  srslte_pmch_seq_t **seqs;
-  
+  srslte_pmch_seq_t** seqs;
+
   srslte_sch_t dl_sch;
-  
+
 } srslte_pmch_t;
 
 SRSLTE_API int srslte_pmch_init(srslte_pmch_t* q, uint32_t max_prb, uint32_t nof_rx_antennas);

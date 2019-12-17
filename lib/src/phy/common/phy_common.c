@@ -30,14 +30,15 @@
 
 #ifdef FORCE_STANDARD_RATE
 static bool use_standard_rates = true;
-#else 
-static bool use_standard_rates = false; 
+#else
+static bool use_standard_rates = false;
 #endif
 
 /* Returns true if the structure pointed by cell has valid parameters
  */
 
-bool srslte_cellid_isvalid(uint32_t cell_id) {
+bool srslte_cellid_isvalid(uint32_t cell_id)
+{
   if (cell_id < 504) {
     return true;
   } else {
@@ -45,7 +46,8 @@ bool srslte_cellid_isvalid(uint32_t cell_id) {
   }
 }
 
-bool srslte_nofprb_isvalid(uint32_t nof_prb) {
+bool srslte_nofprb_isvalid(uint32_t nof_prb)
+{
   if (nof_prb == 1 || (nof_prb >= 6 && nof_prb <= SRSLTE_MAX_PRB)) {
     return true;
   } else {
@@ -53,38 +55,37 @@ bool srslte_nofprb_isvalid(uint32_t nof_prb) {
   }
 }
 
-bool srslte_cell_isvalid(srslte_cell_t *cell) {
-  return srslte_cellid_isvalid(cell->id)           && 
-         srslte_portid_isvalid(cell->nof_ports)    &&
+bool srslte_cell_isvalid(srslte_cell_t* cell)
+{
+  return srslte_cellid_isvalid(cell->id) && srslte_portid_isvalid(cell->nof_ports) &&
          srslte_nofprb_isvalid(cell->nof_prb);
 }
 
-void srslte_cell_fprint(FILE *stream, srslte_cell_t *cell, uint32_t sfn) {
+void srslte_cell_fprint(FILE* stream, srslte_cell_t* cell, uint32_t sfn)
+{
   fprintf(stream, " - Type:            %s\n", cell->frame_type == SRSLTE_FDD ? "FDD" : "TDD");
   fprintf(stream, " - PCI:             %d\n", cell->id);
   fprintf(stream, " - Nof ports:       %d\n", cell->nof_ports);
   fprintf(stream, " - CP:              %s\n", srslte_cp_string(cell->cp));
   fprintf(stream, " - PRB:             %d\n", cell->nof_prb);
-  fprintf(stream, " - PHICH Length:    %s\n",
-         cell->phich_length == SRSLTE_PHICH_EXT ? "Extended" : "Normal");
+  fprintf(stream, " - PHICH Length:    %s\n", cell->phich_length == SRSLTE_PHICH_EXT ? "Extended" : "Normal");
   fprintf(stream, " - PHICH Resources: ");
   switch (cell->phich_resources) {
-  case SRSLTE_PHICH_R_1_6:
-    fprintf(stream, "1/6");
-    break;
-  case SRSLTE_PHICH_R_1_2:
-    fprintf(stream, "1/2");
-    break;
-  case SRSLTE_PHICH_R_1:
-    fprintf(stream, "1");
-    break;
-  case SRSLTE_PHICH_R_2:
-    fprintf(stream, "2");
-    break;
+    case SRSLTE_PHICH_R_1_6:
+      fprintf(stream, "1/6");
+      break;
+    case SRSLTE_PHICH_R_1_2:
+      fprintf(stream, "1/2");
+      break;
+    case SRSLTE_PHICH_R_1:
+      fprintf(stream, "1");
+      break;
+    case SRSLTE_PHICH_R_2:
+      fprintf(stream, "2");
+      break;
   }
   fprintf(stream, "\n");
   fprintf(stream, " - SFN:             %d\n", sfn);
-
 }
 
 // Internal type for srslte_tdd_sf_t
@@ -98,8 +99,16 @@ static srslte_tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
                                         {D, S, U, D, D, D, D, D, D, D},
                                         {D, S, U, U, U, D, S, U, U, D}};
 
-static uint32_t tdd_nof_sf_symbols[10][3] = {
-    {3, 10, 1}, {9, 4, 1}, {10, 3, 1}, {11, 2, 1}, {12, 1, 1}, {3, 9, 2}, {9, 3, 2}, {10, 2, 2}, {11, 1, 1}, {6, 6, 2}};
+static uint32_t tdd_nof_sf_symbols[10][3] = {{3, 10, 1},
+                                             {9, 4, 1},
+                                             {10, 3, 1},
+                                             {11, 2, 1},
+                                             {12, 1, 1},
+                                             {3, 9, 2},
+                                             {9, 3, 2},
+                                             {10, 2, 2},
+                                             {11, 1, 1},
+                                             {6, 6, 2}};
 
 srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t sf_idx)
 {
@@ -180,7 +189,8 @@ bool srslte_portid_isvalid(uint32_t port_id)
   }
 }
 
-bool srslte_N_id_2_isvalid(uint32_t N_id_2) {
+bool srslte_N_id_2_isvalid(uint32_t N_id_2)
+{
   if (N_id_2 < 3) {
     return true;
   } else {
@@ -188,7 +198,8 @@ bool srslte_N_id_2_isvalid(uint32_t N_id_2) {
   }
 }
 
-bool srslte_N_id_1_isvalid(uint32_t N_id_1) {
+bool srslte_N_id_1_isvalid(uint32_t N_id_1)
+{
   if (N_id_1 < 168) {
     return true;
   } else {
@@ -196,11 +207,13 @@ bool srslte_N_id_1_isvalid(uint32_t N_id_1) {
   }
 }
 
-srslte_mod_t srslte_str2mod (char * mod_str) {
+srslte_mod_t srslte_str2mod(char* mod_str)
+{
   int i = 0;
 
   /* Upper case */
-  while (mod_str[i] &= (~' '), mod_str[++i]);
+  while (mod_str[i] &= (~' '), mod_str[++i])
+    ;
 
   if (!strcmp(mod_str, "QPSK")) {
     return SRSLTE_MOD_QPSK;
@@ -211,46 +224,48 @@ srslte_mod_t srslte_str2mod (char * mod_str) {
   } else if (!strcmp(mod_str, "256QAM")) {
     return SRSLTE_MOD_256QAM;
   } else {
-    return (srslte_mod_t) SRSLTE_ERROR_INVALID_INPUTS;
+    return (srslte_mod_t)SRSLTE_ERROR_INVALID_INPUTS;
   }
 };
 
-
-char *srslte_mod_string(srslte_mod_t mod) {
+char* srslte_mod_string(srslte_mod_t mod)
+{
   switch (mod) {
-  case SRSLTE_MOD_BPSK:
-    return "BPSK";
-  case SRSLTE_MOD_QPSK:
-    return "QPSK";
-  case SRSLTE_MOD_16QAM:
-    return "16QAM";
-  case SRSLTE_MOD_64QAM:
-    return "64QAM";
-  case SRSLTE_MOD_256QAM:
-    return "256QAM";
-  default:
-    return "N/A";
-  } 
+    case SRSLTE_MOD_BPSK:
+      return "BPSK";
+    case SRSLTE_MOD_QPSK:
+      return "QPSK";
+    case SRSLTE_MOD_16QAM:
+      return "16QAM";
+    case SRSLTE_MOD_64QAM:
+      return "64QAM";
+    case SRSLTE_MOD_256QAM:
+      return "256QAM";
+    default:
+      return "N/A";
+  }
 }
 
-uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod) {
+uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod)
+{
   switch (mod) {
-  case SRSLTE_MOD_BPSK:
-    return 1;
-  case SRSLTE_MOD_QPSK:
-    return 2;
-  case SRSLTE_MOD_16QAM:
-    return 4;
-  case SRSLTE_MOD_64QAM:
-    return 6;
-  case SRSLTE_MOD_256QAM:
-    return 8;
-  default:
-    return 0;
-  }   
+    case SRSLTE_MOD_BPSK:
+      return 1;
+    case SRSLTE_MOD_QPSK:
+      return 2;
+    case SRSLTE_MOD_16QAM:
+      return 4;
+    case SRSLTE_MOD_64QAM:
+      return 6;
+    case SRSLTE_MOD_256QAM:
+      return 8;
+    default:
+      return 0;
+  }
 }
 
-char *srslte_cp_string(srslte_cp_t cp) {
+char* srslte_cp_string(srslte_cp_t cp)
+{
   if (cp == SRSLTE_CP_NORM) {
     return "Normal  ";
   } else {
@@ -259,82 +274,88 @@ char *srslte_cp_string(srslte_cp_t cp) {
 }
 
 /* Returns the new time advance N_ta_new as specified in Section 4.2.3 of 36.213 */
-uint32_t srslte_N_ta_new(uint32_t N_ta_old, uint32_t ta) {
-  
-  ta &= 63;   
-  int n_ta_new = N_ta_old + ((float) ta - 31) * 16;
+uint32_t srslte_N_ta_new(uint32_t N_ta_old, uint32_t ta)
+{
+
+  ta &= 63;
+  int n_ta_new = N_ta_old + ((float)ta - 31) * 16;
   if (n_ta_new < 0) {
-    return 0; 
+    return 0;
   } else {
     if (n_ta_new < 20512) {
-      return (uint32_t) n_ta_new;
+      return (uint32_t)n_ta_new;
     } else {
-      return 20512; 
+      return 20512;
     }
   }
 }
 
 float srslte_coderate(uint32_t tbs, uint32_t nof_re)
 {
-  return (float) (tbs + 24)/(nof_re);
+  return (float)(tbs + 24) / (nof_re);
 }
 
-/* Returns the new time advance as indicated by the random access response 
+/* Returns the new time advance as indicated by the random access response
  * as specified in Section 4.2.3 of 36.213 */
-uint32_t srslte_N_ta_new_rar(uint32_t ta) {
+uint32_t srslte_N_ta_new_rar(uint32_t ta)
+{
   if (ta > 1282) {
-    ta = 1282; 
+    ta = 1282;
   }
-  return ta*16; 
+  return ta * 16;
 }
 
-void srslte_use_standard_symbol_size(bool enabled) {
+void srslte_use_standard_symbol_size(bool enabled)
+{
   use_standard_rates = enabled;
 }
 
-int srslte_sampling_freq_hz(uint32_t nof_prb) {
-    int n = srslte_symbol_sz(nof_prb); 
-    if (n == -1) {
-      return SRSLTE_ERROR;
-    } else {
-      return 15000 * n;
-    }
+int srslte_sampling_freq_hz(uint32_t nof_prb)
+{
+  int n = srslte_symbol_sz(nof_prb);
+  if (n == -1) {
+    return SRSLTE_ERROR;
+  } else {
+    return 15000 * n;
+  }
 }
 
-int srslte_symbol_sz_power2(uint32_t nof_prb) {
-  if (nof_prb<=6) {
+int srslte_symbol_sz_power2(uint32_t nof_prb)
+{
+  if (nof_prb <= 6) {
     return 128;
-  } else if (nof_prb<=15) {
+  } else if (nof_prb <= 15) {
     return 256;
-  } else if (nof_prb<=25) {
+  } else if (nof_prb <= 25) {
     return 512;
-  } else if (nof_prb<=50) {
+  } else if (nof_prb <= 50) {
     return 1024;
-  } else if (nof_prb<=75) {
+  } else if (nof_prb <= 75) {
     return 1536;
-  } else if (nof_prb<=110) {
+  } else if (nof_prb <= 110) {
     return 2048;
   } else {
     return -1;
   }
 }
 
-int srslte_symbol_sz(uint32_t nof_prb) {
-  if (nof_prb<=0) {
+int srslte_symbol_sz(uint32_t nof_prb)
+{
+  if (nof_prb <= 0) {
     return SRSLTE_ERROR;
   }
   if (!use_standard_rates) {
-    if (nof_prb<=6) {
+    if (nof_prb <= 6) {
       return 128;
-    } else if (nof_prb<=15) {
+    } else if (nof_prb <= 15) {
       return 256;
-    } else if (nof_prb<=25) {
+    } else if (nof_prb <= 25) {
       return 384;
-    } else if (nof_prb<=50) {
+    } else if (nof_prb <= 50) {
       return 768;
-    } else if (nof_prb<=75) {
+    } else if (nof_prb <= 75) {
       return 1024;
-    } else if (nof_prb<=110) {
+    } else if (nof_prb <= 110) {
       return 1536;
     } else {
       return SRSLTE_ERROR;
@@ -347,7 +368,7 @@ int srslte_symbol_sz(uint32_t nof_prb) {
 int srslte_nof_prb(uint32_t symbol_sz)
 {
   if (!use_standard_rates) {
-    switch(symbol_sz) {
+    switch (symbol_sz) {
       case 128:
         return 6;
       case 256:
@@ -362,7 +383,7 @@ int srslte_nof_prb(uint32_t symbol_sz)
         return 100;
     }
   } else {
-    switch(symbol_sz) {
+    switch (symbol_sz) {
       case 128:
         return 6;
       case 256:
@@ -380,54 +401,48 @@ int srslte_nof_prb(uint32_t symbol_sz)
   return SRSLTE_ERROR;
 }
 
-bool srslte_symbol_sz_isvalid(uint32_t symbol_sz) {
+bool srslte_symbol_sz_isvalid(uint32_t symbol_sz)
+{
   if (!use_standard_rates) {
-    if (symbol_sz == 128  || 
-        symbol_sz == 256  ||
-        symbol_sz == 384  ||
-        symbol_sz == 768  ||
-        symbol_sz == 1024 ||
+    if (symbol_sz == 128 || symbol_sz == 256 || symbol_sz == 384 || symbol_sz == 768 || symbol_sz == 1024 ||
         symbol_sz == 1536) {
       return true;
     } else {
-      return false; 
+      return false;
     }
   } else {
-    if (symbol_sz == 128  || 
-        symbol_sz == 256  ||
-        symbol_sz == 512  ||
-        symbol_sz == 1024 ||
-        symbol_sz == 1536 ||
+    if (symbol_sz == 128 || symbol_sz == 256 || symbol_sz == 512 || symbol_sz == 1024 || symbol_sz == 1536 ||
         symbol_sz == 2048) {
       return true;
     } else {
-      return false; 
+      return false;
     }
-  }  
+  }
 }
 
-uint32_t srslte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports) {
-  if (nof_ports == 1 && symbol_id==0) {
-    return (cell_id+3) % 6;
+uint32_t srslte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports)
+{
+  if (nof_ports == 1 && symbol_id == 0) {
+    return (cell_id + 3) % 6;
   } else {
     return cell_id % 6;
   }
 }
 
-
 /** Computes sequence-group pattern f_gh according to 5.5.1.3 of 36.211 */
-int srslte_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME], uint32_t cell_id) {
-  srslte_sequence_t seq; 
+int srslte_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME], uint32_t cell_id)
+{
+  srslte_sequence_t seq;
   bzero(&seq, sizeof(srslte_sequence_t));
-  
+
   if (srslte_sequence_LTE_pr(&seq, 160, cell_id / 30)) {
     return SRSLTE_ERROR;
   }
-  
-  for (uint32_t ns=0;ns<SRSLTE_NSLOTS_X_FRAME;ns++) {
+
+  for (uint32_t ns = 0; ns < SRSLTE_NSLOTS_X_FRAME; ns++) {
     f_gh[ns] = 0;
     for (int i = 0; i < 8; i++) {
-      f_gh[ns] += (((uint32_t) seq.c[8 * ns + i]) << i);
+      f_gh[ns] += (((uint32_t)seq.c[8 * ns + i]) << i);
     }
   }
 
@@ -436,7 +451,8 @@ int srslte_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME], uint32_t cel
 }
 
 /* Returns the number of available RE per PRB */
-uint32_t srslte_re_x_prb(uint32_t ns, uint32_t symbol, uint32_t nof_ports, uint32_t nof_symbols) {
+uint32_t srslte_re_x_prb(uint32_t ns, uint32_t symbol, uint32_t nof_ports, uint32_t nof_symbols)
+{
   if (symbol == 0) {
     if (((ns % 2) == 0) || (ns == 1)) {
       return SRSLTE_NRE - 4;
@@ -466,13 +482,12 @@ uint32_t srslte_re_x_prb(uint32_t ns, uint32_t symbol, uint32_t nof_ports, uint3
   }
 }
 
-
 struct lte_band {
   uint8_t                     band;
-  float fd_low_mhz;
-  uint32_t dl_earfcn_offset;
-  uint32_t ul_earfcn_offset;
-  float duplex_mhz; 
+  float                       fd_low_mhz;
+  uint32_t                    dl_earfcn_offset;
+  uint32_t                    ul_earfcn_offset;
+  float                       duplex_mhz;
   enum band_geographical_area area;
 };
 
@@ -542,7 +557,8 @@ int srslte_str2mimotype(char* mimo_type_str, srslte_tx_scheme_t* type)
   int i = 0;
 
   /* Low case */
-  while (mimo_type_str[i] |= ' ', mimo_type_str[++i]);
+  while (mimo_type_str[i] |= ' ', mimo_type_str[++i])
+    ;
 
   srslte_tx_scheme_t t = SRSLTE_TXSCHEME_PORT0;
   do {
@@ -581,9 +597,10 @@ float get_fd(struct lte_band* band, uint32_t dl_earfcn)
   }
 }
 
-float get_fu(struct lte_band *band, uint32_t ul_earfcn) {
+float get_fu(struct lte_band* band, uint32_t ul_earfcn)
+{
   if (ul_earfcn >= band->ul_earfcn_offset) {
-    return band->fd_low_mhz - band->duplex_mhz + 0.1*(ul_earfcn - band->ul_earfcn_offset);    
+    return band->fd_low_mhz - band->duplex_mhz + 0.1 * (ul_earfcn - band->ul_earfcn_offset);
   } else {
     return 0.0;
   }
@@ -617,53 +634,58 @@ uint8_t srslte_band_get_band(uint32_t dl_earfcn)
 
 float srslte_band_fd(uint32_t dl_earfcn)
 {
-  uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
+  uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
     ERROR("Invalid DL_EARFCN=%d\n", dl_earfcn);
   }
   i--;
-  while(i > 0 && lte_bands[i].dl_earfcn_offset>dl_earfcn) {
+  while (i > 0 && lte_bands[i].dl_earfcn_offset > dl_earfcn) {
     i--;
   }
-  return get_fd(&lte_bands[i], dl_earfcn);  
+  return get_fd(&lte_bands[i], dl_earfcn);
 }
 
-
-float srslte_band_fu(uint32_t ul_earfcn) {
-  uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
+float srslte_band_fu(uint32_t ul_earfcn)
+{
+  uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (ul_earfcn > lte_bands[i].ul_earfcn_offset) {
     ERROR("Invalid UL_EARFCN=%d\n", ul_earfcn);
   }
   i--;
-  while(i > 0 && (lte_bands[i].ul_earfcn_offset>ul_earfcn || lte_bands[i].ul_earfcn_offset == 0)) {
+  while (i > 0 && (lte_bands[i].ul_earfcn_offset > ul_earfcn || lte_bands[i].ul_earfcn_offset == 0)) {
     i--;
   }
   return get_fu(&lte_bands[i], ul_earfcn);
 }
 
-uint32_t srslte_band_ul_earfcn(uint32_t dl_earfcn) {
-  uint32_t i = SRSLTE_NOF_LTE_BANDS-1;
+uint32_t srslte_band_ul_earfcn(uint32_t dl_earfcn)
+{
+  uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
     ERROR("Invalid DL_EARFCN=%d\n", dl_earfcn);
   }
   i--;
-  while(i > 0 && lte_bands[i].dl_earfcn_offset>dl_earfcn) {
+  while (i > 0 && lte_bands[i].dl_earfcn_offset > dl_earfcn) {
     i--;
   }
-  return lte_bands[i].ul_earfcn_offset + (dl_earfcn-lte_bands[i].dl_earfcn_offset); 
+  return lte_bands[i].ul_earfcn_offset + (dl_earfcn - lte_bands[i].dl_earfcn_offset);
 }
 
-int srslte_band_get_fd_band_all(uint32_t band, srslte_earfcn_t *earfcn, uint32_t max_elems) {
+int srslte_band_get_fd_band_all(uint32_t band, srslte_earfcn_t* earfcn, uint32_t max_elems)
+{
   return srslte_band_get_fd_band(band, earfcn, -1, -1, max_elems);
 }
 
-int srslte_band_get_fd_band(
-    uint32_t band, srslte_earfcn_t* earfcn, int start_earfcn, int end_earfcn, uint32_t max_elems)
+int srslte_band_get_fd_band(uint32_t         band,
+                            srslte_earfcn_t* earfcn,
+                            int              start_earfcn,
+                            int              end_earfcn,
+                            uint32_t         max_elems)
 {
   uint32_t i, j;
   uint32_t nof_earfcn;
-  i=0;
-  while(i < SRSLTE_NOF_LTE_BANDS && lte_bands[i].band != band) {
+  i = 0;
+  while (i < SRSLTE_NOF_LTE_BANDS && lte_bands[i].band != band) {
     i++;
   }
   if (i >= SRSLTE_NOF_LTE_BANDS - 1) {
@@ -671,9 +693,9 @@ int srslte_band_get_fd_band(
     return SRSLTE_ERROR;
   }
   if (end_earfcn == -1) {
-    end_earfcn = lte_bands[i+1].dl_earfcn_offset-1;
+    end_earfcn = lte_bands[i + 1].dl_earfcn_offset - 1;
   } else {
-    if (end_earfcn > lte_bands[i+1].dl_earfcn_offset-1) {
+    if (end_earfcn > lte_bands[i + 1].dl_earfcn_offset - 1) {
       ERROR("Error: Invalid end earfcn %d. Max is %d\n", end_earfcn, lte_bands[i + 1].dl_earfcn_offset - 1);
       return SRSLTE_ERROR;
     }
@@ -691,18 +713,19 @@ int srslte_band_get_fd_band(
   if (nof_earfcn > max_elems) {
     nof_earfcn = max_elems;
   }
-  for (j=0;j<nof_earfcn;j++) {
+  for (j = 0; j < nof_earfcn; j++) {
     earfcn[j].id = j + start_earfcn;
     earfcn[j].fd = get_fd(&lte_bands[i], earfcn[j].id);
   }
   return (int)j;
 }
 
-int srslte_band_get_fd_region(enum band_geographical_area region, srslte_earfcn_t *earfcn, uint32_t max_elems) {
+int srslte_band_get_fd_region(enum band_geographical_area region, srslte_earfcn_t* earfcn, uint32_t max_elems)
+{
   uint32_t i;
-  int n;
-  int nof_fd = 0;
-  for (i=0;i<SRSLTE_NOF_LTE_BANDS && max_elems > 0;i++) {
+  int      n;
+  int      nof_fd = 0;
+  for (i = 0; i < SRSLTE_NOF_LTE_BANDS && max_elems > 0; i++) {
     if (lte_bands[i].area == region) {
       n = srslte_band_get_fd_band(i, &earfcn[nof_fd], -1, -1, max_elems);
       if (n != -1) {
@@ -716,13 +739,13 @@ int srslte_band_get_fd_region(enum band_geographical_area region, srslte_earfcn_
   return nof_fd;
 }
 
-
 /* Returns the interval tti1-tti2 mod 10240 */
-uint32_t srslte_tti_interval(uint32_t tti1, uint32_t tti2) {
+uint32_t srslte_tti_interval(uint32_t tti1, uint32_t tti2)
+{
   if (tti1 >= tti2) {
-    return tti1-tti2; 
+    return tti1 - tti2;
   } else {
-    return 10240-tti2+tti1;
+    return 10240 - tti2 + tti1;
   }
 }
 

@@ -26,11 +26,11 @@
 #include <string.h>
 #include <strings.h>
 
-#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/ch_estimation/refsignal_dl.h"
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/common/sequence.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 /** Allocates memory for the 20 slots in a subframe
  */
@@ -104,7 +104,7 @@ int srslte_refsignal_cs_set_cell(srslte_refsignal_t* q, srslte_cell_t cell)
             /* Compute signal */
             for (uint32_t i = 0; i < 2 * q->cell.nof_prb; i++) {
               uint32_t idx = SRSLTE_REFSIGNAL_PILOT_IDX(i, (ns % 2) * nsymbols + l, q->cell);
-              mp = i + SRSLTE_MAX_PRB - cell.nof_prb;
+              mp           = i + SRSLTE_MAX_PRB - cell.nof_prb;
               /* save signal */
               __real__ q->pilots[p][ns / 2][idx] = (1 - 2 * (float)seq.c[2 * mp + 0]) * M_SQRT1_2;
               __imag__ q->pilots[p][ns / 2][idx] = (1 - 2 * (float)seq.c[2 * mp + 1]) * M_SQRT1_2;
@@ -236,20 +236,21 @@ inline uint32_t srslte_refsignal_cs_nof_re(srslte_refsignal_t* q, srslte_dl_sf_c
   return nof_re;
 }
 
-inline uint32_t srslte_refsignal_cs_fidx(srslte_cell_t cell, uint32_t l, uint32_t port_id, uint32_t m) {
-  return 6*m + ((srslte_refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6);
+inline uint32_t srslte_refsignal_cs_fidx(srslte_cell_t cell, uint32_t l, uint32_t port_id, uint32_t m)
+{
+  return 6 * m + ((srslte_refsignal_cs_v(port_id, l) + (cell.id % 6)) % 6);
 }
 
 inline uint32_t srslte_refsignal_cs_nsymbol(uint32_t l, srslte_cp_t cp, uint32_t port_id)
 {
   if (port_id < 2) {
     if (l % 2) {
-        return (l/2+1)*SRSLTE_CP_NSYMB(cp) - 3;
+      return (l / 2 + 1) * SRSLTE_CP_NSYMB(cp) - 3;
     } else {
-        return (l/2)*SRSLTE_CP_NSYMB(cp);
-    }    
+      return (l / 2) * SRSLTE_CP_NSYMB(cp);
+    }
   } else {
-    return 1+l*SRSLTE_CP_NSYMB(cp);
+    return 1 + l * SRSLTE_CP_NSYMB(cp);
   }
 }
 
@@ -277,8 +278,11 @@ int srslte_refsignal_cs_put_sf(srslte_refsignal_t* q, srslte_dl_sf_cfg_t* sf, ui
 }
 
 /** Copies the RE containing references from an array of subframe symbols to the pilots array. */
-int srslte_refsignal_cs_get_sf(
-    srslte_refsignal_t* q, srslte_dl_sf_cfg_t* sf, uint32_t port_id, cf_t* sf_symbols, cf_t* pilots)
+int srslte_refsignal_cs_get_sf(srslte_refsignal_t* q,
+                               srslte_dl_sf_cfg_t* sf,
+                               uint32_t            port_id,
+                               cf_t*               sf_symbols,
+                               cf_t*               pilots)
 {
   uint32_t i, l;
   uint32_t fidx;
@@ -299,8 +303,11 @@ int srslte_refsignal_cs_get_sf(
   }
 }
 
-SRSLTE_API int srslte_refsignal_mbsfn_put_sf(
-    srslte_cell_t cell, uint32_t port_id, cf_t* cs_pilots, cf_t* mbsfn_pilots, cf_t* sf_symbols)
+SRSLTE_API int srslte_refsignal_mbsfn_put_sf(srslte_cell_t cell,
+                                             uint32_t      port_id,
+                                             cf_t*         cs_pilots,
+                                             cf_t*         mbsfn_pilots,
+                                             cf_t*         sf_symbols)
 {
   uint32_t i, l;
   uint32_t fidx;
@@ -379,14 +386,14 @@ int srslte_refsignal_mbsfn_gen_seq(srslte_refsignal_t* q, srslte_cell_t cell, ui
   for (ns = 0; ns < SRSLTE_NOF_SF_X_FRAME; ns++) {
     for (p = 0; p < 2; p++) {
       uint32_t nsymbols = 3; // replace with function
-      for(l=0;l<nsymbols;l++) {
-        uint32_t lp = (srslte_refsignal_mbsfn_nsymbol(l))%6;
+      for (l = 0; l < nsymbols; l++) {
+        uint32_t lp   = (srslte_refsignal_mbsfn_nsymbol(l)) % 6;
         uint32_t slot = (l) ? (ns * 2 + 1) : (ns * 2);
         c_init        = 512 * (7 * (slot + 1) + lp + 1) * (2 * N_mbsfn_id + 1) + N_mbsfn_id;
         srslte_sequence_set_LTE_pr(&seq_mbsfn, SRSLTE_MAX_PRB * 20, c_init);
         for (i = 0; i < 6 * q->cell.nof_prb; i++) {
           uint32_t idx                   = SRSLTE_REFSIGNAL_PILOT_IDX_MBSFN(i, l, q->cell);
-          mp = i + 3 * (SRSLTE_MAX_PRB - cell.nof_prb);
+          mp                             = i + 3 * (SRSLTE_MAX_PRB - cell.nof_prb);
           __real__ q->pilots[p][ns][idx] = (1 - 2 * (float)seq_mbsfn.c[2 * mp + 0]) * M_SQRT1_2;
           __imag__ q->pilots[p][ns][idx] = (1 - 2 * (float)seq_mbsfn.c[2 * mp + 1]) * M_SQRT1_2;
         }
@@ -405,19 +412,17 @@ free_and_exit:
   return ret;
 }
 
-
-int srslte_refsignal_mbsfn_init(srslte_refsignal_t * q, uint32_t max_prb)
+int srslte_refsignal_mbsfn_init(srslte_refsignal_t* q, uint32_t max_prb)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int      ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t i, p;
-  if (q != NULL)
-  {
+  if (q != NULL) {
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_refsignal_t));
 
     q->type = SRSLTE_SF_MBSFN;
 
-    for (p=0;p<2;p++) {
+    for (p = 0; p < 2; p++) {
       for (i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
         q->pilots[p][i] = srslte_vec_malloc(sizeof(cf_t) * max_prb * 18);
         if (!q->pilots[p][i]) {
@@ -437,7 +442,8 @@ free_and_exit:
   return ret;
 }
 
-int srslte_refsignal_mbsfn_set_cell(srslte_refsignal_t * q, srslte_cell_t cell, uint16_t mbsfn_area_id){
+int srslte_refsignal_mbsfn_set_cell(srslte_refsignal_t* q, srslte_cell_t cell, uint16_t mbsfn_area_id)
+{
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   q->cell = cell;
@@ -456,40 +462,32 @@ free_and_exit:
   return ret;
 }
 
-
-int srslte_refsignal_mbsfn_get_sf(srslte_cell_t cell, uint32_t port_id, cf_t *sf_symbols, cf_t *pilots)
+int srslte_refsignal_mbsfn_get_sf(srslte_cell_t cell, uint32_t port_id, cf_t* sf_symbols, cf_t* pilots)
 {
   uint32_t i, l;
   uint32_t fidx;
   uint32_t nsymbol;
-  if (srslte_cell_isvalid(&cell)             &&
-      srslte_portid_isvalid(port_id)         &&
-      pilots                  != NULL && 
-      sf_symbols                  != NULL) 
-  {       
-   // getting refs from non mbsfn section of subframe
+  if (srslte_cell_isvalid(&cell) && srslte_portid_isvalid(port_id) && pilots != NULL && sf_symbols != NULL) {
+    // getting refs from non mbsfn section of subframe
     nsymbol = srslte_refsignal_cs_nsymbol(0, cell.cp, port_id);
     fidx    = ((srslte_refsignal_cs_v(port_id, 0) + (cell.id % 6)) % 6);
-    for (i = 0; i < 2*cell.nof_prb; i++) {
-      pilots[SRSLTE_REFSIGNAL_PILOT_IDX(i,0,cell)]   = sf_symbols[SRSLTE_RE_IDX(cell.nof_prb, nsymbol, fidx)];
-      fidx += SRSLTE_NRE/2;       // 2 references per PRB
+    for (i = 0; i < 2 * cell.nof_prb; i++) {
+      pilots[SRSLTE_REFSIGNAL_PILOT_IDX(i, 0, cell)] = sf_symbols[SRSLTE_RE_IDX(cell.nof_prb, nsymbol, fidx)];
+      fidx += SRSLTE_NRE / 2; // 2 references per PRB
     }
-    
-    for (l = 0; l< srslte_refsignal_mbsfn_nof_symbols() ;l++){
+
+    for (l = 0; l < srslte_refsignal_mbsfn_nof_symbols(); l++) {
       nsymbol = srslte_refsignal_mbsfn_nsymbol(l);
-      fidx = srslte_refsignal_mbsfn_fidx(l);
+      fidx    = srslte_refsignal_mbsfn_fidx(l);
       for (i = 0; i < 6 * cell.nof_prb; i++) {
-        pilots[SRSLTE_REFSIGNAL_PILOT_IDX_MBSFN(i,l,cell) + (2*cell.nof_prb)] = sf_symbols[SRSLTE_RE_IDX(cell.nof_prb, nsymbol, fidx)];
+        pilots[SRSLTE_REFSIGNAL_PILOT_IDX_MBSFN(i, l, cell) + (2 * cell.nof_prb)] =
+            sf_symbols[SRSLTE_RE_IDX(cell.nof_prb, nsymbol, fidx)];
         fidx += SRSLTE_NRE / 6;
-      }  
+      }
     }
-    
-    return SRSLTE_SUCCESS;      
+
+    return SRSLTE_SUCCESS;
   } else {
-      return SRSLTE_ERROR_INVALID_INPUTS;
-  }  
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 }
-
-
-
-

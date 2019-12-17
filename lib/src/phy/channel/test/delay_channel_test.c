@@ -27,12 +27,12 @@
 
 static srslte_channel_delay_t delay = {};
 
-static uint32_t delay_min_us     = 10;
-static uint32_t delay_max_us     = 3333;
+static uint32_t delay_min_us      = 10;
+static uint32_t delay_max_us      = 3333;
 static float    delay_period_s    = 1;
 static float    delay_init_time_s = 0;
-static uint32_t srate_hz         = 1920000;
-static uint32_t sim_time_periods = 1;
+static uint32_t srate_hz          = 1920000;
+static uint32_t sim_time_periods  = 1;
 
 #define INPUT_TYPE 0 /* 0: Dirac Delta; Otherwise: Random*/
 

@@ -52,7 +52,11 @@ SRSLTE_API void srslte_refsignal_dl_sync_free(srslte_refsignal_dl_sync_t* q);
 
 SRSLTE_API void srslte_refsignal_dl_sync_run(srslte_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t nsamples);
 
-SRSLTE_API void srslte_refsignal_dl_sync_measure_sf(
-    srslte_refsignal_dl_sync_t* q, cf_t* buffer, uint32_t sf_idx, float* rsrp, float* rssi, float* cfo);
+SRSLTE_API void srslte_refsignal_dl_sync_measure_sf(srslte_refsignal_dl_sync_t* q,
+                                                    cf_t*                       buffer,
+                                                    uint32_t                    sf_idx,
+                                                    float*                      rsrp,
+                                                    float*                      rssi,
+                                                    float*                      cfo);
 
 #endif // SRSLTE_REFSIGNAL_DL_SYNC_H_

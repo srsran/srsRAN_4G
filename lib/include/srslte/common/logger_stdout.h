@@ -27,17 +27,17 @@
 #ifndef SRSLTE_LOGGER_STDOUT_H
 #define SRSLTE_LOGGER_STDOUT_H
 
+#include "srslte/common/logger.h"
 #include <stdio.h>
 #include <string>
-#include "srslte/common/logger.h"
 
 namespace srslte {
 
-  class logger_stdout : public logger
-  {
-  public:
-    void log(unique_log_str_t log_str) { fprintf(stdout, "%s", log_str->str()); }
-  };
+class logger_stdout : public logger
+{
+public:
+  void log(unique_log_str_t log_str) { fprintf(stdout, "%s", log_str->str()); }
+};
 
 } // namespace srslte
 

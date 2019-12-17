@@ -845,8 +845,12 @@ int rf_uhd_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking,
   return rf_uhd_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
 }
 
-int rf_uhd_recv_with_time_multi(
-    void* h, void* data[SRSLTE_MAX_PORTS], uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs)
+int rf_uhd_recv_with_time_multi(void*    h,
+                                void*    data[SRSLTE_MAX_PORTS],
+                                uint32_t nsamples,
+                                bool     blocking,
+                                time_t*  secs,
+                                double*  frac_secs)
 {
   rf_uhd_handler_t*       handler           = (rf_uhd_handler_t*)h;
   uhd_rx_metadata_handle* md                = &handler->rx_md_first;

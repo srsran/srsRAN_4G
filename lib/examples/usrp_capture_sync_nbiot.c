@@ -134,8 +134,8 @@ int main(int argc, char** argv)
   srslte_rf_start_rx_stream(&rf, false);
 
   srslte_nbiot_cell_t cell = {};
-  cell.base.nof_prb   = nof_prb;
-  cell.base.nof_ports = 1;
+  cell.base.nof_prb        = nof_prb;
+  cell.base.nof_ports      = 1;
 
   cf_t* buff_ptrs[SRSLTE_MAX_PORTS] = {NULL, NULL, NULL, NULL};
   buff_ptrs[0]                      = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB_NBIOT * 10);

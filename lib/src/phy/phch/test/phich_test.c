@@ -41,7 +41,8 @@ srslte_cell_t cell = {
 srslte_phich_r_t      phich_res    = SRSLTE_PHICH_R_1;
 srslte_phich_length_t phich_length = SRSLTE_PHICH_NORM;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [cpvgel]\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p cell.nof_ports [Default %d]\n", cell.nof_ports);
@@ -52,63 +53,64 @@ void usage(char *prog) {
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "cpnvgel")) != -1) {
-    switch(opt) {
-    case 'p':
-      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'n':
-      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'c':
-      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'g':
-      if (!strcmp(argv[optind], "1/6")) {
-        phich_res = SRSLTE_PHICH_R_1_6;
-      } else if (!strcmp(argv[optind], "1/2")) {
-        phich_res = SRSLTE_PHICH_R_1_2;
-      } else if (!strcmp(argv[optind], "1")) {
-        phich_res = SRSLTE_PHICH_R_1;
-      } else if (!strcmp(argv[optind], "2")) {
-        phich_res = SRSLTE_PHICH_R_2;
-      } else {
-        ERROR("Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
-      }
-      break;
-    case 'e':
-      phich_length = SRSLTE_PHICH_EXT;
-      break;
-    case 'l':
-      cell.cp = SRSLTE_CP_EXT;
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'p':
+        cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'g':
+        if (!strcmp(argv[optind], "1/6")) {
+          phich_res = SRSLTE_PHICH_R_1_6;
+        } else if (!strcmp(argv[optind], "1/2")) {
+          phich_res = SRSLTE_PHICH_R_1_2;
+        } else if (!strcmp(argv[optind], "1")) {
+          phich_res = SRSLTE_PHICH_R_1;
+        } else if (!strcmp(argv[optind], "2")) {
+          phich_res = SRSLTE_PHICH_R_2;
+        } else {
+          ERROR("Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
+        }
+        break;
+      case 'e':
+        phich_length = SRSLTE_PHICH_EXT;
+        break;
+      case 'l':
+        cell.cp = SRSLTE_CP_EXT;
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   srslte_phich_t phich;
-  srslte_regs_t regs;
-  int i, j;
-  int nof_re;
-  cf_t *slot_symbols[SRSLTE_MAX_PORTS];
+  srslte_regs_t  regs;
+  int            i, j;
+  int            nof_re;
+  cf_t*          slot_symbols[SRSLTE_MAX_PORTS];
   uint8_t        ack[50][SRSLTE_PHICH_NORM_NSEQUENCES];
   uint32_t       nsf;
-  int cid, max_cid;
-  uint32_t ngroup, nseq, max_nseq;
+  int            cid, max_cid;
+  uint32_t       ngroup, nseq, max_nseq;
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
-  max_nseq = SRSLTE_CP_ISNORM(cell.cp)?SRSLTE_PHICH_NORM_NSEQUENCES:SRSLTE_PHICH_EXT_NSEQUENCES;
+  max_nseq = SRSLTE_CP_ISNORM(cell.cp) ? SRSLTE_PHICH_NORM_NSEQUENCES : SRSLTE_PHICH_EXT_NSEQUENCES;
 
   nof_re = SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
@@ -127,19 +129,19 @@ int main(int argc, char **argv) {
   }
 
   if (cell.id == 1000) {
-    cid = 0;
+    cid     = 0;
     max_cid = 503;
   } else {
-    cid = cell.id;
+    cid     = cell.id;
     max_cid = cell.id;
   }
   if (srslte_phich_init(&phich, 1)) {
     ERROR("Error creating PBCH object\n");
     exit(-1);
   }
-  while(cid <= max_cid) {
+  while (cid <= max_cid) {
     cell.id = cid;
-    
+
     printf("Testing CellID=%d...\n", cid);
 
     if (srslte_regs_init(&regs, cell)) {
@@ -164,8 +166,8 @@ int main(int argc, char **argv) {
       srslte_phich_resource_t resource;
 
       /* Transmit all PHICH groups and sequence numbers */
-      for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
-        for (nseq=0;nseq<max_nseq;nseq++) {
+      for (ngroup = 0; ngroup < srslte_phich_ngroups(&phich); ngroup++) {
+        for (nseq = 0; nseq < max_nseq; nseq++) {
 
           resource.ngroup = ngroup;
           resource.nseq   = nseq;
@@ -176,15 +178,15 @@ int main(int argc, char **argv) {
         }
       }
       /* combine outputs */
-      for (i=1;i<cell.nof_ports;i++) {
-        for (j=0;j<nof_re;j++) {
+      for (i = 1; i < cell.nof_ports; i++) {
+        for (j = 0; j < nof_re; j++) {
           slot_symbols[0][j] += slot_symbols[i][j];
         }
       }
 
       /* Receive all PHICH groups and sequence numbers */
-      for (ngroup=0;ngroup<srslte_phich_ngroups(&phich);ngroup++) {
-        for (nseq=0;nseq<max_nseq;nseq++) {
+      for (ngroup = 0; ngroup < srslte_phich_ngroups(&phich); ngroup++) {
+        for (nseq = 0; nseq < max_nseq; nseq++) {
 
           resource.ngroup = ngroup;
           resource.nseq   = nseq;
@@ -220,7 +222,7 @@ int main(int argc, char **argv) {
 
   srslte_chest_dl_res_free(&chest_res);
 
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     free(slot_symbols[i]);
   }
   srslte_dft_exit();

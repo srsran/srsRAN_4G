@@ -35,24 +35,24 @@
 #include <stdio.h>
 
 #define SRSLTE_VERBOSE_DEBUG 2
-#define SRSLTE_VERBOSE_INFO  1
-#define SRSLTE_VERBOSE_NONE  0
+#define SRSLTE_VERBOSE_INFO 1
+#define SRSLTE_VERBOSE_NONE 0
 
 #include <sys/time.h>
-SRSLTE_API void get_time_interval(struct timeval * tdata);
+SRSLTE_API void get_time_interval(struct timeval* tdata);
 
 #define SRSLTE_DEBUG_ENABLED 1
 
 SRSLTE_API extern int srslte_verbose;
 SRSLTE_API extern int handler_registered;
 
-#define SRSLTE_VERBOSE_ISINFO() (srslte_verbose>=SRSLTE_VERBOSE_INFO)
-#define SRSLTE_VERBOSE_ISDEBUG() (srslte_verbose>=SRSLTE_VERBOSE_DEBUG)
-#define SRSLTE_VERBOSE_ISNONE() (srslte_verbose==SRSLTE_VERBOSE_NONE)
+#define SRSLTE_VERBOSE_ISINFO() (srslte_verbose >= SRSLTE_VERBOSE_INFO)
+#define SRSLTE_VERBOSE_ISDEBUG() (srslte_verbose >= SRSLTE_VERBOSE_DEBUG)
+#define SRSLTE_VERBOSE_ISNONE() (srslte_verbose == SRSLTE_VERBOSE_NONE)
 
-#define PRINT_DEBUG srslte_verbose=SRSLTE_VERBOSE_DEBUG
-#define PRINT_INFO srslte_verbose=SRSLTE_VERBOSE_INFO
-#define PRINT_NONE srslte_verbose=SRSLTE_VERBOSE_NONE
+#define PRINT_DEBUG srslte_verbose = SRSLTE_VERBOSE_DEBUG
+#define PRINT_INFO srslte_verbose = SRSLTE_VERBOSE_INFO
+#define PRINT_NONE srslte_verbose = SRSLTE_VERBOSE_NONE
 
 #define DEBUG(_fmt, ...)                                                                                               \
   do {                                                                                                                 \
@@ -72,7 +72,7 @@ SRSLTE_API extern int handler_registered;
     }                                                                                                                  \
   } while (0)
 
-#if CMAKE_BUILD_TYPE==Debug
+#if CMAKE_BUILD_TYPE == Debug
 /* In debug mode, it prints out the  */
 #define ERROR(_fmt, ...)                                                                                               \
   do {                                                                                                                 \
@@ -83,9 +83,12 @@ SRSLTE_API extern int handler_registered;
     }                                                                                                                  \
   } while (0)
 #else
-#define ERROR(_fmt, ...) if (!handler_registered)\
-        {   fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__);}\
-        else{srslte_phy_log_print(LOG_LEVEL_ERROR, _fmt, ##__VA_ARGS__);} // 
+#define ERROR(_fmt, ...)                                                                                               \
+  if (!handler_registered) {                                                                                           \
+    fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__);                                          \
+  } else {                                                                                                             \
+    srslte_phy_log_print(LOG_LEVEL_ERROR, _fmt, ##__VA_ARGS__);                                                        \
+  }    //
 #endif /* CMAKE_BUILD_TYPE==Debug */
 
 #endif // SRSLTE_DEBUG_H

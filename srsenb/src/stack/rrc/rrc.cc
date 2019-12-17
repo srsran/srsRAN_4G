@@ -175,14 +175,11 @@ template <class T>
 void rrc::log_rrc_message(const std::string&           source,
                           const direction_t            dir,
                           const srslte::byte_buffer_t* pdu,
-                          const T&                     msg)
+                          const T&                     msg,
+                          const std::string&           msg_type)
 {
   if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
-    rrc_log->info("%s - %s %s (%d B)\n",
-                  source.c_str(),
-                  dir == Tx ? "Tx" : "Rx",
-                  msg.msg.c1().type().to_string().c_str(),
-                  pdu->N_bytes);
+    rrc_log->info("%s - %s %s (%d B)\n", source.c_str(), dir == Tx ? "Tx" : "Rx", msg_type.c_str(), pdu->N_bytes);
   } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
@@ -191,7 +188,7 @@ void rrc::log_rrc_message(const std::string&           source,
                        "%s - %s %s (%d B)\n",
                        source.c_str(),
                        dir == Tx ? "Tx" : "Rx",
-                       msg.msg.c1().type().to_string().c_str(),
+                       msg_type.c_str(),
                        pdu->N_bytes);
     rrc_log->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
   }
@@ -594,7 +591,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
                   paging_rec->paging_record_list.size(),
                   byte_buf_paging.N_bytes,
                   N_bits);
-    log_rrc_message("PCCH-Message", Tx, &byte_buf_paging, pcch_msg);
+    log_rrc_message("PCCH-Message", Tx, &byte_buf_paging, pcch_msg, pcch_msg.msg.c1().type().to_string());
 
     return true;
   }
@@ -639,7 +636,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
       return;
     }
 
-    log_rrc_message("SRB0", Rx, pdu.get(), ul_ccch_msg);
+    log_rrc_message("SRB0", Rx, pdu.get(), ul_ccch_msg, ul_ccch_msg.msg.c1().type().to_string());
 
     auto user_it = users.find(rnti);
     switch (ul_ccch_msg.msg.c1().type()) {
@@ -855,7 +852,8 @@ uint32_t rrc::generate_sibs()
     sib_buffer.push_back(std::move(sib));
 
     // Log SIBs in JSON format
-    log_rrc_message("SIB payload", Tx, sib_buffer[msg_index].get(), msg[msg_index]);
+    log_rrc_message(
+        "SIB payload", Tx, sib_buffer[msg_index].get(), msg[msg_index], msg[msg_index].msg.c1().type().to_string());
   }
 
   if (cfg.sibs[6].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib7) {
@@ -1145,7 +1143,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     return;
   }
 
-  parent->log_rrc_message(rb_id_text[lcid], Rx, pdu.get(), ul_dcch_msg);
+  parent->log_rrc_message(rb_id_text[lcid], Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
   // reuse PDU
   pdu->clear(); // FIXME: name collision with byte_buffer reset
@@ -2120,7 +2118,7 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 
     char buf[32] = {};
     sprintf(buf, "SRB0 - rnti=0x%x", rnti);
-    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg);
+    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg, dl_ccch_msg->msg.c1().type().to_string());
     parent->rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
   } else {
     parent->rrc_log->error("Allocating pdu\n");
@@ -2146,7 +2144,7 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffe
 
     char buf[32] = {};
     sprintf(buf, "SRB%d - rnti=0x%x", lcid, rnti);
-    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg);
+    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg, dl_dcch_msg->msg.c1().type().to_string());
 
     parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
   } else {

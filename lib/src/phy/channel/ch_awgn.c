@@ -27,26 +27,29 @@
 #include <srslte/phy/channel/ch_awgn.h>
 #include <srslte/phy/utils/vector.h>
 
-float srslte_ch_awgn_get_variance(float ebno_db, float rate) {
+float srslte_ch_awgn_get_variance(float ebno_db, float rate)
+{
   float esno_db = ebno_db + srslte_convert_power_to_dB(rate);
   return srslte_convert_dB_to_amplitude(-esno_db);
 }
 
-void srslte_ch_awgn_c(const cf_t* x, cf_t* y, float variance, uint32_t len) {
-  cf_t tmp;
+void srslte_ch_awgn_c(const cf_t* x, cf_t* y, float variance, uint32_t len)
+{
+  cf_t     tmp;
   uint32_t i;
 
-  for (i=0;i<len;i++) {
+  for (i = 0; i < len; i++) {
     __real__ tmp = rand_gauss();
     __imag__ tmp = rand_gauss();
     tmp *= variance;
     y[i] = tmp + x[i];
   }
 }
-void srslte_ch_awgn_f(const float* x, float* y, float variance, uint32_t len) {
+void srslte_ch_awgn_f(const float* x, float* y, float variance, uint32_t len)
+{
   uint32_t i;
 
-  for (i=0;i<len;i++) {
+  for (i = 0; i < len; i++) {
     y[i] = x[i] + variance * rand_gauss();
   }
 }

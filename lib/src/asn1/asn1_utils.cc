@@ -1436,7 +1436,7 @@ varlength_field_pack_guard::~varlength_field_pack_guard()
   uint32_t nof_bytes = bref_tracker->distance(bref0) / (uint32_t)8;
   if (nof_bytes > sizeof(buffer)) {
     srsasn_log_print(LOG_LEVEL_ERROR,
-                     "The packed variable sized field is too long for the reserved buffer (%u > %zu)\n",
+                     "The packed variable sized field is too long for the reserved buffer (%d > %zd)\n",
                      nof_bytes,
                      sizeof(buffer));
   }

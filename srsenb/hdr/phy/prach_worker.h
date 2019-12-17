@@ -22,11 +22,11 @@
 #ifndef SRSENB_PRACH_WORKER_H
 #define SRSENB_PRACH_WORKER_H
 
-#include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/common/log.h"
-#include "srslte/common/threads.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/log.h"
+#include "srslte/common/threads.h"
+#include "srslte/interfaces/enb_interfaces.h"
 
 namespace srsenb {
 
@@ -40,10 +40,10 @@ public:
             stack_interface_phy_lte*  mac,
             srslte::log*              log_h,
             int                       priority);
-  int  new_tti(uint32_t tti, cf_t *buffer);
+  int  new_tti(uint32_t tti, cf_t* buffer);
   void set_max_prach_offset_us(float delay_us);
   void stop();
-  
+
 private:
   uint32_t cc_idx             = 0;
   uint32_t prach_nof_det      = 0;
@@ -55,8 +55,9 @@ private:
   srslte_prach_cfg_t prach_cfg = {};
   srslte_prach_t     prach     = {};
 
-  const static int sf_buffer_sz = 128*1024;
-  class sf_buffer {
+  const static int sf_buffer_sz = 128 * 1024;
+  class sf_buffer
+  {
   public:
     sf_buffer() = default;
     void reset()
@@ -84,9 +85,7 @@ private:
   uint32_t                 sf_cnt              = 0;
 
   void run_thread() final;
-  int run_tti(sf_buffer *b);
-
-
+  int  run_tti(sf_buffer* b);
 };
 
 class prach_worker_pool
@@ -136,5 +135,5 @@ public:
     return ret;
   }
 };
-}
+} // namespace srsenb
 #endif // SRSENB_PRACH_WORKER_H

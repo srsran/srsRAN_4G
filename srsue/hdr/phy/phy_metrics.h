@@ -31,15 +31,13 @@ struct info_metrics_t {
   uint32_t dl_earfcn;
 };
 
-struct sync_metrics_t
-{
+struct sync_metrics_t {
   float ta_us;
   float cfo;
   float sfo;
 };
 
-struct dl_metrics_t
-{
+struct dl_metrics_t {
   float n;
   float sinr;
   float rsrp;
@@ -52,14 +50,12 @@ struct dl_metrics_t
   float sync_err;
 };
 
-struct ul_metrics_t
-{
+struct ul_metrics_t {
   float mcs;
   float power;
 };
 
-struct phy_metrics_t
-{
+struct phy_metrics_t {
   info_metrics_t info[SRSLTE_MAX_CARRIERS];
   sync_metrics_t sync[SRSLTE_MAX_CARRIERS];
   dl_metrics_t   dl[SRSLTE_MAX_CARRIERS];

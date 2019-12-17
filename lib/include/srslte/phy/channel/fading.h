@@ -66,8 +66,11 @@ SRSLTE_API int srslte_channel_fading_init(srslte_channel_fading_t* q, double sra
 
 SRSLTE_API void srslte_channel_fading_free(srslte_channel_fading_t* q);
 
-SRSLTE_API double srslte_channel_fading_execute(
-    srslte_channel_fading_t* q, const cf_t* in, cf_t* out, uint32_t nof_samples, double init_time);
+SRSLTE_API double srslte_channel_fading_execute(srslte_channel_fading_t* q,
+                                                const cf_t*              in,
+                                                cf_t*                    out,
+                                                uint32_t                 nof_samples,
+                                                double                   init_time);
 
 #ifdef __cplusplus
 }

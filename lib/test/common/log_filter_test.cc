@@ -20,29 +20,30 @@
  */
 
 #define NTHREADS 100
-#define NMSGS    100
+#define NMSGS 100
 
-#include <stdio.h>
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_file.h"
+#include "srslte/common/test_common.h"
+#include <stdio.h>
 
 using namespace srslte;
 
 typedef struct {
-  logger_file *l;
-  int thread_id;
-}args_t;
+  logger_file* l;
+  int          thread_id;
+} args_t;
 
-void* thread_loop(void *a) {
-  args_t *args = (args_t*)a;
-  char buf[100];
+void* thread_loop(void* a)
+{
+  args_t* args = (args_t*)a;
+  char    buf[100];
 
   sprintf(buf, "LAYER%d", args->thread_id);
   log_filter filter(buf, args->l);
   filter.set_level(LOG_LEVEL_INFO);
 
-  for(int i=0;i<NMSGS;i++)
-  {
+  for (int i = 0; i < NMSGS; i++) {
     filter.error("Thread %d: %d", args->thread_id, i);
     filter.warning("Thread %d: %d", args->thread_id, i);
     filter.info("Thread %d: %d", args->thread_id, i);
@@ -51,20 +52,21 @@ void* thread_loop(void *a) {
   return NULL;
 }
 
-void* thread_loop_hex(void *a) {
-  args_t *args = (args_t*)a;
+void* thread_loop_hex(void* a)
+{
+  args_t* args = (args_t*)a;
   char    buf[100];
   uint8_t hex[100];
 
-  for(int i=0;i<100;i++)
+  for (int i = 0; i < 100; i++) {
     hex[i] = i & 0xFF;
+  }
   sprintf(buf, "LAYER%d", args->thread_id);
   log_filter filter(buf, args->l);
   filter.set_level(LOG_LEVEL_DEBUG);
   filter.set_hex_limit(32);
 
-  for(int i=0;i<NMSGS;i++)
-  {
+  for (int i = 0; i < NMSGS; i++) {
     filter.error_hex(hex, 100, "Thread %d: %d", args->thread_id, i);
     filter.warning_hex(hex, 100, "Thread %d: %d", args->thread_id, i);
     filter.info_hex(hex, 100, "Thread %d: %d", args->thread_id, i);
@@ -73,58 +75,94 @@ void* thread_loop_hex(void *a) {
   return NULL;
 }
 
-void write(std::string filename) {
+void write(std::string filename)
+{
   logger_file l;
   l.init(filename);
   pthread_t threads[NTHREADS];
   args_t    args[NTHREADS];
-  for(int i=0;i<NTHREADS;i++) {
-    args[i].l = &l;
+  for (int i = 0; i < NTHREADS; i++) {
+    args[i].l         = &l;
     args[i].thread_id = i;
     pthread_create(&threads[i], NULL, &thread_loop_hex, &args[i]);
   }
-  for(int i=0;i<NTHREADS;i++) {
+  for (int i = 0; i < NTHREADS; i++) {
     pthread_join(threads[i], NULL);
   }
 }
 
-bool read(std::string filename) {
+bool read(std::string filename)
+{
   bool pass = true;
   bool written[NTHREADS][NMSGS];
-  int thread, msg;
-  int r;
+  int  thread, msg;
 
-  for(int i=0;i<NTHREADS;i++) {
-    for(int j=0;j<NMSGS;j++) {
+  for (int i = 0; i < NTHREADS; i++) {
+    for (int j = 0; j < NMSGS; j++) {
       written[i][j] = false;
     }
   }
-  FILE *f = fopen(filename.c_str(), "r");
-  if(f!=NULL) {
-    while(fscanf(f, "Thread %d: %d\n", &thread, &msg)) {
+  FILE* f = fopen(filename.c_str(), "r");
+  if (f != NULL) {
+    while (fscanf(f, "Thread %d: %d\n", &thread, &msg)) {
       written[thread][msg] = true;
     }
     fclose(f);
   }
-  for(int i=0;i<NTHREADS;i++) {
-    for(int j=0;j<NMSGS;j++) {
-      if(!written[i][j]) pass = false;
+  for (int i = 0; i < NTHREADS; i++) {
+    for (int j = 0; j < NMSGS; j++) {
+      if (!written[i][j])
+        pass = false;
     }
   }
   return pass;
 }
 
-int main(int argc, char **argv) {
-  bool result;
+int basic_hex_test()
+{
+  logger_stdout l;
+
+  log_filter filter("layer", &l);
+  filter.set_level(LOG_LEVEL_DEBUG);
+  filter.set_hex_limit(500);
+
+  const uint32_t hex_len = 497;
+
+  uint8_t hex[hex_len];
+  for (uint32_t i = 0; i < hex_len; i++) {
+    hex[i] = i & 0xFF;
+  }
+
+  filter.debug_hex(hex, hex_len, "This is the long hex msg (%d B)\n", hex_len);
+  filter.debug("This is a message after the long hex msg that should not be cut\n");
+
+  return SRSLTE_SUCCESS;
+}
+
+int full_test()
+{
+  bool        result;
   std::string f("log.txt");
   write(f);
-//  result = read(f);
-//  remove(f.c_str());
-//  if(result) {
-//    printf("Passed\n");
-//    exit(0);
-//  }else{
-//    printf("Failed\n;");
-//    exit(1);
-//  }
+#if 0
+  result = read(f);
+  remove(f.c_str());
+  if(result) {
+    printf("Passed\n");
+    exit(0);
+  }else{
+    printf("Failed\n;");
+   exit(1);
+  }
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
+int main(int argc, char** argv)
+{
+  TESTASSERT(basic_hex_test() == SRSLTE_SUCCESS);
+  TESTASSERT(full_test() == SRSLTE_SUCCESS);
+
+  return SRSLTE_SUCCESS;
 }

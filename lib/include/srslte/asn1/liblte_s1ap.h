@@ -746,7 +746,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_protocolie_fieldpair(uint8_t** ptr, LIBLTE_
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                  len;
   LIBLTE_S1AP_PROTOCOLEXTENSIONFIELD_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_PROTOCOLEXTENSIONCONTAINER_STRUCT;
 
@@ -760,7 +760,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_protocolextensioncontainer(uint8_t**       
 ********************************************************************************/
 // lb:0, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                len;
   LIBLTE_S1AP_PROTOCOLIE_FIELDPAIR_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_PROTOCOLIE_CONTAINERPAIR_STRUCT;
 
@@ -774,7 +774,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_protocolie_containerpair(uint8_t**         
 ********************************************************************************/
 // lb:None, ub:None
 typedef struct {
-  uint32_t len;
+  uint32_t                                    len;
   LIBLTE_S1AP_PROTOCOLIE_CONTAINERPAIR_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_PROTOCOLIE_CONTAINERPAIRLIST_STRUCT;
 
@@ -814,7 +814,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_protocolie_singlecontainer(uint8_t**       
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                           len;
   LIBLTE_S1AP_PRIVATEIE_FIELD_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_PRIVATEIE_CONTAINER_STRUCT;
 
@@ -1921,9 +1921,11 @@ typedef struct {
 } LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourcernc_totargetrnc_transparentcontainer(
-    LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourcernc_totargetrnc_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE SubscriberProfileIDforRFP INTEGER
@@ -1969,9 +1971,11 @@ typedef struct {
 } LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetrnc_tosourcernc_transparentcontainer(
-    LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetrnc_tosourcernc_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE Threshold_RSRQ INTEGER
@@ -2255,7 +2259,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_datacodingscheme(uint8_t** ptr, LIBLTE_S1AP
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                           len;
   LIBLTE_S1AP_EMERGENCYAREAID_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_EMERGENCYAREAIDLIST_STRUCT;
 
@@ -2267,7 +2271,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_emergencyareaidlist(uint8_t** ptr, LIBLTE_S
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                           len;
   LIBLTE_S1AP_EMERGENCYAREAID_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_EMERGENCYAREAIDLISTFORRESTART_STRUCT;
 
@@ -2333,7 +2337,7 @@ liblte_s1ap_unpack_eutranroundtripdelayestimationinfo(uint8_t**                 
 ********************************************************************************/
 // lb:1, ub:4096
 typedef struct {
-  uint32_t len;
+  uint32_t               len;
   LIBLTE_S1AP_LAC_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_FORBIDDENLACS_STRUCT;
 
@@ -2774,9 +2778,11 @@ typedef struct {
 } LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourcebss_totargetbss_transparentcontainer(
-    LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourcebss_totargetbss_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE SRVCCOperationPossible ENUMERATED
@@ -2804,7 +2810,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_srvccoperationpossible(uint8_t**           
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                        len;
   LIBLTE_S1AP_MME_GROUP_ID_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_SERVEDGROUPIDS_STRUCT;
 
@@ -2838,7 +2844,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_tac(uint8_t** ptr, LIBLTE_S1AP_TAC_STRUCT* 
 ********************************************************************************/
 // lb:1, ub:8
 typedef struct {
-  uint32_t len;
+  uint32_t               len;
   LIBLTE_S1AP_TAC_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_TALISTFORMDT_STRUCT;
 
@@ -2890,9 +2896,11 @@ typedef struct {
 } LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_time_ue_stayedincell_enhancedgranularity(
-    LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT* ie,
+    uint8_t**                                                    ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_time_ue_stayedincell_enhancedgranularity(
-    uint8_t** ptr, LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT* ie);
+    uint8_t**                                                    ptr,
+    LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE E_UTRAN_Trace_ID STATIC OCTET STRING
@@ -3021,7 +3029,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_warningsecurityinfo(uint8_t** ptr, LIBLTE_S
 ********************************************************************************/
 // lb:1, ub:16
 typedef struct {
-  uint32_t len;
+  uint32_t                                 len;
   LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_ENBX2GTPTLAS_STRUCT;
 
@@ -3137,7 +3145,7 @@ liblte_s1ap_unpack_criticalitydiagnostics_ie_item(uint8_t** ptr, LIBLTE_S1AP_CRI
 ********************************************************************************/
 // lb:1, ub:2
 typedef struct {
-  uint32_t len;
+  uint32_t                                 len;
   LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_ENBX2TLAS_STRUCT;
 
@@ -3161,7 +3169,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_extendedrepetitionperiod(uint8_t**         
 ********************************************************************************/
 // lb:1, ub:4096
 typedef struct {
-  uint32_t len;
+  uint32_t               len;
   LIBLTE_S1AP_TAC_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_FORBIDDENTACS_STRUCT;
 
@@ -3383,7 +3391,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_securitycontext(uint8_t** ptr, LIBLTE_S1AP_
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                    len;
   LIBLTE_S1AP_MME_CODE_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_SERVEDMMECS_STRUCT;
 
@@ -3444,9 +3452,11 @@ typedef struct {
 } LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetenb_tosourceenb_transparentcontainer(
-    LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE M1ThresholdEventA2 SEQUENCE
@@ -3536,7 +3546,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_enbx2exttla(uint8_t** ptr, LIBLTE_S1AP_ENBX
 ********************************************************************************/
 // lb:1, ub:6
 typedef struct {
-  uint32_t len;
+  uint32_t                       len;
   LIBLTE_S1AP_TBCD_STRING_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_BPLMNS_STRUCT;
 
@@ -3630,7 +3640,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_countvalueextended(uint8_t** ptr, LIBLTE_S1
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                          len;
   LIBLTE_S1AP_CRITICALITYDIAGNOSTICS_IE_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_CRITICALITYDIAGNOSTICS_IE_LIST_STRUCT;
 
@@ -3658,7 +3668,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_global_enb_id(uint8_t** ptr, LIBLTE_S1AP_GL
 ********************************************************************************/
 // lb:1, ub:15
 typedef struct {
-  uint32_t len;
+  uint32_t                       len;
   LIBLTE_S1AP_TBCD_STRING_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_EPLMNS_STRUCT;
 
@@ -3754,7 +3764,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_m4configuration(uint8_t** ptr, LIBLTE_S1AP_
 ********************************************************************************/
 // lb:1, ub:16
 typedef struct {
-  uint32_t len;
+  uint32_t                       len;
   LIBLTE_S1AP_TBCD_STRING_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_MDTPLMNLIST_STRUCT;
 
@@ -3830,7 +3840,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_prioritylevel(uint8_t** ptr, LIBLTE_S1AP_PR
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                      len;
   LIBLTE_S1AP_EUTRAN_CGI_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_ECGILISTFORRESTART_STRUCT;
 
@@ -3855,7 +3865,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourceenb_id(uint8_t** ptr, LIBLTE_S1AP_SOU
 ********************************************************************************/
 // lb:1, ub:32
 typedef struct {
-  uint32_t len;
+  uint32_t                       len;
   LIBLTE_S1AP_TBCD_STRING_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_SERVEDPLMNS_STRUCT;
 
@@ -3881,7 +3891,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_supportedtas_item(uint8_t** ptr, LIBLTE_S1A
 ********************************************************************************/
 // lb:1, ub:8
 typedef struct {
-  uint32_t len;
+  uint32_t               len;
   LIBLTE_S1AP_TAI_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_TAILISTFORMDT_STRUCT;
 
@@ -3927,16 +3937,18 @@ typedef struct {
 } LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetbss_tosourcebss_transparentcontainer(
-    LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetbss_tosourcebss_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE TAIListForRestart DYNAMIC SEQUENCE OF
 ********************************************************************************/
 // lb:1, ub:2048
 typedef struct {
-  uint32_t len;
+  uint32_t               len;
   LIBLTE_S1AP_TAI_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_TAILISTFORRESTART_STRUCT;
 
@@ -3964,7 +3976,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_userlocationinformation(uint8_t**          
 ********************************************************************************/
 // lb:1, ub:16
 typedef struct {
-  uint32_t len;
+  uint32_t                       len;
   LIBLTE_S1AP_ENBX2EXTTLA_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_ENBX2EXTTLAS_STRUCT;
 
@@ -4052,7 +4064,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cellid_cancelled_item(uint8_t** ptr, LIBLTE
 ********************************************************************************/
 // lb:1, ub:32
 typedef struct {
-  uint32_t len;
+  uint32_t                      len;
   LIBLTE_S1AP_EUTRAN_CGI_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_CELLIDLISTFORMDT_STRUCT;
 
@@ -4128,7 +4140,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_completedcellineai_item(uint8_t**          
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                    len;
   LIBLTE_S1AP_E_RABINFORMATIONLISTITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABINFORMATIONLIST_STRUCT;
 
@@ -4140,7 +4152,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabinformationlist(uint8_t** ptr, LIBLTE_
 ********************************************************************************/
 // lb:1, ub:16
 typedef struct {
-  uint32_t len;
+  uint32_t                             len;
   LIBLTE_S1AP_FORBIDDENTAS_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_FORBIDDENTAS_STRUCT;
 
@@ -4254,7 +4266,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_s_tmsi(uint8_t** ptr, LIBLTE_S1AP_S_TMSI_ST
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t               len;
   LIBLTE_S1AP_TAI_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_TAILISTFORWARNING_STRUCT;
 
@@ -4266,7 +4278,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_tailistforwarning(uint8_t** ptr, LIBLTE_S1A
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_COMPLETEDCELLINTAI_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_COMPLETEDCELLINTAI_STRUCT;
 
@@ -4364,7 +4376,7 @@ liblte_s1ap_unpack_bearers_subjecttostatustransfer_item(uint8_t**               
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_CANCELLEDCELLINEAI_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_CANCELLEDCELLINEAI_STRUCT;
 
@@ -4376,7 +4388,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cancelledcellineai(uint8_t** ptr, LIBLTE_S1
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                 len;
   LIBLTE_S1AP_CELLID_BROADCAST_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_CELLID_BROADCAST_STRUCT;
 
@@ -4401,7 +4413,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cellbasedmdt(uint8_t** ptr, LIBLTE_S1AP_CEL
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                           len;
   LIBLTE_S1AP_CSG_IDLIST_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_CSG_IDLIST_STRUCT;
 
@@ -4413,7 +4425,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_csg_idlist(uint8_t** ptr, LIBLTE_S1AP_CSG_I
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                      len;
   LIBLTE_S1AP_EUTRAN_CGI_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_ECGILIST_STRUCT;
 
@@ -4456,7 +4468,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_geran_cell_id(uint8_t** ptr, LIBLTE_S1AP_GE
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                     len;
   LIBLTE_S1AP_E_RABITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABLIST_STRUCT;
 
@@ -4468,7 +4480,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rablist(uint8_t** ptr, LIBLTE_S1AP_E_RABL
 ********************************************************************************/
 // lb:1, ub:16
 typedef struct {
-  uint32_t len;
+  uint32_t                             len;
   LIBLTE_S1AP_FORBIDDENLAS_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_FORBIDDENLAS_STRUCT;
 
@@ -4547,7 +4559,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_rimroutingaddress(uint8_t** ptr, LIBLTE_S1A
 ********************************************************************************/
 // lb:1, ub:8
 typedef struct {
-  uint32_t len;
+  uint32_t                             len;
   LIBLTE_S1AP_SERVEDGUMMEISITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_SERVEDGUMMEIS_STRUCT;
 
@@ -4681,7 +4693,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_areascopeofmdt(uint8_t** ptr, LIBLTE_S1AP_A
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_CANCELLEDCELLINTAI_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_CANCELLEDCELLINTAI_STRUCT;
 
@@ -4706,7 +4718,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_celltype(uint8_t** ptr, LIBLTE_S1AP_CELLTYP
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                          len;
   LIBLTE_S1AP_EMERGENCYAREAID_CANCELLED_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_EMERGENCYAREAID_CANCELLED_STRUCT;
 
@@ -4720,7 +4732,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_emergencyareaid_cancelled(uint8_t**        
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                  len;
   LIBLTE_S1AP_GUMMEI_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_GUMMEILIST_STRUCT;
 
@@ -4784,7 +4796,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_rimtransfer(uint8_t** ptr, LIBLTE_S1AP_RIMT
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                             len;
   LIBLTE_S1AP_SUPPORTEDTAS_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_SUPPORTEDTAS_STRUCT;
 
@@ -4826,7 +4838,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_x2tnlconfigurationinfo(uint8_t**           
 typedef struct {
   uint32_t len;
   LIBLTE_S1AP_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT
-      buffer[32]; // WARNING: Artificial limit to reduce memory footprint
+  buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_BEARERS_SUBJECTTOSTATUSTRANSFERLIST_STRUCT;
 
 LIBLTE_ERROR_ENUM
@@ -4841,7 +4853,7 @@ liblte_s1ap_unpack_bearers_subjecttostatustransferlist(uint8_t**                
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                 len;
   LIBLTE_S1AP_CELLID_CANCELLED_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_CELLID_CANCELLED_STRUCT;
 
@@ -4853,7 +4865,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cellid_cancelled(uint8_t** ptr, LIBLTE_S1AP
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_COMPLETEDCELLINEAI_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_COMPLETEDCELLINEAI_STRUCT;
 
@@ -4932,7 +4944,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_soninformationreply(uint8_t** ptr, LIBLTE_S
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                              len;
   LIBLTE_S1AP_TAI_BROADCAST_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_TAI_BROADCAST_STRUCT;
 
@@ -5080,16 +5092,18 @@ typedef struct {
 } LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer(
-    LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourceenb_totargetenb_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE EmergencyAreaID_Broadcast DYNAMIC SEQUENCE OF
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                          len;
   LIBLTE_S1AP_EMERGENCYAREAID_BROADCAST_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_EMERGENCYAREAID_BROADCAST_STRUCT;
 
@@ -5118,7 +5132,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_mdt_configuration(uint8_t** ptr, LIBLTE_S1A
 ********************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                              len;
   LIBLTE_S1AP_TAI_CANCELLED_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_TAI_CANCELLED_STRUCT;
 
@@ -5169,10 +5183,11 @@ typedef struct {
 } LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT;
 
 LIBLTE_ERROR_ENUM
-                  liblte_s1ap_pack_enb_statustransfer_transparentcontainer(LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT* ie,
-                                                                           uint8_t** ptr);
+liblte_s1ap_pack_enb_statustransfer_transparentcontainer(LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT* ie,
+                                                         uint8_t** ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_enb_statustransfer_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT* ie);
+    uint8_t**                                                   ptr,
+    LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE TraceActivation SEQUENCE
@@ -5320,7 +5335,7 @@ liblte_s1ap_unpack_inter_systeminformationtransfertype(uint8_t**                
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                    len;
   LIBLTE_S1AP_PROTOCOLIE_CONTAINERPAIR_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RAB_IE_CONTAINERPAIRLIST_STRUCT;
 
@@ -5585,13 +5600,15 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_taiitem(uint8_t** ptr, LIBLTE_S1AP_TAIITEM_
 typedef struct {
   uint32_t len;
   LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT
-      buffer[32]; // WARNING: Artificial limit to reduce memory footprint
+  buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionlistres(
-    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT* ie,
+    uint8_t**                                                    ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionlistres(
-    uint8_t** ptr, LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT* ie);
+    uint8_t**                                                    ptr,
+    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Container List UE_associatedLogicalS1_ConnectionListResAck DYNAMIC SEQUENCE OF
@@ -5600,13 +5617,15 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionlistres(
 typedef struct {
   uint32_t len;
   LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT
-      buffer[32]; // WARNING: Artificial limit to reduce memory footprint
+  buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionlistresack(
-    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT* ie,
+    uint8_t**                                                       ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionlistresack(
-    uint8_t** ptr, LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT* ie);
+    uint8_t**                                                       ptr,
+    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT* ie);
 
 /*******************************************************************************
 /* ProtocolIE PrivateMessage SEQUENCE
@@ -5651,7 +5670,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_resettype(uint8_t** ptr, LIBLTE_S1AP_RESETT
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_E_RABDATAFORWARDINGITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABSUBJECTTODATAFORWARDINGLIST_STRUCT;
 
@@ -5667,7 +5686,7 @@ liblte_s1ap_unpack_e_rabsubjecttodataforwardinglist(uint8_t**                   
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_E_RABTOBESETUPITEMHOREQ_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABTOBESETUPLISTHOREQ_STRUCT;
 
@@ -5681,7 +5700,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabtobesetuplisthoreq(uint8_t**          
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                             len;
   LIBLTE_S1AP_E_RABADMITTEDITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABADMITTEDLIST_STRUCT;
 
@@ -5693,7 +5712,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabadmittedlist(uint8_t** ptr, LIBLTE_S1A
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_E_RABTOBESWITCHEDDLITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABTOBESWITCHEDDLLIST_STRUCT;
 
@@ -5707,7 +5726,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabtobeswitcheddllist(uint8_t**          
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_E_RABTOBESWITCHEDULITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABTOBESWITCHEDULLIST_STRUCT;
 
@@ -5721,7 +5740,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabtobeswitchedullist(uint8_t**          
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                         len;
   LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT;
 
@@ -5735,7 +5754,7 @@ liblte_s1ap_unpack_e_rabtobesetuplistbearersureq(uint8_t** ptr, LIBLTE_S1AP_E_RA
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                     len;
   LIBLTE_S1AP_E_RABSETUPITEMBEARERSURES_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABSETUPLISTBEARERSURES_STRUCT;
 
@@ -5751,7 +5770,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabsetuplistbearersures(uint8_t**        
 typedef struct {
   uint32_t len;
   LIBLTE_S1AP_E_RABTOBEMODIFIEDITEMBEARERMODREQ_STRUCT
-      buffer[32]; // WARNING: Artificial limit to reduce memory footprint
+  buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABTOBEMODIFIEDLISTBEARERMODREQ_STRUCT;
 
 LIBLTE_ERROR_ENUM
@@ -5766,7 +5785,7 @@ liblte_s1ap_unpack_e_rabtobemodifiedlistbearermodreq(uint8_t**                  
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                       len;
   LIBLTE_S1AP_E_RABMODIFYITEMBEARERMODRES_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABMODIFYLISTBEARERMODRES_STRUCT;
 
@@ -5780,7 +5799,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabmodifylistbearermodres(uint8_t**      
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                         len;
   LIBLTE_S1AP_E_RABRELEASEITEMBEARERRELCOMP_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABRELEASELISTBEARERRELCOMP_STRUCT;
 
@@ -5794,7 +5813,7 @@ liblte_s1ap_unpack_e_rabreleaselistbearerrelcomp(uint8_t** ptr, LIBLTE_S1AP_E_RA
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                       len;
   LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT;
 
@@ -5808,7 +5827,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabtobesetuplistctxtsureq(uint8_t**      
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                   len;
   LIBLTE_S1AP_E_RABSETUPITEMCTXTSURES_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABSETUPLISTCTXTSURES_STRUCT;
 
@@ -5822,7 +5841,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabsetuplistctxtsures(uint8_t**          
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                   len;
   LIBLTE_S1AP_TAIITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_TAILIST_STRUCT;
 
@@ -5834,7 +5853,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_tailist(uint8_t** ptr, LIBLTE_S1AP_TAILIST_
 ********************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                          len;
   LIBLTE_S1AP_E_RABFAILEDTOSETUPITEMHOREQACK_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_S1AP_E_RABFAILEDTOSETUPLISTHOREQACK_STRUCT;
 
@@ -5851,10 +5870,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_ALLOCATIONANDRETENTIONPRIORITY_EXT_STRUCT;
 
 LIBLTE_ERROR_ENUM
-                  liblte_s1ap_pack_allocationandretentionpriority_ext(LIBLTE_S1AP_MESSAGE_ALLOCATIONANDRETENTIONPRIORITY_EXT_STRUCT* ie,
-                                                                      uint8_t**                                                      ptr);
+liblte_s1ap_pack_allocationandretentionpriority_ext(LIBLTE_S1AP_MESSAGE_ALLOCATIONANDRETENTIONPRIORITY_EXT_STRUCT* ie,
+                                                    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_allocationandretentionpriority_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_ALLOCATIONANDRETENTIONPRIORITY_EXT_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_ALLOCATIONANDRETENTIONPRIORITY_EXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message CancelledCellinEAI_Item_Ext STRUCT
@@ -6002,10 +6022,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_CRITICALITYDIAGNOSTICS_IE_ITEM_EXT_STRUCT;
 
 LIBLTE_ERROR_ENUM
-                  liblte_s1ap_pack_criticalitydiagnostics_ie_item_ext(LIBLTE_S1AP_MESSAGE_CRITICALITYDIAGNOSTICS_IE_ITEM_EXT_STRUCT* ie,
-                                                                      uint8_t**                                                      ptr);
+liblte_s1ap_pack_criticalitydiagnostics_ie_item_ext(LIBLTE_S1AP_MESSAGE_CRITICALITYDIAGNOSTICS_IE_ITEM_EXT_STRUCT* ie,
+                                                    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_criticalitydiagnostics_ie_item_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_CRITICALITYDIAGNOSTICS_IE_ITEM_EXT_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_CRITICALITYDIAGNOSTICS_IE_ITEM_EXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message EmergencyAreaID_Broadcast_Item_Ext STRUCT
@@ -6015,10 +6036,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_BROADCAST_ITEM_EXT_STRUCT;
 
 LIBLTE_ERROR_ENUM
-                  liblte_s1ap_pack_emergencyareaid_broadcast_item_ext(LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_BROADCAST_ITEM_EXT_STRUCT* ie,
-                                                                      uint8_t**                                                      ptr);
+liblte_s1ap_pack_emergencyareaid_broadcast_item_ext(LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_BROADCAST_ITEM_EXT_STRUCT* ie,
+                                                    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_emergencyareaid_broadcast_item_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_BROADCAST_ITEM_EXT_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_BROADCAST_ITEM_EXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message EmergencyAreaID_Cancelled_Item_Ext STRUCT
@@ -6028,10 +6050,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_CANCELLED_ITEM_EXT_STRUCT;
 
 LIBLTE_ERROR_ENUM
-                  liblte_s1ap_pack_emergencyareaid_cancelled_item_ext(LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_CANCELLED_ITEM_EXT_STRUCT* ie,
-                                                                      uint8_t**                                                      ptr);
+liblte_s1ap_pack_emergencyareaid_cancelled_item_ext(LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_CANCELLED_ITEM_EXT_STRUCT* ie,
+                                                    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_emergencyareaid_cancelled_item_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_CANCELLED_ITEM_EXT_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_CANCELLED_ITEM_EXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message CompletedCellinEAI_Item_Ext STRUCT
@@ -6074,9 +6097,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_enb_statustransfer_transparentcontainer_ext(
-    LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT* ie,
+    uint8_t**                                                               ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_enb_statustransfer_transparentcontainer_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT* ie);
+    uint8_t**                                                               ptr,
+    LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message E_RABInformationListItem_Ext STRUCT
@@ -6435,9 +6460,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetenb_tosourceenb_transparentcontainer_ext(
-    LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT* ie,
+    uint8_t**                                                                  ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT* ie);
+    uint8_t**                                                                  ptr,
+    LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message M1ThresholdEventA2_Ext STRUCT
@@ -6497,9 +6524,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitemext(
-    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT* ie,
+    uint8_t**                                                            ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionitemext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT* ie);
+    uint8_t**                                                            ptr,
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message UESecurityCapabilities_Ext STRUCT
@@ -6546,9 +6575,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer_ext(
-    LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT* ie,
+    uint8_t**                                                                  ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourceenb_totargetenb_transparentcontainer_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT* ie);
+    uint8_t**                                                                  ptr,
+    LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message E_RABInformationList STRUCT
@@ -6575,9 +6606,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_lastvisitedeutrancellinformation_ext(
-    LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT* ie,
+    uint8_t**                                                        ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_lastvisitedeutrancellinformation_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT* ie);
+    uint8_t**                                                        ptr,
+    LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message SONInformationReply_Ext STRUCT
@@ -6607,9 +6640,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_bearers_subjecttostatustransfer_itemext(
-    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT* ie,
+    uint8_t**                                                           ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_bearers_subjecttostatustransfer_itemext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT* ie);
+    uint8_t**                                                           ptr,
+    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message E_RABItem STRUCT
@@ -6659,9 +6694,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_bearers_subjecttostatustransfer_item(
-    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT* ie,
+    uint8_t**                                                        ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_bearers_subjecttostatustransfer_item(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT* ie);
+    uint8_t**                                                        ptr,
+    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message ImmediateMDT_Ext STRUCT
@@ -6960,10 +6997,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_E_RABTOBEMODIFYITEMBEARERMODREQEXT_STRUCT;
 
 LIBLTE_ERROR_ENUM
-                  liblte_s1ap_pack_e_rabtobemodifyitembearermodreqext(LIBLTE_S1AP_MESSAGE_E_RABTOBEMODIFYITEMBEARERMODREQEXT_STRUCT* ie,
-                                                                      uint8_t**                                                      ptr);
+liblte_s1ap_pack_e_rabtobemodifyitembearermodreqext(LIBLTE_S1AP_MESSAGE_E_RABTOBEMODIFYITEMBEARERMODREQEXT_STRUCT* ie,
+                                                    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabtobemodifyitembearermodreqext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_E_RABTOBEMODIFYITEMBEARERMODREQEXT_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_E_RABTOBEMODIFYITEMBEARERMODREQEXT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message E_RABModifyItemBearerModResExt STRUCT
@@ -7342,9 +7380,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitem(
-    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT* ie,
+    uint8_t**                                                         ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionitem(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT* ie);
+    uint8_t**                                                         ptr,
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message UE_associatedLogicalS1_ConnectionItemRes STRUCT
@@ -7355,9 +7395,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitemres(
-    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT* ie,
+    uint8_t**                                                            ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionitemres(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT* ie);
+    uint8_t**                                                            ptr,
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message ErrorIndication STRUCT
@@ -7686,10 +7728,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_LOCATIONREPORTINGFAILUREINDICATION_STRUCT;
 
 LIBLTE_ERROR_ENUM
-                  liblte_s1ap_pack_locationreportingfailureindication(LIBLTE_S1AP_MESSAGE_LOCATIONREPORTINGFAILUREINDICATION_STRUCT* ie,
-                                                                      uint8_t**                                                      ptr);
+liblte_s1ap_pack_locationreportingfailureindication(LIBLTE_S1AP_MESSAGE_LOCATIONREPORTINGFAILUREINDICATION_STRUCT* ie,
+                                                    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_locationreportingfailureindication(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_LOCATIONREPORTINGFAILUREINDICATION_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_LOCATIONREPORTINGFAILUREINDICATION_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message LocationReport STRUCT
@@ -7930,9 +7973,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_downlinknonueassociatedlppatransport(
-    LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* ie,
+    uint8_t**                                                        ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_downlinknonueassociatedlppatransport(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* ie);
+    uint8_t**                                                        ptr,
+    LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message UplinkNonUEAssociatedLPPaTransport STRUCT
@@ -7944,10 +7989,11 @@ typedef struct {
 } LIBLTE_S1AP_MESSAGE_UPLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT;
 
 LIBLTE_ERROR_ENUM
-                  liblte_s1ap_pack_uplinknonueassociatedlppatransport(LIBLTE_S1AP_MESSAGE_UPLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* ie,
-                                                                      uint8_t**                                                      ptr);
+liblte_s1ap_pack_uplinknonueassociatedlppatransport(LIBLTE_S1AP_MESSAGE_UPLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* ie,
+                                                    uint8_t**                                                      ptr);
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_uplinknonueassociatedlppatransport(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_UPLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* ie);
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_UPLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* ie);
 
 /*******************************************************************************
 /* Protocol Message ENBDirectInformationTransfer STRUCT

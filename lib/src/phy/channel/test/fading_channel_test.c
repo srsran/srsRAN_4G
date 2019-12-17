@@ -181,7 +181,9 @@ int main(int argc, char** argv)
     goto clean_exit;
   }
 
-  printf("-- Starting Fading channel simulator. srate=%.2fMHz; model=%s; duration=%dms\n", (double)srate / 1e6, model,
+  printf("-- Starting Fading channel simulator. srate=%.2fMHz; model=%s; duration=%dms\n",
+         (double)srate / 1e6,
+         model,
          duration_ms);
 
   for (int i = 0; i < duration_ms; i++) {

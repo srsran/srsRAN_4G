@@ -114,7 +114,7 @@ int s1ap_plmn_test()
   return 0;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   TESTASSERT(rrc_plmn_test() == 0);
   TESTASSERT(s1ap_plmn_test() == 0);

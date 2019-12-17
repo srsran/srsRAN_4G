@@ -138,9 +138,9 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
 #ifndef DISABLE_GRAPHICS
-  float       cfo_table[CFO_TABLE_MAX_IDX];
-  uint32_t    cfo_table_index = 0;
-  uint32_t    cfo_num_plot    = CFO_TABLE_MAX_IDX;
+  float    cfo_table[CFO_TABLE_MAX_IDX];
+  uint32_t cfo_table_index = 0;
+  uint32_t cfo_num_plot    = CFO_TABLE_MAX_IDX;
 
   if (!disable_plots) {
     init_plots();
@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 
   signal(SIGINT, sig_int_handler);
 
-  float srate = 15000.0 * fft_size;
+  float   srate = 15000.0 * fft_size;
   int32_t flen  = srate * 10 / 1000;
 
   printf("Frame length %d samples\n", flen);

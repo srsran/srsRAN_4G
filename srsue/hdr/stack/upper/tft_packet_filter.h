@@ -70,7 +70,7 @@ public:
                       uint8_t                                lcid_,
                       const LIBLTE_MME_PACKET_FILTER_STRUCT& tft_,
                       srslte::log*                           log_);
-  bool    match(const srslte::unique_byte_buffer_t& pdu);
+  bool match(const srslte::unique_byte_buffer_t& pdu);
 
   uint8_t  eps_bearer_id;
   uint8_t  lcid;

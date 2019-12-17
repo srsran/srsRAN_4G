@@ -50,9 +50,7 @@ public:
   int init(const phy_args_t& args_) final;
 
   // Init for LTE PHYs
-  int init(const phy_args_t&            args_,
-           stack_interface_phy_lte*     stack_,
-           srslte::radio_interface_phy* radio_) final;
+  int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_) final;
 
   void stop() final;
 
@@ -60,7 +58,7 @@ public:
   bool is_initiated();
 
   void get_metrics(phy_metrics_t* m) final;
-  void srslte_phy_logger(phy_logger_level_t log_level, char *str);
+  void srslte_phy_logger(phy_logger_level_t log_level, char* str);
 
   void enable_pregen_signals(bool enable) final;
 
@@ -150,12 +148,12 @@ private:
   srslte::log*                    log_phy_lib_h = nullptr;
   srsue::stack_interface_phy_lte* stack         = nullptr;
 
-  srslte::thread_pool      workers_pool;
+  srslte::thread_pool                      workers_pool;
   std::vector<std::unique_ptr<sf_worker> > workers;
-  phy_common               common;
-  sync                     sfsync;
-  scell::async_recv_vector scell_sync;
-  prach                   prach_buffer;
+  phy_common                               common;
+  sync                                     sfsync;
+  scell::async_recv_vector                 scell_sync;
+  prach                                    prach_buffer;
 
   srslte_prach_cfg_t  prach_cfg  = {};
   srslte_tdd_config_t tdd_config = {};
@@ -166,7 +164,7 @@ private:
   /* Current time advance */
   uint32_t n_ta = 0;
 
-  void set_default_args(phy_args_t *args);
+  void set_default_args(phy_args_t* args);
   bool check_args(const phy_args_t& args);
 };
 

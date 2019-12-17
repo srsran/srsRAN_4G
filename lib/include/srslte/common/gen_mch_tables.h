@@ -26,22 +26,19 @@
  * Common mch table generation - used in phch_common of UE and ENB for MBMS
  *****************************************************************************/
 #include <pthread.h>
-#include <string.h>
 #include <stdint.h>
-
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-
-void generate_frame_mch_table(uint8_t *table, uint8_t alloc);
-void generate_mch_table(uint8_t *table, uint32_t sf_alloc, uint8_t num_frames);
-void generate_mcch_table(uint8_t *table, uint32_t sf_alloc);
+void generate_frame_mch_table(uint8_t* table, uint8_t alloc);
+void generate_mch_table(uint8_t* table, uint32_t sf_alloc, uint8_t num_frames);
+void generate_mcch_table(uint8_t* table, uint32_t sf_alloc);
 
 #ifdef __cplusplus
 }
 #endif // __cplusplus
-
 
 #endif // SECURITY_H

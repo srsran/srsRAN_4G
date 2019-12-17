@@ -492,7 +492,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
       phy->ue_db_set_last_ul_tb(rnti, ul_pid, grant->tb);
 
       // Run PUSCH decoder
-      pusch_res = {};
+      pusch_res                                = {};
       ue_db[rnti]->ul_cfg.pusch.softbuffers.rx = grants[i].softbuffer_rx;
       pusch_res.data                           = grants[i].data;
       if (pusch_res.data) {
@@ -726,7 +726,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 uint32_t cc_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t cnt = 0;
+  uint32_t                    cnt = 0;
   for (auto& ue : ue_db) {
     if (SRSLTE_RNTI_ISUSER(ue.first) && cnt < ENB_METRICS_MAX_USERS) {
       ue.second->metrics_read(&metrics[cnt]);
@@ -761,7 +761,7 @@ void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo
 
 int cc_worker::read_ce_abs(float* ce_abs)
 {
-  int      sz = srslte_symbol_sz(phy->cell.nof_prb);
+  int sz = srslte_symbol_sz(phy->cell.nof_prb);
   bzero(ce_abs, sizeof(float) * sz);
   int g = (sz - 12 * phy->cell.nof_prb) / 2;
   srslte_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSLTE_NRE * phy->cell.nof_prb);
@@ -770,7 +770,7 @@ int cc_worker::read_ce_abs(float* ce_abs)
 
 int cc_worker::read_ce_arg(float* ce_arg)
 {
-  int      sz = srslte_symbol_sz(phy->cell.nof_prb);
+  int sz = srslte_symbol_sz(phy->cell.nof_prb);
   bzero(ce_arg, sizeof(float) * sz);
   int g = (sz - 12 * phy->cell.nof_prb) / 2;
   srslte_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSLTE_NRE * phy->cell.nof_prb);

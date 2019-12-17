@@ -19,10 +19,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_bsr.h"
 #include "srsue/hdr/stack/mac/mac.h"
@@ -32,8 +32,8 @@ namespace srsue {
 
 bsr_proc::bsr_proc()
 {
-  log_h = NULL;
-  initiated = false;
+  log_h              = NULL;
+  initiated          = false;
   last_print         = 0;
   current_tti        = 0;
   trigger_tti        = 0;
@@ -124,7 +124,8 @@ uint32_t bsr_proc::get_buffer_state()
 }
 
 // Checks if data is available for a a channel with higher priority than others
-bool bsr_proc::check_highest_channel() {
+bool bsr_proc::check_highest_channel()
+{
 
   for (int i = 0; i < NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
@@ -225,14 +226,14 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes)
         uint32_t max_prio_lcg = find_max_priority_lcg_with_data();
         for (uint32_t i = 0; i < NOF_LCG; i++) {
           if (max_prio_lcg != i) {
-            bsr->buff_size[i] = 0; 
+            bsr->buff_size[i] = 0;
           }
         }
       } else {
         bsr->format = SHORT_BSR;
       }
     } else {
-      // If space for long BSR  
+      // If space for long BSR
       bsr->format = LONG_BSR;
     }
   } else {
@@ -289,34 +290,36 @@ void bsr_proc::step(uint32_t tti)
       }
     }
     Info("BSR:   triggered_bsr_type=%d, LCID QUEUE status: %s\n", triggered_bsr_type, str);
-    last_print = tti; 
+    last_print = tti;
   }
   pthread_mutex_unlock(&mutex);
 }
 
-char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type) {
-  switch(type) {
-    case bsr_proc::REGULAR: 
-      return (char*) "Regular";
+char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type)
+{
+  switch (type) {
+    case bsr_proc::REGULAR:
+      return (char*)"Regular";
     case bsr_proc::PADDING:
-      return (char*) "Padding";
-    case bsr_proc::PERIODIC: 
-      return (char*) "Periodic";
+      return (char*)"Padding";
+    case bsr_proc::PERIODIC:
+      return (char*)"Periodic";
     default:
-      return (char*) "Regular";
+      return (char*)"Regular";
   }
 }
 
-char* bsr_proc::bsr_format_tostring(bsr_format_t format) {
-  switch(format) {
-    case bsr_proc::LONG_BSR: 
-      return (char*) "Long";
+char* bsr_proc::bsr_format_tostring(bsr_format_t format)
+{
+  switch (format) {
+    case bsr_proc::LONG_BSR:
+      return (char*)"Long";
     case bsr_proc::SHORT_BSR:
-      return (char*) "Short";
-    case bsr_proc::TRUNC_BSR: 
-      return (char*) "Truncated";
+      return (char*)"Short";
+    case bsr_proc::TRUNC_BSR:
+      return (char*)"Truncated";
     default:
-      return (char*) "Short";
+      return (char*)"Short";
   }
 }
 
@@ -389,7 +392,8 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
   return ret;
 }
 
-bool bsr_proc::need_to_reset_sr() {
+bool bsr_proc::need_to_reset_sr()
+{
   bool ret = false;
   pthread_mutex_lock(&mutex);
   if (reset_sr) {
@@ -402,7 +406,8 @@ bool bsr_proc::need_to_reset_sr() {
   return ret;
 }
 
-bool bsr_proc::need_to_send_sr(uint32_t tti) {
+bool bsr_proc::need_to_send_sr(uint32_t tti)
+{
   bool ret = false;
   pthread_mutex_lock(&mutex);
   if (!sr_is_sent && triggered_bsr_type == REGULAR) {
@@ -449,4 +454,4 @@ uint32_t bsr_proc::find_max_priority_lcg_with_data()
   return max_idx;
 }
 
-}
+} // namespace srsue

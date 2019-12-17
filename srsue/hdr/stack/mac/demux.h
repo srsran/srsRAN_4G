@@ -22,14 +22,13 @@
 #ifndef SRSUE_DEMUX_H
 #define SRSUE_DEMUX_H
 
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/pdu_queue.h"
 #include "srslte/common/log.h"
-#include "srslte/common/timers.h"
 #include "srslte/common/pdu.h"
+#include "srslte/common/pdu_queue.h"
+#include "srslte/common/timers.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
-/* Logical Channel Demultiplexing and MAC CE dissassemble */   
-
+/* Logical Channel Demultiplexing and MAC CE dissassemble */
 
 namespace srsue {
 
@@ -59,15 +58,15 @@ public:
   void push_pdu_mch(uint8_t* buff, uint32_t nof_bytes);
   void push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes);
 
-  bool     get_uecrid_successful();
+  bool get_uecrid_successful();
 
-  void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel);
-  void     mch_start_rx(uint32_t lcid);
+  void process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel);
+  void mch_start_rx(uint32_t lcid);
 
 private:
   const static int MAX_PDU_LEN      = 150 * 1024 / 8; // ~ 150 Mbps
   const static int MAX_BCCH_PDU_LEN = 1024;
-  uint8_t bcch_buffer[MAX_BCCH_PDU_LEN]; // BCCH PID has a dedicated buffer
+  uint8_t          bcch_buffer[MAX_BCCH_PDU_LEN]; // BCCH PID has a dedicated buffer
 
   srslte::sch_pdu mac_msg;
   srslte::mch_pdu mch_mac_msg;
@@ -94,6 +93,3 @@ private:
 } // namespace srsue
 
 #endif // SRSUE_DEMUX_H
-
-
-

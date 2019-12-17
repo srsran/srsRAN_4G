@@ -26,25 +26,24 @@
 #include <math.h>
 #include <string.h>
 
-#define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN     SRSLTE_SF_LEN(CURRENT_FFTSIZE)
+#define CURRENT_FFTSIZE srslte_symbol_sz(q->cell.nof_prb)
+#define CURRENT_SFLEN SRSLTE_SF_LEN(CURRENT_FFTSIZE)
 
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_NOF_RE(q->cell)
 
 #define SRSLTE_ENB_RF_AMP 0.1
 
-int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], uint32_t max_prb)
+int srslte_enb_dl_init(srslte_enb_dl_t* q, cf_t* out_buffer[SRSLTE_MAX_PORTS], uint32_t max_prb)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-  
-  if (q != NULL)
-  {
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL) {
     ret = SRSLTE_ERROR;
-    
+
     bzero(q, sizeof(srslte_enb_dl_t));
 
-    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
       q->sf_symbols[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
       if (!q->sf_symbols[i]) {
         perror("malloc");
@@ -103,19 +102,19 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], u
       goto clean_exit;
     }
     ret = SRSLTE_SUCCESS;
-    
+
   } else {
     ERROR("Invalid parameters\n");
   }
 
-clean_exit: 
+clean_exit:
   if (ret == SRSLTE_ERROR) {
     srslte_enb_dl_free(q);
   }
   return ret;
 }
 
-void srslte_enb_dl_free(srslte_enb_dl_t *q)
+void srslte_enb_dl_free(srslte_enb_dl_t* q)
 {
   if (q) {
     for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
@@ -131,22 +130,20 @@ void srslte_enb_dl_free(srslte_enb_dl_t *q)
     srslte_pmch_free(&q->pmch);
     srslte_refsignal_free(&q->csr_signal);
     srslte_refsignal_free(&q->mbsfnr_signal);
-    for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
       if (q->sf_symbols[i]) {
         free(q->sf_symbols[i]);
       }
     }
     bzero(q, sizeof(srslte_enb_dl_t));
-  }  
+  }
 }
 
-int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
+int srslte_enb_dl_set_cell(srslte_enb_dl_t* q, srslte_cell_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q                 != NULL &&
-      srslte_cell_isvalid(&cell))
-  {
+  if (q != NULL && srslte_cell_isvalid(&cell)) {
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
       if (q->cell.nof_prb != 0) {
         srslte_regs_free(&q->regs);
@@ -162,7 +159,7 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
           return SRSLTE_ERROR;
         }
       }
-    
+
       if (srslte_ofdm_tx_set_prb(&q->ifft_mbsfn, SRSLTE_CP_EXT, q->cell.nof_prb)) {
         ERROR("Error re-planning ifft_mbsfn\n");
         return SRSLTE_ERROR;
@@ -208,7 +205,7 @@ int srslte_enb_dl_set_cell(srslte_enb_dl_t *q, srslte_cell_t cell)
         return SRSLTE_ERROR;
       }
       /* Generate PSS/SSS signals */
-      srslte_pss_generate(q->pss_signal, cell.id%3);
+      srslte_pss_generate(q->pss_signal, cell.id % 3);
       srslte_sss_generate(q->sss_signal0, q->sss_signal5, cell.id);
     }
     ret = SRSLTE_SUCCESS;
@@ -230,16 +227,16 @@ void srslte_enb_dl_rem_rnti(srslte_enb_dl_t* q, uint16_t rnti)
 }
 
 #ifdef resolve
-void srslte_enb_dl_apply_power_allocation(srslte_enb_dl_t *q)
+void srslte_enb_dl_apply_power_allocation(srslte_enb_dl_t* q)
 {
   uint32_t nof_symbols_slot = SRSLTE_CP_NSYMB(q->cell.cp);
-  uint32_t nof_re_symbol = SRSLTE_NRE * q->cell.nof_prb;
+  uint32_t nof_re_symbol    = SRSLTE_NRE * q->cell.nof_prb;
 
   if (q->rho_b != 0.0f && q->rho_b != 1.0f) {
     float scaling = q->rho_b;
     for (uint32_t i = 0; i < q->cell.nof_ports; i++) {
       for (uint32_t j = 0; j < 2; j++) {
-        cf_t *ptr;
+        cf_t* ptr;
         ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 0);
         srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
         if (q->cell.cp == SRSLTE_CP_NORM) {
@@ -258,16 +255,16 @@ void srslte_enb_dl_apply_power_allocation(srslte_enb_dl_t *q)
   }
 }
 
-void srslte_enb_dl_prepare_power_allocation(srslte_enb_dl_t *q)
+void srslte_enb_dl_prepare_power_allocation(srslte_enb_dl_t* q)
 {
   uint32_t nof_symbols_slot = SRSLTE_CP_NSYMB(q->cell.cp);
-  uint32_t nof_re_symbol = SRSLTE_NRE * q->cell.nof_prb;
+  uint32_t nof_re_symbol    = SRSLTE_NRE * q->cell.nof_prb;
 
   if (q->rho_b != 0.0f && q->rho_b != 1.0f) {
     float scaling = 1.0f / q->rho_b;
     for (uint32_t i = 0; i < q->cell.nof_ports; i++) {
       for (uint32_t j = 0; j < 2; j++) {
-        cf_t *ptr;
+        cf_t* ptr;
         ptr = q->sf_symbols[i] + nof_re_symbol * (j * nof_symbols_slot + 0);
         srslte_vec_sc_prod_cfc(ptr, scaling, ptr, nof_re_symbol);
         if (q->cell.cp == SRSLTE_CP_NORM) {
@@ -302,10 +299,9 @@ static void put_sync(srslte_enb_dl_t* q)
   if (sf_idx == 0 || sf_idx == 5) {
     for (int p = 0; p < q->cell.nof_ports; p++) {
       srslte_pss_put_slot(q->pss_signal, q->sf_symbols[p], q->cell.nof_prb, q->cell.cp);
-      srslte_sss_put_slot(sf_idx ? q->sss_signal5 : q->sss_signal0, q->sf_symbols[p],
-                          q->cell.nof_prb, q->cell.cp);
+      srslte_sss_put_slot(sf_idx ? q->sss_signal5 : q->sss_signal0, q->sf_symbols[p], q->cell.nof_prb, q->cell.cp);
     }
-  }  
+  }
 }
 
 static void put_refs(srslte_enb_dl_t* q)
@@ -417,8 +413,11 @@ void srslte_enb_dl_gen_signal(srslte_enb_dl_t* q)
   }
 }
 
-bool srslte_enb_dl_gen_cqi_periodic(
-    srslte_cell_t* cell, srslte_dl_cfg_t* dl_cfg, uint32_t tti, uint32_t ri, srslte_cqi_cfg_t* cqi_cfg)
+bool srslte_enb_dl_gen_cqi_periodic(srslte_cell_t*    cell,
+                                    srslte_dl_cfg_t*  dl_cfg,
+                                    uint32_t          tti,
+                                    uint32_t          ri,
+                                    srslte_cqi_cfg_t* cqi_cfg)
 {
   bool cqi_enabled = false;
   if (srslte_cqi_periodic_ri_send(&dl_cfg->cqi_report, tti, cell->frame_type)) {

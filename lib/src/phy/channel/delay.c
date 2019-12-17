@@ -36,8 +36,8 @@ static inline double calculate_delay_us(srslte_channel_delay_t* q, const srslte_
     uint64_t mod_t_nsamples = ts_nsamples - period_nsamples * (ts_nsamples / period_nsamples);
     double   t              = (double)mod_t_nsamples / (double)q->srate_hz;
 
-    double   arg      = 2.0 * M_PI * t / (double)q->period_s;
-    double   delay_us = q->delay_min_us + (q->delay_max_us - q->delay_min_us) * (1.0 + sin(arg)) / 2.0;
+    double arg      = 2.0 * M_PI * t / (double)q->period_s;
+    double delay_us = q->delay_min_us + (q->delay_max_us - q->delay_min_us) * (1.0 + sin(arg)) / 2.0;
 
     return delay_us;
   } else {
@@ -100,8 +100,11 @@ void srslte_channel_delay_free(srslte_channel_delay_t* q)
   }
 }
 
-void srslte_channel_delay_execute(
-    srslte_channel_delay_t* q, const cf_t* in, cf_t* out, uint32_t len, const srslte_timestamp_t* ts)
+void srslte_channel_delay_execute(srslte_channel_delay_t*   q,
+                                  const cf_t*               in,
+                                  cf_t*                     out,
+                                  uint32_t                  len,
+                                  const srslte_timestamp_t* ts)
 {
   q->delay_us                 = calculate_delay_us(q, ts);
   q->delay_nsamples           = calculate_delay_nsamples(q);

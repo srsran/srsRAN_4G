@@ -22,11 +22,9 @@
 #ifndef SRSUE_GW_METRICS_H
 #define SRSUE_GW_METRICS_H
 
-
 namespace srsue {
 
-struct gw_metrics_t
-{
+struct gw_metrics_t {
   double dl_tput_mbps;
   double ul_tput_mbps;
 };

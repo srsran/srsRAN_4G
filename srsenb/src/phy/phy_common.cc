@@ -28,10 +28,18 @@
 
 #include <assert.h>
 
-#define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...)                                                                                                \
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  log_h->error(fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...)                                                                                              \
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  log_h->warning(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...)                                                                                                 \
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...)                                                                                                \
+  if (SRSLTE_DEBUG_ENABLED)                                                                                            \
+  log_h->debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
 using namespace asn1::rrc;
@@ -82,8 +90,7 @@ bool phy_common::init(const srslte_cell_t&         cell_,
 
   // Instantiate UL channel emulator
   if (params.ul_channel_args.enable) {
-    dl_channel =
-        srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
+    dl_channel = srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
 
     dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell.nof_prb));
   }
@@ -92,20 +99,19 @@ bool phy_common::init(const srslte_cell_t&         cell_,
 
   // Instantiate UL channel emulator
   if (params.ul_channel_args.enable) {
-    dl_channel =
-        srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
+    dl_channel = srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
 
     dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell.nof_prb));
   }
 
   is_first_tx = true;
   reset();
-  return true; 
+  return true;
 }
 
 void phy_common::stop()
 {
-  for (uint32_t i=0;i<max_workers;i++) {
+  for (uint32_t i = 0; i < max_workers; i++) {
     sem_post(&tx_sem[i]);
   }
 }
@@ -123,16 +129,16 @@ void phy_common::worker_end(uint32_t           tti,
                             srslte_timestamp_t tx_time)
 {
 
-  // This variable is not protected but it is very unlikely that 2 threads arrive here simultaneously since at the beginning
-  // there is no workload and threads are separated by 1 ms
+  // This variable is not protected but it is very unlikely that 2 threads arrive here simultaneously since at the
+  // beginning there is no workload and threads are separated by 1 ms
   if (is_first_tx) {
     is_first_tx = false;
     // Allow my own transmission if I'm the first to transmit
-    sem_post(&tx_sem[tti%nof_workers]);
+    sem_post(&tx_sem[tti % nof_workers]);
   }
 
   // Wait for the green light to transmit in the current TTI
-  sem_wait(&tx_sem[tti%nof_workers]);
+  sem_wait(&tx_sem[tti % nof_workers]);
 
   if (dl_channel) {
     dl_channel->run(buffer, buffer, nof_samples, tx_time);
@@ -142,7 +148,7 @@ void phy_common::worker_end(uint32_t           tti,
   radio->tx(0, buffer, nof_samples, tx_time);
 
   // Allow next TTI to transmit
-  sem_post(&tx_sem[(tti+1)%nof_workers]);
+  sem_post(&tx_sem[(tti + 1) % nof_workers]);
 
   // Trigger MAC clock
   stack->tti_clock();
@@ -151,7 +157,7 @@ void phy_common::worker_end(uint32_t           tti,
 void phy_common::ue_db_clear(uint32_t tti)
 {
   for (auto iter = common_ue_db.begin(); iter != common_ue_db.end(); ++iter) {
-    pending_ack_t *p = &((common_ue*)&iter->second)->pending_ack;
+    pending_ack_t* p = &((common_ue*)&iter->second)->pending_ack;
     for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
       p->is_pending[TTIMOD(tti)][tb_idx] = false;
     }
@@ -269,7 +275,7 @@ void phy_common::configure_mbsfn(phy_interface_stack_lte::phy_cfg_mbsfn_t* cfg)
   build_mch_table();
   build_mcch_table();
   sib13_configured = true;
-  mcch_configured = true;
+  mcch_configured  = true;
 }
 
 void phy_common::build_mch_table()
@@ -291,8 +297,8 @@ void phy_common::build_mch_table()
   // Debug
   std::stringstream ss;
   ss << "|";
-  for(uint32_t j=0; j<40; j++) {
-    ss << (int) mch_table[j] << "|";
+  for (uint32_t j = 0; j < 40; j++) {
+    ss << (int)mch_table[j] << "|";
   }
 
   stack->set_sched_dl_tti_mask(mch_table, nof_sfs);
@@ -306,20 +312,20 @@ void phy_common::build_mcch_table()
 
   std::stringstream ss;
   ss << "|";
-  for(uint32_t j=0; j<10; j++) {
-    ss << (int) mcch_table[j] << "|";
+  for (uint32_t j = 0; j < 10; j++) {
+    ss << (int)mcch_table[j] << "|";
   }
 }
 
 bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 {
-  uint32_t sfn;   // System Frame Number
-  uint8_t  sf;    // Subframe
+  uint32_t sfn; // System Frame Number
+  uint8_t  sf;  // Subframe
   uint8_t  offset;
   uint8_t  period;
 
-  sfn = phy_tti/10;
-  sf  = phy_tti%10;
+  sfn = phy_tti / 10;
+  sf  = phy_tti % 10;
 
   if (sib13_configured) {
     mbsfn_area_info_r9_s* area_info = &mbsfn.mbsfn_area_info;
@@ -327,8 +333,8 @@ bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
     offset = area_info->mcch_cfg_r9.mcch_offset_r9;
     period = area_info->mcch_cfg_r9.mcch_repeat_period_r9.to_number();
 
-    if((sfn%period == offset) && mcch_table[sf] > 0) {
-      cfg->mbsfn_area_id = area_info->mbsfn_area_id_r9;
+    if ((sfn % period == offset) && mcch_table[sf] > 0) {
+      cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
       cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
       cfg->mbsfn_mcs               = area_info->mcch_cfg_r9.sig_mcs_r9.to_number();
       cfg->enable                  = true;
@@ -342,20 +348,20 @@ bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 
 bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 {
-  uint32_t sfn;   // System Frame Number
-  uint8_t  sf;    // Subframe
+  uint32_t sfn; // System Frame Number
+  uint8_t  sf;  // Subframe
   uint8_t  offset;
   uint8_t  period;
 
   sfn = phy_tti / 10;
-  sf  = phy_tti%10;
+  sf  = phy_tti % 10;
 
   // Set some defaults
-  cfg->mbsfn_area_id            = 0;
-  cfg->non_mbsfn_region_length  = 1;
-  cfg->mbsfn_mcs                = 2;
-  cfg->enable                   = false;
-  cfg->is_mcch = false;
+  cfg->mbsfn_area_id           = 0;
+  cfg->non_mbsfn_region_length = 1;
+  cfg->mbsfn_mcs               = 2;
+  cfg->enable                  = false;
+  cfg->is_mcch                 = false;
   // Check for MCCH
   if (is_mcch_subframe(cfg, phy_tti)) {
     return true;
@@ -372,13 +378,13 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
   period = subfr_cnfg->radioframe_alloc_period.to_number();
 
   if (subfr_cnfg->sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame) {
-    if ((sfn%period == offset) && (mch_table[sf] > 0)) {
+    if ((sfn % period == offset) && (mch_table[sf] > 0)) {
       if (sib13_configured) {
-        cfg->mbsfn_area_id = area_info->mbsfn_area_id_r9;
+        cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
         cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
         if (mcch_configured) {
           // Iterate through PMCH configs to see which one applies in the current frame
-          mbsfn_area_cfg_r9_s* area_r9      = &mbsfn.mcch.msg.c1().mbsfn_area_cfg_r9();
+          mbsfn_area_cfg_r9_s* area_r9 = &mbsfn.mcch.msg.c1().mbsfn_area_cfg_r9();
 
           uint32_t frame_alloc_idx = sfn % area_r9->common_sf_alloc_period_r9.to_number();
           uint32_t mbsfn_per_frame = area_r9->pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9 /
@@ -394,20 +400,18 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
               cfg->enable    = true;
             }
           }
-        
         }
       }
       return true;
     }
   } else if (subfr_cnfg->sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::four_frames) {
-    uint8_t idx = sfn%period;
-    if ((idx >= offset) && (idx < offset+4)) {
-      if (mch_table[(idx*10)+sf] > 0){
+    uint8_t idx = sfn % period;
+    if ((idx >= offset) && (idx < offset + 4)) {
+      if (mch_table[(idx * 10) + sf] > 0) {
         if (sib13_configured) {
-          cfg->mbsfn_area_id = area_info->mbsfn_area_id_r9;
+          cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
           cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
           // TODO: check for MCCH configuration, set MCS and decode
-
         }
         return true;
       }
@@ -421,4 +425,4 @@ bool phy_common::is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 {
   return is_mch_subframe(cfg, phy_tti);
 }
-}
+} // namespace srsenb

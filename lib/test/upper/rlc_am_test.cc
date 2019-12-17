@@ -37,10 +37,10 @@ using namespace asn1::rrc;
 class rlc_am_tester : public pdcp_interface_rlc, public rrc_interface_rlc
 {
 public:
-  rlc_am_tester(rlc_pcap *pcap_ = NULL)
+  rlc_am_tester(rlc_pcap* pcap_ = NULL)
   {
     n_sdus = 0;
-    pcap = pcap_;
+    pcap   = pcap_;
   }
 
   // PDCP interface
@@ -55,12 +55,12 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
 
   // RRC interface
-  void max_retx_attempted(){}
+  void        max_retx_attempted() {}
   std::string get_rb_name(uint32_t lcid) { return std::string(""); }
 
   unique_byte_buffer_t sdus[10];
-  int n_sdus;
-  rlc_pcap *pcap;
+  int                  n_sdus;
+  rlc_pcap*            pcap;
 };
 
 class ul_writer : public thread
@@ -71,8 +71,8 @@ public:
   void stop()
   {
     running = false;
-    int cnt=0;
-    while(running && cnt<100) {
+    int cnt = 0;
+    while (running && cnt < 100) {
       usleep(10000);
       cnt++;
     }
@@ -80,11 +80,12 @@ public:
   }
 
 private:
-  void run_thread() {
-    int sn = 0;
+  void run_thread()
+  {
+    int sn  = 0;
     running = true;
-    while(running) {
-      byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+    while (running) {
+      byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
       unique_byte_buffer_t pdu  = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
       if (!pdu) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
@@ -103,7 +104,7 @@ private:
   }
 
   rlc_am_lte* rlc;
-  bool running;
+  bool        running;
 };
 
 void basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])
@@ -160,8 +161,7 @@ bool basic_test()
   basic_test_tx(&rlc1, pdu_bufs);
 
   // Write 5 PDUs into RLC2
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
@@ -177,10 +177,9 @@ bool basic_test()
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
-  for(int i=0; i<tester.n_sdus; i++)
-  {
+  for (int i = 0; i < tester.n_sdus; i++) {
     assert(tester.sdus[i]->N_bytes == 1);
-    assert(*(tester.sdus[i]->msg)  == i);
+    assert(*(tester.sdus[i]->msg) == i);
   }
 
   // Check statistics
@@ -221,10 +220,9 @@ bool concat_test()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
     sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
@@ -236,7 +234,7 @@ bool concat_test()
   // Read 1 PDUs from RLC1 containing all 5 SDUs
   byte_buffer_t pdu_buf;
   int           len = rlc1.read_pdu(pdu_buf.msg, 13); // 8 bytes for header + payload
-  pdu_buf.N_bytes = len;
+  pdu_buf.N_bytes   = len;
 
   assert(0 == rlc1.get_buffer_state());
 
@@ -246,10 +244,9 @@ bool concat_test()
   // No status report as we haven't crossed polling thresholds
 
   assert(tester.n_sdus == 5);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
+  for (int i = 0; i < tester.n_sdus; i++) {
     assert(tester.sdus[i]->N_bytes == 1);
-    assert(*(tester.sdus[i]->msg)  == i);
+    assert(*(tester.sdus[i]->msg) == i);
   }
 
   // Check statistics
@@ -291,12 +288,11 @@ bool segment_test(bool in_seq_rx)
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(int j=0;j<10;j++)
+    for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -306,9 +302,9 @@ bool segment_test(bool in_seq_rx)
 
   // Read PDUs from RLC1 (force segmentation)
   byte_buffer_t pdu_bufs[20];
-  int n_pdus = 0;
-  while(rlc1.get_buffer_state() > 0){
-    len = rlc1.read_pdu(pdu_bufs[n_pdus].msg, 10); // 2 header + payload
+  int           n_pdus = 0;
+  while (rlc1.get_buffer_state() > 0) {
+    len                        = rlc1.read_pdu(pdu_bufs[n_pdus].msg, 10); // 2 header + payload
     pdu_bufs[n_pdus++].N_bytes = len;
   }
 
@@ -334,7 +330,7 @@ bool segment_test(bool in_seq_rx)
 
     // Read status PDU from RLC2
     byte_buffer_t status_buf;
-    len = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+    len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
     status_buf.N_bytes = len;
 
     // Write status PDU to RLC1
@@ -344,11 +340,10 @@ bool segment_test(bool in_seq_rx)
   assert(0 == rlc2.get_buffer_state());
 
   assert(tester.n_sdus == 5);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
+  for (int i = 0; i < tester.n_sdus; i++) {
     assert(tester.sdus[i]->N_bytes == 10);
-    for(int j=0;j<10;j++)
-      assert(tester.sdus[i]->msg[j]  == j);
+    for (int j = 0; j < 10; j++)
+      assert(tester.sdus[i]->msg[j] == j);
   }
 
   // Check statistics
@@ -390,10 +385,9 @@ bool retx_test()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
     sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
     sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
@@ -404,18 +398,16 @@ bool retx_test()
 
   // Read 5 PDUs from RLC1 (1 byte each)
   byte_buffer_t pdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, 4); // 2 byte header + 1 byte payload
+  for (int i = 0; i < NBUFS; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 4); // 2 byte header + 1 byte payload
     pdu_bufs[i].N_bytes = len;
   }
 
   assert(0 == rlc1.get_buffer_state());
 
   // Write PDUs into RLC2 (skip SN 1)
-  for(int i=0;i<NBUFS;i++)
-  {
-    if(i != 1)
+  for (int i = 0; i < NBUFS; i++) {
+    if (i != 1)
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
@@ -440,17 +432,18 @@ bool retx_test()
 
   // Read the retx PDU from RLC1
   byte_buffer_t retx;
-  len = rlc1.read_pdu(retx.msg, 3); // 2 byte header + 1 byte payload
+  len          = rlc1.read_pdu(retx.msg, 3); // 2 byte header + 1 byte payload
   retx.N_bytes = len;
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx.msg, retx.N_bytes);
 
   assert(tester.n_sdus == 5);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
-    if (tester.sdus[i]->N_bytes != 1) return -1;
-    if (*(tester.sdus[i]->msg) != i) return -1;
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != 1)
+      return -1;
+    if (*(tester.sdus[i]->msg) != i)
+      return -1;
   }
 
   return 0;
@@ -484,12 +477,11 @@ bool resegment_test_1()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(int j=0;j<10;j++)
+    for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -499,18 +491,16 @@ bool resegment_test_1()
 
   // Read 5 PDUs from RLC1 (10 bytes each)
   byte_buffer_t pdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, 12); // 12 bytes for header + payload
+  for (int i = 0; i < NBUFS; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 12); // 12 bytes for header + payload
     pdu_bufs[i].N_bytes = len;
   }
 
   assert(0 == rlc1.get_buffer_state());
 
   // Write PDUs into RLC2 (skip SN 1)
-  for(int i=0;i<NBUFS;i++)
-  {
-    if(i != 1)
+  for (int i = 0; i < NBUFS; i++) {
+    if (i != 1)
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
@@ -524,7 +514,7 @@ bool resegment_test_1()
 
   // Read status PDU from RLC2
   byte_buffer_t status_buf;
-  len = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+  len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
   status_buf.N_bytes = len;
 
   // Write status PDU to RLC1
@@ -534,7 +524,7 @@ bool resegment_test_1()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  len = rlc1.read_pdu(retx1.msg, 9); // 4 byte header + 5 data
+  len           = rlc1.read_pdu(retx1.msg, 9); // 4 byte header + 5 data
   retx1.N_bytes = len;
 
   // Write the retx PDU to RLC2
@@ -544,18 +534,19 @@ bool resegment_test_1()
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  len = rlc1.read_pdu(retx2.msg, 9); // 4 byte header + 5 data
+  len           = rlc1.read_pdu(retx2.msg, 9); // 4 byte header + 5 data
   retx2.N_bytes = len;
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
 
   assert(tester.n_sdus == 5);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
-    if (tester.sdus[i]->N_bytes != 10) return -1;
-    for(int j=0;j<10;j++)
-      if (tester.sdus[i]->msg[j] != j) return -1;
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != 10)
+      return -1;
+    for (int j = 0; j < 10; j++)
+      if (tester.sdus[i]->msg[j] != j)
+        return -1;
   }
 
   return 0;
@@ -590,12 +581,11 @@ bool resegment_test_2()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(int j=0;j<10;j++)
+    for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -614,9 +604,8 @@ bool resegment_test_2()
   assert(0 == rlc1.get_buffer_state());
 
   // Write PDUs into RLC2 (skip SN 2)
-  for(int i=0;i<NBUFS;i++)
-  {
-    if(i != 2)
+  for (int i = 0; i < NBUFS; i++) {
+    if (i != 2)
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
@@ -654,11 +643,12 @@ bool resegment_test_2()
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
 
   assert(tester.n_sdus == 5);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
-    if (tester.sdus[i]->N_bytes != 10) return -1;
-    for(int j=0;j<10;j++)
-      if (tester.sdus[i]->msg[j] != j) return -1;
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != 10)
+      return -1;
+    for (int j = 0; j < 10; j++)
+      if (tester.sdus[i]->msg[j] != j)
+        return -1;
   }
 
   return 0;
@@ -692,12 +682,11 @@ bool resegment_test_3()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(int j=0;j<10;j++)
+    for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -716,9 +705,8 @@ bool resegment_test_3()
   assert(0 == rlc1.get_buffer_state());
 
   // Write PDUs into RLC2 (skip SN 2)
-  for(int i=0;i<NBUFS;i++)
-  {
-    if(i != 2)
+  for (int i = 0; i < NBUFS; i++) {
+    if (i != 2)
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
@@ -752,11 +740,12 @@ bool resegment_test_3()
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
 
   assert(tester.n_sdus == 5);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
-    if (tester.sdus[i]->N_bytes != 10) return -1;
-    for(int j=0;j<10;j++)
-      if (tester.sdus[i]->msg[j] != j) return -1;
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != 10)
+      return -1;
+    for (int j = 0; j < 10; j++)
+      if (tester.sdus[i]->msg[j] != j)
+        return -1;
   }
 
   return 0;
@@ -789,12 +778,11 @@ bool resegment_test_4()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(int j=0;j<10;j++)
+    for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -813,9 +801,8 @@ bool resegment_test_4()
   assert(0 == rlc1.get_buffer_state());
 
   // Write PDUs into RLC2 (skip SN 2)
-  for(int i=0;i<NBUFS;i++)
-  {
-    if(i != 2)
+  for (int i = 0; i < NBUFS; i++) {
+    if (i != 2)
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
@@ -851,11 +838,12 @@ bool resegment_test_4()
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
 
   assert(tester.n_sdus == 5);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
-    if (tester.sdus[i]->N_bytes != 10) return -1;
-    for(int j=0;j<10;j++)
-      if (tester.sdus[i]->msg[j] != j) return -1;
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != 10)
+      return -1;
+    for (int j = 0; j < 10; j++)
+      if (tester.sdus[i]->msg[j] != j)
+        return -1;
   }
 
   return 0;
@@ -888,12 +876,11 @@ bool resegment_test_5()
   }
 
   // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
+  for (int i = 0; i < NBUFS; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(int j=0;j<10;j++)
+    for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -912,9 +899,8 @@ bool resegment_test_5()
   assert(0 == rlc1.get_buffer_state());
 
   // Write PDUs into RLC2 (skip SN 2)
-  for(int i=0;i<NBUFS;i++)
-  {
-    if(i != 2)
+  for (int i = 0; i < NBUFS; i++) {
+    if (i != 2)
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
@@ -950,11 +936,12 @@ bool resegment_test_5()
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
 
   assert(tester.n_sdus == 5);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
-    if (tester.sdus[i]->N_bytes != 10) return -1;
-    for(int j=0;j<10;j++)
-      if (tester.sdus[i]->msg[j] != j) return -1;
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != 10)
+      return -1;
+    for (int j = 0; j < 10; j++)
+      if (tester.sdus[i]->msg[j] != j)
+        return -1;
   }
 
   return 0;
@@ -988,20 +975,18 @@ bool resegment_test_6()
   }
 
   // Push SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[9];
-  for(int i=0;i<3;i++)
-  {
+  for (int i = 0; i < 3; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(int j=0;j<10;j++)
+    for (int j = 0; j < 10; j++)
       sdu_bufs[i]->msg[j] = j;
     sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 10 bytes
     rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
-  for(int i=3;i<9;i++)
-  {
+  for (int i = 3; i < 9; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(int j=0;j<54;j++)
+    for (int j = 0; j < 54; j++)
       sdu_bufs[i]->msg[j] = j;
     sdu_bufs[i]->N_bytes = 54;
     rlc1.write_sdu(std::move(sdu_bufs[i]));
@@ -1011,21 +996,20 @@ bool resegment_test_6()
 
   // Read PDUs from RLC1 (10, 10, 10, 270, 54)
   byte_buffer_t pdu_bufs[5];
-  for(int i=0;i<3;i++) {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, 12);
+  for (int i = 0; i < 3; i++) {
+    len                 = rlc1.read_pdu(pdu_bufs[i].msg, 12);
     pdu_bufs[i].N_bytes = len;
   }
-  len = rlc1.read_pdu(pdu_bufs[3].msg, 278);
+  len                 = rlc1.read_pdu(pdu_bufs[3].msg, 278);
   pdu_bufs[3].N_bytes = len;
-  len = rlc1.read_pdu(pdu_bufs[4].msg, 56);
+  len                 = rlc1.read_pdu(pdu_bufs[4].msg, 56);
   pdu_bufs[4].N_bytes = len;
 
   assert(0 == rlc1.get_buffer_state());
 
   // Write PDUs into RLC2 (skip SN 3)
-  for(int i=0;i<5;i++)
-  {
-    if(i != 3)
+  for (int i = 0; i < 5; i++) {
+    if (i != 3)
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
   }
 
@@ -1039,7 +1023,7 @@ bool resegment_test_6()
 
   // Read status PDU from RLC2
   byte_buffer_t status_buf;
-  len = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+  len                = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
   status_buf.N_bytes = len;
 
   // Write status PDU to RLC1
@@ -1049,7 +1033,7 @@ bool resegment_test_6()
 
   // Read the retx PDU from RLC1 and force resegmentation
   byte_buffer_t retx1;
-  len = rlc1.read_pdu(retx1.msg, 129);
+  len           = rlc1.read_pdu(retx1.msg, 129);
   retx1.N_bytes = len;
 
   // Write the retx PDU to RLC2
@@ -1059,25 +1043,26 @@ bool resegment_test_6()
 
   // Read the remaining segment
   byte_buffer_t retx2;
-  len = rlc1.read_pdu(retx2.msg, 162);
+  len           = rlc1.read_pdu(retx2.msg, 162);
   retx2.N_bytes = len;
 
   // Write the retx PDU to RLC2
   rlc2.write_pdu(retx2.msg, retx2.N_bytes);
 
   assert(tester.n_sdus == 9);
-  for(int i=0;i<3;i++)
-  {
+  for (int i = 0; i < 3; i++) {
     assert(tester.sdus[i]->N_bytes == 10);
-    for(int j=0;j<10;j++)
-      assert(tester.sdus[i]->msg[j]  == j);
+    for (int j = 0; j < 10; j++)
+      assert(tester.sdus[i]->msg[j] == j);
   }
-  for(int i=3;i<9;i++)
-  {
-    if (i >= tester.n_sdus) return -1;
-    if(tester.sdus[i]->N_bytes != 54) return -1;
-    for(int j=0;j<54;j++) {
-      if (tester.sdus[i]->msg[j] != j) return -1;
+  for (int i = 3; i < 9; i++) {
+    if (i >= tester.n_sdus)
+      return -1;
+    if (tester.sdus[i]->N_bytes != 54)
+      return -1;
+    for (int j = 0; j < 54; j++) {
+      if (tester.sdus[i]->msg[j] != j)
+        return -1;
     }
   }
 
@@ -1094,7 +1079,7 @@ bool resegment_test_7()
   // Retx PDU segments:                    |3|3]3|2|
   const uint32_t N_SDU_BUFS = 2;
   const uint32_t N_PDU_BUFS = 5;
-  const uint32_t sdu_size = 30;
+  const uint32_t sdu_size   = 30;
 
   srslte::log_filter log1("RLC_AM_1");
   srslte::log_filter log2("RLC_AM_2");
@@ -1124,12 +1109,11 @@ bool resegment_test_7()
   }
 
   // Push 2 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[N_SDU_BUFS];
-  for(uint32_t i=0;i<N_SDU_BUFS;i++)
-  {
+  for (uint32_t i = 0; i < N_SDU_BUFS; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(uint32_t j=0;j<sdu_size;j++) {
+    for (uint32_t j = 0; j < sdu_size; j++) {
       sdu_bufs[i]->msg[j] = i;
     }
     sdu_bufs[i]->N_bytes = sdu_size; // Give each buffer a size of 15 bytes
@@ -1140,8 +1124,7 @@ bool resegment_test_7()
 
   // Read PDUs from RLC1 (15 bytes each)
   byte_buffer_t pdu_bufs[N_PDU_BUFS];
-  for(uint32_t i=0;i<N_PDU_BUFS;i++)
-  {
+  for (uint32_t i = 0; i < N_PDU_BUFS; i++) {
     pdu_bufs[i].N_bytes = rlc1.read_pdu(pdu_bufs[i].msg, 15); // 2 bytes for header + 12 B payload
     assert(pdu_bufs[i].N_bytes);
   }
@@ -1156,8 +1139,8 @@ bool resegment_test_7()
   assert(0 != rlc1.get_buffer_state());
 
   // Skip PDU with SN 2
-  for(uint32_t i=0;i<N_PDU_BUFS;i++) {
-    if (i!=2) {
+  for (uint32_t i = 0; i < N_PDU_BUFS; i++) {
+    if (i != 2) {
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
 #if HAVE_PCAP
       pcap.write_dl_am_ccch(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
@@ -1241,11 +1224,12 @@ bool resegment_test_7()
 
   // Check number of SDUs and their content
   assert(tester.n_sdus == N_SDU_BUFS);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
-    if (tester.sdus[i]->N_bytes != sdu_size) return -1;
-    for(uint32_t j=0;j<N_SDU_BUFS;j++) {
-      if (tester.sdus[i]->msg[j] != i) return -1;
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != sdu_size)
+      return -1;
+    for (uint32_t j = 0; j < N_SDU_BUFS; j++) {
+      if (tester.sdus[i]->msg[j] != i)
+        return -1;
     }
   }
 
@@ -1255,7 +1239,6 @@ bool resegment_test_7()
 
   return 0;
 }
-
 
 // Retransmission of PDU segments with different size
 bool resegment_test_8()
@@ -1267,7 +1250,7 @@ bool resegment_test_8()
   // Retx PDU segments:             | 6 | 6 ] 6 | 6 | 6 | 6 | 6 | 6 |
   const uint32_t N_SDU_BUFS = 2;
   const uint32_t N_PDU_BUFS = 5;
-  const uint32_t sdu_size = 30;
+  const uint32_t sdu_size   = 30;
 
   srslte::log_filter log1("RLC_AM_1");
   srslte::log_filter log2("RLC_AM_2");
@@ -1297,12 +1280,11 @@ bool resegment_test_8()
   }
 
   // Push 2 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_bufs[N_SDU_BUFS];
-  for(uint32_t i=0;i<N_SDU_BUFS;i++)
-  {
+  for (uint32_t i = 0; i < N_SDU_BUFS; i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
-    for(uint32_t j=0;j<sdu_size;j++) {
+    for (uint32_t j = 0; j < sdu_size; j++) {
       sdu_bufs[i]->msg[j] = i;
     }
     sdu_bufs[i]->N_bytes = sdu_size; // Give each buffer a size of 15 bytes
@@ -1313,8 +1295,7 @@ bool resegment_test_8()
 
   // Read PDUs from RLC1 (15 bytes each)
   byte_buffer_t pdu_bufs[N_PDU_BUFS];
-  for(uint32_t i=0;i<N_PDU_BUFS;i++)
-  {
+  for (uint32_t i = 0; i < N_PDU_BUFS; i++) {
     pdu_bufs[i].N_bytes = rlc1.read_pdu(pdu_bufs[i].msg, 15); // 12 bytes for header + payload
     assert(pdu_bufs[i].N_bytes);
   }
@@ -1322,7 +1303,7 @@ bool resegment_test_8()
   assert(0 == rlc1.get_buffer_state());
 
   // Skip PDU one and two
-  for(uint32_t i=0;i<N_PDU_BUFS;i++) {
+  for (uint32_t i = 0; i < N_PDU_BUFS; i++) {
     if (i < 1 || i > 2) {
       rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
 #if HAVE_PCAP
@@ -1406,10 +1387,12 @@ bool resegment_test_8()
 
   // Check number of SDUs and their content
   assert(tester.n_sdus == N_SDU_BUFS);
-  for(int i=0; i<tester.n_sdus; i++) {
-    if (tester.sdus[i]->N_bytes != sdu_size) return -1;
-    for(uint32_t j=0;j<N_SDU_BUFS;j++) {
-      if (tester.sdus[i]->msg[j] != i) return -1;
+  for (int i = 0; i < tester.n_sdus; i++) {
+    if (tester.sdus[i]->N_bytes != sdu_size)
+      return -1;
+    for (uint32_t j = 0; j < N_SDU_BUFS; j++) {
+      if (tester.sdus[i]->msg[j] != i)
+        return -1;
     }
   }
 
@@ -1419,7 +1402,6 @@ bool resegment_test_8()
 
   return 0;
 }
-
 
 bool reset_test()
 {
@@ -1437,26 +1419,26 @@ bool reset_test()
   }
 
   // Push 1 SDU of size 10 into RLC1
-  byte_buffer_pool*  pool    = byte_buffer_pool::get_instance();
+  byte_buffer_pool*    pool    = byte_buffer_pool::get_instance();
   unique_byte_buffer_t sdu_buf = srslte::allocate_unique_buffer(*pool, true);
-  sdu_buf->msg[0]            = 1; // Write the index into the buffer
-  sdu_buf->N_bytes           = 100;
+  sdu_buf->msg[0]              = 1; // Write the index into the buffer
+  sdu_buf->N_bytes             = 100;
   rlc1.write_sdu(std::move(sdu_buf));
 
   // read 1 PDU from RLC1 and force segmentation
   byte_buffer_t pdu_bufs;
-  len = rlc1.read_pdu(pdu_bufs.msg, 4);
+  len              = rlc1.read_pdu(pdu_bufs.msg, 4);
   pdu_bufs.N_bytes = len;
 
   // reset RLC1
   rlc1.stop();
 
   // read another PDU segment from RLC1
-  len = rlc1.read_pdu(pdu_bufs.msg, 4);
+  len              = rlc1.read_pdu(pdu_bufs.msg, 4);
   pdu_bufs.N_bytes = len;
 
   // now empty RLC buffer
-  len = rlc1.read_pdu(pdu_bufs.msg, 100);
+  len              = rlc1.read_pdu(pdu_bufs.msg, 100);
   pdu_bufs.N_bytes = len;
 
   if (0 != rlc1.get_buffer_state()) {
@@ -1663,7 +1645,7 @@ bool status_pdu_test()
   return 0;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   if (basic_test()) {
     printf("basic_test failed\n");
@@ -1748,7 +1730,7 @@ int main(int argc, char **argv)
     exit(-1);
   };
   byte_buffer_pool::get_instance()->cleanup();
-  
+
   if (stop_test()) {
     printf("stop_test failed\n");
     exit(-1);

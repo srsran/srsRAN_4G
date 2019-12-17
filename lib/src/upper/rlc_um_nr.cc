@@ -112,7 +112,7 @@ bool rlc_um_nr::rlc_um_nr_tx::configure(rlc_config_t cnfg_, std::string rb_name_
 
   tx_sdu_queue.resize(cnfg_.tx_queue_length);
 
-  rb_name    = rb_name_;
+  rb_name = rb_name_;
 
   return true;
 }
@@ -190,8 +190,8 @@ int rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* p
 
   // Update SN if needed
   if (header.si == rlc_nr_si_field_t::last_segment) {
-    TX_Next        = (TX_Next + 1) % cfg.um_nr.mod;
-    next_so        = 0;
+    TX_Next = (TX_Next + 1) % cfg.um_nr.mod;
+    next_so = 0;
   }
 
   // Add header and TX
@@ -216,7 +216,8 @@ void rlc_um_nr::rlc_um_nr_tx::debug_state()
  ***************************************************************************/
 
 rlc_um_nr::rlc_um_nr_rx::rlc_um_nr_rx(rlc_um_base* parent_) :
-  rlc_um_base_rx(parent_), reassembly_timer(timers->get_unique_timer())
+  rlc_um_base_rx(parent_),
+  reassembly_timer(timers->get_unique_timer())
 {
 }
 

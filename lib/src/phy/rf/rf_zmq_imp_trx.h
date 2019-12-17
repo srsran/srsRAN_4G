@@ -40,10 +40,7 @@
 #define ZMQ_BASERATE_DEFAULT_HZ (23040000)
 #define ZMQ_ID_STRLEN 16
 
-typedef enum {
-  ZMQ_TYPE_FC32 = 0,
-  ZMQ_TYPE_SC16
-} rf_zmq_format_t;
+typedef enum { ZMQ_TYPE_FC32 = 0, ZMQ_TYPE_SC16 } rf_zmq_format_t;
 
 typedef struct {
   char            id[ZMQ_ID_STRLEN];
@@ -60,7 +57,7 @@ typedef struct {
 typedef struct {
   char                id[ZMQ_ID_STRLEN];
   uint32_t            socket_type;
-  rf_zmq_format_t sample_format;
+  rf_zmq_format_t     sample_format;
   void*               sock;
   uint64_t            nsamples;
   bool                running;
@@ -72,7 +69,7 @@ typedef struct {
 } rf_zmq_rx_t;
 
 typedef struct {
-  const char      *id;
+  const char*     id;
   uint32_t        socket_type;
   rf_zmq_format_t sample_format;
 } rf_zmq_opts_t;

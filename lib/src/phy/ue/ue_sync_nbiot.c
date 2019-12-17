@@ -164,7 +164,7 @@ int srslte_ue_sync_nbiot_init(srslte_nbiot_ue_sync_t* q,
 
 int srslte_ue_sync_nbiot_init_multi(srslte_nbiot_ue_sync_t* q,
                                     uint32_t                max_prb,
-                                    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+                                    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
                                     uint32_t nof_rx_antennas,
                                     void*    stream_handler)
 {
@@ -497,14 +497,14 @@ static int receive_samples(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer[SRSLTE_
 int srslte_ue_sync_nbiot_zerocopy(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer)
 {
   cf_t* _input_buffer[SRSLTE_MAX_PORTS] = {NULL};
-  _input_buffer[0] = input_buffer;
+  _input_buffer[0]                      = input_buffer;
   return srslte_ue_sync_nbiot_zerocopy_multi(q, _input_buffer);
 }
 
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
 int srslte_ue_sync_nbiot_zerocopy_multi(srslte_nbiot_ue_sync_t* q, cf_t** input_buffer)
 {
-  int      ret = SRSLTE_ERROR_INVALID_INPUTS;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
     if (q->file_mode) {

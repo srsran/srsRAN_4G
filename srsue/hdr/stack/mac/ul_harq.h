@@ -22,10 +22,10 @@
 #ifndef SRSUE_UL_HARQ_H
 #define SRSUE_UL_HARQ_H
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "mux.h"
 #include "proc_ra.h"
@@ -40,7 +40,8 @@ using namespace srslte;
 
 namespace srsue {
 
-class ul_harq_entity {
+class ul_harq_entity
+{
 public:
   ul_harq_entity();
 
@@ -94,9 +95,9 @@ private:
     ul_harq_entity*        harq_entity;
     srslte_softbuffer_tx_t softbuffer;
 
-    const static int payload_buffer_len = 128 * 1024;
+    const static int               payload_buffer_len = 128 * 1024;
     std::unique_ptr<byte_buffer_t> payload_buffer     = nullptr;
-    uint8_t*         pdu_ptr;
+    uint8_t*                       pdu_ptr;
 
     void generate_tx(mac_interface_phy_lte::tb_action_ul_t* action);
     void generate_retx(mac_interface_phy_lte::mac_grant_ul_t grant, mac_interface_phy_lte::tb_action_ul_t* action);
@@ -111,8 +112,8 @@ private:
   srslte::mac_pcap* pcap;
   srslte::log*      log_h;
 
-  mac_interface_rrc_common::ue_rnti_t*    rntis;
-  srslte::ul_harq_cfg_t                   harq_cfg;
+  mac_interface_rrc_common::ue_rnti_t* rntis;
+  srslte::ul_harq_cfg_t                harq_cfg;
 
   float    average_retx;
   uint64_t nof_pkts;

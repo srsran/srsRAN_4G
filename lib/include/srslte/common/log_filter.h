@@ -33,10 +33,10 @@
 #include <stdarg.h>
 #include <string>
 
-#include "srslte/phy/common/timestamp.h"
 #include "srslte/common/log.h"
 #include "srslte/common/logger.h"
 #include "srslte/common/logger_stdout.h"
+#include "srslte/phy/common/timestamp.h"
 
 namespace srslte {
 
@@ -45,48 +45,45 @@ typedef std::string* str_ptr;
 class log_filter : public srslte::log
 {
 public:
-
   log_filter();
   log_filter(std::string layer);
-  log_filter(std::string layer, logger *logger_, bool tti=false);
+  log_filter(std::string layer, logger* logger_, bool tti = false);
   ~log_filter();
 
-  void init(std::string layer, logger *logger_, bool tti=false);
+  void init(std::string layer, logger* logger_, bool tti = false);
 
-  void console(const char * message, ...) __attribute__ ((format (printf, 2, 3)));
-  void error(const char * message, ...)   __attribute__ ((format (printf, 2, 3)));
-  void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3)));
-  void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3)));
+  void console(const char* message, ...) __attribute__((format(printf, 2, 3)));
+  void error(const char* message, ...) __attribute__((format(printf, 2, 3)));
+  void warning(const char* message, ...) __attribute__((format(printf, 2, 3)));
+  void info(const char* message, ...) __attribute__((format(printf, 2, 3)));
   void info_long(const char* message, ...) __attribute__((format(printf, 2, 3)));
-  void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3)));
+  void debug(const char* message, ...) __attribute__((format(printf, 2, 3)));
   void debug_long(const char* message, ...) __attribute__((format(printf, 2, 3)));
 
-  void error_hex(const uint8_t *hex, int size, const char * message, ...)   __attribute__((format (printf, 4, 5)));
-  void warning_hex(const uint8_t *hex, int size, const char * message, ...) __attribute__((format (printf, 4, 5)));
-  void info_hex(const uint8_t *hex, int size, const char * message, ...)    __attribute__((format (printf, 4, 5)));
-  void debug_hex(const uint8_t *hex, int size, const char * message, ...)   __attribute__((format (printf, 4, 5)));
+  void error_hex(const uint8_t* hex, int size, const char* message, ...) __attribute__((format(printf, 4, 5)));
+  void warning_hex(const uint8_t* hex, int size, const char* message, ...) __attribute__((format(printf, 4, 5)));
+  void info_hex(const uint8_t* hex, int size, const char* message, ...) __attribute__((format(printf, 4, 5)));
+  void debug_hex(const uint8_t* hex, int size, const char* message, ...) __attribute__((format(printf, 4, 5)));
 
   srslte::LOG_LEVEL_ENUM get_level(std::string l);
 
-  class time_itf {
+  class time_itf
+  {
   public:
     virtual srslte_timestamp_t get_time() = 0;
   };
 
-  typedef enum {
-    TIME,
-    EPOCH
-  } time_format_t;
+  typedef enum { TIME, EPOCH } time_format_t;
 
-  void set_time_src(time_itf *source, time_format_t format);
+  void set_time_src(time_itf* source, time_format_t format);
 
 protected:
-  logger *logger_h;
+  logger* logger_h;
   bool    do_tti;
 
   static const int char_buff_size = logger::preallocated_log_str_size - 64 * 3;
 
-  time_itf      *time_src;
+  time_itf*     time_src;
   time_format_t time_format;
 
   logger_stdout def_logger_stdout;
@@ -99,7 +96,7 @@ protected:
                       bool                   long_msg = false);
   void        now_time(char* buffer, const uint32_t buffer_len);
   void        get_tti_str(const uint32_t tti_, char* buffer, const uint32_t buffer_len);
-  std::string hex_string(const uint8_t *hex, int size);
+  std::string hex_string(const uint8_t* hex, int size);
 };
 
 } // namespace srslte

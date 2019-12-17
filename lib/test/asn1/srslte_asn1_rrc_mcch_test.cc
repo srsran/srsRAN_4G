@@ -117,9 +117,9 @@ int basic_test()
   TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].session_id_r9.to_string() == "02");
   TESTASSERT(area_cfg_r9->pmch_info_list_r9[1].mbms_session_info_list_r9[0].lc_ch_id_r9 == 2);
 
-  //log1.info_hex(byte_buf.msg, byte_buf.N_bytes, "MCCH packed message:");
+  // log1.info_hex(byte_buf.msg, byte_buf.N_bytes, "MCCH packed message:");
 
-  uint8_t       rrc_msg2[known_reference_len];
+  uint8_t rrc_msg2[known_reference_len];
   bzero(rrc_msg2, sizeof(rrc_msg2));
   asn1::bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
   mcch_msg.pack(bref2);
@@ -129,9 +129,8 @@ int basic_test()
   return 0;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   TESTASSERT(basic_test() == 0);
   return 0;
 }
-

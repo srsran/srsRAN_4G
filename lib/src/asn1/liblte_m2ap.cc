@@ -1946,7 +1946,8 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_cellinformationlist(uint8_t** ptr, LIBLTE_M
  * ProtocolIE MCCHRelatedBCCH-ConfigPerMBSFNArea-Item SEQUENCE
  *******************************************************************************/
 LIBLTE_ERROR_ENUM liblte_m2ap_pack_mcchrelatedbcchconfigpermbsfnareaitem(
-    LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT* ie,
+    uint8_t**                                                        ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -2018,7 +2019,8 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_mcchrelatedbcchconfigpermbsfnareaitem(
 }
 
 LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mcchrelatedbcchconfigpermbsfnareaitem(
-    uint8_t** ptr, LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT* ie)
+    uint8_t**                                                        ptr,
+    LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 

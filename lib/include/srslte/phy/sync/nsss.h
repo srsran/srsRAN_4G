@@ -97,8 +97,11 @@ SRSLTE_API void srslte_nsss_synch_free(srslte_nsss_synch_t* q);
 
 SRSLTE_API int srslte_nsss_synch_resize(srslte_nsss_synch_t* q, uint32_t fft_size);
 
-SRSLTE_API int srslte_nsss_sync_find(
-    srslte_nsss_synch_t* q, cf_t* input, float* corr_peak_value, uint32_t* cell_id, uint32_t* sfn_partial);
+SRSLTE_API int srslte_nsss_sync_find(srslte_nsss_synch_t* q,
+                                     cf_t*                input,
+                                     float*               corr_peak_value,
+                                     uint32_t*            cell_id,
+                                     uint32_t*            sfn_partial);
 
 void srslte_nsss_sync_find_pci(srslte_nsss_synch_t* q, cf_t* input, uint32_t cell_id);
 

@@ -28,14 +28,12 @@
 
 #define MAX_DATABUFFER_SIZE (6144 * 16 * 3 / 8)
 
-srslte_cell_t cell = {
-    .nof_prb = 100,
-    .nof_ports = 1,
-    .id = 1,
-    .cp = SRSLTE_CP_NORM,
-    .phich_resources = SRSLTE_PHICH_R_1,
-    .phich_length = SRSLTE_PHICH_NORM
-};
+srslte_cell_t cell = {.nof_prb         = 100,
+                      .nof_ports       = 1,
+                      .id              = 1,
+                      .cp              = SRSLTE_CP_NORM,
+                      .phich_resources = SRSLTE_PHICH_R_1,
+                      .phich_length    = SRSLTE_PHICH_NORM};
 
 static uint32_t transmission_mode = 1;
 static uint32_t cfi               = 1;
@@ -47,7 +45,8 @@ static uint32_t mcs                     = 20;
 static int      cross_carrier_indicator = -1;
 static bool     enable_256qam           = false;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [cfpndvs]\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-f cfi [Default %d]\n", cfi);
@@ -81,7 +80,8 @@ void parse_extensive_param(char* param, char* arg)
   }
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
 
   // Load default transmission mode to avoid wrong number of ports/antennas
@@ -102,7 +102,7 @@ void parse_args(int argc, char **argv) {
           nof_rx_ant     = 1;
         } else if (transmission_mode < 4) {
           cell.nof_ports = 2;
-          nof_rx_ant = 2;
+          nof_rx_ant     = 2;
         }
         break;
       case 'f':
@@ -250,8 +250,8 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
   return 0;
 }
 
-unsigned int
-reverse(register unsigned int x) {
+unsigned int reverse(register unsigned int x)
+{
   x = (((x & (uint32_t)0xaaaaaaaa) >> (uint32_t)1) | ((x & (uint32_t)0x55555555) << (uint32_t)1));
   x = (((x & (uint32_t)0xcccccccc) >> (uint32_t)2) | ((x & (uint32_t)0x33333333) << (uint32_t)2));
   x = (((x & (uint32_t)0xf0f0f0f0) >> (uint32_t)4) | ((x & (uint32_t)0x0f0f0f0f) << (uint32_t)4));
@@ -259,7 +259,8 @@ reverse(register unsigned int x) {
   return ((x >> (uint32_t)16) | (x << (uint32_t)16));
 }
 
-uint32_t prbset_to_bitmask() {
+uint32_t prbset_to_bitmask()
+{
   uint32_t mask = 0;
   uint32_t nb   = (uint32_t)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
   for (uint32_t i = 0; i < nb; i++) {
@@ -322,25 +323,26 @@ static int check_evm(srslte_enb_dl_t* enb_dl, srslte_ue_dl_t* ue_dl, srslte_ue_d
   return ret;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   srslte_enb_dl_t*        enb_dl      = srslte_vec_malloc(sizeof(srslte_enb_dl_t));
   srslte_ue_dl_t*         ue_dl       = srslte_vec_malloc(sizeof(srslte_ue_dl_t));
   srslte_random_t         random      = srslte_random_init(0);
-  struct timeval t[3] = {};
-  size_t tx_nof_bits = 0, rx_nof_bits = 0;
-  srslte_softbuffer_tx_t *softbuffer_tx[SRSLTE_MAX_TB] = {};
-  srslte_softbuffer_rx_t *softbuffer_rx[SRSLTE_MAX_TB] = {};
-  uint8_t *data_tx[SRSLTE_MAX_TB] = {};
-  uint8_t *data_rx[SRSLTE_MAX_TB] = {};
-  uint32_t count_failures = 0, count_tbs = 0;
-  size_t pdsch_decode_us = 0;
+  struct timeval          t[3]        = {};
+  size_t                  tx_nof_bits = 0, rx_nof_bits = 0;
+  srslte_softbuffer_tx_t* softbuffer_tx[SRSLTE_MAX_TB] = {};
+  srslte_softbuffer_rx_t* softbuffer_rx[SRSLTE_MAX_TB] = {};
+  uint8_t*                data_tx[SRSLTE_MAX_TB]       = {};
+  uint8_t*                data_rx[SRSLTE_MAX_TB]       = {};
+  uint32_t                count_failures = 0, count_tbs = 0;
+  size_t                  pdsch_decode_us = 0;
   size_t                  pdsch_encode_us = 0;
 
   int ret = -1;
 
   parse_args(argc, argv);
 
-  cf_t *signal_buffer[SRSLTE_MAX_PORTS] = {NULL};
+  cf_t* signal_buffer[SRSLTE_MAX_PORTS] = {NULL};
 
   /*
    * Allocate Memory
@@ -354,7 +356,7 @@ int main(int argc, char **argv) {
   }
 
   for (int i = 0; i < SRSLTE_MAX_TB; i++) {
-    softbuffer_tx[i] = (srslte_softbuffer_tx_t *) calloc(sizeof(srslte_softbuffer_tx_t), 1);
+    softbuffer_tx[i] = (srslte_softbuffer_tx_t*)calloc(sizeof(srslte_softbuffer_tx_t), 1);
     if (!softbuffer_tx[i]) {
       ERROR("Error allocating softbuffer_tx\n");
       goto quit;
@@ -365,7 +367,7 @@ int main(int argc, char **argv) {
       goto quit;
     }
 
-    softbuffer_rx[i] = (srslte_softbuffer_rx_t *) calloc(sizeof(srslte_softbuffer_rx_t), 1);
+    softbuffer_rx[i] = (srslte_softbuffer_rx_t*)calloc(sizeof(srslte_softbuffer_rx_t), 1);
     if (!softbuffer_rx[i]) {
       ERROR("Error allocating softbuffer_rx\n");
       goto quit;
@@ -647,28 +649,26 @@ int main(int argc, char **argv) {
   printf("%zd were transmitted, %zd bits were received.\n", tx_nof_bits, rx_nof_bits);
   printf("[Rates in Mbps] Granted  Processed\n");
   printf("           eNb:   %5.1f      %5.1f\n",
-         (float) tx_nof_bits / (float) nof_subframes / 1000.0f,
-         (float) rx_nof_bits / pdsch_encode_us);
+         (float)tx_nof_bits / (float)nof_subframes / 1000.0f,
+         (float)rx_nof_bits / pdsch_encode_us);
   printf("            UE:   %5.1f      %5.1f\n",
-         (float) rx_nof_bits / (float) nof_subframes / 1000.0f,
-         (float) rx_nof_bits / pdsch_decode_us);
+         (float)rx_nof_bits / (float)nof_subframes / 1000.0f,
+         (float)rx_nof_bits / pdsch_decode_us);
 
-  printf("BLER: %5.1f%%\n", (float) count_failures / (float) count_tbs * 100.0f);
+  printf("BLER: %5.1f%%\n", (float)count_failures / (float)count_tbs * 100.0f);
 
-  quit:
-    srslte_enb_dl_free(enb_dl);
-    srslte_ue_dl_free(ue_dl);
-    srslte_random_free(random);
+quit:
+  srslte_enb_dl_free(enb_dl);
+  srslte_ue_dl_free(ue_dl);
+  srslte_random_free(random);
 
-    for (int i = 0; i < cell.nof_ports; i++) {
-      if (signal_buffer[i]) {
-        free(signal_buffer[i]);
-      }
+  for (int i = 0; i < cell.nof_ports; i++) {
+    if (signal_buffer[i]) {
+      free(signal_buffer[i]);
+    }
   }
 
-  for (
-      int i = 0;
-      i < SRSLTE_MAX_TB; i++) {
+  for (int i = 0; i < SRSLTE_MAX_TB; i++) {
     if (softbuffer_tx[i]) {
       srslte_softbuffer_tx_free(softbuffer_tx[i]);
       free(softbuffer_tx[i]);

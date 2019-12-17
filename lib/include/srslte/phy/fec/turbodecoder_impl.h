@@ -43,21 +43,20 @@ typedef enum SRSLTE_API {
 #define llr_t int8_t
 #define type_name srslte_tdec_8bit_impl_t
 #else
-  #ifdef LLR_IS_16BIT
-  #define llr_t int16_t
+#ifdef LLR_IS_16BIT
+#define llr_t int16_t
 #define type_name srslte_tdec_16bit_impl_t
-  #else
-  #error "Unsupported LLR mode"
-  #endif
+#else
+#error "Unsupported LLR mode"
+#endif
 #endif
 
-
 typedef struct SRSLTE_API {
-  int (*tdec_init)(void **h, uint32_t max_long_cb);
-  void (*tdec_free)(void *h);
-  void (*tdec_dec)(void *h, llr_t * input, llr_t *app, llr_t * parity, llr_t *output, uint32_t long_cb);
-  void (*tdec_extract_input)(llr_t *input, llr_t *syst, llr_t *parity0, llr_t *parity1, llr_t *app2, uint32_t long_cb);
-  void (*tdec_decision_byte)(llr_t *app1, uint8_t *output, uint32_t long_cb);
+  int (*tdec_init)(void** h, uint32_t max_long_cb);
+  void (*tdec_free)(void* h);
+  void (*tdec_dec)(void* h, llr_t* input, llr_t* app, llr_t* parity, llr_t* output, uint32_t long_cb);
+  void (*tdec_extract_input)(llr_t* input, llr_t* syst, llr_t* parity0, llr_t* parity1, llr_t* app2, uint32_t long_cb);
+  void (*tdec_decision_byte)(llr_t* app1, uint8_t* output, uint32_t long_cb);
 } type_name;
 
 #undef llr_t

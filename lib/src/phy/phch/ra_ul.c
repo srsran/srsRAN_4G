@@ -313,9 +313,16 @@ int srslte_ra_ul_dci_to_grant(srslte_cell_t*              cell,
   }
 }
 
-uint32_t srslte_ra_ul_info(srslte_pusch_grant_t *grant, char *info_str, uint32_t len)
+uint32_t srslte_ra_ul_info(srslte_pusch_grant_t* grant, char* info_str, uint32_t len)
 {
-  return srslte_print_check(info_str, len, 0, ", rb=(%d,%d), nof_re=%d, tbs=%d, mod=%d, rv=%d", grant->n_prb_tilde[0],
-                            grant->n_prb_tilde[0] + grant->L_prb - 1, grant->nof_re, grant->tb.tbs / 8,
-                            srslte_mod_bits_x_symbol(grant->tb.mod), grant->tb.rv);
+  return srslte_print_check(info_str,
+                            len,
+                            0,
+                            ", rb=(%d,%d), nof_re=%d, tbs=%d, mod=%d, rv=%d",
+                            grant->n_prb_tilde[0],
+                            grant->n_prb_tilde[0] + grant->L_prb - 1,
+                            grant->nof_re,
+                            grant->tb.tbs / 8,
+                            srslte_mod_bits_x_symbol(grant->tb.mod),
+                            grant->tb.rv);
 }

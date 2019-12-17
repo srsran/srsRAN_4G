@@ -55,13 +55,13 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
     return false;
   }
   int enable = 1;
-#if defined (SO_REUSEADDR)
+#if defined(SO_REUSEADDR)
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-      gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
+    gtpu_log->error("setsockopt(SO_REUSEADDR) failed\n");
 #endif
-#if defined (SO_REUSEPORT)
+#if defined(SO_REUSEPORT)
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
-      gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
+    gtpu_log->error("setsockopt(SO_REUSEPORT) failed\n");
 #endif
 
   struct sockaddr_in bindaddr;
@@ -70,7 +70,7 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
   bindaddr.sin_addr.s_addr = inet_addr(gtp_bind_addr.c_str());
   bindaddr.sin_port        = htons(GTPU_PORT);
 
-  if (bind(fd, (struct sockaddr *)&bindaddr, sizeof(struct sockaddr_in))) {
+  if (bind(fd, (struct sockaddr*)&bindaddr, sizeof(struct sockaddr_in))) {
     gtpu_log->error("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
     gtpu_log->console("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
     return false;
@@ -129,35 +129,39 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
     gtpu_log->error("Error writing GTP-U Header. Flags 0x%x, Message Type 0x%x\n", header.flags, header.message_type);
     return;
   }
-  if (sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in))<0) {
+  if (sendto(fd, pdu->msg, pdu->N_bytes, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in)) < 0) {
     perror("sendto");
   }
-
 }
 
 /* Warning: This function is called before calling gtpu::init() during MCCH initialization.
  * If access to any element created in init (such as gtpu_log) is required, it must be considered
  * the case of it being NULL.
  */
-void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t *teid_in)
+void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t* teid_in)
 {
   // Allocate a TEID for the incoming tunnel
   rntilcid_to_teidin(rnti, lcid, teid_in);
   if (gtpu_log) {
-    gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x\n", rnti, lcid, addr, teid_out, *teid_in);
+    gtpu_log->info("Adding bearer for rnti: 0x%x, lcid: %d, addr: 0x%x, teid_out: 0x%x, teid_in: 0x%x\n",
+                   rnti,
+                   lcid,
+                   addr,
+                   teid_out,
+                   *teid_in);
   }
 
   // Initialize maps if it's a new RNTI
-  if(rnti_bearers.count(rnti) == 0) {
-    for(int i=0;i<SRSENB_N_RADIO_BEARERS;i++) {
-      rnti_bearers[rnti].teids_in[i]  = 0;
-      rnti_bearers[rnti].teids_out[i] = 0;
+  if (rnti_bearers.count(rnti) == 0) {
+    for (int i = 0; i < SRSENB_N_RADIO_BEARERS; i++) {
+      rnti_bearers[rnti].teids_in[i]   = 0;
+      rnti_bearers[rnti].teids_out[i]  = 0;
       rnti_bearers[rnti].spgw_addrs[i] = 0;
     }
   }
 
-  rnti_bearers[rnti].teids_in[lcid]  = *teid_in;
-  rnti_bearers[rnti].teids_out[lcid] = teid_out;
+  rnti_bearers[rnti].teids_in[lcid]   = *teid_in;
+  rnti_bearers[rnti].teids_out[lcid]  = teid_out;
   rnti_bearers[rnti].spgw_addrs[lcid] = addr;
 }
 
@@ -170,8 +174,8 @@ void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
 
   // Remove RNTI if all bearers are removed
   bool rem = true;
-  for(int i=0;i<SRSENB_N_RADIO_BEARERS; i++) {
-    if(rnti_bearers[rnti].teids_in[i] != 0) {
+  for (int i = 0; i < SRSENB_N_RADIO_BEARERS; i++) {
+    if (rnti_bearers[rnti].teids_in[i] != 0) {
       rem = false;
     }
   }
@@ -235,16 +239,16 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 {
   gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
 
-  gtpu_header_t header;
+  gtpu_header_t        header;
   unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
 
-  //header
-  header.flags = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
-  header.message_type = GTPU_MSG_ECHO_RESPONSE;
-  header.teid = 0;
-  header.length = 4;
-  header.seq_number = seq;
-  header.n_pdu = 0;
+  // header
+  header.flags             = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
+  header.message_type      = GTPU_MSG_ECHO_RESPONSE;
+  header.teid              = 0;
+  header.length            = 4;
+  header.seq_number        = seq;
+  header.n_pdu             = 0;
   header.next_ext_hdr_type = 0;
 
   gtpu_write_header(&header, pdu.get(), gtpu_log);
@@ -258,15 +262,15 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 }
 
 /****************************************************************************
-* TEID to RNIT/LCID helper functions
-***************************************************************************/
-void gtpu::teidin_to_rntilcid(uint32_t teidin, uint16_t *rnti, uint16_t *lcid)
+ * TEID to RNIT/LCID helper functions
+ ***************************************************************************/
+void gtpu::teidin_to_rntilcid(uint32_t teidin, uint16_t* rnti, uint16_t* lcid)
 {
   *lcid = teidin & 0xFFFF;
   *rnti = (teidin >> 16) & 0xFFFF;
 }
 
-void gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t *teidin)
+void gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t* teidin)
 {
   *teidin = (rnti << 16) | lcid;
 }
@@ -299,9 +303,9 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   }
 
   /* Bind socket */
-  bindaddr.sin_family = AF_INET;
+  bindaddr.sin_family      = AF_INET;
   bindaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Multicast sockets require bind to INADDR_ANY
-  bindaddr.sin_port = htons(GTPU_PORT + 1);
+  bindaddr.sin_port        = htons(GTPU_PORT + 1);
   if (bind(m1u_sd, (struct sockaddr*)&bindaddr, sizeof(bindaddr)) < 0) {
     gtpu_log->error("Failed to bind multicast socket\n");
     return false;
@@ -314,7 +318,7 @@ bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   mreq.imr_interface.s_addr = inet_addr(m1u_if_addr.c_str());   // Address of the IF the socket will listen to.
   if (setsockopt(m1u_sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
     gtpu_log->error("Register musticast group for M1-U\n");
-    gtpu_log->error("M1-U infterface IP: %s, M1-U Multicast Address %s\n", m1u_if_addr.c_str(),m1u_multiaddr.c_str());
+    gtpu_log->error("M1-U infterface IP: %s, M1-U Multicast Address %s\n", m1u_if_addr.c_str(), m1u_multiaddr.c_str());
     return false;
   }
   gtpu_log->info("M1-U initialized\n");

@@ -28,8 +28,11 @@ void srslte_channel_rlf_init(srslte_channel_rlf_t* q, uint32_t t_on_ms, uint32_t
   q->t_off_ms = t_off_ms;
 }
 
-void srslte_channel_rlf_execute(
-    srslte_channel_rlf_t* q, const cf_t* in, cf_t* out, uint32_t nsamples, const srslte_timestamp_t* ts)
+void srslte_channel_rlf_execute(srslte_channel_rlf_t*     q,
+                                const cf_t*               in,
+                                cf_t*                     out,
+                                uint32_t                  nsamples,
+                                const srslte_timestamp_t* ts)
 {
   uint32_t period_ms    = q->t_on_ms + q->t_off_ms;
   double   full_secs_ms = (ts->full_secs * 1000) % period_ms;

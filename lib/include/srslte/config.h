@@ -24,32 +24,31 @@
 
 // Generic helper definitions for shared library support
 #if defined _WIN32 || defined __CYGWIN__
-  #define SRSLTE_IMPORT __declspec(dllimport)
-  #define SRSLTE_EXPORT __declspec(dllexport)
-  #define SRSLTE_LOCAL
+#define SRSLTE_IMPORT __declspec(dllimport)
+#define SRSLTE_EXPORT __declspec(dllexport)
+#define SRSLTE_LOCAL
 #else
-  #if __GNUC__ >= 4
-    #define SRSLTE_IMPORT __attribute__ ((visibility ("default")))
-    #define SRSLTE_EXPORT __attribute__ ((visibility ("default")))
-  #else
-    #define SRSLTE_IMPORT
-    #define SRSLTE_EXPORT
-    #define SRSLTE_LOCAL
-  #endif
+#if __GNUC__ >= 4
+#define SRSLTE_IMPORT __attribute__((visibility("default")))
+#define SRSLTE_EXPORT __attribute__((visibility("default")))
+#else
+#define SRSLTE_IMPORT
+#define SRSLTE_EXPORT
+#define SRSLTE_LOCAL
+#endif
 #endif
 
 // Define SRSLTE_API
 // SRSLTE_API is used for the public API symbols.
 #ifdef SRSLTE_DLL_EXPORTS // defined if we are building the SRSLTE DLL (instead of using it)
-  #define SRSLTE_API SRSLTE_EXPORT
+#define SRSLTE_API SRSLTE_EXPORT
 #else
-  #define SRSLTE_API SRSLTE_IMPORT
+#define SRSLTE_API SRSLTE_IMPORT
 #endif
-
 
 // Useful macros for templates
 #define CONCAT(a, b) a##b
-#define CONCAT2(a, b) CONCAT(a,b)
+#define CONCAT2(a, b) CONCAT(a, b)
 
 #define STRING2(x) #x
 #define STRING(x) STRING2(x)

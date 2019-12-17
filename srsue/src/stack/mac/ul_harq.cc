@@ -209,7 +209,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
 
     // Check maximum retransmissions, do not consider last retx ACK
     if (current_tx_nb >= max_retx && !grant.hi_value) {
-      Info("UL %d:  Maximum number of ReTX reached (%d). Discarting TB.\n", pid, max_retx);
+      Info("UL %d:  Maximum number of ReTX reached (%d). Discarding TB.\n", pid, max_retx);
       if (grant_is_rar()) {
         harq_entity->ra_procedure->harq_max_retx();
       }

@@ -52,7 +52,7 @@ int write_pdu_to_pcap(const uint32_t lcid, const uint8_t* payload, const uint32_
 {
 #if PCAP
   if (pcap_handle) {
-    byte_buffer_t      tx_buffer;
+    byte_buffer_t          tx_buffer;
     srslte::mac_nr_sch_pdu tx_pdu;
     tx_pdu.init_tx(&tx_buffer, len + 10);
     tx_pdu.add_sdu(lcid, payload, len);

@@ -117,7 +117,10 @@ SRSLTE_API int srslte_npss_corr_init(cf_t* npss_signal_time, uint32_t fft_size, 
 
 SRSLTE_API int srslte_npss_generate(cf_t* signal);
 
-SRSLTE_API void srslte_npss_put_subframe(
-    srslte_npss_synch_t* q, cf_t* npss_signal, cf_t* sf, const uint32_t nof_prb, const uint32_t nbiot_prb_offset);
+SRSLTE_API void srslte_npss_put_subframe(srslte_npss_synch_t* q,
+                                         cf_t*                npss_signal,
+                                         cf_t*                sf,
+                                         const uint32_t       nof_prb,
+                                         const uint32_t       nbiot_prb_offset);
 
 #endif // SRSLTE_NPSS_H

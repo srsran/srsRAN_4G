@@ -19,14 +19,13 @@
  *
  */
 
-#include <math.h>
-#include <string.h>
 #include "srslte/phy/resampling/resample_arb.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
+#include <math.h>
+#include <string.h>
 
-
-
+// clang-format off
 float srslte_resample_arb_polyfilt[SRSLTE_RESAMPLE_ARB_N][SRSLTE_RESAMPLE_ARB_M] __attribute__((aligned(256))) =
 {{0.000499262532685, 0.000859897001646, -0.008521087467670, 0.994530856609344, 0.017910413444042, -0.006922415923327, 0.002400347497314, 0.000000000000000 },
 {-0.001216900418513, 0.008048813790083, -0.032752435654402, 0.991047739982605, 0.046474494040012, -0.015253192745149, 0.004479591734707, -0.001903604716063 },
@@ -101,76 +100,81 @@ float srslte_resample_arb_polyfilt[SRSLTE_RESAMPLE_ARB_N][SRSLTE_RESAMPLE_ARB_M]
 {0.000764085430796,  -0.030612377229395,   0.154765509342932,   0.702921418438421,   0.206204344739138,  -0.034615802155152,   0.000568080243211,   0.000003596427925},
 {0.000722236729272,  -0.032053439082436,   0.171322660416961,   0.704261032406613,   0.188481383863832,  -0.033395686652146,   0.000657994314549 ,  0.000002955485215}};
 
-static inline cf_t srslte_resample_arb_dot_prod(cf_t* x, float *y, int len){
-
-  cf_t res1 = srslte_vec_dot_prod_cfc(x,y,len);
+// clang-format on
+static inline cf_t srslte_resample_arb_dot_prod(cf_t* x, float* y, int len)
+{
+  cf_t res1 = srslte_vec_dot_prod_cfc(x, y, len);
   return res1;
 }
 
 // Right-shift our window of samples
-void srslte_resample_arb_push(srslte_resample_arb_t *q, cf_t x){
-  
-  memmove(&q->reg[1], &q->reg[0], (SRSLTE_RESAMPLE_ARB_M-1)*sizeof(cf_t));
+void srslte_resample_arb_push(srslte_resample_arb_t* q, cf_t x)
+{
+
+  memmove(&q->reg[1], &q->reg[0], (SRSLTE_RESAMPLE_ARB_M - 1) * sizeof(cf_t));
   q->reg[0] = x;
 }
 
 // Initialize our struct
-void srslte_resample_arb_init(srslte_resample_arb_t *q, float rate, bool interpolate){
-  
-  memset(q->reg, 0, SRSLTE_RESAMPLE_ARB_M*sizeof(cf_t));
-  q->acc = 0.0;
-  q->rate = rate;
+void srslte_resample_arb_init(srslte_resample_arb_t* q, float rate, bool interpolate)
+{
+
+  memset(q->reg, 0, SRSLTE_RESAMPLE_ARB_M * sizeof(cf_t));
+  q->acc         = 0.0;
+  q->rate        = rate;
   q->interpolate = interpolate;
-  q->step = (1/rate)*SRSLTE_RESAMPLE_ARB_N;
+  q->step        = (1 / rate) * SRSLTE_RESAMPLE_ARB_N;
 }
 
 // Resample a block of input data
-int srslte_resample_arb_compute(srslte_resample_arb_t *q, cf_t *input, cf_t *output, int n_in){
-  int cnt = 0;
-  int n_out = 0;
-  int idx = 0;
-  cf_t res1,res2;
-  cf_t *filter_input;
+int srslte_resample_arb_compute(srslte_resample_arb_t* q, cf_t* input, cf_t* output, int n_in)
+{
+  int   cnt   = 0;
+  int   n_out = 0;
+  int   idx   = 0;
+  cf_t  res1, res2;
+  cf_t* filter_input;
   float frac = 0;
-  memset(q->reg, 0, SRSLTE_RESAMPLE_ARB_M*sizeof(cf_t));
-  
+  memset(q->reg, 0, SRSLTE_RESAMPLE_ARB_M * sizeof(cf_t));
+
   while (cnt < n_in) {
-    
-    if(cnt<SRSLTE_RESAMPLE_ARB_M){
-      memcpy(&q->reg[SRSLTE_RESAMPLE_ARB_M - cnt], input, (cnt)*sizeof(cf_t));
+
+    if (cnt < SRSLTE_RESAMPLE_ARB_M) {
+      memcpy(&q->reg[SRSLTE_RESAMPLE_ARB_M - cnt], input, (cnt) * sizeof(cf_t));
       filter_input = q->reg;
-    } else{
-      filter_input = &input[cnt-SRSLTE_RESAMPLE_ARB_M];
-    }
-    
-    res1 = srslte_resample_arb_dot_prod(filter_input, srslte_resample_arb_polyfilt[idx], SRSLTE_RESAMPLE_ARB_M);
-    if(q->interpolate){
-      res2 = srslte_resample_arb_dot_prod(filter_input, srslte_resample_arb_polyfilt[(idx+1)%SRSLTE_RESAMPLE_ARB_N], SRSLTE_RESAMPLE_ARB_M);
+    } else {
+      filter_input = &input[cnt - SRSLTE_RESAMPLE_ARB_M];
     }
 
-    if(idx == SRSLTE_RESAMPLE_ARB_N){
-      *output = res1;
-    }else {
-      *output = (q->interpolate)?(res1 + (res2-res1)*frac):res1;
+    res1 = srslte_resample_arb_dot_prod(filter_input, srslte_resample_arb_polyfilt[idx], SRSLTE_RESAMPLE_ARB_M);
+    if (q->interpolate) {
+      res2 = srslte_resample_arb_dot_prod(
+          filter_input, srslte_resample_arb_polyfilt[(idx + 1) % SRSLTE_RESAMPLE_ARB_N], SRSLTE_RESAMPLE_ARB_M);
     }
-    
+
+    if (idx == SRSLTE_RESAMPLE_ARB_N) {
+      *output = res1;
+    } else {
+      *output = (q->interpolate) ? (res1 + (res2 - res1) * frac) : res1;
+    }
+
     output++;
     n_out++;
     q->acc += q->step;
     idx = (int)(q->acc);
-    
-    while(idx >= SRSLTE_RESAMPLE_ARB_N){
+
+    while (idx >= SRSLTE_RESAMPLE_ARB_N) {
       q->acc -= SRSLTE_RESAMPLE_ARB_N;
       idx -= SRSLTE_RESAMPLE_ARB_N;
-      if(cnt < n_in){
+      if (cnt < n_in) {
         cnt++;
       }
     }
-    
-    if(q->interpolate){
+
+    if (q->interpolate) {
       frac = q->acc - idx;
-      if(frac < 0)
-        frac = frac*(-1);
+      if (frac < 0)
+        frac = frac * (-1);
     }
   }
   return n_out;

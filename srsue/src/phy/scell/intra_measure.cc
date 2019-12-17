@@ -36,9 +36,7 @@
 namespace srsue {
 namespace scell {
 
-intra_measure::intra_measure() : scell(), thread("SYNC_INTRA_MEASURE")
-{
-}
+intra_measure::intra_measure() : scell(), thread("SYNC_INTRA_MEASURE") {}
 
 intra_measure::~intra_measure()
 {

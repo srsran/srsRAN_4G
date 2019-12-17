@@ -69,7 +69,7 @@ public:
 
   static uint32_t tti_to_SFN(uint32_t tti);
   static uint32_t tti_to_subf(uint32_t tti);
-  
+
   void start_plot();
   void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated);
 
@@ -82,12 +82,12 @@ private:
   phy_rrc_cfg_t phy_rrc_config = {};
   uint32_t      nof_workers    = 0;
 
-  const static int MAX_WORKERS         = 4;
-  const static int DEFAULT_WORKERS     = 2;
-  
+  const static int MAX_WORKERS     = 4;
+  const static int DEFAULT_WORKERS = 2;
+
   const static int PRACH_WORKER_THREAD_PRIO = 3;
-  const static int SF_RECV_THREAD_PRIO = 1;
-  const static int WORKERS_THREAD_PRIO = 2;
+  const static int SF_RECV_THREAD_PRIO      = 1;
+  const static int WORKERS_THREAD_PRIO      = 2;
 
   srslte::radio_interface_phy* radio = nullptr;
 

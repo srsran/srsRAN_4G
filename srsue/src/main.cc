@@ -19,28 +19,28 @@
  *
  */
 
-#include <unistd.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
-#include <pthread.h>
+#include <unistd.h>
 
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <fstream>
+#include <iostream>
+#include <string>
 
-#include "srsue/hdr/ue.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
-#include "srslte/srslte.h"
-#include "srsue/hdr/metrics_stdout.h"
-#include "srsue/hdr/metrics_csv.h"
 #include "srslte/common/metrics_hub.h"
+#include "srslte/srslte.h"
 #include "srslte/version.h"
+#include "srsue/hdr/metrics_csv.h"
+#include "srsue/hdr/metrics_stdout.h"
+#include "srsue/hdr/ue.h"
 
-extern bool     simulate_rlf;
+extern bool simulate_rlf;
 
 using namespace std;
 using namespace srsue;
@@ -65,9 +65,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   // Command line only options
   bpo::options_description general("General options");
 
-  general.add_options()
-    ("help,h", "Produce help message")
-    ("version,v", "Print version information and exit");
+  general.add_options()("help,h", "Produce help message")("version,v", "Print version information and exit");
 
   // Command line or config file options
   bpo::options_description common("Configuration options");
@@ -366,11 +364,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
   // parse the command line and store result in vm
   bpo::variables_map vm;
-  try{
+  try {
     bpo::store(bpo::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
     bpo::notify(vm);
-  } catch(bpo::error &e) {
-    cerr<< e.what() << endl;
+  } catch (bpo::error& e) {
+    cerr << e.what() << endl;
     running = false;
     return SRSLTE_ERROR;
   }
@@ -384,10 +382,8 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
   // print version number and exit
   if (vm.count("version")) {
-    cout << "Version " <<
-         srslte_get_version_major() << "." <<
-         srslte_get_version_minor() << "." <<
-         srslte_get_version_patch() << endl;
+    cout << "Version " << srslte_get_version_major() << "." << srslte_get_version_minor() << "."
+         << srslte_get_version_patch() << endl;
     running = false;
     return SRSLTE_SUCCESS;
   }

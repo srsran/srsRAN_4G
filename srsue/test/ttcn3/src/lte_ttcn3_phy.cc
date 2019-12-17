@@ -216,7 +216,7 @@ std::string lte_ttcn3_phy::get_type()
 phy_interface_mac_lte::prach_info_t lte_ttcn3_phy::prach_get_info()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  prach_info_t info = {};
+  prach_info_t                info = {};
   if (prach_tti_tx != -1) {
     info.is_transmitted = true;
     info.tti_ra         = prach_tti_tx;

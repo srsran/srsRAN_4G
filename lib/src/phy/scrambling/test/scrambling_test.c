@@ -19,52 +19,54 @@
  *
  */
 
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
-#include <stdbool.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
-char *srslte_sequence_name = NULL;
-bool do_floats = false;
-srslte_cp_t cp = SRSLTE_CP_NORM;
-int cell_id = -1;
-int nof_bits = 100; 
+char*       srslte_sequence_name = NULL;
+bool        do_floats            = false;
+srslte_cp_t cp                   = SRSLTE_CP_NORM;
+int         cell_id              = -1;
+int         nof_bits             = 100;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [ef] -c cell_id -s [PBCH, PDSCH, PDCCH, PMCH, PUCCH]\n", prog);
   printf("\t -l nof_bits [Default %d]\n", nof_bits);
   printf("\t -e CP extended [Default CP Normal]\n");
   printf("\t -f scramble floats [Default bits]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "csefl")) != -1) {
     switch (opt) {
-    case 'c':
-      cell_id = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'l':
-      nof_bits = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'e':
-      cp = SRSLTE_CP_EXT;
-      break;
-    case 'f':
-      do_floats = true;
-      break;
-    case 's':
-      srslte_sequence_name = argv[optind];
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'c':
+        cell_id = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'l':
+        nof_bits = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'e':
+        cp = SRSLTE_CP_EXT;
+        break;
+      case 'f':
+        do_floats = true;
+        break;
+      case 's':
+        srslte_sequence_name = argv[optind];
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (cell_id == -1) {
@@ -77,7 +79,8 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int init_sequence(srslte_sequence_t *seq, char *name) {
+int init_sequence(srslte_sequence_t* seq, char* name)
+{
   if (!strcmp(name, "PBCH")) {
     bzero(seq, sizeof(srslte_sequence_t));
     return srslte_sequence_pbch(seq, cp, cell_id);
@@ -90,14 +93,14 @@ int init_sequence(srslte_sequence_t *seq, char *name) {
   }
 }
 
-
-int main(int argc, char **argv) {
-  int i;
+int main(int argc, char** argv)
+{
+  int               i;
   srslte_sequence_t seq;
-  uint8_t *input_b, *scrambled_b;
-  float *input_f, *scrambled_f;
-  struct timeval t[3];
-  
+  uint8_t *         input_b, *scrambled_b;
+  float *           input_f, *scrambled_f;
+  struct timeval    t[3];
+
   parse_args(argc, argv);
 
   if (init_sequence(&seq, srslte_sequence_name) == -1) {
@@ -117,8 +120,8 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    for (i=0;i<seq.cur_len;i++) {
-      input_b[i] = rand()%2;
+    for (i = 0; i < seq.cur_len; i++) {
+      input_b[i]     = rand() % 2;
       scrambled_b[i] = input_b[i];
     }
 
@@ -129,8 +132,8 @@ int main(int argc, char **argv) {
 
     get_time_interval(t);
     printf("Texec=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
-    
-    for (i=0;i<seq.cur_len;i++) {
+
+    for (i = 0; i < seq.cur_len; i++) {
       if (scrambled_b[i] != input_b[i]) {
         printf("Error in %d\n", i);
         exit(-1);
@@ -150,8 +153,8 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    for (i=0;i<seq.cur_len;i++) {
-      input_f[i] = 100*(rand()/RAND_MAX);
+    for (i = 0; i < seq.cur_len; i++) {
+      input_f[i]     = 100 * (rand() / RAND_MAX);
       scrambled_f[i] = input_f[i];
     }
 
@@ -163,7 +166,7 @@ int main(int argc, char **argv) {
     get_time_interval(t);
     printf("Texec=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
 
-    for (i=0;i<seq.cur_len;i++) {
+    for (i = 0; i < seq.cur_len; i++) {
       if (scrambled_f[i] != input_f[i]) {
         printf("Error in %d\n", i);
         exit(-1);
@@ -176,7 +179,7 @@ int main(int argc, char **argv) {
     int16_t *input_s, *scrambled_s;
 
     // Scramble also shorts
-    input_s= malloc(sizeof(int16_t) * seq.cur_len);
+    input_s = malloc(sizeof(int16_t) * seq.cur_len);
     if (!input_s) {
       perror("malloc");
       exit(-1);
@@ -187,8 +190,8 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    for (i=0;i<seq.cur_len;i++) {
-      input_s[i] = 100*(rand()/RAND_MAX)-50;
+    for (i = 0; i < seq.cur_len; i++) {
+      input_s[i]     = 100 * (rand() / RAND_MAX) - 50;
       scrambled_s[i] = input_s[i];
     }
 
@@ -197,11 +200,10 @@ int main(int argc, char **argv) {
     gettimeofday(&t[2], NULL);
     srslte_scrambling_s(&seq, scrambled_s);
 
-
     get_time_interval(t);
     printf("Texec short=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
 
-    for (i=0;i<seq.cur_len;i++) {
+    for (i = 0; i < seq.cur_len; i++) {
       if (scrambled_s[i] != input_s[i]) {
         printf("Error in %d\n", i);
         exit(-1);
@@ -211,11 +213,10 @@ int main(int argc, char **argv) {
     free(input_s);
     free(scrambled_s);
 
-
     int8_t *input_b, *scrambled_b;
 
     // Scramble also bytes
-    input_b= malloc(sizeof(int8_t) * seq.cur_len);
+    input_b = malloc(sizeof(int8_t) * seq.cur_len);
     if (!input_b) {
       perror("malloc");
       exit(-1);
@@ -226,8 +227,8 @@ int main(int argc, char **argv) {
       exit(-1);
     }
 
-    for (i=0;i<seq.cur_len;i++) {
-      input_b[i] = 100*(rand()/RAND_MAX)-50;
+    for (i = 0; i < seq.cur_len; i++) {
+      input_b[i]     = 100 * (rand() / RAND_MAX) - 50;
       scrambled_b[i] = input_b[i];
     }
 
@@ -236,11 +237,10 @@ int main(int argc, char **argv) {
     gettimeofday(&t[2], NULL);
     srslte_scrambling_sb_offset(&seq, scrambled_b, 0, seq.cur_len);
 
-
     get_time_interval(t);
     printf("Texec char=%ld us for %d bits\n", t[0].tv_usec, seq.cur_len);
 
-    for (i=0;i<seq.cur_len;i++) {
+    for (i = 0; i < seq.cur_len; i++) {
       if (scrambled_b[i] != input_b[i]) {
         printf("Error in %d\n", i);
         exit(-1);

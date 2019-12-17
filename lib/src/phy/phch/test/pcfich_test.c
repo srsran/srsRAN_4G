@@ -38,7 +38,8 @@ srslte_cell_t cell = {
 
 };
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [cpv]\n", prog);
   printf("\t-c cell id [Default %d]\n", cell.id);
   printf("\t-p nof_ports [Default %d]\n", cell.nof_ports);
@@ -46,25 +47,26 @@ void usage(char *prog) {
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "cpnv")) != -1) {
-    switch(opt) {
-    case 'p':
-      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'n':
-      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'c':
-      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'p':
+        cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
@@ -74,14 +76,14 @@ int main(int argc, char** argv)
   srslte_chest_dl_res_t chest_res;
   srslte_pcfich_t       pcfich;
   srslte_regs_t         regs;
-  int i, j;
-  int nof_re;
-  cf_t *slot_symbols[SRSLTE_MAX_PORTS];
+  int                   i, j;
+  int                   nof_re;
+  cf_t*                 slot_symbols[SRSLTE_MAX_PORTS];
   uint32_t              cfi, nsf;
-  int cid, max_cid;
+  int                   cid, max_cid;
   float                 corr_res;
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   nof_re = SRSLTE_CP_NORM_NSYMB * cell.nof_prb * SRSLTE_NRE;
 
@@ -99,10 +101,10 @@ int main(int argc, char** argv)
   }
 
   if (cell.id == 1000) {
-    cid = 0;
+    cid     = 0;
     max_cid = 503;
   } else {
-    cid = cell.id;
+    cid     = cell.id;
     max_cid = cell.id;
   }
 
@@ -128,7 +130,7 @@ int main(int argc, char** argv)
       exit(-1);
     }
 
-    for (nsf=0;nsf<10;nsf++) {
+    for (nsf = 0; nsf < 10; nsf++) {
       dl_sf.tti = nsf;
 
       for (cfi = 1; cfi < 4; cfi++) {
@@ -136,8 +138,8 @@ int main(int argc, char** argv)
         srslte_pcfich_encode(&pcfich, &dl_sf, slot_symbols);
 
         /* combine outputs */
-        for (i=1;i<cell.nof_ports;i++) {
-          for (j=0;j<nof_re;j++) {
+        for (i = 1; i < cell.nof_ports; i++) {
+          for (j = 0; j < nof_re; j++) {
             slot_symbols[0][j] += slot_symbols[i][j];
           }
         }
@@ -152,7 +154,7 @@ int main(int argc, char** argv)
     cid++;
   }
   srslte_chest_dl_res_free(&chest_res);
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     free(slot_symbols[i]);
   }
   printf("OK\n");

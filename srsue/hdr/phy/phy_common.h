@@ -114,8 +114,11 @@ public:
   bool is_any_ul_pending_ack();
 
   bool get_ul_received_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, bool* ack_value, srslte_dci_ul_t* dci_ul);
-  void set_ul_received_ack(
-      srslte_dl_sf_cfg_t* sf, uint32_t cc_idx, bool ack_value, uint32_t I_phich, srslte_dci_ul_t* dci_ul);
+  void set_ul_received_ack(srslte_dl_sf_cfg_t* sf,
+                           uint32_t            cc_idx,
+                           bool                ack_value,
+                           uint32_t            I_phich,
+                           srslte_dci_ul_t*    dci_ul);
 
   void set_ul_pending_grant(srslte_dl_sf_cfg_t* sf, uint32_t cc_idx, srslte_dci_ul_t* dci);
   bool get_ul_pending_grant(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, uint32_t* pid, srslte_dci_ul_t* dci);

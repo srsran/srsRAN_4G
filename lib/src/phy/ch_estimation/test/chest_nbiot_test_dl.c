@@ -105,7 +105,7 @@ void parse_args(int argc, char** argv)
 int main(int argc, char** argv)
 {
   srslte_chest_dl_nbiot_t est   = {};
-  int                     ret = SRSLTE_ERROR;
+  int                     ret   = SRSLTE_ERROR;
   cf_t *                  input = NULL, *ce = NULL, *h = NULL, *output = NULL, *sf_buffer = NULL;
 
   parse_args(argc, argv);

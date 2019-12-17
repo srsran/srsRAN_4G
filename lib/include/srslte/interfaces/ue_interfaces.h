@@ -218,25 +218,25 @@ public:
 class pdcp_interface_rrc
 {
 public:
-  virtual void reestablish()                                                                    = 0;
-  virtual void reestablish(uint32_t lcid)                                                       = 0;
-  virtual void reset()                                                                          = 0;
+  virtual void reestablish()                                                                     = 0;
+  virtual void reestablish(uint32_t lcid)                                                        = 0;
+  virtual void reset()                                                                           = 0;
   virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = false) = 0;
-  virtual void add_bearer(uint32_t lcid, srslte::pdcp_config_t cnfg)                            = 0;
-  virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                = 0;
+  virtual void add_bearer(uint32_t lcid, srslte::pdcp_config_t cnfg)                             = 0;
+  virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                 = 0;
   virtual void config_security(uint32_t                            lcid,
                                uint8_t*                            k_rrc_enc_,
                                uint8_t*                            k_rrc_int_,
                                uint8_t*                            k_up_enc_,
                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                               srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)                 = 0;
+                               srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)                  = 0;
   virtual void config_security_all(uint8_t*                            k_rrc_enc_,
                                    uint8_t*                            k_rrc_int_,
                                    uint8_t*                            k_up_enc_,
                                    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)             = 0;
-  virtual void enable_integrity(uint32_t lcid)                                                  = 0;
-  virtual void enable_encryption(uint32_t lcid)                                                 = 0;
+                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)              = 0;
+  virtual void enable_integrity(uint32_t lcid)                                                   = 0;
+  virtual void enable_encryption(uint32_t lcid)                                                  = 0;
 };
 
 // PDCP interface for RLC

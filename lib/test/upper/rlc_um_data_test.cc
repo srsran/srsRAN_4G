@@ -24,26 +24,27 @@
 #include <iostream>
 
 // Fixed header only
-uint8_t pdu1[] = {0x18 ,0xE2};
+uint8_t  pdu1[]   = {0x18, 0xE2};
 uint32_t PDU1_LEN = 2;
 
 // Fixed + 1 LI field (value 104)
-uint8_t pdu2[] = {0x1C ,0xE1 ,0x06 ,0x80};
+uint8_t  pdu2[]   = {0x1C, 0xE1, 0x06, 0x80};
 uint32_t PDU2_LEN = 4;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   srslte::rlc_umd_pdu_header_t h;
-  srslte::byte_buffer_t  b1,b2;
+  srslte::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu1[0], PDU1_LEN);
   b1.N_bytes = PDU1_LEN;
   rlc_um_read_data_pdu_header(&b1, srslte::rlc_umd_sn_size_t::size10bits, &h);
   assert(0x03 == h.fi);
-  assert(0    == h.N_li);
-  assert(226  == h.sn);
+  assert(0 == h.N_li);
+  assert(226 == h.sn);
   rlc_um_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU1_LEN);
-  for(uint32_t i=0;i<b2.N_bytes;i++)
+  for (uint32_t i = 0; i < b2.N_bytes; i++)
     assert(b2.msg[i] == b1.msg[i]);
 
   b1.clear();
@@ -54,11 +55,11 @@ int main(int argc, char **argv) {
   b1.N_bytes = PDU2_LEN;
   rlc_um_read_data_pdu_header(&b1, srslte::rlc_umd_sn_size_t::size10bits, &h);
   assert(0x03 == h.fi);
-  assert(225  == h.sn);
-  assert(1    == h.N_li);
-  assert(104  == h.li[0]);
+  assert(225 == h.sn);
+  assert(1 == h.N_li);
+  assert(104 == h.li[0]);
   rlc_um_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU2_LEN);
-  for(uint32_t i=0;i<b2.N_bytes;i++)
+  for (uint32_t i = 0; i < b2.N_bytes; i++)
     assert(b2.msg[i] == b1.msg[i]);
 }

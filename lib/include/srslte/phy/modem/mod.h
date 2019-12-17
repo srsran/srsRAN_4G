@@ -33,17 +33,11 @@
 
 #include <stdint.h>
 
-#include "srslte/config.h"
 #include "modem_table.h"
+#include "srslte/config.h"
 
-SRSLTE_API int srslte_mod_modulate(srslte_modem_table_t* table,
-                                   uint8_t *bits, 
-                                   cf_t* symbols, 
-                                   uint32_t nbits);
+SRSLTE_API int srslte_mod_modulate(srslte_modem_table_t* table, uint8_t* bits, cf_t* symbols, uint32_t nbits);
 
-SRSLTE_API int srslte_mod_modulate_bytes(srslte_modem_table_t* q, 
-                                         uint8_t *bits, 
-                                         cf_t* symbols, 
-                                         uint32_t nbits); 
+SRSLTE_API int srslte_mod_modulate_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits);
 
 #endif // SRSLTE_MOD_H

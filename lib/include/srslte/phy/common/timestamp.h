@@ -37,10 +37,10 @@
 #include <stdint.h>
 #include <time.h>
 
-typedef struct SRSLTE_API{
+typedef struct SRSLTE_API {
   time_t full_secs;
   double frac_secs;
-}srslte_timestamp_t;
+} srslte_timestamp_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,11 +58,11 @@ SRSLTE_API int srslte_timestamp_add(srslte_timestamp_t* t, time_t full_secs, dou
 
 SRSLTE_API int srslte_timestamp_sub(srslte_timestamp_t* t, time_t full_secs, double frac_secs);
 
-SRSLTE_API double srslte_timestamp_real(srslte_timestamp_t *t);
+SRSLTE_API double srslte_timestamp_real(srslte_timestamp_t* t);
 
 SRSLTE_API bool srslte_timestamp_iszero(const srslte_timestamp_t* t);
 
-SRSLTE_API uint32_t srslte_timestamp_uint32(srslte_timestamp_t *t);
+SRSLTE_API uint32_t srslte_timestamp_uint32(srslte_timestamp_t* t);
 
 SRSLTE_API uint64_t srslte_timestamp_uint64(const srslte_timestamp_t* t, double srate);
 

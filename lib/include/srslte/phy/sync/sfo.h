@@ -32,13 +32,8 @@
 
 #include "srslte/config.h"
 
-SRSLTE_API float srslte_sfo_estimate(int *t0, 
-                                     int len, 
-                                     float period);
+SRSLTE_API float srslte_sfo_estimate(int* t0, int len, float period);
 
-SRSLTE_API float srslte_sfo_estimate_period(int *t0, 
-                                            int *t, 
-                                            int len, 
-                                            float period);
+SRSLTE_API float srslte_sfo_estimate_period(int* t0, int* t, int len, float period);
 
 #endif // SRSLTE_SFO_H

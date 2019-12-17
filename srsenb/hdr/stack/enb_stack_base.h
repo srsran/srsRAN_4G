@@ -54,11 +54,11 @@ typedef struct {
 } stack_log_args_t;
 
 typedef struct {
-  mac_args_t          mac;
-  s1ap_args_t         s1ap;
-  pcap_args_t         pcap;
-  stack_log_args_t    log;
-  embms_args_t        embms;
+  mac_args_t       mac;
+  s1ap_args_t      s1ap;
+  pcap_args_t      pcap;
+  stack_log_args_t log;
+  embms_args_t     embms;
 } stack_args_t;
 
 struct stack_metrics_t;

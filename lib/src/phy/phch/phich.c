@@ -19,44 +19,50 @@
  *
  */
 
+#include <assert.h>
+#include <complex.h>
+#include <math.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <math.h>
-#include <complex.h>
 
-#include "srslte/phy/phch/regs.h"
-#include "srslte/phy/phch/phich.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/phch/phich.h"
+#include "srslte/phy/phch/regs.h"
 #include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 /** Table 6.9.1-2 */
-const cf_t w_normal[SRSLTE_PHICH_NORM_NSEQUENCES][4] = { { 1, 1, 1, 1 },
-    { 1, -1, 1, -1 }, { 1, 1, -1, -1 }, { 1, -1, -1, 1 }, { I, I, I, I }, {
-    I, -I, I, -I }, { I, I, -I, -I }, { I, -I, -I, I } };
-const cf_t w_ext[SRSLTE_PHICH_EXT_NSEQUENCES][2] = { { 1, 1 }, { 1, -1 }, { I, I }, {
-I, -I } };
+const cf_t w_normal[SRSLTE_PHICH_NORM_NSEQUENCES][4] = {{1, 1, 1, 1},
+                                                        {1, -1, 1, -1},
+                                                        {1, 1, -1, -1},
+                                                        {1, -1, -1, 1},
+                                                        {I, I, I, I},
+                                                        {I, -I, I, -I},
+                                                        {I, I, -I, -I},
+                                                        {I, -I, -I, I}};
+const cf_t w_ext[SRSLTE_PHICH_EXT_NSEQUENCES][2]     = {{1, 1}, {1, -1}, {I, I}, {I, -I}};
 
-
-uint32_t srslte_phich_ngroups(srslte_phich_t *q) {
+uint32_t srslte_phich_ngroups(srslte_phich_t* q)
+{
   return srslte_regs_phich_ngroups(q->regs);
 }
 
-uint32_t srslte_phich_nsf(srslte_phich_t *q) {
+uint32_t srslte_phich_nsf(srslte_phich_t* q)
+{
   if (SRSLTE_CP_ISNORM(q->cell.cp)) {
     return SRSLTE_PHICH_NORM_NSF;
   } else {
-    return SRSLTE_PHICH_EXT_NSF; 
+    return SRSLTE_PHICH_EXT_NSF;
   }
 }
 
-void srslte_phich_reset(srslte_phich_t *q, cf_t *slot_symbols[SRSLTE_MAX_PORTS]) {
+void srslte_phich_reset(srslte_phich_t* q, cf_t* slot_symbols[SRSLTE_MAX_PORTS])
+{
   int i;
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     srslte_regs_phich_reset(q->regs, slot_symbols[i]);
@@ -64,31 +70,31 @@ void srslte_phich_reset(srslte_phich_t *q, cf_t *slot_symbols[SRSLTE_MAX_PORTS])
 }
 
 /** Initializes the phich channel receiver */
-int srslte_phich_init(srslte_phich_t *q, uint32_t nof_rx_antennas)
+int srslte_phich_init(srslte_phich_t* q, uint32_t nof_rx_antennas)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  
-  if (q != NULL)
-  {
+
+  if (q != NULL) {
 
     bzero(q, sizeof(srslte_phich_t));
     ret = SRSLTE_ERROR;
-    
+
     q->nof_rx_antennas = nof_rx_antennas;
-    
+
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_BPSK)) {
       goto clean;
     }
     ret = SRSLTE_SUCCESS;
   }
-  clean: 
+clean:
   if (ret == SRSLTE_ERROR) {
     srslte_phich_free(q);
   }
   return ret;
 }
 
-void srslte_phich_free(srslte_phich_t *q) {
+void srslte_phich_free(srslte_phich_t* q)
+{
   for (int ns = 0; ns < SRSLTE_NOF_SF_X_FRAME; ns++) {
     srslte_sequence_free(&q->seq[ns]);
   }
@@ -102,14 +108,11 @@ void srslte_phich_set_regs(srslte_phich_t* q, srslte_regs_t* regs)
   q->regs = regs;
 }
 
-int srslte_phich_set_cell(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t cell)
+int srslte_phich_set_cell(srslte_phich_t* q, srslte_regs_t* regs, srslte_cell_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q         != NULL &&
-      regs      != NULL &&
-      srslte_cell_isvalid(&cell))
-  {
+  if (q != NULL && regs != NULL && srslte_cell_isvalid(&cell)) {
 
     q->regs = regs;
 
@@ -126,8 +129,6 @@ int srslte_phich_set_cell(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t 
   return ret;
 }
 
-
-
 /* Computes n_group and n_seq according to Section 9.1.2 in 36.213 */
 void srslte_phich_calc(srslte_phich_t* q, srslte_phich_grant_t* grant, srslte_phich_resource_t* n_phich)
 {
@@ -142,39 +143,40 @@ void srslte_phich_calc(srslte_phich_t* q, srslte_phich_grant_t* grant, srslte_ph
   }
 }
 
-
 /* Decodes ACK
  *
  */
-uint8_t srslte_phich_ack_decode(float bits[SRSLTE_PHICH_NBITS], float *distance) {
-  int i;
-  float ack_table[2][3] = {{-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0}}; 
-  float max_corr = -9999; 
-  uint8_t index=0; 
-  
+uint8_t srslte_phich_ack_decode(float bits[SRSLTE_PHICH_NBITS], float* distance)
+{
+  int     i;
+  float   ack_table[2][3] = {{-1.0, -1.0, -1.0}, {1.0, 1.0, 1.0}};
+  float   max_corr        = -9999;
+  uint8_t index           = 0;
+
   if (SRSLTE_VERBOSE_ISINFO()) {
     INFO("Received bits: ");
     srslte_vec_fprint_f(stdout, bits, SRSLTE_PHICH_NBITS);
   }
-  
+
   for (i = 0; i < 2; i++) {
     float corr = srslte_vec_dot_prod_fff(ack_table[i], bits, SRSLTE_PHICH_NBITS) / SRSLTE_PHICH_NBITS;
     INFO("Corr%d=%f\n", i, corr);
     if (corr > max_corr) {
-      max_corr = corr; 
+      max_corr = corr;
       if (distance) {
         *distance = max_corr;
       }
-      index = i; 
+      index = i;
     }
-  }  
+  }
   return index;
 }
 
 /** Encodes the ACK
  *  36.212
  */
-void srslte_phich_ack_encode(uint8_t ack, uint8_t bits[SRSLTE_PHICH_NBITS]) {
+void srslte_phich_ack_encode(uint8_t ack, uint8_t bits[SRSLTE_PHICH_NBITS])
+{
   memset(bits, ack, 3 * sizeof(uint8_t));
 }
 
@@ -187,9 +189,9 @@ int srslte_phich_decode(srslte_phich_t*         q,
 {
 
   /* Set pointers for layermapping & precoding */
-  int i, j;
-  cf_t *x[SRSLTE_MAX_LAYERS];
-  
+  int   i, j;
+  cf_t* x[SRSLTE_MAX_LAYERS];
+
   if (q == NULL || sf_symbols == NULL) {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -224,17 +226,17 @@ int srslte_phich_decode(srslte_phich_t*         q,
     x[i] = q->x[i];
   }
 
-  cf_t *q_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
-  cf_t *q_sf_symbols[SRSLTE_MAX_PORTS]; 
-  
+  cf_t* q_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  cf_t* q_sf_symbols[SRSLTE_MAX_PORTS];
+
   /* extract symbols */
-  for (int j=0;j<q->nof_rx_antennas;j++) {
+  for (int j = 0; j < q->nof_rx_antennas; j++) {
     if (SRSLTE_PHICH_MAX_NSYMB != srslte_regs_phich_get(q->regs, sf_symbols[j], q->sf_symbols[j], n_phich.ngroup)) {
       ERROR("There was an error getting the phich symbols\n");
       return SRSLTE_ERROR;
-    }   
-    q_sf_symbols[j] = q->sf_symbols[j]; 
-    
+    }
+    q_sf_symbols[j] = q->sf_symbols[j];
+
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (SRSLTE_PHICH_MAX_NSYMB != srslte_regs_phich_get(q->regs, channel->ce[i][j], q->ce[i][j], n_phich.ngroup)) {
@@ -243,7 +245,6 @@ int srslte_phich_decode(srslte_phich_t*         q,
       }
       q_ce[i][j] = q->ce[i][j];
     }
-    
   }
 
   /* in control channels, only diversity is supported */
@@ -252,7 +253,8 @@ int srslte_phich_decode(srslte_phich_t*         q,
     srslte_predecoding_single_multi(
         q_sf_symbols, q_ce[0], q->d0, NULL, q->nof_rx_antennas, SRSLTE_PHICH_MAX_NSYMB, 1.0f, channel->noise_estimate);
   } else {
-    srslte_predecoding_diversity_multi(q_sf_symbols, q_ce, x, NULL, q->nof_rx_antennas, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB, 1.0f);
+    srslte_predecoding_diversity_multi(
+        q_sf_symbols, q_ce, x, NULL, q->nof_rx_antennas, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB, 1.0f);
     srslte_layerdemap_diversity(x, q->d0, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports);
   }
   DEBUG("Recv!!: \n");
@@ -351,8 +353,8 @@ int srslte_phich_encode(srslte_phich_t*         q,
   }
 
   /* Set pointers for layermapping & precoding */
-  cf_t *x[SRSLTE_MAX_LAYERS];
-  cf_t *symbols_precoding[SRSLTE_MAX_PORTS];
+  cf_t* x[SRSLTE_MAX_LAYERS];
+  cf_t* symbols_precoding[SRSLTE_MAX_PORTS];
 
   /* number of layers equals number of ports */
   for (i = 0; i < q->cell.nof_ports; i++) {
@@ -416,8 +418,8 @@ int srslte_phich_encode(srslte_phich_t*         q,
   /* layer mapping & precoding */
   if (q->cell.nof_ports > 1) {
     srslte_layermap_diversity(q->d0, x, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB);
-    srslte_precoding_diversity(x, symbols_precoding, q->cell.nof_ports,
-    SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports, 1.0f);
+    srslte_precoding_diversity(
+        x, symbols_precoding, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports, 1.0f);
     /**FIXME: According to 6.9.2, Precoding for 4 tx ports is different! */
   } else {
     memcpy(q->sf_symbols[0], q->d0, SRSLTE_PHICH_MAX_NSYMB * sizeof(cf_t));
@@ -433,4 +435,3 @@ int srslte_phich_encode(srslte_phich_t*         q,
 
   return SRSLTE_SUCCESS;
 }
-

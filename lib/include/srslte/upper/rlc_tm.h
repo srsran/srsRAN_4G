@@ -23,11 +23,11 @@
 #define SRSLTE_RLC_TM_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
+#include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/upper/rlc_common.h"
+#include "srslte/upper/rlc_tx_queue.h"
 
 namespace srslte {
 
@@ -44,13 +44,13 @@ public:
   bool configure(rlc_config_t cnfg);
   void stop();
   void reestablish();
-  void empty_queue(); 
+  void empty_queue();
 
-  rlc_mode_t    get_mode();
-  uint32_t      get_bearer();
+  rlc_mode_t get_mode();
+  uint32_t   get_bearer();
 
   rlc_bearer_metrics_t get_metrics();
-  void reset_metrics();
+  void                 reset_metrics();
 
   // PDCP interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
@@ -59,8 +59,8 @@ public:
   // MAC interface
   bool     has_data();
   uint32_t get_buffer_state();
-  int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
-  void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
+  int      read_pdu(uint8_t* payload, uint32_t nof_bytes);
+  void     write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
 private:
   byte_buffer_pool*          pool = nullptr;
@@ -74,7 +74,7 @@ private:
   rlc_bearer_metrics_t metrics = {};
 
   // Thread-safe queues for MAC messages
-  rlc_tx_queue    ul_queue;
+  rlc_tx_queue ul_queue;
 };
 
 } // namespace srslte

@@ -90,14 +90,13 @@ typedef struct {
   bool        pedantic_sdu_check;
 } stress_test_args_t;
 
-void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
+void parse_args(stress_test_args_t* args, int argc, char* argv[])
+{
 
   // Command line only options
   bpo::options_description general("General options");
 
-  general.add_options()
-  ("help,h", "Produce help message")
-  ("version,v", "Print version information and exit");
+  general.add_options()("help,h", "Produce help message")("version,v", "Print version information and exit");
 
   // clang-format off
 
@@ -175,9 +174,9 @@ public:
   }
 
 private:
-  void run_tti(rlc_interface_mac *tx_rlc, rlc_interface_mac *rx_rlc, bool is_dl)
+  void run_tti(rlc_interface_mac* tx_rlc, rlc_interface_mac* rx_rlc, bool is_dl)
   {
-    byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+    byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
     unique_byte_buffer_t pdu  = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
     if (!pdu) {
       printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
@@ -188,10 +187,10 @@ private:
     if (args.random_opp) {
       factor = 0.5 + real_dist(mt19937);
     }
-    int opp_size = args.avg_opp_size * factor;
+    int      opp_size  = args.avg_opp_size * factor;
     uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
     if (buf_state > 0) {
-      int read = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
+      int read     = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
       pdu->N_bytes = read;
       if (args.pdu_tx_delay_usec > 0) {
         usleep(args.pdu_tx_delay_usec);
@@ -287,16 +286,17 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
 
   // RRC interface
-  void max_retx_attempted(){}
+  void        max_retx_attempted() {}
   std::string get_rb_name(uint32_t rx_lcid) { return std::string("DRB1"); }
 
   int get_nof_rx_pdus() { return rx_pdus; }
 
 private:
-  void run_thread() {
-    uint8_t sn = 0;
+  void run_thread()
+  {
+    uint8_t           sn   = 0;
     byte_buffer_pool* pool = byte_buffer_pool::get_instance();
-    while(run_enable) {
+    while (run_enable) {
       unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
       if (pdu == NULL) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
@@ -316,16 +316,16 @@ private:
     }
   }
 
-  bool run_enable;
-  uint64_t rx_pdus;
-  uint32_t lcid;
+  bool               run_enable;
+  uint64_t           rx_pdus;
+  uint32_t           lcid;
   srslte::log_filter log;
 
   std::string name;
 
   stress_test_args_t args;
 
-  rlc_interface_pdcp *rlc;
+  rlc_interface_pdcp* rlc;
 };
 
 void stress_test(stress_test_args_t args)
@@ -467,8 +467,7 @@ void stress_test(stress_test_args_t args)
          metrics.bearer[lcid].num_rx_bytes);
 }
 
-
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   srslte_debug_handle_crash(argc, argv);
 

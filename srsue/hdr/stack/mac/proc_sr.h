@@ -22,12 +22,11 @@
 #ifndef SRSUE_PROC_SR_H
 #define SRSUE_PROC_SR_H
 
-#include <stdint.h>
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include <stdint.h>
 
 /* Scheduling Request procedure as defined in 5.4.4 of 36.321 */
-
 
 namespace srsue {
 
@@ -40,22 +39,22 @@ public:
   void set_config(srslte::sr_cfg_t& cfg);
   void reset();
   void start();
-  bool need_random_access(); 
-  
+  bool need_random_access();
+
 private:
   bool need_tx(uint32_t tti);
 
-  int           sr_counter;
-  bool          is_pending_sr;
+  int  sr_counter;
+  bool is_pending_sr;
 
   srslte::sr_cfg_t sr_cfg;
 
-  rrc_interface_mac *rrc;
+  rrc_interface_mac*     rrc;
   phy_interface_mac_lte* phy_h;
-  srslte::log       *log_h;
-  
-  bool          initiated;
-  bool          do_ra;
+  srslte::log*           log_h;
+
+  bool initiated;
+  bool do_ra;
 };
 
 } // namespace srsue

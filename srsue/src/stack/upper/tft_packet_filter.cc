@@ -39,7 +39,7 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
 {
   int idx = 0;
   while (idx < tft.filter_size) {
-    uint8_t filter_type = tft.filter[idx];  
+    uint8_t filter_type = tft.filter[idx];
     idx++;
     switch (filter_type) {
       // IPv4
@@ -53,7 +53,7 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
         memcpy(&ipv4_remote_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
         idx += IPV4_ADDR_SIZE;
         break;
-      //IPv6
+      // IPv6
       case IPV6_REMOTE_ADDR_TYPE:
         break;
       case IPV6_REMOTE_ADDR_LENGTH_TYPE:
@@ -82,11 +82,11 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
       case TYPE_OF_SERVICE_TYPE:
         active_filters = TYPE_OF_SERVICE_FLAG;
         memcpy(&type_of_service, &tft.filter[idx], 1);
-        idx += 1; 
+        idx += 1;
         memcpy(&type_of_service_mask, &tft.filter[idx], 1);
-        idx += 1; 
+        idx += 1;
         break;
-      //Flow label
+      // Flow label
       case FLOW_LABEL_TYPE:
         break;
       // IPsec security parameter
@@ -222,7 +222,7 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
-  struct udphdr* udp_pkt;
+  struct udphdr*  udp_pkt;
 
   if (ip_pkt->version == 4) {
     switch (ip_pkt->protocol) {

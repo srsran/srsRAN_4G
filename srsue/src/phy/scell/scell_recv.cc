@@ -95,8 +95,11 @@ void scell_recv::reset()
   measure_p.reset();
 }
 
-int scell_recv::find_cells(
-    cf_t* input_buffer, float rx_gain_offset, srslte_cell_t cell, uint32_t nof_sf, cell_info_t cells[MAX_CELLS])
+int scell_recv::find_cells(cf_t*         input_buffer,
+                           float         rx_gain_offset,
+                           srslte_cell_t cell,
+                           uint32_t      nof_sf,
+                           cell_info_t   cells[MAX_CELLS])
 {
   uint32_t fft_sz = srslte_symbol_sz(cell.nof_prb);
   uint32_t sf_len = SRSLTE_SF_LEN(fft_sz);

@@ -127,7 +127,7 @@ int main(int argc, char** argv)
 
   signal(SIGINT, sig_int_handler);
 
-  float srate = 15000.0 * fft_size;
+  float   srate = 15000.0 * fft_size;
   int32_t flen  = srate * 10 / 1000;
 
   printf("Frame length %d samples\n", flen);
@@ -162,7 +162,7 @@ int main(int argc, char** argv)
   printf("Trying to receive MIB-NB for n_id_ncell=%d for at most %d frames\n", cell.n_id_ncell, nof_frames);
   int     sfn_offset                        = 0;
   uint8_t bch_payload_rx[SRSLTE_MIB_NB_LEN] = {};
-  int ret = srslte_ue_mib_sync_nbiot_decode(&mib_sync, max_frames, bch_payload_rx, &cell.nof_ports, &sfn_offset);
+  int     ret = srslte_ue_mib_sync_nbiot_decode(&mib_sync, max_frames, bch_payload_rx, &cell.nof_ports, &sfn_offset);
   if (ret == SRSLTE_UE_MIB_NBIOT_FOUND) {
     srslte_mib_nb_t mib_nb;
     srslte_npbch_mib_unpack(bch_payload_rx, &mib_nb);

@@ -44,9 +44,9 @@ typedef struct {
 
 typedef struct {
   srslte::rf_metrics_t rf;
-  phy_metrics_t   phy;
-  gw_metrics_t    gw;
-  stack_metrics_t stack;
+  phy_metrics_t        phy;
+  gw_metrics_t         gw;
+  stack_metrics_t      stack;
 } ue_metrics_t;
 
 // UE interface

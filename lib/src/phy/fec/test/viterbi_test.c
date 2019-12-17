@@ -38,16 +38,17 @@
 #undef VITERBI_16
 #endif
 
-int frame_length = 1000, nof_frames = 256;
-float ebno_db = 100.0;
-uint32_t seed = 0;
-bool tail_biting = false;
+int      frame_length = 1000, nof_frames = 256;
+float    ebno_db     = 100.0;
+uint32_t seed        = 0;
+bool     tail_biting = false;
 
-#define SNR_POINTS  10
-#define SNR_MIN    0.0
-#define SNR_MAX    5.0
+#define SNR_POINTS 10
+#define SNR_MIN 0.0
+#define SNR_MAX 5.0
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [nlest]\n", prog);
   printf("\t-n nof_frames [Default %d]\n", nof_frames);
   printf("\t-l frame_length [Default %d]\n", frame_length);
@@ -56,50 +57,51 @@ void usage(char *prog) {
   printf("\t-t tail_bitting [Default %s]\n", tail_biting ? "yes" : "no");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "nlste")) != -1) {
     switch (opt) {
-    case 'n':
-      nof_frames = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'l':
-      frame_length = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'e':
-      ebno_db = strtof(argv[optind], NULL);
-      break;
-    case 's':
-      seed = (uint32_t) strtoul(argv[optind], NULL, 0);
-      break;
-    case 't':
-      tail_biting = true;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'n':
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'l':
+        frame_length = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'e':
+        ebno_db = strtof(argv[optind], NULL);
+        break;
+      case 's':
+        seed = (uint32_t)strtoul(argv[optind], NULL, 0);
+        break;
+      case 't':
+        tail_biting = true;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-int main(int argc, char **argv) {
-  int frame_cnt;
-  float *llr;
-  uint16_t *llr_s;
-  uint8_t *llr_c;
-  uint8_t *data_tx, *data_rx, *data_rx2, *symbols;
+int main(int argc, char** argv)
+{
+  int       frame_cnt;
+  float*    llr;
+  uint16_t* llr_s;
+  uint8_t*  llr_c;
+  uint8_t * data_tx, *data_rx, *data_rx2, *symbols;
   int       j;
-  float var[SNR_POINTS], varunc[SNR_POINTS];
-  int snr_points;
-  uint32_t errors;
+  float     var[SNR_POINTS], varunc[SNR_POINTS];
+  int       snr_points;
+  uint32_t  errors;
 #ifdef TEST_SSE
-  uint32_t errors2;
+  uint32_t         errors2;
   srslte_viterbi_t dec_sse;
 #endif
-  srslte_viterbi_t dec; 
+  srslte_viterbi_t   dec;
   srslte_convcoder_t cod;
-  int coded_length;
-
+  int                coded_length;
 
   parse_args(argc, argv);
 
@@ -108,21 +110,21 @@ int main(int argc, char **argv) {
   }
   srand(seed);
 
-  cod.poly[0] = 0x6D;
-  cod.poly[1] = 0x4F;
-  cod.poly[2] = 0x57;
-  cod.K = 7;
+  cod.poly[0]     = 0x6D;
+  cod.poly[1]     = 0x4F;
+  cod.poly[2]     = 0x57;
+  cod.K           = 7;
   cod.tail_biting = tail_biting;
 
-  cod.R = 3;
+  cod.R        = 3;
   coded_length = cod.R * (frame_length + ((cod.tail_biting) ? 0 : cod.K - 1));
   srslte_viterbi_init(&dec, SRSLTE_VITERBI_37, cod.poly, frame_length, cod.tail_biting);
-  printf("Convolutional Code 1/3 K=%d Tail bitting: %s\n", cod.K, cod.tail_biting ? "yes" : "no");  
+  printf("Convolutional Code 1/3 K=%d Tail bitting: %s\n", cod.K, cod.tail_biting ? "yes" : "no");
 
 #ifdef TEST_SSE
   srslte_viterbi_init_sse(&dec_sse, SRSLTE_VITERBI_37, cod.poly, frame_length, cod.tail_biting);
-#endif  
-  
+#endif
+
   printf("  Frame length: %d\n", frame_length);
   if (ebno_db < 100.0) {
     printf("  EbNo: %.2f\n", ebno_db);
@@ -172,7 +174,7 @@ int main(int argc, char **argv) {
   if (ebno_db == 100.0) {
     snr_points = SNR_POINTS;
     for (uint32_t i = 0; i < snr_points; i++) {
-      ebno_db = SNR_MIN + i * ebno_inc;
+      ebno_db   = SNR_MIN + i * ebno_inc;
       esno_db   = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
       var[i]    = srslte_convert_dB_to_amplitude(esno_db);
       varunc[i] = srslte_convert_dB_to_amplitude(ebno_db);
@@ -186,7 +188,7 @@ int main(int argc, char **argv) {
 
   for (uint32_t i = 0; i < snr_points; i++) {
     frame_cnt = 0;
-    errors = 0;
+    errors    = 0;
 #ifdef TEST_SSE
     errors2 = 0;
 #endif
@@ -211,13 +213,13 @@ int main(int argc, char **argv) {
       for (j = 0; j < coded_length; j++) {
         llr[j] = symbols[j] ? M_SQRT2 : -M_SQRT2;
       }
-      
+
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);
-      //srslte_vec_fprint_f(stdout, llr, 100);
-      
-      srslte_vec_quant_fuc(llr, llr_c, 32, 127.5, 255, coded_length);    
+      // srslte_vec_fprint_f(stdout, llr, 100);
+
+      srslte_vec_quant_fuc(llr, llr_c, 32, 127.5, 255, coded_length);
       srslte_vec_quant_fus(llr, llr_s, 8192, 32767.5, 65535, coded_length);
-      
+
       struct timeval t[3];
       gettimeofday(&t[1], NULL);
       int M = 1;
@@ -229,48 +231,47 @@ int main(int argc, char **argv) {
         srslte_viterbi_decode_uc(&dec, llr_c, data_rx, frame_length);
 #endif
       }
-            
+
 #ifdef TEST_SSE
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
-      //printf("Execution time:\t\t%.1f us\n", (float) t[0].tv_usec/M);
+      // printf("Execution time:\t\t%.1f us\n", (float) t[0].tv_usec/M);
       gettimeofday(&t[1], NULL);
-      for (int i=0;i<M;i++) {
-        srslte_viterbi_decode_uc(&dec_sse, llr_c, data_rx2, frame_length);      
+      for (int i = 0; i < M; i++) {
+        srslte_viterbi_decode_uc(&dec_sse, llr_c, data_rx2, frame_length);
       }
       gettimeofday(&t[2], NULL);
       get_time_interval(t);
-      //printf("Execution time SIMD:\t%.1f us\n", (float) t[0].tv_usec/M);
+      // printf("Execution time SIMD:\t%.1f us\n", (float) t[0].tv_usec/M);
 #endif
 
       /* check errors */
       errors += srslte_bit_diff(data_tx, data_rx, frame_length);
 #ifdef TEST_SSE
       errors2 += srslte_bit_diff(data_tx, data_rx2, frame_length);
-#endif      
+#endif
       frame_cnt++;
-      printf("Eb/No: %3.2f %10d/%d   ", SNR_MIN + i * ebno_inc,frame_cnt,nof_frames);
-      printf("BER: %.2e  ", (float) errors / (frame_cnt * frame_length));
+      printf("Eb/No: %3.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
+      printf("BER: %.2e  ", (float)errors / (frame_cnt * frame_length));
 #ifdef TEST_SSE
-      printf("BER2: %.2e  ", (float) errors2 / (frame_cnt * frame_length));
+      printf("BER2: %.2e  ", (float)errors2 / (frame_cnt * frame_length));
 #endif
       printf("\r");
     }
     printf("\n");
-    
+
     if (snr_points == 1) {
-      printf("BER    :    %g\t%u errors\n", (float) errors / (frame_cnt * frame_length), errors);      
+      printf("BER    :    %g\t%u errors\n", (float)errors / (frame_cnt * frame_length), errors);
 #ifdef TEST_SSE
-      printf("BER SSE:    %g\t%u errors\n", (float) errors2 / (frame_cnt * frame_length), errors2);      
+      printf("BER SSE:    %g\t%u errors\n", (float)errors2 / (frame_cnt * frame_length), errors2);
 #endif
-      
     }
   }
   srslte_viterbi_free(&dec);
-#ifdef TEST_SSE  
+#ifdef TEST_SSE
   srslte_viterbi_free(&dec_sse);
 #endif
-  
+
   free(data_tx);
   free(symbols);
   free(llr);
@@ -278,7 +279,7 @@ int main(int argc, char **argv) {
   free(llr_s);
   free(data_rx);
   free(data_rx2);
-  
+
   if (snr_points == 1) {
     int expected_errors = get_expected_errors(nof_frames, seed, frame_length, tail_biting, ebno_db);
     if (expected_errors == -1) {

@@ -22,8 +22,8 @@
 #ifndef SRSLTE_CHEST_COMMON_H
 #define SRSLTE_CHEST_COMMON_H
 
-#include <stdint.h>
 #include "srslte/config.h"
+#include <stdint.h>
 
 #define SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN 64
 
@@ -33,8 +33,12 @@ typedef enum SRSLTE_API {
   SRSLTE_CHEST_FILTER_NONE
 } srslte_chest_filter_t;
 
-SRSLTE_API void srslte_chest_average_pilots(
-    cf_t* input, cf_t* output, float* filter, uint32_t nof_ref, uint32_t nof_symbols, uint32_t filter_len);
+SRSLTE_API void srslte_chest_average_pilots(cf_t*    input,
+                                            cf_t*    output,
+                                            float*   filter,
+                                            uint32_t nof_ref,
+                                            uint32_t nof_symbols,
+                                            uint32_t filter_len);
 
 SRSLTE_API uint32_t srslte_chest_set_smooth_filter3_coeff(float* smooth_filter, float w);
 

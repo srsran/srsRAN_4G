@@ -27,7 +27,7 @@
 
 #include "srslte/srslte.h"
 
-char *input_file_name = NULL;
+char* input_file_name = NULL;
 
 srslte_cell_t cell = {
     6,                 // nof_prb
@@ -40,20 +40,22 @@ srslte_cell_t cell = {
 
 };
 
-int nof_frames = 1; 
+int nof_frames = 1;
 
-uint8_t bch_payload_file[SRSLTE_BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+uint8_t bch_payload_file[SRSLTE_BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1,
+                                                    1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-#define FLEN  (10*SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb)))
+#define FLEN (10 * SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb)))
 
-srslte_filesource_t fsrc;
+srslte_filesource_t   fsrc;
 cf_t *                input_buffer, *fft_buffer[SRSLTE_MAX_CODEWORDS];
-srslte_pbch_t pbch;
-srslte_ofdm_t fft;
-srslte_chest_dl_t chest;
+srslte_pbch_t         pbch;
+srslte_ofdm_t         fft;
+srslte_chest_dl_t     chest;
 srslte_chest_dl_res_t chest_res;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [vcoe] -i input_file\n", prog);
   printf("\t-c cell_id [Default %d]\n", cell.id);
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
@@ -62,32 +64,33 @@ void usage(char *prog) {
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
 
   while ((opt = getopt(argc, argv, "ivcpne")) != -1) {
-    switch(opt) {
-    case 'i':
-      input_file_name = argv[optind];
-      break;
-    case 'c':
-      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'p':
-      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'n':
-      nof_frames = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    case 'e':
-      cell.cp = SRSLTE_CP_EXT;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'i':
+        input_file_name = argv[optind];
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'p':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      case 'e':
+        cell.cp = SRSLTE_CP_EXT;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (!input_file_name) {
@@ -96,7 +99,8 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int base_init() {
+int base_init()
+{
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     ERROR("Error opening file %s\n", input_file_name);
@@ -157,7 +161,8 @@ int base_init() {
   return 0;
 }
 
-void base_free() {
+void base_free()
+{
   srslte_filesource_free(&fsrc);
 
   free(input_buffer);
@@ -171,9 +176,10 @@ void base_free() {
   srslte_pbch_free(&pbch);
 }
 
-int main(int argc, char **argv) {
-  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
-  int n;
+int main(int argc, char** argv)
+{
+  uint8_t  bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
+  int      n;
   uint32_t nof_tx_ports;
   int      sfn_offset;
 
@@ -182,16 +188,16 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   if (base_init()) {
     ERROR("Error initializing receiver\n");
     exit(-1);
   }
 
-  int frame_cnt = 0; 
-  int nof_decoded_mibs = 0; 
-  int nread = 0; 
+  int frame_cnt        = 0;
+  int nof_decoded_mibs = 0;
+  int nread            = 0;
   do {
     nread = srslte_filesource_read(&fsrc, input_buffer, FLEN);
 
@@ -221,7 +227,7 @@ int main(int argc, char **argv) {
       ERROR("Error reading from file\n");
       exit(-1);
     }
-  } while(nread > 0 && frame_cnt < nof_frames);
+  } while (nread > 0 && frame_cnt < nof_frames);
 
   base_free();
   srslte_dft_exit();
@@ -231,7 +237,7 @@ int main(int argc, char **argv) {
       printf("Could not decode PBCH\n");
       exit(-1);
     } else {
-      printf("MIB decoded OK. Nof ports: %d. SFN offset: %d Payload: ", nof_tx_ports, sfn_offset);    
+      printf("MIB decoded OK. Nof ports: %d. SFN offset: %d Payload: ", nof_tx_ports, sfn_offset);
       srslte_vec_fprint_hex(stdout, bch_payload, SRSLTE_BCH_PAYLOAD_LEN);
       if (nof_tx_ports == 2 && sfn_offset == 0 && !memcmp(bch_payload, bch_payload_file, SRSLTE_BCH_PAYLOAD_LEN)) {
         printf("This is the signal.1.92M.dat file\n");

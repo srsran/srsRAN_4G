@@ -22,18 +22,18 @@
 #ifndef SRSUE_USIM_BASE_H
 #define SRSUE_USIM_BASE_H
 
-#include <string>
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/log.h"
 #include "srslte/common/security.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include <string>
 
 namespace srsue {
 
-typedef enum{
+typedef enum {
   auth_algo_milenage = 0,
   auth_algo_xor,
-}auth_algo_t;
+} auth_algo_t;
 
 class usim_args_t
 {
@@ -41,7 +41,7 @@ public:
   usim_args_t() : using_op(false) {}
   std::string mode;
   std::string algo;
-  bool using_op;
+  bool        using_op;
   std::string op;
   std::string opc;
   std::string imsi;
@@ -51,9 +51,7 @@ public:
   std::string reader;
 };
 
-class usim_base
-    :public usim_interface_nas
-    ,public usim_interface_rrc
+class usim_base : public usim_interface_nas, public usim_interface_rrc
 {
 public:
   usim_base();
@@ -61,49 +59,49 @@ public:
   static std::unique_ptr<usim_base> get_instance(usim_args_t* args, srslte::log* log_);
 
   virtual int  init(usim_args_t* args) = 0;
-  virtual void stop() = 0;
+  virtual void stop()                  = 0;
 
   // NAS interface
   virtual std::string get_imsi_str() = 0;
   virtual std::string get_imei_str() = 0;
 
-  virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
-  virtual bool get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
+  virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n)          = 0;
+  virtual bool get_imei_vec(uint8_t* imei_, uint32_t n)          = 0;
   virtual bool get_home_plmn_id(srslte::plmn_id_t* home_plmn_id) = 0;
 
-  virtual auth_result_t generate_authentication_response(uint8_t  *rand,
-                                                         uint8_t  *autn_enb,
-                                                         uint16_t  mcc,
-                                                         uint16_t  mnc,
-                                                         uint8_t  *res,
-                                                         int      *res_len,
-                                                         uint8_t  *k_asme) = 0;
+  virtual auth_result_t generate_authentication_response(uint8_t* rand,
+                                                         uint8_t* autn_enb,
+                                                         uint16_t mcc,
+                                                         uint16_t mnc,
+                                                         uint8_t* res,
+                                                         int*     res_len,
+                                                         uint8_t* k_asme) = 0;
 
-  virtual void generate_nas_keys(uint8_t *k_asme,
-                         uint8_t *k_nas_enc,
-                         uint8_t *k_nas_int,
-                         srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                         srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
+  virtual void generate_nas_keys(uint8_t*                            k_asme,
+                                 uint8_t*                            k_nas_enc,
+                                 uint8_t*                            k_nas_int,
+                                 srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                 srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
 
   // RRC interface
-  virtual void generate_as_keys(uint8_t *k_asme,
-                        uint32_t count_ul,
-                        uint8_t *k_rrc_enc,
-                        uint8_t *k_rrc_int,
-                        uint8_t *k_up_enc,
-                        uint8_t *k_up_int,
-                        srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
+  virtual void generate_as_keys(uint8_t*                            k_asme,
+                                uint32_t                            count_ul,
+                                uint8_t*                            k_rrc_enc,
+                                uint8_t*                            k_rrc_int,
+                                uint8_t*                            k_up_enc,
+                                uint8_t*                            k_up_int,
+                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
 
-  virtual void generate_as_keys_ho(uint32_t pci,
-                           uint32_t earfcn,
-                           int ncc,
-                           uint8_t *k_rrc_enc,
-                           uint8_t *k_rrc_int,
-                           uint8_t *k_up_enc,
-                           uint8_t *k_up_int,
-                           srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                           srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
+  virtual void generate_as_keys_ho(uint32_t                            pci,
+                                   uint32_t                            earfcn,
+                                   int                                 ncc,
+                                   uint8_t*                            k_rrc_enc,
+                                   uint8_t*                            k_rrc_int,
+                                   uint8_t*                            k_up_enc,
+                                   uint8_t*                            k_up_int,
+                                   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
 };
 
 } // namespace srsue

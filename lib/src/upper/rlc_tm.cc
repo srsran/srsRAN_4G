@@ -39,7 +39,8 @@ rlc_tm::rlc_tm(srslte::log*               log_,
 }
 
 // Warning: must call stop() to properly deallocate all buffers
-rlc_tm::~rlc_tm() {
+rlc_tm::~rlc_tm()
+{
   pool = NULL;
 }
 
@@ -58,7 +59,8 @@ void rlc_tm::empty_queue()
   ul_queue.reset();
 }
 
-void rlc_tm::reestablish() {
+void rlc_tm::reestablish()
+{
   stop();
   tx_enabled = true;
 }
@@ -87,12 +89,16 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   }
   if (sdu) {
     if (blocking) {
-      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, queue size=%d, bytes=%d",
-                    rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
+      log->info_hex(sdu->msg,
+                    sdu->N_bytes,
+                    "%s Tx SDU, queue size=%d, bytes=%d",
+                    rrc->get_rb_name(lcid).c_str(),
+                    ul_queue.size(),
+                    ul_queue.size_bytes());
       ul_queue.write(std::move(sdu));
     } else {
-      uint8_t* msg_ptr   = sdu->msg;
-      uint32_t nof_bytes = sdu->N_bytes;
+      uint8_t*                              msg_ptr   = sdu->msg;
+      uint32_t                              nof_bytes = sdu->N_bytes;
       std::pair<bool, unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
       if (ret.first) {
         log->info_hex(msg_ptr,
@@ -144,11 +150,12 @@ void rlc_tm::reset_metrics()
   metrics = {};
 }
 
-int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
+int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t pdu_size = ul_queue.size_tail_bytes();
   if (pdu_size > nof_bytes) {
-    log->error("TX %s PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
+    log->error(
+        "TX %s PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
     return -1;
   }
   unique_byte_buffer_t buf;
@@ -156,7 +163,8 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     pdu_size = buf->N_bytes;
     memcpy(payload, buf->msg, buf->N_bytes);
     log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
-               rrc->get_rb_name(lcid).c_str(), buf->get_latency_us());
+               rrc->get_rb_name(lcid).c_str(),
+               buf->get_latency_us());
     log->info_hex(payload,
                   pdu_size,
                   "TX %s, %s PDU, queue size=%d, bytes=%d",
@@ -177,7 +185,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 }
 
-void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
+void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
   if (buf) {
