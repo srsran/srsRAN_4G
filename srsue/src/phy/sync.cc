@@ -596,12 +596,12 @@ void sync::run_thread()
           if (current_srate > 0) {
             nsamples = current_srate / 1000;
           }
-          Debug("Discarting %d samples\n", nsamples);
+          Debug("Discarding %d samples\n", nsamples);
           srslte_timestamp_t rx_time = {};
           if (!radio_recv_fnc(dummy_buffer, nsamples, &rx_time)) {
             log_h->console("SYNC:  Receiving from radio while in IDLE_RX\n");
           }
-          // If radio is in locked state returns inmidiatetly. In that case, do a 1 ms sleep
+          // If radio is in locked state returns immediately. In that case, do a 1 ms sleep
           if (rx_time.frac_secs == 0 && rx_time.full_secs == 0) {
             usleep(1000);
           }
