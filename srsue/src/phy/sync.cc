@@ -135,6 +135,7 @@ sync::~sync()
 
 void sync::stop()
 {
+  worker_com->semaphore.wait_all();
   intra_freq_meas.stop();
   running = false;
   wait_thread_finish();
@@ -146,11 +147,10 @@ void sync::reset()
   radio_overflow_return = false;
   in_sync_cnt           = 0;
   out_of_sync_cnt       = 0;
-  tx_worker_cnt         = 0;
   time_adv_sec          = 0;
   next_offset           = 0;
+  srate_mode            = SRATE_NONE;
   ZERO_OBJECT(next_radio_offset);
-  srate_mode     = SRATE_NONE;
   current_earfcn = -1;
   sfn_p.reset();
   search_p.reset();
@@ -535,7 +535,7 @@ void sync::run_thread()
                 worker->set_cfo(cc, cfo);
               }
 
-              worker->set_tti(tti, tx_worker_cnt);
+              worker->set_tti(tti);
               worker->set_tx_time(0, tx_time, next_radio_offset[0] + next_offset);
               next_offset = 0;
               ZERO_OBJECT(next_radio_offset);
@@ -544,7 +544,6 @@ void sync::run_thread()
               if (next_time_adv_sec != time_adv_sec) {
                 time_adv_sec = next_time_adv_sec;
               }
-              tx_worker_cnt = (tx_worker_cnt + 1) % nof_workers;
 
               // Advance/reset prach subframe pointer
               if (prach_ptr) {
@@ -558,6 +557,7 @@ void sync::run_thread()
               is_end_of_burst = true;
 
               // Start worker
+              worker_com->semaphore.push(worker);
               workers_pool->start_worker(worker);
 
               // Save signal for Intra-frequency measurement

@@ -45,25 +45,14 @@ namespace srsue {
 static cf_t  zeros[50000]                  = {};
 static cf_t* zeros_multi[SRSLTE_MAX_PORTS] = {zeros, zeros, zeros, zeros};
 
-phy_common::phy_common(uint32_t max_workers_) : tx_sem(max_workers_)
+phy_common::phy_common()
 {
-  max_workers = max_workers_;
-
-  for (uint32_t i = 0; i < max_workers; i++) {
-    sem_init(&tx_sem[i], 0, 0); // All semaphores start blocked
-  }
-
   reset();
 }
 
 phy_common::~phy_common()
 {
-  for (uint32_t i = 0; i < max_workers; i++) {
-    sem_post(&tx_sem[i]);
-  }
-  for (uint32_t i = 0; i < max_workers; i++) {
-    sem_destroy(&tx_sem[i]);
-  }
+
 }
 
 void phy_common::set_nof_workers(uint32_t nof_workers_)
@@ -80,7 +69,6 @@ void phy_common::init(phy_args_t*                  _args,
   radio_h        = _radio;
   stack          = _stack;
   args           = _args;
-  is_first_tx    = true;
   sr_last_tx_tti = -1;
 
   // Instantiate UL channel emulator
@@ -533,23 +521,14 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(uint32_t           tti,
+void phy_common::worker_end(void*              tx_sem_id,
                             bool               tx_enable,
                             cf_t*              buffer[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS],
                             uint32_t           nof_samples[SRSLTE_MAX_RADIOS],
                             srslte_timestamp_t tx_time[SRSLTE_MAX_RADIOS])
 {
-
-  // This variable is not protected but it is very unlikely that 2 threads arrive here simultaneously since at the
-  // beginning there is no workload and threads are separated by 1 ms
-  if (is_first_tx) {
-    is_first_tx = false;
-    // Allow my own transmission if I'm the first to transmit
-    sem_post(&tx_sem[tti % nof_workers]);
-  }
-
   // Wait for the green light to transmit in the current TTI
-  sem_wait(&tx_sem[tti % nof_workers]);
+  semaphore.wait(tx_sem_id);
 
   // For each radio, transmit
   for (uint32_t i = 0; i < args->nof_radios; i++) {
@@ -585,7 +564,7 @@ void phy_common::worker_end(uint32_t           tti,
   }
 
   // Allow next TTI to transmit
-  sem_post(&tx_sem[(tti + 1) % nof_workers]);
+  semaphore.release(tx_sem_id);
 }
 
 void phy_common::set_cell(const srslte_cell_t& c)
@@ -670,7 +649,7 @@ void phy_common::get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS])
 
 void phy_common::reset_radio()
 {
-  is_first_tx = true;
+  semaphore.reset();
 
   // End Tx streams even if they are continuous
   // Since is_first_of_burst is set to true, the radio need to send

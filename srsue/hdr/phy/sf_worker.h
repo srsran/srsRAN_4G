@@ -53,7 +53,7 @@ public:
 
   /* Functions used by main PHY thread */
   cf_t* get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
-  void  set_tti(uint32_t tti, uint32_t tx_worker_cnt);
+  void  set_tti(uint32_t tti);
   void  set_tx_time(uint32_t radio_idx, srslte_timestamp_t tx_time, int next_offset);
   void  set_prach(cf_t* prach_ptr, float prach_power);
   void  set_cfo(const uint32_t& cc_idx, float cfo);
@@ -109,7 +109,6 @@ private:
   float prach_power = 0;
 
   uint32_t           tti                            = 0;
-  uint32_t           tx_sem_id                      = 0;
   srslte_timestamp_t tx_time[SRSLTE_MAX_RADIOS]     = {};
   int                next_offset[SRSLTE_MAX_RADIOS] = {};
 

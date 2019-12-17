@@ -45,6 +45,12 @@ target_link_libraries(phy_worker_test
         ${Boost_LIBRARIES})
 add_test(phy_worker_test phy_worker_test)
 
+add_executable(phy_concurrency_test phy_concurrency_test.cc)
+target_link_libraries(phy_concurrency_test
+        srsue_phy
+        srslte_common)
+add_test(phy_concurrency_test phy_concurrency_test)
+
 
 add_executable(scell_search_test scell_search_test.cc)
 target_link_libraries(scell_search_test

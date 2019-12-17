@@ -115,7 +115,7 @@ cf_t* sf_worker::get_buffer(uint32_t carrier_idx, uint32_t antenna_idx)
   return cc_workers[carrier_idx]->get_rx_buffer(antenna_idx);
 }
 
-void sf_worker::set_tti(uint32_t tti_, uint32_t tx_worker_cnt)
+void sf_worker::set_tti(uint32_t tti_)
 {
   tti = tti_;
 
@@ -123,7 +123,6 @@ void sf_worker::set_tti(uint32_t tti_, uint32_t tx_worker_cnt)
     cc_worker->set_tti(tti);
   }
 
-  tx_sem_id = tx_worker_cnt;
   log_h->step(tti);
 
   if (log_phy_lib_h) {
@@ -258,7 +257,7 @@ void sf_worker::work_imp()
   }
 
   // Call worker_end to transmit the signal
-  phy->worker_end(tx_sem_id, tx_signal_ready, tx_signal_ptr, nof_samples, tx_time);
+  phy->worker_end(this, tx_signal_ready, tx_signal_ptr, nof_samples, tx_time);
 
   if (rx_signal_ok) {
     update_measurements();

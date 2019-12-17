@@ -43,8 +43,8 @@ typedef _Complex float cf_t;
 class phy : public ue_lte_phy_base, public thread
 {
 public:
-  phy(srslte::logger* logger_) : logger(logger_), workers_pool(MAX_WORKERS), common(MAX_WORKERS), thread("PHY"){};
-  ~phy() { stop(); }
+  explicit phy(srslte::logger* logger_) : logger(logger_), workers_pool(MAX_WORKERS), common(), thread("PHY"){};
+  ~phy() final { stop(); }
 
   // Init defined in base class
   int init(const phy_args_t& args_) final;

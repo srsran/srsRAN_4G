@@ -378,7 +378,7 @@ int main(int argc, char** argv)
   srsue::scell::intra_measure intra_measure;
   srslte::log_filter          logger("intra_measure");
   dummy_rrc                   rrc;
-  srsue::phy_common           common(1);
+  srsue::phy_common           common;
 
   // Simulation only
   std::vector<std::unique_ptr<test_enb> > test_enb_v;

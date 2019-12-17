@@ -25,13 +25,13 @@
 #include "phy_metrics.h"
 #include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/log.h"
+#include "srslte/common/tti_sempahore.h"
 #include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
 #include <condition_variable>
 #include <mutex>
-#include <semaphore.h>
 #include <string.h>
 #include <vector>
 
@@ -85,7 +85,9 @@ public:
   // Save last TBS for DL (Format1C)
   int last_dl_tbs[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS][SRSLTE_MAX_CODEWORDS] = {};
 
-  explicit phy_common(uint32_t max_workers);
+  srslte::tti_semaphore<void*> semaphore;
+
+  phy_common();
 
   ~phy_common();
 
@@ -131,7 +133,7 @@ public:
                           srslte_pdsch_ack_resource_t resource);
   bool get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srslte_pdsch_ack_cc_t* ack);
 
-  void worker_end(uint32_t           tti,
+  void worker_end(void*              h,
                   bool               tx_enable,
                   cf_t*              buffer[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS],
                   uint32_t           nof_samples[SRSLTE_MAX_RADIOS],
@@ -169,9 +171,7 @@ private:
   std::mutex              mtch_mutex;
   std::condition_variable mtch_cvar;
 
-  std::vector<sem_t> tx_sem;
   uint32_t           nof_workers = 0;
-  uint32_t           max_workers = 0;
 
   bool is_pending_tx_end = false;
 
@@ -222,8 +222,6 @@ private:
     srslte_dci_dl_t dl_dci;
   } pending_dl_grant_t;
   pending_dl_grant_t pending_dl_grant[FDD_HARQ_DELAY_MS][SRSLTE_MAX_CARRIERS] = {};
-
-  bool is_first_tx = true;
 
   srslte_cell_t cell = {};
 
