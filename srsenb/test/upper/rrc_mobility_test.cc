@@ -451,6 +451,85 @@ int test_mobility_class(mobility_test_params test_params)
   return SRSLTE_SUCCESS;
 }
 
+int test_erab_setup(bool qci_exists)
+{
+  printf("\n===== TEST: test_erab_setup()  =====\n");
+  srslte::scoped_tester_log    rrc_log("RRC ");
+  srslte::timer_handler        timers;
+  srslte::unique_byte_buffer_t pdu;
+
+  srsenb::all_args_t args;
+  rrc_cfg_t          cfg;
+  TESTASSERT(test_helpers::parse_default_cfg(&cfg, args) == SRSLTE_SUCCESS);
+
+  srsenb::rrc                       rrc;
+  mac_dummy                         mac;
+  rlc_dummy                         rlc;
+  test_dummies::pdcp_mobility_dummy pdcp;
+  phy_dummy                         phy;
+  test_dummies::s1ap_mobility_dummy s1ap;
+  gtpu_dummy                        gtpu;
+  rrc_log.set_level(srslte::LOG_LEVEL_INFO);
+  rrc_log.set_hex_limit(1024);
+  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
+
+  auto tic = [&timers, &rrc] {
+    timers.step_all();
+    rrc.tti_clock();
+  };
+
+  uint16_t rnti = 0x46;
+  rrc.add_user(rnti);
+
+  rrc_log.set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
+
+  // Do all the handshaking until the first RRC Connection Reconf
+  test_helpers::bring_rrc_to_reconf_state(rrc, timers, rnti);
+
+  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log.set_hex_limit(1024);
+
+  // MME sends 2nd ERAB Setup request for DRB2 (QCI exists in config)
+  uint8_t drb2_erab_setup_request_ok[] = {
+      0x00, 0x05, 0x00, 0x66, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x00, 0x08, 0x00, 0x02, 0x00,
+      0x02, 0x00, 0x10, 0x00, 0x53, 0x00, 0x00, 0x11, 0x00, 0x4e, 0x0c, 0x00, 0x09, 0x21, 0x0f, 0x80, 0x7f, 0x00,
+      0x00, 0x02, 0x00, 0x00, 0x00, 0x13, 0x3f, 0x27, 0x67, 0x90, 0x99, 0xf5, 0x05, 0x62, 0x02, 0xc1, 0x01, 0x09,
+      0x09, 0x08, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x65, 0x74, 0x05, 0x01, 0x2d, 0x2d, 0x00, 0x0b, 0x27, 0x22,
+      0x80, 0x80, 0x21, 0x10, 0x02, 0x00, 0x00, 0x10, 0x81, 0x06, 0x08, 0x08, 0x08, 0x08, 0x83, 0x06, 0x08, 0x08,
+      0x04, 0x04, 0x00, 0x0d, 0x04, 0x08, 0x08, 0x08, 0x08, 0x00, 0x0d, 0x04, 0x08, 0x08, 0x04, 0x04};
+
+  // QCI doesn't exist (in default eNB DRB config)
+  uint8_t drb2_erab_setup_request_fail[] = {
+      0x00, 0x05, 0x00, 0x75, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x64, 0x00, 0x08, 0x00, 0x02, 0x00,
+      0x01, 0x00, 0x42, 0x00, 0x0a, 0x18, 0x3b, 0x9a, 0xca, 0x00, 0x60, 0x3b, 0x9a, 0xca, 0x00, 0x00, 0x10, 0x00,
+      0x54, 0x00, 0x00, 0x11, 0x00, 0x4f, 0x0c, 0x00, 0x05, 0x3c, 0x0f, 0x80, 0x7f, 0x00, 0x01, 0x64, 0xb3, 0xce,
+      0xf1, 0xc9, 0x40, 0x27, 0xfe, 0x2a, 0x3b, 0xd1, 0x03, 0x62, 0x70, 0xc1, 0x01, 0x05, 0x17, 0x03, 0x69, 0x6d,
+      0x73, 0x06, 0x6d, 0x6e, 0x63, 0x30, 0x37, 0x30, 0x06, 0x6d, 0x63, 0x63, 0x39, 0x30, 0x31, 0x04, 0x67, 0x70,
+      0x72, 0x73, 0x05, 0x01, 0xc0, 0xa8, 0x04, 0x02, 0x27, 0x15, 0x80, 0x80, 0x21, 0x0a, 0x03, 0x00, 0x00, 0x0a,
+      0x81, 0x06, 0x08, 0x08, 0x08, 0x08, 0x00, 0x0d, 0x04, 0x08, 0x08, 0x08, 0x08};
+
+  LIBLTE_S1AP_S1AP_PDU_STRUCT s1ap_pdu;
+  LIBLTE_BYTE_MSG_STRUCT      byte_buf;
+  if (qci_exists) {
+    byte_buf.N_bytes = sizeof(drb2_erab_setup_request_ok);
+    memcpy(byte_buf.msg, drb2_erab_setup_request_ok, byte_buf.N_bytes);
+  } else {
+    byte_buf.N_bytes = sizeof(drb2_erab_setup_request_fail);
+    memcpy(byte_buf.msg, drb2_erab_setup_request_fail, byte_buf.N_bytes);
+  }
+
+  liblte_s1ap_unpack_s1ap_pdu(&byte_buf, &s1ap_pdu);
+  rrc.setup_ue_erabs(rnti, &s1ap_pdu.choice.initiatingMessage.choice.E_RABSetupRequest);
+
+  if (qci_exists) {
+    TESTASSERT(rrc_log.error_counter == 0);
+  } else {
+    TESTASSERT(rrc_log.error_counter == 2);
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   log_h.set_level(srslte::LOG_LEVEL_INFO);
@@ -460,13 +539,14 @@ int main(int argc, char** argv)
     return -1;
   }
   argparse::parse_args(argc, argv);
-
   TESTASSERT(test_correct_insertion() == 0);
   TESTASSERT(test_correct_meascfg_calculation() == 0);
   TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::wrong_measreport}) == 0);
   TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::concurrent_ho}) == 0);
   TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::ho_prep_failure}) == 0);
   TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::success}) == 0);
+  TESTASSERT(test_erab_setup(true) == SRSLTE_SUCCESS);
+  TESTASSERT(test_erab_setup(false) == SRSLTE_SUCCESS);
 
   printf("\nSuccess\n");
 
