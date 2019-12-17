@@ -420,7 +420,7 @@ int srslte_phich_encode(srslte_phich_t*         q,
     srslte_layermap_diversity(q->d0, x, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB);
     srslte_precoding_diversity(
         x, symbols_precoding, q->cell.nof_ports, SRSLTE_PHICH_MAX_NSYMB / q->cell.nof_ports, 1.0f);
-    /**FIXME: According to 6.9.2, Precoding for 4 tx ports is different! */
+    /**TODO: According to 6.9.2, Precoding for 4 tx ports is different! */
   } else {
     memcpy(q->sf_symbols[0], q->d0, SRSLTE_PHICH_MAX_NSYMB * sizeof(cf_t));
   }

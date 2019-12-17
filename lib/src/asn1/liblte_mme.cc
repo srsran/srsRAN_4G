@@ -295,7 +295,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_id_ie(LIBLTE_MME_MOBILE_ID_STRUCT* mobi
       odd    = false;
     }
   } else {
-    // FIXME: Not handling these IDs
+    // TODO: Not handling these IDs
     return (err);
   }
 
@@ -365,7 +365,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_mobile_id_ie(uint8** ie_ptr, LIBLTE_MME_MOBI
       id  = mobile_id->imeisv;
       odd = false;
     } else {
-      // FIXME: Not handling these IDs
+      // TODO: Not handling these IDs
       return (err);
     }
 
@@ -474,7 +474,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_station_classmark_3_ie(LIBLTE_MME_MOBIL
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
   if (ms_cm3 != NULL && ie_ptr != NULL) {
-    // FIXME
+    // TODO
 
     err = LIBLTE_SUCCESS;
   }
@@ -487,7 +487,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_mobile_station_classmark_3_ie(uint8**       
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
   if (ie_ptr != NULL && ms_cm3 != NULL) {
-    // FIXME
+    // TODO
 
     err = LIBLTE_SUCCESS;
   }
@@ -2533,7 +2533,7 @@ liblte_mme_pack_tracking_area_identity_list_ie(LIBLTE_MME_TRACKING_AREA_IDENTITY
 
   if (tai_list != NULL && ie_ptr != NULL) {
     (*ie_ptr)[0] = (tai_list->N_tais * 5) + 1;
-    // FIXME: Support all types
+    // TODO: Support all types
     if (1 == tai_list->N_tais) {
       (*ie_ptr)[1] = (LIBLTE_MME_TRACKING_AREA_IDENTITY_LIST_TYPE_ONE_PLMN_NON_CONSECUTIVE_TACS << 5) |
                      ((tai_list->N_tais - 1) & 0x1F);
@@ -3091,7 +3091,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_emergency_number_list_ie(uint8**            
 
     Document Reference: 24.301 v10.2.0 Section 9.9.3.38
 *********************************************************************/
-// FIXME
+// TODO
 
 /*********************************************************************
     IE Name: SS Code
@@ -3173,7 +3173,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_lcs_indicator_ie(uint8** ie_ptr, uint8* lcs_
 
     Document Reference: 24.301 v10.2.0 Section 9.9.3.41
 *********************************************************************/
-// FIXME
+// TODO
 
 /*********************************************************************
     IE Name: Generic Message Container Type
@@ -5586,7 +5586,7 @@ liblte_mme_unpack_authentication_response_msg(LIBLTE_BYTE_MSG_STRUCT*           
 
     Document Reference: 24.301 v10.2.0 Section 8.2.9
 *********************************************************************/
-// FIXME
+// TODO
 
 /*********************************************************************
     Message Name: Detach Accept
@@ -7450,7 +7450,7 @@ liblte_mme_unpack_tracking_area_update_reject_msg(LIBLTE_BYTE_MSG_STRUCT*       
 
     Document Reference: 24.301 v10.2.0 Section 8.2.29
 *********************************************************************/
-// FIXME
+// TODO
 
 /*********************************************************************
     Message Name: Uplink NAS Transport

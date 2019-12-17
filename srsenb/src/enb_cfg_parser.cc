@@ -273,7 +273,7 @@ int mbsfn_sf_cfg_list_parser::parse(Setting& root)
                                                                        &(*mbsfn_list)[0].radioframe_alloc_period);
   e.parse(root["mbsfnSubframeConfigList"]);
 
-  // FIXME: Did you forget subframeAllocationNumFrames?
+  // TODO: Did you forget subframeAllocationNumFrames?
 
   return 0;
 }
@@ -661,7 +661,7 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
     meas_cfg->meas_cells[i].pci      = (unsigned int)root[i]["pci"] % 504;
     meas_cfg->meas_cells[i].eci      = (unsigned int)root[i]["eci"];
     meas_cfg->meas_cells[i].q_offset = 0; // LIBLTE_RRC_Q_OFFSET_RANGE_DB_0; // TODO
-                                          //    // FIXME: TEMP
+                                          //    // TODO: TEMP
                                           //    printf("PARSER: neighbor cell: {dl_earfcn=%d pci=%d cell_idx=0x%x}\n",
                                           //           meas_cfg->meas_cells[i].earfcn,
                                           //           meas_cfg->meas_cells[i].pci,
@@ -1008,7 +1008,7 @@ int parse_sib2(std::string filename, sib_type2_s* data)
   groupa_cnfg.add_field(make_asn1_enum_number_parser("size_of_ra", &group_acfg->size_of_ra_preambs_group_a));
   groupa_cnfg.add_field(make_asn1_enum_number_parser("msg_size", &group_acfg->msg_size_group_a));
   groupa_cnfg.add_field(make_asn1_enum_number_parser("msg_pwr_offset_group_b", &group_acfg->msg_pwr_offset_group_b));
-  //  rr_cfg_common->rach_cfg_common.preamb_info.nof_ra_preambs = FIXME: ???
+  //  rr_cfg_common->rach_cfg_common.preamb_info.nof_ra_preambs = TODO: ???
 
   // BCCH configuration
   parser::section bcch_cnfg("bcch_cnfg");
@@ -1272,7 +1272,7 @@ int parse_sib13(std::string filename, sib_type13_r9_s* data)
 
 int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_config_common)
 {
-  // FIXME: Leave 0 blank for now
+  // TODO: Leave 0 blank for now
   sib_type2_s*     sib2  = &rrc_cfg_->sibs[1].set_sib2();
   sib_type3_s*     sib3  = &rrc_cfg_->sibs[2].set_sib3();
   sib_type4_s*     sib4  = &rrc_cfg_->sibs[3].set_sib4();

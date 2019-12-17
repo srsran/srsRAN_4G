@@ -387,7 +387,7 @@ public:
   {
     // Provide new UL grant to UE
     mac_interface_phy_lte::mac_grant_ul_t ul_grant = {};
-    ul_grant.tb.tbs                                = 100; // FIXME: reasonable size?
+    ul_grant.tb.tbs                                = 100; // TODO: reasonable size?
     ul_grant.tb.ndi_present                        = true;
     ul_grant.tb.ndi                                = get_ndi_for_new_ul_tx(tti);
     ul_grant.rnti                                  = crnti;

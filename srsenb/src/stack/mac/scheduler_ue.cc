@@ -83,7 +83,7 @@ void sched_ue::set_cfg(uint16_t rnti_, const sched_params_t& sched_params_, sche
     // Init sched_ue carriers
     // TODO: check config for number of carriers
     carriers.emplace_back(&cfg, &cell, rnti, 0, log_h);
-    enb_ue_cellindex_map.insert(std::make_pair(0, 0)); // FIXME: use real values
+    enb_ue_cellindex_map.insert(std::make_pair(0, 0)); // TODO: use real values
 
     // Generate allowed CCE locations
     for (int cfi = 0; cfi < 3; cfi++) {
@@ -448,7 +448,7 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
       Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
     } else {
       // Add TA CE
-      // FIXME: Can't put it in Msg4 because current srsUE doesn't read it
+      // TODO: Can't put it in Msg4 because current srsUE doesn't read it
       while (nof_ta_cmd > 0 && rem_tbs > 2) {
         data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::TA_CMD;
         data->nof_pdu_elems[0]++;
@@ -517,7 +517,7 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
   dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
   dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
-  uint32_t nof_prb = format1_count_prb(user_mask); // FIXME: format1???
+  uint32_t nof_prb = format1_count_prb(user_mask); // TODO: format1???
 
   // Calculate exact number of RE for this PRB allocation
   srslte_pdsch_grant_t grant = {};
@@ -986,7 +986,7 @@ srslte_dci_format_t sched_ue::get_dci_format()
   srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1;
 
   if (phy_config_dedicated_enabled) {
-    /* FIXME: Assumes UE-Specific Search Space (Not common) */
+    /* TODO: Assumes UE-Specific Search Space (Not common) */
     switch (dl_ant_info.explicit_value().tx_mode) {
       case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm1:
       case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm2:

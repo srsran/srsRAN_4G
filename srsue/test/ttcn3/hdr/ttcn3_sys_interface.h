@@ -236,7 +236,7 @@ private:
         log->info("Configure DRB%d\n", id["Drb"].GetInt());
       }
 
-      // FIXME: actually do configuration
+      // TODO: actually do configuration
     }
 
     std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "RadioBearerList");

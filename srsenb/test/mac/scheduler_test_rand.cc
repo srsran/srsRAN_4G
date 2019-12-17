@@ -327,7 +327,7 @@ int sched_tester::process_tti_args()
           continue;
         }
       }
-      // FIXME: Does it need TTI for checking pending data?
+      // TODO: Does it need TTI for checking pending data?
       uint32_t tot_dl_data = pending_dl_new_data + e.second.dl_data;
       dl_rlc_buffer_state(e.first, lcid, tot_dl_data, 0);
     }
@@ -499,7 +499,7 @@ int sched_tester::assert_no_empty_allocs()
 
     if (!iter.second.has_ul_tx and tti_data.ue_data[rnti].ul_sched != nullptr and
         tti_data.ue_data[rnti].ul_sched->needs_pdcch) {
-      // FIXME: This test does not work for adaptive re-tx
+      // TODO: This test does not work for adaptive re-tx
       TESTERROR("[TESTER] There was a user without data that got allocated in UL\n");
     }
     //    srsenb::ul_harq_proc* hul       = user->get_ul_harq(tti_data.tti_tx_ul);
@@ -518,7 +518,7 @@ int sched_tester::assert_no_empty_allocs()
     }
   }
   //  CONDERROR(tti_data.total_ues.has_dl_tx and no_dl_allocs, "There was pending DL data but no user got allocated\n");
-  // FIXME: You have to verify if there is space for the retx since it is non-adaptive
+  // TODO: You have to verify if there is space for the retx since it is non-adaptive
   return SRSLTE_SUCCESS;
 }
 
@@ -594,7 +594,7 @@ int sched_tester::test_tti_result()
     TESTERROR("[TESTER] The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), tti_data.used_cce.to_hex().c_str());
   }
 
-  // FIXME: Check postponed retxs
+  // TODO: Check postponed retxs
 
   //  typedef std::map<uint16_t, srsenb::sched_ue>::iterator it_t;
   //  // There must be allocations if there is pending data/retxs.

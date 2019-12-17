@@ -1583,7 +1583,7 @@ void rlc_am_lte::rlc_am_lte_rx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
   if (reordering_timer.is_valid() and reordering_timer.id() == timeout_id) {
-    //    reordering_timer.run(); // FIXME: It was reset() before
+    //    reordering_timer.run(); // TODO: It was reset() before
     log->debug("%s reordering timeout expiry - updating vr_ms (was %d)\n", RB_NAME, vr_ms);
 
     // 36.322 v10 Section 5.1.3.2.4

@@ -260,7 +260,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_mobile_station_classmark_2_ie(uint8**       
 // Enums
 // Structs
 typedef struct {
-  // FIXME
+  // TODO
 } LIBLTE_MME_MOBILE_STATION_CLASSMARK_3_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_mobile_station_classmark_3_ie(LIBLTE_MME_MOBILE_STATION_CLASSMARK_3_STRUCT* ms_cm3,
@@ -1475,7 +1475,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_emergency_number_list_ie(uint8**            
 // Enums
 // Structs
 // Functions
-// FIXME
+// TODO
 
 /*********************************************************************
     IE Name: SS Code
@@ -1522,7 +1522,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_lcs_indicator_ie(uint8** ie_ptr, uint8* lcs_
 // Enums
 // Structs
 // Functions
-// FIXME
+// TODO
 
 /*********************************************************************
     IE Name: Generic Message Container Type
@@ -2704,7 +2704,7 @@ liblte_mme_unpack_authentication_response_msg(LIBLTE_BYTE_MSG_STRUCT*           
 // Enums
 // Structs
 // Functions
-// FIXME
+// TODO
 
 /*********************************************************************
     Message Name: Detach Accept
@@ -3213,7 +3213,7 @@ liblte_mme_unpack_tracking_area_update_reject_msg(LIBLTE_BYTE_MSG_STRUCT*       
 // Enums
 // Structs
 // Functions
-// FIXME
+// TODO
 
 /*********************************************************************
     Message Name: Uplink NAS Transport

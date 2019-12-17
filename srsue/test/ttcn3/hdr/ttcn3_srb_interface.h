@@ -152,7 +152,7 @@ private:
 
     syssim->add_ccch_pdu(std::move(pdu));
 
-    // FIXME: is there a better way to check for RRCConnectionReestablishment?
+    // TODO: is there a better way to check for RRCConnectionReestablishment?
     if (ccch_is_rrc_reestablishment(document)) {
       syssim->reestablish_bearer(1);
     }

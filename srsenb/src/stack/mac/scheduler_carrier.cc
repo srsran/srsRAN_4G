@@ -201,7 +201,7 @@ void ra_sched::dl_sched(srsenb::tti_sched_result_t* tti_sched)
     // Schedule Msg3 only if there is a requirement for Msg3 data
     uint32_t pending_tti              = (tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY) % TTIMOD_SZ;
     pending_msg3[pending_tti].enabled = true;
-    pending_msg3[pending_tti].rnti    = rar.temp_crnti; // FIXME
+    pending_msg3[pending_tti].rnti    = rar.temp_crnti; // TODO
     pending_msg3[pending_tti].L       = L_prb;
     pending_msg3[pending_tti].n_prb   = n_prb;
     dl_sched_rar_grant_t* last_msg3   = &rar_grant.msg3_grant[rar_grant.nof_grants - 1];
@@ -397,7 +397,7 @@ void sched::carrier_sched::generate_phich(tti_sched_result_t* tti_sched)
     }
     uint32_t cell_index = p.second;
 
-    //    user.has_pucch = false; // FIXME: What is this for?
+    //    user.has_pucch = false; // TODO: What is this for?
 
     ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_rx(), cell_index);
 

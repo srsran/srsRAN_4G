@@ -197,7 +197,7 @@ int srslte_ue_sync_nbiot_init_multi(srslte_nbiot_ue_sync_t* q,
     }
 
     // in tracking phase we only sample for one subframe but still use the entire
-    // subframe to run the correlation (FIXME: use only one symbol?)
+    // subframe to run the correlation (TODO: use only one symbol?)
     if (srslte_sync_nbiot_init(&q->strack, q->sf_len, q->sf_len, q->fft_size)) {
       fprintf(stderr, "Error initiating sync track\n");
       goto clean_exit;

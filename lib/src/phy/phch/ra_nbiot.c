@@ -34,7 +34,7 @@
 #define MAX_I_TBS_VAL 12
 #define MAX_I_TBS_VAL_SIB 11
 #define MAX_I_SF_VAL 7
-#define EUTRA_CONTROL_REGION_SIZE 3 // FIXME: Needs to be set by SIB1
+#define EUTRA_CONTROL_REGION_SIZE 3 // TODO: Needs to be set by SIB1
 
 /// Number of repetitions according to Table 16.4.1.3-2 in TS 36.213 13.2.0
 const int n_rep_table[16] = {1, 2, 4, 8, 16, 32, 64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048};
@@ -408,7 +408,7 @@ int srslte_ra_nbiot_ul_rar_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
   if (grant->sc_spacing == SRSLTE_NPUSCH_SC_SPACING_15000 && dci->i_sc > 11) {
     grant->mcs.mod = SRSLTE_MOD_QPSK;
   } else if (dci->i_sc <= 11) {
-    // FIXME: Use SRSLTE_MOD_PI2_BPSK and SRSLTE_MOD_PI4_QPSK
+    // TODO: Use SRSLTE_MOD_PI2_BPSK and SRSLTE_MOD_PI4_QPSK
     grant->mcs.mod = (dci->i_mcs == 0) ? SRSLTE_MOD_BPSK : SRSLTE_MOD_QPSK;
   }
   return 0;
@@ -432,7 +432,7 @@ void srslte_ra_nbiot_ul_get_uci_grant(srslte_ra_nbiot_ul_grant_t* grant,
   grant->Qm              = 1;
   grant->nof_ru          = 1;
   grant->nof_slots       = 4;
-  grant->nof_rep         = 0; // FIXME: set appropiatly
+  grant->nof_rep         = 0; // TODO: set appropiatly
   grant->rv_idx          = 0;
 }
 
@@ -503,7 +503,7 @@ int srslte_ra_nbiot_ul_dci_to_grant(srslte_ra_nbiot_ul_dci_t*   dci,
 
   /// Redundency version according to TS 36 212 Section 6.3.2
   /// And TS 36 213 Sec. 16.5.1.2
-  /// FIXME: implement NPUSCH repetitions
+  /// TODO: implement NPUSCH repetitions
   /// int L = (grant->nof_sc == 1) ? 1 : min(4, grant->nof_rep/2);
   /// int B = L * grant->nof_ru * grant->nof_slots;
   int j         = 0;

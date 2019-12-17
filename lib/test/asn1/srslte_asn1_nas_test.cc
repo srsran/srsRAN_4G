@@ -85,7 +85,7 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
   TESTASSERT(ded_bearer_req.tft.parameter_list_size == 0);
   TESTASSERT(ded_bearer_req.tft.packet_filter_list_size == 1);
   TESTASSERT(ded_bearer_req.tft.packet_filter_list[0].dir == LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_BIDIRECTIONAL);
-  TESTASSERT(ded_bearer_req.tft.packet_filter_list[0].id == 1); // FIXME Should this be 2?
+  TESTASSERT(ded_bearer_req.tft.packet_filter_list[0].id == 1); // TODO Should this be 2?
   TESTASSERT(ded_bearer_req.tft.packet_filter_list[0].eval_precedence == 0);
   TESTASSERT(ded_bearer_req.tft.packet_filter_list[0].filter_size == 3);
   TESTASSERT(ded_bearer_req.tft.packet_filter_list[0].filter[0] ==

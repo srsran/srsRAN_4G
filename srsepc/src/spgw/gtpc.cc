@@ -139,7 +139,7 @@ bool spgw::gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
 {
   m_gtpc_log->debug("SPGW Sending S11 PDU! N_Bytes: %zd\n", sizeof(pdu));
 
-  // FIXME add serialization code here
+  // TODO add serialization code here
   // Send S11 message to MME
   int n = sendto(m_s11, &pdu, sizeof(pdu), 0, (const sockaddr*)&m_mme_addr, sizeof(m_mme_addr));
   if (n < 0) {
@@ -153,7 +153,7 @@ bool spgw::gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
 
 void spgw::gtpc::handle_s11_pdu(srslte::byte_buffer_t* msg)
 {
-  // FIXME add deserialization code here
+  // TODO add deserialization code here
   srslte::gtpc_pdu* pdu = (srslte::gtpc_pdu*)msg->msg;
   m_gtpc_log->console("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
   m_gtpc_log->debug("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));

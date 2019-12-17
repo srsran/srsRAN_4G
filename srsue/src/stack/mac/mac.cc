@@ -123,7 +123,7 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
   ra_procedure.start_pcap(pcap);
 }
 
-// FIXME: Change the function name and implement reconfiguration as in specs
+// TODO: Change the function name and implement reconfiguration as in specs
 // Implement Section 5.8
 void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
 {
@@ -330,7 +330,7 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
   // Priority: SI-RNTI, P-RNTI, RA-RNTI, Temp-RNTI, CRNTI
   if (si_window_start > 0) {
     if (is_in_window(tti, &si_window_start, &si_window_length)) {
-      // FIXME: This scheduling decision belongs to RRC
+      // TODO: This scheduling decision belongs to RRC
       if (si_window_length > 1) {                     // This is not a SIB1
         if ((tti / 10) % 2 == 0 && (tti % 10) == 5) { // Skip subframe #5 for which SFN mod 2 = 0
           return 0;

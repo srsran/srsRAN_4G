@@ -353,7 +353,7 @@ bool rlc_um_nr::rlc_um_nr_rx::has_missing_byte_segment(const uint32_t sn)
 {
   // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
   // all received segments of this RLC SDU
-  // FIXME: check assumption
+  // TODO: check assumption
   // if SN can be found in rx_window, it means that at least one segment is missing
   return (rx_window.find(sn) != rx_window.end());
 }

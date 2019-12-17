@@ -1181,7 +1181,7 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
   // If this is the first con_reconfig after a reestablishment
   if (reestablishment_successful) {
     // Reestablish PDCP and RLC for SRB2 and all DRB
-    // FIXME: Which is the maximum LCID?
+    // TODO: Which is the maximum LCID?
     for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
       if (rlc->has_bearer(i)) {
         pdcp->reestablish(i);
@@ -2737,7 +2737,7 @@ void rrc::rrc_meas::reset()
   filter_k_rsrp = filt_coef_e(filt_coef_e::fc4).to_number();
   filter_k_rsrq = filt_coef_e(filt_coef_e::fc4).to_number();
 
-  // FIXME: Turn struct into a class and use destructor
+  // TODO: Turn struct into a class and use destructor
   std::map<uint32_t, meas_t>::iterator iter = active.begin();
   while (iter != active.end()) {
     remove_meas_id(iter++);

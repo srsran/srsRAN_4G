@@ -650,7 +650,7 @@ void* net_thread_fnc(void* arg)
   do {
     n = srslte_netsource_read(&net_source, &data2[rpm], DATA_BUFF_SZ - rpm);
     if (n > 0) {
-      // FIXME: I assume that both transport blocks have same size in case of 2 tb are active
+      // TODO: I assume that both transport blocks have same size in case of 2 tb are active
 
       int nbytes = 1 + (((mbsfn_area_id > -1) ? (pmch_cfg.pdsch_cfg.grant.tb[0].tbs)
                                               : (pdsch_cfg.grant.tb[0].tbs + pdsch_cfg.grant.tb[1].tbs)) -

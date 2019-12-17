@@ -898,7 +898,7 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
     byte[2] = 1;
     memcpy(&pmch_item->mbms_session_info_list_r9[1].tmgi_r9.service_id_r9[0],
            &byte[0],
-           3); // FIXME: Check if service is set to 1
+           3); // TODO: Check if service is set to 1
   }
   pmch_item->pmch_cfg_r9.data_mcs_r9         = 20;
   pmch_item->pmch_cfg_r9.mch_sched_period_r9 = pmch_cfg_r9_s::mch_sched_period_r9_e_::rf64;
@@ -1146,7 +1146,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   parent->log_rrc_message(rb_id_text[lcid], Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
   // reuse PDU
-  pdu->clear(); // FIXME: name collision with byte_buffer reset
+  pdu->clear(); // TODO: name collision with byte_buffer reset
 
   transaction_id = 0;
 

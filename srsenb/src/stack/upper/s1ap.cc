@@ -676,7 +676,7 @@ bool s1ap::handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETU
       cause.choice.radioNetwork.ext = false;
       cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_CS_FALLBACK_TRIGGERED;
 
-      /* FIXME: This should normally probably only be sent after the SecurityMode procedure has completed! */
+      /* TODO: This should normally probably only be sent after the SecurityMode procedure has completed! */
       ctxt->release_requested = true;
       send_uectxtreleaserequest(rnti, &cause);
     }

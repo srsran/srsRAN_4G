@@ -417,7 +417,7 @@ void ra_proc::tb_decoded_ok(const uint32_t tti)
       rar_received = true;
       process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
 
-      // FIXME: Indicate received target power
+      // TODO: Indicate received target power
       // phy_h->set_target_power_rar(iniReceivedTargetPower, (preambleTransmissionCounter-1)*powerRampingStep);
 
       uint8_t grant[srslte::rar_subh::RAR_GRANT_LEN];

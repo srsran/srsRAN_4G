@@ -1085,7 +1085,7 @@ bool nas::handle_esm_information_response(srslte::byte_buffer_t* nas_rx)
   m_nas_log->debug("Getting subscription information -- QCI %d\n", m_esm_ctx[default_bearer].qci);
   m_nas_log->console("Getting subscription information -- QCI %d\n", m_esm_ctx[default_bearer].qci);
 
-  // FIXME The packging of GTP-C messages is not ready.
+  // TODO The packging of GTP-C messages is not ready.
   // This means that GTP-U tunnels are created with function calls, as opposed to GTP-C.
   m_gtpc->send_create_session_request(m_emm_ctx.imsi);
   return true;
@@ -1385,7 +1385,7 @@ bool nas::pack_attach_accept(srslte::byte_buffer_t* nas_buffer)
   // Attach accept
   attach_accept.eps_attach_result = m_emm_ctx.attach_type;
 
-  // FIXME: Set t3412 from config
+  // TODO: Set t3412 from config
   attach_accept.t3412.unit  = LIBLTE_MME_GPRS_TIMER_UNIT_1_MINUTE; // GPRS 1 minute unit
   attach_accept.t3412.value = 30;                                  // 30 minute periodic timer
 
@@ -1447,7 +1447,7 @@ bool nas::pack_attach_accept(srslte::byte_buffer_t* nas_buffer)
 
   // set apn
   strncpy(act_def_eps_bearer_context_req.apn.apn, m_apn.c_str(), LIBLTE_STRING_LEN - 1);
-  act_def_eps_bearer_context_req.proc_transaction_id = m_emm_ctx.procedure_transaction_id; // FIXME
+  act_def_eps_bearer_context_req.proc_transaction_id = m_emm_ctx.procedure_transaction_id; // TODO
 
   // Set DNS server
   act_def_eps_bearer_context_req.protocol_cnfg_opts_present    = true;

@@ -104,7 +104,7 @@ liblte_m2ap_pack_protocolie_header(uint32_t len, uint32_t ie_id, LIBLTE_M2AP_CRI
     liblte_value_2_bits(0, ptr, 1);
     liblte_value_2_bits(len, ptr, 14);
   } else {
-    // FIXME: Unlikely to have more than 16K of octets
+    // TODO: Unlikely to have more than 16K of octets
   }
 
   return LIBLTE_SUCCESS;
@@ -122,7 +122,7 @@ liblte_m2ap_unpack_protocolie_header(uint8_t** ptr, uint32_t* ie_id, LIBLTE_M2AP
     if (0 == liblte_bits_2_value(ptr, 1)) {
       *len = liblte_bits_2_value(ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
   }
   return LIBLTE_SUCCESS;
@@ -1039,7 +1039,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mbmsservicearea(uint8_t** ptr, LIBLTE_M2AP_
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
     // ie->n_octets = liblte_bits_2_value(ptr,8);
@@ -2142,7 +2142,7 @@ liblte_m2ap_unpack_enbmbmsconfigurationdatalist(uint8_t** ptr, LIBLTE_M2AP_ENB_M
   uint32_t                                      len;
 
   if (ie != NULL && ptr != NULL) {
-    // Length FIXME!!!
+    // Length TODO!!!
     ie->len = liblte_bits_2_value(ptr, 16) + 1;
     liblte_align_up(ptr, 8);
     if (ie->len > 32) {
@@ -2223,7 +2223,7 @@ liblte_m2ap_unpack_mcchrelatedbcchconfigpermbsfnarea(uint8_t**                  
   uint32_t                                      len;
 
   if (ie != NULL && ptr != NULL) {
-    // Length FIXME!!!
+    // Length TODO!!!
     ie->len = liblte_bits_2_value(ptr, 16) + 1;
     liblte_align_up(ptr, 8);
     if (ie->len > 32) {
@@ -2448,7 +2448,7 @@ liblte_m2ap_unpack_mbsfnsubframeconfigurationlist(uint8_t**                     
   uint32_t                                      len;
 
   if (ie != NULL && ptr != NULL) {
-    // Length FIXME!!!
+    // Length TODO!!!
     ie->len = liblte_bits_2_value(ptr, 3) + 1;
     liblte_align_up(ptr, 8);
     if (ie->len > 32) {
@@ -2691,7 +2691,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_pmchconfigurationlist(uint8_t**            
   uint32_t                                      len;
 
   if (ie != NULL && ptr != NULL) {
-    // Length FIXME!!!
+    // Length TODO!!!
     ie->len = liblte_bits_2_value(ptr, 4);
     liblte_align_up(ptr, 8);
     if (ie->len > 32) {
@@ -2887,7 +2887,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mbsfnareaconfigurationlist(uint8_t**       
   uint32_t                                      len;
 
   if (ie != NULL && ptr != NULL) {
-    // Length FIXME!!!
+    // Length TODO!!!
     ie->len = liblte_bits_2_value(ptr, 8) + 1;
     liblte_align_up(ptr, 8);
     if (ie->len > 32) {
@@ -3077,7 +3077,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_m2setupresponse(LIBLTE_M2AP_MESSAGE_M2SETUPRE
     memcpy(*ptr, tmp_msg.msg, tmp_msg.N_bits);
     *ptr += tmp_msg.N_bits;
 
-    // ProtocolIE - MCEname FIXME
+    // ProtocolIE - MCEname TODO
 
     // ProtocolIE - MCCHrelatedBCCH-ConfigPerMBSFNArea
     tmp_ptr = tmp_msg.msg;
@@ -3711,7 +3711,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_initiatingmessage(LIBLTE_M2AP_INITIATINGMESSA
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(len, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     memcpy(*ptr, tmp_msg.msg, tmp_msg.N_bits);
@@ -3742,7 +3742,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_initiatingmessage(uint8_t** ptr, LIBLTE_M2A
       if (0 == liblte_bits_2_value(ptr, 1)) {
         len = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -3812,7 +3812,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_successfuloutcome(LIBLTE_M2AP_SUCCESSFULOUTCO
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(len, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     memcpy(*ptr, tmp_msg.msg, tmp_msg.N_bits);
@@ -3843,7 +3843,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_successfuloutcome(uint8_t** ptr, LIBLTE_M2A
       if (0 == liblte_bits_2_value(ptr, 1)) {
         len = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 

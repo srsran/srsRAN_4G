@@ -405,7 +405,7 @@ typedef struct gtpc_f_teid_ie {
   enum gtpc_interface_type interface_type;
   uint32_t                 teid;
   in_addr_t                ipv4;
-  struct in6_addr          ipv6; // FIXME
+  struct in6_addr          ipv6; // TODO
 } gtp_fteid_t;
 
 // TODO

@@ -473,7 +473,7 @@ int srslte_rm_turbo_rx_lut_8bit(int8_t* input, int8_t* output, uint32_t in_len, 
     uint16_t* deinter = deinterleaver[cb_idx][rv_idx];
 #endif
 
-    // FIXME: AVX version of rm_turbo_rx_lut not working
+    // TODO: AVX version of rm_turbo_rx_lut not working
     // Warning: Need to check if 8-bit sse version is correct
 
 #ifdef LV_HAVE_SSE
