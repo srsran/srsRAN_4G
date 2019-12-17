@@ -184,7 +184,7 @@ void sf_worker::work_imp()
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (!cell_initiated) {
-    return;
+    phy->worker_end(this, false, nullptr, nullptr, tx_time);
   }
 
   /***** Downlink Processing *******/
