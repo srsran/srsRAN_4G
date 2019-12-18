@@ -29,8 +29,8 @@ link_directories(
         ${SEC_LIBRARY_DIRS}
 )
 
-add_executable(phy_worker_test phy_worker_test.cc)
-target_link_libraries(phy_worker_test
+add_executable(ue_phy_test ue_phy_test.cc)
+target_link_libraries(ue_phy_test
         srsue_phy
         srsue_stack
         srsue_upper
@@ -43,14 +43,7 @@ target_link_libraries(phy_worker_test
         rrc_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
-add_test(phy_worker_test phy_worker_test)
-
-add_executable(phy_concurrency_test phy_concurrency_test.cc)
-target_link_libraries(phy_concurrency_test
-        srsue_phy
-        srslte_common)
-add_test(phy_concurrency_test phy_concurrency_test)
-
+add_test(ue_phy_test ue_phy_test)
 
 add_executable(scell_search_test scell_search_test.cc)
 target_link_libraries(scell_search_test

@@ -90,7 +90,11 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void* 
   // All threads have normal priority except prio_offset=0,1,2,3,4
   if (prio_offset >= 0 && prio_offset < 5) {
     param.sched_priority = 50 - prio_offset;
-    pthread_attr_init(&attr);
+    if (pthread_attr_init(&attr)) {
+      perror("pthread_attr_init");
+    } else {
+      attr_enable = true;
+    }
     if (pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) {
       perror("pthread_attr_setinheritsched");
     }
@@ -101,12 +105,14 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void* 
       perror("pthread_attr_setschedparam");
       fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
     }
-    attr_enable = true;
-
   } else {
 #endif
     param.sched_priority = 0;
-    pthread_attr_init(&attr);
+    if (pthread_attr_init(&attr)) {
+      perror("pthread_attr_init");
+    } else {
+      attr_enable = true;
+    }
     if (pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED)) {
       perror("pthread_attr_setinheritsched");
     }
@@ -117,16 +123,15 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void* 
       perror("pthread_attr_setschedparam");
       fprintf(stderr, "Error not enough privileges to set Scheduling priority\n");
     }
-    attr_enable = true;
   }
   if (cpu > 0) {
     if (cpu > 50) {
-      int mask;
+      uint32_t mask;
       mask = cpu / 100;
 
       CPU_ZERO(&cpuset);
-      for (int i = 0; i < 8; i++) {
-        if (((mask >> i) & 0x01) == 1) {
+      for (uint32_t i = 0; i < 8; i++) {
+        if (((mask >> i) & 0x01U) == 1U) {
           CPU_SET((size_t)i, &cpuset);
         }
       }
@@ -143,6 +148,9 @@ bool threads_new_rt_cpu(pthread_t* thread, void* (*start_routine)(void*), void* 
   int err = pthread_create(thread, attr_enable ? &attr : NULL, start_routine, arg);
   if (err) {
     if (EPERM == err) {
+      // Join failed thread for avoiding memory leak from previous trial
+      pthread_join(*thread, NULL);
+
       perror("Warning: Failed to create thread with real-time priority. Creating it with normal priority");
       err = pthread_create(thread, NULL, start_routine, arg);
       if (err) {

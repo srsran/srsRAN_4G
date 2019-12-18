@@ -18,11 +18,10 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#include <srslte/common/log_filter.h>
 #include <srslte/common/thread_pool.h>
 #include <srslte/common/tti_sempahore.h>
 #include <srslte/phy/utils/random.h>
-#include <srslte/srslte.h>
-#include <srsue/hdr/phy/phy.h>
 
 class dummy_radio
 {
