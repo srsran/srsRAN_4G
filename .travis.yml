@@ -54,5 +54,5 @@ script:
  - cd build
  - cmake -DRF_FOUND=True -G Ninja ..
  - ninja
- - make test
+ - ninja test
  - sudo make install
