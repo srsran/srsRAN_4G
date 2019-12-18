@@ -1,9 +1,9 @@
-dist: xenial
+dist: bionic
 sudo: required
 
 before_script:
    - sudo apt-get -qq update
-   - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff
+   - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build
 
 language: cpp
 
@@ -52,7 +52,7 @@ script:
    fi
  - mkdir build
  - cd build
- - cmake -DRF_FOUND=True ..
- - make
+ - cmake -DRF_FOUND=True -G Ninja ..
+ - ninja
  - make test
  - sudo make install
