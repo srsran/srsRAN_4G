@@ -213,6 +213,38 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
   return cfg;
 }
 
+srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg)
+{
+  pdcp_config_t cfg = make_drb_pdcp_config_t(bearer_id, is_ue);
+  // TODO: complete config processing
+  if (pdcp_cfg.discard_timer_present) {
+    switch (pdcp_cfg.discard_timer.to_number()) {
+      case 10:
+        cfg.discard_timer = pdcp_discard_timer_t::ms10;
+        break;
+      default:
+        cfg.discard_timer = pdcp_discard_timer_t::infinity;
+        break;
+    }
+  }
+
+  if (pdcp_cfg.t_reordering_r12_present) {
+    switch (pdcp_cfg.t_reordering_r12.to_number()) {
+      case 0:
+        cfg.t_reordering = pdcp_t_reordering_t::ms0;
+        break;
+      default:
+        cfg.t_reordering = pdcp_t_reordering_t::ms500;
+    }
+  }
+
+  if (pdcp_cfg.rlc_am_present) {
+    // TODO: handle RLC AM config for PDCP
+  }
+
+  return cfg;
+}
+
 /***************************
  *      MAC Config
  **************************/

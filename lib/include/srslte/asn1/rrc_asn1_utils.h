@@ -34,6 +34,7 @@ namespace rrc {
 struct plmn_id_s;
 struct s_tmsi_s;
 struct rlc_cfg_c;
+struct pdcp_cfg_s;
 struct srb_to_add_mod_s;
 struct sched_request_cfg_c;
 struct mac_main_cfg_s;
@@ -86,6 +87,8 @@ void         to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const rlc_config_t& cfg);
  **************************/
 srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
 srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
+srslte::pdcp_config_t
+make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg);
 
 /***************************
  *      MAC Config

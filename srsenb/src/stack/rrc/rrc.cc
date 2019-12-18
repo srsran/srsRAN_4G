@@ -126,9 +126,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
     m.n_ues = 0;
     for (auto iter = users.begin(); m.n_ues < ENB_METRICS_MAX_USERS && iter != users.end(); ++iter) {
       ue* u = iter->second.get();
-      if (iter->first != SRSLTE_MRNTI) {
-        m.ues[m.n_ues++].state = u->get_state();
-      }
+      m.ues[m.n_ues++].state = u->get_state();
     }
     pthread_mutex_unlock(&user_mutex);
   }
@@ -214,6 +212,9 @@ void rrc::add_user(uint16_t rnti)
     uint32_t teid_in = 1;
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
+
+      // adding UE object to MAC for MRNTI without scheduling configuration (broadcast not part of regular scheduling)
+      mac->ue_cfg(SRSLTE_MRNTI, NULL);
       rlc->add_bearer_mrb(SRSLTE_MRNTI, lcid);
       pdcp->add_bearer(SRSLTE_MRNTI, lcid, srslte::make_drb_pdcp_config_t(1, false));
       gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1, &teid_in);
@@ -1412,9 +1413,9 @@ void rrc::ue::setup_erab(uint8_t                                     id,
 
   if (nas_pdu) {
     nas_pending = true;
-    memcpy(erab_info.buffer, nas_pdu->buffer, nas_pdu->n_octets);
+    memcpy(erab_info.msg, nas_pdu->buffer, nas_pdu->n_octets);
     erab_info.N_bytes = nas_pdu->n_octets;
-    parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
+    parent->rrc_log->info_hex(erab_info.msg, erab_info.N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   } else {
     nas_pending = false;
   }
@@ -1675,12 +1676,12 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
 
   if (qci >= MAX_NOF_QCI) {
     parent->rrc_log->error("Invalid QCI=%d for ERAB_id=%d, DRB_id=%d\n", qci, erab_id, drb_id);
-    return -1;
+    return SRSLTE_ERROR;
   }
 
   if (!parent->cfg.qci_cfg[qci].configured) {
     parent->rrc_log->error("QCI=%d not configured\n", qci);
-    return -1;
+    return SRSLTE_ERROR;
   }
 
   // Add DRB1 to the message
@@ -1701,7 +1702,7 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
   drb->rlc_cfg_present = true;
   drb->rlc_cfg         = parent->cfg.qci_cfg[qci].rlc_cfg;
 
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
@@ -1864,11 +1865,11 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   // Add NAS Attach accept
   if (nas_pending) {
     parent->rrc_log->info_hex(
-        erab_info.buffer, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+        erab_info.msg, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
     conn_reconf->ded_info_nas_list_present = true;
     conn_reconf->ded_info_nas_list.resize(1);
     conn_reconf->ded_info_nas_list[0].resize(erab_info.N_bytes);
-    memcpy(conn_reconf->ded_info_nas_list[0].data(), erab_info.buffer, erab_info.N_bytes);
+    memcpy(conn_reconf->ded_info_nas_list[0].data(), erab_info.msg, erab_info.N_bytes);
   } else {
     parent->rrc_log->debug("Not adding NAS message to connection reconfiguration\n");
     conn_reconf->ded_info_nas_list.resize(0);
@@ -1905,7 +1906,8 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     drb_to_add_mod_s drb_item;
     if (get_drbid_config(&drb_item, lcid - 2)) {
       parent->rrc_log->error("Getting DRB configuration\n");
-      parent->rrc_log->console("ERROR: The QCI %d is invalid or not configured.\n", erabs[lcid + 4].qos_params.qCI.QCI);
+      parent->rrc_log->console("ERROR: The QCI %d is invalid or not configured.\n", erabs[id].qos_params.qCI.QCI);
+      // TODO: send S1AP response indicating error?
       return;
     }
 
@@ -1918,28 +1920,29 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     parent->rlc->add_bearer(rnti, lcid, srslte::make_rlc_config_t(drb_item.rlc_cfg));
 
     // Configure DRB in PDCP
-    srslte::pdcp_config_t pdcp_config = {
-        (uint8_t)(drb_item.drb_id - 1), // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
-        srslte::PDCP_RB_IS_DRB,
-        srslte::SECURITY_DIRECTION_DOWNLINK,
-        srslte::SECURITY_DIRECTION_UPLINK,
-        srslte::PDCP_SN_LEN_12,
-        srslte::pdcp_t_reordering_t::ms500,
-        srslte::pdcp_discard_timer_t::infinity};
-
-    parent->pdcp->add_bearer(rnti, lcid, pdcp_config);
+    // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
+    if (drb_item.pdcp_cfg_present) {
+      parent->pdcp->add_bearer(
+          rnti, lcid, srslte::make_drb_pdcp_config_t(drb_item.drb_id - 1, false, drb_item.pdcp_cfg));
+    } else {
+      // use default config
+      parent->pdcp->add_bearer(rnti, lcid, srslte::make_drb_pdcp_config_t(drb_item.drb_id - 1, false));
+    }
 
     // DRB has already been configured in GTPU through bearer setup
-
     conn_reconf->rr_cfg_ded.drb_to_add_mod_list.push_back(drb_item);
 
     // Add NAS message
-    parent->rrc_log->info_hex(
-        erab_info.buffer, erab_info.N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
-    asn1::dyn_octstring octstr(erab_info.N_bytes);
-    memcpy(octstr.data(), erab_info.msg, erab_info.N_bytes);
-    conn_reconf->ded_info_nas_list.push_back(octstr);
+    if (nas_pending) {
+      parent->rrc_log->info_hex(
+          erab_info.msg, erab_info.N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
+      asn1::dyn_octstring octstr(erab_info.N_bytes);
+      memcpy(octstr.data(), erab_info.msg, erab_info.N_bytes);
+      conn_reconf->ded_info_nas_list.push_back(octstr);
+      conn_reconf->ded_info_nas_list_present = true;
+    }
   }
+  conn_reconf->rr_cfg_ded_present                     = true;
   conn_reconf->rr_cfg_ded.drb_to_add_mod_list_present = conn_reconf->rr_cfg_ded.drb_to_add_mod_list.size() > 0;
   conn_reconf->ded_info_nas_list_present              = conn_reconf->ded_info_nas_list.size() > 0;
 

@@ -338,7 +338,7 @@ void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const
 
   gtpu_header_t header;
   gtpu_read_header(pdu.get(), &header, gtpu_log);
-  pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter++, std::move(pdu));
+  pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter, std::move(pdu));
 }
 
 } // namespace srsenb
