@@ -116,9 +116,7 @@ void sched_ue::reset()
     phy_config_dedicated_enabled = false;
     cqi_request_tti              = 0;
     conres_ce_pending            = true;
-    for (auto& c : carriers) {
-      c.reset();
-    }
+    carriers.clear();
   }
 
   for (int i = 0; i < sched_interface::MAX_LC; i++) {
