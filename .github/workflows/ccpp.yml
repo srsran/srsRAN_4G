@@ -1,21 +1,34 @@
 name: C/C++ CI
 on: push
 jobs:
-  x86_build:
-    name: Build and test on x86
+  x86_ubuntu18_build:
+    name: Build and test on x86 Ubuntu 18.04
     strategy:
         matrix:
           cc: [ gcc ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
       - name: Build srsLTE on x86
         run: |
           sudo apt update
           sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
-          mkdir build && cd build && cmake -GNinja .. && ninja && ctest -T memcheck
-    
-  aarch64_build:
+          mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest -T memcheck
+  x86_ubuntu16_build:
+    name: Build and test on x86 Ubuntu 16.04
+    strategy:
+        matrix:
+          cc: [ gcc ]
+    runs-on: ubuntu-16.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build srsLTE on x86
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
+          mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest -T memcheck
+          
+  aarch64_ubuntu18_build:
     runs-on: ubuntu-18.04
     name: Build on aarch64
     steps:
@@ -28,4 +41,4 @@ jobs:
         run: |
           apt update
           apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev ninja-build
-          ls -l && pwd && mkdir build && cd build && cmake -GNinja .. && ninja
+          ls -l && pwd && mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja
