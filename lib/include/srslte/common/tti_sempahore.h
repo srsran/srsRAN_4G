@@ -39,11 +39,6 @@ private:
   std::deque<T>           fifo;
 
 public:
-  void reset()
-  {
-    // Do something here
-  }
-
   void wait(T id)
   {
     bool                                  expired = false;
@@ -55,7 +50,9 @@ public:
       expired = (cvar.wait_until(lock, expire_time) == std::cv_status::timeout);
     }
 
-    assert(!expired);
+    if (expired) {
+      perror("TTI semaphore wait timeout");
+    }
   }
 
   void push(T id)
@@ -82,7 +79,9 @@ public:
       expired = (cvar.wait_until(lock, expire_time) == std::cv_status::timeout);
     }
 
-    assert(!expired);
+    if (expired) {
+      perror("TTI semaphore wait all expired");
+    }
   }
 };
 } // namespace srslte

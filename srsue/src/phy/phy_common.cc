@@ -649,8 +649,6 @@ void phy_common::get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS])
 
 void phy_common::reset_radio()
 {
-  semaphore.reset();
-
   // End Tx streams even if they are continuous
   // Since is_first_of_burst is set to true, the radio need to send
   // end of burst in order to stall correctly the Tx stream.
