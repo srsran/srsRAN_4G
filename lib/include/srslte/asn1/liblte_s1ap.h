@@ -4983,7 +4983,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_timetowait(uint8_t** ptr, LIBLTE_S1AP_TIMET
 /*******************************************************************************
 /* ProtocolIE UE_HistoryInformation DYNAMIC SEQUENCE OF
 ********************************************************************************/
-#define LIBLTE_S1AP_UE_HISTORYINFORMATION_BIT_STRING_LEN 32 // FIXME: Check if this size is adequate
+#define LIBLTE_S1AP_UE_HISTORYINFORMATION_BIT_STRING_LEN 32 // TODO: Check if this size is adequate
 // lb:1, ub:16
 typedef struct {
   uint32_t                                len;

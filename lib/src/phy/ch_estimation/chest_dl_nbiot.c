@@ -194,7 +194,7 @@ static void interpolate_pilots(srslte_chest_dl_nbiot_t* q, cf_t* pilot_estimates
   for (int l = 0; l < nsymbols / 2; l++) {
     int sym_idx = srslte_refsignal_nrs_nsymbol(l * 2);
     srslte_vec_sum_ccc(&cesymb(sym_idx), &cesymb(sym_idx + 1), ce_avg[l], num_ces);
-    // FIXME: use vector operation for this
+    // TODO: use vector operation for this
     for (int k = 0; k < num_ces; k++) {
       ce_avg[l][k] /= 2;
     }

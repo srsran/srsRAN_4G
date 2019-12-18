@@ -30,7 +30,26 @@ add_test(pbch_test_62 pbch_test -p 2 -n 6 -c 100)
 add_test(pbch_test_64 pbch_test -p 4 -n 6 -c 100) 
 add_test(pbch_test_50 pbch_test -p 1 -n 50 -c 50) 
 add_test(pbch_test_502 pbch_test -p 2 -n 50 -c 50) 
-add_test(pbch_test_504 pbch_test -p 4 -n 50 -c 50) 
+add_test(pbch_test_504 pbch_test -p 4 -n 50 -c 50)
+
+########################################################################
+# PSBCH TEST
+########################################################################
+
+add_executable(psbch_test psbch_test.c)
+target_link_libraries(psbch_test srslte_phy)
+
+# TM2 self tests
+add_test(psbch_test_self_test_tm2_p6_c168_self psbch_test -p 6 -c 168 -d)
+add_test(psbch_test_self_test_tm2_p25_c168_self psbch_test -p 25 -c 168 -d)
+add_test(psbch_test_self_test_tm2_p100_c168_self psbch_test -p 100 -c 168 -d)
+
+# TM2 file tests
+add_test(psbch_file_test_ideal_tm2_p6_c0 psbch_test -p 6 -c 0 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p6_c0_s1.92e+6.dat)
+add_test(psbch_file_test_ideal_tm2_p15_c84 psbch_test -p 15 -c 84 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p15_c84_s3.84e+6.dat)
+add_test(psbch_file_test_ideal_tm2_p25_c168 psbch_test -p 25 -c 168 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e+6.dat)
+add_test(psbch_file_test_ideal_tm2_p50_c252 psbch_test -p 50 -c 252 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p50_c252_s15.36e+6.dat)
+add_test(psbch_file_test_ideal_tm2_p100_c335 psbch_test -p 100 -c 335 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e+6.dat)
 
 ########################################################################
 # NPBCH TEST

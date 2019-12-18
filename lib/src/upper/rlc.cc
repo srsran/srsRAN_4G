@@ -193,7 +193,7 @@ void rlc::empty_queue()
 
 void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 {
-  // FIXME: rework build PDU logic to allow large SDUs (without concatenation)
+  // TODO: rework build PDU logic to allow large SDUs (without concatenation)
   if (sdu->N_bytes > RLC_MAX_SDU_SIZE) {
     rlc_log->warning("Dropping too long SDU of size %d B (Max. size %d B).\n", sdu->N_bytes, RLC_MAX_SDU_SIZE);
     return;

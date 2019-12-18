@@ -75,7 +75,7 @@ void scrambling_b(uint8_t* c, uint8_t* data, int len)
 void scrambling_b_word(uint8_t* c, uint8_t* data, int len)
 {
   // Do XOR every 64 bits
-  // FIXME: Use 32-bit in 32-bit machines
+  // TODO: Use 32-bit in 32-bit machines
   uint64_t* x = (uint64_t*)data;
   uint64_t* y = (uint64_t*)c;
   for (int i = 0; i < len / 8; i++) {

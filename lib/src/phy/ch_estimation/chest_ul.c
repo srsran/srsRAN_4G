@@ -393,7 +393,7 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t*     q,
   }
 
   if (res->ce != NULL) {
-    /* FIXME: Currently averaging entire slot, performance good enough? */
+    /* TODO: Currently averaging entire slot, performance good enough? */
     for (int ns = 0; ns < 2; ns++) {
       // Average all slot
       for (int i = 1; i < n_rs; i++) {

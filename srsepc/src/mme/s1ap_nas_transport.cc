@@ -276,7 +276,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_s1ap_log->info("UL NAS: Detach Request\n");
       m_s1ap_log->console("UL NAS: Detach Request\n");
-      // FIXME: check integrity protection in detach request
+      // TODO: check integrity protection in detach request
       nas_ctx->handle_detach_request(nas_msg);
       break;
     case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMPLETE:

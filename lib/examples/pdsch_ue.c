@@ -827,7 +827,7 @@ int main(int argc, char** argv)
                 if (sf_idx == 1) {
                   srslte_netsink_write(&net_sink, data[0], 1 + (n - 1) / 8);
                 } else {
-                  // FIXME: UDP Data transmission does not work
+                  // TODO: UDP Data transmission does not work
                   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
                     if (pdsch_cfg.grant.tb[tb].enabled) {
                       srslte_netsink_write(&net_sink, data[tb], 1 + (pdsch_cfg.grant.tb[tb].tbs - 1) / 8);

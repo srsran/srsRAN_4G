@@ -310,7 +310,7 @@ void mac::rl_ok(uint16_t rnti)
 
 int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
-  // FIXME: add cc_idx to interface
+  // TODO: add cc_idx to interface
   uint32_t cc_idx = 0;
   pthread_rwlock_rdlock(&rwlock);
   log_h->step(tti);
@@ -329,7 +329,7 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 
 int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
 {
-  // FIXME: add cc_idx to interface
+  // TODO: add cc_idx to interface
   uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
@@ -372,7 +372,7 @@ int mac::set_dl_ant_info(uint16_t rnti, phys_cfg_ded_s::ant_info_c_* dl_ant_info
 
 int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
 {
-  // FIXME: add cc_idx to interface
+  // TODO: add cc_idx to interface
   uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
@@ -390,7 +390,7 @@ int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
 
 int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
 {
-  // FIXME: add cc_idx to interface
+  // TODO: add cc_idx to interface
   uint32_t cc_idx = 0;
   log_h->step(tti);
   pthread_rwlock_rdlock(&rwlock);
@@ -408,7 +408,7 @@ int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
 
 int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
-  // FIXME: add cc_idx to interface
+  // TODO: add cc_idx to interface
   uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
@@ -427,7 +427,7 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 
 int mac::snr_info(uint32_t tti, uint16_t rnti, float snr)
 {
-  // FIXME: add cc_idx to interface
+  // TODO: add cc_idx to interface
   uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;

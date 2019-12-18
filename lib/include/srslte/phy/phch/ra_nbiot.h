@@ -152,7 +152,7 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   uint32_t                   Qm;
   srslte_ra_tb_t             mcs;
-  uint32_t                   k0;      ///< FIXME: consider removing k0 and compute tx_tti directly
+  uint32_t                   k0;      ///< TODO: consider removing k0 and compute tx_tti directly
   uint32_t                   nof_rep; ///< number of repetitions
   uint32_t                   nof_ru;  ///< Number of resource units
   uint32_t                   nof_slots;

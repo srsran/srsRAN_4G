@@ -59,6 +59,7 @@ ue::~ue()
 
 int ue::init(const all_args_t& args_, srslte::logger* logger_)
 {
+  int ret = SRSLTE_SUCCESS;
   logger = logger_;
 
   // Init UE log
@@ -98,25 +99,25 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    // init layers
+    // init layers (do not exit immedietly if something goes wrong as sub-layers may already use interfaces)
     if (lte_radio->init(args.rf, lte_phy.get())) {
       log.console("Error initializing radio.\n");
-      return SRSLTE_ERROR;
+      ret = SRSLTE_ERROR;
     }
 
     if (lte_phy->init(args.phy, lte_stack.get(), lte_radio.get())) {
       log.console("Error initializing PHY.\n");
-      return SRSLTE_ERROR;
+      ret = SRSLTE_ERROR;
     }
 
     if (lte_stack->init(args.stack, logger, lte_phy.get(), gw_ptr.get())) {
       log.console("Error initializing stack.\n");
-      return SRSLTE_ERROR;
+      ret = SRSLTE_ERROR;
     }
 
     if (gw_ptr->init(args.gw, logger, lte_stack.get())) {
       log.console("Error initializing GW.\n");
-      return SRSLTE_ERROR;
+      ret = SRSLTE_ERROR;
     }
 
     // move ownership
@@ -126,14 +127,16 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     radio   = std::move(lte_radio);
   } else {
     log.console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
-    return SRSLTE_ERROR;
+    ret = SRSLTE_ERROR;
   }
 
-  log.console("Waiting PHY to initialize ... ");
-  phy->wait_initialize();
-  log.console("done!\n");
+  if (phy) {
+    log.console("Waiting PHY to initialize ... ");
+    phy->wait_initialize();
+    log.console("done!\n");
+  }
 
-  return SRSLTE_SUCCESS;
+  return ret;
 }
 
 int ue::parse_args(const all_args_t& args_)

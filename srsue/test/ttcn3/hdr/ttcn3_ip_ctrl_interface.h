@@ -110,7 +110,7 @@ private:
 
       // printf("Configuring attenuation of %s to %ddB\n", id.GetString(), att["Value"].GetInt());
 
-      // FIXME: actually do configuration
+      // TODO: actually do configuration
     }
 
     // What else to check?

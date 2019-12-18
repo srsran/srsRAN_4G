@@ -122,6 +122,7 @@ int phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::
 
 int phy::init(const phy_args_t& args_)
 {
+  std::unique_lock<std::mutex> lock(config_mutex);
   mlockall(MCL_CURRENT | MCL_FUTURE);
 
   args = args_;
@@ -172,7 +173,7 @@ int phy::init(const phy_args_t& args_)
     this->log_phy_lib_h = nullptr;
   }
 
-  initiated = false;
+  is_configured = false;
   start();
   return true;
 }
@@ -180,6 +181,7 @@ int phy::init(const phy_args_t& args_)
 // Initializes PHY in a thread
 void phy::run_thread()
 {
+  std::unique_lock<std::mutex> lock(config_mutex);
   prach_buffer.init(SRSLTE_MAX_PRB, log_h);
   common.init(&args, (srslte::log*)log_vec[0].get(), radio, stack);
 
@@ -213,22 +215,28 @@ void phy::run_thread()
   // Disable UL signal pregeneration until the attachment
   enable_pregen_signals(false);
 
-  initiated = true;
+  is_configured = true;
+  config_cond.notify_all();
 }
 
 void phy::wait_initialize()
 {
-  wait_thread_finish();
+  // wait until PHY is configured
+  std::unique_lock<std::mutex> lock(config_mutex);
+  while (!is_configured) {
+    config_cond.wait(lock);
+  }
 }
 
 bool phy::is_initiated()
 {
-  return initiated;
+  return is_configured;
 }
 
 void phy::stop()
 {
-  if (initiated) {
+  std::unique_lock<std::mutex> lock(config_mutex);
+  if (is_configured) {
     sfsync.stop();
     for (uint32_t i = 0; i < args.nof_radios - 1; i++) {
       scell_sync.at(i)->stop();
@@ -237,7 +245,7 @@ void phy::stop()
     workers_pool.stop();
     prach_buffer.stop();
 
-    initiated = false;
+    is_configured = false;
   }
 }
 

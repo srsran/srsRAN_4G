@@ -57,12 +57,12 @@ int rrc_conn_setup_test1()
 
   rrc_conn_setup_s* setup = &dl_ccch_msg.msg.c1().rrc_conn_setup();
 
-  // FIXME: add test for setup
+  // TODO: add test for setup
 
   rr_cfg_ded_s* cnfg = &setup->crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded;
   TESTASSERT(cnfg->phys_cfg_ded_present);
 
-  // FIXME: add tests for RR config dedicated
+  // TODO: add tests for RR config dedicated
 
   phys_cfg_ded_s* phy_cnfg = &cnfg->phys_cfg_ded;
   TESTASSERT(phy_cnfg->cqi_report_cfg_present);

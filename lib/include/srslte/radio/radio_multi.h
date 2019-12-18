@@ -54,9 +54,27 @@ public:
   bool get_metrics(rf_metrics_t* metrics) override;
 
   // radio_interface_phy
-  bool is_init() override { return radios.at(0)->is_init(); }
-  void reset() override { return radios.at(0)->reset(); }
-  bool is_continuous_tx() override { return radios.at(0)->is_continuous_tx(); }
+  bool is_init() override
+  {
+    if (not radios.empty()) {
+      return radios.at(0)->is_init();
+    }
+    return false;
+  }
+  void reset() override
+  {
+    if (not radios.empty()) {
+      radios.at(0)->reset();
+    }
+  }
+
+  bool is_continuous_tx() override
+  {
+    if (not radios.empty()) {
+      return radios.at(0)->is_continuous_tx();
+    }
+    return false;
+  }
   bool get_is_start_of_burst(const uint32_t& radio_idx) override
   {
     return radios.at(radio_idx)->get_is_start_of_burst();

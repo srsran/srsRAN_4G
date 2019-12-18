@@ -49,7 +49,7 @@
                               DEFINES
 *******************************************************************************/
 
-// FIXME: This was chosen arbitrarily
+// TODO: This was chosen arbitrarily
 #define LIBLTE_ASN1_OID_MAXSUBIDS 128
 
 // Caution these values must match SRSLTE_ ones in common.h

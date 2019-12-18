@@ -92,7 +92,7 @@ const sched_ue::sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t al
 
 bool pdcch_grid_t::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user)
 {
-  // FIXME: Make the alloc tree update lazy
+  // TODO: Make the alloc tree update lazy
 
   /* Get DCI Location Table */
   const sched_ue::sched_dci_cce_t* dci_locs = get_cce_loc_table(alloc_type, user);
@@ -180,8 +180,8 @@ void pdcch_grid_t::update_alloc_tree(int                              parent_nod
 bool pdcch_grid_t::set_cfi(uint32_t cfi)
 {
   current_cfix = cfi - 1;
-  // FIXME: use this function for dynamic cfi
-  // FIXME: The estimation of the number of required prbs in metric depends on CFI. Analyse the consequences
+  // TODO: use this function for dynamic cfi
+  // TODO: The estimation of the number of required prbs in metric depends on CFI. Analyse the consequences
   return true;
 }
 

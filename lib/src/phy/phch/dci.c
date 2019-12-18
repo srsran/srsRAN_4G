@@ -72,7 +72,7 @@ int srslte_dci_rar_to_ul_dci(srslte_cell_t* cell, srslte_dci_rar_grant_t* rar, s
   if (!rar->hopping_flag) {
     dci_ul->freq_hop_fl = SRSLTE_RA_PUSCH_HOP_DISABLED;
   } else {
-    ERROR("FIXME: Frequency hopping in RAR not implemented\n");
+    ERROR("TODO: Frequency hopping in RAR not implemented\n");
     dci_ul->freq_hop_fl = 1;
   }
   uint32_t riv = rar->rba;

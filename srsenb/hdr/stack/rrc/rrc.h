@@ -88,8 +88,8 @@ struct rrc_meas_cfg_t {
   asn1::rrc::quant_cfg_eutra_s               quant_cfg;
   //  uint32_t nof_meas_ids;
   //  srslte::rrc_meas_id_t meas_ids[LIBLTE_RRC_MAX_MEAS_ID];
-  // FIXME: Add blacklist cells
-  // FIXME: Add multiple meas configs
+  // TODO: Add blacklist cells
+  // TODO: Add multiple meas configs
 };
 
 // Cell/Sector configuration

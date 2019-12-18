@@ -571,7 +571,7 @@ IntType unconstrained_whole_number_length(IntType n)
 template <typename IntType>
 SRSASN_CODE pack_unconstrained_whole_number(bit_ref& bref, IntType n, bool aligned)
 {
-  // FIXME: Test
+  // TODO: Test
   uint32_t len = unconstrained_whole_number_length(n);
   if (aligned) {
     HANDLE_CODE(bref.align_bytes_zero());
@@ -583,7 +583,7 @@ SRSASN_CODE pack_unconstrained_whole_number(bit_ref& bref, IntType n, bool align
 template <typename IntType>
 SRSASN_CODE unpack_unconstrained_whole_number(IntType& n, bit_ref& bref, bool aligned)
 {
-  // FIXME: Test
+  // TODO: Test
   uint32_t len;
   HANDLE_CODE(unpack_length(len, bref, aligned));
   if (aligned) {
@@ -678,7 +678,7 @@ SRSASN_CODE pack_length(bit_ref& bref, uint32_t val, bool aligned)
       uint32_t m = val / ASN_16K;
       HANDLE_CODE(bref.pack(m, 6));
       val = val - m * ASN_16K;
-      return bref.pack(val, 16); // TODO: FIXME
+      return bref.pack(val, 16); // TODO: TODO
     }
   }
   return SRSASN_SUCCESS;
@@ -749,7 +749,7 @@ SRSASN_CODE pack_integer(bit_ref& bref, IntType n, IntType lb, IntType ub, bool 
     if (lb == ub) {
       return SRSASN_SUCCESS;
     }
-    // FIXME: Check if we are in the indefinite length case, and pack length prefix if needed
+    // TODO: Check if we are in the indefinite length case, and pack length prefix if needed
     //    if(indefinite_length) {
     //      HANDLE_CODE(pack_length(bref, n, 1, ceilf(log2f()), aligned));
     //    }
@@ -809,13 +809,13 @@ SRSASN_CODE unpack_integer(IntType& n, bit_ref& bref, IntType lb, IntType ub, bo
     if (lb == ub) {
       return SRSASN_SUCCESS;
     }
-    // FIXME: Check if we are in the indefinite length case, and pack length prefix if needed
+    // TODO: Check if we are in the indefinite length case, and pack length prefix if needed
     HANDLE_CODE(unpack_constrained_whole_number(n, bref, (IntType)lb, (IntType)ub, aligned));
   } else {
     if (not within_bounds or (not lower_bounded and not upper_bounded)) {
       uint32_t len;
       HANDLE_CODE(unpack_length(len, bref, aligned));
-      HANDLE_CODE(unpack_unconstrained_whole_number(n, bref, aligned)); // FIXME
+      HANDLE_CODE(unpack_unconstrained_whole_number(n, bref, aligned)); // TODO
     } else {
       // pack as semi-constrained
       // TODO
@@ -1210,7 +1210,7 @@ SRSASN_CODE unpack_fixed_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nof_bit
     HANDLE_CODE(bref.unpack(ext, 1));
     if (ext) {
       srsasn_log_print(LOG_LEVEL_ERROR, "bitstrings longer than 64K not supported\n");
-      // FIXME: fixed bitstrings have to become resizeable
+      // TODO: fixed bitstrings have to become resizeable
       //      return unpack_default_bitstring(buf, bref, nof_bits, nof_bits, is_aligned);
     }
   }

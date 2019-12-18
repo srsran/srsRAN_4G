@@ -881,8 +881,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_attach_accept_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &attach_accept);
 
   if (attach_accept.eps_attach_result == LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY) {
-    // FIXME: Handle t3412.unit
-    // FIXME: Handle tai_list
+    // TODO: Handle t3412.unit
+    // TODO: Handle tai_list
     if (attach_accept.guti_present) {
       memcpy(&ctxt.guti, &attach_accept.guti.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
       have_guti = true;
@@ -1066,7 +1066,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       }
     }
 
-    // FIXME: Handle the following parameters
+    // TODO: Handle the following parameters
     //    act_def_eps_bearer_context_req.eps_qos.qci
     //    act_def_eps_bearer_context_req.eps_qos.br_present
     //    act_def_eps_bearer_context_req.eps_qos.br_ext_present
@@ -1079,7 +1079,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     //    act_def_eps_bearer_context_req.protocol_cnfg_opts_present
     //    act_def_eps_bearer_context_req.connectivity_type_present
 
-    // FIXME: Setup the default EPS bearer context
+    // TODO: Setup the default EPS bearer context
 
     eps_bearer_t bearer  = {};
     bearer.type          = DEFAULT_EPS_BEARER;
@@ -1092,7 +1092,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       send_attach_complete(transaction_id, bearer.eps_bearer_id);
     } else {
       // bearer already exists (perhaps the attach complete got lost and this is a retx?)
-      // FIXME: what are we supposed to do in this case?
+      // TODO: what are we supposed to do in this case?
       nas_log->error("Error adding EPS bearer.\n");
     }
 
@@ -1119,7 +1119,7 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   }
 
   enter_emm_deregistered();
-  // FIXME: Command RRC to release?
+  // TODO: Command RRC to release?
 }
 
 void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
@@ -1172,7 +1172,7 @@ void nas::parse_authentication_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   nas_log->warning("Received Authentication Reject\n");
   enter_emm_deregistered();
-  // FIXME: Command RRC to release?
+  // TODO: Command RRC to release?
 }
 
 void nas::parse_identity_request(unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
@@ -1319,7 +1319,7 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
         "Received service reject with EMM cause=0x%x and t3446=%d\n", service_reject.emm_cause, service_reject.t3446);
   }
 
-  // FIXME: handle NAS backoff-timers correctly
+  // TODO: handle NAS backoff-timers correctly
 
   enter_emm_deregistered();
 
@@ -1401,7 +1401,7 @@ void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, uni
   // check the a linked default bearer exists
   if (eps_bearer.find(request.linked_eps_bearer_id) == eps_bearer.end()) {
     nas_log->error("No linked default EPS bearer found (%d).\n", request.linked_eps_bearer_id);
-    // FIXME: send reject according to 24.301 Sec 6.4.2.5 paragraph c
+    // TODO: send reject according to 24.301 Sec 6.4.2.5 paragraph c
     return;
   }
 

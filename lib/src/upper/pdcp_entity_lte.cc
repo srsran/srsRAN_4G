@@ -269,7 +269,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
     count = (rx_hfn << cfg.sn_len) | sn;
   }
 
-  // FIXME Check if PDU is not due to re-establishment of lower layers?
+  // TODO Check if PDU is not due to re-establishment of lower layers?
   cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
   log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
 

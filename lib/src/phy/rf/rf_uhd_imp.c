@@ -942,7 +942,7 @@ int rf_uhd_send_timed_multi(void*  h,
   pthread_mutex_lock(&handler->tx_mutex);
   int ret = -1;
 
-  /* Resets the USRP time FIXME: this might cause problems for burst transmissions */
+  /* Resets the USRP time TODO: this might cause problems for burst transmissions */
   if (!has_time_spec && is_start_of_burst && handler->nof_tx_channels > 1) {
     uhd_usrp_set_time_now(handler->usrp, 0, 0, 0);
     uhd_tx_metadata_set_time_spec(&handler->tx_md, 0, 0.1);

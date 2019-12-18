@@ -126,3 +126,24 @@ void srslte_cfo_correct_offset(srslte_cfo_t* h,
   }
   srslte_vec_prod_ccc(&h->cur_cexp[cexp_offset], input, output, nsamples);
 }
+
+float srslte_cfo_est_corr_cp(cf_t* input_buffer, uint32_t nof_prb)
+{
+  int   nFFT         = srslte_symbol_sz(nof_prb);
+  int   sf_n_samples = nFFT * 15;
+  float tFFT         = (float)(1 / 15000.0);
+  int   cp_size      = SRSLTE_CP_LEN_NORM(1, nFFT);
+
+  // Compensate for initial SC-FDMA half subcarrier shift
+  srslte_vec_apply_cfo(input_buffer, (float)(1 / (nFFT * 15e3)) * (15e3 / 2.0), input_buffer, sf_n_samples);
+
+  // Conjugate multiply the correlation inputs
+  cf_t cfo_estimated = srslte_vec_dot_prod_conj_ccc(&input_buffer[nFFT + SRSLTE_CP_LEN_NORM(0, nFFT)],
+                                                    &input_buffer[2 * nFFT + SRSLTE_CP_LEN_NORM(0, nFFT)],
+                                                    cp_size);
+
+  // CFO correction and compensation for initial SC-FDMA half subcarrier shift
+  float cfo = (float)(-1 * carg(cfo_estimated) / (float)(2 * M_PI * tFFT));
+  srslte_vec_apply_cfo(input_buffer, (float)(1 / (nFFT * 15e3)) * ((-15e3 / 2.0) - cfo), input_buffer, sf_n_samples);
+  return cfo;
+}

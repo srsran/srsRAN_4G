@@ -145,7 +145,7 @@ private:
       *value = std::move(q.front());
     }
     if (mutexed_callback) {
-      mutexed_callback->popping(*value); // FIXME: Value might be null!
+      mutexed_callback->popping(*value); // TODO: Value might be null!
     }
     q.pop();
     ret = true;

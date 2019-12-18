@@ -271,7 +271,7 @@ void mbms_gw::handle_sgi_md_pdu(srslte::byte_buffer_t* msg)
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
   header.message_type = GTPU_MSG_DATA_PDU;
   header.length       = msg->N_bytes;
-  header.teid         = 0xAAAA; // FIXME Harcoded TEID for now
+  header.teid         = 0xAAAA; // TODO Harcoded TEID for now
 
   // Sanity Check IP packet
   if (msg->N_bytes < 20) {

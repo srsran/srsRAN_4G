@@ -88,7 +88,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user, uint32_t enb_cc_idx)
   }
   uint32_t cell_idx = p.second;
 
-  // FIXME: First do reTxs for all users. Only then do the rest.
+  // TODO: First do reTxs for all users. Only then do the rest.
   alloc_outcome_t code;
   uint32_t        tti_dl    = tti_alloc->get_tti_tx_dl();
   dl_harq_proc*   h         = user->get_pending_dl_harq(tti_dl, cell_idx);

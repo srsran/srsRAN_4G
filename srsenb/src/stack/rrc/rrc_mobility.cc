@@ -303,10 +303,10 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
   using namespace rrc_details;
   bool inserted_flag = true;
 
-  // FIXME: cellcfg.eci is the ECI
+  // TODO: cellcfg.eci is the ECI
   uint32_t         cell_id = rrc_details::eci_to_cellid(cellcfg.eci);
   q_offset_range_e offset;
-  asn1::number_to_enum(offset, (int8_t)cellcfg.q_offset); // FIXME: What's the difference
+  asn1::number_to_enum(offset, (int8_t)cellcfg.q_offset); // TODO: What's the difference
 
   std::pair<meas_obj_t*, meas_cell_t*> ret = rrc_details::find_cell(var_meas.meas_obj_list, cellcfg.earfcn, cell_id);
   cells_to_add_mod_s                   new_cell;
@@ -338,8 +338,8 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
     new_obj.meas_obj_id                = rrc_details::find_id_gap(var_meas.meas_obj_list);
     asn1::rrc::meas_obj_eutra_s& eutra = new_obj.meas_obj.set_meas_obj_eutra();
     eutra.carrier_freq                 = cellcfg.earfcn;
-    eutra.allowed_meas_bw.value        = asn1::rrc::allowed_meas_bw_e::mbw6; // FIXME: What value to add here?
-    eutra.neigh_cell_cfg.from_number(1);                                     // FIXME: What value?
+    eutra.allowed_meas_bw.value        = asn1::rrc::allowed_meas_bw_e::mbw6; // TODO: What value to add here?
+    eutra.neigh_cell_cfg.from_number(1);                                     // TODO: What value?
     eutra.offset_freq_present = true;
     // TODO: Assert that q_offset is in ms
     asn1::number_to_enum(eutra.offset_freq, cellcfg.q_offset);
@@ -624,7 +624,7 @@ rrc::mobility_cfg::mobility_cfg(const rrc_cfg_t* cfg_, srslte::log* log_) : cfg(
     }
 
     // insert all meas ids
-    // FIXME: add this to the parser
+    // TODO: add this to the parser
     if (var_meas.rep_cfgs().size() > 0) {
       for (const auto& measobj : var_meas.meas_objs()) {
         var_meas.add_measid_cfg(measobj.meas_obj_id, var_meas.rep_cfgs().begin()->report_cfg_id);
@@ -757,7 +757,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   asn1::rrc::ho_prep_info_s         hoprep;
   asn1::rrc::ho_prep_info_r8_ies_s& hoprep_r8 = hoprep.crit_exts.set_c1().set_ho_prep_info_r8();
   if (not rrc_ue->eutra_capabilities_unpacked) {
-    // FIXME: temporary. Made up something to please target eNB. (there must be at least one capability in this packet)
+    // TODO: temporary. Made up something to please target eNB. (there must be at least one capability in this packet)
     hoprep_r8.ue_radio_access_cap_info.resize(1);
     hoprep_r8.ue_radio_access_cap_info[0].rat_type = asn1::rrc::rat_type_e::eutra;
     asn1::rrc::ue_eutra_cap_s capitem;
@@ -766,7 +766,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     capitem.pdcp_params.max_num_rohc_context_sessions_present = true;
     capitem.pdcp_params.max_num_rohc_context_sessions = asn1::rrc::pdcp_params_s::max_num_rohc_context_sessions_e_::cs2;
     bzero(&capitem.pdcp_params.supported_rohc_profiles,
-          sizeof(asn1::rrc::rohc_profile_support_list_r15_s)); // FIXME: why is it r15?
+          sizeof(asn1::rrc::rohc_profile_support_list_r15_s)); // TODO: why is it r15?
     capitem.phy_layer_params.ue_specific_ref_sigs_supported = false;
     capitem.phy_layer_params.ue_tx_ant_sel_supported        = false;
     capitem.rf_params.supported_band_list_eutra.resize(1);
@@ -822,7 +822,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   //  srb_list[0].lc_ch_cfg.set(asn1::rrc::srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value);
   //  srb_list[0].rlc_cfg_present = true;
   //  srb_list[0].rlc_cfg.set_explicit_value();
-  //  auto& am = srb_list[0].rlc_cfg.explicit_value().set_am(); // FIXME: Which rlc cfg??? I took from a pcap for now
+  //  auto& am = srb_list[0].rlc_cfg.explicit_value().set_am(); // TODO: Which rlc cfg??? I took from a pcap for now
   //  am.ul_am_rlc.t_poll_retx             = asn1::rrc::t_poll_retx_e::ms60;
   //  am.ul_am_rlc.poll_pdu                = asn1::rrc::poll_pdu_e::p_infinity;
   //  am.ul_am_rlc.poll_byte.value         = asn1::rrc::poll_byte_e::kbinfinity;

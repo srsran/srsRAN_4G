@@ -474,7 +474,7 @@ int srslte_npbch_decode_nf(srslte_npbch_t* q,
         // only one subframe
         DEBUG("Trying to decode NPBCH ..\n");
 
-        // FIXME: simplified decoding only using first MIB block
+        // TODO: simplified decoding only using first MIB block
         ret = srslte_npbch_decode_frame(q, 0, nf, 1, nof_bits, nant);
         if (ret == SRSLTE_SUCCESS) {
           if (sfn_offset) {

@@ -257,7 +257,7 @@ void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd)
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
-  // FIXME: Check if correct use of current_tti
+  // TODO: Check if correct use of current_tti
   ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(current_tti, enabled); });
 }
 
@@ -273,7 +273,7 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
-  // FIXME: Check if correct use of current_tti
+  // TODO: Check if correct use of current_tti
   uint32_t ret = 0;
   ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); });
   return ret;
@@ -281,7 +281,7 @@ uint32_t sched::get_dl_buffer(uint16_t rnti)
 
 uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
-  // FIXME: Check if correct use of current_tti
+  // TODO: Check if correct use of current_tti
   uint32_t ret = 0;
   ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(current_tti); });
   return ret;

@@ -166,7 +166,7 @@ int m2_setup_response_test()
   TESTASSERT(mce_id == 0x0050);
 
   /*MCE Name*/
-  TESTASSERT(m2_setup->MCEname_present == false); // FIXME Test with MCE name
+  TESTASSERT(m2_setup->MCEname_present == false); // TODO Test with MCE name
 
   /*MCCHrelatedBCCH-ConfigPerMBSFNArea*/
   // Length

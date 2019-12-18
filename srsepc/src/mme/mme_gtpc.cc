@@ -125,7 +125,7 @@ bool mme_gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
   int n;
   m_mme_gtpc_log->debug("Sending S-11 GTP-C PDU\n");
 
-  // FIXME Add GTP-C serialization code
+  // TODO Add GTP-C serialization code
   // Send S11 message to SPGW
   n = sendto(m_s11, &pdu, sizeof(pdu), 0, (const sockaddr*)&m_spgw_addr, sizeof(m_spgw_addr));
   if (n < 0) {
@@ -173,7 +173,7 @@ bool mme_gtpc::send_create_session_request(uint64_t imsi)
   // Initialize GTP-C message to zero
   bzero(&cs_req_pdu, sizeof(struct srslte::gtpc_pdu));
 
-  // Setup GTP-C Header. FIXME: Length, sequence and other fields need to be added.
+  // Setup GTP-C Header. TODO: Length, sequence and other fields need to be added.
   cs_req_pdu.header.piggyback    = false;
   cs_req_pdu.header.teid_present = true;
   cs_req_pdu.header.teid         = 0; // Send create session request to the butler TEID
@@ -260,7 +260,7 @@ bool mme_gtpc::handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu)
   // Get S-GW Control F-TEID
   srslte::gtp_fteid_t sgw_ctr_fteid = {};
   sgw_ctr_fteid.teid                = cs_resp_pdu->header.teid;
-  sgw_ctr_fteid.ipv4 = 0; // FIXME This is not used for now. In the future it will be obtained from the socket addr_info
+  sgw_ctr_fteid.ipv4 = 0; // TODO This is not used for now. In the future it will be obtained from the socket addr_info
 
   // Get S-GW S1-u F-TEID
   if (cs_resp->eps_bearer_context_created.s1_u_sgw_f_teid_present == false) {
@@ -308,7 +308,7 @@ bool mme_gtpc::handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu)
   gtpc_ctx->sgw_ctr_fteid = sgw_ctr_fteid;
 
   // Set EPS bearer context
-  // FIXME default EPS bearer is hard-coded
+  // TODO default EPS bearer is hard-coded
   int        default_bearer = 5;
   esm_ctx_t* esm_ctx        = &nas_ctx->m_esm_ctx[default_bearer];
   esm_ctx->pdn_addr_alloc   = cs_resp->paa;

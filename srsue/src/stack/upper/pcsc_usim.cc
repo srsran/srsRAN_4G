@@ -222,7 +222,7 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t* rand,
       return ret;
   }
 
-  // FIXME: Extract ak and seq from auts
+  // TODO: Extract ak and seq from auts
   memset(ak, 0x00, AK_LEN);
 
   // Extract sqn from autn

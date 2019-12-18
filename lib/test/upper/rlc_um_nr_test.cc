@@ -182,7 +182,7 @@ int rlc_um_nr_test2(bool reverse_rx = false)
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  // FIXME: check buffer state calculation
+  // TODO: check buffer state calculation
   TESTASSERT(103 == ctxt.rlc1.get_buffer_state());
 
   // Read PDUs from RLC1 with grant of 25 Bytes each
@@ -250,7 +250,7 @@ int rlc_um_nr_test4()
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  // FIXME: check buffer state calculation
+  // TODO: check buffer state calculation
   int bsr = ctxt.rlc1.get_buffer_state();
   TESTASSERT(bsr == 205);
 
@@ -326,7 +326,7 @@ int rlc_um_nr_test5(const uint32_t last_sn)
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  // FIXME: check buffer state calculation
+  // TODO: check buffer state calculation
   TESTASSERT(103 == ctxt.rlc1.get_buffer_state());
 
   // Read PDUs from RLC1 with grant of 25 Bytes each
@@ -393,7 +393,7 @@ int rlc_um_nr_test6()
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  // FIXME: check buffer state calculation
+  // TODO: check buffer state calculation
   // TESTASSERT(103 == ctxt.rlc1.get_buffer_state());
 
   // Read PDUs from RLC1 with grant of 8 Bytes each
@@ -453,7 +453,7 @@ int rlc_um_nr_test7()
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  // FIXME: check buffer state calculation
+  // TODO: check buffer state calculation
   // TESTASSERT(103 == ctxt.rlc1.get_buffer_state());
 
   // Read PDUs from RLC1 with grant of 8 Bytes each
@@ -517,7 +517,7 @@ int rlc_um_nr_test8()
     ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
   }
 
-  // FIXME: check buffer state calculation
+  // TODO: check buffer state calculation
   // TESTASSERT(103 == ctxt.rlc1.get_buffer_state());
 
   // Read PDUs from RLC1 with grant of 8 Bytes each

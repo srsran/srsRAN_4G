@@ -134,7 +134,9 @@ public:
 private:
   void run_thread() final;
 
-  bool     initiated   = false;
+  std::mutex              config_mutex;
+  std::condition_variable config_cond;
+  bool                    is_configured = false;
   uint32_t nof_workers = 0;
 
   const static int SF_RECV_THREAD_PRIO = 1;

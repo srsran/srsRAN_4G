@@ -575,7 +575,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_protocolie_containerpairlist(LIBLTE_S1AP_PROT
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->len, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of bits
+      // TODO: Unlikely to have more than 16K of bits
     }
     uint32_t i;
     for (i = 0; i < ie->len; i++) {
@@ -601,7 +601,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_protocolie_containerpairlist(uint8_t**     
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->len = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of bits
+        // TODO: Unlikely to have more than 16K of bits
       }
     }
     if (ie->len > 32) {
@@ -977,7 +977,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_cdma2000pdu(LIBLTE_S1AP_CDMA2000PDU_STRUCT* i
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -1003,7 +1003,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cdma2000pdu(uint8_t** ptr, LIBLTE_S1AP_CDMA
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -1035,7 +1035,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_cdma2000sectorid(LIBLTE_S1AP_CDMA2000SECTORID
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -1061,7 +1061,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cdma2000sectorid(uint8_t** ptr, LIBLTE_S1AP
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -1138,7 +1138,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_cdma2000onexmsi(LIBLTE_S1AP_CDMA2000ONEXMSI_S
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -1164,7 +1164,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cdma2000onexmsi(uint8_t** ptr, LIBLTE_S1AP_
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -1196,7 +1196,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_cdma2000onexrand(LIBLTE_S1AP_CDMA2000ONEXRAND
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -1222,7 +1222,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cdma2000onexrand(uint8_t** ptr, LIBLTE_S1AP
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -1946,7 +1946,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_imsi(LIBLTE_S1AP_IMSI_STRUCT* ie, uint8_t** p
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -1972,7 +1972,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_imsi(uint8_t** ptr, LIBLTE_S1AP_IMSI_STRUCT
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -2079,7 +2079,7 @@ liblte_s1ap_pack_lastvisitedutrancellinformation(LIBLTE_S1AP_LASTVISITEDUTRANCEL
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -2107,7 +2107,7 @@ liblte_s1ap_unpack_lastvisitedutrancellinformation(uint8_t**                    
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -2139,7 +2139,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_l3_information(LIBLTE_S1AP_L3_INFORMATION_STR
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -2165,7 +2165,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_l3_information(uint8_t** ptr, LIBLTE_S1AP_L
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -2197,7 +2197,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_lhn_id(LIBLTE_S1AP_LHN_ID_STRUCT* ie, uint8_t
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -2223,7 +2223,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_lhn_id(uint8_t** ptr, LIBLTE_S1AP_LHN_ID_ST
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -2618,7 +2618,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_msclassmark2(LIBLTE_S1AP_MSCLASSMARK2_STRUCT*
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -2644,7 +2644,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_msclassmark2(uint8_t** ptr, LIBLTE_S1AP_MSC
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -2676,7 +2676,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_nas_pdu(LIBLTE_S1AP_NAS_PDU_STRUCT* ie, uint8
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -2702,7 +2702,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_nas_pdu(uint8_t** ptr, LIBLTE_S1AP_NAS_PDU_
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -2735,7 +2735,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_nassecurityparameterstoe_utran(LIBLTE_S1AP_NA
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -2762,7 +2762,7 @@ liblte_s1ap_unpack_nassecurityparameterstoe_utran(uint8_t** ptr, LIBLTE_S1AP_NAS
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -3406,7 +3406,7 @@ liblte_s1ap_pack_source_totarget_transparentcontainer(LIBLTE_S1AP_SOURCE_TOTARGE
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -3434,7 +3434,7 @@ liblte_s1ap_unpack_source_totarget_transparentcontainer(uint8_t**               
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16k of octets
+        // TODO: Unlikely to have more than 16k of octets
       }
     }
 
@@ -3511,7 +3511,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourcernc_totargetrnc_transparentcontainer(
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -3539,7 +3539,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourcernc_totargetrnc_transparentcontainer(
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -3653,7 +3653,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetrnc_tosourcernc_transparentcontainer(
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -3681,7 +3681,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetrnc_tosourcernc_transparentcontainer(
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -3911,7 +3911,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_ueradiocapability(LIBLTE_S1AP_UERADIOCAPABILI
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -3937,7 +3937,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ueradiocapability(uint8_t** ptr, LIBLTE_S1A
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -4010,7 +4010,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_warningmessagecontents(LIBLTE_S1AP_WARNINGMES
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -4037,7 +4037,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_warningmessagecontents(uint8_t**           
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -4198,7 +4198,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_cdma2000onexmeid(LIBLTE_S1AP_CDMA2000ONEXMEID
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -4224,7 +4224,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cdma2000onexmeid(uint8_t** ptr, LIBLTE_S1AP
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -5304,7 +5304,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_msclassmark3(LIBLTE_S1AP_MSCLASSMARK3_STRUCT*
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -5330,7 +5330,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_msclassmark3(uint8_t** ptr, LIBLTE_S1AP_MSC
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -5634,7 +5634,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_riminformation(LIBLTE_S1AP_RIMINFORMATION_STR
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -5660,7 +5660,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_riminformation(uint8_t** ptr, LIBLTE_S1AP_R
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -5798,7 +5798,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourcebss_totargetbss_transparentcontainer(
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -5826,7 +5826,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourcebss_totargetbss_transparentcontainer(
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -6131,7 +6131,7 @@ liblte_s1ap_pack_target_tosource_transparentcontainer(LIBLTE_S1AP_TARGET_TOSOURC
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -6159,7 +6159,7 @@ liblte_s1ap_unpack_target_tosource_transparentcontainer(uint8_t**               
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -6802,7 +6802,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_cdma2000onexpilot(LIBLTE_S1AP_CDMA2000ONEXPIL
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -6828,7 +6828,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cdma2000onexpilot(uint8_t** ptr, LIBLTE_S1A
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -7331,7 +7331,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_lppa_pdu(LIBLTE_S1AP_LPPA_PDU_STRUCT* ie, uin
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -7357,7 +7357,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_lppa_pdu(uint8_t** ptr, LIBLTE_S1AP_LPPA_PD
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -7621,7 +7621,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_oldbss_tonewbss_information(LIBLTE_S1AP_OLDBS
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -7648,7 +7648,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_oldbss_tonewbss_information(uint8_t**      
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -7839,7 +7839,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_rrc_container(LIBLTE_S1AP_RRC_CONTAINER_STRUC
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -7865,7 +7865,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_rrc_container(uint8_t** ptr, LIBLTE_S1AP_RR
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -10149,7 +10149,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetbss_tosourcebss_transparentcontainer(
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -10177,7 +10177,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetbss_tosourcebss_transparentcontainer(
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -11244,7 +11244,7 @@ liblte_s1ap_pack_nassecurityparametersfrome_utran(LIBLTE_S1AP_NASSECURITYPARAMET
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -11272,7 +11272,7 @@ liblte_s1ap_unpack_nassecurityparametersfrome_utran(uint8_t**                   
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -12541,7 +12541,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_ehrpd_sector_id(LIBLTE_S1AP_EHRPD_SECTOR_ID_S
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(ie->n_octets, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     // Octets
@@ -12567,7 +12567,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ehrpd_sector_id(uint8_t** ptr, LIBLTE_S1AP_
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -39312,7 +39312,7 @@ liblte_s1ap_pack_protocolie_header(uint32_t len, uint32_t ie_id, LIBLTE_S1AP_CRI
     liblte_value_2_bits(0, ptr, 1);
     liblte_value_2_bits(len, ptr, 14);
   } else {
-    // FIXME: Unlikely to have more than 16K of octets
+    // TODO: Unlikely to have more than 16K of octets
   }
 
   return LIBLTE_SUCCESS;
@@ -39330,7 +39330,7 @@ liblte_s1ap_unpack_protocolie_header(uint8_t** ptr, uint32_t* ie_id, LIBLTE_S1AP
     if (0 == liblte_bits_2_value(ptr, 1)) {
       *len = liblte_bits_2_value(ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
   }
 
@@ -39588,7 +39588,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSA
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(len, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     memcpy(*ptr, tmp_msg.msg, tmp_msg.N_bits);
@@ -39619,7 +39619,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_initiatingmessage(uint8_t** ptr, LIBLTE_S1A
       if (0 == liblte_bits_2_value(ptr, 1)) {
         len = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -39964,7 +39964,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_unsuccessfuloutcome(LIBLTE_S1AP_UNSUCCESSFULO
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(len, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     memcpy(*ptr, tmp_msg.msg, tmp_msg.N_bits);
@@ -39995,7 +39995,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_unsuccessfuloutcome(uint8_t** ptr, LIBLTE_S
       if (0 == liblte_bits_2_value(ptr, 1)) {
         len = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 
@@ -40162,7 +40162,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_successfuloutcome(LIBLTE_S1AP_SUCCESSFULOUTCO
       liblte_value_2_bits(0, ptr, 1);
       liblte_value_2_bits(len, ptr, 14);
     } else {
-      // FIXME: Unlikely to have more than 16K of octets
+      // TODO: Unlikely to have more than 16K of octets
     }
 
     memcpy(*ptr, tmp_msg.msg, tmp_msg.N_bits);
@@ -40193,7 +40193,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_successfuloutcome(uint8_t** ptr, LIBLTE_S1A
       if (0 == liblte_bits_2_value(ptr, 1)) {
         len = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // TODO: Unlikely to have more than 16K of octets
       }
     }
 

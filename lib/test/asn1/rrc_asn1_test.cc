@@ -507,7 +507,7 @@ int ue_rrc_conn_recfg_r15_v10_test()
   TESTASSERT(not v1510->nr_radio_bearer_cfg2_r15_present);
   TESTASSERT(not v1510->tdm_pattern_cfg_r15_present);
   TESTASSERT(not v1510->non_crit_ext_present);
-  TESTASSERT(v1510->nr_radio_bearer_cfg1_r15.size() == 8); // FIXME: Get a better way for oct_string comparison
+  TESTASSERT(v1510->nr_radio_bearer_cfg1_r15.size() == 8); // TODO: Get a better way for oct_string comparison
   TESTASSERT(v1510->nr_radio_bearer_cfg1_r15[0] == 20);
   TESTASSERT(v1510->nr_radio_bearer_cfg1_r15[7] == 0);
 
