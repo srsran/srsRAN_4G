@@ -46,7 +46,7 @@ public:
     std::chrono::system_clock::time_point expire_time = std::chrono::system_clock::now();
     expire_time += std::chrono::milliseconds(max_timeout_ms);
 
-    while (fifo.front() != id && !expired) {
+    while (!fifo.empty() && fifo.front() != id && !expired) {
       expired = (cvar.wait_until(lock, expire_time) == std::cv_status::timeout);
     }
 
@@ -68,21 +68,7 @@ public:
     cvar.notify_all();
   }
 
-  void wait_all()
-  {
-    bool                                  expired = false;
-    std::unique_lock<std::mutex>          lock(mutex);
-    std::chrono::system_clock::time_point expire_time = std::chrono::system_clock::now();
-    expire_time += std::chrono::milliseconds(max_timeout_ms);
-
-    while (!fifo.empty() && !expired) {
-      expired = (cvar.wait_until(lock, expire_time) == std::cv_status::timeout);
-    }
-
-    if (expired) {
-      perror("TTI semaphore wait all expired");
-    }
-  }
+  void wait_all() { wait(-1); }
 };
 } // namespace srslte
 
