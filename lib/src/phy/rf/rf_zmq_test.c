@@ -27,7 +27,7 @@
 #include <zmq.h>
 
 #define NOF_RX_ANT 1
-#define NUM_SF (10240)
+#define NUM_SF (500)
 #define SF_LEN (1920)
 #define RF_BUFFER_SIZE (SF_LEN * NUM_SF)
 #define TX_OFFSET_MS (4)
