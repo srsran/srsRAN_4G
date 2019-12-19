@@ -25,7 +25,6 @@ add_test(thread_pool_test thread_pool_test)
 
 add_executable(thread_test thread_test.cc)
 target_link_libraries(thread_test
-        srsue_phy
         srslte_common)
 add_test(thread_test thread_test)
 
