@@ -102,7 +102,7 @@ public:
     return radios.at(radio_idx)->rx_now(buffer, nof_samples, rxd_time);
   }
   void  set_rx_gain(const uint32_t& radio_idx, const float& gain) override { radios.at(radio_idx)->set_rx_gain(gain); }
-  float set_rx_gain_th(const float& gain) override { return radios.at(0)->set_rx_gain_th(gain); }
+  void  set_rx_gain_th(const float& gain) override { radios.at(0)->set_rx_gain_th(gain); }
   float get_rx_gain(const uint32_t& radio_idx) override { return radios.at(radio_idx)->get_rx_gain(); }
   void  set_tx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) override
   {

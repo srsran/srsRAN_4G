@@ -141,7 +141,7 @@ void srslte_ue_sync_reset(srslte_ue_sync_t* q)
 }
 
 int srslte_ue_sync_start_agc(srslte_ue_sync_t* q,
-                             float(set_gain_callback)(void*, float),
+                             SRSLTE_AGC_CALLBACK(set_gain_callback),
                              float min_gain_db,
                              float max_gain_db,
                              float init_gain_value_db)

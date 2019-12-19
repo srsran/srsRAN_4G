@@ -151,10 +151,10 @@ void parse_args(int argc, char** argv)
   }
 }
 
-static float set_gain_callback(void* h, float gain)
+static SRSLTE_AGC_CALLBACK(set_gain_callback)
 {
   auto r = (radio*)h;
-  return r->set_rx_gain_th(gain);
+  r->set_rx_gain_th(gain_db);
 }
 
 #ifdef ENABLE_GUI

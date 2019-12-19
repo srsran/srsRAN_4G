@@ -349,9 +349,9 @@ int srslte_rf_recv_wrapper(void* h, cf_t* data_[SRSLTE_MAX_PORTS], uint32_t nsam
   return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }
 
-float srslte_rf_set_rx_gain_th_wrapper_(void* h, float f)
+static SRSLTE_AGC_CALLBACK(srslte_rf_set_rx_gain_th_wrapper_)
 {
-  return srslte_rf_set_rx_gain_th((srslte_rf_t*)h, f);
+  srslte_rf_set_rx_gain_th((srslte_rf_t*)h, gain_db);
 }
 
 #endif

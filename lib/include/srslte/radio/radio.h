@@ -96,10 +96,10 @@ public:
   bool rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time);
   bool rx_at(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
 
-  void  set_tx_gain(float gain);
-  void  set_rx_gain(float gain);
-  void  set_tx_rx_gain_offset(float offset);
-  float set_rx_gain_th(float gain);
+  void set_tx_gain(float gain);
+  void set_rx_gain(float gain);
+  void set_tx_rx_gain_offset(float offset);
+  void set_rx_gain_th(float gain);
 
   void set_freq_offset(double freq);
   void set_tx_freq(uint32_t chan, double freq);

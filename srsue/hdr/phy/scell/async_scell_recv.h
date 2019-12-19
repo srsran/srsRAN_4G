@@ -54,31 +54,22 @@ public:
   const srslte_cell_t* get_cell() { return &cell; };
 
   // Other functions
-  const static int MUTEX_X_WORKER = 4;
-  double           set_rx_gain(double gain);
-  int              radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time);
-  bool             tti_align(uint32_t tti);
-  void             read_sf(cf_t** dst, srslte_timestamp_t* timestamp, int* next_offset);
+  void set_rx_gain(float gain);
+  int  radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time);
+  bool tti_align(uint32_t tti);
+  void read_sf(cf_t** dst, srslte_timestamp_t* timestamp, int* next_offset);
 
 private:
   class phch_scell_recv_buffer
   {
   private:
-    uint32_t           tti;
-    srslte_timestamp_t timestamp;
-    int                next_offset;
-    cf_t*              buffer[SRSLTE_MAX_PORTS];
+    uint32_t           tti                      = 0;
+    srslte_timestamp_t timestamp                = {};
+    int                next_offset              = 0;
+    cf_t*              buffer[SRSLTE_MAX_PORTS] = {};
 
   public:
-    phch_scell_recv_buffer()
-    {
-      tti         = 0;
-      next_offset = 0;
-      bzero(&timestamp, sizeof(timestamp));
-      for (cf_t*& b : buffer) {
-        b = nullptr;
-      }
-    }
+    phch_scell_recv_buffer() = default;
 
     ~phch_scell_recv_buffer()
     {

@@ -89,8 +89,8 @@ public:
   void force_freq(float dl_freq, float ul_freq);
 
   // Other functions
-  double set_rx_gain(double gain);
-  int    radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time);
+  void set_rx_gain(float gain);
+  int  radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time);
 
 private:
   // Class to run cell search

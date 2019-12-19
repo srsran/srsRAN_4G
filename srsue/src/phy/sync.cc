@@ -47,9 +47,9 @@ static int radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_PORTS], uint32_t
   return ((sync*)obj)->radio_recv_fnc(data, nsamples, rx_time);
 }
 
-float callback_set_rx_gain(void* h, float gain)
+static SRSLTE_AGC_CALLBACK(callback_set_rx_gain)
 {
-  return ((sync*)h)->set_rx_gain(gain);
+  ((sync*)h)->set_rx_gain(gain_db);
 }
 
 void sync::init(srslte::radio_interface_phy* _radio,
@@ -963,9 +963,9 @@ int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte
   }
 }
 
-double sync::set_rx_gain(double gain)
+void sync::set_rx_gain(float gain)
 {
-  return radio_h->set_rx_gain_th(gain);
+  radio_h->set_rx_gain_th(gain);
 }
 
 /*********

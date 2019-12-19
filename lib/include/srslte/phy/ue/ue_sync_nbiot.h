@@ -123,7 +123,7 @@ SRSLTE_API void srslte_ue_sync_nbiot_free(srslte_nbiot_ue_sync_t* q);
 SRSLTE_API int srslte_ue_sync_nbiot_set_cell(srslte_nbiot_ue_sync_t* q, srslte_nbiot_cell_t cell);
 
 SRSLTE_API int srslte_ue_sync_nbiot_start_agc(srslte_nbiot_ue_sync_t* q,
-                                              float(set_gain_callback)(void*, float),
+                                              SRSLTE_AGC_CALLBACK(set_gain_callback),
                                               float init_gain_value);
 
 SRSLTE_API uint32_t srslte_ue_sync_nbiot_sf_len(srslte_nbiot_ue_sync_t* q);

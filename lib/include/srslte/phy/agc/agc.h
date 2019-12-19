@@ -37,6 +37,7 @@
 
 #include "srslte/config.h"
 
+#define SRSLTE_AGC_CALLBACK(NAME) void(NAME)(void* h, float gain_db)
 #define SRSLTE_AGC_DEFAULT_TARGET 0.3
 #define SRSLTE_AGC_DEFAULT_BW 0.7
 
@@ -47,11 +48,12 @@ typedef struct SRSLTE_API {
   float gain;
   float min_gain_db;
   float max_gain_db;
+  float default_gain_db;
   float y_out;
   bool  lock;
   bool  isfirst;
   void* uhd_handler;
-  float (*set_gain_callback)(void*, float);
+  SRSLTE_AGC_CALLBACK(*set_gain_callback);
   srslte_agc_mode_t mode;
   float             target;
   uint32_t          nof_frames;
@@ -66,7 +68,7 @@ SRSLTE_API int srslte_agc_init_acc(srslte_agc_t* q, srslte_agc_mode_t mode, uint
 SRSLTE_API int srslte_agc_init_uhd(srslte_agc_t*     q,
                                    srslte_agc_mode_t mode,
                                    uint32_t          nof_frames,
-                                   float(set_gain_callback)(void*, float),
+                                   SRSLTE_AGC_CALLBACK(set_gain_callback),
                                    void* uhd_handler);
 
 SRSLTE_API void srslte_agc_free(srslte_agc_t* q);

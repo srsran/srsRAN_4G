@@ -59,7 +59,7 @@ int srslte_agc_init_acc(srslte_agc_t* q, srslte_agc_mode_t mode, uint32_t nof_fr
 int srslte_agc_init_uhd(srslte_agc_t*     q,
                         srslte_agc_mode_t mode,
                         uint32_t          nof_frames,
-                        float(set_gain_callback)(void*, float),
+                        SRSLTE_AGC_CALLBACK(set_gain_callback),
                         void* uhd_handler)
 {
   if (!srslte_agc_init_acc(q, mode, nof_frames)) {
@@ -83,11 +83,11 @@ void srslte_agc_reset(srslte_agc_t* q)
 {
   q->bandwidth = SRSLTE_AGC_DEFAULT_BW;
   q->lock      = false;
-  q->gain      = srslte_convert_dB_to_power(50.0f);
+  q->gain      = srslte_convert_dB_to_power(q->default_gain_db);
   q->y_out     = 1.0;
   q->isfirst   = true;
   if (q->set_gain_callback && q->uhd_handler) {
-    q->set_gain_callback(q->uhd_handler, srslte_convert_power_to_dB(q->gain));
+    q->set_gain_callback(q->uhd_handler, q->default_gain_db);
   }
 }
 
@@ -96,6 +96,7 @@ void srslte_agc_set_gain_range(srslte_agc_t* q, float min_gain_db, float max_gai
   if (q) {
     q->min_gain_db = min_gain_db;
     q->max_gain_db = max_gain_db;
+    q->default_gain_db = (max_gain_db + min_gain_db) / 2.0f;
   }
 }
 
@@ -138,7 +139,6 @@ void srslte_agc_process(srslte_agc_t* q, cf_t* signal, uint32_t len)
 {
   if (!q->lock) {
     float gain_db     = srslte_convert_power_to_dB(q->gain);
-    float gain_uhd_db = 50.0f;
 
     float y = 0;
     // Apply current gain to input signal
@@ -152,13 +152,13 @@ void srslte_agc_process(srslte_agc_t* q, cf_t* signal, uint32_t len)
         gain_db = q->max_gain_db;
         INFO("Warning: Rx signal strength is too weak. Forcing maximum Rx gain %.2fdB\n", gain_db);
       } else if (isinf(gain_db) || isnan(gain_db)) {
-        gain_db = (q->min_gain_db + q->max_gain_db) / 2.0;
+        gain_db = q->default_gain_db;
         INFO("Warning: AGC went to an unknown state. Setting Rx gain to %.2fdB\n", gain_db);
       }
 
       // Set gain
-      gain_uhd_db = q->set_gain_callback(q->uhd_handler, gain_db);
-      q->gain     = srslte_convert_dB_to_power(gain_uhd_db);
+      q->set_gain_callback(q->uhd_handler, gain_db);
+      q->gain = srslte_convert_dB_to_power(gain_db);
     }
     float* t;
     switch (q->mode) {
@@ -201,7 +201,7 @@ void srslte_agc_process(srslte_agc_t* q, cf_t* signal, uint32_t len)
         if (!q->lock) {
           q->gain *= q->target / q->y_out;
         }
-        INFO("AGC gain: %.2f (%.2f) y_out=%.3f, y=%.3f target=%.1f\n", gain_db, gain_uhd_db, q->y_out, y, q->target);
+        INFO("AGC gain: %.2f y_out=%.3f, y=%.3f target=%.1f\n", gain_db, q->y_out, y, q->target);
       }
     }
   }

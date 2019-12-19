@@ -130,9 +130,9 @@ void sig_int_handler(int signo)
   }
 }
 
-float srslte_rf_set_rx_gain_wrapper(void* h, float f)
+static SRSLTE_AGC_CALLBACK(srslte_rf_set_rx_gain_wrapper)
 {
-  return srslte_rf_set_rx_gain((srslte_rf_t*)h, f);
+  srslte_rf_set_rx_gain((srslte_rf_t*)h, gain_db);
 }
 
 int main(int argc, char** argv)

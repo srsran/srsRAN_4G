@@ -200,7 +200,7 @@ SRSLTE_API void srslte_ue_sync_set_nof_find_frames(srslte_ue_sync_t* q, uint32_t
 SRSLTE_API srslte_frame_type_t srslte_ue_sync_get_frame_type(srslte_ue_sync_t* q);
 
 SRSLTE_API int srslte_ue_sync_start_agc(srslte_ue_sync_t* q,
-                                        float(set_gain_callback)(void*, float),
+                                        SRSLTE_AGC_CALLBACK(set_gain_callback),
                                         float min_gain,
                                         float max_gain,
                                         float init_gain_value);

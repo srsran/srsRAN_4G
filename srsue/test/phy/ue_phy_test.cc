@@ -275,12 +275,11 @@ private:
       rx_freq = (float)freq;
       log_h.info("Set Rx freq to %+.0f MHz.\n", freq * 1.0e-6);
     }
-    float set_rx_gain_th(const float& gain) override
+    void set_rx_gain_th(const float& gain) override
     {
       std::unique_lock<std::mutex> lock(mutex);
       rx_gain = srslte_convert_dB_to_amplitude(gain);
       log_h.info("Set Rx gain-th to %+.1f dB (%.6f).\n", gain, rx_gain);
-      return srslte_convert_amplitude_to_dB(rx_gain);
     }
     void set_rx_gain(const uint32_t& radio_idx, const float& gain) override
     {

@@ -127,7 +127,7 @@ clean_exit:
 }
 
 int srslte_ue_sync_nbiot_start_agc(srslte_nbiot_ue_sync_t* q,
-                                   float(set_gain_callback)(void*, float),
+                                   SRSLTE_AGC_CALLBACK(set_gain_callback),
                                    float init_gain_value)
 {
   uint32_t nframes;
