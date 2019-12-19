@@ -87,6 +87,8 @@ option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 option(USE_GLIBC_IPV6  "Use glibc's own ipv6.h"                   ON)
 option(USE_MKL         "Use MKL instead of fftw"                  OFF)
 
+option(FORCE_32BIT     "Add flags to force 32 bit compilation"    OFF)
+
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
   message(STATUS "Detected aarch64 processor")
@@ -329,6 +331,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if(NOT WIN32)
       ADD_CXX_COMPILER_FLAG_IF_AVAILABLE(-fvisibility=hidden HAVE_VISIBILITY_HIDDEN_CXX)
   endif(NOT WIN32)
+
+  if(FORCE_32BIT)
+    ADD_C_COMPILER_FLAG_IF_AVAILABLE("-m32" HAVE_WNO_UNUSED_BUT_SET_VARIABLE)
+    ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-m32" HAVE_WNO_UNUSED_BUT_SET_VARIABLE)
+    set(CMAKE_SHARED_LINKER_FLAGS "-m32")
+  endif(FORCE_32BIT)
+
 endif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 
 ADD_C_COMPILER_FLAG_IF_AVAILABLE("-Werror=incompatible-pointer-types" HAVE_ERROR_INCOMPATIBLE)

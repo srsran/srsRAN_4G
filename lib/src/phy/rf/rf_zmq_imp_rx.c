@@ -67,7 +67,7 @@ static void* rf_zmq_async_rx_thread(void* h)
 
       } else if (n > ZMQ_MAX_BUFFER_SIZE) {
         fprintf(stderr,
-                "[zmq] Error: receiver expected <= %ld bytes and received %d at channel %d.\n",
+                "[zmq] Error: receiver expected <= %zu bytes and received %d at channel %d.\n",
                 ZMQ_MAX_BUFFER_SIZE,
                 n,
                 0);

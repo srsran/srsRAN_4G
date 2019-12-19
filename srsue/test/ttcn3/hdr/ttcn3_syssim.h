@@ -567,7 +567,7 @@ public:
                     if (lcid == 0) {
                       if (mac_msg_dl.new_subh()) {
                         if (mac_msg_dl.get()->set_con_res_id(conres_id)) {
-                          log.info("CE:    Added Contention Resolution ID=0x%lx\n", conres_id);
+                          log.info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
                         } else {
                           log.error("CE:    Setting Contention Resolution ID CE\n");
                         }

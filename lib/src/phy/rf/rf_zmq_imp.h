@@ -20,7 +20,7 @@
  */
 
 #include <stdbool.h>
-#include <stdint.h>
+#include <inttypes.h>
 
 #include "srslte/config.h"
 #include "srslte/phy/rf/rf.h"

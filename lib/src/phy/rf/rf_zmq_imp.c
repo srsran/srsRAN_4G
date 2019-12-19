@@ -625,7 +625,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
     // Check available buffer size
     if (nbytes > ZMQ_MAX_BUFFER_SIZE) {
       fprintf(stderr,
-              "[zmq] Error: Trying to receive %d B but buffer is only %ld B at channel %d.\n",
+              "[zmq] Error: Trying to receive %d B but buffer is only %zu B at channel %d.\n",
               nbytes,
               ZMQ_MAX_BUFFER_SIZE,
               0);
@@ -762,7 +762,7 @@ int rf_zmq_send_timed_multi(void*  h,
     uint32_t          nbytes_baseband   = NSAMPLES2NBYTES(nsamples_baseband);
 
     if (nbytes_baseband > ZMQ_MAX_BUFFER_SIZE) {
-      fprintf(stderr, "Error: trying to transmit too many samples (%d > %ld).\n", nbytes, ZMQ_MAX_BUFFER_SIZE);
+      fprintf(stderr, "Error: trying to transmit too many samples (%d > %zu).\n", nbytes, ZMQ_MAX_BUFFER_SIZE);
       goto clean_exit;
     }
 
@@ -790,7 +790,7 @@ int rf_zmq_send_timed_multi(void*  h,
 
       if (num_tx_gap_samples < 0) {
         fprintf(stderr,
-                "[zmq] Error: tx time is %.3f ms in the past (%ld < %ld)\n",
+                "[zmq] Error: tx time is %.3f ms in the past (%" PRIu64 " < %" PRIu64 ")\n",
                 -1000.0 * num_tx_gap_samples / handler->base_srate,
                 tx_ts,
                 handler->transmitter[0].nsamples);
