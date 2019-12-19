@@ -39,6 +39,8 @@
 #define ZMQ_TIMEOUT_MS (1000)
 #define ZMQ_BASERATE_DEFAULT_HZ (23040000)
 #define ZMQ_ID_STRLEN 16
+#define ZMQ_MAX_GAIN_DB (90.0f)
+#define ZMQ_MIN_GAIN_DB (-90.0f)
 
 typedef enum { ZMQ_TYPE_FC32 = 0, ZMQ_TYPE_SC16 } rf_zmq_format_t;
 

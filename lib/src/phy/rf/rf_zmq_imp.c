@@ -207,10 +207,10 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
     *h                        = handler;
     handler->base_srate       = ZMQ_BASERATE_DEFAULT_HZ; // Sample rate for 100 PRB cell
     handler->rx_gain          = 0.0;
-    handler->info.max_rx_gain = +INFINITY;
-    handler->info.min_rx_gain = -INFINITY;
-    handler->info.max_tx_gain = +INFINITY;
-    handler->info.min_tx_gain = -INFINITY;
+    handler->info.max_rx_gain = ZMQ_MAX_GAIN_DB;
+    handler->info.min_rx_gain = ZMQ_MIN_GAIN_DB;
+    handler->info.max_tx_gain = ZMQ_MAX_GAIN_DB;
+    handler->info.min_tx_gain = ZMQ_MIN_GAIN_DB;
     handler->nof_channels     = nof_channels;
     strcpy(handler->id, "zmq\0");
 
