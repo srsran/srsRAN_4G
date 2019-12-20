@@ -248,7 +248,6 @@ int main(int argc, char** argv)
   srslte_vec_save_file("d", pcfich.d, pcfich.nof_symbols * sizeof(cf_t));
 
   base_free();
-  srslte_dft_exit();
 
   if (n < 0) {
     ERROR("Error decoding PCFICH\n");

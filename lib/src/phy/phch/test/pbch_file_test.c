@@ -230,7 +230,6 @@ int main(int argc, char** argv)
   } while (nread > 0 && frame_cnt < nof_frames);
 
   base_free();
-  srslte_dft_exit();
 
   if (frame_cnt == 1) {
     if (n == 0) {

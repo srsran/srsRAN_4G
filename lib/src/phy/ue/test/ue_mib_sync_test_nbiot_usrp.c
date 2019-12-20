@@ -175,7 +175,6 @@ int main(int argc, char** argv)
   srslte_ue_mib_sync_nbiot_free(&mib_sync);
   srslte_rf_close(&rf);
 
-  srslte_dft_exit();
 
   return SRSLTE_SUCCESS;
 }

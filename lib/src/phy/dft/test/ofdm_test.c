@@ -182,7 +182,6 @@ int main(int argc, char** argv)
     n_prb++;
   }
 
-  srslte_dft_exit();
 
   exit(0);
 }

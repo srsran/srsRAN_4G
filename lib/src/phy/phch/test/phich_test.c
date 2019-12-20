@@ -225,7 +225,6 @@ int main(int argc, char** argv)
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     free(slot_symbols[i]);
   }
-  srslte_dft_exit();
   printf("OK\n");
   exit(0);
 }

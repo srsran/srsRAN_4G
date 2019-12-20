@@ -217,7 +217,6 @@ int main(int argc, char** argv)
   } while (nof_frames <= max_frames && ret == 0);
 
   base_free();
-  srslte_dft_exit();
   if (data[0])
     free(data[0]);
   if (ret > 0) {

@@ -40,13 +40,6 @@ ue::ue() : logger(nullptr)
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;
-
-  // load FFTW wisdom
-  srslte_dft_load();
-
-  // save FFTW wisdom when UE exits
-  atexit(srslte_dft_exit);
-
   pool = byte_buffer_pool::get_instance();
 }
 

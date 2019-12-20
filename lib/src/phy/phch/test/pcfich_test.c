@@ -158,6 +158,5 @@ int main(int argc, char** argv)
     free(slot_symbols[i]);
   }
   printf("OK\n");
-  srslte_dft_exit();
   exit(0);
 }

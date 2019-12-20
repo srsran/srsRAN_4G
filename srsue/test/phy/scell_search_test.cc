@@ -370,7 +370,6 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  srslte_dft_load();
 
   // Common for simulation and over-the-air
   auto                        baseband_buffer = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_MAX);
@@ -639,8 +638,6 @@ int main(int argc, char** argv)
       free(sb);
     }
   }
-
-  atexit(srslte_dft_exit);
 
   if (ret) {
     printf("Error\n");

@@ -44,7 +44,6 @@ enb* enb::get_instance()
 }
 void enb::cleanup()
 {
-  srslte_dft_exit();
   pthread_mutex_lock(&enb_instance_mutex);
   if (nullptr != instance) {
     delete instance;
@@ -58,8 +57,6 @@ enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(ENB_POO
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;
-
-  srslte_dft_load();
 }
 
 enb::~enb() {}

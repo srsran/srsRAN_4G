@@ -53,7 +53,8 @@ static int get_fftw_wisdom_file(char* full_path, uint32_t n)
 
 static pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-__attribute__((constructor)) void srslte_dft_load()
+// This function is called in the beggining of any executable where it is linked
+__attribute__((constructor)) static void srslte_dft_load()
 {
 #ifdef FFTW_WISDOM_FILE
   char full_path[256];
@@ -64,7 +65,8 @@ __attribute__((constructor)) void srslte_dft_load()
 #endif
 }
 
-__attribute__((destructor)) void srslte_dft_exit()
+// This function is called in the ending of any executable where it is linked
+__attribute__((destructor)) static void srslte_dft_exit()
 {
 #ifdef FFTW_WISDOM_FILE
   char full_path[256];

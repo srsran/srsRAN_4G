@@ -198,8 +198,6 @@ int main(int argc, char** argv)
 
   bzero(&cfg, sizeof(srslte_pusch_cfg_t));
 
-  srslte_dft_load();
-
   srslte_dci_ul_t dci;
   ZERO_OBJECT(dci);
 
@@ -410,6 +408,5 @@ quit:
   } else {
     printf("Ok\n");
   }
-  srslte_dft_exit();
   exit(ret);
 }
