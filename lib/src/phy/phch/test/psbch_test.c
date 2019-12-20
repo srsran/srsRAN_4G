@@ -51,16 +51,16 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "ceiptv")) != -1) {
     switch (opt) {
       case 'c':
-        N_sl_id = atoi(argv[optind]);
+        N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
         cp = SRSLTE_CP_EXT;
         break;
       case 'p':
-        nof_prb = atoi(argv[optind]);
+        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
-        switch (atoi(argv[optind])) {
+        switch (strtol(argv[optind], NULL, 10)) {
           case 1:
             tm = SRSLTE_SIDELINK_TM1;
             break;

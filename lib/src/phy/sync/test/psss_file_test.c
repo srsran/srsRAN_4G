@@ -71,13 +71,13 @@ void parse_args(int argc, char** argv)
         max_subframes = strtoul(argv[optind], NULL, 0);
         break;
       case 'p':
-        nof_prb = atoi(argv[optind]);
+        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
-        snr = atof(argv[optind]);
+        snr = strtof(argv[optind], NULL);
         break;
       case 't':
-        switch (atoi(argv[optind])) {
+        switch (strtol(argv[optind], NULL, 10)) {
           case 1:
             tm = SRSLTE_SIDELINK_TM1;
             break;
@@ -93,7 +93,6 @@ void parse_args(int argc, char** argv)
           default:
             usage(argv[0]);
             exit(-1);
-            break;
         }
         break;
       case 'v':

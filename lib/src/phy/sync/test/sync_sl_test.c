@@ -67,7 +67,7 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "cdefiopstv")) != -1) {
     switch (opt) {
       case 'c':
-        N_sl_id = atoi(argv[optind]);
+        N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
         use_standard_lte_rates = true;
@@ -76,22 +76,22 @@ void parse_args(int argc, char** argv)
         cp = SRSLTE_CP_EXT;
         break;
       case 'f':
-        frequency_offset = atof(argv[optind]);
+        frequency_offset = strtof(argv[optind], NULL);
         break;
       case 'i':
         input_file_name = argv[optind];
         break;
       case 'o':
-        offset = atoi(argv[optind]);
+        offset = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
-        nof_prb = atoi(argv[optind]);
+        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
-        snr = atof(argv[optind]);
+        snr = strtof(argv[optind], NULL);
         break;
       case 't':
-        switch (atoi(argv[optind])) {
+        switch (strtol(argv[optind], NULL, 10)) {
           case 1:
             tm = SRSLTE_SIDELINK_TM1;
             break;
@@ -107,7 +107,6 @@ void parse_args(int argc, char** argv)
           default:
             usage(argv[0]);
             exit(-1);
-            break;
         }
         break;
       case 'v':
@@ -235,7 +234,7 @@ int main(int argc, char** argv)
 
     if (samples_read != samples_to_read) {
       printf("Couldn't read %i samples\n", samples_to_read);
-      return SRSLTE_ERROR;
+      goto clean_exit;
     }
 
     // Find sync signals
@@ -262,7 +261,6 @@ int main(int argc, char** argv)
                  (int)t[0].tv_sec * 1e6 + (int)t[0].tv_usec);
 
           sync = true;
-          break;
         }
       } else {
         // Sample offset correction
@@ -278,6 +276,7 @@ int main(int argc, char** argv)
     }
   }
 
+clean_exit:
   srslte_filesource_free(&fsrc);
   srslte_ofdm_tx_free(&ifft);
   srslte_ssss_free(&ssss);

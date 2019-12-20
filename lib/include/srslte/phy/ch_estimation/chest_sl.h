@@ -80,30 +80,30 @@ typedef struct {
 
 } srslte_chest_sl_t;
 
-int srslte_chest_sl_init_psbch_dmrs(srslte_chest_sl_t* q);
+SRSLTE_API int srslte_chest_sl_init_psbch_dmrs(srslte_chest_sl_t* q);
 
-int srslte_chest_sl_gen_psbch_dmrs(srslte_chest_sl_t* q, srslte_sl_tm_t txMode, uint32_t N_sl_id);
+SRSLTE_API int srslte_chest_sl_gen_psbch_dmrs(srslte_chest_sl_t* q, srslte_sl_tm_t txMode, uint32_t N_sl_id);
 
-int srslte_chest_sl_put_psbch_dmrs(srslte_chest_sl_t* q,
-                                   cf_t*              sf_buffer,
-                                   srslte_sl_tm_t     tx_mode,
-                                   uint32_t           nof_prb,
-                                   srslte_cp_t        cp);
+SRSLTE_API int srslte_chest_sl_put_psbch_dmrs(srslte_chest_sl_t* q,
+                                              cf_t*              sf_buffer,
+                                              srslte_sl_tm_t     tx_mode,
+                                              uint32_t           nof_prb,
+                                              srslte_cp_t        cp);
 
-void srslte_chest_sl_psbch_ls_estimate_equalize(srslte_chest_sl_t* q,
-                                                cf_t*              sf_buffer,
-                                                cf_t*              sf_buffer_rx,
-                                                uint32_t           nof_prb,
-                                                srslte_sl_tm_t     txMode,
-                                                srslte_cp_t        cp);
+SRSLTE_API void srslte_chest_sl_psbch_ls_estimate_equalize(srslte_chest_sl_t* q,
+                                                           cf_t*              sf_buffer,
+                                                           cf_t*              sf_buffer_rx,
+                                                           uint32_t           nof_prb,
+                                                           srslte_sl_tm_t     txMode,
+                                                           srslte_cp_t        cp);
 
-int srslte_chest_sl_get_psbch_dmrs(srslte_chest_sl_t* q,
-                                   cf_t*              sf_buffer_rx,
-                                   cf_t**             dmrs_received,
-                                   srslte_sl_tm_t     tx_mode,
-                                   uint32_t           nof_prb,
-                                   srslte_cp_t        cp);
+SRSLTE_API int srslte_chest_sl_get_psbch_dmrs(srslte_chest_sl_t* q,
+                                              cf_t*              sf_buffer_rx,
+                                              cf_t**             dmrs_received,
+                                              srslte_sl_tm_t     tx_mode,
+                                              uint32_t           nof_prb,
+                                              srslte_cp_t        cp);
 
-void srslte_chest_sl_free(srslte_chest_sl_t* q);
+SRSLTE_API void srslte_chest_sl_free(srslte_chest_sl_t* q);
 
 #endif

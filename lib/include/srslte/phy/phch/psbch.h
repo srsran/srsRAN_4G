@@ -74,8 +74,6 @@ typedef struct SRSLTE_API {
   float*   llr;
 
   // interleaving
-  uint8_t*  temp_g_bits;
-  uint32_t* interleaver;
   uint32_t* interleaver_lut;
 
   // scrambling
