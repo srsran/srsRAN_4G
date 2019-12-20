@@ -444,16 +444,13 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
       data->nof_pdu_elems[0]++;
       conres_ce_pending = false;
       Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
-    } else {
-      // Add TA CE
-      // TODO: Can't put it in Msg4 because current srsUE doesn't read it
-      while (nof_ta_cmd > 0 && rem_tbs > 2) {
-        data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::TA_CMD;
-        data->nof_pdu_elems[0]++;
-        Info("SCHED: Added MAC TA CMD CE for rnti=0x%x\n", rnti);
-        nof_ta_cmd--;
-        rem_tbs -= 2;
-      }
+    }
+    while (nof_ta_cmd > 0 && rem_tbs > 2) {
+      data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::TA_CMD;
+      data->nof_pdu_elems[0]++;
+      Info("SCHED: Added MAC TA CMD CE for rnti=0x%x\n", rnti);
+      nof_ta_cmd--;
+      rem_tbs -= 2;
     }
 
     do {
@@ -805,7 +802,7 @@ uint32_t sched_ue::get_pending_dl_new_data_unlocked()
       pending_data += lch[i].buf_retx + lch[i].buf_tx;
     }
   }
-  if (not is_first_dl_tx() and nof_ta_cmd > 0) {
+  if (nof_ta_cmd > 0) {
     pending_data += nof_ta_cmd * 2;
   }
   return pending_data;

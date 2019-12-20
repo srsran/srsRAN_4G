@@ -97,12 +97,20 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
     pending_mac_msg.init_rx(nof_bytes);
     pending_mac_msg.parse_packet(buff);
 
-    // Look for Contention Resolution UE ID
+    // Look for Contention Resolution UE ID and TA commands
     is_uecrid_successful = false;
-    while (pending_mac_msg.next() && !is_uecrid_successful) {
+    while (pending_mac_msg.next()) {
       if (pending_mac_msg.get()->ce_type() == srslte::sch_subh::CON_RES_ID) {
         Debug("Found Contention Resolution ID CE\n");
         is_uecrid_successful = mac->contention_resolution_id_rcv(pending_mac_msg.get()->get_con_res_id());
+      } else if (pending_mac_msg.get()->ce_type() == srslte::sch_subh::TA_CMD) {
+        phy_h->set_timeadv(pending_mac_msg.get()->get_ta_cmd());
+        Info("Received TA=%d (%d/%d) \n", pending_mac_msg.get()->get_ta_cmd(),
+             time_alignment_timer->value(), time_alignment_timer->duration());
+        // Start or restart timeAlignmentTimer only if set
+        if (time_alignment_timer->is_set()) {
+          time_alignment_timer->run();
+        }
       }
     }
     pending_mac_msg.reset();
