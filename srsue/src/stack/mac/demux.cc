@@ -100,17 +100,19 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
     // Look for Contention Resolution UE ID and TA commands
     is_uecrid_successful = false;
     while (pending_mac_msg.next()) {
-      if (pending_mac_msg.get()->ce_type() == srslte::sch_subh::CON_RES_ID) {
-        Debug("Found Contention Resolution ID CE\n");
-        is_uecrid_successful = mac->contention_resolution_id_rcv(pending_mac_msg.get()->get_con_res_id());
-      } else if (pending_mac_msg.get()->ce_type() == srslte::sch_subh::TA_CMD) {
-        phy_h->set_timeadv(pending_mac_msg.get()->get_ta_cmd());
-        Info("Received TA=%d (%d/%d) \n", pending_mac_msg.get()->get_ta_cmd(),
-             time_alignment_timer->value(), time_alignment_timer->duration());
-        // Start or restart timeAlignmentTimer only if set
-        if (time_alignment_timer->is_set()) {
-          time_alignment_timer->run();
+      switch (pending_mac_msg.get()->ce_type()) {
+      case srslte::sch_subh::CON_RES_ID:
+        if (!is_uecrid_successful) {
+          Debug("Found Contention Resolution ID CE\n");
+          is_uecrid_successful = mac->contention_resolution_id_rcv(
+              pending_mac_msg.get()->get_con_res_id());
         }
+        break;
+      case srslte::sch_subh::TA_CMD:
+        parse_ta_cmd(pending_mac_msg.get());
+        break;
+      default:
+        break;
       }
     }
     pending_mac_msg.reset();
@@ -285,15 +287,7 @@ bool demux::process_ce(srslte::sch_subh* subh)
       // Do nothing
       break;
     case srslte::sch_subh::TA_CMD:
-      phy_h->set_timeadv(subh->get_ta_cmd());
-      Info("Received TA=%d (%d/%d) \n",
-           subh->get_ta_cmd(),
-           time_alignment_timer->value(),
-           time_alignment_timer->duration());
-      // Start or restart timeAlignmentTimer only if set
-      if (time_alignment_timer->is_set()) {
-        time_alignment_timer->run();
-      }
+      parse_ta_cmd(subh);
       break;
     case srslte::sch_subh::SCELL_ACTIVATION:
       cc_idx = (uint32_t)subh->get_activation_deactivation_cmd();
@@ -307,6 +301,16 @@ bool demux::process_ce(srslte::sch_subh* subh)
       break;
   }
   return true;
+}
+
+void demux::parse_ta_cmd(srslte::sch_subh *subh) {
+  phy_h->set_timeadv(subh->get_ta_cmd());
+  Info("Received TA=%d (%d/%d) \n", subh->get_ta_cmd(),
+       time_alignment_timer->value(), time_alignment_timer->duration());
+  // Start or restart timeAlignmentTimer only if set
+  if (time_alignment_timer->is_set()) {
+    time_alignment_timer->run();
+  }
 }
 
 } // namespace srsue
