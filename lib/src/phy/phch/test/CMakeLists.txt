@@ -343,10 +343,6 @@ foreach (cell_n_prb 6 15 25 50 75 100)
           string(REGEX REPLACE "\ " "" test_name_args ${pusch_test_args})
 
           add_test(pusch_test${test_name_args} pusch_test ${pusch_test_args})
-
-          if (NOT (${cell_n_prb} STREQUAL ${n_prb}))
-            set_tests_properties(pusch_test${test_name_args} PROPERTIES LABELS no-memcheck)
-          endif (NOT (${cell_n_prb} STREQUAL ${n_prb}))
         endforeach (cqi)
       endforeach (ack)
     endforeach (mcs)
