@@ -120,6 +120,7 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
     }
     q->socket_type   = opts.socket_type;
     q->sample_format = opts.sample_format;
+    q->frequency_hz_mhz = opts.frequency_hz_mhz;
 
     if (opts.socket_type == ZMQ_SUB) {
       zmq_setsockopt(q->sock, ZMQ_SUBSCRIBE, "", 0);
@@ -206,6 +207,15 @@ int rf_zmq_rx_baseband(rf_zmq_rx_t* q, cf_t* buffer, uint32_t nsamples)
   }
 
   return n;
+}
+
+bool rf_zmq_rx_match_freq(rf_zmq_rx_t* q, uint32_t freq_hz)
+{
+  bool ret = false;
+  if (q) {
+    ret = (q->frequency_hz_mhz == 0 || q->frequency_hz_mhz == freq_hz);
+  }
+  return ret;
 }
 
 void rf_zmq_rx_close(rf_zmq_rx_t* q)

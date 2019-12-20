@@ -52,6 +52,7 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
     }
     q->socket_type   = opts.socket_type;
     q->sample_format = opts.sample_format;
+    q->frequency_hz_mhz = opts.frequency_hz_mhz;
 
     rf_zmq_info(q->id, "Binding transmitter: %s\n", sock_args);
 
@@ -197,6 +198,27 @@ int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
   pthread_mutex_unlock(&q->mutex);
 
   return n;
+}
+
+int rf_zmq_tx_zeros(rf_zmq_tx_t* q, uint32_t nsamples)
+{
+  pthread_mutex_lock(&q->mutex);
+
+  rf_zmq_info(q->id, " - Tx %d Zeros.\n", nsamples);
+  _rf_zmq_tx_baseband(q, q->zeros, (uint32_t)nsamples);
+
+  pthread_mutex_unlock(&q->mutex);
+
+  return (int)nsamples;
+}
+
+bool rf_zmq_tx_match_freq(rf_zmq_tx_t* q, uint32_t freq_hz)
+{
+  bool ret = false;
+  if (q) {
+    ret = (q->frequency_hz_mhz == 0 || q->frequency_hz_mhz == freq_hz);
+  }
+  return ret;
 }
 
 void rf_zmq_tx_close(rf_zmq_tx_t* q)
