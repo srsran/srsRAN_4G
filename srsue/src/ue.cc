@@ -182,6 +182,7 @@ int ue::parse_args(const all_args_t& args_)
 
   // populate EARFCN list
   if (!args.phy.dl_earfcn.empty()) {
+    args.phy.earfcn_list.clear();
     std::stringstream ss(args.phy.dl_earfcn);
     uint32_t          idx = 0;
     while (ss.good()) {
