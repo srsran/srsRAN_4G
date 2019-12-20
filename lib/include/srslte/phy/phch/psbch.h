@@ -31,50 +31,59 @@
 #include <srslte/phy/scrambling/scrambling.h>
 
 #define SRSLTE_SL_BCH_CRC_LEN 16
-#define SRSLTE_SL_BCH_PAYLOAD_LEN 40
-#define SRSLTE_SL_BCH_PAYLOADCRC_LEN (SRSLTE_SL_BCH_PAYLOAD_LEN + SRSLTE_SL_BCH_CRC_LEN)
-#define SRSLTE_SL_BCH_ENCODED_LEN 3 * (SRSLTE_SL_BCH_PAYLOADCRC_LEN)
 
-typedef struct {
-  bool     is_ue;
+/**
+ *  \brief Physical Sidelink broadcast channel.
+ *
+ *  Reference: 3GPP TS 36.211 version 15.6.0 Release 15 Sec. 9.6
+ */
+typedef struct SRSLTE_API {
+  uint32_t       N_sl_id;
+  srslte_sl_tm_t tm;
+  srslte_cp_t    cp;
+
+  uint32_t nof_data_re;
   uint32_t E;
   uint32_t Qm;
   uint32_t len_after_mod;
   uint32_t nof_prb;
-  uint32_t nof_symbols;
-  uint32_t N_sl_id;
+  uint32_t nof_data_symbols;
+  uint32_t sl_bch_tb_len;
+  uint32_t sl_bch_tb_crc_len;
+  uint32_t sl_bch_encoded_len;
   float    precoding_scaling;
-  uint32_t nof_prb_psbch;
 
   // data
-  uint8_t* a;
+  uint8_t* c;
 
   // crc
-  uint32_t     crc_poly;
-  srslte_crc_t crc_mib;
+  srslte_crc_t crc_mib_sl;
   uint8_t*     crc_temp;
 
   // channel coding
   srslte_viterbi_t   dec;
   srslte_convcoder_t encoder;
   uint8_t*           d;
+  float*             d_float;
 
   // rate matching
   uint8_t* e;
-  int16_t* e_16;
+  float*   e_float;
+
+  uint8_t* codeword;
+  float*   llr;
 
   // interleaving
+  uint8_t*  temp_g_bits;
+  uint32_t* interleaver;
   uint32_t* interleaver_lut;
-  uint8_t*  codeword;
 
   // scrambling
   srslte_sequence_t seq;
 
   // modulation
   srslte_modem_table_t mod;
-  cf_t*                symbols;
-  float*               llr;
-  // layer mapping
+  cf_t*                mod_symbols;
 
   // dft precoding
   srslte_dft_precoding_t dft_precoder;
@@ -83,14 +92,19 @@ typedef struct {
 
 } srslte_psbch_t;
 
-int srslte_psbch_init(srslte_psbch_t* q, uint32_t N_sl_id, uint32_t nof_prb);
+SRSLTE_API int
+srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srslte_sl_tm_t tm, srslte_cp_t cp);
 
-void srslte_psbch_encode(srslte_psbch_t* q, uint8_t* mib_sl);
-int  srslte_psbch_decode(srslte_psbch_t* q, uint8_t* mib_sl);
+SRSLTE_API void srslte_psbch_free(srslte_psbch_t* q);
 
-void srslte_psbch_put(srslte_psbch_t* q, cf_t* sf_buffer);
-void srslte_psbch_get(srslte_psbch_t* q, cf_t* sf_buffer);
+SRSLTE_API int srslte_psbch_encode(srslte_psbch_t* q, uint8_t* input, uint32_t input_len, cf_t* sf_buffer);
 
-void srslte_psbch_free(srslte_psbch_t* q);
+SRSLTE_API int srslte_psbch_decode(srslte_psbch_t* q, cf_t* scfdma_symbols, uint8_t* output, uint32_t max_output_len);
+
+SRSLTE_API int srslte_psbch_reset(srslte_psbch_t* q, uint32_t N_sl_id);
+
+SRSLTE_API int srslte_psbch_put(srslte_psbch_t* q, cf_t* symbols, cf_t* sf_buffer);
+
+SRSLTE_API int srslte_psbch_get(srslte_psbch_t* q, cf_t* sf_buffer, cf_t* symbols);
 
 #endif // SRSLTE_PSBCH_H

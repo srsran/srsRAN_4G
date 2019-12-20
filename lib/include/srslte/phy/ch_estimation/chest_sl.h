@@ -18,17 +18,20 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
 #ifndef SRSLTE_CHEST_SL_H
 #define SRSLTE_CHEST_SL_H
 
 #include <stdio.h>
 
 #include "srslte/config.h"
-
 #include "srslte/phy/ch_estimation/chest_common.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/resampling/interp.h"
+
+#define SRSLTE_SL_MAX_DMRS_SYMB (4)
+#define SRSLTE_SL_NOF_PRIME_NUMBERS (196)
 
 typedef struct {
 
@@ -36,16 +39,16 @@ typedef struct {
   uint32_t sf_n_re;
 
   uint32_t M_sc_rs;
-  int8_t   nr_DMRS_symbols;
+  int8_t   nof_dmrs_symbols;
 
   // Orthogonal Sequence (W) Transmission Mode 1, 2 and PSBCH
-  int8_t* w;
+  int8_t w[SRSLTE_SL_MAX_DMRS_SYMB];
 
   // Cyclic Shift Values
-  int8_t* n_CS;
+  int8_t n_CS[SRSLTE_SL_MAX_DMRS_SYMB];
 
-  // Refrence Signal Cyclic Shift
-  float* alpha;
+  // Reference Signal Cyclic Shift
+  float alpha[SRSLTE_SL_MAX_DMRS_SYMB];
 
   // Group Hopping Flag
   uint32_t  f_gh;
@@ -53,47 +56,53 @@ typedef struct {
   uint32_t  f_ss;
 
   // Sequence Group Number
-  uint32_t* u;
+  uint32_t u[SRSLTE_SL_MAX_DMRS_SYMB];
 
   // Base Sequence Number - always 0 for sidelink
   uint32_t v;
 
   int32_t N_zc;
 
-  int32_t* q;
+  int32_t q[SRSLTE_SL_MAX_DMRS_SYMB];
 
-  float** r;
+  float* r[SRSLTE_SL_MAX_DMRS_SYMB];
 
-  cf_t** r_uv;
+  cf_t* r_uv[SRSLTE_SL_MAX_DMRS_SYMB];
 
-  cf_t** r_sequence;
+  cf_t* r_sequence[SRSLTE_SL_MAX_DMRS_SYMB];
 
-  cf_t** dmrs_received;
-  cf_t*  pilot_estimates_1;
-  cf_t*  pilot_estimates_2;
-  cf_t*  ce;
+  cf_t* dmrs_received[SRSLTE_SL_MAX_DMRS_SYMB];
+  cf_t* pilot_estimates_1;
+  cf_t* pilot_estimates_2;
+  cf_t* ce;
 
   srslte_interp_linsrslte_vec_t lin_vec_sl;
 
 } srslte_chest_sl_t;
 
-int srslte_chest_sl_gen_psbch_dmrs(
-    srslte_chest_sl_t* q, srslte_sl_tm_t txMode, uint32_t nof_prb, uint32_t sf_idx, uint32_t N_sl_id);
-
 int srslte_chest_sl_init_psbch_dmrs(srslte_chest_sl_t* q);
 
-int  srslte_chest_sl_put_psbch_dmrs(srslte_chest_sl_t* q, cf_t* sf_buffer, srslte_sl_tm_t tx_mode, uint32_t nof_prb);
-void srslte_chest_sl_put_pscch_dmrs(
-    srslte_chest_sl_t* q, uint32_t prb_idx, uint32_t nof_prb, cf_t* sf_buffer, srslte_sl_tm_t txMode);
-void srslte_chest_sl_put_pssch_dmrs(srslte_chest_sl_t* q,
-                                    uint32_t           prb_start,
-                                    uint32_t           prb_end,
-                                    uint32_t           prb_num,
-                                    uint32_t           nof_prb,
-                                    cf_t*              sf_buffer,
-                                    srslte_sl_tm_t     txMode);
+int srslte_chest_sl_gen_psbch_dmrs(srslte_chest_sl_t* q, srslte_sl_tm_t txMode, uint32_t N_sl_id);
 
-void srslte_chest_sl_psbch_ls_estimate_equalize(srslte_chest_sl_t* q, cf_t* sf_buffer, cf_t* output, uint32_t nof_prb);
+int srslte_chest_sl_put_psbch_dmrs(srslte_chest_sl_t* q,
+                                   cf_t*              sf_buffer,
+                                   srslte_sl_tm_t     tx_mode,
+                                   uint32_t           nof_prb,
+                                   srslte_cp_t        cp);
+
+void srslte_chest_sl_psbch_ls_estimate_equalize(srslte_chest_sl_t* q,
+                                                cf_t*              sf_buffer,
+                                                cf_t*              sf_buffer_rx,
+                                                uint32_t           nof_prb,
+                                                srslte_sl_tm_t     txMode,
+                                                srslte_cp_t        cp);
+
+int srslte_chest_sl_get_psbch_dmrs(srslte_chest_sl_t* q,
+                                   cf_t*              sf_buffer_rx,
+                                   cf_t**             dmrs_received,
+                                   srslte_sl_tm_t     tx_mode,
+                                   uint32_t           nof_prb,
+                                   srslte_cp_t        cp);
 
 void srslte_chest_sl_free(srslte_chest_sl_t* q);
 

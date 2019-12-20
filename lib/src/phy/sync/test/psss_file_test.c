@@ -34,8 +34,6 @@
 #include "srslte/srslte.h"
 
 char* input_file_name;
-// int32_t        N_sl_id                = 168;
-// uint32_t       offset                 = 0;
 float          frequency_offset       = 0.0;
 float          snr                    = 100.0;
 srslte_cp_t    cp                     = SRSLTE_CP_NORM;
