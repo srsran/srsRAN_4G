@@ -52,7 +52,7 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
     }
     q->socket_type   = opts.socket_type;
     q->sample_format = opts.sample_format;
-    q->frequency_hz_mhz = opts.frequency_hz_mhz;
+    q->frequency_hz_mhz = opts.frequency_mhz;
 
     rf_zmq_info(q->id, "Binding transmitter: %s\n", sock_args);
 

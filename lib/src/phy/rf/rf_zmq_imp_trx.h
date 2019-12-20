@@ -69,14 +69,14 @@ typedef struct {
   srslte_ringbuffer_t ringbuffer;
   cf_t*               temp_buffer;
   void*               temp_buffer_convert;
-  uint32_t            frequency_hz_mhz;
+  uint32_t            frequency_mhz;
 } rf_zmq_rx_t;
 
 typedef struct {
   const char*     id;
   uint32_t        socket_type;
   rf_zmq_format_t sample_format;
-  uint32_t        frequency_hz_mhz;
+  uint32_t        frequency_mhz;
 } rf_zmq_opts_t;
 
 /*

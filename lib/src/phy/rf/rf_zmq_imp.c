@@ -389,8 +389,8 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
         double freq = 0.0;
         if (!parse_double(args, config_arg, &freq)) {
-          rx_opts.frequency_hz_mhz = (uint32_t)(freq / 1e6);
-          printf("Channel %d. Using rx_freq=%dMHz\n", i, rx_opts.frequency_hz_mhz);
+          rx_opts.frequency_mhz = (uint32_t)(freq / 1e6);
+          printf("Channel %d. Using rx_freq=%dMHz\n", i, rx_opts.frequency_mhz);
         }
       }
 
@@ -424,8 +424,8 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
         double freq = 0.0;
         if (!parse_double(args, config_arg, &freq)) {
-          tx_opts.frequency_hz_mhz = (uint32_t)(freq / 1e6);
-          printf("Channel %d. Using tx_freq=%dMHz\n", i, tx_opts.frequency_hz_mhz);
+          tx_opts.frequency_mhz = (uint32_t)(freq / 1e6);
+          printf("Channel %d. Using tx_freq=%dMHz\n", i, tx_opts.frequency_mhz);
         }
       }
 
