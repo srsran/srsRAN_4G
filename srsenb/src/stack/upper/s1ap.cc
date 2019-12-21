@@ -438,7 +438,7 @@ bool s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg)
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTMODIFICATIONREQUEST:
     return handle_uecontextmodifyrequest(&msg->choice.UEContextModificationRequest);
   default:
-    s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
+    s1ap_log->error("Unhandled initiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
   return true;
 }
