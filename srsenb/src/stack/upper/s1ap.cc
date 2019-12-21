@@ -547,7 +547,7 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
     case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
       return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
     default:
-      s1ap_log->error("Unhandled intiating message: %s\n", msg.value.type().to_string().c_str());
+      s1ap_log->error("Unhandled initiating message: %s\n", msg.value.type().to_string().c_str());
   }
   return true;
 }
