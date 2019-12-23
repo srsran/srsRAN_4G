@@ -404,7 +404,7 @@ public:
 
     // Free run DL
     do {
-      log_h.debug("-- generating DL baseband SFN=%ld; TTI=%d;\n", sfn, dl_sf_cfg.tti);
+      log_h.debug("-- generating DL baseband SFN=%" PRId64 " TTI=%d;\n", sfn, dl_sf_cfg.tti);
 
       // Create empty resource grid with basic signals
       srslte_enb_dl_put_base(&enb_dl, &dl_sf_cfg);
