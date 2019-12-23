@@ -523,7 +523,7 @@ int srslte_chest_sl_get_psbch_dmrs(srslte_chest_sl_t* q,
 {
   uint32_t sample_pos  = 0;
   uint32_t k           = nof_prb * SRSLTE_NRE / 2 - 36;
-  uint32_t sf_nsymbols = SRSLTE_CP_NORM_SF_NSYMB;
+  uint32_t sf_nsymbols = (cp == SRSLTE_CP_NORM) ? SRSLTE_CP_NORM_SF_NSYMB : SRSLTE_CP_EXT_SF_NSYMB;
 
   // Get DMRSs
   for (uint32_t i = 0; i < sf_nsymbols; i++) {

@@ -57,3 +57,13 @@ add_executable(chest_nbiot_test_dl chest_nbiot_test_dl.c)
 target_link_libraries(chest_nbiot_test_dl srslte_phy)
 
 add_test(chest_nbiot_test_dl chest_nbiot_test_dl)
+
+
+########################################################################
+# Sidelink Channel Estimation TEST
+########################################################################
+
+add_executable(chest_test_sl chest_test_sl.c)
+target_link_libraries(chest_test_sl srslte_phy)
+
+add_test(chest_test_sl_psbch chest_test_sl)
