@@ -26,7 +26,7 @@ target_link_libraries(phy_dl_test srslte_phy srslte_common srslte_phy ${SEC_LIBR
 add_test(phy_dl_test phy_dl_test)
 
 # Blacklist of tests for ARM
-set(arm_black_list -p6-t2-q-m27 -p6-t3-q-m27 -p6-t4-q-m27 -p25-t3-m28 -p25-t4-m28 -p25-t2-q-m27 -p25-t3-q-m27p25-t4-q-m27)
+set(arm_black_list -p6-t2-q-m27 -p6-t3-q-m27 -p6-t4-q-m27 -p25-t3-m28 -p25-t4-m28 -p25-t2-q-m27 -p25-t3-q-m27 -p25-t4-q-m27 )
 
 # All valid number of PRBs for PUSCH
 set(ue_dl_min_mcs 0)
