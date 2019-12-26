@@ -119,5 +119,7 @@ int main(int argc, char** argv)
 
   printf("\nSuccess\n");
 
-  return 0;
+  srslte::byte_buffer_pool::get_instance()->cleanup();
+
+  return SRSLTE_SUCCESS;
 }

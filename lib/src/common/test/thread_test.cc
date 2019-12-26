@@ -25,7 +25,7 @@
 class thread_test : public thread
 {
 public:
-  thread_test() : thread("Threat Test") {}
+  thread_test() : thread("Thread Test") {}
 
 protected:
   void run_thread() override { std::cout << "Hello world!" << std::endl; }
