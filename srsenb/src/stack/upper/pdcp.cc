@@ -165,7 +165,8 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     if (rnti != SRSLTE_MRNTI) {
-      users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
+      // TODO: expose blocking mode as function param
+      users[rnti].pdcp->write_sdu(lcid, std::move(sdu), false);
     } else {
       users[rnti].pdcp->write_sdu_mch(lcid, std::move(sdu));
     }

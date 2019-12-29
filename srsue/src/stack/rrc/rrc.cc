@@ -1716,7 +1716,7 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
 
   log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
 
-  pdcp->write_sdu(lcid, std::move(pdcp_buf));
+  pdcp->write_sdu(lcid, std::move(pdcp_buf), true);
 }
 
 void rrc::write_sdu(srslte::unique_byte_buffer_t sdu)
