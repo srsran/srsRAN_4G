@@ -387,7 +387,7 @@ template <class IntType>
 SRSASN_CODE pack_constrained_whole_number(bit_ref& bref, IntType n, IntType lb, IntType ub, bool aligned)
 {
   if (ub < lb or n < lb or n > ub) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= n <= ub (%d <= %d <= %d) was not met\n", lb, n, ub);
+    srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= n <= ub (%lu <= %lu <= %lu) was not met\n", lb, n, ub);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   uint64_t ra = (uint64_t)(ub - lb) + 1; // NOTE: Can overflow if IntType is kept
@@ -455,7 +455,7 @@ template <class IntType>
 SRSASN_CODE unpack_constrained_whole_number(IntType& n, bit_ref& bref, IntType lb, IntType ub, bool aligned)
 {
   if (ub < lb) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= ub (%d <= %d) was not met\n", lb, ub);
+    srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= ub (%lu <= %lu) was not met\n", lb, ub);
     return SRSASN_ERROR_DECODE_FAIL;
   }
   uint64_t ra = (uint64_t)(ub - lb) + 1; // NOTE: Can overflow if IntType is kept.
@@ -469,7 +469,7 @@ SRSASN_CODE unpack_constrained_whole_number(IntType& n, bit_ref& bref, IntType l
     HANDLE_CODE(bref.unpack(n, n_bits));
     n += lb;
     if (n > ub) {
-      srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= n <= ub (%d <= %d <= %d) was not met\n", lb, n, ub);
+      srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= n <= ub (%lu <= %lu <= %lu) was not met\n", lb, n, ub);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   } else {
@@ -1275,7 +1275,7 @@ pack(bit_ref& bref, const std::string& s, size_t lb, size_t ub, size_t alb, size
     // TODO: print error
     // NOTE: This should be valid for exts
     srsasn_log_print(
-        LOG_LEVEL_ERROR, "The PrintableString size=%zd is not within the limits [%d, %d]\n", s.size(), alb, aub);
+        LOG_LEVEL_ERROR, "The PrintableString size=%zd is not within the limits [%lu, %lu]\n", s.size(), alb, aub);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   size_t b              = asn_string_utils::get_nof_bits_per_char(lb, ub, aligned);

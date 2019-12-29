@@ -794,7 +794,7 @@ public:
   {
     if (s.size() < derived_t::lb or s.size() > derived_t::ub) {
       srsasn_log_print(srslte::LOG_LEVEL_ERROR,
-                       "The provided string size=%d is not withing the bounds [%d, %d]\n",
+                       "The provided string size=%zd is not withing the bounds [%d, %d]\n",
                        s.size(),
                        derived_t::lb,
                        derived_t::ub);
