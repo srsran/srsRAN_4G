@@ -572,12 +572,13 @@ void rrc::sort_neighbour_cells()
                   neighbour_cells[0]->phy_cell.cell.id,
                   neighbour_cells[0]->get_rsrp());
     for (uint32_t i = 1; i < neighbour_cells.size(); i++) {
-      n += snprintf(&ordered[n],
-                    512 - n,
-                    " | earfcn=%d, pci=%d, rsrp=%.2f",
-                    neighbour_cells[i]->get_earfcn(),
-                    neighbour_cells[i]->get_pci(),
-                    neighbour_cells[i]->get_rsrp());
+      int m = snprintf(&ordered[n],
+                       512 - n,
+                       " | earfcn=%d, pci=%d, rsrp=%.2f",
+                       neighbour_cells[i]->get_earfcn(),
+                       neighbour_cells[i]->get_pci(),
+                       neighbour_cells[i]->get_rsrp());
+      n += m;
     }
     rrc_log->info("Neighbours: %s]\n", ordered);
   } else {
