@@ -30,6 +30,8 @@ namespace srsenb {
 class sched_interface
 {
 public:
+  virtual ~sched_interface(){};
+
   const static uint32_t max_cce = 128;
   const static uint32_t max_prb = 100;
   const static uint32_t max_rbg = 25;
