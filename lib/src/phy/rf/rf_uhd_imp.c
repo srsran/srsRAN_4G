@@ -572,10 +572,11 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     handler->nof_rx_channels = nof_channels;
     handler->nof_tx_channels = nof_channels;
 
-    /* Set default rate to avoid decimation warnings */
+    /* Set default rate to avoid decimation warnings and warn about USB2 low throughput */
+    double default_srate = (double)srslte_sampling_freq_hz(SRSLTE_MAX_PRB); // Consider standard rates
     for (int i = 0; i < nof_channels; i++) {
-      uhd_usrp_set_rx_rate(handler->usrp, 1.92e6, i);
-      uhd_usrp_set_tx_rate(handler->usrp, 1.92e6, i);
+      uhd_usrp_set_rx_rate(handler->usrp, default_srate, i);
+      uhd_usrp_set_tx_rate(handler->usrp, default_srate, i);
     }
 
     if (nof_channels > 1)
