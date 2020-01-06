@@ -401,15 +401,12 @@ int srslte_npbch_decode_nf(srslte_npbch_t* q,
                            int*            sfn_offset,
                            int             nf)
 {
-  uint32_t nant;
-  int      i;
-  int      nof_bits;
-  cf_t*    x[SRSLTE_MAX_LAYERS];
+  cf_t* x[SRSLTE_MAX_LAYERS] = {NULL};
 
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && sf_symbols != NULL && q->cell.nof_ports != 0) {
-    for (i = 0; i < q->cell.nof_ports; i++) {
+    for (int i = 0; i < q->cell.nof_ports; i++) {
       if (ce[i] == NULL) {
         return ret;
       }
@@ -418,13 +415,12 @@ int srslte_npbch_decode_nf(srslte_npbch_t* q,
     ret = SRSLTE_ERROR;
 
     // Set pointers for layermapping & precoding
-    nof_bits = 2 * q->nof_symbols;
+    int nof_bits = 2 * q->nof_symbols;
 
     // number of layers equals number of ports
-    for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
       x[i] = q->x[i];
     }
-    memset(&x[SRSLTE_MAX_PORTS], 0, sizeof(cf_t*) * (SRSLTE_MAX_LAYERS - SRSLTE_MAX_PORTS));
 
     // extract symbols
     int nof_ext_syms = srslte_npbch_cp(sf_symbols, q->symbols[0], q->cell, false);
@@ -439,7 +435,7 @@ int srslte_npbch_decode_nf(srslte_npbch_t* q,
     }
 
     // extract channel estimates
-    for (i = 0; i < q->cell.nof_ports; i++) {
+    for (int i = 0; i < q->cell.nof_ports; i++) {
       if (q->nof_symbols != srslte_npbch_cp(ce[i], q->ce[i], q->cell, false)) {
         fprintf(stderr, "There was an error getting the PBCH symbols\n");
         return ret;
@@ -450,10 +446,9 @@ int srslte_npbch_decode_nf(srslte_npbch_t* q,
     ret = 0;
 
     // Try decoding for 1 to cell.nof_ports antennas
+    uint32_t nant = q->cell.nof_ports;
     if (q->search_all_ports) {
       nant = 1;
-    } else {
-      nant = q->cell.nof_ports;
     }
     do {
       if (nant != 3) {
