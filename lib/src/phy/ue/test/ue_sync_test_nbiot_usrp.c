@@ -175,7 +175,7 @@ int main(int argc, char** argv)
     }
   }
 
-  srslte_nbiot_ue_sync_t ue_sync;
+  srslte_nbiot_ue_sync_t ue_sync = {};
   if (srslte_ue_sync_nbiot_init(&ue_sync, cell, srslte_rf_recv_wrapper_cs, (void*)&rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1);

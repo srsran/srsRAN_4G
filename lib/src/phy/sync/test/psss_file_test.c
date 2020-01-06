@@ -126,7 +126,7 @@ int main(int argc, char** argv)
   cf_t* input_buffer_temp = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
 
   // init PSSS
-  srslte_psss_t psss;
+  srslte_psss_t psss = {};
   srslte_psss_init(&psss, nof_prb, cp);
 
   struct timeval t[3];

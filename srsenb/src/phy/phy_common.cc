@@ -251,7 +251,7 @@ void phy_common::ue_db_set_last_ul_tb(uint16_t rnti, uint32_t pid, srslte_ra_tb_
 srslte_ra_tb_t phy_common::ue_db_get_last_ul_tb(uint16_t rnti, uint32_t pid)
 {
   pthread_mutex_lock(&user_mutex);
-  srslte_ra_tb_t ret;
+  srslte_ra_tb_t ret = {};
   if (common_ue_db.count(rnti)) {
     ret = common_ue_db[rnti].last_tb[pid % SRSLTE_FDD_NOF_HARQ];
   }
