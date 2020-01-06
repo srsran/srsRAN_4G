@@ -109,6 +109,7 @@ int main(int argc, char** argv)
 
   // Variables init Tx
   srslte_chest_sl_t q;
+  memset(q, 0, sizeof(q));
 
   if (run_psbch_test) {
     // Tx
