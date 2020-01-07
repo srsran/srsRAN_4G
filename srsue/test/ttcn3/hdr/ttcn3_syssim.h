@@ -747,7 +747,7 @@ public:
 
     // push to PDCP and create DL grant for it
     log.info("Writing PDU (%d B) to LCID=%d\n", pdu->N_bytes, lcid);
-    pdcp.write_sdu(lcid, std::move(pdu));
+    pdcp.write_sdu(lcid, std::move(pdu), true);
   }
 
   void add_pch_pdu(unique_byte_buffer_t pdu)
