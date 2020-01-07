@@ -1414,6 +1414,12 @@ srslte_dci_format_t srslte_dci_format_from_string(char* str)
     return SRSLTE_DCI_FORMAT2A;
   } else if (!strcmp(str, "Format2B")) {
     return SRSLTE_DCI_FORMAT2B;
+  } else if (!strcmp(str, "FormatN0")) {
+    return SRSLTE_DCI_FORMATN0;
+  } else if (!strcmp(str, "FormatN1")) {
+    return SRSLTE_DCI_FORMATN1;
+  } else if (!strcmp(str, "FormatN2")) {
+    return SRSLTE_DCI_FORMATN2;
   } else {
     return SRSLTE_DCI_NOF_FORMATS;
   }
