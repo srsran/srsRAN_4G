@@ -260,7 +260,7 @@ private:
  * @tparam T
  * @tparam Nthres number of elements T that can be stored in the stack
  */
-template <class T, uint32_t Nthres = ceil_frac(size_t(16), sizeof(T))>
+template <class T, uint32_t Nthres = ceil_frac((size_t)16, sizeof(T))>
 class ext_array
 {
 public:

@@ -94,7 +94,7 @@ void log_error_code(SRSASN_CODE code, const char* filename, int line)
       srsasn_log_print(LOG_LEVEL_ERROR, "[%s][%d] Decoding failure.\n", filename, line);
       break;
     default:
-      srsasn_log_print(LOG_LEVEL_WARNING, "[%s][%d] SRSASN_CODE=%u not recognized.\n", filename, line, (uint32_t)code);
+      srsasn_log_print(LOG_LEVEL_WARNING, "[%s][%d] SRSASN_CODE=%d not recognized.\n", filename, line, (int)code);
   }
 }
 
@@ -326,8 +326,10 @@ SRSASN_CODE pack_enum(bit_ref& bref, uint32_t enum_val, uint32_t nbits, uint32_t
 SRSASN_CODE pack_enum(bit_ref& bref, uint32_t e, uint32_t nof_types, uint32_t nof_exts, bool has_ext)
 {
   if (e >= nof_types) {
-    srsasn_log_print(
-        LOG_LEVEL_ERROR, "The provided enum is not within the range of possible values (%u>=%u)\n", e, nof_types);
+    srsasn_log_print(LOG_LEVEL_ERROR,
+                     "The provided enum is not within the range of possible values (%u>=%u)\n",
+                     (unsigned)e,
+                     (unsigned)nof_types);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   SRSASN_CODE ret;
@@ -362,8 +364,10 @@ ValOrError unpack_enum(uint32_t nof_types, uint32_t nof_exts, bool has_ext, bit_
     ret.code          = bref.unpack(ret.val, nof_bits);
   }
   if (ret.val >= nof_types) {
-    srsasn_log_print(
-        LOG_LEVEL_ERROR, "The provided enum is not within the range of possible values (%u>=%u)\n", ret.val, nof_types);
+    srsasn_log_print(LOG_LEVEL_ERROR,
+                     "The provided enum is not within the range of possible values (%u>=%u)\n",
+                     (unsigned)ret.val,
+                     (unsigned)nof_types);
     ret.code = SRSASN_ERROR_DECODE_FAIL;
   }
   return ret;
@@ -387,7 +391,8 @@ template <class IntType>
 SRSASN_CODE pack_constrained_whole_number(bit_ref& bref, IntType n, IntType lb, IntType ub, bool aligned)
 {
   if (ub < lb or n < lb or n > ub) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= n <= ub (%lu <= %lu <= %lu) was not met\n", lb, n, ub);
+    srsasn_log_print(
+        LOG_LEVEL_ERROR, "The condition lb <= n <= ub (%ld <= %ld <= %ld) was not met\n", (long)lb, (long)n, (long)ub);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   uint64_t ra = (uint64_t)(ub - lb) + 1; // NOTE: Can overflow if IntType is kept
@@ -455,7 +460,7 @@ template <class IntType>
 SRSASN_CODE unpack_constrained_whole_number(IntType& n, bit_ref& bref, IntType lb, IntType ub, bool aligned)
 {
   if (ub < lb) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= ub (%lu <= %lu) was not met\n", lb, ub);
+    srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= ub (%ld <= %ld) was not met\n", (long)lb, (long)ub);
     return SRSASN_ERROR_DECODE_FAIL;
   }
   uint64_t ra = (uint64_t)(ub - lb) + 1; // NOTE: Can overflow if IntType is kept.
@@ -469,7 +474,11 @@ SRSASN_CODE unpack_constrained_whole_number(IntType& n, bit_ref& bref, IntType l
     HANDLE_CODE(bref.unpack(n, n_bits));
     n += lb;
     if (n > ub) {
-      srsasn_log_print(LOG_LEVEL_ERROR, "The condition lb <= n <= ub (%lu <= %lu <= %lu) was not met\n", lb, n, ub);
+      srsasn_log_print(LOG_LEVEL_ERROR,
+                       "The condition lb <= n <= ub (%ld <= %ld <= %ld) was not met\n",
+                       (long)lb,
+                       (long)n,
+                       (long)ub);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   } else {
@@ -1233,11 +1242,11 @@ SRSASN_CODE unpack_fixed_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nof_bit
 *********************/
 void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id)
 {
-  srsasn_log_print(LOG_LEVEL_ERROR, "The access choide id is invalid (%d!=%d)\n", val, choice_id);
+  srsasn_log_print(LOG_LEVEL_ERROR, "The access choide id is invalid (%zd!=%zd)\n", (size_t)val, (size_t)choice_id);
 }
 void log_invalid_choice_id(uint32_t val, const char* choice_type)
 {
-  srsasn_log_print(LOG_LEVEL_ERROR, "Invalid choice id=%u for choice type %s\n", val, choice_type);
+  srsasn_log_print(LOG_LEVEL_ERROR, "Invalid choice id=%zd for choice type %s\n", (size_t)val, choice_type);
 }
 
 /*********************
@@ -1275,7 +1284,7 @@ pack(bit_ref& bref, const std::string& s, size_t lb, size_t ub, size_t alb, size
     // TODO: print error
     // NOTE: This should be valid for exts
     srsasn_log_print(
-        LOG_LEVEL_ERROR, "The PrintableString size=%zd is not within the limits [%lu, %lu]\n", s.size(), alb, aub);
+        LOG_LEVEL_ERROR, "The PrintableString size=%zd is not within the limits [%zd, %zd]\n", s.size(), alb, aub);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   size_t b              = asn_string_utils::get_nof_bits_per_char(lb, ub, aligned);
@@ -1436,8 +1445,8 @@ varlength_field_pack_guard::~varlength_field_pack_guard()
   uint32_t nof_bytes = bref_tracker->distance(bref0) / (uint32_t)8;
   if (nof_bytes > sizeof(buffer)) {
     srsasn_log_print(LOG_LEVEL_ERROR,
-                     "The packed variable sized field is too long for the reserved buffer (%d > %zd)\n",
-                     nof_bytes,
+                     "The packed variable sized field is too long for the reserved buffer (%zd > %zd)\n",
+                     (size_t)nof_bytes,
                      sizeof(buffer));
   }
 
