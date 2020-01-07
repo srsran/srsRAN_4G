@@ -312,6 +312,68 @@ add_test(pmch_test_qpsk pmch_test -m 6 -n 50)
 add_test(pmch_test_qam16 pmch_test -m 15 -n 100)
 add_test(pmch_test_qam64 pmch_test -m 25 -n 100)
 
+
+########################################################################
+# NPDSCH TEST
+########################################################################
+
+add_executable(npdsch_test npdsch_test.c)
+target_link_libraries(npdsch_test srslte_phy)
+
+add_test(npdsch_test_tbs208 npdsch_test -m 12)
+add_test(npdsch_test_tbs104 npdsch_test -m 7)
+add_test(npdsch_test_tbs40 npdsch_test -m 3)
+add_test(npdsch_test_tbs16 npdsch_test -m 0)
+
+# Resource element extraction for different operation modes and cell configuration
+# Standalone mode with one Tx port gives maximum number of NPDSCH symbols
+add_test(npdsch_test_cellid0_standalone_1port npdsch_test -l 0 -M 3 -x 160)
+add_test(npdsch_test_cellid1_standalone_1port npdsch_test -l 1 -M 3 -x 160)
+add_test(npdsch_test_cellid2_standalone_1port npdsch_test -l 2 -M 3 -x 160)
+add_test(npdsch_test_cellid3_standalone_1port npdsch_test -l 3 -M 3 -x 160)
+add_test(npdsch_test_cellid4_standalone_1port npdsch_test -l 4 -M 3 -x 160)
+add_test(npdsch_test_cellid5_standalone_1port npdsch_test -l 5 -M 3 -x 160)
+
+# Standalone mode with two Tx ports
+add_test(npdsch_test_cellid0_standalone_2port npdsch_test -l 0 -M 3 -P 2 -x 152)
+add_test(npdsch_test_cellid1_standalone_2port npdsch_test -l 1 -M 3 -P 2 -x 152)
+add_test(npdsch_test_cellid2_standalone_2port npdsch_test -l 2 -M 3 -P 2 -x 152)
+add_test(npdsch_test_cellid3_standalone_2port npdsch_test -l 3 -M 3 -P 2 -x 152)
+add_test(npdsch_test_cellid4_standalone_2port npdsch_test -l 4 -M 3 -P 2 -x 152)
+add_test(npdsch_test_cellid5_standalone_2port npdsch_test -l 5 -M 3 -P 2 -x 152)
+
+# Inband same PCI with 1 LTE antenna port and two NB-IoT ports
+add_test(npdsch_test_cellid0_inband_1port_2port npdsch_test -l 0 -M 0 -p 1 -P 2 -x 144)
+add_test(npdsch_test_cellid1_inband_1port_2port npdsch_test -l 1 -M 0 -p 1 -P 2 -x 144)
+add_test(npdsch_test_cellid2_inband_1port_2port npdsch_test -l 2 -M 0 -p 1 -P 2 -x 144)
+add_test(npdsch_test_cellid3_inband_1port_2port npdsch_test -l 3 -M 0 -p 1 -P 2 -x 144)
+add_test(npdsch_test_cellid4_inband_1port_2port npdsch_test -l 4 -M 0 -p 1 -P 2 -x 144)
+add_test(npdsch_test_cellid5_inband_1port_2port npdsch_test -l 5 -M 0 -p 1 -P 2 -x 144)
+
+# Inband same PCI with 2 antenna ports each
+add_test(npdsch_test_cellid0_inband_2port_2port npdsch_test -l 0 -M 0 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid1_inband_2port_2port npdsch_test -l 1 -M 0 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid2_inband_2port_2port npdsch_test -l 2 -M 0 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid3_inband_2port_2port npdsch_test -l 3 -M 0 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid4_inband_2port_2port npdsch_test -l 4 -M 0 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid5_inband_2port_2port npdsch_test -l 5 -M 0 -p 2 -P 2 -x 136)
+
+# Inband different PCI with 2 antenna ports each
+add_test(npdsch_test_cellid0_inband_diffpci_2port_2port npdsch_test -l 0 -M 1 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid1_inband_diffpci_2port_2port npdsch_test -l 1 -M 1 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid2_inband_diffpci_2port_2port npdsch_test -l 2 -M 1 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid3_inband_diffpci_2port_2port npdsch_test -l 3 -M 1 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid4_inband_diffpci_2port_2port npdsch_test -l 4 -M 1 -p 2 -P 2 -x 136)
+add_test(npdsch_test_cellid5_inband_diffpci_2port_2port npdsch_test -l 5 -M 1 -p 2 -P 2 -x 136)
+
+########################################################################
+# NB-IoT DCI TEST
+########################################################################
+
+add_executable(dci_nbiot_test dci_nbiot_test.c)
+target_link_libraries(dci_nbiot_test srslte_phy)
+add_test(dci_nbiot_test dci_nbiot_test)
+
 ########################################################################
 # FILE TEST  
 ########################################################################
@@ -333,6 +395,9 @@ target_link_libraries(pdsch_pdcch_file_test srslte_phy)
 
 add_executable(npbch_file_test npbch_file_test.c)
 target_link_libraries(npbch_file_test srslte_phy)
+
+add_executable(npdsch_npdcch_file_test npdsch_npdcch_file_test.c)
+target_link_libraries(npdsch_npdcch_file_test srslte_phy)
 
 add_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat)
 
@@ -358,6 +423,9 @@ add_executable(npdcch_file_test npdcch_file_test.c)
 target_link_libraries(npdcch_file_test srslte_phy)
 add_test(npdcch_formatN0_file_test npdcch_file_test -c 0 -t 8624 -r 258 -L 1 -l 0 -v -o FormatN0 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN0_L_1_nid0_tti_8624_rnti_0x102.bin)
 add_test(npdcch_formatN1_file_test npdcch_file_test -c 0 -t 5461 -r 137 -L 2 -l 0 -v -o FormatN1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN1_nid0_tti_5461_rnti_0x89.bin)
+
+add_test(npdsch_npdcch_dci_formatN0_test npdsch_npdcch_file_test -c 0 -s 4 -w 862 -r 0x102 -v -o FormatN0 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN0_L_1_nid0_tti_8624_rnti_0x102.bin)
+add_test(npdsch_npdcch_dci_formatN1_test npdsch_npdcch_file_test -c 0 -s 1 -w 546 -r 0x89 -v -o FormatN1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN1_nid0_tti_5461_rnti_0x89.bin)
 
 ########################################################################
 # PUSCH TEST  
