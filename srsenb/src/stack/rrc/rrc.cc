@@ -520,7 +520,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 
   // Default paging cycle, should get DRX from user
   uint32_t T  = cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.default_paging_cycle.to_number();
-  uint32_t Nb = T * cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb;
+  uint32_t Nb = T * cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb.to_number();
 
   uint32_t N   = T < Nb ? T : Nb;
   uint32_t Ns  = Nb / T > 1 ? Nb / T : 1;
