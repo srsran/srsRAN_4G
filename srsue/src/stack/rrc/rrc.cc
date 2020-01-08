@@ -2985,21 +2985,23 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
   }
 
   for (std::map<uint32_t, meas_t>::iterator m = active.begin(); m != active.end(); ++m) {
-    report_cfg_t* cfg  = &reports_cfg[m->second.report_id];
+    // make sure report config exists
+    if (reports_cfg.find(m->second.report_id) == reports_cfg.end()) {
+      log_h->error("Error in measurement id=%d, report id=%d is not configured.\n", m->first, m->second.report_id);
+      break;
+    }
+    report_cfg_t* cfg  = &reports_cfg.at(m->second.report_id);
     double        hyst = 0.5 * cfg->event.hysteresis;
     float         Mp   = pcell_measurement.ms[cfg->trigger_quantity];
-
-    eutra_event_s::event_id_c_ event_id  = cfg->event.event_id;
-    std::string                event_str = event_id.type().to_string();
 
     bool gen_report = false;
 
     if (cfg->trigger_type == report_cfg_t::EVENT) {
       // A1 & A2 are for serving cell only
-      if (event_id.type().value < eutra_event_s::event_id_c_::types::event_a3) {
+      if (cfg->event.event_id.type().value < eutra_event_s::event_id_c_::types::event_a3) {
         bool enter_condition;
         bool exit_condition;
-        if (event_id.type() == eutra_event_s::event_id_c_::types::event_a1) {
+        if (cfg->event.event_id.type() == eutra_event_s::event_id_c_::types::event_a1) {
           uint8_t range;
           if (cfg->event.event_id.event_a1().a1_thres.type().value == thres_eutra_c::types::thres_rsrp) {
             range = cfg->event.event_id.event_a1().a1_thres.thres_rsrp();
@@ -3039,7 +3041,7 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
             bool    enter_condition = false;
             bool    exit_condition  = false;
             uint8_t range, range2;
-            switch (event_id.type().value) {
+            switch (cfg->event.event_id.type().value) {
               case eutra_event_s::event_id_c_::types::event_a3:
                 Off             = 0.5 * cfg->event.event_id.event_a3().a3_offset;
                 enter_condition = Mn + Ofn + Ocn - hyst > Mp + Ofp + Ocp + Off;
@@ -3072,7 +3074,7 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
                 exit_condition  = (Mp - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
                 break;
               default:
-                log_h->error("Error event %s not implemented\n", event_str.c_str());
+                log_h->error("Error event %s not implemented\n", cfg->event.event_id.type().to_string().c_str());
             }
             gen_report |= process_event(&cfg->event,
                                         tti,
