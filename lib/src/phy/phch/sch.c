@@ -620,7 +620,7 @@ static void ulsch_interleave_gen(uint32_t  H_prime_total,
   for (uint32_t j = 0; j < rows; j++) {
     for (uint32_t i = 0; i < cols; i++) {
       for (uint32_t k = 0; k < Qm; k++) {
-        if (ri_present[j * Qm + i * rows * Qm + k]) {
+        if (ri_present && ri_present[j * Qm + i * rows * Qm + k]) {
           interleaver_lut[j * Qm + i * rows * Qm + k] = 0;
         } else {
           interleaver_lut[j * Qm + i * rows * Qm + k] = idx;
@@ -1256,4 +1256,23 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
   INFO("Q_prime_ack=%d, Q_prime_cqi=%d, Q_prime_ri=%d\n", Q_prime_ack, Q_prime_cqi, Q_prime_ri);
 
   return nof_ri_ack_bits;
+}
+
+void srslte_sl_ulsch_interleave(uint8_t* g_bits,
+                                uint32_t Qm,
+                                uint32_t H_prime_total,
+                                uint32_t N_pusch_symbs,
+                                uint8_t* q_bits)
+{
+  ulsch_interleave(g_bits, Qm, H_prime_total, N_pusch_symbs, q_bits, NULL, 0, false);
+}
+
+void srslte_sl_ulsch_deinterleave(int16_t*  q_bits,
+                                  uint32_t  Qm,
+                                  uint32_t  H_prime_total,
+                                  uint32_t  N_pusch_symbs,
+                                  int16_t*  g_bits,
+                                  uint32_t* inteleaver_lut)
+{
+  ulsch_deinterleave(q_bits, Qm, H_prime_total, N_pusch_symbs, g_bits, NULL, 0, NULL, inteleaver_lut);
 }
