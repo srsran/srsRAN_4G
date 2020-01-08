@@ -22,37 +22,12 @@
 #include "srslte/phy/phch/psbch.h"
 #include "srslte/phy/fec/rm_conv.h"
 #include "srslte/phy/modem/mod.h"
+#include "srslte/phy/phch/sch.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include <stdlib.h>
 #include <string.h>
-
-#define HAVE_INTERLEAVING 1
-
-#if HAVE_INTERLEAVING
-void slbch_interleave_gen(uint32_t H_prime_total, uint32_t N_pusch_symbs, uint32_t Qm, uint32_t* interleaver_lut)
-{
-  uint32_t NL   = 1;
-  uint32_t Cmux = N_pusch_symbs;
-  uint32_t Rmux = H_prime_total * Qm * NL / Cmux;
-  uint32_t y_indices[Rmux][Cmux];
-
-  for (int i = 0; i < Rmux; i++) {
-    for (int k = 0; k < Cmux; k++) {
-      y_indices[i][k] = Rmux * k + i;
-    }
-  }
-
-  uint32_t arrayIdx = 0;
-  for (int i = 0; i < Rmux; i += 2) {
-    for (int k = 0; k < Cmux; k++) {
-      interleaver_lut[arrayIdx++] = y_indices[i][k];
-      interleaver_lut[arrayIdx++] = y_indices[i + 1][k];
-    }
-  }
-}
-#endif // HAVE_INTERLEAVING
 
 int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srslte_sl_tm_t tm, srslte_cp_t cp)
 {
@@ -77,7 +52,9 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
     q->nof_data_symbols = SRSLTE_PSBCH_TM34_NUM_DATA_SYMBOLS;
     q->sl_bch_tb_len    = SRSLTE_MIB_SL_V2X_LEN;
   }
+  q->nof_tx_symbols     = q->nof_data_symbols - 1; ///< Last OFDM symbol is used channel processing but not transmitted
   q->nof_data_re        = q->nof_data_symbols * (SRSLTE_NRE * SRSLTE_PSBCH_NOF_PRB);
+  q->nof_tx_re          = q->nof_tx_symbols * (SRSLTE_NRE * SRSLTE_PSBCH_NOF_PRB);
   q->sl_bch_tb_crc_len  = q->sl_bch_tb_len + SRSLTE_SL_BCH_CRC_LEN;
   q->sl_bch_encoded_len = 3 * q->sl_bch_tb_crc_len;
 
@@ -93,8 +70,8 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
     return SRSLTE_ERROR;
   }
 
-  q->d_float = srslte_vec_malloc(sizeof(float) * q->sl_bch_encoded_len);
-  if (!q->d_float) {
+  q->d_16 = srslte_vec_malloc(sizeof(int16_t) * q->sl_bch_encoded_len);
+  if (!q->d_16) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
@@ -133,21 +110,17 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
     return SRSLTE_ERROR;
   }
 
-  q->e_float = srslte_vec_malloc(sizeof(float) * q->E);
-  if (!q->e_float) {
+  q->e_16 = srslte_vec_malloc(sizeof(int16_t) * q->E);
+  if (!q->e_16) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
-#if HAVE_INTERLEAVING
-  // Interleaving
-  q->interleaver_lut = srslte_vec_malloc(sizeof(uint32_t) * q->E);
-  if (!q->interleaver_lut) {
+  q->e_bytes = srslte_vec_malloc(sizeof(uint8_t) * q->E / 8);
+  if (!q->e_bytes) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
-  slbch_interleave_gen(q->nof_data_re, q->nof_data_symbols, q->Qm, q->interleaver_lut);
-#endif
 
   // Scrambling
   bzero(&q->seq, sizeof(srslte_sequence_t));
@@ -158,6 +131,19 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
 
   q->codeword = srslte_vec_malloc(sizeof(uint8_t) * q->E);
   if (!q->codeword) {
+    ERROR("Error allocating memory\n");
+    return SRSLTE_ERROR;
+  }
+
+  q->codeword_bytes = srslte_vec_malloc(sizeof(uint8_t) * q->E / 8);
+  if (!q->codeword_bytes) {
+    ERROR("Error allocating memory\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Interleaving
+  q->interleaver_lut = srslte_vec_malloc(sizeof(uint32_t) * q->E);
+  if (!q->interleaver_lut) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
@@ -174,7 +160,8 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
     return SRSLTE_ERROR;
   }
 
-  q->llr = srslte_vec_malloc(sizeof(float) * q->E);
+  // Soft-demod
+  q->llr = srslte_vec_malloc(sizeof(int16_t) * q->E);
   if (!q->llr) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
@@ -192,6 +179,8 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
+  ///< Make sure last bits are zero as they are not considered during unpack
+  bzero(q->scfdma_symbols, sizeof(cf_t) * q->nof_data_re);
 
   if (srslte_dft_precoding_init_rx(&q->idft_precoder, SRSLTE_PSBCH_NOF_PRB) != SRSLTE_SUCCESS) {
     ERROR("Error srslte_idft_precoding_init\n");
@@ -218,20 +207,23 @@ int srslte_psbch_encode(srslte_psbch_t* q, uint8_t* input, uint32_t input_len, c
   srslte_convcoder_encode(&q->encoder, q->c, q->d, q->sl_bch_tb_crc_len);
 
   // Rate matching
-  srslte_rm_conv_tx(q->d, q->sl_bch_encoded_len, q->codeword, q->E);
+  srslte_rm_conv_tx(q->d, q->sl_bch_encoded_len, q->e, q->E);
 
-#if HAVE_INTERLEAVING
-  // PUSCH de-interleaving
-  for (int i = 0; i < q->E; i++) {
-    q->e[i] = q->codeword[q->interleaver_lut[i]];
-  }
-#endif
+  // Interleaving
+  srslte_bit_pack_vector(q->e, q->e_bytes, q->E);
+  srslte_sl_ulsch_interleave(q->e_bytes,          // input bytes
+                             q->Qm,               // modulation
+                             q->nof_data_re,      // prime number
+                             q->nof_data_symbols, // number of symbols
+                             q->codeword_bytes    // output
+  );
+  srslte_bit_unpack_vector(q->codeword_bytes, q->codeword, q->E);
 
   // Scrambling
-  srslte_scrambling_b(&q->seq, q->e);
+  srslte_scrambling_b(&q->seq, q->codeword);
 
   // Modulation
-  srslte_mod_modulate(&q->mod, q->e, q->mod_symbols, q->E);
+  srslte_mod_modulate(&q->mod, q->codeword, q->mod_symbols, q->E);
 
   // Layer Mapping
   // Void: Single layer
@@ -258,7 +250,7 @@ int srslte_psbch_decode(srslte_psbch_t* q, cf_t* equalized_sf_syms, uint8_t* out
   }
 
   // RE extraction
-  if (q->nof_data_re != srslte_psbch_get(q, equalized_sf_syms, q->scfdma_symbols)) {
+  if (q->nof_tx_re != srslte_psbch_get(q, equalized_sf_syms, q->scfdma_symbols)) {
     ERROR("There was an error getting the PSBCH symbols\n");
     return SRSLTE_ERROR;
   }
@@ -275,26 +267,19 @@ int srslte_psbch_decode(srslte_psbch_t* q, cf_t* equalized_sf_syms, uint8_t* out
   // 3GPP TS 36.211 version 15.6.0 Release 15 Sec. 9.6.3
 
   // Demodulation
-  srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->mod_symbols, q->e_float, q->nof_data_re);
+  srslte_demod_soft_demodulate_s(SRSLTE_MOD_QPSK, q->mod_symbols, q->llr, q->nof_data_re);
 
   // De-scramble
-  srslte_scrambling_f(&q->seq, q->e_float);
+  srslte_scrambling_s(&q->seq, q->llr);
 
-#if HAVE_INTERLEAVING
   // Deinterleaving
-  for (int i = 0; i < q->E; i++) {
-    q->e_float[q->interleaver_lut[i]] = q->e_float[i];
-  }
-#endif
+  srslte_sl_ulsch_deinterleave(q->llr, q->Qm, q->nof_data_re, q->nof_data_symbols, q->e_16, q->interleaver_lut);
 
   // Rate match
-  srslte_rm_conv_rx(q->e_float, q->E, q->d_float, q->sl_bch_encoded_len);
+  srslte_rm_conv_rx_s(q->e_16, q->E, q->d_16, q->sl_bch_encoded_len);
 
   // Channel decoding
-  srslte_viterbi_decode_f(&q->dec, q->d_float, q->c, q->sl_bch_tb_crc_len);
-
-  printf("after viterbi\n");
-  srslte_vec_fprint_b(stdout, q->c, q->sl_bch_tb_crc_len);
+  srslte_viterbi_decode_s(&q->dec, q->d_16, q->c, q->sl_bch_tb_crc_len);
 
   // Copy received crc to temp
   memcpy(q->crc_temp, &q->c[q->sl_bch_tb_len], sizeof(uint8_t) * SRSLTE_SL_BCH_CRC_LEN);
@@ -386,20 +371,26 @@ void srslte_psbch_free(srslte_psbch_t* q)
     if (q->d) {
       free(q->d);
     }
-    if (q->d_float) {
-      free(q->d_float);
+    if (q->d_16) {
+      free(q->d_16);
     }
     if (q->e) {
       free(q->e);
     }
-    if (q->e_float) {
-      free(q->e_float);
+    if (q->e_bytes) {
+      free(q->e_bytes);
+    }
+    if (q->e_16) {
+      free(q->e_16);
     }
     if (q->interleaver_lut) {
       free(q->interleaver_lut);
     }
     if (q->codeword) {
       free(q->codeword);
+    }
+    if (q->codeword_bytes) {
+      free(q->codeword_bytes);
     }
     if (q->llr) {
       free(q->llr);

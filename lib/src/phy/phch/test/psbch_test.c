@@ -131,16 +131,21 @@ int main(int argc, char** argv)
     srslte_mib_sl_unpack(&mib_sl, mib_sl_rx);
     srslte_mib_sl_printf(stdout, &mib_sl);
 
-    ret = SRSLTE_SUCCESS;
+    // check decoded bandwidth matches user configured value
+    if (srslte_mib_sl_bandwith_to_prb[mib_sl.sl_bandwidth_r12] == nof_prb) {
+      ret = SRSLTE_SUCCESS;
+    }
   }
 
-  // Sanity check
+  // Sanity check (less REs are transmitted than mapped)
   if (tm <= SRSLTE_SIDELINK_TM2) {
-    // TM1 and TM2 have always 504 PSBCH resource elements
-    TESTASSERT(psbch.E / psbch.Qm == 504);
+    // TM1 and TM2 have always 576 mapped PSBCH resource elements of which 504 are transmitted
+    TESTASSERT(psbch.nof_data_re == 576);
+    TESTASSERT(psbch.nof_tx_re == 504);
   } else {
-    // TM3 and TM4 have always 432 PSBCH resource elements
-    TESTASSERT(psbch.E / psbch.Qm == 432);
+    // TM3 and TM4 have always 504 mapped PSBCH resource elements of which 432 are transmitted
+    TESTASSERT(psbch.nof_data_re == 504);
+    TESTASSERT(psbch.nof_tx_re == 432);
   }
 
   if (SRSLTE_VERBOSE_ISDEBUG()) {

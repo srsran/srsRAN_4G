@@ -60,6 +60,8 @@ typedef struct SRSLTE_API {
 
 } srslte_mib_sl_t;
 
+static const int srslte_mib_sl_bandwith_to_prb[6] = {6, 15, 25, 50, 75, 100};
+
 SRSLTE_API int srslte_mib_sl_init(srslte_mib_sl_t* q, srslte_sl_tm_t tm);
 
 SRSLTE_API int srslte_mib_sl_set(srslte_mib_sl_t* q,

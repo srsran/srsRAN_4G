@@ -23,7 +23,6 @@
 
 #include "srslte/phy/phch/mib_sl.h"
 #include "srslte/phy/utils/bit.h"
-//#include "srslte/phy/common/phy_sl_common.h"
 
 int srslte_mib_sl_init(srslte_mib_sl_t* q, srslte_sl_tm_t tm)
 {
