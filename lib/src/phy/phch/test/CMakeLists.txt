@@ -59,6 +59,9 @@ target_link_libraries(psbch_file_test srslte_phy)
 #add_test(psbch_file_test_ideal_tm2_p50_c252 psbch_test -p 50 -t 2 -c 252 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p50_c252_s15.36e+6.dat)
 #add_test(psbch_file_test_ideal_tm2_p100_c335 psbch_test -p 100 -t 2 -c 335 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e+6.dat)
 
+# TM4 file tests
+add_test(psbch_file_test_cmw_tm4_p50_c169 psbch_file_test -p 50 -c 169 -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_cmw500_f5.92e9_s11.52e6_50prb_slss_id169.dat)
+
 ########################################################################
 # NPBCH TEST
 ########################################################################
