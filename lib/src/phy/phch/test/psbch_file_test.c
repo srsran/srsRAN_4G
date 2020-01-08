@@ -151,11 +151,17 @@ int main(int argc, char** argv)
 
   // PSBCH
   srslte_psbch_t psbch;
-  srslte_psbch_init(&psbch, nof_prb, N_sl_id, tm, SRSLTE_CP_NORM);
+  if (srslte_psbch_init(&psbch, nof_prb, N_sl_id, tm, SRSLTE_CP_NORM) != SRSLTE_SUCCESS) {
+    ERROR("Error in psbch init\n");
+    return SRSLTE_ERROR;
+  }
 
   // PSCBH DMRS
   srslte_chest_sl_t psbch_chest;
-  srslte_chest_sl_init_psbch_dmrs(&psbch_chest);
+  if (srslte_chest_sl_init_psbch_dmrs(&psbch_chest) != SRSLTE_SUCCESS) {
+    ERROR("Error in psbch dmrs init\n");
+    return SRSLTE_ERROR;
+  }
 
   // Read subframe from third party implementations
   if (!input_file_name || srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
@@ -192,7 +198,10 @@ int main(int argc, char** argv)
     srslte_mib_sl_unpack(&mib_sl, mib_sl_rx);
     srslte_mib_sl_printf(stdout, &mib_sl);
 
-    ret = SRSLTE_SUCCESS;
+    // check decoded bandwidth matches user configured value
+    if (srslte_mib_sl_bandwith_to_prb[mib_sl.sl_bandwidth_r12] == nof_prb) {
+      ret = SRSLTE_SUCCESS;
+    }
   }
 
   if (SRSLTE_VERBOSE_ISDEBUG()) {

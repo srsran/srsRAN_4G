@@ -105,7 +105,10 @@ int main(int argc, char** argv)
 
   // PSBCH
   srslte_psbch_t psbch;
-  srslte_psbch_init(&psbch, nof_prb, N_sl_id, tm, SRSLTE_CP_NORM);
+  if (srslte_psbch_init(&psbch, nof_prb, N_sl_id, tm, SRSLTE_CP_NORM) != SRSLTE_SUCCESS) {
+    ERROR("Error in psbch init\n");
+    return SRSLTE_ERROR;
+  }
 
   // MIB message bits
   uint8_t mib_sl_tx[SRSLTE_MIB_SL_MAX_LEN] = {};
