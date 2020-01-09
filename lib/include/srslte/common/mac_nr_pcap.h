@@ -22,8 +22,6 @@
 #ifndef SRSLTE_MAC_NR_PCAP_H
 #define SRSLTE_MAC_NR_PCAP_H
 
-#include "srslte/common/pcap.h"
-#include <stdint.h>
 #include <string>
 
 namespace srslte {

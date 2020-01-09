@@ -20,7 +20,7 @@
  */
 
 #include "srslte/common/mac_nr_pcap.h"
-#include "srslte/srslte.h"
+#include "srslte/common/pcap.h"
 #include <stdint.h>
 
 namespace srslte {

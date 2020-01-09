@@ -30,6 +30,7 @@ set(SOURCES arch_select.cc
             mac_pcap.cc
             nas_pcap.cc
             network_utils.cc
+            pcap.c
             pdu.cc
             pdu_queue.cc
             rlc_pcap.cc
