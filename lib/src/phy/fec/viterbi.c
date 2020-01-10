@@ -114,6 +114,9 @@ void free37_sse(void* o)
   if (q->symbols_uc) {
     free(q->symbols_uc);
   }
+  if (q->symbols_us) {
+    free(q->symbols_us);
+  }
   if (q->tmp) {
     free(q->tmp);
   }
@@ -320,11 +323,18 @@ int init37_sse(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_b
   q->decode       = decode37_sse;
   q->free         = free37_sse;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
+#ifdef VITERBI_16
+  q->symbols_us = srslte_vec_u16_malloc(3 * (q->framebits + q->K - 1));
+  if (!q->symbols_us) {
+    perror("malloc");
+    return -1;
+  }
+#endif
   if (q->tail_biting) {
     q->tmp = srslte_vec_malloc(TB_ITER * 3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
     if (!q->tmp) {
@@ -477,6 +487,7 @@ int srslte_viterbi_init(srslte_viterbi_t*     q,
                         uint32_t              max_frame_length,
                         bool                  tail_bitting)
 {
+  bzero(q, sizeof(srslte_viterbi_t));
   switch (type) {
     case SRSLTE_VITERBI_37:
 #ifdef LV_HAVE_SSE
@@ -586,7 +597,7 @@ int srslte_viterbi_decode_s(srslte_viterbi_t* q, int16_t* symbols, uint8_t* data
     }
   }
 #ifdef VITERBI_16
-  srslte_vec_quant_sus(symbols, q->symbols_us, 1, 32767, len);
+  srslte_vec_quant_sus(symbols, q->symbols_us, 1, (float)INT16_MAX, UINT16_MAX, len);
   return srslte_viterbi_decode_us(q, q->symbols_us, data, frame_length);
 #else
   srslte_vec_quant_suc(symbols, q->symbols_uc, (float)q->gain_quant / max, 127, 255, len);
@@ -596,10 +607,22 @@ int srslte_viterbi_decode_s(srslte_viterbi_t* q, int16_t* symbols, uint8_t* data
 
 int srslte_viterbi_decode_us(srslte_viterbi_t* q, uint16_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  return q->decode_s(q, symbols, data, frame_length);
+  int ret = SRSLTE_ERROR;
+
+  if (q && q->decode_s) {
+    ret = q->decode_s(q, symbols, data, frame_length);
+  }
+
+  return ret;
 }
 
 int srslte_viterbi_decode_uc(srslte_viterbi_t* q, uint8_t* symbols, uint8_t* data, uint32_t frame_length)
 {
-  return q->decode(q, symbols, data, frame_length);
+  int ret = SRSLTE_ERROR;
+
+  if (q && q->decode) {
+    ret = q->decode(q, symbols, data, frame_length);
+  }
+
+  return ret;
 }

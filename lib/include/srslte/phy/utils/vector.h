@@ -82,6 +82,10 @@ SRSLTE_API cf_t srslte_vec_acc_cc(const cf_t* x, const uint32_t len);
 SRSLTE_API void* srslte_vec_malloc(uint32_t size);
 SRSLTE_API cf_t*  srslte_vec_cf_malloc(uint32_t size);
 SRSLTE_API float* srslte_vec_f_malloc(uint32_t size);
+SRSLTE_API int16_t* srslte_vec_i16_malloc(uint32_t nsamples);
+SRSLTE_API uint16_t* srslte_vec_u16_malloc(uint32_t nsamples);
+SRSLTE_API int8_t* srslte_vec_i8_malloc(uint32_t nsamples);
+SRSLTE_API uint8_t* srslte_vec_u8_malloc(uint32_t nsamples);
 
 SRSLTE_API void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_size);
 
@@ -179,17 +183,27 @@ SRSLTE_API void srslte_vec_quant_fuc(const float*   in,
                                      uint8_t*       out,
                                      const float    gain,
                                      const float    offset,
-                                     const float    clip,
+                                     const uint8_t  clip,
                                      const uint32_t len);
-SRSLTE_API void srslte_vec_quant_fus(float* in, uint16_t* out, float gain, float offset, float clip, uint32_t len);
+SRSLTE_API void srslte_vec_quant_fus(const float*   in,
+                                     uint16_t*      out,
+                                     const float    gain,
+                                     const float    offset,
+                                     const uint16_t clip,
+                                     const uint32_t len);
 SRSLTE_API void srslte_vec_quant_suc(const int16_t* in,
                                      uint8_t*       out,
                                      const float    gain,
-                                     const int16_t  offset,
-                                     const int16_t  clip,
+                                     const float    offset,
+                                     const uint8_t  clip,
                                      const uint32_t len);
-SRSLTE_API void
-srslte_vec_quant_sus(const int16_t* in, uint16_t* out, const float gain, const int16_t offset, const uint32_t len);
+
+SRSLTE_API void srslte_vec_quant_sus(const int16_t* in,
+                                     uint16_t*      out,
+                                     const float    gain,
+                                     const float    offset,
+                                     const uint16_t clip,
+                                     const uint32_t len);
 /* magnitude of each vector element */
 SRSLTE_API void srslte_vec_abs_cf(const cf_t* x, float* abs, const uint32_t len);
 SRSLTE_API void srslte_vec_abs_square_cf(const cf_t* x, float* abs_square, const uint32_t len);

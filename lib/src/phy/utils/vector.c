@@ -154,6 +154,26 @@ float* srslte_vec_f_malloc(uint32_t nsamples)
   return (float*)srslte_vec_malloc((uint32_t)sizeof(float) * nsamples);
 }
 
+int16_t* srslte_vec_i16_malloc(uint32_t nsamples)
+{
+  return (int16_t*)srslte_vec_malloc((uint32_t)sizeof(int16_t) * nsamples);
+}
+
+uint16_t* srslte_vec_u16_malloc(uint32_t nsamples)
+{
+  return (uint16_t*)srslte_vec_malloc((uint32_t)sizeof(uint16_t) * nsamples);
+}
+
+int8_t* srslte_vec_i8_malloc(uint32_t nsamples)
+{
+  return (int8_t*)srslte_vec_malloc((uint32_t)sizeof(int8_t) * nsamples);
+}
+
+uint8_t* srslte_vec_u8_malloc(uint32_t nsamples)
+{
+  return (uint8_t*)srslte_vec_malloc((uint32_t)sizeof(uint8_t) * nsamples);
+}
+
 void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_size)
 {
 #ifndef LV_HAVE_SSE
@@ -499,17 +519,17 @@ uint32_t srslte_vec_max_abs_ci(const cf_t* x, const uint32_t len)
   return srslte_vec_max_ci_simd(x, len);
 }
 
-void srslte_vec_quant_fus(float* in, uint16_t* out, float gain, float offset, float clip, uint32_t len)
+void srslte_vec_quant_fus(const float*   in,
+                          uint16_t*      out,
+                          const float    gain,
+                          const float    offset,
+                          const uint16_t clip,
+                          const uint32_t len)
 {
-  int  i;
-  long tmp;
-
-  for (i = 0; i < len; i++) {
-    tmp = (long)(offset + gain * in[i]);
-    if (tmp < 0)
-      tmp = 0;
-    if (tmp > clip)
-      tmp = clip;
+  for (uint32_t i = 0; i < len; i++) {
+    int32_t tmp = (int32_t)(offset + gain * in[i]);
+    tmp         = SRSLTE_MAX(tmp, 0);
+    tmp         = SRSLTE_MIN(tmp, (int32_t)clip);
     out[i] = (uint16_t)tmp;
   }
 }
@@ -518,18 +538,13 @@ void srslte_vec_quant_fuc(const float*   in,
                           uint8_t*       out,
                           const float    gain,
                           const float    offset,
-                          const float    clip,
+                          const uint8_t  clip,
                           const uint32_t len)
 {
-  int i;
-  int tmp;
-
-  for (i = 0; i < len; i++) {
-    tmp = (int)(offset + gain * in[i]);
-    if (tmp < 0)
-      tmp = 0;
-    if (tmp > clip)
-      tmp = clip;
+  for (uint32_t i = 0; i < len; i++) {
+    int32_t tmp = (int32_t)(offset + gain * in[i]);
+    tmp         = SRSLTE_MAX(tmp, 0);
+    tmp         = SRSLTE_MIN(tmp, (int32_t)clip);
     out[i] = (uint8_t)tmp;
   }
 }
@@ -537,32 +552,29 @@ void srslte_vec_quant_fuc(const float*   in,
 void srslte_vec_quant_suc(const int16_t* in,
                           uint8_t*       out,
                           const float    gain,
-                          const int16_t  offset,
-                          const int16_t  clip,
+                          const float    offset,
+                          const uint8_t  clip,
                           const uint32_t len)
 {
-  int     i;
-  int16_t tmp;
-
-  for (i = 0; i < len; i++) {
-    tmp = (int16_t)(offset + in[i] * gain);
-    if (tmp < 0)
-      tmp = 0;
-    if (tmp > clip)
-      tmp = clip;
+  for (uint32_t i = 0; i < len; i++) {
+    int32_t tmp = (int32_t)(offset + (float)in[i] * gain);
+    tmp         = SRSLTE_MAX(tmp, 0);
+    tmp         = SRSLTE_MIN(tmp, (int32_t)clip);
     out[i] = (uint8_t)tmp;
   }
 }
 
-void srslte_vec_quant_sus(const int16_t* in, uint16_t* out, const float gain, const int16_t offset, const uint32_t len)
+void srslte_vec_quant_sus(const int16_t* in,
+                          uint16_t*      out,
+                          const float    gain,
+                          const float    offset,
+                          const uint16_t clip,
+                          const uint32_t len)
 {
-  int     i;
-  int16_t tmp;
-
-  for (i = 0; i < len; i++) {
-    tmp = (offset + in[i] * gain);
-    if (tmp < 0)
-      tmp = 0;
+  for (uint32_t i = 0; i < len; i++) {
+    int32_t tmp = (int32_t)(offset + gain * (float)in[i]);
+    tmp         = SRSLTE_MAX(tmp, 0);
+    tmp         = SRSLTE_MIN(tmp, (int32_t)clip);
     out[i] = (uint16_t)tmp;
   }
 }

@@ -784,7 +784,7 @@ void srslte_bit_fprint(FILE* stream, uint8_t* bits, int nof_bits)
   fprintf(stream, "%d]\n", bits[i]);
 }
 
-uint32_t srslte_bit_diff(uint8_t* x, uint8_t* y, int nbits)
+uint32_t srslte_bit_diff(const uint8_t* x, const uint8_t* y, int nbits)
 {
   uint32_t errors = 0;
   for (int i = 0; i < nbits; i++) {

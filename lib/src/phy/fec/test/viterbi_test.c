@@ -32,16 +32,10 @@
 
 #include "viterbi_test.h"
 
-#define VITERBI_16
-
-#ifndef LV_HAVE_AVX2
-#undef VITERBI_16
-#endif
-
-int      frame_length = 1000, nof_frames = 256;
-float    ebno_db     = 100.0;
-uint32_t seed        = 0;
-bool     tail_biting = false;
+static int      frame_length = 1000, nof_frames = 256;
+static float    ebno_db     = 100.0;
+static uint32_t seed        = 0;
+static bool     tail_biting = false;
 
 #define SNR_POINTS 10
 #define SNR_MIN 0.0
@@ -84,19 +78,43 @@ void parse_args(int argc, char** argv)
   }
 }
 
+#define VITERBI_TEST(FUNC, DEC, LLR, NOF_ERRORS)                                                                       \
+  do {                                                                                                                 \
+    struct timeval t[3] = {};                                                                                          \
+    int            M    = 1;                                                                                           \
+    gettimeofday(&t[1], NULL);                                                                                         \
+    for (uint32_t m = 0; m < M && NOF_ERRORS >= 0; m++) {                                                              \
+      int ret = FUNC(&DEC, LLR, data_rx, frame_length);                                                                \
+      if (ret < SRSLTE_SUCCESS) {                                                                                      \
+        NOF_ERRORS = ret;                                                                                              \
+      }                                                                                                                \
+    }                                                                                                                  \
+    gettimeofday(&t[2], NULL);                                                                                         \
+    get_time_interval(t);                                                                                              \
+    /*printf("-- "#FUNC" took\t\t%.1f us\n", (float) t[0].tv_sec * 1e6f + (float) t[0].tv_usec/M);*/                   \
+    if (NOF_ERRORS >= 0) {                                                                                             \
+      NOF_ERRORS += srslte_bit_diff(data_tx, data_rx, frame_length);                                                   \
+    }                                                                                                                  \
+  } while (0)
+
+//#define TEST_SSE
+
 int main(int argc, char** argv)
 {
-  int       frame_cnt;
-  float*    llr;
-  uint16_t* llr_s;
-  uint8_t*  llr_c;
-  uint8_t * data_tx, *data_rx, *data_rx2, *symbols;
-  int       j;
+  int       frame_cnt = 0;
+  float*    llr       = NULL;
+  uint16_t* llr_us    = NULL;
+  int16_t*  llr_s     = NULL;
+  uint8_t*  llr_c     = NULL;
+  uint8_t * data_tx, *data_rx, *symbols;
   float     var[SNR_POINTS], varunc[SNR_POINTS];
   int       snr_points;
-  uint32_t  errors;
+  int       errors_s   = 0;
+  int       errors_us  = 0;
+  int       errors_c   = 0;
+  int       errors_f   = 0;
+  int       errors_sse = 0;
 #ifdef TEST_SSE
-  uint32_t         errors2;
   srslte_viterbi_t dec_sse;
 #endif
   srslte_viterbi_t   dec;
@@ -130,40 +148,39 @@ int main(int argc, char** argv)
     printf("  EbNo: %.2f\n", ebno_db);
   }
 
-  data_tx = malloc(frame_length * sizeof(uint8_t));
+  data_tx = srslte_vec_u8_malloc(frame_length);
   if (!data_tx) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx = malloc(frame_length * sizeof(uint8_t));
+  data_rx = srslte_vec_u8_malloc(frame_length);
   if (!data_rx) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx2 = malloc(frame_length * sizeof(uint8_t));
-  if (!data_rx2) {
-    perror("malloc");
-    exit(-1);
-  }
-
-  symbols = malloc(coded_length * sizeof(uint8_t));
+  symbols = srslte_vec_u8_malloc(coded_length);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  llr = malloc(coded_length * sizeof(float));
+  llr = srslte_vec_f_malloc(coded_length);
   if (!llr) {
     perror("malloc");
     exit(-1);
   }
-  llr_s = malloc(2 * coded_length * sizeof(uint16_t));
+  llr_s = srslte_vec_i16_malloc(2 * coded_length);
   if (!llr_s) {
     perror("malloc");
     exit(-1);
   }
-  llr_c = malloc(2 * coded_length * sizeof(uint8_t));
+  llr_us = srslte_vec_u16_malloc(2 * coded_length);
+  if (!llr_us) {
+    perror("malloc");
+    exit(-1);
+  }
+  llr_c = srslte_vec_u8_malloc(2 * coded_length);
   if (!llr_c) {
     perror("malloc");
     exit(-1);
@@ -188,21 +205,21 @@ int main(int argc, char** argv)
 
   for (uint32_t i = 0; i < snr_points; i++) {
     frame_cnt = 0;
-    errors    = 0;
-#ifdef TEST_SSE
-    errors2 = 0;
-#endif
+    errors_s   = 0;
+    errors_c   = 0;
+    errors_f   = 0;
+    errors_sse = 0;
     while (frame_cnt < nof_frames) {
 
       /* generate data_tx */
       srslte_random_t random_gen = srslte_random_init(0);
-      for (j = 0; j < frame_length; j++) {
+      for (int j = 0; j < frame_length; j++) {
         data_tx[j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
       }
       srslte_random_free(random_gen);
 
       /* uncoded BER */
-      for (j = 0; j < frame_length; j++) {
+      for (int j = 0; j < frame_length; j++) {
         llr[j] = data_tx[j] ? M_SQRT2 : -M_SQRT2;
       }
       srslte_ch_awgn_f(llr, llr, varunc[i], frame_length);
@@ -210,60 +227,52 @@ int main(int argc, char** argv)
       /* coded BER */
       srslte_convcoder_encode(&cod, data_tx, symbols, frame_length);
 
-      for (j = 0; j < coded_length; j++) {
+      for (int j = 0; j < coded_length; j++) {
         llr[j] = symbols[j] ? M_SQRT2 : -M_SQRT2;
       }
 
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);
       // srslte_vec_fprint_f(stdout, llr, 100);
 
-      srslte_vec_quant_fuc(llr, llr_c, 32, 127.5, 255, coded_length);
-      srslte_vec_quant_fus(llr, llr_s, 8192, 32767.5, 65535, coded_length);
+      srslte_vec_convert_fi(llr, 1000, llr_s, coded_length);
+      srslte_vec_quant_fuc(llr, llr_c, 32, INT8_MAX, UINT8_MAX, coded_length);
+      srslte_vec_quant_fus(llr, llr_us, 8192, INT16_MAX, UINT16_MAX, coded_length);
 
-      struct timeval t[3];
-      gettimeofday(&t[1], NULL);
-      int M = 1;
-
-      for (uint32_t i = 0; i < M; i++) {
-#ifdef VITERBI_16
-        srslte_viterbi_decode_us(&dec, llr_s, data_rx, frame_length);
-#else
-        srslte_viterbi_decode_uc(&dec, llr_c, data_rx, frame_length);
-#endif
-      }
-
+      VITERBI_TEST(srslte_viterbi_decode_s, dec, llr_s, errors_s);
+      VITERBI_TEST(srslte_viterbi_decode_us, dec, llr_us, errors_us);
+      VITERBI_TEST(srslte_viterbi_decode_uc, dec, llr_c, errors_c);
+      VITERBI_TEST(srslte_viterbi_decode_f, dec, llr, errors_f);
 #ifdef TEST_SSE
-      gettimeofday(&t[2], NULL);
-      get_time_interval(t);
-      // printf("Execution time:\t\t%.1f us\n", (float) t[0].tv_usec/M);
-      gettimeofday(&t[1], NULL);
-      for (int i = 0; i < M; i++) {
-        srslte_viterbi_decode_uc(&dec_sse, llr_c, data_rx2, frame_length);
-      }
-      gettimeofday(&t[2], NULL);
-      get_time_interval(t);
-      // printf("Execution time SIMD:\t%.1f us\n", (float) t[0].tv_usec/M);
-#endif
-
-      /* check errors */
-      errors += srslte_bit_diff(data_tx, data_rx, frame_length);
-#ifdef TEST_SSE
-      errors2 += srslte_bit_diff(data_tx, data_rx2, frame_length);
+      VITERBI_TEST(srslte_viterbi_decode_uc, dec_sse, llr_c, errors_sse);
 #endif
       frame_cnt++;
-      printf("Eb/No: %3.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
-      printf("BER: %.2e  ", (float)errors / (frame_cnt * frame_length));
+      printf("     Eb/No: %3.2f %10d/%d   ", SNR_MIN + i * ebno_inc, frame_cnt, nof_frames);
+      if (errors_s >= 0)
+        printf(" int16 BER: %.2e  ", (float)errors_s / (frame_cnt * frame_length));
+      if (errors_us >= 0)
+        printf("uint16 BER: %.2e  ", (float)errors_us / (frame_cnt * frame_length));
+      if (errors_c >= 0)
+        printf("uint8  BER: %.2e  ", (float)errors_c / (frame_cnt * frame_length));
+      if (errors_f >= 0)
+        printf("float  BER: %.2e  ", (float)errors_f / (frame_cnt * frame_length));
 #ifdef TEST_SSE
-      printf("BER2: %.2e  ", (float)errors2 / (frame_cnt * frame_length));
+      printf("sse    BER: %.2e  ", (float)errors_sse / (frame_cnt * frame_length));
 #endif
-      printf("\r");
+      printf("\r\n");
     }
     printf("\n");
 
     if (snr_points == 1) {
-      printf("BER    :    %g\t%u errors\n", (float)errors / (frame_cnt * frame_length), errors);
+      if (errors_s >= 0)
+        printf(" int16 BER    :    %g\t%u errors\n", (float)errors_s / (frame_cnt * frame_length), errors_s);
+      if (errors_us >= 0)
+        printf("uint16 BER    :    %g\t%u errors\n", (float)errors_us / (frame_cnt * frame_length), errors_us);
+      if (errors_c >= 0)
+        printf("uint8  BER    :    %g\t%u errors\n", (float)errors_c / (frame_cnt * frame_length), errors_c);
+      if (errors_f >= 0)
+        printf("float  BER    :    %g\t%u errors\n", (float)errors_f / (frame_cnt * frame_length), errors_f);
 #ifdef TEST_SSE
-      printf("BER SSE:    %g\t%u errors\n", (float)errors2 / (frame_cnt * frame_length), errors2);
+      printf("sse    BER    :    %g\t%u errors\n", (float)errors_sse / (frame_cnt * frame_length), errors_sse);
 #endif
     }
   }
@@ -277,17 +286,24 @@ int main(int argc, char** argv)
   free(llr);
   free(llr_c);
   free(llr_s);
+  free(llr_us);
   free(data_rx);
-  free(data_rx2);
 
   if (snr_points == 1) {
-    int expected_errors = get_expected_errors(nof_frames, seed, frame_length, tail_biting, ebno_db);
-    if (expected_errors == -1) {
+    int expected_e = get_expected_errors(nof_frames, seed, frame_length, tail_biting, ebno_db);
+    if (expected_e == -1) {
       ERROR("Test parameters not defined in test_results.h\n");
       exit(-1);
     } else {
-      printf("errors =%d, expected =%d\n", errors, expected_errors);
-      exit(errors > expected_errors);
+      printf(
+          "errors =(%d,%d,%d,%d,%d), expected =%d\n", errors_s, errors_us, errors_c, errors_f, errors_sse, expected_e);
+      bool passed = true;
+      passed &= (bool)(errors_us <= expected_e);
+      passed &= (bool)(errors_s <= expected_e);
+      passed &= (bool)(errors_c <= expected_e);
+      passed &= (bool)(errors_f <= expected_e);
+      passed &= (bool)(errors_sse <= expected_e);
+      exit(!passed);
     }
   } else {
     printf("\n");
