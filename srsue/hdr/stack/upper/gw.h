@@ -41,6 +41,7 @@ struct gw_args_t {
     std::string gw_level;
     int         gw_hex_limit;
   } log;
+  std::string netns;
   std::string tun_dev_name;
   std::string tun_dev_netmask;
 };
@@ -78,6 +79,7 @@ private:
 
   bool         running      = false;
   bool         run_enable   = false;
+  int32_t      netns_fd     = 0;
   int32_t      tun_fd       = 0;
   struct ifreq ifr          = {};
   int32_t      sock         = 0;

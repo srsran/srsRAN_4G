@@ -152,6 +152,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("usim.pin", bpo::value<string>(&args->stack.usim.pin), "PIN in case real SIM card is used")
     ("usim.reader", bpo::value<string>(&args->stack.usim.reader)->default_value(""), "Force specific PCSC reader. Default: Try all available readers.")
 
+    ("gw.netns", bpo::value<string>(&args->gw.netns)->default_value(""), "Network namespace to for TUN device (empty for default netns)")
     ("gw.ip_devname", bpo::value<string>(&args->gw.tun_dev_name)->default_value("tun_srsue"), "Name of the tun_srsue device")
     ("gw.ip_netmask", bpo::value<string>(&args->gw.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the tun_srsue device")
 

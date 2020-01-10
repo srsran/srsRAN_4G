@@ -342,12 +342,24 @@ int gw::init_if(char* err_str)
     return SRSLTE_ERROR_ALREADY_STARTED;
   }
 
+  // change into netns
+  if (!args.netns.empty()) {
+    std::string netns("/run/netns/");
+    netns += args.netns;
+    netns_fd = open(netns.c_str(), O_RDONLY);
+    if (setns(netns_fd, CLONE_NEWNET) == -1) {
+      err_str = strerror(errno);
+      log.error("Failed to change netns: %s\n", err_str);
+      return SRSLTE_ERROR_CANT_START;
+    }
+  }
+
   // Construct the TUN device
   tun_fd = open("/dev/net/tun", O_RDWR);
   log.info("TUN file descriptor = %d\n", tun_fd);
   if (0 > tun_fd) {
     err_str = strerror(errno);
-    log.debug("Failed to open TUN device: %s\n", err_str);
+    log.error("Failed to open TUN device: %s\n", err_str);
     return SRSLTE_ERROR_CANT_START;
   }
 
@@ -358,7 +370,7 @@ int gw::init_if(char* err_str)
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ - 1] = 0;
   if (0 > ioctl(tun_fd, TUNSETIFF, &ifr)) {
     err_str = strerror(errno);
-    log.debug("Failed to set TUN device name: %s\n", err_str);
+    log.error("Failed to set TUN device name: %s\n", err_str);
     close(tun_fd);
     return SRSLTE_ERROR_CANT_START;
   }
@@ -367,14 +379,14 @@ int gw::init_if(char* err_str)
   sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (0 > ioctl(sock, SIOCGIFFLAGS, &ifr)) {
     err_str = strerror(errno);
-    log.debug("Failed to bring up socket: %s\n", err_str);
+    log.error("Failed to bring up socket: %s\n", err_str);
     close(tun_fd);
     return SRSLTE_ERROR_CANT_START;
   }
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   if (0 > ioctl(sock, SIOCSIFFLAGS, &ifr)) {
     err_str = strerror(errno);
-    log.debug("Failed to set socket flags: %s\n", err_str);
+    log.error("Failed to set socket flags: %s\n", err_str);
     close(tun_fd);
     return SRSLTE_ERROR_CANT_START;
   }
