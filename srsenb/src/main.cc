@@ -475,6 +475,7 @@ int main(int argc, char* argv[])
     usleep(10000);
   }
   pthread_cancel(input);
+  pthread_join(input, NULL);
   metricshub.stop();
   enb->stop();
   enb->cleanup();
