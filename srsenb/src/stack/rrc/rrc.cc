@@ -38,7 +38,7 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc() : cnotifier(nullptr), nof_si_messages(0)
+rrc::rrc()
 {
   pending_paging.clear();
 }
@@ -63,7 +63,6 @@ void rrc::init(rrc_cfg_t*             cfg_,
   s1ap      = s1ap_;
   rrc_log   = log_rrc;
   timers    = timers_;
-  cnotifier = nullptr;
 
   pool = srslte::byte_buffer_pool::get_instance();
 
@@ -83,20 +82,7 @@ void rrc::init(rrc_cfg_t*             cfg_,
 
   bzero(&sr_sched, sizeof(sr_sched_t));
 
-  // run active monitor timer in a 10ms loop
-  activity_monitor_timer = timers->get_unique_timer();
-  activity_monitor_timer.set(10, [this](uint32_t tid) {
-    monitor_activity();
-    activity_monitor_timer.run();
-  });
-  activity_monitor_timer.run();
-
   running = true;
-}
-
-void rrc::set_connect_notifer(connect_notifier* cnotifier_)
-{
-  cnotifier = cnotifier_;
 }
 
 void rrc::stop()
@@ -932,42 +918,6 @@ void rrc::enable_encryption(uint16_t rnti, uint32_t lcid)
   pdcp->enable_encryption(rnti, lcid);
 }
 
-void rrc::monitor_activity()
-{
-  pthread_mutex_lock(&user_mutex);
-
-  uint16_t rem_rnti = 0;
-  for (auto& user : users) {
-    if (user.first == SRSLTE_MRNTI) {
-      continue;
-    }
-    ue*      u    = user.second.get();
-    uint16_t rnti = (uint16_t)user.first;
-
-    if (cnotifier && u->is_connected() && !u->connect_notified) {
-      cnotifier->user_connected(rnti);
-      u->connect_notified = true;
-    }
-
-    if (u->is_timeout()) {
-      rrc_log->info("User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, s1ap->user_exists(rnti) ? "yes" : "no");
-      rem_rnti = rnti;
-      break;
-    }
-  }
-  if (rem_rnti > 0) {
-    if (s1ap->user_exists(rem_rnti)) {
-      s1ap->user_release(rem_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
-    } else {
-      if (rem_rnti != SRSLTE_MRNTI) {
-        rem_user_thread(rem_rnti);
-      }
-    }
-  }
-
-  pthread_mutex_unlock(&user_mutex);
-}
-
 /*******************************************************************************
   RRC run tti method
 *******************************************************************************/
@@ -1037,10 +987,10 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_) :
   rnti(rnti_),
   pool(srslte::byte_buffer_pool::get_instance())
 {
-  set_activity();
+  activity_timer = outer_rrc->timers->get_unique_timer();
+  set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
   integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
   cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-  gettimeofday(&t_ue_init, nullptr);
   mobility_handler.reset(new rrc_mobility(this));
 }
 
@@ -1057,12 +1007,61 @@ uint32_t rrc::ue::rl_failure()
 
 void rrc::ue::set_activity()
 {
-  gettimeofday(&t_last_activity, nullptr);
+  // re-start activity timer with current timeout value
+  activity_timer.run();
+
+  if (parent && parent->rrc_log) {
+    parent->rrc_log->debug("Activity registered for rnti=0x%x (timeout_value=%dms)\n", rnti, activity_timer.duration());
+  }
+}
+
+void rrc::ue::activity_timer_expired()
+{
   if (parent) {
     if (parent->rrc_log) {
-      parent->rrc_log->debug("Activity registered rnti=0x%x\n", rnti);
+      parent->rrc_log->warning("Activity timer for rnti=0x%x expired after %d ms\n", rnti, activity_timer.value());
+    }
+
+    if (parent->s1ap->user_exists(rnti)) {
+      parent->s1ap->user_release(rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
+    } else {
+      if (rnti != SRSLTE_MRNTI) {
+        parent->rem_user_thread(rnti);
+      }
     }
   }
+
+  state = RRC_STATE_RELEASE_REQUEST;
+}
+
+void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
+{
+  uint32_t deadline_s  = 0;
+  uint32_t deadline_ms = 0;
+
+  switch (type) {
+    case MSG3_RX_TIMEOUT:
+      deadline_s  = 0;
+      deadline_ms = static_cast<uint32_t>((parent->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16);
+      break;
+    case UE_RESPONSE_RX_TIMEOUT:
+      // Arbitrarily chosen value to complete each UE config step, i.e. security, bearer setup, etc.
+      deadline_s   = 1;
+      deadline_ms  = 0;
+      break;
+    case UE_INACTIVITY_TIMEOUT:
+      deadline_s   = parent->cfg.inactivity_timeout_ms / 1000;
+      deadline_ms  = parent->cfg.inactivity_timeout_ms % 1000;
+      break;
+    default:
+      parent->rrc_log->error("Unknown timeout type %d", type);
+  }
+
+  uint32_t deadline = deadline_s * 1e3 + deadline_ms;
+  activity_timer.set(deadline, [this](uint32_t tid) { activity_timer_expired(); });
+  parent->rrc_log->debug("Setting timer for %s for rnti=%x to %dms\n", to_string(type).c_str(), rnti, deadline);
+
+  set_activity();
 }
 
 bool rrc::ue::is_connected()
@@ -1073,63 +1072,6 @@ bool rrc::ue::is_connected()
 bool rrc::ue::is_idle()
 {
   return state == RRC_STATE_IDLE;
-}
-
-bool rrc::ue::is_timeout()
-{
-  if (!parent) {
-    return false;
-  }
-
-  struct timeval t[3];
-  uint32_t       deadline_s   = 0;
-  uint32_t       deadline_us  = 0;
-  const char*    deadline_str = nullptr;
-  memcpy(&t[1], &t_last_activity, sizeof(struct timeval));
-  gettimeofday(&t[2], nullptr);
-  get_time_interval(t);
-
-  switch (state) {
-    case RRC_STATE_IDLE:
-      deadline_s = 0;
-      deadline_us =
-          static_cast<uint32_t>((parent->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16 * 1000);
-      deadline_str = "RRCConnectionSetup";
-      break;
-    case RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE:
-      deadline_s   = 1;
-      deadline_us  = 0;
-      deadline_str = "RRCConnectionSetupComplete";
-      break;
-    case RRC_STATE_RELEASE_REQUEST:
-      deadline_s   = 4;
-      deadline_us  = 0;
-      deadline_str = "RRCReleaseRequest";
-      break;
-    default:
-      deadline_s   = parent->cfg.inactivity_timeout_ms / 1000;
-      deadline_us  = (parent->cfg.inactivity_timeout_ms % 1000) * 1000;
-      deadline_str = "Activity";
-      break;
-  }
-
-  if (deadline_str) {
-    int64_t deadline = deadline_s * 1e6 + deadline_us;
-    int64_t elapsed  = t[0].tv_sec * 1e6 + t[0].tv_usec;
-    if (elapsed > deadline && elapsed > 0) {
-      parent->rrc_log->warning("User rnti=0x%x expired %s deadline: %ld:%ld>%d:%d us\n",
-                               rnti,
-                               deadline_str,
-                               t[0].tv_sec,
-                               t[0].tv_usec,
-                               deadline_s,
-                               deadline_us);
-      memcpy(&t_last_activity, &t[2], sizeof(struct timeval));
-      state = RRC_STATE_RELEASE_REQUEST;
-      return true;
-    }
-  }
-  return false;
 }
 
 void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
@@ -1176,6 +1118,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       handle_rrc_reconf_complete(&ul_dcch_msg.msg.c1().rrc_conn_recfg_complete(), std::move(pdu));
       parent->rrc_log->console("User 0x%x connected\n", rnti);
       state = RRC_STATE_REGISTERED;
+      set_activity_timeout(UE_INACTIVITY_TIMEOUT);
       break;
     case ul_dcch_msg_type_c::c1_c_::types::security_mode_complete:
       handle_security_mode_complete(&ul_dcch_msg.msg.c1().security_mode_complete());
@@ -1217,7 +1160,6 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
     send_connection_reject();
   }
 
-  set_activity();
   rrc_conn_request_r8_ies_s* msg_r8 = &msg->crit_exts.rrc_conn_request_r8();
 
   if (msg_r8->ue_id.type() == init_ue_id_c::types::s_tmsi) {
@@ -1228,6 +1170,14 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
   establishment_cause = msg_r8->establishment_cause;
   send_connection_setup();
   state = RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE;
+
+  set_activity_timeout(UE_RESPONSE_RX_TIMEOUT);
+}
+
+std::string rrc::ue::to_string(const activity_timeout_type_t& type)
+{
+  constexpr static const char* options[] = {"Msg3 reception", "UE response reception", "UE inactivity"};
+  return srslte::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
 }
 
 void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_r8_ies_s* msg)
@@ -1552,7 +1502,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
     if (sr_allocate(parent->cfg.sr_cfg.period,
                     &phy_cfg->sched_request_cfg.setup().sr_cfg_idx,
                     &phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx)) {
-      parent->rrc_log->error("Allocating SR resources for rnti=%d\n", rnti);
+      parent->rrc_log->error("Allocating SR resources for rnti=0x%x\n", rnti);
       return;
     }
   } else {
@@ -2373,4 +2323,5 @@ int rrc::ue::ri_get(uint32_t m_ri, uint16_t* ri_idx)
 
   return ret;
 }
+
 } // namespace srsenb

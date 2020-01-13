@@ -196,14 +196,6 @@ public:
                        const T&                     msg,
                        const std::string&           msg_type);
 
-  // Notifier for user connect
-  class connect_notifier
-  {
-  public:
-    virtual void user_connected(uint16_t rnti) = 0;
-  };
-  void set_connect_notifer(connect_notifier* cnotifier);
-
   class ue
   {
   public:
@@ -212,8 +204,17 @@ public:
     ue(rrc* outer_rrc, uint16_t rnti);
     bool is_connected();
     bool is_idle();
-    bool is_timeout();
+
+    typedef enum {
+      MSG3_RX_TIMEOUT = 0,    ///< Msg3 has its own timeout to quickly remove fake UEs from random PRACHs
+      UE_RESPONSE_RX_TIMEOUT, ///< General purpose timeout for responses to eNB requests
+      UE_INACTIVITY_TIMEOUT,  ///< UE inactivity timeout
+      nulltype
+    } activity_timeout_type_t;
+    std::string to_string(const activity_timeout_type_t& type);
+    void set_activity_timeout(const activity_timeout_type_t type);
     void set_activity();
+    void activity_timer_expired();
 
     uint32_t rl_failure();
 
@@ -283,8 +284,7 @@ public:
   private:
     // args
     srslte::byte_buffer_pool* pool = nullptr;
-    struct timeval            t_last_activity;
-    struct timeval            t_ue_init;
+    srslte::timer_handler::unique_timer activity_timer;
 
     // cached for ease of context transfer
     asn1::rrc::rrc_conn_recfg_r8_ies_s  last_rrc_conn_recfg;
@@ -357,12 +357,8 @@ private:
   // state
   std::map<uint16_t, std::unique_ptr<ue> >          users; // NOTE: has to have fixed addr
   std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT> pending_paging;
-  srslte::timer_handler::unique_timer               activity_monitor_timer;
 
   std::vector<srslte::unique_byte_buffer_t> sib_buffer;
-
-  // user connect notifier
-  connect_notifier* cnotifier;
 
   void     process_release_complete(uint16_t rnti);
   void     process_rl_failure(uint16_t rnti);
@@ -383,8 +379,6 @@ private:
                           srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
   void enable_integrity(uint16_t rnti, uint32_t lcid);
   void enable_encryption(uint16_t rnti, uint32_t lcid);
-
-  void monitor_activity();
 
   srslte::byte_buffer_t byte_buf_paging;
 
