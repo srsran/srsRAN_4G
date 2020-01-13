@@ -222,7 +222,7 @@ void phy::set_mch_period_stop(uint32_t stop)
 
 void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
-  phy_metrics_t metrics_tmp[ENB_METRICS_MAX_USERS];
+  phy_metrics_t metrics_tmp[ENB_METRICS_MAX_USERS] = {};
 
   uint32_t nof_users = workers[0].get_nof_rnti();
   bzero(metrics, sizeof(phy_metrics_t) * ENB_METRICS_MAX_USERS);
