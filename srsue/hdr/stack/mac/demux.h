@@ -75,9 +75,8 @@ private:
   void            process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes);
   void            process_sch_pdu(srslte::sch_pdu* pdu);
   void            process_mch_pdu(srslte::mch_pdu* pdu);
-
-  bool process_ce(srslte::sch_subh* subheader);
-  void parse_ta_cmd(srslte::sch_subh *subh);
+  bool            process_ce(srslte::sch_subh* subheader);
+  void            parse_ta_cmd(srslte::sch_subh *subh);
 
   bool is_uecrid_successful;
 
