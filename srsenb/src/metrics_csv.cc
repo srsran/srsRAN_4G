@@ -59,7 +59,7 @@ void metrics_csv::stop()
   }
 }
 
-void metrics_csv::set_metrics(enb_metrics_t& metrics, const uint32_t period_usec)
+void metrics_csv::set_metrics(const enb_metrics_t& metrics, const uint32_t period_usec)
 {
   if (file.is_open() && enb != NULL) {
     if (n_reports == 0) {

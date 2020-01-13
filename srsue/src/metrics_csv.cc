@@ -63,7 +63,7 @@ void metrics_csv::stop()
   pthread_mutex_unlock(&mutex);
 }
 
-void metrics_csv::set_metrics(ue_metrics_t& metrics, const uint32_t period_usec)
+void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
 {
   pthread_mutex_lock(&mutex);
   if (file.is_open() && ue != NULL) {

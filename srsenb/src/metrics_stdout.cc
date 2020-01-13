@@ -73,7 +73,7 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
-void metrics_stdout::set_metrics(enb_metrics_t& metrics, const uint32_t period_usec)
+void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t period_usec)
 {
   if (!do_print || enb == nullptr) {
     return;

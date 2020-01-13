@@ -75,7 +75,7 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
-void metrics_stdout::set_metrics(ue_metrics_t& metrics, const uint32_t period_usec)
+void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
 {
   if (ue == nullptr) {
     return;

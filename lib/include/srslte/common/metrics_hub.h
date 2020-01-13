@@ -46,7 +46,7 @@ template <typename metrics_t>
 class metrics_listener
 {
 public:
-  virtual void set_metrics(metrics_t& m, const uint32_t period_usec) = 0;
+  virtual void set_metrics(const metrics_t& m, const uint32_t period_usec) = 0;
   virtual void stop()                                                = 0;
 };
 

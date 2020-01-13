@@ -41,7 +41,7 @@ public:
   metrics_stdout();
 
   void toggle_print(bool b);
-  void set_metrics(enb_metrics_t& m, const uint32_t period_usec);
+  void set_metrics(const enb_metrics_t& m, const uint32_t period_usec);
   void set_handle(enb_metrics_interface* enb_);
   void stop(){};
 
