@@ -121,6 +121,8 @@ uint32_t srslte_sch_find_Ioffset_cqi(float beta) {
   return 0;
 }
 
+#define SCH_MAX_G_BITS (SRSLTE_MAX_PRB * 12 * 12 * 12)
+
 int srslte_sch_init(srslte_sch_t* q)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -151,21 +153,21 @@ int srslte_sch_init(srslte_sch_t* q)
     srslte_rm_turbo_gentables();
 
     // Allocate int16 for reception (LLRs)
-    q->cb_in = srslte_vec_malloc(sizeof(uint8_t) * (SRSLTE_TCOD_MAX_LEN_CB + 8) / 8);
+    q->cb_in = srslte_vec_u8_malloc((SRSLTE_TCOD_MAX_LEN_CB + 8) / 8);
     if (!q->cb_in) {
       goto clean;
     }
 
-    q->parity_bits = srslte_vec_malloc(sizeof(uint8_t) * (3 * SRSLTE_TCOD_MAX_LEN_CB + 16) / 8);
+    q->parity_bits = srslte_vec_u8_malloc((3 * SRSLTE_TCOD_MAX_LEN_CB + 16) / 8);
     if (!q->parity_bits) {
       goto clean;
     }
-    q->temp_g_bits = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_MAX_PRB * 12 * 12 * 12);
+    q->temp_g_bits = srslte_vec_u8_malloc(SCH_MAX_G_BITS);
     if (!q->temp_g_bits) {
       goto clean;
     }
     bzero(q->temp_g_bits, SRSLTE_MAX_PRB * 12 * 12 * 12);
-    q->ul_interleaver = srslte_vec_malloc(sizeof(uint32_t) * SRSLTE_MAX_PRB * 12 * 12 * 12);
+    q->ul_interleaver = srslte_vec_malloc(sizeof(uint32_t) * SCH_MAX_G_BITS);
     if (!q->ul_interleaver) {
       goto clean;
     }
@@ -1164,6 +1166,12 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
   uint32_t Qm   = srslte_mod_bits_x_symbol(cfg->grant.tb.mod);
 
   if (Qm == 0) {
+    ERROR("Invalid input\n");
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  if (cfg->grant.nof_symb == 0) {
+    ERROR("Invalid input\n");
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
@@ -1231,7 +1239,7 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
 
     srslte_bit_pack_vector(q->temp_g_bits, g_bits, Q_prime_cqi * Qm);
     // Reset the buffer because will be reused in ulsch_interleave
-    bzero(q->temp_g_bits, Q_prime_cqi * Qm);
+    bzero(q->temp_g_bits, sizeof(uint8_t) * SRSLTE_MIN(Q_prime_cqi * Qm, SCH_MAX_G_BITS));
   }
 
   e_offset += Q_prime_cqi * Qm;
@@ -1276,9 +1284,9 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
     uint32_t p = q->ack_ri_bits[i].position;
     if (p < nb_q) {
       if (q->ack_ri_bits[i].type == UCI_BIT_1) {
-        q_bits[p / 8] |= (1 << (7 - p % 8));
+        q_bits[p / 8] |= (1U << (7 - p % 8));
       } else {
-        q_bits[p / 8] &= ~(1 << (7 - p % 8));
+        q_bits[p / 8] &= ~(1U << (7 - p % 8));
       }
     } else {
       ERROR("Invalid RI/ACK bit %d/%d, position %d. Max bits=%d, Qm=%d\n", i, nof_ri_ack_bits, p, nb_q, Qm);
