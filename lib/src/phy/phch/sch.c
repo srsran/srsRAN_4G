@@ -86,36 +86,40 @@ static inline float get_beta_cqi_offset(uint32_t idx)
   return ret;
 }
 
-float srslte_sch_beta_cqi(uint32_t I_cqi) {
+float srslte_sch_beta_cqi(uint32_t I_cqi)
+{
   if (I_cqi < 16) {
     return get_beta_cqi_offset(I_cqi);
   } else {
     return 0;
   }
 }
-                             
-uint32_t srslte_sch_find_Ioffset_ack(float beta) {
-  for (int i=0;i<16;i++) {
+
+uint32_t srslte_sch_find_Ioffset_ack(float beta)
+{
+  for (int i = 0; i < 16; i++) {
     if (get_beta_harq_offset(i) >= beta) {
-      return i; 
+      return i;
     }
   }
   return 0;
 }
-                             
-uint32_t srslte_sch_find_Ioffset_ri(float beta) {
-  for (int i=0;i<16;i++) {
+
+uint32_t srslte_sch_find_Ioffset_ri(float beta)
+{
+  for (int i = 0; i < 16; i++) {
     if (get_beta_ri_offset(i) >= beta) {
-      return i; 
+      return i;
     }
   }
   return 0;
 }
-                             
-uint32_t srslte_sch_find_Ioffset_cqi(float beta) {
-  for (int i=0;i<16;i++) {
+
+uint32_t srslte_sch_find_Ioffset_cqi(float beta)
+{
+  for (int i = 0; i < 16; i++) {
     if (get_beta_cqi_offset(i) >= beta) {
-      return i; 
+      return i;
     }
   }
   return 0;
@@ -852,7 +856,7 @@ static void ulsch_interleave_qm6(const uint8_t* g_bits,
           q_bits[write_byte_idx + 1] |= w << 4;
           break;
         default:
-          /* Do nothing */;
+            /* Do nothing */;
       }
 
       bit_read_idx += 6;
@@ -905,7 +909,7 @@ static void ulsch_interleave_qm6(const uint8_t* g_bits,
             q_bits[write_byte_idx + 1] |= w << 4;
             break;
           default:
-            /* Do nothing */;
+              /* Do nothing */;
         }
 
         bit_read_idx += 6;
