@@ -928,6 +928,10 @@ static void ulsch_interleave(uint8_t*          g_bits,
                              uint32_t          nof_ri_bits,
                              uint8_t*          ri_present)
 {
+  if (N_pusch_symbs == 0 || Qm == 0 || H_prime_total == 0 || H_prime_total < N_pusch_symbs) {
+    ERROR("Invalid input: N_pusch_symbs=%d, Qm=%d, H_prime_total=%d, N_pusch_symbs=%d\n", N_pusch_symbs, Qm, H_prime_total, N_pusch_symbs);
+    return;
+  }
 
   const uint32_t nof_bits   = H_prime_total * Qm;
   uint32_t       rows       = H_prime_total / N_pusch_symbs;

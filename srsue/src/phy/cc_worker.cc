@@ -654,19 +654,20 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
     // Generate PHY grant
     if (srslte_ue_ul_dci_to_pusch_grant(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &dci_ul, &ue_ul_cfg.ul_cfg.pusch.grant)) {
       Error("Converting DCI message to UL dci\n");
+      ul_grant_available = false;
+    } else {
+      // Save TBS info for next retx
+      phy->last_ul_tb[pid][cc_idx] = ue_ul_cfg.ul_cfg.pusch.grant.tb;
+
+      // Fill MAC dci
+      ul_phy_to_mac_grant(&ue_ul_cfg.ul_cfg.pusch.grant, &dci_ul, pid, ul_grant_available, &ul_mac_grant);
+
+      phy->stack->new_grant_ul(cc_idx, ul_mac_grant, &ul_action);
+
+      // Calculate PUSCH Hopping procedure
+      ue_ul_cfg.ul_cfg.hopping.current_tx_nb = ul_action.current_tx_nb;
+      srslte_ue_ul_pusch_hopping(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &ue_ul_cfg.ul_cfg.pusch.grant);
     }
-
-    // Save TBS info for next retx
-    phy->last_ul_tb[pid][cc_idx] = ue_ul_cfg.ul_cfg.pusch.grant.tb;
-
-    // Fill MAC dci
-    ul_phy_to_mac_grant(&ue_ul_cfg.ul_cfg.pusch.grant, &dci_ul, pid, ul_grant_available, &ul_mac_grant);
-
-    phy->stack->new_grant_ul(cc_idx, ul_mac_grant, &ul_action);
-
-    // Calculate PUSCH Hopping procedure
-    ue_ul_cfg.ul_cfg.hopping.current_tx_nb = ul_action.current_tx_nb;
-    srslte_ue_ul_pusch_hopping(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &ue_ul_cfg.ul_cfg.pusch.grant);
   }
 
   // Set UL RNTI
