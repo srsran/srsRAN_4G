@@ -551,3 +551,5 @@ if(ENABLE_SRSEPC)
 else(ENABLE_SRSEPC)
   message(STATUS "srsEPC build disabled")
 endif(ENABLE_SRSEPC)
+
+add_subdirectory(test)
