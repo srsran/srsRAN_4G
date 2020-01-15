@@ -40,6 +40,8 @@ using srslte::uint32_to_uint8;
 #define procWarning(fmt, ...) s1ap_ptr->s1ap_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define procInfo(fmt, ...) s1ap_ptr->s1ap_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
+using namespace asn1::s1ap;
+
 namespace srsenb {
 
 /*********************************************************
@@ -319,17 +321,17 @@ void s1ap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer_t pdu)
+void s1ap::initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu)
 {
   users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{rnti, this})));
   send_initialuemessage(rnti, cause, std::move(pdu), false);
 }
 
-void s1ap::initial_ue(uint16_t                                 rnti,
-                      LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                      srslte::unique_byte_buffer_t             pdu,
-                      uint32_t                                 m_tmsi,
-                      uint8_t                                  mmec)
+void s1ap::initial_ue(uint16_t                              rnti,
+                      asn1::s1ap::rrc_establishment_cause_e cause,
+                      srslte::unique_byte_buffer_t          pdu,
+                      uint32_t                              m_tmsi,
+                      uint8_t                               mmec)
 {
   users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{rnti, this})));
   send_initialuemessage(rnti, cause, std::move(pdu), true, m_tmsi, mmec);
@@ -344,7 +346,7 @@ void s1ap::write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
   }
 }
 
-bool s1ap::user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio)
+bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)
 {
   s1ap_log->info("User inactivity - RNTI:0x%x\n", rnti);
 
@@ -360,14 +362,11 @@ bool s1ap::user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_
     return false;
   }
 
-  LIBLTE_S1AP_CAUSE_STRUCT cause;
-  cause.ext                     = false;
-  cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-  cause.choice.radioNetwork.ext = false;
-  cause.choice.radioNetwork.e   = cause_radio;
+  cause_c cause;
+  cause.set_radio_network().value = cause_radio.value;
 
   ctxt->release_requested = true;
-  return send_uectxtreleaserequest(rnti, &cause);
+  return send_uectxtreleaserequest(rnti, cause);
 }
 
 bool s1ap::user_exists(uint16_t rnti)
@@ -375,16 +374,16 @@ bool s1ap::user_exists(uint16_t rnti)
   return users.end() != users.find(rnti);
 }
 
-void s1ap::ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* res)
+void s1ap::ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res)
 {
-  if (res->E_RABSetupListCtxtSURes.len > 0) {
+  if (res.protocol_ies.e_rab_setup_list_ctxt_su_res.value.size() > 0) {
     send_initial_ctxt_setup_response(rnti, res);
   } else {
     send_initial_ctxt_setup_failure(rnti);
   }
 }
 
-void s1ap::ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT* res)
+void s1ap::ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::e_rab_setup_resp_s& res)
 {
   send_erab_setup_response(rnti, res);
 }
@@ -670,15 +669,12 @@ bool s1ap::handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETU
     if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
         msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
       // Send RRC Release (cs-fallback-triggered) to MME
-      LIBLTE_S1AP_CAUSE_STRUCT cause;
-      cause.ext                     = false;
-      cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-      cause.choice.radioNetwork.ext = false;
-      cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_CS_FALLBACK_TRIGGERED;
+      cause_c cause;
+      cause.set_radio_network().value = cause_radio_network_opts::cs_fallback_triggered;
 
       /* TODO: This should normally probably only be sent after the SecurityMode procedure has completed! */
       ctxt->release_requested = true;
-      send_uectxtreleaserequest(rnti, &cause);
+      send_uectxtreleaserequest(rnti, cause);
     }
   }
 
@@ -736,12 +732,9 @@ bool s1ap::handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATI
   }
 
   if (!rrc->modify_ue_ctxt(rnti, msg)) {
-    LIBLTE_S1AP_CAUSE_STRUCT cause;
-    cause.ext             = false;
-    cause.choice_type     = LIBLTE_S1AP_CAUSE_CHOICE_MISC;
-    cause.choice.misc.ext = false;
-    cause.choice.misc.e   = LIBLTE_S1AP_CAUSEMISC_UNSPECIFIED;
-    send_uectxmodifyfailure(rnti, &cause);
+    cause_c cause;
+    cause.set_misc().value = cause_misc_opts::unspecified;
+    send_uectxmodifyfailure(rnti, cause);
     return true;
   }
 
@@ -753,14 +746,11 @@ bool s1ap::handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATI
     if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
         msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
       // Send RRC Release (cs-fallback-triggered) to MME
-      LIBLTE_S1AP_CAUSE_STRUCT cause;
-      cause.ext                     = false;
-      cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-      cause.choice.radioNetwork.ext = false;
-      cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_CS_FALLBACK_TRIGGERED;
+      cause_c cause;
+      cause.set_radio_network().value = cause_radio_network_opts::cs_fallback_triggered;
 
       ctxt->release_requested = true;
-      send_uectxtreleaserequest(rnti, &cause);
+      send_uectxtreleaserequest(rnti, cause);
     }
   }
 
@@ -851,70 +841,54 @@ bool s1ap::handle_s1hocommand(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg)
 /* S1AP message senders
 ********************************************************************************/
 
-bool s1ap::send_initialuemessage(uint16_t                                 rnti,
-                                 LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                                 srslte::unique_byte_buffer_t             pdu,
-                                 bool                                     has_tmsi,
-                                 uint32_t                                 m_tmsi,
-                                 uint8_t                                  mmec)
+bool s1ap::send_initialuemessage(uint16_t                              rnti,
+                                 asn1::s1ap::rrc_establishment_cause_e cause,
+                                 srslte::unique_byte_buffer_t          pdu,
+                                 bool                                  has_tmsi,
+                                 uint32_t                              m_tmsi,
+                                 uint8_t                               mmec)
 {
   if (!mme_connected) {
     return false;
   }
   srslte::byte_buffer_t msg;
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode                        = LIBLTE_S1AP_PROC_ID_INITIALUEMESSAGE;
-  init->choice_type                          = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALUEMESSAGE;
-
-  LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT* initue = &init->choice.InitialUEMessage;
-  initue->ext                                         = false;
-  initue->CellAccessMode_present                      = false;
-  initue->CSG_Id_present                              = false;
-  initue->GUMMEIType_present                          = false;
-  initue->GUMMEI_ID_present                           = false;
-  initue->GW_TransportLayerAddress_present            = false;
-  initue->LHN_ID_present                              = false;
-  initue->RelayNode_Indicator_present                 = false;
-  initue->SIPTO_L_GW_TransportLayerAddress_present    = false;
-  initue->S_TMSI_present                              = false;
-  initue->Tunnel_Information_for_BBF_present          = false;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_INIT_UE_MSG);
+  init_ue_msg_ies_container& container = tx_pdu.init_msg().value.init_ue_msg().protocol_ies;
 
   // S_TMSI
   if (has_tmsi) {
-    initue->S_TMSI_present               = true;
-    initue->S_TMSI.ext                   = false;
-    initue->S_TMSI.iE_Extensions_present = false;
-
-    uint32_to_uint8(m_tmsi, initue->S_TMSI.m_TMSI.buffer);
-    initue->S_TMSI.mMEC.buffer[0] = mmec;
+    container.s_tmsi_present = true;
+    uint32_to_uint8(m_tmsi, container.s_tmsi.value.m_tmsi.data());
+    container.s_tmsi.value.mmec[0] = mmec;
   }
 
   // ENB_UE_S1AP_ID
-  initue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
+  container.enb_ue_s1ap_id.value = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
 
   // NAS_PDU
-  memcpy(initue->NAS_PDU.buffer, pdu->msg, pdu->N_bytes);
-  initue->NAS_PDU.n_octets = pdu->N_bytes;
+  container.nas_pdu.value.resize(pdu->N_bytes);
+  memcpy(container.nas_pdu.value.data(), pdu->msg, pdu->N_bytes);
 
   // TAI
-  memcpy(&initue->TAI, &tai, sizeof(LIBLTE_S1AP_TAI_STRUCT));
+  container.tai.value.ie_exts_present = tai.iE_Extensions_present;
+  container.tai.value.ext             = tai.ext;
+  memcpy(container.tai.value.tac.data(), tai.tAC.buffer, 2);
+  memcpy(container.tai.value.plm_nid.data(), tai.pLMNidentity.buffer, 3);
 
   // EUTRAN_CGI
-  memcpy(&initue->EUTRAN_CGI, &eutran_cgi, sizeof(LIBLTE_S1AP_EUTRAN_CGI_STRUCT));
+  container.eutran_cgi.value.ext             = eutran_cgi.ext;
+  container.eutran_cgi.value.ie_exts_present = eutran_cgi.iE_Extensions_present;
+  memcpy(container.eutran_cgi.value.plm_nid.data(), eutran_cgi.pLMNidentity.buffer, 3);
+  for (uint32_t i = 0; i < 28; ++i) {
+    container.eutran_cgi.value.cell_id.set(i, (bool)eutran_cgi.cell_ID.buffer[i]);
+  }
 
   // RRC Establishment Cause
-  initue->RRC_Establishment_Cause.ext = false;
-  initue->RRC_Establishment_Cause.e   = cause;
+  container.rrc_establishment_cause.value = cause;
 
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
-  s1ap_log->info_hex(msg.msg, msg.N_bytes, "Sending InitialUEMessage for RNTI:0x%x", rnti);
-
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "InitialUEMessage");
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "InitialUEMessage");
 }
 
 bool s1ap::send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
@@ -959,37 +933,26 @@ bool s1ap::send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
   return sctp_send_s1ap_pdu(&tx_pdu, rnti, "UplinkNASTransport");
 }
 
-bool s1ap::send_uectxtreleaserequest(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT* cause)
+bool s1ap::send_uectxtreleaserequest(uint16_t rnti, const cause_c& cause)
 {
   if (!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t msg;
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode                        = LIBLTE_S1AP_PROC_ID_UECONTEXTRELEASEREQUEST;
-  init->choice_type                          = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASEREQUEST;
-
-  LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT* req = &init->choice.UEContextReleaseRequest;
-  req->ext                                                = false;
-  req->GWContextReleaseIndication_present                 = false;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE_REQUEST);
+  ue_context_release_request_ies_container& container =
+      tx_pdu.init_msg().value.ue_context_release_request().protocol_ies;
 
   // MME_UE_S1AP_ID
-  req->MME_UE_S1AP_ID.MME_UE_S1AP_ID = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
+  container.mme_ue_s1ap_id.value = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
   // ENB_UE_S1AP_ID
-  req->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
+  container.enb_ue_s1ap_id.value = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
 
   // Cause
-  memcpy(&req->Cause, cause, sizeof(LIBLTE_S1AP_CAUSE_STRUCT));
+  container.cause.value = cause;
 
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
-  s1ap_log->info_hex(msg.msg, msg.N_bytes, "Sending UEContextReleaseRequest for RNTI:0x%x", rnti);
-
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "UEContextReleaseRequest");
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "UEContextReleaseRequest");
 }
 
 bool s1ap::send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_t enb_ue_id)
@@ -997,105 +960,73 @@ bool s1ap::send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_
   if (!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t msg;
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE);
+  auto& container                = tx_pdu.successful_outcome().value.ue_context_mod_request().protocol_ies;
+  container.enb_ue_s1ap_id.value = enb_ue_id;
+  container.mme_ue_s1ap_id.value = mme_ue_id;
 
-  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* succ = &tx_pdu.choice.successfulOutcome;
-  succ->procedureCode                        = LIBLTE_S1AP_PROC_ID_UECONTEXTRELEASE;
-  succ->choice_type                          = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_UECONTEXTRELEASECOMPLETE;
-
-  LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMPLETE_STRUCT* comp = &succ->choice.UEContextReleaseComplete;
-  comp->ext                                                 = false;
-  comp->CriticalityDiagnostics_present                      = false;
-  comp->UserLocationInformation_present                     = false;
-
-  comp->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = enb_ue_id;
-  comp->MME_UE_S1AP_ID.MME_UE_S1AP_ID = mme_ue_id;
-
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "UEContextReleaseComplete");
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "UEContextReleaseComplete");
 }
 
-bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* res_)
+bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res_)
 {
   if (!mme_connected) {
     return false;
   }
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
-  if (!buf) {
-    s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_initial_ctxt_setup_response().\n");
-    return false;
-  }
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
-
-  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* succ = &tx_pdu.choice.successfulOutcome;
-  succ->procedureCode                        = LIBLTE_S1AP_PROC_ID_INITIALCONTEXTSETUP;
-  succ->choice_type                          = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_INITIALCONTEXTSETUPRESPONSE;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
 
   // Copy in the provided response message
-  LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* res = &succ->choice.InitialContextSetupResponse;
-  memcpy(res, res_, sizeof(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT));
-
-  // Fill in the GTP bind address for all bearers
-  for (uint32_t i = 0; i < res->E_RABSetupListCtxtSURes.len; i++) {
-    uint8_t addr[4];
-    inet_pton(AF_INET, args.gtp_bind_addr.c_str(), addr);
-    liblte_unpack(addr, 4, res->E_RABSetupListCtxtSURes.buffer[i].transportLayerAddress.buffer);
-    res->E_RABSetupListCtxtSURes.buffer[i].transportLayerAddress.n_bits = 32;
-    res->E_RABSetupListCtxtSURes.buffer[i].transportLayerAddress.ext    = false;
-  }
+  tx_pdu.successful_outcome().value.init_context_setup_request() = res_;
 
   // Fill in the MME and eNB IDs
-  res->MME_UE_S1AP_ID.MME_UE_S1AP_ID = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
-  res->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
+  auto& container                = tx_pdu.successful_outcome().value.init_context_setup_request().protocol_ies;
+  container.mme_ue_s1ap_id.value = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
+  container.enb_ue_s1ap_id.value = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
 
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "InitialContextSetupResponse");
+  // Fill in the GTP bind address for all bearers
+  for (uint32_t i = 0; i < container.e_rab_setup_list_ctxt_su_res.value.size(); ++i) {
+    auto& item = container.e_rab_setup_list_ctxt_su_res.value[i].value.e_rab_setup_item_ctxt_su_res();
+    item.transport_layer_address.resize(32);
+    uint8_t addr[4];
+    inet_pton(AF_INET, args.gtp_bind_addr.c_str(), addr);
+    liblte_unpack(addr, 4, item.transport_layer_address.data());
+  }
+
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "InitialContextSetupResponse");
 }
 
-bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT* res_)
+bool s1ap::send_erab_setup_response(uint16_t rnti, const e_rab_setup_resp_s& res_)
 {
   if (!mme_connected) {
     return false;
   }
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
-  if (!buf) {
-    s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_erab_setup_response().\n");
-    return false;
-  }
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  asn1::s1ap::s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_E_RAB_SETUP);
+  e_rab_setup_resp_s& res = tx_pdu.successful_outcome().value.e_rab_setup_request();
 
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
-
-  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* succ = &tx_pdu.choice.successfulOutcome;
-  succ->procedureCode                        = LIBLTE_S1AP_PROC_ID_E_RABSETUP;
-  succ->choice_type                          = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_E_RABSETUPRESPONSE;
-
-  // Copy in the provided response message
-  LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT* res = &succ->choice.E_RABSetupResponse;
-  memcpy(res, res_, sizeof(LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT));
+  res = res_;
 
   // Fill in the GTP bind address for all bearers
-  for (uint32_t i = 0; i < res->E_RABSetupListBearerSURes.len; i++) {
-    uint8_t addr[4];
-    inet_pton(AF_INET, args.gtp_bind_addr.c_str(), addr);
-    liblte_unpack(addr, 4, res->E_RABSetupListBearerSURes.buffer[i].transportLayerAddress.buffer);
-    res->E_RABSetupListBearerSURes.buffer[i].transportLayerAddress.n_bits = 32;
-    res->E_RABSetupListBearerSURes.buffer[i].transportLayerAddress.ext    = false;
+  if (res.protocol_ies.e_rab_setup_list_bearer_su_res_present) {
+    for (uint32_t i = 0; i < res.protocol_ies.e_rab_setup_list_bearer_su_res.value.size(); ++i) {
+      auto& item = res.protocol_ies.e_rab_setup_list_bearer_su_res.value[i].value.e_rab_setup_item_bearer_su_res();
+      item.transport_layer_address.resize(32);
+      uint8_t addr[4];
+      inet_pton(AF_INET, args.gtp_bind_addr.c_str(), addr);
+      liblte_unpack(addr, 4, item.transport_layer_address.data());
+    }
   }
 
   // Fill in the MME and eNB IDs
-  res->MME_UE_S1AP_ID.MME_UE_S1AP_ID = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
-  res->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
+  res.protocol_ies.mme_ue_s1ap_id.value = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
+  res.protocol_ies.enb_ue_s1ap_id.value = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
 
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "E_RABSetupResponse");
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "E_RABSetupResponse");
 }
 
 bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
@@ -1164,35 +1095,21 @@ bool s1ap::send_uectxmodifyresp(uint16_t rnti)
   return sctp_send_s1ap_pdu(&tx_pdu, rnti, "ContextModificationFailure");
 }
 
-bool s1ap::send_uectxmodifyfailure(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT* cause)
+bool s1ap::send_uectxmodifyfailure(uint16_t rnti, const cause_c& cause)
 {
   if (!mme_connected) {
     return false;
   }
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
-  if (!buf) {
-    s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_initial_ctxt_setup_failure().\n");
-    return false;
-  }
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_MOD);
+  auto& container = tx_pdu.unsuccessful_outcome().value.ue_context_mod_request().protocol_ies;
 
-  LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT* unsucc = &tx_pdu.choice.unsuccessfulOutcome;
-  unsucc->procedureCode                          = LIBLTE_S1AP_PROC_ID_UECONTEXTMODIFICATION;
-  unsucc->choice_type                            = LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_UECONTEXTMODIFICATIONFAILURE;
+  container.enb_ue_s1ap_id.value = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
+  container.mme_ue_s1ap_id.value = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
+  container.cause.value          = cause;
 
-  LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONFAILURE_STRUCT* fail = &unsucc->choice.UEContextModificationFailure;
-  fail->ext                                                     = false;
-  fail->CriticalityDiagnostics_present                          = false;
-
-  fail->MME_UE_S1AP_ID.MME_UE_S1AP_ID = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
-  fail->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
-
-  memcpy(&fail->Cause, cause, sizeof(LIBLTE_S1AP_CAUSE_STRUCT));
-
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "UEContextModificationFailure");
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "UEContextModificationFailure");
 }
 
 /*********************
@@ -1269,6 +1186,45 @@ bool s1ap::send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_statu
 /*******************************************************************************
 /* General helpers
 ********************************************************************************/
+
+bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name)
+{
+  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool, false);
+  if (buf == nullptr) {
+    s1ap_log->error("Fatal Error: Couldn't allocate buffer for %s.\n", procedure_name);
+    return false;
+  }
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+
+  tx_pdu.pack(bref);
+  buf->N_bytes = bref.distance_bytes();
+  if (rnti > 0) {
+    s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s for rnti=0x%x", procedure_name, rnti);
+  } else {
+    s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s to MME", procedure_name);
+  }
+  uint16_t streamid = rnti == 0 ? NONUE_STREAM_ID : get_user_ctxt(rnti)->stream_id;
+
+  ssize_t n_sent = sctp_sendmsg(s1ap_socket.fd(),
+                                buf->msg,
+                                buf->N_bytes,
+                                (struct sockaddr*)&mme_addr,
+                                sizeof(struct sockaddr_in),
+                                htonl(PPID),
+                                0,
+                                streamid,
+                                0,
+                                0);
+  if (n_sent == -1) {
+    if (rnti > 0) {
+      s1ap_log->error("Failed to send %s for rnti=0x%x\n", procedure_name, rnti);
+    } else {
+      s1ap_log->error("Failed to send %s\n", procedure_name);
+    }
+    return false;
+  }
+  return true;
+}
 
 bool s1ap::sctp_send_s1ap_pdu(LIBLTE_S1AP_S1AP_PDU_STRUCT* tx_pdu, uint32_t rnti, const char* procedure_name)
 {

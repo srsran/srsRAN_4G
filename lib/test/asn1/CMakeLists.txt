@@ -19,7 +19,7 @@
 #
 
 add_executable(s1ap_test s1ap_test.cc)
-target_link_libraries(s1ap_test srslte_common srslte_asn1)
+target_link_libraries(s1ap_test srslte_common srslte_asn1 s1ap_asn1)
 add_test(s1ap_test s1ap_test)
 
 add_executable(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test.cc)

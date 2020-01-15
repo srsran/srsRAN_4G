@@ -47,6 +47,7 @@ target_link_libraries(srsenb  srsenb_radio
                               srslte_upper
                               srslte_radio
                               rrc_asn1
+                              s1ap_asn1
                               enb_cfg_parser
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES} 

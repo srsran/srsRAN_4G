@@ -659,7 +659,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
             rrc_log->error("Not supported: ConnectionReestablishment for rnti=0x%x. Sending Connection Reject\n",
                            old_rnti);
             user_it->second->send_connection_reest_rej();
-            s1ap->user_release(old_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_RELEASE_DUE_TO_EUTRAN_GENERATED_REASON);
+            s1ap->user_release(old_rnti, asn1::s1ap::cause_radio_network_opts::release_due_to_eutran_generated_reason);
           } else {
             rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
             user_it->second->send_connection_reest_rej();
@@ -701,7 +701,7 @@ void rrc::process_rl_failure(uint16_t rnti)
     if (n_rfl == 1) {
       rrc_log->info("Radio-Link failure detected rnti=0x%x\n", rnti);
       if (s1ap->user_exists(rnti)) {
-        if (!s1ap->user_release(rnti, LIBLTE_S1AP_CAUSERADIONETWORK_RADIO_CONNECTION_WITH_UE_LOST)) {
+        if (!s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
           rrc_log->info("Removing rnti=0x%x\n", rnti);
         }
       } else {
@@ -1023,7 +1023,7 @@ void rrc::ue::activity_timer_expired()
     }
 
     if (parent->s1ap->user_exists(rnti)) {
-      parent->s1ap->user_release(rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
+      parent->s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::user_inactivity);
     } else {
       if (rnti != SRSLTE_MRNTI) {
         parent->rem_user_thread(rnti);
@@ -1200,11 +1200,12 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   // Acknowledge Dedicated Configuration
   parent->mac->phy_config_enabled(rnti, true);
 
+  asn1::s1ap::rrc_establishment_cause_e s1ap_cause;
+  s1ap_cause.value = (asn1::s1ap::rrc_establishment_cause_opts::options)establishment_cause.value;
   if (has_tmsi) {
-    parent->s1ap->initial_ue(
-        rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause.value, std::move(pdu), m_tmsi, mmec);
+    parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu), m_tmsi, mmec);
   } else {
-    parent->s1ap->initial_ue(rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause.value, std::move(pdu));
+    parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu));
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
@@ -1380,49 +1381,36 @@ bool rrc::ue::release_erabs()
 
 void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 {
-  LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT res;
-  res.ext                                     = false;
-  res.E_RABFailedToSetupListCtxtSURes_present = false;
-  res.CriticalityDiagnostics_present          = false;
+  asn1::s1ap::init_context_setup_resp_s res;
 
-  res.E_RABSetupListCtxtSURes.len         = 0;
-  res.E_RABFailedToSetupListCtxtSURes.len = 0;
-
+  res.protocol_ies.e_rab_setup_list_ctxt_su_res.value.resize(erabs.size());
+  uint32_t i = 0;
   for (auto& erab : erabs) {
-    uint32_t j                                                  = res.E_RABSetupListCtxtSURes.len++;
-    res.E_RABSetupListCtxtSURes.buffer[j].ext                   = false;
-    res.E_RABSetupListCtxtSURes.buffer[j].iE_Extensions_present = false;
-    res.E_RABSetupListCtxtSURes.buffer[j].e_RAB_ID.ext          = false;
-    res.E_RABSetupListCtxtSURes.buffer[j].e_RAB_ID.E_RAB_ID     = erab.second.id;
-    uint32_to_uint8(erab.second.teid_in, res.E_RABSetupListCtxtSURes.buffer[j].gTP_TEID.buffer);
+    res.protocol_ies.e_rab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_E_RAB_SETUP_ITEM_CTXT_SU_RES);
+    auto& item    = res.protocol_ies.e_rab_setup_list_ctxt_su_res.value[i].value.e_rab_setup_item_ctxt_su_res();
+    item.e_rab_id = erab.second.id;
+    uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
+    i++;
   }
 
-  parent->s1ap->ue_ctxt_setup_complete(rnti, &res);
+  parent->s1ap->ue_ctxt_setup_complete(rnti, res);
 }
 
 void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e)
 {
-  LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT res;
-  res.ext                                   = false;
-  res.E_RABSetupListBearerSURes.len         = 0;
-  res.E_RABFailedToSetupListBearerSURes.len = 0;
+  asn1::s1ap::e_rab_setup_resp_s res;
 
-  res.CriticalityDiagnostics_present            = false;
-  res.E_RABFailedToSetupListBearerSURes_present = false;
-
-  for (uint32_t i = 0; i < e->len; i++) {
-    res.E_RABSetupListBearerSURes_present                         = true;
-    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT* erab        = &e->buffer[i];
-    uint8_t                                           id          = erab->e_RAB_ID.E_RAB_ID;
-    uint32_t                                          j           = res.E_RABSetupListBearerSURes.len++;
-    res.E_RABSetupListBearerSURes.buffer[j].ext                   = false;
-    res.E_RABSetupListBearerSURes.buffer[j].iE_Extensions_present = false;
-    res.E_RABSetupListBearerSURes.buffer[j].e_RAB_ID.ext          = false;
-    res.E_RABSetupListBearerSURes.buffer[j].e_RAB_ID.E_RAB_ID     = id;
-    uint32_to_uint8(erabs[id].teid_in, res.E_RABSetupListBearerSURes.buffer[j].gTP_TEID.buffer);
+  res.protocol_ies.e_rab_setup_list_bearer_su_res.value.resize(e->len);
+  for (uint32_t i = 0; i < e->len; ++i) {
+    res.protocol_ies.e_rab_setup_list_bearer_su_res_present = true;
+    auto& item                                              = res.protocol_ies.e_rab_setup_list_bearer_su_res.value[i];
+    item.load_info_obj(ASN1_S1AP_ID_E_RAB_SETUP_ITEM_BEARER_SU_RES);
+    uint8_t id                                           = e->buffer[i].e_RAB_ID.E_RAB_ID;
+    item.value.e_rab_setup_item_bearer_su_res().e_rab_id = id;
+    uint32_to_uint8(erabs[id].teid_in, &item.value.e_rab_setup_item_bearer_su_res().gtp_teid[0]);
   }
 
-  parent->s1ap->ue_erab_setup_complete(rnti, &res);
+  parent->s1ap->ue_erab_setup_complete(rnti, res);
 }
 
 void rrc::ue::send_connection_reest_rej()

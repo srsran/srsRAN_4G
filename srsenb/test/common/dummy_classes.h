@@ -83,23 +83,22 @@ public:
 class s1ap_dummy : public s1ap_interface_rrc
 {
 public:
-  void
-  initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer_t pdu) override
+  void initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override
   {
   }
-  void initial_ue(uint16_t                                 rnti,
-                  LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                  srslte::unique_byte_buffer_t             pdu,
-                  uint32_t                                 m_tmsi,
-                  uint8_t                                  mmec) override
+  void initial_ue(uint16_t                              rnti,
+                  asn1::s1ap::rrc_establishment_cause_e cause,
+                  srslte::unique_byte_buffer_t          pdu,
+                  uint32_t                              m_tmsi,
+                  uint8_t                               mmec) override
   {
   }
 
   void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu) override {}
   bool user_exists(uint16_t rnti) override { return true; }
-  bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio) override { return true; }
-  void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* res) override {}
-  void ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT* res) override {}
+  bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override { return true; }
+  void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override {}
+  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::e_rab_setup_resp_s& res) override {}
   bool is_mme_connected() override { return true; }
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,

@@ -63,18 +63,19 @@ public:
   void get_metrics(s1ap_metrics_t& m);
 
   // RRC interface
-  void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer_t pdu);
-  void initial_ue(uint16_t                                 rnti,
-                  LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                  srslte::unique_byte_buffer_t             pdu,
-                  uint32_t                                 m_tmsi,
-                  uint8_t                                  mmec);
-  void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
-  bool user_exists(uint16_t rnti);
-  bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio);
-  void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* res);
-  void ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT* res);
-  bool is_mme_connected();
+  void
+       initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override;
+  void initial_ue(uint16_t                              rnti,
+                  asn1::s1ap::rrc_establishment_cause_e cause,
+                  srslte::unique_byte_buffer_t          pdu,
+                  uint32_t                              m_tmsi,
+                  uint8_t                               mmec) override;
+  void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu) override;
+  bool user_exists(uint16_t rnti) override;
+  bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override;
+  void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override;
+  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::e_rab_setup_resp_s& res) override;
+  bool is_mme_connected() override;
   // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
 
   // Stack interface
@@ -114,6 +115,7 @@ private:
   bool connect_mme();
   bool setup_s1();
   bool sctp_send_s1ap_pdu(LIBLTE_S1AP_S1AP_PDU_STRUCT* tx_pdu, uint32_t rnti, const char* procedure_name);
+  bool sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name);
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu);
   bool handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* msg);
@@ -130,21 +132,21 @@ private:
   bool handle_erabsetuprequest(LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg);
   bool handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg);
 
-  bool send_initialuemessage(uint16_t                                 rnti,
-                             LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                             srslte::unique_byte_buffer_t             pdu,
-                             bool                                     has_tmsi,
-                             uint32_t                                 m_tmsi = 0,
-                             uint8_t                                  mmec   = 0);
+  bool send_initialuemessage(uint16_t                              rnti,
+                             asn1::s1ap::rrc_establishment_cause_e cause,
+                             srslte::unique_byte_buffer_t          pdu,
+                             bool                                  has_tmsi,
+                             uint32_t                              m_tmsi = 0,
+                             uint8_t                               mmec   = 0);
   bool send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
-  bool send_uectxtreleaserequest(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT* cause);
+  bool send_uectxtreleaserequest(uint16_t rnti, const asn1::s1ap::cause_c& cause);
   bool send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_t enb_ue_id);
-  bool send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* res_);
+  bool send_initial_ctxt_setup_response(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res_);
   bool send_initial_ctxt_setup_failure(uint16_t rnti);
-  bool send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT* res_);
+  bool send_erab_setup_response(uint16_t rnti, const asn1::s1ap::e_rab_setup_resp_s& res_);
   // bool send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
   bool send_uectxmodifyresp(uint16_t rnti);
-  bool send_uectxmodifyfailure(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT* cause);
+  bool send_uectxmodifyfailure(uint16_t rnti, const asn1::s1ap::cause_c& cause);
   // handover
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
