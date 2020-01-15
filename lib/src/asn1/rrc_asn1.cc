@@ -69,7 +69,8 @@ void asn1::rrc::assert_choice_type(const std::string& access_type,
   }
 }
 
-const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+const char*
+asn1::rrc::convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
 {
   if (enum_val >= nof_types) {
     if (enum_val == nof_types) {

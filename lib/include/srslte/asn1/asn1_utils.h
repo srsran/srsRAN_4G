@@ -141,12 +141,13 @@ public:
 
   dyn_array() = default;
   explicit dyn_array(uint32_t new_size) : size_(new_size), cap_(new_size) { data_ = new T[size_]; }
-  dyn_array(const dyn_array<T>& other)
+  dyn_array(const dyn_array<T>& other) : dyn_array(&other[0], other.size_) {}
+  dyn_array(const T* ptr, uint32_t nof_items)
   {
-    size_ = other.size_;
-    cap_  = other.cap_;
+    size_ = nof_items;
+    cap_  = nof_items;
     data_ = new T[cap_];
-    std::copy(&other[0], &other[size_], data_);
+    std::copy(ptr, ptr + size_, data_);
   }
   ~dyn_array()
   {
@@ -1047,6 +1048,7 @@ template <class ItemType, uint32_t lb, uint32_t ub, bool aligned = false>
 struct dyn_seq_of : public dyn_array<ItemType> {
   dyn_seq_of() = default;
   dyn_seq_of(const dyn_array<ItemType>& other) : dyn_array<ItemType>(other) {}
+  dyn_seq_of(const bounded_array<ItemType, ub>& other) : dyn_array<ItemType>(&other[0], other.size()) {}
   SRSASN_CODE pack(bit_ref& bref) const { return pack_dyn_seq_of(bref, *this, lb, ub, aligned); }
   SRSASN_CODE unpack(bit_ref& bref) { return unpack_dyn_seq_of(*this, bref, lb, ub, aligned); }
 };

@@ -53614,6 +53614,9 @@ struct as_context_v1320_s {
   void        to_json(json_writer& j) const;
 };
 
+// SystemInformationBlockType16-NB-r13 ::= SystemInformationBlockType16-r11
+typedef sib_type16_r11_s sib_type16_nb_r13_s;
+
 // CSI-RS-TriggeredList-r12 ::= SEQUENCE (SIZE (1..96)) OF INTEGER (1..96)
 using csi_rs_triggered_list_r12_l = dyn_array<uint8_t>;
 

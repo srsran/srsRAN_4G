@@ -42,6 +42,12 @@ target_compile_options(rrc_asn1 PRIVATE "-Os")
 target_link_libraries(rrc_asn1 asn1_utils)
 install(TARGETS rrc_asn1 DESTINATION ${LIBRARY_DIR})
 
+add_library(s1ap_asn1 STATIC
+        s1ap_asn1.cc)
+target_compile_options(s1ap_asn1 PRIVATE "-Os")
+target_link_libraries(s1ap_asn1 asn1_utils)
+install(TARGETS s1ap_asn1 DESTINATION ${LIBRARY_DIR})
+
 if (ENABLE_5GNR)
     # Install RRC NR ASN1
     add_library(rrc_nr_asn1 STATIC rrc_nr_asn1.cc)
