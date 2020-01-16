@@ -963,7 +963,7 @@ bool s1ap::send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_
 
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE);
-  auto& container                = tx_pdu.successful_outcome().value.ue_context_mod_request().protocol_ies;
+  auto& container                = tx_pdu.successful_outcome().value.ue_context_release_cmd().protocol_ies;
   container.enb_ue_s1ap_id.value = enb_ue_id;
   container.mme_ue_s1ap_id.value = mme_ue_id;
 
