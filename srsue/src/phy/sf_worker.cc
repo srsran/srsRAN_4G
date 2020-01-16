@@ -333,7 +333,7 @@ void sf_worker::update_measurements()
   }
 
   // Check in-sync / out-sync conditions
-  if (phy->avg_rsrp_dbm[0] > -130.0 && phy->avg_snr_db_cqi[0] > -6.0) {
+  if (phy->avg_rsrp_dbm[0] > phy->args->in_sync_rsrp_dbm_th && phy->avg_snr_db_cqi[0] > phy->args->in_sync_snr_db_th) {
     log_h->debug("SNR=%.1f dB, RSRP=%.1f dBm sync=in-sync from channel estimator\n",
                  phy->avg_snr_db_cqi[0],
                  phy->avg_rsrp_dbm[0]);

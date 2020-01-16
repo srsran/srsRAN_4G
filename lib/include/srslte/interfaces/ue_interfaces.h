@@ -522,6 +522,11 @@ typedef struct {
   bool          pregenerate_signals              = false;
   float         force_ul_amplitude               = 0.0f;
 
+  float         in_sync_rsrp_dbm_th              = -130.0f;
+  float         in_sync_snr_db_th                = 1.0f;
+  uint32_t      nof_in_sync_events               = 10;
+  uint32_t      nof_out_of_sync_events           = 20;
+
   srslte::channel::args_t dl_channel_args;
   srslte::channel::args_t ul_channel_args;
 } phy_args_t;

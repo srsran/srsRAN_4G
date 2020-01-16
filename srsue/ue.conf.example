@@ -306,6 +306,11 @@ enable = false
 # pdsch_8bit_decoder:    Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)
 # force_ul_amplitude:    Forces the peak amplitude in the PUCCH, PUSCH and SRS (set 0.0 to 1.0, set to 0 or negative for disabling)
 #
+# in_sync_rsrp_dbm_th:    RSRP threshold (in dBm) above which the UE considers to be in-sync
+# in_sync_snr_db_th:      SNR threshold (in dB) above which the UE considers to be in-sync
+# nof_in_sync_events:     Number of PHY in-sync events before sending an in-sync event to RRC
+# nof_out_of_sync_events: Number of PHY out-sync events before sending an out-sync event to RRC
+#
 #####################################################################
 [phy]
 #rx_gain_offset      = 62
@@ -330,6 +335,11 @@ enable = false
 #pdsch_csi_enabled  = true
 #pdsch_8bit_decoder = false
 #force_ul_amplitude = 0
+
+#in_sync_rsrp_dbm_th    = -130.0
+#in_sync_snr_db_th      = 1.0
+#nof_in_sync_events     = 10
+#nof_out_of_sync_events = 20
 
 #####################################################################
 # General configuration options

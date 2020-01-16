@@ -681,7 +681,7 @@ void sync::in_sync()
 {
   in_sync_cnt++;
   // Send RRC in-sync signal after 100 ms consecutive subframes
-  if (in_sync_cnt == NOF_IN_SYNC_SF) {
+  if (in_sync_cnt == worker_com->args->nof_in_sync_events) {
     stack->in_sync();
     in_sync_cnt     = 0;
     out_of_sync_cnt = 0;
@@ -692,9 +692,9 @@ void sync::in_sync()
 void sync::out_of_sync()
 {
   // Send RRC out-of-sync signal after NOF_OUT_OF_SYNC_SF consecutive subframes
-  Info("Out-of-sync %d/%d\n", out_of_sync_cnt, NOF_OUT_OF_SYNC_SF);
+  Info("Out-of-sync %d/%d\n", out_of_sync_cnt, worker_com->args->nof_out_of_sync_events);
   out_of_sync_cnt++;
-  if (out_of_sync_cnt == NOF_OUT_OF_SYNC_SF) {
+  if (out_of_sync_cnt == worker_com->args->nof_out_of_sync_events) {
     Info("Sending to RRC\n");
     stack->out_of_sync();
     out_of_sync_cnt = 0;

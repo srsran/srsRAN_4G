@@ -202,9 +202,6 @@ private:
   uint32_t out_of_sync_cnt = 0;
   uint32_t in_sync_cnt     = 0;
 
-  const static uint32_t NOF_OUT_OF_SYNC_SF = 20;
-  const static uint32_t NOF_IN_SYNC_SF     = 10;
-
   // State machine for SYNC thread
   class sync_state
   {
