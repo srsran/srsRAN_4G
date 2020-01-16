@@ -993,7 +993,7 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, const asn1::s1ap::ini
     item.transport_layer_address.resize(32);
     uint8_t addr[4];
     inet_pton(AF_INET, args.gtp_bind_addr.c_str(), addr);
-    liblte_unpack(addr, 4, item.transport_layer_address.data());
+    memcpy(item.transport_layer_address.data(), addr, 4);
   }
 
   return sctp_send_s1ap_pdu(tx_pdu, rnti, "InitialContextSetupResponse");
@@ -1018,7 +1018,7 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, const e_rab_setup_resp_s& res
       item.transport_layer_address.resize(32);
       uint8_t addr[4];
       inet_pton(AF_INET, args.gtp_bind_addr.c_str(), addr);
-      liblte_unpack(addr, 4, item.transport_layer_address.data());
+      memcpy(item.transport_layer_address.data(), addr, 4);
     }
   }
 

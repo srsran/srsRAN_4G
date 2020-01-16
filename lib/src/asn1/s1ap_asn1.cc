@@ -1331,8 +1331,8 @@ SRSASN_CODE paging_attempt_info_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(next_paging_area_scope_present, 1));
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, paging_attempt_count, (uint8_t)1u, (uint8_t)16u, false, true));
-  HANDLE_CODE(pack_integer(bref, intended_nof_paging_attempts, (uint8_t)1u, (uint8_t)16u, false, true));
+  HANDLE_CODE(pack_integer(bref, paging_attempt_count, (uint8_t)1u, (uint8_t)16u, true, true));
+  HANDLE_CODE(pack_integer(bref, intended_nof_paging_attempts, (uint8_t)1u, (uint8_t)16u, true, true));
   if (next_paging_area_scope_present) {
     HANDLE_CODE(next_paging_area_scope.pack(bref));
   }
@@ -1348,8 +1348,8 @@ SRSASN_CODE paging_attempt_info_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(next_paging_area_scope_present, 1));
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(paging_attempt_count, bref, (uint8_t)1u, (uint8_t)16u, false, true));
-  HANDLE_CODE(unpack_integer(intended_nof_paging_attempts, bref, (uint8_t)1u, (uint8_t)16u, false, true));
+  HANDLE_CODE(unpack_integer(paging_attempt_count, bref, (uint8_t)1u, (uint8_t)16u, true, true));
+  HANDLE_CODE(unpack_integer(intended_nof_paging_attempts, bref, (uint8_t)1u, (uint8_t)16u, true, true));
   if (next_paging_area_scope_present) {
     HANDLE_CODE(next_paging_area_scope.unpack(bref));
   }
@@ -2061,7 +2061,7 @@ SRSASN_CODE bearers_subject_to_status_transfer_item_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(receive_statusof_ulpdcpsdus_present, 1));
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(ul_coun_tvalue.pack(bref));
   HANDLE_CODE(dl_coun_tvalue.pack(bref));
   if (receive_statusof_ulpdcpsdus_present) {
@@ -2079,7 +2079,7 @@ SRSASN_CODE bearers_subject_to_status_transfer_item_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(receive_statusof_ulpdcpsdus_present, 1));
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(ul_coun_tvalue.unpack(bref));
   HANDLE_CODE(dl_coun_tvalue.unpack(bref));
   if (receive_statusof_ulpdcpsdus_present) {
@@ -3634,7 +3634,7 @@ void cell_activation_resp_s::to_json(json_writer& j) const
 SRSASN_CODE ehrpd_composite_available_capacity_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(pack_integer(bref, ehrpd_sector_capacity_class_value, (uint8_t)1u, (uint8_t)100u, false, true));
+  HANDLE_CODE(pack_integer(bref, ehrpd_sector_capacity_class_value, (uint8_t)1u, (uint8_t)100u, true, true));
   HANDLE_CODE(pack_integer(bref, ehrpd_capacity_value, (uint8_t)0u, (uint8_t)100u, false, true));
 
   return SRSASN_SUCCESS;
@@ -3642,7 +3642,7 @@ SRSASN_CODE ehrpd_composite_available_capacity_s::pack(bit_ref& bref) const
 SRSASN_CODE ehrpd_composite_available_capacity_s::unpack(bit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(unpack_integer(ehrpd_sector_capacity_class_value, bref, (uint8_t)1u, (uint8_t)100u, false, true));
+  HANDLE_CODE(unpack_integer(ehrpd_sector_capacity_class_value, bref, (uint8_t)1u, (uint8_t)100u, true, true));
   HANDLE_CODE(unpack_integer(ehrpd_capacity_value, bref, (uint8_t)0u, (uint8_t)100u, false, true));
 
   return SRSASN_SUCCESS;
@@ -6723,7 +6723,7 @@ SRSASN_CODE e_rab_data_forwarding_item_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(ul_gtp_teid_present, 1));
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   if (dl_transport_layer_address_present) {
     HANDLE_CODE(dl_transport_layer_address.pack(bref));
   }
@@ -6751,7 +6751,7 @@ SRSASN_CODE e_rab_data_forwarding_item_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(ul_gtp_teid_present, 1));
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   if (dl_transport_layer_address_present) {
     HANDLE_CODE(dl_transport_layer_address.unpack(bref));
   }
@@ -7829,7 +7829,7 @@ SRSASN_CODE e_rab_admitted_item_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(ul_gtp_teid_present, 1));
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(gtp_teid.pack(bref));
   if (dl_transport_layer_address_present) {
@@ -7859,7 +7859,7 @@ SRSASN_CODE e_rab_admitted_item_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(ul_gtp_teid_present, 1));
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(gtp_teid.unpack(bref));
   if (dl_transport_layer_address_present) {
@@ -8032,7 +8032,7 @@ SRSASN_CODE e_rab_failed_to_resume_item_resume_req_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(cause.pack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
@@ -8045,7 +8045,7 @@ SRSASN_CODE e_rab_failed_to_resume_item_resume_req_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(cause.unpack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
@@ -8148,7 +8148,7 @@ SRSASN_CODE e_rab_failed_to_resume_item_resume_res_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(cause.pack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
@@ -8161,7 +8161,7 @@ SRSASN_CODE e_rab_failed_to_resume_item_resume_res_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(cause.unpack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
@@ -8362,7 +8362,7 @@ SRSASN_CODE e_rab_failed_to_setup_item_ho_req_ack_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(cause.pack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
@@ -8375,7 +8375,7 @@ SRSASN_CODE e_rab_failed_to_setup_item_ho_req_ack_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(cause.unpack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
@@ -8535,7 +8535,7 @@ SRSASN_CODE e_rab_info_list_item_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(dl_forwarding_present, 1));
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   if (dl_forwarding_present) {
     HANDLE_CODE(dl_forwarding.pack(bref));
   }
@@ -8551,7 +8551,7 @@ SRSASN_CODE e_rab_info_list_item_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(dl_forwarding_present, 1));
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   if (dl_forwarding_present) {
     HANDLE_CODE(dl_forwarding.unpack(bref));
   }
@@ -8658,7 +8658,7 @@ SRSASN_CODE e_rab_item_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(cause.pack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
@@ -8671,7 +8671,7 @@ SRSASN_CODE e_rab_item_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(cause.unpack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
@@ -8872,7 +8872,7 @@ SRSASN_CODE e_rab_modify_item_bearer_mod_conf_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
   }
@@ -8884,7 +8884,7 @@ SRSASN_CODE e_rab_modify_item_bearer_mod_conf_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
   }
@@ -9540,7 +9540,7 @@ SRSASN_CODE e_rab_not_to_be_modified_item_bearer_mod_ind_s::pack(bit_ref& bref) 
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(dl_gtp_teid.pack(bref));
   if (ie_exts_present) {
@@ -9554,7 +9554,7 @@ SRSASN_CODE e_rab_not_to_be_modified_item_bearer_mod_ind_s::unpack(bit_ref& bref
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(dl_gtp_teid.unpack(bref));
   if (ie_exts_present) {
@@ -9582,7 +9582,7 @@ SRSASN_CODE e_rab_to_be_modified_item_bearer_mod_ind_s::pack(bit_ref& bref) cons
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(dl_gtp_teid.pack(bref));
   if (ie_exts_present) {
@@ -9596,7 +9596,7 @@ SRSASN_CODE e_rab_to_be_modified_item_bearer_mod_ind_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(dl_gtp_teid.unpack(bref));
   if (ie_exts_present) {
@@ -10412,7 +10412,7 @@ SRSASN_CODE e_rab_modify_item_bearer_mod_res_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
   }
@@ -10424,7 +10424,7 @@ SRSASN_CODE e_rab_modify_item_bearer_mod_res_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
   }
@@ -10677,7 +10677,7 @@ SRSASN_CODE e_rab_to_be_modified_item_bearer_mod_req_s::pack(bit_ref& bref) cons
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(e_rab_level_qo_sparams.pack(bref));
   HANDLE_CODE(nas_pdu.pack(bref));
   if (ie_exts_present) {
@@ -10691,7 +10691,7 @@ SRSASN_CODE e_rab_to_be_modified_item_bearer_mod_req_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(e_rab_level_qo_sparams.unpack(bref));
   HANDLE_CODE(nas_pdu.unpack(bref));
   if (ie_exts_present) {
@@ -12528,7 +12528,7 @@ SRSASN_CODE e_rab_release_item_bearer_rel_comp_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
   }
@@ -12540,7 +12540,7 @@ SRSASN_CODE e_rab_release_item_bearer_rel_comp_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
   }
@@ -13145,7 +13145,7 @@ SRSASN_CODE e_rab_setup_item_bearer_su_res_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(gtp_teid.pack(bref));
   if (ie_exts_present) {
@@ -13159,7 +13159,7 @@ SRSASN_CODE e_rab_setup_item_bearer_su_res_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(gtp_teid.unpack(bref));
   if (ie_exts_present) {
@@ -13262,7 +13262,7 @@ SRSASN_CODE e_rab_setup_item_ctxt_su_res_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(gtp_teid.pack(bref));
   if (ie_exts_present) {
@@ -13276,7 +13276,7 @@ SRSASN_CODE e_rab_setup_item_ctxt_su_res_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(gtp_teid.unpack(bref));
   if (ie_exts_present) {
@@ -13706,7 +13706,7 @@ SRSASN_CODE e_rab_to_be_setup_item_bearer_su_req_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(e_ra_blevel_qo_sparams.pack(bref));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(gtp_teid.pack(bref));
@@ -13722,7 +13722,7 @@ SRSASN_CODE e_rab_to_be_setup_item_bearer_su_req_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(e_ra_blevel_qo_sparams.unpack(bref));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(gtp_teid.unpack(bref));
@@ -14980,7 +14980,7 @@ SRSASN_CODE e_rab_to_be_setup_item_ctxt_su_req_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(nas_pdu_present, 1));
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(e_ra_blevel_qo_sparams.pack(bref));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(gtp_teid.pack(bref));
@@ -14999,7 +14999,7 @@ SRSASN_CODE e_rab_to_be_setup_item_ctxt_su_req_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(nas_pdu_present, 1));
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(e_ra_blevel_qo_sparams.unpack(bref));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(gtp_teid.unpack(bref));
@@ -15361,7 +15361,7 @@ SRSASN_CODE e_rab_to_be_setup_item_ho_req_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(gtp_teid.pack(bref));
   HANDLE_CODE(e_ra_blevel_qos_params.pack(bref));
@@ -15376,7 +15376,7 @@ SRSASN_CODE e_rab_to_be_setup_item_ho_req_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(gtp_teid.unpack(bref));
   HANDLE_CODE(e_ra_blevel_qos_params.unpack(bref));
@@ -15533,7 +15533,7 @@ SRSASN_CODE e_rab_to_be_switched_dl_item_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(gtp_teid.pack(bref));
   if (ie_exts_present) {
@@ -15547,7 +15547,7 @@ SRSASN_CODE e_rab_to_be_switched_dl_item_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(gtp_teid.unpack(bref));
   if (ie_exts_present) {
@@ -15699,7 +15699,7 @@ SRSASN_CODE e_rab_to_be_switched_ul_item_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(pack_integer(bref, e_rab_id, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.pack(bref));
   HANDLE_CODE(gtp_teid.pack(bref));
   if (ie_exts_present) {
@@ -15713,7 +15713,7 @@ SRSASN_CODE e_rab_to_be_switched_ul_item_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, false, true));
+  HANDLE_CODE(unpack_integer(e_rab_id, bref, (uint8_t)0u, (uint8_t)15u, true, true));
   HANDLE_CODE(transport_layer_address.unpack(bref));
   HANDLE_CODE(gtp_teid.unpack(bref));
   if (ie_exts_present) {
@@ -16639,7 +16639,7 @@ SRSASN_CODE muting_pattern_info_s::pack(bit_ref& bref) const
 
   HANDLE_CODE(muting_pattern_period.pack(bref));
   if (muting_pattern_offset_present) {
-    HANDLE_CODE(pack_integer(bref, muting_pattern_offset, (uint16_t)0u, (uint16_t)10239u, false, true));
+    HANDLE_CODE(pack_integer(bref, muting_pattern_offset, (uint16_t)0u, (uint16_t)10239u, true, true));
   }
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
@@ -16655,7 +16655,7 @@ SRSASN_CODE muting_pattern_info_s::unpack(bit_ref& bref)
 
   HANDLE_CODE(muting_pattern_period.unpack(bref));
   if (muting_pattern_offset_present) {
-    HANDLE_CODE(unpack_integer(muting_pattern_offset, bref, (uint16_t)0u, (uint16_t)10239u, false, true));
+    HANDLE_CODE(unpack_integer(muting_pattern_offset, bref, (uint16_t)0u, (uint16_t)10239u, true, true));
   }
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
@@ -16777,7 +16777,7 @@ SRSASN_CODE time_synchronisation_info_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, stratum_level, (uint8_t)0u, (uint8_t)3u, false, true));
+  HANDLE_CODE(pack_integer(bref, stratum_level, (uint8_t)0u, (uint8_t)3u, true, true));
   HANDLE_CODE(synchronisation_status.pack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
@@ -16790,7 +16790,7 @@ SRSASN_CODE time_synchronisation_info_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(stratum_level, bref, (uint8_t)0u, (uint8_t)3u, false, true));
+  HANDLE_CODE(unpack_integer(stratum_level, bref, (uint8_t)0u, (uint8_t)3u, true, true));
   HANDLE_CODE(synchronisation_status.unpack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
@@ -17196,7 +17196,7 @@ SRSASN_CODE listening_sf_pattern_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
   HANDLE_CODE(pattern_period.pack(bref));
-  HANDLE_CODE(pack_integer(bref, pattern_offset, (uint16_t)0u, (uint16_t)10239u, false, true));
+  HANDLE_CODE(pack_integer(bref, pattern_offset, (uint16_t)0u, (uint16_t)10239u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
   }
@@ -17209,7 +17209,7 @@ SRSASN_CODE listening_sf_pattern_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
   HANDLE_CODE(pattern_period.unpack(bref));
-  HANDLE_CODE(unpack_integer(pattern_offset, bref, (uint16_t)0u, (uint16_t)10239u, false, true));
+  HANDLE_CODE(unpack_integer(pattern_offset, bref, (uint16_t)0u, (uint16_t)10239u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
   }
@@ -17653,7 +17653,7 @@ SRSASN_CODE synchronisation_info_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
   if (source_stratum_level_present) {
-    HANDLE_CODE(pack_integer(bref, source_stratum_level, (uint8_t)0u, (uint8_t)3u, false, true));
+    HANDLE_CODE(pack_integer(bref, source_stratum_level, (uint8_t)0u, (uint8_t)3u, true, true));
   }
   if (listening_sf_pattern_present) {
     HANDLE_CODE(listening_sf_pattern.pack(bref));
@@ -17676,7 +17676,7 @@ SRSASN_CODE synchronisation_info_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
   if (source_stratum_level_present) {
-    HANDLE_CODE(unpack_integer(source_stratum_level, bref, (uint8_t)0u, (uint8_t)3u, false, true));
+    HANDLE_CODE(unpack_integer(source_stratum_level, bref, (uint8_t)0u, (uint8_t)3u, true, true));
   }
   if (listening_sf_pattern_present) {
     HANDLE_CODE(listening_sf_pattern.unpack(bref));
@@ -20901,10 +20901,10 @@ SRSASN_CODE expected_ue_activity_behaviour_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
   if (expected_activity_period_present) {
-    HANDLE_CODE(pack_integer(bref, expected_activity_period, (uint8_t)1u, (uint8_t)30u, false, true));
+    HANDLE_CODE(pack_integer(bref, expected_activity_period, (uint8_t)1u, (uint8_t)30u, true, true));
   }
   if (expected_idle_period_present) {
-    HANDLE_CODE(pack_integer(bref, expected_idle_period, (uint8_t)1u, (uint8_t)30u, false, true));
+    HANDLE_CODE(pack_integer(bref, expected_idle_period, (uint8_t)1u, (uint8_t)30u, true, true));
   }
   if (sourceof_ue_activity_behaviour_info_present) {
     HANDLE_CODE(sourceof_ue_activity_behaviour_info.pack(bref));
@@ -20924,10 +20924,10 @@ SRSASN_CODE expected_ue_activity_behaviour_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
   if (expected_activity_period_present) {
-    HANDLE_CODE(unpack_integer(expected_activity_period, bref, (uint8_t)1u, (uint8_t)30u, false, true));
+    HANDLE_CODE(unpack_integer(expected_activity_period, bref, (uint8_t)1u, (uint8_t)30u, true, true));
   }
   if (expected_idle_period_present) {
-    HANDLE_CODE(unpack_integer(expected_idle_period, bref, (uint8_t)1u, (uint8_t)30u, false, true));
+    HANDLE_CODE(unpack_integer(expected_idle_period, bref, (uint8_t)1u, (uint8_t)30u, true, true));
   }
   if (sourceof_ue_activity_behaviour_info_present) {
     HANDLE_CODE(sourceof_ue_activity_behaviour_info.unpack(bref));
@@ -23675,7 +23675,7 @@ SRSASN_CODE mbsfn_result_to_log_info_s::pack(bit_ref& bref) const
   if (mbsfn_area_id_present) {
     HANDLE_CODE(pack_integer(bref, mbsfn_area_id, (uint16_t)0u, (uint16_t)255u, false, true));
   }
-  HANDLE_CODE(pack_integer(bref, carrier_freq, (uint32_t)0u, (uint32_t)262143u, false, true));
+  HANDLE_CODE(pack_integer(bref, carrier_freq, (uint32_t)0u, (uint32_t)262143u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
   }
@@ -23691,7 +23691,7 @@ SRSASN_CODE mbsfn_result_to_log_info_s::unpack(bit_ref& bref)
   if (mbsfn_area_id_present) {
     HANDLE_CODE(unpack_integer(mbsfn_area_id, bref, (uint16_t)0u, (uint16_t)255u, false, true));
   }
-  HANDLE_CODE(unpack_integer(carrier_freq, bref, (uint32_t)0u, (uint32_t)262143u, false, true));
+  HANDLE_CODE(unpack_integer(carrier_freq, bref, (uint32_t)0u, (uint32_t)262143u, true, true));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));
   }
@@ -24029,7 +24029,7 @@ SRSASN_CODE m7_cfg_s::pack(bit_ref& bref) const
   bref.pack(ext, 1);
   HANDLE_CODE(bref.pack(ie_exts_present, 1));
 
-  HANDLE_CODE(pack_integer(bref, m7period, (uint8_t)1u, (uint8_t)60u, false, true));
+  HANDLE_CODE(pack_integer(bref, m7period, (uint8_t)1u, (uint8_t)60u, true, true));
   HANDLE_CODE(m7_links_to_log.pack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.pack(bref));
@@ -24042,7 +24042,7 @@ SRSASN_CODE m7_cfg_s::unpack(bit_ref& bref)
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ie_exts_present, 1));
 
-  HANDLE_CODE(unpack_integer(m7period, bref, (uint8_t)1u, (uint8_t)60u, false, true));
+  HANDLE_CODE(unpack_integer(m7period, bref, (uint8_t)1u, (uint8_t)60u, true, true));
   HANDLE_CODE(m7_links_to_log.unpack(bref));
   if (ie_exts_present) {
     HANDLE_CODE(ie_exts.unpack(bref));

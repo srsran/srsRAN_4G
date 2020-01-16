@@ -78,12 +78,15 @@ int test_initial_ctxt_setup_response()
     item.transport_layer_address.resize(32);
     uint8_t addr[4];
     inet_pton(AF_INET, "127.0.0.1", addr);
-    liblte_unpack(addr, 4, item.transport_layer_address.data());
+    memcpy(item.transport_layer_address.data(), addr, sizeof(addr));
+    //    liblte_unpack(addr, 4, item.transport_layer_address.data());
   }
 
   uint8_t       buffer[1024];
   asn1::bit_ref bref(buffer, sizeof(buffer));
   TESTASSERT(tx_pdu.pack(bref) == SRSLTE_SUCCESS);
+
+  test_logger.info_hex(buffer, bref.distance_bytes(), "message (nof bytes = %d):\n", bref.distance_bytes());
 
   return SRSLTE_SUCCESS;
 }
@@ -91,7 +94,9 @@ int test_initial_ctxt_setup_response()
 int main()
 {
   test_logger.set_level(LOG_LEVEL_DEBUG);
+  test_logger.set_hex_limit(1024);
 
   TESTASSERT(unpack_test_served_gummeis_with_multiple_plmns() == SRSLTE_SUCCESS);
+  TESTASSERT(test_initial_ctxt_setup_response() == SRSLTE_SUCCESS);
   printf("Success\n");
 }
