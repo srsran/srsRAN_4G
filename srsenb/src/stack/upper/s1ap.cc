@@ -426,65 +426,43 @@ bool s1ap::connect_mme()
 
 bool s1ap::setup_s1()
 {
-  uint32_t                    tmp32;
-  uint16_t                    tmp16;
-  srslte::byte_buffer_t       msg;
-  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
-  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+  uint32_t tmp32;
+  uint16_t tmp16;
 
-  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* init = &pdu.choice.initiatingMessage;
-
-  init->procedureCode = LIBLTE_S1AP_PROC_ID_S1SETUP;
-  init->choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST;
-
-  LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT* s1setup = &init->choice.S1SetupRequest;
-  s1setup->ext                                       = false;
-  s1setup->CSG_IdList_present                        = false;
-
-  s1setup->Global_ENB_ID.ext                   = false;
-  s1setup->Global_ENB_ID.iE_Extensions_present = false;
   uint32_t plmn;
   s1ap_mccmnc_to_plmn(args.mcc, args.mnc, &plmn);
-  tmp32                                         = htonl(plmn);
-  s1setup->Global_ENB_ID.pLMNidentity.buffer[0] = ((uint8_t*)&tmp32)[1];
-  s1setup->Global_ENB_ID.pLMNidentity.buffer[1] = ((uint8_t*)&tmp32)[2];
-  s1setup->Global_ENB_ID.pLMNidentity.buffer[2] = ((uint8_t*)&tmp32)[3];
+  plmn = htonl(plmn);
 
-  s1setup->Global_ENB_ID.ext                = false;
-  s1setup->Global_ENB_ID.eNB_ID.ext         = false;
-  s1setup->Global_ENB_ID.eNB_ID.choice_type = LIBLTE_S1AP_ENB_ID_CHOICE_MACROENB_ID;
-  tmp32                                     = htonl(args.enb_id);
+  tmp32 = htonl(args.enb_id);
   uint8_t enb_id_bits[4 * 8];
   liblte_unpack((uint8_t*)&tmp32, 4, enb_id_bits);
-  memcpy(s1setup->Global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer,
+
+  s1ap_pdu_c pdu;
+  pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_S1_SETUP);
+  s1_setup_request_ies_container& container = pdu.init_msg().value.s1_setup_request().protocol_ies;
+  container.global_enb_id.value.plm_nid[0]  = ((uint8_t*)&plmn)[1];
+  container.global_enb_id.value.plm_nid[1]  = ((uint8_t*)&plmn)[2];
+  container.global_enb_id.value.plm_nid[2]  = ((uint8_t*)&plmn)[3];
+
+  container.global_enb_id.value.enb_id.set_macro_enb_id();
+  memcpy(container.global_enb_id.value.enb_id.macro_enb_id().data(),
          &enb_id_bits[32 - LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN],
          LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
 
-  s1setup->eNBname_present = true;
-  s1setup->eNBname.ext     = false;
-  if (args.enb_name.length() >= 150) {
-    args.enb_name.resize(150 - 1);
-  }
-  memcpy(s1setup->eNBname.buffer, args.enb_name.c_str(), args.enb_name.length());
-  s1setup->eNBname.n_octets = args.enb_name.length();
+  container.enbname_present = true;
+  container.enbname.value.from_string(args.enb_name);
 
-  s1setup->SupportedTAs.len                             = 1;
-  s1setup->SupportedTAs.buffer[0].ext                   = false;
-  s1setup->SupportedTAs.buffer[0].iE_Extensions_present = false;
-  tmp16                                                 = htons(args.tac);
-  memcpy(s1setup->SupportedTAs.buffer[0].tAC.buffer, (uint8_t*)&tmp16, 2);
-  s1setup->SupportedTAs.buffer[0].broadcastPLMNs.len                 = 1;
-  tmp32                                                              = htonl(plmn);
-  s1setup->SupportedTAs.buffer[0].broadcastPLMNs.buffer[0].buffer[0] = ((uint8_t*)&tmp32)[1];
-  s1setup->SupportedTAs.buffer[0].broadcastPLMNs.buffer[0].buffer[1] = ((uint8_t*)&tmp32)[2];
-  s1setup->SupportedTAs.buffer[0].broadcastPLMNs.buffer[0].buffer[2] = ((uint8_t*)&tmp32)[3];
+  container.supported_tas.value.resize(1);
+  tmp16 = htons(args.tac);
+  memcpy(container.supported_tas.value[0].tac.data(), (uint8_t*)&tmp16, 2);
+  container.supported_tas.value[0].broadcast_plmns.resize(1);
+  container.supported_tas.value[0].broadcast_plmns[0][0] = ((uint8_t*)&plmn)[1];
+  container.supported_tas.value[0].broadcast_plmns[0][1] = ((uint8_t*)&plmn)[2];
+  container.supported_tas.value[0].broadcast_plmns[0][2] = ((uint8_t*)&plmn)[3];
 
-  s1setup->DefaultPagingDRX.ext = false;
-  s1setup->DefaultPagingDRX.e   = LIBLTE_S1AP_PAGINGDRX_V128; // Todo: add to args, config file
+  container.default_paging_drx.value.value = asn1::s1ap::paging_drx_opts::v128; // Todo: add to args, config file
 
-  return sctp_send_s1ap_pdu(&pdu, 0, "s1SetupRequest");
+  return sctp_send_s1ap_pdu(pdu, 0, "s1SetupRequest");
 }
 
 /*******************************************************************************
@@ -851,7 +829,6 @@ bool s1ap::send_initialuemessage(uint16_t                              rnti,
   if (!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t msg;
 
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_INIT_UE_MSG);
@@ -996,7 +973,6 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, const asn1::s1ap::ini
     for (uint32_t j = 0; j < 4; ++j) {
       item.transport_layer_address.data()[j] = addr[3 - j];
     }
-    //    memcpy(item.transport_layer_address.data(), addr, 4);
   }
 
   return sctp_send_s1ap_pdu(tx_pdu, rnti, "InitialContextSetupResponse");
@@ -1024,7 +1000,6 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, const e_rab_setup_resp_s& res
       for (uint32_t j = 0; j < 4; ++j) {
         item.transport_layer_address.data()[j] = addr[3 - j];
       }
-      //      memcpy(item.transport_layer_address.data(), addr, 4);
     }
   }
 
@@ -1040,33 +1015,16 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   if (!mme_connected) {
     return false;
   }
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
-  if (!buf) {
-    s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_initial_ctxt_setup_failure().\n");
-    return false;
-  }
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
+  auto& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_request().protocol_ies;
 
-  LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT* unsucc = &tx_pdu.choice.unsuccessfulOutcome;
-  unsucc->procedureCode                          = LIBLTE_S1AP_PROC_ID_INITIALCONTEXTSETUP;
-  unsucc->choice_type                            = LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_INITIALCONTEXTSETUPFAILURE;
+  container.enb_ue_s1ap_id.value                  = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
+  container.mme_ue_s1ap_id.value                  = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
+  container.cause.value.set_radio_network().value = cause_radio_network_opts::unspecified;
 
-  LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPFAILURE_STRUCT* fail = &unsucc->choice.InitialContextSetupFailure;
-  fail->ext                                                   = false;
-  fail->CriticalityDiagnostics_present                        = false;
-
-  fail->MME_UE_S1AP_ID.MME_UE_S1AP_ID = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
-  fail->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
-
-  fail->Cause.ext                     = false;
-  fail->Cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-  fail->Cause.choice.radioNetwork.ext = false;
-  fail->Cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_UNSPECIFIED;
-
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "InitialContextSetupFailure");
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "InitialContextSetupFailure");
 }
 
 bool s1ap::send_uectxmodifyresp(uint16_t rnti)
@@ -1074,31 +1032,15 @@ bool s1ap::send_uectxmodifyresp(uint16_t rnti)
   if (!mme_connected) {
     return false;
   }
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
-  if (!buf) {
-    s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_uectxmodifyresp().\n");
-    return false;
-  }
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_MOD);
+  auto& container = tx_pdu.successful_outcome().value.ue_context_mod_request().protocol_ies;
 
-  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* succ = &tx_pdu.choice.successfulOutcome;
-  succ->procedureCode                        = LIBLTE_S1AP_PROC_ID_UECONTEXTMODIFICATION;
-  succ->choice_type                          = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_UECONTEXTMODIFICATIONRESPONSE;
+  container.enb_ue_s1ap_id.value = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
+  container.mme_ue_s1ap_id.value = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
 
-  LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONRESPONSE_STRUCT* resp = &succ->choice.UEContextModificationResponse;
-  resp->ext                                                      = false;
-  resp->CriticalityDiagnostics_present                           = false;
-
-  resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
-  resp->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
-
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf.get());
-  s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending ContextModificationFailure for RNTI:0x%x", rnti);
-
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "ContextModificationFailure");
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "UEContextModificationResponse");
 }
 
 bool s1ap::send_uectxmodifyfailure(uint16_t rnti, const cause_c& cause)
