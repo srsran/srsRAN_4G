@@ -873,41 +873,34 @@ bool s1ap::send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
   if (!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t msg;
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode                        = LIBLTE_S1AP_PROC_ID_UPLINKNASTRANSPORT;
-  init->choice_type                          = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UPLINKNASTRANSPORT;
-
-  LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT* ultx = &init->choice.UplinkNASTransport;
-  ultx->ext                                           = false;
-  ultx->GW_TransportLayerAddress_present              = false;
-  ultx->LHN_ID_present                                = false;
-  ultx->SIPTO_L_GW_TransportLayerAddress_present      = false;
-
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UL_NAS_TRANSPORT);
+  asn1::s1ap::ul_nas_transport_ies_container& container = tx_pdu.init_msg().value.ul_nas_transport().protocol_ies;
   // MME_UE_S1AP_ID
-  ultx->MME_UE_S1AP_ID.MME_UE_S1AP_ID = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
+  container.mme_ue_s1ap_id.value = get_user_ctxt(rnti)->MME_UE_S1AP_ID;
   // ENB_UE_S1AP_ID
-  ultx->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
+  container.enb_ue_s1ap_id.value = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
 
-  // NAS_PDU
-  memcpy(ultx->NAS_PDU.buffer, pdu->msg, pdu->N_bytes);
-  ultx->NAS_PDU.n_octets = pdu->N_bytes;
+  // NAS PDU
+  container.nas_pdu.value.resize(pdu->N_bytes);
+  memcpy(container.nas_pdu.value.data(), pdu->msg, pdu->N_bytes);
 
-  // EUTRAN_CGI
-  memcpy(&ultx->EUTRAN_CGI, &eutran_cgi, sizeof(LIBLTE_S1AP_EUTRAN_CGI_STRUCT));
+  // EUTRAN CGI
+  container.eutran_cgi.value.ext             = eutran_cgi.ext;
+  container.eutran_cgi.value.ie_exts_present = eutran_cgi.iE_Extensions_present;
+  memcpy(container.eutran_cgi.value.plm_nid.data(), eutran_cgi.pLMNidentity.buffer, 3);
+  for (uint32_t i = 0; i < 28; ++i) {
+    container.eutran_cgi.value.cell_id.set(i, (bool)eutran_cgi.cell_ID.buffer[i]);
+  }
 
   // TAI
-  memcpy(&ultx->TAI, &tai, sizeof(LIBLTE_S1AP_TAI_STRUCT));
+  container.tai.value.ie_exts_present = tai.iE_Extensions_present;
+  container.tai.value.ext             = tai.ext;
+  memcpy(container.tai.value.tac.data(), tai.tAC.buffer, 2);
+  memcpy(container.tai.value.plm_nid.data(), tai.pLMNidentity.buffer, 3);
 
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)&msg);
-  s1ap_log->info_hex(msg.msg, msg.N_bytes, "Sending UplinkNASTransport for RNTI:0x%x", rnti);
-
-  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "UplinkNASTransport");
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "UplinkNASTransport");
 }
 
 bool s1ap::send_uectxtreleaserequest(uint16_t rnti, const cause_c& cause)
@@ -1391,34 +1384,30 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
     return false;
   }
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu            = {};
-  tx_pdu.choice_type                            = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-  tx_pdu.choice.initiatingMessage.choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_ENBSTATUSTRANSFER;
-  tx_pdu.choice.initiatingMessage.procedureCode = 24;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_E_NB_STATUS_TRANSFER);
+  enb_status_transfer_ies_container& container = tx_pdu.init_msg().value.enb_status_transfer().protocol_ies;
 
-  auto& status                         = tx_pdu.choice.initiatingMessage.choice.ENBStatusTransfer;
-  status.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ctxt.eNB_UE_S1AP_ID;
-  status.MME_UE_S1AP_ID.MME_UE_S1AP_ID = ctxt.MME_UE_S1AP_ID;
+  container.enb_ue_s1ap_id.value = ctxt.eNB_UE_S1AP_ID;
+  container.mme_ue_s1ap_id.value = ctxt.MME_UE_S1AP_ID;
 
   /* Create StatusTransfer transparent container with all the bearer ctxt to transfer */
-  LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT& status_cont =
-      status.eNB_StatusTransfer_TransparentContainer;
-  status_cont.bearers_SubjectToStatusTransferList.len = bearer_status_list.size();
-  for (uint32_t i = 0; i < bearer_status_list.size(); ++i) {
-    LIBLTE_S1AP_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT& asn1bearer =
-        status_cont.bearers_SubjectToStatusTransferList.buffer[i];
-    bearer_status_info& item = bearer_status_list[i];
+  auto& list = container.enb_status_transfer_transparent_container.value.bearers_subject_to_status_transfer_list;
+  list.resize(bearer_status_list.size());
+  for (uint32_t i = 0; i < list.size(); ++i) {
+    list[i].load_info_obj(ASN1_S1AP_ID_BEARERS_SUBJECT_TO_STATUS_TRANSFER_ITEM);
+    auto&               asn1bearer = list[i].value.bearers_subject_to_status_transfer_item();
+    bearer_status_info& item       = bearer_status_list[i];
 
-    asn1bearer.e_RAB_ID.E_RAB_ID             = item.erab_id;
-    asn1bearer.dL_COUNTvalue.pDCP_SN.PDCP_SN = item.pdcp_dl_sn;
-    asn1bearer.dL_COUNTvalue.hFN.HFN         = item.dl_hfn;
-    asn1bearer.uL_COUNTvalue.pDCP_SN.PDCP_SN = item.pdcp_ul_sn;
-    asn1bearer.uL_COUNTvalue.hFN.HFN         = item.ul_hfn;
-
-    //    TODO: asn1bearer.receiveStatusofULPDCPSDUs_present
+    asn1bearer.e_rab_id               = item.erab_id;
+    asn1bearer.dl_coun_tvalue.pdcp_sn = item.pdcp_dl_sn;
+    asn1bearer.dl_coun_tvalue.hfn     = item.dl_hfn;
+    asn1bearer.ul_coun_tvalue.pdcp_sn = item.pdcp_ul_sn;
+    asn1bearer.ul_coun_tvalue.hfn     = item.ul_hfn;
+    // TODO: asn1bearer.receiveStatusofULPDCPSDUs_present
   }
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(&tx_pdu, ctxt.rnti, "ENBStatusTransfer");
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "ENBStatusTransfer");
 }
 
 } // namespace srsenb
