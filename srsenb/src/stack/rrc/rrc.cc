@@ -1062,7 +1062,7 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
 
   uint32_t deadline = deadline_s * 1e3 + deadline_ms;
   activity_timer.set(deadline, [this](uint32_t tid) { activity_timer_expired(); });
-  parent->rrc_log->debug("Setting timer for %s for rnti=%x to %dms\n", to_string(type).c_str(), rnti, deadline);
+  parent->rrc_log->debug("Setting timer for %s for rnti=0x%x to %dms\n", to_string(type).c_str(), rnti, deadline);
 
   set_activity();
 }
@@ -1819,7 +1819,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   if (mobility_handler != nullptr) {
     mobility_handler->fill_conn_recfg_msg(conn_reconf);
   }
-  last_rrc_conn_recfg = *conn_reconf;
+  last_rrc_conn_recfg = dl_dcch_msg.msg.c1().rrc_conn_recfg();
 
   // Reuse same PDU
   pdu->clear();

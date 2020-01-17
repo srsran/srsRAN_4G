@@ -200,13 +200,10 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t s
 
 void rlc::discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t discard_sn)
 {
-
-  uint32_t tx_queue;
-
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].rlc->discard_sdu(lcid, discard_sn);
-    tx_queue = users[rnti].rlc->get_buffer_state(lcid);
+    uint32_t tx_queue = users[rnti].rlc->get_buffer_state(lcid);
 
     // In the eNodeB, there is no polling for buffer state from the scheduler, thus
     // communicate buffer state every time a new SDU is discarded
