@@ -565,7 +565,10 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
   if (paging_rec->paging_record_list.size() > 0) {
     byte_buf_paging.clear();
     asn1::bit_ref bref(byte_buf_paging.msg, byte_buf_paging.get_tailroom());
-    pcch_msg.pack(bref);
+    if (pcch_msg.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+      rrc_log->error("Failed to pack PCCH\n");
+      return false;
+    }
     byte_buf_paging.N_bytes = (uint32_t)bref.distance_bytes();
     uint32_t N_bits         = (uint32_t)bref.distance();
 
@@ -832,7 +835,9 @@ uint32_t rrc::generate_sibs()
     srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
     asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
     asn1::bit_ref                bref0 = bref;
-    msg[msg_index].pack(bref);
+    if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+      rrc_log->error("Failed to pack SIB message %d\n", msg_index);
+    }
     sib->N_bytes = static_cast<uint32_t>((bref.distance(bref0) - 1) / 8 + 1);
     sib_buffer.push_back(std::move(sib));
 
