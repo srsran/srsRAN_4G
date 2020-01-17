@@ -128,14 +128,14 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   } else { // 6 PRB case
     if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
       fprintf(stderr,
-              "ERROR: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0, %d).\n",
+              "WARNING: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0, %d).\n",
               prach_freq_offset,
               prach_freq_offset + 6,
               cell_cfg.nof_prb);
       fprintf(
           stderr,
           "       Consider changing the \"prach_freq_offset\" value to 0 in the sib.conf file when using 6 PRBs.\n");
-      return SRSLTE_ERROR;
+      rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset = 0;
     }
   }
 
