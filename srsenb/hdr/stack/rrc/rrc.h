@@ -289,7 +289,7 @@ public:
     srslte::timer_handler::unique_timer activity_timer;
 
     // cached for ease of context transfer
-    asn1::rrc::rrc_conn_recfg_r8_ies_s  last_rrc_conn_recfg;
+    asn1::rrc::rrc_conn_recfg_s         last_rrc_conn_recfg;
     asn1::rrc::security_algorithm_cfg_s last_security_mode_cmd;
 
     asn1::rrc::establishment_cause_e establishment_cause;

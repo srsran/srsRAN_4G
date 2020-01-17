@@ -810,14 +810,19 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   empty_meascfg.compute_diff_meas_cfg(target_var_meas, &hoprep_r8.as_cfg.source_meas_cfg);
   // - fill source RR Config
   hoprep_r8.as_cfg.source_rr_cfg.sps_cfg_present      = false; // TODO: CHECK
-  hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg_present = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.mac_main_cfg_present;
-  hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg         = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.mac_main_cfg;
-  hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded_present = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.phys_cfg_ded_present;
-  hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded         = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.phys_cfg_ded;
+  hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg_present =
+      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.mac_main_cfg_present;
+  hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg =
+      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.mac_main_cfg;
+  hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded_present =
+      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.phys_cfg_ded_present;
+  hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded =
+      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.phys_cfg_ded;
   // Add SRB2 to the message
   hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present =
-      rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.srb_to_add_mod_list_present;
-  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.srb_to_add_mod_list;
+      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.srb_to_add_mod_list_present;
+  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list =
+      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.srb_to_add_mod_list;
   //  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present = true;
   //  asn1::rrc::srb_to_add_mod_list_l& srb_list                 = hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list;
   //  srb_list.resize(1);
@@ -835,8 +840,9 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   //  am.dl_am_rlc.t_status_prohibit.value = asn1::rrc::t_status_prohibit_e::ms0;
   // Get DRB1 configuration
   hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present =
-      rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.drb_to_add_mod_list_present;
-  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.drb_to_add_mod_list;
+      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.drb_to_add_mod_list_present;
+  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list =
+      rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.drb_to_add_mod_list;
   //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present = true;
   //  asn1::rrc::drb_to_add_mod_list_l& drb_list                 = hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list;
   //  drb_list.resize(1);
