@@ -121,6 +121,30 @@ bool rlc::has_bearer(uint16_t rnti, uint32_t lcid)
   return result;
 }
 
+bool rlc::suspend_bearer(uint16_t rnti, uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  bool result = false;
+  if (users.count(rnti)) {
+    users[rnti].rlc->suspend_bearer(lcid);
+    result = true;
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return result;
+}
+
+bool rlc::resume_bearer(uint16_t rnti, uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  bool result = false;
+  if (users.count(rnti)) {
+    users[rnti].rlc->resume_bearer(lcid);
+    result = true;
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return result;
+}
+
 void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 {
   rrc->read_pdu_pcch(payload, buffer_size);
