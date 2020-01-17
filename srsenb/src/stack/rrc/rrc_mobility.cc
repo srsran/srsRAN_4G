@@ -69,7 +69,9 @@ uint16_t compute_mac_i(uint16_t                            crnti,
   var_short_mac.c_rnti.from_number(crnti);
 
   asn1::bit_ref bref(varShortMAC_packed, sizeof(varShortMAC_packed));
-  var_short_mac.pack(bref); // already zeroed, so no need to align
+  if (var_short_mac.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) { // already zeroed, so no need to align
+    printf("Error packing varShortMAC\n");
+  }
   uint32_t N_bytes = bref.distance_bytes();
 
   printf("Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes)\n", cellid, pci, crnti, N_bytes);
@@ -793,7 +795,9 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     for (ue_cap_rat_container_s& ratcntr : hoprep_r8.ue_radio_access_cap_info) {
       ratcntr.rat_type = asn1::rrc::rat_type_e::eutra;
       asn1::bit_ref bref(&ratcntr.ue_cap_rat_container[0], ratcntr.ue_cap_rat_container.size());
-      rrc_ue->eutra_capabilities.pack(bref);
+      if (rrc_ue->eutra_capabilities.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+        rrc_log->error("Failed to pack UE EUTRA Capability\n");
+      }
     }
   }
   /*** fill AS-Config ***/
