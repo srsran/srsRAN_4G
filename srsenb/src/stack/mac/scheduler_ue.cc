@@ -157,8 +157,6 @@ void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* 
   std::lock_guard<std::mutex> lock(mutex);
   if (lc_id < sched_interface::MAX_LC) {
     memcpy(&lch[lc_id].cfg, cfg_, sizeof(sched_interface::ue_bearer_cfg_t));
-    lch[lc_id].buf_tx   = 0;
-    lch[lc_id].buf_retx = 0;
     if (lch[lc_id].cfg.direction != sched_interface::ue_bearer_cfg_t::IDLE) {
       Info("SCHED: Set bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
     }
