@@ -176,7 +176,7 @@ ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val
 #define ASN1_S1AP_MAXNOOF_RECOMMENDED_CELLS 16
 #define ASN1_S1AP_MAXNOOF_RECOMMENDED_ENBS 16
 #define ASN1_S1AP_ID_MME_UE_S1AP_ID 0
-#define ASN1_S1AP_ID_HO_TYPE 1
+#define ASN1_S1AP_ID_HANDOV_TYPE 1
 #define ASN1_S1AP_ID_CAUSE 2
 #define ASN1_S1AP_ID_SOURCE_ID 3
 #define ASN1_S1AP_ID_TARGET_ID 4
@@ -7615,6 +7615,14 @@ struct ho_cancel_ack_s {
   void        to_json(json_writer& j) const;
 };
 
+// HandoverType ::= ENUMERATED
+struct handov_type_opts {
+  enum options { intralte, ltetoutran, ltetogeran, utrantolte, gerantolte, /*...*/ nulltype } value;
+
+  std::string to_string() const;
+};
+typedef enumerated<handov_type_opts, true> handov_type_e;
+
 // HandoverCommandIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 struct ho_cmd_ies_o {
   // Value ::= OPEN TYPE
@@ -7623,7 +7631,7 @@ struct ho_cmd_ies_o {
       enum options {
         mme_ue_s1ap_id,
         enb_ue_s1ap_id,
-        ho_type,
+        handov_type,
         nas_security_paramsfrom_e_utran,
         e_rab_subjectto_data_forwarding_list,
         e_ra_bto_release_list_ho_cmd,
@@ -7650,7 +7658,7 @@ struct ho_cmd_ies_o {
     // getters
     uint64_t&                                       mme_ue_s1ap_id();
     uint32_t&                                       enb_ue_s1ap_id();
-    ho_type_e&                                      ho_type();
+    handov_type_e&                                  handov_type();
     unbounded_octstring<true>&                      nas_security_paramsfrom_e_utran();
     e_rab_data_forwarding_item_ies_container&       e_rab_subjectto_data_forwarding_list();
     e_rab_list_l&                                   e_ra_bto_release_list_ho_cmd();
@@ -7659,7 +7667,7 @@ struct ho_cmd_ies_o {
     crit_diagnostics_s&                             crit_diagnostics();
     const uint64_t&                                 mme_ue_s1ap_id() const;
     const uint32_t&                                 enb_ue_s1ap_id() const;
-    const ho_type_e&                                ho_type() const;
+    const handov_type_e&                            handov_type() const;
     const unbounded_octstring<true>&                nas_security_paramsfrom_e_utran() const;
     const e_rab_data_forwarding_item_ies_container& e_rab_subjectto_data_forwarding_list() const;
     const e_rab_list_l&                             e_ra_bto_release_list_ho_cmd() const;
@@ -7698,7 +7706,7 @@ struct ho_cmd_ies_container {
   bool crit_diagnostics_present                                 = false;
   ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
   ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
-  ie_field_s<ho_type_e>                                      ho_type;
+  ie_field_s<handov_type_e>                                  handov_type;
   ie_field_s<unbounded_octstring<true> >                     nas_security_paramsfrom_e_utran;
   ie_field_s<e_rab_data_forwarding_item_ies_container>       e_rab_subjectto_data_forwarding_list;
   ie_field_s<dyn_seq_of<protocol_ie_single_container_s<e_rab_item_ies_o>, 1, 256, true> > e_ra_bto_release_list_ho_cmd;
@@ -8952,7 +8960,7 @@ struct ho_request_ies_o {
     struct types_opts {
       enum options {
         mme_ue_s1ap_id,
-        ho_type,
+        handov_type,
         cause,
         ueaggregate_maximum_bitrate,
         e_rab_to_be_setup_list_ho_req,
@@ -8998,7 +9006,7 @@ struct ho_request_ies_o {
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                          mme_ue_s1ap_id();
-    ho_type_e&                                         ho_type();
+    handov_type_e&                                     handov_type();
     cause_c&                                           cause();
     ue_aggregate_maximum_bitrate_s&                    ueaggregate_maximum_bitrate();
     e_rab_to_be_setup_item_ho_req_ies_container&       e_rab_to_be_setup_list_ho_req();
@@ -9026,7 +9034,7 @@ struct ho_request_ies_o {
     ce_mode_brestricted_e&                             ce_mode_brestricted();
     pending_data_ind_e&                                pending_data_ind();
     const uint64_t&                                    mme_ue_s1ap_id() const;
-    const ho_type_e&                                   ho_type() const;
+    const handov_type_e&                               handov_type() const;
     const cause_c&                                     cause() const;
     const ue_aggregate_maximum_bitrate_s&              ueaggregate_maximum_bitrate() const;
     const e_rab_to_be_setup_item_ho_req_ies_container& e_rab_to_be_setup_list_ho_req() const;
@@ -9111,7 +9119,7 @@ struct ho_request_ies_container {
   bool                                                           ce_mode_brestricted_present                   = false;
   bool                                                           pending_data_ind_present                      = false;
   ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >     mme_ue_s1ap_id;
-  ie_field_s<ho_type_e>                                          ho_type;
+  ie_field_s<handov_type_e>                                      handov_type;
   ie_field_s<cause_c>                                            cause;
   ie_field_s<ue_aggregate_maximum_bitrate_s>                     ueaggregate_maximum_bitrate;
   ie_field_s<e_rab_to_be_setup_item_ho_req_ies_container>        e_rab_to_be_setup_list_ho_req;
@@ -9382,7 +9390,7 @@ struct ho_required_ies_o {
       enum options {
         mme_ue_s1ap_id,
         enb_ue_s1ap_id,
-        ho_type,
+        handov_type,
         cause,
         target_id,
         direct_forwarding_path_availability,
@@ -9414,7 +9422,7 @@ struct ho_required_ies_o {
     // getters
     uint64_t&                                    mme_ue_s1ap_id();
     uint32_t&                                    enb_ue_s1ap_id();
-    ho_type_e&                                   ho_type();
+    handov_type_e&                               handov_type();
     cause_c&                                     cause();
     target_id_c&                                 target_id();
     direct_forwarding_path_availability_e&       direct_forwarding_path_availability();
@@ -9428,7 +9436,7 @@ struct ho_required_ies_o {
     ps_service_not_available_e&                  ps_service_not_available();
     const uint64_t&                              mme_ue_s1ap_id() const;
     const uint32_t&                              enb_ue_s1ap_id() const;
-    const ho_type_e&                             ho_type() const;
+    const handov_type_e&                         handov_type() const;
     const cause_c&                               cause() const;
     const target_id_c&                           target_id() const;
     const direct_forwarding_path_availability_e& direct_forwarding_path_availability() const;
@@ -9471,7 +9479,7 @@ struct ho_required_ies_container {
   bool ps_service_not_available_present                         = false;
   ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
   ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
-  ie_field_s<ho_type_e>                                      ho_type;
+  ie_field_s<handov_type_e>                                  handov_type;
   ie_field_s<cause_c>                                        cause;
   ie_field_s<target_id_c>                                    target_id;
   ie_field_s<direct_forwarding_path_availability_e>          direct_forwarding_path_availability;

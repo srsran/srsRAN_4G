@@ -21823,6 +21823,13 @@ void ho_cancel_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
+// HandoverType ::= ENUMERATED
+std::string handov_type_opts::to_string() const
+{
+  static constexpr const char* options[] = {"intralte", "ltetoutran", "ltetogeran", "utrantolte", "gerantolte"};
+  return convert_enum_idx(options, 5, value, "handov_type_e");
+}
+
 // HandoverCommandIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_cmd_ies_o::idx_to_id(uint32_t idx)
 {
@@ -21876,7 +21883,7 @@ ho_cmd_ies_o::value_c ho_cmd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::enb_ue_s1ap_id);
       break;
     case 1:
-      ret.set(value_c::types::ho_type);
+      ret.set(value_c::types::handov_type);
       break;
     case 135:
       ret.set(value_c::types::nas_security_paramsfrom_e_utran);
@@ -21939,10 +21946,10 @@ uint32_t& ho_cmd_ies_o::value_c::enb_ue_s1ap_id()
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-ho_type_e& ho_cmd_ies_o::value_c::ho_type()
+handov_type_e& ho_cmd_ies_o::value_c::handov_type()
 {
-  assert_choice_type("HoType", type_.to_string(), "Value");
-  return c.get<ho_type_e>();
+  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  return c.get<handov_type_e>();
 }
 unbounded_octstring<true>& ho_cmd_ies_o::value_c::nas_security_paramsfrom_e_utran()
 {
@@ -21984,10 +21991,10 @@ const uint32_t& ho_cmd_ies_o::value_c::enb_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-const ho_type_e& ho_cmd_ies_o::value_c::ho_type() const
+const handov_type_e& ho_cmd_ies_o::value_c::handov_type() const
 {
-  assert_choice_type("HoType", type_.to_string(), "Value");
-  return c.get<ho_type_e>();
+  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  return c.get<handov_type_e>();
 }
 const unbounded_octstring<true>& ho_cmd_ies_o::value_c::nas_security_paramsfrom_e_utran() const
 {
@@ -22053,7 +22060,7 @@ void ho_cmd_ies_o::value_c::set(types::options e)
       break;
     case types::enb_ue_s1ap_id:
       break;
-    case types::ho_type:
+    case types::handov_type:
       break;
     case types::nas_security_paramsfrom_e_utran:
       c.init<unbounded_octstring<true> >();
@@ -22089,8 +22096,8 @@ ho_cmd_ies_o::value_c::value_c(const ho_cmd_ies_o::value_c& other)
     case types::enb_ue_s1ap_id:
       c.init(other.c.get<uint32_t>());
       break;
-    case types::ho_type:
-      c.init(other.c.get<ho_type_e>());
+    case types::handov_type:
+      c.init(other.c.get<handov_type_e>());
       break;
     case types::nas_security_paramsfrom_e_utran:
       c.init(other.c.get<unbounded_octstring<true> >());
@@ -22129,8 +22136,8 @@ ho_cmd_ies_o::value_c& ho_cmd_ies_o::value_c::operator=(const ho_cmd_ies_o::valu
     case types::enb_ue_s1ap_id:
       c.set(other.c.get<uint32_t>());
       break;
-    case types::ho_type:
-      c.set(other.c.get<ho_type_e>());
+    case types::handov_type:
+      c.set(other.c.get<handov_type_e>());
       break;
     case types::nas_security_paramsfrom_e_utran:
       c.set(other.c.get<unbounded_octstring<true> >());
@@ -22168,8 +22175,8 @@ void ho_cmd_ies_o::value_c::to_json(json_writer& j) const
     case types::enb_ue_s1ap_id:
       j.write_int("INTEGER (0..16777215)", c.get<uint32_t>());
       break;
-    case types::ho_type:
-      j.write_str("HoType", c.get<ho_type_e>().to_string());
+    case types::handov_type:
+      j.write_str("HandoverType", c.get<handov_type_e>().to_string());
       break;
     case types::nas_security_paramsfrom_e_utran:
       j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
@@ -22210,8 +22217,8 @@ SRSASN_CODE ho_cmd_ies_o::value_c::pack(bit_ref& bref) const
     case types::enb_ue_s1ap_id:
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
-    case types::ho_type:
-      HANDLE_CODE(c.get<ho_type_e>().pack(bref));
+    case types::handov_type:
+      HANDLE_CODE(c.get<handov_type_e>().pack(bref));
       break;
     case types::nas_security_paramsfrom_e_utran:
       HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
@@ -22247,8 +22254,8 @@ SRSASN_CODE ho_cmd_ies_o::value_c::unpack(bit_ref& bref)
     case types::enb_ue_s1ap_id:
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
-    case types::ho_type:
-      HANDLE_CODE(c.get<ho_type_e>().unpack(bref));
+    case types::handov_type:
+      HANDLE_CODE(c.get<handov_type_e>().unpack(bref));
       break;
     case types::nas_security_paramsfrom_e_utran:
       HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
@@ -22279,7 +22286,7 @@ std::string ho_cmd_ies_o::value_c::types_opts::to_string() const
 {
   static constexpr const char* options[] = {"INTEGER (0..4294967295)",
                                             "INTEGER (0..16777215)",
-                                            "HoType",
+                                            "HandoverType",
                                             "OCTET STRING",
                                             "",
                                             "E-RABList",
@@ -22294,7 +22301,7 @@ template struct protocol_ie_field_s<ho_cmd_ies_o>;
 ho_cmd_ies_container::ho_cmd_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
-  ho_type(1, crit_e::reject),
+  handov_type(1, crit_e::reject),
   nas_security_paramsfrom_e_utran(135, crit_e::reject),
   e_rab_subjectto_data_forwarding_list(12, crit_e::ignore),
   e_ra_bto_release_list_ho_cmd(13, crit_e::ignore),
@@ -22315,7 +22322,7 @@ SRSASN_CODE ho_cmd_ies_container::pack(bit_ref& bref) const
 
   HANDLE_CODE(mme_ue_s1ap_id.pack(bref));
   HANDLE_CODE(enb_ue_s1ap_id.pack(bref));
-  HANDLE_CODE(ho_type.pack(bref));
+  HANDLE_CODE(handov_type.pack(bref));
   if (nas_security_paramsfrom_e_utran_present) {
     HANDLE_CODE(nas_security_paramsfrom_e_utran.pack(bref));
   }
@@ -22360,9 +22367,9 @@ SRSASN_CODE ho_cmd_ies_container::unpack(bit_ref& bref)
         break;
       case 1:
         nof_mandatory_ies--;
-        ho_type.id    = c.id;
-        ho_type.crit  = c.crit;
-        ho_type.value = c.value.ho_type();
+        handov_type.id    = c.id;
+        handov_type.crit  = c.crit;
+        handov_type.value = c.value.handov_type();
         break;
       case 135:
         nas_security_paramsfrom_e_utran_present = true;
@@ -22420,7 +22427,7 @@ void ho_cmd_ies_container::to_json(json_writer& j) const
   j.write_fieldname("");
   enb_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
-  ho_type.to_json(j);
+  handov_type.to_json(j);
   if (nas_security_paramsfrom_e_utran_present) {
     j.write_fieldname("");
     nas_security_paramsfrom_e_utran.to_json(j);
@@ -26016,7 +26023,7 @@ ho_request_ies_o::value_c ho_request_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::mme_ue_s1ap_id);
       break;
     case 1:
-      ret.set(value_c::types::ho_type);
+      ret.set(value_c::types::handov_type);
       break;
     case 2:
       ret.set(value_c::types::cause);
@@ -26172,10 +26179,10 @@ uint64_t& ho_request_ies_o::value_c::mme_ue_s1ap_id()
   assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
   return c.get<uint64_t>();
 }
-ho_type_e& ho_request_ies_o::value_c::ho_type()
+handov_type_e& ho_request_ies_o::value_c::handov_type()
 {
-  assert_choice_type("HoType", type_.to_string(), "Value");
-  return c.get<ho_type_e>();
+  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  return c.get<handov_type_e>();
 }
 cause_c& ho_request_ies_o::value_c::cause()
 {
@@ -26312,10 +26319,10 @@ const uint64_t& ho_request_ies_o::value_c::mme_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..4294967295)", type_.to_string(), "Value");
   return c.get<uint64_t>();
 }
-const ho_type_e& ho_request_ies_o::value_c::ho_type() const
+const handov_type_e& ho_request_ies_o::value_c::handov_type() const
 {
-  assert_choice_type("HoType", type_.to_string(), "Value");
-  return c.get<ho_type_e>();
+  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  return c.get<handov_type_e>();
 }
 const cause_c& ho_request_ies_o::value_c::cause() const
 {
@@ -26515,7 +26522,7 @@ void ho_request_ies_o::value_c::set(types::options e)
   switch (type_) {
     case types::mme_ue_s1ap_id:
       break;
-    case types::ho_type:
+    case types::handov_type:
       break;
     case types::cause:
       c.init<cause_c>();
@@ -26600,8 +26607,8 @@ ho_request_ies_o::value_c::value_c(const ho_request_ies_o::value_c& other)
     case types::mme_ue_s1ap_id:
       c.init(other.c.get<uint64_t>());
       break;
-    case types::ho_type:
-      c.init(other.c.get<ho_type_e>());
+    case types::handov_type:
+      c.init(other.c.get<handov_type_e>());
       break;
     case types::cause:
       c.init(other.c.get<cause_c>());
@@ -26697,8 +26704,8 @@ ho_request_ies_o::value_c& ho_request_ies_o::value_c::operator=(const ho_request
     case types::mme_ue_s1ap_id:
       c.set(other.c.get<uint64_t>());
       break;
-    case types::ho_type:
-      c.set(other.c.get<ho_type_e>());
+    case types::handov_type:
+      c.set(other.c.get<handov_type_e>());
       break;
     case types::cause:
       c.set(other.c.get<cause_c>());
@@ -26793,8 +26800,8 @@ void ho_request_ies_o::value_c::to_json(json_writer& j) const
     case types::mme_ue_s1ap_id:
       j.write_int("INTEGER (0..4294967295)", c.get<uint64_t>());
       break;
-    case types::ho_type:
-      j.write_str("HoType", c.get<ho_type_e>().to_string());
+    case types::handov_type:
+      j.write_str("HandoverType", c.get<handov_type_e>().to_string());
       break;
     case types::cause:
       j.write_fieldname("Cause");
@@ -26903,8 +26910,8 @@ SRSASN_CODE ho_request_ies_o::value_c::pack(bit_ref& bref) const
     case types::mme_ue_s1ap_id:
       HANDLE_CODE(pack_integer(bref, c.get<uint64_t>(), (uint64_t)0u, (uint64_t)4294967295u, false, true));
       break;
-    case types::ho_type:
-      HANDLE_CODE(c.get<ho_type_e>().pack(bref));
+    case types::handov_type:
+      HANDLE_CODE(c.get<handov_type_e>().pack(bref));
       break;
     case types::cause:
       HANDLE_CODE(c.get<cause_c>().pack(bref));
@@ -26997,8 +27004,8 @@ SRSASN_CODE ho_request_ies_o::value_c::unpack(bit_ref& bref)
     case types::mme_ue_s1ap_id:
       HANDLE_CODE(unpack_integer(c.get<uint64_t>(), bref, (uint64_t)0u, (uint64_t)4294967295u, false, true));
       break;
-    case types::ho_type:
-      HANDLE_CODE(c.get<ho_type_e>().unpack(bref));
+    case types::handov_type:
+      HANDLE_CODE(c.get<handov_type_e>().unpack(bref));
       break;
     case types::cause:
       HANDLE_CODE(c.get<cause_c>().unpack(bref));
@@ -27088,7 +27095,7 @@ SRSASN_CODE ho_request_ies_o::value_c::unpack(bit_ref& bref)
 std::string ho_request_ies_o::value_c::types_opts::to_string() const
 {
   static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "HoType",
+                                            "HandoverType",
                                             "Cause",
                                             "UEAggregateMaximumBitrate",
                                             "",
@@ -27122,7 +27129,7 @@ template struct protocol_ie_field_s<ho_request_ies_o>;
 
 ho_request_ies_container::ho_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
-  ho_type(1, crit_e::reject),
+  handov_type(1, crit_e::reject),
   cause(2, crit_e::ignore),
   ueaggregate_maximum_bitrate(66, crit_e::reject),
   e_rab_to_be_setup_list_ho_req(53, crit_e::reject),
@@ -27177,7 +27184,7 @@ SRSASN_CODE ho_request_ies_container::pack(bit_ref& bref) const
   pack_length(bref, nof_ies, 0u, 65535u, true);
 
   HANDLE_CODE(mme_ue_s1ap_id.pack(bref));
-  HANDLE_CODE(ho_type.pack(bref));
+  HANDLE_CODE(handov_type.pack(bref));
   HANDLE_CODE(cause.pack(bref));
   HANDLE_CODE(ueaggregate_maximum_bitrate.pack(bref));
   HANDLE_CODE(e_rab_to_be_setup_list_ho_req.pack(bref));
@@ -27266,9 +27273,9 @@ SRSASN_CODE ho_request_ies_container::unpack(bit_ref& bref)
         break;
       case 1:
         nof_mandatory_ies--;
-        ho_type.id    = c.id;
-        ho_type.crit  = c.crit;
-        ho_type.value = c.value.ho_type();
+        handov_type.id    = c.id;
+        handov_type.crit  = c.crit;
+        handov_type.value = c.value.handov_type();
         break;
       case 2:
         nof_mandatory_ies--;
@@ -27443,7 +27450,7 @@ void ho_request_ies_container::to_json(json_writer& j) const
   j.write_fieldname("");
   mme_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
-  ho_type.to_json(j);
+  handov_type.to_json(j);
   j.write_fieldname("");
   cause.to_json(j);
   j.write_fieldname("");
@@ -28441,7 +28448,7 @@ ho_required_ies_o::value_c ho_required_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::enb_ue_s1ap_id);
       break;
     case 1:
-      ret.set(value_c::types::ho_type);
+      ret.set(value_c::types::handov_type);
       break;
     case 2:
       ret.set(value_c::types::cause);
@@ -28529,10 +28536,10 @@ uint32_t& ho_required_ies_o::value_c::enb_ue_s1ap_id()
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-ho_type_e& ho_required_ies_o::value_c::ho_type()
+handov_type_e& ho_required_ies_o::value_c::handov_type()
 {
-  assert_choice_type("HoType", type_.to_string(), "Value");
-  return c.get<ho_type_e>();
+  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  return c.get<handov_type_e>();
 }
 cause_c& ho_required_ies_o::value_c::cause()
 {
@@ -28599,10 +28606,10 @@ const uint32_t& ho_required_ies_o::value_c::enb_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-const ho_type_e& ho_required_ies_o::value_c::ho_type() const
+const handov_type_e& ho_required_ies_o::value_c::handov_type() const
 {
-  assert_choice_type("HoType", type_.to_string(), "Value");
-  return c.get<ho_type_e>();
+  assert_choice_type("HandoverType", type_.to_string(), "Value");
+  return c.get<handov_type_e>();
 }
 const cause_c& ho_required_ies_o::value_c::cause() const
 {
@@ -28696,7 +28703,7 @@ void ho_required_ies_o::value_c::set(types::options e)
       break;
     case types::enb_ue_s1ap_id:
       break;
-    case types::ho_type:
+    case types::handov_type:
       break;
     case types::cause:
       c.init<cause_c>();
@@ -28743,8 +28750,8 @@ ho_required_ies_o::value_c::value_c(const ho_required_ies_o::value_c& other)
     case types::enb_ue_s1ap_id:
       c.init(other.c.get<uint32_t>());
       break;
-    case types::ho_type:
-      c.init(other.c.get<ho_type_e>());
+    case types::handov_type:
+      c.init(other.c.get<handov_type_e>());
       break;
     case types::cause:
       c.init(other.c.get<cause_c>());
@@ -28798,8 +28805,8 @@ ho_required_ies_o::value_c& ho_required_ies_o::value_c::operator=(const ho_requi
     case types::enb_ue_s1ap_id:
       c.set(other.c.get<uint32_t>());
       break;
-    case types::ho_type:
-      c.set(other.c.get<ho_type_e>());
+    case types::handov_type:
+      c.set(other.c.get<handov_type_e>());
       break;
     case types::cause:
       c.set(other.c.get<cause_c>());
@@ -28852,8 +28859,8 @@ void ho_required_ies_o::value_c::to_json(json_writer& j) const
     case types::enb_ue_s1ap_id:
       j.write_int("INTEGER (0..16777215)", c.get<uint32_t>());
       break;
-    case types::ho_type:
-      j.write_str("HoType", c.get<ho_type_e>().to_string());
+    case types::handov_type:
+      j.write_str("HandoverType", c.get<handov_type_e>().to_string());
       break;
     case types::cause:
       j.write_fieldname("Cause");
@@ -28905,8 +28912,8 @@ SRSASN_CODE ho_required_ies_o::value_c::pack(bit_ref& bref) const
     case types::enb_ue_s1ap_id:
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
-    case types::ho_type:
-      HANDLE_CODE(c.get<ho_type_e>().pack(bref));
+    case types::handov_type:
+      HANDLE_CODE(c.get<handov_type_e>().pack(bref));
       break;
     case types::cause:
       HANDLE_CODE(c.get<cause_c>().pack(bref));
@@ -28957,8 +28964,8 @@ SRSASN_CODE ho_required_ies_o::value_c::unpack(bit_ref& bref)
     case types::enb_ue_s1ap_id:
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
-    case types::ho_type:
-      HANDLE_CODE(c.get<ho_type_e>().unpack(bref));
+    case types::handov_type:
+      HANDLE_CODE(c.get<handov_type_e>().unpack(bref));
       break;
     case types::cause:
       HANDLE_CODE(c.get<cause_c>().unpack(bref));
@@ -29004,7 +29011,7 @@ std::string ho_required_ies_o::value_c::types_opts::to_string() const
 {
   static constexpr const char* options[] = {"INTEGER (0..4294967295)",
                                             "INTEGER (0..16777215)",
-                                            "HoType",
+                                            "HandoverType",
                                             "Cause",
                                             "TargetID",
                                             "Direct-Forwarding-Path-Availability",
@@ -29024,7 +29031,7 @@ template struct protocol_ie_field_s<ho_required_ies_o>;
 ho_required_ies_container::ho_required_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
-  ho_type(1, crit_e::reject),
+  handov_type(1, crit_e::reject),
   cause(2, crit_e::ignore),
   target_id(4, crit_e::reject),
   direct_forwarding_path_availability(79, crit_e::ignore),
@@ -29053,7 +29060,7 @@ SRSASN_CODE ho_required_ies_container::pack(bit_ref& bref) const
 
   HANDLE_CODE(mme_ue_s1ap_id.pack(bref));
   HANDLE_CODE(enb_ue_s1ap_id.pack(bref));
-  HANDLE_CODE(ho_type.pack(bref));
+  HANDLE_CODE(handov_type.pack(bref));
   HANDLE_CODE(cause.pack(bref));
   HANDLE_CODE(target_id.pack(bref));
   if (direct_forwarding_path_availability_present) {
@@ -29109,9 +29116,9 @@ SRSASN_CODE ho_required_ies_container::unpack(bit_ref& bref)
         break;
       case 1:
         nof_mandatory_ies--;
-        ho_type.id    = c.id;
-        ho_type.crit  = c.crit;
-        ho_type.value = c.value.ho_type();
+        handov_type.id    = c.id;
+        handov_type.crit  = c.crit;
+        handov_type.value = c.value.handov_type();
         break;
       case 2:
         nof_mandatory_ies--;
@@ -29199,7 +29206,7 @@ void ho_required_ies_container::to_json(json_writer& j) const
   j.write_fieldname("");
   enb_ue_s1ap_id.to_json(j);
   j.write_fieldname("");
-  ho_type.to_json(j);
+  handov_type.to_json(j);
   j.write_fieldname("");
   cause.to_json(j);
   j.write_fieldname("");

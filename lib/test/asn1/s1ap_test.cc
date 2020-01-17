@@ -91,6 +91,48 @@ int test_initial_ctxt_setup_response()
   return SRSLTE_SUCCESS;
 }
 
+int test_eci_pack()
+{
+  uint8_t buffer[128];
+
+  uint32_t                         target_cellid = 0x19C02;
+  fixed_bitstring<28, false, true> cell_id;
+  cell_id.from_number(target_cellid);
+  TESTASSERT(cell_id.to_number() == target_cellid);
+  asn1::bit_ref bref(buffer, sizeof(buffer));
+  cell_id.pack(bref);
+  TESTASSERT(buffer[0] == 0);
+  TESTASSERT(buffer[1] == 0x19);
+  TESTASSERT(buffer[2] == 0xC0);
+  TESTASSERT(buffer[3] == 0x20);
+
+  uint32_t eci = 0x19b01;
+  cell_id.from_number(eci);
+  TESTASSERT(cell_id.to_number() == eci);
+  TESTASSERT(cell_id.to_string() == "0000000000011001101100000001");
+
+  bref = asn1::bit_ref(buffer, sizeof(buffer));
+  cell_id.pack(bref);
+  TESTASSERT(buffer[0] == 0);
+  TESTASSERT(buffer[1] == 0x19);
+  TESTASSERT(buffer[2] == 0xB0);
+  TESTASSERT(buffer[3] == 0x10);
+
+  uint32_t                         macroenbid = 0x19C;
+  fixed_bitstring<20, false, true> macro_id;
+  macro_id.from_number(macroenbid);
+  TESTASSERT(macro_id.to_number() == macroenbid);
+  bref = asn1::bit_ref(buffer, sizeof(buffer));
+  macro_id.pack(bref);
+  TESTASSERT(buffer[0] == 0);
+  TESTASSERT(buffer[1] == 0x19);
+  TESTASSERT(buffer[2] == 0xC0);
+
+  test_logger.info_hex(buffer, bref.distance_bytes(), "Packed cell id:\n");
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   test_logger.set_level(LOG_LEVEL_DEBUG);
@@ -98,5 +140,6 @@ int main()
 
   TESTASSERT(unpack_test_served_gummeis_with_multiple_plmns() == SRSLTE_SUCCESS);
   TESTASSERT(test_initial_ctxt_setup_response() == SRSLTE_SUCCESS);
+  TESTASSERT(test_eci_pack() == SRSLTE_SUCCESS);
   printf("Success\n");
 }

@@ -434,8 +434,6 @@ bool s1ap::setup_s1()
   plmn = htonl(plmn);
 
   tmp32 = htonl(args.enb_id);
-  uint8_t enb_id_bits[4 * 8];
-  liblte_unpack((uint8_t*)&tmp32, 4, enb_id_bits);
 
   s1ap_pdu_c pdu;
   pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_S1_SETUP);
@@ -444,10 +442,7 @@ bool s1ap::setup_s1()
   container.global_enb_id.value.plm_nid[1]  = ((uint8_t*)&plmn)[2];
   container.global_enb_id.value.plm_nid[2]  = ((uint8_t*)&plmn)[3];
 
-  container.global_enb_id.value.enb_id.set_macro_enb_id();
-  memcpy(container.global_enb_id.value.enb_id.macro_enb_id().data(),
-         &enb_id_bits[32 - LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN],
-         LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
+  container.global_enb_id.value.enb_id.set_macro_enb_id().from_number(args.enb_id);
 
   container.enbname_present = true;
   container.enbname.value.from_string(args.enb_name);
@@ -1167,44 +1162,6 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
   return true;
 }
 
-bool s1ap::sctp_send_s1ap_pdu(LIBLTE_S1AP_S1AP_PDU_STRUCT* tx_pdu, uint32_t rnti, const char* procedure_name)
-{
-  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool, false);
-  if (buf == nullptr) {
-    s1ap_log->error("Fatal Error: Couldn't allocate buffer for %s.\n", procedure_name);
-    return false;
-  }
-
-  liblte_s1ap_pack_s1ap_pdu(tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf.get());
-  if (rnti > 0) {
-    s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s for rnti=0x%x", procedure_name, rnti);
-  } else {
-    s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s to MME", procedure_name);
-  }
-  uint16_t streamid = rnti == 0 ? NONUE_STREAM_ID : get_user_ctxt(rnti)->stream_id;
-
-  ssize_t n_sent = sctp_sendmsg(s1ap_socket.fd(),
-                                buf->msg,
-                                buf->N_bytes,
-                                (struct sockaddr*)&mme_addr,
-                                sizeof(struct sockaddr_in),
-                                htonl(PPID),
-                                0,
-                                streamid,
-                                0,
-                                0);
-  if (n_sent == -1) {
-    if (rnti > 0) {
-      s1ap_log->error("Failed to send %s for rnti=0x%x\n", procedure_name, rnti);
-    } else {
-      s1ap_log->error("Failed to send %s\n", procedure_name);
-    }
-    return false;
-  }
-
-  return true;
-}
-
 bool s1ap::find_mme_ue_id(uint32_t mme_ue_id, uint16_t* rnti, uint32_t* enb_ue_id)
 {
   for (auto& it : users) {
@@ -1280,102 +1237,73 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
                                 srslte::unique_byte_buffer_t rrc_container)
 {
   /*** Setup S1AP PDU as HandoverRequired ***/
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(tx_pdu));
-  tx_pdu.choice_type                                 = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-  tx_pdu.choice.initiatingMessage.choice_type        = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_HANDOVERREQUIRED;
-  tx_pdu.choice.initiatingMessage.criticality        = LIBLTE_S1AP_CRITICALITY_IGNORE;
-  tx_pdu.choice.initiatingMessage.procedureCode      = LIBLTE_S1AP_PROC_ID_HANDOVERPREPARATION;
-  LIBLTE_S1AP_MESSAGE_HANDOVERREQUIRED_STRUCT& horeq = tx_pdu.choice.initiatingMessage.choice.HandoverRequired;
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_HO_PREP);
+  ho_required_ies_container& container = tx_pdu.init_msg().value.ho_required().protocol_ies;
 
   /*** fill HO Required message ***/
-  horeq.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID               = ctxt.eNB_UE_S1AP_ID;
-  horeq.MME_UE_S1AP_ID.MME_UE_S1AP_ID               = ctxt.MME_UE_S1AP_ID;
-  horeq.Direct_Forwarding_Path_Availability_present = false;             // NOTE: X2 for fwd path not supported
-  horeq.HandoverType.e              = LIBLTE_S1AP_HANDOVERTYPE_INTRALTE; // NOTE: only intra-LTE HO supported
-  horeq.Cause.choice_type           = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
-  horeq.Cause.choice.radioNetwork.e = LIBLTE_S1AP_CAUSERADIONETWORK_UNSPECIFIED;
+  container.enb_ue_s1ap_id.value                        = ctxt.eNB_UE_S1AP_ID;
+  container.mme_ue_s1ap_id.value                        = ctxt.MME_UE_S1AP_ID;
+  container.direct_forwarding_path_availability_present = false;                // NOTE: X2 for fwd path not supported
+  container.handov_type.value.value               = handov_type_opts::intralte; // NOTE: only intra-LTE HO supported
+  container.cause.value.set_radio_network().value = cause_radio_network_opts::unspecified;
   // LIBLTE_S1AP_CAUSERADIONETWORK_S1_INTRA_SYSTEM_HANDOVER_TRIGGERED;
 
   /*** set the target eNB ***/
-  horeq.TargetID.choice_type                 = LIBLTE_S1AP_TARGETID_CHOICE_TARGETENB_ID;
-  LIBLTE_S1AP_TARGETENB_ID_STRUCT* targetenb = &horeq.TargetID.choice.targeteNB_ID;
-  horeq.CSG_Id_present                       = false; // NOTE: CSG/hybrid target cell not supported
-  horeq.CellAccessMode_present               = false; // only for hybrid cells
+  container.csg_id_present           = false; // NOTE: CSG/hybrid target cell not supported
+  container.cell_access_mode_present = false; // only for hybrid cells
   // no GERAN/UTRAN/PS
-  horeq.SRVCCHOIndication_present      = false;
-  horeq.MSClassmark2_present           = false;
-  horeq.MSClassmark3_present           = false;
-  horeq.PS_ServiceNotAvailable_present = false;
-  // set PLMN of target and TAI
-  if (horeq.TargetID.choice_type != LIBLTE_S1AP_TARGETID_CHOICE_TARGETENB_ID) {
-    s1ap_log->error("Non-intraLTE HO not supported.\n");
-    return false;
-  }
+  auto& targetenb = container.target_id.value.set_targete_nb_id();
+  // set PLMN and TAI of target
   // NOTE: Only HO without TAU supported.
   uint16_t tmp16;
   tmp16 = htons(s1ap_ptr->args.tac);
-  memcpy(targetenb->selected_TAI.tAC.buffer, &tmp16, sizeof(uint16_t));
-  target_plmn.to_s1ap_plmn_bytes(targetenb->selected_TAI.pLMNidentity.buffer);
+  memcpy(targetenb.sel_tai.tac.data(), &tmp16, sizeof(uint16_t));
+  target_plmn.to_s1ap_plmn_bytes(targetenb.sel_tai.plm_nid.data());
   // NOTE: Only HO to different Macro eNB is supported.
-  targetenb->global_ENB_ID.eNB_ID.choice_type = LIBLTE_S1AP_ENB_ID_CHOICE_MACROENB_ID;
-  target_plmn.to_s1ap_plmn_bytes(targetenb->global_ENB_ID.pLMNidentity.buffer);
-  uint32_t tmp32 = htonl(target_eci >> 8u);
-  uint8_t  enb_id_bits[sizeof(uint32_t) * 8];
-  liblte_unpack((uint8_t*)&tmp32, sizeof(uint32_t), enb_id_bits);
-  memcpy(targetenb->global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer,
-         &enb_id_bits[32 - LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN],
-         LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
+  auto& macroenb = targetenb.global_enb_id.enb_id.set_macro_enb_id();
+  target_plmn.to_s1ap_plmn_bytes(targetenb.global_enb_id.plm_nid.data());
+  macroenb.from_number(target_eci >> 8u);
 
   /*** fill the transparent container ***/
-  horeq.Source_ToTarget_TransparentContainer_Secondary_present = false;
-  LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT transparent_cntr;
-  bzero(&transparent_cntr, sizeof(LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT));
-  transparent_cntr.e_RABInformationList_present      = false; // TODO: CHECK
-  transparent_cntr.subscriberProfileIDforRFP_present = false; // TODO: CHECK
+  container.source_to_target_transparent_container_secondary_present = false;
+  sourcee_nb_to_targete_nb_transparent_container_s transparent_cntr;
+  transparent_cntr.e_rab_info_list_present              = false; // TODO: CHECK
+  transparent_cntr.subscriber_profile_idfor_rfp_present = false; // TODO: CHECK
   // - set target cell ID
-  target_plmn.to_s1ap_plmn_bytes(transparent_cntr.targetCell_ID.pLMNidentity.buffer);
-  tmp32 = htonl(target_eci);
-  uint8_t eci_bits[32];
-  liblte_unpack((uint8_t*)&tmp32, sizeof(uint32_t), eci_bits);
-  memcpy(transparent_cntr.targetCell_ID.cell_ID.buffer,
-         &eci_bits[32 - LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN],
-         LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN); // [ENBID|CELLID|0]
+  target_plmn.to_s1ap_plmn_bytes(transparent_cntr.target_cell_id.plm_nid.data());
+  transparent_cntr.target_cell_id.cell_id.from_number(target_eci); // [ENBID|CELLID|0]
   // info specific to source cell and history of UE
   // - set as last visited cell the source eNB PLMN & Cell ID
-  transparent_cntr.uE_HistoryInformation.len                   = 1;
-  transparent_cntr.uE_HistoryInformation.buffer[0].choice_type = LIBLTE_S1AP_LASTVISITEDCELL_ITEM_CHOICE_E_UTRAN_CELL;
-  LIBLTE_S1AP_LASTVISITEDEUTRANCELLINFORMATION_STRUCT* lastvisited =
-      &transparent_cntr.uE_HistoryInformation.buffer[0].choice.e_UTRAN_Cell;
-  lastvisited->cellType.cell_Size.e = LIBLTE_S1AP_CELL_SIZE_MEDIUM;
-  target_plmn.to_s1ap_plmn_bytes(lastvisited->global_Cell_ID.pLMNidentity.buffer);
-  memcpy(lastvisited->global_Cell_ID.cell_ID.buffer,
-         s1ap_ptr->eutran_cgi.cell_ID.buffer,
-         LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN);
+  transparent_cntr.ue_history_info.resize(1);
+  auto& eutra                     = transparent_cntr.ue_history_info[0].set_e_utran_cell();
+  eutra.cell_type.cell_size.value = cell_size_opts::medium;
+  target_plmn.to_s1ap_plmn_bytes(eutra.global_cell_id.plm_nid.data());
+  for (uint32_t i = 0; i < LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN; ++i) {
+    eutra.global_cell_id.cell_id.set(i, s1ap_ptr->eutran_cgi.cell_ID.buffer[i]);
+  }
   // - set time spent in current source cell
   struct timeval ts[3];
   memcpy(&ts[1], &ctxt.init_timestamp, sizeof(struct timeval));
   gettimeofday(&ts[2], nullptr);
   get_time_interval(ts);
-  lastvisited->time_UE_StayedInCell.Time_UE_StayedInCell = (uint16_t)(ts[0].tv_usec / 1.0e6 + ts[0].tv_sec);
-  lastvisited->time_UE_StayedInCell.Time_UE_StayedInCell =
-      std::min(lastvisited->time_UE_StayedInCell.Time_UE_StayedInCell, (uint16_t)4095);
+  eutra.time_ue_stayed_in_cell = (uint16_t)(ts[0].tv_usec / 1.0e6 + ts[0].tv_sec);
+  eutra.time_ue_stayed_in_cell = std::min(eutra.time_ue_stayed_in_cell, (uint16_t)4095);
   // - fill RRC container
-  memcpy(transparent_cntr.rRC_Container.buffer, rrc_container->msg, rrc_container->N_bytes);
-  transparent_cntr.rRC_Container.n_octets = rrc_container->N_bytes;
+  transparent_cntr.rrc_container.resize(rrc_container->N_bytes);
+  memcpy(transparent_cntr.rrc_container.data(), rrc_container->msg, rrc_container->N_bytes);
 
   /*** pack Transparent Container into HORequired message ***/
-  LIBLTE_BYTE_MSG_STRUCT bytemsg;
-  bytemsg.N_bytes = 0;
-  LIBLTE_BIT_MSG_STRUCT bitmsg;
-  uint8_t*              msg_ptr = bitmsg.msg;
-  liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer(&transparent_cntr, &msg_ptr);
-  bitmsg.N_bits = msg_ptr - bitmsg.msg;
-  liblte_pack(&bitmsg, &bytemsg);
-  memcpy(horeq.Source_ToTarget_TransparentContainer.buffer, bytemsg.msg, bytemsg.N_bytes);
-  horeq.Source_ToTarget_TransparentContainer.n_octets = bytemsg.N_bytes;
+  uint8_t       buffer[4096];
+  asn1::bit_ref bref(buffer, sizeof(buffer));
+  if (transparent_cntr.pack(bref) != asn1::SRSASN_SUCCESS) {
+    s1ap_log->error("Failed to pack transparent container of HO Required message\n");
+    return false;
+  }
+  container.source_to_target_transparent_container.value.resize(bref.distance_bytes());
+  memcpy(container.source_to_target_transparent_container.value.data(), buffer, bref.distance_bytes());
 
-  return s1ap_ptr->sctp_send_s1ap_pdu(&tx_pdu, ctxt.rnti, "HORequired");
+  return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "HORequired");
 }
 
 bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& bearer_status_list)

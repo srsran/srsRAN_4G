@@ -114,7 +114,6 @@ private:
   void build_tai_cgi();
   bool connect_mme();
   bool setup_s1();
-  bool sctp_send_s1ap_pdu(LIBLTE_S1AP_S1AP_PDU_STRUCT* tx_pdu, uint32_t rnti, const char* procedure_name);
   bool sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name);
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu);
