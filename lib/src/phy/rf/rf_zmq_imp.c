@@ -657,6 +657,47 @@ void rf_zmq_get_time(void* h, time_t* secs, double* frac_secs)
   }
 }
 
+#if ZMQ_MONITOR
+static int rf_zmq_rx_get_monitor_event(void* monitor, int* value, char** address)
+{
+  // First frame in message contains event number and value
+  zmq_msg_t msg;
+  zmq_msg_init(&msg);
+  if (zmq_msg_recv(&msg, monitor, 0) == -1) {
+    printf("zmq_msg_recv failed!\n");
+    return -1; // Interruped, presumably
+  }
+
+  if (zmq_msg_more(&msg)) {
+    printf("more to read\n");
+  }
+
+  uint8_t* data  = (uint8_t*)zmq_msg_data(&msg);
+  uint16_t event = *(uint16_t*)(data);
+  if (value) {
+    *value = *(uint32_t*)(data + 2);
+  }
+
+  // Second frame in message contains event address
+  zmq_msg_init(&msg);
+  if (zmq_msg_recv(&msg, monitor, 0) == -1) {
+    return -1; // Interruped, presumably
+  }
+  if (zmq_msg_more(&msg)) {
+    printf("error in msg_more \n");
+  }
+
+  if (address) {
+    uint8_t* data = (uint8_t*)zmq_msg_data(&msg);
+    size_t   size = zmq_msg_size(&msg);
+    *address      = (char*)malloc(size + 1);
+    memcpy(*address, data, size);
+    *address[size] = 0;
+  }
+  return event;
+}
+#endif // ZMQ_MONITOR
+
 int rf_zmq_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs)
 {
   return rf_zmq_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
@@ -757,6 +798,23 @@ int rf_zmq_recv_with_time_multi(void*    h,
         if (count[i] < nsamples_baserate && handler->receiver[i].running) {
           // Keep receiving
           int32_t n = rf_zmq_rx_baseband(&handler->receiver[i], &ptr[count[i]], nsamples_baserate);
+#if ZMQ_MONITOR
+          // handle socket events
+          int event = rf_zmq_rx_get_monitor_event(handler->receiver[i].socket_monitor, NULL, NULL);
+          if (event != -1) {
+            printf("event=0x%X\n", event);
+            switch (event) {
+              case ZMQ_EVENT_CONNECTED:
+                handler->receiver[i].tx_connected = true;
+                break;
+              case ZMQ_EVENT_CLOSED:
+                handler->receiver[i].tx_connected = false;
+                break;
+              default:
+                break;
+            }
+          }
+#endif // ZMQ_MONITOR
           if (n > 0) {
             // No error
             count[i] += n;

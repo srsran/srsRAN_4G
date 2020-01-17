@@ -33,6 +33,7 @@
 
 /* Definitions */
 #define VERBOSE (0)
+#define ZMQ_MONITOR (0)
 #define NSAMPLES2NBYTES(X) (((uint32_t)(X)) * sizeof(cf_t))
 #define NBYTES2NSAMPLES(X) ((X) / sizeof(cf_t))
 #define ZMQ_MAX_BUFFER_SIZE (NSAMPLES2NBYTES(3072000)) // 10 subframes at 20 MHz
@@ -62,6 +63,10 @@ typedef struct {
   uint32_t            socket_type;
   rf_zmq_format_t     sample_format;
   void*               sock;
+#if ZMQ_MONITOR
+  void* socket_monitor;
+  bool  tx_connected;
+#endif
   uint64_t            nsamples;
   bool                running;
   pthread_t           thread;
