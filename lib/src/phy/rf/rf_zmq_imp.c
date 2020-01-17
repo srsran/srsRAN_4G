@@ -429,6 +429,21 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
         }
       }
 
+      // fail_on_disconnect
+      {
+        const char config_arg[]                = "fail_on_disconnect=";
+        char       config_str[PARAM_LEN_SHORT] = {0};
+        char*      config_ptr                  = strstr(args, config_arg);
+        if (config_ptr) {
+          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
+          if (strncmp(config_str, "true", PARAM_LEN_SHORT) == 0 || strncmp(config_str, "yes", PARAM_LEN_SHORT) == 0) {
+            rx_opts.fail_on_disconnect = true;
+          }
+          remove_substring(args, config_arg);
+          remove_substring(args, config_str);
+        }
+      }
+
       // initialize transmitter
       if (strlen(handler->tx_port) != 0) {
         if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, handler->tx_port) != SRSLTE_SUCCESS) {
@@ -746,7 +761,10 @@ int rf_zmq_recv_with_time_multi(void*    h,
             // No error
             count[i] += n;
           } else if (n == SRSLTE_ERROR_TIMEOUT) {
-            // Timeout, do nothing, keep going
+            // Other end disconnected, either keep going, or fail
+            if (handler->receiver[i].fail_on_disconnect) {
+              goto clean_exit;
+            }
           } else if (n > 0) {
             // Other error, exit
             fprintf(stderr, "Error: receiving data.\n");
