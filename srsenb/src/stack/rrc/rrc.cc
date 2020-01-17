@@ -1215,10 +1215,25 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
-  parent->rrc_log->info("RRCReconfigurationComplete transaction ID: %d\n", msg->rrc_transaction_id);
+  if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
+    // Finally, add SRB2 and DRB1 to the scheduler
+    srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
+    bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    bearer_cfg.group     = 0;
+    parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
+    bearer_cfg.group = last_rrc_conn_recfg.crit_exts.c1()
+                           .rrc_conn_recfg_r8()
+                           .rr_cfg_ded.drb_to_add_mod_list[0]
+                           .lc_ch_cfg.ul_specific_params.lc_ch_group;
+    parent->mac->bearer_ue_cfg(rnti, 3, &bearer_cfg);
 
-  // Acknowledge Dedicated Configuration
-  parent->mac->phy_config_enabled(rnti, true);
+    // Acknowledge Dedicated Configuration
+    parent->mac->phy_config_enabled(rnti, true);
+  } else {
+    parent->rrc_log->error("Expected RRCReconfigurationComplete with transaction ID: %d, got %d\n",
+                           last_rrc_conn_recfg.rrc_transaction_id,
+                           msg->rrc_transaction_id);
+  }
 }
 
 void rrc::ue::handle_security_mode_complete(security_mode_complete_s* msg)
@@ -1768,14 +1783,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qci);
     return;
   }
-
-  // Add SRB2 and DRB1 to the scheduler
-  srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
-  bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  bearer_cfg.group     = 0;
-  parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
-  bearer_cfg.group = conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].lc_ch_cfg.ul_specific_params.lc_ch_group;
-  parent->mac->bearer_ue_cfg(rnti, 3, &bearer_cfg);
 
   // Configure SRB2 in RLC and PDCP
   parent->rlc->add_bearer(rnti, 2, srslte::rlc_config_t::srb_config(2));
