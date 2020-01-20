@@ -1950,7 +1950,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
         // “first bit” – 128-EEA1,
-        if (v.get(v.length() - 1 - srslte::CIPHERING_ALGORITHM_ID_128_EEA1)) {
+        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA1)) {
           cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
           enc_algo_found = true;
           parent->rrc_log->info("Selected EEA1 as RRC encryption algorithm\n");
@@ -1961,7 +1961,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
         // “second bit” – 128-EEA2,
-        if (v.get(v.length() - 1 - srslte::CIPHERING_ALGORITHM_ID_128_EEA2)) {
+        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA2)) {
           cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
           enc_algo_found = true;
           parent->rrc_log->info("Selected EEA2 as RRC encryption algorithm\n");
@@ -1972,7 +1972,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
         // “third bit” – 128-EEA3,
-        if (v.get(v.length() - 1 - srslte::CIPHERING_ALGORITHM_ID_128_EEA3)) {
+        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA3)) {
           cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
           enc_algo_found = true;
           parent->rrc_log->info("Selected EEA3 as RRC encryption algorithm\n");
@@ -1999,7 +1999,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
         // “first bit” – 128-EIA1,
-        if (v.get(v.length() - 1 - srslte::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
+        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
           integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
           integ_algo_found = true;
           parent->rrc_log->info("Selected EIA1 as RRC integrity algorithm.\n");
@@ -2009,7 +2009,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
         // “second bit” – 128-EIA2,
-        if (v.get(v.length() - 1 - srslte::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
+        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
           integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
           integ_algo_found = true;
           parent->rrc_log->info("Selected EIA2 as RRC integrity algorithm.\n");
@@ -2019,7 +2019,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
         // “third bit” – 128-EIA3,
-        if (v.get(v.length() - 1 - srslte::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
+        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
           integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
           integ_algo_found = true;
           parent->rrc_log->info("Selected EIA3 as RRC integrity algorithm.\n");
