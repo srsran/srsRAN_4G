@@ -45,7 +45,9 @@
 
 #define SRSLTE_PC_MAX 23 // Maximum TX power for Category 1 UE (in dBm)
 
-#define SRSLTE_NUM_PCI 504
+#define SRSLTE_NOF_NID_1 (168)
+#define SRSLTE_NOF_NID_2 (3)
+#define SRSLTE_NUM_PCI (SRSLTE_NOF_NID_1 * SRSLTE_NOF_NID_2)
 
 #define SRSLTE_MAX_RADIOS 3   // Maximum number of supported RF devices
 #define SRSLTE_MAX_CARRIERS 5 // Maximum number of supported simultaneous carriers

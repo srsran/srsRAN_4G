@@ -1446,6 +1446,12 @@ char* srslte_dci_format_string(srslte_dci_format_t format)
       return "Format2A";
     case SRSLTE_DCI_FORMAT2B:
       return "Format2B";
+    case SRSLTE_DCI_FORMATN0:
+      return "FormatN0";
+    case SRSLTE_DCI_FORMATN1:
+      return "FormatN1";
+    case SRSLTE_DCI_FORMATN2:
+      return "FormatN2";
     default:
       return "N/A"; // fatal error
   }

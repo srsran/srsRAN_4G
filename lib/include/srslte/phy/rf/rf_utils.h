@@ -52,4 +52,6 @@ SRSLTE_API int rf_search_and_decode_mib(srslte_rf_t*       rf,
                                         srslte_cell_t*     cell,
                                         float*             cfo);
 
+SRSLTE_API int rf_cell_search_nbiot(srslte_rf_t* rf, cell_search_cfg_t* config, srslte_nbiot_cell_t* cell, float* cfo);
+
 #endif // SRSLTE_RF_UTILS_H

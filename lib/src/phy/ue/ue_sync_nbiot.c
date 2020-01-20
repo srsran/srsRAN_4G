@@ -130,11 +130,9 @@ int srslte_ue_sync_nbiot_start_agc(srslte_nbiot_ue_sync_t* q,
                                    SRSLTE_AGC_CALLBACK(set_gain_callback),
                                    float init_gain_value)
 {
-  uint32_t nframes;
+  uint32_t nframes = 0;
   if (q->nof_recv_sf == 1) {
     nframes = 10;
-  } else {
-    nframes = 0;
   }
   int n     = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, nframes, set_gain_callback, q->stream);
   q->do_agc = n == 0 ? true : false;

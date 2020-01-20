@@ -283,6 +283,19 @@ add_test(pdsch_pdcch_file_test pdsch_pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CM
 add_test(pmch_file_test pmch_file_test  -i ${CMAKE_CURRENT_SOURCE_DIR}/pmch_100prbs_MCS2_SR0.bin) 
 
 ########################################################################
+# NPDCCH TEST
+########################################################################
+
+add_executable(npdcch_test npdcch_test.c)
+target_link_libraries(npdcch_test srslte_phy)
+add_test(npdcch_formatN1_test npdcch_test -o FormatN1)
+
+add_executable(npdcch_file_test npdcch_file_test.c)
+target_link_libraries(npdcch_file_test srslte_phy)
+add_test(npdcch_formatN0_file_test npdcch_file_test -c 0 -t 8624 -r 258 -L 1 -l 0 -v -o FormatN0 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN0_L_1_nid0_tti_8624_rnti_0x102.bin)
+add_test(npdcch_formatN1_file_test npdcch_file_test -c 0 -t 5461 -r 137 -L 2 -l 0 -v -o FormatN1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_dci_formatN1_nid0_tti_5461_rnti_0x89.bin)
+
+########################################################################
 # PUSCH TEST  
 ########################################################################
 

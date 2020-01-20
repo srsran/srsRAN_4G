@@ -265,13 +265,16 @@ bool srslte_ra_nbiot_dl_has_ref_signal_inband(uint32_t tti)
   return srslte_ra_nbiot_dl_has_ref_signal(tti);
 }
 
+/// Valid NB-IoT DL subframes are subframes that DON'T carry:
+///  - NPBCH (subframe 0)
+///  - NPSS (subframe 5)
+///  - NSSS (subframe 9 in all even frames)
 bool srslte_ra_nbiot_is_valid_dl_sf(uint32_t tti)
 {
-  return (tti % 10 == 0 || tti % 10 == 5 || (tti % 10 == 9 && (tti / 10 % 2 == 0)));
+  return !(tti % 10 == 0 || tti % 10 == 5 || (tti % 10 == 9 && ((tti / 10) % 2 == 0)));
 }
 
 int srslte_ra_nbiot_dl_dci_to_grant(srslte_ra_nbiot_dl_dci_t*   dci,
-                                    uint16_t                    msg_rnti,
                                     srslte_ra_nbiot_dl_grant_t* grant,
                                     uint32_t                    sfn,
                                     uint32_t                    sf_idx,
