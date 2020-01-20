@@ -28,7 +28,7 @@ namespace srslte {
  * Safe conversions between byte buffers and integer types.
  * Note: these don't perform endian conversion - use e.g. htonl/ntohl if required
  *****************************************************************************/
-inline void uint8_to_uint32(uint8_t* buf, uint32_t* i)
+inline void uint8_to_uint32(const uint8_t* buf, uint32_t* i)
 {
   *i = (uint32_t)buf[0] << 24 | (uint32_t)buf[1] << 16 | (uint32_t)buf[2] << 8 | (uint32_t)buf[3];
 }

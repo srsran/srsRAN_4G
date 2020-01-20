@@ -25,6 +25,7 @@
 #include "srslte/common/int_helpers.h"
 
 #include <arpa/inet.h> //for inet_ntop()
+#include <inttypes.h>
 #include <netinet/in.h>
 #include <netinet/sctp.h>
 #include <stdio.h>
@@ -73,11 +74,11 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(ts1_reloc_prep_expired e)
   procError("timer TS1Relocprep has expired.\n");
   return srslte::proc_outcome_t::error;
 }
-srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT& msg)
+srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const ho_prep_fail_s& msg)
 {
   ue_ptr->ts1_reloc_prep.stop();
 
-  std::string cause = s1ap_ptr->get_cause(&msg.Cause);
+  std::string cause = s1ap_ptr->get_cause(msg.protocol_ies.cause.value);
   procError("HO preparation Failure. Cause: %s\n", cause.c_str());
   s1ap_ptr->s1ap_log->console("HO preparation Failure. Cause: %s\n", cause.c_str());
 
@@ -88,41 +89,41 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const LIBLTE_S1AP_MESSAGE
  * TS 36.413 - Section 8.4.1.2 - HandoverPreparation Successful Operation
  * Description: MME returns back an HandoverCommand to the SeNB
  */
-srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg)
+srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_s& msg)
 {
   // update timers
   ue_ptr->ts1_reloc_prep.stop();
   ue_ptr->ts1_reloc_overall.run();
 
   // Check for unsupported S1AP fields
-  if (msg.ext or msg.Target_ToSource_TransparentContainer_Secondary_present or msg.HandoverType.ext or
-      msg.HandoverType.e != LIBLTE_S1AP_HANDOVERTYPE_INTRALTE or msg.CriticalityDiagnostics_present or
-      msg.NASSecurityParametersfromE_UTRAN_present) {
+  if (msg.ext or msg.protocol_ies.target_to_source_transparent_container_secondary_present or
+      msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte or
+      msg.protocol_ies.crit_diagnostics_present or msg.protocol_ies.nas_security_paramsfrom_e_utran_present) {
     procWarning("Not handling HandoverCommand extensions and non-intraLTE params\n");
   }
 
   // Check for E-RABs that could not be admitted in the target
-  if (msg.E_RABtoReleaseListHOCmd_present) {
+  if (msg.protocol_ies.e_ra_bto_release_list_ho_cmd_present) {
     procWarning("Not handling E-RABtoReleaseList\n");
     // TODO
   }
 
   // Check for E-RABs subject to being forwarded
-  if (msg.E_RABSubjecttoDataForwardingList_present) {
+  if (msg.protocol_ies.e_rab_subjectto_data_forwarding_list_present) {
     procWarning("Not handling E-RABSubjecttoDataForwardingList\n");
     // TODO
   }
 
   // In case of intra-system Handover, Target to Source Transparent Container IE shall be encoded as
   // Target eNB to Source eNB Transparent Container IE
-  LIBLTE_BIT_MSG_STRUCT                                         bit_msg;
-  uint8_t*                                                      bit_ptr = &bit_msg.msg[0];
-  LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT container;
-  liblte_unpack(
-      &msg.Target_ToSource_TransparentContainer.buffer[0], msg.Target_ToSource_TransparentContainer.n_octets, bit_ptr);
-  bit_msg.N_bits = bit_ptr - &bit_msg.msg[0];
-  liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer(&bit_ptr, &container);
-  if (container.iE_Extensions_present or container.ext) {
+  uint8_t*      buf = const_cast<uint8_t*>(msg.protocol_ies.target_to_source_transparent_container.value.data());
+  asn1::bit_ref bref(buf, msg.protocol_ies.target_to_source_transparent_container.value.size());
+  asn1::s1ap::targete_nb_to_sourcee_nb_transparent_container_s container;
+  if (container.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    procError("Failed to decode TargeteNBToSourceeNBTransparentContainer\n");
+    return srslte::proc_outcome_t::error;
+  }
+  if (container.ie_exts_present or container.ext) {
     procWarning("Not handling extensions\n");
   }
 
@@ -132,8 +133,8 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(LIBLTE_S1AP_MESSAGE_HANDO
     procError("Fatal Error: Couldn't allocate buffer.\n");
     return srslte::proc_outcome_t::error;
   }
-  memcpy(rrc_container->msg, container.rRC_Container.buffer, container.rRC_Container.n_octets);
-  rrc_container->N_bytes = container.rRC_Container.n_octets;
+  memcpy(rrc_container->msg, container.rrc_container.data(), container.rrc_container.size());
+  rrc_container->N_bytes = container.rrc_container.size();
 
   return srslte::proc_outcome_t::success;
 }
@@ -500,81 +501,80 @@ bool s1ap::handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu,
 
 bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
 {
-  LIBLTE_S1AP_S1AP_PDU_STRUCT rx_pdu;
+  s1ap_pdu_c    rx_pdu;
+  asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
 
-  if (liblte_s1ap_unpack_s1ap_pdu((LIBLTE_BYTE_MSG_STRUCT*)pdu, &rx_pdu) != LIBLTE_SUCCESS) {
+  if (rx_pdu.unpack(bref) != asn1::SRSASN_SUCCESS) {
     s1ap_log->error("Failed to unpack received PDU\n");
     return false;
   }
 
-  switch (rx_pdu.choice_type) {
-    case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
-      return handle_initiatingmessage(&rx_pdu.choice.initiatingMessage);
-    case LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME:
-      return handle_successfuloutcome(&rx_pdu.choice.successfulOutcome);
-    case LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME:
-      return handle_unsuccessfuloutcome(&rx_pdu.choice.unsuccessfulOutcome);
+  switch (rx_pdu.type().value) {
+    case s1ap_pdu_c::types_opts::init_msg:
+      return handle_initiatingmessage(rx_pdu.init_msg());
+    case s1ap_pdu_c::types_opts::successful_outcome:
+      return handle_successfuloutcome(rx_pdu.successful_outcome());
+    case s1ap_pdu_c::types_opts::unsuccessful_outcome:
+      return handle_unsuccessfuloutcome(rx_pdu.unsuccessful_outcome());
     default:
-      s1ap_log->error("Unhandled PDU type %d\n", rx_pdu.choice_type);
+      s1ap_log->error("Unhandled PDU type %d\n", rx_pdu.type().value);
       return false;
   }
 
   return true;
 }
 
-bool s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* msg)
+bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
 {
-  switch (msg->choice_type) {
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT:
-      return handle_dlnastransport(&msg->choice.DownlinkNASTransport);
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALCONTEXTSETUPREQUEST:
-      return handle_initialctxtsetuprequest(&msg->choice.InitialContextSetupRequest);
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASECOMMAND:
-      return handle_uectxtreleasecommand(&msg->choice.UEContextReleaseCommand);
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_PAGING:
-      return handle_paging(&msg->choice.Paging);
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_E_RABSETUPREQUEST:
-      return handle_erabsetuprequest(&msg->choice.E_RABSetupRequest);
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTMODIFICATIONREQUEST:
-      return handle_uecontextmodifyrequest(&msg->choice.UEContextModificationRequest);
+  switch (msg.value.type().value) {
+    case s1ap_elem_procs_o::init_msg_c::types_opts::dl_nas_transport:
+      return handle_dlnastransport(msg.value.dl_nas_transport());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::init_context_setup_request:
+      return handle_initialctxtsetuprequest(msg.value.init_context_setup_request());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_release_cmd:
+      return handle_uectxtreleasecommand(msg.value.ue_context_release_cmd());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::paging:
+      return handle_paging(msg.value.paging());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::e_rab_setup_request:
+      return handle_erabsetuprequest(msg.value.e_rab_setup_request());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
+      return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
     default:
-      s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
+      s1ap_log->error("Unhandled intiating message: %s\n", msg.value.type().to_string().c_str());
   }
   return true;
 }
 
-bool s1ap::handle_successfuloutcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* msg)
+bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
 {
-  switch (msg->choice_type) {
-    case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE:
-      return handle_s1setupresponse(&msg->choice.S1SetupResponse);
-    case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_HANDOVERCOMMAND:
-      return handle_s1hocommand(msg->choice.HandoverCommand);
+  switch (msg.value.type().value) {
+    case s1ap_elem_procs_o::successful_outcome_c::types_opts::s1_setup_request:
+      return handle_s1setupresponse(msg.value.s1_setup_request());
+    case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_required:
+      return handle_s1hocommand(msg.value.ho_required());
     default:
-      s1ap_log->error("Unhandled successful outcome message: %s\n",
-                      liblte_s1ap_successfuloutcome_choice_text[msg->choice_type]);
+      s1ap_log->error("Unhandled successful outcome message: %s\n", msg.value.type().to_string().c_str());
   }
   return true;
 }
 
-bool s1ap::handle_unsuccessfuloutcome(LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT* msg)
+bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
 {
-  switch (msg->choice_type) {
-    case LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_S1SETUPFAILURE:
-      return handle_s1setupfailure(&msg->choice.S1SetupFailure);
-    case LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_HANDOVERPREPARATIONFAILURE:
-      return handle_hopreparationfailure(&msg->choice.HandoverPreparationFailure);
+  switch (msg.value.type().value) {
+    case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::s1_setup_request:
+      return handle_s1setupfailure(msg.value.s1_setup_request());
+    case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ho_required:
+      return handle_hopreparationfailure(msg.value.ho_required());
     default:
-      s1ap_log->error("Unhandled unsuccessful outcome message: %s\n",
-                      liblte_s1ap_unsuccessfuloutcome_choice_text[msg->choice_type]);
+      s1ap_log->error("Unhandled unsuccessful outcome message: %s\n", msg.value.type().to_string().c_str());
   }
   return true;
 }
 
-bool s1ap::handle_s1setupresponse(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* msg)
+bool s1ap::handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg)
 {
   s1ap_log->info("Received S1SetupResponse\n");
-  s1setupresponse = *msg;
+  s1setupresponse = msg;
   mme_connected   = true;
   s1_setup_proc_t::s1setupresult res;
   res.success = true;
@@ -582,24 +582,24 @@ bool s1ap::handle_s1setupresponse(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* ms
   return true;
 }
 
-bool s1ap::handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT* msg)
+bool s1ap::handle_dlnastransport(const dl_nas_transport_s& msg)
 {
   s1ap_log->info("Received DownlinkNASTransport\n");
-  if (msg->ext) {
+  if (msg.ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
-  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID)) {
+  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg.protocol_ies.enb_ue_s1ap_id.value.value)) {
     s1ap_log->warning("eNB_UE_S1AP_ID not found - discarding message\n");
     return false;
   }
-  uint16_t   rnti      = enbid_to_rnti_map[msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID];
+  uint16_t   rnti      = enbid_to_rnti_map[msg.protocol_ies.enb_ue_s1ap_id.value.value];
   ue_ctxt_t* ctxt      = get_user_ctxt(rnti);
-  ctxt->MME_UE_S1AP_ID = msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  ctxt->MME_UE_S1AP_ID = msg.protocol_ies.mme_ue_s1ap_id.value.value;
 
-  if (msg->HandoverRestrictionList_present) {
+  if (msg.protocol_ies.ho_restrict_list_present) {
     s1ap_log->warning("Not handling HandoverRestrictionList\n");
   }
-  if (msg->SubscriberProfileIDforRFP_present) {
+  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
     s1ap_log->warning("Not handling SubscriberProfileIDforRFP\n");
   }
 
@@ -608,28 +608,29 @@ bool s1ap::handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
     return false;
   }
-  memcpy(pdu->msg, msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
-  pdu->N_bytes = msg->NAS_PDU.n_octets;
+  memcpy(pdu->msg, msg.protocol_ies.nas_pdu.value.data(), msg.protocol_ies.nas_pdu.value.size());
+  pdu->N_bytes = msg.protocol_ies.nas_pdu.value.size();
   rrc->write_dl_info(rnti, std::move(pdu));
   return true;
 }
 
-bool s1ap::handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg)
+bool s1ap::handle_initialctxtsetuprequest(const init_context_setup_request_s& msg)
 {
   s1ap_log->info("Received InitialContextSetupRequest\n");
-  if (msg->ext) {
+  if (msg.ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
-  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID)) {
+  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg.protocol_ies.enb_ue_s1ap_id.value.value)) {
     s1ap_log->warning("eNB_UE_S1AP_ID not found - discarding message\n");
     return false;
   }
-  uint16_t   rnti = enbid_to_rnti_map[msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID];
+  uint16_t   rnti = enbid_to_rnti_map[msg.protocol_ies.enb_ue_s1ap_id.value.value];
   ue_ctxt_t* ctxt = get_user_ctxt(rnti);
-  if (msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID != ctxt->MME_UE_S1AP_ID) {
-    s1ap_log->warning(
-        "MME_UE_S1AP_ID has changed - old:%d, new:%d\n", ctxt->MME_UE_S1AP_ID, msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID);
-    ctxt->MME_UE_S1AP_ID = msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  if (msg.protocol_ies.mme_ue_s1ap_id.value.value != ctxt->MME_UE_S1AP_ID) {
+    s1ap_log->warning("MME_UE_S1AP_ID has changed - old:%d, new: %" PRIu64 "\n",
+                      ctxt->MME_UE_S1AP_ID,
+                      msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    ctxt->MME_UE_S1AP_ID = msg.protocol_ies.mme_ue_s1ap_id.value.value;
   }
 
   // Setup UE ctxt in RRC
@@ -638,9 +639,9 @@ bool s1ap::handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETU
   }
 
   /* Ideally the check below would be "if (users[rnti].is_csfb)" */
-  if (msg->CSFallbackIndicator_present) {
-    if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
-        msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
+  if (msg.protocol_ies.cs_fallback_ind_present) {
+    if (msg.protocol_ies.cs_fallback_ind.value.value == cs_fallback_ind_opts::cs_fallback_required ||
+        msg.protocol_ies.cs_fallback_ind.value.value == cs_fallback_ind_opts::cs_fallback_high_prio) {
       // Send RRC Release (cs-fallback-triggered) to MME
       cause_c cause;
       cause.set_radio_network().value = cause_radio_network_opts::cs_fallback_triggered;
@@ -654,54 +655,54 @@ bool s1ap::handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETU
   return true;
 }
 
-bool s1ap::handle_paging(LIBLTE_S1AP_MESSAGE_PAGING_STRUCT* msg)
+bool s1ap::handle_paging(const asn1::s1ap::paging_s& msg)
 {
-  if (msg->ext) {
+  if (msg.ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
-  uint8_t* ptr  = msg->UEIdentityIndexValue.buffer;
-  uint32_t ueid = srslte_bit_pack(&ptr, 10);
-
-  rrc->add_paging_id(ueid, msg->UEPagingID);
+  uint32_t ueid = msg.protocol_ies.ue_id_idx_value.value.to_number();
+  rrc->add_paging_id(ueid, msg.protocol_ies.ue_paging_id.value);
   return true;
 }
 
-bool s1ap::handle_erabsetuprequest(LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg)
+bool s1ap::handle_erabsetuprequest(const e_rab_setup_request_s& msg)
 {
   s1ap_log->info("Received ERABSetupRequest\n");
-  if (msg->ext) {
+  if (msg.ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
 
-  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID)) {
+  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg.protocol_ies.enb_ue_s1ap_id.value.value)) {
     s1ap_log->warning("eNB_UE_S1AP_ID not found - discarding message\n");
     return false;
   }
-  uint16_t   rnti = enbid_to_rnti_map[msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID];
+  uint16_t   rnti = enbid_to_rnti_map[msg.protocol_ies.enb_ue_s1ap_id.value.value];
   ue_ctxt_t* ctxt = get_user_ctxt(rnti);
-  if (msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID != ctxt->MME_UE_S1AP_ID) {
-    s1ap_log->warning(
-        "MME_UE_S1AP_ID has changed - old:%d, new:%d\n", ctxt->MME_UE_S1AP_ID, msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID);
-    ctxt->MME_UE_S1AP_ID = msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  if (msg.protocol_ies.mme_ue_s1ap_id.value.value != ctxt->MME_UE_S1AP_ID) {
+    s1ap_log->warning("MME_UE_S1AP_ID has changed - old:%d, new:%" PRIu64 "\n",
+                      ctxt->MME_UE_S1AP_ID,
+                      msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    ctxt->MME_UE_S1AP_ID = msg.protocol_ies.mme_ue_s1ap_id.value.value;
   }
 
   // Setup UE ctxt in RRC
   return rrc->setup_ue_erabs(rnti, msg);
 }
 
-bool s1ap::handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg)
+bool s1ap::handle_uecontextmodifyrequest(const ue_context_mod_request_s& msg)
 {
   s1ap_log->info("Received UeContextModificationRequest\n");
-  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID)) {
+  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg.protocol_ies.enb_ue_s1ap_id.value.value)) {
     s1ap_log->warning("eNB_UE_S1AP_ID not found - discarding message\n");
     return false;
   }
-  uint16_t   rnti = enbid_to_rnti_map[msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID];
+  uint16_t   rnti = enbid_to_rnti_map[msg.protocol_ies.enb_ue_s1ap_id.value.value];
   ue_ctxt_t* ctxt = get_user_ctxt(rnti);
-  if (msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID != ctxt->MME_UE_S1AP_ID) {
-    s1ap_log->warning(
-        "MME_UE_S1AP_ID has changed - old:%d, new:%d\n", ctxt->MME_UE_S1AP_ID, msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID);
-    ctxt->MME_UE_S1AP_ID = msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  if (msg.protocol_ies.mme_ue_s1ap_id.value.value != ctxt->MME_UE_S1AP_ID) {
+    s1ap_log->warning("MME_UE_S1AP_ID has changed - old:%d, new:%" PRIu64 "\n",
+                      ctxt->MME_UE_S1AP_ID,
+                      msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    ctxt->MME_UE_S1AP_ID = msg.protocol_ies.mme_ue_s1ap_id.value.value;
   }
 
   if (!rrc->modify_ue_ctxt(rnti, msg)) {
@@ -715,9 +716,9 @@ bool s1ap::handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATI
   send_uectxmodifyresp(rnti);
 
   /* Ideally the check below would be "if (users[rnti].is_csfb)" */
-  if (msg->CSFallbackIndicator_present) {
-    if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
-        msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
+  if (msg.protocol_ies.cs_fallback_ind_present) {
+    if (msg.protocol_ies.cs_fallback_ind.value.value == cs_fallback_ind_opts::cs_fallback_required ||
+        msg.protocol_ies.cs_fallback_ind.value.value == cs_fallback_ind_opts::cs_fallback_high_prio) {
       // Send RRC Release (cs-fallback-triggered) to MME
       cause_c cause;
       cause.set_radio_network().value = cause_radio_network_opts::cs_fallback_triggered;
@@ -730,26 +731,24 @@ bool s1ap::handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATI
   return true;
 }
 
-bool s1ap::handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMAND_STRUCT* msg)
+bool s1ap::handle_uectxtreleasecommand(const ue_context_release_cmd_s& msg)
 {
   s1ap_log->info("Received UEContextReleaseCommand\n");
-  if (msg->ext) {
-    s1ap_log->warning("Not handling S1AP message extension\n");
-  }
-  if (msg->UE_S1AP_IDs.ext) {
+  if (msg.ext) {
     s1ap_log->warning("Not handling S1AP message extension\n");
   }
 
   uint16_t rnti = 0;
-  if (msg->UE_S1AP_IDs.choice_type == LIBLTE_S1AP_UE_S1AP_IDS_CHOICE_UE_S1AP_ID_PAIR) {
+  if (msg.protocol_ies.ue_s1ap_ids.value.type().value == ue_s1ap_ids_c::types_opts::ue_s1ap_id_pair) {
+    auto& idpair = msg.protocol_ies.ue_s1ap_ids.value.ue_s1ap_id_pair();
 
-    if (msg->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.ext) {
+    if (idpair.ext) {
       s1ap_log->warning("Not handling S1AP message extension\n");
     }
-    if (msg->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.iE_Extensions_present) {
+    if (idpair.ie_exts_present) {
       s1ap_log->warning("Not handling S1AP message iE_Extensions\n");
     }
-    uint32_t enb_ue_id = msg->UE_S1AP_IDs.choice.uE_S1AP_ID_pair.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+    uint32_t enb_ue_id = idpair.enb_ue_s1ap_id;
     if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(enb_ue_id)) {
       s1ap_log->warning("eNB_UE_S1AP_ID:%d not found - discarding message\n", enb_ue_id);
       return false;
@@ -759,7 +758,7 @@ bool s1ap::handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMA
 
   } else { // LIBLTE_S1AP_UE_S1AP_IDS_CHOICE_MME_UE_S1AP_ID
 
-    uint32_t mme_ue_id = msg->UE_S1AP_IDs.choice.mME_UE_S1AP_ID.MME_UE_S1AP_ID;
+    uint32_t mme_ue_id = msg.protocol_ies.ue_s1ap_ids.value.mme_ue_s1ap_id();
     uint32_t enb_ue_id;
     if (!find_mme_ue_id(mme_ue_id, &rnti, &enb_ue_id)) {
       s1ap_log->warning("UE for MME_UE_S1AP_ID:%d not found - discarding message\n", mme_ue_id);
@@ -781,27 +780,27 @@ bool s1ap::handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMA
   return true;
 }
 
-bool s1ap::handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT* msg)
+bool s1ap::handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg)
 {
-  std::string cause = get_cause(&msg->Cause);
+  std::string cause = get_cause(msg.protocol_ies.cause.value);
   s1ap_log->error("S1 Setup Failure. Cause: %s\n", cause.c_str());
   s1ap_log->console("S1 Setup Failure. Cause: %s\n", cause.c_str());
   return true;
 }
 
-bool s1ap::handle_hopreparationfailure(LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT* msg)
+bool s1ap::handle_hopreparationfailure(const ho_prep_fail_s& msg)
 {
-  auto user_it = users.find(enbid_to_rnti_map[msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID]);
+  auto user_it = users.find(enbid_to_rnti_map[msg.protocol_ies.enb_ue_s1ap_id.value.value]);
   if (user_it == users.end()) {
     s1ap_log->error("user rnti=0x%x no longer exists\n", user_it->first);
   }
-  user_it->second->get_ho_prep_proc().trigger(*msg);
+  user_it->second->get_ho_prep_proc().trigger(msg);
   return true;
 }
 
-bool s1ap::handle_s1hocommand(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg)
+bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
 {
-  auto user_it = users.find(enbid_to_rnti_map[msg.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID]);
+  auto user_it = users.find(enbid_to_rnti_map[msg.protocol_ies.enb_ue_s1ap_id.value.value]);
   if (user_it == users.end()) {
     s1ap_log->error("user rnti=0x%x no longer exists\n", user_it->first);
     return false;
@@ -1174,25 +1173,25 @@ bool s1ap::find_mme_ue_id(uint32_t mme_ue_id, uint16_t* rnti, uint32_t* enb_ue_i
   return false;
 }
 
-std::string s1ap::get_cause(const LIBLTE_S1AP_CAUSE_STRUCT* c)
+std::string s1ap::get_cause(const cause_c& c)
 {
-  std::string cause = liblte_s1ap_cause_choice_text[c->choice_type];
+  std::string cause = c.type().to_string();
   cause += " - ";
-  switch (c->choice_type) {
-    case LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK:
-      cause += liblte_s1ap_causeradionetwork_text[c->choice.radioNetwork.e];
+  switch (c.type().value) {
+    case cause_c::types_opts::radio_network:
+      cause += c.radio_network().to_string();
       break;
-    case LIBLTE_S1AP_CAUSE_CHOICE_TRANSPORT:
-      cause += liblte_s1ap_causetransport_text[c->choice.transport.e];
+    case cause_c::types_opts::transport:
+      cause += c.transport().to_string();
       break;
-    case LIBLTE_S1AP_CAUSE_CHOICE_NAS:
-      cause += liblte_s1ap_causenas_text[c->choice.nas.e];
+    case cause_c::types_opts::nas:
+      cause += c.nas().to_string();
       break;
-    case LIBLTE_S1AP_CAUSE_CHOICE_PROTOCOL:
-      cause += liblte_s1ap_causeprotocol_text[c->choice.protocol.e];
+    case cause_c::types_opts::protocol:
+      cause += c.protocol().to_string();
       break;
-    case LIBLTE_S1AP_CAUSE_CHOICE_MISC:
-      cause += liblte_s1ap_causemisc_text[c->choice.misc.e];
+    case cause_c::types_opts::misc:
+      cause += c.misc().to_string();
       break;
     default:
       cause += "unknown";

@@ -109,7 +109,7 @@ private:
   LIBLTE_S1AP_TAI_STRUCT        tai;
   LIBLTE_S1AP_EUTRAN_CGI_STRUCT eutran_cgi;
 
-  LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT s1setupresponse;
+  asn1::s1ap::s1_setup_resp_s s1setupresponse;
 
   void build_tai_cgi();
   bool connect_mme();
@@ -117,19 +117,19 @@ private:
   bool sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnti, const char* procedure_name);
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu);
-  bool handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* msg);
-  bool handle_successfuloutcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* msg);
-  bool handle_unsuccessfuloutcome(LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT* msg);
-  bool handle_paging(LIBLTE_S1AP_MESSAGE_PAGING_STRUCT* msg);
+  bool handle_initiatingmessage(const asn1::s1ap::init_msg_s& msg);
+  bool handle_successfuloutcome(const asn1::s1ap::successful_outcome_s& msg);
+  bool handle_unsuccessfuloutcome(const asn1::s1ap::unsuccessful_outcome_s& msg);
+  bool handle_paging(const asn1::s1ap::paging_s& msg);
 
-  bool handle_s1setupresponse(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* msg);
+  bool handle_s1setupresponse(const asn1::s1ap::s1_setup_resp_s& msg);
 
-  bool handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT* msg);
-  bool handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg);
-  bool handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMAND_STRUCT* msg);
-  bool handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT* msg);
-  bool handle_erabsetuprequest(LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg);
-  bool handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg);
+  bool handle_dlnastransport(const asn1::s1ap::dl_nas_transport_s& msg);
+  bool handle_initialctxtsetuprequest(const asn1::s1ap::init_context_setup_request_s& msg);
+  bool handle_uectxtreleasecommand(const asn1::s1ap::ue_context_release_cmd_s& msg);
+  bool handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg);
+  bool handle_erabsetuprequest(const asn1::s1ap::e_rab_setup_request_s& msg);
+  bool handle_uecontextmodifyrequest(const asn1::s1ap::ue_context_mod_request_s& msg);
 
   bool send_initialuemessage(uint16_t                              rnti,
                              asn1::s1ap::rrc_establishment_cause_e cause,
@@ -151,12 +151,12 @@ private:
                         uint32_t                     target_eci,
                         srslte::plmn_id_t            target_plmn,
                         srslte::unique_byte_buffer_t rrc_container) override;
-  bool handle_hopreparationfailure(LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT* msg);
-  bool handle_s1hocommand(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg);
+  bool handle_hopreparationfailure(const asn1::s1ap::ho_prep_fail_s& msg);
+  bool handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg);
   bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override;
 
   bool        find_mme_ue_id(uint32_t mme_ue_id, uint16_t* rnti, uint32_t* enb_ue_id);
-  std::string get_cause(const LIBLTE_S1AP_CAUSE_STRUCT* c);
+  std::string get_cause(const asn1::s1ap::cause_c& c);
 
   // UE-specific data and procedures
   struct ue {
@@ -171,8 +171,8 @@ private:
                              init(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
       srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
       srslte::proc_outcome_t react(ts1_reloc_prep_expired e);
-      srslte::proc_outcome_t react(const LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT& msg);
-      srslte::proc_outcome_t react(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg);
+      srslte::proc_outcome_t react(const asn1::s1ap::ho_prep_fail_s& msg);
+      srslte::proc_outcome_t react(const asn1::s1ap::ho_cmd_s& msg);
       void                   then(const srslte::proc_state_t& result);
       const char*            name() { return "HandoverPreparation"; }
 

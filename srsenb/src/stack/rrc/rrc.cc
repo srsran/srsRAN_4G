@@ -55,14 +55,14 @@ void rrc::init(rrc_cfg_t*             cfg_,
                srslte::timer_handler* timers_,
                srslte::log*           log_rrc)
 {
-  phy       = phy_;
-  mac       = mac_;
-  rlc       = rlc_;
-  pdcp      = pdcp_;
-  gtpu      = gtpu_;
-  s1ap      = s1ap_;
-  rrc_log   = log_rrc;
-  timers    = timers_;
+  phy     = phy_;
+  mac     = mac_;
+  rlc     = rlc_;
+  pdcp    = pdcp_;
+  gtpu    = gtpu_;
+  s1ap    = s1ap_;
+  rrc_log = log_rrc;
+  timers  = timers_;
 
   pool = srslte::byte_buffer_pool::get_instance();
 
@@ -111,7 +111,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
     pthread_mutex_lock(&user_mutex);
     m.n_ues = 0;
     for (auto iter = users.begin(); m.n_ues < ENB_METRICS_MAX_USERS && iter != users.end(); ++iter) {
-      ue* u = iter->second.get();
+      ue* u                  = iter->second.get();
       m.ues[m.n_ues++].state = u->get_state();
     }
     pthread_mutex_unlock(&user_mutex);
@@ -279,7 +279,7 @@ void rrc::release_complete(uint16_t rnti)
   rx_pdu_queue.push(std::move(p));
 }
 
-bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg)
+bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg)
 {
   pthread_mutex_lock(&user_mutex);
 
@@ -292,58 +292,56 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
     return false;
   }
 
-  if (msg->AdditionalCSFallbackIndicator_present) {
+  if (msg.protocol_ies.add_cs_fallback_ind_present) {
     rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
   }
-  if (msg->CSGMembershipStatus_present) {
+  if (msg.protocol_ies.csg_membership_status_present) {
     rrc_log->warning("Not handling CSGMembershipStatus\n");
   }
-  if (msg->GUMMEI_ID_present) {
+  if (msg.protocol_ies.gummei_id_present) {
     rrc_log->warning("Not handling GUMMEI_ID\n");
   }
-  if (msg->HandoverRestrictionList_present) {
+  if (msg.protocol_ies.ho_restrict_list_present) {
     rrc_log->warning("Not handling HandoverRestrictionList\n");
   }
-  if (msg->ManagementBasedMDTAllowed_present) {
+  if (msg.protocol_ies.management_based_mdt_allowed_present) {
     rrc_log->warning("Not handling ManagementBasedMDTAllowed\n");
   }
-  if (msg->ManagementBasedMDTPLMNList_present) {
+  if (msg.protocol_ies.management_based_mdtplmn_list_present) {
     rrc_log->warning("Not handling ManagementBasedMDTPLMNList\n");
   }
-  if (msg->MME_UE_S1AP_ID_2_present) {
+  if (msg.protocol_ies.mme_ue_s1ap_id_minus2_present) {
     rrc_log->warning("Not handling MME_UE_S1AP_ID_2\n");
   }
-  if (msg->RegisteredLAI_present) {
+  if (msg.protocol_ies.registered_lai_present) {
     rrc_log->warning("Not handling RegisteredLAI\n");
   }
-  if (msg->SRVCCOperationPossible_present) {
+  if (msg.protocol_ies.srvcc_operation_possible_present) {
     rrc_log->warning("Not handling SRVCCOperationPossible\n");
   }
-  if (msg->SubscriberProfileIDforRFP_present) {
+  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
     rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
   }
-  if (msg->TraceActivation_present) {
+  if (msg.protocol_ies.trace_activation_present) {
     rrc_log->warning("Not handling TraceActivation\n");
   }
-  if (msg->UERadioCapability_present) {
+  if (msg.protocol_ies.ue_radio_cap_present) {
     rrc_log->warning("Not handling UERadioCapability\n");
   }
 
   // UEAggregateMaximumBitrate
-  user_it->second->set_bitrates(&msg->uEaggregateMaximumBitrate);
+  user_it->second->set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
 
   // UESecurityCapabilities
-  user_it->second->set_security_capabilities(&msg->UESecurityCapabilities);
+  user_it->second->set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
 
   // SecurityKey
-  uint8_t key[32];
-  liblte_pack(msg->SecurityKey.buffer, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN, key);
-  user_it->second->set_security_key(key, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN / 8);
+  user_it->second->set_security_key(msg.protocol_ies.security_key.value);
 
   // CSFB
-  if (msg->CSFallbackIndicator_present) {
-    if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
-        msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
+  if (msg.protocol_ies.cs_fallback_ind_present) {
+    if (msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required or
+        msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
       user_it->second->is_csfb = true;
     }
   }
@@ -352,14 +350,14 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
   user_it->second->send_security_mode_command();
 
   // Setup E-RABs
-  user_it->second->setup_erabs(&msg->E_RABToBeSetupListCtxtSUReq);
+  user_it->second->setup_erabs(msg.protocol_ies.e_rab_to_be_setup_list_ctxt_su_req.value);
 
   pthread_mutex_unlock(&user_mutex);
 
   return true;
 }
 
-bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg)
+bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)
 {
   bool err = false;
   pthread_mutex_lock(&user_mutex);
@@ -373,27 +371,27 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIO
     return false;
   }
 
-  if (msg->CSFallbackIndicator_present) {
-    if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
-        msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
+  if (msg.protocol_ies.cs_fallback_ind_present) {
+    if (msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required ||
+        msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
       /* Remember that we are in a CSFB right now */
       user_it->second->is_csfb = true;
     }
   }
 
-  if (msg->AdditionalCSFallbackIndicator_present) {
+  if (msg.protocol_ies.add_cs_fallback_ind_present) {
     rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
     err = true;
   }
-  if (msg->CSGMembershipStatus_present) {
+  if (msg.protocol_ies.csg_membership_status_present) {
     rrc_log->warning("Not handling CSGMembershipStatus\n");
     err = true;
   }
-  if (msg->RegisteredLAI_present) {
+  if (msg.protocol_ies.registered_lai_present) {
     rrc_log->warning("Not handling RegisteredLAI\n");
     err = true;
   }
-  if (msg->SubscriberProfileIDforRFP_present) {
+  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
     rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
     err = true;
   }
@@ -405,20 +403,18 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIO
   }
 
   // UEAggregateMaximumBitrate
-  if (msg->uEaggregateMaximumBitrate_present) {
-    user_it->second->set_bitrates(&msg->uEaggregateMaximumBitrate);
+  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
+    user_it->second->set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
   }
 
   // UESecurityCapabilities
-  if (msg->UESecurityCapabilities_present) {
-    user_it->second->set_security_capabilities(&msg->UESecurityCapabilities);
+  if (msg.protocol_ies.ue_security_cap_present) {
+    user_it->second->set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
   }
 
   // SecurityKey
-  if (msg->SecurityKey_present) {
-    uint8_t key[32];
-    liblte_pack(msg->SecurityKey.buffer, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN, key);
-    user_it->second->set_security_key(key, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN / 8);
+  if (msg.protocol_ies.security_key_present) {
+    user_it->second->set_security_key(msg.protocol_ies.security_key.value);
 
     // Send RRC security mode command ??
     user_it->second->send_security_mode_command();
@@ -429,7 +425,7 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIO
   return true;
 }
 
-bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg)
+bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::e_rab_setup_request_s& msg)
 {
   pthread_mutex_lock(&user_mutex);
 
@@ -442,13 +438,13 @@ bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_ST
     return false;
   }
 
-  if (msg->uEaggregateMaximumBitrate_present) {
+  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
     // UEAggregateMaximumBitrate
-    user_it->second->set_bitrates(&msg->uEaggregateMaximumBitrate);
+    user_it->second->set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
   }
 
   // Setup E-RABs
-  user_it->second->setup_erabs(&msg->E_RABToBeSetupListBearerSUReq);
+  user_it->second->setup_erabs(msg.protocol_ies.e_rab_to_be_setup_list_bearer_su_req.value);
 
   pthread_mutex_unlock(&user_mutex);
 
@@ -478,7 +474,7 @@ bool rrc::release_erabs(uint32_t rnti)
   than user map
 *******************************************************************************/
 
-void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID)
+void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID)
 {
   pthread_mutex_lock(&paging_mutex);
   if (pending_paging.count(ueid) == 0) {
@@ -519,9 +515,9 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
     if (n >= ASN1_RRC_MAX_PAGE_REC) {
       break;
     }
-    LIBLTE_S1AP_UEPAGINGID_STRUCT u    = (LIBLTE_S1AP_UEPAGINGID_STRUCT)item.second;
-    uint32_t                      ueid = ((uint32_t)item.first) % 1024;
-    uint32_t                      i_s  = (ueid / N) % Ns;
+    asn1::s1ap::ue_paging_id_c& u    = item.second;
+    uint32_t                    ueid = ((uint32_t)item.first) % 1024;
+    uint32_t                    i_s  = (ueid / N) % Ns;
 
     if ((sfn % T) != (T / N) * (ueid % N)) {
       continue;
@@ -536,17 +532,18 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
     if ((uint32_t)sf_idx == (tti % 10)) {
       paging_rec->paging_record_list_present = true;
       paging_record_s paging_elem;
-      if (u.choice_type == LIBLTE_S1AP_UEPAGINGID_CHOICE_IMSI) {
+      if (u.type().value == asn1::s1ap::ue_paging_id_c::types_opts::imsi) {
         paging_elem.ue_id.set_imsi();
-        paging_elem.ue_id.imsi().resize(u.choice.iMSI.n_octets);
-        memcpy(paging_elem.ue_id.imsi().data(), u.choice.iMSI.buffer, u.choice.iMSI.n_octets);
+        paging_elem.ue_id.imsi().resize(u.imsi().size());
+        memcpy(paging_elem.ue_id.imsi().data(), u.imsi().data(), u.imsi().size());
         rrc_log->console("Warning IMSI paging not tested\n");
       } else {
         paging_elem.ue_id.set_s_tmsi();
-        paging_elem.ue_id.s_tmsi().mmec.from_number(u.choice.s_TMSI.mMEC.buffer[0]);
-        uint32_t m_tmsi = 0;
-        for (int i = 0; i < LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN; i++) {
-          m_tmsi |= u.choice.s_TMSI.m_TMSI.buffer[i] << (8u * (LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN - i - 1));
+        paging_elem.ue_id.s_tmsi().mmec.from_number(u.s_tmsi().mmec[0]);
+        uint32_t m_tmsi     = 0;
+        uint32_t nof_octets = u.s_tmsi().m_tmsi.size();
+        for (uint32_t i = 0; i < nof_octets; i++) {
+          m_tmsi |= u.s_tmsi().m_tmsi[i] << (8u * (nof_octets - i - 1u));
         }
         paging_elem.ue_id.s_tmsi().m_tmsi.from_number(m_tmsi);
       }
@@ -1046,12 +1043,12 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
       break;
     case UE_RESPONSE_RX_TIMEOUT:
       // Arbitrarily chosen value to complete each UE config step, i.e. security, bearer setup, etc.
-      deadline_s   = 1;
-      deadline_ms  = 0;
+      deadline_s  = 1;
+      deadline_ms = 0;
       break;
     case UE_INACTIVITY_TIMEOUT:
-      deadline_s   = parent->cfg.inactivity_timeout_ms / 1000;
-      deadline_ms  = parent->cfg.inactivity_timeout_ms % 1000;
+      deadline_s  = parent->cfg.inactivity_timeout_ms / 1000;
+      deadline_ms = parent->cfg.inactivity_timeout_ms % 1000;
       break;
     default:
       parent->rrc_log->error("Unknown timeout type %d", type);
@@ -1258,19 +1255,19 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
   // parent->s1ap->ue_capabilities(rnti, &eutra_capabilities);
 }
 
-void rrc::ue::set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT* rates)
+void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates)
 {
-  memcpy(&bitrates, rates, sizeof(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT));
+  bitrates = rates;
 }
 
-void rrc::ue::set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT* caps)
+void rrc::ue::set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps)
 {
-  memcpy(&security_capabilities, caps, sizeof(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT));
+  security_capabilities = caps;
 }
 
-void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
+void rrc::ue::set_security_key(const asn1::fixed_bitstring<256, false, true>& key)
 {
-  memcpy(k_enb, key, length);
+  memcpy(k_enb, key.data(), key.nof_octets());
   parent->rrc_log->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
   // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences
   select_security_algorithms();
@@ -1292,52 +1289,47 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
   parent->rrc_log->info_hex(k_up_enc, 32, "UP Encryption Key (k_up_enc)");
 }
 
-bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT* e)
+bool rrc::ue::setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_ctxt_su_req_l& e)
 {
-  for (uint32_t i = 0; i < e->len; i++) {
-    LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT* erab = &e->buffer[i];
-    if (erab->ext) {
-      parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
+  for (const auto& item : e) {
+    auto& erab = item.value.e_rab_to_be_setup_item_ctxt_su_req();
+    if (erab.ext) {
+      parent->rrc_log->warning("Not handling E-RABToBeSetupListCtxtSURequest extensions\n");
     }
-    if (erab->iE_Extensions_present) {
-      parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
+    if (erab.ie_exts_present) {
+      parent->rrc_log->warning("Not handling E-RABToBeSetupListCtxtSURequest extensions\n");
     }
-    if (erab->transportLayerAddress.n_bits > 32) {
+    if (erab.transport_layer_address.length() > 32) {
       parent->rrc_log->error("IPv6 addresses not currently supported\n");
       return false;
     }
 
     uint32_t teid_out;
-    uint8_to_uint32(erab->gTP_TEID.buffer, &teid_out);
-    LIBLTE_S1AP_NAS_PDU_STRUCT* nas_pdu = erab->nAS_PDU_present ? &erab->nAS_PDU : nullptr;
-    setup_erab(
-        erab->e_RAB_ID.E_RAB_ID, &erab->e_RABlevelQoSParameters, &erab->transportLayerAddress, teid_out, nas_pdu);
+    uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
+    setup_erab(erab.e_rab_id, erab.e_ra_blevel_qo_sparams, erab.transport_layer_address, teid_out, nas_pdu);
   }
   return true;
 }
 
-bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e)
+bool rrc::ue::setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e)
 {
-  for (uint32_t i = 0; i < e->len; i++) {
-    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT* erab = &e->buffer[i];
-    if (erab->ext) {
-      parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
+  for (const auto& item : e) {
+    auto& erab = item.value.e_rab_to_be_setup_item_bearer_su_req();
+    if (erab.ext) {
+      parent->rrc_log->warning("Not handling E-RABToBeSetupListBearerSUReq extensions\n");
     }
-    if (erab->iE_Extensions_present) {
-      parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
+    if (erab.ie_exts_present) {
+      parent->rrc_log->warning("Not handling E-RABToBeSetupListBearerSUReq extensions\n");
     }
-    if (erab->transportLayerAddress.n_bits > 32) {
+    if (erab.transport_layer_address.length() > 32) {
       parent->rrc_log->error("IPv6 addresses not currently supported\n");
       return false;
     }
 
     uint32_t teid_out;
-    uint8_to_uint32(erab->gTP_TEID.buffer, &teid_out);
-    setup_erab(erab->e_RAB_ID.E_RAB_ID,
-               &erab->e_RABlevelQoSParameters,
-               &erab->transportLayerAddress,
-               teid_out,
-               &erab->nAS_PDU);
+    uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
+    setup_erab(erab.e_rab_id, erab.e_ra_blevel_qo_sparams, erab.transport_layer_address, teid_out, &erab.nas_pdu);
   }
 
   // Work in progress
@@ -1346,26 +1338,29 @@ bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e)
   return true;
 }
 
-void rrc::ue::setup_erab(uint8_t                                     id,
-                         LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT* qos,
-                         LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT*   addr,
-                         uint32_t                                    teid_out,
-                         LIBLTE_S1AP_NAS_PDU_STRUCT*                 nas_pdu)
+void rrc::ue::setup_erab(uint8_t                                            id,
+                         const asn1::s1ap::e_rab_level_qo_sparams_s&        qos,
+                         const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                         uint32_t                                           teid_out,
+                         const asn1::unbounded_octstring<true>*             nas_pdu)
 {
-  erabs[id].id = id;
-  memcpy(&erabs[id].qos_params, qos, sizeof(LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT));
-  memcpy(&erabs[id].address, addr, sizeof(LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT));
-  erabs[id].teid_out = teid_out;
+  erabs[id].id         = id;
+  erabs[id].qos_params = qos;
+  erabs[id].address    = addr;
+  erabs[id].teid_out   = teid_out;
 
-  uint8_t* bit_ptr = addr->buffer;
-  uint32_t addr_   = liblte_bits_2_value(&bit_ptr, addr->n_bits);
-  uint8_t  lcid    = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
+  if (addr.length() > 32) {
+    parent->rrc_log->error("Only addresses with length <= 32 are supported\n");
+    return;
+  }
+  uint32_t addr_ = addr.to_number();
+  uint8_t  lcid  = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
   parent->gtpu->add_bearer(rnti, lcid, addr_, erabs[id].teid_out, &(erabs[id].teid_in));
 
-  if (nas_pdu) {
+  if (nas_pdu != nullptr) {
     nas_pending = true;
-    memcpy(erab_info.msg, nas_pdu->buffer, nas_pdu->n_octets);
-    erab_info.N_bytes = nas_pdu->n_octets;
+    memcpy(erab_info.msg, nas_pdu->data(), nas_pdu->size());
+    erab_info.N_bytes = nas_pdu->size();
     parent->rrc_log->info_hex(erab_info.msg, erab_info.N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   } else {
     nas_pending = false;
@@ -1396,16 +1391,16 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
   parent->s1ap->ue_ctxt_setup_complete(rnti, res);
 }
 
-void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e)
+void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e)
 {
   asn1::s1ap::e_rab_setup_resp_s res;
 
-  res.protocol_ies.e_rab_setup_list_bearer_su_res.value.resize(e->len);
-  for (uint32_t i = 0; i < e->len; ++i) {
+  res.protocol_ies.e_rab_setup_list_bearer_su_res.value.resize(e.size());
+  for (uint32_t i = 0; i < e.size(); ++i) {
     res.protocol_ies.e_rab_setup_list_bearer_su_res_present = true;
     auto& item                                              = res.protocol_ies.e_rab_setup_list_bearer_su_res.value[i];
     item.load_info_obj(ASN1_S1AP_ID_E_RAB_SETUP_ITEM_BEARER_SU_RES);
-    uint8_t id                                           = e->buffer[i].e_RAB_ID.E_RAB_ID;
+    uint8_t id                                           = e[i].value.e_rab_to_be_setup_item_bearer_su_req().e_rab_id;
     item.value.e_rab_setup_item_bearer_su_res().e_rab_id = id;
     uint32_to_uint8(erabs[id].teid_in, &item.value.e_rab_setup_item_bearer_su_res().gtp_teid[0]);
   }
@@ -1610,7 +1605,7 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
 {
   uint32_t lc_id   = (uint32_t)(drb_id + 2);
   uint32_t erab_id = lc_id + 2;
-  uint32_t qci     = erabs[erab_id].qos_params.qCI.QCI;
+  uint32_t qci     = erabs[erab_id].qos_params.qci;
 
   if (qci >= MAX_NOF_QCI) {
     parent->rrc_log->error("Invalid QCI=%d for ERAB_id=%d, DRB_id=%d\n", qci, erab_id, drb_id);
@@ -1762,7 +1757,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   conn_reconf->rr_cfg_ded.drb_to_add_mod_list.resize(1);
   if (get_drbid_config(&conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0], 1)) {
     parent->rrc_log->error("Getting DRB1 configuration\n");
-    parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qCI.QCI);
+    parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qci);
     return;
   }
 
@@ -1826,7 +1821,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
-void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e)
+void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e)
 {
   srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
 
@@ -1835,16 +1830,16 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
-  for (uint32_t i = 0; i < e->len; i++) {
-    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT* erab = &e->buffer[i];
-    uint8_t                                           id   = erab->e_RAB_ID.E_RAB_ID;
-    uint8_t                                           lcid = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
+  for (const auto& item : e) {
+    auto&   erab = item.value.e_rab_to_be_setup_item_bearer_su_req();
+    uint8_t id   = erab.e_rab_id;
+    uint8_t lcid = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
 
     // Get DRB configuration
     drb_to_add_mod_s drb_item;
     if (get_drbid_config(&drb_item, lcid - 2)) {
       parent->rrc_log->error("Getting DRB configuration\n");
-      parent->rrc_log->console("ERROR: The QCI %d is invalid or not configured.\n", erabs[id].qos_params.qCI.QCI);
+      parent->rrc_log->console("ERROR: The QCI %d is invalid or not configured.\n", erabs[id].qos_params.qci);
       // TODO: send S1AP response indicating error?
       return;
     }
@@ -1943,6 +1938,7 @@ bool rrc::ue::select_security_algorithms()
   bool integ_algo_found = false;
 
   for (auto& cipher_item : parent->cfg.eea_preference_list) {
+    auto& v = security_capabilities.encryption_algorithms;
     switch (cipher_item) {
       case srslte::CIPHERING_ALGORITHM_ID_EEA0:
         // “all bits equal to 0” – UE supports no other algorithm than EEA0,
@@ -1954,7 +1950,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
         // “first bit” – 128-EEA1,
-        if (security_capabilities.encryptionAlgorithms.buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA1 - 1]) {
+        if (v.get(v.length() - 1 - srslte::CIPHERING_ALGORITHM_ID_128_EEA1)) {
           cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
           enc_algo_found = true;
           parent->rrc_log->info("Selected EEA1 as RRC encryption algorithm\n");
@@ -1965,7 +1961,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
         // “second bit” – 128-EEA2,
-        if (security_capabilities.encryptionAlgorithms.buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA2 - 1]) {
+        if (v.get(v.length() - 1 - srslte::CIPHERING_ALGORITHM_ID_128_EEA2)) {
           cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
           enc_algo_found = true;
           parent->rrc_log->info("Selected EEA2 as RRC encryption algorithm\n");
@@ -1976,7 +1972,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
         // “third bit” – 128-EEA3,
-        if (security_capabilities.encryptionAlgorithms.buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA3 - 1]) {
+        if (v.get(v.length() - 1 - srslte::CIPHERING_ALGORITHM_ID_128_EEA3)) {
           cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
           enc_algo_found = true;
           parent->rrc_log->info("Selected EEA3 as RRC encryption algorithm\n");
@@ -1995,6 +1991,7 @@ bool rrc::ue::select_security_algorithms()
   }
 
   for (auto& eia_enum : parent->cfg.eia_preference_list) {
+    auto& v = security_capabilities.integrity_protection_algorithms;
     switch (eia_enum) {
       case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
         // Null integrity is not supported
@@ -2002,7 +1999,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
         // “first bit” – 128-EIA1,
-        if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA1 - 1]) {
+        if (v.get(v.length() - 1 - srslte::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
           integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
           integ_algo_found = true;
           parent->rrc_log->info("Selected EIA1 as RRC integrity algorithm.\n");
@@ -2012,7 +2009,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
         // “second bit” – 128-EIA2,
-        if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA2 - 1]) {
+        if (v.get(v.length() - 1 - srslte::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
           integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
           integ_algo_found = true;
           parent->rrc_log->info("Selected EIA2 as RRC integrity algorithm.\n");
@@ -2022,7 +2019,7 @@ bool rrc::ue::select_security_algorithms()
         break;
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
         // “third bit” – 128-EIA3,
-        if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA3 - 1]) {
+        if (v.get(v.length() - 1 - srslte::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
           integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
           integ_algo_found = true;
           parent->rrc_log->info("Selected EIA3 as RRC integrity algorithm.\n");

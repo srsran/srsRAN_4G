@@ -237,14 +237,6 @@ int test_correct_meascfg_calculation()
   return SRSLTE_SUCCESS;
 }
 
-namespace test_helpers {
-
-int  parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args);
-void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, uint8_t* msg, size_t nof_bytes);
-int  bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, uint16_t rnti);
-
-} // namespace test_helpers
-
 struct mobility_test_params {
   enum class test_fail_at { success, wrong_measreport, concurrent_ho, ho_prep_failure } fail_at;
   const char* to_string()

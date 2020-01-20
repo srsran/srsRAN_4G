@@ -173,12 +173,13 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
       0x05, 0xf4, 0xf6, 0x7e, 0x72, 0x69, 0x00, 0x6b, 0x00, 0x05, 0x18, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x49, 0x00, 0x20,
       0x45, 0x25, 0xe4, 0x9a, 0x77, 0xc8, 0xd5, 0xcf, 0x26, 0x33, 0x63, 0xeb, 0x5b, 0xb9, 0xc3, 0x43, 0x9b, 0x9e, 0xb3,
       0x86, 0x1f, 0xa8, 0xa7, 0xcf, 0x43, 0x54, 0x07, 0xae, 0x42, 0x2b, 0x63, 0xb9};
-  LIBLTE_S1AP_S1AP_PDU_STRUCT s1ap_pdu;
-  LIBLTE_BYTE_MSG_STRUCT      byte_buf;
+  asn1::s1ap::s1ap_pdu_c s1ap_pdu;
+  srslte::byte_buffer_t  byte_buf;
   byte_buf.N_bytes = sizeof(s1ap_init_ctxt_setup_req);
   memcpy(byte_buf.msg, s1ap_init_ctxt_setup_req, byte_buf.N_bytes);
-  liblte_s1ap_unpack_s1ap_pdu(&byte_buf, &s1ap_pdu);
-  rrc.setup_ue_ctxt(rnti, &s1ap_pdu.choice.initiatingMessage.choice.InitialContextSetupRequest);
+  asn1::bit_ref bref(byte_buf.msg, byte_buf.N_bytes);
+  TESTASSERT(s1ap_pdu.unpack(bref) == asn1::SRSASN_SUCCESS);
+  rrc.setup_ue_ctxt(rnti, s1ap_pdu.init_msg().value.init_context_setup_request());
   timers.step_all();
   rrc.tti_clock();
 

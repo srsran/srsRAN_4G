@@ -224,7 +224,7 @@ public:
   using iterator       = T*;
   using const_iterator = const T*;
 
-  bounded_array(uint32_t size_ = 0) : current_size(size_) {}
+  explicit bounded_array(uint32_t size_ = 0) : current_size(size_) {}
   static uint32_t capacity() { return MAX_N; }
   uint32_t        size() const { return current_size; }
   T&              operator[](uint32_t idx) { return data_[idx]; }
@@ -691,179 +691,58 @@ private:
 using dyn_octstring = unbounded_octstring<false>;
 
 /*********************
-   common bitstring
+      bitstring
 *********************/
 
-// helper functions common to all bitstring implementations
-uint64_t    bitstring_to_number(const uint8_t* ptr, uint32_t nbits);
-void        number_to_bitstring(uint8_t* ptr, uint64_t number, uint32_t nbits);
-std::string bitstring_to_string(const uint8_t* ptr, uint32_t nbits);
-inline bool bitstring_get(const uint8_t* ptr, uint32_t idx)
+namespace bitstring_utils {
+inline bool get(const uint8_t* ptr, uint32_t idx)
 {
   uint32_t byte_idx = idx / 8;
   uint32_t offset   = idx % 8;
   return (ptr[byte_idx] & (1u << offset)) > 0;
 }
-inline void bitstring_set(uint8_t* ptr, uint32_t idx, bool value)
+inline void set(uint8_t* ptr, uint32_t idx, bool value)
 {
   uint32_t byte_idx = idx / 8;
   uint32_t offset   = idx % 8;
   if (value) {
     ptr[byte_idx] |= (1u << offset);
   } else {
-    ptr[byte_idx] &= ((uint16_t)(1u << 8) - 1) - (1 << offset);
+    ptr[byte_idx] &= ((uint16_t)(1u << 8u) - 1u) - (1u << offset);
   }
 }
-
-/*********************
-   fixed_bitstring
-*********************/
-
-// fixed bitstring pack/unpack helpers
-SRSASN_CODE pack_fixed_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nbits);
-SRSASN_CODE pack_fixed_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nbits, bool ext);
-SRSASN_CODE unpack_fixed_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nbits);
-SRSASN_CODE unpack_fixed_bitstring(uint8_t* buf, bool& ext, bit_ref& bref, uint32_t nbits);
-
-template <uint32_t N, bool Ext = false, bool Al = false>
-class fixed_bitstring
-{
-public:
-  using type_t              = fixed_bitstring<N, Ext, Al>;
-  static const bool has_ext = Ext, is_aligned = Al;
-
-  fixed_bitstring() { memset(&octets_[0], 0, nof_octets()); }
-  fixed_bitstring(const std::string& s)
-  {
-    if (s.size() != N) {
-      srsasn_log_print(
-          srslte::LOG_LEVEL_ERROR, "The provided string size=%zd does not match the bit string size=%d\n", s.size(), N);
-    }
-    memset(&octets_[0], 0, nof_octets());
-    for (uint32_t i = 0; i < N; ++i)
-      this->set(N - i - 1, s[i] == '1');
-  }
-  bool     get(uint32_t idx) const { return bitstring_get(&octets_[0], idx); }
-  void     set(uint32_t idx, bool value) { bitstring_set(&octets_[0], idx, value); }
-  bool     operator==(const type_t& other) const { return octets_ == other.octets_; }
-  bool     operator==(const char* other_str) const { return strlen(other_str) == N and (*this) == type_t(other_str); }
-  uint32_t nof_octets() const { return (uint32_t)ceilf(N / 8.0f); }
-  uint32_t length() const { return N; }
-  std::string to_string() const { return bitstring_to_string(&octets_[0], length()); }
-  uint64_t    to_number() const { return bitstring_to_number(&octets_[0], length()); }
-  type_t&     from_number(uint64_t val)
-  {
-    number_to_bitstring(&octets_[0], val, length());
-    return *this;
-  }
-  uint8_t*       data() { return &octets_[0]; }
-  const uint8_t* data() const { return &octets_[0]; }
-
-  SRSASN_CODE pack(bit_ref& bref) const { return pack_fixed_bitstring(bref, data(), N); }
-  SRSASN_CODE unpack(bit_ref& bref) { return unpack_fixed_bitstring(data(), bref, N); }
-
-private:
-  std::array<uint8_t, (uint32_t)((N + 7) / 8)> octets_; // ceil(N/8.0)
-};
-
-/*********************
-  bounded_bitstring
-*********************/
-
-namespace bitstring_utils {
 SRSASN_CODE
 pack(bit_ref& bref, const uint8_t* data, uint32_t size, uint32_t lb, uint32_t ub, bool has_ext, bool is_aligned);
 SRSASN_CODE unpack_length_prefix(uint32_t& len, bit_ref& bref, uint32_t lb, uint32_t ub, bool has_ext, bool is_aligned);
 SRSASN_CODE unpack_bitfield(uint8_t* buf, bit_ref& bref, uint32_t n, uint32_t lb, uint32_t ub, bool is_aligned);
-SRSASN_CODE
-unpack_fixed_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nof_bits, bool has_ext = false, bool is_aligned = false);
+
+uint64_t    to_number(const uint8_t* ptr, uint32_t nbits);
+void        from_number(uint8_t* ptr, uint64_t number, uint32_t nbits);
+std::string to_string(const uint8_t* ptr, uint32_t nbits);
+
 } // namespace bitstring_utils
 
-template <typename BitStringType>
-class base_bitstring
-{
-protected:
-  using derived_t = BitStringType;
-
-public:
-  bool     get(uint32_t idx) const { return bitstring_get(derived()->data(), idx); }
-  void     set(uint32_t idx, bool value) { bitstring_set(derived()->data(), idx, value); }
-  uint32_t nof_octets() const { return ceil_frac(derived()->length(), 8u); }
-
-  std::string to_string() const { return bitstring_to_string(derived()->data(), derived()->length()); }
-  derived_t&  from_string(const std::string& s)
-  {
-    if (s.size() < derived_t::lb or s.size() > derived_t::ub) {
-      srsasn_log_print(srslte::LOG_LEVEL_ERROR,
-                       "The provided string size=%zd is not withing the bounds [%d, %d]\n",
-                       s.size(),
-                       derived_t::lb,
-                       derived_t::ub);
-    } else {
-      derived()->resize(s.size());
-      for (uint32_t i = 0; i < s.size(); ++i) {
-        set(s.size() - i - 1, s[i] == '1');
-      }
-    }
-    return *derived();
-  }
-  uint64_t   to_number() const { return bitstring_to_number(derived()->data(), derived()->length()); }
-  derived_t& from_number(uint64_t val)
-  {
-    uint32_t nof_bits = (uint32_t)ceilf(log2(val));
-    if (nof_bits > derived()->length()) {
-      derived()->resize(nof_bits);
-    }
-    number_to_bitstring(derived()->data(), val, derived()->length());
-    return *derived();
-  }
-
-  bool operator==(const base_bitstring<BitStringType>& other) const
-  {
-    return derived()->length() == other.derived()->length() and
-           std::equal(derived()->data(), derived()->data() + derived()->nof_octets(), other.derived()->data());
-  }
-  bool operator==(const char* other_str) const
-  {
-    return strlen(other_str) == derived()->length() and (*this) == derived_t{}.from_string(other_str);
-  }
-
-  SRSASN_CODE pack(bit_ref& bref) const
-  {
-    return bitstring_utils::pack(bref,
-                                 derived()->data(),
-                                 derived()->length(),
-                                 derived_t::lb,
-                                 derived_t::ub,
-                                 derived_t::has_ext,
-                                 derived_t::is_aligned);
-  }
-  SRSASN_CODE unpack(bit_ref& bref)
-  {
-    // X.691, subclause 15.11
-    uint32_t nbits;
-    HANDLE_CODE(bitstring_utils::unpack_length_prefix(
-        nbits, bref, derived_t::lb, derived_t::ub, derived_t::has_ext, derived_t::is_aligned));
-    derived()->resize(nbits);
-    return bitstring_utils::unpack_bitfield(
-        derived()->data(), bref, nbits, derived_t::lb, derived_t::ub, derived_t::is_aligned);
-  }
-
-private:
-  derived_t*       derived() { return static_cast<derived_t*>(this); }
-  const derived_t* derived() const { return static_cast<const derived_t*>(this); }
-};
-
 template <uint32_t LB, uint32_t UB, bool ext = false, bool aligned = false>
-class bounded_bitstring : public base_bitstring<bounded_bitstring<LB, UB, ext, aligned> >
+class bitstring
 {
-  using base_t = base_bitstring<bounded_bitstring<LB, UB> >;
+  using this_type = bitstring<LB, UB, ext, aligned>;
 
 public:
   static const uint32_t lb = LB, ub = UB;
   static const bool     has_ext = ext, is_aligned = aligned;
 
-  explicit bounded_bitstring(uint32_t siz_ = 0) { resize(siz_); }
+  explicit bitstring(uint32_t siz_ = lb) { resize(siz_); }
+  explicit bitstring(const std::string& s)
+  {
+    resize(s.size());
+    memset(&octets_[0], 0, nof_octets());
+    for (uint32_t i = 0; i < s.size(); ++i)
+      set(s.size() - i - 1, s[i] == '1');
+  }
+
+  bool     get(uint32_t idx) const { return bitstring_utils::get(data(), idx); }
+  void     set(uint32_t idx, bool value) { bitstring_utils::set(data(), idx, value); }
+  uint32_t nof_octets() const { return ceil_frac(length(), 8u); }
 
   const uint8_t* data() const { return &octets_[0]; }
   uint8_t*       data() { return &octets_[0]; }
@@ -871,46 +750,79 @@ public:
   void           resize(uint32_t new_size)
   {
     nof_bits = new_size;
-    octets_.resize(this->nof_octets());
-    memset(data(), 0, this->nof_octets());
+    octets_.resize(nof_octets());
+    memset(data(), 0, nof_octets()); // resize always resets content
+  }
+
+  // comparison
+  bool operator==(const this_type& other) const
+  {
+    return length() == other.length() and std::equal(data(), data() + nof_octets(), other.data());
+  }
+  bool operator==(const char* other_str) const
+  {
+    return strlen(other_str) == length() and (*this) == this_type{}.from_string(other_str);
+  }
+
+  // string conversion
+  std::string to_string() const { return bitstring_utils::to_string(data(), length()); }
+  this_type&  from_string(const std::string& s)
+  {
+    if (s.size() < lb or s.size() > ub) {
+      srsasn_log_print(srslte::LOG_LEVEL_ERROR,
+                       "The provided string size=%zd is not withing the bounds [%d, %d]\n",
+                       s.size(),
+                       lb,
+                       ub);
+    } else {
+      resize(s.size());
+      for (uint32_t i = 0; i < s.size(); ++i) {
+        set(s.size() - i - 1, s[i] == '1');
+      }
+    }
+    return *this;
+  }
+
+  // number conversion
+  uint64_t   to_number() const { return bitstring_utils::to_number(data(), length()); }
+  this_type& from_number(uint64_t val)
+  {
+    auto nof_bits_ = (uint32_t)ceilf(log2(val));
+    resize(std::max(nof_bits_, LB));
+    bitstring_utils::from_number(data(), val, length());
+    return *this;
+  }
+
+  // packers / unpackers
+  SRSASN_CODE pack(bit_ref& bref) const
+  {
+    return bitstring_utils::pack(bref, data(), length(), lb, ub, has_ext, is_aligned);
+  }
+  SRSASN_CODE unpack(bit_ref& bref)
+  {
+    // X.691, subclause 15.11
+    uint32_t nbits;
+    HANDLE_CODE(bitstring_utils::unpack_length_prefix(nbits, bref, lb, ub, has_ext, is_aligned));
+    resize(nbits);
+    return bitstring_utils::unpack_bitfield(data(), bref, nbits, lb, ub, is_aligned);
   }
 
 private:
-  bounded_array<uint8_t, ceil_frac(ub, 8u)> octets_;
-  uint32_t                                  nof_bits = 0;
+  const static uint32_t          stack_size = (UB == std::numeric_limits<uint32_t>::max()) ? 4 : ceil_frac(ub, 8u);
+  ext_array<uint8_t, stack_size> octets_;
+  uint32_t                       nof_bits = 0;
 };
 
-/*********************
-    dyn_bitstring
-*********************/
+template <uint32_t LB, uint32_t UB, bool ext = false, bool aligned = false>
+using bounded_bitstring = bitstring<LB, UB, ext, aligned>;
 
 template <bool Ext = false, bool Al = false>
-class unbounded_bitstring : public base_bitstring<unbounded_bitstring<Ext, Al> >
-{
-  using base_t = base_bitstring<unbounded_bitstring<Ext, Al> >;
-
-public:
-  static const uint32_t lb = 0, ub = std::numeric_limits<uint32_t>::max();
-  static const bool     has_ext = Ext, is_aligned = Al;
-
-  explicit unbounded_bitstring(uint32_t siz_ = 0) { resize(siz_); }
-
-  const uint8_t* data() const { return &octets_[0]; }
-  uint8_t*       data() { return &octets_[0]; }
-  uint32_t       length() const { return n_bits; }
-  void           resize(uint32_t new_size)
-  {
-    n_bits = new_size;
-    octets_.resize(this->nof_octets());
-    memset(data(), 0, this->nof_octets()); // resize always resets content
-  }
-
-private:
-  dyn_array<uint8_t> octets_;
-  uint32_t           n_bits;
-};
+using unbounded_bitstring = bitstring<0, std::numeric_limits<uint32_t>::max(), Ext, Al>;
 
 using dyn_bitstring = unbounded_bitstring<false, false>;
+
+template <uint32_t N, bool Ext = false, bool Al = false>
+using fixed_bitstring = bitstring<N, N, Ext, Al>;
 
 /*********************
   fixed sequence of
@@ -953,7 +865,7 @@ SRSASN_CODE unpack_fixed_seq_of(T* item_array, bit_ref& bref, uint32_t nof_items
 template <class ItemPacker>
 struct FixedSeqOfPacker {
   FixedSeqOfPacker(uint32_t nof_items_, ItemPacker packer_) : nof_items(nof_items_), packer(packer_) {}
-  FixedSeqOfPacker(uint32_t nof_items_) : nof_items(nof_items_), packer(Packer()) {}
+  explicit FixedSeqOfPacker(uint32_t nof_items_) : nof_items(nof_items_), packer(Packer()) {}
   template <typename T>
   SRSASN_CODE pack(bit_ref& bref, const T* topack)
   {
@@ -1080,7 +992,7 @@ public:
   void        resize(std::size_t newsize) { str.resize(newsize); }
   std::size_t size() const { return str.size(); }
   std::string to_string() const { return str; }
-  void        from_string(std::string s) { str = std::move(s); }
+  void        from_string(const std::string& s) { str = s; }
 
 private:
   std::string str;

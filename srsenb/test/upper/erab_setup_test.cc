@@ -83,8 +83,8 @@ int test_erab_setup(bool qci_exists)
       0x72, 0x73, 0x05, 0x01, 0xc0, 0xa8, 0x04, 0x02, 0x27, 0x15, 0x80, 0x80, 0x21, 0x0a, 0x03, 0x00, 0x00, 0x0a,
       0x81, 0x06, 0x08, 0x08, 0x08, 0x08, 0x00, 0x0d, 0x04, 0x08, 0x08, 0x08, 0x08};
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT s1ap_pdu;
-  LIBLTE_BYTE_MSG_STRUCT      byte_buf;
+  asn1::s1ap::s1ap_pdu_c s1ap_pdu;
+  srslte::byte_buffer_t  byte_buf;
   if (qci_exists) {
     byte_buf.N_bytes = sizeof(drb2_erab_setup_request_ok);
     memcpy(byte_buf.msg, drb2_erab_setup_request_ok, byte_buf.N_bytes);
@@ -92,9 +92,10 @@ int test_erab_setup(bool qci_exists)
     byte_buf.N_bytes = sizeof(drb2_erab_setup_request_fail);
     memcpy(byte_buf.msg, drb2_erab_setup_request_fail, byte_buf.N_bytes);
   }
+  asn1::bit_ref bref(byte_buf.msg, byte_buf.N_bytes);
 
-  liblte_s1ap_unpack_s1ap_pdu(&byte_buf, &s1ap_pdu);
-  rrc.setup_ue_erabs(rnti, &s1ap_pdu.choice.initiatingMessage.choice.E_RABSetupRequest);
+  TESTASSERT(s1ap_pdu.unpack(bref) == asn1::SRSASN_SUCCESS);
+  rrc.setup_ue_erabs(rnti, s1ap_pdu.init_msg().value.e_rab_setup_request());
 
   if (qci_exists) {
     TESTASSERT(rrc_log.error_counter == 0);

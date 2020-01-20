@@ -175,11 +175,11 @@ public:
   // rrc_interface_s1ap
   void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu) override;
   void release_complete(uint16_t rnti) override;
-  bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg) override;
-  bool modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg) override;
-  bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg) override;
+  bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override;
+  bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
+  bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::e_rab_setup_request_s& msg) override;
   bool release_erabs(uint32_t rnti) override;
-  void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID) override;
+  void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
   void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container) override;
 
   // rrc_interface_pdcp
@@ -212,9 +212,9 @@ public:
       nulltype
     } activity_timeout_type_t;
     std::string to_string(const activity_timeout_type_t& type);
-    void set_activity_timeout(const activity_timeout_type_t type);
-    void set_activity();
-    void activity_timer_expired();
+    void        set_activity_timeout(const activity_timeout_type_t type);
+    void        set_activity();
+    void        activity_timer_expired();
 
     uint32_t rl_failure();
 
@@ -226,7 +226,7 @@ public:
     void send_connection_release();
     void send_connection_reest_rej();
     void send_connection_reconf(srslte::unique_byte_buffer_t sdu);
-    void send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e);
+    void send_connection_reconf_new_bearer(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e);
     void send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu);
     void send_security_mode_command();
     void send_ue_cap_enquiry();
@@ -240,24 +240,24 @@ public:
     void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
     bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
 
-    void set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT* rates);
-    void set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT* caps);
-    void set_security_key(uint8_t* key, uint32_t length);
+    void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
+    void set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps);
+    void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
 
-    bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT* e);
-    bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e);
-    void setup_erab(uint8_t                                     id,
-                    LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT* qos,
-                    LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT*   addr,
-                    uint32_t                                    teid_out,
-                    LIBLTE_S1AP_NAS_PDU_STRUCT*                 nas_pdu);
+    bool setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_ctxt_su_req_l& e);
+    bool setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e);
+    void setup_erab(uint8_t                                            id,
+                    const asn1::s1ap::e_rab_level_qo_sparams_s&        qos,
+                    const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                    uint32_t                                           teid_out,
+                    const asn1::unbounded_octstring<true>*             nas_pdu);
     bool release_erabs();
 
     // handover
     void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
 
     void notify_s1ap_ue_ctxt_setup_complete();
-    void notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e);
+    void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e);
 
     int  sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr);
     void sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr);
@@ -283,7 +283,7 @@ public:
 
   private:
     // args
-    srslte::byte_buffer_pool* pool = nullptr;
+    srslte::byte_buffer_pool*           pool = nullptr;
     srslte::timer_handler::unique_timer activity_timer;
 
     // cached for ease of context transfer
@@ -314,17 +314,17 @@ public:
     srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
     srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
-    LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT bitrates;
-    LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT    security_capabilities;
-    bool                                         eutra_capabilities_unpacked = false;
-    asn1::rrc::ue_eutra_cap_s                    eutra_capabilities;
+    asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
+    asn1::s1ap::ue_security_cap_s              security_capabilities;
+    bool                                       eutra_capabilities_unpacked = false;
+    asn1::rrc::ue_eutra_cap_s                  eutra_capabilities;
 
     typedef struct {
-      uint8_t                                    id;
-      LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT qos_params;
-      LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT   address;
-      uint32_t                                   teid_out;
-      uint32_t                                   teid_in;
+      uint8_t                                     id;
+      asn1::s1ap::e_rab_level_qo_sparams_s        qos_params;
+      asn1::bounded_bitstring<1, 160, true, true> address;
+      uint32_t                                    teid_out;
+      uint32_t                                    teid_in;
     } erab_t;
     std::map<uint8_t, erab_t> erabs;
     int                       sr_sched_sf_idx   = 0;
@@ -355,8 +355,8 @@ private:
   srslte::log*              rrc_log = nullptr;
 
   // state
-  std::map<uint16_t, std::unique_ptr<ue> >          users; // NOTE: has to have fixed addr
-  std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT> pending_paging;
+  std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
+  std::map<uint32_t, asn1::s1ap::ue_paging_id_c> pending_paging;
 
   std::vector<srslte::unique_byte_buffer_t> sib_buffer;
 

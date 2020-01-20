@@ -991,130 +991,20 @@ template class unbounded_octstring<true>;
 template class unbounded_octstring<false>;
 
 /*********************
-      bitstring
-*********************/
-
-SRSASN_CODE pack_common_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nbits)
-{
-  if (nbits == 0) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid bitstring size=%d\n", nbits);
-    return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  uint32_t n_octs = (uint32_t)ceilf(nbits / 8.0f);
-  uint32_t offset = ((nbits - 1) % 8) + 1;
-  HANDLE_CODE(bref.pack(buf[n_octs - 1], offset));
-  for (uint32_t i = 1; i < n_octs; ++i) {
-    HANDLE_CODE(bref.pack(buf[n_octs - 1 - i], 8));
-  }
-  return SRSASN_SUCCESS;
-}
-
-SRSASN_CODE unpack_common_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nbits)
-{
-  if (nbits == 0) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid bitstring size=%d\n", nbits);
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  uint32_t n_octs = (uint32_t)ceilf(nbits / 8.0f);
-  uint32_t offset = ((nbits - 1) % 8) + 1;
-  HANDLE_CODE(bref.unpack(buf[n_octs - 1], offset));
-  for (uint32_t i = 1; i < n_octs; ++i) {
-    HANDLE_CODE(bref.unpack(buf[n_octs - 1 - i], 8));
-  }
-  return SRSASN_SUCCESS;
-}
-
-uint64_t bitstring_to_number(const uint8_t* ptr, uint32_t nbits)
-{
-  if (nbits > 64) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "bitstring of size=%d does not fit in an uint64_t\n", nbits);
-    return 0;
-  }
-  uint64_t val       = 0;
-  uint32_t nof_bytes = (uint32_t)ceilf(nbits / 8.0f);
-  for (uint32_t i = 0; i < nof_bytes; ++i) {
-    val += ptr[i] << (i * 8);
-  }
-  return val;
-}
-void number_to_bitstring(uint8_t* ptr, uint64_t number, uint32_t nbits)
-{
-  if (nbits > 64) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "bitstring of size=%d does not fit in an uint64_t\n", nbits);
-    return;
-  }
-  uint32_t nof_bytes = (uint32_t)ceilf(nbits / 8.0f);
-  for (uint32_t i = 0; i < nof_bytes; ++i) {
-    ptr[i] = (number >> (i * 8)) & 0xFF;
-  }
-  uint32_t offset = nbits % 8; // clean up any extra set bit
-  if (offset > 0) {
-    ptr[nof_bytes - 1] &= (uint8_t)((1 << offset) - 1);
-  }
-}
-
-std::string bitstring_to_string(const uint8_t* ptr, uint32_t nbits)
-{
-  std::string str(nbits, '\0');
-  for (uint32_t i = 0; i < nbits; ++i) {
-    str[i] = bitstring_get(ptr, nbits - 1 - i) ? '1' : '0';
-  }
-  return str;
-}
-
-/*********************
-   fixed_bitstring
-*********************/
-
-SRSASN_CODE pack_fixed_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nbits)
-{
-  //  if(nbits > 16) { // X.691 Section 15
-  //    bref.align_bytes_zero();
-  //  }
-  return pack_common_bitstring(bref, buf, nbits);
-  //  if(nbits > 16) { // X.691 Section 15
-  //    bref.align_bytes_zero();
-  //  }
-}
-
-SRSASN_CODE pack_fixed_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nbits, bool ext)
-{
-  HANDLE_CODE(pack_unsupported_ext_flag(bref, ext));
-  HANDLE_CODE(pack_fixed_bitstring(bref, buf, nbits));
-  return SRSASN_SUCCESS;
-}
-
-SRSASN_CODE unpack_fixed_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nbits)
-{
-  //  if(nbits > 16) { // X.691 Section 15
-  //    bref.align_bytes_zero();
-  //  }
-  return unpack_common_bitstring(buf, bref, nbits);
-  //  if(nbits > 16) { // X.691 Section 15
-  //    bref.align_bytes_zero();
-  //  }
-}
-
-SRSASN_CODE unpack_fixed_bitstring(uint8_t* buf, bool& ext, bit_ref& bref, uint32_t nbits)
-{
-  HANDLE_CODE(unpack_unsupported_ext_flag(ext, bref));
-  HANDLE_CODE(unpack_fixed_bitstring(buf, bref, nbits));
-  return SRSASN_SUCCESS;
-}
-
-/*********************
-  common bitstring
+     bitstring
 *********************/
 
 namespace bitstring_utils {
 
-SRSASN_CODE pack_length_prefix(bit_ref&       bref,
-                               const uint8_t* data,
-                               uint32_t       len,
-                               uint32_t       lb,
-                               uint32_t       ub,
-                               bool           has_ext,
-                               bool           is_aligned)
+/**
+ * Pack ASN1 bitstring length prefix. Accommodates for cases: fixed/unbounded/bounded, aligned/unaligned, with/out ext
+ */
+SRSASN_CODE pack_length_prefix(bit_ref& bref,
+                               uint32_t len,
+                               uint32_t lb         = 0,
+                               uint32_t ub         = std::numeric_limits<uint32_t>::max(),
+                               bool     has_ext    = false,
+                               bool     is_aligned = false)
 {
   if (has_ext and ub == std::numeric_limits<uint32_t>::max()) {
     srsasn_log_print(LOG_LEVEL_ERROR, "has extension marker but it is an unbounded prefix size\n");
@@ -1126,21 +1016,22 @@ SRSASN_CODE pack_length_prefix(bit_ref&       bref,
     return SRSASN_ERROR_ENCODE_FAIL;
   }
 
+  // encode ext bit
   if (has_ext) {
     HANDLE_CODE(bref.pack(not within_bounds, 1));
   }
 
+  // do not encode prefix if fixed size
   if (lb == ub and within_bounds) {
-    // do not encode prefix if fixed size
     return SRSASN_SUCCESS;
   }
 
+  // pack as unbounded if unbounded bitstring or ext is active
   if (ub == std::numeric_limits<uint32_t>::max() or not within_bounds) {
-    // pack as unbounded
     return pack_length(bref, len);
   }
 
-  // pack as bounded
+  // pack as bounded bitstring
   uint32_t len_bits = (uint32_t)ceilf(log2(ub - lb));
   HANDLE_CODE(bref.pack(len - lb, len_bits));
   if (is_aligned) {
@@ -1149,23 +1040,36 @@ SRSASN_CODE pack_length_prefix(bit_ref&       bref,
   return SRSASN_SUCCESS;
 }
 
+SRSASN_CODE pack_bitfield(bit_ref& bref, const uint8_t* buf, uint32_t nbits)
+{
+  if (nbits == 0) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid bitstring size=%d\n", nbits);
+    return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  uint32_t n_octs = ceil_frac(nbits, 8u);
+  uint32_t offset = ((nbits - 1) % 8) + 1;
+  HANDLE_CODE(bref.pack(buf[n_octs - 1], offset));
+  for (uint32_t i = 1; i < n_octs; ++i) {
+    HANDLE_CODE(bref.pack(buf[n_octs - 1 - i], 8));
+  }
+  return SRSASN_SUCCESS;
+}
+
+/**
+ * Pack ASN1 bitstring. Accommodates for cases: fixed/unbounded/bounded, aligned/unaligned, with/out ext
+ */
 SRSASN_CODE
 pack(bit_ref& bref, const uint8_t* data, uint32_t len, uint32_t lb, uint32_t ub, bool has_ext, bool is_aligned)
 {
-  if ((len < lb or len > ub) and not has_ext) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "bitstring length=%d is not within bounds [%d, %d]\n", len, lb, ub);
-    return SRSASN_ERROR_ENCODE_FAIL;
-  }
-
-  // encode prefix
-  HANDLE_CODE(bitstring_utils::pack_length_prefix(bref, data, len, lb, ub, has_ext, is_aligned));
-
-  // encode bitstring
-  return pack_common_bitstring(bref, data, len);
+  HANDLE_CODE(bitstring_utils::pack_length_prefix(bref, len, lb, ub, has_ext, is_aligned));
+  return pack_bitfield(bref, data, len);
 }
 
 // Unpack prefix, excluding ext bit
 
+/**
+ * Unpack ASN1 bitstring length prefix. Accommodates for cases: fixed/unbounded/bounded, aligned/unaligned, with/out ext
+ */
 SRSASN_CODE unpack_length_prefix(uint32_t& len, bit_ref& bref, uint32_t lb, uint32_t ub, bool has_ext, bool is_aligned)
 {
   bool ext = false;
@@ -1198,6 +1102,14 @@ SRSASN_CODE unpack_length_prefix(uint32_t& len, bit_ref& bref, uint32_t lb, uint
 // for both fixed, constrained and unconstrained scenarios
 SRSASN_CODE unpack_bitfield(uint8_t* buf, bit_ref& bref, uint32_t n, uint32_t lb, uint32_t ub, bool is_aligned)
 {
+  if (n > ASN_64K) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "bitstrings longer than 64K not supported\n");
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
+  if (n == 0) {
+    // empty bit string
+    return SRSASN_SUCCESS;
+  }
   if (is_aligned and (lb != ub or ub > 16)) {
     bref.align_bytes();
   }
@@ -1211,28 +1123,43 @@ SRSASN_CODE unpack_bitfield(uint8_t* buf, bit_ref& bref, uint32_t n, uint32_t lb
   return SRSASN_SUCCESS;
 }
 
-// fixed length case
-SRSASN_CODE unpack_fixed_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nof_bits, bool has_ext, bool is_aligned)
+void from_number(uint8_t* ptr, uint64_t number, uint32_t nbits)
 {
-  if (has_ext) {
-    bool ext;
-    HANDLE_CODE(bref.unpack(ext, 1));
-    if (ext) {
-      srsasn_log_print(LOG_LEVEL_ERROR, "bitstrings longer than 64K not supported\n");
-      // TODO: fixed bitstrings have to become resizeable
-      //      return unpack_default_bitstring(buf, bref, nof_bits, nof_bits, is_aligned);
-    }
+  if (nbits > 64) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "bitstring of size=%d does not fit in an uint64_t\n", nbits);
+    return;
   }
-  if (nof_bits == 0) {
-    // empty bit string
-    return SRSASN_SUCCESS;
+  uint32_t nof_bytes = (uint32_t)ceilf(nbits / 8.0f);
+  for (uint32_t i = 0; i < nof_bytes; ++i) {
+    ptr[i] = (number >> (i * 8u)) & 0xFFu;
   }
-  if (nof_bits <= ASN_64K) {
-    return unpack_bitfield(buf, bref, nof_bits, nof_bits, nof_bits, is_aligned);
-  } else {
-    srsasn_log_print(LOG_LEVEL_ERROR, "bitstrings longer than 64K not supported\n");
-    return SRSASN_ERROR_DECODE_FAIL;
+  uint32_t offset = nbits % 8; // clean up any extra set bit
+  if (offset > 0) {
+    ptr[nof_bytes - 1] &= (uint8_t)((1 << offset) - 1);
   }
+}
+
+std::string to_string(const uint8_t* ptr, uint32_t nbits)
+{
+  std::string str(nbits, '\0');
+  for (uint32_t i = 0; i < nbits; ++i) {
+    str[i] = bitstring_utils::get(ptr, nbits - 1 - i) ? '1' : '0';
+  }
+  return str;
+}
+
+uint64_t to_number(const uint8_t* ptr, uint32_t nbits)
+{
+  if (nbits > 64) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "bitstring of size=%d does not fit in an uint64_t\n", nbits);
+    return 0;
+  }
+  uint64_t val       = 0;
+  uint32_t nof_bytes = (uint32_t)ceilf(nbits / 8.0f);
+  for (uint32_t i = 0; i < nof_bytes; ++i) {
+    val += ptr[i] << (i * 8);
+  }
+  return val;
 }
 
 } // namespace bitstring_utils
