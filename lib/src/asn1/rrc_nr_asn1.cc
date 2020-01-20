@@ -69,7 +69,8 @@ void asn1::rrc_nr::assert_choice_type(const std::string& access_type,
   }
 }
 
-const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+const char*
+asn1::rrc_nr::convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
 {
   if (enum_val >= nof_types) {
     if (enum_val == nof_types) {
@@ -4389,7 +4390,7 @@ void setup_release_c<elem_type_paramT_>::to_json(json_writer& j) const
   switch (type_) {
     case types::release:
       break;
-    case types::setup:;
+    case types::setup:
       break;
     default:
       log_invalid_choice_id(type_, "setup_release_c");
@@ -9750,7 +9751,7 @@ void cg_uci_on_pusch_c::to_json(json_writer& j) const
   j.start_obj();
   switch (type_) {
     case types::dynamic_type:
-      j.start_array("dynamic_type");
+      j.start_array("dynamic");
       for (uint32_t i1 = 0; i1 < c.get<dynamic_l_>().size(); ++i1) {
         c.get<dynamic_l_>()[i1].to_json(j);
       }
@@ -9802,7 +9803,7 @@ SRSASN_CODE cg_uci_on_pusch_c::unpack(bit_ref& bref)
 
 std::string cg_uci_on_pusch_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"dynamic_type", "semiStatic"};
+  static constexpr const char* options[] = {"dynamic", "semiStatic"};
   return convert_enum_idx(options, 2, value, "cg_uci_on_pusch_c::types");
 }
 
@@ -13158,7 +13159,7 @@ void uci_on_pusch_s::beta_offsets_c_::to_json(json_writer& j) const
   j.start_obj();
   switch (type_) {
     case types::dynamic_type:
-      j.start_array("dynamic_type");
+      j.start_array("dynamic");
       for (uint32_t i1 = 0; i1 < c.get<dynamic_l_>().size(); ++i1) {
         c.get<dynamic_l_>()[i1].to_json(j);
       }
@@ -13210,7 +13211,7 @@ SRSASN_CODE uci_on_pusch_s::beta_offsets_c_::unpack(bit_ref& bref)
 
 std::string uci_on_pusch_s::beta_offsets_c_::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"dynamic_type", "semiStatic"};
+  static constexpr const char* options[] = {"dynamic", "semiStatic"};
   return convert_enum_idx(options, 2, value, "uci_on_pusch_s::beta_offsets_c_::types");
 }
 
@@ -22624,7 +22625,7 @@ void tdd_ul_dl_slot_cfg_s::symbols_c_::to_json(json_writer& j) const
     case types::all_ul:
       break;
     case types::explicit_type:
-      j.write_fieldname("explicit_type");
+      j.write_fieldname("explicit");
       j.start_obj();
       if (c.nrof_dl_symbols_present) {
         j.write_int("nrofDownlinkSymbols", c.nrof_dl_symbols);
@@ -22692,7 +22693,7 @@ SRSASN_CODE tdd_ul_dl_slot_cfg_s::symbols_c_::unpack(bit_ref& bref)
 
 std::string tdd_ul_dl_slot_cfg_s::symbols_c_::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"allDownlink", "allUplink", "explicit_type"};
+  static constexpr const char* options[] = {"allDownlink", "allUplink", "explicit"};
   return convert_enum_idx(options, 3, value, "tdd_ul_dl_slot_cfg_s::symbols_c_::types");
 }
 

@@ -5026,7 +5026,7 @@ struct cg_uci_on_pusch_c {
   // getters
   dynamic_l_& dynamic_type()
   {
-    assert_choice_type("dynamic_type", type_.to_string(), "CG-UCI-OnPUSCH");
+    assert_choice_type("dynamic", type_.to_string(), "CG-UCI-OnPUSCH");
     return c.get<dynamic_l_>();
   }
   beta_offsets_s& semi_static()
@@ -5036,7 +5036,7 @@ struct cg_uci_on_pusch_c {
   }
   const dynamic_l_& dynamic_type() const
   {
-    assert_choice_type("dynamic_type", type_.to_string(), "CG-UCI-OnPUSCH");
+    assert_choice_type("dynamic", type_.to_string(), "CG-UCI-OnPUSCH");
     return c.get<dynamic_l_>();
   }
   const beta_offsets_s& semi_static() const
@@ -6750,7 +6750,7 @@ struct uci_on_pusch_s {
     // getters
     dynamic_l_& dynamic_type()
     {
-      assert_choice_type("dynamic_type", type_.to_string(), "betaOffsets");
+      assert_choice_type("dynamic", type_.to_string(), "betaOffsets");
       return c.get<dynamic_l_>();
     }
     beta_offsets_s& semi_static()
@@ -6760,7 +6760,7 @@ struct uci_on_pusch_s {
     }
     const dynamic_l_& dynamic_type() const
     {
-      assert_choice_type("dynamic_type", type_.to_string(), "betaOffsets");
+      assert_choice_type("dynamic", type_.to_string(), "betaOffsets");
       return c.get<dynamic_l_>();
     }
     const beta_offsets_s& semi_static() const
@@ -11460,12 +11460,12 @@ struct tdd_ul_dl_slot_cfg_s {
     // getters
     explicit_s_& explicit_type()
     {
-      assert_choice_type("explicit_type", type_.to_string(), "symbols");
+      assert_choice_type("explicit", type_.to_string(), "symbols");
       return c;
     }
     const explicit_s_& explicit_type() const
     {
-      assert_choice_type("explicit_type", type_.to_string(), "symbols");
+      assert_choice_type("explicit", type_.to_string(), "symbols");
       return c;
     }
     explicit_s_& set_explicit_type()
