@@ -23,6 +23,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <uhd.h>
+#include <uhd/types/sensors.h>
 #include <unistd.h>
 
 #include "rf_helper.h"
@@ -160,7 +161,7 @@ void rf_uhd_register_error_handler(void* h, srslte_rf_error_handler_t new_handle
   handler->uhd_error_handler = new_handler;
 }
 
-static bool find_string(uhd_string_vector_handle h, char* str)
+static bool find_string(uhd_string_vector_handle h, const char* str)
 {
   char   buff[128];
   size_t n;
@@ -172,6 +173,74 @@ static bool find_string(uhd_string_vector_handle h, char* str)
     }
   }
   return false;
+}
+
+/**
+ * Set the USRP time to the current GPS time (if sensor is found)
+ *
+ * The GPS time is read and the USRP time is set to the next full second during the next PPS.
+ * It appears, however, that "uhd_usrp_set_time_next_pps()" which seems to be the correct function
+ * to use, doesn't work. The C API call "uhd_usrp_set_time_unknown_pps()" works well.
+ * @param handler Pointer to RF handler
+ * @return Any error returned by UHD
+ */
+static uhd_error set_time_to_gps_time(rf_uhd_handler_t* handler)
+{
+  const char sensor_name[] = "gps_time";
+
+  uhd_string_vector_handle sensors;
+  uhd_string_vector_make(&sensors);
+
+  uhd_error error = uhd_usrp_get_mboard_sensor_names(handler->usrp, 0, &sensors);
+
+#if PRINT_SENSOR_NAMES
+  size_t sensors_len;
+  uhd_string_vector_size(sensors, &sensors_len);
+  for (int i = 0; i < sensors_len; i++) {
+    char buff[256];
+    uhd_string_vector_at(sensors, i, buff, 128);
+    printf("sensor %s present\n", buff);
+  }
+#endif
+
+  if (error == UHD_ERROR_NONE && find_string(sensors, sensor_name)) {
+    uhd_sensor_value_handle value_h;
+    uhd_sensor_value_make_from_string(&value_h, "w", "t", "f");
+    error = uhd_usrp_get_mboard_sensor(handler->usrp, sensor_name, 0, &value_h);
+
+    int full_secs = 0;
+    if (error == UHD_ERROR_NONE) {
+      uhd_sensor_value_data_type_t sensor_dtype;
+      uhd_sensor_value_data_type(value_h, &sensor_dtype);
+      full_secs = uhd_sensor_value_to_int(value_h, &full_secs);
+      // printf("GPS full_secs=%d\n", full_secs);
+
+      double frac_secs;
+      uhd_sensor_value_data_type(value_h, &sensor_dtype);
+      full_secs = uhd_sensor_value_to_realnum(value_h, &frac_secs);
+      // printf("GPS frac_secs=%f\n", frac_secs);
+
+      full_secs = frac_secs;
+      printf("Setting USRP time to %ds\n", full_secs);
+      error = uhd_usrp_set_time_unknown_pps(handler->usrp, full_secs + 1, 0.0);
+      if (error != UHD_ERROR_NONE) {
+        char err_msg[256];
+        uhd_usrp_last_error(handler->usrp, err_msg, 256);
+        fprintf(stderr, "Error code %d: %s\n", error, err_msg);
+      }
+
+      // sleep a second to make sure values are set correctly
+      sleep(1);
+    }
+    uhd_sensor_value_free(&value_h);
+  }
+  if (error != UHD_ERROR_NONE) {
+    fprintf(stderr, "USRP has no sensor \"%s\", or reading failed. UHD error: %i\n", sensor_name, error);
+  }
+
+  uhd_string_vector_free(&sensors);
+
+  return error;
 }
 
 // timeout in ms
@@ -542,6 +611,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     } else if (clock_src == GPSDO) {
       uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);
       uhd_usrp_set_time_source(handler->usrp, "gpsdo", 0);
+      set_time_to_gps_time(handler);
       sensor_name = "gps_locked";
     }
     // wait until external reference / GPS is locked
@@ -579,8 +649,9 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
       uhd_usrp_set_tx_rate(handler->usrp, default_srate, i);
     }
 
-    if (nof_channels > 1)
+    if (nof_channels > 1 && clock_src != GPSDO) {
       uhd_usrp_set_time_unknown_pps(handler->usrp, 0, 0.0);
+    }
 
     /* Initialize rx and tx stremers */
     uhd_rx_streamer_make(&handler->rx_stream);
