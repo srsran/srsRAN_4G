@@ -26873,7 +26873,7 @@ struct sl_tx_pool_to_add_mod_r14_s {
 
 // SecurityConfigHO-v1530 ::= SEQUENCE
 struct security_cfg_ho_v1530_s {
-  struct ho_type_v1530_c_ {
+  struct handov_type_v1530_c_ {
     struct intra5_gc_r15_s_ {
       bool                     security_algorithm_cfg_r15_present = false;
       bool                     nas_container_r15_present          = false;
@@ -26900,10 +26900,10 @@ struct security_cfg_ho_v1530_s {
     typedef enumerated<types_opts> types;
 
     // choice methods
-    ho_type_v1530_c_() = default;
-    ho_type_v1530_c_(const ho_type_v1530_c_& other);
-    ho_type_v1530_c_& operator=(const ho_type_v1530_c_& other);
-    ~ho_type_v1530_c_() { destroy_(); }
+    handov_type_v1530_c_() = default;
+    handov_type_v1530_c_(const handov_type_v1530_c_& other);
+    handov_type_v1530_c_& operator=(const handov_type_v1530_c_& other);
+    ~handov_type_v1530_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -26964,8 +26964,8 @@ struct security_cfg_ho_v1530_s {
   };
 
   // member variables
-  bool             ext = false;
-  ho_type_v1530_c_ ho_type_v1530;
+  bool                 ext = false;
+  handov_type_v1530_c_ handov_type_v1530;
   // ...
 
   // sequence methods
@@ -28431,8 +28431,8 @@ struct pci_range_utra_fdd_r9_s {
 
 // PowerCoordinationInfo-r12 ::= SEQUENCE
 struct pwr_coordination_info_r12_s {
-  uint8_t p_me_nb_r12       = 1;
-  uint8_t p_se_nb_r12       = 1;
+  uint8_t p_menb_r12        = 1;
+  uint8_t p_senb_r12        = 1;
   uint8_t pwr_ctrl_mode_r12 = 1;
 
   // sequence methods
@@ -36267,7 +36267,7 @@ typedef enumerated<release_cause_opts> release_cause_e;
 
 // SecurityConfigHO ::= SEQUENCE
 struct security_cfg_ho_s {
-  struct ho_type_c_ {
+  struct handov_type_c_ {
     struct intra_lte_s_ {
       bool                     security_algorithm_cfg_present = false;
       security_algorithm_cfg_s security_algorithm_cfg;
@@ -36286,10 +36286,10 @@ struct security_cfg_ho_s {
     typedef enumerated<types_opts> types;
 
     // choice methods
-    ho_type_c_() = default;
-    ho_type_c_(const ho_type_c_& other);
-    ho_type_c_& operator=(const ho_type_c_& other);
-    ~ho_type_c_() { destroy_(); }
+    handov_type_c_() = default;
+    handov_type_c_(const handov_type_c_& other);
+    handov_type_c_& operator=(const handov_type_c_& other);
+    ~handov_type_c_() { destroy_(); }
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -36335,8 +36335,8 @@ struct security_cfg_ho_s {
   };
 
   // member variables
-  bool       ext = false;
-  ho_type_c_ ho_type;
+  bool           ext = false;
+  handov_type_c_ handov_type;
   // ...
 
   // sequence methods
@@ -49517,8 +49517,8 @@ struct band_params_rx_sl_r14_s {
 
 // BandParametersTxSL-r14 ::= SEQUENCE
 struct band_params_tx_sl_r14_s {
-  bool                  v2x_e_nb_sched_r14_present = false;
-  bool                  v2x_high_pwr_r14_present   = false;
+  bool                  v2x_enb_sched_r14_present = false;
+  bool                  v2x_high_pwr_r14_present  = false;
   v2x_bw_class_sl_r14_l v2x_bw_class_tx_sl_r14;
 
   // sequence methods

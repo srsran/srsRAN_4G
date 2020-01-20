@@ -6871,15 +6871,15 @@ uint8_t ip_address_r13_c::types_opts::to_number() const
   return convert_enum_idx(options, 2, value, "ip_address_r13_c::types");
 }
 
-std::string security_cfg_ho_v1530_s::ho_type_v1530_c_::types_opts::to_string() const
+std::string security_cfg_ho_v1530_s::handov_type_v1530_c_::types_opts::to_string() const
 {
   static constexpr const char* options[] = {"intra5GC-r15", "ngc-ToEPC-r15", "epc-ToNGC-r15"};
-  return convert_enum_idx(options, 3, value, "security_cfg_ho_v1530_s::ho_type_v1530_c_::types");
+  return convert_enum_idx(options, 3, value, "security_cfg_ho_v1530_s::handov_type_v1530_c_::types");
 }
-uint8_t security_cfg_ho_v1530_s::ho_type_v1530_c_::types_opts::to_number() const
+uint8_t security_cfg_ho_v1530_s::handov_type_v1530_c_::types_opts::to_number() const
 {
   static constexpr uint8_t options[] = {5};
-  return convert_enum_idx(options, 1, value, "security_cfg_ho_v1530_s::ho_type_v1530_c_::types");
+  return convert_enum_idx(options, 1, value, "security_cfg_ho_v1530_s::handov_type_v1530_c_::types");
 }
 
 std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_opts::to_string() const
@@ -8212,10 +8212,10 @@ std::string release_cause_opts::to_string() const
   return convert_enum_idx(options, 4, value, "release_cause_e");
 }
 
-std::string security_cfg_ho_s::ho_type_c_::types_opts::to_string() const
+std::string security_cfg_ho_s::handov_type_c_::types_opts::to_string() const
 {
   static constexpr const char* options[] = {"intraLTE", "interRAT"};
-  return convert_enum_idx(options, 2, value, "security_cfg_ho_s::ho_type_c_::types");
+  return convert_enum_idx(options, 2, value, "security_cfg_ho_s::handov_type_c_::types");
 }
 
 std::string dl_info_transfer_r15_ies_s::ded_info_type_r15_c_::types_opts::to_string() const

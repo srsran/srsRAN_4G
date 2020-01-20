@@ -348,7 +348,7 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_requ
   user_it->second->send_security_mode_command();
 
   // Setup E-RABs
-  user_it->second->setup_erabs(msg.protocol_ies.e_rab_to_be_setup_list_ctxt_su_req.value);
+  user_it->second->setup_erabs(msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value);
 
   pthread_mutex_unlock(&user_mutex);
 
@@ -423,7 +423,7 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request
   return true;
 }
 
-bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::e_rab_setup_request_s& msg)
+bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)
 {
   pthread_mutex_lock(&user_mutex);
 
@@ -442,7 +442,7 @@ bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::e_rab_setup_request_s&
   }
 
   // Setup E-RABs
-  user_it->second->setup_erabs(msg.protocol_ies.e_rab_to_be_setup_list_bearer_su_req.value);
+  user_it->second->setup_erabs(msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value);
 
   pthread_mutex_unlock(&user_mutex);
 
@@ -1289,10 +1289,10 @@ void rrc::ue::set_security_key(const asn1::fixed_bitstring<256, false, true>& ke
   parent->rrc_log->info_hex(k_up_enc, 32, "UP Encryption Key (k_up_enc)");
 }
 
-bool rrc::ue::setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_ctxt_su_req_l& e)
+bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e)
 {
   for (const auto& item : e) {
-    auto& erab = item.value.e_rab_to_be_setup_item_ctxt_su_req();
+    auto& erab = item.value.erab_to_be_setup_item_ctxt_su_req();
     if (erab.ext) {
       parent->rrc_log->warning("Not handling E-RABToBeSetupListCtxtSURequest extensions\n");
     }
@@ -1307,15 +1307,15 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_ctxt_su_req_l
     uint32_t teid_out;
     uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
-    setup_erab(erab.e_rab_id, erab.e_ra_blevel_qo_sparams, erab.transport_layer_address, teid_out, nas_pdu);
+    setup_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
   }
   return true;
 }
 
-bool rrc::ue::setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e)
+bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
 {
   for (const auto& item : e) {
-    auto& erab = item.value.e_rab_to_be_setup_item_bearer_su_req();
+    auto& erab = item.value.erab_to_be_setup_item_bearer_su_req();
     if (erab.ext) {
       parent->rrc_log->warning("Not handling E-RABToBeSetupListBearerSUReq extensions\n");
     }
@@ -1329,7 +1329,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req
 
     uint32_t teid_out;
     uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    setup_erab(erab.e_rab_id, erab.e_ra_blevel_qo_sparams, erab.transport_layer_address, teid_out, &erab.nas_pdu);
+    setup_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
   }
 
   // Work in progress
@@ -1339,7 +1339,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req
 }
 
 void rrc::ue::setup_erab(uint8_t                                            id,
-                         const asn1::s1ap::e_rab_level_qo_sparams_s&        qos,
+                         const asn1::s1ap::erab_level_qos_params_s&         qos,
                          const asn1::bounded_bitstring<1, 160, true, true>& addr,
                          uint32_t                                           teid_out,
                          const asn1::unbounded_octstring<true>*             nas_pdu)
@@ -1378,12 +1378,12 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 {
   asn1::s1ap::init_context_setup_resp_s res;
 
-  res.protocol_ies.e_rab_setup_list_ctxt_su_res.value.resize(erabs.size());
+  res.protocol_ies.erab_setup_list_ctxt_su_res.value.resize(erabs.size());
   uint32_t i = 0;
   for (auto& erab : erabs) {
-    res.protocol_ies.e_rab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_E_RAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item    = res.protocol_ies.e_rab_setup_list_ctxt_su_res.value[i].value.e_rab_setup_item_ctxt_su_res();
-    item.e_rab_id = erab.second.id;
+    res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
+    auto& item   = res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
+    item.erab_id = erab.second.id;
     uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
     i++;
   }
@@ -1391,18 +1391,18 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
   parent->s1ap->ue_ctxt_setup_complete(rnti, res);
 }
 
-void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e)
+void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
 {
-  asn1::s1ap::e_rab_setup_resp_s res;
+  asn1::s1ap::erab_setup_resp_s res;
 
-  res.protocol_ies.e_rab_setup_list_bearer_su_res.value.resize(e.size());
+  res.protocol_ies.erab_setup_list_bearer_su_res.value.resize(e.size());
   for (uint32_t i = 0; i < e.size(); ++i) {
-    res.protocol_ies.e_rab_setup_list_bearer_su_res_present = true;
-    auto& item                                              = res.protocol_ies.e_rab_setup_list_bearer_su_res.value[i];
-    item.load_info_obj(ASN1_S1AP_ID_E_RAB_SETUP_ITEM_BEARER_SU_RES);
-    uint8_t id                                           = e[i].value.e_rab_to_be_setup_item_bearer_su_req().e_rab_id;
-    item.value.e_rab_setup_item_bearer_su_res().e_rab_id = id;
-    uint32_to_uint8(erabs[id].teid_in, &item.value.e_rab_setup_item_bearer_su_res().gtp_teid[0]);
+    res.protocol_ies.erab_setup_list_bearer_su_res_present = true;
+    auto& item                                             = res.protocol_ies.erab_setup_list_bearer_su_res.value[i];
+    item.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
+    uint8_t id                                         = e[i].value.erab_to_be_setup_item_bearer_su_req().erab_id;
+    item.value.erab_setup_item_bearer_su_res().erab_id = id;
+    uint32_to_uint8(erabs[id].teid_in, &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
   }
 
   parent->s1ap->ue_erab_setup_complete(rnti, res);
@@ -1821,7 +1821,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
-void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e)
+void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
 {
   srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
 
@@ -1831,8 +1831,8 @@ void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::e_rab_to_be_se
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   for (const auto& item : e) {
-    auto&   erab = item.value.e_rab_to_be_setup_item_bearer_su_req();
-    uint8_t id   = erab.e_rab_id;
+    auto&   erab = item.value.erab_to_be_setup_item_bearer_su_req();
+    uint8_t id   = erab.erab_id;
     uint8_t lcid = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
 
     // Get DRB configuration

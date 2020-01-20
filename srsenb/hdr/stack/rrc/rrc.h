@@ -177,7 +177,7 @@ public:
   void release_complete(uint16_t rnti) override;
   bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) override;
   bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg) override;
-  bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::e_rab_setup_request_s& msg) override;
+  bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg) override;
   bool release_erabs(uint32_t rnti) override;
   void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID) override;
   void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container) override;
@@ -226,7 +226,7 @@ public:
     void send_connection_release();
     void send_connection_reest_rej();
     void send_connection_reconf(srslte::unique_byte_buffer_t sdu);
-    void send_connection_reconf_new_bearer(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e);
+    void send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
     void send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu);
     void send_security_mode_command();
     void send_ue_cap_enquiry();
@@ -244,10 +244,10 @@ public:
     void set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps);
     void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
 
-    bool setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_ctxt_su_req_l& e);
-    bool setup_erabs(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e);
+    bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
+    bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
     void setup_erab(uint8_t                                            id,
-                    const asn1::s1ap::e_rab_level_qo_sparams_s&        qos,
+                    const asn1::s1ap::erab_level_qos_params_s&         qos,
                     const asn1::bounded_bitstring<1, 160, true, true>& addr,
                     uint32_t                                           teid_out,
                     const asn1::unbounded_octstring<true>*             nas_pdu);
@@ -257,7 +257,7 @@ public:
     void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
 
     void notify_s1ap_ue_ctxt_setup_complete();
-    void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::e_rab_to_be_setup_list_bearer_su_req_l& e);
+    void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
 
     int  sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr);
     void sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr);
@@ -321,7 +321,7 @@ public:
 
     typedef struct {
       uint8_t                                     id;
-      asn1::s1ap::e_rab_level_qo_sparams_s        qos_params;
+      asn1::s1ap::erab_level_qos_params_s         qos_params;
       asn1::bounded_bitstring<1, 160, true, true> address;
       uint32_t                                    teid_out;
       uint32_t                                    teid_in;

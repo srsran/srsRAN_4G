@@ -47,11 +47,11 @@ int unpack_test_served_gummeis_with_multiple_plmns()
 int test_load_info_obj()
 {
   asn1::s1ap::init_context_setup_resp_ies_container container;
-  container.e_rab_failed_to_setup_list_ctxt_su_res.value.resize(1);
-  container.e_rab_failed_to_setup_list_ctxt_su_res.value[0].load_info_obj(ASN1_S1AP_ID_E_RAB_ITEM);
+  container.erab_failed_to_setup_list_ctxt_su_res.value.resize(1);
+  container.erab_failed_to_setup_list_ctxt_su_res.value[0].load_info_obj(ASN1_S1AP_ID_ERAB_ITEM);
 
-  TESTASSERT(container.e_rab_failed_to_setup_list_ctxt_su_res.value[0].id == ASN1_S1AP_ID_E_RAB_ITEM);
-  TESTASSERT(container.e_rab_failed_to_setup_list_ctxt_su_res.value[0].crit.value == s1ap::crit_opts::reject);
+  TESTASSERT(container.erab_failed_to_setup_list_ctxt_su_res.value[0].id == ASN1_S1AP_ID_ERAB_ITEM);
+  TESTASSERT(container.erab_failed_to_setup_list_ctxt_su_res.value[0].crit.value == s1ap::crit_opts::reject);
 
   return SRSLTE_SUCCESS;
 }
@@ -67,12 +67,12 @@ int test_initial_ctxt_setup_response()
   container.mme_ue_s1ap_id.value = 1;
   container.enb_ue_s1ap_id.value = 1;
 
-  container.e_rab_setup_list_ctxt_su_res.value.resize(1);
+  container.erab_setup_list_ctxt_su_res.value.resize(1);
   // Fill in the GTP bind address for all bearers
-  for (uint32_t i = 0; i < container.e_rab_setup_list_ctxt_su_res.value.size(); ++i) {
-    container.e_rab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_E_RAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item    = container.e_rab_setup_list_ctxt_su_res.value[i].value.e_rab_setup_item_ctxt_su_res();
-    item.e_rab_id = 1;
+  for (uint32_t i = 0; i < container.erab_setup_list_ctxt_su_res.value.size(); ++i) {
+    container.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
+    auto& item   = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
+    item.erab_id = 1;
     // uint32_to_uint8(teid_in, item.gtp_teid.data());
     item.transport_layer_address.resize(32);
     uint8_t addr[4];

@@ -95,7 +95,7 @@ int test_erab_setup(bool qci_exists)
   asn1::bit_ref bref(byte_buf.msg, byte_buf.N_bytes);
 
   TESTASSERT(s1ap_pdu.unpack(bref) == asn1::SRSASN_SUCCESS);
-  rrc.setup_ue_erabs(rnti, s1ap_pdu.init_msg().value.e_rab_setup_request());
+  rrc.setup_ue_erabs(rnti, s1ap_pdu.init_msg().value.erab_setup_request());
 
   if (qci_exists) {
     TESTASSERT(rrc_log.error_counter == 0);

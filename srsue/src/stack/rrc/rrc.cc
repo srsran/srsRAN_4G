@@ -1072,15 +1072,15 @@ bool rrc::ho_prepare()
 
     int ncc = -1;
     if (mob_reconf_r8->security_cfg_ho_present) {
-      ncc = mob_reconf_r8->security_cfg_ho.ho_type.intra_lte().next_hop_chaining_count;
-      if (mob_reconf_r8->security_cfg_ho.ho_type.intra_lte().key_change_ind) {
+      ncc = mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count;
+      if (mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().key_change_ind) {
         rrc_log->console("keyChangeIndicator in securityConfigHO not supported\n");
         return false;
       }
-      if (mob_reconf_r8->security_cfg_ho.ho_type.intra_lte().security_algorithm_cfg_present) {
-        cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.ho_type.intra_lte()
+      if (mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().security_algorithm_cfg_present) {
+        cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.handov_type.intra_lte()
                           .security_algorithm_cfg.ciphering_algorithm.to_number();
-        integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.ho_type.intra_lte()
+        integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.handov_type.intra_lte()
                          .security_algorithm_cfg.integrity_prot_algorithm.to_number();
         rrc_log->info("Changed Ciphering to %s and Integrity to %s\n",
                       ciphering_algorithm_id_text[cipher_algo],
@@ -1140,7 +1140,7 @@ bool rrc::con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig)
   rrc_log->info("Received HO command to target PCell=%d\n", mob_reconf_r8->mob_ctrl_info.target_pci);
   rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
                    mob_reconf_r8->mob_ctrl_info.target_pci,
-                   mob_reconf_r8->security_cfg_ho.ho_type.intra_lte().next_hop_chaining_count);
+                   mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
 
   // store mobilityControlInfo
   mob_reconf         = *reconfig;
@@ -3109,8 +3109,8 @@ void rrc::rrc_meas::ho_finish()
   // TODO: Inter-frequency handover
 
   // Stop all reports
-  for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-    stop_reports(&iter->second);
+  for (auto& item : active) {
+    stop_reports(&item.second);
   }
 }
 

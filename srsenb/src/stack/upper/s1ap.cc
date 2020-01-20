@@ -103,13 +103,13 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
   }
 
   // Check for E-RABs that could not be admitted in the target
-  if (msg.protocol_ies.e_ra_bto_release_list_ho_cmd_present) {
+  if (msg.protocol_ies.erab_to_release_list_ho_cmd_present) {
     procWarning("Not handling E-RABtoReleaseList\n");
     // TODO
   }
 
   // Check for E-RABs subject to being forwarded
-  if (msg.protocol_ies.e_rab_subjectto_data_forwarding_list_present) {
+  if (msg.protocol_ies.erab_subjectto_data_forwarding_list_present) {
     procWarning("Not handling E-RABSubjecttoDataForwardingList\n");
     // TODO
   }
@@ -118,7 +118,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
   // Target eNB to Source eNB Transparent Container IE
   uint8_t*      buf = const_cast<uint8_t*>(msg.protocol_ies.target_to_source_transparent_container.value.data());
   asn1::bit_ref bref(buf, msg.protocol_ies.target_to_source_transparent_container.value.size());
-  asn1::s1ap::targete_nb_to_sourcee_nb_transparent_container_s container;
+  asn1::s1ap::targetenb_to_sourceenb_transparent_container_s container;
   if (container.unpack(bref) != asn1::SRSASN_SUCCESS) {
     procError("Failed to decode TargeteNBToSourceeNBTransparentContainer\n");
     return srslte::proc_outcome_t::error;
@@ -377,14 +377,14 @@ bool s1ap::user_exists(uint16_t rnti)
 
 void s1ap::ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res)
 {
-  if (res.protocol_ies.e_rab_setup_list_ctxt_su_res.value.size() > 0) {
+  if (res.protocol_ies.erab_setup_list_ctxt_su_res.value.size() > 0) {
     send_initial_ctxt_setup_response(rnti, res);
   } else {
     send_initial_ctxt_setup_failure(rnti);
   }
 }
 
-void s1ap::ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::e_rab_setup_resp_s& res)
+void s1ap::ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res)
 {
   send_erab_setup_response(rnti, res);
 }
@@ -535,8 +535,8 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
       return handle_uectxtreleasecommand(msg.value.ue_context_release_cmd());
     case s1ap_elem_procs_o::init_msg_c::types_opts::paging:
       return handle_paging(msg.value.paging());
-    case s1ap_elem_procs_o::init_msg_c::types_opts::e_rab_setup_request:
-      return handle_erabsetuprequest(msg.value.e_rab_setup_request());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::erab_setup_request:
+      return handle_erabsetuprequest(msg.value.erab_setup_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
       return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
     default:
@@ -665,7 +665,7 @@ bool s1ap::handle_paging(const asn1::s1ap::paging_s& msg)
   return true;
 }
 
-bool s1ap::handle_erabsetuprequest(const e_rab_setup_request_s& msg)
+bool s1ap::handle_erabsetuprequest(const erab_setup_request_s& msg)
 {
   s1ap_log->info("Received ERABSetupRequest\n");
   if (msg.ext) {
@@ -952,8 +952,8 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, const asn1::s1ap::ini
   container.enb_ue_s1ap_id.value = get_user_ctxt(rnti)->eNB_UE_S1AP_ID;
 
   // Fill in the GTP bind address for all bearers
-  for (uint32_t i = 0; i < container.e_rab_setup_list_ctxt_su_res.value.size(); ++i) {
-    auto& item = container.e_rab_setup_list_ctxt_su_res.value[i].value.e_rab_setup_item_ctxt_su_res();
+  for (uint32_t i = 0; i < container.erab_setup_list_ctxt_su_res.value.size(); ++i) {
+    auto& item = container.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
     item.transport_layer_address.resize(32);
     uint8_t addr[4];
     inet_pton(AF_INET, args.gtp_bind_addr.c_str(), addr);
@@ -965,22 +965,22 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, const asn1::s1ap::ini
   return sctp_send_s1ap_pdu(tx_pdu, rnti, "InitialContextSetupResponse");
 }
 
-bool s1ap::send_erab_setup_response(uint16_t rnti, const e_rab_setup_resp_s& res_)
+bool s1ap::send_erab_setup_response(uint16_t rnti, const erab_setup_resp_s& res_)
 {
   if (!mme_connected) {
     return false;
   }
 
   asn1::s1ap::s1ap_pdu_c tx_pdu;
-  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_E_RAB_SETUP);
-  e_rab_setup_resp_s& res = tx_pdu.successful_outcome().value.e_rab_setup_request();
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_SETUP);
+  erab_setup_resp_s& res = tx_pdu.successful_outcome().value.erab_setup_request();
 
   res = res_;
 
   // Fill in the GTP bind address for all bearers
-  if (res.protocol_ies.e_rab_setup_list_bearer_su_res_present) {
-    for (uint32_t i = 0; i < res.protocol_ies.e_rab_setup_list_bearer_su_res.value.size(); ++i) {
-      auto& item = res.protocol_ies.e_rab_setup_list_bearer_su_res.value[i].value.e_rab_setup_item_bearer_su_res();
+  if (res.protocol_ies.erab_setup_list_bearer_su_res_present) {
+    for (uint32_t i = 0; i < res.protocol_ies.erab_setup_list_bearer_su_res.value.size(); ++i) {
+      auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value[i].value.erab_setup_item_bearer_su_res();
       item.transport_layer_address.resize(32);
       uint8_t addr[4];
       inet_pton(AF_INET, args.gtp_bind_addr.c_str(), addr);
@@ -1252,7 +1252,7 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   container.csg_id_present           = false; // NOTE: CSG/hybrid target cell not supported
   container.cell_access_mode_present = false; // only for hybrid cells
   // no GERAN/UTRAN/PS
-  auto& targetenb = container.target_id.value.set_targete_nb_id();
+  auto& targetenb = container.target_id.value.set_targetenb_id();
   // set PLMN and TAI of target
   // NOTE: Only HO without TAU supported.
   uint16_t tmp16;
@@ -1266,8 +1266,8 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
 
   /*** fill the transparent container ***/
   container.source_to_target_transparent_container_secondary_present = false;
-  sourcee_nb_to_targete_nb_transparent_container_s transparent_cntr;
-  transparent_cntr.e_rab_info_list_present              = false; // TODO: CHECK
+  sourceenb_to_targetenb_transparent_container_s transparent_cntr;
+  transparent_cntr.erab_info_list_present               = false; // TODO: CHECK
   transparent_cntr.subscriber_profile_idfor_rfp_present = false; // TODO: CHECK
   // - set target cell ID
   target_plmn.to_s1ap_plmn_bytes(transparent_cntr.target_cell_id.plm_nid.data());
@@ -1312,7 +1312,7 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
   }
 
   s1ap_pdu_c tx_pdu;
-  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_E_NB_STATUS_TRANSFER);
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_ENB_STATUS_TRANSFER);
   enb_status_transfer_ies_container& container = tx_pdu.init_msg().value.enb_status_transfer().protocol_ies;
 
   container.enb_ue_s1ap_id.value = ctxt.eNB_UE_S1AP_ID;
@@ -1326,7 +1326,7 @@ bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& be
     auto&               asn1bearer = list[i].value.bearers_subject_to_status_transfer_item();
     bearer_status_info& item       = bearer_status_list[i];
 
-    asn1bearer.e_rab_id               = item.erab_id;
+    asn1bearer.erab_id                = item.erab_id;
     asn1bearer.dl_coun_tvalue.pdcp_sn = item.pdcp_dl_sn;
     asn1bearer.dl_coun_tvalue.hfn     = item.dl_hfn;
     asn1bearer.ul_coun_tvalue.pdcp_sn = item.pdcp_ul_sn;

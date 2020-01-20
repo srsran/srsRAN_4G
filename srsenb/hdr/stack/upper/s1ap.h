@@ -73,7 +73,7 @@ public:
   bool user_exists(uint16_t rnti) override;
   bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio) override;
   void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) override;
-  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::e_rab_setup_resp_s& res) override;
+  void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override;
   bool is_mme_connected() override;
   // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
 
@@ -127,7 +127,7 @@ private:
   bool handle_initialctxtsetuprequest(const asn1::s1ap::init_context_setup_request_s& msg);
   bool handle_uectxtreleasecommand(const asn1::s1ap::ue_context_release_cmd_s& msg);
   bool handle_s1setupfailure(const asn1::s1ap::s1_setup_fail_s& msg);
-  bool handle_erabsetuprequest(const asn1::s1ap::e_rab_setup_request_s& msg);
+  bool handle_erabsetuprequest(const asn1::s1ap::erab_setup_request_s& msg);
   bool handle_uecontextmodifyrequest(const asn1::s1ap::ue_context_mod_request_s& msg);
 
   bool send_initialuemessage(uint16_t                              rnti,
@@ -141,7 +141,7 @@ private:
   bool send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_t enb_ue_id);
   bool send_initial_ctxt_setup_response(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res_);
   bool send_initial_ctxt_setup_failure(uint16_t rnti);
-  bool send_erab_setup_response(uint16_t rnti, const asn1::s1ap::e_rab_setup_resp_s& res_);
+  bool send_erab_setup_response(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res_);
   // bool send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
   bool send_uectxmodifyresp(uint16_t rnti);
   bool send_uectxmodifyfailure(uint16_t rnti, const asn1::s1ap::cause_c& cause);
