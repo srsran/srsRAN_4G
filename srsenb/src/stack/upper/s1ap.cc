@@ -1278,7 +1278,7 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   auto& eutra                     = transparent_cntr.ue_history_info[0].set_e_utran_cell();
   eutra.cell_type.cell_size.value = cell_size_opts::medium;
   target_plmn.to_s1ap_plmn_bytes(eutra.global_cell_id.plm_nid.data());
-  for (uint32_t i = 0; i < LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN; ++i) {
+  for (uint32_t i = 0; i < eutra.global_cell_id.cell_id.length(); ++i) {
     eutra.global_cell_id.cell_id.set(i, s1ap_ptr->eutran_cgi.cell_ID.buffer[i]);
   }
   // - set time spent in current source cell

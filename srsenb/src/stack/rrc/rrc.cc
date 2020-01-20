@@ -22,14 +22,12 @@
 #include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srslte/asn1/asn1_utils.h"
-#include "srslte/asn1/liblte_mme.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/srslte.h"
 
-using srslte::bit_buffer_t;
 using srslte::byte_buffer_t;
 using srslte::uint32_to_uint8;
 using srslte::uint8_to_uint32;
@@ -1267,7 +1265,9 @@ void rrc::ue::set_security_capabilities(const asn1::s1ap::ue_security_cap_s& cap
 
 void rrc::ue::set_security_key(const asn1::fixed_bitstring<256, false, true>& key)
 {
-  memcpy(k_enb, key.data(), key.nof_octets());
+  for (uint32_t i = 0; i < key.nof_octets(); ++i) {
+    k_enb[i] = key.data()[key.nof_octets() - 1 - i];
+  }
   parent->rrc_log->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
   // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences
   select_security_algorithms();

@@ -32,7 +32,6 @@
 #include "srslte/interfaces/enb_interfaces.h"
 
 #include "s1ap_metrics.h"
-#include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/network_utils.h"
 #include "srslte/common/stack_procedure.h"
 

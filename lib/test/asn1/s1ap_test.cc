@@ -19,7 +19,6 @@
  *
  */
 
-#include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/test_common.h"
