@@ -65,9 +65,9 @@ public:
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res);
 
-  int  get_dl_sched(uint32_t tti, dl_sched_t* dl_sched_res);
-  int  get_ul_sched(uint32_t tti, ul_sched_t* ul_sched_res);
-  int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res);
+  int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res);
+  int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res);
+  int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res);
   void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final
   {
     scheduler.set_dl_tti_mask(tti_mask, nof_sfs);

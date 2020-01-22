@@ -36,15 +36,6 @@
 
 namespace srsenb {
 
-struct phy_cfg_t {
-  srslte_cell_t                  cell;
-  asn1::rrc::prach_cfg_sib_s     prach_cnfg;
-  asn1::rrc::pdsch_cfg_common_s  pdsch_cnfg;
-  asn1::rrc::pusch_cfg_common_s  pusch_cnfg;
-  asn1::rrc::pucch_cfg_common_s  pucch_cnfg;
-  asn1::rrc::srs_ul_cfg_common_c srs_ul_cnfg;
-};
-
 class phy : public enb_phy_base, public phy_interface_stack_lte, public srslte::phy_interface_radio
 {
 public:

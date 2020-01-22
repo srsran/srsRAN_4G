@@ -792,9 +792,9 @@ int parse_cell_cfg(all_args_t* args_, srslte_cell_t* cell)
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
 {
   // Parse config files
-  srslte_cell_t cell_cfg = {};
+  srslte_cell_t cell_common_cfg = {};
 
-  if (enb_conf_sections::parse_cell_cfg(args_, &cell_cfg) != SRSLTE_SUCCESS) {
+  if (enb_conf_sections::parse_cell_cfg(args_, &cell_common_cfg) != SRSLTE_SUCCESS) {
     fprintf(stderr, "Error parsing Cell configuration\n");
     return SRSLTE_ERROR;
   }
@@ -812,11 +812,28 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
   }
 
   // Set fields derived from others, and check for correctness of the parsed configuration
-  return enb_conf_sections::set_derived_args(args_, rrc_cfg_, phy_cfg_, &cell_cfg);
+  return enb_conf_sections::set_derived_args(args_, rrc_cfg_, phy_cfg_, &cell_common_cfg);
 }
 
 int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, srslte_cell_t* cell_cfg_)
 {
+
+  // Copy cell struct to rrc and phy
+  rrc_cfg_->cell = *cell_cfg_;
+
+  // Create dedicated cell configuration from RRC configuration
+  for (auto& cfg : rrc_cfg_->cell_list) {
+    phy_cell_cfg_t phy_cell_cfg = {};
+    phy_cell_cfg.cell           = *cell_cfg_;
+    phy_cell_cfg.cell.id        = cfg.pci;
+    phy_cell_cfg.cell_id        = cfg.cell_id;
+    phy_cell_cfg.root_seq_idx   = cfg.root_seq_idx;
+    phy_cell_cfg.dl_earfcn      = cfg.dl_earfcn;
+    phy_cell_cfg.ul_earfcn      = cfg.ul_earfcn;
+    phy_cell_cfg.rf_port        = cfg.rf_port;
+    phy_cfg_->phy_cell_cfg.push_back(phy_cell_cfg);
+  }
+
   if (args_->enb.transmission_mode == 1) {
     phy_cfg_->pdsch_cnfg.p_b                                    = 0; // Default TM1
     rrc_cfg_->sibs[1].sib2().rr_cfg_common.pdsch_cfg_common.p_b = 0;
@@ -888,13 +905,9 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     }
   }
 
-  // Copy cell struct to rrc and phy
-  rrc_cfg_->cell = *cell_cfg_;
-  phy_cfg_->cell = *cell_cfg_;
-
   // Patch certain args that are not exposed yet
   args_->rf.nof_radios      = 1;
-  args_->rf.nof_rf_channels = args_->phy.nof_carriers;
+  args_->rf.nof_rf_channels = rrc_cfg_->cell_list.size();
   args_->rf.nof_rx_ant      = args_->enb.nof_ports;
 
   return SRSLTE_SUCCESS;
@@ -1371,7 +1384,6 @@ int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_co
   }
 
   // Copy PHY common configuration
-  phy_config_common->cell        = {};
   phy_config_common->prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
   phy_config_common->pdsch_cnfg  = sib2->rr_cfg_common.pdsch_cfg_common;
   phy_config_common->pusch_cnfg  = sib2->rr_cfg_common.pusch_cfg_common;

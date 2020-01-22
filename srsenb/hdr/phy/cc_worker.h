@@ -25,7 +25,6 @@
 #include <string.h>
 
 #include "phy_common.h"
-#include "srslte/srslte.h"
 
 #define LOG_EXECTIME
 

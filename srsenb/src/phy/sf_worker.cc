@@ -78,7 +78,7 @@ void sf_worker::init(phy_common* phy_, srslte::log* log_h_)
   log_h = log_h_;
 
   // Initialise each component carrier workers
-  for (uint32_t i = 0; i < phy->params.nof_carriers; i++) {
+  for (uint32_t i = 0; i < phy->get_nof_carriers(); i++) {
     // Create pointer
     auto q = new cc_worker();
 
@@ -89,14 +89,14 @@ void sf_worker::init(phy_common* phy_, srslte::log* log_h_)
     cc_workers.push_back(std::unique_ptr<cc_worker>(q));
   }
 
-  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->cell.nof_prb)) {
+  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->get_nof_prb())) {
     ERROR("Error initiating soft buffer\n");
     exit(-1);
   }
 
   srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
 
-  Info("Worker %d configured cell %d PRB\n", get_id(), phy->cell.nof_prb);
+  Info("Worker %d configured cell %d PRB\n", get_id(), phy->get_nof_prb());
 
   initiated = true;
   running   = true;
@@ -178,9 +178,9 @@ void sf_worker::work_imp()
   srslte_mbsfn_cfg_t mbsfn_cfg;
   srslte_sf_t        sf_type = phy->is_mbsfn_sf(&mbsfn_cfg, tti_tx_dl) ? SRSLTE_SF_MBSFN : SRSLTE_SF_NORM;
 
-  stack_interface_phy_lte::ul_sched_t* ul_grants = phy->ul_grants;
-  stack_interface_phy_lte::dl_sched_t* dl_grants = phy->dl_grants;
-  stack_interface_phy_lte*             stack     = phy->stack;
+  stack_interface_phy_lte::ul_sched_list_t* ul_grants = phy->ul_grants;
+  stack_interface_phy_lte::dl_sched_list_t* dl_grants = phy->dl_grants;
+  stack_interface_phy_lte*                  stack     = phy->stack;
 
   log_h->step(tti_rx);
 
@@ -190,56 +190,56 @@ void sf_worker::work_imp()
   ul_sf.tti = tti_rx;
 
   // Process UL
-  for (auto& w : cc_workers) {
-    w->work_ul(&ul_sf, &phy->ul_grants[t_rx]);
+  for (auto& q : phy->dl_grants[t_tx_dl]) {
+    q.cfi = mbsfn_cfg.non_mbsfn_region_length;
   }
 
   // Get DL scheduling for the TX TTI from MAC
 
   if (sf_type == SRSLTE_SF_NORM) {
-    if (stack->get_dl_sched(tti_tx_dl, &dl_grants[t_tx_dl]) < 0) {
+    if (stack->get_dl_sched(tti_tx_dl, dl_grants[t_tx_dl]) < 0) {
       Error("Getting DL scheduling from MAC\n");
       return;
     }
   } else {
-    dl_grants[t_tx_dl].cfi = mbsfn_cfg.non_mbsfn_region_length;
-    if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, &dl_grants[t_tx_dl])) {
+    dl_grants[t_tx_dl][0].cfi = mbsfn_cfg.non_mbsfn_region_length;
+    if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, dl_grants[t_tx_dl])) {
       Error("Getting MCH packets from MAC\n");
       return;
     }
   }
 
-  if (dl_grants[t_tx_dl].cfi < 1 || dl_grants[t_tx_dl].cfi > 3) {
-    Error("Invalid CFI=%d\n", dl_grants[t_tx_dl].cfi);
+  if (dl_grants[t_tx_dl][0].cfi < 1 || dl_grants[t_tx_dl][0].cfi > 3) {
+    Error("Invalid CFI=%d\n", dl_grants[t_tx_dl][0].cfi);
     return;
   }
 
   // Get UL scheduling for the TX TTI from MAC
-  if (stack->get_ul_sched(tti_tx_ul, &ul_grants[t_tx_ul]) < 0) {
+  if (stack->get_ul_sched(tti_tx_ul, ul_grants[t_tx_ul]) < 0) {
     Error("Getting UL scheduling from MAC\n");
     return;
   }
 
   // Configure DL subframe
   dl_sf.tti              = tti_tx_dl;
-  dl_sf.cfi              = dl_grants[t_tx_dl].cfi;
+  dl_sf.cfi              = dl_grants[t_tx_dl][0].cfi;
   dl_sf.sf_type          = sf_type;
   dl_sf.non_mbsfn_region = mbsfn_cfg.non_mbsfn_region_length;
 
   // Process DL
-  for (auto& w : cc_workers) {
-    w->work_dl(&dl_sf, &phy->dl_grants[t_tx_dl], &phy->ul_grants[t_tx_ul], &mbsfn_cfg);
+  for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
+    cc_workers[cc]->work_dl(&dl_sf, &phy->dl_grants[t_tx_dl][cc], &phy->ul_grants[t_tx_ul][cc], &mbsfn_cfg);
   }
 
   // Get Transmission buffers
-  for (uint32_t cc = 0, i = 0; cc < phy->params.nof_carriers; cc++) {
-    for (uint32_t ant = 0; ant < phy->cell.nof_ports; ant++, i++) {
+  for (uint32_t cc = 0, i = 0; cc < phy->get_nof_carriers(); cc++) {
+    for (uint32_t ant = 0; ant < phy->get_nof_ports(); ant++, i++) {
       signal_buffer_tx[i] = cc_workers[cc]->get_buffer_tx(ant);
     }
   }
 
   Debug("Sending to radio\n");
-  phy->worker_end(tx_worker_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
+  phy->worker_end(tx_worker_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->get_nof_prb()), tx_time);
 
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);
@@ -265,7 +265,7 @@ uint32_t sf_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
   uint32_t      cnt                             = 0;
   phy_metrics_t _metrics[ENB_METRICS_MAX_USERS] = {};
-  for (uint32_t cc = 0; cc < phy->params.nof_carriers; cc++) {
+  for (uint32_t cc = 0; cc < phy->get_nof_carriers(); cc++) {
     cnt = cc_workers[cc]->get_metrics(_metrics);
     for (uint32_t r = 0; r < cnt; r++) {
       phy_metrics_t* m  = &metrics[r];

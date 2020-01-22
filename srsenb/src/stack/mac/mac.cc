@@ -216,7 +216,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
     }
 
     // Update Scheduler configuration
-    if ((cfg != NULL) ? scheduler.ue_cfg(rnti, cfg) : false) {
+    if ((cfg != nullptr) ? scheduler.ue_cfg(rnti, cfg) : false) {
       Error("Registering new UE rnti=0x%x to SCHED\n", rnti);
     } else {
       ret = 0;
@@ -514,17 +514,13 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
   return 0;
 }
 
-int mac::get_dl_sched(uint32_t tti, dl_sched_t* dl_sched_res)
+int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
 {
   if (!started) {
     return 0;
   }
 
   log_h->step(tti);
-
-  if (!dl_sched_res) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
 
   // Run scheduler with current info
   sched_interface::dl_sched_res_t sched_result = {};
@@ -533,8 +529,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t* dl_sched_res)
     return SRSLTE_ERROR;
   }
 
-  int n = 0;
-
+  int         n            = 0;
+  dl_sched_t* dl_sched_res = &dl_sched_res_list[0];
   pthread_rwlock_rdlock(&rwlock);
 
   // Copy data grants
@@ -568,7 +564,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t* dl_sched_res)
 
         } else {
           /* TB not enabled OR no data to send: set pointers to NULL  */
-          dl_sched_res->pdsch[n].data[tb] = NULL;
+          dl_sched_res->pdsch[n].data[tb] = nullptr;
         }
       }
       n++;
@@ -668,8 +664,9 @@ void mac::build_mch_sched(uint32_t tbs)
   }
 }
 
-int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
+int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res_list)
 {
+  dl_sched_t* dl_sched_res = &dl_sched_res_list[0];
   log_h->step(tti);
   srslte_ra_tb_t mcs      = {};
   srslte_ra_tb_t mcs_data = {};
@@ -728,7 +725,7 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
       }
     } else {
       dl_sched_res->pdsch[0].dci.rnti = 0;
-      dl_sched_res->pdsch[0].data[0]  = NULL;
+      dl_sched_res->pdsch[0].data[0]  = nullptr;
     }
     mch.current_sf_allocation_num++;
   }
@@ -760,7 +757,7 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
     return rar_payload[rar_idx].msg;
   } else {
     Error("Assembling RAR: pdu_len > rar_payload_len (%d>%d)\n", pdu_len, rar_payload_len);
-    return NULL;
+    return nullptr;
   }
 }
 
@@ -770,17 +767,13 @@ uint8_t* mac::assemble_si(uint32_t index)
   return bcch_dlsch_payload;
 }
 
-int mac::get_ul_sched(uint32_t tti, ul_sched_t* ul_sched_res)
+int mac::get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res_list)
 {
-
+  ul_sched_t* ul_sched_res = &ul_sched_res_list[0];
   log_h->step(tti);
 
   if (!started) {
     return 0;
-  }
-
-  if (!ul_sched_res) {
-    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   // Run scheduler with current info

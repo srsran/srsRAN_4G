@@ -46,11 +46,9 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-phy_common::phy_common(uint32_t max_workers_) : tx_sem(max_workers_)
+phy_common::phy_common(uint32_t max_workers_) : tx_sem(max_workers_), cell_list()
 {
-  nof_workers                = 0;
   params.max_prach_offset_us = 20;
-  have_mtch_stop             = false;
   max_workers                = max_workers_;
 
   for (uint32_t i = 0; i < max_workers; i++) {
@@ -76,35 +74,30 @@ void phy_common::reset()
   bzero(dl_grants, sizeof(stack_interface_phy_lte::dl_sched_t) * TTIMOD_SZ);
 }
 
-bool phy_common::init(const srslte_cell_t&         cell_,
+bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
                       srslte::radio_interface_phy* radio_h_,
                       stack_interface_phy_lte*     stack_)
 {
-  radio = radio_h_;
-  stack = stack_;
-  cell  = cell_;
+  radio     = radio_h_;
+  stack     = stack_;
+  cell_list = cell_list_;
 
-  pthread_mutex_init(&user_mutex, nullptr);
   pthread_mutex_init(&mtch_mutex, nullptr);
   pthread_cond_init(&mtch_cvar, nullptr);
 
-  // Instantiate UL channel emulator
+  // Instantiate DL channel emulator
   if (params.ul_channel_args.enable) {
     dl_channel = srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
+    dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell_list[0].cell.nof_prb));
+  }
 
-    dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell.nof_prb));
+  // Create grants
+  for (auto& q : dl_grants) {
+    q.resize(cell_list_.size());
   }
 
   is_first_tx = true;
 
-  // Instantiate UL channel emulator
-  if (params.ul_channel_args.enable) {
-    dl_channel = srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
-
-    dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell.nof_prb));
-  }
-
-  is_first_tx = true;
   reset();
   return true;
 }
@@ -166,11 +159,10 @@ void phy_common::ue_db_clear(uint32_t tti)
 
 void phy_common::ue_db_add_rnti(uint16_t rnti)
 {
-  pthread_mutex_lock(&user_mutex);
+  std::lock_guard<std::mutex> lock(user_mutex);
   if (!common_ue_db.count(rnti)) {
     add_rnti(rnti);
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
 // Private function not mutexed
@@ -185,27 +177,25 @@ void phy_common::add_rnti(uint16_t rnti)
 
 void phy_common::ue_db_rem_rnti(uint16_t rnti)
 {
-  pthread_mutex_lock(&user_mutex);
+  std::lock_guard<std::mutex> lock(user_mutex);
   if (!common_ue_db.count(rnti)) {
     common_ue_db.erase(rnti);
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
 void phy_common::ue_db_set_ack_pending(uint32_t tti, uint16_t rnti, uint32_t tb_idx, uint32_t last_n_pdcch)
 {
-  pthread_mutex_lock(&user_mutex);
+  std::lock_guard<std::mutex> lock(user_mutex);
   if (common_ue_db.count(rnti)) {
     common_ue_db[rnti].pending_ack.is_pending[TTIMOD(tti)][tb_idx] = true;
     common_ue_db[rnti].pending_ack.n_pdcch[TTIMOD(tti)]            = (uint16_t)last_n_pdcch;
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
 bool phy_common::ue_db_is_ack_pending(uint32_t tti, uint16_t rnti, uint32_t tb_idx, uint32_t* last_n_pdcch)
 {
-  bool ret = false;
-  pthread_mutex_lock(&user_mutex);
+  bool                        ret = false;
+  std::lock_guard<std::mutex> lock(user_mutex);
   if (common_ue_db.count(rnti)) {
     ret = common_ue_db[rnti].pending_ack.is_pending[TTIMOD(tti)][tb_idx];
     common_ue_db[rnti].pending_ack.is_pending[TTIMOD(tti)][tb_idx] = false;
@@ -214,48 +204,43 @@ bool phy_common::ue_db_is_ack_pending(uint32_t tti, uint16_t rnti, uint32_t tb_i
       *last_n_pdcch = common_ue_db[rnti].pending_ack.n_pdcch[TTIMOD(tti)];
     }
   }
-  pthread_mutex_unlock(&user_mutex);
   return ret;
 }
 
 void phy_common::ue_db_set_ri(uint16_t rnti, uint8_t ri)
 {
-  pthread_mutex_lock(&user_mutex);
+  std::lock_guard<std::mutex> lock(user_mutex);
   if (common_ue_db.count(rnti)) {
     common_ue_db[rnti].ri = ri;
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
 uint8_t phy_common::ue_db_get_ri(uint16_t rnti)
 {
-  pthread_mutex_lock(&user_mutex);
-  uint8_t ret = 0;
+  std::lock_guard<std::mutex> lock(user_mutex);
+  uint8_t                     ret = 0;
   if (common_ue_db.count(rnti)) {
     ret = common_ue_db[rnti].ri;
   }
-  pthread_mutex_unlock(&user_mutex);
   return ret;
 }
 
 void phy_common::ue_db_set_last_ul_tb(uint16_t rnti, uint32_t pid, srslte_ra_tb_t tb)
 {
-  pthread_mutex_lock(&user_mutex);
+  std::lock_guard<std::mutex> lock(user_mutex);
   if (!common_ue_db.count(rnti)) {
     add_rnti(rnti);
   }
   common_ue_db[rnti].last_tb[pid % SRSLTE_MAX_HARQ_PROC] = tb;
-  pthread_mutex_unlock(&user_mutex);
 }
 
 srslte_ra_tb_t phy_common::ue_db_get_last_ul_tb(uint16_t rnti, uint32_t pid)
 {
-  pthread_mutex_lock(&user_mutex);
-  srslte_ra_tb_t ret = {};
+  std::lock_guard<std::mutex> lock(user_mutex);
+  srslte_ra_tb_t              ret = {};
   if (common_ue_db.count(rnti)) {
     ret = common_ue_db[rnti].last_tb[pid % SRSLTE_FDD_NOF_HARQ];
   }
-  pthread_mutex_unlock(&user_mutex);
   return ret;
 }
 

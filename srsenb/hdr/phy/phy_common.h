@@ -22,6 +22,7 @@
 #ifndef SRSENB_PHCH_COMMON_H
 #define SRSENB_PHCH_COMMON_H
 
+#include "phy_interfaces.h"
 #include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/log.h"
@@ -38,25 +39,6 @@
 
 namespace srsenb {
 
-typedef struct {
-  std::string            type;
-  srslte::phy_log_args_t log;
-
-  uint32_t nof_carriers;
-
-  float       max_prach_offset_us;
-  int         pusch_max_its;
-  bool        pusch_8bit_decoder;
-  float       tx_amplitude;
-  int         nof_phy_threads;
-  std::string equalizer_mode;
-  float       estimator_fil_w;
-  bool        pregenerate_signals;
-
-  srslte::channel::args_t dl_channel_args;
-  srslte::channel::args_t ul_channel_args;
-} phy_args_t;
-
 class phy_common
 {
 public:
@@ -65,7 +47,8 @@ public:
 
   void set_nof_workers(uint32_t nof_workers);
 
-  bool init(const srslte_cell_t& cell_, srslte::radio_interface_phy* radio_handler, stack_interface_phy_lte* mac);
+  bool
+       init(const phy_cell_cfg_list_t& cell_list_, srslte::radio_interface_phy* radio_handler, stack_interface_phy_lte* mac);
   void reset();
   void stop();
 
@@ -73,8 +56,12 @@ public:
   worker_end(uint32_t tx_mutex_cnt, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
-  srslte_cell_t cell   = {};
-  phy_args_t    params = {};
+  phy_cell_cfg_list_t cell_list;
+  phy_args_t          params = {};
+
+  uint32_t get_nof_carriers() { return (uint32_t)cell_list.size(); };
+  uint32_t get_nof_prb() { return (uint32_t)cell_list[0].cell.nof_prb; };
+  uint32_t get_nof_ports() { return (uint32_t)cell_list[0].cell.nof_ports; };
 
   // Physical Uplink Config common
   srslte_ul_cfg_t ul_cfg_com = {};
@@ -87,8 +74,8 @@ public:
   srslte::channel_ptr          dl_channel = nullptr;
 
   // Common objects for schedulign grants
-  stack_interface_phy_lte::ul_sched_t ul_grants[TTIMOD_SZ] = {};
-  stack_interface_phy_lte::dl_sched_t dl_grants[TTIMOD_SZ] = {};
+  stack_interface_phy_lte::ul_sched_list_t ul_grants[TTIMOD_SZ] = {};
+  stack_interface_phy_lte::dl_sched_list_t dl_grants[TTIMOD_SZ] = {};
 
   // Map of pending ACKs for each user
   typedef struct {
@@ -130,12 +117,12 @@ private:
   uint32_t nof_workers = 0;
   uint32_t max_workers = 0;
 
-  pthread_mutex_t user_mutex = {};
+  std::mutex user_mutex = {};
 
-  bool                                     have_mtch_stop = false;
-  pthread_mutex_t                          mtch_mutex     = {};
-  pthread_cond_t                           mtch_cvar      = {};
-  phy_interface_stack_lte::phy_cfg_mbsfn_t mbsfn;
+  bool                                     have_mtch_stop     = false;
+  pthread_mutex_t                          mtch_mutex         = {};
+  pthread_cond_t                           mtch_cvar          = {};
+  phy_interface_stack_lte::phy_cfg_mbsfn_t mbsfn              = {};
   bool                                     sib13_configured   = false;
   bool                                     mcch_configured    = false;
   uint8_t                                  mch_table[40]      = {};

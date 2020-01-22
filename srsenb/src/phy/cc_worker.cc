@@ -86,38 +86,40 @@ FILE* f;
 
 void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
 {
-  phy    = phy_;
-  log_h  = log_h_;
-  cc_idx = cc_idx_;
+  srslte_cell_t cell    = phy_->cell_list[cc_idx_].cell;
+  uint32_t      nof_prb = phy_->get_nof_prb();
+  phy                   = phy_;
+  log_h                 = log_h_;
+  cc_idx                = cc_idx_;
 
   // Init cell here
   for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
-    signal_buffer_rx[p] = (cf_t*)srslte_vec_malloc(2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
+    signal_buffer_rx[p] = srslte_vec_cf_malloc(2 * SRSLTE_SF_LEN_PRB(nof_prb));
     if (!signal_buffer_rx[p]) {
       ERROR("Error allocating memory\n");
       return;
     }
-    bzero(signal_buffer_rx[p], 2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
-    signal_buffer_tx[p] = (cf_t*)srslte_vec_malloc(2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
+    bzero(signal_buffer_rx[p], 2 * SRSLTE_SF_LEN_PRB(phy->get_nof_prb()) * sizeof(cf_t));
+    signal_buffer_tx[p] = (cf_t*)srslte_vec_malloc(2 * SRSLTE_SF_LEN_PRB(nof_prb) * sizeof(cf_t));
     if (!signal_buffer_tx[p]) {
       ERROR("Error allocating memory\n");
       return;
     }
-    bzero(signal_buffer_tx[p], 2 * SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t));
+    bzero(signal_buffer_tx[p], 2 * SRSLTE_SF_LEN_PRB(nof_prb) * sizeof(cf_t));
   }
-  if (srslte_enb_dl_init(&enb_dl, signal_buffer_tx, phy->cell.nof_prb)) {
+  if (srslte_enb_dl_init(&enb_dl, signal_buffer_tx, phy->get_nof_prb())) {
     ERROR("Error initiating ENB DL\n");
     return;
   }
-  if (srslte_enb_dl_set_cell(&enb_dl, phy->cell)) {
+  if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
     ERROR("Error initiating ENB DL\n");
     return;
   }
-  if (srslte_enb_ul_init(&enb_ul, signal_buffer_rx[0], phy->cell.nof_prb)) {
+  if (srslte_enb_ul_init(&enb_ul, signal_buffer_rx[0], phy->get_nof_prb())) {
     ERROR("Error initiating ENB UL\n");
     return;
   }
-  if (srslte_enb_ul_set_cell(&enb_ul, phy->cell, &phy->ul_cfg_com.dmrs)) {
+  if (srslte_enb_ul_set_cell(&enb_ul, cell, &phy->ul_cfg_com.dmrs)) {
     ERROR("Error initiating ENB UL\n");
     return;
   }
@@ -133,14 +135,14 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
     add_rnti(1 + i, false);
   }
 
-  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->cell.nof_prb)) {
+  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, nof_prb)) {
     ERROR("Error initiating soft buffer\n");
     exit(-1);
   }
 
   srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
 
-  Info("Component Carrier Worker %d configured cell %d PRB\n", cc_idx, phy->cell.nof_prb);
+  Info("Component Carrier Worker %d configured cell %d PRB\n", cc_idx, nof_prb);
 
   if (phy->params.pusch_8bit_decoder) {
     enb_ul.pusch.llr_is_8bit        = true;
@@ -214,15 +216,21 @@ void cc_worker::rem_rnti(uint16_t rnti)
     srslte_enb_ul_rem_rnti(&enb_ul, rnti);
 
     // remove any pending dci for each subframe
-    for (uint32_t i = 0; i < TTIMOD_SZ; i++) {
-      for (uint32_t j = 0; j < phy->ul_grants[i].nof_grants; j++) {
-        if (phy->ul_grants[i].pusch[j].dci.rnti == rnti) {
-          phy->ul_grants[i].pusch[j].dci.rnti = 0;
+    for (auto& list : phy->ul_grants) {
+      for (auto& q : list) {
+        for (uint32_t j = 0; j < q.nof_grants; j++) {
+          if (q.pusch[j].dci.rnti == rnti) {
+            q.pusch[j].dci.rnti = 0;
+          }
         }
       }
-      for (uint32_t j = 0; j < phy->dl_grants[i].nof_grants; j++) {
-        if (phy->dl_grants[i].pdsch[j].dci.rnti == rnti) {
-          phy->dl_grants[i].pdsch[j].dci.rnti = 0;
+    }
+    for (auto& list : phy->dl_grants) {
+      for (auto& q : list) {
+        for (uint32_t j = 0; j < q.nof_grants; j++) {
+          if (q.pdsch[j].dci.rnti == rnti) {
+            q.pdsch[j].dci.rnti = 0;
+          }
         }
       }
     }
@@ -476,7 +484,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
       // Compute UL grant
       srslte_pusch_grant_t* grant = &ue_db[rnti]->ul_cfg.pusch.grant;
-      if (srslte_ra_ul_dci_to_grant(&phy->cell, &ul_sf, &ue_db[rnti]->ul_cfg.hopping, &grants[i].dci, grant)) {
+      if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ue_db[rnti]->ul_cfg.hopping, &grants[i].dci, grant)) {
         Error("Computing PUSCH dci\n");
         return SRSLTE_ERROR;
       }
@@ -643,8 +651,8 @@ int cc_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srs
 {
   srslte_pmch_cfg_t pmch_cfg;
   ZERO_OBJECT(pmch_cfg);
-  srslte_configure_pmch(&pmch_cfg, &phy->cell, mbsfn_cfg);
-  srslte_ra_dl_compute_nof_re(&phy->cell, &dl_sf, &pmch_cfg.pdsch_cfg.grant);
+  srslte_configure_pmch(&pmch_cfg, &enb_dl.cell, mbsfn_cfg);
+  srslte_ra_dl_compute_nof_re(&enb_dl.cell, &dl_sf, &pmch_cfg.pdsch_cfg.grant);
 
   // Set soft buffer
   pmch_cfg.pdsch_cfg.softbuffers.tx[0] = &temp_mbsfn_softbuffer;
@@ -680,7 +688,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 
       // Compute DL grant
       if (srslte_ra_dl_dci_to_grant(
-              &phy->cell, &dl_sf, ue_db[rnti]->dl_cfg.tm, false, &grants[i].dci, &ue_db[rnti]->dl_cfg.pdsch.grant)) {
+              &enb_dl.cell, &dl_sf, ue_db[rnti]->dl_cfg.tm, false, &grants[i].dci, &ue_db[rnti]->dl_cfg.pdsch.grant)) {
         Error("Computing DL grant\n");
       }
 
@@ -730,8 +738,7 @@ uint32_t cc_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
   std::lock_guard<std::mutex> lock(mutex);
   uint32_t                    cnt = 0;
   for (auto& ue : ue_db) {
-    if ((SRSLTE_RNTI_ISUSER(ue.first) || ue.first == SRSLTE_MRNTI) &&
-        cnt < ENB_METRICS_MAX_USERS) {
+    if ((SRSLTE_RNTI_ISUSER(ue.first) || ue.first == SRSLTE_MRNTI) && cnt < ENB_METRICS_MAX_USERS) {
       ue.second->metrics_read(&metrics[cnt]);
       cnt++;
     }
@@ -764,19 +771,19 @@ void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo
 
 int cc_worker::read_ce_abs(float* ce_abs)
 {
-  int sz = srslte_symbol_sz(phy->cell.nof_prb);
+  int sz = srslte_symbol_sz(phy->get_nof_prb());
   bzero(ce_abs, sizeof(float) * sz);
-  int g = (sz - 12 * phy->cell.nof_prb) / 2;
-  srslte_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSLTE_NRE * phy->cell.nof_prb);
+  int g = (sz - SRSLTE_NRE * phy->get_nof_prb()) / 2;
+  srslte_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSLTE_NRE * phy->get_nof_prb());
   return sz;
 }
 
 int cc_worker::read_ce_arg(float* ce_arg)
 {
-  int sz = srslte_symbol_sz(phy->cell.nof_prb);
+  int sz = srslte_symbol_sz(phy->get_nof_prb());
   bzero(ce_arg, sizeof(float) * sz);
-  int g = (sz - 12 * phy->cell.nof_prb) / 2;
-  srslte_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSLTE_NRE * phy->cell.nof_prb);
+  int g = (sz - SRSLTE_NRE * phy->get_nof_prb()) / 2;
+  srslte_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSLTE_NRE * phy->get_nof_prb());
   return sz;
 }
 

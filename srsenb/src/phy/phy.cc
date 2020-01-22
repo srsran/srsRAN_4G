@@ -141,7 +141,7 @@ int phy::init(const phy_args_t&            args,
 
   workers_common.params = args;
 
-  workers_common.init(cfg.cell, radio, stack_);
+  workers_common.init(cfg.phy_cell_cfg, radio, stack_);
 
   parse_config(cfg);
 
@@ -152,8 +152,9 @@ int phy::init(const phy_args_t&            args,
   }
 
   // For each carrier, initialise PRACH worker
-  for (uint32_t cc = 0; cc < args.nof_carriers; cc++) {
-    prach.init(cc, cfg.cell, prach_cfg, stack_, log_vec.at(0).get(), PRACH_WORKER_THREAD_PRIO);
+  for (uint32_t cc = 0; cc < cfg.phy_cell_cfg.size(); cc++) {
+    prach_cfg.root_seq_idx = cfg.phy_cell_cfg[cc].root_seq_idx;
+    prach.init(cc, cfg.phy_cell_cfg[cc].cell, prach_cfg, stack_, log_vec.at(0).get(), PRACH_WORKER_THREAD_PRIO);
   }
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
