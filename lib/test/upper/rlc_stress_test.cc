@@ -78,6 +78,7 @@ typedef struct {
   uint32_t    test_duration_sec;
   float       pdu_drop_rate;
   float       pdu_cut_rate;
+  float       pdu_duplicate_rate;
   uint32_t    sdu_gen_delay_usec;
   uint32_t    pdu_tx_delay_usec;
   bool        reestablish;
@@ -88,6 +89,7 @@ typedef struct {
   bool        random_opp;
   bool        zero_seed;
   bool        pedantic_sdu_check;
+  uint32_t    nof_pdu_tti;
 } stress_test_args_t;
 
 void parse_args(stress_test_args_t* args, int argc, char* argv[])
@@ -103,22 +105,24 @@ void parse_args(stress_test_args_t* args, int argc, char* argv[])
   // Command line or config file options
   bpo::options_description common("Configuration options");
   common.add_options()
-  ("rat",          bpo::value<std::string>(&args->rat)->default_value("LTE"), "The RLC version to use (LTE/NR)")
-  ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
-  ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(5), "Duration (sec)")
-  ("sdu_size",      bpo::value<uint32_t>(&args->sdu_size)->default_value(1500), "Size of SDUs")
-  ("avg_opp_size",  bpo::value<uint32_t>(&args->avg_opp_size)->default_value(1505), "Size of the MAC opportunity (if not random)")
-  ("random_opp",    bpo::value<bool>(&args->random_opp)->default_value(true), "Whether to generate random MAC opportunities")
-  ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(0), "SDU generation delay (usec)")
-  ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(0), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
-  ("pdu_drop_rate", bpo::value<float>(&args->pdu_drop_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
-  ("pdu_cut_rate",  bpo::value<float>(&args->pdu_cut_rate)->default_value(0.0), "Rate at which RLC PDUs are chopped in length")
-  ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution")
-  ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
-  ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
-  ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
-  ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero")
-  ("pedantic",      bpo::value<bool>(&args->pedantic_sdu_check)->default_value(false), "Whether to check SDU length and exit on error");
+      ("rat",          bpo::value<std::string>(&args->rat)->default_value("LTE"), "The RLC version to use (LTE/NR)")
+      ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
+      ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(5), "Duration (sec)")
+      ("sdu_size",      bpo::value<uint32_t>(&args->sdu_size)->default_value(1500), "Size of SDUs")
+      ("avg_opp_size",  bpo::value<uint32_t>(&args->avg_opp_size)->default_value(1505), "Size of the MAC opportunity (if not random)")
+      ("random_opp",    bpo::value<bool>(&args->random_opp)->default_value(true), "Whether to generate random MAC opportunities")
+      ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(0), "SDU generation delay (usec)")
+      ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(0), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
+      ("pdu_drop_rate", bpo::value<float>(&args->pdu_drop_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
+      ("pdu_cut_rate",  bpo::value<float>(&args->pdu_cut_rate)->default_value(0.0), "Rate at which RLC PDUs are chopped in length")
+      ("pdu_duplicate_rate",  bpo::value<float>(&args->pdu_duplicate_rate)->default_value(0.0), "Rate at which RLC PDUs are duplicated")
+      ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution")
+      ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
+      ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
+      ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
+      ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero")
+      ("pedantic",      bpo::value<bool>(&args->pedantic_sdu_check)->default_value(false), "Whether to check SDU length and exit on error")
+      ("nof_pdu_tti",   bpo::value<uint32_t>(&args->nof_pdu_tti)->default_value(1), "Number of PDUs processed in a TTI");
   // clang-format on
 
   // these options are allowed on the command line
@@ -161,7 +165,8 @@ public:
     timers(timers_),
     log("MAC  "),
     thread("MAC_DUMMY"),
-    real_dist(0.0, 1.0)
+    real_dist(0.0, 1.0),
+    mt19937(1234)
   {
     log.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
     log.set_hex_limit(LOG_HEX_LIMIT);
@@ -174,37 +179,72 @@ public:
   }
 
 private:
-  void run_tti(rlc_interface_mac* tx_rlc, rlc_interface_mac* rx_rlc, bool is_dl)
+  void run_tx_tti(rlc_interface_mac* tx_rlc, rlc_interface_mac* rx_rlc, std::vector<unique_byte_buffer_t>& pdu_list)
   {
-    byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer_t pdu  = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
-    if (!pdu) {
-      printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
-      exit(-1);
+    // Generate A number of MAC PDUs
+    for (uint32_t i = 0; i < args.nof_pdu_tti; i++) {
+      // Get PDU pool
+      byte_buffer_pool* pool = byte_buffer_pool::get_instance();
+
+      // Create PDU unique buffer
+      unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
+      if (!pdu) {
+        printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
+        exit(-1);
+      }
+
+      // Get MAC PDU size
+      float factor = 1.0f;
+      if (args.random_opp) {
+        factor = 0.5f + real_dist(mt19937);
+      }
+      int opp_size = static_cast<int>(args.avg_opp_size * factor);
+
+      // Request data to transmit
+      uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
+      if (buf_state > 0) {
+        int read     = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
+        pdu->N_bytes = read;
+
+        // Push PDU in the list
+        pdu_list.push_back(std::move(pdu));
+      }
+    }
+  }
+
+  void run_rx_tti(rlc_interface_mac*                 tx_rlc,
+                  rlc_interface_mac*                 rx_rlc,
+                  bool                               is_dl,
+                  std::vector<unique_byte_buffer_t>& pdu_list)
+  {
+    // Sleep if necessary
+    if (args.pdu_tx_delay_usec > 0) {
+      usleep(args.pdu_tx_delay_usec);
     }
 
-    float factor = 1.0;
-    if (args.random_opp) {
-      factor = 0.5 + real_dist(mt19937);
-    }
-    int      opp_size  = args.avg_opp_size * factor;
-    uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
-    if (buf_state > 0) {
-      int read     = tx_rlc->read_pdu(lcid, pdu->msg, opp_size);
-      pdu->N_bytes = read;
-      if (args.pdu_tx_delay_usec > 0) {
-        usleep(args.pdu_tx_delay_usec);
-      }
-      if ((real_dist(mt19937) > args.pdu_drop_rate) && read > 0) {
+    auto it          = pdu_list.begin(); // PDU iterator
+    bool skip_action = false;            // Avoid discarding a duplicated or duplicating a discarded
+
+    while (it != pdu_list.end()) {
+      // Get PDU unique buffer
+      unique_byte_buffer_t& pdu = *it;
+
+      // Drop
+      if (((real_dist(mt19937) > args.pdu_drop_rate) || skip_action) && pdu->N_bytes > 0) {
         uint32_t pdu_len = pdu->N_bytes;
-        if ((real_dist(mt19937) > 0.1) && args.pdu_cut_rate) {
-          int cut_pdu_len = pdu_len * real_dist(mt19937);
-          log.info("Cutting MAC PDU len (%d B > %d B)\n", pdu_len, cut_pdu_len);
+
+        // Cut
+        if ((real_dist(mt19937) < args.pdu_cut_rate)) {
+          int cut_pdu_len = static_cast<int>(pdu_len * real_dist(mt19937));
+          log.info("Cutting MAC PDU len (%d B -> %d B)\n", pdu_len, cut_pdu_len);
           pdu_len = cut_pdu_len;
         }
-        rx_rlc->write_pdu(lcid, pdu->msg, pdu_len);
-        write_pdu_to_pcap(is_dl, 4, pdu->msg, pdu_len);
 
+        // Write PDU in RX
+        rx_rlc->write_pdu(lcid, pdu->msg, pdu_len);
+
+        // Write PCAP
+        write_pdu_to_pcap(is_dl, 4, pdu->msg, pdu_len);
         if (is_dl) {
           pcap->write_dl_am_ccch(pdu->msg, pdu_len);
         } else {
@@ -212,11 +252,35 @@ private:
         }
       } else {
         log.warning_hex(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)\n", pdu->N_bytes);
+        skip_action = true; // Avoid drop duplicating this PDU
+      }
+
+      // Duplicate
+      if (real_dist(mt19937) > args.pdu_duplicate_rate || skip_action) {
+        it++;
+        skip_action = false; // Allow action on the next PDU
+      } else {
+        log.warning_hex(pdu->msg, pdu->N_bytes, "Duplicating RLC PDU (%d B)\n", pdu->N_bytes);
+        skip_action = true; // Avoid drop of this PDU
       }
     }
   }
 
-  void run_thread()
+  void run_tti(rlc_interface_mac* tx_rlc, rlc_interface_mac* rx_rlc, bool is_dl)
+  {
+    std::vector<unique_byte_buffer_t> pdu_list;
+
+    // Run Tx
+    run_tx_tti(tx_rlc, rx_rlc, pdu_list);
+
+    // Reverse PDUs
+    std::reverse(pdu_list.begin(), pdu_list.end());
+
+    // Run Rx
+    run_rx_tti(tx_rlc, rx_rlc, is_dl, pdu_list);
+  }
+
+  void run_thread() override
   {
     while (run_enable) {
       // Downlink direction first (RLC1->RLC2)
