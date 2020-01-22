@@ -62,16 +62,38 @@ sched_params_t::sched_params_t()
   sched_cfg.max_aggr_level   = 3;
 }
 
-bool sched_params_t::set_cfg(srslte::log* log_, sched_interface::cell_cfg_t* cfg_, srslte_regs_t* regs_)
+bool sched_params_t::set_cfg(srslte::log* log_, std::vector<sched_interface::cell_cfg_t>* cfg_, srslte_regs_t* regs_)
 {
   log_h = log_;
-  cfg   = cfg_;
   regs  = regs_;
 
-  // Basic cell config checks
-  if (cfg->si_window_ms == 0) {
-    Error("SCHED: Invalid si-window length 0 ms\n");
-    return false;
+  // copy cell cfgs
+  cell_cfg.resize(cfg_->size());
+  for (uint32_t i = 0; i < cfg_->size(); ++i) {
+    sched_cell_params_t& item = cell_cfg[i];
+    item.cfg                  = &(*cfg_)[i];
+
+    // Basic cell config checks
+    if (item.cfg->si_window_ms == 0) {
+      Error("SCHED: Invalid si-window length 0 ms\n");
+      return false;
+    }
+
+    item.P        = srslte_ra_type0_P(item.cfg->cell.nof_prb);
+    item.nof_rbgs = srslte::ceil_div(item.cfg->cell.nof_prb, item.P);
+
+    // PRACH has to fit within the PUSCH space
+    bool invalid_prach = item.cfg->cell.nof_prb == 6 and (item.cfg->prach_freq_offset + 6 > item.cfg->cell.nof_prb);
+    invalid_prach |= item.cfg->cell.nof_prb > 6 and
+                     ((item.cfg->prach_freq_offset + 6) > (item.cfg->cell.nof_prb - item.cfg->nrb_pucch) or
+                      (int) item.cfg->prach_freq_offset < item.cfg->nrb_pucch);
+    if (invalid_prach) {
+      log_h->error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
+                   item.cfg->prach_freq_offset);
+      log_h->console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
+                     item.cfg->prach_freq_offset);
+      return false;
+    }
   }
 
   // Compute Common locations for DCI for each CFI
@@ -85,9 +107,6 @@ bool sched_params_t::set_cfg(srslte::log* log_, sched_interface::cell_cfg_t* cfg
       sched::generate_cce_location(regs, &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
     }
   }
-
-  P        = srslte_ra_type0_P(cfg->cell.nof_prb);
-  nof_rbgs = srslte::ceil_div(cfg->cell.nof_prb, P);
 
   // precompute nof cces in PDCCH for each CFI
   for (uint32_t cfix = 0; cfix < nof_cce_table.size(); ++cfix) {
@@ -105,17 +124,6 @@ bool sched_params_t::set_cfg(srslte::log* log_, sched_interface::cell_cfg_t* cfg
     log_h->console(
         "SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
         sched_cfg.nof_ctrl_symbols);
-    return false;
-  }
-
-  // PRACH has to fit within the PUSCH space
-  bool invalid_prach = cfg->cell.nof_prb == 6 and (cfg->prach_freq_offset + 6 > cfg->cell.nof_prb);
-  invalid_prach |= cfg->cell.nof_prb > 6 and ((cfg->prach_freq_offset + 6) > (cfg->cell.nof_prb - cfg->nrb_pucch) or
-                                              (int) cfg->prach_freq_offset < cfg->nrb_pucch);
-  if (invalid_prach) {
-    log_h->error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg->prach_freq_offset);
-    log_h->console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
-                   cfg->prach_freq_offset);
     return false;
   }
 
@@ -153,7 +161,7 @@ void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
   log_h = log;
   rrc   = rrc_;
 
-  // Initialize Independent carrier schedulers
+  // Initialize first carrier scheduler
   carrier_schedulers.emplace_back(new carrier_sched{rrc, &ue_db, 0});
 
   reset();
@@ -178,19 +186,12 @@ void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
   }
 }
 
-void sched::set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_)
+int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
 {
-  for (std::unique_ptr<carrier_sched>& c : carrier_schedulers) {
-    c->set_metric(dl_metric_, ul_metric_);
-  }
-}
-
-int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
-{
-  cfg = *cell_cfg;
+  cfg = cell_cfg;
 
   // Get DCI locations
-  if (srslte_regs_init(&regs, cfg.cell) != LIBLTE_SUCCESS) {
+  if (srslte_regs_init(&regs, cfg[0].cell) != LIBLTE_SUCCESS) {
     Error("Getting DCI locations\n");
     return SRSLTE_ERROR;
   }
@@ -200,7 +201,14 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
     return -1;
   }
 
-  // Initiate the tti_scheduler for each TTI
+  // Create remaining cells, if not created yet
+  uint32_t prev_size = carrier_schedulers.size();
+  carrier_schedulers.resize(sched_params.cell_cfg.size());
+  for (uint32_t i = prev_size; i < sched_params.cell_cfg.size(); ++i) {
+    carrier_schedulers[i].reset(new carrier_sched{rrc, &ue_db, i});
+  }
+
+  // Setup the ra/bc/tti_scheduler for each TTI
   for (std::unique_ptr<carrier_sched>& c : carrier_schedulers) {
     c->carrier_cfg(sched_params);
   }

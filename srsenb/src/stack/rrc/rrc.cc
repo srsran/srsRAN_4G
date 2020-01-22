@@ -766,34 +766,58 @@ void rrc::rem_user(uint16_t rnti)
 
 void rrc::config_mac()
 {
+  using sched_cell_t = sched_interface::cell_cfg_t;
+
   // Fill MAC scheduler configuration for SIBs
-  sched_interface::cell_cfg_t sched_cfg;
-  bzero(&sched_cfg, sizeof(sched_interface::cell_cfg_t));
-  for (uint32_t i = 0; i < nof_si_messages; i++) {
-    sched_cfg.sibs[i].len = sib_buffer[i]->N_bytes;
-    if (i == 0) {
-      sched_cfg.sibs[i].period_rf = 8; // SIB1 is always 8 rf
-    } else {
-      sched_cfg.sibs[i].period_rf = cfg.sib1.sched_info_list[i - 1].si_periodicity.to_number();
+  std::vector<sched_cell_t> sched_cfg;
+  sched_cfg.resize(cfg.cell_list.size());
+
+  for (uint32_t ccidx = 0; ccidx < cfg.cell_list.size(); ++ccidx) {
+    sched_interface::cell_cfg_t& item = sched_cfg[ccidx];
+
+    // set sib/prach cfg
+    for (uint32_t i = 0; i < nof_si_messages; i++) {
+      item.sibs[i].len = sib_buffer[i]->N_bytes;
+      if (i == 0) {
+        item.sibs[i].period_rf = 8; // SIB1 is always 8 rf
+      } else {
+        item.sibs[i].period_rf = cfg.sib1.sched_info_list[i - 1].si_periodicity.to_number();
+      }
+    }
+    item.prach_config        = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_cfg_idx;
+    item.prach_nof_preambles = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
+    item.si_window_ms        = cfg.sib1.si_win_len.to_number();
+    item.prach_rar_window =
+        cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number();
+    item.prach_freq_offset = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
+    item.maxharq_msg3tx    = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
+
+    item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
+    rrc_log->info("Allocating %d PRBs for PUCCH\n", item.nrb_pucch);
+
+    // Copy Cell configuration
+    item.cell = cfg.cell;
+
+    // copy secondary cell list info
+    sched_cfg[ccidx].scell_list.resize(cfg.cell_list[ccidx].scell_list.size());
+    for (uint32_t scidx = 0; scidx < cfg.cell_list[ccidx].scell_list.size(); ++scidx) {
+      const auto& scellitem = cfg.cell_list[ccidx].scell_list[scidx];
+      // search enb_cc_idx specific to cell_id
+      auto it = std::find_if(cfg.cell_list.begin(), cfg.cell_list.end(), [&scellitem](const cell_cfg_t& e) {
+        return e.cell_id == scellitem.cell_id;
+      });
+      if (it == cfg.cell_list.end()) {
+        rrc_log->warning("Secondary cell 0x%x not configured\n", scellitem.cell_id);
+      }
+      uint32_t scell_enb_idx                                      = it - cfg.cell_list.begin();
+      sched_cfg[ccidx].scell_list[scidx].enb_cc_idx               = scell_enb_idx;
+      sched_cfg[ccidx].scell_list[scidx].ul_allowed               = scellitem.ul_allowed;
+      sched_cfg[ccidx].scell_list[scidx].cross_carrier_scheduling = scellitem.cross_carrier_sched;
     }
   }
-  sched_cfg.prach_config = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_cfg_idx;
-  sched_cfg.prach_nof_preambles =
-      cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
-  sched_cfg.si_window_ms = cfg.sib1.si_win_len.to_number();
-  sched_cfg.prach_rar_window =
-      cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number();
-  sched_cfg.prach_freq_offset = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-  sched_cfg.maxharq_msg3tx    = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
-
-  sched_cfg.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
-  rrc_log->info("Allocating %d PRBs for PUCCH\n", sched_cfg.nrb_pucch);
-
-  // Copy Cell configuration
-  memcpy(&sched_cfg.cell, &cfg.cell, sizeof(srslte_cell_t));
 
   // Configure MAC scheduler
-  mac->cell_cfg(&sched_cfg);
+  mac->cell_cfg(sched_cfg);
 }
 
 uint32_t rrc::generate_sibs()

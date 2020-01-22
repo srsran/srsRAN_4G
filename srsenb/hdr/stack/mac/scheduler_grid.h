@@ -113,7 +113,7 @@ public:
     rbg_range_t     rbg_range;
   };
 
-  void            init(const sched_params_t& sched_params_, uint32_t cc_idx_);
+  void            init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_);
   void            new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
@@ -131,11 +131,12 @@ private:
   alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
 
   // consts
-  const sched_params_t* sched_params = nullptr;
-  srslte::log*          log_h        = nullptr;
-  uint32_t              nof_rbgs     = 0;
-  uint32_t              si_n_rbg = 0, rar_n_rbg = 0;
-  uint32_t              cc_idx = 0;
+  const sched_params_t*              sched_params = nullptr;
+  const sched_interface::cell_cfg_t* cell_cfg     = nullptr;
+  srslte::log*                       log_h        = nullptr;
+  uint32_t                           nof_rbgs     = 0;
+  uint32_t                           si_n_rbg = 0, rar_n_rbg = 0;
+  uint32_t                           enb_cc_idx = 0;
 
   // tti const
   const tti_params_t* tti_params = nullptr;
@@ -286,9 +287,10 @@ private:
   void        set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
 
   // consts
-  const sched_params_t* sched_params = nullptr;
-  srslte::log*          log_h        = nullptr;
-  uint32_t              enb_cc_idx   = 0;
+  const sched_params_t*      sched_params = nullptr;
+  const sched_cell_params_t* cell_cfg     = nullptr;
+  srslte::log*               log_h        = nullptr;
+  uint32_t                   enb_cc_idx   = 0;
 
   // internal state
   tti_params_t               tti_params{10241};

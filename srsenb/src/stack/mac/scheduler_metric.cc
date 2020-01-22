@@ -36,12 +36,15 @@ namespace srsenb {
  *
  *****************************************************************/
 
-void dl_metric_rr::set_params(const sched_params_t& sched_params_)
+void dl_metric_rr::set_params(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
 {
-  log_h = sched_params_.log_h;
+  sched_params = &sched_params_;
+  enb_cc_idx   = enb_cc_idx_;
+  cell_params  = &sched_params->cell_cfg[enb_cc_idx];
+  log_h        = sched_params_.log_h;
 }
 
-void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched, uint32_t enb_cc_idx)
+void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched)
 {
   tti_alloc = tti_sched;
 
@@ -58,7 +61,7 @@ void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_
       iter = ue_db.begin(); // wrap around
     }
     sched_ue* user = &iter->second;
-    allocate_user(user, enb_cc_idx);
+    allocate_user(user);
   }
 }
 
@@ -77,7 +80,7 @@ bool dl_metric_rr::find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask)
   return nof_rbg == 0;
 }
 
-dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user, uint32_t enb_cc_idx)
+dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
 {
   if (tti_alloc->is_dl_alloc(user)) {
     return nullptr;
@@ -133,8 +136,8 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user, uint32_t enb_cc_idx)
 #endif
     // Allocate resources based on pending data
     if (req_bytes > 0) {
-      uint32_t pending_rbg =
-          user->prb_to_rbg(user->get_required_prb_dl(cell_idx, req_bytes, tti_alloc->get_nof_ctrl_symbols()));
+      uint32_t  pending_prbs = user->get_required_prb_dl(cell_idx, req_bytes, tti_alloc->get_nof_ctrl_symbols());
+      uint32_t  pending_rbg  = cell_params->prb_to_rbg(pending_prbs);
       rbgmask_t newtx_mask(tti_alloc->get_dl_mask().size());
       find_allocation(pending_rbg, &newtx_mask);
       if (newtx_mask.any()) { // some empty spaces were found
@@ -155,12 +158,15 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user, uint32_t enb_cc_idx)
  *
  *****************************************************************/
 
-void ul_metric_rr::set_params(const sched_params_t& sched_params_)
+void ul_metric_rr::set_params(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
 {
-  log_h = sched_params_.log_h;
+  sched_params = &sched_params_;
+  enb_cc_idx   = enb_cc_idx_;
+  cell_params  = &sched_params->cell_cfg[enb_cc_idx];
+  log_h        = sched_params_.log_h;
 }
 
-void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched, uint32_t enb_cc_idx)
+void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched)
 {
   tti_alloc   = tti_sched;
   current_tti = tti_alloc->get_tti_tx_ul();
@@ -181,7 +187,7 @@ void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_
       iter = ue_db.begin(); // wrap around
     }
     sched_ue* user = &iter->second;
-    allocate_user_retx_prbs(user, enb_cc_idx);
+    allocate_user_retx_prbs(user);
   }
 
   // give priority in a time-domain RR basis
@@ -192,7 +198,7 @@ void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_
       iter = ue_db.begin(); // wrap around
     }
     sched_ue* user = &iter->second;
-    allocate_user_newtx_prbs(user, enb_cc_idx);
+    allocate_user_newtx_prbs(user);
   }
 }
 
@@ -233,7 +239,7 @@ bool ul_metric_rr::find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
   return alloc->L == L;
 }
 
-ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user, uint32_t enb_cc_idx)
+ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
 {
   if (tti_alloc->is_ul_alloc(user)) {
     return nullptr;
@@ -275,7 +281,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user, uint32_t enb
   return nullptr;
 }
 
-ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user, uint32_t enb_cc_idx)
+ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
 {
   if (tti_alloc->is_ul_alloc(user)) {
     return nullptr;

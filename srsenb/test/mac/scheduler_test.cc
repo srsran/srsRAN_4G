@@ -90,20 +90,19 @@ int main(int argc, char* argv[])
   cell_cfg_phy.phich_length    = SRSLTE_PHICH_NORM;
   cell_cfg_phy.phich_resources = SRSLTE_PHICH_R_1;
 
-  srsenb::sched_interface::cell_cfg_t cell_cfg;
+  std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg(1);
 
   /* Set MAC cell configuration */
-  bzero(&cell_cfg, sizeof(srsenb::sched_interface::cell_cfg_t));
-  memcpy(&cell_cfg.cell, &cell_cfg_phy, sizeof(srslte_cell_t));
-  cell_cfg.sibs[0].len       = 18;
-  cell_cfg.sibs[0].period_rf = 8;
-  cell_cfg.sibs[1].len       = 41;
-  cell_cfg.sibs[1].period_rf = 16;
-  cell_cfg.si_window_ms      = 40;
+  cell_cfg[0] = {};
+  cell_cfg[0].cell = cell_cfg_phy;
+  cell_cfg[0].sibs[0].len       = 18;
+  cell_cfg[0].sibs[0].period_rf = 8;
+  cell_cfg[0].sibs[1].len       = 41;
+  cell_cfg[0].sibs[1].period_rf = 16;
+  cell_cfg[0].si_window_ms      = 40;
 
   my_sched.init(nullptr, &log_out);
-  my_sched.set_metric(&dl_metric, &ul_metric);
-  my_sched.cell_cfg(&cell_cfg);
+  my_sched.cell_cfg(cell_cfg);
 
   srsenb::sched_interface::dl_sched_res_t sched_result_dl;
   srsenb::sched_interface::ul_sched_res_t sched_result_ul;

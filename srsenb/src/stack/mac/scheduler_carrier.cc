@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/scheduler_carrier.h"
+#include "srsenb/hdr/stack/mac/scheduler_metric.h"
 
 #define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
@@ -304,36 +305,33 @@ void sched::carrier_sched::carrier_cfg(const sched_params_t& sched_params_)
   // sched::cfg is now fully set
   sched_params = &sched_params_;
   log_h        = sched_params->log_h;
+  cc_cfg       = sched_params->cell_cfg[enb_cc_idx].cfg;
 
-  const cell_cfg_t*           cfg_ = sched_params->cfg;
   std::lock_guard<std::mutex> lock(carrier_mutex);
 
   // init Broadcast/RA schedulers
-  bc_sched_ptr.reset(new bc_sched{*sched_params->cfg, rrc});
-  ra_sched_ptr.reset(new ra_sched{*sched_params->cfg, log_h, *ue_db});
+  bc_sched_ptr.reset(new bc_sched{*cc_cfg, rrc});
+  ra_sched_ptr.reset(new ra_sched{*cc_cfg, log_h, *ue_db});
 
-  dl_metric->set_params(*sched_params);
-  ul_metric->set_params(*sched_params);
+  // Setup data scheduling algorithms
+  dl_metric.reset(new srsenb::dl_metric_rr{});
+  dl_metric->set_params(*sched_params, enb_cc_idx);
+  ul_metric.reset(new srsenb::ul_metric_rr{});
+  ul_metric->set_params(*sched_params, enb_cc_idx);
 
   // Setup constant PUCCH/PRACH mask
-  pucch_mask.resize(cfg_->cell.nof_prb);
-  if (cfg_->nrb_pucch > 0) {
-    pucch_mask.fill(0, (uint32_t)cfg_->nrb_pucch);
-    pucch_mask.fill(cfg_->cell.nof_prb - cfg_->nrb_pucch, cfg_->cell.nof_prb);
+  pucch_mask.resize(cc_cfg->cell.nof_prb);
+  if (cc_cfg->nrb_pucch > 0) {
+    pucch_mask.fill(0, (uint32_t)cc_cfg->nrb_pucch);
+    pucch_mask.fill(cc_cfg->cell.nof_prb - cc_cfg->nrb_pucch, cc_cfg->cell.nof_prb);
   }
-  prach_mask.resize(cfg_->cell.nof_prb);
-  prach_mask.fill(cfg_->prach_freq_offset, cfg_->prach_freq_offset + 6);
+  prach_mask.resize(cc_cfg->cell.nof_prb);
+  prach_mask.fill(cc_cfg->prach_freq_offset, cc_cfg->prach_freq_offset + 6);
 
   // Initiate the tti_scheduler for each TTI
   for (sf_sched& tti_sched : sf_scheds) {
     tti_sched.init(*sched_params, enb_cc_idx);
   }
-}
-
-void sched::carrier_sched::set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_)
-{
-  dl_metric = dl_metric_;
-  ul_metric = ul_metric_;
 }
 
 void sched::carrier_sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
@@ -435,15 +433,15 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
   }
 
   // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
-  if (sched_params->cfg->cell.nof_prb == 6) {
-    uint32_t tti_rx_ack = TTI_RX_ACK(tti_result->get_tti_rx());
-    if (srslte_prach_tti_opportunity_config_fdd(sched_params->cfg->prach_config, tti_rx_ack, -1)) {
+  if (cc_cfg->cell.nof_prb == 6) {
+    uint32_t tti_rx_ack   = TTI_RX_ACK(tti_result->get_tti_rx());
+    if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->prach_config, tti_rx_ack, -1)) {
       tti_result->get_dl_mask().fill(0, tti_result->get_dl_mask().size());
     }
   }
 
   // call DL scheduler metric to fill RB grid
-  dl_metric->sched_users(*ue_db, tti_result, enb_cc_idx);
+  dl_metric->sched_users(*ue_db, tti_result);
 }
 
 int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
@@ -452,7 +450,7 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   prbmask_t& ul_mask   = tti_sched->get_ul_mask();
 
   /* reserve PRBs for PRACH */
-  if (srslte_prach_tti_opportunity_config_fdd(sched_params->cfg->prach_config, tti_tx_ul, -1)) {
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->prach_config, tti_tx_ul, -1)) {
     ul_mask = prach_mask;
     log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", prach_mask.to_hex().c_str());
   }
@@ -461,7 +459,7 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   ra_sched_ptr->ul_sched(tti_sched);
 
   /* reserve PRBs for PUCCH */
-  if (sched_params->cfg->cell.nof_prb != 6 and (ul_mask & pucch_mask).any()) {
+  if (cc_cfg->cell.nof_prb != 6 and (ul_mask & pucch_mask).any()) {
     log_h->error("There was a collision with the PUCCH. current mask=0x%s, pucch_mask=0x%s\n",
                  ul_mask.to_hex().c_str(),
                  pucch_mask.to_hex().c_str());
@@ -469,7 +467,7 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   ul_mask |= pucch_mask;
 
   /* Call scheduler for UL data */
-  ul_metric->sched_users(*ue_db, tti_sched, enb_cc_idx);
+  ul_metric->sched_users(*ue_db, tti_sched);
 
   return SRSLTE_SUCCESS;
 }

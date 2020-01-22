@@ -76,8 +76,6 @@ bool mac::init(const mac_args_t&        args_,
     cell = *cell_;
 
     scheduler.init(rrc, log_h);
-    // Set default scheduler (RR)
-    scheduler.set_metric(&sched_metric_dl_rr, &sched_metric_ul_rr);
 
     // Set default scheduler configuration
     scheduler.set_sched_cfg(&args.sched);
@@ -256,10 +254,10 @@ int mac::ue_rem(uint16_t rnti)
   return 0;
 }
 
-int mac::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
+int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
 {
-  this->cell_config = *cell_cfg;
-  return scheduler.cell_cfg(cell_cfg);
+  cell_config = cell_cfg_;
+  return scheduler.cell_cfg(cell_config);
 }
 
 void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
@@ -672,8 +670,8 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
   srslte_ra_tb_t mcs_data = {};
   mcs.mcs_idx             = this->sib13.mbsfn_area_info_list_r9[0].mcch_cfg_r9.sig_mcs_r9.to_number();
   mcs_data.mcs_idx        = this->mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.data_mcs_r9;
-  srslte_dl_fill_ra_mcs(&mcs, 0, this->cell_config.cell.nof_prb, false);
-  srslte_dl_fill_ra_mcs(&mcs_data, 0, this->cell_config.cell.nof_prb, false);
+  srslte_dl_fill_ra_mcs(&mcs, 0, cell_config[0].cell.nof_prb, false);
+  srslte_dl_fill_ra_mcs(&mcs_data, 0, cell_config[0].cell.nof_prb, false);
   if (is_mcch) {
     build_mch_sched(mcs_data.tbs);
     mch.mcch_payload              = mcch_payload_buffer;

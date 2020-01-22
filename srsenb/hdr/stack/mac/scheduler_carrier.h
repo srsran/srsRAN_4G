@@ -35,7 +35,6 @@ public:
   explicit carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t enb_cc_idx_);
   void      reset();
   void      carrier_cfg(const sched_params_t& sched_params_);
-  void      set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_);
   void      set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
   sf_sched* generate_tti_result(uint32_t tti_rx);
   int       dl_rach_info(dl_sched_rar_info_t rar_info);
@@ -53,11 +52,12 @@ private:
 
   // args
   const sched_params_t*         sched_params = nullptr;
+  const cell_cfg_t*             cc_cfg       = nullptr;
   srslte::log*                  log_h        = nullptr;
   rrc_interface_mac*            rrc          = nullptr;
   std::map<uint16_t, sched_ue>* ue_db        = nullptr;
-  metric_dl*                    dl_metric    = nullptr;
-  metric_ul*                    ul_metric    = nullptr;
+  std::unique_ptr<metric_dl>    dl_metric;
+  std::unique_ptr<metric_ul>    ul_metric;
   const uint32_t                enb_cc_idx;
 
   // derived from args

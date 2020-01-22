@@ -29,7 +29,7 @@ namespace srsenb {
 class mac_dummy : public mac_interface_rrc
 {
 public:
-  int  cell_cfg(sched_interface::cell_cfg_t* cell_cfg) override { return 0; }
+  int  cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) override { return 0; }
   void reset() override {}
   int  ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override { return 0; }
   int  ue_rem(uint16_t rnti) override { return 0; }

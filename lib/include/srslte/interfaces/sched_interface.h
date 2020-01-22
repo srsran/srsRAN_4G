@@ -21,6 +21,7 @@
 
 #include "srslte/common/common.h"
 #include "srslte/srslte.h"
+#include <vector>
 
 #ifndef SRSLTE_SCHED_INTERFACE_H
 #define SRSLTE_SCHED_INTERFACE_H
@@ -30,7 +31,7 @@ namespace srsenb {
 class sched_interface
 {
 public:
-  virtual ~sched_interface(){};
+  virtual ~sched_interface() {}
 
   const static uint32_t max_cce = 128;
   const static uint32_t max_prb = 100;
@@ -59,7 +60,7 @@ public:
     int max_aggr_level;
   } sched_args_t;
 
-  typedef struct {
+  struct cell_cfg_t {
 
     // Main cell configuration (used to calculate DCI locations in scheduler)
     srslte_cell_t cell;
@@ -92,7 +93,13 @@ public:
     uint32_t srs_subframe_offset;
     uint32_t srs_bw_config;
 
-  } cell_cfg_t;
+    struct scell_cfg_t {
+      uint32_t enb_cc_idx               = 0;
+      bool     cross_carrier_scheduling = false;
+      bool     ul_allowed               = false;
+    };
+    std::vector<scell_cfg_t> scell_list;
+  };
 
   typedef struct {
     int priority;
@@ -205,8 +212,8 @@ public:
   /******************* Scheduler Control ****************************/
 
   /* Provides cell configuration including SIB periodicity, etc. */
-  virtual int cell_cfg(cell_cfg_t* cell_cfg) = 0;
-  virtual int reset()                        = 0;
+  virtual int cell_cfg(const std::vector<cell_cfg_t>& cell_cfg) = 0;
+  virtual int reset()                                           = 0;
 
   /* Manages UE scheduling context */
   virtual int  ue_cfg(uint16_t rnti, ue_cfg_t* cfg) = 0;

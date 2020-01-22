@@ -36,7 +36,7 @@
 
 namespace srsenb {
 
-class mac : public mac_interface_phy_lte, public mac_interface_rlc, public mac_interface_rrc
+class mac final : public mac_interface_phy_lte, public mac_interface_rlc, public mac_interface_rrc
 {
 public:
   mac();
@@ -78,8 +78,8 @@ public:
 
   /******** Interface from RRC (RRC -> MAC) ****************/
   /* Provides cell configuration including SIB periodicity, etc. */
-  int  cell_cfg(sched_interface::cell_cfg_t* cell_cfg);
-  void reset();
+  int  cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) override;
+  void reset() override;
 
   /* Manages UE scheduling context */
   int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg);
@@ -123,10 +123,8 @@ private:
   bool started = false;
 
   /* Scheduler unit */
-  sched                       scheduler;
-  dl_metric_rr                sched_metric_dl_rr;
-  ul_metric_rr                sched_metric_ul_rr;
-  sched_interface::cell_cfg_t cell_config;
+  sched                                    scheduler;
+  std::vector<sched_interface::cell_cfg_t> cell_config;
 
   sched_interface::dl_pdu_mch_t mch;
 

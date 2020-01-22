@@ -76,7 +76,7 @@ struct meas_cell_cfg_t {
 
 struct scell_cfg_t {
   uint32_t cell_id;
-  bool     cross_carrier_sched;
+  bool     cross_carrier_sched = false;
   uint32_t sched_cell_id;
   bool     ul_allowed;
 };

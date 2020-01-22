@@ -50,22 +50,29 @@ inline bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
 
 } // namespace sched_utils
 
-//! struct to bundle together all the sched arguments, and share them with all the sched sub-components
+//! structs to bundle together all the sched arguments, and share them with all the sched sub-components
+struct sched_cell_params_t {
+  sched_interface::cell_cfg_t* cfg      = nullptr;
+  uint32_t                     P        = 0;
+  uint32_t                     nof_rbgs = 0;
+
+  // convenience getters
+  uint32_t prb_to_rbg(uint32_t nof_prbs) const { return (nof_prbs + (P - 1)) / P; }
+  uint32_t nof_prb() const { return cfg->cell.nof_prb; }
+};
 class sched_params_t
 {
 public:
-  srslte::log*                                             log_h            = nullptr;
-  sched_interface::cell_cfg_t*                             cfg              = nullptr;
+  srslte::log*                                             log_h = nullptr;
+  std::vector<sched_cell_params_t>                         cell_cfg;
   sched_interface::sched_args_t                            sched_cfg        = {};
   srslte_regs_t*                                           regs             = nullptr;
   std::array<sched_ue::sched_dci_cce_t, 3>                 common_locations = {};
   std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3> rar_locations    = {};
   std::array<uint32_t, 3>                                  nof_cce_table    = {}; ///< map cfix -> nof cces in PDCCH
-  uint32_t                                                 P                = 0;
-  uint32_t                                                 nof_rbgs         = 0;
 
   sched_params_t();
-  bool set_cfg(srslte::log* log_, sched_interface::cell_cfg_t* cfg_, srslte_regs_t* regs_);
+  bool set_cfg(srslte::log* log_, std::vector<sched_interface::cell_cfg_t>* cfg_, srslte_regs_t* regs_);
 };
 
 /* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
@@ -88,16 +95,16 @@ public:
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_params(const sched_params_t& sched_params_)                                               = 0;
-    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched, uint32_t cc_idx) = 0;
+    virtual void set_params(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)        = 0;
+    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched) = 0;
   };
 
   class metric_ul
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_params(const sched_params_t& sched_params_)                                               = 0;
-    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched, uint32_t cc_idx) = 0;
+    virtual void set_params(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)        = 0;
+    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched) = 0;
   };
 
   /*************************************************************
@@ -110,8 +117,7 @@ public:
   ~sched();
 
   void init(rrc_interface_mac* rrc, srslte::log* log);
-  void set_metric(metric_dl* dl_metric, metric_ul* ul_metric);
-  int  cell_cfg(cell_cfg_t* cell_cfg) override;
+  int  cell_cfg(const std::vector<cell_cfg_t>& cell_cfg) override;
   void set_sched_cfg(sched_args_t* sched_cfg);
   int  reset() final;
 
@@ -176,7 +182,7 @@ protected:
 
   pthread_rwlock_t rwlock;
 
-  cell_cfg_t cfg;
+  std::vector<cell_cfg_t> cfg;
 
   // This is for computing DCI locations
   srslte_regs_t regs;

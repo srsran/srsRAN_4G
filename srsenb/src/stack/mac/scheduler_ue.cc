@@ -69,9 +69,9 @@ void sched_ue::set_cfg(uint16_t rnti_, const sched_params_t& sched_params_, sche
     rnti         = rnti_;
     sched_params = &sched_params_;
     log_h        = sched_params->log_h;
-    cell         = sched_params->cfg->cell;
+    cell         = sched_params->cell_cfg[0].cfg->cell;
 
-    max_msg3retx = sched_params->cfg->maxharq_msg3tx;
+    max_msg3retx = sched_params->cell_cfg[0].cfg->maxharq_msg3tx;
 
     cfg = *cfg_;
 
@@ -82,7 +82,7 @@ void sched_ue::set_cfg(uint16_t rnti_, const sched_params_t& sched_params_, sche
 
     // Init sched_ue carriers
     // TODO: check config for number of carriers
-    carriers.emplace_back(&cfg, &cell, rnti, 0, log_h);
+    carriers.emplace_back(&cfg, &sched_params->cell_cfg[0], rnti, 0, log_h);
     enb_ue_cellindex_map.insert(std::make_pair(0, 0)); // TODO: use real values
 
     // Generate allowed CCE locations
@@ -405,7 +405,7 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
     uint32_t req_bytes      = get_pending_dl_new_data_total_unlocked();
     bool     need_conres_ce = is_conres_ce_pending();
 
-    uint32_t nof_prb = format1_count_prb(user_mask);
+    uint32_t nof_prb = format1_count_prb(user_mask, cc_idx);
 
     // Calculate exact number of RE for this PRB allocation
     srslte_pdsch_grant_t grant = {};
@@ -510,7 +510,7 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
   dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
   dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
-  uint32_t nof_prb = format1_count_prb(user_mask); // TODO: format1???
+  uint32_t nof_prb = format1_count_prb(user_mask, cc_idx); // TODO: format1???
 
   // Calculate exact number of RE for this PRB allocation
   srslte_pdsch_grant_t grant = {};
@@ -863,16 +863,6 @@ uint32_t sched_ue::get_pending_ul_old_data_unlocked(uint32_t cc_idx)
   return carriers[cc_idx].get_pending_ul_old_data();
 }
 
-uint32_t sched_ue::prb_to_rbg(uint32_t nof_prb)
-{
-  return (uint32_t)ceil((float)nof_prb / sched_params->P);
-}
-
-uint32_t sched_ue::rgb_to_prb(uint32_t nof_rbg)
-{
-  return sched_params->P * nof_rbg;
-}
-
 uint32_t sched_ue::get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint32_t nof_ctrl_symbols)
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -1015,6 +1005,11 @@ sched_ue::sched_dci_cce_t* sched_ue::get_locations(uint32_t cfi, uint32_t sf_idx
   }
 }
 
+sched_ue_carrier* sched_ue::get_ue_carrier(uint32_t enb_cc_idx)
+{
+  return &carriers[enb_ue_cellindex_map[enb_cc_idx]];
+}
+
 /* Allocates first available RLC PDU */
 int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
 {
@@ -1038,12 +1033,13 @@ int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
   return x;
 }
 
-uint32_t sched_ue::format1_count_prb(const rbgmask_t& bitmask)
+uint32_t sched_ue::format1_count_prb(const rbgmask_t& bitmask, uint32_t cc_idx)
 {
-  uint32_t nof_prb = 0;
+  const sched_cell_params_t* cell_cfg = carriers[cc_idx].get_cell_cfg();
+  uint32_t                   nof_prb  = 0;
   for (uint32_t i = 0; i < bitmask.size(); i++) {
     if (bitmask.test(i)) {
-      nof_prb += std::min(sched_params->cfg->cell.nof_prb - (i * sched_params->P), sched_params->P);
+      nof_prb += std::min(cell_cfg->cfg->cell.nof_prb - (i * cell_cfg->P), cell_cfg->P);
     }
   }
   return nof_prb;
@@ -1084,12 +1080,12 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
  ***********************************************************************************************/
 
 sched_ue_carrier::sched_ue_carrier(sched_interface::ue_cfg_t* cfg_,
-                                   srslte_cell_t*             cell_cfg_,
+                                   const sched_cell_params_t* cell_cfg_,
                                    uint16_t                   rnti_,
                                    uint32_t                   cc_idx_,
                                    srslte::log*               log_) :
   cfg(cfg_),
-  cell(cell_cfg_),
+  cell_params(cell_cfg_),
   rnti(rnti_),
   cc_idx(cc_idx_),
   log_h(log_)
@@ -1210,7 +1206,7 @@ uint32_t sched_ue_carrier::get_aggr_level(uint32_t nof_bits)
   float    coderate     = 99;
   float    factor       = 1.5;
   uint32_t l_max        = 3;
-  if (cell->nof_prb == 6) {
+  if (cell_params->nof_prb() == 6) {
     factor = 1.0;
     l_max  = 2;
   }
@@ -1287,8 +1283,8 @@ uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
     return 0;
   }
 
-  for (n = 1; n < cell->nof_prb && nbytes < req_bytes + 4; n++) {
-    uint32_t nof_re = (2 * (SRSLTE_CP_NSYMB(cell->cp) - 1) - N_srs) * n * SRSLTE_NRE;
+  for (n = 1; n < cell_params->nof_prb() && nbytes < req_bytes + 4; n++) {
+    uint32_t nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg->cell.cp) - 1) - N_srs) * n * SRSLTE_NRE;
     int      tbs    = 0;
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);
@@ -1300,7 +1296,7 @@ uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
     }
   }
 
-  while (!srslte_dft_precoding_valid_prb(n) && n <= cell->nof_prb) {
+  while (!srslte_dft_precoding_valid_prb(n) && n <= cell_params->nof_prb()) {
     n++;
   }
 

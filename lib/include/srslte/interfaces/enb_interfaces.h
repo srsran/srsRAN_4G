@@ -134,8 +134,8 @@ class mac_interface_rrc
 {
 public:
   /* Provides cell configuration including SIB periodicity, etc. */
-  virtual int  cell_cfg(sched_interface::cell_cfg_t* cell_cfg) = 0;
-  virtual void reset()                                         = 0;
+  virtual int  cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg) = 0;
+  virtual void reset()                                                            = 0;
 
   /* Manages UE configuration context */
   virtual int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) = 0;

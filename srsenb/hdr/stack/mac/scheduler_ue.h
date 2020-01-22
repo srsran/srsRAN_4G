@@ -34,13 +34,14 @@
 namespace srsenb {
 
 class sched_params_t;
+struct sched_cell_params_t;
 struct tti_params_t;
 
 struct sched_ue_carrier {
   const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
 
   sched_ue_carrier(sched_interface::ue_cfg_t* cfg_,
-                   srslte_cell_t*             cell_cfg_,
+                   const sched_cell_params_t* cell_cfg_,
                    uint16_t                   rnti_,
                    uint32_t                   cc_idx_,
                    srslte::log*               log_);
@@ -54,11 +55,12 @@ struct sched_ue_carrier {
   ul_harq_proc* get_ul_harq(uint32_t tti);
   uint32_t      get_pending_ul_old_data();
 
-  uint32_t get_aggr_level(uint32_t nof_bits);
-  int      alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
-  int      alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
-  int      alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
-  uint32_t get_required_prb_ul(uint32_t req_bytes);
+  uint32_t                   get_aggr_level(uint32_t nof_bits);
+  int                        alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
+  int                        alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
+  int                        alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
+  uint32_t                   get_required_prb_ul(uint32_t req_bytes);
+  const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
 
   std::array<dl_harq_proc, SCHED_MAX_HARQ_PROC> dl_harq = {};
   std::array<ul_harq_proc, SCHED_MAX_HARQ_PROC> ul_harq = {};
@@ -77,9 +79,9 @@ struct sched_ue_carrier {
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
 
 private:
-  srslte::log*               log_h = nullptr;
-  sched_interface::ue_cfg_t* cfg   = nullptr;
-  srslte_cell_t*             cell  = nullptr;
+  srslte::log*               log_h       = nullptr;
+  sched_interface::ue_cfg_t* cfg         = nullptr;
+  const sched_cell_params_t* cell_params = nullptr;
   uint32_t                   cc_idx;
   uint16_t                   rnti;
 };
@@ -148,8 +150,6 @@ public:
 
   uint32_t get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes);
-  uint32_t prb_to_rbg(uint32_t nof_prb);
-  uint32_t rgb_to_prb(uint32_t nof_rbg);
 
   uint32_t get_pending_dl_new_data();
   uint32_t get_pending_ul_new_data(uint32_t tti);
@@ -204,7 +204,7 @@ public:
 
   srslte_dci_format_t get_dci_format();
   sched_dci_cce_t*    get_locations(uint32_t current_cfi, uint32_t sf_idx);
-  sched_ue_carrier*   get_ue_carrier(uint32_t cc_idx) { return &carriers[cc_idx]; }
+  sched_ue_carrier*   get_ue_carrier(uint32_t enb_cc_idx);
 
   bool     needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
   uint32_t get_max_retx();
@@ -231,7 +231,7 @@ private:
   bool is_sr_triggered();
   int  alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
 
-  uint32_t format1_count_prb(const rbgmask_t& bitmask);
+  uint32_t format1_count_prb(const rbgmask_t& bitmask, uint32_t cc_idx);
 
   static bool bearer_is_ul(ue_bearer_t* lch);
   static bool bearer_is_dl(const ue_bearer_t* lch);
