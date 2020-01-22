@@ -31,17 +31,19 @@
 #include <vector>
 
 // Common execution parameters
-static uint32_t      duration_execution_s;
-static srslte_cell_t cell_base = {.nof_prb         = 6,
+static uint32_t          duration_execution_s;
+static srslte_cell_t     cell_base = {.nof_prb         = 6,
                                   .nof_ports       = 1,
                                   .id              = 0,
                                   .cp              = SRSLTE_CP_NORM,
                                   .phich_length    = SRSLTE_PHICH_NORM,
                                   .phich_resources = SRSLTE_PHICH_R_1_6,
                                   .frame_type      = SRSLTE_FDD};
-static std::string   intra_meas_log_level;
-static std::string   cell_list;
-static int           phy_lib_log_level;
+static std::string       intra_meas_log_level;
+static std::string       active_cell_list;
+static std::string       simulation_cell_list;
+static int               phy_lib_log_level;
+static srsue::phy_args_t phy_args;
 
 // On the Fly parameters
 static int         earfcn_dl;
@@ -51,9 +53,6 @@ static std::string radio_log_level;
 static float       rx_gain;
 
 // Simulation parameters
-static uint32_t    nof_enb;
-static uint16_t    cell_id_start;
-static uint16_t    cell_id_step;
 static float       channel_period_s;
 static uint32_t    cfi;
 static float       ncell_attenuation_dB;
@@ -66,6 +65,10 @@ static bool        serving_cell_pdsch_enable;
 static uint16_t    serving_cell_pdsch_rnti;
 static srslte_tm_t serving_cell_pdsch_tm;
 static uint16_t    serving_cell_pdsch_mcs;
+
+// Parsed PCI lists
+static std::set<uint32_t> pcis_to_meas     = {};
+static std::set<uint32_t> pcis_to_simulate = {};
 
 // PRB allocation helpers
 static uint32_t prbset_num = 1, last_prbset_num = 1;
@@ -197,7 +200,7 @@ public:
     float scale = sqrtf(cell_base.nof_prb) / 0.05f / enb_dl.ifft->symbol_sz;
 
     // Apply Neighbour cell attenuation
-    if (enb_dl.cell.id != cell_id_start) {
+    if (enb_dl.cell.id != *pcis_to_simulate.begin()) {
       scale *= srslte_convert_dB_to_amplitude(-ncell_attenuation_dB);
     }
 
@@ -265,16 +268,22 @@ public:
     }
   }
 
-  void print_stats()
+  bool print_stats()
   {
     printf("\n-- Statistics:\n");
-    for (auto& e : cells) {
-      bool false_alarm = true;
+    uint32_t true_counts        = 0;
+    uint32_t false_counts       = 0;
+    uint32_t tti_count          = (1000 * duration_execution_s) / phy_args.intra_freq_meas_period_ms;
+    uint32_t ideal_true_counts  = (pcis_to_simulate.size() - 1) * tti_count;
+    uint32_t ideal_false_counts = tti_count * cells.size() - ideal_true_counts;
 
-      for (uint32_t i = 0; false_alarm && (i < nof_enb); i++) {
-        if (e.first == cell_id_start + cell_id_step * i) {
-          false_alarm = false;
-        }
+    for (auto& e : cells) {
+      bool false_alarm = pcis_to_simulate.find(e.first) == pcis_to_simulate.end();
+
+      if (false_alarm) {
+        false_counts += e.second.count;
+      } else {
+        true_counts += e.second.count;
       }
 
       printf("  pci=%03d; count=%3d; false=%s; rsrp=%+.1f|%+.1f|%+.1fdBfs;  rsrq=%+.1f|%+.1f|%+.1fdB;\n",
@@ -288,13 +297,21 @@ public:
              e.second.rsrq_avg,
              e.second.rsrq_max);
     }
+
+    float prob_detection   = (ideal_true_counts) ? (float)true_counts / (float)ideal_true_counts : 0.0f;
+    float prob_false_alarm = (ideal_false_counts) ? (float)false_counts / (float)ideal_false_counts : 0.0f;
+    printf("\n");
+    printf("    Probability of detection: %.6f\n", prob_detection);
+    printf("  Probability of false alarm: %.6f\n", prob_false_alarm);
+
+    return (prob_detection >= 0.9f && prob_false_alarm <= 0.1f);
   }
 };
 
 // shorten boost program options namespace
 namespace bpo = boost::program_options;
 
-int parse_args(int argc, char** argv, srsue::phy_args_t* phy_args)
+int parse_args(int argc, char** argv)
 {
   int ret = SRSLTE_SUCCESS;
 
@@ -308,10 +325,10 @@ int parse_args(int argc, char** argv, srsue::phy_args_t* phy_args)
       ("duration",                  bpo::value<uint32_t>(&duration_execution_s)->default_value(60),                "Duration of the execution in seconds")
       ("cell.nof_prb",              bpo::value<uint32_t>(&cell_base.nof_prb)->default_value(100),                  "Cell Number of PRB")
       ("intra_meas_log_level",      bpo::value<std::string>(&intra_meas_log_level)->default_value("none"),         "Intra measurement log level (none, warning, info, debug)")
-      ("intra_freq_meas_len_ms",    bpo::value<uint32_t>(&phy_args->intra_freq_meas_len_ms)->default_value(20),     "Intra measurement measurement length")
-      ("intra_freq_meas_period_ms", bpo::value<uint32_t>(&phy_args->intra_freq_meas_period_ms)->default_value(200), "Intra measurement measurement period")
+      ("intra_freq_meas_len_ms",    bpo::value<uint32_t>(&phy_args.intra_freq_meas_len_ms)->default_value(20),     "Intra measurement measurement length")
+      ("intra_freq_meas_period_ms", bpo::value<uint32_t>(&phy_args.intra_freq_meas_period_ms)->default_value(200), "Intra measurement measurement period")
       ("phy_lib_log_level",         bpo::value<int>(&phy_lib_log_level)->default_value(SRSLTE_VERBOSE_NONE),       "Phy lib log level (0: none, 1: info, 2: debug)")
-      ("cell_list",                 bpo::value<std::string>(&cell_list)->default_value("10,17,24,31,38,45,52"),    "Comma separated neighbour PCI cell list")
+      ("active_cell_list",          bpo::value<std::string>(&active_cell_list)->default_value("10,17,24,31,38,45,52"),    "Comma separated neighbour PCI cell list")
       ;
 
   over_the_air.add_options()
@@ -324,9 +341,7 @@ int parse_args(int argc, char** argv, srsue::phy_args_t* phy_args)
       ;
 
   simulation.add_options()
-      ("nof_enb",                   bpo::value<uint32_t >(&nof_enb)->default_value(4),                             "Number of eNb")
-      ("cell_id_start",             bpo::value<uint16_t>(&cell_id_start)->default_value(10),                       "Cell id start")
-      ("cell_id_step",              bpo::value<uint16_t>(&cell_id_step)->default_value(7),                         "Cell id step")
+      ("simulation_cell_list",      bpo::value<std::string>(&simulation_cell_list)->default_value("10,17,24,31,38,45,52"),    "Comma separated neighbour PCI cell list")
       ("cell_cfi",                  bpo::value<uint32_t >(&cfi)->default_value(1),                                 "Cell CFI")
       ("channel_period_s",          bpo::value<float>(&channel_period_s)->default_value(16.8),                     "Channel period for HST and delay")
       ("ncell_attenuation",         bpo::value<float>(&ncell_attenuation_dB)->default_value(3.0f),                 "Neighbour cell attenuation relative to serving cell in dB")
@@ -363,16 +378,41 @@ int parse_args(int argc, char** argv, srsue::phy_args_t* phy_args)
   return ret;
 }
 
+static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& list)
+{
+  if (list_str == "all") {
+    // Add all possible cells
+    for (int i = 0; i < 504; i++) {
+      list.insert(i);
+    }
+  } else if (list_str == "none") {
+    // Do nothing
+  } else if (!list_str.empty()) {
+    // Remove spaces from neightbour cell list
+    std::size_t p1 = list_str.find(' ');
+    while (p1 != std::string::npos) {
+      list_str.erase(p1);
+      p1 = list_str.find(' ');
+    }
+
+    // Add cell to known cells
+    std::stringstream ss(list_str);
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      list.insert((uint32_t)strtoul(substr.c_str(), nullptr, 10));
+    }
+  }
+}
+
 int main(int argc, char** argv)
 {
-  int               ret      = SRSLTE_SUCCESS;
-  srsue::phy_args_t phy_args = {};
+  int ret;
 
   // Parse args
-  if (parse_args(argc, argv, &phy_args)) {
+  if (parse_args(argc, argv)) {
     return SRSLTE_ERROR;
   }
-
 
   // Common for simulation and over-the-air
   auto                        baseband_buffer = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_MAX);
@@ -422,18 +462,15 @@ int main(int argc, char** argv)
     softbuffer_tx[i]       = (srslte_softbuffer_tx_t*)calloc(sizeof(srslte_softbuffer_tx_t), 1);
     if (!softbuffer_tx[i]) {
       ERROR("Error allocating softbuffer_tx\n");
-      ret = SRSLTE_ERROR;
     }
 
     if (srslte_softbuffer_tx_init(softbuffer_tx[i], cell_base.nof_prb)) {
       ERROR("Error initiating softbuffer_tx\n");
-      ret = SRSLTE_ERROR;
     }
 
     data_tx[i] = (uint8_t*)srslte_vec_malloc(sizeof(uint8_t) * nof_bytes);
     if (!data_tx[i]) {
       ERROR("Error allocating data tx\n");
-      ret = SRSLTE_ERROR;
     } else {
       for (uint32_t j = 0; j < nof_bytes; j++) {
         data_tx[i][j] = (uint8_t)srslte_random_uniform_int_dist(random_gen, 0, 255);
@@ -443,16 +480,17 @@ int main(int argc, char** argv)
     srslte_random_free(random_gen);
   }
 
+  pci_list_parse_helper(active_cell_list, pcis_to_meas);
+  pci_list_parse_helper(simulation_cell_list, pcis_to_simulate);
+
   // Set cell_base id with the serving cell
-  uint32_t serving_cell_id = (nof_enb == 1) ? (cell_id_start + cell_id_step) : cell_id_start;
+  uint32_t serving_cell_id = *pcis_to_simulate.begin();
   cell_base.id             = serving_cell_id;
 
   logger.set_level(intra_meas_log_level);
 
   intra_measure.init(&common, &rrc, &logger);
   intra_measure.set_primary_cell(serving_cell_id, cell_base);
-
-  std::set<uint32_t> pcis_to_meas = {};
 
   if (earfcn_dl >= 0) {
     // Create radio log
@@ -473,58 +511,40 @@ int main(int argc, char** argv)
 
   } else {
     // Create test eNb's if radio is not available
-    for (uint32_t enb_idx = 0; enb_idx < nof_enb; enb_idx++) {
+    float channel_init_time_s = 0;
+    float channel_delay_us    = 0;
+    for (auto& pci : pcis_to_simulate) {
       // Initialise cell
       srslte_cell_t cell = cell_base;
-      cell.id            = (cell_id_start + enb_idx * cell_id_step) % 504;
+      cell.id            = pci;
 
       // Initialise channel and push back
       srslte::channel::args_t channel_args;
-      channel_args.enable            = true;
+      channel_args.enable            = (channel_period_s != 0);
       channel_args.hst_enable        = (channel_hst_fd_hz != 0.0f);
-      channel_args.hst_init_time_s   = (float)(enb_idx * channel_period_s) / (float)nof_enb;
+      channel_args.hst_init_time_s   = channel_init_time_s;
       channel_args.hst_period_s      = (float)channel_period_s;
       channel_args.hst_fd_hz         = channel_hst_fd_hz;
       channel_args.delay_enable      = (channel_delay_max_us != 0.0f);
-      channel_args.delay_min_us      = 0;
-      channel_args.delay_max_us      = channel_delay_max_us;
+      channel_args.delay_min_us      = channel_delay_us;
+      channel_args.delay_max_us      = channel_delay_us;
       channel_args.delay_period_s    = (uint32)channel_period_s;
-      channel_args.delay_init_time_s = (enb_idx * channel_period_s) / nof_enb;
+      channel_args.delay_init_time_s = channel_init_time_s;
       test_enb_v.push_back(std::unique_ptr<test_enb>(new test_enb(cell, channel_args)));
 
       // Add cell to known cells
-      if (cell_list.empty()) {
+      if (active_cell_list.empty()) {
         pcis_to_meas.insert(cell.id);
       }
-    }
-  }
 
-  // Parse cell list
-  if (cell_list == "all") {
-    // Add all possible cells
-    for (int i = 0; i < 504; i++) {
-      pcis_to_meas.insert(i);
-    }
-  } else if (cell_list == "none") {
-    // Do nothing
-  } else if (!cell_list.empty()) {
-    // Remove spaces from neightbour cell list
-    std::size_t p1 = cell_list.find(' ');
-    while (p1 != std::string::npos) {
-      cell_list.erase(p1);
-      p1 = cell_list.find(' ');
-    }
-
-    // Add cell to known cells
-    std::stringstream ss(cell_list);
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      pcis_to_meas.insert((uint32_t)strtoul(substr.c_str(), nullptr, 10));
+      // Increase init time
+      channel_init_time_s += channel_period_s / (float)pcis_to_simulate.size();
+      channel_delay_us += channel_delay_max_us / (float)pcis_to_simulate.size();
     }
   }
 
   // pass cells to measure to intra_measure object
+
   intra_measure.set_cells_to_meas(pcis_to_meas);
 
   // Run loop
@@ -620,6 +640,12 @@ int main(int argc, char** argv)
 
     srslte_timestamp_add(&ts, 0, 0.001f);
 
+    if (sf_idx > phy_args.intra_freq_meas_period_ms) {
+      if (sf_idx % phy_args.intra_freq_meas_period_ms == 0) {
+        intra_measure.wait_meas();
+      }
+    }
+
     intra_measure.write(sf_idx, baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
     if (sf_idx % 1000 == 0) {
       printf("Done %.1f%%\n", (double)sf_idx * 100.0 / ((double)duration_execution_s * 1000.0));
@@ -629,7 +655,8 @@ int main(int argc, char** argv)
   // Stop
   intra_measure.stop();
 
-  rrc.print_stats();
+  ret = rrc.print_stats() ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+
   if (baseband_buffer) {
     free(baseband_buffer);
   }
