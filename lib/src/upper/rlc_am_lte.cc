@@ -1685,24 +1685,30 @@ void rlc_am_lte::rlc_am_lte_rx::print_rx_segments()
 // NOTE: Preference would be to capture by value, and then move; but header is stack allocated
 bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu_t* segment)
 {
-  // Check for first segment
-  if (0 == segment->header.so) {
-    pdu->segments.clear();
-    pdu->segments.push_back(std::move(*segment));
-    return false;
+  // Find segment insertion point in the list of segments
+  auto it1 = pdu->segments.begin();
+  while (it1 != pdu->segments.end() && (*it1).header.so < segment->header.so) {
+    // Increment iterator
+    it1++;
   }
 
-  // Check segment offset
-  uint32_t n = 0;
-  if (!pdu->segments.empty()) {
-    rlc_amd_rx_pdu_t& back = pdu->segments.back();
-    n                      = back.header.so + back.buf->N_bytes;
-  }
-
-  if (segment->header.so != n) {
-    log->warning("Received PDU with SO=%d, expected %d. Discarding PDU.\n", segment->header.so, n);
-    return false;
+  // Check if the insertion point was found
+  if (it1 != pdu->segments.end()) {
+    // Found insertion point
+    rlc_amd_rx_pdu_t& s = *it1;
+    if (s.header.so == segment->header.so) {
+      // Same Segment offset
+      if (segment->buf->N_bytes > s.buf->N_bytes) {
+        // replace if the new one is bigger
+        s = std::move(*segment);
+      } else {
+        // Ignore otherwise
+      }
+    } else if (s.header.so > segment->header.so) {
+      pdu->segments.insert(it1, std::move(*segment));
+    }
   } else {
+    // Either the new segment is the latest or the only one, push back
     pdu->segments.push_back(std::move(*segment));
   }
 
@@ -1710,11 +1716,16 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
   uint32_t                              so = 0;
   std::list<rlc_amd_rx_pdu_t>::iterator it, tmpit;
   for (it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
-    if (so != it->header.so) {
+    // Check that there is no gap between last segment and current; overlap allowed
+    if (so < it->header.so) {
       return false;
     }
-    so += it->buf->N_bytes;
+
+    // Update segment offset it shall not go backwards
+    so = SRSLTE_MAX(so, it->header.so + it->buf->N_bytes);
   }
+
+  // Check for last segment flag available
   if (!pdu->segments.back().header.lsf) {
     return false;
   }
@@ -1799,8 +1810,26 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
 #endif
   }
   for (it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
-    memcpy(&full_pdu->msg[full_pdu->N_bytes], it->buf->msg, it->buf->N_bytes);
-    full_pdu->N_bytes += it->buf->N_bytes;
+    // By default, the segment is not copied. It could be it is fully overlapped with previous segments
+    uint32_t overlap = 0;
+    uint32_t n       = 0;
+
+    // Check if the segment has non-overlapped bytes
+    if (it->header.so + it->buf->N_bytes > full_pdu->N_bytes) {
+      // Calculate overlap and number of bytes
+      overlap = full_pdu->N_bytes - it->header.so;
+      n       = it->buf->N_bytes - overlap;
+    }
+
+    // Check overlapped data is matching
+    if (memcmp(&full_pdu->msg[it->header.so], it->buf->msg, overlap) != 0) {
+      log->warning("Overlapped data between segments does not match. Discarding PDU.\n");
+      return false;
+    }
+
+    // Copy data itself
+    memcpy(&full_pdu->msg[full_pdu->N_bytes], &it->buf->msg[overlap], n);
+    full_pdu->N_bytes += n;
   }
 
   handle_data_pdu(full_pdu->msg, full_pdu->N_bytes, header);
