@@ -56,12 +56,72 @@ public:
   worker_end(uint32_t tx_mutex_cnt, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
-  phy_cell_cfg_list_t cell_list;
-  phy_args_t          params = {};
+  phy_args_t params = {};
 
-  uint32_t get_nof_carriers() { return (uint32_t)cell_list.size(); };
-  uint32_t get_nof_prb() { return (uint32_t)cell_list[0].cell.nof_prb; };
-  uint32_t get_nof_ports() { return (uint32_t)cell_list[0].cell.nof_ports; };
+  uint32_t get_nof_carriers() { return static_cast<uint32_t>(cell_list.size()); };
+  uint32_t get_nof_prb(uint32_t cc_idx)
+  {
+    uint32_t ret = 0;
+
+    if (cc_idx < cell_list.size()) {
+      ret = cell_list[cc_idx].cell.nof_prb;
+    }
+
+    return ret;
+  };
+  uint32_t get_nof_ports(uint32_t cc_idx)
+  {
+    uint32_t ret = 0;
+
+    if (cc_idx < cell_list.size()) {
+      ret = cell_list[cc_idx].cell.nof_ports;
+    }
+
+    return ret;
+  };
+  uint32_t get_ul_earfcn(uint32_t cc_idx)
+  {
+    uint32_t ret = 0;
+
+    if (cc_idx < cell_list.size()) {
+      ret = cell_list[cc_idx].ul_earfcn;
+
+      // If there is no UL-EARFCN, deduce it from DL-EARFCN
+      if (ret == 0) {
+        ret = srslte_band_ul_earfcn(cell_list[cc_idx].dl_earfcn);
+      }
+    }
+
+    return ret;
+  };
+  uint32_t get_dl_earfcn(uint32_t cc_idx)
+  {
+    uint32_t ret = 0;
+
+    if (cc_idx < cell_list.size()) {
+      ret = cell_list[cc_idx].dl_earfcn;
+    }
+
+    return ret;
+  };
+  uint32_t get_rf_port(uint32_t cc_idx)
+  {
+    uint32_t ret = 0;
+
+    if (cc_idx < cell_list.size()) {
+      ret = cell_list[cc_idx].rf_port;
+    }
+
+    return ret;
+  };
+  srslte_cell_t get_cell(uint32_t cc_idx)
+  {
+    srslte_cell_t c = {};
+    if (cc_idx < cell_list.size()) {
+      c = cell_list[cc_idx].cell;
+    }
+    return c;
+  };
 
   // Physical Uplink Config common
   srslte_ul_cfg_t ul_cfg_com = {};
@@ -111,8 +171,9 @@ public:
   void set_mch_period_stop(uint32_t stop);
 
 private:
-  std::vector<sem_t> tx_sem;
-  bool               is_first_tx = false;
+  phy_cell_cfg_list_t cell_list;
+  std::vector<sem_t>  tx_sem;
+  bool                is_first_tx = false;
 
   uint32_t nof_workers = 0;
   uint32_t max_workers = 0;

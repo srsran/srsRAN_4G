@@ -86,28 +86,29 @@ FILE* f;
 
 void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
 {
-  srslte_cell_t cell    = phy_->cell_list[cc_idx_].cell;
-  uint32_t      nof_prb = phy_->get_nof_prb();
   phy                   = phy_;
   log_h                 = log_h_;
   cc_idx                = cc_idx_;
+  srslte_cell_t cell    = phy_->get_cell(cc_idx);
+  uint32_t      nof_prb = phy_->get_nof_prb(cc_idx);
+  uint32_t      sf_len  = SRSLTE_SF_LEN_PRB(nof_prb);
 
   // Init cell here
-  for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
-    signal_buffer_rx[p] = srslte_vec_cf_malloc(2 * SRSLTE_SF_LEN_PRB(nof_prb));
+  for (uint32_t izeof(cf_t) * (size_t)nsamplp = 0; p < SRSLTE_MAX_PORTS; p++) {
+    signal_buffer_rx[p] = srslte_vec_cf_malloc(2 * sf_len);
     if (!signal_buffer_rx[p]) {
       ERROR("Error allocating memory\n");
       return;
     }
-    bzero(signal_buffer_rx[p], 2 * SRSLTE_SF_LEN_PRB(phy->get_nof_prb()) * sizeof(cf_t));
-    signal_buffer_tx[p] = (cf_t*)srslte_vec_malloc(2 * SRSLTE_SF_LEN_PRB(nof_prb) * sizeof(cf_t));
+    srslte_vec_cf_zero(signal_buffer_rx[p], 2 * sf_len);
+    signal_buffer_tx[p] = srslte_vec_cf_malloc(2 * sf_len);
     if (!signal_buffer_tx[p]) {
       ERROR("Error allocating memory\n");
       return;
     }
-    bzero(signal_buffer_tx[p], 2 * SRSLTE_SF_LEN_PRB(nof_prb) * sizeof(cf_t));
+    srslte_vec_cf_zero(signal_buffer_tx[p], 2 * sf_len);
   }
-  if (srslte_enb_dl_init(&enb_dl, signal_buffer_tx, phy->get_nof_prb())) {
+  if (srslte_enb_dl_init(&enb_dl, signal_buffer_tx, nof_prb)) {
     ERROR("Error initiating ENB DL\n");
     return;
   }
@@ -115,7 +116,7 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
     ERROR("Error initiating ENB DL\n");
     return;
   }
-  if (srslte_enb_ul_init(&enb_ul, signal_buffer_rx[0], phy->get_nof_prb())) {
+  if (srslte_enb_ul_init(&enb_ul, signal_buffer_rx[0], nof_prb)) {
     ERROR("Error initiating ENB UL\n");
     return;
   }
@@ -771,19 +772,19 @@ void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo
 
 int cc_worker::read_ce_abs(float* ce_abs)
 {
-  int sz = srslte_symbol_sz(phy->get_nof_prb());
+  int sz = srslte_symbol_sz(phy->get_nof_prb(cc_idx));
   bzero(ce_abs, sizeof(float) * sz);
-  int g = (sz - SRSLTE_NRE * phy->get_nof_prb()) / 2;
-  srslte_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSLTE_NRE * phy->get_nof_prb());
+  int g = (sz - SRSLTE_NRE * phy->get_nof_prb(cc_idx)) / 2;
+  srslte_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSLTE_NRE * phy->get_nof_prb(cc_idx));
   return sz;
 }
 
 int cc_worker::read_ce_arg(float* ce_arg)
 {
-  int sz = srslte_symbol_sz(phy->get_nof_prb());
+  int sz = srslte_symbol_sz(phy->get_nof_prb(cc_idx));
   bzero(ce_arg, sizeof(float) * sz);
-  int g = (sz - SRSLTE_NRE * phy->get_nof_prb()) / 2;
-  srslte_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSLTE_NRE * phy->get_nof_prb());
+  int g = (sz - SRSLTE_NRE * phy->get_nof_prb(cc_idx)) / 2;
+  srslte_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSLTE_NRE * phy->get_nof_prb(cc_idx));
   return sz;
 }
 

@@ -89,49 +89,32 @@ void txrx::run_thread()
   cf_t*              buffer[SRSLTE_MAX_PORTS] = {};
   srslte_timestamp_t rx_time                  = {};
   srslte_timestamp_t tx_time                  = {};
-  uint32_t           sf_len                   = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb());
+  uint32_t           sf_len                   = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
 
-  float samp_rate = srslte_sampling_freq_hz(worker_com->get_nof_prb());
+  float samp_rate = srslte_sampling_freq_hz(worker_com->get_nof_prb(0));
   log_h->console("Setting Sampling frequency %.2f MHz\n", (float)samp_rate / 1000000);
 
   // Configure radio
   radio_h->set_rx_srate(0, samp_rate);
   radio_h->set_tx_srate(0, samp_rate);
 
-  for (auto& cfg : worker_com->cell_list) {
-    // If there is no UL-EARDCN, deduce it from DL-EARFCN
-    if (cfg.ul_earfcn == 0) {
-      cfg.ul_earfcn = srslte_band_ul_earfcn(cfg.dl_earfcn);
-    }
-
-    // Set Tx/Rx frequencies
-    float tx_freq_hz = 1e6 * srslte_band_fd(cfg.dl_earfcn);
-    float rx_freq_hz = 1e6 * srslte_band_fd(cfg.ul_earfcn);
-    for (uint32_t i = 0; i < worker_com->get_nof_ports(); i++) {
-      radio_h->set_tx_freq(0, cfg.rf_port + i, tx_freq_hz);
-      radio_h->set_rx_freq(0, cfg.rf_port + i, rx_freq_hz);
+  // Set Tx/Rx frequencies
+  for (uint32_t cc_idx = 0; cc_idx < worker_com->get_nof_carriers(); cc_idx++) {
+    float    tx_freq_hz = 1e6 * srslte_band_fd(worker_com->get_dl_earfcn(cc_idx));
+    float    rx_freq_hz = 1e6 * srslte_band_fd(worker_com->get_ul_earfcn(cc_idx));
+    uint32_t rf_port    = worker_com->get_rf_port(cc_idx);
+    for (uint32_t i = 0; i < worker_com->get_nof_ports(cc_idx); i++) {
+      radio_h->set_tx_freq(0, rf_port + i, tx_freq_hz);
+      radio_h->set_rx_freq(0, rf_port + i, rx_freq_hz);
     }
   }
 
+  // Set channel emulator sampling rate
   if (ul_channel) {
     ul_channel->set_srate(static_cast<uint32_t>(samp_rate));
-    for (auto& cfg : worker_com->cell_list) {
-      // If there is no UL-EARDCN, deduce it from DL-EARFCN
-      if (cfg.ul_earfcn == 0) {
-        cfg.ul_earfcn = srslte_band_ul_earfcn(cfg.dl_earfcn);
-      }
-
-      // Set Tx/Rx frequencies
-      float tx_freq_hz = 1e6 * srslte_band_fd(cfg.dl_earfcn);
-      float rx_freq_hz = 1e6 * srslte_band_fd(cfg.ul_earfcn);
-      for (uint32_t i = 0; i < worker_com->get_nof_ports(); i++) {
-        radio_h->set_tx_freq(0, cfg.rf_port + i, tx_freq_hz);
-        radio_h->set_rx_freq(0, cfg.rf_port + i, rx_freq_hz);
-      }
-    }
   }
 
-  log_h->info("Starting RX/TX thread nof_prb=%d, sf_len=%d\n", worker_com->get_nof_prb(), sf_len);
+  log_h->info("Starting RX/TX thread nof_prb=%d, sf_len=%d\n", worker_com->get_nof_prb(0), sf_len);
 
   // Set TTI so that first TX is at tti=0
   tti = 10235;
@@ -141,9 +124,10 @@ void txrx::run_thread()
     tti    = (tti + 1) % 10240;
     worker = (sf_worker*)workers_pool->wait_worker(tti);
     if (worker) {
+      // Multiple cell buffer mapping
       for (uint32_t cc = 0; cc < worker_com->get_nof_carriers(); cc++) {
-        uint32_t rf_port = worker_com->cell_list[cc].rf_port;
-        for (uint32_t p = 0; p < worker_com->get_nof_ports(); p++) {
+        uint32_t rf_port = worker_com->get_rf_port(cc);
+        for (uint32_t p = 0; p < worker_com->get_nof_ports(cc); p++) {
           buffer[rf_port + p] = worker->get_buffer_rx(cc, p);
         }
       }
@@ -173,7 +157,7 @@ void txrx::run_thread()
 
       // Trigger prach worker execution
       for (uint32_t cc = 0; cc < worker_com->get_nof_carriers(); cc++) {
-        prach->new_tti(cc, tti, buffer[worker_com->cell_list[cc].rf_port * worker_com->get_nof_ports()]);
+        prach->new_tti(cc, tti, buffer[worker_com->get_rf_port(cc) * worker_com->get_nof_ports(cc)]);
       }
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here

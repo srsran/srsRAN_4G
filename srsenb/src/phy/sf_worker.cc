@@ -89,14 +89,14 @@ void sf_worker::init(phy_common* phy_, srslte::log* log_h_)
     cc_workers.push_back(std::unique_ptr<cc_worker>(q));
   }
 
-  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->get_nof_prb())) {
+  if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, phy->get_nof_prb(0))) {
     ERROR("Error initiating soft buffer\n");
     exit(-1);
   }
 
   srslte_softbuffer_tx_reset(&temp_mbsfn_softbuffer);
 
-  Info("Worker %d configured cell %d PRB\n", get_id(), phy->get_nof_prb());
+  Info("Worker %d configured cell %d PRB\n", get_id(), phy->get_nof_prb(0));
 
   initiated = true;
   running   = true;
@@ -190,8 +190,8 @@ void sf_worker::work_imp()
   ul_sf.tti = tti_rx;
 
   // Process UL
-  for (auto& q : phy->dl_grants[t_tx_dl]) {
-    q.cfi = mbsfn_cfg.non_mbsfn_region_length;
+  for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
+    cc_workers[cc]->work_ul(&ul_sf, &phy->ul_grants[t_rx][cc]);
   }
 
   // Get DL scheduling for the TX TTI from MAC
@@ -233,13 +233,13 @@ void sf_worker::work_imp()
 
   // Get Transmission buffers
   for (uint32_t cc = 0, i = 0; cc < phy->get_nof_carriers(); cc++) {
-    for (uint32_t ant = 0; ant < phy->get_nof_ports(); ant++, i++) {
+    for (uint32_t ant = 0; ant < phy->get_nof_ports(cc); ant++, i++) {
       signal_buffer_tx[i] = cc_workers[cc]->get_buffer_tx(ant);
     }
   }
 
   Debug("Sending to radio\n");
-  phy->worker_end(tx_worker_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->get_nof_prb()), tx_time);
+  phy->worker_end(tx_worker_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)), tx_time);
 
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);
