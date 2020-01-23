@@ -109,41 +109,11 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     mac.start_pcap(&mac_pcap);
   }
 
-  // verify configuration correctness
-  uint32_t       prach_freq_offset = rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-  srslte_cell_t& cell_cfg          = rrc_cfg.cell;
-  if (cell_cfg.nof_prb > 10) {
-    uint32_t lower_bound = SRSLTE_MAX(rrc_cfg.sr_cfg.nof_prb, rrc_cfg.cqi_cfg.nof_prb);
-    uint32_t upper_bound = cell_cfg.nof_prb - lower_bound;
-    if (prach_freq_offset + 6 > upper_bound or prach_freq_offset < lower_bound) {
-      fprintf(stderr,
-              "ERROR: Invalid PRACH configuration - prach_freq_offset=%d collides with PUCCH.\n",
-              prach_freq_offset);
-      fprintf(stderr,
-              "       Consider changing \"prach_freq_offset\" in sib.conf to a value between %d and %d.\n",
-              lower_bound,
-              upper_bound);
-      return SRSLTE_ERROR;
-    }
-  } else { // 6 PRB case
-    if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
-      fprintf(stderr,
-              "WARNING: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0, %d).\n",
-              prach_freq_offset,
-              prach_freq_offset + 6,
-              cell_cfg.nof_prb);
-      fprintf(
-          stderr,
-          "       Consider changing the \"prach_freq_offset\" value to 0 in the sib.conf file when using 6 PRBs.\n");
-      rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset = 0;
-    }
-  }
-
   // Init Rx socket handler
   rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", &stack_log));
 
   // Init all layers
-  mac.init(args.mac, &cell_cfg, phy, &rlc, &rrc, this, &mac_log);
+  mac.init(args.mac, &rrc_cfg.cell, phy, &rlc, &rrc, this, &mac_log);
   rlc.init(&pdcp, &rrc, &mac, &timers, &rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(&rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
