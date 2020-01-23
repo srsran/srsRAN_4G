@@ -174,6 +174,16 @@ uint8_t* srslte_vec_u8_malloc(uint32_t nsamples)
   return (uint8_t*)srslte_vec_malloc((uint32_t)sizeof(uint8_t) * nsamples);
 }
 
+void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples)
+{
+  memset(ptr, 0, sizeof(cf_t) * nsamples);
+}
+
+void srslte_vec_f_zero(float* ptr, uint32_t nsamples)
+{
+  memset(ptr, 0, sizeof(float) * nsamples);
+}
+
 void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_size)
 {
 #ifndef LV_HAVE_SSE
@@ -530,7 +540,7 @@ void srslte_vec_quant_fus(const float*   in,
     int32_t tmp = (int32_t)(offset + gain * in[i]);
     tmp         = SRSLTE_MAX(tmp, 0);
     tmp         = SRSLTE_MIN(tmp, (int32_t)clip);
-    out[i] = (uint16_t)tmp;
+    out[i]      = (uint16_t)tmp;
   }
 }
 
@@ -545,7 +555,7 @@ void srslte_vec_quant_fuc(const float*   in,
     int32_t tmp = (int32_t)(offset + gain * in[i]);
     tmp         = SRSLTE_MAX(tmp, 0);
     tmp         = SRSLTE_MIN(tmp, (int32_t)clip);
-    out[i] = (uint8_t)tmp;
+    out[i]      = (uint8_t)tmp;
   }
 }
 
@@ -560,7 +570,7 @@ void srslte_vec_quant_suc(const int16_t* in,
     int32_t tmp = (int32_t)(offset + (float)in[i] * gain);
     tmp         = SRSLTE_MAX(tmp, 0);
     tmp         = SRSLTE_MIN(tmp, (int32_t)clip);
-    out[i] = (uint8_t)tmp;
+    out[i]      = (uint8_t)tmp;
   }
 }
 
@@ -575,7 +585,7 @@ void srslte_vec_quant_sus(const int16_t* in,
     int32_t tmp = (int32_t)(offset + gain * (float)in[i]);
     tmp         = SRSLTE_MAX(tmp, 0);
     tmp         = SRSLTE_MIN(tmp, (int32_t)clip);
-    out[i] = (uint16_t)tmp;
+    out[i]      = (uint16_t)tmp;
   }
 }
 
