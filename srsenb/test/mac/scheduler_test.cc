@@ -106,7 +106,6 @@ int main(int argc, char* argv[])
 
   srsenb::sched_interface::dl_sched_res_t sched_result_dl;
   srsenb::sched_interface::ul_sched_res_t sched_result_ul;
-  uint32_t                                dl_info_len = 0;
 
   srsenb::sched_interface::ue_cfg_t ue_cfg;
   bzero(&ue_cfg, sizeof(srsenb::sched_interface::ue_cfg_t));
