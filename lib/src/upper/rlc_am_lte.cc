@@ -1829,12 +1829,6 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
       n       = it->buf->N_bytes - overlap;
     }
 
-    // Check overlapped data is matching
-    if (memcmp(&full_pdu->msg[it->header.so], it->buf->msg, overlap) != 0) {
-      log->warning("Overlapped data between segments does not match. Discarding PDU.\n");
-      return false;
-    }
-
     // Copy data itself
     memcpy(&full_pdu->msg[full_pdu->N_bytes], &it->buf->msg[overlap], n);
     full_pdu->N_bytes += n;
