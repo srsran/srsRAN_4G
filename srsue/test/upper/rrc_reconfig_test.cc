@@ -114,8 +114,7 @@ int basic_test()
       0x20, 0x60, 0x18, 0x07, 0x97, 0x09, 0x1f, 0xc3, 0x06, 0x00, 0x81, 0x00, 0x00, 0x11};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
 
-  bit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   dl_dcch_msg.unpack(bref);
 
@@ -140,13 +139,13 @@ int basic_test()
   dl_dcch_msg.pack(bref2);
 
   //
-  bref = bit_ref(&rrc_msg2[0], rrc_msg_len);
+  bref = cbit_ref(&rrc_msg2[0], rrc_msg_len);
   dl_dcch_msg.unpack(bref);
-  bref = bit_ref(&rrc_msg[0], rrc_msg_len);
-  dl_dcch_msg.pack(bref);
-  uint32_t nof_bytes = (uint32_t)bref.distance_bytes(&rrc_msg[0]);
+  bit_ref bref_pack(&rrc_msg[0], rrc_msg_len);
+  dl_dcch_msg.pack(bref_pack);
+  uint32_t nof_bytes = (uint32_t)bref.distance_bytes();
 
-  TESTASSERT(bref.distance(&rrc_msg[0]) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(bref_pack.distance() == bref2.distance());
   TESTASSERT(memcmp(rrc_msg2, rrc_msg, nof_bytes) == 0);
 
   printf("done\n");

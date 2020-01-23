@@ -92,7 +92,7 @@ int test_erab_setup(bool qci_exists)
     byte_buf.N_bytes = sizeof(drb2_erab_setup_request_fail);
     memcpy(byte_buf.msg, drb2_erab_setup_request_fail, byte_buf.N_bytes);
   }
-  asn1::bit_ref bref(byte_buf.msg, byte_buf.N_bytes);
+  asn1::cbit_ref bref(byte_buf.msg, byte_buf.N_bytes);
 
   TESTASSERT(s1ap_pdu.unpack(bref) == asn1::SRSASN_SUCCESS);
   rrc.setup_ue_erabs(rnti, s1ap_pdu.init_msg().value.erab_setup_request());

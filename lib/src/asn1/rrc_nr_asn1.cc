@@ -111,7 +111,7 @@ SRSASN_CODE pdcch_cfg_sib1_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcch_cfg_sib1_s::unpack(bit_ref& bref)
+SRSASN_CODE pdcch_cfg_sib1_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(ctrl_res_set_zero, bref, (uint8_t)0u, (uint8_t)15u));
   HANDLE_CODE(unpack_integer(search_space_zero, bref, (uint8_t)0u, (uint8_t)15u));
@@ -140,7 +140,7 @@ SRSASN_CODE mib_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mib_s::unpack(bit_ref& bref)
+SRSASN_CODE mib_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(sys_frame_num.unpack(bref));
   HANDLE_CODE(sub_carrier_spacing_common.unpack(bref));
@@ -294,7 +294,7 @@ SRSASN_CODE bcch_bch_msg_type_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bcch_bch_msg_type_c::unpack(bit_ref& bref)
+SRSASN_CODE bcch_bch_msg_type_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -327,7 +327,7 @@ SRSASN_CODE bcch_bch_msg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bcch_bch_msg_s::unpack(bit_ref& bref)
+SRSASN_CODE bcch_bch_msg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(msg.unpack(bref));
 
@@ -362,7 +362,7 @@ SRSASN_CODE eutra_ns_pmax_value_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_ns_pmax_value_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_ns_pmax_value_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(add_pmax_present, 1));
   HANDLE_CODE(bref.unpack(add_spec_emission_present, 1));
@@ -400,7 +400,7 @@ SRSASN_CODE nr_ns_pmax_value_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE nr_ns_pmax_value_s::unpack(bit_ref& bref)
+SRSASN_CODE nr_ns_pmax_value_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(add_pmax_present, 1));
 
@@ -470,7 +470,7 @@ SRSASN_CODE eutra_freq_neigh_cell_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_freq_neigh_cell_info_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_freq_neigh_cell_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(q_rx_lev_min_offset_cell_present, 1));
   HANDLE_CODE(bref.unpack(q_qual_min_offset_cell_present, 1));
@@ -512,7 +512,7 @@ SRSASN_CODE eutra_multi_band_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_multi_band_info_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_multi_band_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(eutra_ns_pmax_list_present, 1));
 
@@ -549,7 +549,7 @@ SRSASN_CODE eutra_pci_range_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_pci_range_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_pci_range_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(range_present, 1));
 
@@ -618,7 +618,7 @@ SRSASN_CODE inter_freq_neigh_cell_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE inter_freq_neigh_cell_info_s::unpack(bit_ref& bref)
+SRSASN_CODE inter_freq_neigh_cell_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(q_rx_lev_min_offset_cell_present, 1));
@@ -671,7 +671,7 @@ SRSASN_CODE nr_multi_band_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE nr_multi_band_info_s::unpack(bit_ref& bref)
+SRSASN_CODE nr_multi_band_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(freq_band_ind_nr_present, 1));
   HANDLE_CODE(bref.unpack(nr_ns_pmax_list_present, 1));
@@ -713,7 +713,7 @@ SRSASN_CODE pci_range_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pci_range_s::unpack(bit_ref& bref)
+SRSASN_CODE pci_range_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(range_present, 1));
 
@@ -773,7 +773,7 @@ SRSASN_CODE pdsch_time_domain_res_alloc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdsch_time_domain_res_alloc_s::unpack(bit_ref& bref)
+SRSASN_CODE pdsch_time_domain_res_alloc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(k0_present, 1));
 
@@ -815,7 +815,7 @@ SRSASN_CODE pusch_time_domain_res_alloc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_time_domain_res_alloc_s::unpack(bit_ref& bref)
+SRSASN_CODE pusch_time_domain_res_alloc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(k2_present, 1));
 
@@ -887,7 +887,7 @@ SRSASN_CODE ctrl_res_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ctrl_res_set_s::unpack(bit_ref& bref)
+SRSASN_CODE ctrl_res_set_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(tci_states_pdcch_to_add_list_present, 1));
@@ -989,7 +989,7 @@ SRSASN_CODE ctrl_res_set_s::cce_reg_map_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ctrl_res_set_s::cce_reg_map_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE ctrl_res_set_s::cce_reg_map_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -1075,7 +1075,7 @@ SRSASN_CODE rach_cfg_generic_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rach_cfg_generic_s::unpack(bit_ref& bref)
+SRSASN_CODE rach_cfg_generic_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(prach_cfg_idx, bref, (uint16_t)0u, (uint16_t)255u));
@@ -1155,7 +1155,7 @@ SRSASN_CODE ss_rssi_meas_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ss_rssi_meas_s::unpack(bit_ref& bref)
+SRSASN_CODE ss_rssi_meas_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(meas_slots.unpack(bref));
   HANDLE_CODE(unpack_integer(end_symbol, bref, (uint8_t)0u, (uint8_t)3u));
@@ -1178,7 +1178,7 @@ SRSASN_CODE ssb_mtc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ssb_mtc_s::unpack(bit_ref& bref)
+SRSASN_CODE ssb_mtc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(periodicity_and_offset.unpack(bref));
   HANDLE_CODE(dur.unpack(bref));
@@ -1317,7 +1317,7 @@ SRSASN_CODE ssb_mtc_s::periodicity_and_offset_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ssb_mtc_s::periodicity_and_offset_c_::unpack(bit_ref& bref)
+SRSASN_CODE ssb_mtc_s::periodicity_and_offset_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -1487,7 +1487,7 @@ SRSASN_CODE ssb_to_measure_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ssb_to_measure_c::unpack(bit_ref& bref)
+SRSASN_CODE ssb_to_measure_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -1551,7 +1551,7 @@ SRSASN_CODE search_space_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE search_space_s::unpack(bit_ref& bref)
+SRSASN_CODE search_space_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ctrl_res_set_id_present, 1));
   HANDLE_CODE(bref.unpack(monitoring_slot_periodicity_and_offset_present, 1));
@@ -1848,7 +1848,7 @@ SRSASN_CODE search_space_s::monitoring_slot_periodicity_and_offset_c_::pack(bit_
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE search_space_s::monitoring_slot_periodicity_and_offset_c_::unpack(bit_ref& bref)
+SRSASN_CODE search_space_s::monitoring_slot_periodicity_and_offset_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -2187,7 +2187,7 @@ SRSASN_CODE search_space_s::search_space_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE search_space_s::search_space_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE search_space_s::search_space_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -2407,7 +2407,7 @@ SRSASN_CODE speed_state_scale_factors_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE speed_state_scale_factors_s::unpack(bit_ref& bref)
+SRSASN_CODE speed_state_scale_factors_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(sf_medium.unpack(bref));
   HANDLE_CODE(sf_high.unpack(bref));
@@ -2486,7 +2486,7 @@ SRSASN_CODE thres_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE thres_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE thres_nr_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(thres_rsrp_present, 1));
   HANDLE_CODE(bref.unpack(thres_rsrq_present, 1));
@@ -2529,7 +2529,7 @@ SRSASN_CODE bwp_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bwp_s::unpack(bit_ref& bref)
+SRSASN_CODE bwp_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(cp_present, 1));
 
@@ -2589,7 +2589,7 @@ SRSASN_CODE carrier_freq_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE carrier_freq_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE carrier_freq_eutra_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(eutra_multi_band_info_list_present, 1));
   HANDLE_CODE(bref.unpack(eutra_freq_neigh_cell_list_present, 1));
@@ -2760,7 +2760,7 @@ SRSASN_CODE inter_freq_carrier_freq_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE inter_freq_carrier_freq_info_s::unpack(bit_ref& bref)
+SRSASN_CODE inter_freq_carrier_freq_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(freq_band_list_present, 1));
@@ -2954,7 +2954,7 @@ SRSASN_CODE intra_freq_neigh_cell_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE intra_freq_neigh_cell_info_s::unpack(bit_ref& bref)
+SRSASN_CODE intra_freq_neigh_cell_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(q_rx_lev_min_offset_cell_present, 1));
@@ -3046,7 +3046,7 @@ SRSASN_CODE pdcch_cfg_common_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcch_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE pdcch_cfg_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ctrl_res_set_zero_present, 1));
@@ -3414,7 +3414,7 @@ SRSASN_CODE pdcch_cfg_common_s::first_pdcch_monitoring_occasion_of_po_c_::pack(b
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcch_cfg_common_s::first_pdcch_monitoring_occasion_of_po_c_::unpack(bit_ref& bref)
+SRSASN_CODE pdcch_cfg_common_s::first_pdcch_monitoring_occasion_of_po_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -3500,7 +3500,7 @@ SRSASN_CODE pdsch_cfg_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdsch_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE pdsch_cfg_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pdsch_time_domain_alloc_list_present, 1));
@@ -3536,7 +3536,7 @@ SRSASN_CODE plmn_id_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE plmn_id_s::unpack(bit_ref& bref)
+SRSASN_CODE plmn_id_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(mcc_present, 1));
 
@@ -3586,7 +3586,7 @@ SRSASN_CODE pucch_cfg_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_cfg_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pucch_res_common_present, 1));
@@ -3649,7 +3649,7 @@ SRSASN_CODE pusch_cfg_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE pusch_cfg_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(group_hop_enabled_transform_precoding_present, 1));
@@ -3742,7 +3742,7 @@ SRSASN_CODE rach_cfg_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rach_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE rach_cfg_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(total_nof_ra_preambs_present, 1));
@@ -3968,7 +3968,7 @@ SRSASN_CODE rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::unpack(bit_ref& bref)
+SRSASN_CODE rach_cfg_common_s::ssb_per_rach_occasion_and_cb_preambs_per_ssb_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -4217,7 +4217,7 @@ SRSASN_CODE rach_cfg_common_s::prach_root_seq_idx_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rach_cfg_common_s::prach_root_seq_idx_c_::unpack(bit_ref& bref)
+SRSASN_CODE rach_cfg_common_s::prach_root_seq_idx_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -4277,7 +4277,7 @@ SRSASN_CODE scs_specific_carrier_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE scs_specific_carrier_s::unpack(bit_ref& bref)
+SRSASN_CODE scs_specific_carrier_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(offset_to_carrier, bref, (uint16_t)0u, (uint16_t)2199u));
@@ -4326,7 +4326,7 @@ SRSASN_CODE sib_type_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib_type_info_s::unpack(bit_ref& bref)
+SRSASN_CODE sib_type_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(value_tag_present, 1));
   HANDLE_CODE(bref.unpack(area_scope_present, 1));
@@ -4414,7 +4414,7 @@ SRSASN_CODE setup_release_c<elem_type_paramT_>::pack(bit_ref& bref) const
   return SRSASN_SUCCESS;
 }
 template <class elem_type_paramT_>
-SRSASN_CODE setup_release_c<elem_type_paramT_>::unpack(bit_ref& bref)
+SRSASN_CODE setup_release_c<elem_type_paramT_>::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -4447,7 +4447,7 @@ SRSASN_CODE uac_barr_per_cat_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE uac_barr_per_cat_s::unpack(bit_ref& bref)
+SRSASN_CODE uac_barr_per_cat_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(access_category, bref, (uint8_t)1u, (uint8_t)63u));
   HANDLE_CODE(unpack_integer(uac_barr_info_set_idx, bref, (uint8_t)1u, (uint8_t)8u));
@@ -4470,7 +4470,7 @@ SRSASN_CODE bcch_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bcch_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE bcch_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(mod_period_coeff.unpack(bref));
@@ -4512,7 +4512,7 @@ SRSASN_CODE bwp_dl_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bwp_dl_common_s::unpack(bit_ref& bref)
+SRSASN_CODE bwp_dl_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pdcch_cfg_common_present, 1));
@@ -4565,7 +4565,7 @@ SRSASN_CODE bwp_ul_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bwp_ul_common_s::unpack(bit_ref& bref)
+SRSASN_CODE bwp_ul_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(rach_cfg_common_present, 1));
@@ -4614,7 +4614,7 @@ SRSASN_CODE freq_info_dl_sib_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_info_dl_sib_s::unpack(bit_ref& bref)
+SRSASN_CODE freq_info_dl_sib_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_dyn_seq_of(freq_band_list, bref, 1, 8));
   HANDLE_CODE(unpack_integer(offset_to_point_a, bref, (uint16_t)0u, (uint16_t)2199u));
@@ -4661,7 +4661,7 @@ SRSASN_CODE freq_info_ul_sib_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_info_ul_sib_s::unpack(bit_ref& bref)
+SRSASN_CODE freq_info_ul_sib_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(freq_band_list_present, 1));
@@ -4719,7 +4719,7 @@ SRSASN_CODE mob_state_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mob_state_params_s::unpack(bit_ref& bref)
+SRSASN_CODE mob_state_params_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(t_eval.unpack(bref));
   HANDLE_CODE(t_hyst_normal.unpack(bref));
@@ -4775,7 +4775,7 @@ SRSASN_CODE pcch_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pcch_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pcch_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(first_pdcch_monitoring_occasion_of_po_present, 1));
@@ -4911,7 +4911,7 @@ SRSASN_CODE pcch_cfg_s::nand_paging_frame_offset_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pcch_cfg_s::nand_paging_frame_offset_c_::unpack(bit_ref& bref)
+SRSASN_CODE pcch_cfg_s::nand_paging_frame_offset_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -5237,7 +5237,7 @@ SRSASN_CODE pcch_cfg_s::first_pdcch_monitoring_occasion_of_po_c_::pack(bit_ref& 
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pcch_cfg_s::first_pdcch_monitoring_occasion_of_po_c_::unpack(bit_ref& bref)
+SRSASN_CODE pcch_cfg_s::first_pdcch_monitoring_occasion_of_po_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -5330,7 +5330,7 @@ SRSASN_CODE plmn_id_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE plmn_id_info_s::unpack(bit_ref& bref)
+SRSASN_CODE plmn_id_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(tac_present, 1));
@@ -5389,7 +5389,7 @@ SRSASN_CODE si_request_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE si_request_res_s::unpack(bit_ref& bref)
+SRSASN_CODE si_request_res_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ra_assoc_period_idx_present, 1));
   HANDLE_CODE(bref.unpack(ra_ssb_occasion_mask_idx_present, 1));
@@ -5443,7 +5443,7 @@ SRSASN_CODE tdd_ul_dl_pattern_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE tdd_ul_dl_pattern_s::unpack(bit_ref& bref)
+SRSASN_CODE tdd_ul_dl_pattern_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(dl_ul_tx_periodicity.unpack(bref));
@@ -5524,7 +5524,7 @@ SRSASN_CODE dl_cfg_common_sib_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_cfg_common_sib_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_cfg_common_sib_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(freq_info_dl.unpack(bref));
@@ -5565,7 +5565,7 @@ SRSASN_CODE si_request_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE si_request_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE si_request_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(rach_occasions_si_present, 1));
   HANDLE_CODE(bref.unpack(si_request_period_present, 1));
@@ -5673,7 +5673,7 @@ SRSASN_CODE sib2_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib2_s::unpack(bit_ref& bref)
+SRSASN_CODE sib2_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   bref.unpack(cell_resel_info_common.ext, 1);
@@ -5884,7 +5884,7 @@ SRSASN_CODE sib2_s::intra_freq_cell_resel_info_s_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib2_s::intra_freq_cell_resel_info_s_::unpack(bit_ref& bref)
+SRSASN_CODE sib2_s::intra_freq_cell_resel_info_s_::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(q_rx_lev_min_sul_present, 1));
@@ -6020,7 +6020,7 @@ SRSASN_CODE sib3_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib3_s::unpack(bit_ref& bref)
+SRSASN_CODE sib3_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(intra_freq_neigh_cell_list_present, 1));
@@ -6075,7 +6075,7 @@ SRSASN_CODE sib4_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib4_s::unpack(bit_ref& bref)
+SRSASN_CODE sib4_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -6122,7 +6122,7 @@ SRSASN_CODE sib5_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib5_s::unpack(bit_ref& bref)
+SRSASN_CODE sib5_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(carrier_freq_list_eutra_present, 1));
@@ -6178,7 +6178,7 @@ SRSASN_CODE sib6_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib6_s::unpack(bit_ref& bref)
+SRSASN_CODE sib6_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -6225,7 +6225,7 @@ SRSASN_CODE sib7_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib7_s::unpack(bit_ref& bref)
+SRSASN_CODE sib7_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(data_coding_scheme_present, 1));
@@ -6293,7 +6293,7 @@ SRSASN_CODE sib8_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib8_s::unpack(bit_ref& bref)
+SRSASN_CODE sib8_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(data_coding_scheme_present, 1));
@@ -6371,7 +6371,7 @@ SRSASN_CODE sib9_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib9_s::unpack(bit_ref& bref)
+SRSASN_CODE sib9_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(time_info_present, 1));
@@ -6431,7 +6431,7 @@ SRSASN_CODE sched_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sched_info_s::unpack(bit_ref& bref)
+SRSASN_CODE sched_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(si_broadcast_status.unpack(bref));
   HANDLE_CODE(si_periodicity.unpack(bref));
@@ -6483,7 +6483,7 @@ SRSASN_CODE tdd_ul_dl_cfg_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE tdd_ul_dl_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE tdd_ul_dl_cfg_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pattern2_present, 1));
@@ -6518,7 +6518,7 @@ SRSASN_CODE uac_barr_info_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE uac_barr_info_set_s::unpack(bit_ref& bref)
+SRSASN_CODE uac_barr_info_set_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(uac_barr_factor.unpack(bref));
   HANDLE_CODE(uac_barr_time.unpack(bref));
@@ -6576,7 +6576,7 @@ SRSASN_CODE uac_barr_per_plmn_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE uac_barr_per_plmn_s::unpack(bit_ref& bref)
+SRSASN_CODE uac_barr_per_plmn_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(uac_ac_barr_list_type_present, 1));
 
@@ -6709,7 +6709,7 @@ SRSASN_CODE uac_barr_per_plmn_s::uac_ac_barr_list_type_c_::pack(bit_ref& bref) c
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE uac_barr_per_plmn_s::uac_ac_barr_list_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE uac_barr_per_plmn_s::uac_ac_barr_list_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -6746,7 +6746,7 @@ SRSASN_CODE ul_cfg_common_sib_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_cfg_common_sib_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_cfg_common_sib_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(freq_info_ul.unpack(bref));
   HANDLE_CODE(init_ul_bwp.unpack(bref));
@@ -6775,7 +6775,7 @@ SRSASN_CODE cell_access_related_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cell_access_related_info_s::unpack(bit_ref& bref)
+SRSASN_CODE cell_access_related_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(cell_reserved_for_other_use_present, 1));
@@ -6811,7 +6811,7 @@ SRSASN_CODE conn_est_fail_ctrl_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE conn_est_fail_ctrl_s::unpack(bit_ref& bref)
+SRSASN_CODE conn_est_fail_ctrl_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(conn_est_fail_offset_present, 1));
 
@@ -6878,7 +6878,7 @@ SRSASN_CODE si_sched_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE si_sched_info_s::unpack(bit_ref& bref)
+SRSASN_CODE si_sched_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(si_request_cfg_present, 1));
@@ -6965,7 +6965,7 @@ SRSASN_CODE serving_cell_cfg_common_sib_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE serving_cell_cfg_common_sib_s::unpack(bit_ref& bref)
+SRSASN_CODE serving_cell_cfg_common_sib_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ul_cfg_common_present, 1));
@@ -7063,7 +7063,7 @@ SRSASN_CODE sys_info_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sys_info_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE sys_info_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -7310,7 +7310,7 @@ SRSASN_CODE sys_info_ies_s::sib_type_and_info_item_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sys_info_ies_s::sib_type_and_info_item_c_::unpack(bit_ref& bref)
+SRSASN_CODE sys_info_ies_s::sib_type_and_info_item_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -7379,7 +7379,7 @@ SRSASN_CODE ue_timers_and_consts_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_timers_and_consts_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_timers_and_consts_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(t300.unpack(bref));
@@ -7550,7 +7550,7 @@ SRSASN_CODE sib1_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib1_s::unpack(bit_ref& bref)
+SRSASN_CODE sib1_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(cell_sel_info_present, 1));
   HANDLE_CODE(bref.unpack(conn_est_fail_ctrl_present, 1));
@@ -7805,7 +7805,7 @@ SRSASN_CODE sib1_s::uac_barr_info_s_::uac_access_category1_sel_assist_info_c_::p
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sib1_s::uac_barr_info_s_::uac_access_category1_sel_assist_info_c_::unpack(bit_ref& bref)
+SRSASN_CODE sib1_s::uac_barr_info_s_::uac_access_category1_sel_assist_info_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -7838,7 +7838,7 @@ SRSASN_CODE sys_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sys_info_s::unpack(bit_ref& bref)
+SRSASN_CODE sys_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -7943,7 +7943,7 @@ SRSASN_CODE sys_info_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sys_info_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE sys_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -8059,7 +8059,7 @@ SRSASN_CODE bcch_dl_sch_msg_type_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bcch_dl_sch_msg_type_c::unpack(bit_ref& bref)
+SRSASN_CODE bcch_dl_sch_msg_type_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -8177,7 +8177,7 @@ SRSASN_CODE bcch_dl_sch_msg_type_c::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bcch_dl_sch_msg_type_c::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE bcch_dl_sch_msg_type_c::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -8232,7 +8232,7 @@ SRSASN_CODE bcch_dl_sch_msg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bcch_dl_sch_msg_s::unpack(bit_ref& bref)
+SRSASN_CODE bcch_dl_sch_msg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(msg.unpack(bref));
 
@@ -8287,7 +8287,7 @@ SRSASN_CODE bfr_csirs_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bfr_csirs_res_s::unpack(bit_ref& bref)
+SRSASN_CODE bfr_csirs_res_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ra_occasion_list_present, 1));
@@ -8329,7 +8329,7 @@ SRSASN_CODE bfr_ssb_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bfr_ssb_res_s::unpack(bit_ref& bref)
+SRSASN_CODE bfr_ssb_res_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(ssb, bref, (uint8_t)0u, (uint8_t)63u));
@@ -8380,7 +8380,7 @@ SRSASN_CODE beta_offsets_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE beta_offsets_s::unpack(bit_ref& bref)
+SRSASN_CODE beta_offsets_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(beta_offset_ack_idx1_present, 1));
   HANDLE_CODE(bref.unpack(beta_offset_ack_idx2_present, 1));
@@ -8450,7 +8450,7 @@ SRSASN_CODE csi_freq_occupation_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_freq_occupation_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_freq_occupation_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(start_rb, bref, (uint16_t)0u, (uint16_t)274u));
@@ -8474,7 +8474,7 @@ SRSASN_CODE p0_pucch_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE p0_pucch_s::unpack(bit_ref& bref)
+SRSASN_CODE p0_pucch_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(p0_pucch_id, bref, (uint8_t)1u, (uint8_t)8u));
   HANDLE_CODE(unpack_integer(p0_pucch_value, bref, (int8_t)-16, (int8_t)15));
@@ -8505,7 +8505,7 @@ SRSASN_CODE p0_pusch_alpha_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE p0_pusch_alpha_set_s::unpack(bit_ref& bref)
+SRSASN_CODE p0_pusch_alpha_set_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(p0_present, 1));
   HANDLE_CODE(bref.unpack(alpha_present, 1));
@@ -8572,7 +8572,7 @@ SRSASN_CODE ptrs_ul_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ptrs_ul_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE ptrs_ul_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(transform_precoder_disabled_present, 1));
@@ -8722,7 +8722,7 @@ SRSASN_CODE pucch_pathloss_ref_rs_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_pathloss_ref_rs_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_pathloss_ref_rs_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(pucch_pathloss_ref_rs_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(ref_sig.unpack(bref));
@@ -8813,7 +8813,7 @@ SRSASN_CODE pucch_pathloss_ref_rs_s::ref_sig_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_pathloss_ref_rs_s::ref_sig_c_::unpack(bit_ref& bref)
+SRSASN_CODE pucch_pathloss_ref_rs_s::ref_sig_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -8847,7 +8847,7 @@ SRSASN_CODE pucch_format0_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_format0_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_format0_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(init_cyclic_shift, bref, (uint8_t)0u, (uint8_t)11u));
   HANDLE_CODE(unpack_integer(nrof_symbols, bref, (uint8_t)1u, (uint8_t)2u));
@@ -8874,7 +8874,7 @@ SRSASN_CODE pucch_format1_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_format1_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_format1_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(init_cyclic_shift, bref, (uint8_t)0u, (uint8_t)11u));
   HANDLE_CODE(unpack_integer(nrof_symbols, bref, (uint8_t)4u, (uint8_t)14u));
@@ -8902,7 +8902,7 @@ SRSASN_CODE pucch_format2_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_format2_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_format2_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(nrof_prbs, bref, (uint8_t)1u, (uint8_t)16u));
   HANDLE_CODE(unpack_integer(nrof_symbols, bref, (uint8_t)1u, (uint8_t)2u));
@@ -8928,7 +8928,7 @@ SRSASN_CODE pucch_format3_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_format3_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_format3_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(nrof_prbs, bref, (uint8_t)1u, (uint8_t)16u));
   HANDLE_CODE(unpack_integer(nrof_symbols, bref, (uint8_t)4u, (uint8_t)14u));
@@ -8955,7 +8955,7 @@ SRSASN_CODE pucch_format4_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_format4_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_format4_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(nrof_symbols, bref, (uint8_t)4u, (uint8_t)14u));
   HANDLE_CODE(occ_len.unpack(bref));
@@ -9004,7 +9004,7 @@ SRSASN_CODE pusch_pathloss_ref_rs_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_pathloss_ref_rs_s::unpack(bit_ref& bref)
+SRSASN_CODE pusch_pathloss_ref_rs_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(pusch_pathloss_ref_rs_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(ref_sig.unpack(bref));
@@ -9095,7 +9095,7 @@ SRSASN_CODE pusch_pathloss_ref_rs_s::ref_sig_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_pathloss_ref_rs_s::ref_sig_c_::unpack(bit_ref& bref)
+SRSASN_CODE pusch_pathloss_ref_rs_s::ref_sig_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -9130,7 +9130,7 @@ SRSASN_CODE sri_pusch_pwr_ctrl_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sri_pusch_pwr_ctrl_s::unpack(bit_ref& bref)
+SRSASN_CODE sri_pusch_pwr_ctrl_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(sri_pusch_pwr_ctrl_id, bref, (uint8_t)0u, (uint8_t)15u));
   HANDLE_CODE(unpack_integer(sri_pusch_pathloss_ref_rs_id, bref, (uint8_t)0u, (uint8_t)3u));
@@ -9411,7 +9411,7 @@ SRSASN_CODE srs_periodicity_and_offset_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_periodicity_and_offset_c::unpack(bit_ref& bref)
+SRSASN_CODE srs_periodicity_and_offset_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -9513,7 +9513,7 @@ SRSASN_CODE srs_spatial_relation_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_spatial_relation_info_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_spatial_relation_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(serving_cell_id_present, 1));
 
@@ -9649,7 +9649,7 @@ SRSASN_CODE srs_spatial_relation_info_s::ref_sig_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_spatial_relation_info_s::ref_sig_c_::unpack(bit_ref& bref)
+SRSASN_CODE srs_spatial_relation_info_s::ref_sig_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -9782,7 +9782,7 @@ SRSASN_CODE cg_uci_on_pusch_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_uci_on_pusch_c::unpack(bit_ref& bref)
+SRSASN_CODE cg_uci_on_pusch_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -9825,7 +9825,7 @@ SRSASN_CODE csi_rs_res_map_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_res_map_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_res_map_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(first_ofdm_symbol_in_time_domain2_present, 1));
@@ -9995,7 +9995,7 @@ SRSASN_CODE csi_rs_res_map_s::freq_domain_alloc_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_res_map_s::freq_domain_alloc_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_res_map_s::freq_domain_alloc_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -10103,7 +10103,7 @@ SRSASN_CODE csi_rs_res_map_s::density_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_res_map_s::density_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_res_map_s::density_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -10350,7 +10350,7 @@ SRSASN_CODE csi_res_periodicity_and_offset_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_res_periodicity_and_offset_c::unpack(bit_ref& bref)
+SRSASN_CODE csi_res_periodicity_and_offset_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -10465,7 +10465,7 @@ SRSASN_CODE dmrs_ul_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dmrs_ul_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE dmrs_ul_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(dmrs_type_present, 1));
@@ -10567,7 +10567,7 @@ SRSASN_CODE int_cfg_per_serving_cell_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE int_cfg_per_serving_cell_s::unpack(bit_ref& bref)
+SRSASN_CODE int_cfg_per_serving_cell_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(serving_cell_id, bref, (uint8_t)0u, (uint8_t)31u));
   HANDLE_CODE(unpack_integer(position_in_dci, bref, (uint8_t)0u, (uint8_t)125u));
@@ -10683,7 +10683,7 @@ SRSASN_CODE prach_res_ded_bfr_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE prach_res_ded_bfr_c::unpack(bit_ref& bref)
+SRSASN_CODE prach_res_ded_bfr_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -10732,7 +10732,7 @@ SRSASN_CODE ptrs_dl_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ptrs_dl_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE ptrs_dl_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(freq_density_present, 1));
@@ -10816,7 +10816,7 @@ SRSASN_CODE pucch_format_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_format_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_format_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(interslot_freq_hop_present, 1));
   HANDLE_CODE(bref.unpack(add_dmrs_present, 1));
@@ -10906,7 +10906,7 @@ SRSASN_CODE pucch_pwr_ctrl_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_pwr_ctrl_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_pwr_ctrl_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(delta_f_pucch_f0_present, 1));
@@ -10995,7 +10995,7 @@ SRSASN_CODE pucch_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_res_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_res_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(intra_slot_freq_hop_present, 1));
   HANDLE_CODE(bref.unpack(second_hop_prb_present, 1));
@@ -11182,7 +11182,7 @@ SRSASN_CODE pucch_res_s::format_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_res_s::format_c_::unpack(bit_ref& bref)
+SRSASN_CODE pucch_res_s::format_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -11234,7 +11234,7 @@ SRSASN_CODE pucch_res_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_res_set_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_res_set_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(max_payload_minus1_present, 1));
 
@@ -11277,7 +11277,7 @@ SRSASN_CODE pucch_spatial_relation_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_spatial_relation_info_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_spatial_relation_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(serving_cell_id_present, 1));
 
@@ -11421,7 +11421,7 @@ SRSASN_CODE pucch_spatial_relation_info_s::ref_sig_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_spatial_relation_info_s::ref_sig_c_::unpack(bit_ref& bref)
+SRSASN_CODE pucch_spatial_relation_info_s::ref_sig_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -11499,7 +11499,7 @@ SRSASN_CODE pusch_pwr_ctrl_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_pwr_ctrl_s::unpack(bit_ref& bref)
+SRSASN_CODE pusch_pwr_ctrl_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(tpc_accumulation_present, 1));
   HANDLE_CODE(bref.unpack(msg3_alpha_present, 1));
@@ -11610,7 +11610,7 @@ SRSASN_CODE qcl_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE qcl_info_s::unpack(bit_ref& bref)
+SRSASN_CODE qcl_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(cell_present, 1));
@@ -11716,7 +11716,7 @@ SRSASN_CODE qcl_info_s::ref_sig_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE qcl_info_s::ref_sig_c_::unpack(bit_ref& bref)
+SRSASN_CODE qcl_info_s::ref_sig_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -11760,7 +11760,7 @@ SRSASN_CODE ra_prioritization_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ra_prioritization_s::unpack(bit_ref& bref)
+SRSASN_CODE ra_prioritization_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(scaling_factor_bi_present, 1));
@@ -11834,7 +11834,7 @@ SRSASN_CODE srs_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_res_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_res_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ptrs_port_idx_present, 1));
@@ -12028,7 +12028,7 @@ SRSASN_CODE srs_res_s::tx_comb_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_res_s::tx_comb_c_::unpack(bit_ref& bref)
+SRSASN_CODE srs_res_s::tx_comb_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -12216,7 +12216,7 @@ SRSASN_CODE srs_res_s::res_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_res_s::res_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE srs_res_s::res_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -12277,7 +12277,7 @@ SRSASN_CODE srs_res_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_res_set_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_res_set_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(srs_res_id_list_present, 1));
@@ -12472,7 +12472,7 @@ SRSASN_CODE srs_res_set_s::res_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_res_set_s::res_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE srs_res_set_s::res_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -12532,7 +12532,7 @@ SRSASN_CODE srs_res_set_s::res_type_c_::aperiodic_s_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_res_set_s::res_type_c_::aperiodic_s_::unpack(bit_ref& bref)
+SRSASN_CODE srs_res_set_s::res_type_c_::aperiodic_s_::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(csi_rs_present, 1));
@@ -12673,7 +12673,7 @@ SRSASN_CODE srs_res_set_s::pathloss_ref_rs_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_res_set_s::pathloss_ref_rs_c_::unpack(bit_ref& bref)
+SRSASN_CODE srs_res_set_s::pathloss_ref_rs_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -12726,7 +12726,7 @@ SRSASN_CODE sched_request_res_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sched_request_res_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE sched_request_res_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(periodicity_and_offset_present, 1));
   HANDLE_CODE(bref.unpack(res_present, 1));
@@ -12977,7 +12977,7 @@ SRSASN_CODE sched_request_res_cfg_s::periodicity_and_offset_c_::pack(bit_ref& br
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sched_request_res_cfg_s::periodicity_and_offset_c_::unpack(bit_ref& bref)
+SRSASN_CODE sched_request_res_cfg_s::periodicity_and_offset_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -13064,7 +13064,7 @@ SRSASN_CODE uci_on_pusch_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE uci_on_pusch_s::unpack(bit_ref& bref)
+SRSASN_CODE uci_on_pusch_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(beta_offsets_present, 1));
 
@@ -13190,7 +13190,7 @@ SRSASN_CODE uci_on_pusch_s::beta_offsets_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE uci_on_pusch_s::beta_offsets_c_::unpack(bit_ref& bref)
+SRSASN_CODE uci_on_pusch_s::beta_offsets_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -13279,7 +13279,7 @@ SRSASN_CODE beam_fail_recovery_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE beam_fail_recovery_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE beam_fail_recovery_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(root_seq_idx_bfr_present, 1));
@@ -13425,7 +13425,7 @@ SRSASN_CODE csi_associated_report_cfg_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_associated_report_cfg_info_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_associated_report_cfg_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(csi_im_res_for_interference_present, 1));
@@ -13567,7 +13567,7 @@ SRSASN_CODE csi_associated_report_cfg_info_s::res_for_ch_c_::pack(bit_ref& bref)
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_associated_report_cfg_info_s::res_for_ch_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_associated_report_cfg_info_s::res_for_ch_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -13663,7 +13663,7 @@ SRSASN_CODE cfgured_grant_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cfgured_grant_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE cfgured_grant_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(freq_hop_present, 1));
@@ -13905,7 +13905,7 @@ SRSASN_CODE dmrs_dl_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dmrs_dl_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE dmrs_dl_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(dmrs_type_present, 1));
@@ -13977,7 +13977,7 @@ SRSASN_CODE dl_preemption_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_preemption_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_preemption_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(int_rnti, bref, (uint32_t)0u, (uint32_t)65535u));
@@ -14027,7 +14027,7 @@ SRSASN_CODE eutra_mbsfn_sf_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_mbsfn_sf_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_mbsfn_sf_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(sf_alloc2_present, 1));
@@ -14165,7 +14165,7 @@ SRSASN_CODE eutra_mbsfn_sf_cfg_s::sf_alloc1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_mbsfn_sf_cfg_s::sf_alloc1_c_::unpack(bit_ref& bref)
+SRSASN_CODE eutra_mbsfn_sf_cfg_s::sf_alloc1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -14294,7 +14294,7 @@ SRSASN_CODE eutra_mbsfn_sf_cfg_s::sf_alloc2_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_mbsfn_sf_cfg_s::sf_alloc2_c_::unpack(bit_ref& bref)
+SRSASN_CODE eutra_mbsfn_sf_cfg_s::sf_alloc2_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -14392,7 +14392,7 @@ SRSASN_CODE pucch_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(res_set_to_add_mod_list_present, 1));
@@ -14571,7 +14571,7 @@ SRSASN_CODE pucch_tpc_cmd_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_tpc_cmd_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_tpc_cmd_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(tpc_idx_pcell_present, 1));
@@ -14669,7 +14669,7 @@ SRSASN_CODE pusch_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pusch_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(data_scrambling_id_pusch_present, 1));
@@ -14894,7 +14894,7 @@ SRSASN_CODE pusch_tpc_cmd_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_tpc_cmd_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pusch_tpc_cmd_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(tpc_idx_present, 1));
@@ -14938,7 +14938,7 @@ SRSASN_CODE radio_link_monitoring_rs_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE radio_link_monitoring_rs_s::unpack(bit_ref& bref)
+SRSASN_CODE radio_link_monitoring_rs_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(radio_link_monitoring_rs_id, bref, (uint8_t)0u, (uint8_t)9u));
@@ -15039,7 +15039,7 @@ SRSASN_CODE radio_link_monitoring_rs_s::detection_res_c_::pack(bit_ref& bref) co
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE radio_link_monitoring_rs_s::detection_res_c_::unpack(bit_ref& bref)
+SRSASN_CODE radio_link_monitoring_rs_s::detection_res_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -15079,7 +15079,7 @@ SRSASN_CODE rate_match_pattern_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rate_match_pattern_s::unpack(bit_ref& bref)
+SRSASN_CODE rate_match_pattern_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(subcarrier_spacing_present, 1));
@@ -15216,7 +15216,7 @@ SRSASN_CODE rate_match_pattern_s::pattern_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rate_match_pattern_s::pattern_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE rate_match_pattern_s::pattern_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -15342,7 +15342,7 @@ SRSASN_CODE rate_match_pattern_s::pattern_type_c_::bitmaps_s_::symbols_in_res_bl
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rate_match_pattern_s::pattern_type_c_::bitmaps_s_::symbols_in_res_block_c_::unpack(bit_ref& bref)
+SRSASN_CODE rate_match_pattern_s::pattern_type_c_::bitmaps_s_::symbols_in_res_block_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -15565,7 +15565,7 @@ SRSASN_CODE rate_match_pattern_s::pattern_type_c_::bitmaps_s_::periodicity_and_p
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rate_match_pattern_s::pattern_type_c_::bitmaps_s_::periodicity_and_pattern_c_::unpack(bit_ref& bref)
+SRSASN_CODE rate_match_pattern_s::pattern_type_c_::bitmaps_s_::periodicity_and_pattern_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -15699,7 +15699,7 @@ SRSASN_CODE rate_match_pattern_group_item_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rate_match_pattern_group_item_c_::unpack(bit_ref& bref)
+SRSASN_CODE rate_match_pattern_group_item_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -15739,7 +15739,7 @@ SRSASN_CODE srs_cc_set_idx_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_cc_set_idx_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_cc_set_idx_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(cc_set_idx_present, 1));
   HANDLE_CODE(bref.unpack(cc_idx_in_one_cc_set_present, 1));
@@ -15790,7 +15790,7 @@ SRSASN_CODE srs_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(srs_res_set_to_release_list_present, 1));
@@ -15881,7 +15881,7 @@ SRSASN_CODE srs_tpc_cmd_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_tpc_cmd_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_tpc_cmd_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(start_bit_of_format2_minus3_present, 1));
@@ -15934,7 +15934,7 @@ SRSASN_CODE slot_format_combination_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE slot_format_combination_s::unpack(bit_ref& bref)
+SRSASN_CODE slot_format_combination_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(slot_format_combination_id, bref, (uint16_t)0u, (uint16_t)511u));
   HANDLE_CODE(unpack_dyn_seq_of(slot_formats, bref, 1, 256, integer_packer<uint16_t>(0, 255)));
@@ -15967,7 +15967,7 @@ SRSASN_CODE tci_state_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE tci_state_s::unpack(bit_ref& bref)
+SRSASN_CODE tci_state_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(qcl_type2_present, 1));
@@ -16007,7 +16007,7 @@ SRSASN_CODE zp_csi_rs_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE zp_csi_rs_res_s::unpack(bit_ref& bref)
+SRSASN_CODE zp_csi_rs_res_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(periodicity_and_offset_present, 1));
@@ -16042,7 +16042,7 @@ SRSASN_CODE zp_csi_rs_res_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE zp_csi_rs_res_set_s::unpack(bit_ref& bref)
+SRSASN_CODE zp_csi_rs_res_set_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(zp_csi_rs_res_set_id, bref, (uint8_t)0u, (uint8_t)15u));
@@ -16090,7 +16090,7 @@ SRSASN_CODE bwp_ul_ded_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bwp_ul_ded_s::unpack(bit_ref& bref)
+SRSASN_CODE bwp_ul_ded_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pucch_cfg_present, 1));
@@ -16153,7 +16153,7 @@ SRSASN_CODE cfra_csirs_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cfra_csirs_res_s::unpack(bit_ref& bref)
+SRSASN_CODE cfra_csirs_res_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(csi_rs, bref, (uint8_t)0u, (uint8_t)95u));
@@ -16184,7 +16184,7 @@ SRSASN_CODE cfra_ssb_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cfra_ssb_res_s::unpack(bit_ref& bref)
+SRSASN_CODE cfra_ssb_res_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(ssb, bref, (uint8_t)0u, (uint8_t)63u));
@@ -16208,7 +16208,7 @@ SRSASN_CODE csi_aperiodic_trigger_state_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_aperiodic_trigger_state_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_aperiodic_trigger_state_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_dyn_seq_of(associated_report_cfg_info_list, bref, 1, 16));
@@ -16399,7 +16399,7 @@ SRSASN_CODE csi_report_periodicity_and_offset_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_report_periodicity_and_offset_c::unpack(bit_ref& bref)
+SRSASN_CODE csi_report_periodicity_and_offset_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -16462,7 +16462,7 @@ SRSASN_CODE csi_semi_persistent_on_pusch_trigger_state_s::pack(bit_ref& bref) co
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_semi_persistent_on_pusch_trigger_state_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_semi_persistent_on_pusch_trigger_state_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(associated_report_cfg_info, bref, (uint8_t)0u, (uint8_t)47u));
@@ -16483,7 +16483,7 @@ SRSASN_CODE codebook_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE codebook_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE codebook_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(codebook_type.unpack(bref));
 
@@ -16612,7 +16612,7 @@ SRSASN_CODE codebook_cfg_s::codebook_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE codebook_cfg_s::codebook_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE codebook_cfg_s::codebook_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -16748,7 +16748,7 @@ SRSASN_CODE codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::pack(bit_re
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -16894,7 +16894,7 @@ SRSASN_CODE codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::type_i_sing
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::type_i_single_panel_s_::nr_of_ant_ports_c_::unpack(
-    bit_ref& bref)
+    cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -17236,7 +17236,7 @@ SRSASN_CODE codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::type_i_sing
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::type_i_single_panel_s_::nr_of_ant_ports_c_::
-    more_than_two_s_::n1_n2_c_::unpack(bit_ref& bref)
+    more_than_two_s_::n1_n2_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -17551,7 +17551,7 @@ codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::type_i_multi_panel_s_::
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE
-codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::type_i_multi_panel_s_::ng_n1_n2_c_::unpack(bit_ref& bref)
+codebook_cfg_s::codebook_type_c_::type1_s_::sub_type_c_::type_i_multi_panel_s_::ng_n1_n2_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -17731,7 +17731,7 @@ SRSASN_CODE codebook_cfg_s::codebook_type_c_::type2_s_::sub_type_c_::pack(bit_re
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE codebook_cfg_s::codebook_type_c_::type2_s_::sub_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE codebook_cfg_s::codebook_type_c_::type2_s_::sub_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -18072,7 +18072,7 @@ codebook_cfg_s::codebook_type_c_::type2_s_::sub_type_c_::type_ii_s_::n1_n2_codeb
 }
 SRSASN_CODE
 codebook_cfg_s::codebook_type_c_::type2_s_::sub_type_c_::type_ii_s_::n1_n2_codebook_subset_restrict_c_::unpack(
-    bit_ref& bref)
+    cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -18226,7 +18226,7 @@ SRSASN_CODE freq_info_dl_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_info_dl_s::unpack(bit_ref& bref)
+SRSASN_CODE freq_info_dl_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(absolute_freq_ssb_present, 1));
@@ -18286,7 +18286,7 @@ SRSASN_CODE freq_info_ul_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_info_ul_s::unpack(bit_ref& bref)
+SRSASN_CODE freq_info_ul_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(freq_band_list_present, 1));
@@ -18381,7 +18381,7 @@ SRSASN_CODE pdcch_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcch_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pdcch_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ctrl_res_set_to_add_mod_list_present, 1));
@@ -18566,7 +18566,7 @@ SRSASN_CODE pdsch_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdsch_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pdsch_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(data_scrambling_id_pdsch_present, 1));
@@ -18974,7 +18974,7 @@ SRSASN_CODE pdsch_cfg_s::prb_bundling_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdsch_cfg_s::prb_bundling_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE pdsch_cfg_s::prb_bundling_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -19048,7 +19048,7 @@ SRSASN_CODE pucch_csi_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pucch_csi_res_s::unpack(bit_ref& bref)
+SRSASN_CODE pucch_csi_res_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(ul_bw_part_id, bref, (uint8_t)0u, (uint8_t)4u));
   HANDLE_CODE(unpack_integer(pucch_res, bref, (uint8_t)0u, (uint8_t)127u));
@@ -19071,7 +19071,7 @@ SRSASN_CODE pusch_code_block_group_tx_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_code_block_group_tx_s::unpack(bit_ref& bref)
+SRSASN_CODE pusch_code_block_group_tx_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(max_code_block_groups_per_transport_block.unpack(bref));
@@ -19403,7 +19403,7 @@ SRSASN_CODE port_idx_for8_ranks_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE port_idx_for8_ranks_c::unpack(bit_ref& bref)
+SRSASN_CODE port_idx_for8_ranks_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -19548,7 +19548,7 @@ SRSASN_CODE radio_link_monitoring_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE radio_link_monitoring_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE radio_link_monitoring_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(fail_detection_res_to_add_mod_list_present, 1));
@@ -19634,7 +19634,7 @@ SRSASN_CODE sps_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sps_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE sps_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(n1_pucch_an_present, 1));
@@ -19699,7 +19699,7 @@ SRSASN_CODE srs_tpc_pdcch_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_tpc_pdcch_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_tpc_pdcch_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(srs_cc_set_idxlist_present, 1));
 
@@ -19744,7 +19744,7 @@ SRSASN_CODE slot_format_combinations_per_cell_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE slot_format_combinations_per_cell_s::unpack(bit_ref& bref)
+SRSASN_CODE slot_format_combinations_per_cell_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(subcarrier_spacing2_present, 1));
@@ -19810,7 +19810,7 @@ SRSASN_CODE bwp_dl_ded_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bwp_dl_ded_s::unpack(bit_ref& bref)
+SRSASN_CODE bwp_dl_ded_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pdcch_cfg_present, 1));
@@ -19872,7 +19872,7 @@ SRSASN_CODE bwp_ul_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bwp_ul_s::unpack(bit_ref& bref)
+SRSASN_CODE bwp_ul_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(bwp_common_present, 1));
@@ -19934,7 +19934,7 @@ SRSASN_CODE cfra_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cfra_s::unpack(bit_ref& bref)
+SRSASN_CODE cfra_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(occasions_present, 1));
@@ -20119,7 +20119,7 @@ SRSASN_CODE cfra_s::res_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cfra_s::res_c_::unpack(bit_ref& bref)
+SRSASN_CODE cfra_s::res_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -20167,7 +20167,7 @@ SRSASN_CODE csi_im_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_im_res_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_im_res_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(csi_im_res_elem_pattern_present, 1));
@@ -20316,7 +20316,7 @@ SRSASN_CODE csi_im_res_s::csi_im_res_elem_pattern_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_im_res_s::csi_im_res_elem_pattern_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_im_res_s::csi_im_res_elem_pattern_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -20383,7 +20383,7 @@ SRSASN_CODE csi_im_res_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_im_res_set_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_im_res_set_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(csi_im_res_set_id, bref, (uint8_t)0u, (uint8_t)63u));
@@ -20476,7 +20476,7 @@ SRSASN_CODE csi_report_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_report_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_report_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(carrier_present, 1));
@@ -20790,7 +20790,7 @@ SRSASN_CODE csi_report_cfg_s::report_cfg_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_report_cfg_s::report_cfg_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_report_cfg_s::report_cfg_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -20905,7 +20905,7 @@ SRSASN_CODE csi_report_cfg_s::report_quant_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_report_cfg_s::report_quant_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_report_cfg_s::report_quant_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -21347,7 +21347,7 @@ SRSASN_CODE csi_report_cfg_s::report_freq_cfg_s_::csi_report_band_c_::pack(bit_r
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_report_cfg_s::report_freq_cfg_s_::csi_report_band_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_report_cfg_s::report_freq_cfg_s_::csi_report_band_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -21503,7 +21503,7 @@ SRSASN_CODE csi_report_cfg_s::group_based_beam_report_c_::pack(bit_ref& bref) co
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_report_cfg_s::group_based_beam_report_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_report_cfg_s::group_based_beam_report_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -21589,7 +21589,7 @@ SRSASN_CODE csi_res_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_res_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_res_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(csi_res_cfg_id, bref, (uint8_t)0u, (uint8_t)111u));
@@ -21740,7 +21740,7 @@ SRSASN_CODE csi_res_cfg_s::csi_rs_res_set_list_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_res_cfg_s::csi_rs_res_set_list_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_res_cfg_s::csi_rs_res_set_list_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -21791,7 +21791,7 @@ SRSASN_CODE csi_ssb_res_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_ssb_res_set_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_ssb_res_set_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(csi_ssb_res_set_id, bref, (uint8_t)0u, (uint8_t)63u));
@@ -21827,7 +21827,7 @@ SRSASN_CODE dl_cfg_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_cfg_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(freq_info_dl_present, 1));
@@ -21880,7 +21880,7 @@ SRSASN_CODE nzp_csi_rs_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE nzp_csi_rs_res_s::unpack(bit_ref& bref)
+SRSASN_CODE nzp_csi_rs_res_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pwr_ctrl_offset_ss_present, 1));
@@ -21954,7 +21954,7 @@ SRSASN_CODE nzp_csi_rs_res_set_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE nzp_csi_rs_res_set_s::unpack(bit_ref& bref)
+SRSASN_CODE nzp_csi_rs_res_set_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(repeat_present, 1));
@@ -22008,7 +22008,7 @@ SRSASN_CODE pdsch_code_block_group_tx_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdsch_code_block_group_tx_s::unpack(bit_ref& bref)
+SRSASN_CODE pdsch_code_block_group_tx_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(max_code_block_groups_per_transport_block.unpack(bref));
@@ -22073,7 +22073,7 @@ SRSASN_CODE pusch_serving_cell_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pusch_serving_cell_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pusch_serving_cell_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(code_block_group_tx_present, 1));
@@ -22187,7 +22187,7 @@ SRSASN_CODE rate_match_pattern_lte_crs_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rate_match_pattern_lte_crs_s::unpack(bit_ref& bref)
+SRSASN_CODE rate_match_pattern_lte_crs_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(mbsfn_sf_cfg_list_present, 1));
 
@@ -22296,7 +22296,7 @@ SRSASN_CODE srs_carrier_switching_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_carrier_switching_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_carrier_switching_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(srs_switch_from_serv_cell_idx_present, 1));
@@ -22448,7 +22448,7 @@ SRSASN_CODE srs_carrier_switching_s::srs_tpc_pdcch_group_c_::pack(bit_ref& bref)
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_carrier_switching_s::srs_tpc_pdcch_group_c_::unpack(bit_ref& bref)
+SRSASN_CODE srs_carrier_switching_s::srs_tpc_pdcch_group_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -22491,7 +22491,7 @@ SRSASN_CODE slot_format_ind_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE slot_format_ind_s::unpack(bit_ref& bref)
+SRSASN_CODE slot_format_ind_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(slot_format_comb_to_add_mod_list_present, 1));
@@ -22596,7 +22596,7 @@ SRSASN_CODE tdd_ul_dl_slot_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE tdd_ul_dl_slot_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE tdd_ul_dl_slot_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(slot_idx, bref, (uint16_t)0u, (uint16_t)319u));
   HANDLE_CODE(symbols.unpack(bref));
@@ -22664,7 +22664,7 @@ SRSASN_CODE tdd_ul_dl_slot_cfg_s::symbols_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE tdd_ul_dl_slot_cfg_s::symbols_c_::unpack(bit_ref& bref)
+SRSASN_CODE tdd_ul_dl_slot_cfg_s::symbols_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -22731,7 +22731,7 @@ SRSASN_CODE ul_cfg_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_cfg_common_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(freq_info_ul_present, 1));
   HANDLE_CODE(bref.unpack(init_ul_bwp_present, 1));
@@ -22778,7 +22778,7 @@ SRSASN_CODE bwp_dl_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bwp_dl_s::unpack(bit_ref& bref)
+SRSASN_CODE bwp_dl_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(bwp_common_present, 1));
@@ -22885,7 +22885,7 @@ SRSASN_CODE csi_meas_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_meas_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_meas_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(nzp_csi_rs_res_to_add_mod_list_present, 1));
@@ -23095,7 +23095,7 @@ SRSASN_CODE cross_carrier_sched_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cross_carrier_sched_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE cross_carrier_sched_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(sched_cell_info.unpack(bref));
@@ -23218,7 +23218,7 @@ SRSASN_CODE cross_carrier_sched_cfg_s::sched_cell_info_c_::pack(bit_ref& bref) c
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cross_carrier_sched_cfg_s::sched_cell_info_c_::unpack(bit_ref& bref)
+SRSASN_CODE cross_carrier_sched_cfg_s::sched_cell_info_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -23257,7 +23257,7 @@ SRSASN_CODE dl_am_rlc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_am_rlc_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_am_rlc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(sn_field_len_present, 1));
 
@@ -23292,7 +23292,7 @@ SRSASN_CODE dl_um_rlc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_um_rlc_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_um_rlc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(sn_field_len_present, 1));
 
@@ -23337,7 +23337,7 @@ SRSASN_CODE pdcch_serving_cell_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcch_serving_cell_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pdcch_serving_cell_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(slot_format_ind_present, 1));
@@ -23419,7 +23419,7 @@ SRSASN_CODE pdcp_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcp_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pdcp_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(drb_present, 1));
@@ -23744,7 +23744,7 @@ SRSASN_CODE pdcp_cfg_s::drb_s_::hdr_compress_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcp_cfg_s::drb_s_::hdr_compress_c_::unpack(bit_ref& bref)
+SRSASN_CODE pdcp_cfg_s::drb_s_::hdr_compress_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -23852,7 +23852,7 @@ SRSASN_CODE pdsch_serving_cell_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdsch_serving_cell_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE pdsch_serving_cell_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(code_block_group_tx_present, 1));
@@ -23957,7 +23957,7 @@ SRSASN_CODE rach_cfg_ded_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rach_cfg_ded_s::unpack(bit_ref& bref)
+SRSASN_CODE rach_cfg_ded_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(cfra_present, 1));
@@ -23990,37 +23990,37 @@ void rach_cfg_ded_s::to_json(json_writer& j) const
 SRSASN_CODE sdap_cfg_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(bref.pack(mapped_qo_s_flows_to_add_present, 1));
-  HANDLE_CODE(bref.pack(mapped_qo_s_flows_to_release_present, 1));
+  HANDLE_CODE(bref.pack(mapped_qos_flows_to_add_present, 1));
+  HANDLE_CODE(bref.pack(mapped_qos_flows_to_release_present, 1));
 
   HANDLE_CODE(pack_integer(bref, pdu_session, (uint16_t)0u, (uint16_t)255u));
   HANDLE_CODE(sdap_hdr_dl.pack(bref));
   HANDLE_CODE(sdap_hdr_ul.pack(bref));
   HANDLE_CODE(bref.pack(default_drb, 1));
-  if (mapped_qo_s_flows_to_add_present) {
-    HANDLE_CODE(pack_dyn_seq_of(bref, mapped_qo_s_flows_to_add, 1, 64, integer_packer<uint8_t>(0, 63)));
+  if (mapped_qos_flows_to_add_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, mapped_qos_flows_to_add, 1, 64, integer_packer<uint8_t>(0, 63)));
   }
-  if (mapped_qo_s_flows_to_release_present) {
-    HANDLE_CODE(pack_dyn_seq_of(bref, mapped_qo_s_flows_to_release, 1, 64, integer_packer<uint8_t>(0, 63)));
+  if (mapped_qos_flows_to_release_present) {
+    HANDLE_CODE(pack_dyn_seq_of(bref, mapped_qos_flows_to_release, 1, 64, integer_packer<uint8_t>(0, 63)));
   }
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sdap_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE sdap_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(bref.unpack(mapped_qo_s_flows_to_add_present, 1));
-  HANDLE_CODE(bref.unpack(mapped_qo_s_flows_to_release_present, 1));
+  HANDLE_CODE(bref.unpack(mapped_qos_flows_to_add_present, 1));
+  HANDLE_CODE(bref.unpack(mapped_qos_flows_to_release_present, 1));
 
   HANDLE_CODE(unpack_integer(pdu_session, bref, (uint16_t)0u, (uint16_t)255u));
   HANDLE_CODE(sdap_hdr_dl.unpack(bref));
   HANDLE_CODE(sdap_hdr_ul.unpack(bref));
   HANDLE_CODE(bref.unpack(default_drb, 1));
-  if (mapped_qo_s_flows_to_add_present) {
-    HANDLE_CODE(unpack_dyn_seq_of(mapped_qo_s_flows_to_add, bref, 1, 64, integer_packer<uint8_t>(0, 63)));
+  if (mapped_qos_flows_to_add_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(mapped_qos_flows_to_add, bref, 1, 64, integer_packer<uint8_t>(0, 63)));
   }
-  if (mapped_qo_s_flows_to_release_present) {
-    HANDLE_CODE(unpack_dyn_seq_of(mapped_qo_s_flows_to_release, bref, 1, 64, integer_packer<uint8_t>(0, 63)));
+  if (mapped_qos_flows_to_release_present) {
+    HANDLE_CODE(unpack_dyn_seq_of(mapped_qos_flows_to_release, bref, 1, 64, integer_packer<uint8_t>(0, 63)));
   }
 
   return SRSASN_SUCCESS;
@@ -24032,17 +24032,17 @@ void sdap_cfg_s::to_json(json_writer& j) const
   j.write_str("sdap-HeaderDL", sdap_hdr_dl.to_string());
   j.write_str("sdap-HeaderUL", sdap_hdr_ul.to_string());
   j.write_bool("defaultDRB", default_drb);
-  if (mapped_qo_s_flows_to_add_present) {
+  if (mapped_qos_flows_to_add_present) {
     j.start_array("mappedQoS-FlowsToAdd");
-    for (uint32_t i1 = 0; i1 < mapped_qo_s_flows_to_add.size(); ++i1) {
-      j.write_int(mapped_qo_s_flows_to_add[i1]);
+    for (uint32_t i1 = 0; i1 < mapped_qos_flows_to_add.size(); ++i1) {
+      j.write_int(mapped_qos_flows_to_add[i1]);
     }
     j.end_array();
   }
-  if (mapped_qo_s_flows_to_release_present) {
+  if (mapped_qos_flows_to_release_present) {
     j.start_array("mappedQoS-FlowsToRelease");
-    for (uint32_t i1 = 0; i1 < mapped_qo_s_flows_to_release.size(); ++i1) {
-      j.write_int(mapped_qo_s_flows_to_release[i1]);
+    for (uint32_t i1 = 0; i1 < mapped_qos_flows_to_release.size(); ++i1) {
+      j.write_int(mapped_qos_flows_to_release[i1]);
     }
     j.end_array();
   }
@@ -24074,7 +24074,7 @@ SRSASN_CODE sched_request_to_add_mod_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sched_request_to_add_mod_s::unpack(bit_ref& bref)
+SRSASN_CODE sched_request_to_add_mod_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(sr_prohibit_timer_present, 1));
 
@@ -24177,7 +24177,7 @@ SRSASN_CODE serving_cell_cfg_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE serving_cell_cfg_common_s::unpack(bit_ref& bref)
+SRSASN_CODE serving_cell_cfg_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pci_present, 1));
@@ -24421,7 +24421,7 @@ SRSASN_CODE serving_cell_cfg_common_s::ssb_positions_in_burst_c_::pack(bit_ref& 
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE serving_cell_cfg_common_s::ssb_positions_in_burst_c_::unpack(bit_ref& bref)
+SRSASN_CODE serving_cell_cfg_common_s::ssb_positions_in_burst_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -24480,7 +24480,7 @@ SRSASN_CODE tag_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE tag_s::unpack(bit_ref& bref)
+SRSASN_CODE tag_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(tag_id, bref, (uint8_t)0u, (uint8_t)3u));
@@ -24512,7 +24512,7 @@ SRSASN_CODE tdd_ul_dl_cfg_ded_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE tdd_ul_dl_cfg_ded_s::unpack(bit_ref& bref)
+SRSASN_CODE tdd_ul_dl_cfg_ded_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(slot_specific_cfgs_to_add_mod_list_present, 1));
@@ -24562,7 +24562,7 @@ SRSASN_CODE ul_am_rlc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_am_rlc_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_am_rlc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(sn_field_len_present, 1));
 
@@ -24611,7 +24611,7 @@ SRSASN_CODE ul_um_rlc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_um_rlc_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_um_rlc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(sn_field_len_present, 1));
 
@@ -24681,7 +24681,7 @@ SRSASN_CODE ul_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(init_ul_bwp_present, 1));
@@ -24792,7 +24792,7 @@ SRSASN_CODE bsr_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE bsr_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE bsr_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(lc_ch_sr_delay_timer_present, 1));
@@ -24898,7 +24898,7 @@ SRSASN_CODE drb_to_add_mod_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drb_to_add_mod_s::unpack(bit_ref& bref)
+SRSASN_CODE drb_to_add_mod_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(cn_assoc_present, 1));
@@ -25032,7 +25032,7 @@ SRSASN_CODE drb_to_add_mod_s::cn_assoc_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drb_to_add_mod_s::cn_assoc_c_::unpack(bit_ref& bref)
+SRSASN_CODE drb_to_add_mod_s::cn_assoc_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -25077,7 +25077,7 @@ SRSASN_CODE drx_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drx_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE drx_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(short_drx_present, 1));
 
@@ -25193,7 +25193,7 @@ SRSASN_CODE drx_cfg_s::drx_on_dur_timer_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drx_cfg_s::drx_on_dur_timer_c_::unpack(bit_ref& bref)
+SRSASN_CODE drx_cfg_s::drx_on_dur_timer_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -25570,7 +25570,7 @@ SRSASN_CODE drx_cfg_s::drx_long_cycle_start_offset_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drx_cfg_s::drx_long_cycle_start_offset_c_::unpack(bit_ref& bref)
+SRSASN_CODE drx_cfg_s::drx_long_cycle_start_offset_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -25697,7 +25697,7 @@ SRSASN_CODE lc_ch_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE lc_ch_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE lc_ch_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ul_specific_params_present, 1));
@@ -25758,7 +25758,7 @@ SRSASN_CODE lc_ch_cfg_s::ul_specific_params_s_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE lc_ch_cfg_s::ul_specific_params_s_::unpack(bit_ref& bref)
+SRSASN_CODE lc_ch_cfg_s::ul_specific_params_s_::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(allowed_serving_cells_present, 1));
@@ -25930,7 +25930,7 @@ SRSASN_CODE phr_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phr_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE phr_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(phr_periodic_timer.unpack(bref));
@@ -26152,7 +26152,7 @@ SRSASN_CODE rlc_cfg_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rlc_cfg_c::unpack(bit_ref& bref)
+SRSASN_CODE rlc_cfg_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -26207,7 +26207,7 @@ SRSASN_CODE rlf_timers_and_consts_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rlf_timers_and_consts_s::unpack(bit_ref& bref)
+SRSASN_CODE rlf_timers_and_consts_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(t310.unpack(bref));
@@ -26315,7 +26315,7 @@ SRSASN_CODE recfg_with_sync_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE recfg_with_sync_s::unpack(bit_ref& bref)
+SRSASN_CODE recfg_with_sync_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(sp_cell_cfg_common_present, 1));
@@ -26481,7 +26481,7 @@ SRSASN_CODE recfg_with_sync_s::rach_cfg_ded_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE recfg_with_sync_s::rach_cfg_ded_c_::unpack(bit_ref& bref)
+SRSASN_CODE recfg_with_sync_s::rach_cfg_ded_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -26521,7 +26521,7 @@ SRSASN_CODE srb_to_add_mod_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srb_to_add_mod_s::unpack(bit_ref& bref)
+SRSASN_CODE srb_to_add_mod_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(reestablish_pdcp_present, 1));
@@ -26567,7 +26567,7 @@ SRSASN_CODE sched_request_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sched_request_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE sched_request_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(sched_request_to_add_mod_list_present, 1));
   HANDLE_CODE(bref.unpack(sched_request_to_release_list_present, 1));
@@ -26614,7 +26614,7 @@ SRSASN_CODE security_algorithm_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_algorithm_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE security_algorithm_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(integrity_prot_algorithm_present, 1));
@@ -26739,7 +26739,7 @@ SRSASN_CODE serving_cell_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE serving_cell_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE serving_cell_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(tdd_ul_dl_cfg_ded_present, 1));
@@ -27008,7 +27008,7 @@ SRSASN_CODE tag_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE tag_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE tag_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(tag_to_release_list_present, 1));
   HANDLE_CODE(bref.unpack(tag_to_add_mod_list_present, 1));
@@ -27090,7 +27090,7 @@ SRSASN_CODE mac_cell_group_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mac_cell_group_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE mac_cell_group_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(drx_cfg_present, 1));
@@ -27236,7 +27236,7 @@ SRSASN_CODE phys_cell_group_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phys_cell_group_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE phys_cell_group_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(harq_ack_spatial_bundling_pucch_present, 1));
@@ -27377,7 +27377,7 @@ SRSASN_CODE rlc_bearer_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rlc_bearer_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE rlc_bearer_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(served_radio_bearer_present, 1));
@@ -27495,7 +27495,7 @@ SRSASN_CODE rlc_bearer_cfg_s::served_radio_bearer_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rlc_bearer_cfg_s::served_radio_bearer_c_::unpack(bit_ref& bref)
+SRSASN_CODE rlc_bearer_cfg_s::served_radio_bearer_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -27551,7 +27551,7 @@ SRSASN_CODE scell_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE scell_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE scell_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(scell_cfg_common_present, 1));
@@ -27619,7 +27619,7 @@ SRSASN_CODE security_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE security_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(security_algorithm_cfg_present, 1));
@@ -27678,7 +27678,7 @@ SRSASN_CODE sp_cell_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sp_cell_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE sp_cell_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(serv_cell_idx_present, 1));
@@ -27774,7 +27774,7 @@ SRSASN_CODE cell_group_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cell_group_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE cell_group_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(rlc_bearer_to_add_mod_list_present, 1));
@@ -27897,7 +27897,7 @@ SRSASN_CODE radio_bearer_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE radio_bearer_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE radio_bearer_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(srb_to_add_mod_list_present, 1));
@@ -27971,7 +27971,7 @@ SRSASN_CODE rrc_reject_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reject_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reject_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(wait_time_present, 1));
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -28017,7 +28017,7 @@ SRSASN_CODE rrc_setup_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -28054,7 +28054,7 @@ SRSASN_CODE rrc_reject_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reject_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reject_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -28159,7 +28159,7 @@ SRSASN_CODE rrc_reject_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reject_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reject_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -28191,7 +28191,7 @@ SRSASN_CODE rrc_setup_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -28298,7 +28298,7 @@ SRSASN_CODE rrc_setup_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -28414,7 +28414,7 @@ SRSASN_CODE dl_ccch_msg_type_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_ccch_msg_type_c::unpack(bit_ref& bref)
+SRSASN_CODE dl_ccch_msg_type_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -28552,7 +28552,7 @@ SRSASN_CODE dl_ccch_msg_type_c::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_ccch_msg_type_c::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE dl_ccch_msg_type_c::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -28601,7 +28601,7 @@ SRSASN_CODE dl_ccch_msg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_ccch_msg_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_ccch_msg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(msg.unpack(bref));
 
@@ -28639,7 +28639,7 @@ SRSASN_CODE csi_rs_res_mob_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_res_mob_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_res_mob_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(associated_ssb_present, 1));
@@ -28786,7 +28786,7 @@ SRSASN_CODE csi_rs_res_mob_s::slot_cfg_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_res_mob_s::slot_cfg_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_res_mob_s::slot_cfg_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -28924,7 +28924,7 @@ SRSASN_CODE csi_rs_res_mob_s::freq_domain_alloc_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_res_mob_s::freq_domain_alloc_c_::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_res_mob_s::freq_domain_alloc_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -28969,7 +28969,7 @@ SRSASN_CODE csi_rs_cell_mob_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_cell_mob_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_cell_mob_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(density_present, 1));
 
@@ -29056,7 +29056,7 @@ SRSASN_CODE q_offset_range_list_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE q_offset_range_list_s::unpack(bit_ref& bref)
+SRSASN_CODE q_offset_range_list_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(rsrp_offset_ssb_present, 1));
   HANDLE_CODE(bref.unpack(rsrq_offset_ssb_present, 1));
@@ -29133,7 +29133,7 @@ SRSASN_CODE csi_rs_res_cfg_mob_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_res_cfg_mob_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_res_cfg_mob_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(subcarrier_spacing.unpack(bref));
@@ -29179,7 +29179,7 @@ SRSASN_CODE cells_to_add_mod_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cells_to_add_mod_s::unpack(bit_ref& bref)
+SRSASN_CODE cells_to_add_mod_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(pci, bref, (uint16_t)0u, (uint16_t)1007u));
   HANDLE_CODE(cell_individual_offset.unpack(bref));
@@ -29231,7 +29231,7 @@ SRSASN_CODE meas_report_quant_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_report_quant_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_report_quant_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(rsrp, 1));
   HANDLE_CODE(bref.unpack(rsrq, 1));
@@ -29335,7 +29335,7 @@ SRSASN_CODE meas_trigger_quant_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_trigger_quant_c::unpack(bit_ref& bref)
+SRSASN_CODE meas_trigger_quant_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -29450,7 +29450,7 @@ SRSASN_CODE meas_trigger_quant_eutra_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_trigger_quant_eutra_c::unpack(bit_ref& bref)
+SRSASN_CODE meas_trigger_quant_eutra_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -29565,7 +29565,7 @@ SRSASN_CODE meas_trigger_quant_offset_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_trigger_quant_offset_c::unpack(bit_ref& bref)
+SRSASN_CODE meas_trigger_quant_offset_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -29642,7 +29642,7 @@ SRSASN_CODE ssb_cfg_mob_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ssb_cfg_mob_s::unpack(bit_ref& bref)
+SRSASN_CODE ssb_cfg_mob_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ssb_to_measure_present, 1));
@@ -29708,7 +29708,7 @@ SRSASN_CODE eutra_black_cell_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_black_cell_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_black_cell_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(cell_idx_eutra, bref, (uint8_t)1u, (uint8_t)32u));
   HANDLE_CODE(pci_range.unpack(bref));
@@ -29733,7 +29733,7 @@ SRSASN_CODE eutra_cell_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_cell_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_cell_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(cell_idx_eutra, bref, (uint8_t)1u, (uint8_t)32u));
   HANDLE_CODE(unpack_integer(pci, bref, (uint16_t)0u, (uint16_t)503u));
@@ -29774,7 +29774,7 @@ SRSASN_CODE event_trigger_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE event_trigger_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE event_trigger_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(report_quant_rs_idxes_present, 1));
@@ -30064,7 +30064,7 @@ SRSASN_CODE event_trigger_cfg_s::event_id_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE event_trigger_cfg_s::event_id_c_::unpack(bit_ref& bref)
+SRSASN_CODE event_trigger_cfg_s::event_id_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -30153,7 +30153,7 @@ SRSASN_CODE event_trigger_cfg_inter_rat_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE event_trigger_cfg_inter_rat_s::unpack(bit_ref& bref)
+SRSASN_CODE event_trigger_cfg_inter_rat_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(event_id.unpack(bref));
@@ -30303,7 +30303,7 @@ SRSASN_CODE event_trigger_cfg_inter_rat_s::event_id_c_::pack(bit_ref& bref) cons
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE event_trigger_cfg_inter_rat_s::event_id_c_::unpack(bit_ref& bref)
+SRSASN_CODE event_trigger_cfg_inter_rat_s::event_id_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -30372,7 +30372,7 @@ SRSASN_CODE filt_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE filt_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE filt_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(filt_coef_rsrp_present, 1));
   HANDLE_CODE(bref.unpack(filt_coef_rsrq_present, 1));
@@ -30413,7 +30413,7 @@ SRSASN_CODE pci_range_elem_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pci_range_elem_s::unpack(bit_ref& bref)
+SRSASN_CODE pci_range_elem_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(pci_range_idx, bref, (uint8_t)1u, (uint8_t)8u));
   HANDLE_CODE(pci_range.unpack(bref));
@@ -30452,7 +30452,7 @@ SRSASN_CODE periodical_report_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE periodical_report_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE periodical_report_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(report_quant_rs_idxes_present, 1));
@@ -30517,7 +30517,7 @@ SRSASN_CODE periodical_report_cfg_inter_rat_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE periodical_report_cfg_inter_rat_s::unpack(bit_ref& bref)
+SRSASN_CODE periodical_report_cfg_inter_rat_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(report_interv.unpack(bref));
@@ -30561,7 +30561,7 @@ SRSASN_CODE ran_area_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ran_area_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE ran_area_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ran_area_code_list_present, 1));
 
@@ -30601,7 +30601,7 @@ SRSASN_CODE ref_sig_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ref_sig_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE ref_sig_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ssb_cfg_mob_present, 1));
   HANDLE_CODE(bref.unpack(csi_rs_res_cfg_mob_present, 1));
@@ -30637,7 +30637,7 @@ SRSASN_CODE report_cgi_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE report_cgi_s::unpack(bit_ref& bref)
+SRSASN_CODE report_cgi_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(cell_for_which_to_report_cgi, bref, (uint16_t)0u, (uint16_t)1007u));
@@ -30659,7 +30659,7 @@ SRSASN_CODE report_cgi_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE report_cgi_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE report_cgi_eutra_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(cell_for_which_to_report_cgi, bref, (uint16_t)0u, (uint16_t)503u));
@@ -30685,7 +30685,7 @@ SRSASN_CODE ssb_mtc2_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ssb_mtc2_s::unpack(bit_ref& bref)
+SRSASN_CODE ssb_mtc2_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(pci_list_present, 1));
 
@@ -30753,7 +30753,7 @@ SRSASN_CODE meas_obj_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_obj_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_obj_eutra_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(cells_to_rem_list_eutran_present, 1));
@@ -30915,7 +30915,7 @@ SRSASN_CODE meas_obj_nr_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_obj_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_obj_nr_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ssb_freq_present, 1));
@@ -31112,7 +31112,7 @@ SRSASN_CODE overheat_assist_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE overheat_assist_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE overheat_assist_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(overheat_ind_prohibit_timer.unpack(bref));
 
@@ -31169,7 +31169,7 @@ SRSASN_CODE plmn_ran_area_cell_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE plmn_ran_area_cell_s::unpack(bit_ref& bref)
+SRSASN_CODE plmn_ran_area_cell_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(plmn_id_present, 1));
 
@@ -31207,7 +31207,7 @@ SRSASN_CODE plmn_ran_area_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE plmn_ran_area_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE plmn_ran_area_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(plmn_id_present, 1));
 
@@ -31241,7 +31241,7 @@ SRSASN_CODE quant_cfg_rs_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE quant_cfg_rs_s::unpack(bit_ref& bref)
+SRSASN_CODE quant_cfg_rs_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(ssb_filt_cfg.unpack(bref));
   HANDLE_CODE(csi_rs_filt_cfg.unpack(bref));
@@ -31265,7 +31265,7 @@ SRSASN_CODE report_cfg_inter_rat_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE report_cfg_inter_rat_s::unpack(bit_ref& bref)
+SRSASN_CODE report_cfg_inter_rat_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(report_type.unpack(bref));
 
@@ -31399,7 +31399,7 @@ SRSASN_CODE report_cfg_inter_rat_s::report_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE report_cfg_inter_rat_s::report_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE report_cfg_inter_rat_s::report_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -31434,7 +31434,7 @@ SRSASN_CODE report_cfg_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE report_cfg_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE report_cfg_nr_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(report_type.unpack(bref));
 
@@ -31569,7 +31569,7 @@ SRSASN_CODE report_cfg_nr_s::report_type_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE report_cfg_nr_s::report_type_c_::unpack(bit_ref& bref)
+SRSASN_CODE report_cfg_nr_s::report_type_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -31611,7 +31611,7 @@ SRSASN_CODE freq_prio_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_prio_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE freq_prio_eutra_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(cell_resel_sub_prio_present, 1));
 
@@ -31647,7 +31647,7 @@ SRSASN_CODE freq_prio_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_prio_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE freq_prio_nr_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(cell_resel_sub_prio_present, 1));
 
@@ -31681,7 +31681,7 @@ SRSASN_CODE gap_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE gap_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE gap_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(gap_offset, bref, (uint8_t)0u, (uint8_t)159u));
@@ -31770,7 +31770,7 @@ SRSASN_CODE meas_id_to_add_mod_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_id_to_add_mod_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_id_to_add_mod_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(meas_id, bref, (uint8_t)1u, (uint8_t)64u));
   HANDLE_CODE(unpack_integer(meas_obj_id, bref, (uint8_t)1u, (uint8_t)64u));
@@ -31795,7 +31795,7 @@ SRSASN_CODE meas_obj_to_add_mod_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_obj_to_add_mod_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_obj_to_add_mod_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(meas_obj_id, bref, (uint8_t)1u, (uint8_t)64u));
   HANDLE_CODE(meas_obj.unpack(bref));
@@ -31913,7 +31913,7 @@ SRSASN_CODE meas_obj_to_add_mod_s::meas_obj_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_obj_to_add_mod_s::meas_obj_c_::unpack(bit_ref& bref)
+SRSASN_CODE meas_obj_to_add_mod_s::meas_obj_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -31951,7 +31951,7 @@ SRSASN_CODE other_cfg_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE other_cfg_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE other_cfg_v1540_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(overheat_assist_cfg_present, 1));
@@ -31984,7 +31984,7 @@ SRSASN_CODE quant_cfg_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE quant_cfg_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE quant_cfg_nr_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(quant_cfg_rs_idx_present, 1));
 
@@ -32022,7 +32022,7 @@ SRSASN_CODE report_cfg_to_add_mod_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE report_cfg_to_add_mod_s::unpack(bit_ref& bref)
+SRSASN_CODE report_cfg_to_add_mod_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(report_cfg_id, bref, (uint8_t)1u, (uint8_t)64u));
   HANDLE_CODE(report_cfg.unpack(bref));
@@ -32140,7 +32140,7 @@ SRSASN_CODE report_cfg_to_add_mod_s::report_cfg_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE report_cfg_to_add_mod_s::report_cfg_c_::unpack(bit_ref& bref)
+SRSASN_CODE report_cfg_to_add_mod_s::report_cfg_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -32180,7 +32180,7 @@ SRSASN_CODE carrier_info_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE carrier_info_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE carrier_info_nr_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(smtc_present, 1));
@@ -32214,7 +32214,7 @@ SRSASN_CODE drb_count_msb_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drb_count_msb_info_s::unpack(bit_ref& bref)
+SRSASN_CODE drb_count_msb_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(drb_id, bref, (uint8_t)1u, (uint8_t)32u));
   HANDLE_CODE(unpack_integer(count_msb_ul, bref, (uint32_t)0u, (uint32_t)33554431u));
@@ -32245,7 +32245,7 @@ SRSASN_CODE master_key_upd_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE master_key_upd_s::unpack(bit_ref& bref)
+SRSASN_CODE master_key_upd_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(nas_container_present, 1));
@@ -32300,7 +32300,7 @@ SRSASN_CODE meas_gap_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_gap_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_gap_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(gap_fr2_present, 1));
@@ -32383,7 +32383,7 @@ SRSASN_CODE meas_gap_sharing_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_gap_sharing_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_gap_sharing_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(gap_sharing_fr2_present, 1));
@@ -32446,7 +32446,7 @@ SRSASN_CODE other_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE other_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE other_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(delay_budget_report_cfg_present, 1));
 
@@ -32502,7 +32502,7 @@ SRSASN_CODE other_cfg_s::delay_budget_report_cfg_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE other_cfg_s::delay_budget_report_cfg_c_::unpack(bit_ref& bref)
+SRSASN_CODE other_cfg_s::delay_budget_report_cfg_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -32585,7 +32585,7 @@ SRSASN_CODE quant_cfg_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE quant_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE quant_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(quant_cfg_nr_list_present, 1));
@@ -32737,7 +32737,7 @@ SRSASN_CODE ran_notif_area_info_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ran_notif_area_info_c::unpack(bit_ref& bref)
+SRSASN_CODE ran_notif_area_info_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -32774,7 +32774,7 @@ SRSASN_CODE rrc_recfg_v1540_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_v1540_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_v1540_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(other_cfg_v1540_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -32812,7 +32812,7 @@ SRSASN_CODE redirected_carrier_info_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE redirected_carrier_info_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE redirected_carrier_info_eutra_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(cn_type_present, 1));
 
@@ -32862,7 +32862,7 @@ SRSASN_CODE ue_cap_rat_request_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_rat_request_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_rat_request_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(cap_request_filt_present, 1));
@@ -32904,7 +32904,7 @@ SRSASN_CODE cell_resel_priorities_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cell_resel_priorities_s::unpack(bit_ref& bref)
+SRSASN_CODE cell_resel_priorities_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(freq_prio_list_eutra_present, 1));
@@ -33005,7 +33005,7 @@ SRSASN_CODE meas_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(meas_obj_to_rem_list_present, 1));
@@ -33190,7 +33190,7 @@ SRSASN_CODE meas_cfg_s::s_measure_cfg_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_cfg_s::s_measure_cfg_c_::unpack(bit_ref& bref)
+SRSASN_CODE meas_cfg_s::s_measure_cfg_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -33251,7 +33251,7 @@ SRSASN_CODE rrc_recfg_v1530_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_v1530_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_v1530_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(master_cell_group_present, 1));
   HANDLE_CODE(bref.unpack(full_cfg_present, 1));
@@ -33335,7 +33335,7 @@ SRSASN_CODE rrc_release_v1540_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_release_v1540_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_release_v1540_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(wait_time_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -33461,7 +33461,7 @@ SRSASN_CODE redirected_carrier_info_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE redirected_carrier_info_c::unpack(bit_ref& bref)
+SRSASN_CODE redirected_carrier_info_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -33494,7 +33494,7 @@ SRSASN_CODE security_cfg_smc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_cfg_smc_s::unpack(bit_ref& bref)
+SRSASN_CODE security_cfg_smc_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(security_algorithm_cfg.unpack(bref));
@@ -33529,7 +33529,7 @@ SRSASN_CODE suspend_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE suspend_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE suspend_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ran_notif_area_info_present, 1));
@@ -33578,7 +33578,7 @@ SRSASN_CODE counter_check_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE counter_check_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE counter_check_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -33625,7 +33625,7 @@ SRSASN_CODE dl_info_transfer_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_info_transfer_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_info_transfer_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ded_nas_msg_present, 1));
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -33675,7 +33675,7 @@ SRSASN_CODE mob_from_nr_cmd_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mob_from_nr_cmd_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE mob_from_nr_cmd_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(nas_security_param_from_nr_present, 1));
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -33744,7 +33744,7 @@ SRSASN_CODE rrc_recfg_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(radio_bearer_cfg_present, 1));
   HANDLE_CODE(bref.unpack(secondary_cell_group_present, 1));
@@ -33807,7 +33807,7 @@ SRSASN_CODE rrc_reest_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reest_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reest_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -33866,7 +33866,7 @@ SRSASN_CODE rrc_release_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_release_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_release_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(redirected_carrier_info_present, 1));
   HANDLE_CODE(bref.unpack(cell_resel_priorities_present, 1));
@@ -33971,7 +33971,7 @@ SRSASN_CODE rrc_resume_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(radio_bearer_cfg_present, 1));
   HANDLE_CODE(bref.unpack(master_cell_group_present, 1));
@@ -34036,7 +34036,7 @@ SRSASN_CODE security_mode_cmd_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_cmd_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_cmd_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -34077,7 +34077,7 @@ SRSASN_CODE ue_cap_enquiry_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_enquiry_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_enquiry_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -34116,7 +34116,7 @@ SRSASN_CODE counter_check_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE counter_check_s::unpack(bit_ref& bref)
+SRSASN_CODE counter_check_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -34223,7 +34223,7 @@ SRSASN_CODE counter_check_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE counter_check_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE counter_check_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -34255,7 +34255,7 @@ SRSASN_CODE dl_info_transfer_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_info_transfer_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_info_transfer_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -34363,7 +34363,7 @@ SRSASN_CODE dl_info_transfer_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_info_transfer_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE dl_info_transfer_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -34395,7 +34395,7 @@ SRSASN_CODE mob_from_nr_cmd_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mob_from_nr_cmd_s::unpack(bit_ref& bref)
+SRSASN_CODE mob_from_nr_cmd_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -34503,7 +34503,7 @@ SRSASN_CODE mob_from_nr_cmd_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mob_from_nr_cmd_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE mob_from_nr_cmd_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -34535,7 +34535,7 @@ SRSASN_CODE rrc_recfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -34642,7 +34642,7 @@ SRSASN_CODE rrc_recfg_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -34674,7 +34674,7 @@ SRSASN_CODE rrc_reest_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reest_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reest_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -34781,7 +34781,7 @@ SRSASN_CODE rrc_reest_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reest_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reest_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -34813,7 +34813,7 @@ SRSASN_CODE rrc_release_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_release_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_release_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -34920,7 +34920,7 @@ SRSASN_CODE rrc_release_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_release_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_release_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -34952,7 +34952,7 @@ SRSASN_CODE rrc_resume_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -35059,7 +35059,7 @@ SRSASN_CODE rrc_resume_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -35091,7 +35091,7 @@ SRSASN_CODE security_mode_cmd_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_cmd_s::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_cmd_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -35199,7 +35199,7 @@ SRSASN_CODE security_mode_cmd_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_cmd_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_cmd_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -35231,7 +35231,7 @@ SRSASN_CODE ue_cap_enquiry_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_enquiry_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_enquiry_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -35338,7 +35338,7 @@ SRSASN_CODE ue_cap_enquiry_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_enquiry_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_enquiry_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -35454,7 +35454,7 @@ SRSASN_CODE dl_dcch_msg_type_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_dcch_msg_type_c::unpack(bit_ref& bref)
+SRSASN_CODE dl_dcch_msg_type_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -35775,7 +35775,7 @@ SRSASN_CODE dl_dcch_msg_type_c::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_dcch_msg_type_c::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE dl_dcch_msg_type_c::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -35870,7 +35870,7 @@ SRSASN_CODE dl_dcch_msg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dl_dcch_msg_s::unpack(bit_ref& bref)
+SRSASN_CODE dl_dcch_msg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(msg.unpack(bref));
 
@@ -35989,7 +35989,7 @@ SRSASN_CODE paging_ue_id_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE paging_ue_id_c::unpack(bit_ref& bref)
+SRSASN_CODE paging_ue_id_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -36029,7 +36029,7 @@ SRSASN_CODE paging_record_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE paging_record_s::unpack(bit_ref& bref)
+SRSASN_CODE paging_record_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(access_type_present, 1));
@@ -36065,7 +36065,7 @@ SRSASN_CODE paging_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE paging_s::unpack(bit_ref& bref)
+SRSASN_CODE paging_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(paging_record_list_present, 1));
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -36193,7 +36193,7 @@ SRSASN_CODE pcch_msg_type_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pcch_msg_type_c::unpack(bit_ref& bref)
+SRSASN_CODE pcch_msg_type_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -36245,7 +36245,7 @@ SRSASN_CODE pcch_msg_type_c::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pcch_msg_type_c::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE pcch_msg_type_c::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -36289,7 +36289,7 @@ SRSASN_CODE pcch_msg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pcch_msg_s::unpack(bit_ref& bref)
+SRSASN_CODE pcch_msg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(msg.unpack(bref));
 
@@ -36430,7 +36430,7 @@ SRSASN_CODE init_ue_id_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE init_ue_id_c::unpack(bit_ref& bref)
+SRSASN_CODE init_ue_id_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -36469,7 +36469,7 @@ SRSASN_CODE reestab_ue_id_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE reestab_ue_id_s::unpack(bit_ref& bref)
+SRSASN_CODE reestab_ue_id_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(c_rnti, bref, (uint32_t)0u, (uint32_t)65535u));
   HANDLE_CODE(unpack_integer(pci, bref, (uint16_t)0u, (uint16_t)1007u));
@@ -36524,7 +36524,7 @@ SRSASN_CODE rrc_reest_request_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reest_request_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reest_request_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(ue_id.unpack(bref));
   HANDLE_CODE(reest_cause.unpack(bref));
@@ -36552,7 +36552,7 @@ SRSASN_CODE rrc_resume_request_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_request_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_request_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(resume_id.unpack(bref));
   HANDLE_CODE(resume_mac_i.unpack(bref));
@@ -36580,7 +36580,7 @@ SRSASN_CODE rrc_setup_request_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_request_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_request_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(ue_id.unpack(bref));
   HANDLE_CODE(establishment_cause.unpack(bref));
@@ -36606,7 +36606,7 @@ SRSASN_CODE rrc_sys_info_request_r15_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_sys_info_request_r15_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_sys_info_request_r15_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(requested_si_list.unpack(bref));
   HANDLE_CODE(spare.unpack(bref));
@@ -36628,7 +36628,7 @@ SRSASN_CODE rrc_reest_request_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reest_request_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reest_request_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(rrc_reest_request.unpack(bref));
 
@@ -36649,7 +36649,7 @@ SRSASN_CODE rrc_resume_request_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_request_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_request_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(rrc_resume_request.unpack(bref));
 
@@ -36670,7 +36670,7 @@ SRSASN_CODE rrc_setup_request_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_request_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_request_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(rrc_setup_request.unpack(bref));
 
@@ -36691,7 +36691,7 @@ SRSASN_CODE rrc_sys_info_request_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_sys_info_request_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_sys_info_request_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -36797,7 +36797,7 @@ SRSASN_CODE rrc_sys_info_request_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_sys_info_request_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_sys_info_request_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -36913,7 +36913,7 @@ SRSASN_CODE ul_ccch_msg_type_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_ccch_msg_type_c::unpack(bit_ref& bref)
+SRSASN_CODE ul_ccch_msg_type_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -37069,7 +37069,7 @@ SRSASN_CODE ul_ccch_msg_type_c::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_ccch_msg_type_c::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE ul_ccch_msg_type_c::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -37121,7 +37121,7 @@ SRSASN_CODE ul_ccch_msg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_ccch_msg_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_ccch_msg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(msg.unpack(bref));
 
@@ -37151,7 +37151,7 @@ SRSASN_CODE rrc_resume_request1_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_request1_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_request1_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(resume_id.unpack(bref));
   HANDLE_CODE(resume_mac_i.unpack(bref));
@@ -37177,7 +37177,7 @@ SRSASN_CODE rrc_resume_request1_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_request1_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_request1_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(rrc_resume_request1.unpack(bref));
 
@@ -37283,7 +37283,7 @@ SRSASN_CODE ul_ccch1_msg_type_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_ccch1_msg_type_c::unpack(bit_ref& bref)
+SRSASN_CODE ul_ccch1_msg_type_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -37343,7 +37343,7 @@ SRSASN_CODE ul_ccch1_msg_type_c::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_ccch1_msg_type_c::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE ul_ccch1_msg_type_c::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -37396,7 +37396,7 @@ SRSASN_CODE ul_ccch1_msg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_ccch1_msg_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_ccch1_msg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(msg.unpack(bref));
 
@@ -37435,7 +37435,7 @@ SRSASN_CODE meas_quant_results_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_quant_results_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_quant_results_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(rsrp_present, 1));
   HANDLE_CODE(bref.unpack(rsrq_present, 1));
@@ -37564,7 +37564,7 @@ SRSASN_CODE plmn_id_eutra_minus5_gc_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE plmn_id_eutra_minus5_gc_c::unpack(bit_ref& bref)
+SRSASN_CODE plmn_id_eutra_minus5_gc_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -37606,7 +37606,7 @@ SRSASN_CODE results_per_csi_rs_idx_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE results_per_csi_rs_idx_s::unpack(bit_ref& bref)
+SRSASN_CODE results_per_csi_rs_idx_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(csi_rs_results_present, 1));
 
@@ -37640,7 +37640,7 @@ SRSASN_CODE results_per_ssb_idx_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE results_per_ssb_idx_s::unpack(bit_ref& bref)
+SRSASN_CODE results_per_ssb_idx_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ssb_results_present, 1));
 
@@ -37683,7 +37683,7 @@ SRSASN_CODE cgi_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cgi_info_s::unpack(bit_ref& bref)
+SRSASN_CODE cgi_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(plmn_id_info_list_present, 1));
@@ -37826,7 +37826,7 @@ SRSASN_CODE cell_id_eutra_minus5_gc_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cell_id_eutra_minus5_gc_c::unpack(bit_ref& bref)
+SRSASN_CODE cell_id_eutra_minus5_gc_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -37865,7 +37865,7 @@ SRSASN_CODE cell_access_related_info_eutra_minus5_gc_s::pack(bit_ref& bref) cons
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cell_access_related_info_eutra_minus5_gc_s::unpack(bit_ref& bref)
+SRSASN_CODE cell_access_related_info_eutra_minus5_gc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ranac_minus5gc_present, 1));
 
@@ -37904,7 +37904,7 @@ SRSASN_CODE cell_access_related_info_eutra_epc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cell_access_related_info_eutra_epc_s::unpack(bit_ref& bref)
+SRSASN_CODE cell_access_related_info_eutra_epc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_dyn_seq_of(plmn_id_list_eutra_epc, bref, 1, 12));
   HANDLE_CODE(tac_eutra_epc.unpack(bref));
@@ -37944,7 +37944,7 @@ SRSASN_CODE meas_quant_results_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_quant_results_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_quant_results_eutra_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(rsrp_present, 1));
   HANDLE_CODE(bref.unpack(rsrq_present, 1));
@@ -38022,7 +38022,7 @@ SRSASN_CODE meas_result_nr_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_result_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_result_nr_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pci_present, 1));
@@ -38124,7 +38124,7 @@ SRSASN_CODE ul_tx_direct_current_bwp_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_tx_direct_current_bwp_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_tx_direct_current_bwp_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(bwp_id, bref, (uint8_t)0u, (uint8_t)4u));
   HANDLE_CODE(bref.unpack(shift7dot5k_hz, 1));
@@ -38150,7 +38150,7 @@ SRSASN_CODE eutra_rstd_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_rstd_info_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_rstd_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(carrier_freq, bref, (uint32_t)0u, (uint32_t)262143u));
@@ -38221,7 +38221,7 @@ SRSASN_CODE meas_result_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_result_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_result_eutra_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(cgi_info_present, 1));
@@ -38311,7 +38311,7 @@ SRSASN_CODE meas_result_serv_mo_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_result_serv_mo_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_result_serv_mo_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(meas_result_best_neigh_cell_present, 1));
@@ -38359,7 +38359,7 @@ SRSASN_CODE ul_tx_direct_current_cell_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_tx_direct_current_cell_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_tx_direct_current_cell_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(serv_cell_idx, bref, (uint8_t)0u, (uint8_t)31u));
@@ -38388,7 +38388,7 @@ SRSASN_CODE drb_count_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drb_count_info_s::unpack(bit_ref& bref)
+SRSASN_CODE drb_count_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(drb_id, bref, (uint8_t)1u, (uint8_t)32u));
   HANDLE_CODE(unpack_integer(count_ul, bref, (uint64_t)0u, (uint64_t)4294967295u));
@@ -38437,7 +38437,7 @@ SRSASN_CODE overheat_assist_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE overheat_assist_s::unpack(bit_ref& bref)
+SRSASN_CODE overheat_assist_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(reduced_max_ccs_present, 1));
   HANDLE_CODE(bref.unpack(reduced_max_bw_fr1_present, 1));
@@ -38517,7 +38517,7 @@ SRSASN_CODE ue_cap_rat_container_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_rat_container_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_rat_container_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(rat_type.unpack(bref));
   HANDLE_CODE(ue_cap_rat_container.unpack(bref));
@@ -38545,7 +38545,7 @@ SRSASN_CODE delay_budget_report_c::pack(bit_ref& bref) const
   HANDLE_CODE(c.pack(bref));
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE delay_budget_report_c::unpack(bit_ref& bref)
+SRSASN_CODE delay_budget_report_c::unpack(cbit_ref& bref)
 {
   types e;
   unpack_enum(e, bref);
@@ -38605,7 +38605,7 @@ SRSASN_CODE fail_info_rlc_bearer_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE fail_info_rlc_bearer_s::unpack(bit_ref& bref)
+SRSASN_CODE fail_info_rlc_bearer_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(cell_group_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(unpack_integer(lc_ch_id, bref, (uint8_t)1u, (uint8_t)32u));
@@ -38666,7 +38666,7 @@ SRSASN_CODE location_meas_info_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE location_meas_info_c::unpack(bit_ref& bref)
+SRSASN_CODE location_meas_info_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -38704,7 +38704,7 @@ SRSASN_CODE meas_results_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_results_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_results_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(meas_result_neigh_cells_present, 1));
@@ -38842,7 +38842,7 @@ SRSASN_CODE meas_results_s::meas_result_neigh_cells_c_::pack(bit_ref& bref) cons
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_results_s::meas_result_neigh_cells_c_::unpack(bit_ref& bref)
+SRSASN_CODE meas_results_s::meas_result_neigh_cells_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -38880,7 +38880,7 @@ SRSASN_CODE rrc_recfg_complete_v1530_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_complete_v1530_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_complete_v1530_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ul_tx_direct_current_list_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -38921,7 +38921,7 @@ SRSASN_CODE registered_amf_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE registered_amf_s::unpack(bit_ref& bref)
+SRSASN_CODE registered_amf_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(plmn_id_present, 1));
 
@@ -39042,7 +39042,7 @@ SRSASN_CODE s_nssai_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE s_nssai_c::unpack(bit_ref& bref)
+SRSASN_CODE s_nssai_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -39079,7 +39079,7 @@ SRSASN_CODE ueassist_info_v1540_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ueassist_info_v1540_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ueassist_info_v1540_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(overheat_assist_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -39118,7 +39118,7 @@ SRSASN_CODE counter_check_resp_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE counter_check_resp_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE counter_check_resp_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -39165,7 +39165,7 @@ SRSASN_CODE fail_info_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE fail_info_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE fail_info_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(fail_info_rlc_bearer_present, 1));
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -39211,7 +39211,7 @@ SRSASN_CODE location_meas_ind_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE location_meas_ind_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE location_meas_ind_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -39252,7 +39252,7 @@ SRSASN_CODE meas_report_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_report_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_report_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -39295,7 +39295,7 @@ SRSASN_CODE rrc_recfg_complete_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_complete_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_complete_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -39334,7 +39334,7 @@ SRSASN_CODE rrc_reest_complete_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reest_complete_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reest_complete_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -39383,7 +39383,7 @@ SRSASN_CODE rrc_resume_complete_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_complete_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_complete_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ded_nas_msg_present, 1));
   HANDLE_CODE(bref.unpack(sel_plmn_id_present, 1));
@@ -39463,7 +39463,7 @@ SRSASN_CODE rrc_setup_complete_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_complete_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_complete_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(registered_amf_present, 1));
   HANDLE_CODE(bref.unpack(guami_type_present, 1));
@@ -39632,7 +39632,7 @@ SRSASN_CODE rrc_setup_complete_ies_s::ng_minus5_g_s_tmsi_value_c_::pack(bit_ref&
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_complete_ies_s::ng_minus5_g_s_tmsi_value_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_complete_ies_s::ng_minus5_g_s_tmsi_value_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -39669,7 +39669,7 @@ SRSASN_CODE security_mode_complete_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_complete_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_complete_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -39706,7 +39706,7 @@ SRSASN_CODE security_mode_fail_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_fail_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_fail_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -39750,7 +39750,7 @@ SRSASN_CODE ueassist_info_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ueassist_info_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ueassist_info_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(delay_budget_report_present, 1));
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -39801,7 +39801,7 @@ SRSASN_CODE ue_cap_info_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_info_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_info_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ue_cap_rat_container_list_present, 1));
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -39853,7 +39853,7 @@ SRSASN_CODE ul_info_transfer_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_info_transfer_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_info_transfer_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ded_nas_msg_present, 1));
   HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
@@ -39893,7 +39893,7 @@ SRSASN_CODE counter_check_resp_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE counter_check_resp_s::unpack(bit_ref& bref)
+SRSASN_CODE counter_check_resp_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -40001,7 +40001,7 @@ SRSASN_CODE counter_check_resp_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE counter_check_resp_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE counter_check_resp_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -40032,7 +40032,7 @@ SRSASN_CODE fail_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE fail_info_s::unpack(bit_ref& bref)
+SRSASN_CODE fail_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -40137,7 +40137,7 @@ SRSASN_CODE fail_info_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE fail_info_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE fail_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -40168,7 +40168,7 @@ SRSASN_CODE location_meas_ind_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE location_meas_ind_s::unpack(bit_ref& bref)
+SRSASN_CODE location_meas_ind_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -40274,7 +40274,7 @@ SRSASN_CODE location_meas_ind_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE location_meas_ind_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE location_meas_ind_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -40305,7 +40305,7 @@ SRSASN_CODE meas_report_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_report_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_report_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -40410,7 +40410,7 @@ SRSASN_CODE meas_report_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_report_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE meas_report_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -40442,7 +40442,7 @@ SRSASN_CODE rrc_recfg_complete_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_complete_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_complete_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -40550,7 +40550,7 @@ SRSASN_CODE rrc_recfg_complete_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_recfg_complete_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_recfg_complete_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -40582,7 +40582,7 @@ SRSASN_CODE rrc_reest_complete_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reest_complete_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reest_complete_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -40690,7 +40690,7 @@ SRSASN_CODE rrc_reest_complete_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_reest_complete_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_reest_complete_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -40722,7 +40722,7 @@ SRSASN_CODE rrc_resume_complete_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_complete_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_complete_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -40830,7 +40830,7 @@ SRSASN_CODE rrc_resume_complete_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_resume_complete_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_resume_complete_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -40862,7 +40862,7 @@ SRSASN_CODE rrc_setup_complete_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_complete_s::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_complete_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -40970,7 +40970,7 @@ SRSASN_CODE rrc_setup_complete_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrc_setup_complete_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE rrc_setup_complete_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -41002,7 +41002,7 @@ SRSASN_CODE security_mode_complete_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_complete_s::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_complete_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -41110,7 +41110,7 @@ SRSASN_CODE security_mode_complete_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_complete_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_complete_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -41142,7 +41142,7 @@ SRSASN_CODE security_mode_fail_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_fail_s::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_fail_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -41250,7 +41250,7 @@ SRSASN_CODE security_mode_fail_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE security_mode_fail_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE security_mode_fail_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -41281,7 +41281,7 @@ SRSASN_CODE ueassist_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ueassist_info_s::unpack(bit_ref& bref)
+SRSASN_CODE ueassist_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -41386,7 +41386,7 @@ SRSASN_CODE ueassist_info_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ueassist_info_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE ueassist_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -41418,7 +41418,7 @@ SRSASN_CODE ue_cap_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_info_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(rrc_transaction_id, bref, (uint8_t)0u, (uint8_t)3u));
   HANDLE_CODE(crit_exts.unpack(bref));
@@ -41525,7 +41525,7 @@ SRSASN_CODE ue_cap_info_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_info_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -41556,7 +41556,7 @@ SRSASN_CODE ul_info_transfer_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_info_transfer_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_info_transfer_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -41662,7 +41662,7 @@ SRSASN_CODE ul_info_transfer_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_info_transfer_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE ul_info_transfer_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -41778,7 +41778,7 @@ SRSASN_CODE ul_dcch_msg_type_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_dcch_msg_type_c::unpack(bit_ref& bref)
+SRSASN_CODE ul_dcch_msg_type_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -42135,7 +42135,7 @@ SRSASN_CODE ul_dcch_msg_type_c::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_dcch_msg_type_c::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE ul_dcch_msg_type_c::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -42234,7 +42234,7 @@ SRSASN_CODE ul_dcch_msg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ul_dcch_msg_s::unpack(bit_ref& bref)
+SRSASN_CODE ul_dcch_msg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(msg.unpack(bref));
 
@@ -42402,7 +42402,7 @@ SRSASN_CODE band_params_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_params_c::unpack(bit_ref& bref)
+SRSASN_CODE band_params_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -42463,7 +42463,7 @@ SRSASN_CODE ca_params_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ca_params_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE ca_params_eutra_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(multiple_timing_advance_present, 1));
@@ -42525,7 +42525,7 @@ SRSASN_CODE ca_params_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ca_params_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE ca_params_nr_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(multiple_timing_advances_present, 1));
@@ -42623,7 +42623,7 @@ SRSASN_CODE mrdc_params_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mrdc_params_s::unpack(bit_ref& bref)
+SRSASN_CODE mrdc_params_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(single_ul_tx_present, 1));
@@ -42745,7 +42745,7 @@ SRSASN_CODE band_combination_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_combination_s::unpack(bit_ref& bref)
+SRSASN_CODE band_combination_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ca_params_eutra_present, 1));
   HANDLE_CODE(bref.unpack(ca_params_nr_present, 1));
@@ -42815,7 +42815,7 @@ SRSASN_CODE srs_switching_time_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_switching_time_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_switching_time_eutra_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(switching_time_dl_present, 1));
   HANDLE_CODE(bref.unpack(switching_time_ul_present, 1));
@@ -42918,7 +42918,7 @@ SRSASN_CODE srs_switching_time_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE srs_switching_time_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE srs_switching_time_nr_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(switching_time_dl_present, 1));
   HANDLE_CODE(bref.unpack(switching_time_ul_present, 1));
@@ -42991,7 +42991,7 @@ SRSASN_CODE band_params_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_params_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE band_params_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(srs_carrier_switch_present, 1));
   HANDLE_CODE(bref.unpack(srs_tx_switch_v1540_present, 1));
@@ -43149,7 +43149,7 @@ SRSASN_CODE band_params_v1540_s::srs_carrier_switch_c_::pack(bit_ref& bref) cons
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_params_v1540_s::srs_carrier_switch_c_::unpack(bit_ref& bref)
+SRSASN_CODE band_params_v1540_s::srs_carrier_switch_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -43218,7 +43218,7 @@ SRSASN_CODE ca_params_nr_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ca_params_nr_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE ca_params_nr_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(simul_srs_assoc_csi_rs_all_cc_present, 1));
   HANDLE_CODE(bref.unpack(csi_rs_im_reception_for_feedback_per_band_comb_present, 1));
@@ -43293,7 +43293,7 @@ SRSASN_CODE band_combination_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_combination_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE band_combination_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ca_params_nr_v1540_present, 1));
 
@@ -43326,7 +43326,7 @@ SRSASN_CODE ca_params_nr_v1550_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ca_params_nr_v1550_s::unpack(bit_ref& bref)
+SRSASN_CODE ca_params_nr_v1550_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(aperiodic_csi_diff_scs_present, 1));
 
@@ -43348,7 +43348,7 @@ SRSASN_CODE band_combination_v1550_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_combination_v1550_s::unpack(bit_ref& bref)
+SRSASN_CODE band_combination_v1550_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(ca_params_nr_v1550.unpack(bref));
 
@@ -43371,7 +43371,7 @@ SRSASN_CODE supported_csi_rs_res_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE supported_csi_rs_res_s::unpack(bit_ref& bref)
+SRSASN_CODE supported_csi_rs_res_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(max_num_tx_ports_per_res.unpack(bref));
   HANDLE_CODE(unpack_integer(max_num_res_per_band, bref, (uint8_t)1u, (uint8_t)64u));
@@ -43414,7 +43414,7 @@ SRSASN_CODE beam_management_ssb_csi_rs_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE beam_management_ssb_csi_rs_s::unpack(bit_ref& bref)
+SRSASN_CODE beam_management_ssb_csi_rs_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(supported_csi_rs_density_present, 1));
 
@@ -43501,7 +43501,7 @@ SRSASN_CODE csi_rs_for_tracking_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_for_tracking_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_for_tracking_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(max_burst_len, bref, (uint8_t)1u, (uint8_t)2u));
   HANDLE_CODE(unpack_integer(max_simul_res_sets_per_cc, bref, (uint8_t)1u, (uint8_t)8u));
@@ -43531,7 +43531,7 @@ SRSASN_CODE csi_rs_im_reception_for_feedback_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_im_reception_for_feedback_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_im_reception_for_feedback_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(max_cfg_num_nzp_csi_rs_per_cc, bref, (uint8_t)1u, (uint8_t)64u));
   HANDLE_CODE(unpack_integer(max_cfg_num_ports_across_nzp_csi_rs_per_cc, bref, (uint16_t)2u, (uint16_t)256u));
@@ -43573,7 +43573,7 @@ SRSASN_CODE csi_rs_proc_framework_for_srs_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_rs_proc_framework_for_srs_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_rs_proc_framework_for_srs_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(max_num_periodic_srs_assoc_csi_rs_per_bwp, bref, (uint8_t)1u, (uint8_t)4u));
   HANDLE_CODE(unpack_integer(max_num_aperiodic_srs_assoc_csi_rs_per_bwp, bref, (uint8_t)1u, (uint8_t)4u));
@@ -43606,7 +43606,7 @@ SRSASN_CODE csi_report_framework_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE csi_report_framework_s::unpack(bit_ref& bref)
+SRSASN_CODE csi_report_framework_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(max_num_periodic_csi_per_bwp_for_csi_report, bref, (uint8_t)1u, (uint8_t)4u));
   HANDLE_CODE(unpack_integer(max_num_aperiodic_csi_per_bwp_for_csi_report, bref, (uint8_t)1u, (uint8_t)4u));
@@ -43674,7 +43674,7 @@ SRSASN_CODE codebook_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE codebook_params_s::unpack(bit_ref& bref)
+SRSASN_CODE codebook_params_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(type2_present, 1));
   HANDLE_CODE(bref.unpack(type2_port_sel_present, 1));
@@ -43811,7 +43811,7 @@ SRSASN_CODE dummy_g_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_g_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_g_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(max_num_ssb_csi_rs_res_one_tx.unpack(bref));
   HANDLE_CODE(max_num_ssb_csi_rs_res_two_tx.unpack(bref));
@@ -43866,7 +43866,7 @@ SRSASN_CODE dummy_h_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_h_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_h_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(burst_len, bref, (uint8_t)1u, (uint8_t)2u));
   HANDLE_CODE(unpack_integer(max_simul_res_sets_per_cc, bref, (uint8_t)1u, (uint8_t)8u));
@@ -43896,7 +43896,7 @@ SRSASN_CODE ptrs_density_recommendation_dl_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ptrs_density_recommendation_dl_s::unpack(bit_ref& bref)
+SRSASN_CODE ptrs_density_recommendation_dl_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(freq_density1, bref, (uint16_t)1u, (uint16_t)276u));
   HANDLE_CODE(unpack_integer(freq_density2, bref, (uint16_t)1u, (uint16_t)276u));
@@ -43933,7 +43933,7 @@ SRSASN_CODE ptrs_density_recommendation_ul_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ptrs_density_recommendation_ul_s::unpack(bit_ref& bref)
+SRSASN_CODE ptrs_density_recommendation_ul_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(freq_density1, bref, (uint16_t)1u, (uint16_t)276u));
   HANDLE_CODE(unpack_integer(freq_density2, bref, (uint16_t)1u, (uint16_t)276u));
@@ -43975,7 +43975,7 @@ SRSASN_CODE spatial_relations_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE spatial_relations_s::unpack(bit_ref& bref)
+SRSASN_CODE spatial_relations_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(add_active_spatial_relation_pucch_present, 1));
 
@@ -44247,7 +44247,7 @@ SRSASN_CODE mimo_params_per_band_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mimo_params_per_band_s::unpack(bit_ref& bref)
+SRSASN_CODE mimo_params_per_band_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(tci_state_pdsch_present, 1));
@@ -44938,7 +44938,7 @@ SRSASN_CODE band_nr_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE band_nr_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(modified_mpr_behaviour_present, 1));
@@ -45217,7 +45217,7 @@ SRSASN_CODE band_nr_s::ch_bws_dl_v1530_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_nr_s::ch_bws_dl_v1530_c_::unpack(bit_ref& bref)
+SRSASN_CODE band_nr_s::ch_bws_dl_v1530_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -45400,7 +45400,7 @@ SRSASN_CODE band_nr_s::ch_bws_ul_v1530_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_nr_s::ch_bws_ul_v1530_c_::unpack(bit_ref& bref)
+SRSASN_CODE band_nr_s::ch_bws_ul_v1530_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -45474,7 +45474,7 @@ SRSASN_CODE eutra_params_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_params_common_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_params_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(mfbi_eutra_present, 1));
@@ -45514,7 +45514,7 @@ SRSASN_CODE eutra_params_xdd_diff_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_params_xdd_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_params_xdd_diff_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(rsrq_meas_wideband_eutra_present, 1));
@@ -45547,7 +45547,7 @@ SRSASN_CODE eutra_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE eutra_params_s::unpack(bit_ref& bref)
+SRSASN_CODE eutra_params_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(eutra_params_common_present, 1));
@@ -45691,7 +45691,7 @@ SRSASN_CODE feature_set_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_set_c::unpack(bit_ref& bref)
+SRSASN_CODE feature_set_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -45729,7 +45729,7 @@ SRSASN_CODE dummy_a_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_a_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_a_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(max_num_nzp_csi_rs_per_cc, bref, (uint8_t)1u, (uint8_t)32u));
   HANDLE_CODE(max_num_ports_across_nzp_csi_rs_per_cc.unpack(bref));
@@ -45820,7 +45820,7 @@ SRSASN_CODE dummy_b_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_b_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_b_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(max_num_tx_ports_per_res.unpack(bref));
   HANDLE_CODE(unpack_integer(max_num_res, bref, (uint8_t)1u, (uint8_t)64u));
@@ -45870,7 +45870,7 @@ SRSASN_CODE dummy_c_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_c_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_c_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(max_num_tx_ports_per_res.unpack(bref));
   HANDLE_CODE(unpack_integer(max_num_res, bref, (uint8_t)1u, (uint8_t)64u));
@@ -45940,7 +45940,7 @@ SRSASN_CODE dummy_d_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_d_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_d_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(amplitude_subset_restrict_present, 1));
 
@@ -45997,7 +45997,7 @@ SRSASN_CODE dummy_e_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_e_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_e_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(max_num_tx_ports_per_res.unpack(bref));
   HANDLE_CODE(unpack_integer(max_num_res, bref, (uint8_t)1u, (uint8_t)64u));
@@ -46127,7 +46127,7 @@ SRSASN_CODE feature_set_dl_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_set_dl_s::unpack(bit_ref& bref)
+SRSASN_CODE feature_set_dl_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(intra_band_freq_separation_dl_present, 1));
   HANDLE_CODE(bref.unpack(scaling_factor_present, 1));
@@ -46421,7 +46421,7 @@ SRSASN_CODE processing_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE processing_params_s::unpack(bit_ref& bref)
+SRSASN_CODE processing_params_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(different_tb_per_slot_present, 1));
 
@@ -46538,7 +46538,7 @@ SRSASN_CODE feature_set_dl_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_set_dl_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE feature_set_dl_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(one_fl_dmrs_two_add_dmrs_dl_present, 1));
   HANDLE_CODE(bref.unpack(add_dmrs_dl_alt_present, 1));
@@ -46840,7 +46840,7 @@ SRSASN_CODE supported_bw_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE supported_bw_c::unpack(bit_ref& bref)
+SRSASN_CODE supported_bw_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -46911,7 +46911,7 @@ SRSASN_CODE feature_set_dl_per_cc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_set_dl_per_cc_s::unpack(bit_ref& bref)
+SRSASN_CODE feature_set_dl_per_cc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ch_bw_minus90mhz_present, 1));
   HANDLE_CODE(bref.unpack(max_num_mimo_layers_pdsch_present, 1));
@@ -46956,7 +46956,7 @@ SRSASN_CODE dummy_f_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_f_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_f_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(max_num_periodic_csi_report_per_bwp, bref, (uint8_t)1u, (uint8_t)4u));
   HANDLE_CODE(unpack_integer(max_num_aperiodic_csi_report_per_bwp, bref, (uint8_t)1u, (uint8_t)4u));
@@ -46984,7 +46984,7 @@ SRSASN_CODE dummy_i_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE dummy_i_s::unpack(bit_ref& bref)
+SRSASN_CODE dummy_i_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(tx_switch_impact_to_rx_present, 1));
 
@@ -47060,7 +47060,7 @@ SRSASN_CODE feature_set_ul_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_set_ul_s::unpack(bit_ref& bref)
+SRSASN_CODE feature_set_ul_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(scaling_factor_present, 1));
   HANDLE_CODE(bref.unpack(cross_carrier_sched_other_scs_present, 1));
@@ -47256,7 +47256,7 @@ SRSASN_CODE feature_set_ul_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_set_ul_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE feature_set_ul_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(zero_slot_offset_aperiodic_srs_present, 1));
   HANDLE_CODE(bref.unpack(pa_phase_discontinuity_impacts_present, 1));
@@ -47342,7 +47342,7 @@ SRSASN_CODE feature_set_ul_per_cc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_set_ul_per_cc_s::unpack(bit_ref& bref)
+SRSASN_CODE feature_set_ul_per_cc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ch_bw_minus90mhz_present, 1));
   HANDLE_CODE(bref.unpack(mimo_cb_pusch_present, 1));
@@ -47406,7 +47406,7 @@ SRSASN_CODE feature_set_ul_per_cc_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_set_ul_per_cc_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE feature_set_ul_per_cc_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(mimo_non_cb_pusch_present, 1));
 
@@ -47478,7 +47478,7 @@ SRSASN_CODE feature_sets_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE feature_sets_s::unpack(bit_ref& bref)
+SRSASN_CODE feature_sets_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(feature_sets_dl_present, 1));
@@ -47628,7 +47628,7 @@ SRSASN_CODE freq_band_info_eutra_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_band_info_eutra_s::unpack(bit_ref& bref)
+SRSASN_CODE freq_band_info_eutra_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ca_bw_class_dl_eutra_present, 1));
   HANDLE_CODE(bref.unpack(ca_bw_class_ul_eutra_present, 1));
@@ -47680,7 +47680,7 @@ SRSASN_CODE freq_band_info_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_band_info_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE freq_band_info_nr_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(max_bw_requested_dl_present, 1));
   HANDLE_CODE(bref.unpack(max_bw_requested_ul_present, 1));
@@ -47823,7 +47823,7 @@ SRSASN_CODE freq_band_info_c::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE freq_band_info_c::unpack(bit_ref& bref)
+SRSASN_CODE freq_band_info_c::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -47856,7 +47856,7 @@ SRSASN_CODE ims_params_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ims_params_common_s::unpack(bit_ref& bref)
+SRSASN_CODE ims_params_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(voice_over_eutra_minus5_gc_present, 1));
@@ -47880,7 +47880,7 @@ SRSASN_CODE ims_params_frx_diff_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ims_params_frx_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE ims_params_frx_diff_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(voice_over_nr_present, 1));
@@ -47912,7 +47912,7 @@ SRSASN_CODE ims_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ims_params_s::unpack(bit_ref& bref)
+SRSASN_CODE ims_params_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ims_params_common_present, 1));
@@ -47953,7 +47953,7 @@ SRSASN_CODE inter_rat_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE inter_rat_params_s::unpack(bit_ref& bref)
+SRSASN_CODE inter_rat_params_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(eutra_present, 1));
@@ -47997,7 +47997,7 @@ SRSASN_CODE mac_params_common_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mac_params_common_s::unpack(bit_ref& bref)
+SRSASN_CODE mac_params_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(lcp_restrict_present, 1));
@@ -48053,7 +48053,7 @@ SRSASN_CODE mac_params_xdd_diff_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mac_params_xdd_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE mac_params_xdd_diff_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(skip_ul_tx_dynamic_present, 1));
@@ -48104,7 +48104,7 @@ SRSASN_CODE mac_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mac_params_s::unpack(bit_ref& bref)
+SRSASN_CODE mac_params_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(mac_params_common_present, 1));
   HANDLE_CODE(bref.unpack(mac_params_xdd_diff_present, 1));
@@ -48184,7 +48184,7 @@ SRSASN_CODE meas_and_mob_params_common_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_and_mob_params_common_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_and_mob_params_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(supported_gap_pattern_present, 1));
@@ -48323,7 +48323,7 @@ SRSASN_CODE meas_and_mob_params_frx_diff_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_and_mob_params_frx_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_and_mob_params_frx_diff_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ss_sinr_meas_present, 1));
@@ -48432,7 +48432,7 @@ SRSASN_CODE meas_and_mob_params_xdd_diff_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_and_mob_params_xdd_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_and_mob_params_xdd_diff_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(intra_and_inter_f_meas_and_report_present, 1));
@@ -48494,7 +48494,7 @@ SRSASN_CODE meas_and_mob_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_and_mob_params_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_and_mob_params_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(meas_and_mob_params_common_present, 1));
   HANDLE_CODE(bref.unpack(meas_and_mob_params_xdd_diff_present, 1));
@@ -48537,7 +48537,7 @@ SRSASN_CODE meas_and_mob_params_mrdc_common_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_and_mob_params_mrdc_common_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_and_mob_params_mrdc_common_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(independent_gap_cfg_present, 1));
 
@@ -48559,7 +48559,7 @@ SRSASN_CODE meas_and_mob_params_mrdc_frx_diff_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_and_mob_params_mrdc_frx_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_and_mob_params_mrdc_frx_diff_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(simul_rx_data_ssb_diff_numerology_present, 1));
 
@@ -48582,7 +48582,7 @@ SRSASN_CODE meas_and_mob_params_mrdc_xdd_diff_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_and_mob_params_mrdc_xdd_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_and_mob_params_mrdc_xdd_diff_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(sftd_meas_ps_cell_present, 1));
   HANDLE_CODE(bref.unpack(sftd_meas_nr_cell_present, 1));
@@ -48620,7 +48620,7 @@ SRSASN_CODE meas_and_mob_params_mrdc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_and_mob_params_mrdc_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_and_mob_params_mrdc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(meas_and_mob_params_mrdc_common_present, 1));
   HANDLE_CODE(bref.unpack(meas_and_mob_params_mrdc_xdd_diff_present, 1));
@@ -48680,7 +48680,7 @@ SRSASN_CODE meas_result2_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_result2_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_result2_nr_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ssb_freq_present, 1));
@@ -48740,7 +48740,7 @@ SRSASN_CODE meas_result_cell_sftd_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_result_cell_sftd_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_result_cell_sftd_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(rsrp_result_present, 1));
 
@@ -48773,7 +48773,7 @@ SRSASN_CODE meas_result_scg_fail_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_result_scg_fail_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_result_scg_fail_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_dyn_seq_of(meas_result_per_mo_list, bref, 1, 8));
@@ -48857,7 +48857,7 @@ SRSASN_CODE phy_params_common_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phy_params_common_s::unpack(bit_ref& bref)
+SRSASN_CODE phy_params_common_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(csi_rs_cfra_for_ho_present, 1));
@@ -49080,7 +49080,7 @@ SRSASN_CODE phy_params_fr1_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phy_params_fr1_s::unpack(bit_ref& bref)
+SRSASN_CODE phy_params_fr1_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(pdcch_monitoring_single_occasion_present, 1));
@@ -49196,7 +49196,7 @@ SRSASN_CODE phy_params_fr2_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phy_params_fr2_s::unpack(bit_ref& bref)
+SRSASN_CODE phy_params_fr2_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(dummy_present, 1));
@@ -49400,7 +49400,7 @@ SRSASN_CODE phy_params_frx_diff_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phy_params_frx_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE phy_params_frx_diff_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(dynamic_sfi_present, 1));
@@ -49726,7 +49726,7 @@ SRSASN_CODE phy_params_xdd_diff_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phy_params_xdd_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE phy_params_xdd_diff_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(dynamic_sfi_present, 1));
@@ -49804,7 +49804,7 @@ SRSASN_CODE phy_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phy_params_s::unpack(bit_ref& bref)
+SRSASN_CODE phy_params_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(phy_params_common_present, 1));
   HANDLE_CODE(bref.unpack(phy_params_xdd_diff_present, 1));
@@ -49865,7 +49865,7 @@ SRSASN_CODE naics_cap_entry_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE naics_cap_entry_s::unpack(bit_ref& bref)
+SRSASN_CODE naics_cap_entry_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_integer(nof_naics_capable_cc, bref, (uint8_t)1u, (uint8_t)5u));
@@ -49919,7 +49919,7 @@ SRSASN_CODE phy_params_mrdc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE phy_params_mrdc_s::unpack(bit_ref& bref)
+SRSASN_CODE phy_params_mrdc_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(naics_cap_list_present, 1));
@@ -49985,7 +49985,7 @@ SRSASN_CODE rf_params_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rf_params_s::unpack(bit_ref& bref)
+SRSASN_CODE rf_params_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(supported_band_combination_list_present, 1));
@@ -50112,7 +50112,7 @@ SRSASN_CODE rf_params_mrdc_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rf_params_mrdc_s::unpack(bit_ref& bref)
+SRSASN_CODE rf_params_mrdc_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(supported_band_combination_list_present, 1));
@@ -50200,7 +50200,7 @@ SRSASN_CODE ue_cap_request_filt_nr_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_request_filt_nr_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_request_filt_nr_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(srs_switching_time_request_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -50236,7 +50236,7 @@ SRSASN_CODE ue_cap_request_filt_nr_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_cap_request_filt_nr_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_cap_request_filt_nr_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(freq_band_list_filt_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -50278,7 +50278,7 @@ SRSASN_CODE general_params_mrdc_xdd_diff_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE general_params_mrdc_xdd_diff_s::unpack(bit_ref& bref)
+SRSASN_CODE general_params_mrdc_xdd_diff_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(split_srb_with_one_ul_path_present, 1));
@@ -50314,7 +50314,7 @@ SRSASN_CODE pdcp_params_mrdc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcp_params_mrdc_s::unpack(bit_ref& bref)
+SRSASN_CODE pdcp_params_mrdc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(pdcp_dupl_split_srb_present, 1));
   HANDLE_CODE(bref.unpack(pdcp_dupl_split_drb_present, 1));
@@ -50340,7 +50340,7 @@ SRSASN_CODE ue_mrdc_cap_add_frx_mode_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_mrdc_cap_add_frx_mode_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_mrdc_cap_add_frx_mode_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(meas_and_mob_params_mrdc_frx_diff.unpack(bref));
 
@@ -50369,7 +50369,7 @@ SRSASN_CODE ue_mrdc_cap_add_xdd_mode_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_mrdc_cap_add_xdd_mode_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_mrdc_cap_add_xdd_mode_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(meas_and_mob_params_mrdc_xdd_diff_present, 1));
   HANDLE_CODE(bref.unpack(general_params_mrdc_xdd_diff_present, 1));
@@ -50450,7 +50450,7 @@ SRSASN_CODE ue_mrdc_cap_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_mrdc_cap_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_mrdc_cap_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(meas_and_mob_params_mrdc_present, 1));
   HANDLE_CODE(bref.unpack(phy_params_mrdc_v1530_present, 1));
@@ -50569,21 +50569,21 @@ void ue_mrdc_cap_s::to_json(json_writer& j) const
 SRSASN_CODE sdap_params_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(bref.pack(as_reflective_qo_s_present, 1));
+  HANDLE_CODE(bref.pack(as_reflective_qos_present, 1));
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE sdap_params_s::unpack(bit_ref& bref)
+SRSASN_CODE sdap_params_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(bref.unpack(as_reflective_qo_s_present, 1));
+  HANDLE_CODE(bref.unpack(as_reflective_qos_present, 1));
 
   return SRSASN_SUCCESS;
 }
 void sdap_params_s::to_json(json_writer& j) const
 {
   j.start_obj();
-  if (as_reflective_qo_s_present) {
+  if (as_reflective_qos_present) {
     j.write_str("as-ReflectiveQoS", "true");
   }
   j.end_obj();
@@ -50597,7 +50597,7 @@ SRSASN_CODE ue_nr_cap_v1550_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_nr_cap_v1550_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_nr_cap_v1550_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(reduced_cp_latency_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -50633,7 +50633,7 @@ SRSASN_CODE ue_nr_cap_add_frx_mode_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_nr_cap_add_frx_mode_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_nr_cap_add_frx_mode_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(phy_params_frx_diff_present, 1));
   HANDLE_CODE(bref.unpack(meas_and_mob_params_frx_diff_present, 1));
@@ -50672,7 +50672,7 @@ SRSASN_CODE ue_nr_cap_add_frx_mode_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_nr_cap_add_frx_mode_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_nr_cap_add_frx_mode_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ims_params_frx_diff_present, 1));
 
@@ -50724,7 +50724,7 @@ SRSASN_CODE ue_nr_cap_v1540_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_nr_cap_v1540_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_nr_cap_v1540_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(sdap_params_present, 1));
   HANDLE_CODE(bref.unpack(overheat_ind_present, 1));
@@ -50795,7 +50795,7 @@ SRSASN_CODE ue_nr_cap_add_xdd_mode_v1530_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_nr_cap_add_xdd_mode_v1530_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_nr_cap_add_xdd_mode_v1530_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(eutra_params_xdd_diff.unpack(bref));
 
@@ -50847,7 +50847,7 @@ SRSASN_CODE pdcp_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE pdcp_params_s::unpack(bit_ref& bref)
+SRSASN_CODE pdcp_params_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ul_only_rohc_profiles_present, 1));
@@ -50945,7 +50945,7 @@ SRSASN_CODE rlc_params_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rlc_params_s::unpack(bit_ref& bref)
+SRSASN_CODE rlc_params_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(am_with_short_sn_present, 1));
@@ -50995,7 +50995,7 @@ SRSASN_CODE ue_nr_cap_v1530_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_nr_cap_v1530_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_nr_cap_v1530_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(fdd_add_ue_nr_cap_v1530_present, 1));
   HANDLE_CODE(bref.unpack(tdd_add_ue_nr_cap_v1530_present, 1));
@@ -51070,7 +51070,7 @@ SRSASN_CODE ue_nr_cap_add_xdd_mode_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_nr_cap_add_xdd_mode_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_nr_cap_add_xdd_mode_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(phy_params_xdd_diff_present, 1));
   HANDLE_CODE(bref.unpack(mac_params_xdd_diff_present, 1));
@@ -51165,7 +51165,7 @@ SRSASN_CODE ue_nr_cap_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_nr_cap_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_nr_cap_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(rlc_params_present, 1));
   HANDLE_CODE(bref.unpack(mac_params_present, 1));
@@ -51298,7 +51298,7 @@ SRSASN_CODE as_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE as_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE as_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(rrc_recfg.unpack(bref));
@@ -51320,7 +51320,7 @@ SRSASN_CODE band_combination_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_combination_info_s::unpack(bit_ref& bref)
+SRSASN_CODE band_combination_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(band_combination_idx, bref, (uint32_t)1u, (uint32_t)65536u));
   HANDLE_CODE(unpack_dyn_seq_of(allowed_feature_sets_list, bref, 1, 128, integer_packer<uint8_t>(1, 128)));
@@ -51348,7 +51348,7 @@ SRSASN_CODE reestab_ncell_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE reestab_ncell_info_s::unpack(bit_ref& bref)
+SRSASN_CODE reestab_ncell_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(cell_id.unpack(bref));
   HANDLE_CODE(key_g_node_b_star.unpack(bref));
@@ -51405,7 +51405,7 @@ SRSASN_CODE cfg_restrict_info_scg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cfg_restrict_info_scg_s::unpack(bit_ref& bref)
+SRSASN_CODE cfg_restrict_info_scg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(allowed_bc_list_mrdc_present, 1));
@@ -51497,7 +51497,7 @@ SRSASN_CODE reest_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE reest_info_s::unpack(bit_ref& bref)
+SRSASN_CODE reest_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(add_reestab_info_list_present, 1));
 
@@ -51563,7 +51563,7 @@ SRSASN_CODE as_context_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE as_context_s::unpack(bit_ref& bref)
+SRSASN_CODE as_context_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(reest_info_present, 1));
@@ -51636,7 +51636,7 @@ SRSASN_CODE victim_sys_type_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE victim_sys_type_s::unpack(bit_ref& bref)
+SRSASN_CODE victim_sys_type_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(gps_present, 1));
   HANDLE_CODE(bref.unpack(glonass_present, 1));
@@ -51696,7 +51696,7 @@ SRSASN_CODE affected_carrier_freq_comb_info_mrdc_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE affected_carrier_freq_comb_info_mrdc_s::unpack(bit_ref& bref)
+SRSASN_CODE affected_carrier_freq_comb_info_mrdc_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(affected_carrier_freq_comb_mrdc_present, 1));
 
@@ -51761,7 +51761,7 @@ SRSASN_CODE band_combination_info_sn_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE band_combination_info_sn_s::unpack(bit_ref& bref)
+SRSASN_CODE band_combination_info_sn_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(band_combination_idx, bref, (uint32_t)1u, (uint32_t)65536u));
   HANDLE_CODE(unpack_integer(requested_feature_sets, bref, (uint8_t)1u, (uint8_t)128u));
@@ -51784,7 +51784,7 @@ SRSASN_CODE ph_ul_carrier_scg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ph_ul_carrier_scg_s::unpack(bit_ref& bref)
+SRSASN_CODE ph_ul_carrier_scg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(ph_type1or3.unpack(bref));
@@ -51823,7 +51823,7 @@ SRSASN_CODE ph_info_scg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ph_info_scg_s::unpack(bit_ref& bref)
+SRSASN_CODE ph_info_scg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ph_supplementary_ul_present, 1));
@@ -51857,7 +51857,7 @@ SRSASN_CODE fr_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE fr_info_s::unpack(bit_ref& bref)
+SRSASN_CODE fr_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(serv_cell_idx, bref, (uint8_t)0u, (uint8_t)31u));
   HANDLE_CODE(fr_type.unpack(bref));
@@ -51895,7 +51895,7 @@ SRSASN_CODE nr_freq_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE nr_freq_info_s::unpack(bit_ref& bref)
+SRSASN_CODE nr_freq_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(measured_freq_present, 1));
@@ -51941,7 +51941,7 @@ SRSASN_CODE cg_cfg_v1540_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_v1540_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_v1540_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(pscell_freq_present, 1));
   HANDLE_CODE(bref.unpack(report_cgi_request_present, 1));
@@ -52015,7 +52015,7 @@ SRSASN_CODE cfg_restrict_mod_req_scg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cfg_restrict_mod_req_scg_s::unpack(bit_ref& bref)
+SRSASN_CODE cfg_restrict_mod_req_scg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(requested_bc_mrdc_present, 1));
@@ -52056,7 +52056,7 @@ SRSASN_CODE drx_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drx_info_s::unpack(bit_ref& bref)
+SRSASN_CODE drx_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(short_drx_present, 1));
 
@@ -52375,7 +52375,7 @@ SRSASN_CODE drx_info_s::drx_long_cycle_start_offset_c_::pack(bit_ref& bref) cons
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE drx_info_s::drx_long_cycle_start_offset_c_::unpack(bit_ref& bref)
+SRSASN_CODE drx_info_s::drx_long_cycle_start_offset_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -52489,7 +52489,7 @@ SRSASN_CODE meas_cfg_sn_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_cfg_sn_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_cfg_sn_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(measured_frequencies_sn_present, 1));
@@ -52560,7 +52560,7 @@ SRSASN_CODE cg_cfg_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(scg_cell_group_cfg_present, 1));
   HANDLE_CODE(bref.unpack(scg_rb_cfg_present, 1));
@@ -52662,7 +52662,7 @@ SRSASN_CODE cg_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -52767,7 +52767,7 @@ SRSASN_CODE cg_cfg_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -52827,7 +52827,7 @@ SRSASN_CODE cg_cfg_s::crit_exts_c_::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_s::crit_exts_c_::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -52874,7 +52874,7 @@ SRSASN_CODE ph_ul_carrier_mcg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ph_ul_carrier_mcg_s::unpack(bit_ref& bref)
+SRSASN_CODE ph_ul_carrier_mcg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(ph_type1or3.unpack(bref));
@@ -52913,7 +52913,7 @@ SRSASN_CODE ph_info_mcg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ph_info_mcg_s::unpack(bit_ref& bref)
+SRSASN_CODE ph_info_mcg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ph_supplementary_ul_present, 1));
@@ -52957,7 +52957,7 @@ SRSASN_CODE cg_cfg_info_v1540_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_info_v1540_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_info_v1540_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ph_info_mcg_present, 1));
   HANDLE_CODE(bref.unpack(meas_result_report_cgi_present, 1));
@@ -53010,7 +53010,7 @@ SRSASN_CODE mrdc_assist_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE mrdc_assist_info_s::unpack(bit_ref& bref)
+SRSASN_CODE mrdc_assist_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(unpack_dyn_seq_of(affected_carrier_freq_comb_info_list_mrdc, bref, 1, 128));
@@ -53048,7 +53048,7 @@ SRSASN_CODE meas_cfg_mn_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_cfg_mn_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_cfg_mn_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(measured_frequencies_mn_present, 1));
@@ -53163,7 +53163,7 @@ SRSASN_CODE cg_cfg_info_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_info_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_info_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(ue_cap_info_present, 1));
   HANDLE_CODE(bref.unpack(candidate_cell_info_list_mn_present, 1));
@@ -53314,7 +53314,7 @@ SRSASN_CODE cg_cfg_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_info_s::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -53419,7 +53419,7 @@ SRSASN_CODE cg_cfg_info_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_info_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -53479,7 +53479,7 @@ SRSASN_CODE cg_cfg_info_s::crit_exts_c_::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cg_cfg_info_s::crit_exts_c_::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE cg_cfg_info_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -53592,7 +53592,7 @@ SRSASN_CODE cells_triggered_list_item_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE cells_triggered_list_item_c_::unpack(bit_ref& bref)
+SRSASN_CODE cells_triggered_list_item_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -53626,7 +53626,7 @@ SRSASN_CODE ho_cmd_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ho_cmd_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ho_cmd_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
 
@@ -53653,7 +53653,7 @@ SRSASN_CODE ho_cmd_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ho_cmd_s::unpack(bit_ref& bref)
+SRSASN_CODE ho_cmd_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -53758,7 +53758,7 @@ SRSASN_CODE ho_cmd_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ho_cmd_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE ho_cmd_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -53818,7 +53818,7 @@ SRSASN_CODE ho_cmd_s::crit_exts_c_::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ho_cmd_s::crit_exts_c_::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE ho_cmd_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -53873,7 +53873,7 @@ SRSASN_CODE rrm_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE rrm_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE rrm_cfg_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(ue_inactive_time_present, 1));
@@ -53938,7 +53938,7 @@ SRSASN_CODE ho_prep_info_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ho_prep_info_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ho_prep_info_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(source_cfg_present, 1));
   HANDLE_CODE(bref.unpack(rrm_cfg_present, 1));
@@ -53993,7 +53993,7 @@ SRSASN_CODE ho_prep_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ho_prep_info_s::unpack(bit_ref& bref)
+SRSASN_CODE ho_prep_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -54098,7 +54098,7 @@ SRSASN_CODE ho_prep_info_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ho_prep_info_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE ho_prep_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -54158,7 +54158,7 @@ SRSASN_CODE ho_prep_info_s::crit_exts_c_::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ho_prep_info_s::crit_exts_c_::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE ho_prep_info_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -54234,7 +54234,7 @@ SRSASN_CODE meas_timing_s::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_timing_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_timing_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
   HANDLE_CODE(bref.unpack(freq_and_timing_present, 1));
@@ -54308,7 +54308,7 @@ SRSASN_CODE meas_timing_cfg_v1550_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_timing_cfg_v1550_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_timing_cfg_v1550_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
 
@@ -54345,7 +54345,7 @@ SRSASN_CODE meas_timing_cfg_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_timing_cfg_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_timing_cfg_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(meas_timing_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -54383,7 +54383,7 @@ SRSASN_CODE meas_timing_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_timing_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE meas_timing_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -54489,7 +54489,7 @@ SRSASN_CODE meas_timing_cfg_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_timing_cfg_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE meas_timing_cfg_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -54549,7 +54549,7 @@ SRSASN_CODE meas_timing_cfg_s::crit_exts_c_::c1_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE meas_timing_cfg_s::crit_exts_c_::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE meas_timing_cfg_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -54597,7 +54597,7 @@ SRSASN_CODE ue_radio_access_cap_info_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_radio_access_cap_info_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_radio_access_cap_info_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
 
@@ -54624,7 +54624,7 @@ SRSASN_CODE ue_radio_access_cap_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_radio_access_cap_info_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_radio_access_cap_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -54730,7 +54730,7 @@ SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -54806,7 +54806,7 @@ SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::pack(bit_ref& bref)
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -54866,7 +54866,7 @@ SRSASN_CODE ue_radio_paging_info_ies_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_radio_paging_info_ies_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_radio_paging_info_ies_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(supported_band_list_nr_for_paging_present, 1));
   HANDLE_CODE(bref.unpack(non_crit_ext_present, 1));
@@ -54902,7 +54902,7 @@ SRSASN_CODE ue_radio_paging_info_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_radio_paging_info_s::unpack(bit_ref& bref)
+SRSASN_CODE ue_radio_paging_info_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(crit_exts.unpack(bref));
 
@@ -55008,7 +55008,7 @@ SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::unpack(bit_ref& bref)
+SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -55084,7 +55084,7 @@ SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::c1_c_::pack(bit_ref& bref) con
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::c1_c_::unpack(bit_ref& bref)
+SRSASN_CODE ue_radio_paging_info_s::crit_exts_c_::c1_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -55159,7 +55159,7 @@ SRSASN_CODE var_meas_cfg_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE var_meas_cfg_s::unpack(bit_ref& bref)
+SRSASN_CODE var_meas_cfg_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(meas_id_list_present, 1));
   HANDLE_CODE(bref.unpack(meas_obj_list_present, 1));
@@ -55295,7 +55295,7 @@ SRSASN_CODE var_meas_cfg_s::s_measure_cfg_c_::pack(bit_ref& bref) const
   }
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE var_meas_cfg_s::s_measure_cfg_c_::unpack(bit_ref& bref)
+SRSASN_CODE var_meas_cfg_s::s_measure_cfg_c_::unpack(cbit_ref& bref)
 {
   types e;
   e.unpack(bref);
@@ -55333,7 +55333,7 @@ SRSASN_CODE var_meas_report_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE var_meas_report_s::unpack(bit_ref& bref)
+SRSASN_CODE var_meas_report_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(bref.unpack(cells_triggered_list_present, 1));
 
@@ -55369,7 +55369,7 @@ SRSASN_CODE var_resume_mac_input_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE var_resume_mac_input_s::unpack(bit_ref& bref)
+SRSASN_CODE var_resume_mac_input_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(source_pci, bref, (uint16_t)0u, (uint16_t)1007u));
   HANDLE_CODE(target_cell_id.unpack(bref));
@@ -55395,7 +55395,7 @@ SRSASN_CODE var_short_mac_input_s::pack(bit_ref& bref) const
 
   return SRSASN_SUCCESS;
 }
-SRSASN_CODE var_short_mac_input_s::unpack(bit_ref& bref)
+SRSASN_CODE var_short_mac_input_s::unpack(cbit_ref& bref)
 {
   HANDLE_CODE(unpack_integer(source_pci, bref, (uint16_t)0u, (uint16_t)1007u));
   HANDLE_CODE(target_cell_id.unpack(bref));

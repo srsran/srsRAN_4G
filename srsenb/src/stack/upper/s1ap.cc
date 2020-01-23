@@ -116,8 +116,8 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const asn1::s1ap::ho_cmd_
 
   // In case of intra-system Handover, Target to Source Transparent Container IE shall be encoded as
   // Target eNB to Source eNB Transparent Container IE
-  uint8_t*      buf = const_cast<uint8_t*>(msg.protocol_ies.target_to_source_transparent_container.value.data());
-  asn1::bit_ref bref(buf, msg.protocol_ies.target_to_source_transparent_container.value.size());
+  asn1::cbit_ref bref(msg.protocol_ies.target_to_source_transparent_container.value.data(),
+                      msg.protocol_ies.target_to_source_transparent_container.value.size());
   asn1::s1ap::targetenb_to_sourceenb_transparent_container_s container;
   if (container.unpack(bref) != asn1::SRSASN_SUCCESS) {
     procError("Failed to decode TargeteNBToSourceeNBTransparentContainer\n");
@@ -501,8 +501,8 @@ bool s1ap::handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu,
 
 bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
 {
-  s1ap_pdu_c    rx_pdu;
-  asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+  s1ap_pdu_c     rx_pdu;
+  asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
 
   if (rx_pdu.unpack(bref) != asn1::SRSASN_SUCCESS) {
     s1ap_log->error("Failed to unpack received PDU\n");

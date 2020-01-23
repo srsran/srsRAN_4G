@@ -31,8 +31,8 @@ srslte::log_filter ngap_log("NGAP");
 
 int test_amf_upd()
 {
-  uint8_t ngap_msg[] = {0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x11};
-  bit_ref bref(&ngap_msg[0], sizeof(ngap_msg));
+  uint8_t  ngap_msg[] = {0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x11};
+  cbit_ref bref(&ngap_msg[0], sizeof(ngap_msg));
   // 0000000A00000100010003000011
 
   ngap_pdu_c pdu;
@@ -70,7 +70,7 @@ int test_ngsetup_request()
                         0x00, 0x00, 0xf1, 0x10, 0x00, 0x00, 0x00, 0x08, 0x00, 0x15, 0x40, 0x01, 0x60};
   // 00150030000004001b00090000f1105000000001005240060180676e62310066000d00000000750000f110000000080015400160
 
-  bit_ref    bref(ngap_msg, sizeof(ngap_msg));
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
   ngap_pdu_c pdu;
   TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
 
@@ -127,7 +127,7 @@ int test_ngsetup_response()
                         0x01, 0x05, 0x00, 0x50, 0x00, 0x08, 0x00, 0x00, 0xf1, 0x10, 0x00, 0x00, 0x00, 0x08};
   // 2015005e0000040001003a1b80616d66312e636c7573746572312e6e6574322e616d662e3567632e6d6e633030312e6d63633030312e336770706e6574776f726b2e6f726700600008000000f1103808970056400105005000080000f11000000008
 
-  bit_ref    bref(ngap_msg, sizeof(ngap_msg));
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
   ngap_pdu_c pdu;
   TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
 
@@ -174,7 +174,7 @@ int test_init_ue_msg()
       0x00, 0x00, 0x00, 0x10, 0x00, 0xf1, 0x10, 0x00, 0x00, 0x75, 0x00, 0x5a, 0x40, 0x01, 0x18};
   // 000f4080a20000040055000200010026007d7c7e00417100760100f110000001014d436f77425159444b325675417945416e363648396b7a485461465a4b30353741497237412b6e6c736149587852334e6973364c566f75466942343ddfabf5cd652eb2541491484d41432d53484100858bbb1f42f1256f9a37531a772a2cf2b78ff160488402ed489399b6b737420079000f4000f110000000001000f110000075005a400118
 
-  bit_ref    bref(ngap_msg, sizeof(ngap_msg));
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
   ngap_pdu_c pdu;
   TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
 
@@ -209,7 +209,7 @@ int test_dl_nas_transport()
                         0xe2, 0x82, 0x84, 0x7c, 0x9f, 0x4c, 0xe5, 0xc1, 0x94, 0x51};
   // 0004403e000003000a000200010055000200010026002b2a7e00560002000021681cd489650fdcc7c70eca8fa9be44702010c7f0791fa852e282847c9f4ce5c19451
 
-  bit_ref    bref(ngap_msg, sizeof(ngap_msg));
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
   ngap_pdu_c pdu;
   TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
 
@@ -237,7 +237,7 @@ int test_ul_ran_status_transfer()
                         0x0f, 0x40, 0x00, 0xf1, 0x10, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0xf1, 0x10, 0x00, 0x00, 0x75};
   // 002e403c000004000a0002000100550002000100260016157e00572d105e86219e7dda9995e3850384cfbea53b0079400f4000f110000000001000f110000075
 
-  bit_ref    bref(ngap_msg, sizeof(ngap_msg));
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
   ngap_pdu_c pdu;
   TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
 
@@ -261,7 +261,7 @@ int test_ue_context_release()
                         0x04, 0x00, 0x01, 0x00, 0x01, 0x00, 0x0f, 0x40, 0x01, 0x48};
   // 002900100000020072000400010001000f400148
 
-  bit_ref    bref(ngap_msg, sizeof(ngap_msg));
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
   ngap_pdu_c pdu;
   TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
 
@@ -282,7 +282,7 @@ int test_ue_context_release_complete()
       0x20, 0x29, 0x00, 0x0f, 0x00, 0x00, 0x02, 0x00, 0x0a, 0x40, 0x02, 0x00, 0x01, 0x00, 0x55, 0x40, 0x02, 0x00, 0x01};
   // 2029000f000002000a40020001005540020001
 
-  bit_ref    bref(ngap_msg, sizeof(ngap_msg));
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
   ngap_pdu_c pdu;
   TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
 
@@ -309,7 +309,7 @@ int test_session_res_setup_request()
                         0x00, 0x86, 0x00, 0x01, 0x10, 0x00, 0x88, 0x00, 0x07, 0x00, 0x01, 0x00, 0x00, 0x09, 0x00, 0x00};
   // 001d006c000004000a000200010055000200010026002e2d7e00680100252e0100c2110006010003300101060603e80603e8290501c0a80c7b25080764656661756c741201004a0027000001000021000003008b000a01f0c0a811d20000000100860001100088000700010000090000
 
-  bit_ref    bref(ngap_msg, sizeof(ngap_msg));
+  cbit_ref   bref(ngap_msg, sizeof(ngap_msg));
   ngap_pdu_c pdu;
   TESTASSERT(pdu.unpack(bref) == SRSASN_SUCCESS);
 
@@ -328,7 +328,8 @@ int test_session_res_setup_request()
   TESTASSERT(item.pdu_session_res_setup_request_transfer.to_string() ==
              "000003008b000a01f0c0a811d20000000100860001100088000700010000090000");
 
-  bit_ref bref2(item.pdu_session_res_setup_request_transfer.data(), item.pdu_session_res_setup_request_transfer.size());
+  cbit_ref                                 bref2(item.pdu_session_res_setup_request_transfer.data(),
+                 item.pdu_session_res_setup_request_transfer.size());
   pdu_session_res_setup_request_transfer_s req;
   TESTASSERT(req.unpack(bref2) == SRSASN_SUCCESS);
   TESTASSERT(req.protocol_ies.ul_ngu_up_tnl_info.id == 139);

@@ -48,7 +48,7 @@ int rrc_conn_reconfig_ho_test1()
   // 20 1b 3f 80 00 00 00 01 a9 08 80 00 00 29 00 97 80 00 00 00 01 04 22 14 00 f8 02 0a c0 60 00 a0 0c 80 42 02 9f 43
   // 07 da bc f8 4b 32 18 34 c0 00 2d 68 08 5e 18 00 16 80 00
 
-  bit_ref bref(rrc_msg, sizeof(rrc_msg));
+  cbit_ref bref(rrc_msg, sizeof(rrc_msg));
 
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.unpack(bref);
@@ -61,7 +61,7 @@ int rrc_conn_reconfig_ho_test1()
   mob_reconf = dl_dcch_msg.msg.c1().rrc_conn_recfg();
 
   // decode same message and assign again
-  bit_ref       bref2(rrc_msg, sizeof(rrc_msg));
+  cbit_ref      bref2(rrc_msg, sizeof(rrc_msg));
   dl_dcch_msg_s dl_dcch_msg2;
   dl_dcch_msg2.unpack(bref2);
   TESTASSERT(dl_dcch_msg2.msg.type() == dl_dcch_msg_type_c::types::c1);

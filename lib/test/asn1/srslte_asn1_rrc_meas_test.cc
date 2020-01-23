@@ -49,8 +49,7 @@ int basic_test()
   uint32_t rrc_msg_len = sizeof(rrc_msg);
   // 0810493C0D978983C084208208210001BC48
 
-  bit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.unpack(bref);
@@ -93,7 +92,7 @@ int basic_test()
   bzero(rrc_msg2, rrc_msg_len);
   bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
   ul_dcch_msg.pack(bref2);
-  TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(bref.distance() == bref2.distance());
   TESTASSERT(memcmp(rrc_msg2, rrc_msg, rrc_msg_len) == 0);
 
   return 0;

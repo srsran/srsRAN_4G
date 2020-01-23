@@ -48,8 +48,7 @@ int basic_test()
   uint32_t known_reference_len = sizeof(known_reference);
   // 0d8fdfffffffe22ffc385e61eca80000020210002005e61eca8000004042
 
-  asn1::bit_ref         bref(&known_reference[0], sizeof(known_reference));
-  asn1::bit_ref         bref0(&known_reference[0], sizeof(known_reference));
+  asn1::cbit_ref        bref(&known_reference[0], sizeof(known_reference));
   asn1::rrc::mcch_msg_s mcch_msg;
 
   mcch_msg.unpack(bref);
@@ -123,7 +122,7 @@ int basic_test()
   bzero(rrc_msg2, sizeof(rrc_msg2));
   asn1::bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
   mcch_msg.pack(bref2);
-  TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(bref.distance() == bref2.distance());
   TESTASSERT(memcmp(rrc_msg2, known_reference, known_reference_len) == 0);
 
   return 0;

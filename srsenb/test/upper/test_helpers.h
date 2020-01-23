@@ -138,7 +138,7 @@ void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, uint8_t* msg, size_t 
   pdu                            = srslte::allocate_unique_buffer(*pool, true);
   memcpy(pdu->msg, msg, nof_bytes);
   pdu->N_bytes = nof_bytes;
-};
+}
 
 int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, uint16_t rnti)
 {
@@ -177,7 +177,7 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
   srslte::byte_buffer_t  byte_buf;
   byte_buf.N_bytes = sizeof(s1ap_init_ctxt_setup_req);
   memcpy(byte_buf.msg, s1ap_init_ctxt_setup_req, byte_buf.N_bytes);
-  asn1::bit_ref bref(byte_buf.msg, byte_buf.N_bytes);
+  asn1::cbit_ref bref(byte_buf.msg, byte_buf.N_bytes);
   TESTASSERT(s1ap_pdu.unpack(bref) == asn1::SRSASN_SUCCESS);
   rrc.setup_ue_ctxt(rnti, s1ap_pdu.init_msg().value.init_context_setup_request());
   timers.step_all();

@@ -1374,7 +1374,7 @@ void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& 
 void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
 {
   asn1::rrc::bcch_bch_msg_s bch_msg;
-  asn1::bit_ref             bch_bref(pdu->msg, pdu->N_bytes);
+  asn1::cbit_ref            bch_bref(pdu->msg, pdu->N_bytes);
   asn1::SRSASN_CODE         err = bch_msg.unpack(bch_bref);
   if (err != asn1::SRSASN_SUCCESS) {
     rrc_log->error("Could not unpack BCCH-BCH message.\n");
@@ -1400,7 +1400,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
   mac->bcch_stop_rx();
 
   asn1::rrc::bcch_dl_sch_msg_s dlsch_msg;
-  asn1::bit_ref                dlsch_bref(pdu->msg, pdu->N_bytes);
+  asn1::cbit_ref               dlsch_bref(pdu->msg, pdu->N_bytes);
   asn1::SRSASN_CODE            err = dlsch_msg.unpack(dlsch_bref);
   if (err != asn1::SRSASN_SUCCESS or dlsch_msg.msg.type().value != bcch_dl_sch_msg_type_c::types_opts::c1) {
     rrc_log->error("Could not unpack BCCH DL-SCH message.\n");
@@ -1598,8 +1598,8 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
     return;
   }
 
-  pcch_msg_s    pcch_msg;
-  asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+  pcch_msg_s     pcch_msg;
+  asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or pcch_msg.msg.type().value != pcch_msg_type_c::types_opts::c1) {
     rrc_log->error_hex(pdu->buffer, pdu->N_bytes, "Failed to unpack PCCH message (%d B)\n", pdu->N_bytes);
     return;
@@ -1644,7 +1644,7 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 
 void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
-  asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+  asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (serving_cell->mcch.unpack(bref) != asn1::SRSASN_SUCCESS or
       serving_cell->mcch.msg.type().value != mcch_msg_type_c::types_opts::c1) {
     rrc_log->error("Failed to unpack MCCH message\n");
@@ -1756,7 +1756,7 @@ void rrc::process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 
 void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
 {
-  asn1::bit_ref            bref(pdu->msg, pdu->N_bytes);
+  asn1::cbit_ref           bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
   if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       dl_ccch_msg.msg.type().value != dl_ccch_msg_type_c::types_opts::c1) {
@@ -1807,7 +1807,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
 
 void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
 {
-  asn1::bit_ref            bref(pdu->msg, pdu->N_bytes);
+  asn1::cbit_ref           bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1) {

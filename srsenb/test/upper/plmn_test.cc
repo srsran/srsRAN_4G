@@ -43,8 +43,7 @@ int rrc_plmn_test()
   uint8_t   byte_buf[4];
 
   // 2-digit MNC test
-  asn1::bit_ref bref_out(&ref[0], sizeof(ref));
-  asn1::bit_ref bref_out0(&ref[0], sizeof(ref));
+  asn1::cbit_ref bref_out(&ref[0], sizeof(ref));
 
   plmn_out.unpack(bref_out);
 
@@ -71,7 +70,7 @@ int rrc_plmn_test()
   asn1::bit_ref bref_in0(&byte_buf[0], sizeof(byte_buf));
   plmn_out.pack(bref_in);
 
-  TESTASSERT(bref_in.distance(&byte_buf[0]) == bref_out.distance(bref_out0));
+  TESTASSERT(bref_in.distance() == bref_out.distance());
   TESTASSERT(memcmp(&ref[0], &byte_buf[0], sizeof(ref)) == 0);
 
   // 3-digit MNC test
@@ -82,7 +81,7 @@ int rrc_plmn_test()
   TESTASSERT(bref_in.distance(bref_in0) == (1 + 3 * 4 + 1 + 3 * 4));
   TESTASSERT(memcmp(&byte_buf[0], &ref2[0], sizeof(ref)) == 0);
 
-  bref_out = asn1::bit_ref(&ref2[0], sizeof(ref2));
+  bref_out = asn1::cbit_ref(&ref2[0], sizeof(ref2));
   plmn_out.unpack(bref_out);
   TESTASSERT(plmn_in.mcc_present == plmn_out.mcc_present);
   TESTASSERT(plmn_in.mcc == plmn_out.mcc);

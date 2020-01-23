@@ -100,8 +100,8 @@ int test_mib_msg()
 {
   uint8_t  rrc_msg[]   = {0x94, 0x64, 0xC0};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
-  bit_ref  bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref  bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
 
   bcch_bch_msg_s bcch_bch_msg;
   bcch_bch_msg.unpack(bref);
@@ -139,8 +139,8 @@ int test_bcch_dl_sch_msg()
   uint8_t  rrc_msg[]   = {0x00, 0x01, 0x49, 0x00, 0x12, 0x50, 0x40, 0x08, 0x00, 0x09, 0x40, 0x00, 0xA0,
                        0x3F, 0x01, 0x00, 0x0A, 0x7F, 0xC9, 0x80, 0x01, 0x04, 0x28, 0x6C, 0x00, 0x0C};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
-  bit_ref  bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref  bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
 
   bcch_dl_sch_msg_s bcch_msg;
   bcch_msg.unpack(bref);
@@ -217,8 +217,8 @@ int test_bcch_dl_sch_msg2()
   // 406404e100070019b018c06010A940
   uint8_t  rrc_msg[]   = {0x40, 0x64, 0x04, 0xe1, 0x00, 0x07, 0x00, 0x19, 0xb0, 0x18, 0xc0, 0x60, 0x10, 0xA9, 0x40};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
-  bit_ref  bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref  bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
 
   bcch_dl_sch_msg_s bcch_msg;
   bcch_msg.unpack(bref);
@@ -252,7 +252,7 @@ int test_bcch_dl_sch_msg3()
                        0x00, 0x05, 0x00, 0x20, 0x5D, 0x6A, 0xAA, 0xF0, 0x42, 0x00, 0xC0, 0x1D, 0xDC,
                        0x80, 0x1C, 0x48, 0x80, 0x03, 0x00, 0x10, 0xA7, 0x13, 0x22, 0x85, 0x00};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
-  bit_ref  bref(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   bcch_dl_sch_msg_s bcch_msg;
   bcch_msg.unpack(bref);
@@ -265,15 +265,15 @@ int test_bcch_dl_sch_msg3()
   bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2));
   bcch_msg.pack(bref2);
 
-  bref = bit_ref(&rrc_msg2[0], sizeof(rrc_msg2));
+  bref = cbit_ref(&rrc_msg2[0], sizeof(rrc_msg2));
   bcch_msg.unpack(bref);
   TESTASSERT(bref.distance(rrc_msg2) == bref2.distance(rrc_msg2));
 
-  bref = bit_ref(&rrc_msg[0], sizeof(rrc_msg));
-  bcch_msg.pack(bref);
+  bit_ref bref3(&rrc_msg[0], sizeof(rrc_msg));
+  bcch_msg.pack(bref3);
 
-  TESTASSERT(bref.distance(rrc_msg) == bref2.distance(rrc_msg2));
-  TESTASSERT(memcmp(rrc_msg2, rrc_msg, bref.distance_bytes(rrc_msg)) == 0);
+  TESTASSERT(bref3.distance(rrc_msg) == bref2.distance(rrc_msg2));
+  TESTASSERT(memcmp(rrc_msg2, rrc_msg, bref3.distance_bytes(rrc_msg)) == 0);
 
   TESTASSERT(test_pack_unpack_consistency(bcch_msg) == SRSASN_SUCCESS);
 
@@ -285,8 +285,8 @@ int test_dl_dcch_msg()
   // 20021008000C406000
   uint8_t  rrc_msg[]   = {0x20, 0x02, 0x10, 0x08, 0x00, 0x0C, 0x40, 0x60, 0x00};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
-  bit_ref  bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref  bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
 
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.unpack(bref);
@@ -340,8 +340,8 @@ int ue_rrc_conn_recfg_r15_v10_test()
       0x16, 0xcd, 0xa8, 0x14, 0x1a, 0x00, 0x20, 0xc8, 0x28, 0x70, 0x00, 0xb0, 0x01, 0xef, 0xb0, 0x00, 0x24, 0xa0, 0x82,
       0x12, 0x02, 0x05, 0x02, 0x4a, 0x04, 0xe3, 0xf0, 0xd0, 0x00, 0x00};
   uint32_t rrc_msg_len = sizeof(rrc_msg);
-  bit_ref  bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref  bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
 
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.unpack(bref);
@@ -516,8 +516,8 @@ int ue_rrc_conn_recfg_r15_v10_test()
 
 int failed_dl_ccch_unpack()
 {
-  uint8_t rrc_msg[] = {0xa5, 0xa8, 0xd8, 0x10, 0x0e, 0xc8, 0x02};
-  bit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
+  uint8_t  rrc_msg[] = {0xa5, 0xa8, 0xd8, 0x10, 0x0e, 0xc8, 0x02};
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   asn1::rrc::dl_ccch_msg_s msg;
 
@@ -536,7 +536,7 @@ int unrecognized_ext_group_test()
   // 0081198c3791901022c12940480082003267298a5aa8310018012e38038428c5b09d4b4800
   uint32_t rrc_msg_len = sizeof(rrc_msg);
 
-  bit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   bcch_dl_sch_msg_s dl_sch_msg;
   dl_sch_msg.unpack(bref);
@@ -565,7 +565,7 @@ int v2x_test()
       0x02, 0x88, 0x38, 0x02, 0x38, 0x00, 0x0F, 0x4C, 0x70, 0x11, 0xC0, 0x00, 0x52, 0x0E, 0x00, 0x8E, 0x00};
   // 2098035E5B5FB000000040A0000000BFFFFE5402540697FFFFCA804A92880100060130008184E08C0010C22000000000000282300E0222AC044102162C58B162C102162C58B162C102162C58B162C102162C58B162C102162C58B162C102162C58B162C102162C58B162C102162C58B162C0A28004307219E8343219E83432089C420E008E001910700470012C8380238001E41C011C0007A0E008E0007931C047000288380238000F4C7011C000520E008E00
 
-  bit_ref             bref(rrc_msg, sizeof(rrc_msg));
+  cbit_ref            bref(rrc_msg, sizeof(rrc_msg));
   sl_v2x_precfg_r14_s sl_preconf{};
   TESTASSERT(sl_preconf.unpack(bref) == SRSASN_SUCCESS);
 
@@ -592,7 +592,7 @@ int test_rrc_conn_reconf_r15_2()
                        0x30, 0x38, 0x1F, 0xFA, 0x9C, 0x08, 0x3E, 0xA2, 0x5F, 0x1C, 0xE1, 0xD0, 0x84};
   // 201615C8400003C2841810A804D79514A20102189A018014810ACB840800AD6DC40608AF6DC7A0C08200000C38602030C3000010044010C23C2A06203011102813DA4E96DA8083A100A48300327B0895AE0016A900E080848C82BBB1B4BA188336B7319818988336B1B19A1B1B0233B839398280857F8080AF037F7F7D7D7F7F2805FB327B08C00001F83E3CB1B200C030381FFA9C083EA25F1CE1D084
 
-  bit_ref       bref(rrc_msg, sizeof(rrc_msg));
+  cbit_ref      bref(rrc_msg, sizeof(rrc_msg));
   dl_dcch_msg_s recfg_msg;
   TESTASSERT(recfg_msg.unpack(bref) == SRSASN_SUCCESS);
 

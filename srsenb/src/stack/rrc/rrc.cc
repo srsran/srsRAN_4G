@@ -610,8 +610,8 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
   uint16_t old_rnti = 0;
 
   if (pdu) {
-    ul_ccch_msg_s ul_ccch_msg;
-    asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+    ul_ccch_msg_s  ul_ccch_msg;
+    asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
     if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
         ul_ccch_msg.msg.type().value != ul_ccch_msg_type_c::types_opts::c1) {
       rrc_log->error("Failed to unpack UL-CCCH message\n");
@@ -1073,8 +1073,8 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   set_activity();
 
-  ul_dcch_msg_s ul_dcch_msg;
-  asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+  ul_dcch_msg_s  ul_dcch_msg;
+  asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
     parent->rrc_log->error("Failed to unpack UL-DCCH message\n");
@@ -1234,8 +1234,8 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
       parent->rrc_log->warning("Not handling UE capability information for RAT type %s\n",
                                msg_r8->ue_cap_rat_container_list[i].rat_type.to_string().c_str());
     } else {
-      asn1::bit_ref bref(msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.data(),
-                         msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.size());
+      asn1::cbit_ref bref(msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.data(),
+                          msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.size());
       if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
         parent->rrc_log->error("Failed to unpack EUTRA capabilities message\n");
         return false;

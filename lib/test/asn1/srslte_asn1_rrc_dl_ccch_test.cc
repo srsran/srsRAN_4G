@@ -46,8 +46,7 @@ int rrc_conn_setup_test1()
   uint32_t rrc_msg_len = sizeof(rrc_msg);
   // 6012980bfdd204fa183ed5e6c25990c1a60001314042508000f8
 
-  bit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
-  bit_ref bref0(&rrc_msg[0], sizeof(rrc_msg));
+  cbit_ref bref(&rrc_msg[0], sizeof(rrc_msg));
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.unpack(bref);
@@ -82,7 +81,7 @@ int rrc_conn_setup_test1()
   if (dl_ccch_msg.pack(bref2) != SRSASN_SUCCESS) {
     return -1;
   }
-  TESTASSERT(bref.distance(bref0) == bref2.distance(&rrc_msg2[0]));
+  TESTASSERT(bref.distance() == bref2.distance());
   TESTASSERT(memcmp(rrc_msg2, rrc_msg, rrc_msg_len) == 0);
 
   return 0;

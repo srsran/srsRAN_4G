@@ -951,7 +951,7 @@ srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::react(ho_prep
   /* unpack RRC HOCmd struct and perform sanity checks */
   asn1::rrc::ho_cmd_s rrchocmd;
   {
-    asn1::bit_ref bref(e.rrc_container->msg, e.rrc_container->N_bytes);
+    asn1::cbit_ref bref(e.rrc_container->msg, e.rrc_container->N_bytes);
     if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
       procError("Unpacking of RRC HOCommand was unsuccessful\n");
       parent->rrc_log->error_hex(e.rrc_container->msg, e.rrc_container->N_bytes, "Received container:\n");
@@ -966,8 +966,8 @@ srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::react(ho_prep
   /* unpack DL-DCCH message containing the RRCRonnectionReconf (with MobilityInfo) to be sent to the UE */
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   {
-    asn1::bit_ref bref(&rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg[0],
-                       rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.size());
+    asn1::cbit_ref bref(&rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg[0],
+                        rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.size());
     if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
       procError("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.\n");
       return srslte::proc_outcome_t::error;

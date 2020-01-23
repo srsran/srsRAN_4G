@@ -87,45 +87,59 @@ struct ValOrError {
   ValOrError() : val(0), code(SRSASN_SUCCESS) {}
   ValOrError(uint32_t val_, SRSASN_CODE code_) : val(val_), code(code_) {}
 };
-ValOrError unpack_bits(uint8_t*& ptr, uint8_t& offset, uint8_t* max_ptr, uint32_t n_bits);
+template <typename T, typename Ptr>
+SRSASN_CODE unpack_bits(T& val, Ptr& ptr, uint8_t& offset, const uint8_t* max_ptr, uint32_t n_bits);
 
-class bit_ref
+template <typename Ptr = uint8_t*>
+class bit_ref_impl
 {
 public:
-  bit_ref() = default;
-  bit_ref(uint8_t* start_ptr_, uint32_t max_size_) :
+  bit_ref_impl() = default;
+  bit_ref_impl(Ptr start_ptr_, uint32_t max_size_) :
     ptr(start_ptr_),
     start_ptr(start_ptr_),
     max_ptr(max_size_ + start_ptr_)
   {
   }
 
-  int distance(const bit_ref& other) const;
-  int distance(uint8_t* ref_ptr) const;
+  int distance(const bit_ref_impl<Ptr>& other) const;
+  int distance(const uint8_t* ref_ptr) const;
   int distance() const;
   int distance_bytes(uint8_t* ref_ptr) const;
   int distance_bytes() const;
 
-  SRSASN_CODE pack(uint32_t val, uint32_t n_bits);
-  SRSASN_CODE pack_bytes(const uint8_t* buf, uint32_t n_bytes);
   template <class T>
   SRSASN_CODE unpack(T& val, uint32_t n_bits)
   {
-    ValOrError ret = unpack_bits(ptr, offset, max_ptr, n_bits);
-    val            = ret.val;
-    return ret.code;
+    return unpack_bits(val, ptr, offset, max_ptr, n_bits);
   }
   SRSASN_CODE unpack_bytes(uint8_t* buf, uint32_t n_bytes);
   SRSASN_CODE align_bytes();
-  SRSASN_CODE align_bytes_zero();
   SRSASN_CODE advance_bits(uint32_t n_bits);
-  void        set(uint8_t* start_ptr_, uint32_t max_size_);
+  void        set(Ptr start_ptr_, uint32_t max_size_);
 
-private:
-  uint8_t* ptr       = nullptr;
-  uint8_t  offset    = 0;
-  uint8_t* start_ptr = nullptr;
-  uint8_t* max_ptr   = nullptr;
+protected:
+  Ptr            ptr       = nullptr;
+  uint8_t        offset    = 0;
+  const uint8_t* start_ptr = nullptr;
+  const uint8_t* max_ptr   = nullptr;
+};
+
+// read only bit_ref
+using cbit_ref = bit_ref_impl<const uint8_t*>;
+
+// write+read bit_ref version
+class bit_ref : public bit_ref_impl<uint8_t*>
+{
+  using base_t = bit_ref_impl<uint8_t*>;
+
+public:
+  bit_ref() = default;
+  bit_ref(uint8_t* start_ptr_, uint32_t max_size_) : bit_ref_impl(start_ptr_, max_size_) {}
+
+  SRSASN_CODE pack(uint32_t val, uint32_t n_bits);
+  SRSASN_CODE pack_bytes(const uint8_t* buf, uint32_t n_bytes);
+  SRSASN_CODE align_bytes_zero();
 };
 
 /*********************
@@ -360,7 +374,7 @@ SRSASN_CODE unpack_unsupported_ext_flag(bool& ext, bit_ref& bref);
 
 struct asn1_null_t {
   SRSASN_CODE pack(bit_ref& bref) const { return SRSASN_SUCCESS; }
-  SRSASN_CODE unpack(bit_ref& bref) const { return SRSASN_SUCCESS; }
+  SRSASN_CODE unpack(cbit_ref& bref) const { return SRSASN_SUCCESS; }
 };
 
 /************************
@@ -370,14 +384,14 @@ struct asn1_null_t {
 SRSASN_CODE pack_enum(bit_ref& bref, uint32_t enum_val, uint32_t nbits);
 SRSASN_CODE pack_enum(bit_ref& bref, uint32_t enum_val, uint32_t nbits, uint32_t nof_noext);
 SRSASN_CODE pack_enum(bit_ref& bref, uint32_t e, uint32_t nof_types, uint32_t nof_exts, bool has_ext);
-ValOrError  unpack_enum(uint32_t nof_types, uint32_t nof_exts, bool has_ext, bit_ref& bref);
+ValOrError  unpack_enum(uint32_t nof_types, uint32_t nof_exts, bool has_ext, cbit_ref& bref);
 template <typename EnumType>
 SRSASN_CODE pack_enum(bit_ref& bref, EnumType e)
 {
   return pack_enum(bref, e, EnumType::nof_types, EnumType::nof_exts, EnumType::has_ext);
 }
 template <typename EnumType>
-SRSASN_CODE unpack_enum(EnumType& e, bit_ref& bref)
+SRSASN_CODE unpack_enum(EnumType& e, cbit_ref& bref)
 {
   ValOrError ret = unpack_enum(EnumType::nof_types, EnumType::nof_exts, EnumType::has_ext, bref);
   e              = (typename EnumType::options)ret.val;
@@ -391,7 +405,7 @@ struct EnumPacker {
     return pack_enum(bref, e);
   }
   template <class EnumType>
-  SRSASN_CODE unpack(EnumType& e, bit_ref& bref)
+  SRSASN_CODE unpack(EnumType& e, cbit_ref& bref)
   {
     return unpack_enum(e, bref);
   }
@@ -440,7 +454,7 @@ public:
   enumerated() { EnumType::value = EnumType::nulltype; }
   enumerated(typename EnumType::options o) { EnumType::value = o; }
   SRSASN_CODE pack(bit_ref& bref) const { return pack_enum(bref, *this); }
-  SRSASN_CODE unpack(bit_ref& bref) { return unpack_enum(*this, bref); }
+  SRSASN_CODE unpack(cbit_ref& bref) { return unpack_enum(*this, bref); }
   EnumType&   operator=(EnumType v)
   {
     EnumType::value = v;
@@ -457,19 +471,19 @@ public:
 template <class IntType>
 SRSASN_CODE pack_constrained_whole_number(bit_ref& bref, IntType n, IntType lb, IntType ub, bool aligned);
 template <class IntType>
-SRSASN_CODE unpack_constrained_whole_number(IntType& n, bit_ref& bref, IntType lb, IntType ub, bool aligned);
+SRSASN_CODE unpack_constrained_whole_number(IntType& n, cbit_ref& bref, IntType lb, IntType ub, bool aligned);
 
 /* X.691 - Section 10.6 - Normally small non-negative whole Number */
 template <typename UintType>
 SRSASN_CODE pack_norm_small_non_neg_whole_number(bit_ref& bref, UintType n);
 template <typename UintType>
-SRSASN_CODE unpack_norm_small_non_neg_whole_number(UintType& n, bit_ref& bref);
+SRSASN_CODE unpack_norm_small_non_neg_whole_number(UintType& n, cbit_ref& bref);
 
 /* X.691 - Section 10.8 - Unconstrained Whole Number */
 template <typename IntType>
 SRSASN_CODE pack_unconstrained_whole_number(bit_ref& bref, IntType n, bool aligned);
 template <typename IntType>
-SRSASN_CODE unpack_unconstrained_whole_number(IntType& n, bit_ref& bref, bool aligned);
+SRSASN_CODE unpack_unconstrained_whole_number(IntType& n, cbit_ref& bref, bool aligned);
 
 /************************
    length determinant
@@ -479,11 +493,11 @@ SRSASN_CODE unpack_unconstrained_whole_number(IntType& n, bit_ref& bref, bool al
 template <typename IntType>
 SRSASN_CODE pack_length(bit_ref& bref, IntType n, IntType lb, IntType ub, bool aligned = false);
 template <typename IntType>
-SRSASN_CODE unpack_length(IntType& n, bit_ref& bref, IntType lb, IntType ub, bool aligned = false);
+SRSASN_CODE unpack_length(IntType& n, cbit_ref& bref, IntType lb, IntType ub, bool aligned = false);
 
 // Pack as a small non-negative whole number
 SRSASN_CODE pack_length(bit_ref& ref, uint32_t val, bool aligned = false);
-SRSASN_CODE unpack_length(uint32_t& val, bit_ref& ref, bool aligned = false);
+SRSASN_CODE unpack_length(uint32_t& val, cbit_ref& ref, bool aligned = false);
 
 /************************
         Integer
@@ -497,23 +511,23 @@ SRSASN_CODE pack_integer(bit_ref& bref,
                          bool     has_ext = false,
                          bool     aligned = false);
 template <typename IntType>
-SRSASN_CODE unpack_integer(IntType& n,
-                           bit_ref& bref,
-                           IntType  lb      = std::numeric_limits<IntType>::min(),
-                           IntType  ub      = std::numeric_limits<IntType>::max(),
-                           bool     has_ext = false,
-                           bool     aligned = false);
+SRSASN_CODE unpack_integer(IntType&  n,
+                           cbit_ref& bref,
+                           IntType   lb      = std::numeric_limits<IntType>::min(),
+                           IntType   ub      = std::numeric_limits<IntType>::max(),
+                           bool      has_ext = false,
+                           bool      aligned = false);
 // unconstrained case
 template <typename IntType>
 SRSASN_CODE pack_unconstrained_integer(bit_ref& bref, IntType n, bool has_ext = false, bool aligned = false);
 template <typename IntType>
-SRSASN_CODE unpack_unconstrained_integer(IntType& n, bit_ref& bref, bool has_ext = false, bool aligned = false);
+SRSASN_CODE unpack_unconstrained_integer(IntType& n, cbit_ref& bref, bool has_ext = false, bool aligned = false);
 
 template <class IntType>
 struct integer_packer {
   integer_packer(IntType lb_, IntType ub_, bool has_ext_ = false, bool aligned_ = false);
   SRSASN_CODE pack(bit_ref& bref, IntType n);
-  SRSASN_CODE unpack(IntType& n, bit_ref& bref);
+  SRSASN_CODE unpack(IntType& n, cbit_ref& bref);
   IntType     lb;
   IntType     ub;
   bool        has_ext;
@@ -535,7 +549,7 @@ public:
   integer(IntType value_) : value(value_) {}
               operator IntType() { return value; }
   SRSASN_CODE pack(bit_ref& bref) const { return pack_integer(bref, value, lb, ub, has_ext, is_aligned); }
-  SRSASN_CODE unpack(bit_ref& bref) { return unpack_integer(value, bref, lb, ub, has_ext, is_aligned); }
+  SRSASN_CODE unpack(cbit_ref& bref) { return unpack_integer(value, bref, lb, ub, has_ext, is_aligned); }
 };
 
 /************************
@@ -551,7 +565,7 @@ struct BitPacker {
     return SRSASN_SUCCESS;
   }
   template <typename T>
-  SRSASN_CODE unpack(T& tounpack, bit_ref& bref)
+  SRSASN_CODE unpack(T& tounpack, cbit_ref& bref)
   {
     return bref.unpack(tounpack, nof_bits);
   }
@@ -565,7 +579,7 @@ struct Packer {
     return topack.pack(bref);
   }
   template <typename T>
-  SRSASN_CODE unpack(T& tounpack, bit_ref& bref)
+  SRSASN_CODE unpack(T& tounpack, cbit_ref& bref)
   {
     return tounpack.unpack(bref);
   }
@@ -615,7 +629,7 @@ public:
   }
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
 
 private:
   std::array<uint8_t, N> octets_;
@@ -641,10 +655,10 @@ SRSASN_CODE fixed_octstring<N, aligned>::pack(bit_ref& bref) const
 }
 
 template <uint32_t N, bool aligned>
-SRSASN_CODE fixed_octstring<N, aligned>::unpack(bit_ref& bref)
+SRSASN_CODE fixed_octstring<N, aligned>::unpack(cbit_ref& bref)
 {
   if (aligned and N > 2) {
-    bref.align_bytes_zero();
+    bref.align_bytes();
   }
   for (uint32_t i = 0; i < size(); ++i) {
     HANDLE_CODE(bref.unpack(octets_[i], 8));
@@ -674,7 +688,7 @@ public:
   const uint8_t* data() const { return &octets_[0]; }
 
   SRSASN_CODE              pack(bit_ref& ie_ref) const;
-  SRSASN_CODE              unpack(bit_ref& ie_ref);
+  SRSASN_CODE              unpack(cbit_ref& ie_ref);
   std::string              to_string() const;
   unbounded_octstring<Al>& from_string(const std::string& hexstr);
   uint64_t                 to_number() const { return octstring_to_number(&octets_[0], size()); }
@@ -713,8 +727,9 @@ inline void set(uint8_t* ptr, uint32_t idx, bool value)
 }
 SRSASN_CODE
 pack(bit_ref& bref, const uint8_t* data, uint32_t size, uint32_t lb, uint32_t ub, bool has_ext, bool is_aligned);
-SRSASN_CODE unpack_length_prefix(uint32_t& len, bit_ref& bref, uint32_t lb, uint32_t ub, bool has_ext, bool is_aligned);
-SRSASN_CODE unpack_bitfield(uint8_t* buf, bit_ref& bref, uint32_t n, uint32_t lb, uint32_t ub, bool is_aligned);
+SRSASN_CODE
+unpack_length_prefix(uint32_t& len, cbit_ref& bref, uint32_t lb, uint32_t ub, bool has_ext, bool is_aligned);
+SRSASN_CODE unpack_bitfield(uint8_t* buf, cbit_ref& bref, uint32_t n, uint32_t lb, uint32_t ub, bool is_aligned);
 
 uint64_t    to_number(const uint8_t* ptr, uint32_t nbits);
 void        from_number(uint8_t* ptr, uint64_t number, uint32_t nbits);
@@ -798,7 +813,7 @@ public:
   {
     return bitstring_utils::pack(bref, data(), length(), lb, ub, has_ext, is_aligned);
   }
-  SRSASN_CODE unpack(bit_ref& bref)
+  SRSASN_CODE unpack(cbit_ref& bref)
   {
     // X.691, subclause 15.11
     uint32_t nbits;
@@ -846,7 +861,7 @@ SRSASN_CODE pack_fixed_seq_of(bit_ref& bref, const T* item_array, uint32_t nof_i
   return SRSASN_SUCCESS;
 }
 template <class T, class ItemUnpacker>
-SRSASN_CODE unpack_fixed_seq_of(T* item_array, bit_ref& bref, uint32_t nof_items, ItemUnpacker unpacker)
+SRSASN_CODE unpack_fixed_seq_of(T* item_array, cbit_ref& bref, uint32_t nof_items, ItemUnpacker unpacker)
 {
   for (uint32_t i = 0; i < nof_items; ++i) {
     HANDLE_CODE(unpacker.unpack(item_array[i], bref));
@@ -854,7 +869,7 @@ SRSASN_CODE unpack_fixed_seq_of(T* item_array, bit_ref& bref, uint32_t nof_items
   return SRSASN_SUCCESS;
 }
 template <class T>
-SRSASN_CODE unpack_fixed_seq_of(T* item_array, bit_ref& bref, uint32_t nof_items)
+SRSASN_CODE unpack_fixed_seq_of(T* item_array, cbit_ref& bref, uint32_t nof_items)
 {
   for (uint32_t i = 0; i < nof_items; ++i) {
     HANDLE_CODE(item_array[i].unpack(bref));
@@ -911,7 +926,7 @@ SRSASN_CODE pack_dyn_seq_of(bit_ref& bref, const ArrayType& seqof, uint32_t lb, 
 
 template <class ArrayType, class ItemUnpacker>
 SRSASN_CODE unpack_dyn_seq_of(ArrayType&   seqof,
-                              bit_ref&     bref,
+                              cbit_ref&    bref,
                               uint32_t     lb,
                               uint32_t     ub,
                               ItemUnpacker unpacker,
@@ -927,7 +942,7 @@ SRSASN_CODE unpack_dyn_seq_of(ArrayType&   seqof,
 }
 
 template <class ArrayType>
-SRSASN_CODE unpack_dyn_seq_of(ArrayType& seqof, bit_ref& bref, uint32_t lb, uint32_t ub, bool aligned = false)
+SRSASN_CODE unpack_dyn_seq_of(ArrayType& seqof, cbit_ref& bref, uint32_t lb, uint32_t ub, bool aligned = false)
 {
   uint32_t nof_items;
   HANDLE_CODE(unpack_length(nof_items, bref, lb, ub, aligned));
@@ -947,7 +962,7 @@ struct SeqOfPacker {
     return pack_dyn_seq_of(bref, topack, lb, ub, packer);
   }
   template <typename T>
-  SRSASN_CODE unpack(T& tounpack, bit_ref& bref)
+  SRSASN_CODE unpack(T& tounpack, cbit_ref& bref)
   {
     return unpack_dyn_seq_of(tounpack, bref, lb, ub, packer);
   }
@@ -962,7 +977,7 @@ struct dyn_seq_of : public dyn_array<ItemType> {
   dyn_seq_of(const dyn_array<ItemType>& other) : dyn_array<ItemType>(other) {}
   dyn_seq_of(const bounded_array<ItemType, ub>& other) : dyn_array<ItemType>(&other[0], other.size()) {}
   SRSASN_CODE pack(bit_ref& bref) const { return pack_dyn_seq_of(bref, *this, lb, ub, aligned); }
-  SRSASN_CODE unpack(bit_ref& bref) { return unpack_dyn_seq_of(*this, bref, lb, ub, aligned); }
+  SRSASN_CODE unpack(cbit_ref& bref) { return unpack_dyn_seq_of(*this, bref, lb, ub, aligned); }
 };
 
 /*********************
@@ -973,7 +988,8 @@ struct dyn_seq_of : public dyn_array<ItemType> {
 namespace asn_string_utils {
 SRSASN_CODE
 pack(bit_ref& bref, const std::string& s, size_t lb, size_t ub, size_t alb, size_t aub, bool ext, bool aligned);
-SRSASN_CODE unpack(std::string& s, bit_ref& bref, size_t lb, size_t ub, size_t alb, size_t aub, bool ext, bool aligned);
+SRSASN_CODE
+unpack(std::string& s, cbit_ref& bref, size_t lb, size_t ub, size_t alb, size_t aub, bool ext, bool aligned);
 } // namespace asn_string_utils
 
 template <uint32_t LB,
@@ -986,7 +1002,7 @@ class asn_string
 {
 public:
   SRSASN_CODE pack(bit_ref& bref) const { return asn_string_utils::pack(bref, str, LB, UB, ALB, AUB, ext, aligned); }
-  SRSASN_CODE unpack(bit_ref& bref) { return asn_string_utils::unpack(str, bref, LB, UB, ALB, AUB, ext, aligned); }
+  SRSASN_CODE unpack(cbit_ref& bref) { return asn_string_utils::unpack(str, bref, LB, UB, ALB, AUB, ext, aligned); }
   char&       operator[](std::size_t idx) { return str[idx]; }
   const char& operator[](std::size_t idx) const { return str[idx]; }
   void        resize(std::size_t newsize) { str.resize(newsize); }
@@ -1161,13 +1177,13 @@ public:
 
   void        resize(uint32_t new_size);
   bool&       operator[](uint32_t idx);
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
 
 private:
   ext_array<bool> groups;
   const uint32_t  nof_supported_groups;
   uint32_t        nof_unpacked_groups = 0;
-  bit_ref*        bref_tracker        = nullptr;
+  cbit_ref*       bref_tracker        = nullptr;
 };
 
 /*********************
@@ -1191,13 +1207,13 @@ private:
 class varlength_field_unpack_guard
 {
 public:
-  explicit varlength_field_unpack_guard(bit_ref& bref, bool align = false);
+  explicit varlength_field_unpack_guard(cbit_ref& bref, bool align = false);
   ~varlength_field_unpack_guard();
 
 private:
-  bit_ref  bref0;
-  bit_ref* bref_tracker = nullptr;
-  uint32_t len          = 0;
+  cbit_ref  bref0;
+  cbit_ref* bref_tracker = nullptr;
+  uint32_t  len          = 0;
 };
 
 /*******************
@@ -1240,8 +1256,9 @@ int test_pack_unpack_consistency(const Msg& msg)
   uint8_t buf[2048], buf2[2048];
   bzero(buf, sizeof(buf));
   bzero(buf2, sizeof(buf2));
-  Msg           msg2;
-  asn1::bit_ref bref(&buf[0], sizeof(buf)), bref2(&buf[0], sizeof(buf)), bref3(&buf2[0], sizeof(buf2));
+  Msg            msg2;
+  asn1::bit_ref  bref(&buf[0], sizeof(buf)), bref3(&buf2[0], sizeof(buf2));
+  asn1::cbit_ref bref2(&buf[0], sizeof(buf));
 
   if (msg.pack(bref) != asn1::SRSASN_SUCCESS) {
     log_error_code(SRSASN_ERROR_ENCODE_FAIL, __FILE__, __LINE__);

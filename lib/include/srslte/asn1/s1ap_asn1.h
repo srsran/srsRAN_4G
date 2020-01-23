@@ -455,7 +455,7 @@ struct private_ie_id_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   uint32_t& local()
@@ -489,7 +489,7 @@ struct private_ie_field_s {
   typename ies_set_paramT_::value_c value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -505,7 +505,7 @@ struct protocol_ext_field_s {
   typename ext_set_paramT_::ext_c ext_value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   bool        load_info_obj(const uint32_t& id_);
 };
@@ -523,7 +523,7 @@ struct protocol_ie_field_s {
   typename ies_set_paramT_::value_c value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   bool        load_info_obj(const uint32_t& id_);
 };
@@ -540,7 +540,7 @@ struct protocol_ie_single_container_s {
   typename ies_set_paramT_::value_c value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   bool        load_info_obj(const uint32_t& id_);
 };
@@ -560,7 +560,7 @@ struct protocol_ie_field_pair_s {
   typename ies_set_paramT_::second_value_c second_value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   bool        load_info_obj(const uint32_t& id_);
 };
@@ -582,7 +582,7 @@ struct activ_cells_list_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -602,7 +602,7 @@ struct s1ap_protocol_ext_empty_o {
     // choice methods
     types       type() const { return types::nulltype; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
   };
 
@@ -628,7 +628,7 @@ struct protocol_ext_container_item_s {
   // sequence methods
   protocol_ext_container_item_s(uint32_t id_, crit_e crit_);
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -638,7 +638,7 @@ struct protocol_ext_container_empty_l {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 typedef protocol_ext_container_empty_l gummei_ext_ies_container;
@@ -655,7 +655,7 @@ struct gummei_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -672,7 +672,7 @@ struct add_guti_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -709,7 +709,7 @@ struct alloc_and_retention_prio_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -732,7 +732,7 @@ struct eutran_cgi_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -749,7 +749,7 @@ struct tai_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -783,7 +783,7 @@ struct cell_based_mdt_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -799,7 +799,7 @@ struct ta_based_mdt_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -815,7 +815,7 @@ struct tai_based_mdt_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -836,7 +836,7 @@ struct area_scope_of_mdt_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   cell_based_mdt_s& cell_based()
@@ -908,7 +908,7 @@ struct cell_id_and_ce_level_for_ce_capable_ues_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -927,7 +927,7 @@ struct assist_data_for_ce_capable_ues_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -948,7 +948,7 @@ struct recommended_cell_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -966,7 +966,7 @@ struct recommended_cell_item_ies_o {
     // choice methods
     types       type() const { return types::recommended_cell_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     recommended_cell_item_s&       recommended_cell_item() { return c; }
@@ -1016,7 +1016,7 @@ struct recommended_cells_for_paging_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1035,7 +1035,7 @@ struct assist_data_for_recommended_cells_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1054,7 +1054,7 @@ struct paging_attempt_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1075,7 +1075,7 @@ struct assist_data_for_paging_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1101,7 +1101,7 @@ struct count_value_extended_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1121,7 +1121,7 @@ struct coun_tvalue_pdcp_snlen18_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1152,7 +1152,7 @@ struct bearers_subject_to_status_transfer_item_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     count_value_extended_s&                          ulcount_value_extended();
@@ -1200,7 +1200,7 @@ struct coun_tvalue_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1225,7 +1225,7 @@ struct bearers_subject_to_status_transfer_item_ext_ies_container {
   // sequence methods
   bearers_subject_to_status_transfer_item_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1243,7 +1243,7 @@ struct bearers_subject_to_status_transfer_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1261,7 +1261,7 @@ struct bearers_subject_to_status_transfer_item_ies_o {
     // choice methods
     types       type() const { return types::bearers_subject_to_status_transfer_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     bearers_subject_to_status_transfer_item_s&       bearers_subject_to_status_transfer_item() { return c; }
@@ -1303,7 +1303,7 @@ struct cancelled_cellin_eai_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1320,7 +1320,7 @@ struct cancelled_cellin_tai_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1352,7 +1352,7 @@ struct cell_id_cancelled_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1369,7 +1369,7 @@ struct emergency_area_id_cancelled_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1386,7 +1386,7 @@ struct tai_cancelled_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1416,7 +1416,7 @@ struct broadcast_cancelled_area_list_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   cell_id_cancelled_l& cell_id_cancelled()
@@ -1490,7 +1490,7 @@ struct completed_cellin_eai_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1506,7 +1506,7 @@ struct completed_cellin_tai_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1537,7 +1537,7 @@ struct cell_id_broadcast_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1554,7 +1554,7 @@ struct emergency_area_id_broadcast_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1571,7 +1571,7 @@ struct tai_broadcast_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1601,7 +1601,7 @@ struct broadcast_completed_area_list_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   cell_id_broadcast_l& cell_id_broadcast()
@@ -1676,7 +1676,7 @@ struct cgi_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1695,7 +1695,7 @@ struct csg_id_list_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1738,7 +1738,7 @@ struct csg_membership_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1759,7 +1759,7 @@ struct irat_cell_id_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   unbounded_octstring<true>& eutran()
@@ -1842,7 +1842,7 @@ struct candidate_pci_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -1977,7 +1977,7 @@ struct cause_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   cause_radio_network_e& radio_network()
@@ -2080,7 +2080,7 @@ struct cdma2000_one_xsrvcc_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2092,7 +2092,7 @@ struct cells_to_activ_list_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2109,7 +2109,7 @@ struct cell_activation_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2121,7 +2121,7 @@ struct cell_activation_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2134,7 +2134,7 @@ struct ehrpd_composite_available_capacity_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2147,7 +2147,7 @@ struct ehrpd_sector_load_report_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2159,7 +2159,7 @@ struct eutra_ncell_load_report_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2180,7 +2180,7 @@ struct cell_load_report_resp_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   eutra_ncell_load_report_resp_s& eutran()
@@ -2268,7 +2268,7 @@ struct notif_cell_list_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2283,7 +2283,7 @@ struct cell_state_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2322,7 +2322,7 @@ struct cell_traffic_trace_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                    mme_ue_s1ap_id();
@@ -2362,7 +2362,7 @@ struct protocol_ie_container_item_s {
   // sequence methods
   protocol_ie_container_item_s(uint32_t id_, crit_e crit_);
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2382,7 +2382,7 @@ struct cell_traffic_trace_ies_container {
   // sequence methods
   cell_traffic_trace_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2394,7 +2394,7 @@ struct cell_traffic_trace_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2421,7 +2421,7 @@ struct cell_type_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2448,7 +2448,7 @@ struct dl_cp_security_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2487,7 +2487,7 @@ struct conn_establishment_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                             mme_ue_s1ap_id();
@@ -2537,7 +2537,7 @@ struct conn_establishment_ind_ies_container {
   // sequence methods
   conn_establishment_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2549,7 +2549,7 @@ struct conn_establishment_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2578,7 +2578,7 @@ struct crit_diagnostics_ie_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2615,7 +2615,7 @@ struct crit_diagnostics_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2638,7 +2638,7 @@ struct deactiv_trace_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                       mme_ue_s1ap_id();
@@ -2675,7 +2675,7 @@ struct deactiv_trace_ies_container {
   // sequence methods
   deactiv_trace_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2687,7 +2687,7 @@ struct deactiv_trace_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2716,7 +2716,7 @@ struct forbidden_las_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2733,7 +2733,7 @@ struct forbidden_tas_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2785,7 +2785,7 @@ struct ho_restrict_list_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2837,7 +2837,7 @@ struct dl_nas_transport_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                              mme_ue_s1ap_id();
@@ -2906,7 +2906,7 @@ struct dl_nas_transport_ies_container {
   // sequence methods
   dl_nas_transport_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2918,7 +2918,7 @@ struct dl_nas_transport_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2943,7 +2943,7 @@ struct dl_non_ueassociated_lp_pa_transport_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint16_t&                        routing_id();
@@ -2977,7 +2977,7 @@ struct dl_non_ueassociated_lp_pa_transport_ies_container {
   // sequence methods
   dl_non_ueassociated_lp_pa_transport_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -2989,7 +2989,7 @@ struct dl_non_ueassociated_lp_pa_transport_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3016,7 +3016,7 @@ struct erab_data_forwarding_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3043,7 +3043,7 @@ struct erab_data_forwarding_item_ies_o {
     // choice methods
     types       type() const { return types::erab_data_forwarding_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_data_forwarding_item_s&       erab_data_forwarding_item() { return c; }
@@ -3088,7 +3088,7 @@ struct erab_ie_container_list_item_s {
   // sequence methods
   erab_ie_container_list_item_s(uint32_t id_, crit_e crit_);
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3102,7 +3102,7 @@ struct erab_data_forwarding_item_ies_container {
   // sequence methods
   erab_data_forwarding_item_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3133,7 +3133,7 @@ struct dl_s1cdma2000tunnelling_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                      mme_ue_s1ap_id();
@@ -3181,7 +3181,7 @@ struct dl_s1cdma2000tunnelling_ies_container {
   // sequence methods
   dl_s1cdma2000tunnelling_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3193,7 +3193,7 @@ struct dl_s1cdma2000tunnelling_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3216,7 +3216,7 @@ struct dl_ueassociated_lp_pa_transport_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                        mme_ue_s1ap_id();
@@ -3256,7 +3256,7 @@ struct dl_ueassociated_lp_pa_transport_ies_container {
   // sequence methods
   dl_ueassociated_lp_pa_transport_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3268,7 +3268,7 @@ struct dl_ueassociated_lp_pa_transport_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3306,7 +3306,7 @@ struct erab_admitted_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3324,7 +3324,7 @@ struct erab_admitted_item_ies_o {
     // choice methods
     types       type() const { return types::erab_admitted_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_admitted_item_s&       erab_admitted_item() { return c; }
@@ -3352,7 +3352,7 @@ struct erab_admitted_item_ies_container {
   // sequence methods
   erab_admitted_item_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3372,7 +3372,7 @@ struct erab_failed_to_resume_item_resume_req_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3390,7 +3390,7 @@ struct erab_failed_to_resume_item_resume_req_ies_o {
     // choice methods
     types       type() const { return types::erab_failed_to_resume_item_resume_req; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_failed_to_resume_item_resume_req_s&       erab_failed_to_resume_item_resume_req() { return c; }
@@ -3424,7 +3424,7 @@ struct erab_failed_to_resume_item_resume_res_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3442,7 +3442,7 @@ struct erab_failed_to_resume_item_resume_res_ies_o {
     // choice methods
     types       type() const { return types::erab_failed_to_resume_item_resume_res; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_failed_to_resume_item_resume_res_s&       erab_failed_to_resume_item_resume_res() { return c; }
@@ -3470,7 +3470,7 @@ struct erab_failed_to_resume_item_resume_req_ies_container {
   // sequence methods
   erab_failed_to_resume_item_resume_req_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3484,7 +3484,7 @@ struct erab_failed_to_resume_item_resume_res_ies_container {
   // sequence methods
   erab_failed_to_resume_item_resume_res_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3504,7 +3504,7 @@ struct erab_failed_to_setup_item_ho_req_ack_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3522,7 +3522,7 @@ struct erab_failedto_setup_item_ho_req_ack_ies_o {
     // choice methods
     types       type() const { return types::erab_failedto_setup_item_ho_req_ack; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_failed_to_setup_item_ho_req_ack_s&       erab_failedto_setup_item_ho_req_ack() { return c; }
@@ -3550,7 +3550,7 @@ struct erab_failedto_setup_item_ho_req_ack_ies_container {
   // sequence methods
   erab_failedto_setup_item_ho_req_ack_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3579,7 +3579,7 @@ struct erab_info_list_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3597,7 +3597,7 @@ struct erab_info_list_ies_o {
     // choice methods
     types       type() const { return types::erab_info_list_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_info_list_item_s&       erab_info_list_item() { return c; }
@@ -3634,7 +3634,7 @@ struct erab_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3652,7 +3652,7 @@ struct erab_item_ies_o {
     // choice methods
     types       type() const { return types::erab_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_item_s&       erab_item() { return c; }
@@ -3691,7 +3691,7 @@ struct gbr_qos_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3710,7 +3710,7 @@ struct erab_level_qos_params_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3732,7 +3732,7 @@ struct erab_modify_item_bearer_mod_conf_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3750,7 +3750,7 @@ struct erab_modify_item_bearer_mod_conf_ies_o {
     // choice methods
     types       type() const { return types::erab_modify_item_bearer_mod_conf; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_modify_item_bearer_mod_conf_s&       erab_modify_item_bearer_mod_conf() { return c; }
@@ -3801,7 +3801,7 @@ struct erab_mod_confirm_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                 mme_ue_s1ap_id();
@@ -3858,7 +3858,7 @@ struct erab_mod_confirm_ies_container {
   // sequence methods
   erab_mod_confirm_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3870,7 +3870,7 @@ struct erab_mod_confirm_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3894,7 +3894,7 @@ struct erab_not_to_be_modified_item_bearer_mod_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3912,7 +3912,7 @@ struct erab_to_be_modified_item_bearer_mod_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -3930,7 +3930,7 @@ struct erab_not_to_be_modified_item_bearer_mod_ind_ies_o {
     // choice methods
     types       type() const { return types::erab_not_to_be_modified_item_bearer_mod_ind; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_not_to_be_modified_item_bearer_mod_ind_s&       erab_not_to_be_modified_item_bearer_mod_ind() { return c; }
@@ -3965,7 +3965,7 @@ struct erab_to_be_modified_item_bearer_mod_ind_ies_o {
     // choice methods
     types       type() const { return types::erab_to_be_modified_item_bearer_mod_ind; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_to_be_modified_item_bearer_mod_ind_s&       erab_to_be_modified_item_bearer_mod_ind() { return c; }
@@ -3996,7 +3996,7 @@ struct erab_not_to_be_modified_item_bearer_mod_ind_ies_container {
   // sequence methods
   erab_not_to_be_modified_item_bearer_mod_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4010,7 +4010,7 @@ struct erab_to_be_modified_item_bearer_mod_ind_ies_container {
   // sequence methods
   erab_to_be_modified_item_bearer_mod_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4028,7 +4028,7 @@ struct tunnel_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4059,7 +4059,7 @@ struct erab_mod_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                                    mme_ue_s1ap_id();
@@ -4113,7 +4113,7 @@ struct erab_mod_ind_ies_container {
   // sequence methods
   erab_mod_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4125,7 +4125,7 @@ struct erab_mod_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4144,7 +4144,7 @@ struct erab_modify_item_bearer_mod_res_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4162,7 +4162,7 @@ struct erab_modify_item_bearer_mod_res_ies_o {
     // choice methods
     types       type() const { return types::erab_modify_item_bearer_mod_res; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_modify_item_bearer_mod_res_s&       erab_modify_item_bearer_mod_res() { return c; }
@@ -4194,7 +4194,7 @@ struct transport_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4212,7 +4212,7 @@ struct erab_to_be_modify_item_bearer_mod_req_ext_ies_o {
     // choice methods
     types       type() const { return types::transport_info; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     transport_info_s&       transport_info() { return c; }
@@ -4241,7 +4241,7 @@ struct erab_to_be_modify_item_bearer_mod_req_ext_ies_container {
   // sequence methods
   erab_to_be_modify_item_bearer_mod_req_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4257,7 +4257,7 @@ struct erab_to_be_modified_item_bearer_mod_req_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4275,7 +4275,7 @@ struct erab_to_be_modified_item_bearer_mod_req_ies_o {
     // choice methods
     types       type() const { return types::erab_to_be_modified_item_bearer_mod_req; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_to_be_modified_item_bearer_mod_req_s&       erab_to_be_modified_item_bearer_mod_req() { return c; }
@@ -4314,7 +4314,7 @@ struct ue_aggregate_maximum_bitrate_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4343,7 +4343,7 @@ struct erab_modify_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                        mme_ue_s1ap_id();
@@ -4385,7 +4385,7 @@ struct erab_modify_request_ies_container {
   // sequence methods
   erab_modify_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4397,7 +4397,7 @@ struct erab_modify_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4427,7 +4427,7 @@ struct erab_modify_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                mme_ue_s1ap_id();
@@ -4474,7 +4474,7 @@ struct erab_modify_resp_ies_container {
   // sequence methods
   erab_modify_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4486,7 +4486,7 @@ struct erab_modify_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4516,7 +4516,7 @@ struct erab_release_cmd_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                             mme_ue_s1ap_id();
@@ -4561,7 +4561,7 @@ struct erab_release_cmd_ies_container {
   // sequence methods
   erab_release_cmd_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4573,7 +4573,7 @@ struct erab_release_cmd_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4593,7 +4593,7 @@ struct user_location_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4616,7 +4616,7 @@ struct erab_release_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                   mme_ue_s1ap_id();
@@ -4657,7 +4657,7 @@ struct erab_release_ind_ies_container {
   // sequence methods
   erab_release_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4669,7 +4669,7 @@ struct erab_release_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4688,7 +4688,7 @@ struct erab_release_item_bearer_rel_comp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4706,7 +4706,7 @@ struct erab_release_item_bearer_rel_comp_ies_o {
     // choice methods
     types       type() const { return types::erab_release_item_bearer_rel_comp; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_release_item_bearer_rel_comp_s&       erab_release_item_bearer_rel_comp() { return c; }
@@ -4756,7 +4756,7 @@ struct erab_release_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                  mme_ue_s1ap_id();
@@ -4807,7 +4807,7 @@ struct erab_release_resp_ies_container {
   // sequence methods
   erab_release_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4819,7 +4819,7 @@ struct erab_release_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4840,7 +4840,7 @@ struct erab_setup_item_bearer_su_res_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4858,7 +4858,7 @@ struct erab_setup_item_bearer_su_res_ies_o {
     // choice methods
     types       type() const { return types::erab_setup_item_bearer_su_res; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_setup_item_bearer_su_res_s&       erab_setup_item_bearer_su_res() { return c; }
@@ -4893,7 +4893,7 @@ struct erab_setup_item_ctxt_su_res_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -4911,7 +4911,7 @@ struct erab_setup_item_ctxt_su_res_ies_o {
     // choice methods
     types       type() const { return types::erab_setup_item_ctxt_su_res; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_setup_item_ctxt_su_res_s&       erab_setup_item_ctxt_su_res() { return c; }
@@ -4962,7 +4962,7 @@ struct erab_to_be_setup_item_bearer_su_req_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     fixed_octstring<4, true>&       correlation_id();
@@ -5002,7 +5002,7 @@ struct erab_to_be_setup_item_bearer_su_req_ext_ies_container {
   // sequence methods
   erab_to_be_setup_item_bearer_su_req_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5020,7 +5020,7 @@ struct erab_to_be_setup_item_bearer_su_req_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5038,7 +5038,7 @@ struct erab_to_be_setup_item_bearer_su_req_ies_o {
     // choice methods
     types       type() const { return types::erab_to_be_setup_item_bearer_su_req; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_to_be_setup_item_bearer_su_req_s&       erab_to_be_setup_item_bearer_su_req() { return c; }
@@ -5086,7 +5086,7 @@ struct erab_setup_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                    mme_ue_s1ap_id();
@@ -5128,7 +5128,7 @@ struct erab_setup_request_ies_container {
   // sequence methods
   erab_setup_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5140,7 +5140,7 @@ struct erab_setup_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5170,7 +5170,7 @@ struct erab_setup_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                              mme_ue_s1ap_id();
@@ -5218,7 +5218,7 @@ struct erab_setup_resp_ies_container {
   // sequence methods
   erab_setup_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5230,7 +5230,7 @@ struct erab_setup_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5253,7 +5253,7 @@ struct erab_to_be_setup_item_ctxt_su_req_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     fixed_octstring<4, true>&       correlation_id();
@@ -5293,7 +5293,7 @@ struct erab_to_be_setup_item_ctxt_su_req_ext_ies_container {
   // sequence methods
   erab_to_be_setup_item_ctxt_su_req_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5312,7 +5312,7 @@ struct erab_to_be_setup_item_ctxt_su_req_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5330,7 +5330,7 @@ struct erab_to_be_setup_item_ctxt_su_req_ies_o {
     // choice methods
     types       type() const { return types::erab_to_be_setup_item_ctxt_su_req; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_to_be_setup_item_ctxt_su_req_s&       erab_to_be_setup_item_ctxt_su_req() { return c; }
@@ -5375,7 +5375,7 @@ struct erab_to_be_setup_item_ho_req_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     data_forwarding_not_possible_e&       data_forwarding_not_possible();
@@ -5411,7 +5411,7 @@ struct erab_to_be_setup_item_ho_req_ext_ies_container {
   // sequence methods
   erab_to_be_setup_item_ho_req_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5428,7 +5428,7 @@ struct erab_to_be_setup_item_ho_req_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5446,7 +5446,7 @@ struct erab_to_be_setup_item_ho_req_ies_o {
     // choice methods
     types       type() const { return types::erab_to_be_setup_item_ho_req; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_to_be_setup_item_ho_req_s&       erab_to_be_setup_item_ho_req() { return c; }
@@ -5479,7 +5479,7 @@ struct erab_to_be_setup_item_ho_req_ies_container {
   // sequence methods
   erab_to_be_setup_item_ho_req_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5500,7 +5500,7 @@ struct erab_to_be_switched_dl_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5518,7 +5518,7 @@ struct erab_to_be_switched_dl_item_ies_o {
     // choice methods
     types       type() const { return types::erab_to_be_switched_dl_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_to_be_switched_dl_item_s&       erab_to_be_switched_dl_item() { return c; }
@@ -5546,7 +5546,7 @@ struct erab_to_be_switched_dl_item_ies_container {
   // sequence methods
   erab_to_be_switched_dl_item_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5567,7 +5567,7 @@ struct erab_to_be_switched_ul_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5585,7 +5585,7 @@ struct erab_to_be_switched_ul_item_ies_o {
     // choice methods
     types       type() const { return types::erab_to_be_switched_ul_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     erab_to_be_switched_ul_item_s&       erab_to_be_switched_ul_item() { return c; }
@@ -5613,7 +5613,7 @@ struct erab_to_be_switched_ul_item_ies_container {
   // sequence methods
   erab_to_be_switched_ul_item_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5632,7 +5632,7 @@ struct ehrpd_multi_sector_load_report_resp_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5651,7 +5651,7 @@ struct enb_status_transfer_transparent_container_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5674,7 +5674,7 @@ struct s_tmsi_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5691,7 +5691,7 @@ struct ul_cp_security_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5716,7 +5716,7 @@ struct enbcp_relocation_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint32_t&                    enb_ue_s1ap_id();
@@ -5759,7 +5759,7 @@ struct enbcp_relocation_ind_ies_container {
   // sequence methods
   enbcp_relocation_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5771,7 +5771,7 @@ struct enbcp_relocation_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5796,7 +5796,7 @@ struct enbx2_ext_tla_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5834,7 +5834,7 @@ struct rlf_report_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5860,7 +5860,7 @@ struct time_synchronisation_info_ext_ies_o {
     // choice methods
     types       type() const { return types::muting_availability_ind; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     muting_availability_ind_e&       muting_availability_ind() { return c; }
@@ -5908,7 +5908,7 @@ struct muting_pattern_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5924,7 +5924,7 @@ struct son_info_report_c {
   // choice methods
   types       type() const { return types::rlf_report_info; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   rlf_report_info_s&       rlf_report_info() { return c; }
@@ -5945,7 +5945,7 @@ struct time_synchronisation_info_ext_ies_container {
   // sequence methods
   time_synchronisation_info_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5960,7 +5960,7 @@ struct time_synchronisation_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -5987,7 +5987,7 @@ struct x2_tnl_cfg_info_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     enbx2_ext_tlas_l&                                  enbx2_extended_transport_layer_addresses();
@@ -6027,7 +6027,7 @@ struct enb_id_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   fixed_bitstring<20, false, true>& macro_enb_id()
@@ -6124,7 +6124,7 @@ struct listening_sf_pattern_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6142,7 +6142,7 @@ struct son_info_ext_ie_o {
     // choice methods
     types       type() const { return types::son_info_report; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     son_info_report_c&       son_info_report() { return c; }
@@ -6174,7 +6174,7 @@ struct son_info_reply_ext_ies_o {
     // choice methods
     types       type() const { return types::time_synchronisation_info; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     time_synchronisation_info_s&       time_synchronisation_info() { return c; }
@@ -6208,7 +6208,7 @@ struct x2_tnl_cfg_info_ext_ies_container {
   // sequence methods
   x2_tnl_cfg_info_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6222,7 +6222,7 @@ struct x2_tnl_cfg_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6239,7 +6239,7 @@ struct global_enb_id_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6254,7 +6254,7 @@ struct son_info_reply_ext_ies_container {
   // sequence methods
   son_info_reply_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6269,7 +6269,7 @@ struct son_info_reply_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6303,7 +6303,7 @@ struct synchronisation_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6331,7 +6331,7 @@ struct son_cfg_transfer_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     x2_tnl_cfg_info_s&            x2_tnl_cfg_info();
@@ -6371,7 +6371,7 @@ struct son_info_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   son_info_request_e& son_info_request()
@@ -6438,7 +6438,7 @@ struct sourceenb_id_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6455,7 +6455,7 @@ struct targetenb_id_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6472,7 +6472,7 @@ struct son_cfg_transfer_ext_ies_container {
   // sequence methods
   son_cfg_transfer_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6488,7 +6488,7 @@ struct son_cfg_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6506,7 +6506,7 @@ struct enb_cfg_transfer_ies_o {
     // choice methods
     types       type() const { return types::son_cfg_transfer_ect; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     son_cfg_transfer_s&       son_cfg_transfer_ect() { return c; }
@@ -6535,7 +6535,7 @@ struct enb_cfg_transfer_ies_container {
   // sequence methods
   enb_cfg_transfer_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6547,7 +6547,7 @@ struct enb_cfg_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6573,7 +6573,7 @@ struct supported_tas_item_ext_ies_o {
     // choice methods
     types       type() const { return types::rat_type; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     rat_type_e&       rat_type() { return c; }
@@ -6602,7 +6602,7 @@ struct supported_tas_item_ext_ies_container {
   // sequence methods
   supported_tas_item_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6617,7 +6617,7 @@ struct supported_tas_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6670,7 +6670,7 @@ struct enb_cfg_upd_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     printable_string<1, 150, true, true>&       enbname();
@@ -6718,7 +6718,7 @@ struct enb_cfg_upd_ies_container {
   // sequence methods
   enb_cfg_upd_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6730,7 +6730,7 @@ struct enb_cfg_upd_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6748,7 +6748,7 @@ struct enb_cfg_upd_ack_ies_o {
     // choice methods
     types       type() const { return types::crit_diagnostics; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     crit_diagnostics_s&       crit_diagnostics() { return c; }
@@ -6777,7 +6777,7 @@ struct enb_cfg_upd_ack_ies_container {
   // sequence methods
   enb_cfg_upd_ack_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6789,7 +6789,7 @@ struct enb_cfg_upd_ack_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6822,7 +6822,7 @@ struct enb_cfg_upd_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     cause_c&                  cause();
@@ -6861,7 +6861,7 @@ struct enb_cfg_upd_fail_ies_container {
   // sequence methods
   enb_cfg_upd_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6873,7 +6873,7 @@ struct enb_cfg_upd_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6896,7 +6896,7 @@ struct lai_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6917,7 +6917,7 @@ struct geran_cell_id_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6938,7 +6938,7 @@ struct target_rnc_id_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -6959,7 +6959,7 @@ struct rim_routing_address_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   geran_cell_id_s& geran_cell_id()
@@ -7032,7 +7032,7 @@ struct rim_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7048,7 +7048,7 @@ struct inter_sys_info_transfer_type_c {
   // choice methods
   types       type() const { return types::rim_transfer; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   rim_transfer_s&       rim_transfer() { return c; }
@@ -7072,7 +7072,7 @@ struct enb_direct_info_transfer_ies_o {
     // choice methods
     types       type() const { return types::inter_sys_info_transfer_type_edt; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     inter_sys_info_transfer_type_c&       inter_sys_info_transfer_type_edt() { return c; }
@@ -7100,7 +7100,7 @@ struct enb_direct_info_transfer_ies_container {
   // sequence methods
   enb_direct_info_transfer_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7112,7 +7112,7 @@ struct enb_direct_info_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7135,7 +7135,7 @@ struct enb_status_transfer_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                          mme_ue_s1ap_id();
@@ -7172,7 +7172,7 @@ struct enb_status_transfer_ies_container {
   // sequence methods
   enb_status_transfer_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7184,7 +7184,7 @@ struct enb_status_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7197,7 +7197,7 @@ struct eutran_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7226,7 +7226,7 @@ struct error_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -7270,7 +7270,7 @@ struct error_ind_ies_container {
   // sequence methods
   error_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7282,7 +7282,7 @@ struct error_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7304,7 +7304,7 @@ struct event_triggered_cell_load_report_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7326,7 +7326,7 @@ struct event_triggered_cell_load_report_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7358,7 +7358,7 @@ struct expected_ue_activity_behaviour_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7390,7 +7390,7 @@ struct expected_ue_behaviour_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7404,7 +7404,7 @@ struct too_early_inter_ratho_report_report_from_eutran_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7420,7 +7420,7 @@ struct fail_event_report_c {
   // choice methods
   types       type() const { return types::too_early_inter_ratho_report_from_eutran; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   too_early_inter_ratho_report_report_from_eutran_s&       too_early_inter_ratho_report_from_eutran() { return c; }
@@ -7465,7 +7465,7 @@ struct ho_report_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7488,7 +7488,7 @@ struct ho_cancel_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&       mme_ue_s1ap_id();
@@ -7525,7 +7525,7 @@ struct ho_cancel_ies_container {
   // sequence methods
   ho_cancel_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7537,7 +7537,7 @@ struct ho_cancel_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7560,7 +7560,7 @@ struct ho_cancel_ack_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -7598,7 +7598,7 @@ struct ho_cancel_ack_ies_container {
   // sequence methods
   ho_cancel_ack_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7610,7 +7610,7 @@ struct ho_cancel_ack_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7652,7 +7652,7 @@ struct ho_cmd_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                      mme_ue_s1ap_id();
@@ -7716,7 +7716,7 @@ struct ho_cmd_ies_container {
   // sequence methods
   ho_cmd_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7728,7 +7728,7 @@ struct ho_cmd_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7753,7 +7753,7 @@ struct ho_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -7791,7 +7791,7 @@ struct ho_fail_ies_container {
   // sequence methods
   ho_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7803,7 +7803,7 @@ struct ho_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7826,7 +7826,7 @@ struct ho_notify_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                        mme_ue_s1ap_id();
@@ -7874,7 +7874,7 @@ struct ho_notify_ies_container {
   // sequence methods
   ho_notify_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7886,7 +7886,7 @@ struct ho_notify_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7909,7 +7909,7 @@ struct ho_prep_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -7950,7 +7950,7 @@ struct ho_prep_fail_ies_container {
   // sequence methods
   ho_prep_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7962,7 +7962,7 @@ struct ho_prep_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -7983,7 +7983,7 @@ struct mbsfn_result_to_log_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8101,7 +8101,7 @@ struct logged_mbsfnmdt_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8123,7 +8123,7 @@ struct m3_cfg_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8140,7 +8140,7 @@ struct m4_cfg_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8157,7 +8157,7 @@ struct m5_cfg_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8176,7 +8176,7 @@ struct m6_cfg_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8193,7 +8193,7 @@ struct m7_cfg_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8214,7 +8214,7 @@ struct meas_thres_a2_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   uint8_t& thres_rsrp()
@@ -8311,7 +8311,7 @@ struct immediate_mdt_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     m3_cfg_s&                              m3_cfg();
@@ -8358,7 +8358,7 @@ struct m1_periodic_report_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8382,7 +8382,7 @@ struct m1_thres_event_a2_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8400,7 +8400,7 @@ struct mdt_mode_ext_ie_o {
     // choice methods
     types       type() const { return types::logged_mbsfnmdt; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     logged_mbsfnmdt_s&       logged_mbsfnmdt() { return c; }
@@ -8439,7 +8439,7 @@ struct immediate_mdt_ext_ies_container {
   // sequence methods
   immediate_mdt_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8458,7 +8458,7 @@ struct immediate_mdt_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8475,7 +8475,7 @@ struct logged_mdt_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8510,7 +8510,7 @@ struct mdt_cfg_ext_ies_o {
     // choice methods
     types       type() const { return types::sig_based_mdtplmn_list; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     mdtplmn_list_l&       sig_based_mdtplmn_list() { return c; }
@@ -8545,7 +8545,7 @@ struct mdt_mode_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   immediate_mdt_s& immediate_mdt()
@@ -8612,7 +8612,7 @@ struct mdt_cfg_ext_ies_container {
   // sequence methods
   mdt_cfg_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8628,7 +8628,7 @@ struct mdt_cfg_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8672,7 +8672,7 @@ struct pro_se_authorized_ext_ies_o {
     // choice methods
     types       type() const { return types::pro_se_ueto_network_relaying; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     pro_se_ueto_network_relaying_e&       pro_se_ueto_network_relaying() { return c; }
@@ -8734,7 +8734,7 @@ struct trace_activation_ext_ies_o {
     // choice methods
     types       type() const { return types::mdt_cfg; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     mdt_cfg_s&       mdt_cfg() { return c; }
@@ -8805,7 +8805,7 @@ struct pro_se_authorized_ext_ies_container {
   // sequence methods
   pro_se_authorized_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8822,7 +8822,7 @@ struct pro_se_authorized_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8839,7 +8839,7 @@ struct request_type_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8856,7 +8856,7 @@ struct security_context_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8871,7 +8871,7 @@ struct trace_activation_ext_ies_container {
   // sequence methods
   trace_activation_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8888,7 +8888,7 @@ struct trace_activation_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8905,7 +8905,7 @@ struct ue_security_cap_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8921,7 +8921,7 @@ struct ue_sidelink_aggregate_maximum_bitrate_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -8948,7 +8948,7 @@ struct v2xservices_authorized_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9001,7 +9001,7 @@ struct ho_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                         mme_ue_s1ap_id();
@@ -9149,7 +9149,7 @@ struct ho_request_ies_container {
   // sequence methods
   ho_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9161,7 +9161,7 @@ struct ho_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9203,7 +9203,7 @@ struct ho_request_ack_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                                mme_ue_s1ap_id();
@@ -9268,7 +9268,7 @@ struct ho_request_ack_ies_container {
   // sequence methods
   ho_request_ack_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9280,7 +9280,7 @@ struct ho_request_ack_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9325,7 +9325,7 @@ struct target_id_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   targetenb_id_s& targetenb_id()
@@ -9416,7 +9416,7 @@ struct ho_required_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                    mme_ue_s1ap_id();
@@ -9494,7 +9494,7 @@ struct ho_required_ies_container {
   // sequence methods
   ho_required_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9506,7 +9506,7 @@ struct ho_required_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9527,7 +9527,7 @@ struct mme_paging_target_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   global_enb_id_s& global_enb_id()
@@ -9583,7 +9583,7 @@ struct recommended_enb_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9601,7 +9601,7 @@ struct recommended_enb_item_ies_o {
     // choice methods
     types       type() const { return types::recommended_enb_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     recommended_enb_item_s&       recommended_enb_item() { return c; }
@@ -9640,7 +9640,7 @@ struct recommended_enbs_for_paging_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9657,7 +9657,7 @@ struct info_on_recommended_cells_and_enbs_for_paging_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9680,7 +9680,7 @@ struct init_context_setup_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -9721,7 +9721,7 @@ struct init_context_setup_fail_ies_container {
   // sequence methods
   init_context_setup_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9733,7 +9733,7 @@ struct init_context_setup_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9802,7 +9802,7 @@ struct init_context_setup_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                      mme_ue_s1ap_id();
@@ -9951,7 +9951,7 @@ struct init_context_setup_request_ies_container {
   // sequence methods
   init_context_setup_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9963,7 +9963,7 @@ struct init_context_setup_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -9993,7 +9993,7 @@ struct init_context_setup_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                            mme_ue_s1ap_id();
@@ -10040,7 +10040,7 @@ struct init_context_setup_resp_ies_container {
   // sequence methods
   init_context_setup_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10052,7 +10052,7 @@ struct init_context_setup_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10140,7 +10140,7 @@ struct init_ue_msg_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint32_t&                                    enb_ue_s1ap_id();
@@ -10252,7 +10252,7 @@ struct init_ue_msg_ies_container {
   // sequence methods
   init_ue_msg_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10264,7 +10264,7 @@ struct init_ue_msg_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10289,7 +10289,7 @@ struct ue_associated_lc_s1_conn_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10320,7 +10320,7 @@ struct tai_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10343,7 +10343,7 @@ struct ue_associated_lc_s1_conn_item_res_o {
     // choice methods
     types       type() const { return types::ue_associated_lc_s1_conn_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ue_associated_lc_s1_conn_item_s&       ue_associated_lc_s1_conn_item() { return c; }
@@ -10479,7 +10479,7 @@ struct served_dcns_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10497,7 +10497,7 @@ struct served_gummeis_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10515,7 +10515,7 @@ struct tai_item_ies_o {
     // choice methods
     types       type() const { return types::tai_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     tai_item_s&       tai_item() { return c; }
@@ -10549,7 +10549,7 @@ struct ue_s1ap_id_pair_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10569,7 +10569,7 @@ struct ue_associated_lc_s1_conn_item_res_ack_o {
     // choice methods
     types       type() const { return types::ue_associated_lc_s1_conn_item; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ue_associated_lc_s1_conn_item_s&       ue_associated_lc_s1_conn_item() { return c; }
@@ -10654,7 +10654,7 @@ struct nb_io_t_paging_e_drx_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10670,7 +10670,7 @@ struct overload_resp_c {
   // choice methods
   types       type() const { return types::overload_action; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   overload_action_e&       overload_action() { return c; }
@@ -10697,7 +10697,7 @@ struct paging_e_drx_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -10739,7 +10739,7 @@ struct reset_type_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   reset_all_e& s1_interface()
@@ -10825,7 +10825,7 @@ struct ue_s1ap_ids_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   ue_s1ap_id_pair_s& ue_s1ap_id_pair()
@@ -10888,7 +10888,7 @@ struct ue_paging_id_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   s_tmsi_s& s_tmsi()
@@ -10954,7 +10954,7 @@ struct warning_area_list_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   ecgi_list_l& cell_id_list()
@@ -11029,7 +11029,7 @@ struct kill_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     fixed_bitstring<16, false, true>&       msg_id();
@@ -11075,7 +11075,7 @@ struct kill_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     fixed_bitstring<16, false, true>&       msg_id();
@@ -11121,7 +11121,7 @@ struct location_report_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&             mme_ue_s1ap_id();
@@ -11169,7 +11169,7 @@ struct location_report_ctrl_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&             mme_ue_s1ap_id();
@@ -11213,7 +11213,7 @@ struct location_report_fail_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&       mme_ue_s1ap_id();
@@ -11257,7 +11257,7 @@ struct mmecp_relocation_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&       mme_ue_s1ap_id();
@@ -11294,7 +11294,7 @@ struct mme_cfg_transfer_ies_o {
     // choice methods
     types       type() const { return types::son_cfg_transfer_mct; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     son_cfg_transfer_s&       son_cfg_transfer_mct() { return c; }
@@ -11326,7 +11326,7 @@ struct mme_cfg_upd_ack_ies_o {
     // choice methods
     types       type() const { return types::crit_diagnostics; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     crit_diagnostics_s&       crit_diagnostics() { return c; }
@@ -11363,7 +11363,7 @@ struct mme_cfg_upd_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     cause_c&                  cause();
@@ -11409,7 +11409,7 @@ struct mme_cfg_upd_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     printable_string<1, 150, true, true>&       mm_ename();
@@ -11450,7 +11450,7 @@ struct mme_direct_info_transfer_ies_o {
     // choice methods
     types       type() const { return types::inter_sys_info_transfer_type_mdt; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     inter_sys_info_transfer_type_c&       inter_sys_info_transfer_type_mdt() { return c; }
@@ -11487,7 +11487,7 @@ struct mme_status_transfer_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                          mme_ue_s1ap_id();
@@ -11531,7 +11531,7 @@ struct nas_delivery_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&       mme_ue_s1ap_id();
@@ -11573,7 +11573,7 @@ struct nas_non_delivery_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                        mme_ue_s1ap_id();
@@ -11621,7 +11621,7 @@ struct overload_start_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     overload_resp_c&       overload_resp();
@@ -11660,7 +11660,7 @@ struct overload_stop_ies_o {
     // choice methods
     types       type() const { return types::gummei_list; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     gummei_list_l&       gummei_list() { return c; }
@@ -11697,7 +11697,7 @@ struct pws_fail_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     pw_sfailed_ecgi_list_l&       pw_sfailed_ecgi_list();
@@ -11745,7 +11745,7 @@ struct pws_restart_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ecgi_list_for_restart_l&                    ecgi_list_for_restart();
@@ -11812,7 +11812,7 @@ struct paging_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     fixed_bitstring<10, false, true>&       ue_id_idx_value();
@@ -11906,7 +11906,7 @@ struct path_switch_request_ack_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                        mme_ue_s1ap_id();
@@ -11984,7 +11984,7 @@ struct path_switch_request_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -12045,7 +12045,7 @@ struct path_switch_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint32_t&                                        enb_ue_s1ap_id();
@@ -12111,7 +12111,7 @@ struct s1ap_private_ies_empty_o {
     // choice methods
     types       type() const { return types::nulltype; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
   };
 };
@@ -12137,7 +12137,7 @@ struct reroute_nas_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint32_t&                        enb_ue_s1ap_id();
@@ -12189,7 +12189,7 @@ struct reset_ack_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ue_associated_lc_s1_conn_list_res_ack_l&       ue_associated_lc_s1_conn_list_res_ack();
@@ -12231,7 +12231,7 @@ struct reset_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     cause_c&            cause();
@@ -12268,7 +12268,7 @@ struct retrieve_ue_info_ies_o {
     // choice methods
     types       type() const { return types::s_tmsi; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     s_tmsi_s&       s_tmsi() { return c; }
@@ -12305,7 +12305,7 @@ struct s1_setup_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     cause_c&                  cause();
@@ -12358,7 +12358,7 @@ struct s1_setup_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     global_enb_id_s&                            global_enb_id();
@@ -12421,7 +12421,7 @@ struct s1_setup_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     printable_string<1, 150, true, true>&       mm_ename();
@@ -12473,7 +12473,7 @@ struct trace_fail_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                       mme_ue_s1ap_id();
@@ -12519,7 +12519,7 @@ struct trace_start_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -12563,7 +12563,7 @@ struct ue_cap_info_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                        mme_ue_s1ap_id();
@@ -12609,7 +12609,7 @@ struct ue_context_mod_confirm_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                      mme_ue_s1ap_id();
@@ -12655,7 +12655,7 @@ struct ue_context_mod_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -12701,7 +12701,7 @@ struct ue_context_mod_ind_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                    mme_ue_s1ap_id();
@@ -12762,7 +12762,7 @@ struct ue_context_mod_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                      mme_ue_s1ap_id();
@@ -12837,7 +12837,7 @@ struct ue_context_mod_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -12883,7 +12883,7 @@ struct ue_context_release_cmd_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ue_s1ap_ids_c&       ue_s1ap_ids();
@@ -12933,7 +12933,7 @@ struct ue_context_release_complete_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                              mme_ue_s1ap_id();
@@ -12987,7 +12987,7 @@ struct ue_context_release_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                       mme_ue_s1ap_id();
@@ -13033,7 +13033,7 @@ struct ue_context_resume_fail_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -13085,7 +13085,7 @@ struct ue_context_resume_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                                  mme_ue_s1ap_id();
@@ -13139,7 +13139,7 @@ struct ue_context_resume_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                                  mme_ue_s1ap_id();
@@ -13195,7 +13195,7 @@ struct ue_context_suspend_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                              mme_ue_s1ap_id();
@@ -13241,7 +13241,7 @@ struct ue_context_suspend_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                 mme_ue_s1ap_id();
@@ -13287,7 +13287,7 @@ struct ue_info_transfer_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     s_tmsi_s&                        s_tmsi();
@@ -13333,7 +13333,7 @@ struct ue_radio_cap_match_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                        mme_ue_s1ap_id();
@@ -13377,7 +13377,7 @@ struct ue_radio_cap_match_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                        mme_ue_s1ap_id();
@@ -13433,7 +13433,7 @@ struct ul_nas_transport_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                                    mme_ue_s1ap_id();
@@ -13489,7 +13489,7 @@ struct ul_non_ueassociated_lp_pa_transport_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint16_t&                        routing_id();
@@ -13542,7 +13542,7 @@ struct ul_s1cdma2000tunnelling_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                         mme_ue_s1ap_id();
@@ -13598,7 +13598,7 @@ struct ul_ueassociated_lp_pa_transport_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint64_t&                        mme_ue_s1ap_id();
@@ -13657,7 +13657,7 @@ struct write_replace_warning_request_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     fixed_bitstring<16, false, true>&       msg_id();
@@ -13722,7 +13722,7 @@ struct write_replace_warning_resp_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     fixed_bitstring<16, false, true>&       msg_id();
@@ -13764,7 +13764,7 @@ struct kill_request_ies_container {
   // sequence methods
   kill_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13776,7 +13776,7 @@ struct kill_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13795,7 +13795,7 @@ struct kill_resp_ies_container {
   // sequence methods
   kill_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13807,7 +13807,7 @@ struct kill_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13825,7 +13825,7 @@ struct location_report_ies_container {
   // sequence methods
   location_report_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13837,7 +13837,7 @@ struct location_report_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13853,7 +13853,7 @@ struct location_report_ctrl_ies_container {
   // sequence methods
   location_report_ctrl_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13865,7 +13865,7 @@ struct location_report_ctrl_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13881,7 +13881,7 @@ struct location_report_fail_ind_ies_container {
   // sequence methods
   location_report_fail_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13893,7 +13893,7 @@ struct location_report_fail_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13908,7 +13908,7 @@ struct mmecp_relocation_ind_ies_container {
   // sequence methods
   mmecp_relocation_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13920,7 +13920,7 @@ struct mmecp_relocation_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13935,7 +13935,7 @@ struct mme_cfg_transfer_ies_container {
   // sequence methods
   mme_cfg_transfer_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13947,7 +13947,7 @@ struct mme_cfg_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13968,7 +13968,7 @@ struct mme_cfg_upd_ies_container {
   // sequence methods
   mme_cfg_upd_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13980,7 +13980,7 @@ struct mme_cfg_upd_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -13995,7 +13995,7 @@ struct mme_cfg_upd_ack_ies_container {
   // sequence methods
   mme_cfg_upd_ack_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14007,7 +14007,7 @@ struct mme_cfg_upd_ack_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14025,7 +14025,7 @@ struct mme_cfg_upd_fail_ies_container {
   // sequence methods
   mme_cfg_upd_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14037,7 +14037,7 @@ struct mme_cfg_upd_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14051,7 +14051,7 @@ struct mme_direct_info_transfer_ies_container {
   // sequence methods
   mme_direct_info_transfer_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14063,7 +14063,7 @@ struct mme_direct_info_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14079,7 +14079,7 @@ struct mme_status_transfer_ies_container {
   // sequence methods
   mme_status_transfer_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14091,7 +14091,7 @@ struct mme_status_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14106,7 +14106,7 @@ struct nas_delivery_ind_ies_container {
   // sequence methods
   nas_delivery_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14118,7 +14118,7 @@ struct nas_delivery_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14135,7 +14135,7 @@ struct nas_non_delivery_ind_ies_container {
   // sequence methods
   nas_non_delivery_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14147,7 +14147,7 @@ struct nas_non_delivery_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14165,7 +14165,7 @@ struct overload_start_ies_container {
   // sequence methods
   overload_start_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14177,7 +14177,7 @@ struct overload_start_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14192,7 +14192,7 @@ struct overload_stop_ies_container {
   // sequence methods
   overload_stop_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14204,7 +14204,7 @@ struct overload_stop_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14219,7 +14219,7 @@ struct pws_fail_ind_ies_container {
   // sequence methods
   pws_fail_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14231,7 +14231,7 @@ struct pws_fail_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14249,7 +14249,7 @@ struct pws_restart_ind_ies_container {
   // sequence methods
   pws_restart_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14261,7 +14261,7 @@ struct pws_restart_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14300,7 +14300,7 @@ struct paging_ies_container {
   // sequence methods
   paging_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14312,7 +14312,7 @@ struct paging_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14345,7 +14345,7 @@ struct path_switch_request_ies_container {
   // sequence methods
   path_switch_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14357,7 +14357,7 @@ struct path_switch_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14399,7 +14399,7 @@ struct path_switch_request_ack_ies_container {
   // sequence methods
   path_switch_request_ack_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14411,7 +14411,7 @@ struct path_switch_request_ack_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14429,7 +14429,7 @@ struct path_switch_request_fail_ies_container {
   // sequence methods
   path_switch_request_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14441,7 +14441,7 @@ struct path_switch_request_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14454,7 +14454,7 @@ struct private_ie_container_item_s {
   // sequence methods
   private_ie_container_item_s(private_ie_id_c id_, crit_e crit_);
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14464,7 +14464,7 @@ struct private_ie_container_empty_l {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 typedef private_ie_container_empty_l private_msg_ies_container;
@@ -14477,7 +14477,7 @@ struct private_msg_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14499,7 +14499,7 @@ struct reroute_nas_request_ies_container {
   // sequence methods
   reroute_nas_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14511,7 +14511,7 @@ struct reroute_nas_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14526,7 +14526,7 @@ struct reset_ies_container {
   // sequence methods
   reset_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14538,7 +14538,7 @@ struct reset_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14556,7 +14556,7 @@ struct reset_ack_ies_container {
   // sequence methods
   reset_ack_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14568,7 +14568,7 @@ struct reset_ack_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14582,7 +14582,7 @@ struct retrieve_ue_info_ies_container {
   // sequence methods
   retrieve_ue_info_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14594,7 +14594,7 @@ struct retrieve_ue_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14612,7 +14612,7 @@ struct s1_setup_fail_ies_container {
   // sequence methods
   s1_setup_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14624,7 +14624,7 @@ struct s1_setup_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14648,7 +14648,7 @@ struct s1_setup_request_ies_container {
   // sequence methods
   s1_setup_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14660,7 +14660,7 @@ struct s1_setup_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14685,7 +14685,7 @@ struct s1_setup_resp_ies_container {
   // sequence methods
   s1_setup_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14697,7 +14697,7 @@ struct s1_setup_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14714,7 +14714,7 @@ struct trace_fail_ind_ies_container {
   // sequence methods
   trace_fail_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14726,7 +14726,7 @@ struct trace_fail_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14742,7 +14742,7 @@ struct trace_start_ies_container {
   // sequence methods
   trace_start_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14754,7 +14754,7 @@ struct trace_start_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14772,7 +14772,7 @@ struct ue_cap_info_ind_ies_container {
   // sequence methods
   ue_cap_info_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14784,7 +14784,7 @@ struct ue_cap_info_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14803,7 +14803,7 @@ struct ue_context_mod_confirm_ies_container {
   // sequence methods
   ue_context_mod_confirm_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14815,7 +14815,7 @@ struct ue_context_mod_confirm_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14833,7 +14833,7 @@ struct ue_context_mod_fail_ies_container {
   // sequence methods
   ue_context_mod_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14845,7 +14845,7 @@ struct ue_context_mod_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14862,7 +14862,7 @@ struct ue_context_mod_ind_ies_container {
   // sequence methods
   ue_context_mod_ind_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14874,7 +14874,7 @@ struct ue_context_mod_ind_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14915,7 +14915,7 @@ struct ue_context_mod_request_ies_container {
   // sequence methods
   ue_context_mod_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14927,7 +14927,7 @@ struct ue_context_mod_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14944,7 +14944,7 @@ struct ue_context_mod_resp_ies_container {
   // sequence methods
   ue_context_mod_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14956,7 +14956,7 @@ struct ue_context_mod_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14971,7 +14971,7 @@ struct ue_context_release_cmd_ies_container {
   // sequence methods
   ue_context_release_cmd_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -14983,7 +14983,7 @@ struct ue_context_release_cmd_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15006,7 +15006,7 @@ struct ue_context_release_complete_ies_container {
   // sequence methods
   ue_context_release_complete_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15018,7 +15018,7 @@ struct ue_context_release_complete_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15036,7 +15036,7 @@ struct ue_context_release_request_ies_container {
   // sequence methods
   ue_context_release_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15048,7 +15048,7 @@ struct ue_context_release_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15066,7 +15066,7 @@ struct ue_context_resume_fail_ies_container {
   // sequence methods
   ue_context_resume_fail_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15078,7 +15078,7 @@ struct ue_context_resume_fail_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15097,7 +15097,7 @@ struct ue_context_resume_request_ies_container {
   // sequence methods
   ue_context_resume_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15109,7 +15109,7 @@ struct ue_context_resume_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15132,7 +15132,7 @@ struct ue_context_resume_resp_ies_container {
   // sequence methods
   ue_context_resume_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15144,7 +15144,7 @@ struct ue_context_resume_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15163,7 +15163,7 @@ struct ue_context_suspend_request_ies_container {
   // sequence methods
   ue_context_suspend_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15175,7 +15175,7 @@ struct ue_context_suspend_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15194,7 +15194,7 @@ struct ue_context_suspend_resp_ies_container {
   // sequence methods
   ue_context_suspend_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15206,7 +15206,7 @@ struct ue_context_suspend_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15226,7 +15226,7 @@ struct ue_info_transfer_ies_container {
   // sequence methods
   ue_info_transfer_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15238,7 +15238,7 @@ struct ue_info_transfer_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15255,7 +15255,7 @@ struct ue_radio_cap_match_request_ies_container {
   // sequence methods
   ue_radio_cap_match_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15267,7 +15267,7 @@ struct ue_radio_cap_match_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15285,7 +15285,7 @@ struct ue_radio_cap_match_resp_ies_container {
   // sequence methods
   ue_radio_cap_match_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15297,7 +15297,7 @@ struct ue_radio_cap_match_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15321,7 +15321,7 @@ struct ul_nas_transport_ies_container {
   // sequence methods
   ul_nas_transport_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15333,7 +15333,7 @@ struct ul_nas_transport_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15348,7 +15348,7 @@ struct ul_non_ueassociated_lp_pa_transport_ies_container {
   // sequence methods
   ul_non_ueassociated_lp_pa_transport_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15360,7 +15360,7 @@ struct ul_non_ueassociated_lp_pa_transport_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15386,7 +15386,7 @@ struct ul_s1cdma2000tunnelling_ies_container {
   // sequence methods
   ul_s1cdma2000tunnelling_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15398,7 +15398,7 @@ struct ul_s1cdma2000tunnelling_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15415,7 +15415,7 @@ struct ul_ueassociated_lp_pa_transport_ies_container {
   // sequence methods
   ul_ueassociated_lp_pa_transport_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15427,7 +15427,7 @@ struct ul_ueassociated_lp_pa_transport_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15458,7 +15458,7 @@ struct write_replace_warning_request_ies_container {
   // sequence methods
   write_replace_warning_request_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15470,7 +15470,7 @@ struct write_replace_warning_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15489,7 +15489,7 @@ struct write_replace_warning_resp_ies_container {
   // sequence methods
   write_replace_warning_resp_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15501,7 +15501,7 @@ struct write_replace_warning_resp_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -15544,7 +15544,7 @@ struct s1ap_elem_procs_class_minus1_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ho_required_s&                         ho_required();
@@ -15639,7 +15639,7 @@ struct s1ap_elem_procs_class_minus1_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ho_cmd_s&                            ho_required();
@@ -15734,7 +15734,7 @@ struct s1ap_elem_procs_class_minus1_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ho_prep_fail_s&                   ho_required();
@@ -15827,7 +15827,7 @@ struct s1ap_elem_procs_class_minus2_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ho_notify_s&                        ho_notify();
@@ -15965,7 +15965,7 @@ struct s1ap_elem_procs_class_minus2_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
 
   private:
@@ -16015,7 +16015,7 @@ struct s1ap_elem_procs_class_minus2_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
 
   private:
@@ -16096,7 +16096,7 @@ struct s1ap_elem_procs_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ho_required_s&                         ho_required();
@@ -16303,7 +16303,7 @@ struct s1ap_elem_procs_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ho_cmd_s&                            ho_required();
@@ -16426,7 +16426,7 @@ struct s1ap_elem_procs_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     ho_prep_fail_s&                   ho_required();
@@ -16477,7 +16477,7 @@ struct init_msg_s {
   s1ap_elem_procs_o::init_msg_c value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   bool        load_info_obj(const uint16_t& proc_code_);
 };
@@ -16503,7 +16503,7 @@ struct last_visited_eutran_cell_info_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     uint16_t&       time_ue_stayed_in_cell_enhanced_granularity();
@@ -16539,7 +16539,7 @@ struct last_visited_eutran_cell_info_ext_ies_container {
   // sequence methods
   last_visited_eutran_cell_info_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -16555,7 +16555,7 @@ struct last_visited_eutran_cell_info_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -16571,7 +16571,7 @@ struct last_visited_geran_cell_info_c {
   // choice methods
   types       type() const { return types::undefined; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -16592,7 +16592,7 @@ struct last_visited_cell_item_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   last_visited_eutran_cell_info_s& e_utran_cell()
@@ -16659,7 +16659,7 @@ struct multi_cell_load_report_request_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -16680,7 +16680,7 @@ struct multi_cell_load_report_resp_item_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   eutran_resp_s& eutran_resp()
@@ -16767,7 +16767,7 @@ struct report_cell_list_item_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -16781,7 +16781,7 @@ struct successful_outcome_s {
   s1ap_elem_procs_o::successful_outcome_c value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   bool        load_info_obj(const uint16_t& proc_code_);
 };
@@ -16793,7 +16793,7 @@ struct unsuccessful_outcome_s {
   s1ap_elem_procs_o::unsuccessful_outcome_c value;
 
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   bool        load_info_obj(const uint16_t& proc_code_);
 };
@@ -16815,7 +16815,7 @@ struct s1ap_pdu_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   init_msg_s& init_msg()
@@ -16938,7 +16938,7 @@ struct so_ntransfer_cause_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   cell_load_report_cause_e& cell_load_report()
@@ -17081,7 +17081,7 @@ struct so_ntransfer_request_container_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   multi_cell_load_report_request_s& multi_cell_load_report()
@@ -17215,7 +17215,7 @@ struct so_ntransfer_resp_container_c {
   void        set(types::options e = types::nulltype);
   types       type() const { return type_; }
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
   cell_load_report_resp_c& cell_load_report()
@@ -17309,7 +17309,7 @@ struct sourceenb_to_targetenb_transparent_container_ext_ies_o {
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(bit_ref& bref);
+    SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
     fixed_bitstring<32, false, true>&       mob_info();
@@ -17348,7 +17348,7 @@ struct sourceenb_to_targetenb_transparent_container_ext_ies_container {
   // sequence methods
   sourceenb_to_targetenb_transparent_container_ext_ies_container();
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -17368,7 +17368,7 @@ struct sourceenb_to_targetenb_transparent_container_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 
@@ -17387,7 +17387,7 @@ struct targetenb_to_sourceenb_transparent_container_s {
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(bit_ref& bref);
+  SRSASN_CODE unpack(cbit_ref& bref);
   void        to_json(json_writer& j) const;
 };
 

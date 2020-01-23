@@ -333,7 +333,7 @@ int test_mobility_class(mobility_test_params test_params)
   TESTASSERT(s1ap.last_ho_required.target_eci == cell2.eci);
   TESTASSERT(s1ap.last_ho_required.target_plmn.to_string() == "00101");
   {
-    asn1::bit_ref bref(s1ap.last_ho_required.rrc_container->msg, s1ap.last_ho_required.rrc_container->N_bytes);
+    asn1::cbit_ref bref(s1ap.last_ho_required.rrc_container->msg, s1ap.last_ho_required.rrc_container->N_bytes);
     asn1::rrc::ho_prep_info_s hoprep;
     TESTASSERT(hoprep.unpack(bref) == asn1::SRSASN_SUCCESS);
     ho_prep_info_r8_ies_s& hoprepr8 = hoprep.crit_exts.c1().ho_prep_info_r8();
