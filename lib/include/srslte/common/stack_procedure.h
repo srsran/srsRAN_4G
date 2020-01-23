@@ -189,7 +189,7 @@ public:
   bool              is_complete() const { return not is_empty() and ptr->is_complete(); }
   const ResultType* value() const { return is_success() ? ptr->value() : nullptr; }
   bool              is_empty() const { return ptr == nullptr; }
-  void              clear() { ptr->clear(); }
+  void              clear() { ptr.reset(); }
 
 private:
   std::shared_ptr<proc_result_t<ResultType> > ptr;
