@@ -213,7 +213,7 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
     // Wait until attachment. If doing a service request is already attached
     state = state_t::wait_attach;
     // wake up proc
-    return proc_outcome_t::repeat;
+    return step();
   } else {
     ProcError("Could not establish RRC connection\n");
     return proc_outcome_t::error;

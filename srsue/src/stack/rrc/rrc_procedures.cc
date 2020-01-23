@@ -91,14 +91,13 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
   }
 
   Info("Cell has no SIB1. Obtaining SIB1...\n");
-  si_acquire_fut = rrc_ptr->si_acquirer.get_future();
-  if (not rrc_ptr->si_acquirer.launch(0)) {
+  if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, 0)) {
     // disallow concurrent si_acquire
     Error("SI Acquire is already running...\n");
     return proc_outcome_t::error;
   }
   state = state_t::si_acquire;
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 proc_outcome_t rrc::cell_search_proc::react(const cell_search_event_t& event)
@@ -178,7 +177,7 @@ proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
     }
   }
 
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 proc_outcome_t rrc::si_acquire_proc::step()
@@ -261,7 +260,7 @@ proc_outcome_t rrc::serving_cell_config_proc::init(const std::vector<uint32_t>& 
 
   req_idx      = 0;
   search_state = search_state_t::next_sib;
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 proc_outcome_t rrc::serving_cell_config_proc::step()
@@ -273,13 +272,12 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
 
       if (not rrc_ptr->serving_cell->has_sib(required_sib)) {
         Info("Cell has no SIB%d. Obtaining SIB%d\n", required_sib + 1, required_sib + 1);
-        si_acquire_fut = rrc_ptr->si_acquirer.get_future();
-        if (not rrc_ptr->si_acquirer.launch(required_sib)) {
+        if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, required_sib)) {
           Error("SI Acquire is already running...\n");
           return proc_outcome_t::error;
         }
         search_state = search_state_t::si_acquire;
-        return proc_outcome_t::repeat;
+        return step();
       } else {
         // UE had SIB already. Handle its SIB
         Info("Cell has SIB%d\n", required_sib + 1);
@@ -313,7 +311,7 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
     // continue with remaining SIBs
     search_state = search_state_t::next_sib;
     req_idx++;
-    return proc_outcome_t::repeat;
+    return step();
   }
   return proc_outcome_t::yield;
 }
@@ -342,7 +340,7 @@ proc_outcome_t rrc::cell_selection_proc::init()
   neigh_index = 0;
   cs_result   = cs_result_t::no_cell;
   state       = search_state_t::cell_selection;
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
@@ -366,7 +364,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
       if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
         Info("Wait PHY to be in-synch\n");
         state = search_state_t::wait_in_sync;
-        return proc_outcome_t::repeat;
+        return step();
       } else {
         rrc_ptr->phy_sync_state = phy_unknown_sync;
         Error("Could not camp on serving cell.\n");
@@ -393,20 +391,18 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
 
   // If can not find any suitable cell, search again
   Info("Cell selection and reselection in IDLE did not find any suitable cell. Searching again\n");
-  cell_search_fut = rrc_ptr->cell_searcher.get_future();
-  if (not rrc_ptr->cell_searcher.launch()) {
+  if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
     return proc_outcome_t::error;
   }
   state = search_state_t::cell_search;
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_wait_in_sync()
 {
   if (rrc_ptr->phy_sync_state == phy_in_sync) {
     Info("PHY is in SYNC\n");
-    serv_cell_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
-    if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
+    if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, rrc_ptr->ue_required_sibs)) {
       return proc_outcome_t::error;
     }
     state = search_state_t::cell_config;
@@ -444,7 +440,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_config()
   // resume cell selection
   state = search_state_t::cell_selection;
   ++neigh_index;
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 proc_outcome_t rrc::cell_selection_proc::step()
@@ -480,13 +476,12 @@ rrc::plmn_search_proc::plmn_search_proc(rrc* parent_) : rrc_ptr(parent_), log_h(
 proc_outcome_t rrc::plmn_search_proc::init()
 {
   Info("Starting PLMN search\n");
-  nof_plmns       = 0;
-  cell_search_fut = rrc_ptr->cell_searcher.get_future();
-  if (not rrc_ptr->cell_searcher.launch()) {
+  nof_plmns = 0;
+  if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
     Error("Failed due to fail to init cell search...\n");
     return proc_outcome_t::error;
   }
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 /* NAS interface to search for available PLMNs.
@@ -529,14 +524,13 @@ proc_outcome_t rrc::plmn_search_proc::step()
     return proc_outcome_t::success;
   }
 
-  cell_search_fut = rrc_ptr->cell_searcher.get_future();
-  if (not rrc_ptr->cell_searcher.launch()) {
+  if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
     Error("Failed due to fail to init cell search...\n");
     return proc_outcome_t::error;
   }
 
   // run again
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
@@ -624,7 +618,7 @@ proc_outcome_t rrc::connection_request_proc::step()
     Info("Waiting for RRCConnectionSetup/Reject or expiry\n");
     rrc_ptr->dedicated_info_nas = std::move(dedicated_info_nas);
     state                       = state_t::wait_t300;
-    return proc_outcome_t::repeat;
+    return step();
 
   } else if (state == state_t::wait_t300) {
     // Wait until t300 stops due to RRCConnectionSetup/Reject or expiry
@@ -684,13 +678,12 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
     // timeAlignmentCommon applied in configure_serving_cell
 
     Info("Configuring serving cell...\n");
-    serv_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
-    if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
+    if (not rrc_ptr->serv_cell_cfg.launch(&serv_cfg_fut, rrc_ptr->ue_required_sibs)) {
       Error("Attach request failed to configure serving cell...\n");
       return proc_outcome_t::error;
     }
     state = state_t::config_serving_cell;
-    return proc_outcome_t::repeat;
+    return step();
   } else {
     switch (cs_ret) {
       case cs_result_t::same_cell:
@@ -721,7 +714,7 @@ proc_outcome_t rrc::process_pcch_proc::init(const asn1::rrc::paging_s& paging_)
   paging_idx = 0;
   state      = state_t::next_record;
   Info("starting...\n");
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 proc_outcome_t rrc::process_pcch_proc::step()
@@ -743,7 +736,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
             return proc_outcome_t::error;
           }
           state = state_t::nas_paging;
-          return proc_outcome_t::repeat;
+          return step();
         } else {
           Warning("Received paging while in CONNECT\n");
         }
@@ -757,8 +750,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
       rrc_ptr->serving_cell->reset_sibs();
 
       // create a serving cell config procedure and push it to callback list
-      serv_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
-      if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
+      if (not rrc_ptr->serv_cell_cfg.launch(&serv_cfg_fut, rrc_ptr->ue_required_sibs)) {
         Error("Failed to initiate a serving cell configuration procedure\n");
         return proc_outcome_t::error;
       }
@@ -767,7 +759,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
       return proc_outcome_t::success;
     }
     state = state_t::serv_cell_cfg;
-    return proc_outcome_t::repeat;
+    return step();
   } else if (state == state_t::nas_paging) {
     // wait for trigger
     return proc_outcome_t::yield;
@@ -799,7 +791,7 @@ proc_outcome_t rrc::process_pcch_proc::react(paging_complete e)
   paging_idx++;
   state = state_t::next_record;
   Info("Received paging complete event\n");
-  return proc_outcome_t::repeat;
+  return step();
 }
 
 /**************************************
@@ -841,8 +833,7 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
   Info("Starting...\n");
-  cell_selection_fut = rrc_ptr->cell_selector.get_future();
-  if (not rrc_ptr->cell_selector.launch()) {
+  if (not rrc_ptr->cell_selector.launch(&cell_selection_fut)) {
     Error("Failed to initiate a Cell Selection procedure...\n");
     return proc_outcome_t::error;
   }

@@ -216,7 +216,7 @@ static_assert(std::is_same<typename srslte::proc_t<custom_proc, std::string>::re
 int test_local_1()
 {
   /*
-   * Description: Test if a procedure is cleaned automatically after is lifetime has ended
+   * Description: Test if a procedure is cleaned automatically after its lifetime has ended
    */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
@@ -297,8 +297,9 @@ int test_callback_2()
   srslte::proc_t<custom_proc, int> proc;
   TESTASSERT(not proc.is_busy());
   srslte::proc_future_t<int> fut = proc.get_future();
+  TESTASSERT(fut.is_empty());
 
-  TESTASSERT(proc.launch(3));
+  TESTASSERT(proc.launch(&fut, 3));
   TESTASSERT(proc.is_busy());
   callbacks.add_proc(std::move(proc));
   TESTASSERT(callbacks.size() == 1);
@@ -391,8 +392,8 @@ int test_complete_callback_1()
       TESTASSERT(proc.then_always(continuation_task) == 0)
     }
 
-    srslte::proc_future_t<std::string> fut = proc.get_future();
-    TESTASSERT(proc.launch());
+    srslte::proc_future_t<std::string> fut;
+    TESTASSERT(proc.launch(&fut));
     TESTASSERT(proc.get()->exit_val == "init")
     while (proc.run()) {
       TESTASSERT(proc.get()->exit_val == "init")

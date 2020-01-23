@@ -30,7 +30,7 @@
 
 namespace srslte {
 
-enum class proc_outcome_t { repeat, yield, success, error };
+enum class proc_outcome_t { yield, success, error };
 
 /**************************************************************************************
  * helper functions for method optional overloading
@@ -184,11 +184,12 @@ class proc_future_t
 public:
   proc_future_t() = default;
   explicit proc_future_t(const std::shared_ptr<proc_result_t<ResultType> >& p_) : ptr(p_) {}
-  bool              is_error() const { return ptr->is_error(); }
-  bool              is_success() const { return ptr->is_success(); }
-  bool              is_complete() const { return ptr->is_complete(); }
+  bool              is_error() const { return not is_empty() and ptr->is_error(); }
+  bool              is_success() const { return not is_empty() and ptr->is_success(); }
+  bool              is_complete() const { return not is_empty() and ptr->is_complete(); }
   const ResultType* value() const { return is_success() ? ptr->value() : nullptr; }
-  bool              is_valid() const { return ptr != nullptr; }
+  bool              is_empty() const { return ptr == nullptr; }
+  void              clear() { ptr->clear(); }
 
 private:
   std::shared_ptr<proc_result_t<ResultType> > ptr;
@@ -210,8 +211,6 @@ using proc_future_state_t = proc_future_t<void>;
  *            executes a procedure "action" based on its current internal state,
  *            and return a proc_outcome_t variable with possible values:
  *            - yield - the procedure performed the action but hasn't completed yet.
- *            - repeat - the same as yield, but explicitly asking that run() should
- *            recall step() again (probably the procedure state has changed)
  *            - error - the procedure has finished unsuccessfully
  *            - success - the procedure has completed successfully
  ************************************************************************************/
@@ -223,9 +222,8 @@ public:
   //! common proc::run() interface. Returns true if procedure is still running
   bool run()
   {
-    proc_outcome_t outcome = proc_outcome_t::repeat;
-    while (is_busy() and outcome == proc_outcome_t::repeat) {
-      outcome = step();
+    if (is_busy()) {
+      proc_outcome_t outcome = step();
       handle_outcome(outcome);
     }
     return is_busy();
@@ -292,20 +290,21 @@ public:
 
   //! method to handle external events. "T" must have the method "T::react(const Event&)" for the trigger to take effect
   template <class Event>
-  void trigger(Event&& e)
+  bool trigger(Event&& e)
   {
     if (is_busy()) {
       proc_outcome_t outcome = proc_ptr->react(std::forward<Event>(e));
       handle_outcome(outcome);
-      if (outcome == proc_outcome_t::repeat) {
-        run();
-      }
     }
+    return is_busy();
   }
 
   //! returns an object which the user can use to check if the procedure has ended.
   proc_future_type get_future()
   {
+    if (is_idle()) {
+      return proc_future_type{};
+    }
     if (future_result == nullptr) {
       future_result = std::make_shared<proc_result_type>();
     }
@@ -326,16 +325,22 @@ public:
     proc_state              = proc_base_t::proc_status_t::on_going;
     proc_outcome_t init_ret = proc_ptr->init(std::forward<Args>(args)...);
     handle_outcome(init_ret);
-    switch (init_ret) {
-      case proc_outcome_t::error:
-        return false;
-      case proc_outcome_t::repeat:
-        run(); // call run right away
-        break;
-      default:
-        break;
+    return init_ret != proc_outcome_t::error;
+  }
+
+  //! launch a procedure, returning a future where the result is going to be saved
+  template <class... Args>
+  bool launch(proc_future_type* fut, Args&&... args)
+  {
+    if (is_busy()) {
+      fut->clear();
+      return fut;
     }
-    return true;
+    proc_state              = proc_base_t::proc_status_t::on_going;
+    *fut                    = get_future();
+    proc_outcome_t init_ret = proc_ptr->init(std::forward<Args>(args)...);
+    handle_outcome(init_ret);
+    return init_ret != proc_outcome_t::error;
   }
 
 protected:
