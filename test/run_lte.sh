@@ -127,7 +127,7 @@ then
 fi
 
 epc_args="$build_path/../srsepc/epc.conf.example --log.filename=./${nof_prb}prb_epc.log"
-enb_args="$build_path/../srsenb/enb.conf.example --rf.device_name=zmq --rf.device_args=\"fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=23.04e6\" --expert.nof_phy_threads=1 --expert.rrc_inactivity_timer=1000 --enb.n_prb=$nof_prb --log.filename=./${nof_prb}prb_enb.log"
+enb_args="$build_path/../srsenb/enb.conf.example --rf.device_name=zmq --rf.device_args=\"fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=23.04e6\" --expert.nof_phy_threads=1 --expert.rrc_inactivity_timer=1500 --enb.n_prb=$nof_prb --log.filename=./${nof_prb}prb_enb.log"
 ue_args="$build_path/../srsue/ue.conf.example --rf.device_name=zmq --rf.device_args=\"tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6\" --phy.nof_phy_threads=1  --gw.netns=$ue_netns --log.filename=./${nof_prb}prb_ue.log"
 
 # Remove existing log files
@@ -225,10 +225,10 @@ echo "Run DL ping"
 screen -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_dl.log ping $ip -c 3
 sleep 4
 
-# run UDP DL
+# run UDP DL (rate must not be more than max DL rate for 6 PRB
 echo "Run DL iperf"
-screen -dm -L -Logfile ./${nof_prb}prb_screenlog_iperf_dl.log iperf -c $ip -u -t 1 -i 1 -b 100M
-sleep 2
+screen -dm -L -Logfile ./${nof_prb}prb_screenlog_iperf_dl.log iperf -c $ip -u -t 1 -i 1 -b 1M
+sleep 3
 
 # Stop all running LTE components and remove netns
 kill_lte
@@ -267,8 +267,8 @@ fi
 
 # Check PRACH results
 num_prach=$(cat ./${nof_prb}prb_screenlog_srsenb.log | grep RACH | wc -l)
-if [ "$loss_rate" != "5" ] 2>/dev/null; then
-  echo "Error. Detected $num_prach PRACHs. But should be 5."
+if [ "$num_prach" != "5" ] 2>/dev/null; then
+  echo "Error. Detected $num_prach PRACH(s). But should be 5."
   exit 1
 fi
 
