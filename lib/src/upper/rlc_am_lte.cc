@@ -1715,14 +1715,22 @@ bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t*
   // Check for complete
   uint32_t                              so = 0;
   std::list<rlc_amd_rx_pdu_t>::iterator it, tmpit;
-  for (it = pdu->segments.begin(); it != pdu->segments.end(); it++) {
+  for (it = pdu->segments.begin(); it != pdu->segments.end(); /* Do not increment */) {
     // Check that there is no gap between last segment and current; overlap allowed
     if (so < it->header.so) {
+      // return
       return false;
     }
 
-    // Update segment offset it shall not go backwards
-    so = SRSLTE_MAX(so, it->header.so + it->buf->N_bytes);
+    // Check if segment is overlapped
+    if (it->header.so + it->buf->N_bytes <= so) {
+      // completely overlapped with previous segments, erase
+      it = pdu->segments.erase(it); // Returns next iterator
+    } else {
+      // Update segment offset it shall not go backwards
+      so = SRSLTE_MAX(so, it->header.so + it->buf->N_bytes);
+      it++; // Increments iterator
+    }
   }
 
   // Check for last segment flag available
