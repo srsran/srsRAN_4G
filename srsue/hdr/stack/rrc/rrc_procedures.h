@@ -36,12 +36,13 @@ public:
     phy_interface_rrc_lte::cell_search_ret_t cs_ret;
     phy_interface_rrc_lte::phy_cell_t        found_cell;
   };
-  enum class state_t { phy_cell_search, si_acquire };
+  enum class state_t { phy_cell_search, si_acquire, wait_measurement };
 
   explicit cell_search_proc(rrc* parent_);
   srslte::proc_outcome_t init();
   srslte::proc_outcome_t step();
   srslte::proc_outcome_t react(const cell_search_event_t& event);
+  srslte::proc_outcome_t check_sib();
 
   phy_interface_rrc_lte::cell_search_ret_t get_result() const { return search_result.cs_ret; }
   static const char*                       name() { return "Cell Search"; }

@@ -63,6 +63,8 @@ proc_outcome_t rrc::cell_search_proc::step()
     }
     Info("Completed successfully\n");
     return proc_outcome_t::success;
+  } else if (state == state_t::wait_measurement && std::isnormal(rrc_ptr->serving_cell->get_rsrp())) {
+    return check_sib();
   }
   return proc_outcome_t::yield;
 }
@@ -90,6 +92,17 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
     return proc_outcome_t::error;
   }
 
+  if (not std::isnormal(rrc_ptr->serving_cell->get_rsrp())) {
+    Info("No valid measurement found for the serving cell. Wait for valid measurement...\n");
+    state = state_t::wait_measurement;
+    return proc_outcome_t::yield;
+  }
+
+  return check_sib();
+}
+
+proc_outcome_t rrc::cell_search_proc::check_sib()
+{
   if (rrc_ptr->serving_cell->has_sib1()) {
     Info("Cell has SIB1\n");
     // What do we do????
