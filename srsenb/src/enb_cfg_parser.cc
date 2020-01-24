@@ -733,6 +733,19 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     }
   }
 
+  // If the cell list is empty, use default values from enb.conf to keep backwards compatibility
+  if (rrc_cfg->cell_list.empty()) {
+    rrc_cfg->cell_list.resize(1);
+    cell_cfg_t& cell_cfg  = rrc_cfg->cell_list[0];
+    cell_cfg.rf_port      = 0;
+    cell_cfg.cell_id      = 0;
+    cell_cfg.tac          = args->stack.s1ap.tac;
+    cell_cfg.pci          = args->enb.pci;
+    cell_cfg.root_seq_idx = rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx;
+    cell_cfg.dl_earfcn    = args->enb.dl_earfcn;
+    cell_cfg.ul_earfcn    = args->enb.ul_earfcn;
+  }
+
   // Configuration check
   for (auto it = rrc_cfg->cell_list.begin(); it != rrc_cfg->cell_list.end(); it++) {
     for (auto it2 = it + 1; it2 != rrc_cfg->cell_list.end(); it2++) {
