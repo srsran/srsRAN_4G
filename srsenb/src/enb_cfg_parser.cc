@@ -650,6 +650,20 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
   p.add_section(&mac_cnfg);
   p.add_section(&phy_cfg_);
   p.add_section(&rrc_cnfg);
+
+  // If the cell list is empty, use default values from enb.conf to keep backwards compatibility
+  if (rrc_cfg_->cell_list.empty()) {
+    rrc_cfg_->cell_list.resize(1);
+    cell_cfg_t& cell_cfg  = rrc_cfg_->cell_list[0];
+    cell_cfg.rf_port      = 0;
+    cell_cfg.cell_id      = 0;
+    cell_cfg.tac          = args_->stack.s1ap.tac;
+    cell_cfg.pci          = args_->enb.pci;
+    cell_cfg.root_seq_idx = rrc_cfg_->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx;
+    cell_cfg.dl_earfcn    = args_->enb.dl_earfcn;
+    cell_cfg.ul_earfcn    = args_->enb.ul_earfcn;
+  }
+
   return p.parse();
 }
 
@@ -731,19 +745,6 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
       cell_id_parser(scell.sched_cell_id, scellroot["scheduling_cell_id"]);
       scell.ul_allowed = (bool)scellroot["ul_allowed"];
     }
-  }
-
-  // If the cell list is empty, use default values from enb.conf to keep backwards compatibility
-  if (rrc_cfg->cell_list.empty()) {
-    rrc_cfg->cell_list.resize(1);
-    cell_cfg_t& cell_cfg  = rrc_cfg->cell_list[0];
-    cell_cfg.rf_port      = 0;
-    cell_cfg.cell_id      = 0;
-    cell_cfg.tac          = args->stack.s1ap.tac;
-    cell_cfg.pci          = args->enb.pci;
-    cell_cfg.root_seq_idx = rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx;
-    cell_cfg.dl_earfcn    = args->enb.dl_earfcn;
-    cell_cfg.ul_earfcn    = args->enb.ul_earfcn;
   }
 
   // Configuration check
