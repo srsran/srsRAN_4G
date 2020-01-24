@@ -326,10 +326,10 @@ void cc_worker::set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* d
   }
 }
 
-void cc_worker::work_ul(srslte_ul_sf_cfg_t* ul_sf_cfg, stack_interface_phy_lte::ul_sched_t* ul_grants)
+void cc_worker::work_ul(const srslte_ul_sf_cfg_t& ul_sf_cfg, stack_interface_phy_lte::ul_sched_t& ul_grants)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  ul_sf = *ul_sf_cfg;
+  ul_sf = ul_sf_cfg;
   log_h->step(ul_sf.tti);
 
   for (auto& ue : ue_db) {
@@ -340,38 +340,38 @@ void cc_worker::work_ul(srslte_ul_sf_cfg_t* ul_sf_cfg, stack_interface_phy_lte::
   srslte_enb_ul_fft(&enb_ul);
 
   // Decode pending UL grants for the tti they were scheduled
-  decode_pusch(ul_grants->pusch, ul_grants->nof_grants);
+  decode_pusch(ul_grants.pusch, ul_grants.nof_grants);
 
   // Decode remaining PUCCH ACKs not associated with PUSCH transmission and SR signals
   decode_pucch();
 }
 
-void cc_worker::work_dl(srslte_dl_sf_cfg_t*                  dl_sf_cfg,
-                        stack_interface_phy_lte::dl_sched_t* dl_grants,
-                        stack_interface_phy_lte::ul_sched_t* ul_grants,
+void cc_worker::work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
+                        stack_interface_phy_lte::dl_sched_t& dl_grants,
+                        stack_interface_phy_lte::ul_sched_t& ul_grants,
                         srslte_mbsfn_cfg_t*                  mbsfn_cfg)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  dl_sf = *dl_sf_cfg;
+  dl_sf = dl_sf_cfg;
 
   // Put base signals (references, PBCH, PCFICH and PSS/SSS) into the resource grid
   srslte_enb_dl_put_base(&enb_dl, &dl_sf);
 
   // Put DL grants to resource grid. PDSCH data will be encoded as well.
-  if (dl_sf_cfg->sf_type == SRSLTE_SF_NORM) {
-    encode_pdcch_dl(dl_grants->pdsch, dl_grants->nof_grants);
-    encode_pdsch(dl_grants->pdsch, dl_grants->nof_grants);
+  if (dl_sf_cfg.sf_type == SRSLTE_SF_NORM) {
+    encode_pdcch_dl(dl_grants.pdsch, dl_grants.nof_grants);
+    encode_pdsch(dl_grants.pdsch, dl_grants.nof_grants);
   } else {
     if (mbsfn_cfg->enable) {
-      encode_pmch(dl_grants->pdsch, mbsfn_cfg);
+      encode_pmch(dl_grants.pdsch, mbsfn_cfg);
     }
   }
 
   // Put UL grants to resource grid.
-  encode_pdcch_ul(ul_grants->pusch, ul_grants->nof_grants);
+  encode_pdcch_ul(ul_grants.pusch, ul_grants.nof_grants);
 
   // Put pending PHICH HARQ ACK/NACK indications into subframe
-  encode_phich(ul_grants->phich, ul_grants->nof_phich);
+  encode_phich(ul_grants.phich, ul_grants.nof_phich);
 
   // Generate signal and transmit
   srslte_enb_dl_gen_signal(&enb_dl);

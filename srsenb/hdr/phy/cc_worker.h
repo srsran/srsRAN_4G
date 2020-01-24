@@ -54,10 +54,10 @@ public:
   void start_plot();
 
   void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated);
-  void work_ul(srslte_ul_sf_cfg_t* ul_sf, stack_interface_phy_lte::ul_sched_t* ul_grants);
-  void work_dl(srslte_dl_sf_cfg_t*                  dl_sf_cfg,
-               stack_interface_phy_lte::dl_sched_t* dl_grants,
-               stack_interface_phy_lte::ul_sched_t* ul_grants,
+  void work_ul(const srslte_ul_sf_cfg_t& ul_sf, stack_interface_phy_lte::ul_sched_t& ul_grants);
+  void work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
+               stack_interface_phy_lte::dl_sched_t& dl_grants,
+               stack_interface_phy_lte::ul_sched_t& ul_grants,
                srslte_mbsfn_cfg_t*                  mbsfn_cfg);
 
   uint32_t get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);

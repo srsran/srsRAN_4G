@@ -70,8 +70,16 @@ void phy_common::set_nof_workers(uint32_t nof_workers_)
 
 void phy_common::reset()
 {
-  bzero(ul_grants, sizeof(stack_interface_phy_lte::ul_sched_t) * TTIMOD_SZ);
-  bzero(dl_grants, sizeof(stack_interface_phy_lte::dl_sched_t) * TTIMOD_SZ);
+  for (auto& q : dl_grants) {
+    for (auto& g : q) {
+      g = {};
+    }
+  }
+  for (auto& q : ul_grants) {
+    for (auto& g : q) {
+      g = {};
+    }
+  }
 }
 
 bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
@@ -93,7 +101,10 @@ bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
 
   // Create grants
   for (auto& q : dl_grants) {
-    q.resize(cell_list_.size());
+    q.resize(cell_list.size());
+  }
+  for (auto& q : ul_grants) {
+    q.resize(cell_list.size());
   }
 
   is_first_tx = true;

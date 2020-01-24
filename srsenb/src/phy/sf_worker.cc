@@ -191,7 +191,7 @@ void sf_worker::work_imp()
 
   // Process UL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
-    cc_workers[cc]->work_ul(&ul_sf, &phy->ul_grants[t_rx][cc]);
+    cc_workers[cc]->work_ul(ul_sf, phy->ul_grants[t_rx][cc]);
   }
 
   // Get DL scheduling for the TX TTI from MAC
@@ -228,7 +228,7 @@ void sf_worker::work_imp()
 
   // Process DL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
-    cc_workers[cc]->work_dl(&dl_sf, &phy->dl_grants[t_tx_dl][cc], &phy->ul_grants[t_tx_ul][cc], &mbsfn_cfg);
+    cc_workers[cc]->work_dl(dl_sf, phy->dl_grants[t_tx_dl][cc], phy->ul_grants[t_tx_ul][cc], &mbsfn_cfg);
   }
 
   // Get Transmission buffers
