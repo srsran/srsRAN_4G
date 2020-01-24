@@ -105,7 +105,7 @@ static inline void agc_enter_state_hold(srslte_agc_t* q)
   // Bound gain in dB
   float gain_db = q->gain_db + q->gain_offset_db;
   if (gain_db < q->min_gain_db) {
-    gain_db = q->min_gain_db + 5.0;
+    gain_db = q->min_gain_db;
     INFO("Warning: Rx signal strength is too high. Forcing minimum Rx gain %.2fdB\n", gain_db);
   } else if (gain_db > q->max_gain_db) {
     gain_db = q->max_gain_db;
