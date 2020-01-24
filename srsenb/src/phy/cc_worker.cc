@@ -94,7 +94,7 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
   uint32_t      sf_len  = SRSLTE_SF_LEN_PRB(nof_prb);
 
   // Init cell here
-  for (uint32_t izeof(cf_t) * (size_t)nsamplp = 0; p < SRSLTE_MAX_PORTS; p++) {
+  for (uint32_t p = 0; p < phy->get_nof_ports(cc_idx); p++) {
     signal_buffer_rx[p] = srslte_vec_cf_malloc(2 * sf_len);
     if (!signal_buffer_rx[p]) {
       ERROR("Error allocating memory\n");
