@@ -41,7 +41,7 @@ void dl_metric_rr::set_params(const sched_params_t& sched_params_)
   log_h = sched_params_.log_h;
 }
 
-void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched, uint32_t enb_cc_idx)
+void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched, uint32_t enb_cc_idx)
 {
   tti_alloc = tti_sched;
 
@@ -160,7 +160,7 @@ void ul_metric_rr::set_params(const sched_params_t& sched_params_)
   log_h = sched_params_.log_h;
 }
 
-void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched, uint32_t enb_cc_idx)
+void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched, uint32_t enb_cc_idx)
 {
   tti_alloc   = tti_sched;
   current_tti = tti_alloc->get_tti_tx_ul();

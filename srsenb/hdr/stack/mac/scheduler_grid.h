@@ -104,7 +104,7 @@ private:
 };
 
 //! manages a full TTI grid resources, namely CCE and DL/UL RB allocations
-class tti_grid_t
+class sf_grid_t
 {
 public:
   struct dl_ctrl_alloc_t {
@@ -148,7 +148,7 @@ private:
 };
 
 //! generic interface used by DL scheduler algorithm
-class dl_tti_sched_t
+class dl_sf_sched_itf
 {
 public:
   virtual alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) = 0;
@@ -159,7 +159,7 @@ public:
 };
 
 //! generic interface used by UL scheduler algorithm
-class ul_tti_sched_t
+class ul_sf_sched_itf
 {
 public:
   virtual alloc_outcome_t  alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc) = 0;
@@ -172,7 +172,7 @@ public:
  *               Converts the stored allocations' metadata to the scheduler UL/DL result
  *               Handles the generation of DCI formats
  */
-class tti_sched_result_t : public dl_tti_sched_t, public ul_tti_sched_t
+class sf_sched : public dl_sf_sched_itf, public ul_sf_sched_itf
 {
 public:
   struct ctrl_alloc_t {
@@ -249,23 +249,21 @@ public:
   const tti_params_t&            get_tti_params() const { return tti_params; }
 
 private:
-  bool            is_dl_alloc(sched_ue* user) const final;
-  bool            is_ul_alloc(sched_ue* user) const final;
-  ctrl_code_t     alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
-  alloc_outcome_t alloc_ul(sched_ue*                              user,
-                           ul_harq_proc::ul_alloc_t               alloc,
-                           tti_sched_result_t::ul_alloc_t::type_t alloc_type,
-                           uint32_t                               msg3 = 0);
-  int             generate_format1a(uint32_t         rb_start,
-                                    uint32_t         l_crb,
-                                    uint32_t         tbs,
-                                    uint32_t         rv,
-                                    uint16_t         rnti,
-                                    srslte_dci_dl_t* dci);
-  void            set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-  void            set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-  void            set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-  void            set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+  bool        is_dl_alloc(sched_ue* user) const final;
+  bool        is_ul_alloc(sched_ue* user) const final;
+  ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
+  alloc_outcome_t
+       alloc_ul(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, sf_sched::ul_alloc_t::type_t alloc_type, uint32_t msg3 = 0);
+  int  generate_format1a(uint32_t         rb_start,
+                         uint32_t         l_crb,
+                         uint32_t         tbs,
+                         uint32_t         rv,
+                         uint16_t         rnti,
+                         srslte_dci_dl_t* dci);
+  void set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+  void set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+  void set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+  void set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
 
   // consts
   const sched_params_t* sched_params = nullptr;
@@ -274,7 +272,7 @@ private:
 
   // internal state
   tti_params_t             tti_params{10241};
-  tti_grid_t               tti_alloc;
+  sf_grid_t                tti_alloc;
   std::vector<rar_alloc_t> rar_allocs;
   std::vector<bc_alloc_t>  bc_allocs;
   std::vector<dl_alloc_t>  data_allocs;

@@ -396,7 +396,7 @@ int sched::dl_sched(uint32_t tti, uint32_t cc_idx, sched_interface::dl_sched_res
   if (cc_idx < carrier_schedulers.size()) {
     // Compute scheduling Result for tti_rx
     pthread_rwlock_rdlock(&rwlock);
-    tti_sched_result_t* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    sf_sched* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
     pthread_rwlock_unlock(&rwlock);
 
     // copy result
@@ -418,7 +418,7 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
 
   if (cc_idx < carrier_schedulers.size()) {
     pthread_rwlock_rdlock(&rwlock);
-    tti_sched_result_t* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    sf_sched* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
     pthread_rwlock_unlock(&rwlock);
 
     // copy result

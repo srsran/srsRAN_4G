@@ -263,7 +263,7 @@ std::string pdcch_grid_t::result_to_string(bool verbose) const
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void tti_grid_t::init(const sched_params_t& sched_params_, uint32_t cc_idx_)
+void sf_grid_t::init(const sched_params_t& sched_params_, uint32_t cc_idx_)
 {
   sched_params = &sched_params_;
   log_h        = sched_params->log_h;
@@ -275,7 +275,7 @@ void tti_grid_t::init(const sched_params_t& sched_params_, uint32_t cc_idx_)
   pdcch_alloc.init(*sched_params);
 }
 
-void tti_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
+void sf_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
 {
   tti_params = &tti_params_;
 
@@ -289,7 +289,7 @@ void tti_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
 }
 
 //! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
-alloc_outcome_t tti_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user)
+alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user)
 {
   // Check RBG collision
   if ((dl_mask & alloc_mask).any()) {
@@ -316,7 +316,7 @@ alloc_outcome_t tti_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type,
 }
 
 //! Allocates CCEs and RBs for control allocs. It allocates RBs in a contiguous manner.
-tti_grid_t::dl_ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type)
+sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type)
 {
   rbg_range_t range;
   range.rbg_start = nof_rbgs - avail_rbg;
@@ -339,7 +339,7 @@ tti_grid_t::dl_ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_t
 }
 
 //! Allocates CCEs and RBs for a user DL data alloc.
-alloc_outcome_t tti_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
+alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits   = srslte_dci_format_sizeof(&sched_params->cfg->cell, nullptr, nullptr, dci_format);
@@ -347,7 +347,7 @@ alloc_outcome_t tti_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_
   return alloc_dl(aggr_level, alloc_type_t::DL_DATA, user_mask, user);
 }
 
-alloc_outcome_t tti_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, bool needs_pdcch)
+alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, bool needs_pdcch)
 {
   if (alloc.RB_start + alloc.L > ul_mask.size()) {
     return alloc_outcome_t::ERROR;
@@ -382,7 +382,7 @@ alloc_outcome_t tti_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void tti_sched_result_t::init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
+void sf_sched::init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
 {
   sched_params = &sched_params_;
   enb_cc_idx   = enb_cc_idx_;
@@ -390,7 +390,7 @@ void tti_sched_result_t::init(const sched_params_t& sched_params_, uint32_t enb_
   tti_alloc.init(*sched_params, 0);
 }
 
-void tti_sched_result_t::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
+void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
 {
   tti_params = tti_params_t{tti_rx_};
   tti_alloc.new_tti(tti_params, start_cfi);
@@ -408,7 +408,7 @@ void tti_sched_result_t::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
   bzero(&ul_sched_result, sizeof(ul_sched_result));
 }
 
-bool tti_sched_result_t::is_dl_alloc(sched_ue* user) const
+bool sf_sched::is_dl_alloc(sched_ue* user) const
 {
   for (const auto& a : data_allocs) {
     if (a.user_ptr == user) {
@@ -418,7 +418,7 @@ bool tti_sched_result_t::is_dl_alloc(sched_ue* user) const
   return false;
 }
 
-bool tti_sched_result_t::is_ul_alloc(sched_ue* user) const
+bool sf_sched::is_ul_alloc(sched_ue* user) const
 {
   for (const auto& a : ul_data_allocs) {
     if (a.user_ptr == user) {
@@ -428,7 +428,7 @@ bool tti_sched_result_t::is_ul_alloc(sched_ue* user) const
   return false;
 }
 
-tti_sched_result_t::ctrl_code_t tti_sched_result_t::alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti)
+sf_sched::ctrl_code_t sf_sched::alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti)
 {
   ctrl_alloc_t ctrl_alloc{};
 
@@ -441,7 +441,7 @@ tti_sched_result_t::ctrl_code_t tti_sched_result_t::alloc_dl_ctrl(uint32_t aggr_
   }
 
   /* Allocate space in the DL RBG and PDCCH grids */
-  tti_grid_t::dl_ctrl_alloc_t ret = tti_alloc.alloc_dl_ctrl(aggr_lvl, alloc_type);
+  sf_grid_t::dl_ctrl_alloc_t ret = tti_alloc.alloc_dl_ctrl(aggr_lvl, alloc_type);
   if (not ret.outcome) {
     return {ret.outcome, ctrl_alloc};
   }
@@ -456,7 +456,7 @@ tti_sched_result_t::ctrl_code_t tti_sched_result_t::alloc_dl_ctrl(uint32_t aggr_
   return {ret.outcome, ctrl_alloc};
 }
 
-alloc_outcome_t tti_sched_result_t::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
+alloc_outcome_t sf_sched::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
 {
   uint32_t    sib_len = sched_params->cfg->sibs[sib_idx].len;
   uint32_t    rv      = sched::get_rvidx(sib_ntx);
@@ -479,7 +479,7 @@ alloc_outcome_t tti_sched_result_t::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx
   return ret.first;
 }
 
-alloc_outcome_t tti_sched_result_t::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload)
+alloc_outcome_t sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload)
 {
   ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, paging_payload, SRSLTE_PRNTI);
   if (not ret.first) {
@@ -495,10 +495,10 @@ alloc_outcome_t tti_sched_result_t::alloc_paging(uint32_t aggr_lvl, uint32_t pag
   return ret.first;
 }
 
-tti_sched_result_t::rar_code_t tti_sched_result_t::alloc_rar(uint32_t                               aggr_lvl,
-                                                             const sched_interface::dl_sched_rar_t& rar_grant,
-                                                             uint32_t                               prach_tti,
-                                                             uint32_t                               buf_rar)
+sf_sched::rar_code_t sf_sched::alloc_rar(uint32_t                               aggr_lvl,
+                                         const sched_interface::dl_sched_rar_t& rar_grant,
+                                         uint32_t                               prach_tti,
+                                         uint32_t                               buf_rar)
 {
   // RA-RNTI = 1 + t_id + f_id
   // t_id = index of first subframe specified by PRACH (0<=t_id<10)
@@ -519,7 +519,7 @@ tti_sched_result_t::rar_code_t tti_sched_result_t::alloc_rar(uint32_t           
   return {ret.first, &rar_allocs.back()};
 }
 
-alloc_outcome_t tti_sched_result_t::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
+alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
 {
   if (is_dl_alloc(user)) {
     log_h->warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
@@ -543,10 +543,10 @@ alloc_outcome_t tti_sched_result_t::alloc_dl_user(sched_ue* user, const rbgmask_
   return alloc_outcome_t::SUCCESS;
 }
 
-alloc_outcome_t tti_sched_result_t::alloc_ul(sched_ue*                              user,
-                                             ul_harq_proc::ul_alloc_t               alloc,
-                                             tti_sched_result_t::ul_alloc_t::type_t alloc_type,
-                                             uint32_t                               mcs)
+alloc_outcome_t sf_sched::alloc_ul(sched_ue*                    user,
+                                   ul_harq_proc::ul_alloc_t     alloc,
+                                   sf_sched::ul_alloc_t::type_t alloc_type,
+                                   uint32_t                     mcs)
 {
   // Check whether user was already allocated
   if (is_ul_alloc(user)) {
@@ -572,12 +572,12 @@ alloc_outcome_t tti_sched_result_t::alloc_ul(sched_ue*                          
   return alloc_outcome_t::SUCCESS;
 }
 
-alloc_outcome_t tti_sched_result_t::alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc)
+alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc)
 {
   // check whether adaptive/non-adaptive retx/newtx
-  tti_sched_result_t::ul_alloc_t::type_t alloc_type;
-  ul_harq_proc* h        = user->get_ul_harq(get_tti_tx_ul(), user->get_cell_index(enb_cc_idx).second);
-  bool          has_retx = h->has_pending_retx();
+  sf_sched::ul_alloc_t::type_t alloc_type;
+  ul_harq_proc*                h        = user->get_ul_harq(get_tti_tx_ul(), user->get_cell_index(enb_cc_idx).second);
+  bool                         has_retx = h->has_pending_retx();
   if (has_retx) {
     ul_harq_proc::ul_alloc_t prev_alloc = h->get_alloc();
     if (prev_alloc.L == alloc.L and prev_alloc.RB_start == prev_alloc.L) {
@@ -592,12 +592,12 @@ alloc_outcome_t tti_sched_result_t::alloc_ul_user(sched_ue* user, ul_harq_proc::
   return alloc_ul(user, alloc, alloc_type);
 }
 
-alloc_outcome_t tti_sched_result_t::alloc_ul_msg3(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, uint32_t mcs)
+alloc_outcome_t sf_sched::alloc_ul_msg3(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, uint32_t mcs)
 {
   return alloc_ul(user, alloc, ul_alloc_t::MSG3, mcs);
 }
 
-void tti_sched_result_t::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
+void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
 {
   for (const auto& bc_alloc : bc_allocs) {
     sched_interface::dl_sched_bc_t* bc = &dl_sched_result.bc[dl_sched_result.nof_bc_elems];
@@ -666,7 +666,7 @@ void tti_sched_result_t::set_bc_sched_result(const pdcch_grid_t::alloc_result_t&
   }
 }
 
-void tti_sched_result_t::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
+void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
 {
   for (const auto& rar_alloc : rar_allocs) {
     sched_interface::dl_sched_rar_t* rar = &dl_sched_result.rar[dl_sched_result.nof_rar_elems];
@@ -713,7 +713,7 @@ void tti_sched_result_t::set_rar_sched_result(const pdcch_grid_t::alloc_result_t
   }
 }
 
-void tti_sched_result_t::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
+void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
 {
   for (const auto& data_alloc : data_allocs) {
     sched_interface::dl_sched_data_t* data = &dl_sched_result.data[dl_sched_result.nof_data_elems];
@@ -772,7 +772,7 @@ void tti_sched_result_t::set_dl_data_sched_result(const pdcch_grid_t::alloc_resu
   }
 }
 
-void tti_sched_result_t::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
+void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
 {
   /* Set UL data DCI locs and format */
   for (const auto& ul_alloc : ul_data_allocs) {
@@ -836,7 +836,7 @@ void tti_sched_result_t::set_ul_sched_result(const pdcch_grid_t::alloc_result_t&
   }
 }
 
-void tti_sched_result_t::generate_dcis()
+void sf_sched::generate_dcis()
 {
   /* Pick one of the possible DCI masks */
   pdcch_grid_t::alloc_result_t dci_result;
@@ -856,17 +856,17 @@ void tti_sched_result_t::generate_dcis()
   set_ul_sched_result(dci_result);
 }
 
-uint32_t tti_sched_result_t::get_nof_ctrl_symbols() const
+uint32_t sf_sched::get_nof_ctrl_symbols() const
 {
   return tti_alloc.get_cfi() + ((sched_params->cfg->cell.nof_prb <= 10) ? 1 : 0);
 }
 
-int tti_sched_result_t::generate_format1a(uint32_t         rb_start,
-                                          uint32_t         l_crb,
-                                          uint32_t         tbs_bytes,
-                                          uint32_t         rv,
-                                          uint16_t         rnti,
-                                          srslte_dci_dl_t* dci)
+int sf_sched::generate_format1a(uint32_t         rb_start,
+                                uint32_t         l_crb,
+                                uint32_t         tbs_bytes,
+                                uint32_t         rv,
+                                uint16_t         rnti,
+                                srslte_dci_dl_t* dci)
 {
   /* Calculate I_tbs for this TBS */
   int tbs = tbs_bytes * 8;

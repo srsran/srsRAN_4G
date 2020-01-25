@@ -32,30 +32,30 @@ class dl_metric_rr : public sched::metric_dl
 
 public:
   void set_params(const sched_params_t& sched_params_) final;
-  void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched, uint32_t cc_idx) final;
+  void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched, uint32_t cc_idx) final;
 
 private:
   bool          find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask);
   dl_harq_proc* allocate_user(sched_ue* user, uint32_t cc_idx);
 
-  srslte::log*    log_h     = nullptr;
-  dl_tti_sched_t* tti_alloc = nullptr;
+  srslte::log*     log_h     = nullptr;
+  dl_sf_sched_itf* tti_alloc = nullptr;
 };
 
 class ul_metric_rr : public sched::metric_ul
 {
 public:
   void set_params(const sched_params_t& sched_params_) final;
-  void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched, uint32_t cc_idx) final;
+  void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched, uint32_t cc_idx) final;
 
 private:
   bool          find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc);
   ul_harq_proc* allocate_user_newtx_prbs(sched_ue* user, uint32_t cc_idx);
   ul_harq_proc* allocate_user_retx_prbs(sched_ue* user, uint32_t cc_idx);
 
-  srslte::log*    log_h     = nullptr;
-  ul_tti_sched_t* tti_alloc = nullptr;
-  uint32_t        current_tti;
+  srslte::log*     log_h     = nullptr;
+  ul_sf_sched_itf* tti_alloc = nullptr;
+  uint32_t         current_tti;
 };
 
 } // namespace srsenb

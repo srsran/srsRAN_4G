@@ -34,7 +34,7 @@ namespace srsenb {
 
 bc_sched::bc_sched(const sched::cell_cfg_t& cfg_, srsenb::rrc_interface_mac* rrc_) : cfg(&cfg_), rrc(rrc_) {}
 
-void bc_sched::dl_sched(tti_sched_result_t* tti_sched)
+void bc_sched::dl_sched(sf_sched* tti_sched)
 {
   current_sf_idx = tti_sched->get_sf_idx();
   current_sfn    = tti_sched->get_sfn();
@@ -52,7 +52,7 @@ void bc_sched::dl_sched(tti_sched_result_t* tti_sched)
   alloc_paging(tti_sched);
 }
 
-void bc_sched::update_si_windows(tti_sched_result_t* tti_sched)
+void bc_sched::update_si_windows(sf_sched* tti_sched)
 {
   uint32_t tti_tx_dl = tti_sched->get_tti_tx_dl();
 
@@ -90,7 +90,7 @@ void bc_sched::update_si_windows(tti_sched_result_t* tti_sched)
   }
 }
 
-void bc_sched::alloc_sibs(tti_sched_result_t* tti_sched)
+void bc_sched::alloc_sibs(sf_sched* tti_sched)
 {
   for (uint32_t i = 0; i < pending_sibs.size(); i++) {
     if (cfg->sibs[i].len > 0 and pending_sibs[i].is_in_window and pending_sibs[i].n_tx < 4) {
@@ -112,7 +112,7 @@ void bc_sched::alloc_sibs(tti_sched_result_t* tti_sched)
   }
 }
 
-void bc_sched::alloc_paging(tti_sched_result_t* tti_sched)
+void bc_sched::alloc_paging(sf_sched* tti_sched)
 {
   /* Allocate DCIs and RBGs for paging */
   if (rrc != nullptr) {
@@ -144,7 +144,7 @@ ra_sched::ra_sched(const sched::cell_cfg_t& cfg_, srslte::log* log_, std::map<ui
 // Schedules RAR
 // On every call to this function, we schedule the oldest RAR which is still within the window. If outside the window we
 // discard it.
-void ra_sched::dl_sched(srsenb::tti_sched_result_t* tti_sched)
+void ra_sched::dl_sched(srsenb::sf_sched* tti_sched)
 {
   tti_tx_dl      = tti_sched->get_tti_tx_dl();
   rar_aggr_level = 2;
@@ -188,10 +188,10 @@ void ra_sched::dl_sched(srsenb::tti_sched_result_t* tti_sched)
     rar_grant.nof_grants++;
 
     // Try to schedule DCI + RBGs for RAR Grant
-    tti_sched_result_t::rar_code_t ret = tti_sched->alloc_rar(rar_aggr_level,
-                                                              rar_grant,
-                                                              rar.prach_tti,
-                                                              7 * rar_grant.nof_grants); // fixme: check RAR size
+    sf_sched::rar_code_t ret = tti_sched->alloc_rar(rar_aggr_level,
+                                                    rar_grant,
+                                                    rar.prach_tti,
+                                                    7 * rar_grant.nof_grants); // fixme: check RAR size
 
     // If we can allocate, schedule Msg3 and remove from pending
     if (!ret.first) {
@@ -218,7 +218,7 @@ void ra_sched::dl_sched(srsenb::tti_sched_result_t* tti_sched)
 }
 
 // Schedules Msg3
-void ra_sched::ul_sched(tti_sched_result_t* tti_sched)
+void ra_sched::ul_sched(sf_sched* tti_sched)
 {
   uint32_t pending_tti = tti_sched->get_tti_tx_ul() % TTIMOD_SZ;
 
@@ -283,7 +283,7 @@ sched::carrier_sched::carrier_sched(rrc_interface_mac*            rrc_,
   ue_db(ue_db_),
   enb_cc_idx(enb_cc_idx_)
 {
-  tti_dl_mask.resize(1, 0);
+  sf_dl_mask.resize(1, 0);
 }
 
 void sched::carrier_sched::reset()
@@ -319,7 +319,7 @@ void sched::carrier_sched::carrier_cfg(const sched_params_t& sched_params_)
   prach_mask.fill(cfg_->prach_freq_offset, cfg_->prach_freq_offset + 6);
 
   // Initiate the tti_scheduler for each TTI
-  for (tti_sched_result_t& tti_sched : tti_scheds) {
+  for (sf_sched& tti_sched : sf_scheds) {
     tti_sched.init(*sched_params, enb_cc_idx);
   }
 }
@@ -332,12 +332,12 @@ void sched::carrier_sched::set_metric(sched::metric_dl* dl_metric_, sched::metri
 
 void sched::carrier_sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 {
-  tti_dl_mask.assign(tti_mask, tti_mask + nof_sfs);
+  sf_dl_mask.assign(tti_mask, tti_mask + nof_sfs);
 }
 
-tti_sched_result_t* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
+sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
 {
-  tti_sched_result_t* tti_sched = get_tti_sched(tti_rx);
+  sf_sched* tti_sched = get_sf_sched(tti_rx);
 
   // if it is the first time tti is run, reset vars
   if (tti_rx != tti_sched->get_tti_rx()) {
@@ -351,7 +351,7 @@ tti_sched_result_t* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     generate_phich(tti_sched);
 
     /* Schedule DL control data */
-    if (tti_dl_mask[tti_sched->get_tti_tx_dl() % tti_dl_mask.size()] == 0) {
+    if (sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0) {
       /* Schedule Broadcast data (SIB and paging) */
       bc_sched_ptr->dl_sched(tti_sched);
 
@@ -383,7 +383,7 @@ tti_sched_result_t* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
   return tti_sched;
 }
 
-void sched::carrier_sched::generate_phich(tti_sched_result_t* tti_sched)
+void sched::carrier_sched::generate_phich(sf_sched* tti_sched)
 {
   // Allocate user PHICHs
   uint32_t nof_phich_elems = 0;
@@ -415,9 +415,9 @@ void sched::carrier_sched::generate_phich(tti_sched_result_t* tti_sched)
   tti_sched->ul_sched_result.nof_phich_elems = nof_phich_elems;
 }
 
-void sched::carrier_sched::alloc_dl_users(tti_sched_result_t* tti_result)
+void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
 {
-  if (tti_dl_mask[tti_result->get_tti_tx_dl() % tti_dl_mask.size()] != 0) {
+  if (sf_dl_mask[tti_result->get_tti_tx_dl() % sf_dl_mask.size()] != 0) {
     return;
   }
 
@@ -437,7 +437,7 @@ void sched::carrier_sched::alloc_dl_users(tti_sched_result_t* tti_result)
   dl_metric->sched_users(*ue_db, tti_result, enb_cc_idx);
 }
 
-int sched::carrier_sched::alloc_ul_users(tti_sched_result_t* tti_sched)
+int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
 {
   uint32_t   tti_tx_ul = tti_sched->get_tti_tx_ul();
   prbmask_t& ul_mask   = tti_sched->get_ul_mask();

@@ -527,7 +527,7 @@ int sched_tester::assert_no_empty_allocs()
  */
 int sched_tester::test_tti_result()
 {
-  const srsenb::tti_sched_result_t* tti_sched = carrier_schedulers[0]->get_tti_sched_view(tti_data.tti_rx);
+  const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched(tti_data.tti_rx);
 
   // Helper Function: checks if there is any collision. If not, fills the mask
   auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
@@ -588,7 +588,7 @@ int sched_tester::test_tti_result()
   }
 
   /* verify if sched_result "used_cce" coincide with sched "used_cce" */
-  auto* tti_alloc = carrier_schedulers[0]->get_tti_sched_view(tti_data.tti_rx);
+  auto* tti_alloc = carrier_schedulers[0]->get_sf_sched(tti_data.tti_rx);
   if (tti_data.used_cce != tti_alloc->get_pdcch_mask()) {
     std::string mask_str = tti_alloc->get_pdcch_mask().to_string();
     TESTERROR("[TESTER] The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), tti_data.used_cce.to_hex().c_str());
@@ -793,7 +793,7 @@ int sched_tester::test_sibs()
 
 int sched_tester::test_collisions()
 {
-  const srsenb::tti_sched_result_t* tti_sched = carrier_schedulers[0]->get_tti_sched_view(tti_data.tti_rx);
+  const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched(tti_data.tti_rx);
 
   srsenb::prbmask_t ul_allocs(cfg.cell.nof_prb);
 
@@ -937,7 +937,7 @@ int sched_tester::test_collisions()
       rbgmask.reset(i);
     }
   }
-  if (rbgmask != carrier_schedulers[0]->get_tti_sched_view(tti_data.tti_rx)->get_dl_mask()) {
+  if (rbgmask != carrier_schedulers[0]->get_sf_sched(tti_data.tti_rx)->get_dl_mask()) {
     TESTERROR("[TESTER] The UL PRB mask and the scheduler result UL mask are not consistent\n");
   }
   return SRSLTE_SUCCESS;

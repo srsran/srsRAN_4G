@@ -33,26 +33,23 @@ class sched::carrier_sched
 {
 public:
   explicit carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t enb_cc_idx_);
-  void                reset();
-  void                carrier_cfg(const sched_params_t& sched_params_);
-  void                set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_);
-  void                set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
-  tti_sched_result_t* generate_tti_result(uint32_t tti_rx);
-  int                 dl_rach_info(dl_sched_rar_info_t rar_info);
+  void      reset();
+  void      carrier_cfg(const sched_params_t& sched_params_);
+  void      set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_);
+  void      set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
+  sf_sched* generate_tti_result(uint32_t tti_rx);
+  int       dl_rach_info(dl_sched_rar_info_t rar_info);
 
   // getters
-  const ra_sched*           get_ra_sched() const { return ra_sched_ptr.get(); }
-  const tti_sched_result_t* get_tti_sched_view(uint32_t tti_rx) const
-  {
-    return &tti_scheds[tti_rx % tti_scheds.size()];
-  }
+  const ra_sched* get_ra_sched() const { return ra_sched_ptr.get(); }
+  const sf_sched* get_sf_sched(uint32_t tti_rx) const { return &sf_scheds[tti_rx % sf_scheds.size()]; }
 
 private:
-  void generate_phich(tti_sched_result_t* tti_sched);
+  void generate_phich(sf_sched* tti_sched);
   //! Compute DL scheduler result for given TTI
-  void alloc_dl_users(tti_sched_result_t* tti_result);
+  void alloc_dl_users(sf_sched* tti_result);
   //! Compute UL scheduler result for given TTI
-  int alloc_ul_users(tti_sched_result_t* tti_sched);
+  int alloc_ul_users(sf_sched* tti_sched);
 
   // args
   const sched_params_t*         sched_params = nullptr;
@@ -68,9 +65,9 @@ private:
   prbmask_t pucch_mask;
 
   // TTI result storage and management
-  std::array<tti_sched_result_t, TTIMOD_SZ> tti_scheds;
-  tti_sched_result_t*  get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % tti_scheds.size()]; }
-  std::vector<uint8_t> tti_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
+  std::array<sf_sched, TTIMOD_SZ> sf_scheds;
+  sf_sched*                       get_sf_sched(uint32_t tti_rx) { return &sf_scheds[tti_rx % sf_scheds.size()]; }
+  std::vector<uint8_t>            sf_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
 
   std::unique_ptr<bc_sched> bc_sched_ptr;
   std::unique_ptr<ra_sched> ra_sched_ptr;
@@ -84,7 +81,7 @@ class bc_sched
 {
 public:
   explicit bc_sched(const sched::cell_cfg_t& cfg_, rrc_interface_mac* rrc_);
-  void dl_sched(tti_sched_result_t* tti_sched);
+  void dl_sched(sf_sched* tti_sched);
   void reset();
 
 private:
@@ -94,9 +91,9 @@ private:
     uint32_t n_tx         = 0;
   };
 
-  void update_si_windows(tti_sched_result_t* tti_sched);
-  void alloc_sibs(tti_sched_result_t* tti_sched);
-  void alloc_paging(tti_sched_result_t* tti_sched);
+  void update_si_windows(sf_sched* tti_sched);
+  void alloc_sibs(sf_sched* tti_sched);
+  void alloc_paging(sf_sched* tti_sched);
 
   // args
   const sched::cell_cfg_t* cfg;
@@ -126,8 +123,8 @@ public:
   };
 
   explicit ra_sched(const sched::cell_cfg_t& cfg_, srslte::log* log_, std::map<uint16_t, sched_ue>& ue_db_);
-  void                  dl_sched(tti_sched_result_t* tti_sched);
-  void                  ul_sched(tti_sched_result_t* tti_sched);
+  void                  dl_sched(sf_sched* tti_sched);
+  void                  ul_sched(sf_sched* tti_sched);
   int                   dl_rach_info(dl_sched_rar_info_t rar_info);
   void                  reset();
   const pending_msg3_t& find_pending_msg3(uint32_t tti) const;

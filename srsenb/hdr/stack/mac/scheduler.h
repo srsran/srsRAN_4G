@@ -88,16 +88,16 @@ public:
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_params(const sched_params_t& sched_params_)                                              = 0;
-    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched, uint32_t cc_idx) = 0;
+    virtual void set_params(const sched_params_t& sched_params_)                                               = 0;
+    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched, uint32_t cc_idx) = 0;
   };
 
   class metric_ul
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_params(const sched_params_t& sched_params_)                                              = 0;
-    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched, uint32_t cc_idx) = 0;
+    virtual void set_params(const sched_params_t& sched_params_)                                               = 0;
+    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched, uint32_t cc_idx) = 0;
   };
 
   /*************************************************************
