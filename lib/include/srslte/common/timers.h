@@ -100,7 +100,7 @@ class timer_handler
 
     void run()
     {
-      std::lock_guard<std::mutex> lock(parent->mutex);
+      std::unique_lock<std::mutex> lock(parent->mutex);
       if (not active) {
         ERROR("Error: calling run() for inactive timer id=%d\n", id());
         return;

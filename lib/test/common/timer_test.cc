@@ -199,7 +199,7 @@ int timers2_test3()
 static std::vector<timer_handler::unique_timer> timers2_test4_t;
 static srslte::tti_sync_cv                      timers2_test4_tti_sync1;
 static srslte::tti_sync_cv                      timers2_test4_tti_sync2;
-static uint32_t                                 duration = 10000;
+static uint32_t                                 duration = 1000;
 
 static void timers2_test4_thread()
 {
