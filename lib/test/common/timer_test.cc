@@ -21,6 +21,9 @@
 
 #include "srslte/common/timers.h"
 #include <iostream>
+#include <random>
+#include <srslte/common/tti_sync_cv.h>
+#include <thread>
 
 #define TESTASSERT(cond)                                                                                               \
   do {                                                                                                                 \
@@ -193,12 +196,115 @@ int timers2_test3()
   return SRSLTE_SUCCESS;
 }
 
+static std::vector<timer_handler::unique_timer> timers2_test4_t;
+static srslte::tti_sync_cv                      timers2_test4_tti_sync1;
+static srslte::tti_sync_cv                      timers2_test4_tti_sync2;
+static uint32_t                                 duration = 10000;
+
+static void timers2_test4_thread()
+{
+  std::mt19937                          mt19937(4);
+  std::uniform_real_distribution<float> real_dist(0.0f, 1.0f);
+  for (uint32_t d = 0; d < duration; d++) {
+    // make random events
+    for (uint32_t i = 1; i < timers2_test4_t.size(); i++) {
+      if (0.1f > real_dist(mt19937)) {
+        timers2_test4_t[i].run();
+      }
+      if (0.1f > real_dist(mt19937)) {
+        timers2_test4_t[i].stop();
+      }
+      if (0.1f > real_dist(mt19937)) {
+        timers2_test4_t[i].set(static_cast<uint32_t>(duration * real_dist(mt19937)));
+        timers2_test4_t[i].run();
+      }
+    }
+
+    // Send finished to main thread
+    timers2_test4_tti_sync1.increase();
+
+    // Wait to main thread to check results
+    timers2_test4_tti_sync2.wait();
+  }
+}
+
+int timers2_test4()
+{
+  timer_handler                         timers;
+  uint32_t                              nof_timers = 128;
+  std::mt19937                          mt19937(4);
+  std::uniform_real_distribution<float> real_dist(0.0f, 1.0f);
+
+  // Generate all timers and start them
+  for (uint32_t i = 0; i < nof_timers; i++) {
+    timers2_test4_t.push_back(timers.get_unique_timer());
+    timers2_test4_t[i].set(duration);
+    timers2_test4_t[i].run();
+  }
+
+  // Create side thread
+  std::thread thread(timers2_test4_thread);
+
+  for (uint32_t d = 0; d < duration; d++) {
+    // make random events
+    for (uint32_t i = 1; i < nof_timers; i++) {
+      if (0.1f > real_dist(mt19937)) {
+        timers2_test4_t[i].run();
+      }
+      if (0.1f > real_dist(mt19937)) {
+        timers2_test4_t[i].stop();
+      }
+      if (0.1f > real_dist(mt19937)) {
+        timers2_test4_t[i].set(static_cast<uint32_t>(duration * real_dist(mt19937)));
+        timers2_test4_t[i].run();
+      }
+    }
+
+    // first times, does not have event, it shall keep running
+    TESTASSERT(timers2_test4_t[0].is_running());
+
+    // Increment time
+    timers.step_all();
+
+    // wait second thread to finish events
+    timers2_test4_tti_sync1.wait();
+
+    // assert no timer got wrong values
+    for (uint32_t i = 0; i < nof_timers; i++) {
+      if (timers2_test4_t[i].is_running()) {
+        TESTASSERT(timers2_test4_t[i].value() <= timers2_test4_t[i].duration());
+      }
+    }
+
+    // Start new TTI
+    timers2_test4_tti_sync2.increase();
+  }
+
+  // Finish asynchronous thread
+  thread.join();
+
+  // First timer should have expired
+  TESTASSERT(timers2_test4_t[0].is_expired());
+  TESTASSERT(not timers2_test4_t[0].is_running());
+
+  // Run for the maximum period
+  for (uint32_t d = 0; d < duration; d++) {
+    timers.step_all();
+  }
+
+  // No timer should be running
+  for (uint32_t i = 0; i < nof_timers; i++) {
+    TESTASSERT(not timers2_test4_t[i].is_running());
+  }
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   TESTASSERT(timers2_test() == SRSLTE_SUCCESS);
   TESTASSERT(timers2_test2() == SRSLTE_SUCCESS);
   TESTASSERT(timers2_test3() == SRSLTE_SUCCESS);
-
+  TESTASSERT(timers2_test4() == SRSLTE_SUCCESS);
   printf("Success\n");
   return 0;
 }

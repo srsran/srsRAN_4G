@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <functional>
 #include <limits>
+#include <mutex>
 #include <queue>
 #include <stdint.h>
 #include <stdio.h>
@@ -99,6 +100,7 @@ class timer_handler
 
     void run()
     {
+      std::lock_guard<std::mutex> lock(parent->mutex);
       if (not active) {
         ERROR("Error: calling run() for inactive timer id=%d\n", id());
         return;
@@ -221,15 +223,25 @@ public:
 
   void step_all()
   {
+    std::unique_lock<std::mutex> lock(mutex);
     cur_time++;
     while (not running_timers.empty() and cur_time >= running_timers.top().timeout) {
       timer_impl* ptr = &timer_list[running_timers.top().timer_id];
       // if the timer_run and timer_impl timeouts do not match, it means that timer_impl::timeout was overwritten.
       // in such case, do not trigger
-      if (ptr->timeout == running_timers.top().timeout) {
-        ptr->trigger();
-      }
+      uint32_t timeout = running_timers.top().timeout;
       running_timers.pop();
+
+      if (ptr->timeout == timeout) {
+        // unlock mutex, it could be that the callback tries to run a timer too
+        lock.unlock();
+
+        // Call callback
+        ptr->trigger();
+
+        // Lock again to keep protecting the queue
+        lock.lock();
+      }
     }
   }
 
@@ -291,6 +303,7 @@ private:
   std::vector<timer_impl>        timer_list;
   std::priority_queue<timer_run> running_timers;
   uint32_t                       cur_time = 0;
+  std::mutex                     mutex; // Protect priority queue
 };
 
 } // namespace srslte
