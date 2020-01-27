@@ -504,7 +504,7 @@ alloc_outcome_t sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payloa
 
 alloc_outcome_t sf_sched::alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar)
 {
-  uint32_t buf_rar         = 7 * rar.nof_grants; // TODO: check RAR size
+  uint32_t buf_rar         = 7 * rar.nof_grants + 1; // 1+6 bytes per RAR subheader+body and 1 byte for Backoff
   uint32_t msg3_grant_size = 3;
   uint32_t total_msg3_size = msg3_grant_size * rar.nof_grants;
 
