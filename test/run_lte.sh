@@ -133,9 +133,27 @@ then
   exit 1
 fi
 
-epc_args="$build_path/../srsepc/epc.conf.example --log.filename=./${nof_prb}prb_epc.log"
-enb_args="$build_path/../srsenb/enb.conf.example --rf.device_name=zmq --rf.device_args=\"fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=${base_srate}\" --expert.nof_phy_threads=1 --expert.rrc_inactivity_timer=1500 --enb.n_prb=$nof_prb --log.filename=./${nof_prb}prb_enb.log"
-ue_args="$build_path/../srsue/ue.conf.example --rf.device_name=zmq --rf.device_args=\"tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=${base_srate}\" --phy.nof_phy_threads=1  --gw.netns=$ue_netns --log.filename=./${nof_prb}prb_ue.log --pcap.enable=true --pcap.filename=./${nof_prb}prb_ue.pcap"
+epc_args="$build_path/../srsepc/epc.conf.example \
+          --hss.db_file=$build_path/../srsepc/user_db.csv.example \
+          --log.filename=./${nof_prb}prb_epc.log"
+enb_args="$build_path/../srsenb/enb.conf.example \
+          --enb_files.sib_config=$build_path/../srsenb/sib.conf.example \
+          --enb_files.rr_config=$build_path/../srsenb/rr.conf.example \
+          --enb_files.drb_config=$build_path/../srsenb/drb.conf.example \
+          --rf.device_name=zmq \
+          --rf.device_args=\"fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=${base_srate}\" \
+          --expert.nof_phy_threads=1 \
+          --expert.rrc_inactivity_timer=1500 \
+          --enb.n_prb=$nof_prb \
+          --log.filename=./${nof_prb}prb_enb.log"
+ue_args="$build_path/../srsue/ue.conf.example \
+         --rf.device_name=zmq \
+         --rf.device_args=\"tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=${base_srate}\" \
+         --phy.nof_phy_threads=1  \
+         --gw.netns=$ue_netns \
+         --log.filename=./${nof_prb}prb_ue.log \
+         --pcap.enable=true \
+         --pcap.filename=./${nof_prb}prb_ue.pcap"
 
 # Remove existing log files
 log_files=$(ls -l | grep ${nof_prb}prb_)
