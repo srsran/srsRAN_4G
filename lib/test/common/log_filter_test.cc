@@ -24,6 +24,7 @@
 
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_file.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/test_common.h"
 #include <stdio.h>
 
@@ -141,17 +142,17 @@ int basic_hex_test()
 
 int test_log_singleton()
 {
-  {
-    log_filter   test_log("LAYER1");
-    srslte::log* log_ptr = srslte::log::get("LAYER1");
-    TESTASSERT(log_ptr == &test_log);
-    TESTASSERT(log_ptr->get_service_name() == "LAYER1");
-    test_log.set_service_name("LAYER2");
-    // log_ptr should now point to LAYER2
-    TESTASSERT(srslte::log::get("LAYER1") == nullptr);
-    TESTASSERT(srslte::log::get("LAYER2") == &test_log);
-  }
-  TESTASSERT(srslte::log::get("LAYER2") == nullptr);
+  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
+  srslte::log* log_ptr = srslte::logmap::get("LAYER1");
+  TESTASSERT(log_ptr->get_service_name() == "LAYER1");
+  TESTASSERT(log_ptr->get_level() == LOG_LEVEL_DEBUG);
+  // register logger manually
+  std::unique_ptr<srslte::log_filter> log_ptr2(new srslte::log_filter("LAYER2"));
+  log_ptr2->set_level(LOG_LEVEL_WARNING);
+  TESTASSERT(srslte::logmap::get("LAYER2")->get_level() == LOG_LEVEL_DEBUG);
+  srslte::logmap::get_instance()->register_log(std::move(log_ptr2));
+  TESTASSERT(srslte::logmap::get("LAYER2")->get_level() == LOG_LEVEL_WARNING);
+
   return SRSLTE_SUCCESS;
 }
 

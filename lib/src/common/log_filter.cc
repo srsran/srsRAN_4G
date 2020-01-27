@@ -60,7 +60,7 @@ log_filter::log_filter(std::string layer, logger* logger_, bool tti) : log()
 
 void log_filter::init(std::string layer, logger* logger_, bool tti)
 {
-  set_service_name(layer);
+  service_name = std::move(layer);
   logger_h     = logger_;
   do_tti       = tti;
 }
