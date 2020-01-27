@@ -298,7 +298,7 @@ private:
   std::vector<dl_alloc_t>    data_allocs;
   std::vector<ul_alloc_t>    ul_data_allocs;
   std::deque<pending_msg3_t> pending_msg3s;
-  uint32_t                   last_msg3_prb = 0;
+  uint32_t                   last_msg3_prb = 0, max_msg3_prb = 0;
 };
 
 } // namespace srsenb

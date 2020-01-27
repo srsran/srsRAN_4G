@@ -388,6 +388,7 @@ void sf_sched::init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
   enb_cc_idx   = enb_cc_idx_;
   log_h        = sched_params->log_h;
   tti_alloc.init(*sched_params, 0);
+  max_msg3_prb = std::max(6u, sched_params->cfg->cell.nof_prb - (uint32_t)sched_params->cfg->nrb_pucch);
 }
 
 void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
@@ -512,7 +513,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
     uint32_t total_msg3_size = msg3_grant_size * nof_grants;
 
     // check if there is enough space for Msg3, try again with a lower number of grants
-    if (last_msg3_prb + total_msg3_size > sched_params->cfg->cell.nof_prb - sched_params->cfg->nrb_pucch) {
+    if (last_msg3_prb + total_msg3_size > max_msg3_prb) {
       ret.first = alloc_outcome_t::RB_COLLISION;
       continue;
     }
