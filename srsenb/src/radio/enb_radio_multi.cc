@@ -30,19 +30,7 @@ enb_radio_multi::~enb_radio_multi() {}
 
 int enb_radio_multi::init(const srslte::rf_args_t& args_, srslte::phy_interface_radio* phy_)
 {
-  int ret = radio_multi::init(args_, phy_);
-
-  if (ret == SRSLTE_SUCCESS) {
-    ret = SRSLTE_ERROR;
-    if (radios.size() > 0) {
-      log.console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz\n", args_.dl_freq / 1e6, args_.ul_freq / 1e6);
-      radios.at(0)->set_tx_freq(args.nof_tx_ports, args.dl_freq);
-      radios.at(0)->set_rx_freq(args.nof_tx_ports, args.ul_freq);
-      ret = SRSLTE_SUCCESS;
-    }
-  }
-
-  return ret;
+  return radio_multi::init(args_, phy_);
 }
 
 } // namespace srsenb

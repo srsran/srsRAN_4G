@@ -79,27 +79,29 @@ public:
 
     return ret;
   };
-  uint32_t get_ul_earfcn(uint32_t cc_idx)
+  float get_ul_freq_hz(uint32_t cc_idx)
   {
-    uint32_t ret = 0;
+    float ret = 0.0f;
 
     if (cc_idx < cell_list.size()) {
-      ret = cell_list[cc_idx].ul_earfcn;
+      uint32_t earfcn = cell_list[cc_idx].ul_earfcn;
 
       // If there is no UL-EARFCN, deduce it from DL-EARFCN
-      if (ret == 0) {
-        ret = srslte_band_ul_earfcn(cell_list[cc_idx].dl_earfcn);
+      if (earfcn == 0) {
+        earfcn = srslte_band_ul_earfcn(cell_list[cc_idx].dl_earfcn);
       }
+
+      ret = 1e6f * srslte_band_fd(earfcn);
     }
 
     return ret;
   };
-  uint32_t get_dl_earfcn(uint32_t cc_idx)
+  float get_dl_freq_hz(uint32_t cc_idx)
   {
-    uint32_t ret = 0;
+    float ret = 0.0f;
 
     if (cc_idx < cell_list.size()) {
-      ret = cell_list[cc_idx].dl_earfcn;
+      ret = 1e6f * srslte_band_fd(cell_list[cc_idx].dl_earfcn);
     }
 
     return ret;

@@ -100,10 +100,11 @@ void txrx::run_thread()
 
   // Set Tx/Rx frequencies
   for (uint32_t cc_idx = 0; cc_idx < worker_com->get_nof_carriers(); cc_idx++) {
-    float    tx_freq_hz = 1e6 * srslte_band_fd(worker_com->get_dl_earfcn(cc_idx));
-    float    rx_freq_hz = 1e6 * srslte_band_fd(worker_com->get_ul_earfcn(cc_idx));
+    float    tx_freq_hz = worker_com->get_dl_freq_hz(cc_idx);
+    float    rx_freq_hz = worker_com->get_ul_freq_hz(cc_idx);
     uint32_t rf_port    = worker_com->get_rf_port(cc_idx);
     for (uint32_t i = 0; i < worker_com->get_nof_ports(cc_idx); i++) {
+      log_h->console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz\n", tx_freq_hz / 1e6f, rx_freq_hz / 1e6f);
       radio_h->set_tx_freq(0, rf_port + i, tx_freq_hz);
       radio_h->set_rx_freq(0, rf_port + i, rx_freq_hz);
     }
