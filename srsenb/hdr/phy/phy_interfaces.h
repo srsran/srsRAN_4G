@@ -34,8 +34,8 @@ struct phy_cell_cfg_t {
   srslte_cell_t cell;
   uint32_t      rf_port;
   uint32_t      cell_id;
-  uint32_t      dl_earfcn;
-  uint32_t      ul_earfcn;
+  float         dl_freq_hz;
+  float         ul_freq_hz;
   uint32_t      root_seq_idx;
 };
 

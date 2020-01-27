@@ -84,14 +84,7 @@ public:
     float ret = 0.0f;
 
     if (cc_idx < cell_list.size()) {
-      uint32_t earfcn = cell_list[cc_idx].ul_earfcn;
-
-      // If there is no UL-EARFCN, deduce it from DL-EARFCN
-      if (earfcn == 0) {
-        earfcn = srslte_band_ul_earfcn(cell_list[cc_idx].dl_earfcn);
-      }
-
-      ret = 1e6f * srslte_band_fd(earfcn);
+      ret = cell_list[cc_idx].ul_freq_hz;
     }
 
     return ret;
@@ -101,7 +94,7 @@ public:
     float ret = 0.0f;
 
     if (cc_idx < cell_list.size()) {
-      ret = 1e6f * srslte_band_fd(cell_list[cc_idx].dl_earfcn);
+      ret = cell_list[cc_idx].dl_freq_hz;
     }
 
     return ret;

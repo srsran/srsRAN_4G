@@ -661,7 +661,9 @@ int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_)
     cell_cfg.pci          = args_->enb.pci;
     cell_cfg.root_seq_idx = rrc_cfg_->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx;
     cell_cfg.dl_earfcn    = args_->enb.dl_earfcn;
+    cell_cfg.dl_freq_hz   = args_->rf.dl_freq;
     cell_cfg.ul_earfcn    = args_->enb.ul_earfcn;
+    cell_cfg.ul_freq_hz   = args_->rf.ul_freq;
   }
 
   return p.parse();
@@ -730,6 +732,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
         cell_cfg.root_seq_idx, cellroot, "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
     parse_default_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn", args->enb.dl_earfcn);
     parse_default_field(cell_cfg.ul_earfcn, cellroot, "ul_earfcn", args->enb.ul_earfcn);
+    parse_default_field(cell_cfg.dl_freq_hz, cellroot, "dl_freq", args->rf.dl_freq);
+    parse_default_field(cell_cfg.ul_freq_hz, cellroot, "ul_freq", args->rf.ul_freq);
 
     if (cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&rrc_cfg->meas_cfg, cellroot["meas_cell_list"]));
@@ -842,9 +846,22 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     phy_cell_cfg.cell.id        = cfg.pci;
     phy_cell_cfg.cell_id        = cfg.cell_id;
     phy_cell_cfg.root_seq_idx   = cfg.root_seq_idx;
-    phy_cell_cfg.dl_earfcn      = cfg.dl_earfcn;
-    phy_cell_cfg.ul_earfcn      = cfg.ul_earfcn;
     phy_cell_cfg.rf_port        = cfg.rf_port;
+
+    if (cfg.dl_freq_hz > 0) {
+      phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;
+    } else {
+      cfg.dl_freq_hz = 1e6f * srslte_band_fd(cfg.dl_earfcn);
+    }
+
+    if (cfg.ul_freq_hz > 0) {
+      phy_cell_cfg.ul_freq_hz = cfg.ul_freq_hz;
+    } else {
+      if (cfg.ul_earfcn == 0) {
+        cfg.ul_earfcn = srslte_band_ul_earfcn(cfg.dl_earfcn);
+      }
+      cfg.ul_freq_hz = 1e6f * srslte_band_fd(cfg.ul_earfcn);
+    }
     phy_cfg_->phy_cell_cfg.push_back(phy_cell_cfg);
   }
 
