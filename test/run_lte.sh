@@ -39,7 +39,7 @@ kill_lte(){
   sleep 4
   kill -SIGTERM $epc_pid
   sleep 1
-  
+
   # Force kill if they are still running
   if ps -p $ue_pid > /dev/null
   then
@@ -56,7 +56,7 @@ kill_lte(){
     echo "Killing EPC"
     kill -9 $epc_pid
   fi
-  
+
   if [ -f ./srsLTE.backtrace.crash ]; then
     echo "Rename backtrace"
     mv ./srsLTE.backtrace.crash srsLTE.backtrace.log
@@ -64,7 +64,7 @@ kill_lte(){
 
   # Delete netns
   ip netns delete $ue_netns
-  
+
   # Don't exit with return code ..
 }
 
@@ -144,7 +144,7 @@ if [ ! -z "$log_files" ]; then
   eval "rm -Rf ${nof_prb}prb_*.log"
 fi
 
-# Run srsEPC 
+# Run srsEPC
 echo "Starting srsEPC"
 screen -S srsepc -dm -L -Logfile ./${nof_prb}prb_screenlog_srsepc.log $build_path/srsepc/src/srsepc $epc_args
 sleep 3
