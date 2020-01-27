@@ -171,7 +171,8 @@ struct sched_tester : public srsenb::sched {
     uint32_t                          tti_tx_dl;
     uint32_t                          tti_tx_ul;
     uint32_t                          current_cfi;
-    srsenb::ra_sched::pending_msg3_t  ul_pending_msg3;
+    bool                              ul_pending_msg3_present = false;
+    srsenb::sf_sched::pending_msg3_t  ul_pending_msg3;
     srslte::bounded_bitset<128, true> used_cce;
     //    std::vector<bool>                                         used_cce;
     std::map<uint16_t, tester_user_results> ue_data;   ///< stores buffer state of each user
@@ -277,8 +278,13 @@ void sched_tester::new_test_tti(uint32_t tti_)
   } else {
     tti_data.ul_sf_idx = (tti_data.tti_tx_ul + 10240 - FDD_HARQ_DELAY_MS) % 10;
   }
-  tti_data.ul_pending_msg3 = carrier_schedulers[0]->get_ra_sched()->find_pending_msg3(tti_data.tti_tx_ul);
-  tti_data.current_cfi     = sched_params.sched_cfg.nof_ctrl_symbols;
+  auto& pending_msg3s              = carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx)->get_pending_msg3();
+  tti_data.ul_pending_msg3_present = false;
+  if (not pending_msg3s.empty()) {
+    tti_data.ul_pending_msg3_present = true;
+    tti_data.ul_pending_msg3         = pending_msg3s.front();
+  }
+  tti_data.current_cfi = sched_params.sched_cfg.nof_ctrl_symbols;
   tti_data.used_cce.resize(srslte_regs_pdcch_ncce(&regs, tti_data.current_cfi));
   tti_data.used_cce.reset();
   tti_data.ue_data.clear();
@@ -454,7 +460,7 @@ int sched_tester::test_ra()
             CONDERROR(tti_data.sched_result_ul.pusch[i].needs_pdcch,
                       "[TESTER] Msg3 allocations do not require PDCCH\n");
             CONDERROR(tti_data.ul_pending_msg3.rnti != rnti, "[TESTER] The UL pending msg3 RNTI did not match\n");
-            CONDERROR(not tti_data.ul_pending_msg3.enabled, "[TESTER] The UL pending msg3 RNTI did not match\n");
+            CONDERROR(not tti_data.ul_pending_msg3_present, "[TESTER] The UL pending msg3 RNTI did not match\n");
             userinfo.msg3_tti = tti_data.tti_tx_ul;
             msg3_count++;
           }
@@ -527,7 +533,7 @@ int sched_tester::assert_no_empty_allocs()
  */
 int sched_tester::test_tti_result()
 {
-  const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched(tti_data.tti_rx);
+  const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx);
 
   // Helper Function: checks if there is any collision. If not, fills the mask
   auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
@@ -578,17 +584,18 @@ int sched_tester::test_tti_result()
     try_cce_fill(rar.dci.location, "DL RAR");
     CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", rar.tbs);
     for (uint32_t j = 0; j < rar.nof_grants; ++j) {
-      const auto&                             msg3_grant = rar.msg3_grant[j];
-      const srsenb::ra_sched::pending_msg3_t& p          = carrier_schedulers[0]->get_ra_sched()->find_pending_msg3(
-          tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
-      CONDERROR(not p.enabled, "Pending Msg3 should have been set\n");
+      const auto& msg3_grant = rar.msg3_grant[j];
+      const auto& msg3_list =
+          carrier_schedulers[0]->get_sf_sched_ptr(tti_sched->get_tti_rx() + MSG3_DELAY_MS)->get_pending_msg3();
+      const auto& p = msg3_list.front();
+      CONDERROR(msg3_list.empty(), "Pending Msg3 should have been set\n");
       uint32_t rba = srslte_ra_type2_to_riv(p.L, p.n_prb, cfg.cell.nof_prb);
       CONDERROR(msg3_grant.grant.rba != rba, "Pending Msg3 RBA is not valid\n");
     }
   }
 
   /* verify if sched_result "used_cce" coincide with sched "used_cce" */
-  auto* tti_alloc = carrier_schedulers[0]->get_sf_sched(tti_data.tti_rx);
+  auto* tti_alloc = carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx);
   if (tti_data.used_cce != tti_alloc->get_pdcch_mask()) {
     std::string mask_str = tti_alloc->get_pdcch_mask().to_string();
     TESTERROR("[TESTER] The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), tti_data.used_cce.to_hex().c_str());
@@ -793,7 +800,7 @@ int sched_tester::test_sibs()
 
 int sched_tester::test_collisions()
 {
-  const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched(tti_data.tti_rx);
+  const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx);
 
   srsenb::prbmask_t ul_allocs(cfg.cell.nof_prb);
 
@@ -830,12 +837,12 @@ int sched_tester::test_collisions()
   }
 
   /* TEST: check collisions with PUCCH */
-  bool strict = cfg.cell.nof_prb != 6 or (not tti_data.is_prach_tti_tx_ul and not tti_data.ul_pending_msg3.enabled);
+  bool strict = cfg.cell.nof_prb != 6 or (not tti_data.is_prach_tti_tx_ul and not tti_data.ul_pending_msg3_present);
   try_ul_fill({0, (uint32_t)cfg.nrb_pucch}, "PUCCH", strict);
   try_ul_fill({cfg.cell.nof_prb - cfg.nrb_pucch, (uint32_t)cfg.nrb_pucch}, "PUCCH", strict);
 
   /* TEST: Check if there is a collision with Msg3 or Msg3 alloc data is not consistent */
-  if (tti_data.ul_pending_msg3.enabled) {
+  if (tti_data.ul_pending_msg3_present) {
     bool passed = false;
     for (uint32_t i = 0; i < tti_data.sched_result_ul.nof_dci_elems; ++i) {
       if (tti_data.ul_pending_msg3.rnti == tti_data.sched_result_ul.pusch[i].dci.rnti) {
@@ -937,7 +944,7 @@ int sched_tester::test_collisions()
       rbgmask.reset(i);
     }
   }
-  if (rbgmask != carrier_schedulers[0]->get_sf_sched(tti_data.tti_rx)->get_dl_mask()) {
+  if (rbgmask != carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx)->get_dl_mask()) {
     TESTERROR("[TESTER] The UL PRB mask and the scheduler result UL mask are not consistent\n");
   }
   return SRSLTE_SUCCESS;

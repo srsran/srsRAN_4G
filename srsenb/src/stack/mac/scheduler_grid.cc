@@ -395,17 +395,24 @@ void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
   tti_params = tti_params_t{tti_rx_};
   tti_alloc.new_tti(tti_params, start_cfi);
 
-  // internal state
-  rar_allocs.clear();
+  // reset sf result
+  pdcch_mask.reset();
+  pdcch_mask.resize(tti_alloc.get_pdcch_grid().nof_cces());
+  dl_sched_result = {};
+  ul_sched_result = {};
+
+  // reset internal state
   bc_allocs.clear();
+  rar_allocs.clear();
   data_allocs.clear();
   ul_data_allocs.clear();
 
-  // TTI result
-  pdcch_mask.reset();
-  pdcch_mask.resize(tti_alloc.get_pdcch_grid().nof_cces());
-  bzero(&dl_sched_result, sizeof(dl_sched_result));
-  bzero(&ul_sched_result, sizeof(ul_sched_result));
+  // setup first prb to be used for msg3 alloc
+  last_msg3_prb           = sched_params->cfg->nrb_pucch;
+  uint32_t tti_msg3_alloc = TTI_ADD(tti_params.tti_tx_ul, MSG3_DELAY_MS);
+  if (srslte_prach_tti_opportunity_config_fdd(sched_params->cfg->prach_config, tti_msg3_alloc, -1)) {
+    last_msg3_prb = std::max(last_msg3_prb, sched_params->cfg->prach_freq_offset + 6);
+  }
 }
 
 bool sf_sched::is_dl_alloc(sched_ue* user) const
@@ -495,28 +502,40 @@ alloc_outcome_t sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payloa
   return ret.first;
 }
 
-sf_sched::rar_code_t sf_sched::alloc_rar(uint32_t                               aggr_lvl,
-                                         const sched_interface::dl_sched_rar_t& rar_grant,
-                                         uint32_t                               prach_tti,
-                                         uint32_t                               buf_rar)
+alloc_outcome_t sf_sched::alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar)
 {
-  // RA-RNTI = 1 + t_id + f_id
-  // t_id = index of first subframe specified by PRACH (0<=t_id<10)
-  // f_id = index of the PRACH within subframe, in ascending order of freq domain (0<=f_id<6) (for FDD, f_id=0)
-  uint16_t ra_rnti = 1 + (uint16_t)(prach_tti % 10);
+  uint32_t buf_rar         = 7 * rar.nof_grants; // TODO: check RAR size
+  uint32_t msg3_grant_size = 3;
+  uint32_t total_msg3_size = msg3_grant_size * rar.nof_grants;
 
-  ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, buf_rar, ra_rnti);
-  if (not ret.first) {
-    Warning("SCHED: Could not allocate RAR for L=%d, cause=%s\n", aggr_lvl, ret.first.to_string());
-    return {ret.first, nullptr};
+  // check if there is enough space for Msg3
+  if (last_msg3_prb + total_msg3_size > sched_params->cfg->cell.nof_prb - sched_params->cfg->nrb_pucch) {
+    return alloc_outcome_t::RB_COLLISION;
   }
 
-  // Allocation successful
-  rar_alloc_t rar_alloc(ret.second);
-  rar_alloc.rar_grant = rar_grant;
-  rar_allocs.push_back(rar_alloc);
+  // allocate RBs and PDCCH
+  sf_sched::ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, buf_rar, rar.ra_rnti);
+  if (not ret.first) {
+    log_h->warning("SCHED: Could not allocate RAR for L=%d, cause=%s\n", aggr_lvl, ret.first.to_string());
+    return ret.first;
+  }
 
-  return {ret.first, &rar_allocs.back()};
+  // RAR allocation successful
+  sched_interface::dl_sched_rar_t rar_grant = {};
+  rar_grant.nof_grants                      = rar.nof_grants;
+  for (uint32_t i = 0; i < rar.nof_grants; ++i) {
+    rar_grant.msg3_grant[i].data            = rar.msg3_grant[i];
+    rar_grant.msg3_grant[i].grant.tpc_pusch = 3;
+    rar_grant.msg3_grant[i].grant.trunc_mcs = 0;
+    uint32_t rba = srslte_ra_type2_to_riv(msg3_grant_size, last_msg3_prb, sched_params->cfg->cell.nof_prb);
+    rar_grant.msg3_grant[i].grant.rba = rba;
+
+    last_msg3_prb += msg3_grant_size;
+  }
+
+  rar_allocs.emplace_back(ret.second, rar_grant);
+
+  return ret.first;
 }
 
 alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
@@ -590,11 +609,6 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t
   }
 
   return alloc_ul(user, alloc, alloc_type);
-}
-
-alloc_outcome_t sf_sched::alloc_ul_msg3(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, uint32_t mcs)
-{
-  return alloc_ul(user, alloc, ul_alloc_t::MSG3, mcs);
 }
 
 void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
@@ -672,24 +686,28 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
     sched_interface::dl_sched_rar_t* rar = &dl_sched_result.rar[dl_sched_result.nof_rar_elems];
 
     // Assign NCCE/L
-    rar->dci.location = dci_result[rar_alloc.dci_idx]->dci_pos;
+    rar->dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_range_t prb_range = prb_range_t(rar_alloc.rbg_range, sched_params->P);
-    int         tbs =
-        generate_format1a(prb_range.prb_start, prb_range.length(), rar_alloc.req_bytes, 0, rar_alloc.rnti, &rar->dci);
+    prb_range_t prb_range = prb_range_t(rar_alloc.alloc_data.rbg_range, sched_params->P);
+    int         tbs       = generate_format1a(prb_range.prb_start,
+                                prb_range.length(),
+                                rar_alloc.alloc_data.req_bytes,
+                                0,
+                                rar_alloc.alloc_data.rnti,
+                                &rar->dci);
     if (tbs <= 0) {
       log_h->warning("SCHED: Error RAR, ra_rnti_idx=%d, rbgs=(%d,%d), dci=(%d,%d)\n",
-                     rar_alloc.rnti,
-                     rar_alloc.rbg_range.rbg_start,
-                     rar_alloc.rbg_range.rbg_end,
+                     rar_alloc.alloc_data.rnti,
+                     rar_alloc.alloc_data.rbg_range.rbg_start,
+                     rar_alloc.alloc_data.rbg_range.rbg_end,
                      rar->dci.location.L,
                      rar->dci.location.ncce);
       continue;
     }
 
     // Setup RAR process
-    rar->tbs        = rar_alloc.req_bytes;
+    rar->tbs        = rar_alloc.alloc_data.req_bytes;
     rar->nof_grants = rar_alloc.rar_grant.nof_grants;
     std::copy(&rar_alloc.rar_grant.msg3_grant[0], &rar_alloc.rar_grant.msg3_grant[rar->nof_grants], rar->msg3_grant);
 
@@ -700,9 +718,9 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
       log_h->info("SCHED: RAR, temp_crnti=0x%x, ra-rnti=%d, rbgs=(%d,%d), dci=(%d,%d), rar_grant_rba=%d, "
                   "rar_grant_mcs=%d\n",
                   expected_rnti,
-                  rar_alloc.rnti,
-                  rar_alloc.rbg_range.rbg_start,
-                  rar_alloc.rbg_range.rbg_end,
+                  rar_alloc.alloc_data.rnti,
+                  rar_alloc.alloc_data.rbg_range.rbg_start,
+                  rar_alloc.alloc_data.rbg_range.rbg_end,
                   rar->dci.location.L,
                   rar->dci.location.ncce,
                   msg3_grant.grant.rba,
@@ -834,6 +852,12 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
 
     ul_sched_result.nof_dci_elems++;
   }
+}
+
+alloc_outcome_t sf_sched::alloc_msg3(const pending_msg3_t& msg3)
+{
+  pending_msg3s.push_back(msg3);
+  return alloc_outcome_t::SUCCESS;
 }
 
 void sf_sched::generate_dcis()

@@ -26,6 +26,7 @@
 #include "scheduler_ue.h"
 #include "srslte/common/bounded_bitset.h"
 #include "srslte/common/log.h"
+#include <deque>
 #include <vector>
 
 namespace srsenb {
@@ -182,10 +183,12 @@ public:
     uint32_t     req_bytes;
     alloc_type_t alloc_type;
   };
-  struct rar_alloc_t : public ctrl_alloc_t {
+  struct rar_alloc_t {
+    sf_sched::ctrl_alloc_t          alloc_data;
     sched_interface::dl_sched_rar_t rar_grant;
-    rar_alloc_t() = default;
-    explicit rar_alloc_t(const ctrl_alloc_t& c) : ctrl_alloc_t(c) {}
+    rar_alloc_t(const sf_sched::ctrl_alloc_t& c, const sched_interface::dl_sched_rar_t& r) : alloc_data(c), rar_grant(r)
+    {
+    }
   };
   struct bc_alloc_t : public ctrl_alloc_t {
     uint32_t rv      = 0;
@@ -210,7 +213,17 @@ public:
     bool                     is_msg3() const { return type == MSG3; }
     bool                     needs_pdcch() const { return type == NEWTX or type == ADAPT_RETX; }
   };
-  typedef std::pair<alloc_outcome_t, const rar_alloc_t*> rar_code_t;
+  struct pending_msg3_t {
+    uint16_t rnti  = 0;
+    uint32_t L     = 0;
+    uint32_t n_prb = 0;
+    uint32_t mcs   = 0;
+  };
+  struct pending_rar_t {
+    uint16_t                             ra_rnti    = 0;
+    uint32_t                             nof_grants = 0;
+    sched_interface::dl_sched_rar_info_t msg3_grant[sched_interface::MAX_RAR_LIST];
+  };
   typedef std::pair<alloc_outcome_t, const ctrl_alloc_t> ctrl_code_t;
 
   // TTI scheduler result
@@ -218,13 +231,21 @@ public:
   sched_interface::dl_sched_res_t dl_sched_result;
   sched_interface::ul_sched_res_t ul_sched_result;
 
-  void            init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_);
-  void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
+  void init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_);
+  void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
+
+  // DL alloc
   alloc_outcome_t alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
   alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
-  rar_code_t
-       alloc_rar(uint32_t aggr_lvl, const sched_interface::dl_sched_rar_t& rar_grant, uint32_t rar_tti, uint32_t buf_rar);
+  alloc_outcome_t alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant);
+
+  // UL alloc
+  alloc_outcome_t alloc_msg3(const pending_msg3_t& msg3);
+  alloc_outcome_t
+  alloc_ul(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, sf_sched::ul_alloc_t::type_t alloc_type, uint32_t mcs = 0);
+
   void generate_dcis();
+
   // dl_tti_sched itf
   alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
   uint32_t         get_tti_tx_dl() const final { return tti_params.tti_tx_dl; }
@@ -232,38 +253,36 @@ public:
   const rbgmask_t& get_dl_mask() const final { return tti_alloc.get_dl_mask(); }
   // ul_tti_sched itf
   alloc_outcome_t  alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc) final;
-  alloc_outcome_t  alloc_ul_msg3(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, uint32_t mcs);
   const prbmask_t& get_ul_mask() const final { return tti_alloc.get_ul_mask(); }
   uint32_t         get_tti_tx_ul() const final { return tti_params.tti_tx_ul; }
 
   // getters
-  const pdcch_mask_t&            get_pdcch_mask() const { return pdcch_mask; }
-  rbgmask_t&                     get_dl_mask() { return tti_alloc.get_dl_mask(); }
-  prbmask_t&                     get_ul_mask() { return tti_alloc.get_ul_mask(); }
-  const std::vector<ul_alloc_t>& get_ul_allocs() const { return ul_data_allocs; }
-  uint32_t                       get_cfi() const { return tti_alloc.get_cfi(); }
-  uint32_t                       get_tti_rx() const { return tti_params.tti_rx; }
-  uint32_t                       get_sfn() const { return tti_params.sfn; }
-  uint32_t                       get_sf_idx() const { return tti_params.sf_idx; }
-  uint32_t                       get_cc_idx() const { return enb_cc_idx; }
-  const tti_params_t&            get_tti_params() const { return tti_params; }
+  const pdcch_mask_t&               get_pdcch_mask() const { return pdcch_mask; }
+  rbgmask_t&                        get_dl_mask() { return tti_alloc.get_dl_mask(); }
+  prbmask_t&                        get_ul_mask() { return tti_alloc.get_ul_mask(); }
+  const std::vector<ul_alloc_t>&    get_ul_allocs() const { return ul_data_allocs; }
+  uint32_t                          get_cfi() const { return tti_alloc.get_cfi(); }
+  uint32_t                          get_tti_rx() const { return tti_params.tti_rx; }
+  uint32_t                          get_sfn() const { return tti_params.sfn; }
+  uint32_t                          get_sf_idx() const { return tti_params.sf_idx; }
+  const tti_params_t&               get_tti_params() const { return tti_params; }
+  std::deque<pending_msg3_t>&       get_pending_msg3() { return pending_msg3s; }
+  const std::deque<pending_msg3_t>& get_pending_msg3() const { return pending_msg3s; }
 
 private:
   bool        is_dl_alloc(sched_ue* user) const final;
   bool        is_ul_alloc(sched_ue* user) const final;
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
-  alloc_outcome_t
-       alloc_ul(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, sf_sched::ul_alloc_t::type_t alloc_type, uint32_t msg3 = 0);
-  int  generate_format1a(uint32_t         rb_start,
-                         uint32_t         l_crb,
-                         uint32_t         tbs,
-                         uint32_t         rv,
-                         uint16_t         rnti,
-                         srslte_dci_dl_t* dci);
-  void set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-  void set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-  void set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-  void set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+  int         generate_format1a(uint32_t         rb_start,
+                                uint32_t         l_crb,
+                                uint32_t         tbs,
+                                uint32_t         rv,
+                                uint16_t         rnti,
+                                srslte_dci_dl_t* dci);
+  void        set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+  void        set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+  void        set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+  void        set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
 
   // consts
   const sched_params_t* sched_params = nullptr;
@@ -271,12 +290,14 @@ private:
   uint32_t              enb_cc_idx   = 0;
 
   // internal state
-  tti_params_t             tti_params{10241};
-  sf_grid_t                tti_alloc;
-  std::vector<rar_alloc_t> rar_allocs;
-  std::vector<bc_alloc_t>  bc_allocs;
-  std::vector<dl_alloc_t>  data_allocs;
-  std::vector<ul_alloc_t>  ul_data_allocs;
+  tti_params_t               tti_params{10241};
+  sf_grid_t                  tti_alloc;
+  std::vector<bc_alloc_t>    bc_allocs;
+  std::vector<rar_alloc_t>   rar_allocs;
+  std::vector<dl_alloc_t>    data_allocs;
+  std::vector<ul_alloc_t>    ul_data_allocs;
+  std::deque<pending_msg3_t> pending_msg3s;
+  uint32_t                   last_msg3_prb = 0;
 };
 
 } // namespace srsenb

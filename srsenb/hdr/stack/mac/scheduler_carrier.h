@@ -42,7 +42,7 @@ public:
 
   // getters
   const ra_sched* get_ra_sched() const { return ra_sched_ptr.get(); }
-  const sf_sched* get_sf_sched(uint32_t tti_rx) const { return &sf_scheds[tti_rx % sf_scheds.size()]; }
+  const sf_sched* get_sf_sched_ptr(uint32_t tti_rx) const { return &sf_scheds[tti_rx % sf_scheds.size()]; }
 
 private:
   void generate_phich(sf_sched* tti_sched);
@@ -114,20 +114,13 @@ public:
   using dl_sched_rar_info_t  = sched_interface::dl_sched_rar_info_t;
   using dl_sched_rar_t       = sched_interface::dl_sched_rar_t;
   using dl_sched_rar_grant_t = sched_interface::dl_sched_rar_grant_t;
-  struct pending_msg3_t {
-    bool     enabled = false;
-    uint16_t rnti    = 0;
-    uint32_t L       = 0;
-    uint32_t n_prb   = 0;
-    uint32_t mcs     = 0;
-  };
 
   explicit ra_sched(const sched::cell_cfg_t& cfg_, srslte::log* log_, std::map<uint16_t, sched_ue>& ue_db_);
-  void                  dl_sched(sf_sched* tti_sched);
-  void                  ul_sched(sf_sched* tti_sched);
-  int                   dl_rach_info(dl_sched_rar_info_t rar_info);
-  void                  reset();
-  const pending_msg3_t& find_pending_msg3(uint32_t tti) const;
+  void dl_sched(sf_sched* tti_sched);
+  void ul_sched(sf_sched* tti_sched);
+  int  dl_rach_info(dl_sched_rar_info_t rar_info);
+  void reset();
+  void sched_msg3(sf_sched* sf_msg3_sched, const sched_interface::dl_sched_res_t& dl_sched_result);
 
 private:
   // args
@@ -135,10 +128,8 @@ private:
   const sched::cell_cfg_t*      cfg   = nullptr;
   std::map<uint16_t, sched_ue>* ue_db = nullptr;
 
-  std::queue<dl_sched_rar_info_t>       pending_rars;
-  std::array<pending_msg3_t, TTIMOD_SZ> pending_msg3;
-  uint32_t                              tti_tx_dl      = 0;
-  uint32_t                              rar_aggr_level = 2;
+  std::deque<sf_sched::pending_rar_t> pending_rars;
+  uint32_t                            rar_aggr_level = 2;
 };
 
 } // namespace srsenb

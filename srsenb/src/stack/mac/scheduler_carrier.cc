@@ -146,101 +146,68 @@ ra_sched::ra_sched(const sched::cell_cfg_t& cfg_, srslte::log* log_, std::map<ui
 // discard it.
 void ra_sched::dl_sched(srsenb::sf_sched* tti_sched)
 {
-  tti_tx_dl      = tti_sched->get_tti_tx_dl();
-  rar_aggr_level = 2;
+  uint32_t tti_tx_dl = tti_sched->get_tti_tx_dl();
+  rar_aggr_level     = 2;
 
-  // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
-  while (!pending_rars.empty()) {
-    dl_sched_rar_info_t rar = pending_rars.front();
-    if (not sched_utils::is_in_tti_interval(tti_tx_dl, rar.prach_tti + 3, rar.prach_tti + 3 + cfg->prach_rar_window)) {
-      if (tti_tx_dl >= rar.prach_tti + 3 + cfg->prach_rar_window) {
+  while (not pending_rars.empty()) {
+    sf_sched::pending_rar_t& rar       = pending_rars.front();
+    uint32_t                 prach_tti = rar.msg3_grant[0].prach_tti;
+
+    // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
+    if (not sched_utils::is_in_tti_interval(tti_tx_dl, prach_tti + 3, prach_tti + 3 + cfg->prach_rar_window)) {
+      if (tti_tx_dl >= prach_tti + 3 + cfg->prach_rar_window) {
         log_h->console("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
-                       rar.prach_tti,
+                       prach_tti,
                        cfg->prach_rar_window,
                        tti_tx_dl);
         log_h->error("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
-                     rar.prach_tti,
+                     prach_tti,
                      cfg->prach_rar_window,
                      tti_tx_dl);
         // Remove from pending queue and get next one if window has passed already
-        pending_rars.pop();
+        pending_rars.pop_front();
         continue;
       }
       // If window not yet started do not look for more pending RARs
       return;
     }
 
-    /* Since we do a fixed Msg3 scheduling for all RAR, we can only allocate 1 RAR per TTI.
-     * If we have enough space in the window, every call to this function we'll allocate 1 pending RAR and associate a
-     * Msg3 transmission
-     */
-    dl_sched_rar_t rar_grant;
-    uint32_t       L_prb = 3;
-    uint32_t       n_prb = cfg->nrb_pucch > 0 ? cfg->nrb_pucch : 2;
-    bzero(&rar_grant, sizeof(rar_grant));
-    uint32_t rba = srslte_ra_type2_to_riv(L_prb, n_prb, cfg->cell.nof_prb);
-
-    dl_sched_rar_grant_t* grant = &rar_grant.msg3_grant[0];
-    grant->grant.tpc_pusch      = 3;
-    grant->grant.trunc_mcs      = 0;
-    grant->grant.rba            = rba;
-    grant->data                 = rar;
-    rar_grant.nof_grants++;
-
     // Try to schedule DCI + RBGs for RAR Grant
-    sf_sched::rar_code_t ret = tti_sched->alloc_rar(rar_aggr_level,
-                                                    rar_grant,
-                                                    rar.prach_tti,
-                                                    7 * rar_grant.nof_grants); // fixme: check RAR size
+    alloc_outcome_t ret = tti_sched->alloc_rar(rar_aggr_level, rar);
 
     // If we can allocate, schedule Msg3 and remove from pending
-    if (!ret.first) {
+    if (not ret) {
       return;
     }
 
-    // Schedule Msg3 only if there is a requirement for Msg3 data
-    uint32_t pending_tti              = (tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY) % TTIMOD_SZ;
-    pending_msg3[pending_tti].enabled = true;
-    pending_msg3[pending_tti].rnti    = rar.temp_crnti; // TODO
-    pending_msg3[pending_tti].L       = L_prb;
-    pending_msg3[pending_tti].n_prb   = n_prb;
-    dl_sched_rar_grant_t* last_msg3   = &rar_grant.msg3_grant[rar_grant.nof_grants - 1];
-    pending_msg3[pending_tti].mcs     = last_msg3->grant.trunc_mcs;
-    log_h->info("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n",
-                rar.temp_crnti,
-                tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
-
     // Remove pending RAR
-    pending_rars.pop();
-
-    return;
+    pending_rars.pop_front();
   }
 }
 
 // Schedules Msg3
 void ra_sched::ul_sched(sf_sched* tti_sched)
 {
-  uint32_t pending_tti = tti_sched->get_tti_tx_ul() % TTIMOD_SZ;
+  /* schedule pending Msg3s */
+  while (not tti_sched->get_pending_msg3().empty()) {
+    sf_sched::pending_msg3_t& msg3 = tti_sched->get_pending_msg3().front();
 
-  // check if there is a Msg3 to allocate
-  if (not pending_msg3[pending_tti].enabled) {
-    return;
-  }
+    // Verify if user still exists
+    auto user_it = ue_db->find(msg3.rnti);
+    if (user_it == ue_db->end()) {
+      log_h->warning("SCHED: Msg3 allocated for user rnti=0x%x that no longer exists\n", msg3.rnti);
+      tti_sched->get_pending_msg3().pop_front();
+      continue;
+    }
 
-  uint16_t rnti    = pending_msg3[pending_tti].rnti;
-  auto     user_it = ue_db->find(rnti);
-  if (user_it == ue_db->end()) {
-    log_h->warning("SCHED: Msg3 allocated for user rnti=0x%x that no longer exists\n", rnti);
-    return;
-  }
+    // Allocate RBGs and HARQ for pending Msg3
+    ul_harq_proc::ul_alloc_t msg3_alloc = {msg3.n_prb, msg3.L};
+    if (not tti_sched->alloc_ul(&user_it->second, msg3_alloc, sf_sched::ul_alloc_t::MSG3, msg3.mcs)) {
+      log_h->warning("SCHED: Could not allocate msg3 within (%d,%d)\n", msg3.n_prb, msg3.n_prb + msg3.L);
+    }
 
-  /* Allocate RBGs and HARQ for Msg3 */
-  ul_harq_proc::ul_alloc_t msg3 = {pending_msg3[pending_tti].n_prb, pending_msg3[pending_tti].L};
-  if (not tti_sched->alloc_ul_msg3(&user_it->second, msg3, pending_msg3[pending_tti].mcs)) {
-    log_h->warning("SCHED: Could not allocate msg3 within (%d,%d)\n", msg3.RB_start, msg3.RB_start + msg3.L);
-    return;
+    tti_sched->get_pending_msg3().pop_front();
   }
-  pending_msg3[pending_tti].enabled = false;
 }
 
 int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
@@ -251,25 +218,56 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
               rar_info.temp_crnti,
               rar_info.ta_cmd,
               rar_info.msg3_size);
-  pending_rars.push(rar_info);
-  return 0;
+
+  // RA-RNTI = 1 + t_id + f_id
+  // t_id = index of first subframe specified by PRACH (0<=t_id<10)
+  // f_id = index of the PRACH within subframe, in ascending order of freq domain (0<=f_id<6) (for FDD, f_id=0)
+  uint16_t ra_rnti = 1 + (uint16_t)(rar_info.prach_tti % 10u);
+
+  // find pending rar with same RA-RNTI
+  for (sf_sched::pending_rar_t& r : pending_rars) {
+    if (r.ra_rnti == ra_rnti) {
+      r.msg3_grant[r.nof_grants] = rar_info;
+      r.nof_grants++;
+      return SRSLTE_SUCCESS;
+    }
+  }
+
+  // create new RAR
+  sf_sched::pending_rar_t p;
+  p.ra_rnti       = ra_rnti;
+  p.nof_grants    = 1;
+  p.msg3_grant[0] = rar_info;
+  pending_rars.push_back(p);
+
+  return SRSLTE_SUCCESS;
 }
 
 void ra_sched::reset()
 {
-  tti_tx_dl = 0;
-  for (auto& msg3 : pending_msg3) {
-    msg3 = {};
-  }
-  while (not pending_rars.empty()) {
-    pending_rars.pop();
-  }
+  pending_rars.clear();
 }
 
-const ra_sched::pending_msg3_t& ra_sched::find_pending_msg3(uint32_t tti) const
+void ra_sched::sched_msg3(sf_sched* sf_msg3_sched, const sched_interface::dl_sched_res_t& dl_sched_result)
 {
-  uint32_t pending_tti = tti % TTIMOD_SZ;
-  return pending_msg3[pending_tti];
+  // Go through all scheduled RARs, and pre-allocate Msg3s in UL channel accordingly
+  for (uint32_t i = 0; i < dl_sched_result.nof_rar_elems; ++i) {
+    for (uint32_t j = 0; j < dl_sched_result.rar[i].nof_grants; ++j) {
+      auto& grant = dl_sched_result.rar[i].msg3_grant[j];
+
+      sf_sched::pending_msg3_t msg3;
+      srslte_ra_type2_from_riv(grant.grant.rba, &msg3.L, &msg3.n_prb, cfg->cell.nof_prb, cfg->cell.nof_prb);
+      msg3.mcs  = grant.grant.trunc_mcs;
+      msg3.rnti = grant.data.temp_crnti;
+
+      if (not sf_msg3_sched->alloc_msg3(msg3)) {
+        log_h->error(
+            "SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n", msg3.rnti, sf_msg3_sched->get_tti_tx_ul());
+      } else {
+        log_h->debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n", msg3.rnti, sf_msg3_sched->get_tti_tx_ul());
+      }
+    }
+  }
 }
 
 /*******************************************************
@@ -342,6 +340,7 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
   // if it is the first time tti is run, reset vars
   if (tti_rx != tti_sched->get_tti_rx()) {
     uint32_t start_cfi = sched_params->sched_cfg.nof_ctrl_symbols;
+    bool     dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
     tti_sched->new_tti(tti_rx, start_cfi);
 
     // Protects access to pending_rar[], pending_msg3[], ra_sched, bc_sched, rlc buffers
@@ -351,7 +350,7 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     generate_phich(tti_sched);
 
     /* Schedule DL control data */
-    if (sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0) {
+    if (dl_active) {
       /* Schedule Broadcast data (SIB and paging) */
       bc_sched_ptr->dl_sched(tti_sched);
 
@@ -373,6 +372,12 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
 
     /* Select the winner DCI allocation combination */
     tti_sched->generate_dcis();
+
+    /* Enqueue Msg3s derived from allocated RARs */
+    if (dl_active) {
+      sf_sched* sf_msg3_sched = get_sf_sched(tti_rx + MSG3_DELAY_MS);
+      ra_sched_ptr->sched_msg3(sf_msg3_sched, tti_sched->dl_sched_result);
+    }
 
     /* clean-up blocked pids */
     for (auto& user : *ue_db) {
@@ -423,12 +428,8 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
 
   // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
   if (sched_params->cfg->cell.nof_prb == 6) {
-    uint32_t tti_rx_ack   = TTI_RX_ACK(tti_result->get_tti_rx());
-    bool     msg3_enabled = false;
-    if (ra_sched_ptr != nullptr and ra_sched_ptr->find_pending_msg3(tti_rx_ack).enabled) {
-      msg3_enabled = true;
-    }
-    if (srslte_prach_tti_opportunity_config_fdd(sched_params->cfg->prach_config, tti_rx_ack, -1) or msg3_enabled) {
+    uint32_t tti_rx_ack = TTI_RX_ACK(tti_result->get_tti_rx());
+    if (srslte_prach_tti_opportunity_config_fdd(sched_params->cfg->prach_config, tti_rx_ack, -1)) {
       tti_result->get_dl_mask().fill(0, tti_result->get_dl_mask().size());
     }
   }
