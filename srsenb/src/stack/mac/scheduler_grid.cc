@@ -508,12 +508,11 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
   std::pair<alloc_outcome_t, uint32_t> ret             = {alloc_outcome_t::ERROR, 0};
 
   for (uint32_t nof_grants = rar.nof_grants; nof_grants > 0; nof_grants--) {
-    uint32_t buf_rar          = 7 * nof_grants + 1; // 1+6 bytes per RAR subheader+body and 1 byte for Backoff
-    uint32_t total_msg3_size  = msg3_grant_size * nof_grants;
-    uint32_t msg3_prb_attempt = last_msg3_prb;
+    uint32_t buf_rar         = 7 * nof_grants + 1; // 1+6 bytes per RAR subheader+body and 1 byte for Backoff
+    uint32_t total_msg3_size = msg3_grant_size * nof_grants;
 
     // check if there is enough space for Msg3, try again with a lower number of grants
-    if (msg3_prb_attempt + total_msg3_size > sched_params->cfg->cell.nof_prb - sched_params->cfg->nrb_pucch) {
+    if (last_msg3_prb + total_msg3_size > sched_params->cfg->cell.nof_prb - sched_params->cfg->nrb_pucch) {
       ret.first = alloc_outcome_t::RB_COLLISION;
       continue;
     }
@@ -540,10 +539,10 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
       rar_grant.msg3_grant[i].data            = rar.msg3_grant[i];
       rar_grant.msg3_grant[i].grant.tpc_pusch = 3;
       rar_grant.msg3_grant[i].grant.trunc_mcs = 0;
-      uint32_t rba = srslte_ra_type2_to_riv(msg3_grant_size, msg3_prb_attempt, sched_params->cfg->cell.nof_prb);
+      uint32_t rba = srslte_ra_type2_to_riv(msg3_grant_size, last_msg3_prb, sched_params->cfg->cell.nof_prb);
       rar_grant.msg3_grant[i].grant.rba = rba;
 
-      msg3_prb_attempt += msg3_grant_size;
+      last_msg3_prb += msg3_grant_size;
     }
 
     rar_allocs.emplace_back(ret2.second, rar_grant);

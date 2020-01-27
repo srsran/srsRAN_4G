@@ -151,7 +151,7 @@ void ra_sched::dl_sched(srsenb::sf_sched* tti_sched)
 
   while (not pending_rars.empty()) {
     sf_sched::pending_rar_t& rar       = pending_rars.front();
-    uint32_t                 prach_tti = rar.msg3_grant[0].prach_tti;
+    uint32_t                 prach_tti = rar.prach_tti;
 
     // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
     if (not sched_utils::is_in_tti_interval(tti_tx_dl, prach_tti + 3, prach_tti + 3 + cfg->prach_rar_window)) {
@@ -226,7 +226,6 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
               rar_info.temp_crnti,
               rar_info.ta_cmd,
               rar_info.msg3_size);
-
   // RA-RNTI = 1 + t_id + f_id
   // t_id = index of first subframe specified by PRACH (0<=t_id<10)
   // f_id = index of the PRACH within subframe, in ascending order of freq domain (0<=f_id<6) (for FDD, f_id=0)
@@ -234,7 +233,7 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 
   // find pending rar with same RA-RNTI
   for (sf_sched::pending_rar_t& r : pending_rars) {
-    if (r.ra_rnti == ra_rnti) {
+    if (r.prach_tti == rar_info.prach_tti and ra_rnti == r.ra_rnti) {
       r.msg3_grant[r.nof_grants] = rar_info;
       r.nof_grants++;
       return SRSLTE_SUCCESS;
@@ -244,6 +243,7 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   // create new RAR
   sf_sched::pending_rar_t p;
   p.ra_rnti       = ra_rnti;
+  p.prach_tti     = rar_info.prach_tti;
   p.nof_grants    = 1;
   p.msg3_grant[0] = rar_info;
   pending_rars.push_back(p);

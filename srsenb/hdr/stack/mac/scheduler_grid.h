@@ -221,6 +221,7 @@ public:
   };
   struct pending_rar_t {
     uint16_t                             ra_rnti    = 0;
+    uint32_t                             prach_tti  = 0;
     uint32_t                             nof_grants = 0;
     sched_interface::dl_sched_rar_info_t msg3_grant[sched_interface::MAX_RAR_LIST];
   };
