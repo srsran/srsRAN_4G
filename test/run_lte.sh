@@ -185,7 +185,7 @@ echo "srsUE's PID is $ue_pid"
 
 
 # Wait until UE is connected
-timeout=10
+timeout=20
 tun_dev="tun_srsue"
 
 echo "Waiting for $tun_dev to become available for ${timeout}s .."
