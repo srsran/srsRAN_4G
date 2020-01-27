@@ -40,7 +40,7 @@ namespace srsue {
 class nas : public nas_interface_rrc, public nas_interface_ue, public srslte::timer_callback
 {
 public:
-  nas(srslte::log* log_, srslte::timer_handler* timers_);
+  nas(srslte::timer_handler* timers_);
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
   void run_tti(uint32_t tti) final;

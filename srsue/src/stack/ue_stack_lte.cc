@@ -20,6 +20,7 @@
  */
 
 #include "srsue/hdr/stack/ue_stack_lte.h"
+#include "srslte/common/logmap.h"
 #include "srslte/srslte.h"
 
 using namespace srslte;
@@ -37,7 +38,7 @@ ue_stack_lte::ue_stack_lte() :
   mac(&mac_log),
   rrc(&rrc_log),
   pdcp(&timers, &pdcp_log),
-  nas(&nas_log, &timers),
+  nas(&timers),
   thread("STACK"),
   pending_tasks(1024),
   background_tasks(2)
@@ -82,11 +83,11 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   logger = logger_;
 
   // setup logging for each layer
+  logmap::get_instance()->set_default_logger(logger);
   mac_log.init("MAC ", logger, true);
   rlc_log.init("RLC ", logger);
   pdcp_log.init("PDCP", logger);
   rrc_log.init("RRC ", logger);
-  nas_log.init("NAS ", logger);
   usim_log.init("USIM", logger);
   asn1_log.init("ASN1", logger);
   rrc_asn1_log.init("ASN1::RRC", logger);
@@ -99,7 +100,6 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rlc_log.set_level(args.log.rlc_level);
   pdcp_log.set_level(args.log.pdcp_level);
   rrc_log.set_level(args.log.rrc_level);
-  nas_log.set_level(args.log.nas_level);
   usim_log.set_level(args.log.usim_level);
   asn1_log.set_level(LOG_LEVEL_INFO);
   rrc_asn1_log.set_level(args.log.rrc_level);
@@ -108,12 +108,16 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rlc_log.set_hex_limit(args.log.rlc_hex_limit);
   pdcp_log.set_hex_limit(args.log.pdcp_hex_limit);
   rrc_log.set_hex_limit(args.log.rrc_hex_limit);
-  nas_log.set_hex_limit(args.log.nas_hex_limit);
   usim_log.set_hex_limit(args.log.usim_hex_limit);
   asn1_log.set_hex_limit(128);
   rrc_asn1_log.set_hex_limit(args.log.rrc_hex_limit);
   asn1::srsasn_log_register_handler(&asn1_log);
   asn1::rrc::rrc_log_register_handler(&rrc_log);
+
+  // Set NAS log
+  srslte::log* log_ptr = logmap::get("NAS ");
+  log_ptr->set_level(args.log.nas_level);
+  log_ptr->set_hex_limit(args.log.nas_hex_limit);
 
   // Set up pcap
   if (args.pcap.enable) {
@@ -196,7 +200,7 @@ bool ue_stack_lte::switch_off()
   }
   bool detach_sent = true;
   if (rlc.has_data(RB_ID_SRB1)) {
-    nas_log.warning("Detach couldn't be sent after %ds.\n", timeout);
+    logmap::get("NAS ")->warning("Detach couldn't be sent after %ds.\n", timeout);
     detach_sent = false;
   }
 

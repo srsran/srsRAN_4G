@@ -21,6 +21,7 @@
 
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/pdcp_entity_lte.h"
@@ -197,14 +198,11 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 int security_command_test()
 {
   int                ret = SRSLTE_ERROR;
-  srslte::log_filter nas_log("NAS");
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
   srslte::timer_handler timers(10);
@@ -222,12 +220,10 @@ int security_command_test()
 
   // init USIM
   srsue::usim usim(&usim_log);
-  bool        net_valid = false;
-  uint8_t     res[16];
   usim.init(&args);
 
   {
-    srsue::nas nas(&nas_log, &timers);
+    srsue::nas nas(&timers);
     nas_args_t cfg;
     cfg.eia = "1,2,3";
     cfg.eea = "0,1,2,3";
@@ -264,17 +260,14 @@ int security_command_test()
 int mme_attach_request_test()
 {
   int                ret = SRSLTE_ERROR;
-  srslte::log_filter nas_log("NAS");
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
   srslte::log_filter gw_log("GW");
 
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
   gw_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
   usim_log.set_hex_limit(100000);
   gw_log.set_hex_limit(100000);
@@ -298,7 +291,7 @@ int mme_attach_request_test()
     nas_args_t nas_cfg;
     nas_cfg.force_imsi_attach = true;
     nas_cfg.apn_name          = "test123";
-    srsue::nas  nas(&nas_log, &timers);
+    srsue::nas  nas(&timers);
     srsue::gw   gw;
     stack_dummy stack(&pdcp_dummy, &nas);
 
@@ -349,14 +342,11 @@ int mme_attach_request_test()
 int esm_info_request_test()
 {
   int                ret = SRSLTE_ERROR;
-  srslte::log_filter nas_log("NAS");
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
   srslte::timer_handler timers(10);
@@ -373,15 +363,13 @@ int esm_info_request_test()
 
   // init USIM
   srsue::usim usim(&usim_log);
-  bool        net_valid;
-  uint8_t     res[16];
   usim.init(&args);
 
   srslte::byte_buffer_pool* pool;
   pool = byte_buffer_pool::get_instance();
 
   {
-    srsue::nas nas(&nas_log, &timers);
+    srsue::nas nas(&timers);
     nas_args_t cfg;
     cfg.apn_name          = "srslte";
     cfg.apn_user          = "srsuser";
@@ -408,14 +396,11 @@ int esm_info_request_test()
 
 int dedicated_eps_bearer_test()
 {
-  srslte::log_filter nas_log("NAS");
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
 
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
   srslte::timer_handler timers(10);
@@ -436,7 +421,7 @@ int dedicated_eps_bearer_test()
 
   srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
-  srsue::nas nas(&nas_log, &timers);
+  srsue::nas nas(&timers);
   nas_args_t cfg        = {};
   cfg.force_imsi_attach = true; // make sure we get a fresh security context
   nas.init(&usim, &rrc_dummy, &gw, cfg);
@@ -493,6 +478,9 @@ int dedicated_eps_bearer_test()
 
 int main(int argc, char** argv)
 {
+  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
+  srslte::logmap::get_instance()->set_default_hex_limit(100000);
+
   if (security_command_test()) {
     printf("Security command test failed.\n");
     return -1;

@@ -71,6 +71,13 @@ public:
     default_log_level = l;
   }
 
+  // set default hex limit
+  void set_default_hex_limit(int hex_limit)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    default_hex_limit = hex_limit;
+  }
+
   // register manually created log
   void register_log(std::unique_ptr<log> log_ptr)
   {

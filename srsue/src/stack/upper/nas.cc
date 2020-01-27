@@ -31,6 +31,7 @@
 
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/bcd_helpers.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/security.h"
 #include "srsue/hdr/stack/upper/nas.h"
 
@@ -224,8 +225,8 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
  *   NAS
  ********************************************************************/
 
-nas::nas(srslte::log* log_, srslte::timer_handler* timers_) :
-  nas_log(log_),
+nas::nas(srslte::timer_handler* timers_) :
+  nas_log(logmap::get("NAS ")),
   pool(byte_buffer_pool::get_instance()),
   plmn_searcher(this),
   rrc_connector(this),
