@@ -231,7 +231,7 @@ static void timers2_test4_thread()
 int timers2_test4()
 {
   timer_handler                         timers;
-  uint32_t                              nof_timers = 128;
+  uint32_t                              nof_timers = 32;
   std::mt19937                          mt19937(4);
   std::uniform_real_distribution<float> real_dist(0.0f, 1.0f);
 
