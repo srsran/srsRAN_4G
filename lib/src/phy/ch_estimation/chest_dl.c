@@ -705,6 +705,25 @@ static int estimate_port(srslte_chest_dl_t*     q,
     q->sync_err[rxant_id][port_id] = NAN;
   }
 
+  // Correct time synchronization error if estimated
+  if (isnormal(q->sync_err[rxant_id][port_id])) {
+    uint32_t nsymb = SRSLTE_CP_NSYMB(q->cell.cp) * SRSLTE_NOF_SLOTS_PER_SF;
+    float    cfo   = q->sync_err[rxant_id][port_id] / (float)srslte_symbol_sz(q->cell.nof_prb);
+    uint32_t nre   = SRSLTE_NRE * q->cell.nof_prb;
+
+    for (uint32_t i = 0; i < nsymb; i++) {
+      cf_t* ptr = &input[i * nre];
+      srslte_vec_apply_cfo(ptr, cfo, ptr, nre);
+    }
+
+    /* Get references from the input signal */
+    srslte_refsignal_cs_get_sf(&q->csr_refs, sf, port_id, input, q->pilot_recv_signal);
+
+    /* Use the known CSR signal to compute Least-squares estimates */
+    srslte_vec_prod_conj_ccc(
+        q->pilot_recv_signal, q->csr_refs.pilots[port_id / 2][sf->tti % 10], q->pilot_estimates, npilots);
+  }
+
   /* Compute RSRP for the channel estimates in this port */
   if (cfg->rsrp_neighbour) {
     double energy                   = cabsf(srslte_vec_acc_cc(q->pilot_estimates, npilots) / npilots);
