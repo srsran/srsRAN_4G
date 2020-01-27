@@ -235,9 +235,9 @@ public:
   void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
 
   // DL alloc
-  alloc_outcome_t alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
-  alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
-  alloc_outcome_t alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant);
+  alloc_outcome_t                      alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
+  alloc_outcome_t                      alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
+  std::pair<alloc_outcome_t, uint32_t> alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant);
 
   // UL alloc
   alloc_outcome_t alloc_msg3(const pending_msg3_t& msg3);

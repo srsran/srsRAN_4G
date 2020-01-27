@@ -502,40 +502,57 @@ alloc_outcome_t sf_sched::alloc_paging(uint32_t aggr_lvl, uint32_t paging_payloa
   return ret.first;
 }
 
-alloc_outcome_t sf_sched::alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar)
+std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar)
 {
-  uint32_t buf_rar         = 7 * rar.nof_grants + 1; // 1+6 bytes per RAR subheader+body and 1 byte for Backoff
-  uint32_t msg3_grant_size = 3;
-  uint32_t total_msg3_size = msg3_grant_size * rar.nof_grants;
+  const uint32_t                       msg3_grant_size = 3;
+  std::pair<alloc_outcome_t, uint32_t> ret             = {alloc_outcome_t::ERROR, 0};
 
-  // check if there is enough space for Msg3
-  if (last_msg3_prb + total_msg3_size > sched_params->cfg->cell.nof_prb - sched_params->cfg->nrb_pucch) {
-    return alloc_outcome_t::RB_COLLISION;
+  for (uint32_t nof_grants = rar.nof_grants; nof_grants > 0; nof_grants--) {
+    uint32_t buf_rar          = 7 * nof_grants + 1; // 1+6 bytes per RAR subheader+body and 1 byte for Backoff
+    uint32_t total_msg3_size  = msg3_grant_size * nof_grants;
+    uint32_t msg3_prb_attempt = last_msg3_prb;
+
+    // check if there is enough space for Msg3, try again with a lower number of grants
+    if (msg3_prb_attempt + total_msg3_size > sched_params->cfg->cell.nof_prb - sched_params->cfg->nrb_pucch) {
+      ret.first = alloc_outcome_t::RB_COLLISION;
+      continue;
+    }
+
+    // allocate RBs and PDCCH
+    sf_sched::ctrl_code_t ret2 = alloc_dl_ctrl(aggr_lvl, buf_rar, rar.ra_rnti);
+    ret.first                  = ret2.first.result;
+    ret.second                 = nof_grants;
+
+    // if there was no space for the RAR, try again
+    if (ret.first == alloc_outcome_t::RB_COLLISION) {
+      continue;
+    }
+    // if any other error, return
+    if (ret.first != alloc_outcome_t::SUCCESS) {
+      log_h->warning("SCHED: Could not allocate RAR for L=%d, cause=%s\n", aggr_lvl, ret.first.to_string());
+      return ret;
+    }
+
+    // RAR allocation successful
+    sched_interface::dl_sched_rar_t rar_grant = {};
+    rar_grant.nof_grants                      = nof_grants;
+    for (uint32_t i = 0; i < nof_grants; ++i) {
+      rar_grant.msg3_grant[i].data            = rar.msg3_grant[i];
+      rar_grant.msg3_grant[i].grant.tpc_pusch = 3;
+      rar_grant.msg3_grant[i].grant.trunc_mcs = 0;
+      uint32_t rba = srslte_ra_type2_to_riv(msg3_grant_size, msg3_prb_attempt, sched_params->cfg->cell.nof_prb);
+      rar_grant.msg3_grant[i].grant.rba = rba;
+
+      msg3_prb_attempt += msg3_grant_size;
+    }
+
+    rar_allocs.emplace_back(ret2.second, rar_grant);
+    break;
   }
-
-  // allocate RBs and PDCCH
-  sf_sched::ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, buf_rar, rar.ra_rnti);
-  if (not ret.first) {
-    log_h->warning("SCHED: Could not allocate RAR for L=%d, cause=%s\n", aggr_lvl, ret.first.to_string());
-    return ret.first;
+  if (ret.first != alloc_outcome_t::SUCCESS) {
+    log_h->warning("SCHED: Failed to allocate RAR due to lack of RBs\n");
   }
-
-  // RAR allocation successful
-  sched_interface::dl_sched_rar_t rar_grant = {};
-  rar_grant.nof_grants                      = rar.nof_grants;
-  for (uint32_t i = 0; i < rar.nof_grants; ++i) {
-    rar_grant.msg3_grant[i].data            = rar.msg3_grant[i];
-    rar_grant.msg3_grant[i].grant.tpc_pusch = 3;
-    rar_grant.msg3_grant[i].grant.trunc_mcs = 0;
-    uint32_t rba = srslte_ra_type2_to_riv(msg3_grant_size, last_msg3_prb, sched_params->cfg->cell.nof_prb);
-    rar_grant.msg3_grant[i].grant.rba = rba;
-
-    last_msg3_prb += msg3_grant_size;
-  }
-
-  rar_allocs.emplace_back(ret.second, rar_grant);
-
-  return ret.first;
+  return ret;
 }
 
 alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)

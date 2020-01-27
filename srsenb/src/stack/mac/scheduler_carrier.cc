@@ -173,15 +173,23 @@ void ra_sched::dl_sched(srsenb::sf_sched* tti_sched)
     }
 
     // Try to schedule DCI + RBGs for RAR Grant
-    alloc_outcome_t ret = tti_sched->alloc_rar(rar_aggr_level, rar);
+    std::pair<alloc_outcome_t, uint32_t> ret = tti_sched->alloc_rar(rar_aggr_level, rar);
 
-    // If we can allocate, schedule Msg3 and remove from pending
-    if (not ret) {
+    if (ret.first == alloc_outcome_t::SUCCESS) {
+      // if all RAR grant allocations were successful
+      if (ret.second == rar.nof_grants) {
+        // Remove pending RAR
+        pending_rars.pop_front();
+      } else if (ret.second > 0) {
+        // keep the RAR grants that were not scheduled, so we can schedule in next TTI
+        std::copy(&rar.msg3_grant[ret.second], &rar.msg3_grant[rar.nof_grants], &rar.msg3_grant[0]);
+        rar.nof_grants -= ret.second;
+      }
+    } else if (ret.first == alloc_outcome_t::RB_COLLISION) {
+      // there are not enough RBs for RAR or Msg3 allocation. We can skip this TTI
       return;
     }
-
-    // Remove pending RAR
-    pending_rars.pop_front();
+    // try to scheduler next RAR with different RA-RNTI
   }
 }
 
