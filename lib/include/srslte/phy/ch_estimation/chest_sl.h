@@ -30,8 +30,12 @@
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/resampling/interp.h"
 
+#define SRSLTE_SL_N_RU_SEQ (30)
 #define SRSLTE_SL_MAX_DMRS_SYMB (4)
-#define SRSLTE_SL_NOF_PRIME_NUMBERS (196)
+
+// Base Sequence Number - always 0 for sidelink: 3GPP TS 36.211 version 15.6.0 Release 15 Sec. 5.5.1.4
+#define SRSLTE_SL_BASE_SEQUENCE_NUMBER 0
+#define SRSLTE_SL_MAX_DMRS_PERIOD_LENGTH 320
 
 typedef struct {
 
@@ -80,6 +84,15 @@ typedef struct {
 
 } srslte_chest_sl_t;
 
+SRSLTE_API int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
+                                        srslte_sl_tm_t       tm,
+                                        srslte_sl_channels_t ch,
+                                        uint32_t             sf_idx,
+                                        uint32_t             N_sl_id,
+                                        uint32_t             L_crb,
+                                        uint32_t             N_x_id,
+                                        uint32_t             cyclic_shift);
+
 SRSLTE_API int srslte_chest_sl_init_psbch_dmrs(srslte_chest_sl_t* q);
 
 SRSLTE_API int srslte_chest_sl_gen_psbch_dmrs(srslte_chest_sl_t* q, srslte_sl_tm_t txMode, uint32_t N_sl_id);
@@ -101,6 +114,33 @@ SRSLTE_API int srslte_chest_sl_get_psbch_dmrs(srslte_chest_sl_t* q,
                                               cf_t*              sf_buffer_rx,
                                               cf_t**             dmrs_received,
                                               srslte_sl_tm_t     tx_mode,
+                                              uint32_t           nof_prb,
+                                              srslte_cp_t        cp);
+
+SRSLTE_API int srslte_chest_sl_init_pscch_dmrs(srslte_chest_sl_t* q);
+
+SRSLTE_API int srslte_chest_sl_gen_pscch_dmrs(srslte_chest_sl_t* q, uint32_t cyclic_shift, srslte_sl_tm_t tm);
+
+SRSLTE_API int srslte_chest_sl_put_pscch_dmrs(srslte_chest_sl_t* q,
+                                              cf_t*              sf_buffer,
+                                              uint32_t           prb_idx,
+                                              srslte_sl_tm_t     tm,
+                                              uint32_t           nof_prb,
+                                              srslte_cp_t        cp);
+
+SRSLTE_API void srslte_chest_sl_pscch_ls_estimate_equalize(srslte_chest_sl_t* q,
+                                                           cf_t*              sf_buffer,
+                                                           uint32_t           prb_idx,
+                                                           cf_t*              sf_buffer_rx,
+                                                           uint32_t           nof_prb,
+                                                           srslte_sl_tm_t     tm,
+                                                           srslte_cp_t        cp);
+
+SRSLTE_API int srslte_chest_sl_get_pscch_dmrs(srslte_chest_sl_t* q,
+                                              cf_t*              sf_buffer_rx,
+                                              uint32_t           prb_idx,
+                                              cf_t**             dmrs_received,
+                                              srslte_sl_tm_t     tm,
                                               uint32_t           nof_prb,
                                               srslte_cp_t        cp);
 

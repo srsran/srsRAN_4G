@@ -53,14 +53,74 @@ add_executable(psbch_file_test psbch_file_test.c)
 target_link_libraries(psbch_file_test srslte_phy)
 
 # TM2 file tests
-#add_test(psbch_file_test_ideal_tm2_p6_c0 psbch_test -p 6 -t 2 -c 0 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p6_c0_s1.92e+6.dat)
-#add_test(psbch_file_test_ideal_tm2_p15_c84 psbch_test -p 15 -t 2 -c 84 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p15_c84_s3.84e+6.dat)
-#add_test(psbch_file_test_ideal_tm2_p25_c168 psbch_test -p 25 -t 2 -c 168 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e+6.dat)
-#add_test(psbch_file_test_ideal_tm2_p50_c252 psbch_test -p 50 -t 2 -c 252 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p50_c252_s15.36e+6.dat)
-#add_test(psbch_file_test_ideal_tm2_p100_c335 psbch_test -p 100 -t 2 -c 335 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e+6.dat)
+add_test(psbch_file_test_ideal_tm2_p6_c0 psbch_file_test -p 6 -t 2 -c 0 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p6_c0_s1.92e6.dat)
+add_test(psbch_file_test_ideal_tm2_p15_c84 psbch_file_test -p 15 -t 2 -c 84 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p15_c84_s3.84e6.dat)
+add_test(psbch_file_test_ideal_tm2_p25_c168 psbch_file_test -p 25 -t 2 -c 168 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e6.dat)
+add_test(psbch_file_test_ideal_tm2_p50_c252 psbch_file_test -p 50 -t 2 -c 252 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p50_c252_s15.36e6.dat)
+add_test(psbch_file_test_ideal_tm2_p100_c335 psbch_file_test -p 100 -t 2 -c 335 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
 
 # TM4 file tests
 add_test(psbch_file_test_cmw_tm4_p50_c169 psbch_file_test -p 50 -c 169 -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_cmw500_f5.92e9_s11.52e6_50prb_slss_id169.dat)
+
+########################################################################
+# PSCCH TEST
+########################################################################
+
+add_executable(pscch_test pscch_test.c)
+target_link_libraries(pscch_test srslte_phy)
+
+# TM2 self tests
+add_test(pscch_test_tm2_p6 pscch_test -p 6)
+add_test(pscch_test_tm2_p15 pscch_test -p 15)
+add_test(pscch_test_tm2_p25 pscch_test -p 25)
+add_test(pscch_test_tm2_p50 pscch_test -p 50)
+add_test(pscch_test_tm2_p75 pscch_test -p 75)
+add_test(pscch_test_tm2_p100 pscch_test -p 100)
+
+# TM4 self tests
+add_test(pscch_test_tm4_p6 pscch_test -p 6 -t 4)
+add_test(pscch_test_tm4_p15 pscch_test -p 15 -t 4)
+add_test(pscch_test_tm4_p25 pscch_test -p 25 -t 4)
+add_test(pscch_test_tm4_p50 pscch_test -p 50 -t 4)
+add_test(pscch_test_tm4_p75 pscch_test -p 75 -t 4)
+add_test(pscch_test_tm4_p100 pscch_test -p 100 -t 4)
+
+add_executable(pscch_file_test pscch_file_test.c)
+target_link_libraries(pscch_file_test srslte_phy)
+
+# TM2 file tests
+add_test(pscch_file_test_ideal_tm2_p100 pscch_file_test -p 100 -t 2 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
+set_property(TEST pscch_file_test_ideal_tm2_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2")
+
+# TM4 file tests
+add_test(pscch_file_test_ideal_tm4_p100 pscch_file_test -p 100 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
+set_property(TEST pscch_file_test_ideal_tm4_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
+
+add_test(pscch_test_tm4_p50_qc pscch_file_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_qc9150_f5.92e9_s15.36e6_50prb_20offset.dat)
+set_property(TEST pscch_test_tm4_p50_qc PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
+
+add_test(pscch_test_tm4_p50_cmw pscch_file_test -p 50 -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_cmw500_f5.92e9_s11.52e6_50prb_0offset_1ms.dat)
+set_property(TEST pscch_test_tm4_p50_cmw PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
+
+# With PHY retransmission (3 TTI offset)
+add_test(pscch_test_tm4_p50_huawei pscch_file_test -p 50 -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_huawei_s11.52e6_50prb_10prb_offset_with_retx.dat)
+set_property(TEST pscch_test_tm4_p50_huawei PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2")
+
+# With PHY ReTx (0 TTI offset?)
+add_test(pscch_test_tm4_p50_uxm1 pscch_file_test -p 50 -d -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s15.36e6_50prb_0prb_offset_mcs12.dat)
+set_property(TEST pscch_test_tm4_p50_uxm1 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2")
+
+# 100 PRB startOffset 1 MCS12 MAC padding
+add_test(pscch_test_tm4_p100_uxm2 pscch_file_test -p 100 -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s23.04e6_100prb_1prb_offset_mcs12_padding.dat)
+set_property(TEST pscch_test_tm4_p100_uxm2 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=4")
+
+# 100 PRB LTE sampling rate, startOffset1 MCS12 ITS data
+add_test(pscch_test_tm4_p100_uxm3 pscch_file_test -p 100 -d -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s30.72e6_100prb_1prb_offset_mcs12_its.dat)
+set_property(TEST pscch_test_tm4_p100_uxm3 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
+
+# 50 PRB LTE sampling rate, startOffset0 MCS28 MAC padding
+add_test(pscch_test_tm4_p50_uxm4 pscch_file_test -p 50 -d -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s15.36e6_50prb_0prb_offset_mcs28_padding_5ms.dat)
+set_property(TEST pscch_test_tm4_p50_uxm4 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=5")
 
 ########################################################################
 # NPBCH TEST

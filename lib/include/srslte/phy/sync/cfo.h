@@ -34,6 +34,7 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/utils/cexptab.h"
+#include "srslte/phy/common/phy_common.h"
 
 #define SRSLTE_CFO_CEXPTAB_SIZE 4096
 
@@ -60,5 +61,7 @@ SRSLTE_API void
 srslte_cfo_correct_offset(srslte_cfo_t* h, const cf_t* input, cf_t* output, float freq, int cexp_offset, int nsamples);
 
 SRSLTE_API float srslte_cfo_est_corr_cp(cf_t* input_buffer, uint32_t nof_prb);
+
+SRSLTE_API float srslte_sl_cfo_est_corr_cp(cf_t* input_buffer, uint32_t nof_prb, srslte_cp_t cp);
 
 #endif // SRSLTE_CFO_H

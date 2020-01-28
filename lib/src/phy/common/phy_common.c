@@ -814,37 +814,57 @@ char* srslte_nbiot_mode_string(srslte_nbiot_mode_t mode)
 }
 
 ///< Sidelink helpers
+int srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp)
+{
+  if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
+    if (cp == SRSLTE_CP_NORM) {
+      return SRSLTE_CP_NORM_SF_NSYMB;
+    } else {
+      return SRSLTE_CP_EXT_SF_NSYMB;
+    }
+  } else if (tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) {
+    if (cp == SRSLTE_CP_NORM) {
+      return SRSLTE_CP_NORM_SF_NSYMB;
+    } else {
+      ERROR("Invalid CP");
+      return SRSLTE_ERROR;
+    }
+  } else {
+    ERROR("Invalid TM");
+    return SRSLTE_ERROR;
+  }
+}
 
 ///< Look-up tables for Sidelink channel symbols
-srslte_sl_symbol_t srslte_psbch_symbol_map_tm12[SRSLTE_CP_NORM_SF_NSYMB] = {SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_SYNC_SYMBOL,
-                                                                            SRSLTE_SIDELINK_SYNC_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DMRS_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DMRS_SYMBOL,
-                                                                            SRSLTE_SIDELINK_SYNC_SYMBOL,
-                                                                            SRSLTE_SIDELINK_SYNC_SYMBOL,
-                                                                            SRSLTE_SIDELINK_GUARD_SYMBOL};
+static const srslte_sl_symbol_t srslte_psbch_symbol_map_tm12[SRSLTE_CP_NORM_SF_NSYMB] = {SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_SYNC_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_SYNC_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_SYNC_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_SYNC_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_GUARD_SYMBOL};
 
-srslte_sl_symbol_t srslte_psbch_symbol_map_tm34[SRSLTE_CP_NORM_SF_NSYMB] = {SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_SYNC_SYMBOL,
-                                                                            SRSLTE_SIDELINK_SYNC_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DMRS_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DMRS_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DMRS_SYMBOL,
-                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
-                                                                            SRSLTE_SIDELINK_SYNC_SYMBOL,
-                                                                            SRSLTE_SIDELINK_SYNC_SYMBOL,
-                                                                            SRSLTE_SIDELINK_GUARD_SYMBOL};
+static const srslte_sl_symbol_t srslte_psbch_symbol_map_tm34[SRSLTE_CP_NORM_SF_NSYMB] = {SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_SYNC_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_SYNC_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_SYNC_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_SYNC_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_GUARD_SYMBOL};
 
 bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i)
 {
@@ -896,4 +916,86 @@ srslte_ack_nack_feedback_mode_t srslte_string_ack_nack_feedback_mode(const char*
 
   // Otherwise Normal
   return SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
+}
+
+static const srslte_sl_symbol_t srslte_pscch_symbol_map_tm12[SRSLTE_CP_NORM_SF_NSYMB] = {SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_GUARD_SYMBOL};
+
+static const srslte_sl_symbol_t srslte_pscch_symbol_map_tm12_ext[SRSLTE_CP_EXT_SF_NSYMB] = {SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                            SRSLTE_SIDELINK_GUARD_SYMBOL};
+
+static const srslte_sl_symbol_t srslte_pscch_symbol_map_tm34[SRSLTE_CP_NORM_SF_NSYMB] = {SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DMRS_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_DATA_SYMBOL,
+                                                                                         SRSLTE_SIDELINK_GUARD_SYMBOL};
+
+bool srslte_pscch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp)
+{
+  if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
+    if (cp == SRSLTE_CP_EXT) {
+      return srslte_pscch_symbol_map_tm12_ext[i] == type;
+    }
+    return srslte_pscch_symbol_map_tm12[i] == type;
+  } else if (tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) {
+    return srslte_pscch_symbol_map_tm34[i] == type;
+  }
+  return false;
+}
+
+uint32_t srslte_sci_format0_sizeof(uint32_t nof_prb)
+{
+  // 3GPP TS 36.212 5.4.3.1
+  uint32_t n = 0;
+
+  // Frequency hopping flag – 1 bit
+  n += 1;
+
+  // Resource block assignment and hopping resource allocation
+  n += (uint32_t)ceil(log((nof_prb * (nof_prb + 1)) / 2.0) / log(2));
+
+  // Time resource pattern – 7 bits
+  n += 7;
+
+  // Modulation and coding scheme – 5 bit
+  n += 5;
+
+  // Timing advance indication – 11 bits
+  n += 11;
+
+  // Group destination ID – 8 bits
+  n += 8;
+
+  return n;
 }

@@ -147,3 +147,49 @@ float srslte_cfo_est_corr_cp(cf_t* input_buffer, uint32_t nof_prb)
   srslte_vec_apply_cfo(input_buffer, (float)(1 / (nFFT * 15e3)) * ((-15e3 / 2.0) - cfo), input_buffer, sf_n_samples);
   return cfo;
 }
+
+/*
+ * Sidelink CFO estimation and correction based on cp
+ */
+float srslte_sl_cfo_est_corr_cp(cf_t* input_buffer, uint32_t nof_prb, srslte_cp_t cp)
+{
+  int   symbol_sz    = srslte_symbol_sz(nof_prb);
+  int   sf_n_samples = SRSLTE_SF_LEN_PRB(nof_prb);
+  float tFFT         = (float)(1 / 15000.0);
+  int   cp_size      = SRSLTE_CP_SZ(symbol_sz, cp);
+  int   cp_size_0    = (cp == SRSLTE_CP_NORM) ? SRSLTE_CP_LEN_NORM(0, symbol_sz) : cp_size;
+
+  // Compensate for initial SC-FDMA half subcarrier shift, cfo = 7500 / (15000 * symbol_sz) <=> 1 / (symbol_sz * 2.0)
+  srslte_vec_apply_cfo(input_buffer, (1 / (float)(symbol_sz * 2.0)), input_buffer, sf_n_samples);
+
+  uint32_t p1     = 0;
+  uint32_t p2     = symbol_sz;
+  uint32_t cp_len = 0;
+
+  uint32_t sf_n_symbols = (cp == SRSLTE_CP_NORM)
+                              ? (14 - 1)
+                              : (12 - 1); // // TS 36.211 Section 9.3.2: The last SC-FDMA symbol in a sidelink subframe,
+                                          // serves as a guard period and shall not be used for sidelink transmission.
+
+  cf_t average_cfo = 0.0f;
+
+  for (int i = 0; i < sf_n_symbols; i++) {
+    // Calculate CP length
+    cp_len = (i == 0 || i == SRSLTE_CP_NSYMB(cp)) ? cp_size_0 : cp_size;
+
+    // Correlate CP with tail
+    average_cfo += srslte_vec_dot_prod_conj_ccc(&input_buffer[p2], &input_buffer[p1], cp_len);
+
+    // Increment pointers for next symbol
+    p1 += cp_len + symbol_sz;
+    p2 += cp_len + symbol_sz;
+  }
+
+  float cfo = (float)(carg(average_cfo) / (float)(2 * M_PI * tFFT));
+
+  // Compensate for initial SC-FDMA half subcarrier shift, cfo = - 7500 / (15000 * symbol_sz) <=> 1 / (symbol_sz * 2.0)
+  srslte_vec_apply_cfo(
+      input_buffer, (-1 / (float)(symbol_sz * 2.0)) + (-cfo / (float)(15e3 * symbol_sz)), input_buffer, sf_n_samples);
+
+  return cfo;
+}

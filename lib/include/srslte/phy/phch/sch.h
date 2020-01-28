@@ -131,10 +131,10 @@ SRSLTE_API void srslte_sl_ulsch_interleave(uint8_t* g_bits,
 
 ///< Sidelink uses PUSCH Deinterleaver in all channels
 SRSLTE_API void srslte_sl_ulsch_deinterleave(int16_t*  q_bits,
-                                             uint32_t  Qm,
-                                             uint32_t  H_prime_total,
-                                             uint32_t  N_pusch_symbs,
-                                             int16_t*  g_bits,
-                                             uint32_t* inteleaver_lut);
+                                  uint32_t  Qm,
+                                  uint32_t  H_prime_total,
+                                  uint32_t  N_pusch_symbs,
+                                  int16_t*  g_bits,
+                                  uint32_t* inteleaver_lut);
 
 #endif // SRSLTE_SCH_H

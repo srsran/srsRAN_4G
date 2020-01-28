@@ -24,14 +24,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include "srslte/phy/ch_estimation/chest_sl.h"
+ #include "srslte/phy/ch_estimation/chest_sl.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include "ul_rs_tables.h"
 
-int srslte_chest_sl_init_dmrs(srslte_chest_sl_t* q, uint32_t N_sa_id)
+int srslte_chest_sl_init_dmrs(srslte_chest_sl_t* q)
 {
   srslte_interp_linear_vector_init(&q->lin_vec_sl, SRSLTE_MAX_PRB * SRSLTE_NRE);
 
@@ -61,12 +60,11 @@ int srslte_chest_sl_init_dmrs(srslte_chest_sl_t* q, uint32_t N_sa_id)
     }
   }
 
-  q->f_gh_pattern = srslte_vec_malloc(sizeof(uint32_t) * 320 * SRSLTE_SL_MAX_DMRS_SYMB); // MAX PERIOD LENGTH 320
+  q->f_gh_pattern = srslte_vec_malloc(sizeof(uint32_t) * SRSLTE_SL_MAX_DMRS_PERIOD_LENGTH); // MAX PERIOD LENGTH 320
   if (!q->f_gh_pattern) {
     ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
-  srslte_group_hopping_f_gh(q->f_gh_pattern, N_sa_id);
 
   q->ce = srslte_vec_malloc(sizeof(cf_t) * 2 * SRSLTE_CP_NSYMB(SRSLTE_CP_NORM) * SRSLTE_NRE * SRSLTE_MAX_PRB);
   if (!q->ce) {
@@ -97,7 +95,8 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
                              uint32_t             sf_idx,
                              uint32_t             N_sl_id,
                              uint32_t             L_crb,
-                             uint32_t             N_sa_id)
+                             uint32_t             N_x_id,
+                             uint32_t             cyclic_shift)
 {
   // M_sc_rs - Reference Signal Length
   switch (ch) {
@@ -130,7 +129,7 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
       q->nof_dmrs_symbols = SRSLTE_PSBCH_TM34_NUM_DMRS_SYMBOLS;
     } else {
       // all other channels have 4 DMRS
-      q->nof_dmrs_symbols = SRSLTE_SL_TM12_DEFAULT_NUM_DMRS_SYMBOLS;
+      q->nof_dmrs_symbols = SRSLTE_SL_TM34_DEFAULT_NUM_DMRS_SYMBOLS;
     }
   }
 
@@ -149,22 +148,19 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
         }
       } else {
         for (int i = 0; i < q->nof_dmrs_symbols; i++) {
-          // TODO: TS 36.213 Section 14.2.1: "The UE shall randomly select the cyclic shift n_CS among {0, 3, 6, 9} in
-          // each PSCCH transmission."
-          q->n_CS[i] = 0;
-          // q->n_CS[i] = i * 3;
+          q->n_CS[i] = cyclic_shift;
         }
       }
       break;
     case SRSLTE_SIDELINK_PSSCH:
       if (tm <= SRSLTE_SIDELINK_TM2) {
         for (int i = 0; i < q->nof_dmrs_symbols; i++) {
-          q->n_CS[i] = (int)(N_sa_id / 2) % 8;
+          q->n_CS[i] = (int)(N_x_id / 2) % 8;
         }
       } else {
         // TODO: both equation are the same here but spec says N_id_X for Mode3+4
         for (int i = 0; i < q->nof_dmrs_symbols; i++) {
-          q->n_CS[i] = (int)(N_sa_id / 2) % 8;
+          q->n_CS[i] = (int)(N_x_id / 2) % 8;
         }
       }
       break;
@@ -181,90 +177,92 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
   }
 
   // Group Hopping
+  uint32_t f_gh; // Group Hopping Flag
+  uint32_t f_ss;
+  uint32_t u[SRSLTE_SL_MAX_DMRS_SYMB]; // Sequence Group Number
+
   // 36.211, Section 10.1.4.1.3
   // Base Sequence Number - always 0 for sidelink
-  q->v = 0;
   switch (ch) {
     case SRSLTE_SIDELINK_PSBCH:
-      q->f_gh = 0;
-      q->f_ss = (N_sl_id / 16) % 30;
-      for (int i = 0; i < q->nof_dmrs_symbols; ++i) {
-        q->u[i] = (q->f_gh + q->f_ss) % 30;
+      f_gh = 0;
+      f_ss = (N_sl_id / 16) % SRSLTE_SL_N_RU_SEQ;
+      for (int ns = 0; ns < q->nof_dmrs_symbols; ns++) {
+        u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
       }
       break;
     case SRSLTE_SIDELINK_PSCCH:
-      q->f_gh = 0;
+      f_gh = 0;
       if (tm <= SRSLTE_SIDELINK_TM2) {
-        q->f_ss = 0;
+        f_ss = 0;
       } else {
-        q->f_ss = 8;
+        f_ss = 8;
       }
-      for (int i = 0; i < q->nof_dmrs_symbols; ++i) {
-        q->u[i] = (q->f_gh + q->f_ss) % 30;
+      for (int ns = 0; ns < q->nof_dmrs_symbols; ns++) {
+        u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
       }
       break;
     case SRSLTE_SIDELINK_PSSCH:
+      srslte_group_hopping_f_gh(q->f_gh_pattern, N_x_id);
+
       if (tm <= SRSLTE_SIDELINK_TM2) {
-        q->f_gh           = 1;
-        q->f_ss           = N_sa_id % 30;
+        f_ss              = N_x_id % SRSLTE_SL_N_RU_SEQ;
         uint32_t delta_ss = 0;
 
-        uint8_t i = 0;
-        for (uint32_t ns = 2 * sf_idx; ns < 2 * (sf_idx + 1); ns++) {
-          uint32_t f_gh = q->f_gh_pattern[ns];
-          q->u[i++]     = (f_gh + q->f_ss + delta_ss) % 30;
+        for (uint32_t ns = 0; ns < q->nof_dmrs_symbols; ns++) {
+          f_gh = q->f_gh_pattern[ns];
+          u[ns]        = (f_gh + f_ss + delta_ss) % SRSLTE_SL_N_RU_SEQ;
         }
       } else {
         // TM3/4
-        q->f_gh           = 1;
-        q->f_ss           = (N_sa_id / 16) % 30;
+        f_ss              = (N_x_id / 16) % SRSLTE_SL_N_RU_SEQ;
         uint32_t delta_ss = 0;
 
-        for (uint32_t ns = 0; ns <= q->nof_dmrs_symbols; ns++) {
-          uint32_t f_gh = q->f_gh_pattern[ns];
-          q->u[ns]      = (f_gh + q->f_ss + delta_ss) % 30;
+        for (uint32_t ns = 0; ns < q->nof_dmrs_symbols; ns++) {
+          f_gh  = q->f_gh_pattern[(2 * 2 * (sf_idx % 10)) + ns];
+          u[ns] = (f_gh + f_ss + delta_ss) % SRSLTE_SL_N_RU_SEQ;
         }
       }
       break;
     case SRSLTE_SIDELINK_PSDCH:
-      q->f_gh = 0;
-      q->f_ss = 0;
-      for (int i = 0; i < q->nof_dmrs_symbols; ++i) {
-        q->u[i] = (q->f_gh + q->f_ss) % 30;
+      f_gh = 0;
+      f_ss = 0;
+      for (int ns = 0; ns < q->nof_dmrs_symbols; ns++) {
+        u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
       }
       break;
   }
 
   // N_zc - Zadoff Chu Sequence Length
-
+  int32_t N_zc = 0; // N_zc - Zadoff Chu Sequence Length
   // TODO: the refsignal_ul.c should be reused for this, code looks almost the same
   switch (q->M_sc_rs / SRSLTE_NRE) {
     case 1:
       for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
         for (int i = 0; i < SRSLTE_NRE; i++) {
-          q->r[j][i] = phi_M_sc_12[q->u[j]][i] * M_PI / 4;
+          q->r[j][i] = phi_M_sc_12[u[j]][i] * M_PI / 4;
         }
       }
       break;
     case 2:
       for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
         for (int i = 0; i < q->M_sc_rs; i++) {
-          q->r[j][i] = phi_M_sc_24[q->u[j]][i] * M_PI / 4;
+          q->r[j][i] = phi_M_sc_24[u[j]][i] * M_PI / 4;
         }
       }
       break;
     default:
-      for (uint32_t i = SRSLTE_SL_NOF_PRIME_NUMBERS - 1; i > 0; i--) {
+      for (uint32_t i = NOF_PRIME_NUMBERS - 1; i > 0; i--) {
         if (prime_numbers[i] < q->M_sc_rs) {
-          q->N_zc = prime_numbers[i];
+          N_zc = prime_numbers[i];
           break;
         }
       }
       for (int j = 0; j < q->nof_dmrs_symbols; ++j) {
-        q->q[j]    = get_q(q->u[j], q->v, q->N_zc);
-        float n_sz = (float)q->N_zc;
+        q->q[j]    = get_q(u[j], SRSLTE_SL_BASE_SEQUENCE_NUMBER, N_zc);
+        float n_sz = (float)N_zc;
         for (uint32_t i = 0; i < q->M_sc_rs; i++) {
-          float m    = (float)(i % q->N_zc);
+          float m    = (float)(i % N_zc);
           q->r[j][i] = -M_PI * q->q[j] * m * (m + 1) / n_sz;
         }
       }
@@ -318,7 +316,7 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
       break;
     case SRSLTE_SIDELINK_PSSCH:
       if (tm <= SRSLTE_SIDELINK_TM2) {
-        if (N_sa_id % 2 == 0) {
+        if (N_x_id % 2 == 0) {
           q->w[0] = 1;
           q->w[1] = 1;
         } else {
@@ -327,7 +325,7 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
         }
       } else {
         // TM3/4
-        if (N_sa_id % 2 == 0) {
+        if (N_x_id % 2 == 0) {
           q->w[0] = 1;
           q->w[1] = 1;
           q->w[2] = 1;
@@ -353,14 +351,15 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
   return SRSLTE_SUCCESS;
 }
 
+
 int srslte_chest_sl_init_psbch_dmrs(srslte_chest_sl_t* q)
 {
-  return srslte_chest_sl_init_dmrs(q, 0);
+  return srslte_chest_sl_init_dmrs(q);
 }
 
 int srslte_chest_sl_gen_psbch_dmrs(srslte_chest_sl_t* q, srslte_sl_tm_t tm, uint32_t N_sl_id)
 {
-  return srslte_chest_sl_gen_dmrs(q, tm, SRSLTE_SIDELINK_PSBCH, 0, N_sl_id, 0, 0);
+  return srslte_chest_sl_gen_dmrs(q, tm, SRSLTE_SIDELINK_PSBCH, 0, N_sl_id, 0, 0, 0);
 }
 
 int srslte_chest_sl_put_psbch_dmrs(srslte_chest_sl_t* q,
@@ -538,6 +537,176 @@ int srslte_chest_sl_get_psbch_dmrs(srslte_chest_sl_t* q,
   }
 
   return sample_pos;
+}
+
+int srslte_chest_sl_init_pscch_dmrs(srslte_chest_sl_t* q)
+{
+  return srslte_chest_sl_init_dmrs(q);
+}
+
+int srslte_chest_sl_gen_pscch_dmrs(srslte_chest_sl_t* q, uint32_t cyclic_shift, srslte_sl_tm_t tm)
+{
+  return srslte_chest_sl_gen_dmrs(q, tm, SRSLTE_SIDELINK_PSCCH, 0, 0, 0, 0, cyclic_shift);
+}
+
+int srslte_chest_sl_put_pscch_dmrs(srslte_chest_sl_t* q,
+                                   cf_t*              sf_buffer,
+                                   uint32_t           prb_idx,
+                                   srslte_sl_tm_t     tm,
+                                   uint32_t           nof_prb,
+                                   srslte_cp_t        cp)
+{
+
+  uint32_t samplePos = 0;
+  uint32_t k         = prb_idx * SRSLTE_NRE;
+
+  // Mapping to physical resources
+  for (uint32_t i = 0; i < srslte_sl_get_num_symbols(tm, cp); i++) {
+    if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, tm, i, cp)) {
+      memcpy(&sf_buffer[k + i * nof_prb * SRSLTE_NRE], &q->r_sequence[samplePos][0], q->M_sc_rs * sizeof(cf_t));
+      samplePos++;
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+static void interpolate_pilots_sl_pscch(srslte_interp_linsrslte_vec_t* q,
+                                        cf_t*                          ce,
+                                        uint32_t                       n_prb,
+                                        uint32_t                       prb_idx,
+                                        srslte_sl_tm_t                 tm,
+                                        srslte_cp_t                    cp)
+{
+  uint32_t l_idx                      = 0;
+  uint32_t L[SRSLTE_SL_MAX_DMRS_SYMB] = {};
+  for (int i = 0; i < srslte_sl_get_num_symbols(tm, cp); i++) {
+    if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, tm, i, cp)) {
+      L[l_idx] = i;
+      l_idx++;
+    }
+  }
+
+  uint32_t NL = 2 * SRSLTE_CP_NSYMB(cp);
+  uint32_t nre = n_prb * SRSLTE_NRE;
+
+  srslte_interp_linear_vector_resize(q, nre);
+
+  uint32_t ce_l1 = SRSLTE_RE_IDX(n_prb, L[0], 0 * SRSLTE_NRE);
+  uint32_t ce_l2 = SRSLTE_RE_IDX(n_prb, L[1], 0 * SRSLTE_NRE);
+
+  if ((tm == SRSLTE_SIDELINK_TM1) || (tm == SRSLTE_SIDELINK_TM2)) {
+    srslte_interp_linear_vector3(q, &ce[ce_l2], &ce[ce_l1], &ce[ce_l1], &ce[ce_l1 - nre], (L[1] - L[0]), L[0], false, nre);
+    srslte_interp_linear_vector3(
+        q, &ce[ce_l1], &ce[ce_l2], NULL, &ce[ce_l1 + nre], (L[1] - L[0]), (L[1] - L[0]) - 1, true, nre);
+    srslte_interp_linear_vector3(
+        q, &ce[ce_l1], &ce[ce_l2], &ce[ce_l2], &ce[ce_l2 + nre], (L[1] - L[0]), (NL - L[1]) - 1, true, nre);
+  } else {
+    uint32_t ce_l3 = SRSLTE_RE_IDX(n_prb, L[2], 0 * SRSLTE_NRE);
+    uint32_t ce_l4 = SRSLTE_RE_IDX(n_prb, L[3], 0 * SRSLTE_NRE);
+    srslte_interp_linear_vector3(q, &ce[ce_l2], &ce[ce_l1], &ce[ce_l1], &ce[ce_l1 - nre], (L[1] - L[0]), L[0], false, nre);
+    srslte_interp_linear_vector3(
+        q, &ce[ce_l1], &ce[ce_l2], NULL, &ce[ce_l1 + nre], (L[1] - L[0]), (L[1] - L[0]) - 1, true, nre);
+    srslte_interp_linear_vector3(
+        q, &ce[ce_l2], &ce[ce_l3], NULL, &ce[ce_l2 + nre], (L[2] - L[1]), (L[2] - L[1]) - 1, true, nre);
+    srslte_interp_linear_vector3(
+        q, &ce[ce_l3], &ce[ce_l4], NULL, &ce[ce_l3 + nre], (L[3] - L[2]), (L[3] - L[2]) - 1, true, nre);
+    srslte_interp_linear_vector3(
+        q, &ce[ce_l3], &ce[ce_l4], &ce[ce_l4], &ce[ce_l4 + nre], (L[3] - L[2]), (NL - L[3]) - 1, true, nre);
+  }
+}
+
+void srslte_chest_sl_pscch_ls_estimate_equalize(srslte_chest_sl_t* q,
+                                                cf_t*              sf_buffer,
+                                                uint32_t           prb_idx,
+                                                cf_t*              sf_buffer_rx,
+                                                uint32_t           nof_prb,
+                                                srslte_sl_tm_t     tm,
+                                                srslte_cp_t        cp)
+{
+  int sf_n_re = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE * nof_prb * 2;
+
+  // Get Pilot Estimates
+  // Use the known DMRS signal to compute least-squares estimates
+  bzero(q->ce, sizeof(cf_t) * sf_n_re);
+
+  if ((tm == SRSLTE_SIDELINK_TM1) || (tm == SRSLTE_SIDELINK_TM2)) {
+    if (cp == SRSLTE_CP_NORM) {
+      srslte_vec_prod_conj_ccc(&sf_buffer[3 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               &q->r_sequence[0][0],
+                               &q->ce[3 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               q->M_sc_rs);
+      srslte_vec_prod_conj_ccc(&sf_buffer[10 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               &q->r_sequence[1][0],
+                               &q->ce[10 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               q->M_sc_rs);
+    } else {
+      srslte_vec_prod_conj_ccc(&sf_buffer[2 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               &q->r_sequence[0][0],
+                               &q->ce[2 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               q->M_sc_rs);
+      srslte_vec_prod_conj_ccc(&sf_buffer[8 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               &q->r_sequence[1][0],
+                               &q->ce[8 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               q->M_sc_rs);
+    }
+  } else if ((tm == SRSLTE_SIDELINK_TM3) || (tm == SRSLTE_SIDELINK_TM4)) {
+    if (cp == SRSLTE_CP_NORM) {
+      srslte_vec_prod_conj_ccc(&sf_buffer[2 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               &q->r_sequence[0][0],
+                               &q->ce[2 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               q->M_sc_rs);
+      srslte_vec_prod_conj_ccc(&sf_buffer[5 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               &q->r_sequence[1][0],
+                               &q->ce[5 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               q->M_sc_rs);
+      srslte_vec_prod_conj_ccc(&sf_buffer[8 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               &q->r_sequence[2][0],
+                               &q->ce[8 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               q->M_sc_rs);
+      srslte_vec_prod_conj_ccc(&sf_buffer[11 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               &q->r_sequence[3][0],
+                               &q->ce[11 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                               q->M_sc_rs);
+    } else {
+      ERROR("Invalid CP");
+      return;
+    }
+  } else {
+    ERROR("Invalid TM");
+    return;
+  }
+
+  interpolate_pilots_sl_pscch(&q->lin_vec_sl, q->ce, nof_prb, prb_idx, tm, cp);
+
+  // Perform channel equalization
+  srslte_predecoding_single(sf_buffer, q->ce, sf_buffer_rx, NULL, sf_n_re, 1, 0.0);
+}
+
+int srslte_chest_sl_get_pscch_dmrs(srslte_chest_sl_t* q,
+                                   cf_t*              sf_buffer_rx,
+                                   uint32_t           prb_idx,
+                                   cf_t**             dmrs_received,
+                                   srslte_sl_tm_t     tm,
+                                   uint32_t           nof_prb,
+                                   srslte_cp_t        cp)
+{
+  uint32_t samplePos = 0;
+  uint32_t k         = prb_idx * SRSLTE_NRE;
+
+  // Get DMRSs
+  for (uint32_t i = 0; i < srslte_sl_get_num_symbols(tm, cp); i++) {
+    if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, tm, i, cp)) {
+      memcpy(&q->dmrs_received[samplePos][0], &sf_buffer_rx[k + i * nof_prb * SRSLTE_NRE], q->M_sc_rs * sizeof(cf_t));
+      samplePos++;
+    }
+  }
+
+  for (uint32_t i = 0; i < q->nof_dmrs_symbols; i++) {
+    memcpy(&dmrs_received[i][0], &q->dmrs_received[i][0], q->M_sc_rs * sizeof(cf_t));
+  }
+
+  return SRSLTE_SUCCESS;
 }
 
 void srslte_chest_sl_free(srslte_chest_sl_t* q)
