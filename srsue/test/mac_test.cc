@@ -242,22 +242,31 @@ public:
     return 0;
   }
 
-  int ul_grant_and_check_tv(mac* mac_h, bool ack, uint16_t rnti, uint32_t len, const uint8_t* tv)
+  int ul_grant_and_check_tv(mac* mac_h, bool ack, uint16_t rnti, uint32_t len, const uint8_t* tv, bool is_rar = false, bool adaptive_retx = false)
   {
 
     mac_interface_phy_lte::tb_action_ul_t ul_action    = {};
     mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant = {};
 
-    // Generate UL Grant
-    ul_mac_grant.phich_available = !ack;
-    ul_mac_grant.rnti            = rnti;
-    ul_mac_grant.tb.ndi          = ul_ndi;
-    ul_mac_grant.tb.ndi_present  = ack;
-    ul_mac_grant.tb.tbs          = len;
-
     if (ack) {
       ul_ndi = !ul_ndi;
     }
+
+    // Generate UL Grant
+    if (!adaptive_retx) {
+      ul_mac_grant.phich_available = !ack;
+      ul_mac_grant.tb.ndi          = ul_ndi;
+      ul_mac_grant.tb.ndi_present  = ack;
+    } else {
+      ul_mac_grant.hi_value        = true;
+      ul_mac_grant.phich_available = true;
+      ul_mac_grant.tb.ndi          = ul_ndi;
+      ul_mac_grant.tb.ndi_present  = true;
+    }
+
+    ul_mac_grant.is_rar          = is_rar;
+    ul_mac_grant.rnti            = rnti;
+    ul_mac_grant.tb.tbs          = len;
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
     mac_h->new_grant_ul(0, ul_mac_grant, &ul_action);
@@ -1273,9 +1282,9 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
         }
 
         if (test.crnti) {
-          TESTASSERT(!phy->ul_grant_and_check_tv(mac, i == 0, temp_rnti, 3, tv_msg3_ce));
+          TESTASSERT(!phy->ul_grant_and_check_tv(mac, i == 0, temp_rnti, 3, tv_msg3_ce, i == 0));
         } else {
-          TESTASSERT(!phy->ul_grant_and_check_tv(mac, i == 0, temp_rnti, 9, tv_msg3));
+          TESTASSERT(!phy->ul_grant_and_check_tv(mac, i == 0, temp_rnti, 9, tv_msg3, i == 0, i == 1));
         }
       }
 

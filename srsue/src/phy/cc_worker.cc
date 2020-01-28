@@ -721,6 +721,7 @@ void cc_worker::ul_phy_to_mac_grant(srslte_pusch_grant_t*                       
   mac_grant->tb.tbs         = phy_grant->tb.tbs / (uint32_t)8;
   mac_grant->tb.rv          = phy_grant->tb.rv;
   mac_grant->pid            = pid;
+  mac_grant->is_rar         = dci_ul->format == SRSLTE_DCI_FORMAT_RAR;
   mac_grant->tti_tx         = CURRENT_TTI_TX;
 }
 

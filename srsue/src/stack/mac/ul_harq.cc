@@ -187,8 +187,6 @@ void ul_harq_entity::ul_harq_process::reset_ndi()
   cur_grant.tb.ndi = false;
 }
 
-#define grant_is_rar() (grant.rnti == harq_entity->rntis->temp_rnti)
-
 void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
                                                    mac_interface_phy_lte::tb_action_ul_t* action)
 {
@@ -201,7 +199,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
 
     // Get maximum retransmissions
     uint32_t max_retx;
-    if (grant_is_rar()) {
+    if (grant.rnti == harq_entity->rntis->temp_rnti) {
       max_retx = harq_entity->harq_cfg.max_harq_msg3_tx;
     } else {
       max_retx = harq_entity->harq_cfg.max_harq_tx;
@@ -210,11 +208,11 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
     // Check maximum retransmissions, do not consider last retx ACK
     if (current_tx_nb >= max_retx && !grant.hi_value) {
       Info("UL %d:  Maximum number of ReTX reached (%d). Discarding TB.\n", pid, max_retx);
-      if (grant_is_rar()) {
+      if (grant.rnti == harq_entity->rntis->temp_rnti) {
         harq_entity->ra_procedure->harq_max_retx();
       }
       reset();
-    } else if (grant_is_rar() && current_tx_nb) {
+    } else if (grant.rnti == harq_entity->rntis->temp_rnti && current_tx_nb) {
       harq_entity->ra_procedure->harq_retx();
     }
   }
@@ -233,9 +231,10 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
     if (grant.tb.tbs == 0) {
       action->tb.enabled = true;
 
-    } else if ((grant.rnti == harq_entity->rntis->crnti &&        // If C-RNTI
-                ((grant.tb.ndi != get_ndi()) || !has_grant())) || // if NDI toggled or is first dci is a new tx
-               grant_is_rar())                                    // If T-CRNTI received in RAR has no RV information
+      // Decide if adaptive retx or new tx. 3 checks in 5.4.2.1
+    } else if ((grant.rnti != harq_entity->rntis->temp_rnti && grant.tb.ndi != get_ndi()) || // If not addressed to T-CRNTI and NDI toggled
+               (grant.rnti == harq_entity->rntis->crnti     && !has_grant())              || // If addressed to C-RNTI and buffer is empty
+               (grant.is_rar))                                                               // Grant received in a RAR
     {
       // New transmission
       reset();
@@ -251,7 +250,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       }
 
       // Uplink dci in a RAR and there is a PDU in the Msg3 buffer
-      if (grant_is_rar()) {
+      if (grant.is_rar) {
         if (harq_entity->mux_unit->msg3_is_pending()) {
           Debug("Getting Msg3 buffer payload, dci size=%d bytes\n", grant.tb.tbs);
           pdu_ptr = harq_entity->mux_unit->msg3_get(payload_buffer.get(), grant.tb.tbs);
@@ -281,7 +280,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
     }
     if (harq_entity->pcap) {
       uint16_t rnti;
-      if (grant_is_rar() && harq_entity->rntis->temp_rnti) {
+      if (grant.rnti == harq_entity->rntis->temp_rnti && harq_entity->rntis->temp_rnti) {
         rnti = harq_entity->rntis->temp_rnti;
       } else {
         rnti = harq_entity->rntis->crnti;
@@ -377,7 +376,7 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
   current_tx_nb             = 0;
   current_irv               = 0;
 
-  Info("UL %d:  New TX%s, RV=%d, TBS=%d\n", pid, grant_is_rar() ? " for Msg3" : "", get_rv(), cur_grant.tb.tbs);
+  Info("UL %d:  New TX%s, RV=%d, TBS=%d\n", pid, grant.rnti == harq_entity->rntis->temp_rnti ? " for Msg3" : "", get_rv(), cur_grant.tb.tbs);
   generate_tx(action);
 }
 

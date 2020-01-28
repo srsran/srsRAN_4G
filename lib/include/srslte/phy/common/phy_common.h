@@ -267,6 +267,7 @@ typedef enum {
   SRSLTE_DCI_FORMATN0,
   SRSLTE_DCI_FORMATN1,
   SRSLTE_DCI_FORMATN2,
+  SRSLTE_DCI_FORMAT_RAR, // Not a real LTE format. Used internally to indicate RAR grant
   SRSLTE_DCI_NOF_FORMATS
 } srslte_dci_format_t;
 

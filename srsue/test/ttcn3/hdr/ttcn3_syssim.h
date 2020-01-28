@@ -378,7 +378,8 @@ public:
     ul_grant.tb.ndi         = get_ndi_for_new_ul_tx(tti);
     ul_grant.rnti           = crnti;
     ul_grant.pid            = get_pid(tti);
-
+    ul_grant.is_rar         = true;
+    
     ue->new_grant_ul(ul_grant);
   }
 

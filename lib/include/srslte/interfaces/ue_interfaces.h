@@ -345,6 +345,7 @@ public:
     uint16_t rnti;
     bool     phich_available;
     bool     hi_value;
+    bool     is_rar;
     uint32_t tti_tx;
   } mac_grant_ul_t;
 

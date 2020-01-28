@@ -159,7 +159,9 @@ void phy_common::set_rar_grant(uint8_t             grant_payload[SRSLTE_RAR_GRAN
     Error("Converting RAR message to UL dci\n");
     return;
   }
-  dci_ul.rnti = rnti;
+
+  dci_ul.format = SRSLTE_DCI_FORMAT_RAR; // Use this format to identify a RAR grant
+  dci_ul.rnti   = rnti;
 
   uint32_t msg3_tx_tti;
   if (rar_grant.ul_delay) {
