@@ -67,13 +67,10 @@ rrc::rrc(srslte::log* rrc_log_) :
   connection_reest(this),
   serving_cell(unique_cell_t(new cell_t()))
 {
-  measurements = new rrc_meas(rrc_log);
+  measurements = std::unique_ptr<rrc_meas>(new rrc_meas(rrc_log));
 }
 
-rrc::~rrc()
-{
-  delete measurements;
-}
+rrc::~rrc() = default;
 
 template <class T>
 void rrc::log_rrc_message(const std::string    source,
@@ -361,7 +358,7 @@ void rrc::set_ue_identity(srslte::s_tmsi_t s_tmsi)
 /* This function is called from a PHY worker thus must return very quickly.
  * Queue the values of the measurements and process them from the RRC thread
  */
-void rrc::new_cell_meas(std::vector<phy_meas_t>& meas)
+void rrc::new_cell_meas(const std::vector<phy_meas_t>& meas)
 {
   cell_meas_q.push(meas);
 }
@@ -379,7 +376,7 @@ void rrc::process_cell_meas()
   }
 }
 
-void rrc::process_new_cell_meas(std::vector<phy_meas_t>& meas)
+void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
 {
   bool neighbour_added = false;
   rrc_log->debug("MEAS:  Processing measurement of %lu cells\n", meas.size());
@@ -540,7 +537,7 @@ void rrc::delete_last_neighbour()
 {
   if (not neighbour_cells.empty()) {
     auto& it = neighbour_cells.back();
-    rrc_log->debug("Delete cell earfcn=%d, pci=%d from neighbor list.\n", (*it).get_earfcn(), (*it).get_pci());
+    rrc_log->debug("Delete cell %s from neighbor list.\n", (*it).to_string().c_str());
     neighbour_cells.pop_back();
   }
 }
@@ -567,19 +564,9 @@ void rrc::log_neighbour_cells()
   if (not neighbour_cells.empty()) {
     char ordered[512] = {};
     int  n            = 0;
-    n += snprintf(ordered,
-                  512,
-                  "[earfcn=%d, pci=%d, rsrp=%.2f",
-                  neighbour_cells[0]->get_earfcn(),
-                  neighbour_cells[0]->phy_cell.pci,
-                  neighbour_cells[0]->get_rsrp());
+    n += snprintf(ordered, 512, "[%s", neighbour_cells[0]->to_string().c_str());
     for (uint32_t i = 1; i < neighbour_cells.size(); i++) {
-      int m = snprintf(&ordered[n],
-                       512 - n,
-                       " | earfcn=%d, pci=%d, rsrp=%.2f",
-                       neighbour_cells[i]->get_earfcn(),
-                       neighbour_cells[i]->get_pci(),
-                       neighbour_cells[i]->get_rsrp());
+      int m = snprintf(&ordered[n], 512 - n, " | %s", neighbour_cells[i]->to_string().c_str());
       n += m;
     }
     rrc_log->info("Neighbours: %s]\n", ordered);
@@ -603,27 +590,33 @@ bool rrc::add_neighbour_cell(unique_cell_t new_cell)
   bool ret = false;
   // Make sure cell is valid
   if (!new_cell->is_valid()) {
-    rrc_log->error(
-        "Trying to add cell EARFCN=%d, PCI=%d but is not valid", new_cell->get_earfcn(), new_cell->get_pci());
+    rrc_log->error("Trying to add cell %s but is not valid", new_cell->to_string().c_str());
     return ret;
   }
-  // First make sure it doesn't exist
-  if (has_neighbour_cell(new_cell->get_earfcn(), new_cell->get_pci())) {
-    rrc_log->warning(
-        "Trying to add cell EARFCN=%d, PCI=%d but already exists", new_cell->get_earfcn(), new_cell->get_pci());
-    return ret;
-  }
-  if (neighbour_cells.size() < NOF_NEIGHBOUR_CELLS) {
+  // If cell exists, update RSRP value
+  cell_t* existing_cell = get_neighbour_cell_handle(new_cell->get_earfcn(), new_cell->get_pci());
+  if (existing_cell != nullptr) {
+    if (std::isnormal(new_cell.get()->get_rsrp())) {
+      existing_cell->set_rsrp(new_cell.get()->get_rsrp());
+    }
     ret = true;
-  } else if (new_cell->greater(neighbour_cells.back().get())) {
-    // delete last neighbour cell
-    delete_last_neighbour();
-    ret = true;
+  } else {
+    // If doesn't exists, add it if there is enough space
+    if (neighbour_cells.size() < NOF_NEIGHBOUR_CELLS) {
+      ret = true;
+      // If there isn't space, keep the strongest only
+    } else if (new_cell->greater(neighbour_cells.back().get())) {
+      // delete last neighbour cell
+      delete_last_neighbour();
+      ret = true;
+    }
   }
   if (ret) {
     rrc_log->info(
-        "Adding neighbour cell %s, nof_neighbours=%zd\n", new_cell->print().c_str(), neighbour_cells.size() + 1);
+        "Adding neighbour cell %s, nof_neighbours=%zd\n", new_cell->to_string().c_str(), neighbour_cells.size() + 1);
     neighbour_cells.push_back(std::move(new_cell));
+  } else {
+    rrc_log->warning("Could not add cell %s: no space in neighbours\n", new_cell->to_string().c_str());
   }
 
   sort_neighbour_cells();
@@ -679,9 +672,9 @@ std::string rrc::print_neighbour_cells()
   std::string s;
   s.reserve(256);
   for (auto it = neighbour_cells.begin(); it != neighbour_cells.end() - 1; ++it) {
-    s += (*it)->print() + ", ";
+    s += (*it)->to_string() + ", ";
   }
-  s += neighbour_cells.back()->print();
+  s += neighbour_cells.back()->to_string();
   return s;
 }
 
@@ -707,8 +700,8 @@ std::set<uint32_t> rrc::get_neighbour_pcis(uint32_t earfcn)
  *******************************************************************************/
 std::string rrc::print_mbms()
 {
-  mcch_msg_type_c            msg = serving_cell->mcch.msg;
-  std::stringstream          ss;
+  mcch_msg_type_c   msg = serving_cell->mcch.msg;
+  std::stringstream ss;
   for (uint32_t i = 0; i < msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9.size(); i++) {
     ss << "PMCH: " << i << std::endl;
     pmch_info_r9_s* pmch = &msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[i];
@@ -1071,8 +1064,8 @@ bool rrc::ho_prepare()
     cell_t* target_cell = get_neighbour_cell_handle(target_earfcn, mob_ctrl_info->target_pci);
     if (!phy->cell_select(&target_cell->phy_cell)) {
       rrc_log->error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
-                     target_cell->print().c_str(),
-                     serving_cell->print().c_str());
+                     target_cell->to_string().c_str(),
+                     serving_cell->to_string().c_str());
 
       // Remove cell from list to avoid cell re-selection, picking the same cell
       target_cell->set_rsrp(-INFINITY);
@@ -1440,9 +1433,10 @@ cell_t* rrc::get_serving_cell()
  *******************************************************************************/
 void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
 {
-  bcch_bch_msg_s            bch_msg;
-  asn1::cbit_ref            bch_bref(pdu->msg, pdu->N_bytes);
-  asn1::SRSASN_CODE         err = bch_msg.unpack(bch_bref);
+  bcch_bch_msg_s    bch_msg;
+  asn1::cbit_ref    bch_bref(pdu->msg, pdu->N_bytes);
+  asn1::SRSASN_CODE err = bch_msg.unpack(bch_bref);
+
   if (err != asn1::SRSASN_SUCCESS) {
     rrc_log->error("Could not unpack BCCH-BCH message.\n");
     return;
@@ -1468,8 +1462,8 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
 
   bcch_dl_sch_msg_s dlsch_msg;
   asn1::cbit_ref    dlsch_bref(pdu->msg, pdu->N_bytes);
+  asn1::SRSASN_CODE err = dlsch_msg.unpack(dlsch_bref);
 
-  asn1::SRSASN_CODE            err = dlsch_msg.unpack(dlsch_bref);
   if (err != asn1::SRSASN_SUCCESS or dlsch_msg.msg.type().value != bcch_dl_sch_msg_type_c::types_opts::c1) {
     rrc_log->error("Could not unpack BCCH DL-SCH message.\n");
     return;
@@ -1970,8 +1964,8 @@ void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
 {
   rrc_log->debug("Preparing UE Capability Info\n");
 
-  ul_dcch_msg_s            ul_dcch_msg;
-  ue_cap_info_r8_ies_s*    info = &ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_c1().set_ue_cap_info_r8();
+  ul_dcch_msg_s         ul_dcch_msg;
+  ue_cap_info_r8_ies_s* info = &ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_c1().set_ue_cap_info_r8();
   ul_dcch_msg.msg.c1().ue_cap_info().rrc_transaction_id = transaction_id;
 
   // resize container to fit all requested RATs

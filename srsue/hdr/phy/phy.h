@@ -72,7 +72,7 @@ public:
   cell_search_ret_t cell_search(phy_cell_t* cell) final;
   bool              cell_select(phy_cell_t* cell) final;
 
-  void set_cells_to_meas(uint32_t earfcn, std::set<uint32_t>& pci) final;
+  void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) final;
   void meas_stop() final;
 
   // also MAC interface
@@ -132,7 +132,7 @@ private:
   std::mutex              config_mutex;
   std::condition_variable config_cond;
   bool                    is_configured = false;
-  uint32_t nof_workers = 0;
+  uint32_t                nof_workers   = 0;
 
   const static int SF_RECV_THREAD_PRIO = 1;
   const static int WORKERS_THREAD_PRIO = 2;

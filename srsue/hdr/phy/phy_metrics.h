@@ -22,7 +22,7 @@
 #ifndef SRSUE_PHY_METRICS_H
 #define SRSUE_PHY_METRICS_H
 
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/srslte.h"
 
 namespace srsue {
 

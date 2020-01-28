@@ -815,7 +815,7 @@ static float get_rsrp_port(srslte_chest_dl_t* q, uint32_t port)
   return sum;
 }
 
-static float get_rsrp_neigbhour_port(srslte_chest_dl_t* q, uint32_t port)
+static float get_rsrp_neighbour_port(srslte_chest_dl_t* q, uint32_t port)
 {
   float sum = 0.0f;
   for (int j = 0; j < q->cell.nof_ports; ++j) {
@@ -855,7 +855,7 @@ static float get_rsrp_neighbour(srslte_chest_dl_t* q)
 {
   float max = -1e9;
   for (int i = 0; i < q->nof_rx_antennas; ++i) {
-    float v = get_rsrp_neigbhour_port(q, i);
+    float v = get_rsrp_neighbour_port(q, i);
     if (v > max) {
       max = v;
     }

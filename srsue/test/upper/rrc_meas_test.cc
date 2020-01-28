@@ -58,7 +58,7 @@ public:
   void              reset() override {}
   void              enable_pregen_signals(bool enable) override {}
 
-  void set_cells_to_meas(uint32_t earfcn, std::set<uint32_t>& pci) override
+  void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) override
   {
     freqs_started.insert(earfcn);
     cells_started[earfcn] = pci;
@@ -117,7 +117,7 @@ public:
   pdcp_test(srslte::log* log_, srslte::timer_handler* t) : srslte::pdcp(t, log_) {}
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = false) override
   {
-    ul_dcch_msg_s  ul_dcch_msg;
+    ul_dcch_msg_s ul_dcch_msg;
     asn1::cbit_ref bref(sdu->msg, sdu->N_bytes);
     if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
         ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
@@ -488,7 +488,7 @@ int meas_obj_test()
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 23));  // was added
   TESTASSERT(rrctest.phytest.meas_cell_started(2, 24));  // was added
 
-  log1.info("Test7: PHY finds new neigbhours in frequency 1 and 2, check RRC instructs to search them\n");
+  log1.info("Test7: PHY finds new neighbours in frequency 1 and 2, check RRC instructs to search them\n");
   std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
   phy_meas.push_back({0, 0, 1, 31});
   phy_meas.push_back({-1, 0, 1, 32});

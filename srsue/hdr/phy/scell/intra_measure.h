@@ -37,16 +37,20 @@ class intra_measure : public thread
 public:
   intra_measure();
   ~intra_measure();
-  void init(phy_common* common, rrc_interface_phy_lte* rrc, srslte::log* log_h);
-  void stop();
-  void set_primary_cell(uint32_t earfcn, srslte_cell_t cell);
-  void     set_cells_to_meas(std::set<uint32_t>& pci);
+  void     init(phy_common* common, rrc_interface_phy_lte* rrc, srslte::log* log_h);
+  void     stop();
+  void     set_primary_cell(uint32_t earfcn, srslte_cell_t cell);
+  void     set_cells_to_meas(const std::set<uint32_t>& pci);
   void     meas_stop();
-  void write(uint32_t tti, cf_t* data, uint32_t nsamples);
+  void     write(uint32_t tti, cf_t* data, uint32_t nsamples);
   uint32_t get_earfcn() { return current_earfcn; };
+  void     wait_meas()
+  { // Only used by scell_search_test
+    meas_sync.wait();
+  }
 
 private:
-  void             run_thread();
+  void             run_thread() override;
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
   scell_recv             scell            = {};
@@ -60,6 +64,7 @@ private:
   std::mutex             active_pci_mutex = {};
 
   srslte::tti_sync_cv tti_sync;
+  srslte::tti_sync_cv meas_sync; // Only used by scell_search_test
 
   cf_t* search_buffer = nullptr;
 

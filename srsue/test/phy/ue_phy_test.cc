@@ -85,7 +85,7 @@ private:
 
     void in_sync() override { notify_in_sync(); }
     void out_of_sync() override { notify_out_of_sync(); }
-    void new_cell_meas(std::vector<phy_meas_t>& meas) override
+    void new_cell_meas(const std::vector<phy_meas_t>& meas) override
     {
       for (auto& m : meas) {
         notify_new_phy_meas();
@@ -307,16 +307,16 @@ private:
       std::unique_lock<std::mutex> lock(mutex);
       return srslte_convert_amplitude_to_dB(rx_gain);
     }
-    double get_freq_offset() override { return 0; }
-    double get_tx_freq(const uint32_t& radio_idx) override { return tx_freq; }
-    double get_rx_freq(const uint32_t& radio_idx) override { return rx_freq; }
-    float  get_max_tx_power() override { return 0; }
-    float  get_tx_gain_offset() override { return 0; }
-    float  get_rx_gain_offset() override { return 0; }
-    bool   is_continuous_tx() override { return false; }
-    bool   get_is_start_of_burst(const uint32_t& radio_idx) override { return false; }
-    bool   is_init() override { return false; }
-    void   reset() override {}
+    double            get_freq_offset() override { return 0; }
+    double            get_tx_freq(const uint32_t& radio_idx) override { return tx_freq; }
+    double            get_rx_freq(const uint32_t& radio_idx) override { return rx_freq; }
+    float             get_max_tx_power() override { return 0; }
+    float             get_tx_gain_offset() override { return 0; }
+    float             get_rx_gain_offset() override { return 0; }
+    bool              is_continuous_tx() override { return false; }
+    bool              get_is_start_of_burst(const uint32_t& radio_idx) override { return false; }
+    bool              is_init() override { return false; }
+    void              reset() override {}
     srslte_rf_info_t* get_info(const uint32_t& radio_idx) override { return &rf_info; }
   };
 
@@ -465,11 +465,11 @@ public:
 
 int main(int argc, char** argv)
 {
-  int               ret      = SRSLTE_SUCCESS;
-  const uint32_t    default_timeout = 60000; // 1 minute
+  int            ret             = SRSLTE_SUCCESS;
+  const uint32_t default_timeout = 60000; // 1 minute
 
   // Define Cell
-  srslte_cell_t     cell     = {.nof_prb         = 6,
+  srslte_cell_t cell = {.nof_prb         = 6,
                         .nof_ports       = 1,
                         .id              = 1,
                         .cp              = SRSLTE_CP_NORM,

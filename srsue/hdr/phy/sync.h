@@ -70,7 +70,7 @@ public:
   bool                                     cell_is_camping();
 
   // RRC interface for controlling the neighbour cell measurement
-  void set_cells_to_meas(uint32_t earfcn, std::set<uint32_t>& pci);
+  void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci);
   void set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, srslte_cell_t cell_);
   void meas_stop();
 
@@ -170,8 +170,8 @@ private:
   bool running               = false;
 
   // Objects for internal use
-  search               search_p;
-  sfn_sync             sfn_p;
+  search                                              search_p;
+  sfn_sync                                            sfn_p;
   std::vector<std::unique_ptr<scell::intra_measure> > intra_freq_meas;
 
   uint32_t current_sflen                        = 0;
@@ -349,7 +349,7 @@ private:
   srslte_timestamp_t                          radio_ts          = {};
   std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib;
 
-  uint32_t nof_workers   = 0;
+  uint32_t nof_workers = 0;
 
   float    ul_dl_factor            = NAN;
   int      current_earfcn          = 0;

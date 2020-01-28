@@ -929,7 +929,11 @@ static void ulsch_interleave(uint8_t*          g_bits,
                              uint8_t*          ri_present)
 {
   if (N_pusch_symbs == 0 || Qm == 0 || H_prime_total == 0 || H_prime_total < N_pusch_symbs) {
-    ERROR("Invalid input: N_pusch_symbs=%d, Qm=%d, H_prime_total=%d, N_pusch_symbs=%d\n", N_pusch_symbs, Qm, H_prime_total, N_pusch_symbs);
+    ERROR("Invalid input: N_pusch_symbs=%d, Qm=%d, H_prime_total=%d, N_pusch_symbs=%d\n",
+          N_pusch_symbs,
+          Qm,
+          H_prime_total,
+          N_pusch_symbs);
     return;
   }
 
@@ -1247,7 +1251,7 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
 
     srslte_bit_pack_vector(q->temp_g_bits, g_bits, Q_prime_cqi * Qm);
     // Reset the buffer because will be reused in ulsch_interleave
-    bzero(q->temp_g_bits, sizeof(uint8_t) * SRSLTE_MIN(Q_prime_cqi * Qm, SCH_MAX_G_BITS));
+    bzero(q->temp_g_bits, Q_prime_cqi * Qm);
   }
 
   e_offset += Q_prime_cqi * Qm;

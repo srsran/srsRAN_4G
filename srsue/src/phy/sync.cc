@@ -386,7 +386,7 @@ bool sync::cell_is_camping()
 
 void sync::run_thread()
 {
-  sf_worker* worker                                      = nullptr;
+  sf_worker*    worker                                      = nullptr;
   cf_t*         buffer[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS] = {};
   srslte_cell_t temp_cell                                   = {};
 
@@ -482,9 +482,9 @@ void sync::run_thread()
 
               // Force decode MIB if required
               if (force_camping_sfn_sync) {
-                uint32_t _tti                      = 0;
-                temp_cell                          = cell;
-                sync::sfn_sync::ret_code ret       = sfn_p.decode_mib(&temp_cell, &_tti, buffer[0], mib);
+                uint32_t _tti                = 0;
+                temp_cell                    = cell;
+                sync::sfn_sync::ret_code ret = sfn_p.decode_mib(&temp_cell, &_tti, buffer[0], mib);
                 if (ret == sfn_sync::SFN_FOUND) {
                   // Force tti
                   tti = _tti;
@@ -1291,7 +1291,7 @@ void sync::set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, sr
     intra_freq_meas[cc_idx]->set_primary_cell(earfcn_, cell_);
   }
 }
-void sync::set_cells_to_meas(uint32_t earfcn_, std::set<uint32_t>& pci)
+void sync::set_cells_to_meas(uint32_t earfcn_, const std::set<uint32_t>& pci)
 {
   bool found = false;
   for (size_t i = 0; i < intra_freq_meas.size() and not found; i++) {

@@ -246,7 +246,7 @@ public:
     return 0;
   }
 
-  std::string print()
+  std::string to_string()
   {
     char buf[256];
     snprintf(buf,
@@ -334,7 +334,7 @@ public:
   // PHY interface
   void in_sync() final;
   void out_of_sync() final;
-  void new_cell_meas(std::vector<phy_meas_t>& meas);
+  void new_cell_meas(const std::vector<phy_meas_t>& meas);
 
   // MAC interface
   void ho_ra_completed(bool ra_successful);
@@ -425,9 +425,9 @@ private:
   std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
   // RRC constants and timers
-  srslte::timer_handler*              timers = nullptr;
-  uint32_t                            n310_cnt, N310 = 0;
-  uint32_t                            n311_cnt, N311 = 0;
+  srslte::timer_handler*              timers   = nullptr;
+  uint32_t                            n310_cnt = 0, N310 = 0;
+  uint32_t                            n311_cnt = 0, N311 = 0;
   srslte::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
 
   // Radio bearers
@@ -466,16 +466,16 @@ private:
   unique_cell_t                   serving_cell = nullptr;
   void                            set_serving_cell(uint32_t cell_idx);
 
-  unique_cell_t remove_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
-  cell_t*       get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci);
-  int           find_neighbour_cell(uint32_t earfcn, uint32_t pci);
+  unique_cell_t      remove_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
+  cell_t*            get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci);
+  int                find_neighbour_cell(uint32_t earfcn, uint32_t pci);
   bool               add_neighbour_cell(phy_meas_t meas);
-  bool          add_neighbour_cell(unique_cell_t new_cell);
+  bool               add_neighbour_cell(unique_cell_t new_cell);
   void               log_neighbour_cells();
-  void          sort_neighbour_cells();
-  void          clean_neighbours();
-  void          delete_last_neighbour();
-  std::string   print_neighbour_cells();
+  void               sort_neighbour_cells();
+  void               clean_neighbours();
+  void               delete_last_neighbour();
+  std::string        print_neighbour_cells();
   std::set<uint32_t> get_neighbour_pcis(uint32_t earfcn);
 
   bool                     initiated                  = false;
@@ -490,7 +490,7 @@ private:
 
   // Measurements private subclass
   class rrc_meas;
-  rrc_meas* measurements;
+  std::unique_ptr<rrc_meas> measurements;
 
   // Interface from rrc_meas
   void               send_srb1_msg(const asn1::rrc::ul_dcch_msg_s& msg);
@@ -500,7 +500,7 @@ private:
   cell_t*            get_serving_cell();
 
   void                                          process_cell_meas();
-  void                                          process_new_cell_meas(std::vector<phy_meas_t>& meas);
+  void                                          process_new_cell_meas(const std::vector<phy_meas_t>& meas);
   srslte::block_queue<std::vector<phy_meas_t> > cell_meas_q;
 
   // Cell selection/reselection functions/variables

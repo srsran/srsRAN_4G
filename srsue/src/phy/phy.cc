@@ -315,7 +315,7 @@ void phy::configure_prach_params()
   }
 }
 
-void phy::set_cells_to_meas(uint32_t earfcn, std::set<uint32_t>& pci)
+void phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci)
 {
   sfsync.set_cells_to_meas(earfcn, pci);
 }

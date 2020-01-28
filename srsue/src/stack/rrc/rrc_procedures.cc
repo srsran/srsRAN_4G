@@ -73,8 +73,8 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
 
   // Create a cell with NaN RSRP. Will be updated by new_phy_meas() during SIB search.
   if (not rrc_ptr->add_neighbour_cell(unique_cell_t(new cell_t(new_cell)))) {
-    Info("No more space for neighbour cells\n");
-    return proc_outcome_t::success;
+    Error("Could not add new found cell\n");
+    return proc_outcome_t::error;
   }
 
   rrc_ptr->set_serving_cell(new_cell, false);
@@ -346,7 +346,7 @@ proc_outcome_t rrc::cell_selection_proc::init()
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
 {
-  Info("Current serving cell: %s\n", rrc_ptr->serving_cell->print().c_str());
+  Info("Current serving cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
 
   // Neighbour cells are sorted in descending order of RSRP
   for (; neigh_index < rrc_ptr->neighbour_cells.size(); ++neigh_index) {
@@ -361,7 +361,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
       // Try to select Cell
       rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index)->phy_cell, discard_serving);
       discard_serving = false;
-      Info("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
+      Info("Selected cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
 
       /* BLOCKING CALL */
       if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
@@ -379,7 +379,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
   }
   if (rrc_ptr->phy_sync_state == phy_in_sync && rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
     if (not rrc_ptr->phy->cell_is_camping()) {
-      Info("Serving cell %s is in-sync but not camping. Selecting it...\n", rrc_ptr->serving_cell->print().c_str());
+      Info("Serving cell %s is in-sync but not camping. Selecting it...\n", rrc_ptr->serving_cell->to_string().c_str());
 
       /* BLOCKING CALL */
       if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
@@ -447,7 +447,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_config()
     return proc_outcome_t::yield;
   }
   if (serv_cell_cfg_fut.is_success()) {
-    rrc_ptr->rrc_log->console("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
+    rrc_ptr->rrc_log->console("Selected cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
     Info("All SIBs of serving cell obtained successfully\n");
     cs_result = cs_result_t::changed_cell;
     return proc_outcome_t::success;

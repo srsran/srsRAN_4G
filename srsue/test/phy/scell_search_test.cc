@@ -240,7 +240,7 @@ public:
 
   void in_sync() override {}
   void out_of_sync() override {}
-  void new_cell_meas(std::vector<phy_meas_t>& meas) override
+  void new_cell_meas(const std::vector<phy_meas_t>& meas) override
   {
     for (auto& m : meas) {
       uint32_t pci = m.pci;

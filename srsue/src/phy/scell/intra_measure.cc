@@ -97,7 +97,7 @@ void intra_measure::meas_stop()
   }
 }
 
-void intra_measure::set_cells_to_meas(std::set<uint32_t>& pci)
+void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
 {
   active_pci_mutex.lock();
   active_pci = pci;
@@ -159,7 +159,7 @@ void intra_measure::run_thread()
 
       receiving = false;
 
-      std::vector<rrc_interface_phy_lte::phy_meas_t> neigbhour_cells = {};
+      std::vector<rrc_interface_phy_lte::phy_meas_t> neighbour_cells = {};
 
       // Use Cell Reference signal to measure cells in the time domain for all known active PCI
       for (auto id : cells_to_measure) {
@@ -180,7 +180,7 @@ void intra_measure::run_thread()
           m.earfcn                            = current_earfcn;
           m.rsrp                              = refsignal_dl_sync.rsrp_dBfs - common->rx_gain_offset;
           m.rsrq                              = refsignal_dl_sync.rsrq_dB;
-          neigbhour_cells.push_back(m);
+          neighbour_cells.push_back(m);
 
           Info("INTRA: Found neighbour cell: EARFCN=%d, PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, "
                "CFO=%+.1fHz\n",
@@ -194,9 +194,11 @@ void intra_measure::run_thread()
       }
 
       // Send measurements to RRC
-      if (neigbhour_cells.size() > 0) {
-        rrc->new_cell_meas(neigbhour_cells);
+      if (not neighbour_cells.empty()) {
+        rrc->new_cell_meas(neighbour_cells);
       }
+
+      meas_sync.increase();
     }
   }
 }
