@@ -281,6 +281,8 @@ enable = false
 # equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
 #                       non-negative real number to indicate a regularized zf coefficient.
 #                       Default is MMSE.
+# correct_sync_error:   Channel estimator measures and pre-compensates time synchronization error. Increases CPU usage,
+#                       improves PDSCH decoding in high SFO and high speed UE scenarios.
 # sfo_ema:              EMA coefficient to average sample offsets used to compute SFO
 # sfo_correct_period:   Period in ms to correct sample time to adjust for SFO
 # sss_algorithm:        Selects the SSS estimation algorithm. Can choose between
@@ -322,6 +324,7 @@ enable = false
 #pdsch_max_its       = 8    # These are half iterations
 #nof_phy_threads     = 3
 #equalizer_mode      = mmse
+#correct_sync_error  = false
 #sfo_ema             = 0.1
 #sfo_correct_period  = 10
 #sss_algorithm       = full

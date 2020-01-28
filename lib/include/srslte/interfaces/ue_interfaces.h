@@ -495,6 +495,7 @@ typedef struct {
   float         snr_ema_coeff                    = 0.1f;
   std::string   snr_estim_alg                    = "refs";
   bool          agc_enable                       = true;
+  bool          correct_sync_error               = false;
   bool          cfo_is_doppler                   = false;
   bool          cfo_integer_enabled              = false;
   float         cfo_correct_tol_hz               = 1.0f;

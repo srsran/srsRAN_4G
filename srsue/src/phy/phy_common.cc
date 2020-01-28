@@ -104,7 +104,7 @@ void phy_common::set_ue_dl_cfg(srslte_ue_dl_cfg_t* ue_dl_cfg)
   }
 
   chest_cfg->rsrp_neighbour       = false;
-  chest_cfg->sync_error_enable    = false;
+  chest_cfg->sync_error_enable    = args->correct_sync_error;
   chest_cfg->interpolate_subframe = args->interpolate_subframe_enabled;
   chest_cfg->cfo_estimate_enable  = args->cfo_ref_mask != 0;
   chest_cfg->cfo_estimate_sf_mask = args->cfo_ref_mask;

@@ -255,6 +255,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
        bpo::value<uint32_t>(&args->phy.intra_freq_meas_period_ms)->default_value(200),
        "Period of intra-frequency neighbour cell measurement in ms. Maximum as per 3GPP is 200 ms.")
 
+    ("phy.correct_sync_error",
+       bpo::value<bool>(&args->phy.correct_sync_error)->default_value(false),
+       "Channel estimator measures and pre-compensates time synchronization error. Increases CPU usage, improves PDSCH "
+       "decoding in high SFO and high speed UE scenarios.")
+
     ("phy.cfo_is_doppler",
        bpo::value<bool>(&args->phy.cfo_is_doppler)->default_value(false),
        "Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed"
