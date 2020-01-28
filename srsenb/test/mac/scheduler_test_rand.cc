@@ -171,6 +171,7 @@ struct sched_tester : public srsenb::sched {
     uint32_t                          tti_tx_dl;
     uint32_t                          tti_tx_ul;
     uint32_t                          current_cfi;
+    uint32_t                          nof_prachs              = 0;
     bool                              ul_pending_msg3_present = false;
     srsenb::sf_sched::pending_msg3_t  ul_pending_msg3;
     srslte::bounded_bitset<128, true> used_cce;
@@ -185,8 +186,9 @@ struct sched_tester : public srsenb::sched {
     bool                                     drb_cfg_flag = false;
     srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
     srsenb::sched_interface::ue_cfg_t        user_cfg;
-    uint32_t                                 dl_data = 0;
-    uint32_t                                 ul_data = 0;
+    uint32_t                                 dl_data      = 0;
+    uint32_t                                 ul_data      = 0;
+    uint32_t                                 preamble_idx = 0;
   };
   struct ack_info_t {
     uint16_t             rnti;
@@ -239,9 +241,10 @@ int sched_tester::add_user(uint16_t                                 rnti,
                            srsenb::sched_interface::ue_cfg_t        ue_cfg_)
 {
   ue_info info;
-  info.prach_tti  = tti_data.tti_rx;
-  info.bearer_cfg = bearer_cfg;
-  info.user_cfg   = ue_cfg_;
+  info.prach_tti    = tti_data.tti_rx;
+  info.bearer_cfg   = bearer_cfg;
+  info.user_cfg     = ue_cfg_;
+  info.preamble_idx = tti_data.nof_prachs++;
   tester_ues.insert(std::make_pair(rnti, info));
 
   if (ue_cfg(rnti, &ue_cfg_) != SRSLTE_SUCCESS) {
@@ -251,6 +254,7 @@ int sched_tester::add_user(uint16_t                                 rnti,
   rar_info.prach_tti           = tti_data.tti_rx;
   rar_info.temp_crnti          = rnti;
   rar_info.msg3_size           = 7;
+  rar_info.preamble_idx        = info.preamble_idx;
   dl_rach_info(CARRIER_IDX, rar_info);
 
   // setup bearers
@@ -288,7 +292,8 @@ void sched_tester::new_test_tti(uint32_t tti_)
   tti_data.used_cce.resize(srslte_regs_pdcch_ncce(&regs, tti_data.current_cfi));
   tti_data.used_cce.reset();
   tti_data.ue_data.clear();
-  tti_data.total_ues = tester_user_results();
+  tti_data.total_ues  = tester_user_results();
+  tti_data.nof_prachs = 0;
 }
 
 int sched_tester::process_tti_args()
@@ -446,7 +451,8 @@ int sched_tester::test_ra()
       if (tti_data.tti_tx_dl >= window[0]) {
         for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_rar_elems; ++i) {
           for (uint32_t j = 0; j < tti_data.sched_result_dl.rar[i].nof_grants; ++j) {
-            if (tti_data.sched_result_dl.rar[i].msg3_grant[j].data.prach_tti + TX_DELAY == tti_data.tti_tx_dl) {
+            auto& data = tti_data.sched_result_dl.rar[i].msg3_grant[j].data;
+            if (data.prach_tti == (uint32_t)userinfo.prach_tti and data.preamble_idx == userinfo.preamble_idx) {
               userinfo.rar_tti = tti_data.tti_tx_dl;
             }
           }
@@ -489,7 +495,15 @@ int sched_tester::test_ra()
     }
   }
   for (uint32_t i = 0; i < tti_data.sched_result_ul.nof_dci_elems; ++i) {
-    msg3_count -= tti_data.sched_result_ul.pusch[i].needs_pdcch ? 0 : 1;
+    auto& pusch_alloc = tti_data.sched_result_ul.pusch[i];
+    if (not pusch_alloc.needs_pdcch) {
+      // can be adaptive retx or msg3
+      auto& ue = tester_ues[pusch_alloc.dci.rnti];
+      if (tti_data.tti_tx_ul == (uint32_t)ue.msg3_tti) {
+        msg3_count--;
+      }
+    }
+    //    msg3_count -= tti_data.sched_result_ul.pusch[i].needs_pdcch ? 0 : 1;
   }
   CONDERROR(msg3_count > 0, "[TESTER] There are pending msg3 that do not belong to any active UE\n");
 
@@ -869,27 +883,6 @@ int sched_tester::test_collisions()
   srslte_dl_sf_cfg_t                dl_sf;
   ZERO_OBJECT(dl_sf);
 
-  for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
-    alloc_mask.reset();
-    srslte_pdsch_grant_t grant;
-    CONDERROR(srslte_ra_dl_dci_to_grant(
-                  &cfg.cell, &dl_sf, SRSLTE_TM1, false, &tti_data.sched_result_dl.data[i].dci, &grant) == SRSLTE_ERROR,
-              "Failed to decode PDSCH grant\n");
-    for (uint32_t j = 0; j < alloc_mask.size(); ++j) {
-      if (grant.prb_idx[0][j]) {
-        alloc_mask.set(j);
-      } else {
-        alloc_mask.reset(j);
-      }
-    }
-    if ((dl_allocs & alloc_mask).any()) {
-      TESTERROR("[TESTER] Detected collision in the DL data allocation (%s intersects %s)\n",
-                dl_allocs.to_string().c_str(),
-                alloc_mask.to_string().c_str());
-    }
-    dl_allocs |= alloc_mask;
-    ue_stats[tti_data.sched_result_dl.data[i].dci.rnti].nof_dl_rbs += alloc_mask.count();
-  }
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_bc_elems; ++i) {
     srslte_pdsch_grant_t grant;
     CONDERROR(srslte_ra_dl_dci_to_grant(
@@ -929,6 +922,36 @@ int sched_tester::test_collisions()
     dl_allocs |= alloc_mask;
   }
 
+  // forbid Data in DL if it conflicts with PRACH for PRB==6
+  if (cfg.cell.nof_prb == 6) {
+    uint32_t tti_rx_ack = TTI_RX_ACK(tti_data.tti_rx);
+    if (srslte_prach_tti_opportunity_config_fdd(cfg.prach_config, tti_rx_ack, -1)) {
+      dl_allocs.fill(0, dl_allocs.size());
+    }
+  }
+
+  for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
+    alloc_mask.reset();
+    srslte_pdsch_grant_t grant;
+    CONDERROR(srslte_ra_dl_dci_to_grant(
+                  &cfg.cell, &dl_sf, SRSLTE_TM1, false, &tti_data.sched_result_dl.data[i].dci, &grant) == SRSLTE_ERROR,
+              "Failed to decode PDSCH grant\n");
+    for (uint32_t j = 0; j < alloc_mask.size(); ++j) {
+      if (grant.prb_idx[0][j]) {
+        alloc_mask.set(j);
+      } else {
+        alloc_mask.reset(j);
+      }
+    }
+    if ((dl_allocs & alloc_mask).any()) {
+      TESTERROR("[TESTER] Detected collision in the DL data allocation (%s intersects %s)\n",
+                dl_allocs.to_string().c_str(),
+                alloc_mask.to_string().c_str());
+    }
+    dl_allocs |= alloc_mask;
+    ue_stats[tti_data.sched_result_dl.data[i].dci.rnti].nof_dl_rbs += alloc_mask.count();
+  }
+
   // TEST: check if resulting DL mask is equal to scheduler internal DL mask
   uint32_t P = srslte_ra_type0_P(cfg.cell.nof_prb);
   nof_rbgs   = srslte::ceil_div(cfg.cell.nof_prb, P);
@@ -945,7 +968,9 @@ int sched_tester::test_collisions()
     }
   }
   if (rbgmask != carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx)->get_dl_mask()) {
-    TESTERROR("[TESTER] The UL PRB mask and the scheduler result UL mask are not consistent\n");
+    TESTERROR("[TESTER] The UL PRB mask and the scheduler result UL mask are not consistent (%s!=%s)\n",
+              rbgmask.to_string().c_str(),
+              carrier_schedulers[CARRIER_IDX]->get_sf_sched_ptr(tti_data.tti_rx)->get_dl_mask().to_string().c_str());
   }
   return SRSLTE_SUCCESS;
 }
@@ -1044,7 +1069,7 @@ srsenb::sched_interface::cell_cfg_t generate_cell_cfg()
   cell_cfg_phy.id              = 1;
   cell_cfg_phy.cp              = SRSLTE_CP_NORM;
   cell_cfg_phy.nof_ports       = 1;
-  cell_cfg_phy.nof_prb         = 100;
+  cell_cfg_phy.nof_prb         = 6;
   cell_cfg_phy.phich_length    = SRSLTE_PHICH_NORM;
   cell_cfg_phy.phich_resources = SRSLTE_PHICH_R_1;
 

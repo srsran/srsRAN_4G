@@ -616,7 +616,7 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t
   bool                         has_retx = h->has_pending_retx();
   if (has_retx) {
     ul_harq_proc::ul_alloc_t prev_alloc = h->get_alloc();
-    if (prev_alloc.L == alloc.L and prev_alloc.RB_start == prev_alloc.L) {
+    if (prev_alloc.L == alloc.L and prev_alloc.RB_start == alloc.RB_start) {
       alloc_type = ul_alloc_t::NOADAPT_RETX;
     } else {
       alloc_type = ul_alloc_t::ADAPT_RETX;

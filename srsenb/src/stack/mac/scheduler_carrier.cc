@@ -220,7 +220,7 @@ void ra_sched::ul_sched(sf_sched* tti_sched)
 
 int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 {
-  log_h->info("SCHED: New RAR tti=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d\n",
+  log_h->info("SCHED: New PRACH tti=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d\n",
               rar_info.prach_tti,
               rar_info.preamble_idx,
               rar_info.temp_crnti,
