@@ -32,6 +32,25 @@
 
 namespace srslte {
 
+class test_log_singleton
+{
+public:
+  static srslte::log* get_log() { return get_instance()->current_log; }
+
+  static test_log_singleton* get_instance()
+  {
+    static test_log_singleton* inst = new test_log_singleton{};
+    return inst;
+  }
+
+  void register_log(srslte::log* log_) { current_log = log_; }
+
+private:
+  test_log_singleton() = default;
+
+  srslte::log* current_log = nullptr;
+};
+
 // logger that we can instantiate in a specific test scope
 // useful if we want to define specific logging policies within a scope (e.g. null logger, count number of errors,
 // exit on error, log special diagnostics on destruction). It restores the previous logger after exiting the scope
@@ -40,15 +59,15 @@ class scoped_tester_log : public srslte::log_filter
 public:
   explicit scoped_tester_log(std::string layer) : srslte::log_filter(layer)
   {
-    previous_log_test = current_log;
-    current_log       = this;
+    previous_log_test = test_log_singleton::get_log();
+    test_log_singleton::get_instance()->register_log(this);
     set_level(srslte::LOG_LEVEL_DEBUG);
   }
   scoped_tester_log(const scoped_tester_log&) = delete;
   scoped_tester_log(scoped_tester_log&&)      = delete;
   scoped_tester_log& operator=(const scoped_tester_log&) = delete;
   scoped_tester_log& operator=(scoped_tester_log&&) = delete;
-  ~scoped_tester_log() override { current_log = previous_log_test; }
+  ~scoped_tester_log() override { test_log_singleton::get_instance()->register_log(previous_log_test); }
 
   void error(const char* message, ...) override __attribute__((format(printf, 2, 3)))
   {
@@ -91,13 +110,9 @@ public:
   bool     exit_on_error = false;
   uint32_t error_counter = 0, warn_counter = 0;
 
-  static srslte::log* get_instance() { return current_log; }
-
 private:
-  srslte::log*        previous_log_test = nullptr;
-  static srslte::log* current_log;
+  srslte::log* previous_log_test = nullptr;
 };
-srslte::log* scoped_tester_log::current_log = nullptr;
 
 // specialization of scoped_tester_log to store last logged message
 class nullsink_log : public scoped_tester_log
@@ -162,20 +177,20 @@ private:
 
 #define TESTERROR(fmt, ...)                                                                                            \
   do {                                                                                                                 \
-    if (srslte::scoped_tester_log::get_instance() == nullptr) {                                                        \
+    if (srslte::test_log_singleton::get_instance() == nullptr) {                                                       \
       printf(fmt, ##__VA_ARGS__);                                                                                      \
     } else {                                                                                                           \
-      srslte::scoped_tester_log::get_instance()->error(fmt, ##__VA_ARGS__);                                            \
+      srslte::test_log_singleton::get_log()->error(fmt, ##__VA_ARGS__);                                                \
     }                                                                                                                  \
     return SRSLTE_ERROR;                                                                                               \
   } while (0)
 
 #define TESTWARN(fmt, ...)                                                                                             \
   do {                                                                                                                 \
-    if (srslte::scoped_tester_log::get_instance() == nullptr) {                                                        \
+    if (srslte::test_log_singleton::get_instance() == nullptr) {                                                       \
       printf(fmt, ##__VA_ARGS__);                                                                                      \
     } else {                                                                                                           \
-      srslte::scoped_tester_log::get_instance()->warning(fmt, ##__VA_ARGS__);                                          \
+      srslte::test_log_singleton::get_log()->warning(fmt, ##__VA_ARGS__);                                              \
     }                                                                                                                  \
   } while (0)
 
