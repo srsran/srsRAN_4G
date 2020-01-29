@@ -36,6 +36,7 @@ namespace srsue {
 class lte_ttcn3_phy : public ue_lte_phy_base
 {
 public:
+  void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) override;
   typedef struct {
     srslte_cell_t info;
     float         power;

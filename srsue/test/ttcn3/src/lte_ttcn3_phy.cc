@@ -159,7 +159,7 @@ phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* 
   if (pcell.power >= MIN_IN_SYNC_POWER) {
     if (found_cell) {
       found_cell->earfcn = pcell.earfcn;
-      found_cell->cell   = pcell.info;
+      found_cell->pci    = pcell.info.id;
     }
     ret.found     = cell_search_ret_t::CELL_FOUND;
     ret.last_freq = cell_search_ret_t::NO_MORE_FREQS;
@@ -174,7 +174,7 @@ bool lte_ttcn3_phy::cell_select(phy_cell_t* rrc_cell)
 {
   // try to find RRC cell in current cell map
   for (auto& cell : cells) {
-    if (cell.info.id == rrc_cell->cell.id) {
+    if (cell.info.id == rrc_cell->pci) {
       pcell = cell;
       return true;
     }
@@ -362,9 +362,16 @@ void lte_ttcn3_phy::radio_failure()
 void lte_ttcn3_phy::run_tti()
 {
   // send report for each cell
+  std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas;
   for (auto& cell : cells) {
-    stack->new_phy_meas(cell.power, DEFAULT_RSRQ, current_tti, cell.earfcn, cell.info.id);
+    rrc_interface_phy_lte::phy_meas_t m = {};
+    m.pci                               = cell.info.id;
+    m.earfcn                            = cell.earfcn;
+    m.rsrp                              = cell.power;
+    m.rsrq                              = DEFAULT_RSRQ;
+    phy_meas.push_back(m);
   }
+  stack->new_cell_meas(phy_meas);
 
   // check if Pcell is in sync
   for (auto& cell : cells) {
@@ -391,5 +398,7 @@ void lte_ttcn3_phy::run_tti()
 
   stack->run_tti(current_tti);
 }
+
+void lte_ttcn3_phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) {}
 
 } // namespace srsue
