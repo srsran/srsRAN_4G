@@ -22,18 +22,13 @@
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h" // for stringify JSON
 #include "srslte/build_info.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/logger_stdout.h"
+#include "srslte/common/logmap.h"
 #include "srsue/hdr/ue.h"
-#include "ttcn3_helpers.h"
 #include "ttcn3_syssim.h"
-#include <assert.h>
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
-#include <pthread.h>
 #include <signal.h>
-#include <srslte/interfaces/ue_interfaces.h>
 
 using namespace srslte;
 using namespace srsue;
@@ -138,6 +133,7 @@ int main(int argc, char** argv)
 
   // Instantiate file logger
   srslte::logger_file logger_file;
+  srslte::logmap::get_instance()->set_default_logger(&logger_file);
 
   // create and init SYSSIM
   ttcn3_syssim syssim(&logger_file);

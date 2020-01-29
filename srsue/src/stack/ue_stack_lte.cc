@@ -83,7 +83,6 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   logger = logger_;
 
   // setup logging for each layer
-  logmap::get_instance()->set_default_logger(logger);
   mac_log.init("MAC ", logger, true);
   rlc_log.init("RLC ", logger);
   pdcp_log.init("PDCP", logger);

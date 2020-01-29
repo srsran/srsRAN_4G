@@ -51,7 +51,7 @@ std::string get_filename_with_tc_name(const std::string& str, const uint32_t run
   result.push_back(start);
 
   // prepend TC name to last element (the actual filename)
-  stringstream filename_ss;
+  std::stringstream filename_ss;
   filename_ss << tc_name << "_"
               << "run" << run_id << "_" << result.back();
 

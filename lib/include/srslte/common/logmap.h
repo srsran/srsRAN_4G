@@ -21,6 +21,8 @@
 
 #include "logger.h"
 #include "singleton.h"
+#include "srslte/common/log_filter.h"
+#include "srslte/common/logger_stdout.h"
 #include <mutex>
 #include <unordered_map>
 
