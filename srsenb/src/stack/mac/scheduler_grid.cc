@@ -659,16 +659,16 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
       bc->type  = sched_interface::dl_sched_bc_t::BCCH;
       bc->tbs   = (uint32_t)bc_alloc.req_bytes;
 
-      log_h->info("SCHED: SIB%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d\n",
-                  bc_alloc.sib_idx + 1,
-                  bc_alloc.rbg_range.rbg_start,
-                  bc_alloc.rbg_range.rbg_end,
-                  bc->dci.location.L,
-                  bc->dci.location.ncce,
-                  bc_alloc.rv,
-                  bc_alloc.req_bytes,
-                  sched_params->cfg->sibs[bc_alloc.sib_idx].period_rf,
-                  bc->dci.tb[0].mcs_idx);
+      log_h->debug("SCHED: SIB%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d\n",
+                   bc_alloc.sib_idx + 1,
+                   bc_alloc.rbg_range.rbg_start,
+                   bc_alloc.rbg_range.rbg_end,
+                   bc->dci.location.L,
+                   bc->dci.location.ncce,
+                   bc_alloc.rv,
+                   bc_alloc.req_bytes,
+                   sched_params->cfg->sibs[bc_alloc.sib_idx].period_rf,
+                   bc->dci.tb[0].mcs_idx);
     } else {
       // Paging
       if (tbs <= 0) {
