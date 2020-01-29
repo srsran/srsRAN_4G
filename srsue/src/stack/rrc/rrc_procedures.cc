@@ -932,7 +932,6 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
     }
 
     // reset MAC;
-    rrc_ptr->mac->set_enable_ra_proc(false); // Prevent MAC from running RA procedure
     rrc_ptr->mac->reset();
 
     // apply the default physical channel configuration as specified in 9.2.4;
@@ -1095,10 +1094,6 @@ proc_outcome_t rrc::connection_reest_proc::step()
     case state_t::cell_configuration:
       ret = step_cell_configuration();
       break;
-  }
-
-  if (ret != proc_outcome_t::yield) {
-    rrc_ptr->mac->set_enable_ra_proc(true);
   }
 
   return ret;

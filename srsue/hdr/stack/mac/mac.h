@@ -86,7 +86,6 @@ public:
   void reconfiguration(const uint32_t& cc_idx, const bool& enable);
   void reset();
   void wait_uplink();
-  void set_enable_ra_proc(bool en) { enable_ra_proc = en; };
 
   /******** set/get MAC configuration  ****************/
   void set_config(mac_cfg_t& mac_cfg);
@@ -176,7 +175,6 @@ private:
   mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
 
   bool initialized    = false;
-  bool enable_ra_proc = true;
 };
 
 } // namespace srsue
