@@ -240,6 +240,11 @@ public:
       write_pdu(p.payload, p.nof_bytes);
       free(p.payload);
     }
+
+    unique_byte_buffer_t s;
+    while (tx_sdu_resume_queue.try_pop(&s)) {
+      write_sdu(std::move(s), false);
+    }
     suspended = false;
     return true;
   }
@@ -247,9 +252,18 @@ public:
   void write_pdu_s(uint8_t* payload, uint32_t nof_bytes)
   {
     if (suspended) {
-      queue_pdu(payload, nof_bytes);
+      queue_rx_pdu(payload, nof_bytes);
     } else {
       write_pdu(payload, nof_bytes);
+    }
+  }
+
+  void write_sdu_s(unique_byte_buffer_t sdu, bool blocking)
+  {
+    if (suspended) {
+      queue_tx_sdu(std::move(sdu));
+    } else {
+      write_sdu(std::move(sdu), blocking);
     }
   }
 
@@ -273,8 +287,8 @@ public:
 private:
   bool suspended = false;
 
-  // Enqueues the PDU in the resume queue
-  void queue_pdu(uint8_t* payload, uint32_t nof_bytes)
+  // Enqueues the Rx PDU in the resume queue
+  void queue_rx_pdu(uint8_t* payload, uint32_t nof_bytes)
   {
     pdu_t p     = {};
     p.nof_bytes = nof_bytes;
@@ -288,12 +302,23 @@ private:
     }
   }
 
+  // Enqueues the Tx SDU in the resume queue
+  void queue_tx_sdu(unique_byte_buffer_t sdu)
+  {
+    // Do not block ever
+    if (!tx_sdu_resume_queue.try_push(std::move(sdu)).first) {
+      fprintf(stderr, "Error dropping SDUs while bearer suspended. Queue should be unbounded\n");
+      return;
+    }
+  }
+
   typedef struct {
     uint8_t* payload;
     uint32_t nof_bytes;
   } pdu_t;
 
-  block_queue<pdu_t> rx_pdu_resume_queue;
+  block_queue<pdu_t>                rx_pdu_resume_queue;
+  block_queue<unique_byte_buffer_t> tx_sdu_resume_queue;
 };
 
 } // namespace srslte

@@ -201,7 +201,7 @@ void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    rlc_array.at(lcid)->write_sdu(std::move(sdu), blocking);
+    rlc_array.at(lcid)->write_sdu_s(std::move(sdu), blocking);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
   }
