@@ -76,7 +76,7 @@ int test_correct_insertion()
 
   // TEST 1: cell/rep insertion in empty varMeasCfg
   {
-    var_meas_cfg_t var_cfg(&log_h);
+    var_meas_cfg_t var_cfg(srslte::logmap::get("RRC "));
     auto           ret = var_cfg.add_cell_cfg(cell1);
     TESTASSERT(std::get<0>(ret) and std::get<1>(ret) != nullptr);
     const auto& objs = var_cfg.meas_objs();
@@ -94,7 +94,7 @@ int test_correct_insertion()
   }
 
   {
-    var_meas_cfg_t var_cfg(&log_h);
+    var_meas_cfg_t var_cfg(srslte::logmap::get("RRC "));
     const auto&    objs = var_cfg.meas_objs();
 
     // TEST 2: insertion of out-of-order cell ids in same earfcn
@@ -133,8 +133,7 @@ int test_correct_insertion()
 
 int test_correct_meascfg_calculation()
 {
-  srslte::scoped_tester_log log_test("MEASCFG_CALC");
-  var_meas_cfg_t            src_var(&log_h), target_var(&log_h);
+  var_meas_cfg_t src_var(srslte::logmap::get("RRC ")), target_var(srslte::logmap::get("RRC "));
 
   meas_cell_cfg_t cell1{}, cell2{};
   cell1.earfcn   = 3400;
@@ -214,7 +213,7 @@ int test_correct_meascfg_calculation()
 
     // TEST: Removal of cell/rep from target propagates to the resulting meas_cfg_s
     src_var    = target_var;
-    target_var = var_meas_cfg_t{&log_h};
+    target_var = var_meas_cfg_t{srslte::logmap::get("RRC ")};
     target_var.add_cell_cfg(cell2);
     target_var.add_report_cfg(rep1);
     target_var.add_report_cfg(rep3);
@@ -259,9 +258,9 @@ struct mobility_test_params {
 int test_mobility_class(mobility_test_params test_params)
 {
   printf("\n===== TEST: test_mobility_class() for event \"%s\" =====\n", test_params.to_string());
-  srslte::scoped_tester_log    rrc_log("RRC ");
-  srslte::timer_handler        timers;
-  srslte::unique_byte_buffer_t pdu;
+  srslte::scoped_log<srslte::test_log_filter> rrc_log("RRC ");
+  srslte::timer_handler                       timers;
+  srslte::unique_byte_buffer_t                pdu;
 
   srsenb::all_args_t args;
   rrc_cfg_t          cfg;
@@ -280,9 +279,9 @@ int test_mobility_class(mobility_test_params test_params)
   phy_dummy                         phy;
   test_dummies::s1ap_mobility_dummy s1ap;
   gtpu_dummy                        gtpu;
-  rrc_log.set_level(srslte::LOG_LEVEL_INFO);
-  rrc_log.set_hex_limit(1024);
-  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
+  rrc_log->set_level(srslte::LOG_LEVEL_INFO);
+  rrc_log->set_hex_limit(1024);
+  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, rrc_log.get());
 
   auto tic = [&timers, &rrc] {
     timers.step_all();
@@ -292,11 +291,11 @@ int test_mobility_class(mobility_test_params test_params)
   uint16_t rnti = 0x46;
   rrc.add_user(rnti);
 
-  rrc_log.set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
+  rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
   // Do all the handshaking until the first RRC Connection Reconf
   test_helpers::bring_rrc_to_reconf_state(rrc, timers, rnti);
 
-  rrc_log.set_level(srslte::LOG_LEVEL_INFO);
+  rrc_log->set_level(srslte::LOG_LEVEL_INFO);
 
   /* Receive MeasReport from UE (correct if PCI=2) */
   if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
@@ -312,7 +311,7 @@ int test_mobility_class(mobility_test_params test_params)
   /* Test Case: the MeasReport is not valid */
   if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
-    TESTASSERT(rrc_log.error_counter == 1);
+    TESTASSERT(rrc_log->error_counter == 1);
     return SRSLTE_SUCCESS;
   }
 
@@ -324,7 +323,7 @@ int test_mobility_class(mobility_test_params test_params)
     rrc.write_pdu(rnti, 1, std::move(pdu));
     tic();
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
-    TESTASSERT(rrc_log.error_counter == 1);
+    TESTASSERT(rrc_log->error_counter == 1);
     return SRSLTE_SUCCESS;
   }
 
@@ -346,7 +345,7 @@ int test_mobility_class(mobility_test_params test_params)
   /* Test Case: HandoverPreparation has failed */
   if (test_params.fail_at == mobility_test_params::test_fail_at::ho_prep_failure) {
     rrc.ho_preparation_complete(rnti, false, nullptr);
-    TESTASSERT(rrc_log.error_counter == 1);
+    TESTASSERT(rrc_log->error_counter == 1);
     return SRSLTE_SUCCESS;
   }
 
@@ -358,13 +357,13 @@ int test_mobility_class(mobility_test_params test_params)
   test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container, sizeof(ho_cmd_rrc_container));
   rrc.ho_preparation_complete(rnti, true, std::move(pdu));
 
-  TESTASSERT(rrc_log.error_counter == 0);
+  TESTASSERT(rrc_log->error_counter == 0);
   return SRSLTE_SUCCESS;
 }
 
 int main(int argc, char** argv)
 {
-  log_h.set_level(srslte::LOG_LEVEL_INFO);
+  srslte::logmap::get_instance()->set_default_log_level(srslte::LOG_LEVEL_INFO);
 
   if (argc < 3) {
     argparse::usage(argv[0]);

@@ -29,9 +29,9 @@
 int test_erab_setup(bool qci_exists)
 {
   printf("\n===== TEST: test_erab_setup()  =====\n");
-  srslte::scoped_tester_log    rrc_log("RRC ");
-  srslte::timer_handler        timers;
-  srslte::unique_byte_buffer_t pdu;
+  srslte::scoped_log<srslte::test_log_filter> rrc_log("RRC ");
+  srslte::timer_handler                       timers;
+  srslte::unique_byte_buffer_t                pdu;
 
   srsenb::all_args_t args;
   rrc_cfg_t          cfg;
@@ -44,9 +44,9 @@ int test_erab_setup(bool qci_exists)
   phy_dummy                         phy;
   test_dummies::s1ap_mobility_dummy s1ap;
   gtpu_dummy                        gtpu;
-  rrc_log.set_level(srslte::LOG_LEVEL_INFO);
-  rrc_log.set_hex_limit(1024);
-  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
+  rrc_log->set_level(srslte::LOG_LEVEL_INFO);
+  rrc_log->set_hex_limit(1024);
+  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, rrc_log.get());
 
   auto tic = [&timers, &rrc] {
     timers.step_all();
@@ -56,13 +56,13 @@ int test_erab_setup(bool qci_exists)
   uint16_t rnti = 0x46;
   rrc.add_user(rnti);
 
-  rrc_log.set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
+  rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
 
   // Do all the handshaking until the first RRC Connection Reconf
   test_helpers::bring_rrc_to_reconf_state(rrc, timers, rnti);
 
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_hex_limit(1024);
+  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log->set_hex_limit(1024);
 
   // MME sends 2nd ERAB Setup request for DRB2 (QCI exists in config)
   uint8_t drb2_erab_setup_request_ok[] = {
@@ -98,9 +98,9 @@ int test_erab_setup(bool qci_exists)
   rrc.setup_ue_erabs(rnti, s1ap_pdu.init_msg().value.erab_setup_request());
 
   if (qci_exists) {
-    TESTASSERT(rrc_log.error_counter == 0);
+    TESTASSERT(rrc_log->error_counter == 0);
   } else {
-    TESTASSERT(rrc_log.error_counter == 2);
+    TESTASSERT(rrc_log->error_counter == 2);
   }
 
   return SRSLTE_SUCCESS;
@@ -108,7 +108,7 @@ int test_erab_setup(bool qci_exists)
 
 int main(int argc, char** argv)
 {
-  log_h.set_level(srslte::LOG_LEVEL_INFO);
+  srslte::logmap::get_instance()->set_default_log_level(srslte::LOG_LEVEL_INFO);
 
   if (argc < 3) {
     argparse::usage(argv[0]);

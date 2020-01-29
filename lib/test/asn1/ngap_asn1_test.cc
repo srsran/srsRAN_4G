@@ -24,9 +24,6 @@
 using namespace asn1;
 using namespace asn1::ngap_nr;
 
-srslte::log_filter asn_logger("ASN");
-srslte::log_filter ngap_log("NGAP");
-
 /* TESTS */
 
 int test_amf_upd()
@@ -348,10 +345,9 @@ int test_session_res_setup_request()
 
 int main()
 {
-  asn_logger.set_level("DEBUG");
-  ngap_log.set_level("DEBUG");
-  srsasn_log_register_handler(&asn_logger);
-  ngap_nr_log_register_handler(&ngap_log);
+  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
+  srsasn_log_register_handler(srslte::logmap::get("ASN1"));
+  ngap_nr_log_register_handler(srslte::logmap::get("NGAP"));
 
   TESTASSERT(test_amf_upd() == 0);
   TESTASSERT(test_ngsetup_request() == 0);

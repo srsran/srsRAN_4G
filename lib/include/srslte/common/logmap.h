@@ -78,13 +78,21 @@ public:
   void register_log(std::unique_ptr<log> log_ptr)
   {
     std::lock_guard<std::mutex> lock(mutex);
-    log_map[log_ptr->get_service_name()] = std::move(log_ptr);
+    if (log_ptr != nullptr) {
+      log_map[log_ptr->get_service_name()] = std::move(log_ptr);
+    }
   }
 
-  bool deregister_log(const std::string& servicename)
+  std::unique_ptr<srslte::log> deregister_log(const std::string& servicename)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-    return log_map.erase(servicename) > 0;
+    std::unique_ptr<srslte::log> ret;
+    std::lock_guard<std::mutex>  lock(mutex);
+    auto                         it = log_map.find(servicename);
+    if (it != log_map.end()) {
+      ret = std::move(it->second);
+      log_map.erase(it);
+    }
+    return ret;
   }
 
 protected:

@@ -103,11 +103,11 @@ void erase_if(MapContainer& c, Predicate should_remove)
  *     Logging     *
  *******************/
 
-class log_tester final : public srslte::scoped_tester_log
+class sched_test_log final : public srslte::test_log_filter
 {
 public:
-  log_tester() : srslte::scoped_tester_log("MAC") { exit_on_error = true; }
-  ~log_tester() override { log_diagnostics(); }
+  sched_test_log() : srslte::test_log_filter("TEST") { exit_on_error = true; }
+  ~sched_test_log() override { log_diagnostics(); }
 
   void log_diagnostics() override
   {
@@ -120,7 +120,7 @@ public:
     info("[TESTER] This was the seed: %u\n", seed);
   }
 };
-log_tester log_global;
+srslte::scoped_log<sched_test_log> log_global{};
 
 /*******************
  *     Dummies     *
@@ -268,7 +268,7 @@ int sched_tester::add_user(uint16_t                                 rnti,
   // setup bearers
   bearer_ue_cfg(rnti, 0, &bearer_cfg);
 
-  log_global.info("[TESTER] Adding user rnti=0x%x\n", rnti);
+  log_global->info("[TESTER] Adding user rnti=0x%x\n", rnti);
   return SRSLTE_SUCCESS;
 }
 
@@ -315,7 +315,7 @@ int sched_tester::process_tti_args()
     bearer_ue_rem(rnti, 0);
     ue_rem(rnti);
     rem_user(rnti);
-    log_global.info("[TESTER] Removing user rnti=0x%x\n", rnti);
+    log_global->info("[TESTER] Removing user rnti=0x%x\n", rnti);
   }
 
   // push UL SRs and DL packets
@@ -417,7 +417,7 @@ int sched_tester::process_results()
 void sched_tester::run_tti(uint32_t tti_rx)
 {
   new_test_tti(tti_rx);
-  log_global.info("[TESTER] ---- tti=%u | nof_ues=%zd ----\n", tti_rx, ue_db.size());
+  log_global->info("[TESTER] ---- tti=%u | nof_ues=%zd ----\n", tti_rx, ue_db.size());
 
   process_tti_args();
 
@@ -845,10 +845,10 @@ int sched_tester::ack_txs()
     if (ack_it.second.dl_ack) {
       CONDERROR(!h->is_empty(), "[TESTER] ACKed dl harq was not emptied\n");
       CONDERROR(h->has_pending_retx(0, tti_data.tti_tx_dl), "[TESTER] ACKed dl harq still has pending retx\n");
-      log_global.info("[TESTER] DL ACK tti=%u rnti=0x%x pid=%d\n",
-                      tti_data.tti_rx,
-                      ack_it.second.rnti,
-                      ack_it.second.dl_harq.get_id());
+      log_global->info("[TESTER] DL ACK tti=%u rnti=0x%x pid=%d\n",
+                       tti_data.tti_rx,
+                       ack_it.second.rnti,
+                       ack_it.second.dl_harq.get_id());
     } else {
       CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "[TESTER] NACKed DL harq got emptied\n");
     }
@@ -873,7 +873,7 @@ int sched_tester::ack_txs()
     if (ack_it.second.ack) {
       CONDERROR(!h->is_empty(), "[TESTER] ACKed UL harq did not get emptied\n");
       CONDERROR(h->has_pending_retx(), "[TESTER] ACKed UL harq still has pending retx\n");
-      log_global.info("[TESTER] UL ACK tti=%u rnti=0x%x pid=%d\n", tti_data.tti_rx, ack_it.second.rnti, hack.get_id());
+      log_global->info("[TESTER] UL ACK tti=%u rnti=0x%x pid=%d\n", tti_data.tti_rx, ack_it.second.rnti, hack.get_id());
     } else {
       // NACK
       CONDERROR(!h->is_empty() and !h->has_pending_retx(), "[TESTER] If NACKed, UL harq has to have pending retx\n");
@@ -935,14 +935,14 @@ void test_scheduler_rand(srsenb::sched_interface::cell_cfg_t cell_cfg, const sch
   srsenb::dl_metric_rr dl_metric;
   srsenb::ul_metric_rr ul_metric;
 
-  log_global.set_level(srslte::LOG_LEVEL_INFO);
+  log_global->set_level(srslte::LOG_LEVEL_INFO);
 
   tester.sim_args = args;
   //  srslte_cell_t&                           cell_cfg_phy    = cell_cfg.cell;
   //  srsenb::sched_interface::dl_sched_res_t& sched_result_dl = tester.tti_data.sched_result_dl;
   //  srsenb::sched_interface::ul_sched_res_t& sched_result_ul = tester.tti_data.sched_result_ul;
 
-  tester.init(nullptr, &log_global);
+  tester.init(nullptr, log_global.get());
   tester.set_metric(&dl_metric, &ul_metric);
   tester.cell_cfg(&cell_cfg);
 
@@ -953,7 +953,7 @@ void test_scheduler_rand(srsenb::sched_interface::cell_cfg_t cell_cfg, const sch
     if (nof_ttis > args.nof_ttis) {
       running = false;
     }
-    log_global.step(tti);
+    log_global->step(tti);
 
     tester.run_tti(tti);
 

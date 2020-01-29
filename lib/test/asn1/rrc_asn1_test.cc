@@ -25,10 +25,6 @@
 using namespace asn1;
 using namespace asn1::rrc;
 
-srslte::log_filter        asn_logger("ASN1");
-srslte::log_filter        rrc_logger("RRC");
-srslte::scoped_tester_log test_logger("TEST");
-
 // TESTS
 
 int test_generic()
@@ -48,7 +44,7 @@ int test_generic()
     TESTASSERT(null_log.last_log_msg == test_str);
     TESTASSERT(null_log.last_log_level == LOG_LEVEL_INFO);
     // go back to original logger
-    rrc_log_register_handler(&rrc_logger);
+    rrc_log_register_handler(srslte::logmap::get("RRC "));
   }
 
   // Test deep copy of choice types
@@ -603,12 +599,9 @@ int test_rrc_conn_reconf_r15_2()
 
 int main()
 {
-  asn_logger.set_level(LOG_LEVEL_DEBUG);
-  rrc_logger.set_level(LOG_LEVEL_DEBUG);
-  test_logger.set_level(LOG_LEVEL_DEBUG);
-
-  srsasn_log_register_handler(&asn_logger);
-  rrc_log_register_handler(&rrc_logger);
+  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
+  srsasn_log_register_handler(srslte::logmap::get("ASN1"));
+  rrc_log_register_handler(srslte::logmap::get("RRC "));
 
   TESTASSERT(test_generic() == 0);
   TESTASSERT(test_json_printer() == 0);

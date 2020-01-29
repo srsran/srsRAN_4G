@@ -28,8 +28,6 @@
 using namespace srsenb;
 using namespace asn1::rrc;
 
-srslte::scoped_tester_log log_h("ALL");
-
 namespace argparse {
 
 std::string            repository_dir;
@@ -116,7 +114,7 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   args.enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
   args.enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
   args.enb_files.drb_config = argparse::repository_dir + "/drb.conf.example";
-  log_h.debug("sib file path=%s\n", args.enb_files.sib_config.c_str());
+  srslte::logmap::get("TEST")->debug("sib file path=%s\n", args.enb_files.sib_config.c_str());
 
   args.enb.dl_earfcn = 3400;
   args.enb.n_prb     = 50;

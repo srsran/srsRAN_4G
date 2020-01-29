@@ -27,8 +27,6 @@
 
 using namespace asn1;
 
-srslte::scoped_tester_log test_logger("TEST");
-
 int unpack_test_served_gummeis_with_multiple_plmns()
 {
   uint8_t pdu[] = {0x20, 0x11, 0x00, 0x26, 0x00, 0x00, 0x02, 0x00, 0x69, 0x00, 0x1a, 0x01, 0x40, 0x00,
@@ -85,7 +83,8 @@ int test_initial_ctxt_setup_response()
   asn1::bit_ref bref(buffer, sizeof(buffer));
   TESTASSERT(tx_pdu.pack(bref) == SRSLTE_SUCCESS);
 
-  test_logger.info_hex(buffer, bref.distance_bytes(), "message (nof bytes = %d):\n", bref.distance_bytes());
+  srslte::logmap::get("TEST")->info_hex(
+      buffer, bref.distance_bytes(), "message (nof bytes = %d):\n", bref.distance_bytes());
 
   return SRSLTE_SUCCESS;
 }
@@ -127,15 +126,15 @@ int test_eci_pack()
   TESTASSERT(buffer[1] == 0x19);
   TESTASSERT(buffer[2] == 0xC0);
 
-  test_logger.info_hex(buffer, bref.distance_bytes(), "Packed cell id:\n");
+  srslte::logmap::get("TEST")->info_hex(buffer, bref.distance_bytes(), "Packed cell id:\n");
 
   return SRSLTE_SUCCESS;
 }
 
 int main()
 {
-  test_logger.set_level(LOG_LEVEL_DEBUG);
-  test_logger.set_hex_limit(1024);
+  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
+  srslte::logmap::get_instance()->set_default_hex_limit(1024);
 
   TESTASSERT(unpack_test_served_gummeis_with_multiple_plmns() == SRSLTE_SUCCESS);
   TESTASSERT(test_initial_ctxt_setup_response() == SRSLTE_SUCCESS);
