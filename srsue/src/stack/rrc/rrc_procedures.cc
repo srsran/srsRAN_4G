@@ -873,7 +873,10 @@ proc_outcome_t rrc::cell_reselection_proc::step()
   Info("Cell Selection completed. Handling its result...\n");
   switch (*cell_selection_fut.value()) {
     case cs_result_t::changed_cell:
-      Info("New cell has been selected\n");
+      if (rrc_ptr->state == rrc_state_t::RRC_STATE_IDLE) {
+        Info("New cell has been selected, start receiving PCCH\n");
+        rrc_ptr->mac->pcch_start_rx();
+      }
       break;
     case cs_result_t::no_cell:
       Warning("Could not find any cell to camp on\n");
