@@ -37,17 +37,26 @@ public:
   explicit output_sched_tester(const sched_params_t& params_) : params(params_) {}
 
   /* Check for collisions between RB allocations in the PUSCH and PUCCH */
-  int test_ul_rb_collisions(const tti_params_t&                    tti_params,
+  int test_pusch_collisions(const tti_params_t&                    tti_params,
                             const sched_interface::ul_sched_res_t& ul_result,
                             prbmask_t&                             ul_allocs) const;
 
   /* Check for collision between RB allocations in the PDSCH */
-  int test_dl_rb_collisions(const tti_params_t&                    tti_params,
+  int test_pdsch_collisions(const tti_params_t&                    tti_params,
                             const sched_interface::dl_sched_res_t& dl_result,
                             rbgmask_t&                             dl_mask) const;
 
   /* Check if SIBs are scheduled within their window */
   int test_sib_scheduling(const tti_params_t& tti_params, const sched_interface::dl_sched_res_t& dl_result) const;
+
+  /* Check for collisions in the PDCCH */
+  int test_pdcch_collisions(const sched_interface::dl_sched_res_t& dl_result,
+                            const sched_interface::ul_sched_res_t& ul_result,
+                            srslte::bounded_bitset<128, true>*     used_cce) const;
+
+  /* Check DCI params correctness */
+  int test_dci_values_consistency(const sched_interface::dl_sched_res_t& dl_result,
+                                  const sched_interface::ul_sched_res_t& ul_result) const;
 
 private:
   const sched_params_t& params;

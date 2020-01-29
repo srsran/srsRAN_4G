@@ -26,7 +26,7 @@
 
 using namespace srsenb;
 
-int output_sched_tester::test_ul_rb_collisions(const tti_params_t&                    tti_params,
+int output_sched_tester::test_pusch_collisions(const tti_params_t&                    tti_params,
                                                const sched_interface::ul_sched_res_t& ul_result,
                                                prbmask_t&                             ul_allocs) const
 {
@@ -74,7 +74,7 @@ int output_sched_tester::test_ul_rb_collisions(const tti_params_t&              
   return SRSLTE_SUCCESS;
 }
 
-int output_sched_tester::test_dl_rb_collisions(const tti_params_t&                    tti_params,
+int output_sched_tester::test_pdsch_collisions(const tti_params_t&                    tti_params,
                                                const sched_interface::dl_sched_res_t& dl_result,
                                                rbgmask_t&                             rbgmask) const
 {
@@ -150,11 +150,16 @@ int output_sched_tester::test_sib_scheduling(const tti_params_t&                
     CONDERROR(it == bc_end, "Failed to allocate SIB1 in even sfn, sf_idx==5\n");
   }
 
-  /* Test if any SIB was scheduled outside of its window */
+  /* Test if any SIB was scheduled with wrong index, tbs, or outside of its window */
   for (bc_elem* bc = bc_begin; bc != bc_end; ++bc) {
     if (bc->index == 0) {
       continue;
     }
+    CONDERROR(bc->index >= sched_interface::MAX_SIBS, "Invalid SIB idx=%d\n", bc->index + 1);
+    CONDERROR(bc->tbs < params.cfg->sibs[bc->index].len,
+              "Allocated BC process with TBS=%d < sib_len=%d\n",
+              bc->tbs,
+              params.cfg->sibs[bc->index].len);
     uint32_t x         = (bc->index - 1) * params.cfg->si_window_ms;
     uint32_t sf        = x % 10;
     uint32_t sfn_start = sfn;
@@ -166,6 +171,85 @@ int output_sched_tester::test_sib_scheduling(const tti_params_t&                
     CONDERROR(tti_params.tti_tx_dl < win_start or tti_params.tti_tx_dl > win_end,
               "Scheduled SIB is outside of its SIB window\n");
   }
+  return SRSLTE_SUCCESS;
+}
+
+int output_sched_tester::test_pdcch_collisions(const sched_interface::dl_sched_res_t& dl_result,
+                                               const sched_interface::ul_sched_res_t& ul_result,
+                                               srslte::bounded_bitset<128, true>*     used_cce) const
+{
+  used_cce->resize(srslte_regs_pdcch_ncce(params.regs, dl_result.cfi));
+  used_cce->reset();
+
+  // Helper Function: checks if there is any collision. If not, fills the PDCCH mask
+  auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
+    uint32_t cce_start = dci_loc.ncce, cce_stop = dci_loc.ncce + (1u << dci_loc.L);
+    if (used_cce->any(cce_start, cce_stop)) {
+      TESTERROR("[TESTER] %s DCI collision between CCE positions (%u, %u)\n", ch, cce_start, cce_stop);
+    }
+    used_cce->fill(cce_start, cce_stop);
+    return SRSLTE_SUCCESS;
+  };
+
+  /* TEST: verify there are no dci collisions for UL, DL data, BC, RAR */
+  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+    const auto& pusch = ul_result.pusch[i];
+    if (not pusch.needs_pdcch) {
+      // In case of non-adaptive retx or Msg3
+      continue;
+    }
+    try_cce_fill(pusch.dci.location, "UL");
+  }
+  for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+    try_cce_fill(dl_result.data[i].dci.location, "DL data");
+  }
+  for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
+    try_cce_fill(dl_result.bc[i].dci.location, "DL BC");
+  }
+  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+    try_cce_fill(dl_result.rar[i].dci.location, "DL RAR");
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+int output_sched_tester::test_dci_values_consistency(const sched_interface::dl_sched_res_t& dl_result,
+                                                     const sched_interface::ul_sched_res_t& ul_result) const
+{
+  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+    const auto& pusch = ul_result.pusch[i];
+    CONDERROR(pusch.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", pusch.tbs);
+    //    CONDERROR(ue_db.count(pusch.dci.rnti) == 0, "The allocated rnti=0x%x does not exist\n", pusch.dci.rnti);
+    if (not pusch.needs_pdcch) {
+      // In case of non-adaptive retx or Msg3
+      continue;
+    }
+    CONDERROR(pusch.dci.location.L == 0,
+              "[TESTER] Invalid aggregation level %d\n",
+              pusch.dci.location.L); // TODO: Extend this test
+  }
+  for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+    auto& data = dl_result.data[i];
+    CONDERROR(data.tbs[0] == 0, "Allocated DL data has empty TBS\n");
+  }
+  for (uint32_t i = 0; i < dl_result.nof_bc_elems; ++i) {
+    auto& bc = dl_result.bc[i];
+    if (bc.type == sched_interface::dl_sched_bc_t::BCCH) {
+      CONDERROR(bc.tbs < params.cfg->sibs[bc.index].len,
+                "Allocated BC process with TBS=%d < sib_len=%d\n",
+                bc.tbs,
+                params.cfg->sibs[bc.index].len);
+    } else if (bc.type == sched_interface::dl_sched_bc_t::PCCH) {
+      CONDERROR(bc.tbs == 0, "Allocated paging process with invalid TBS=%d\n", bc.tbs);
+    } else {
+      TESTERROR("Invalid broadcast process id=%d\n", (int)bc.type);
+    }
+  }
+  for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+    const auto& rar = dl_result.rar[i];
+    CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", rar.tbs);
+  }
+
   return SRSLTE_SUCCESS;
 }
 

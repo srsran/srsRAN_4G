@@ -166,15 +166,14 @@ struct sched_tester : public srsenb::sched {
     srsenb::ul_harq_proc                      ul_harq;
   };
   struct sched_tti_data {
-    uint32_t                          tti_rx;
-    uint32_t                          tti_tx_dl;
-    uint32_t                          tti_tx_ul;
-    uint32_t                          current_cfi;
-    uint32_t                          nof_prachs              = 0;
-    bool                              ul_pending_msg3_present = false;
-    srsenb::sf_sched::pending_msg3_t  ul_pending_msg3;
-    srslte::bounded_bitset<128, true> used_cce;
-    //    std::vector<bool>                                         used_cce;
+    uint32_t                                tti_rx;
+    uint32_t                                tti_tx_dl;
+    uint32_t                                tti_tx_ul;
+    uint32_t                                current_cfi;
+    uint32_t                                nof_prachs              = 0;
+    bool                                    ul_pending_msg3_present = false;
+    srsenb::sf_sched::pending_msg3_t        ul_pending_msg3;
+    srslte::bounded_bitset<128, true>       used_cce;
     std::map<uint16_t, tester_user_results> ue_data;   ///< stores buffer state of each user
     tester_user_results                     total_ues; ///< stores combined UL/DL buffer state
     srsenb::sched_interface::ul_sched_res_t sched_result_ul;
@@ -551,56 +550,26 @@ int sched_tester::assert_no_empty_allocs()
  */
 int sched_tester::test_tti_result()
 {
+  /* TEST: Check if there are collisions in the PDCCH */
+  TESTASSERT(output_tester->test_pdcch_collisions(
+                 tti_data.sched_result_dl, tti_data.sched_result_ul, &tti_data.used_cce) == SRSLTE_SUCCESS);
+
+  /* TEST: Check whether dci values are correct */
+  TESTASSERT(output_tester->test_dci_values_consistency(tti_data.sched_result_dl, tti_data.sched_result_ul) ==
+             SRSLTE_SUCCESS);
+
   const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx);
 
-  // Helper Function: checks if there is any collision. If not, fills the mask
-  auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
-    uint32_t cce_start = dci_loc.ncce, cce_stop = dci_loc.ncce + (1u << dci_loc.L);
-    if (tti_data.used_cce.any(cce_start, cce_stop)) {
-      TESTERROR("[TESTER] %s DCI collision between CCE positions (%u, %u)\n", ch, cce_start, cce_stop);
-    }
-    tti_data.used_cce.fill(cce_start, cce_stop);
-    return SRSLTE_SUCCESS;
-  };
-
-  /* verify there are no dci collisions for UL, DL data, BC, RAR */
   for (uint32_t i = 0; i < tti_data.sched_result_ul.nof_dci_elems; ++i) {
     const auto& pusch = tti_data.sched_result_ul.pusch[i];
-    CONDERROR(pusch.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", pusch.tbs);
     CONDERROR(ue_db.count(pusch.dci.rnti) == 0, "The allocated rnti=0x%x does not exist\n", pusch.dci.rnti);
-    if (not pusch.needs_pdcch) {
-      // In case of non-adaptive retx or Msg3
-      continue;
-    }
-    CONDERROR(pusch.dci.location.L == 0,
-              "[TESTER] Invalid aggregation level %d\n",
-              pusch.dci.location.L); // TODO: Extend this test
-    try_cce_fill(pusch.dci.location, "UL");
   }
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
     auto& data = tti_data.sched_result_dl.data[i];
-    try_cce_fill(data.dci.location, "DL data");
     CONDERROR(ue_db.count(data.dci.rnti) == 0, "Allocated rnti=0x%x that does not exist\n", data.dci.rnti);
-  }
-  for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_bc_elems; ++i) {
-    auto& bc = tti_data.sched_result_dl.bc[i];
-    try_cce_fill(bc.dci.location, "DL BC");
-    if (bc.type == sched_interface::dl_sched_bc_t::BCCH) {
-      CONDERROR(bc.index >= MAX_SIBS, "Invalid SIB idx=%d\n", bc.index + 1);
-      CONDERROR(bc.tbs < cfg.sibs[bc.index].len,
-                "Allocated BC process with TBS=%d < sib_len=%d\n",
-                bc.tbs,
-                cfg.sibs[bc.index].len);
-    } else if (bc.type == sched_interface::dl_sched_bc_t::PCCH) {
-      CONDERROR(bc.tbs == 0, "Allocated paging process with invalid TBS=%d\n", bc.tbs);
-    } else {
-      TESTERROR("Invalid broadcast process id=%d\n", (int)bc.type);
-    }
   }
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_rar_elems; ++i) {
     const auto& rar = tti_data.sched_result_dl.rar[i];
-    try_cce_fill(rar.dci.location, "DL RAR");
-    CONDERROR(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", rar.tbs);
     for (uint32_t j = 0; j < rar.nof_grants; ++j) {
       const auto& msg3_grant = rar.msg3_grant[j];
       const auto& msg3_list =
@@ -792,7 +761,7 @@ int sched_tester::test_collisions()
   srsenb::prbmask_t       ul_allocs(cfg.cell.nof_prb);
 
   /* TEST: any collision in PUCCH and PUSCH */
-  TESTASSERT(output_tester->test_ul_rb_collisions(tti_params, tti_data.sched_result_ul, ul_allocs) == SRSLTE_SUCCESS);
+  TESTASSERT(output_tester->test_pusch_collisions(tti_params, tti_data.sched_result_ul, ul_allocs) == SRSLTE_SUCCESS);
 
   /* TEST: check whether cumulative UL PRB masks coincide */
   if (ul_allocs != tti_sched->get_ul_mask()) {
@@ -828,7 +797,7 @@ int sched_tester::test_collisions()
 
   /* TEST: check any collision in PDSCH */
   srsenb::rbgmask_t rbgmask(cfg.cell.nof_prb);
-  TESTASSERT(output_tester->test_dl_rb_collisions(tti_params, tti_data.sched_result_dl, rbgmask) == SRSLTE_SUCCESS);
+  TESTASSERT(output_tester->test_pdsch_collisions(tti_params, tti_data.sched_result_dl, rbgmask) == SRSLTE_SUCCESS);
 
   // update ue stats with number of DL RB allocations
   srslte::bounded_bitset<100, true> alloc_mask(cfg.cell.nof_prb);
