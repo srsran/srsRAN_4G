@@ -20,6 +20,7 @@
  */
 
 #include "logger.h"
+#include "singleton.h"
 #include <mutex>
 #include <unordered_map>
 
@@ -30,10 +31,11 @@ namespace srslte {
 
 class log_filter;
 
-class logmap
+class logmap : public singleton_t<logmap>
 {
 public:
   // Access to log map by servicename. If servicename does not exist, create a new log_filter with default cfg
+  // Access to the map is protected by a mutex
   static log* get(const std::string& servicename)
   {
     logmap*                     pool = get_instance();
@@ -49,12 +51,6 @@ public:
       return inserted.get();
     }
     return it->second.get();
-  }
-
-  static logmap* get_instance()
-  {
-    static logmap* instance = new logmap{};
-    return instance;
   }
 
   // set default logger
@@ -91,9 +87,10 @@ public:
     return log_map.erase(servicename) > 0;
   }
 
-private:
+protected:
   logmap() : default_logger(&logger_stdout_val) {}
 
+private:
   // consts
   logger_stdout logger_stdout_val;
 
