@@ -231,30 +231,12 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   // Check return state
   switch (cell_search_ret) {
     case search::CELL_FOUND:
-      // If a cell is found, configure it, synchronize and measure it
-      if (set_cell()) {
-
-        // Reconfigure first intra-frequency measurement
-        intra_freq_meas[0]->set_primary_cell(current_earfcn, cell);
-
-        Info("Cell Search: Setting sampling rate and synchronizing SFN...\n");
-        set_sampling_rate();
-        phy_state.run_sfn_sync();
-
-        if (phy_state.is_camping()) {
-          log_h->info("Cell Search: Sync OK. Camping on cell PCI=%d\n", cell.id);
-          if (found_cell) {
-            found_cell->earfcn = current_earfcn;
-            found_cell->pci    = cell.id;
-          }
-          ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND;
-        } else {
-          log_h->info("Cell Search: Could not synchronize with cell\n");
-          ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND;
-        }
-      } else {
-        Error("Cell Search: Setting cell PCI=%d, nof_prb=%d\n", cell.id, cell.nof_prb);
+      log_h->info("Cell Search: Found cell with PCI=%d with %d PRB\n", cell.id, cell.nof_prb);
+      if (found_cell) {
+        found_cell->earfcn = current_earfcn;
+        found_cell->pci    = cell.id;
       }
+      ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND;
       break;
     case search::CELL_NOT_FOUND:
       Info("Cell Search: No cell found in this frequency\n");
@@ -294,7 +276,7 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
     Info("Cell Select: Starting cell resynchronization\n");
   } else {
     if (!srslte_cellid_isvalid(new_cell->pci)) {
-      log_h->error("Cell Select: Invalid cell_id=%d\n", cell.id);
+      log_h->error("Cell Select: Invalid cell_id=%d\n", new_cell->pci);
       return ret;
     }
     Info("Cell Select: Starting cell selection for PCI=%d, EARFCN=%d\n", new_cell->pci, new_cell->earfcn);
@@ -317,14 +299,11 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
 
   /* Reconfigure cell if necessary */
   if (new_cell) {
-    if (new_cell->pci != cell.id) {
-      Info("Cell Select: Reconfiguring cell ID\n");
       cell.id = new_cell->pci;
       if (!set_cell()) {
         Error("Cell Select: Reconfiguring cell\n");
         return ret;
       }
-    }
 
     /* Select new frequency if necessary */
     if ((int)new_cell->earfcn != current_earfcn) {
@@ -821,7 +800,6 @@ void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
 
 bool sync::set_cell()
 {
-
   if (!phy_state.is_idle()) {
     Warning("Can not change Cell while not in IDLE\n");
     return false;

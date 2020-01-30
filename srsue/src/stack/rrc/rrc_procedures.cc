@@ -79,6 +79,12 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
 
   rrc_ptr->set_serving_cell(new_cell, false);
 
+  // set new serving cell in PHY
+  if (not rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
+    Error("Couldn't select new serving cell\n");
+    return proc_outcome_t::error;
+  }
+
   if (not rrc_ptr->phy->cell_is_camping()) {
     Warning("Could not camp on found cell.\n");
     return proc_outcome_t::error;
@@ -111,9 +117,8 @@ proc_outcome_t rrc::cell_search_proc::react(const cell_search_event_t& event)
   Info("PHY cell search completed.\n");
   // Transition to SI Acquire or finish
   switch (search_result.cs_ret.found) {
-    case phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND: {
+    case phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND:
       return handle_cell_found(search_result.found_cell);
-    }
     case phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND:
       rrc_ptr->phy_sync_state = phy_unknown_sync;
       Info("No cells found.\n");

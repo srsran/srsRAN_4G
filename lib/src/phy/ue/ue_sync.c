@@ -759,7 +759,6 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
           n = srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx);
           switch (n) {
             case SRSLTE_SYNC_ERROR:
-              ret = SRSLTE_ERROR;
               ERROR("Error finding correlation peak (%d)\n", ret);
               return SRSLTE_ERROR;
             case SRSLTE_SYNC_FOUND:
