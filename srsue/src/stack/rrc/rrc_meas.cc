@@ -277,8 +277,10 @@ void rrc::rrc_meas::var_meas_report_list::generate_report(const uint32_t measId)
   }
 
   // if the numberOfReportsSent as defined within the VarMeasReportList for this measId is less than the
-  // reportAmount as defined within the corresponding reportConfig for this measId
-  if (var_meas.nof_reports_sent < var_meas.report_cfg.report_amount.to_number()) {
+  // reportAmount as defined within the corresponding reportConfig for this measId (also includes case where amount is
+  // infinity)
+  if (var_meas.nof_reports_sent < var_meas.report_cfg.report_amount.to_number() ||
+      var_meas.report_cfg.report_amount.to_number() == -1) {
     // start the periodical reporting timer with the value of reportInterval as defined within the corresponding
     // reportConfig for this measId
     if (var_meas.periodic_timer.is_valid()) {
@@ -333,9 +335,9 @@ void rrc::rrc_meas::var_meas_report_list::set_measId(const uint32_t            m
   }
 
   // The ReportInterval is applicable if the UE performs periodical reporting (i.e. when reportAmount exceeds 1), for
-  // triggerType ‘ event ’ as well as for triggerType
-  //‘ periodical ’
-  if (!varMeasReportList.at(measId).periodic_timer.is_valid() && report_cfg.report_amount.to_number() > 1) {
+  // triggerType ‘event’ as well as for triggerType ‘periodical’
+  if (!varMeasReportList.at(measId).periodic_timer.is_valid() &&
+      (report_cfg.report_amount.to_number() > 1 || report_cfg.report_amount.to_number() == -1)) {
     varMeasReportList.at(measId).periodic_timer = timers->get_unique_timer();
     varMeasReportList.at(measId).periodic_timer.set(report_cfg.report_interv.to_number());
   }
