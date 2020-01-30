@@ -65,7 +65,6 @@ public:
   void set_cell_map(const cell_list_t& cells_);
 
   // phy_interface_rrc_lte
-  void     get_current_cell(srslte_cell_t* cell_, uint32_t* earfcn_ = NULL);
   uint32_t get_current_earfcn();
   uint32_t get_current_pci();
   void     set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config);
@@ -126,9 +125,13 @@ private:
   srslte::logger*    logger = nullptr;
   srslte::log_filter log;
 
-  // The current cell
+  // All available cells
   cell_list_t cells;
+  uint32_t    cell_idx = 0;
+
+  // The current PCell
   cell_t      pcell = {};
+  bool        pcell_set = false;
 
   phy_cfg_t phy_cfg = {};
 

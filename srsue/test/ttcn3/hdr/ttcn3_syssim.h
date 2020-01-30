@@ -508,8 +508,13 @@ public:
           }
         }
 
-        dl_rnti = ue->get_dl_sched_rnti(tti);
+        if (pcell_idx == -1) {
+          log.debug("Skipping TTI. Pcell not yet selected.\n");
+          continue;
+        }
 
+        // DL/UL processing if UE has selected cell
+        dl_rnti = ue->get_dl_sched_rnti(tti);
         if (SRSLTE_RNTI_ISSI(dl_rnti)) {
           // deliver SIBs one after another
           mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
@@ -702,17 +707,6 @@ public:
       // SYSSIM defines what cells the UE can connect to
       ue->set_cell_map(phy_cells);
     }
-
-    // reselect SS Pcell
-    float max_power = -145;
-    for (uint32_t i = 0; i < cells.size(); ++i) {
-      float actual_power = cells[i]->initial_power - cells[i]->attenuation;
-      if (actual_power > max_power) {
-        max_power = actual_power;
-        pcell_idx = i;
-        log.info("Selecting PCI=%d with TxPower=%.2f as Pcell\n", cells[pcell_idx]->cell.id, max_power);
-      }
-    }
   }
 
   bool have_valid_pcell() { return (pcell_idx >= 0 && pcell_idx < static_cast<int>(cells.size())); }
@@ -869,6 +863,18 @@ public:
     pdcp.enable_integrity(lcid);
     pdcp.enable_encryption(lcid);
     return 0;
+  }
+
+  void select_cell(srslte_cell_t phy_cell)
+  {
+    // find matching cell in SS cell list
+    for (uint32_t i = 0; i < cells.size(); ++i) {
+      if (cells[i]->cell.id == phy_cell.id) {
+        pcell_idx = i;
+        log.info("New PCell: PCI=%d\n", cells[pcell_idx]->cell.id);
+        return;
+      }
+    }
   }
 
 private:

@@ -70,6 +70,7 @@ public:
   virtual void prach_indication(uint32_t preamble_index, const uint32_t& cell_id)   = 0;
   virtual void sr_req(uint32_t tti_tx)                                              = 0;
   virtual void tx_pdu(const uint8_t* payload, const int len, const uint32_t tx_tti) = 0;
+  virtual void select_cell(srslte_cell_t cell)                                      = 0;
 };
 
 class phy_interface_syssim
