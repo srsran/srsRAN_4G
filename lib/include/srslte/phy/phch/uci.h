@@ -76,6 +76,8 @@ SRSLTE_API int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
 
 SRSLTE_API void srslte_uci_encode_ack_sr_pucch3(uint8_t* data, uint32_t nof_bits, uint8_t output[32]);
 
+SRSLTE_API int16_t srslte_uci_decode_ack_sr_pucch3(const int16_t llr[48], uint8_t* data);
+
 SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t* q);
 
 SRSLTE_API void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t* q);

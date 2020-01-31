@@ -52,6 +52,13 @@ static uint8_t M_basis_seq[32][11] = {
     {1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0}, {1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0}, {1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0},
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
+static const uint16_t M_basis_seq_b[32] = {
+    0b11000000001, 0b11100000011, 0b10010010111, 0b10110000101, 0b11110001001, 0b11001011101, 0b10101010111,
+    0b10011001101, 0b11011001011, 0b10111010011, 0b10100111011, 0b11100110101, 0b10010101111, 0b11010101011,
+    0b10001101001, 0b11001111011, 0b11101110010, 0b10011100100, 0b11011111000, 0b10000110000, 0b10100010001,
+    0b11010000011, 0b10001001101, 0b11101000111, 0b11111011110, 0b11000111001, 0b10110100110, 0b11110101110,
+    0b10101110100, 0b10111111100, 0b11111111111, 0b10000000000,
+};
 
 static uint8_t M_basis_seq_pucch[20][13] = {
     {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
@@ -167,7 +174,7 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
   }
 }
 
-void encode_cqi_pusch_block(uint8_t* data, uint32_t nof_bits, uint8_t output[32])
+void encode_cqi_pusch_block(const uint8_t* data, uint32_t nof_bits, uint8_t output[32])
 {
   for (int i = 0; i < 32; i++) {
     output[i] = 0;
@@ -180,6 +187,69 @@ void encode_cqi_pusch_block(uint8_t* data, uint32_t nof_bits, uint8_t output[32]
 void srslte_uci_encode_ack_sr_pucch3(uint8_t* data, uint32_t nof_bits, uint8_t output[32])
 {
   encode_cqi_pusch_block(data, nof_bits, output);
+}
+
+int16_t srslte_uci_decode_ack_sr_pucch3(const int16_t llr[48], uint8_t* data)
+{
+  int16_t max_corr = 0;
+  int16_t max_data = 0;
+
+  // Brute force all sequences backwards
+  for (int16_t guess = 2047; guess >= 0; guess--) {
+    int16_t corr = 0;
+
+    for (uint8_t i = 0; i < 48; i++) {
+      //
+      uint16_t d = (uint16_t)guess & M_basis_seq_b[i % 32];
+      d ^= (uint16_t)(d >> 8U);
+      d ^= (uint16_t)(d >> 4U);
+      d &= 0xf;
+      d = (0x6996U >> d) & 1U;
+
+      corr += (d ? 1 : -1) * llr[i];
+    }
+
+    if (corr > max_corr) {
+      max_corr = corr;
+      max_data = guess;
+    }
+  }
+
+  for (int8_t i = 0; i < 11; i++) {
+    data[i] = (uint8_t)(max_data >> (10U - i)) & 1U;
+  }
+
+  return max_corr;
+}
+
+void srslte_uci_decode_ack_sr_pucch3x(const int16_t llr[48], uint8_t* data, uint32_t nof_bits)
+{
+  // Limit maximum of bits
+  nof_bits = SRSLTE_MIN(nof_bits, 11);
+  nof_bits = SRSLTE_MAX(nof_bits, 1);
+
+  int16_t  max_corr = 0;
+  uint16_t max_data = 0;
+  for (uint16_t guess = 0; guess < (1U << (nof_bits - 1)); guess++) {
+    int16_t corr = 0;
+
+    for (uint8_t i = 0; i < 48; i++) {
+      uint8_t d = 0;
+      for (uint8_t n = 0; n < nof_bits; n++) {
+        d ^= (uint8_t)((uint8_t)(guess >> n) & M_basis_seq[i % 32][n]);
+      }
+      corr += (d ? 1 : -1) * llr[i];
+    }
+
+    if (corr > max_corr) {
+      max_corr = corr;
+      max_data = guess;
+    }
+  }
+
+  for (uint8_t i = 0; i < nof_bits; i++) {
+    data[i] = (uint8_t)(max_data >> i) & 1U;
+  }
 }
 
 void cqi_pusch_pregen(srslte_uci_cqi_pusch_t* q)

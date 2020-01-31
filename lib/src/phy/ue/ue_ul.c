@@ -832,28 +832,6 @@ void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
   // Get PUCCH Resources
   cfg->format  = srslte_pucch_select_format(cfg, uci_cfg, cell->cp);
   cfg->n_pucch = get_npucch(cfg, uci_cfg, uci_value, cell);
-
-  if (uci_value) {
-    if (cfg->format == SRSLTE_PUCCH_FORMAT_3) {
-      fprintf(stderr, "Warning: PUCCH3 under development\n");
-      uint8_t* b = uci_value->ack.ack_value;
-      uint8_t  temp[SRSLTE_UCI_MAX_ACK_BITS + 1];
-
-      uint32_t k = uci_cfg->ack[0].nof_acks;
-      for (; k < uci_cfg->ack[0].nof_acks; k++) {
-        temp[k] = (uint8_t)((b[k] == 1) ? 1 : 0);
-      }
-      memcpy(temp, uci_value->ack.ack_value, uci_cfg->ack[0].nof_acks);
-      if (uci_cfg->is_scheduling_request_tti) {
-        temp[uci_cfg->ack[0].nof_acks] = (uint8_t)(uci_value->scheduling_request ? 1 : 0);
-        k++;
-      }
-      srslte_uci_encode_ack_sr_pucch3(temp, k, b);
-      for (k = 32; k < SRSLTE_PUCCH3_NOF_BITS; k++) {
-        b[k] = b[k % 32];
-      }
-    }
-  }
 }
 
 /* Choose PUCCH format as in Sec 10.1 of 36.213 and generate PUCCH signal

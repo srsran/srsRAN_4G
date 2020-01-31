@@ -562,12 +562,12 @@ static int encode_signal_format3(srslte_pucch_t*     q,
 
     cf_t h;
     if (n < N_sf_0) {
-      h = w_n_oc_0[n] * cexpf(I * M_PI * floorf(n_cs_cell / 64) / 2);
+      h = w_n_oc_0[n] * cexpf(I * M_PI * floorf(n_cs_cell / 64.0f) / 2);
       for (uint32_t i = 0; i < SRSLTE_NRE; i++) {
         y_n[i] = h * q->d[(i + n_cs_cell) % SRSLTE_NRE];
       }
     } else {
-      h = w_n_oc_1[n - N_sf_0] * cexpf(I * M_PI * floorf(n_cs_cell / 64) / 2);
+      h = w_n_oc_1[n - N_sf_0] * cexpf(I * M_PI * floorf(n_cs_cell / 64.0f) / 2);
       for (uint32_t i = 0; i < SRSLTE_NRE; i++) {
         y_n[i] = h * q->d[((i + n_cs_cell) % SRSLTE_NRE) + SRSLTE_NRE];
       }
@@ -580,6 +580,69 @@ static int encode_signal_format3(srslte_pucch_t*     q,
       }
       z[n * SRSLTE_NRE + k] = acc / sqrtf(SRSLTE_NRE);
     }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+static int decode_signal_format3(srslte_pucch_t*     q,
+                                 srslte_ul_sf_cfg_t* sf,
+                                 srslte_pucch_cfg_t* cfg,
+                                 uint8_t             bits[SRSLTE_PUCCH_MAX_BITS],
+                                 cf_t                z[SRSLTE_PUCCH_MAX_SYMBOLS])
+{
+  uint32_t N_sf_0 = get_N_sf(cfg->format, 0, sf->shortened);
+  uint32_t N_sf_1 = get_N_sf(cfg->format, 1, sf->shortened);
+
+  uint32_t n_oc_0 = cfg->n_pucch % N_sf_1;
+  uint32_t n_oc_1 = (N_sf_1 == 5) ? ((3 * cfg->n_pucch) % N_sf_1) : (n_oc_0 % N_sf_1);
+
+  cf_t* w_n_oc_0 = (cf_t*)pucch3_w_n_oc_5[n_oc_0];
+  cf_t* w_n_oc_1 = (cf_t*)((N_sf_1 == 5) ? pucch3_w_n_oc_5[n_oc_1] : pucch3_w_n_oc_4[n_oc_1]);
+
+  memset(q->d, 0, sizeof(cf_t) * 2 * SRSLTE_NRE);
+
+  for (uint32_t n = 0; n < N_sf_0 + N_sf_1; n++) {
+    uint32_t l         = get_pucch_symbol(n, cfg->format, q->cell.cp);
+    uint32_t n_cs_cell = q->n_cs_cell[(2 * (sf->tti % 10) + ((n < N_sf_0) ? 0 : 1)) % SRSLTE_NSLOTS_X_FRAME][l];
+
+    cf_t y_n[SRSLTE_NRE];
+    bzero(y_n, sizeof(cf_t) * SRSLTE_NRE);
+
+    // Do FFT
+    for (int k = 0; k < SRSLTE_NRE; k++) {
+      cf_t acc = 0.0f;
+      for (int i = 0; i < SRSLTE_NRE; i++) {
+        acc += z[n * SRSLTE_NRE + i] * cexpf(I * 2.0 * M_PI * i * k / (float)SRSLTE_NRE);
+      }
+      y_n[k] = acc / sqrtf(SRSLTE_NRE);
+    }
+
+    if (n < N_sf_0) {
+      cf_t h = w_n_oc_0[n] * cexpf(-I * M_PI * floorf(n_cs_cell / 64.0f) / 2);
+      for (uint32_t i = 0; i < SRSLTE_NRE; i++) {
+        q->d[(i + n_cs_cell) % SRSLTE_NRE] += h * y_n[i];
+      }
+    } else {
+      cf_t h = w_n_oc_1[n - N_sf_0] * cexpf(-I * M_PI * floorf(n_cs_cell / 64.0f) / 2);
+      for (uint32_t i = 0; i < SRSLTE_NRE; i++) {
+        q->d[((i + n_cs_cell) % SRSLTE_NRE) + SRSLTE_NRE] += h * y_n[i];
+      }
+    }
+  }
+
+  srslte_vec_sc_prod_cfc(q->d, 2.0f / (N_sf_0 + N_sf_1), q->d, SRSLTE_NRE * 2);
+
+  srslte_sequence_t* seq = get_user_sequence(q, cfg->rnti, sf->tti % 10);
+  if (seq) {
+    srslte_demod_soft_demodulate_s(SRSLTE_MOD_QPSK, q->d, q->llr, SRSLTE_PUCCH3_NOF_BITS);
+
+    srslte_scrambling_s_offset(seq, q->llr, 0, SRSLTE_PUCCH3_NOF_BITS);
+
+    return (int)srslte_uci_decode_ack_sr_pucch3(q->llr, bits);
+  } else {
+    fprintf(stderr, "Error modulating PUCCH3 bits: rnti not set\n");
+    return -1;
   }
 
   return SRSLTE_SUCCESS;
@@ -732,6 +795,10 @@ static bool decode_signal(srslte_pucch_t*     q,
         return -1;
       }
       break;
+    case SRSLTE_PUCCH_FORMAT_3:
+      corr     = (float)decode_signal_format3(q, sf, cfg, pucch_bits, q->z) / 4800.0f;
+      detected = true;
+      break;
     default:
       ERROR("PUCCH format %d not implemented\n", cfg->format);
       return SRSLTE_ERROR;
@@ -748,27 +815,33 @@ static void decode_bits(srslte_pucch_cfg_t* cfg,
                         uint8_t             pucch2_bits[SRSLTE_PUCCH_MAX_BITS],
                         srslte_uci_value_t* uci_data)
 {
-  // If was looking for scheduling request, update value
-  if (cfg->uci_cfg.is_scheduling_request_tti) {
-    uci_data->scheduling_request = pucch_found;
-  }
-
-  // Save ACK bits
-  for (uint32_t a = 0; a < srslte_pucch_nof_ack_format(cfg->format); a++) {
-    if (cfg->uci_cfg.cqi.data_enable || cfg->uci_cfg.cqi.ri_len) {
-      uci_data->ack.ack_value[a] = pucch2_bits[a];
-    } else {
-      uci_data->ack.ack_value[a] = pucch_bits[a];
+  if (cfg->format == SRSLTE_PUCCH_FORMAT_3) {
+    memcpy(uci_data->ack.ack_value, pucch_bits, srslte_uci_cfg_total_ack(&cfg->uci_cfg));
+    uci_data->scheduling_request = pucch_bits[srslte_uci_cfg_total_ack(&cfg->uci_cfg)] == 1;
+    uci_data->ack.valid          = true;
+  } else {
+    // If was looking for scheduling request, update value
+    if (cfg->uci_cfg.is_scheduling_request_tti) {
+      uci_data->scheduling_request = pucch_found;
     }
-  }
 
-  // PUCCH2 CQI bits are already decoded
-  if (cfg->uci_cfg.cqi.data_enable) {
-    srslte_cqi_value_unpack(&cfg->uci_cfg.cqi, pucch_bits, &uci_data->cqi);
-  }
+    // Save ACK bits
+    for (uint32_t a = 0; a < srslte_pucch_nof_ack_format(cfg->format); a++) {
+      if (cfg->uci_cfg.cqi.data_enable || cfg->uci_cfg.cqi.ri_len) {
+        uci_data->ack.ack_value[a] = pucch2_bits[a];
+      } else {
+        uci_data->ack.ack_value[a] = pucch_bits[a];
+      }
+    }
 
-  if (cfg->uci_cfg.cqi.ri_len) {
-    uci_data->ri = pucch_bits[0]; /* Assume only one bit of RI */
+    // PUCCH2 CQI bits are already decoded
+    if (cfg->uci_cfg.cqi.data_enable) {
+      srslte_cqi_value_unpack(&cfg->uci_cfg.cqi, pucch_bits, &uci_data->cqi);
+    }
+
+    if (cfg->uci_cfg.cqi.ri_len) {
+      uci_data->ri = pucch_bits[0]; /* Assume only one bit of RI */
+    }
   }
 }
 

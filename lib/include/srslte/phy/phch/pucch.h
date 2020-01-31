@@ -69,6 +69,7 @@ typedef struct SRSLTE_API {
   uint16_t              ue_rnti;
   bool                  is_ue;
 
+  int16_t  llr[SRSLTE_PUCCH3_NOF_BITS];
   uint8_t  bits_scram[SRSLTE_PUCCH_MAX_BITS];
   cf_t     d[SRSLTE_PUCCH_MAX_BITS / 2];
   uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB];
