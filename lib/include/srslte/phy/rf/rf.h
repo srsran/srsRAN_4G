@@ -69,7 +69,7 @@ SRSLTE_API int srslte_rf_open(srslte_rf_t* h, char* args);
 
 SRSLTE_API int srslte_rf_open_multi(srslte_rf_t* h, char* args, uint32_t nof_channels);
 
-SRSLTE_API int srslte_rf_open_devname(srslte_rf_t* h, char* devname, char* args, uint32_t nof_channels);
+SRSLTE_API int srslte_rf_open_devname(srslte_rf_t* h, const char* devname, char* args, uint32_t nof_channels);
 
 SRSLTE_API const char* srslte_rf_name(srslte_rf_t* h);
 

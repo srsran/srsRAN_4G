@@ -63,10 +63,10 @@ int radio_multi::init(const rf_args_t& args_, phy_interface_radio* phy_)
     dev_name = (char*)args.device_name.c_str();
   }
 
-  char* dev_args[SRSLTE_MAX_RADIOS] = {nullptr};
+  const char* dev_args[SRSLTE_MAX_RADIOS] = {nullptr};
   for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
     if (args.device_args[i] != "auto") {
-      dev_args[i] = (char*)args.device_args[i].c_str();
+      dev_args[i] = args.device_args[i].c_str();
     }
   }
 

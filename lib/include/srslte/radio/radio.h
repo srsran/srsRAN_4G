@@ -74,7 +74,7 @@ public:
     }
   }
 
-  bool init(log_filter* _log_h, char* args = NULL, char* devname = NULL, uint32_t nof_channels = 1);
+  bool init(log_filter* _log_h, const char* args = NULL, char* devname = NULL, uint32_t nof_channels = 1);
   void stop();
   void reset();
   bool start_agc(bool tx_gain_same_rx = false);

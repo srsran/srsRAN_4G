@@ -100,7 +100,7 @@ const char* srslte_rf_get_devname(srslte_rf_t* rf)
   return ((rf_dev_t*)rf->dev)->name;
 }
 
-int srslte_rf_open_devname(srslte_rf_t* rf, char* devname, char* args, uint32_t nof_channels)
+int srslte_rf_open_devname(srslte_rf_t* rf, const char* devname, char* args, uint32_t nof_channels)
 {
   rf->thread_gain_run = false;
   /* Try to open the device if name is provided */

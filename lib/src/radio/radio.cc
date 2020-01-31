@@ -30,9 +30,11 @@ extern "C" {
 
 namespace srslte {
 
-bool radio::init(log_filter* _log_h, char* args, char* devname, uint32_t nof_channels)
+bool radio::init(log_filter* _log_h, const char* args, char* devname, uint32_t nof_channels)
 {
-  if (srslte_rf_open_devname(&rf_device, devname, args, nof_channels)) {
+  std::vector<char> tmp_args(strlen(args) + 1);
+  strcpy(&tmp_args[0], args);
+  if (srslte_rf_open_devname(&rf_device, devname, &tmp_args[0], nof_channels)) {
     ERROR("Error opening RF device\n");
     return false;
   }
