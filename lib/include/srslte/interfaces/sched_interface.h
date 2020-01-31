@@ -118,6 +118,7 @@ public:
     uint32_t                aperiodic_cqi_period; // if 0 is periodic CQI
     srslte_dl_cfg_t         dl_cfg;
     ue_bearer_cfg_t         ue_bearers[MAX_LC];
+    std::vector<uint32_t>   supported_cc_idxs;
   };
 
   typedef struct {
@@ -216,9 +217,9 @@ public:
   virtual int reset()                                           = 0;
 
   /* Manages UE scheduling context */
-  virtual int  ue_cfg(uint16_t rnti, uint32_t enb_cc_idx, ue_cfg_t* cfg) = 0;
-  virtual int  ue_rem(uint16_t rnti)                                     = 0;
-  virtual bool ue_exists(uint16_t rnti)                                  = 0;
+  virtual int  ue_cfg(uint16_t rnti, ue_cfg_t* cfg) = 0;
+  virtual int  ue_rem(uint16_t rnti)                = 0;
+  virtual bool ue_exists(uint16_t rnti)             = 0;
 
   /* Manages UE bearers and associated configuration */
   virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t* cfg) = 0;

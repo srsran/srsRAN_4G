@@ -60,32 +60,49 @@ sched_ue::sched_ue()
   reset();
 }
 
-void sched_ue::set_cfg(uint16_t                                rnti_,
-                       const std::vector<sched_cell_params_t>& cell_list_params_,
-                       sched_interface::ue_cfg_t*              cfg_,
-                       uint32_t                                primary_cc_idx_)
+void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_)
 {
-  reset();
-
   {
     std::lock_guard<std::mutex> lock(mutex);
     rnti             = rnti_;
     cell_params_list = &cell_list_params_;
-    main_cc_params   = &(*cell_params_list)[primary_cc_idx_];
-    cell             = main_cc_params->cfg.cell;
+  }
+  Info("SCHED: Added user rnti=0x%x\n", rnti);
+}
 
-    max_msg3retx = main_cc_params->cfg.maxharq_msg3tx;
+void sched_ue::set_cfg(sched_interface::ue_cfg_t* cfg_)
+{
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    // store previous supported cc idxs
+    std::vector<uint32_t> prev_cc_idxs(std::move(cfg.supported_cc_idxs));
 
     cfg = *cfg_;
 
-    // Initialize TM
-    cfg.dl_cfg.tm = SRSLTE_TM1;
+    // if no list of supported cc idxs is provided, we keep the previous one
+    if (cfg.supported_cc_idxs.empty()) {
+      if (prev_cc_idxs.empty()) {
+        Warning("SCHED: Primary cc idx was not set for user rnti=0x%x. Defaulting to first cc.\n", rnti);
+        cfg.supported_cc_idxs.push_back(0);
+      } else {
+        cfg.supported_cc_idxs = prev_cc_idxs;
+      }
+    }
 
-    Info("SCHED: Added user rnti=0x%x\n", rnti);
+    // if primary cc has changed
+    if (prev_cc_idxs.empty() or prev_cc_idxs[0] != cfg.supported_cc_idxs[0]) {
+      main_cc_params = &(*cell_params_list)[cfg.supported_cc_idxs[0]];
+      cell           = main_cc_params->cfg.cell;
+      max_msg3retx   = main_cc_params->cfg.maxharq_msg3tx;
+    }
 
-    // Init sched_ue carriers
-    carriers.emplace_back(&cfg, main_cc_params, rnti);
-    enb_ue_cellindex_map[primary_cc_idx_] = 0;
+    // setup sched_ue carriers
+    carriers.clear();
+    enb_ue_cellindex_map.clear();
+    for (uint32_t i = 0; i < cfg.supported_cc_idxs.size(); ++i) {
+      carriers.emplace_back(&cfg, (*cell_params_list)[cfg.supported_cc_idxs[i]], rnti);
+      enb_ue_cellindex_map[cfg.supported_cc_idxs[i]] = i;
+    }
   }
 
   for (int i = 0; i < sched_interface::MAX_LC; i++) {
@@ -96,13 +113,14 @@ void sched_ue::set_cfg(uint16_t                                rnti_,
               main_cc_params->sched_cfg->pdsch_max_mcs,
               main_cc_params->sched_cfg->max_aggr_level);
   set_fixed_mcs(main_cc_params->sched_cfg->pusch_mcs, main_cc_params->sched_cfg->pdsch_mcs);
+  configured = true;
 }
 
 void sched_ue::reset()
 {
   {
     std::lock_guard<std::mutex> lock(mutex);
-    bzero(&cfg, sizeof(sched_interface::ue_cfg_t));
+    cfg                          = {};
     sr                           = false;
     next_tpc_pusch               = 1;
     next_tpc_pucch               = 1;
@@ -112,6 +130,7 @@ void sched_ue::reset()
     cqi_request_tti              = 0;
     conres_ce_pending            = true;
     carriers.clear();
+    enb_ue_cellindex_map.clear();
   }
 
   for (int i = 0; i < sched_interface::MAX_LC; i++) {
@@ -1075,10 +1094,10 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
  ***********************************************************************************************/
 
 sched_ue_carrier::sched_ue_carrier(sched_interface::ue_cfg_t* cfg_,
-                                   const sched_cell_params_t* cell_cfg_,
+                                   const sched_cell_params_t& cell_cfg_,
                                    uint16_t                   rnti_) :
   cfg(cfg_),
-  cell_params(cell_cfg_),
+  cell_params(&cell_cfg_),
   rnti(rnti_),
   log_h(srslte::logmap::get("MAC "))
 {

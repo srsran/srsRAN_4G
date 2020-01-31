@@ -44,7 +44,7 @@ struct sched_dci_cce_t {
 struct sched_ue_carrier {
   const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
 
-  sched_ue_carrier(sched_interface::ue_cfg_t* cfg_, const sched_cell_params_t* cell_cfg_, uint16_t rnti_);
+  sched_ue_carrier(sched_interface::ue_cfg_t* cfg_, const sched_cell_params_t& cell_cfg_, uint16_t rnti_);
   void reset();
 
   // Harq access
@@ -104,10 +104,8 @@ public:
   sched_ue();
   void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
-  void set_cfg(uint16_t                                rnti,
-               const std::vector<sched_cell_params_t>& cell_list_params_,
-               sched_interface::ue_cfg_t*              cfg,
-               uint32_t                                primary_cc_idx_);
+  void init(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_);
+  void set_cfg(sched_interface::ue_cfg_t* cfg);
 
   void set_bearer_cfg(uint32_t lc_id, srsenb::sched_interface::ue_bearer_cfg_t* cfg);
   void rem_bearer(uint32_t lc_id);
@@ -270,6 +268,7 @@ private:
   uint32_t max_msg3retx    = 0;
 
   /* User State */
+  bool configured        = false;
   bool conres_ce_pending = true;
 
   uint32_t nof_ta_cmd = 0;

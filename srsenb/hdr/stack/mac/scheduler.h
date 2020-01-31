@@ -128,7 +128,7 @@ public:
   void set_sched_cfg(sched_args_t* sched_cfg);
   int  reset() final;
 
-  int  ue_cfg(uint16_t rnti, uint32_t enb_cc_idx, ue_cfg_t* ue_cfg) final;
+  int  ue_cfg(uint16_t rnti, ue_cfg_t* ue_cfg) final;
   int  ue_rem(uint16_t rnti) final;
   bool ue_exists(uint16_t rnti) final;
   void ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd);

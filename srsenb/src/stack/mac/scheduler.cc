@@ -200,11 +200,14 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
  *
  *******************************************************/
 
-int sched::ue_cfg(uint16_t rnti, uint32_t enb_cc_idx, sched_interface::ue_cfg_t* ue_cfg)
+int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* ue_cfg)
 {
   // Add or config user
-  pthread_rwlock_wrlock(&rwlock);
-  ue_db[rnti].set_cfg(rnti, sched_cell_params, ue_cfg, enb_cc_idx);
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti) == 0) {
+    ue_db[rnti].init(rnti, sched_cell_params);
+  }
+  ue_db[rnti].set_cfg(ue_cfg);
   pthread_rwlock_unlock(&rwlock);
 
   return 0;

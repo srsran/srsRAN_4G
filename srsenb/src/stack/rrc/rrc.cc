@@ -1580,32 +1580,36 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
 
   // Add SRB1 to Scheduler
-  srsenb::sched_interface::ue_cfg_t sched_cfg;
-  bzero(&sched_cfg, sizeof(srsenb::sched_interface::ue_cfg_t));
-  sched_cfg.maxharq_tx       = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
-  sched_cfg.continuous_pusch = false;
-  sched_cfg.aperiodic_cqi_period =
-      parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC ? parent->cfg.cqi_cfg.period : 0;
-  sched_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  sched_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  srsenb::sched_interface::ue_cfg_t ue_cfg = {};
+  ue_cfg.maxharq_tx                        = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
+  ue_cfg.continuous_pusch                  = false;
+  ue_cfg.aperiodic_cqi_period = parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC ? parent->cfg.cqi_cfg.period : 0;
+  ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    sched_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.mode == parent->cfg.cqi_cfg.period;
-    sched_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
+    ue_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.mode == parent->cfg.cqi_cfg.period;
+    ue_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
   } else {
-    sched_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_idx;
-    sched_cfg.dl_cfg.cqi_report.periodic_configured = true;
+    ue_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_idx;
+    ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
   }
-  sched_cfg.pucch_cfg.I_sr              = sr_I;
-  sched_cfg.pucch_cfg.n_pucch_sr        = sr_N_pucch;
-  sched_cfg.pucch_cfg.sr_configured     = true;
-  sched_cfg.pucch_cfg.n_pucch           = cqi_pucch;
-  sched_cfg.pucch_cfg.delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
-  sched_cfg.pucch_cfg.N_cs              = parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
-  sched_cfg.pucch_cfg.n_rb_2            = parent->sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
-  sched_cfg.pucch_cfg.N_pucch_1         = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+  ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
+  ue_cfg.pucch_cfg.I_sr              = sr_I;
+  ue_cfg.pucch_cfg.n_pucch_sr        = sr_N_pucch;
+  ue_cfg.pucch_cfg.sr_configured     = true;
+  ue_cfg.pucch_cfg.n_pucch           = cqi_pucch;
+  ue_cfg.pucch_cfg.delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  ue_cfg.pucch_cfg.N_cs              = parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+  ue_cfg.pucch_cfg.n_rb_2            = parent->sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
+  ue_cfg.pucch_cfg.N_pucch_1         = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+  // TODO: For now the ue supports all cc
+  ue_cfg.supported_cc_idxs.resize(parent->cfg.cell_list.size());
+  for (uint32_t i = 0; i < ue_cfg.supported_cc_idxs.size(); ++i) {
+    ue_cfg.supported_cc_idxs[i] = i;
+  }
 
   // Configure MAC
-  parent->mac->ue_cfg(rnti, &sched_cfg);
+  parent->mac->ue_cfg(rnti, &ue_cfg);
 
   // Configure SRB1 in RLC
   parent->rlc->add_bearer(rnti, 1, srslte::rlc_config_t::srb_config(1));

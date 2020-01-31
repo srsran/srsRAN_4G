@@ -107,9 +107,9 @@ int main(int argc, char* argv[])
   srsenb::sched_interface::dl_sched_res_t sched_result_dl;
   srsenb::sched_interface::ul_sched_res_t sched_result_ul;
 
-  srsenb::sched_interface::ue_cfg_t ue_cfg;
-  bzero(&ue_cfg, sizeof(srsenb::sched_interface::ue_cfg_t));
-  uint16_t rnti = 30;
+  srsenb::sched_interface::ue_cfg_t ue_cfg = {};
+  ue_cfg.supported_cc_idxs                 = {0};
+  uint16_t rnti                            = 30;
 
   ue_cfg.aperiodic_cqi_period = 40;
   ue_cfg.maxharq_tx           = 5;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   bzero(&bearer_cfg, sizeof(srsenb::sched_interface::ue_bearer_cfg_t));
   bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
-  my_sched.ue_cfg(rnti, 0, &ue_cfg);
+  my_sched.ue_cfg(rnti, &ue_cfg);
   my_sched.bearer_ue_cfg(rnti, 0, &bearer_cfg);
   // my_sched.dl_rlc_buffer_state(rnti, 0, 1e6, 0);
   my_sched.ul_bsr(rnti, 0, 1e6f, true);

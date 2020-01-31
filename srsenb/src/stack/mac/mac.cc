@@ -200,7 +200,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 {
   int ret = -1;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
 
     // Add RNTI to the PHY (pregerate signals) now instead of after PRACH
     if (!ue_db[rnti]->is_phy_added) {
@@ -214,7 +214,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
     }
 
     // Update Scheduler configuration
-    if ((cfg != nullptr) ? scheduler.ue_cfg(rnti, 0, cfg) : false) { // TODO: provide enb_cc_idx
+    if ((cfg != nullptr) ? (scheduler.ue_cfg(rnti, cfg) != SRSLTE_SUCCESS) : false) {
       Error("Registering new UE rnti=0x%x to SCHED\n", rnti);
     } else {
       ret = 0;
@@ -458,12 +458,12 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
 {
   log_h->step(tti);
 
-  pthread_rwlock_rdlock(&rwlock);
+  pthread_rwlock_wrlock(&rwlock);
 
   uint32_t rnti = last_rnti;
 
   // Create new UE
-  if (!ue_db.count(rnti)) {
+  if (ue_db.count(rnti) == 0) {
     ue_db[rnti] = new ue(rnti, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h, SRSLTE_FDD_NOF_HARQ);
   }
 
@@ -483,10 +483,11 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
   rar_info.prach_tti                            = tti;
 
   // Add new user to the scheduler so that it can RX/TX SRB0
-  sched_interface::ue_cfg_t uecfg;
-  bzero(&uecfg, sizeof(sched_interface::ue_cfg_t));
-  uecfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  if (scheduler.ue_cfg(rnti, enb_cc_idx, &uecfg)) {
+  sched_interface::ue_cfg_t ue_cfg = {};
+  ue_cfg.supported_cc_idxs.push_back(enb_cc_idx);
+  ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.dl_cfg.tm               = SRSLTE_TM1;
+  if (scheduler.ue_cfg(rnti, &ue_cfg) != SRSLTE_SUCCESS) {
     Error("Registering new user rnti=0x%x to SCHED\n", rnti);
     return -1;
   }
