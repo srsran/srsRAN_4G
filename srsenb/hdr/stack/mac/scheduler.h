@@ -58,6 +58,7 @@ class sched_cell_params_t
     {
       if (p != nullptr) {
         srslte_regs_free(p);
+        delete p;
       }
     }
   };
