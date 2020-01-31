@@ -107,7 +107,7 @@ private:
 class nas_test : public srsue::nas
 {
 public:
-  nas_test(srslte::log* log_, srslte::timer_handler* t) : srsue::nas(log_, t) {}
+  nas_test(srslte::timer_handler* t) : srsue::nas(t) {}
   bool is_attached() override { return false; }
 };
 
@@ -172,18 +172,12 @@ public:
   rrc_test(srslte::log* log_) : rrc(log_)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
-    nastest  = new nas_test(log_, &global_timers);
-    pdcptest = new pdcp_test(log_, &global_timers);
+    nastest  = std::unique_ptr<nas_test>(new nas_test(&global_timers));
+    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_, &global_timers));
   };
-  ~rrc_test()
-  {
-    delete nastest;
-    delete pdcptest;
-  }
-
   void init()
   {
-    rrc::init(&phytest, nullptr, nullptr, pdcptest, nastest, nullptr, nullptr, &global_timers, nullptr, {});
+    rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, &global_timers, nullptr, {});
   }
 
   void run_tti(uint32_t tti_)
@@ -265,8 +259,8 @@ public:
   phy_test phytest;
 
 private:
-  pdcp_test*                pdcptest;
-  nas_test*                 nastest;
+  std::unique_ptr<pdcp_test> pdcptest;
+  std::unique_ptr<nas_test>  nastest;
   uint32_t                  tti  = 0;
   srslte::byte_buffer_pool* pool = nullptr;
 };
