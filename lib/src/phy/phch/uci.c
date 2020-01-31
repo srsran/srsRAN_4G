@@ -199,7 +199,6 @@ int16_t srslte_uci_decode_ack_sr_pucch3(const int16_t llr[48], uint8_t* data)
     int16_t corr = 0;
 
     for (uint8_t i = 0; i < 48; i++) {
-      //
       uint16_t d = (uint16_t)guess & M_basis_seq_b[i % 32];
       d ^= (uint16_t)(d >> 8U);
       d ^= (uint16_t)(d >> 4U);
@@ -220,36 +219,6 @@ int16_t srslte_uci_decode_ack_sr_pucch3(const int16_t llr[48], uint8_t* data)
   }
 
   return max_corr;
-}
-
-void srslte_uci_decode_ack_sr_pucch3x(const int16_t llr[48], uint8_t* data, uint32_t nof_bits)
-{
-  // Limit maximum of bits
-  nof_bits = SRSLTE_MIN(nof_bits, 11);
-  nof_bits = SRSLTE_MAX(nof_bits, 1);
-
-  int16_t  max_corr = 0;
-  uint16_t max_data = 0;
-  for (uint16_t guess = 0; guess < (1U << (nof_bits - 1)); guess++) {
-    int16_t corr = 0;
-
-    for (uint8_t i = 0; i < 48; i++) {
-      uint8_t d = 0;
-      for (uint8_t n = 0; n < nof_bits; n++) {
-        d ^= (uint8_t)((uint8_t)(guess >> n) & M_basis_seq[i % 32][n]);
-      }
-      corr += (d ? 1 : -1) * llr[i];
-    }
-
-    if (corr > max_corr) {
-      max_corr = corr;
-      max_data = guess;
-    }
-  }
-
-  for (uint8_t i = 0; i < nof_bits; i++) {
-    data[i] = (uint8_t)(max_data >> i) & 1U;
-  }
 }
 
 void cqi_pusch_pregen(srslte_uci_cqi_pusch_t* q)
