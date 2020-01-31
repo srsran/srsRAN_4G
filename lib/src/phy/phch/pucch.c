@@ -742,32 +742,32 @@ static bool decode_signal(srslte_pucch_t*     q,
   return detected;
 }
 
-static void decode_bits(srslte_uci_cfg_t*   uci_cfg,
+static void decode_bits(srslte_pucch_cfg_t* cfg,
                         bool                pucch_found,
                         uint8_t             pucch_bits[SRSLTE_PUCCH_MAX_BITS],
-                        uint8_t             pucch_dmrs_bits[SRSLTE_PUCCH2_MAX_DMRS_BITS],
+                        uint8_t             pucch2_bits[SRSLTE_PUCCH_MAX_BITS],
                         srslte_uci_value_t* uci_data)
 {
   // If was looking for scheduling request, update value
-  if (uci_cfg->is_scheduling_request_tti) {
+  if (cfg->uci_cfg.is_scheduling_request_tti) {
     uci_data->scheduling_request = pucch_found;
   }
 
   // Save ACK bits
-  for (uint32_t a = 0; a < srslte_uci_cfg_total_ack(uci_cfg); a++) {
-    if (uci_cfg->cqi.data_enable || uci_cfg->cqi.ri_len) {
-      uci_data->ack.ack_value[a] = pucch_dmrs_bits[a];
+  for (uint32_t a = 0; a < srslte_pucch_nof_ack_format(cfg->format); a++) {
+    if (cfg->uci_cfg.cqi.data_enable || cfg->uci_cfg.cqi.ri_len) {
+      uci_data->ack.ack_value[a] = pucch2_bits[a];
     } else {
       uci_data->ack.ack_value[a] = pucch_bits[a];
     }
   }
 
   // PUCCH2 CQI bits are already decoded
-  if (uci_cfg->cqi.data_enable) {
-    srslte_cqi_value_unpack(&uci_cfg->cqi, pucch_bits, &uci_data->cqi);
+  if (cfg->uci_cfg.cqi.data_enable) {
+    srslte_cqi_value_unpack(&cfg->uci_cfg.cqi, pucch_bits, &uci_data->cqi);
   }
 
-  if (uci_cfg->cqi.ri_len) {
+  if (cfg->uci_cfg.cqi.ri_len) {
     uci_data->ri = pucch_bits[0]; /* Assume only one bit of RI */
   }
 }
@@ -837,7 +837,7 @@ int srslte_pucch_decode(srslte_pucch_t*        q,
     bool pucch_found = decode_signal(q, sf, cfg, pucch_bits, nof_re, nof_uci_bits, &data->correlation);
 
     // Convert bits to UCI data
-    decode_bits(&cfg->uci_cfg, pucch_found, pucch_bits, cfg->pucch2_drs_bits, &data->uci_data);
+    decode_bits(cfg, pucch_found, pucch_bits, cfg->pucch2_drs_bits, &data->uci_data);
 
     data->detected = pucch_found;
 
@@ -893,8 +893,8 @@ char* srslte_pucch_format_text(srslte_pucch_format_t format)
       ret = "Format 3";
       break;
     case SRSLTE_PUCCH_FORMAT_ERROR:
+    default:
       ret = "Format Error";
-      break;
   }
 
   return ret;
@@ -928,7 +928,30 @@ char* srslte_pucch_format_text_short(srslte_pucch_format_t format)
       ret = "3";
       break;
     case SRSLTE_PUCCH_FORMAT_ERROR:
+    default:
       ret = "Err";
+      break;
+  }
+
+  return ret;
+}
+
+uint32_t srslte_pucch_nof_ack_format(srslte_pucch_format_t format)
+{
+  uint32_t ret = 0;
+
+  switch (format) {
+
+    case SRSLTE_PUCCH_FORMAT_1A:
+    case SRSLTE_PUCCH_FORMAT_2A:
+      ret = 1;
+      break;
+    case SRSLTE_PUCCH_FORMAT_1B:
+    case SRSLTE_PUCCH_FORMAT_2B:
+      ret = 2;
+      break;
+    default:
+      // Keep default
       break;
   }
 
@@ -1153,4 +1176,196 @@ void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data,
   if (uci_data) {
     srslte_uci_data_info(&cfg->uci_cfg, uci_data, &str[n], str_len - n);
   }
+}
+
+srslte_pucch_format_t srslte_pucch_select_format(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_cp_t cp)
+{
+  srslte_pucch_format_t format = SRSLTE_PUCCH_FORMAT_ERROR;
+  // No CQI data
+  if (!uci_cfg->cqi.data_enable && uci_cfg->cqi.ri_len == 0) {
+    // PUCCH Format 3 condition specified in:
+    // 3GPP 36.213 10.1.2.2.2 PUCCH format 3 HARQ-ACK procedure
+    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
+        srslte_uci_cfg_total_ack(uci_cfg) > 1) {
+      format = SRSLTE_PUCCH_FORMAT_3;
+    }
+    // 1-bit ACK + optional SR
+    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1) {
+      format = SRSLTE_PUCCH_FORMAT_1A;
+    }
+    // 2-bit ACK + optional SR
+    else if (srslte_uci_cfg_total_ack(uci_cfg) >= 2 && srslte_uci_cfg_total_ack(uci_cfg) <= 4) {
+      format = SRSLTE_PUCCH_FORMAT_1B; // with channel selection if > 2
+    }
+    // If UCI value is provided, use SR signal only, otherwise SR request opportunity
+    else if (uci_cfg->is_scheduling_request_tti) {
+      format = SRSLTE_PUCCH_FORMAT_1;
+    } else {
+      ERROR("Error selecting PUCCH format: Unsupported number of ACK bits %d\n", srslte_uci_cfg_total_ack(uci_cfg));
+    }
+  }
+  // CQI data
+  else {
+    // CQI and no ack
+    if (srslte_uci_cfg_total_ack(uci_cfg) == 0) {
+      format = SRSLTE_PUCCH_FORMAT_2;
+    }
+    // CQI + 1-bit ACK
+    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1 && SRSLTE_CP_ISNORM(cp)) {
+      format = SRSLTE_PUCCH_FORMAT_2A;
+    }
+    // CQI + 2-bit ACK
+    else if (srslte_uci_cfg_total_ack(uci_cfg) == 2) {
+      format = SRSLTE_PUCCH_FORMAT_2B;
+    }
+    // CQI + 2-bit ACK + cyclic prefix
+    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1 && SRSLTE_CP_ISEXT(cp)) {
+      format = SRSLTE_PUCCH_FORMAT_2B;
+    }
+  }
+  return format;
+}
+
+int srslte_pucch_cs_resources(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, uint32_t n_pucch_i[4])
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (cfg && uci_cfg && n_pucch_i) {
+    // Determine the 4 PUCCH resources n_pucch_j associated with HARQ-ACK(j)
+    uint32_t k = 0;
+    for (int i = 0; i < SRSLTE_MAX_CARRIERS && k < SRSLTE_PUCCH_CS_MAX_ACK; i++) {
+      // If grant has been scheduled in PCell
+      if (uci_cfg->ack[i].grant_cc_idx == 0) {
+        for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
+          n_pucch_i[k++] = uci_cfg->ack[i].ncce[0] + cfg->N_pucch_1 + j;
+        }
+      } else {
+        for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks; j++) {
+          if (k < 4) {
+            n_pucch_i[k++] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS]
+                                                [j % SRSLTE_PUCCH_NOF_AN_CS];
+          } else {
+            fprintf(stderr, "get_npucch_cs(): Too many ack bits\n");
+            return SRSLTE_ERROR;
+          }
+        }
+      }
+    }
+
+    ret = (int)k;
+  }
+
+  return ret;
+}
+
+#define PUCCH_CS_SET_ACK(J, B0, B1, ...)                                                                               \
+  do {                                                                                                                 \
+    if (j == J && b[0] == B0 && b[1] == B1) {                                                                          \
+      uint8_t pos[] = {__VA_ARGS__};                                                                                   \
+      for (uint32_t i = 0; i < sizeof(pos) && pos[i] < SRSLTE_PUCCH_CS_MAX_ACK; i++) {                                 \
+        uci_value[pos[i]] = 1;                                                                                         \
+      }                                                                                                                \
+      ret = SRSLTE_SUCCESS;                                                                                            \
+    }                                                                                                                  \
+  } while (false)
+
+static int puccch_cs_get_ack_a2(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSLTE_UCI_MAX_ACK_BITS])
+{
+  int ret = SRSLTE_ERROR;
+
+  PUCCH_CS_SET_ACK(1, 1, 1, 0, 1);
+  PUCCH_CS_SET_ACK(0, 1, 1, 0);
+  PUCCH_CS_SET_ACK(1, 0, 0, 1);
+  PUCCH_CS_SET_ACK(1, 0, 0, SRSLTE_PUCCH_CS_MAX_ACK);
+
+  return ret;
+}
+
+static int puccch_cs_get_ack_a3(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSLTE_UCI_MAX_ACK_BITS])
+{
+  int ret = SRSLTE_ERROR;
+
+  PUCCH_CS_SET_ACK(1, 1, 1, 0, 1, 2);
+  PUCCH_CS_SET_ACK(1, 1, 0, 0, 2);
+  PUCCH_CS_SET_ACK(1, 0, 1, 1, 2);
+  PUCCH_CS_SET_ACK(2, 1, 1, 2);
+  PUCCH_CS_SET_ACK(0, 1, 1, 0, 1);
+  PUCCH_CS_SET_ACK(0, 1, 0, 0);
+  PUCCH_CS_SET_ACK(0, 0, 1, 1);
+  PUCCH_CS_SET_ACK(1, 0, 0, SRSLTE_PUCCH_CS_MAX_ACK);
+
+  return ret;
+}
+
+static int puccch_cs_get_ack_a4(uint32_t j, const uint8_t b[2], uint8_t uci_value[SRSLTE_UCI_MAX_ACK_BITS])
+{
+  int ret = SRSLTE_ERROR;
+
+  PUCCH_CS_SET_ACK(1, 1, 1, 0, 1, 2, 3);
+  PUCCH_CS_SET_ACK(2, 0, 1, 0, 2, 3);
+  PUCCH_CS_SET_ACK(1, 0, 1, 1, 2, 3);
+  PUCCH_CS_SET_ACK(3, 1, 1, 2, 3);
+  PUCCH_CS_SET_ACK(1, 1, 0, 0, 1, 2);
+  PUCCH_CS_SET_ACK(2, 0, 0, 0, 2);
+  PUCCH_CS_SET_ACK(1, 0, 0, 1, 2);
+  PUCCH_CS_SET_ACK(3, 1, 0, 2);
+  PUCCH_CS_SET_ACK(2, 1, 1, 0, 1, 3);
+  PUCCH_CS_SET_ACK(2, 1, 0, 0, 3);
+  PUCCH_CS_SET_ACK(3, 0, 1, 1, 3);
+  PUCCH_CS_SET_ACK(3, 0, 0, 3);
+  PUCCH_CS_SET_ACK(0, 1, 1, 0, 1);
+  PUCCH_CS_SET_ACK(0, 1, 0, 0);
+  PUCCH_CS_SET_ACK(0, 0, 1, 1);
+  PUCCH_CS_SET_ACK(0, 0, 0, SRSLTE_PUCCH_CS_MAX_ACK);
+
+  return ret;
+}
+
+int srslte_pucch_cs_get_ack(srslte_pucch_cfg_t* cfg,
+                            srslte_uci_cfg_t*   uci_cfg,
+                            uint32_t            j,
+                            uint8_t             b[2],
+                            srslte_uci_value_t* uci_value)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (cfg && uci_cfg && uci_value) {
+    // Set bits to 0 by default
+    memset(uci_value->ack.ack_value, 0, SRSLTE_UCI_MAX_ACK_BITS);
+    uci_value->ack.valid = true;
+
+    uint32_t nof_ack = srslte_uci_cfg_total_ack(uci_cfg);
+    switch (nof_ack) {
+      case 2:
+        // A = 2
+        ret = puccch_cs_get_ack_a2(j, b, uci_value->ack.ack_value);
+        break;
+      case 3:
+        // A = 3
+        ret = puccch_cs_get_ack_a3(j, b, uci_value->ack.ack_value);
+        break;
+      case 4:
+        // A = 4
+        ret = puccch_cs_get_ack_a4(j, b, uci_value->ack.ack_value);
+        break;
+      default:
+        // Unhandled case
+        ERROR("Unexpected number of ACK (%d)\n", nof_ack);
+        ret = SRSLTE_ERROR;
+    }
+  }
+
+  return ret;
+}
+
+int srslte_pucch_pucch3_resources(const srslte_pucch_cfg_t* cfg, const srslte_uci_cfg_t* uci_cfg, uint32_t n_pucch_i[4])
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (cfg && uci_cfg && n_pucch_i) {
+    n_pucch_i[0] = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS];
+    ret          = 1;
+  }
+
+  return ret;
 }

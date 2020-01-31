@@ -229,54 +229,6 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
   return false;
 }
 
-bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t cc_idx, uint32_t prb_idx[2])
-{
-  bool ret = false;
-
-  std::lock_guard<std::mutex> lock(mutex);
-
-  if (phy_config_dedicated_enabled) {
-
-    // Configure expected UCI for this TTI
-    ZERO_OBJECT(cfg.pucch_cfg.uci_cfg);
-
-    // SR
-    cfg.pucch_cfg.uci_cfg.is_scheduling_request_tti = srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, current_tti);
-
-    ret |= cfg.pucch_cfg.uci_cfg.is_scheduling_request_tti;
-
-    // Pending ACKs
-    for (auto& h : carriers[cc_idx].dl_harq) {
-      if (TTI_TX(h.get_tti()) == current_tti) {
-        cfg.pucch_cfg.uci_cfg.ack[0].ncce[0]  = h.get_n_cce();
-        cfg.pucch_cfg.uci_cfg.ack[0].nof_acks = 1;
-        ret                                   = true;
-      }
-    }
-    // Periodic CQI
-    if (srslte_enb_dl_gen_cqi_periodic(&cell, &cfg.dl_cfg, current_tti, 1, &cfg.pucch_cfg.uci_cfg.cqi)) {
-      ret = true;
-    }
-
-    // Compute PRB index
-    if (prb_idx) {
-      for (int j = 0; j < 2; j++) {
-        prb_idx[j] = srslte_enb_ul_get_pucch_prb_idx(&cell, &cfg.pucch_cfg, j);
-      }
-      Debug("SCHED: Reserved %s PUCCH for rnti=0x%x, n_prb=%d,%d, n_pucch=%d, ncce=%d, has_sr=%d\n",
-            srslte_pucch_format_text(cfg.pucch_cfg.format),
-            rnti,
-            prb_idx[0],
-            prb_idx[1],
-            cfg.pucch_cfg.n_pucch,
-            cfg.pucch_cfg.uci_cfg.ack[0].ncce[0],
-            cfg.pucch_cfg.uci_cfg.is_scheduling_request_tti);
-    }
-  }
-
-  return ret;
-}
-
 int sched_ue::set_ack_info(uint32_t tti, uint32_t cc_idx, uint32_t tb_idx, bool ack)
 {
   std::lock_guard<std::mutex> lock(mutex);

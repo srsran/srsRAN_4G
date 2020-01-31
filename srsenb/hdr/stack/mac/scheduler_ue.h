@@ -200,7 +200,6 @@ public:
   bool     needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
   uint32_t get_max_retx();
 
-  bool get_pucch_sched(uint32_t current_tti, uint32_t cc_idx, uint32_t prb_idx[2]);
   bool pucch_sr_collision(uint32_t current_tti, uint32_t n_cce);
 
   static int cqi_to_tbs(uint32_t  cqi,

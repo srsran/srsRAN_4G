@@ -474,58 +474,6 @@ float srs_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float PL)
   return p_srs;
 }
 
-/* Choose PUCCH format based on pending transmission as described in 10.1 of 36.213 */
-static srslte_pucch_format_t
-get_format(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_value, srslte_cp_t cp)
-{
-  srslte_pucch_format_t format = SRSLTE_PUCCH_FORMAT_ERROR;
-  // No CQI data
-  if (!uci_cfg->cqi.data_enable && uci_cfg->cqi.ri_len == 0) {
-    // PUCCH Format 3 condition specified in:
-    // 3GPP 36.213 10.1.2.2.2 PUCCH format 3 HARQ-ACK procedure
-    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
-        srslte_uci_cfg_total_ack(uci_cfg) > 1) {
-      format = SRSLTE_PUCCH_FORMAT_3;
-    }
-    // 1-bit ACK + optional SR
-    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1) {
-      format = SRSLTE_PUCCH_FORMAT_1A;
-    }
-    // 2-bit ACK + optional SR
-    else if (srslte_uci_cfg_total_ack(uci_cfg) >= 2 && srslte_uci_cfg_total_ack(uci_cfg) <= 4) {
-      format = SRSLTE_PUCCH_FORMAT_1B; // with channel selection if > 2
-    }
-    // If UCI value is provided, use SR signal only, otherwise SR request opportunity
-    else if (uci_cfg->is_scheduling_request_tti || (uci_value && uci_value->scheduling_request)) {
-      format = SRSLTE_PUCCH_FORMAT_1;
-    } else {
-      fprintf(stderr,
-              "Error selecting PUCCH format: Unsupported number of ACK bits %d\n",
-              srslte_uci_cfg_total_ack(uci_cfg));
-    }
-  }
-  // CQI data
-  else {
-    // CQI and no ack
-    if (srslte_uci_cfg_total_ack(uci_cfg) == 0) {
-      format = SRSLTE_PUCCH_FORMAT_2;
-    }
-    // CQI + 1-bit ACK
-    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1 && SRSLTE_CP_ISNORM(cp)) {
-      format = SRSLTE_PUCCH_FORMAT_2A;
-    }
-    // CQI + 2-bit ACK
-    else if (srslte_uci_cfg_total_ack(uci_cfg) == 2) {
-      format = SRSLTE_PUCCH_FORMAT_2B;
-    }
-    // CQI + 2-bit ACK + cyclic prefix
-    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1 && SRSLTE_CP_ISEXT(cp)) {
-      format = SRSLTE_PUCCH_FORMAT_2B;
-    }
-  }
-  return format;
-}
-
 // Selection of n_pucch for PUCCH Format 1a and 1b with channel selection for 1 and 2 CC
 static uint32_t get_npucch_cs(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_value)
 {
@@ -533,31 +481,14 @@ static uint32_t get_npucch_cs(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg
   uint8_t* b            = uci_value->ack.ack_value;
   uint32_t n_pucch_i[4] = {};
 
-  // Determine the 4 PUCCH resources n_pucch_j associated with HARQ-ACK(j)
-  uint32_t k = 0;
-  for (int i = 0; i < 2; i++) {
-    // If grant has been scheduled in PCell
-    if (uci_cfg->ack[i].grant_cc_idx == 0) {
-      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks; j++) {
-        if (k < 4) {
-          n_pucch_i[k++] = uci_cfg->ack[i].ncce[0] + cfg->N_pucch_1 + j;
-        } else {
-          fprintf(stderr, "get_npucch_cs(): Too many ack bits\n");
-        }
-      }
-    } else {
-      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks; j++) {
-        if (k < 4) {
-          n_pucch_i[k++] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % 4][j];
-        } else {
-          fprintf(stderr, "get_npucch_cs(): Too many ack bits\n");
-        }
-      }
-    }
+  if (srslte_pucch_cs_resources(cfg, uci_cfg, n_pucch_i) < SRSLTE_SUCCESS) {
+    ERROR("Selecting n_pucch_i resources\n");
+    return 0;
   }
 
   // Do resource selection and bit mapping according to tables 10.1.2.2.1-3, 10.1.2.2.1-4 and 10.1.2.2.1-5
-  switch (srslte_uci_cfg_total_ack(uci_cfg)) {
+  uint32_t nof_ack = srslte_uci_cfg_total_ack(uci_cfg);
+  switch (nof_ack) {
     case 1:
       // 1-bit is Format1A always
       n_pucch = n_pucch_i[0];
@@ -631,10 +562,12 @@ static uint32_t get_npucch_cs(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg
         b[1] = (uint8_t)((b[3] != 1 ? 0 : 1) & ((b[1] != 1 ? 0 : 1) ^ (b[2] != 1 ? 0 : 1)));
       } else {
         /* n_pucch1_3 */
-        b[0] = (uint8_t)((b[1] != 1 ? 0 : 1) & (b[0] != 1 ? 1 : 0));
-        b[1] = (uint8_t)((b[3] != 1 ? 0 : 1) & ((b[1] != 1 ? 0 : 1) ^ (b[2] != 1 ? 0 : 1)));
+        b[0] = (uint8_t)(b[2] != 1 ? 0 : 1);
+        b[1] = (uint8_t)(((b[3] == 1) && ((b[1] == 1) != (b[2] == 1))) ? 1 : 0);
       }
       break;
+    default:
+      ERROR("Too many (%d) ACK for this CS mode\n", srslte_uci_cfg_total_ack(uci_cfg));
   }
 
   return n_pucch;
@@ -891,7 +824,13 @@ void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
     uci_cfg->cqi.data_enable = false;
   }
 
-  cfg->format  = get_format(cfg, uci_cfg, uci_value, cell->cp);
+  // Assume that if a scheduling request is carried, it is the right TTI
+  if (uci_value) {
+    uci_cfg->is_scheduling_request_tti |= uci_value->scheduling_request;
+  }
+
+  // Get PUCCH Resources
+  cfg->format  = srslte_pucch_select_format(cfg, uci_cfg, cell->cp);
   cfg->n_pucch = get_npucch(cfg, uci_cfg, uci_value, cell);
 
   if (uci_value) {
@@ -925,7 +864,7 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && cfg != NULL) {
-
+    srslte_uci_value_t uci_value2 = *uci_data;
     ret = SRSLTE_ERROR;
 
     if (!srslte_pucch_cfg_isvalid(&cfg->ul_cfg.pucch, q->cell.nof_prb)) {
@@ -936,11 +875,11 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
     bzero(q->sf_symbols, sizeof(cf_t) * SRSLTE_NOF_RE(q->cell));
 
     // Prepare configuration
-    srslte_ue_ul_pucch_resource_selection(&q->cell, &cfg->ul_cfg.pucch, &cfg->ul_cfg.pucch.uci_cfg, uci_data);
+    srslte_ue_ul_pucch_resource_selection(&q->cell, &cfg->ul_cfg.pucch, &cfg->ul_cfg.pucch.uci_cfg, &uci_value2);
 
     srslte_refsignal_srs_pucch_shortened(&q->signals, sf, &cfg->ul_cfg.srs, &cfg->ul_cfg.pucch);
 
-    if (srslte_pucch_encode(&q->pucch, sf, &cfg->ul_cfg.pucch, uci_data, q->sf_symbols)) {
+    if (srslte_pucch_encode(&q->pucch, sf, &cfg->ul_cfg.pucch, &uci_value2, q->sf_symbols)) {
       ERROR("Error encoding TB\n");
       return ret;
     }
@@ -957,6 +896,10 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
 
     apply_cfo(q, cfg);
     apply_norm(q, cfg, (float)q->cell.nof_prb / 15 / 10);
+
+    char txt[256];
+    srslte_pucch_tx_info(&cfg->ul_cfg.pucch, uci_data, txt, sizeof(txt));
+    INFO("[PUCCH] Encoded %s\n", txt);
 
     ret = SRSLTE_SUCCESS;
   }

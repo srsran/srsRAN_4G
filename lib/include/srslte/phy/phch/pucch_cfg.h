@@ -27,6 +27,7 @@
 #include "srslte/phy/phch/uci_cfg.h"
 
 #define SRSLTE_PUCCH_SIZE_AN_CS 4
+#define SRSLTE_PUCCH_SIZE_AN_N3 4
 #define SRSLTE_PUCCH_NOF_AN_CS 2
 #define SRSLTE_PUCCH2_MAX_DMRS_BITS 16
 
@@ -68,7 +69,7 @@ typedef struct SRSLTE_API {
   // Release 10 CA specific
   srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode;
   uint32_t                        n1_pucch_an_cs[SRSLTE_PUCCH_SIZE_AN_CS][SRSLTE_PUCCH_NOF_AN_CS];
-  uint32_t                        n3_pucch_an_list[SRSLTE_PUCCH_SIZE_AN_CS];
+  uint32_t                        n3_pucch_an_list[SRSLTE_PUCCH_SIZE_AN_N3];
 
   // Other configuration
   float threshold_format1;

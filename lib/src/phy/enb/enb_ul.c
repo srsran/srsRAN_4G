@@ -170,32 +170,108 @@ void srslte_enb_ul_fft(srslte_enb_ul_t* q)
   srslte_ofdm_rx_sf(&q->fft);
 }
 
-static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* res)
+static int pucch_resource_selection(srslte_pucch_cfg_t* cfg,
+                                    srslte_uci_cfg_t*   uci_cfg,
+                                    srslte_cell_t*      cell,
+                                    uint32_t            n_pucch_i[SRSLTE_PUCCH_CS_MAX_ACK])
 {
-  srslte_uci_value_t uci_value_default = {};
-  srslte_ue_ul_pucch_resource_selection(&q->cell, cfg, &cfg->uci_cfg, &uci_value_default);
+  int ret = 1;
 
-  // Prepare configuration
-  if (srslte_chest_ul_estimate_pucch(&q->chest, ul_sf, cfg, q->sf_symbols, &q->chest_res)) {
-    ERROR("Error estimating PUCCH DMRS\n");
-    return SRSLTE_ERROR;
+  if (!cfg || !cell || !uci_cfg || !n_pucch_i) {
+    ERROR("get_npucch(): Invalid parameters\n");
+    ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  } else if (uci_cfg->is_scheduling_request_tti) {
+    n_pucch_i[0] = cfg->n_pucch_sr;
+
+  } else if (cfg->format < SRSLTE_PUCCH_FORMAT_2) {
+    if (cfg->sps_enabled) {
+      n_pucch_i[0] = cfg->n_pucch_1[uci_cfg->ack[0].tpc_for_pucch % 4];
+
+    } else {
+      if (cell->frame_type == SRSLTE_FDD) {
+        switch (cfg->ack_nack_feedback_mode) {
+          case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3:
+            n_pucch_i[0] = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_N3];
+            break;
+          case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS:
+            ret = srslte_pucch_cs_resources(cfg, uci_cfg, n_pucch_i);
+            break;
+          default:
+            n_pucch_i[0] = uci_cfg->ack[0].ncce[0] + cfg->N_pucch_1;
+            break;
+        }
+      } else {
+        ERROR("TDD not supported\n");
+        ret = SRSLTE_ERROR;
+      }
+    }
+
+  } else {
+    n_pucch_i[0] = cfg->n_pucch_2;
   }
 
-  int ret_val = srslte_pucch_decode(&q->pucch, ul_sf, cfg, &q->chest_res, q->sf_symbols, res);
-  if (ret_val < 0) {
-    ERROR("Error decoding PUCCH\n");
-    return SRSLTE_ERROR;
-  }
-  return ret_val;
+  return ret;
 }
 
-uint32_t srslte_enb_ul_get_pucch_prb_idx(srslte_cell_t* cell, srslte_pucch_cfg_t* cfg, uint32_t ns)
+static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* res)
 {
-  // compute Format and n_pucch
-  srslte_ue_ul_pucch_resource_selection(cell, cfg, &cfg->uci_cfg, NULL);
+  int                ret = SRSLTE_SUCCESS;
+  uint32_t           n_pucch_i[SRSLTE_PUCCH_CS_MAX_ACK];
+  srslte_pucch_res_t pucch_res;
 
-  // compute prb_idx
-  return srslte_pucch_n_prb(cell, cfg, ns);
+  // Drop CQI if there is collision with ACK
+  if (!cfg->simul_cqi_ack && srslte_uci_cfg_total_ack(&cfg->uci_cfg) > 0 && cfg->uci_cfg.cqi.data_enable) {
+    cfg->uci_cfg.cqi.data_enable = false;
+  }
+
+  // Select format
+  cfg->format = srslte_pucch_select_format(cfg, &cfg->uci_cfg, q->cell.cp);
+
+  // Get possible resources
+  int nof_resources = pucch_resource_selection(cfg, &cfg->uci_cfg, &q->cell, n_pucch_i);
+  if (nof_resources < SRSLTE_SUCCESS || nof_resources > SRSLTE_PUCCH_CS_MAX_ACK) {
+    ERROR("No PUCCH resource could be calculated\n");
+    return SRSLTE_ERROR;
+  }
+
+  // Initialise minimum correlation
+  res->correlation = -INFINITY;
+
+  // Iterate possible resources and select the one with higher correlation
+  for (int i = 0; i < nof_resources && ret == SRSLTE_SUCCESS; i++) {
+    // Configure resource
+    cfg->n_pucch = n_pucch_i[i];
+
+    // Prepare configuration
+    if (srslte_chest_ul_estimate_pucch(&q->chest, ul_sf, cfg, q->sf_symbols, &q->chest_res)) {
+      ERROR("Error estimating PUCCH DMRS\n");
+      return SRSLTE_ERROR;
+    }
+
+    ret = srslte_pucch_decode(&q->pucch, ul_sf, cfg, &q->chest_res, q->sf_symbols, &pucch_res);
+    if (ret < SRSLTE_SUCCESS) {
+      ERROR("Error decoding PUCCH\n");
+    } else {
+
+      // If channel selection enabled
+      if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+        uint8_t b[2] = {pucch_res.uci_data.ack.ack_value[0], pucch_res.uci_data.ack.ack_value[1]};
+        srslte_pucch_cs_get_ack(cfg, &cfg->uci_cfg, i, b, &pucch_res.uci_data);
+      }
+
+      char txt[256];
+      srslte_pucch_rx_info(cfg, &pucch_res.uci_data, txt, sizeof(txt));
+      INFO("[ENB_UL/PUCCH] Decoded %s, corr=%.3f\n", txt, pucch_res.correlation);
+
+      // Check correlation value, keep maximum
+      if (pucch_res.correlation > res->correlation) {
+        *res = pucch_res;
+      }
+    }
+  }
+
+  return ret;
 }
 
 int srslte_enb_ul_get_pucch(srslte_enb_ul_t*    q,

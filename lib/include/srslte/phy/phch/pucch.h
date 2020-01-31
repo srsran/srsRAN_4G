@@ -41,9 +41,15 @@
 
 #define SRSLTE_PUCCH_N_SEQ 12
 #define SRSLTE_PUCCH2_NOF_BITS SRSLTE_UCI_CQI_CODED_PUCCH_B
+#define SRSLTE_PUCCH_1A_2A_NOF_ACK (1)
+#define SRSLTE_PUCCH_1B_2B_NOF_ACK (2)
 #define SRSLTE_PUCCH3_NOF_BITS (4 * SRSLTE_NRE)
 #define SRSLTE_PUCCH_MAX_BITS SRSLTE_CQI_MAX_BITS
 #define SRSLTE_PUCCH_MAX_SYMBOLS 128
+
+// PUCCH Format 1B Channel selection
+#define SRSLTE_PUCCH_CS_MAX_ACK 4
+#define SRSLTE_PUCCH_CS_MAX_NOF_ALLOC 4
 
 typedef struct {
   srslte_sequence_t seq_f2[SRSLTE_NOF_SF_X_FRAME];
@@ -138,6 +144,13 @@ SRSLTE_API char* srslte_pucch_format_text(srslte_pucch_format_t format);
 
 SRSLTE_API char* srslte_pucch_format_text_short(srslte_pucch_format_t format);
 
+/**
+ * Returns the number of ACK bits supported by a given PUCCH format
+ * @param format PUCCH format
+ * @return Returns the number of bits supported by the format
+ */
+SRSLTE_API uint32_t srslte_pucch_nof_ack_format(srslte_pucch_format_t format);
+
 SRSLTE_API void
 srslte_pucch_tx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len);
 
@@ -145,5 +158,48 @@ SRSLTE_API void
 srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len);
 
 SRSLTE_API bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t* cfg, uint32_t nof_prb);
+
+/**
+ * Implements 3GPP 36.213 R10 10.1 PUCCH format  selection
+ * @param cfg PUCCH configuration struct
+ * @param uci_cfg uplink control information configuration
+ * @param uci_value uplink control information, set NULL for eNb
+ * @param cp Cyclic prefix
+ * @return Returns the number of entries in the table or negative value indicating error
+ */
+SRSLTE_API srslte_pucch_format_t srslte_pucch_select_format(srslte_pucch_cfg_t* cfg,
+                                                            srslte_uci_cfg_t*   uci_cfg,
+                                                            srslte_cp_t         cp);
+
+/**
+ * Implements 3GPP 36.213 R10 10.1.2.2.1 PUCCH format 1b with channel selection HARQ-ACK procedure
+ * resource list
+ * @param cfg PUCCH configuration struct
+ * @param uci_cfg uplink control information configuration
+ * @param n_pucch_i table with the PUCCH format 1b possible resources
+ * @return Returns the number of entries in the table or negative value indicating error
+ */
+SRSLTE_API int srslte_pucch_cs_resources(srslte_pucch_cfg_t* cfg,
+                                         srslte_uci_cfg_t*   uci_cfg,
+                                         uint32_t            n_pucch_i[SRSLTE_PUCCH_CS_MAX_NOF_ALLOC]);
+
+/**
+ * Decodes the HARQ ACK bits from a selected resource (j) and received bits (b)
+ * 3GPP 36.213 R10 10.1.2.2.1 PUCCH format 1b with channel selection HARQ-ACK procedure
+ * tables:
+ *  - Table 10.1.2.2.1-3: Transmission of Format 1b HARQ-ACK channel selection for A = 2
+ *  - Table 10.1.2.2.1-4: Transmission of Format 1b HARQ-ACK channel selection for A = 3
+ *  - Table 10.1.2.2.1-5: Transmission of Format 1b HARQ-ACK channel selection for A = 4
+ * @param cfg PUCCH configuration struct
+ * @param uci_cfg uplink control information configuration
+ * @param j selected channel
+ * @param b received bits
+ * @return Returns SRSLTE_SUCCESS if it can decode it succesfully, SRSLTE_ERROR code otherwise
+ */
+SRSLTE_API int srslte_pucch_cs_get_ack(srslte_pucch_cfg_t* cfg,
+                                       srslte_uci_cfg_t*   uci_cfg,
+                                       uint32_t            j,
+                                       uint8_t             b[SRSLTE_PUCCH_1B_2B_NOF_ACK],
+                                       srslte_uci_value_t* uci_value);
 
 #endif // SRSLTE_PUCCH_H

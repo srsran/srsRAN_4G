@@ -86,6 +86,4 @@ SRSLTE_API int srslte_enb_ul_get_pusch(srslte_enb_ul_t*    q,
                                        srslte_pusch_cfg_t* cfg,
                                        srslte_pusch_res_t* res);
 
-SRSLTE_API uint32_t srslte_enb_ul_get_pucch_prb_idx(srslte_cell_t* cell, srslte_pucch_cfg_t* cfg, uint32_t ns);
-
 #endif // SRSLTE_ENB_UL_H

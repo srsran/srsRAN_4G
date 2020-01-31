@@ -65,3 +65,8 @@ foreach (cell_n_prb 6 15 25 50 75 100)
         endforeach (ue_dl_tm)
     endforeach (allow_256 0 1)
 endforeach (cell_n_prb)
+
+add_executable(pucch_cs_test pucch_cs_test.c)
+target_link_libraries(pucch_cs_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+add_test(pucch_cs_test pucch_cs_test)
+
