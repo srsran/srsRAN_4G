@@ -32,9 +32,14 @@ namespace srslte {
 
 bool radio::init(log_filter* _log_h, const char* args, char* devname, uint32_t nof_channels)
 {
-  std::vector<char> tmp_args(strlen(args) + 1);
-  strcpy(&tmp_args[0], args);
-  if (srslte_rf_open_devname(&rf_device, devname, &tmp_args[0], nof_channels)) {
+  char*             mutable_arg_str = nullptr;
+  std::vector<char> args_vec;
+  if (args != nullptr) {
+    args_vec.resize(strlen(args) + 1);
+    strcpy(&args_vec[0], args);
+    mutable_arg_str = &args_vec[0];
+  }
+  if (srslte_rf_open_devname(&rf_device, devname, mutable_arg_str, nof_channels)) {
     ERROR("Error opening RF device\n");
     return false;
   }
