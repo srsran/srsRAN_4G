@@ -226,7 +226,6 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
  ********************************************************************/
 
 nas::nas(srslte::timer_handler* timers_) :
-  nas_log(logmap::get("NAS ")),
   pool(byte_buffer_pool::get_instance()),
   plmn_searcher(this),
   rrc_connector(this),
@@ -238,9 +237,10 @@ nas::nas(srslte::timer_handler* timers_) :
 
 void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
-  usim  = usim_;
-  rrc   = rrc_;
-  gw    = gw_;
+  nas_log = logmap::get("NAS ");
+  usim    = usim_;
+  rrc     = rrc_;
+  gw      = gw_;
   state = EMM_STATE_DEREGISTERED;
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
