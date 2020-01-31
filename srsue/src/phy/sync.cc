@@ -718,11 +718,15 @@ void sync::set_agc_enable(bool enable)
   if (enable) {
     if (running && radio_h) {
       srslte_rf_info_t* rf_info = radio_h->get_info(0);
-      srslte_ue_sync_start_agc(
-          &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain(0));
-      search_p.set_agc_enable(true);
+      if (rf_info) {
+        srslte_ue_sync_start_agc(
+            &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain(0));
+        search_p.set_agc_enable(true);
+      } else {
+        ERROR("Error: Radio does not provide RF information\n");
+      }
     } else {
-      ERROR("Error setting AGC: PHY not initiatec\n");
+      ERROR("Error setting AGC: PHY not initiated\n");
     }
   } else {
     ERROR("Error stopping AGC: not implemented\n");

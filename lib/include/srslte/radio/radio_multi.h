@@ -126,7 +126,16 @@ public:
   {
     radios.at(radio_idx)->set_rx_srate(srate);
   }
-  srslte_rf_info_t* get_info(const uint32_t& radio_idx) override { return radios.at(radio_idx)->get_info(); }
+  srslte_rf_info_t* get_info(const uint32_t& radio_idx) override
+  {
+    srslte_rf_info_t* ret = nullptr;
+
+    if (radio_idx < radios.size()) {
+      ret = radios.at(radio_idx)->get_info();
+    }
+
+    return ret;
+  }
 
 protected:
   rf_args_t args = {};
