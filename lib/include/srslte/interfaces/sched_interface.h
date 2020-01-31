@@ -51,14 +51,14 @@ public:
     uint32_t period_rf;
   } cell_cfg_sib_t;
 
-  typedef struct {
-    int pdsch_mcs;
-    int pdsch_max_mcs;
-    int pusch_mcs;
-    int pusch_max_mcs;
-    int nof_ctrl_symbols;
-    int max_aggr_level;
-  } sched_args_t;
+  struct sched_args_t {
+    int pdsch_mcs        = -1;
+    int pdsch_max_mcs    = 28;
+    int pusch_mcs        = -1;
+    int pusch_max_mcs    = 28;
+    int nof_ctrl_symbols = 3;
+    int max_aggr_level   = 3;
+  };
 
   struct cell_cfg_t {
 
@@ -216,9 +216,9 @@ public:
   virtual int reset()                                           = 0;
 
   /* Manages UE scheduling context */
-  virtual int  ue_cfg(uint16_t rnti, ue_cfg_t* cfg) = 0;
-  virtual int  ue_rem(uint16_t rnti)                = 0;
-  virtual bool ue_exists(uint16_t rnti)             = 0;
+  virtual int  ue_cfg(uint16_t rnti, uint32_t enb_cc_idx, ue_cfg_t* cfg) = 0;
+  virtual int  ue_rem(uint16_t rnti)                                     = 0;
+  virtual bool ue_exists(uint16_t rnti)                                  = 0;
 
   /* Manages UE bearers and associated configuration */
   virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t* cfg) = 0;

@@ -34,7 +34,7 @@ int extract_dl_prbmask(const srslte_cell_t&               cell,
 class output_sched_tester
 {
 public:
-  explicit output_sched_tester(const sched_params_t& params_) : params(params_) {}
+  explicit output_sched_tester(const sched_cell_params_t& cell_params_) : cell_params(cell_params_) {}
 
   /* Check for collisions between RB allocations in the PUSCH and PUCCH */
   int test_pusch_collisions(const tti_params_t&                    tti_params,
@@ -59,7 +59,7 @@ public:
                                   const sched_interface::ul_sched_res_t& ul_result) const;
 
 private:
-  const sched_params_t& params;
+  const sched_cell_params_t& cell_params;
 };
 
 } // namespace srsenb

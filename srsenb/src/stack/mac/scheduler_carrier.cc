@@ -21,6 +21,7 @@
 
 #include "srsenb/hdr/stack/mac/scheduler_carrier.h"
 #include "srsenb/hdr/stack/mac/scheduler_metric.h"
+#include "srslte/common/logmap.h"
 
 #define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
@@ -33,7 +34,7 @@ namespace srsenb {
  *        Broadcast (SIB+Paging) scheduling
  *******************************************************/
 
-bc_sched::bc_sched(const sched::cell_cfg_t& cfg_, srsenb::rrc_interface_mac* rrc_) : cfg(&cfg_), rrc(rrc_) {}
+bc_sched::bc_sched(const sched_cell_params_t& cfg_, srsenb::rrc_interface_mac* rrc_) : cc_cfg(&cfg_), rrc(rrc_) {}
 
 void bc_sched::dl_sched(sf_sched* tti_sched)
 {
@@ -59,7 +60,7 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
 
   for (uint32_t i = 0; i < pending_sibs.size(); ++i) {
     // There is SIB data
-    if (cfg->sibs[i].len == 0) {
+    if (cc_cfg->cfg.sibs[i].len == 0) {
       continue;
     }
 
@@ -67,17 +68,17 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
       uint32_t sf = 5;
       uint32_t x  = 0;
       if (i > 0) {
-        x  = (i - 1) * cfg->si_window_ms;
+        x  = (i - 1) * cc_cfg->cfg.si_window_ms;
         sf = x % 10;
       }
-      if ((current_sfn % (cfg->sibs[i].period_rf)) == x / 10 && current_sf_idx == sf) {
+      if ((current_sfn % (cc_cfg->cfg.sibs[i].period_rf)) == x / 10 && current_sf_idx == sf) {
         pending_sibs[i].is_in_window = true;
         pending_sibs[i].window_start = tti_tx_dl;
         pending_sibs[i].n_tx         = 0;
       }
     } else {
       if (i > 0) {
-        if (srslte_tti_interval(tti_tx_dl, pending_sibs[i].window_start) > cfg->si_window_ms) {
+        if (srslte_tti_interval(tti_tx_dl, pending_sibs[i].window_start) > cc_cfg->cfg.si_window_ms) {
           // the si window has passed
           pending_sibs[i] = {};
         }
@@ -94,14 +95,14 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
 void bc_sched::alloc_sibs(sf_sched* tti_sched)
 {
   for (uint32_t i = 0; i < pending_sibs.size(); i++) {
-    if (cfg->sibs[i].len > 0 and pending_sibs[i].is_in_window and pending_sibs[i].n_tx < 4) {
-      uint32_t nof_tx = (i > 0) ? SRSLTE_MIN(srslte::ceil_div(cfg->si_window_ms, 10), 4) : 4;
+    if (cc_cfg->cfg.sibs[i].len > 0 and pending_sibs[i].is_in_window and pending_sibs[i].n_tx < 4) {
+      uint32_t nof_tx = (i > 0) ? SRSLTE_MIN(srslte::ceil_div(cc_cfg->cfg.si_window_ms, 10), 4) : 4;
       uint32_t n_sf   = (tti_sched->get_tti_tx_dl() - pending_sibs[i].window_start);
 
       // Check if there is any SIB to tx
       bool sib1_flag = (i == 0) and (current_sfn % 2) == 0 and current_sf_idx == 5;
       bool other_sibs_flag =
-          (i > 0) and (n_sf >= (cfg->si_window_ms / nof_tx) * pending_sibs[i].n_tx) and current_sf_idx == 9;
+          (i > 0) and (n_sf >= (cc_cfg->cfg.si_window_ms / nof_tx) * pending_sibs[i].n_tx) and current_sf_idx == 9;
       if (not sib1_flag and not other_sibs_flag) {
         continue;
       }
@@ -135,8 +136,8 @@ void bc_sched::reset()
  *                 RAR scheduling
  *******************************************************/
 
-ra_sched::ra_sched(const sched::cell_cfg_t& cfg_, srslte::log* log_, std::map<uint16_t, sched_ue>& ue_db_) :
-  cfg(&cfg_),
+ra_sched::ra_sched(const sched_cell_params_t& cfg_, srslte::log* log_, std::map<uint16_t, sched_ue>& ue_db_) :
+  cc_cfg(&cfg_),
   log_h(log_),
   ue_db(&ue_db_)
 {
@@ -155,15 +156,15 @@ void ra_sched::dl_sched(srsenb::sf_sched* tti_sched)
     uint32_t                 prach_tti = rar.prach_tti;
 
     // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
-    if (not sched_utils::is_in_tti_interval(tti_tx_dl, prach_tti + 3, prach_tti + 3 + cfg->prach_rar_window)) {
-      if (tti_tx_dl >= prach_tti + 3 + cfg->prach_rar_window) {
+    if (not sched_utils::is_in_tti_interval(tti_tx_dl, prach_tti + 3, prach_tti + 3 + cc_cfg->cfg.prach_rar_window)) {
+      if (tti_tx_dl >= prach_tti + 3 + cc_cfg->cfg.prach_rar_window) {
         log_h->console("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
                        prach_tti,
-                       cfg->prach_rar_window,
+                       cc_cfg->cfg.prach_rar_window,
                        tti_tx_dl);
         log_h->error("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
                      prach_tti,
-                     cfg->prach_rar_window,
+                     cc_cfg->cfg.prach_rar_window,
                      tti_tx_dl);
         // Remove from pending queue and get next one if window has passed already
         pending_rars.pop_front();
@@ -265,7 +266,7 @@ void ra_sched::sched_msg3(sf_sched* sf_msg3_sched, const sched_interface::dl_sch
       auto& grant = dl_sched_result.rar[i].msg3_grant[j];
 
       sf_sched::pending_msg3_t msg3;
-      srslte_ra_type2_from_riv(grant.grant.rba, &msg3.L, &msg3.n_prb, cfg->cell.nof_prb, cfg->cell.nof_prb);
+      srslte_ra_type2_from_riv(grant.grant.rba, &msg3.L, &msg3.n_prb, cc_cfg->nof_prb(), cc_cfg->nof_prb());
       msg3.mcs  = grant.grant.trunc_mcs;
       msg3.rnti = grant.data.temp_crnti;
 
@@ -288,6 +289,7 @@ sched::carrier_sched::carrier_sched(rrc_interface_mac*            rrc_,
                                     uint32_t                      enb_cc_idx_) :
   rrc(rrc_),
   ue_db(ue_db_),
+  log_h(srslte::logmap::get("MAC ")),
   enb_cc_idx(enb_cc_idx_)
 {
   sf_dl_mask.resize(1, 0);
@@ -300,12 +302,10 @@ void sched::carrier_sched::reset()
   bc_sched_ptr.reset();
 }
 
-void sched::carrier_sched::carrier_cfg(const sched_params_t& sched_params_)
+void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
 {
-  // sched::cfg is now fully set
-  sched_params = &sched_params_;
-  log_h        = sched_params->log_h;
-  cc_cfg       = sched_params->cell_cfg[enb_cc_idx].cfg;
+  // carrier_sched is now fully set
+  cc_cfg = &cell_params_;
 
   std::lock_guard<std::mutex> lock(carrier_mutex);
 
@@ -315,22 +315,22 @@ void sched::carrier_sched::carrier_cfg(const sched_params_t& sched_params_)
 
   // Setup data scheduling algorithms
   dl_metric.reset(new srsenb::dl_metric_rr{});
-  dl_metric->set_params(*sched_params, enb_cc_idx);
+  dl_metric->set_params(*cc_cfg);
   ul_metric.reset(new srsenb::ul_metric_rr{});
-  ul_metric->set_params(*sched_params, enb_cc_idx);
+  ul_metric->set_params(*cc_cfg);
 
   // Setup constant PUCCH/PRACH mask
-  pucch_mask.resize(cc_cfg->cell.nof_prb);
-  if (cc_cfg->nrb_pucch > 0) {
-    pucch_mask.fill(0, (uint32_t)cc_cfg->nrb_pucch);
-    pucch_mask.fill(cc_cfg->cell.nof_prb - cc_cfg->nrb_pucch, cc_cfg->cell.nof_prb);
+  pucch_mask.resize(cc_cfg->nof_prb());
+  if (cc_cfg->cfg.nrb_pucch > 0) {
+    pucch_mask.fill(0, (uint32_t)cc_cfg->cfg.nrb_pucch);
+    pucch_mask.fill(cc_cfg->nof_prb() - cc_cfg->cfg.nrb_pucch, cc_cfg->nof_prb());
   }
-  prach_mask.resize(cc_cfg->cell.nof_prb);
-  prach_mask.fill(cc_cfg->prach_freq_offset, cc_cfg->prach_freq_offset + 6);
+  prach_mask.resize(cc_cfg->nof_prb());
+  prach_mask.fill(cc_cfg->cfg.prach_freq_offset, cc_cfg->cfg.prach_freq_offset + 6);
 
   // Initiate the tti_scheduler for each TTI
   for (sf_sched& tti_sched : sf_scheds) {
-    tti_sched.init(*sched_params, enb_cc_idx);
+    tti_sched.init(*cc_cfg);
   }
 }
 
@@ -345,7 +345,7 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
 
   // if it is the first time tti is run, reset vars
   if (tti_rx != tti_sched->get_tti_rx()) {
-    uint32_t start_cfi = sched_params->sched_cfg.nof_ctrl_symbols;
+    uint32_t start_cfi = cc_cfg->sched_cfg->nof_ctrl_symbols;
     bool     dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
     tti_sched->new_tti(tti_rx, start_cfi);
 
@@ -433,9 +433,9 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
   }
 
   // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
-  if (cc_cfg->cell.nof_prb == 6) {
-    uint32_t tti_rx_ack   = TTI_RX_ACK(tti_result->get_tti_rx());
-    if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->prach_config, tti_rx_ack, -1)) {
+  if (cc_cfg->nof_prb() == 6) {
+    uint32_t tti_rx_ack = TTI_RX_ACK(tti_result->get_tti_rx());
+    if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_rx_ack, -1)) {
       tti_result->get_dl_mask().fill(0, tti_result->get_dl_mask().size());
     }
   }
@@ -450,7 +450,7 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   prbmask_t& ul_mask   = tti_sched->get_ul_mask();
 
   /* reserve PRBs for PRACH */
-  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->prach_config, tti_tx_ul, -1)) {
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_tx_ul, -1)) {
     ul_mask = prach_mask;
     log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", prach_mask.to_hex().c_str());
   }
@@ -459,7 +459,7 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   ra_sched_ptr->ul_sched(tti_sched);
 
   /* reserve PRBs for PUCCH */
-  if (cc_cfg->cell.nof_prb != 6 and (ul_mask & pucch_mask).any()) {
+  if (cc_cfg->nof_prb() != 6 and (ul_mask & pucch_mask).any()) {
     log_h->error("There was a collision with the PUCCH. current mask=0x%s, pucch_mask=0x%s\n",
                  ul_mask.to_hex().c_str(),
                  pucch_mask.to_hex().c_str());

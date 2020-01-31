@@ -23,6 +23,7 @@
 
 #include "srsenb/hdr/stack/mac/scheduler.h"
 #include "srsenb/hdr/stack/mac/scheduler_ue.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/pdu.h"
 #include "srslte/srslte.h"
 
@@ -50,28 +51,30 @@ constexpr uint32_t conres_ce_size = 6;
 
 sched_ue::sched_ue()
 {
-  log_h = nullptr;
+  log_h = srslte::logmap::get("MAC ");
 
   bzero(&cell, sizeof(cell));
   bzero(&lch, sizeof(lch));
-  bzero(&dci_locations, sizeof(dci_locations));
   bzero(&dl_ant_info, sizeof(dl_ant_info));
 
   reset();
 }
 
-void sched_ue::set_cfg(uint16_t rnti_, const sched_params_t& sched_params_, sched_interface::ue_cfg_t* cfg_)
+void sched_ue::set_cfg(uint16_t                                rnti_,
+                       const std::vector<sched_cell_params_t>& cell_list_params_,
+                       sched_interface::ue_cfg_t*              cfg_,
+                       uint32_t                                primary_cc_idx_)
 {
   reset();
 
   {
     std::lock_guard<std::mutex> lock(mutex);
-    rnti         = rnti_;
-    sched_params = &sched_params_;
-    log_h        = sched_params->log_h;
-    cell         = sched_params->cell_cfg[0].cfg->cell;
+    rnti             = rnti_;
+    cell_params_list = &cell_list_params_;
+    main_cc_params   = &(*cell_params_list)[primary_cc_idx_];
+    cell             = main_cc_params->cfg.cell;
 
-    max_msg3retx = sched_params->cell_cfg[0].cfg->maxharq_msg3tx;
+    max_msg3retx = main_cc_params->cfg.maxharq_msg3tx;
 
     cfg = *cfg_;
 
@@ -81,26 +84,18 @@ void sched_ue::set_cfg(uint16_t rnti_, const sched_params_t& sched_params_, sche
     Info("SCHED: Added user rnti=0x%x\n", rnti);
 
     // Init sched_ue carriers
-    // TODO: check config for number of carriers
-    carriers.emplace_back(&cfg, &sched_params->cell_cfg[0], rnti, 0, log_h);
-    enb_ue_cellindex_map.insert(std::make_pair(0, 0)); // TODO: use real values
-
-    // Generate allowed CCE locations
-    for (int cfi = 0; cfi < 3; cfi++) {
-      for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
-        sched::generate_cce_location(sched_params->regs, &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
-      }
-    }
+    carriers.emplace_back(&cfg, main_cc_params, rnti);
+    enb_ue_cellindex_map[primary_cc_idx_] = 0;
   }
 
   for (int i = 0; i < sched_interface::MAX_LC; i++) {
     set_bearer_cfg(i, &cfg.ue_bearers[i]);
   }
 
-  set_max_mcs(sched_params->sched_cfg.pusch_max_mcs,
-              sched_params->sched_cfg.pdsch_max_mcs,
-              sched_params->sched_cfg.max_aggr_level);
-  set_fixed_mcs(sched_params->sched_cfg.pusch_mcs, sched_params->sched_cfg.pdsch_mcs);
+  set_max_mcs(main_cc_params->sched_cfg->pusch_max_mcs,
+              main_cc_params->sched_cfg->pdsch_max_mcs,
+              main_cc_params->sched_cfg->max_aggr_level);
+  set_fixed_mcs(main_cc_params->sched_cfg->pusch_mcs, main_cc_params->sched_cfg->pdsch_mcs);
 }
 
 void sched_ue::reset()
@@ -995,13 +990,13 @@ srslte_dci_format_t sched_ue::get_dci_format()
   return ret;
 }
 
-sched_ue::sched_dci_cce_t* sched_ue::get_locations(uint32_t cfi, uint32_t sf_idx)
+sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint32_t sf_idx)
 {
   if (cfi > 0 && cfi <= 3) {
-    return &dci_locations[cfi - 1][sf_idx];
+    return &carriers[enb_cc_idx].dci_locations[cfi - 1][sf_idx];
   } else {
     Error("SCHED: Invalid CFI=%d\n", cfi);
-    return &dci_locations[0][sf_idx];
+    return &carriers[enb_cc_idx].dci_locations[0][sf_idx];
   }
 }
 
@@ -1039,7 +1034,7 @@ uint32_t sched_ue::format1_count_prb(const rbgmask_t& bitmask, uint32_t cc_idx)
   uint32_t                   nof_prb  = 0;
   for (uint32_t i = 0; i < bitmask.size(); i++) {
     if (bitmask.test(i)) {
-      nof_prb += std::min(cell_cfg->cfg->cell.nof_prb - (i * cell_cfg->P), cell_cfg->P);
+      nof_prb += std::min(cell_cfg->cfg.cell.nof_prb - (i * cell_cfg->P), cell_cfg->P);
     }
   }
   return nof_prb;
@@ -1081,19 +1076,23 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
 
 sched_ue_carrier::sched_ue_carrier(sched_interface::ue_cfg_t* cfg_,
                                    const sched_cell_params_t* cell_cfg_,
-                                   uint16_t                   rnti_,
-                                   uint32_t                   cc_idx_,
-                                   srslte::log*               log_) :
+                                   uint16_t                   rnti_) :
   cfg(cfg_),
   cell_params(cell_cfg_),
   rnti(rnti_),
-  cc_idx(cc_idx_),
-  log_h(log_)
+  log_h(srslte::logmap::get("MAC "))
 {
   // Config HARQ processes
   for (uint32_t i = 0; i < dl_harq.size(); ++i) {
     dl_harq[i].config(i, cfg->maxharq_tx, log_h);
     ul_harq[i].config(i, cfg->maxharq_tx, log_h);
+  }
+
+  // Generate allowed CCE locations
+  for (int cfi = 0; cfi < 3; cfi++) {
+    for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
+      sched::generate_cce_location(cell_params->regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
+    }
   }
 }
 
@@ -1284,7 +1283,7 @@ uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
   }
 
   for (n = 1; n < cell_params->nof_prb() && nbytes < req_bytes + 4; n++) {
-    uint32_t nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg->cell.cp) - 1) - N_srs) * n * SRSLTE_NRE;
+    uint32_t nof_re = (2 * (SRSLTE_CP_NSYMB(cell_params->cfg.cell.cp) - 1) - N_srs) * n * SRSLTE_NRE;
     int      tbs    = 0;
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);

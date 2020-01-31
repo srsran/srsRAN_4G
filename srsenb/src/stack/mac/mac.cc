@@ -75,7 +75,7 @@ bool mac::init(const mac_args_t&        args_,
     args = args_;
     cell = *cell_;
 
-    scheduler.init(rrc, log_h);
+    scheduler.init(rrc);
 
     // Set default scheduler configuration
     scheduler.set_sched_cfg(&args.sched);
@@ -214,7 +214,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
     }
 
     // Update Scheduler configuration
-    if ((cfg != nullptr) ? scheduler.ue_cfg(rnti, cfg) : false) {
+    if ((cfg != nullptr) ? scheduler.ue_cfg(rnti, 0, cfg) : false) { // TODO: provide enb_cc_idx
       Error("Registering new UE rnti=0x%x to SCHED\n", rnti);
     } else {
       ret = 0;
@@ -486,7 +486,7 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
   sched_interface::ue_cfg_t uecfg;
   bzero(&uecfg, sizeof(sched_interface::ue_cfg_t));
   uecfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  if (scheduler.ue_cfg(rnti, &uecfg)) {
+  if (scheduler.ue_cfg(rnti, enb_cc_idx, &uecfg)) {
     Error("Registering new user rnti=0x%x to SCHED\n", rnti);
     return -1;
   }

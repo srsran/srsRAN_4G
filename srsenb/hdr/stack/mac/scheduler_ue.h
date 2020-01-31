@@ -33,18 +33,18 @@
 
 namespace srsenb {
 
-class sched_params_t;
-struct sched_cell_params_t;
+class sched_cell_params_t;
 struct tti_params_t;
+
+struct sched_dci_cce_t {
+  uint32_t cce_start[4][6];
+  uint32_t nof_loc[4];
+};
 
 struct sched_ue_carrier {
   const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
 
-  sched_ue_carrier(sched_interface::ue_cfg_t* cfg_,
-                   const sched_cell_params_t* cell_cfg_,
-                   uint16_t                   rnti_,
-                   uint32_t                   cc_idx_,
-                   srslte::log*               log_);
+  sched_ue_carrier(sched_interface::ue_cfg_t* cfg_, const sched_cell_params_t* cell_cfg_, uint16_t rnti_);
   void reset();
 
   // Harq access
@@ -78,11 +78,13 @@ struct sched_ue_carrier {
   uint32_t max_aggr_level = 3;
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
 
+  // Allowed DCI locations per per CFI and per subframe
+  std::array<std::array<sched_dci_cce_t, 10>, 3> dci_locations = {};
+
 private:
   srslte::log*               log_h       = nullptr;
   sched_interface::ue_cfg_t* cfg         = nullptr;
   const sched_cell_params_t* cell_params = nullptr;
-  uint32_t                   cc_idx;
   uint16_t                   rnti;
 };
 
@@ -93,16 +95,7 @@ private:
  */
 class sched_ue
 {
-
 public:
-  // used by sched_metric to store the pdsch/pusch allocations
-  bool has_pucch = false;
-
-  typedef struct {
-    uint32_t cce_start[4][6];
-    uint32_t nof_loc[4];
-  } sched_dci_cce_t;
-
   /*************************************************************
    *
    * FAPI-like Interface
@@ -111,7 +104,10 @@ public:
   sched_ue();
   void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
-  void set_cfg(uint16_t rnti, const sched_params_t& sched_params_, sched_interface::ue_cfg_t* cfg);
+  void set_cfg(uint16_t                                rnti,
+               const std::vector<sched_cell_params_t>& cell_list_params_,
+               sched_interface::ue_cfg_t*              cfg,
+               uint32_t                                primary_cc_idx_);
 
   void set_bearer_cfg(uint32_t lc_id, srsenb::sched_interface::ue_bearer_cfg_t* cfg);
   void rem_bearer(uint32_t lc_id);
@@ -203,7 +199,7 @@ public:
                        int                               explicit_mcs = -1);
 
   srslte_dci_format_t get_dci_format();
-  sched_dci_cce_t*    get_locations(uint32_t current_cfi, uint32_t sf_idx);
+  sched_dci_cce_t*    get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx);
   sched_ue_carrier*   get_ue_carrier(uint32_t enb_cc_idx);
 
   bool     needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
@@ -254,10 +250,11 @@ private:
   bool is_first_dl_tx();
 
   /* Args */
-  sched_interface::ue_cfg_t cfg          = {};
-  srslte_cell_t             cell         = {};
-  srslte::log*              log_h        = nullptr;
-  const sched_params_t*     sched_params = nullptr;
+  sched_interface::ue_cfg_t               cfg              = {};
+  srslte_cell_t                           cell             = {};
+  srslte::log*                            log_h            = nullptr;
+  const std::vector<sched_cell_params_t>* cell_params_list = nullptr;
+  const sched_cell_params_t*              main_cc_params   = nullptr;
 
   std::mutex mutex;
 
@@ -280,14 +277,11 @@ private:
   int next_tpc_pusch = 0;
   int next_tpc_pucch = 0;
 
-  // Allowed DCI locations per CFI and per subframe
-  std::array<std::array<sched_dci_cce_t, 10>, 3> dci_locations = {};
-
   bool                                   phy_config_dedicated_enabled = false;
   asn1::rrc::phys_cfg_ded_s::ant_info_c_ dl_ant_info;
 
-  std::vector<sched_ue_carrier> carriers; ///< map of UE CellIndex to carrier configuration
-  std::map<uint32_t, uint32_t>  enb_ue_cellindex_map;
+  std::vector<sched_ue_carrier> carriers;             ///< map of UE CellIndex to carrier configuration
+  std::map<uint32_t, uint32_t>  enb_ue_cellindex_map; ///< map cc idx eNB -> UE
 };
 } // namespace srsenb
 

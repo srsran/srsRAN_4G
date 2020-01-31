@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
   cell_cfg[0].sibs[1].period_rf = 16;
   cell_cfg[0].si_window_ms      = 40;
 
-  my_sched.init(nullptr, &log_out);
+  my_sched.init(nullptr);
   my_sched.cell_cfg(cell_cfg);
 
   srsenb::sched_interface::dl_sched_res_t sched_result_dl;
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   bzero(&bearer_cfg, sizeof(srsenb::sched_interface::ue_bearer_cfg_t));
   bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
-  my_sched.ue_cfg(rnti, &ue_cfg);
+  my_sched.ue_cfg(rnti, 0, &ue_cfg);
   my_sched.bearer_ue_cfg(rnti, 0, &bearer_cfg);
   // my_sched.dl_rlc_buffer_state(rnti, 0, 1e6, 0);
   my_sched.ul_bsr(rnti, 0, 1e6f, true);

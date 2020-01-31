@@ -71,7 +71,7 @@
  * Setup Random generators
  **************************/
 uint32_t const seed = time(nullptr);
-// uint32_t const seed = 2452071795;
+// uint32_t const seed = 2452071795; // [{3054, 1656}, {5970, 1595}, ... {204, 3}]
 std::default_random_engine            rand_gen(seed);
 std::uniform_real_distribution<float> unif_dist(0, 1.0);
 bool                                  check_old_pids = false;
@@ -240,7 +240,7 @@ private:
 int sched_tester::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
 {
   sched::cell_cfg(cell_cfg);
-  output_tester.reset(new srsenb::output_sched_tester{sched_params});
+  output_tester.reset(new srsenb::output_sched_tester{sched_cell_params[CARRIER_IDX]});
   return SRSLTE_SUCCESS;
 }
 
@@ -255,7 +255,7 @@ int sched_tester::add_user(uint16_t                                 rnti,
   info.preamble_idx = tti_data.nof_prachs++;
   tester_ues.insert(std::make_pair(rnti, info));
 
-  if (ue_cfg(rnti, &ue_cfg_) != SRSLTE_SUCCESS) {
+  if (ue_cfg(rnti, CARRIER_IDX, &ue_cfg_) != SRSLTE_SUCCESS) {
     TESTERROR("[TESTER] Registering new user rnti=0x%x to SCHED\n", rnti);
   }
   dl_sched_rar_info_t rar_info = {};
@@ -291,8 +291,8 @@ void sched_tester::new_test_tti(uint32_t tti_)
     tti_data.ul_pending_msg3_present = true;
     tti_data.ul_pending_msg3         = pending_msg3s.front();
   }
-  tti_data.current_cfi = sched_params.sched_cfg.nof_ctrl_symbols;
-  tti_data.used_cce.resize(srslte_regs_pdcch_ncce(&regs, tti_data.current_cfi));
+  tti_data.current_cfi = sched_cfg.nof_ctrl_symbols;
+  tti_data.used_cce.resize(srslte_regs_pdcch_ncce(sched_cell_params[CARRIER_IDX].regs.get(), tti_data.current_cfi));
   tti_data.used_cce.reset();
   tti_data.ue_data.clear();
   tti_data.total_ues  = tester_user_results();
@@ -303,8 +303,9 @@ int sched_tester::process_tti_args()
 {
   // may add a new user
   if (sim_args.tti_events[tti_data.tti_rx].new_user) {
-    CONDERROR(!srslte_prach_tti_opportunity_config_fdd(cfg[CARRIER_IDX].prach_config, tti_data.tti_rx, -1),
-              "[TESTER] New user added in a non-PRACH TTI\n");
+    CONDERROR(
+        !srslte_prach_tti_opportunity_config_fdd(sched_cell_params[CARRIER_IDX].cfg.prach_config, tti_data.tti_rx, -1),
+        "[TESTER] New user added in a non-PRACH TTI\n");
     uint16_t rnti = sim_args.tti_events[tti_data.tti_rx].new_rnti;
     add_user(rnti, sim_args.bearer_cfg, sim_args.ue_cfg);
   }
@@ -448,7 +449,7 @@ int sched_tester::test_ra()
     //      continue;
     //    }
 
-    uint32_t window[2] = {(uint32_t)prach_tti + 3, prach_tti + 3 + cfg[CARRIER_IDX].prach_rar_window};
+    uint32_t window[2] = {(uint32_t)prach_tti + 3, prach_tti + 3 + sched_cell_params[CARRIER_IDX].cfg.prach_rar_window};
     if (prach_tti >= userinfo.rar_tti) { // RAR not yet sent
       CONDERROR(tti_data.tti_tx_dl > window[1], "[TESTER] There was no RAR scheduled within the RAR Window\n");
       if (tti_data.tti_tx_dl >= window[0]) {
@@ -576,7 +577,7 @@ int sched_tester::test_tti_result()
           carrier_schedulers[0]->get_sf_sched_ptr(tti_sched->get_tti_rx() + MSG3_DELAY_MS)->get_pending_msg3();
       const auto& p = msg3_list.front();
       CONDERROR(msg3_list.empty(), "Pending Msg3 should have been set\n");
-      uint32_t rba = srslte_ra_type2_to_riv(p.L, p.n_prb, cfg[CARRIER_IDX].cell.nof_prb);
+      uint32_t rba = srslte_ra_type2_to_riv(p.L, p.n_prb, sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
       CONDERROR(msg3_grant.grant.rba != rba, "Pending Msg3 RBA is not valid\n");
     }
   }
@@ -758,7 +759,7 @@ int sched_tester::test_sibs()
 int sched_tester::test_collisions()
 {
   const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx);
-  srsenb::prbmask_t       ul_allocs(cfg[CARRIER_IDX].cell.nof_prb);
+  srsenb::prbmask_t       ul_allocs(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
 
   /* TEST: any collision in PUCCH and PUSCH */
   TESTASSERT(output_tester->test_pusch_collisions(tti_params, tti_data.sched_result_ul, ul_allocs) == SRSLTE_SUCCESS);
@@ -779,8 +780,8 @@ int sched_tester::test_collisions()
         srslte_ra_type2_from_riv(tti_data.sched_result_ul.pusch[i].dci.type2_alloc.riv,
                                  &L,
                                  &RBstart,
-                                 cfg[CARRIER_IDX].cell.nof_prb,
-                                 cfg[CARRIER_IDX].cell.nof_prb);
+                                 sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb,
+                                 sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
         if (RBstart != tti_data.ul_pending_msg3.n_prb or L != tti_data.ul_pending_msg3.L) {
           TESTERROR("[TESTER] The Msg3 allocation does not coincide with the expected.\n");
         }
@@ -796,20 +797,21 @@ int sched_tester::test_collisions()
     srslte_ra_type2_from_riv(tti_data.sched_result_ul.pusch[i].dci.type2_alloc.riv,
                              &L,
                              &RBstart,
-                             cfg[CARRIER_IDX].cell.nof_prb,
-                             cfg[CARRIER_IDX].cell.nof_prb);
+                             sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb,
+                             sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
     ue_stats[tti_data.sched_result_ul.pusch[i].dci.rnti].nof_ul_rbs += L;
   }
 
   /* TEST: check any collision in PDSCH */
-  srsenb::rbgmask_t rbgmask(cfg[CARRIER_IDX].cell.nof_prb);
+  srsenb::rbgmask_t rbgmask(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
   TESTASSERT(output_tester->test_pdsch_collisions(tti_params, tti_data.sched_result_dl, rbgmask) == SRSLTE_SUCCESS);
 
   // update ue stats with number of DL RB allocations
-  srslte::bounded_bitset<100, true> alloc_mask(cfg[CARRIER_IDX].cell.nof_prb);
+  srslte::bounded_bitset<100, true> alloc_mask(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
-    TESTASSERT(srsenb::extract_dl_prbmask(cfg[CARRIER_IDX].cell, tti_data.sched_result_dl.data[i].dci, &alloc_mask) ==
-               SRSLTE_SUCCESS);
+    TESTASSERT(srsenb::extract_dl_prbmask(sched_cell_params[CARRIER_IDX].cfg.cell,
+                                          tti_data.sched_result_dl.data[i].dci,
+                                          &alloc_mask) == SRSLTE_SUCCESS);
     ue_stats[tti_data.sched_result_dl.data[i].dci.rnti].nof_dl_rbs += alloc_mask.count();
   }
 
@@ -946,7 +948,7 @@ void test_scheduler_rand(std::vector<srsenb::sched_interface::cell_cfg_t> cell_c
   //  srsenb::sched_interface::dl_sched_res_t& sched_result_dl = tester.tti_data.sched_result_dl;
   //  srsenb::sched_interface::ul_sched_res_t& sched_result_ul = tester.tti_data.sched_result_ul;
 
-  tester.init(nullptr, log_global.get());
+  tester.init(nullptr);
   tester.cell_cfg(cell_cfg);
 
   bool     running  = true;
@@ -1032,6 +1034,7 @@ sched_sim_args rand_sim_params(const srsenb::sched_interface::cell_cfg_t& cell_c
 
 int main()
 {
+  srslte::logmap::get_instance()->set_default_log_level(srslte::LOG_LEVEL_INFO);
   printf("[TESTER] This is the chosen seed: %u\n", seed);
   /* initialize random seed: */
   uint32_t N_runs = 1, nof_ttis = 10240 + 10;

@@ -21,6 +21,7 @@
 
 #include "srsenb/hdr/stack/mac/scheduler_metric.h"
 #include "srsenb/hdr/stack/mac/scheduler_harq.h"
+#include "srslte/common/logmap.h"
 #include <string.h>
 
 #define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
@@ -36,12 +37,10 @@ namespace srsenb {
  *
  *****************************************************************/
 
-void dl_metric_rr::set_params(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
+void dl_metric_rr::set_params(const sched_cell_params_t& cell_params_)
 {
-  sched_params = &sched_params_;
-  enb_cc_idx   = enb_cc_idx_;
-  cell_params  = &sched_params->cell_cfg[enb_cc_idx];
-  log_h        = sched_params_.log_h;
+  cc_cfg = &cell_params_;
+  log_h  = srslte::logmap::get("MAC ");
 }
 
 void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched)
@@ -85,7 +84,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   if (tti_alloc->is_dl_alloc(user)) {
     return nullptr;
   }
-  auto p = user->get_cell_index(enb_cc_idx);
+  auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     return nullptr;
   }
@@ -137,7 +136,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
     // Allocate resources based on pending data
     if (req_bytes > 0) {
       uint32_t  pending_prbs = user->get_required_prb_dl(cell_idx, req_bytes, tti_alloc->get_nof_ctrl_symbols());
-      uint32_t  pending_rbg  = cell_params->prb_to_rbg(pending_prbs);
+      uint32_t  pending_rbg  = cc_cfg->prb_to_rbg(pending_prbs);
       rbgmask_t newtx_mask(tti_alloc->get_dl_mask().size());
       find_allocation(pending_rbg, &newtx_mask);
       if (newtx_mask.any()) { // some empty spaces were found
@@ -158,12 +157,10 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
  *
  *****************************************************************/
 
-void ul_metric_rr::set_params(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
+void ul_metric_rr::set_params(const sched_cell_params_t& cell_params_)
 {
-  sched_params = &sched_params_;
-  enb_cc_idx   = enb_cc_idx_;
-  cell_params  = &sched_params->cell_cfg[enb_cc_idx];
-  log_h        = sched_params_.log_h;
+  cc_cfg = &cell_params_;
+  log_h  = srslte::logmap::get("MAC ");
 }
 
 void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched)
@@ -244,7 +241,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
   if (tti_alloc->is_ul_alloc(user)) {
     return nullptr;
   }
-  auto p = user->get_cell_index(enb_cc_idx);
+  auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     // this cc is not activated for this user
     return nullptr;
@@ -286,7 +283,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
   if (tti_alloc->is_ul_alloc(user)) {
     return nullptr;
   }
-  auto p = user->get_cell_index(enb_cc_idx);
+  auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     // this cc is not activated for this user
     return nullptr;

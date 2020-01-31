@@ -67,7 +67,7 @@ public:
   };
   using alloc_result_t = std::vector<const alloc_t*>;
 
-  void init(const sched_params_t& sched_params);
+  void init(const sched_cell_params_t& cell_params_);
   void new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
   bool set_cfi(uint32_t cfi);
@@ -84,17 +84,17 @@ private:
   const static uint32_t nof_cfis = 3;
   using tree_node_t = std::pair<int, alloc_t>; ///< First represents the parent node idx, and second the alloc tree node
 
-  void                             reset();
-  const sched_ue::sched_dci_cce_t* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const;
-  void                             update_alloc_tree(int                              node_idx,
-                                                     uint32_t                         aggr_idx,
-                                                     sched_ue*                        user,
-                                                     alloc_type_t                     alloc_type,
-                                                     const sched_ue::sched_dci_cce_t* dci_locs);
+  void                   reset();
+  const sched_dci_cce_t* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const;
+  void                   update_alloc_tree(int                    node_idx,
+                                           uint32_t               aggr_idx,
+                                           sched_ue*              user,
+                                           alloc_type_t           alloc_type,
+                                           const sched_dci_cce_t* dci_locs);
 
   // consts
-  const sched_params_t* sched_params = nullptr;
-  srslte::log*          log_h        = nullptr;
+  const sched_cell_params_t* cc_cfg = nullptr;
+  srslte::log*               log_h  = nullptr;
 
   // tti vars
   const tti_params_t*      tti_params   = nullptr;
@@ -113,7 +113,7 @@ public:
     rbg_range_t     rbg_range;
   };
 
-  void            init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_);
+  void            init(const sched_cell_params_t& cell_params_, uint32_t enb_cc_idx_);
   void            new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
@@ -131,12 +131,10 @@ private:
   alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
 
   // consts
-  const sched_params_t*              sched_params = nullptr;
-  const sched_interface::cell_cfg_t* cell_cfg     = nullptr;
-  srslte::log*                       log_h        = nullptr;
-  uint32_t                           nof_rbgs     = 0;
-  uint32_t                           si_n_rbg = 0, rar_n_rbg = 0;
-  uint32_t                           enb_cc_idx = 0;
+  const sched_cell_params_t* cc_cfg   = nullptr;
+  srslte::log*               log_h    = nullptr;
+  uint32_t                   nof_rbgs = 0;
+  uint32_t                   si_n_rbg = 0, rar_n_rbg = 0;
 
   // tti const
   const tti_params_t* tti_params = nullptr;
@@ -233,7 +231,7 @@ public:
   sched_interface::dl_sched_res_t dl_sched_result;
   sched_interface::ul_sched_res_t ul_sched_result;
 
-  void init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_);
+  void init(const sched_cell_params_t& cell_params_);
   void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
 
   // DL alloc
@@ -287,10 +285,8 @@ private:
   void        set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
 
   // consts
-  const sched_params_t*      sched_params = nullptr;
-  const sched_cell_params_t* cell_cfg     = nullptr;
-  srslte::log*               log_h        = nullptr;
-  uint32_t                   enb_cc_idx   = 0;
+  const sched_cell_params_t* cc_cfg = nullptr;
+  srslte::log*               log_h  = nullptr;
 
   // internal state
   tti_params_t               tti_params{10241};

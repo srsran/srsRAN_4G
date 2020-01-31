@@ -21,6 +21,7 @@
 
 #include "srsenb/hdr/stack/mac/scheduler_grid.h"
 #include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srslte/common/logmap.h"
 #include <srslte/interfaces/sched_interface.h>
 
 #define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
@@ -58,11 +59,10 @@ tti_params_t::tti_params_t(uint32_t tti_rx_) :
  *             PDCCH Allocation Methods
  *******************************************************/
 
-void pdcch_grid_t::init(const sched_params_t& sched_params_)
+void pdcch_grid_t::init(const sched_cell_params_t& cell_params_)
 {
-  sched_params = &sched_params_;
-  log_h        = sched_params_.log_h;
-
+  cc_cfg = &cell_params_;
+  log_h  = srslte::logmap::get("MAC ");
   reset();
 }
 
@@ -73,19 +73,21 @@ void pdcch_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
   reset();
 }
 
-const sched_ue::sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const
+const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const
 {
   switch (alloc_type) {
     case alloc_type_t::DL_BC:
-      return &sched_params->common_locations[current_cfix];
+      return &cc_cfg->common_locations[current_cfix];
     case alloc_type_t::DL_PCCH:
-      return &sched_params->common_locations[current_cfix];
+      return &cc_cfg->common_locations[current_cfix];
     case alloc_type_t::DL_RAR:
-      return &sched_params->rar_locations[current_cfix][tti_params->sf_idx];
+      return &cc_cfg->rar_locations[current_cfix][tti_params->sf_idx];
     case alloc_type_t::DL_DATA:
-      return user->get_locations(current_cfix + 1, tti_params->sf_idx);
+      return user->get_locations(cc_cfg->enb_cc_idx, current_cfix + 1, tti_params->sf_idx);
     case alloc_type_t::UL_DATA:
-      return user->get_locations(current_cfix + 1, tti_params->sf_idx);
+      return user->get_locations(cc_cfg->enb_cc_idx, current_cfix + 1, tti_params->sf_idx);
+    default:
+      break;
   }
   return nullptr;
 }
@@ -95,7 +97,7 @@ bool pdcch_grid_t::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_u
   // TODO: Make the alloc tree update lazy
 
   /* Get DCI Location Table */
-  const sched_ue::sched_dci_cce_t* dci_locs = get_cce_loc_table(alloc_type, user);
+  const sched_dci_cce_t* dci_locs = get_cce_loc_table(alloc_type, user);
   if (dci_locs == nullptr) {
     return false;
   }
@@ -122,11 +124,11 @@ bool pdcch_grid_t::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_u
   return true;
 }
 
-void pdcch_grid_t::update_alloc_tree(int                              parent_node_idx,
-                                     uint32_t                         aggr_idx,
-                                     sched_ue*                        user,
-                                     alloc_type_t                     alloc_type,
-                                     const sched_ue::sched_dci_cce_t* dci_locs)
+void pdcch_grid_t::update_alloc_tree(int                    parent_node_idx,
+                                     uint32_t               aggr_idx,
+                                     sched_ue*              user,
+                                     alloc_type_t           alloc_type,
+                                     const sched_dci_cce_t* dci_locs)
 {
   alloc_t alloc;
   alloc.rnti      = (user != nullptr) ? user->get_rnti() : (uint16_t)0u;
@@ -187,7 +189,7 @@ bool pdcch_grid_t::set_cfi(uint32_t cfi)
 
 uint32_t pdcch_grid_t::nof_cces() const
 {
-  return sched_params->nof_cce_table[current_cfix];
+  return cc_cfg->nof_cce_table[current_cfix];
 }
 
 void pdcch_grid_t::reset()
@@ -263,17 +265,15 @@ std::string pdcch_grid_t::result_to_string(bool verbose) const
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void sf_grid_t::init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
+void sf_grid_t::init(const sched_cell_params_t& cell_params_, uint32_t enb_cc_idx_)
 {
-  sched_params = &sched_params_;
-  enb_cc_idx   = enb_cc_idx_;
-  log_h        = sched_params->log_h;
-  cell_cfg     = sched_params->cell_cfg[enb_cc_idx].cfg;
-  nof_rbgs     = sched_params->cell_cfg[enb_cc_idx].nof_rbgs;
-  si_n_rbg     = srslte::ceil_div(4, sched_params->cell_cfg[enb_cc_idx].P);
-  rar_n_rbg    = srslte::ceil_div(3, sched_params->cell_cfg[enb_cc_idx].P);
+  cc_cfg    = &cell_params_;
+  log_h     = srslte::logmap::get("MAC ");
+  nof_rbgs  = cc_cfg->nof_rbgs;
+  si_n_rbg  = srslte::ceil_div(4, cc_cfg->P);
+  rar_n_rbg = srslte::ceil_div(3, cc_cfg->P);
 
-  pdcch_alloc.init(*sched_params);
+  pdcch_alloc.init(*cc_cfg);
 }
 
 void sf_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
@@ -285,7 +285,7 @@ void sf_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
   dl_mask.reset();
   dl_mask.resize(nof_rbgs);
   ul_mask.reset();
-  ul_mask.resize(cell_cfg->cell.nof_prb);
+  ul_mask.resize(cc_cfg->nof_prb());
   pdcch_alloc.new_tti(*tti_params, start_cfi);
 }
 
@@ -344,8 +344,8 @@ alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_m
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits =
-      srslte_dci_format_sizeof(const_cast<srslte_cell_t*>(&cell_cfg->cell), nullptr, nullptr, dci_format);
-  uint32_t aggr_level = user->get_ue_carrier(enb_cc_idx)->get_aggr_level(nof_bits);
+      srslte_dci_format_sizeof(const_cast<srslte_cell_t*>(&cc_cfg->cfg.cell), nullptr, nullptr, dci_format);
+  uint32_t aggr_level = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
   return alloc_dl(aggr_level, alloc_type_t::DL_DATA, user_mask, user);
 }
 
@@ -364,8 +364,8 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_
   // Generate PDCCH except for RAR and non-adaptive retx
   if (needs_pdcch) {
     uint32_t nof_bits =
-        srslte_dci_format_sizeof(const_cast<srslte_cell_t*>(&cell_cfg->cell), nullptr, nullptr, SRSLTE_DCI_FORMAT0);
-    uint32_t aggr_idx = user->get_ue_carrier(enb_cc_idx)->get_aggr_level(nof_bits);
+        srslte_dci_format_sizeof(const_cast<srslte_cell_t*>(&cc_cfg->cfg.cell), nullptr, nullptr, SRSLTE_DCI_FORMAT0);
+    uint32_t aggr_idx = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
       if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
         log_h->debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s\n",
@@ -385,14 +385,12 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void sf_sched::init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
+void sf_sched::init(const sched_cell_params_t& cell_params_)
 {
-  sched_params = &sched_params_;
-  enb_cc_idx   = enb_cc_idx_;
-  cell_cfg     = &sched_params->cell_cfg[enb_cc_idx];
-  log_h        = sched_params->log_h;
-  tti_alloc.init(*sched_params, 0);
-  max_msg3_prb = std::max(6u, cell_cfg->cfg->cell.nof_prb - (uint32_t)cell_cfg->cfg->nrb_pucch);
+  cc_cfg = &cell_params_;
+  log_h  = srslte::logmap::get("MAC ");
+  tti_alloc.init(*cc_cfg, 0);
+  max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - (uint32_t)cc_cfg->cfg.nrb_pucch);
 }
 
 void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
@@ -413,10 +411,10 @@ void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
   ul_data_allocs.clear();
 
   // setup first prb to be used for msg3 alloc
-  last_msg3_prb           = cell_cfg->cfg->nrb_pucch;
+  last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
   uint32_t tti_msg3_alloc = TTI_ADD(tti_params.tti_tx_ul, MSG3_DELAY_MS);
-  if (srslte_prach_tti_opportunity_config_fdd(cell_cfg->cfg->prach_config, tti_msg3_alloc, -1)) {
-    last_msg3_prb = std::max(last_msg3_prb, cell_cfg->cfg->prach_freq_offset + 6);
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc, -1)) {
+    last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
   }
 }
 
@@ -470,7 +468,7 @@ sf_sched::ctrl_code_t sf_sched::alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_by
 
 alloc_outcome_t sf_sched::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
 {
-  uint32_t    sib_len = cell_cfg->cfg->sibs[sib_idx].len;
+  uint32_t    sib_len = cc_cfg->cfg.sibs[sib_idx].len;
   uint32_t    rv      = sched::get_rvidx(sib_ntx);
   ctrl_code_t ret     = alloc_dl_ctrl(aggr_lvl, sib_len, SRSLTE_SIRNTI);
   if (not ret.first) {
@@ -544,7 +542,7 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
       rar_grant.msg3_grant[i].data            = rar.msg3_grant[i];
       rar_grant.msg3_grant[i].grant.tpc_pusch = 3;
       rar_grant.msg3_grant[i].grant.trunc_mcs = 0;
-      uint32_t rba = srslte_ra_type2_to_riv(msg3_grant_size, last_msg3_prb, cell_cfg->cfg->cell.nof_prb);
+      uint32_t rba = srslte_ra_type2_to_riv(msg3_grant_size, last_msg3_prb, cc_cfg->cfg.cell.nof_prb);
       rar_grant.msg3_grant[i].grant.rba = rba;
 
       last_msg3_prb += msg3_grant_size;
@@ -616,7 +614,7 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t
 {
   // check whether adaptive/non-adaptive retx/newtx
   sf_sched::ul_alloc_t::type_t alloc_type;
-  ul_harq_proc*                h        = user->get_ul_harq(get_tti_tx_ul(), user->get_cell_index(enb_cc_idx).second);
+  ul_harq_proc*                h = user->get_ul_harq(get_tti_tx_ul(), user->get_cell_index(cc_cfg->enb_cc_idx).second);
   bool                         has_retx = h->has_pending_retx();
   if (has_retx) {
     ul_harq_proc::ul_alloc_t prev_alloc = h->get_alloc();
@@ -641,7 +639,7 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     bc->dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_range_t prb_range = prb_range_t(bc_alloc.rbg_range, cell_cfg->P);
+    prb_range_t prb_range = prb_range_t(bc_alloc.rbg_range, cc_cfg->P);
     int         tbs       = generate_format1a(
         prb_range.prb_start, prb_range.length(), bc_alloc.req_bytes, bc_alloc.rv, bc_alloc.rnti, &bc->dci);
 
@@ -671,7 +669,7 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                    bc->dci.location.ncce,
                    bc_alloc.rv,
                    bc_alloc.req_bytes,
-                   cell_cfg->cfg->sibs[bc_alloc.sib_idx].period_rf,
+                   cc_cfg->cfg.sibs[bc_alloc.sib_idx].period_rf,
                    bc->dci.tb[0].mcs_idx);
     } else {
       // Paging
@@ -710,7 +708,7 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
     rar->dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_range_t prb_range = prb_range_t(rar_alloc.alloc_data.rbg_range, cell_cfg->P);
+    prb_range_t prb_range = prb_range_t(rar_alloc.alloc_data.rbg_range, cc_cfg->P);
     int         tbs       = generate_format1a(prb_range.prb_start,
                                 prb_range.length(),
                                 rar_alloc.alloc_data.req_bytes,
@@ -762,7 +760,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
 
     // Generate DCI Format1/2/2A
     sched_ue*           user        = data_alloc.user_ptr;
-    uint32_t            cell_index  = user->get_cell_index(enb_cc_idx).second;
+    uint32_t            cell_index  = user->get_cell_index(cc_cfg->enb_cc_idx).second;
     dl_harq_proc*       h           = user->get_dl_harq(data_alloc.pid, cell_index);
     uint32_t            data_before = user->get_pending_dl_new_data();
     srslte_dci_format_t dci_format  = user->get_dci_format();
@@ -818,7 +816,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     sched_interface::ul_sched_data_t* pusch = &ul_sched_result.pusch[ul_sched_result.nof_dci_elems];
 
     sched_ue* user       = ul_alloc.user_ptr;
-    uint32_t  cell_index = user->get_cell_index(enb_cc_idx).second;
+    uint32_t  cell_index = user->get_cell_index(cc_cfg->enb_cc_idx).second;
 
     srslte_dci_location_t cce_range = {0, 0};
     if (ul_alloc.needs_pdcch()) {
@@ -903,7 +901,7 @@ void sf_sched::generate_dcis()
 
 uint32_t sf_sched::get_nof_ctrl_symbols() const
 {
-  return tti_alloc.get_cfi() + ((cell_cfg->cfg->cell.nof_prb <= 10) ? 1 : 0);
+  return tti_alloc.get_cfi() + ((cc_cfg->cfg.cell.nof_prb <= 10) ? 1 : 0);
 }
 
 int sf_sched::generate_format1a(uint32_t         rb_start,
@@ -945,7 +943,7 @@ int sf_sched::generate_format1a(uint32_t         rb_start,
 
   dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
   dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
-  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(l_crb, rb_start, cell_cfg->cfg->cell.nof_prb);
+  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(l_crb, rb_start, cc_cfg->cfg.cell.nof_prb);
   dci->pid              = 0;
   dci->tb[0].mcs_idx    = mcs;
   dci->tb[0].rv         = rv;

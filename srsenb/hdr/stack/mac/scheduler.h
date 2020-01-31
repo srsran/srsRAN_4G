@@ -51,28 +51,34 @@ inline bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
 } // namespace sched_utils
 
 //! structs to bundle together all the sched arguments, and share them with all the sched sub-components
-struct sched_cell_params_t {
-  sched_interface::cell_cfg_t* cfg      = nullptr;
-  uint32_t                     P        = 0;
-  uint32_t                     nof_rbgs = 0;
+class sched_cell_params_t
+{
+  struct regs_deleter {
+    void operator()(srslte_regs_t* p)
+    {
+      if (p != nullptr) {
+        srslte_regs_free(p);
+      }
+    }
+  };
 
+public:
+  bool set_cfg(uint32_t                             enb_cc_idx_,
+               const sched_interface::cell_cfg_t&   cfg_,
+               const sched_interface::sched_args_t& sched_args);
   // convenience getters
   uint32_t prb_to_rbg(uint32_t nof_prbs) const { return (nof_prbs + (P - 1)) / P; }
-  uint32_t nof_prb() const { return cfg->cell.nof_prb; }
-};
-class sched_params_t
-{
-public:
-  srslte::log*                                             log_h = nullptr;
-  std::vector<sched_cell_params_t>                         cell_cfg;
-  sched_interface::sched_args_t                            sched_cfg        = {};
-  srslte_regs_t*                                           regs             = nullptr;
-  std::array<sched_ue::sched_dci_cce_t, 3>                 common_locations = {};
-  std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3> rar_locations    = {};
-  std::array<uint32_t, 3>                                  nof_cce_table    = {}; ///< map cfix -> nof cces in PDCCH
+  uint32_t nof_prb() const { return cfg.cell.nof_prb; }
 
-  sched_params_t();
-  bool set_cfg(srslte::log* log_, std::vector<sched_interface::cell_cfg_t>* cfg_, srslte_regs_t* regs_);
+  uint32_t                                       enb_cc_idx = 0;
+  sched_interface::cell_cfg_t                    cfg        = {};
+  const sched_interface::sched_args_t*           sched_cfg  = nullptr;
+  std::unique_ptr<srslte_regs_t, regs_deleter>   regs;
+  std::array<sched_dci_cce_t, 3>                 common_locations = {};
+  std::array<std::array<sched_dci_cce_t, 10>, 3> rar_locations    = {};
+  std::array<uint32_t, 3>                        nof_cce_table    = {}; ///< map cfix -> nof cces in PDCCH
+  uint32_t                                       P                = 0;
+  uint32_t                                       nof_rbgs         = 0;
 };
 
 /* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
@@ -95,7 +101,7 @@ public:
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_params(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)        = 0;
+    virtual void set_params(const sched_cell_params_t& cell_params_)                          = 0;
     virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched) = 0;
   };
 
@@ -103,7 +109,7 @@ public:
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_params(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)        = 0;
+    virtual void set_params(const sched_cell_params_t& cell_params_)                          = 0;
     virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched) = 0;
   };
 
@@ -116,12 +122,12 @@ public:
   sched();
   ~sched();
 
-  void init(rrc_interface_mac* rrc, srslte::log* log);
+  void init(rrc_interface_mac* rrc);
   int  cell_cfg(const std::vector<cell_cfg_t>& cell_cfg) override;
   void set_sched_cfg(sched_args_t* sched_cfg);
   int  reset() final;
 
-  int  ue_cfg(uint16_t rnti, ue_cfg_t* ue_cfg) final;
+  int  ue_cfg(uint16_t rnti, uint32_t enb_cc_idx, ue_cfg_t* ue_cfg) final;
   int  ue_rem(uint16_t rnti) final;
   bool ue_exists(uint16_t rnti) final;
   void ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd);
@@ -166,26 +172,22 @@ public:
     const static int rv_idx[4] = {0, 2, 3, 1};
     return rv_idx[retx_idx % 4];
   }
-  static void     generate_cce_location(srslte_regs_t*             regs,
-                                        sched_ue::sched_dci_cce_t* location,
-                                        uint32_t                   cfi,
-                                        uint32_t                   sf_idx = 0,
-                                        uint16_t                   rnti   = 0);
+  static void     generate_cce_location(srslte_regs_t*   regs,
+                                        sched_dci_cce_t* location,
+                                        uint32_t         cfi,
+                                        uint32_t         sf_idx = 0,
+                                        uint16_t         rnti   = 0);
   static uint32_t aggr_level(uint32_t aggr_idx) { return 1u << aggr_idx; }
 
   class carrier_sched;
 
 protected:
-  srslte::log*       log_h;
-  rrc_interface_mac* rrc;
-  sched_params_t     sched_params;
+  srslte::log*                     log_h     = nullptr;
+  rrc_interface_mac*               rrc       = nullptr;
+  sched_args_t                     sched_cfg = {};
+  std::vector<sched_cell_params_t> sched_cell_params;
 
   pthread_rwlock_t rwlock;
-
-  std::vector<cell_cfg_t> cfg;
-
-  // This is for computing DCI locations
-  srslte_regs_t regs;
 
   // Helper methods
   template <typename Func>
@@ -196,10 +198,10 @@ protected:
   // independent schedulers for each carrier
   std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;
 
-  std::array<uint32_t, 10> pdsch_re;
-  uint32_t                 current_tti;
+  std::array<uint32_t, 10> pdsch_re    = {};
+  uint32_t                 current_tti = 0;
 
-  bool configured;
+  bool configured = false;
 };
 
 } // namespace srsenb

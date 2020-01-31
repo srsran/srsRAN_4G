@@ -24,10 +24,12 @@
 
 #include "srsenb/hdr/stack/mac/scheduler.h"
 #include "srsenb/hdr/stack/mac/scheduler_carrier.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/pdu.h"
 #include "srslte/srslte.h"
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
+#define Console(fmt, ...) srslte::logmap::get("MAC ")->console(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) srslte::logmap::get("MAC ")->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
@@ -52,80 +54,70 @@ uint32_t max_tti(uint32_t tti1, uint32_t tti2)
  *                 Sched Params
  *******************************************************/
 
-sched_params_t::sched_params_t()
+bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_idx_,
+                                  const sched_interface::cell_cfg_t&   cfg_,
+                                  const sched_interface::sched_args_t& sched_args)
 {
-  sched_cfg.pdsch_max_mcs    = 28;
-  sched_cfg.pdsch_mcs        = -1;
-  sched_cfg.pusch_max_mcs    = 28;
-  sched_cfg.pusch_mcs        = -1;
-  sched_cfg.nof_ctrl_symbols = 3;
-  sched_cfg.max_aggr_level   = 3;
-}
+  enb_cc_idx = enb_cc_idx_;
+  cfg        = cfg_;
+  sched_cfg  = &sched_args;
 
-bool sched_params_t::set_cfg(srslte::log* log_, std::vector<sched_interface::cell_cfg_t>* cfg_, srslte_regs_t* regs_)
-{
-  log_h = log_;
-  regs  = regs_;
+  // Basic cell config checks
+  if (cfg.si_window_ms == 0) {
+    Error("SCHED: Invalid si-window length 0 ms\n");
+    return false;
+  }
 
-  // copy cell cfgs
-  cell_cfg.resize(cfg_->size());
-  for (uint32_t i = 0; i < cfg_->size(); ++i) {
-    sched_cell_params_t& item = cell_cfg[i];
-    item.cfg                  = &(*cfg_)[i];
+  // PRACH has to fit within the PUSCH space
+  bool invalid_prach = cfg.cell.nof_prb == 6 and (cfg.prach_freq_offset + 6 > cfg.cell.nof_prb);
+  invalid_prach |= cfg.cell.nof_prb > 6 and ((cfg.prach_freq_offset + 6) > (cfg.cell.nof_prb - cfg.nrb_pucch) or
+                                             (int) cfg.prach_freq_offset < cfg.nrb_pucch);
+  if (invalid_prach) {
+    Error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
+    Console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
+    return false;
+  }
 
-    // Basic cell config checks
-    if (item.cfg->si_window_ms == 0) {
-      Error("SCHED: Invalid si-window length 0 ms\n");
-      return false;
-    }
+  // Set derived sched parameters
 
-    item.P        = srslte_ra_type0_P(item.cfg->cell.nof_prb);
-    item.nof_rbgs = srslte::ceil_div(item.cfg->cell.nof_prb, item.P);
-
-    // PRACH has to fit within the PUSCH space
-    bool invalid_prach = item.cfg->cell.nof_prb == 6 and (item.cfg->prach_freq_offset + 6 > item.cfg->cell.nof_prb);
-    invalid_prach |= item.cfg->cell.nof_prb > 6 and
-                     ((item.cfg->prach_freq_offset + 6) > (item.cfg->cell.nof_prb - item.cfg->nrb_pucch) or
-                      (int) item.cfg->prach_freq_offset < item.cfg->nrb_pucch);
-    if (invalid_prach) {
-      log_h->error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
-                   item.cfg->prach_freq_offset);
-      log_h->console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
-                     item.cfg->prach_freq_offset);
-      return false;
-    }
+  // init regs
+  regs.reset(new srslte_regs_t{});
+  if (srslte_regs_init(regs.get(), cfg.cell) != LIBLTE_SUCCESS) {
+    Error("Getting DCI locations\n");
+    return false;
   }
 
   // Compute Common locations for DCI for each CFI
   for (uint32_t cfi = 0; cfi < 3; cfi++) {
-    sched::generate_cce_location(regs, &common_locations[cfi], cfi + 1);
+    sched::generate_cce_location(regs.get(), &common_locations[cfi], cfi + 1);
+  }
+  if (common_locations[sched_cfg->nof_ctrl_symbols - 1].nof_loc[2] == 0) {
+    Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
+          sched_cfg->nof_ctrl_symbols);
+    Console("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
+            sched_cfg->nof_ctrl_symbols);
+    return false;
   }
 
   // Compute UE locations for RA-RNTI
   for (uint32_t cfi = 0; cfi < 3; cfi++) {
     for (uint32_t sf_idx = 0; sf_idx < 10; sf_idx++) {
-      sched::generate_cce_location(regs, &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
+      sched::generate_cce_location(regs.get(), &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
     }
   }
 
   // precompute nof cces in PDCCH for each CFI
   for (uint32_t cfix = 0; cfix < nof_cce_table.size(); ++cfix) {
-    int ret = srslte_regs_pdcch_ncce(regs, cfix + 1);
+    int ret = srslte_regs_pdcch_ncce(regs.get(), cfix + 1);
     if (ret < 0) {
-      log_h->error("SCHED: Failed to calculate the number of CCEs in the PDCCH\n");
+      Error("SCHED: Failed to calculate the number of CCEs in the PDCCH\n");
       return false;
     }
     nof_cce_table[cfix] = (uint32_t)ret;
   }
 
-  if (common_locations[sched_cfg.nof_ctrl_symbols - 1].nof_loc[2] == 0) {
-    log_h->error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
-                 sched_cfg.nof_ctrl_symbols);
-    log_h->console(
-        "SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
-        sched_cfg.nof_ctrl_symbols);
-    return false;
-  }
+  P        = srslte_ra_type0_P(cfg.cell.nof_prb);
+  nof_rbgs = srslte::ceil_div(cfg.cell.nof_prb, P);
 
   return true;
 }
@@ -137,28 +129,17 @@ bool sched_params_t::set_cfg(srslte::log* log_, std::vector<sched_interface::cel
  *******************************************************/
 sched::sched()
 {
-  current_tti = 0;
-  log_h       = nullptr;
-  rrc         = nullptr;
-
-  bzero(&cfg, sizeof(cfg));
-  bzero(&regs, sizeof(regs));
-  bzero(&pdsch_re, sizeof(pdsch_re));
-
   pthread_rwlock_init(&rwlock, nullptr);
-
-  reset();
 }
 
 sched::~sched()
 {
-  srslte_regs_free(&regs);
   pthread_rwlock_destroy(&rwlock);
 }
 
-void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
+void sched::init(rrc_interface_mac* rrc_)
 {
-  log_h = log;
+  log_h = srslte::logmap::get("MAC ");
   rrc   = rrc_;
 
   // Initialize first carrier scheduler
@@ -182,36 +163,32 @@ int sched::reset()
 void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
 {
   if (sched_cfg_ != nullptr) {
-    sched_params.sched_cfg = *sched_cfg_;
+    sched_cfg = *sched_cfg_;
   }
 }
 
 int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
 {
-  cfg = cell_cfg;
-
-  // Get DCI locations
-  if (srslte_regs_init(&regs, cfg[0].cell) != LIBLTE_SUCCESS) {
-    Error("Getting DCI locations\n");
-    return SRSLTE_ERROR;
-  }
-
-  // Setup common sched_params
-  if (not sched_params.set_cfg(log_h, &cfg, &regs)) {
-    return -1;
+  // Setup derived config params
+  sched_cell_params.resize(cell_cfg.size());
+  for (uint32_t cc_idx = 0; cc_idx < cell_cfg.size(); ++cc_idx) {
+    if (not sched_cell_params[cc_idx].set_cfg(cc_idx, cell_cfg[cc_idx], sched_cfg)) {
+      return SRSLTE_ERROR;
+    }
   }
 
   // Create remaining cells, if not created yet
   uint32_t prev_size = carrier_schedulers.size();
-  carrier_schedulers.resize(sched_params.cell_cfg.size());
-  for (uint32_t i = prev_size; i < sched_params.cell_cfg.size(); ++i) {
+  carrier_schedulers.resize(sched_cell_params.size());
+  for (uint32_t i = prev_size; i < sched_cell_params.size(); ++i) {
     carrier_schedulers[i].reset(new carrier_sched{rrc, &ue_db, i});
   }
 
-  // Setup the ra/bc/tti_scheduler for each TTI
-  for (std::unique_ptr<carrier_sched>& c : carrier_schedulers) {
-    c->carrier_cfg(sched_params);
+  // setup all carriers cfg params
+  for (uint32_t i = 0; i < sched_cell_params.size(); ++i) {
+    carrier_schedulers[i]->carrier_cfg(sched_cell_params[i]);
   }
+
   configured = true;
 
   return 0;
@@ -223,11 +200,11 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
  *
  *******************************************************/
 
-int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* ue_cfg)
+int sched::ue_cfg(uint16_t rnti, uint32_t enb_cc_idx, sched_interface::ue_cfg_t* ue_cfg)
 {
   // Add or config user
   pthread_rwlock_wrlock(&rwlock);
-  ue_db[rnti].set_cfg(rnti, sched_params, ue_cfg);
+  ue_db[rnti].set_cfg(rnti, sched_cell_params, ue_cfg, enb_cc_idx);
   pthread_rwlock_unlock(&rwlock);
 
   return 0;
@@ -442,13 +419,13 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
  *
  *******************************************************/
 
-void sched::generate_cce_location(srslte_regs_t*             regs_,
-                                  sched_ue::sched_dci_cce_t* location,
-                                  uint32_t                   cfi,
-                                  uint32_t                   sf_idx,
-                                  uint16_t                   rnti)
+void sched::generate_cce_location(srslte_regs_t*   regs_,
+                                  sched_dci_cce_t* location,
+                                  uint32_t         cfi,
+                                  uint32_t         sf_idx,
+                                  uint16_t         rnti)
 {
-  bzero(location, sizeof(sched_ue::sched_dci_cce_t));
+  *location = {};
 
   srslte_dci_location_t loc[64];
   uint32_t              nloc = 0;

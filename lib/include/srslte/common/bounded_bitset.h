@@ -22,11 +22,10 @@
 #ifndef SRSLTE_DYN_BITSET_H
 #define SRSLTE_DYN_BITSET_H
 
+#include "srslte/common/logmap.h"
 #include <cstdint>
 #include <inttypes.h>
 #include <string>
-
-#define CEILFRAC(x, y) (((x) > 0) ? ((((x)-1) / (y)) + 1) : 0)
 
 namespace srslte {
 
@@ -53,7 +52,7 @@ public:
   void resize(size_t new_size) noexcept
   {
     if (new_size > max_size()) {
-      printf("ERROR: bitset resize out of bounds: %zd>=%zd\n", max_size(), new_size);
+      srslte::logmap::get("COMM")->error("ERROR: bitset resize out of bounds: %zd>=%zd\n", max_size(), new_size);
       return;
     } else if (new_size == cur_size) {
       return;
@@ -68,7 +67,7 @@ public:
   void set(size_t pos) noexcept
   {
     if (pos >= size()) {
-      printf("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
+      srslte::logmap::get("COMM")->error("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
       return;
     }
     set_(pos);
