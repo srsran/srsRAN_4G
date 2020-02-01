@@ -298,7 +298,22 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     printf("\n");
   }
 
-  SoapySDRDevice* sdr = SoapySDRDevice_make(&(soapy_args[0]));
+  // Select Soapy device by id
+  const char dev_arg[]   = "soapy=";
+  char       dev_str[64] = {0};
+  char*      dev_ptr     = strstr(args, dev_arg);
+  int        dev_id      = -1;
+  if (dev_ptr) {
+    copy_subdev_string(dev_str, dev_ptr + strlen(dev_arg));
+    printf("Selecting Soapy device: %s\n", dev_str);
+    if ((dev_id = atoi(dev_str)) < 0) {
+      ERROR("Failed to set device.\n");
+    }
+    remove_substring(args, dev_arg);
+    remove_substring(args, dev_str);
+  }
+
+  SoapySDRDevice* sdr = SoapySDRDevice_make(&(soapy_args[dev_id]));
   if (sdr == NULL) {
     printf("Failed to create Soapy object\n");
     return SRSLTE_ERROR;
