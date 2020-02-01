@@ -309,6 +309,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     dev_id = strtol(dev_str, NULL, 0);
     if (dev_id < 0 || dev_id > 10) {
       ERROR("Failed to set device. Using 0 as default.\n");
+      dev_id = 0;
     }
     remove_substring(args, dev_arg);
     remove_substring(args, dev_str);
