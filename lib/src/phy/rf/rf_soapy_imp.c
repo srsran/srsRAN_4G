@@ -300,14 +300,15 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
 
   // Select Soapy device by id
   const char dev_arg[]   = "soapy=";
-  char       dev_str[64] = {0};
   char*      dev_ptr     = strstr(args, dev_arg);
-  int        dev_id      = -1;
+  int        dev_id      = 0;
   if (dev_ptr) {
-    copy_subdev_string(dev_str, dev_ptr + strlen(dev_arg));
+    char       dev_str[64] = {0};
+    copy_subdev_string(dev_str, dev_ptr + strnlen(dev_arg, 64));
     printf("Selecting Soapy device: %s\n", dev_str);
-    if ((dev_id = atoi(dev_str)) < 0) {
-      ERROR("Failed to set device.\n");
+    dev_id = strtol(dev_str, NULL, 0);
+    if (dev_id < 0 || dev_id > 10) {
+      ERROR("Failed to set device. Using 0 as default.\n");
     }
     remove_substring(args, dev_arg);
     remove_substring(args, dev_str);
