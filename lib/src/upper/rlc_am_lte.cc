@@ -277,11 +277,12 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
   uint32_t n_bytes = 0;
   uint32_t n_sdus  = 0;
 
-  log->debug("%s Buffer state - do_status=%d, status_prohibit=%d, timer=%s\n",
+  log->debug("%s Buffer state - do_status=%s, status_prohibit_running=%s (%d/%d)\n",
              RB_NAME,
-             do_status(),
-             status_prohibit_timer.is_running(),
-             status_prohibit_timer.is_valid() ? "yes" : "no");
+             do_status() ? "yes" : "no",
+             status_prohibit_timer.is_running() ? "yes" : "no",
+             status_prohibit_timer.value(),
+             status_prohibit_timer.duration());
 
   // Bytes needed for status report
   if (do_status() && not status_prohibit_timer.is_running()) {
@@ -468,6 +469,14 @@ void rlc_am_lte::rlc_am_lte_tx::reset_metrics()
  * Helper functions
  ***************************************************************************/
 
+/**
+ * Called when building a RLC PDU for checking whether the poll bit needs
+ * to be set.
+ *
+ * Note that this is called from a PHY worker thread.
+ *
+ * @return True if a status PDU needs to be requested, false otherwise.
+ */
 bool rlc_am_lte::rlc_am_lte_tx::poll_required()
 {
   if (cfg.poll_pdu > 0 && pdu_without_poll > static_cast<uint32_t>(cfg.poll_pdu)) {
@@ -478,12 +487,9 @@ bool rlc_am_lte::rlc_am_lte_tx::poll_required()
     return true;
   }
 
-  if (poll_retx_timer.is_valid()) {
-    if (poll_retx_timer.is_expired()) {
-      // re-arm timer (will be stopped when status PDU is received)
-      poll_retx_timer.run();
-      return true;
-    }
+  if (poll_retx_timer.is_valid() && poll_retx_timer.is_expired()) {
+    // re-arming of timer is handled by caller
+    return true;
   }
 
   if (tx_window.size() >= RLC_AM_WINDOW_SIZE) {
@@ -578,6 +584,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
     pdu_without_poll  = 0;
     byte_without_poll = 0;
     if (poll_retx_timer.is_valid()) {
+      // re-arm timer (will be stopped when status PDU is received)
       poll_retx_timer.run();
     }
   }
@@ -1181,6 +1188,12 @@ void rlc_am_lte::rlc_am_lte_rx::stop()
   pthread_mutex_unlock(&mutex);
 }
 
+/** Called from stack thread when MAC has received a new RLC PDU
+ *
+ * @param payload Pointer to payload
+ * @param nof_bytes Payload length
+ * @param header Reference to PDU header (unpacked by caller)
+ */
 void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header)
 {
   std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator it;
@@ -1579,11 +1592,15 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
   }
 }
 
+/**
+ * Function called from stack thread when timer has expired
+ *
+ * @param timeout_id
+ */
 void rlc_am_lte::rlc_am_lte_rx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
   if (reordering_timer.is_valid() and reordering_timer.id() == timeout_id) {
-    //    reordering_timer.run(); // TODO: It was reset() before
     log->debug("%s reordering timeout expiry - updating vr_ms (was %d)\n", RB_NAME, vr_ms);
 
     // 36.322 v10 Section 5.1.3.2.4
