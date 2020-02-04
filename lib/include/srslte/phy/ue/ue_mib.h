@@ -50,7 +50,6 @@
 #include "srslte/phy/phch/pbch.h"
 #include "srslte/phy/dft/ofdm.h"
 
-
 #define SRSLTE_UE_MIB_NOF_PRB              6
 
 #define SRSLTE_UE_MIB_FOUND                1

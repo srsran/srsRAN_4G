@@ -124,6 +124,7 @@ private:
     ~sfn_sync();
     void     init(srslte_ue_sync_t* ue_sync,
                   cf_t*             buffer[SRSLTE_MAX_PORTS],
+                  uint32_t          buffer_max_samples_,
                   srslte::log*      log_h,
                   uint32_t          nof_subframes = SFN_SYNC_NOF_SUBFRAMES);
     void     reset();
@@ -146,6 +147,7 @@ private:
     srslte::log*      log_h                    = nullptr;
     srslte_ue_sync_t* ue_sync                  = nullptr;
     cf_t*             buffer[SRSLTE_MAX_PORTS] = {};
+    uint32_t          buffer_max_samples       = 0;
     srslte_ue_mib_t   ue_mib                   = {};
   };
 

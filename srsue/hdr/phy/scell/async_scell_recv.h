@@ -32,6 +32,8 @@
 namespace srsue {
 namespace scell {
 
+#define SF_BUFFER_MAX_SAMPLES (5 * SRSLTE_SF_LEN_MAX)
+
 class async_scell_recv : private thread
 {
 public:
@@ -84,7 +86,7 @@ private:
     {
       for (uint32_t i = 0; i < nof_ports; i++) {
         // It needs to support cell search
-        buffer[i] = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_MAX * 5);
+        buffer[i] = srslte_vec_cf_malloc(SF_BUFFER_MAX_SAMPLES);
         if (!buffer[i]) {
           fprintf(stderr, "Error allocating buffer\n");
         }

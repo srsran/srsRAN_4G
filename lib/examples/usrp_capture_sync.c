@@ -132,8 +132,9 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
+  uint32_t max_num_samples = 3 * SRSLTE_SF_LEN_MAX;
   for (int i = 0; i < nof_rx_antennas; i++) {
-    buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
+    buffer[i] = srslte_vec_cf_malloc(max_num_samples);
   }
 
   sigset_t sigset;
@@ -176,7 +177,7 @@ int main(int argc, char** argv)
   bool     start_capture  = false;
   bool     stop_capture   = false;
   while ((subframe_count < nof_subframes || nof_subframes == -1) && !stop_capture) {
-    n = srslte_ue_sync_zerocopy(&ue_sync, buffer);
+    n = srslte_ue_sync_zerocopy(&ue_sync, buffer, max_num_samples);
     if (n < 0) {
       ERROR("Error receiving samples\n");
       exit(-1);

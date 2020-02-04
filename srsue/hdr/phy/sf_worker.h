@@ -52,11 +52,12 @@ public:
   bool set_cell(uint32_t cc_idx, srslte_cell_t cell);
 
   /* Functions used by main PHY thread */
-  cf_t* get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
-  void  set_tti(uint32_t tti);
-  void  set_tx_time(uint32_t radio_idx, srslte_timestamp_t tx_time, int next_offset);
-  void  set_prach(cf_t* prach_ptr, float prach_power);
-  void  set_cfo(const uint32_t& cc_idx, float cfo);
+  cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
+  uint32_t get_buffer_len();
+  void     set_tti(uint32_t tti);
+  void     set_tx_time(uint32_t radio_idx, srslte_timestamp_t tx_time, int next_offset);
+  void     set_prach(cf_t* prach_ptr, float prach_power);
+  void     set_cfo(const uint32_t& cc_idx, float cfo);
 
   void set_tdd_config(srslte_tdd_config_t config);
   void set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg);
@@ -90,11 +91,11 @@ private:
   std::vector<cc_worker*> cc_workers;
 
   phy_common* phy = nullptr;
-  ;
+
   srslte::log* log_h = nullptr;
-  ;
+
   srslte::log* log_phy_lib_h = nullptr;
-  ;
+
   chest_feedback_itf* chest_loop = nullptr;
 
   std::mutex mutex;

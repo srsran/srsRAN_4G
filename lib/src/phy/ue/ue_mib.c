@@ -31,6 +31,8 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
+#define MIB_BUFFER_MAX_SAMPLES (3 * SRSLTE_SF_LEN_PRB(SRSLTE_UE_MIB_NOF_PRB))
+
 int srslte_ue_mib_init(srslte_ue_mib_t* q, cf_t* in_buffer[SRSLTE_MAX_PORTS], uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -172,7 +174,7 @@ int srslte_ue_mib_sync_init_multi(srslte_ue_mib_sync_t* q,
                                   void*    stream_handler)
 {
   for (int i = 0; i < nof_rx_antennas; i++) {
-    q->sf_buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(SRSLTE_UE_MIB_NOF_PRB));
+    q->sf_buffer[i] = srslte_vec_cf_malloc(MIB_BUFFER_MAX_SAMPLES);
   }
   q->nof_rx_antennas = nof_rx_antennas;
 
@@ -243,7 +245,7 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t* q,
     ret = SRSLTE_SUCCESS;
     do {
       mib_ret = SRSLTE_UE_MIB_NOTFOUND;
-      ret     = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer);
+      ret     = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer, MIB_BUFFER_MAX_SAMPLES);
       if (ret < 0) {
         ERROR("Error calling srslte_ue_sync_work()\n");
         return -1;

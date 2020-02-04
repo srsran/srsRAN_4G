@@ -205,13 +205,12 @@ SRSLTE_API int srslte_ue_sync_start_agc(srslte_ue_sync_t* q,
                                         float max_gain,
                                         float init_gain_value);
 
-SRSLTE_API uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t *q); 
+SRSLTE_API uint32_t srslte_ue_sync_sf_len(srslte_ue_sync_t* q);
 
-SRSLTE_API void srslte_ue_sync_set_agc_period(srslte_ue_sync_t *q, 
-                                              uint32_t period); 
+SRSLTE_API void srslte_ue_sync_set_agc_period(srslte_ue_sync_t* q, uint32_t period);
 
-/* CAUTION: input_buffer MUST have space for 2 subframes */
-SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS]);
+SRSLTE_API int
+srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS], const uint32_t max_num_samples);
 
 SRSLTE_API void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t* q, float tol);
 

@@ -31,6 +31,8 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
+#define CELL_SEARCH_BUFFER_MAX_SAMPLES (3 * SRSLTE_SF_LEN_MAX)
+
 int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t* q,
                               uint32_t                max_frames,
                               int(recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*),
@@ -61,7 +63,7 @@ int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t* q,
     for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
       q->sf_buffer[p] = NULL;
     }
-    q->sf_buffer[0]    = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
+    q->sf_buffer[0]    = srslte_vec_cf_malloc(CELL_SEARCH_BUFFER_MAX_SAMPLES);
     q->nof_rx_antennas = 1;
 
     q->candidates = calloc(sizeof(srslte_ue_cellsearch_result_t), max_frames);
@@ -121,8 +123,7 @@ int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t* q,
     }
 
     for (int i = 0; i < nof_rx_antennas; i++) {
-      q->sf_buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
-      bzero(q->sf_buffer[i], 3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
+      q->sf_buffer[i] = srslte_vec_cf_malloc(CELL_SEARCH_BUFFER_MAX_SAMPLES);
     }
     q->nof_rx_antennas = nof_rx_antennas;
 
@@ -305,7 +306,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t*        q,
     srslte_ue_sync_set_nof_find_frames(&q->ue_sync, q->max_frames);
 
     do {
-      ret = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer);
+      ret = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer, CELL_SEARCH_BUFFER_MAX_SAMPLES);
       if (ret < 0) {
         ERROR("Error calling srslte_ue_sync_work()\n");
         return -1;

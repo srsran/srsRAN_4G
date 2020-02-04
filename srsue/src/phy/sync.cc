@@ -75,7 +75,7 @@ void sync::init(srslte::radio_interface_phy* _radio,
   uint32_t nof_rf_channels = worker_com->args->nof_rf_channels * worker_com->args->nof_rx_ant;
   for (uint32_t r = 0; r < worker_com->args->nof_radios; r++) {
     for (uint32_t p = 0; p < nof_rf_channels; p++) {
-      sf_buffer[r][p] = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * 3 * SRSLTE_SF_LEN_PRB(100));
+      sf_buffer[r][p] = srslte_vec_cf_malloc(SF_BUFFER_MAX_SAMPLES);
     }
   }
 
@@ -95,7 +95,7 @@ void sync::init(srslte::radio_interface_phy* _radio,
   search_p.init(sf_buffer[0], log_h, nof_rf_channels, this);
 
   // Initialize SFN synchronizer, it uses only pcell buffer
-  sfn_p.init(&ue_sync, sf_buffer[0], log_h);
+  sfn_p.init(&ue_sync, sf_buffer[0], SF_BUFFER_MAX_SAMPLES, log_h);
 
   // Start intra-frequency measurement
   for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
@@ -447,7 +447,7 @@ void sync::run_thread()
           }
 
           // Primary Cell (PCell) Synchronization
-          switch (srslte_ue_sync_zerocopy(&ue_sync, buffer[0])) {
+          switch (srslte_ue_sync_zerocopy(&ue_sync, buffer[0], worker->get_buffer_len())) {
             case 1:
 
               // Check tti is synched with ue_sync
@@ -1148,6 +1148,7 @@ sync::sfn_sync::~sfn_sync()
 
 void sync::sfn_sync::init(srslte_ue_sync_t* ue_sync_,
                           cf_t*             buffer_[SRSLTE_MAX_PORTS],
+                          uint32_t          buffer_max_samples_,
                           srslte::log*      log_h_,
                           uint32_t          nof_subframes)
 {
@@ -1158,6 +1159,7 @@ void sync::sfn_sync::init(srslte_ue_sync_t* ue_sync_,
   for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
     buffer[p] = buffer_[p];
   }
+  buffer_max_samples = buffer_max_samples_;
 
   if (srslte_ue_mib_init(&ue_mib, buffer, SRSLTE_MAX_PRB)) {
     Error("SYNC:  Initiating UE MIB decoder\n");
@@ -1185,8 +1187,7 @@ sync::sfn_sync::ret_code sync::sfn_sync::run_subframe(srslte_cell_t*            
                                                       std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
                                                       bool                                         sfidx_only)
 {
-
-  int ret = srslte_ue_sync_zerocopy(ue_sync, buffer);
+  int ret = srslte_ue_sync_zerocopy(ue_sync, buffer, buffer_max_samples);
   if (ret < 0) {
     Error("SYNC:  Error calling ue_sync_get_buffer.\n");
     return ERROR;

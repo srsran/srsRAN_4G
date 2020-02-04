@@ -564,8 +564,9 @@ int main(int argc, char** argv)
 #endif
   }
 
+  uint32_t max_num_samples = 3 * SRSLTE_SF_LEN_PRB(cell.nof_prb); /// Length in complex samples
   for (int i = 0; i < prog_args.rf_nof_rx_ant; i++) {
-    sf_buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    sf_buffer[i] = srslte_vec_cf_malloc(max_num_samples);
   }
   srslte_ue_mib_t ue_mib;
   if (srslte_ue_mib_init(&ue_mib, sf_buffer, cell.nof_prb)) {
@@ -710,7 +711,7 @@ int main(int argc, char** argv)
     for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
       buffers[p] = sf_buffer[p];
     }
-    ret = srslte_ue_sync_zerocopy(&ue_sync, buffers);
+    ret = srslte_ue_sync_zerocopy(&ue_sync, buffers, max_num_samples);
     if (ret < 0) {
       ERROR("Error calling srslte_ue_sync_work()\n");
     }

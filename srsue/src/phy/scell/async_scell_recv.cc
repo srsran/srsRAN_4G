@@ -100,7 +100,7 @@ void async_scell_recv::init(srslte::radio_interface_phy* _radio_handler, phy_com
   }
 
   for (uint32_t i = 0; i < nof_rf_channels; i++) {
-    sf_buffer[i] = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_MAX * 5);
+    sf_buffer[i] = srslte_vec_cf_malloc(SF_BUFFER_MAX_SAMPLES);
     if (!sf_buffer[i]) {
       fprintf(stderr, "Error allocating buffer\n");
       return;
@@ -456,7 +456,8 @@ void async_scell_recv::run_thread()
     pthread_mutex_lock(&mutex_uesync);
 
     // Get RF base-band
-    int ret = srslte_ue_sync_zerocopy(&ue_sync, (state == DECODE_MIB) ? sf_buffer : buffer->get_buffer_ptr());
+    int ret = srslte_ue_sync_zerocopy(
+        &ue_sync, (state == DECODE_MIB) ? sf_buffer : buffer->get_buffer_ptr(), SF_BUFFER_MAX_SAMPLES);
     if (ret < 0) {
       fprintf(stderr, "Error calling srslte_ue_sync_work()\n");
     }

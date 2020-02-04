@@ -676,32 +676,36 @@ static int track_peak_no(srslte_ue_sync_t* q)
   }
 }
 
-static int receive_samples(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+static int receive_samples(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS], const uint32_t max_num_samples)
 {
-
-  /* A negative time offset means there are samples in our buffer for the next subframe,
-  because we are sampling too fast.
-  */
+  ///< A negative time offset means there are samples in our buffer for the next subframe bc we are sampling too fast
   if (q->next_rf_sample_offset < 0) {
     q->next_rf_sample_offset = -q->next_rf_sample_offset;
   }
 
-  /* Get N subframes from the USRP getting more samples and keeping the previous samples, if any */
-  cf_t* ptr[SRSLTE_MAX_PORTS];
+  ///< Make sure receive buffer is big enough
+  if (q->frame_len - q->next_rf_sample_offset > max_num_samples) {
+    fprintf(stderr, "Receive buffer too small (%d < %d)n", max_num_samples, q->frame_len - q->next_rf_sample_offset);
+    return SRSLTE_ERROR;
+  }
+
+  ///< Get N subframes from the USRP getting more samples and keeping the previous samples, if any
+  cf_t* ptr[SRSLTE_MAX_PORTS] = {NULL};
   for (int i = 0; i < q->nof_rx_antennas; i++) {
     ptr[i] = &input_buffer[i][q->next_rf_sample_offset];
   }
   if (q->recv_callback(q->stream, ptr, q->frame_len - q->next_rf_sample_offset, &q->last_timestamp) < 0) {
     return SRSLTE_ERROR;
   }
-  /* reset time offset */
+
+  ///< reset time offset
   q->next_rf_sample_offset = 0;
 
   return SRSLTE_SUCCESS;
 }
 
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
-int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS], const uint32_t max_num_samples)
 {
   int      ret = SRSLTE_ERROR_INVALID_INPUTS;
   uint32_t track_idx;
@@ -740,7 +744,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
       ret = 1;
     } else {
 
-      if (receive_samples(q, input_buffer)) {
+      if (receive_samples(q, input_buffer, max_num_samples)) {
         ERROR("Error receiving samples\n");
         return SRSLTE_ERROR;
       }
