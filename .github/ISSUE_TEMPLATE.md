@@ -1,5 +1,7 @@
+<!--
 Before filing an issue, search for solutions here:
 - srsLTE users mailing list (http://www.softwareradiosystems.com/mailman/listinfo/srslte-users)
+-->
 
 ## Issue Description ##
 [Describe the issue in detail]
