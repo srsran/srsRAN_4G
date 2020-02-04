@@ -299,9 +299,9 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   }
 
   // Select Soapy device by id
-  const char dev_arg[]   = "id=";
-  char*      dev_ptr     = strstr(args, dev_arg);
-  int        dev_id      = 0;
+  const char dev_arg[] = "id=";
+  char* dev_ptr = strstr(args, dev_arg);
+  int dev_id = 0;
   if (dev_ptr) {
     char dev_str[64] = {0};
     copy_subdev_string(dev_str, dev_ptr + strnlen(dev_arg, 64));
