@@ -352,7 +352,7 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
   return ret;
 }
 
-int mac::set_dl_ant_info(uint16_t rnti, phys_cfg_ded_s::ant_info_c_* dl_ant_info)
+int mac::set_dl_ant_info(uint16_t rnti, const sched_interface::ant_info_ded_t& dl_ant_info)
 {
   int ret = -1;
   pthread_rwlock_rdlock(&rwlock);

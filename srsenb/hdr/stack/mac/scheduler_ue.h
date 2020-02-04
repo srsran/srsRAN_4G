@@ -28,7 +28,6 @@
 #include <vector>
 
 #include "scheduler_harq.h"
-#include "srslte/asn1/rrc_asn1.h"
 #include <mutex>
 
 namespace srsenb {
@@ -105,7 +104,7 @@ public:
   void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
   void init(uint16_t rnti, const std::vector<sched_cell_params_t>& cell_list_params_);
-  void set_cfg(sched_interface::ue_cfg_t* cfg);
+  void set_cfg(const sched_interface::ue_cfg_t& cfg);
 
   void set_bearer_cfg(uint32_t lc_id, srsenb::sched_interface::ue_bearer_cfg_t* cfg);
   void rem_bearer(uint32_t lc_id);
@@ -115,7 +114,7 @@ public:
   void ul_phr(int phr);
   void mac_buffer_state(uint32_t ce_code);
   void ul_recv_len(uint32_t lcid, uint32_t len);
-  void set_dl_ant_info(asn1::rrc::phys_cfg_ded_s::ant_info_c_* dedicated);
+  void set_dl_ant_info(const sched_interface::ant_info_ded_t& dedicated);
   void set_ul_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code);
   void set_dl_ri(uint32_t tti, uint32_t cc_idx, uint32_t ri);
   void set_dl_pmi(uint32_t tti, uint32_t cc_idx, uint32_t ri);
@@ -276,8 +275,8 @@ private:
   int next_tpc_pusch = 0;
   int next_tpc_pucch = 0;
 
-  bool                                   phy_config_dedicated_enabled = false;
-  asn1::rrc::phys_cfg_ded_s::ant_info_c_ dl_ant_info;
+  bool                            phy_config_dedicated_enabled = false;
+  sched_interface::ant_info_ded_t dl_ant_info;
 
   std::vector<sched_ue_carrier> carriers;             ///< map of UE CellIndex to carrier configuration
   std::map<uint32_t, uint32_t>  enb_ue_cellindex_map; ///< map cc idx eNB -> UE

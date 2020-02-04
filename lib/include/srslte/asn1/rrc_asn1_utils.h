@@ -24,6 +24,7 @@
 
 #include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/rrc_interface_types.h"
+#include "srslte/interfaces/sched_interface.h"
 
 /************************
  * Forward declarations
@@ -36,10 +37,13 @@ struct s_tmsi_s;
 struct rlc_cfg_c;
 struct pdcp_cfg_s;
 struct srb_to_add_mod_s;
+// mac
 struct sched_request_cfg_c;
 struct mac_main_cfg_s;
 struct rach_cfg_common_s;
 struct time_align_timer_opts;
+struct ant_info_ded_s;
+
 struct phys_cfg_ded_s;
 struct prach_cfg_info_s;
 struct pdsch_cfg_common_s;
@@ -97,6 +101,8 @@ void set_mac_cfg_t_sched_request_cfg(mac_cfg_t* cfg, const asn1::rrc::sched_requ
 void set_mac_cfg_t_main_cfg(mac_cfg_t* cfg, const asn1::rrc::mac_main_cfg_s& asn1_type);
 void set_mac_cfg_t_rach_cfg_common(mac_cfg_t* cfg, const asn1::rrc::rach_cfg_common_s& asn1_type);
 void set_mac_cfg_t_time_alignment(mac_cfg_t* cfg, const asn1::rrc::time_align_timer_opts asn1_type);
+
+srsenb::sched_interface::ant_info_ded_t make_ant_info_ded(const asn1::rrc::ant_info_ded_s& asn1_type);
 
 /***************************
  *      PHY Config

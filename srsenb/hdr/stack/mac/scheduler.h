@@ -144,7 +144,7 @@ public:
   int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) final;
   int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code) final;
 
-  int dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dedicated);
+  int dl_ant_info(uint16_t rnti, const sched_interface::ant_info_ded_t& ant_info);
   int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) final;
   int dl_rach_info(uint32_t cc_idx, dl_sched_rar_info_t rar_info) final;
   int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) final;

@@ -1619,7 +1619,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
-  parent->mac->set_dl_ant_info(rnti, &phy_cfg->ant_info);
+  parent->mac->set_dl_ant_info(rnti, srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value()));
   parent->mac->phy_config_enabled(rnti, false);
 
   rr_cfg->drb_to_add_mod_list_present = false;
@@ -1792,7 +1792,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
 
   parent->phy->set_config_dedicated(rnti, phy_cfg);
-  parent->mac->set_dl_ant_info(rnti, &phy_cfg->ant_info);
+  parent->mac->set_dl_ant_info(rnti, srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value()));
   parent->mac->phy_config_enabled(rnti, false);
 
   // Add SRB2 to the message

@@ -317,6 +317,54 @@ void set_mac_cfg_t_time_alignment(mac_cfg_t* cfg, const asn1::rrc::time_align_ti
   cfg->time_alignment_timer = asn1_type.to_number();
 }
 
+srsenb::sched_interface::ant_info_ded_t make_ant_info_ded(const asn1::rrc::ant_info_ded_s& asn1_type)
+{
+  srsenb::sched_interface::ant_info_ded_t ant_ded = {};
+  ant_ded.tx_mode = static_cast<srsenb::sched_interface::ant_info_ded_t::tx_mode_t>(asn1_type.tx_mode.value);
+  ant_ded.cookbook_subset_type = srsenb::sched_interface::ant_info_ded_t::codebook_t::none;
+  if (asn1_type.codebook_subset_restrict_present) {
+    auto& asn1code = asn1_type.codebook_subset_restrict;
+    ant_ded.cookbook_subset_type =
+        static_cast<srsenb::sched_interface::ant_info_ded_t::codebook_t>(asn1code.type().value);
+    switch (asn1code.type().value) {
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n2_tx_ant_tm3:
+        ant_ded.codebook_subset_restrict = asn1code.n2_tx_ant_tm3().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n4_tx_ant_tm3:
+        ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm3().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n2_tx_ant_tm4:
+        ant_ded.codebook_subset_restrict = asn1code.n2_tx_ant_tm4().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n4_tx_ant_tm4:
+        ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm4().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n2_tx_ant_tm5:
+        ant_ded.codebook_subset_restrict = asn1code.n2_tx_ant_tm5().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n4_tx_ant_tm5:
+        ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm5().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n2_tx_ant_tm6:
+        ant_ded.codebook_subset_restrict = asn1code.n2_tx_ant_tm6().to_number();
+        break;
+      case ant_info_ded_s::codebook_subset_restrict_c_::types_opts::n4_tx_ant_tm6:
+        ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm6().to_number();
+        break;
+      default:
+        asn1::rrc::rrc_log_print(LOG_LEVEL_ERROR, "Failed to convert antenna codebook type to number\n");
+    }
+  }
+  ant_ded.ue_tx_ant_sel = srsenb::sched_interface::ant_info_ded_t::ue_tx_ant_sel_t::release;
+  if (asn1_type.ue_tx_ant_sel.type().value == setup_opts::setup) {
+    ant_ded.ue_tx_ant_sel =
+        (asn1_type.ue_tx_ant_sel.setup().value == ant_info_ded_s::ue_tx_ant_sel_c_::setup_opts::closed_loop)
+            ? srsenb::sched_interface::ant_info_ded_t::ue_tx_ant_sel_t::closed_loop
+            : srsenb::sched_interface::ant_info_ded_t::ue_tx_ant_sel_t::open_loop;
+  }
+  return ant_ded;
+}
+
 void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s& asn1_type)
 {
   if (asn1_type.pucch_cfg_ded_present) {

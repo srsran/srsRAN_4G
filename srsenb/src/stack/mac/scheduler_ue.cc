@@ -55,7 +55,6 @@ sched_ue::sched_ue()
 
   bzero(&cell, sizeof(cell));
   bzero(&lch, sizeof(lch));
-  bzero(&dl_ant_info, sizeof(dl_ant_info));
 
   reset();
 }
@@ -70,14 +69,17 @@ void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell
   Info("SCHED: Added user rnti=0x%x\n", rnti);
 }
 
-void sched_ue::set_cfg(sched_interface::ue_cfg_t* cfg_)
+void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
   {
     std::lock_guard<std::mutex> lock(mutex);
+
+    // calculate diffs and update
+
     // store previous supported cc idxs
     std::vector<uint32_t> prev_cc_idxs(std::move(cfg.supported_cc_idxs));
 
-    cfg = *cfg_;
+    cfg = cfg_;
 
     // if no list of supported cc idxs is provided, we keep the previous one
     if (cfg.supported_cc_idxs.empty()) {
@@ -357,10 +359,10 @@ void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi)
   carriers[cc_idx].dl_cqi_tti = tti;
 }
 
-void sched_ue::set_dl_ant_info(asn1::rrc::phys_cfg_ded_s::ant_info_c_* d)
+void sched_ue::set_dl_ant_info(const sched_interface::ant_info_ded_t& ant_info)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  dl_ant_info = *d;
+  dl_ant_info = ant_info;
 }
 
 void sched_ue::set_ul_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code)
@@ -984,25 +986,23 @@ srslte_dci_format_t sched_ue::get_dci_format()
 
   if (phy_config_dedicated_enabled) {
     /* TODO: Assumes UE-Specific Search Space (Not common) */
-    switch (dl_ant_info.explicit_value().tx_mode) {
-      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm1:
-      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm2:
+    switch (dl_ant_info.tx_mode) {
+      case sched_interface::ant_info_ded_t::tx_mode_t::tm1:
+      case sched_interface::ant_info_ded_t::tx_mode_t::tm2:
         ret = SRSLTE_DCI_FORMAT1;
         break;
-      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm3:
+      case sched_interface::ant_info_ded_t::tx_mode_t::tm3:
         ret = SRSLTE_DCI_FORMAT2A;
         break;
-      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm4:
+      case sched_interface::ant_info_ded_t::tx_mode_t::tm4:
         ret = SRSLTE_DCI_FORMAT2;
         break;
-      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm5:
-      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm6:
-      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm7:
-      case asn1::rrc::ant_info_ded_s::tx_mode_e_::tm8_v920:
+      case sched_interface::ant_info_ded_t::tx_mode_t::tm5:
+      case sched_interface::ant_info_ded_t::tx_mode_t::tm6:
+      case sched_interface::ant_info_ded_t::tx_mode_t::tm7:
+      case sched_interface::ant_info_ded_t::tx_mode_t::tm8_v920:
       default:
-        Warning("Incorrect transmission mode (rnti=%04x; tm=%s)\n",
-                rnti,
-                dl_ant_info.explicit_value().tx_mode.to_string().c_str());
+        Warning("Incorrect transmission mode (rnti=%04x; tm=%d)\n", rnti, static_cast<int>(dl_ant_info.tx_mode));
     }
   }
 

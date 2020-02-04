@@ -109,6 +109,23 @@ public:
     enum { IDLE = 0, UL, DL, BOTH } direction;
   } ue_bearer_cfg_t;
 
+  struct ant_info_ded_t {
+    enum class tx_mode_t { tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8_v920, nulltype } tx_mode;
+    enum class codebook_t {
+      n2_tx_ant_tm3,
+      n4_tx_ant_tm3,
+      n2_tx_ant_tm4,
+      n4_tx_ant_tm4,
+      n2_tx_ant_tm5,
+      n4_tx_ant_tm5,
+      n2_tx_ant_tm6,
+      n4_tx_ant_tm6,
+      none
+    } cookbook_subset_type;
+    uint64_t codebook_subset_restrict;
+    enum class ue_tx_ant_sel_t { release, closed_loop, open_loop } ue_tx_ant_sel;
+  };
+
   struct ue_cfg_t {
     /* ue capabilities, etc */
     uint32_t                maxharq_tx;

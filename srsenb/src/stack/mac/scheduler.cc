@@ -204,10 +204,16 @@ int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* ue_cfg)
 {
   // Add or config user
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti) == 0) {
+  auto it = ue_db.find(rnti);
+  if (it == ue_db.end()) {
+    pthread_rwlock_unlock(&rwlock);
+    // create new user
+    pthread_rwlock_wrlock(&rwlock);
     ue_db[rnti].init(rnti, sched_cell_params);
+    it = ue_db.find(rnti);
+    pthread_rwlock_rdlock(&rwlock);
   }
-  ue_db[rnti].set_cfg(ue_cfg);
+  it->second.set_cfg(*ue_cfg);
   pthread_rwlock_unlock(&rwlock);
 
   return 0;
@@ -286,9 +292,9 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
   return ue_db_access(rnti, [ce_code](sched_ue& ue) { ue.mac_buffer_state(ce_code); });
 }
 
-int sched::dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info)
+int sched::dl_ant_info(uint16_t rnti, const sched_interface::ant_info_ded_t& ant_info)
 {
-  return ue_db_access(rnti, [dl_ant_info](sched_ue& ue) { ue.set_dl_ant_info(dl_ant_info); });
+  return ue_db_access(rnti, [ant_info](sched_ue& ue) { ue.set_dl_ant_info(ant_info); });
 }
 
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack)
