@@ -115,7 +115,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("pcap.filename", bpo::value<string>(&args->stack.pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
     ("pcap.nas_enable",   bpo::value<bool>(&args->stack.pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
     ("pcap.nas_filename", bpo::value<string>(&args->stack.pcap.nas_filename)->default_value("ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
-    
+
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 
     ("log.rf_level", bpo::value<string>(&args->rf.log_level)->default_value("error"), "RF log level")
@@ -367,7 +367,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("general.metrics_csv_filename",
        bpo::value<string>(&args->general.metrics_csv_filename)->default_value("/tmp/ue_metrics.csv"),
        "Metrics CSV filename");
-    
+
   // Positional options - config file location
   bpo::options_description position("Positional options");
   position.add_options()
