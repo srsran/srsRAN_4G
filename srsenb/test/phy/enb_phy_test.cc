@@ -72,6 +72,7 @@ private:
   srslte_timestamp_t                ts_tx    = {};
   srslte_timestamp_t                ts_rx    = {};
   double                            rx_srate = 0.0;
+  bool                              running  = true;
 
   CALLBACK(tx);
   CALLBACK(tx_end);
@@ -146,15 +147,22 @@ public:
     }
   }
 
-  void read_tx(std::vector<cf_t*>& buffers, uint32_t nof_samples)
+  void stop() { running = false; }
+
+  int read_tx(std::vector<cf_t*>& buffers, uint32_t nof_samples)
   {
+    int      err    = SRSLTE_SUCCESS;
     uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * nof_samples;
 
     log_h.debug("read_tx %d\n", nof_samples);
 
     for (uint32_t i = 0; i < ringbuffers_tx.size() && i < buffers.size(); i++) {
-      srslte_ringbuffer_read(ringbuffers_tx[i], buffers[i], nbytes);
+      do {
+        err = srslte_ringbuffer_read_timed(ringbuffers_tx[i], buffers[i], nbytes, 1000);
+      } while (err < SRSLTE_SUCCESS && running);
     }
+
+    return err;
   }
 
   void write_rx(std::vector<cf_t*>& buffers, uint32_t nof_samples)
@@ -205,7 +213,9 @@ public:
 
     // Write ring buffer
     for (uint32_t i = 0; i < ringbuffers_rx.size() && err >= SRSLTE_SUCCESS; i++) {
-      err = srslte_ringbuffer_read(ringbuffers_rx[i], buffer[i], nbytes);
+      do {
+        err = srslte_ringbuffer_read_timed(ringbuffers_rx[i], buffer[i], nbytes, 1000);
+      } while (err < SRSLTE_SUCCESS && running);
     }
 
     // Copy new timestamp
@@ -518,7 +528,7 @@ public:
     pdsch_ack.nof_cc                 = (uint32_t)buffers.size();
 
     // Read DL
-    radio->read_tx(buffers, sf_len);
+    TESTASSERT(radio->read_tx(buffers, sf_len) >= SRSLTE_SUCCESS);
 
     // Get grants DL/UL, we do not care about Decoding PDSCH
     for (uint32_t i = 0; i < buffers.size(); i++) {
@@ -652,7 +662,11 @@ public:
     enb_phy.set_config_dedicated(rnti, dedicated);
   }
 
-  ~phy_test_bench() { enb_phy.stop(); }
+  ~phy_test_bench()
+  {
+    radio.stop();
+    enb_phy.stop();
+  }
 
   int run_tti()
   {
@@ -660,6 +674,7 @@ public:
 
     stack.tti_clock();
 
+    TESTASSERT(!stack.get_received_rl_failure());
     TESTASSERT(ue_phy.run_tti() >= SRSLTE_SUCCESS);
 
     return ret;
