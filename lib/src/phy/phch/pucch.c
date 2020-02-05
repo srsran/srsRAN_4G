@@ -1310,10 +1310,10 @@ int srslte_pucch_cs_resources(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg
       // If grant has been scheduled in PCell
       if (uci_cfg->ack[i].grant_cc_idx == 0) {
         for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
-          if (k % 2 == 0) {
+          if (k % 2 == 1) {
             n_pucch_i[k] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch][k / 2];
           } else {
-            n_pucch_i[k] = uci_cfg->ack[i].ncce[0] + cfg->N_pucch_1 + 1;
+            n_pucch_i[k] = uci_cfg->ack[i].ncce[0] + cfg->N_pucch_1 + j;
           }
           k++;
         }
