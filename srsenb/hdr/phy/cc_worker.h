@@ -53,7 +53,7 @@ public:
   int  read_pucch_d(cf_t* pusch_d);
   void start_plot();
 
-  void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated);
+  void set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated);
   void work_ul(const srslte_ul_sf_cfg_t& ul_sf, stack_interface_phy_lte::ul_sched_t& ul_grants);
   void work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
                stack_interface_phy_lte::dl_sched_t& dl_grants,

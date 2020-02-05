@@ -473,11 +473,7 @@ typedef struct {
 
 typedef struct {
   std::string            type = "lte";
-  srslte::phy_log_args_t log  = {
-      .phy_level     = "none",
-      .phy_lib_level = "none",
-      .phy_hex_limit = -1,
-  };
+  srslte::phy_log_args_t log;
 
   std::string           dl_earfcn   = "3400"; // comma-separated list of EARFCNs
   std::vector<uint32_t> earfcn_list = {3400}; // vectorized version of dl_earfcn that gets populated during init

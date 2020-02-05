@@ -45,14 +45,14 @@ struct phy_args_t {
   std::string            type;
   srslte::phy_log_args_t log;
 
-  float       max_prach_offset_us;
-  int         pusch_max_its;
-  bool        pusch_8bit_decoder;
-  float       tx_amplitude;
-  int         nof_phy_threads;
-  std::string equalizer_mode;
-  float       estimator_fil_w;
-  bool        pregenerate_signals;
+  float       max_prach_offset_us = 10;
+  int         pusch_max_its       = 10;
+  bool        pusch_8bit_decoder  = false;
+  float       tx_amplitude        = 1.0f;
+  int         nof_phy_threads     = 1;
+  std::string equalizer_mode      = "mmse";
+  float       estimator_fil_w     = 1.0f;
+  bool        pregenerate_signals = false;
 
   srslte::channel::args_t dl_channel_args;
   srslte::channel::args_t ul_channel_args;

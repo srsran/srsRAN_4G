@@ -246,81 +246,13 @@ uint32_t cc_worker::get_nof_rnti()
   return ue_db.size();
 }
 
-void cc_worker::set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated)
+void cc_worker::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
   if (ue_db.count(rnti)) {
-
-    if (dedicated->pusch_cfg_ded_present && dedicated->sched_request_cfg_present) {
-      ue_db[rnti]->ul_cfg.pusch.uci_offset.I_offset_ack = dedicated->pusch_cfg_ded.beta_offset_ack_idx;
-      ue_db[rnti]->ul_cfg.pusch.uci_offset.I_offset_cqi = dedicated->pusch_cfg_ded.beta_offset_cqi_idx;
-      ue_db[rnti]->ul_cfg.pusch.uci_offset.I_offset_ri  = dedicated->pusch_cfg_ded.beta_offset_ri_idx;
-
-      ue_db[rnti]->ul_cfg.pucch.n_pucch_2  = dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx;
-      ue_db[rnti]->ul_cfg.pucch.n_pucch_sr = dedicated->sched_request_cfg.setup().sr_pucch_res_idx;
-    }
-
-    if (dedicated->sched_request_cfg_present) {
-      ue_db[rnti]->ul_cfg.pucch.I_sr          = dedicated->sched_request_cfg.setup().sr_cfg_idx;
-      ue_db[rnti]->ul_cfg.pucch.sr_configured = true;
-    }
-
-    /* CQI Reporting */
-    if (dedicated->cqi_report_cfg.cqi_report_periodic_present and
-        dedicated->cqi_report_cfg.cqi_report_periodic.type() == setup_e::setup) {
-      ue_db[rnti]->dl_cfg.cqi_report.periodic_configured = true;
-      ue_db[rnti]->dl_cfg.cqi_report.pmi_idx = dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx;
-      ue_db[rnti]->ul_cfg.pucch.simul_cqi_ack =
-          dedicated->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi;
-    } else {
-      ue_db[rnti]->dl_cfg.cqi_report.pmi_idx = 0;
-    }
-
-    /* RI reporting */
-    if (dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present) {
-      ue_db[rnti]->dl_cfg.cqi_report.ri_idx         = dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx;
-      ue_db[rnti]->dl_cfg.cqi_report.ri_idx_present = true;
-    } else {
-      ue_db[rnti]->dl_cfg.cqi_report.ri_idx_present = false;
-    }
-
-    if (dedicated->ant_info_present) {
-      /* If default antenna info then follow 3GPP 36.331 clause 9.2.4 Default physical channel configuration */
-      if (dedicated->ant_info.type() == phys_cfg_ded_s::ant_info_c_::types::default_value) {
-        if (enb_dl.cell.nof_ports == 1) {
-          ue_db[rnti]->dl_cfg.tm = SRSLTE_TM1;
-        } else {
-          ue_db[rnti]->dl_cfg.tm = SRSLTE_TM2;
-        }
-        ue_db[rnti]->dl_cfg.cqi_report.ri_idx         = 0;
-        ue_db[rnti]->dl_cfg.cqi_report.ri_idx_present = false;
-      } else {
-        /* Physical channel reconfiguration according to 3GPP 36.331 clause 5.3.10.6 */
-        switch (dedicated->ant_info.explicit_value().tx_mode) {
-          case ant_info_ded_s::tx_mode_e_::tm1:
-            ue_db[rnti]->dl_cfg.cqi_report.ri_idx         = 0;
-            ue_db[rnti]->dl_cfg.cqi_report.ri_idx_present = false;
-            ue_db[rnti]->dl_cfg.tm                        = SRSLTE_TM1;
-            break;
-          case ant_info_ded_s::tx_mode_e_::tm2:
-            ue_db[rnti]->dl_cfg.cqi_report.ri_idx         = 0;
-            ue_db[rnti]->dl_cfg.cqi_report.ri_idx_present = false;
-            ue_db[rnti]->dl_cfg.tm                        = SRSLTE_TM2;
-            break;
-          case ant_info_ded_s::tx_mode_e_::tm3:
-            ue_db[rnti]->dl_cfg.tm = SRSLTE_TM3;
-            break;
-          case ant_info_ded_s::tx_mode_e_::tm4:
-            ue_db[rnti]->dl_cfg.tm = SRSLTE_TM4;
-            break;
-          default:
-            ue_db[rnti]->dl_cfg.tm = SRSLTE_TM1;
-            Error("TM mode %s not supported\n", dedicated->ant_info.explicit_value().tx_mode.to_string().c_str());
-            break;
-        }
-      }
-    }
+    ue_db[rnti]->ul_cfg = dedicated.ul_cfg;
+    ue_db[rnti]->dl_cfg = dedicated.dl_cfg;
   } else {
     Error("Setting config dedicated: rnti=0x%x does not exist\n", rnti);
   }
@@ -720,7 +652,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
         // Logging
         char str[512];
         srslte_pdsch_tx_info(&ue_db[rnti]->dl_cfg.pdsch, str, 512);
-        Info("PDSCH: %s, tti_tx_dl=%d\n", str, tti_tx_dl);
+        Info("PDSCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
       }
 
       // Save metrics stats

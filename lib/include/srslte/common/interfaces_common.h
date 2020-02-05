@@ -29,9 +29,9 @@
 namespace srslte {
 
 typedef struct {
-  std::string phy_level;
-  std::string phy_lib_level;
-  int         phy_hex_limit;
+  std::string phy_level     = "none";
+  std::string phy_lib_level = "none";
+  int         phy_hex_limit = -1;
 } phy_log_args_t;
 
 // RF/radio args

@@ -127,7 +127,7 @@ public:
 
   virtual void
                configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) = 0;
-  virtual void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated) = 0;
+  virtual void set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated) = 0;
 };
 
 class mac_interface_rrc

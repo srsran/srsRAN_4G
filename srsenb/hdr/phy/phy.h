@@ -62,7 +62,7 @@ public:
   static uint32_t tti_to_subf(uint32_t tti);
 
   void start_plot();
-  void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated);
+  void set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated);
 
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
 

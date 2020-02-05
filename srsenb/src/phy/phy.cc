@@ -253,7 +253,7 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 /***** RRC->PHY interface **********/
 
-void phy::set_config_dedicated(uint16_t rnti, phys_cfg_ded_s* dedicated)
+void phy::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated)
 {
   for (uint32_t i = 0; i < nof_workers; i++) {
     workers[i].set_config_dedicated(rnti, dedicated);

@@ -156,7 +156,7 @@ uint32_t sf_worker::get_nof_rnti()
   return cc_workers[0]->get_nof_rnti();
 }
 
-void sf_worker::set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated)
+void sf_worker::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated)
 {
   for (auto& w : cc_workers) {
     w->set_config_dedicated(rnti, dedicated);
