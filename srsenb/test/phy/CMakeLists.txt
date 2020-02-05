@@ -33,4 +33,4 @@ target_link_libraries(enb_phy_test
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
 
-add_test(enb_phy_test enb_phy_test)
+#add_test(enb_phy_test enb_phy_test)
