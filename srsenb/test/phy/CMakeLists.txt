@@ -18,6 +18,19 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(mac)
-add_subdirectory(phy)
-add_subdirectory(upper)
+add_executable(enb_phy_test enb_phy_test.cc)
+target_link_libraries(enb_phy_test
+        srsenb_phy
+        srsenb_stack
+        srsenb_upper
+        srsenb_mac
+        srsenb_rrc
+        srslte_common
+        srslte_phy
+        srslte_radio
+        srslte_upper
+        rrc_asn1
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES})
+
+add_test(enb_phy_test enb_phy_test)
