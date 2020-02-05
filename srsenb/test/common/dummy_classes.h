@@ -121,15 +121,15 @@ public:
   configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) override
   {
   }
-  void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated) override {}
+  void set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated) override {}
 };
 
 class gtpu_dummy : public gtpu_interface_rrc
 {
 public:
-  void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t* teid_in) {}
-  void rem_bearer(uint16_t rnti, uint32_t lcid) {}
-  void rem_user(uint16_t rnti) {}
+  void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t* teid_in) override {}
+  void rem_bearer(uint16_t rnti, uint32_t lcid) override {}
+  void rem_user(uint16_t rnti) override {}
 };
 
 } // namespace srsenb
