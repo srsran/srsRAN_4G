@@ -190,6 +190,7 @@ int main(int argc, char* argv[])
   cout << endl << "---  Software Radio Systems MBMS  ---" << endl << endl;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
+  signal(SIGHUP, sig_int_handler);
 
   all_args_t args;
   parse_args(&args, argc, argv);

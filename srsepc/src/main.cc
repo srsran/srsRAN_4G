@@ -384,6 +384,7 @@ int main(int argc, char* argv[])
 {
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
+  signal(SIGHUP, sig_int_handler);
 
   // print build info
   cout << endl << get_build_string() << endl;
