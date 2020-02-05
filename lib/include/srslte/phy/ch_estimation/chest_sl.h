@@ -39,7 +39,8 @@
 
 typedef struct {
 
-  uint32_t nof_prb;
+  float    sync_err;
+  float    rsrp_corr;
   uint32_t sf_n_re;
 
   uint32_t M_sc_rs;
@@ -81,6 +82,9 @@ typedef struct {
   cf_t* ce;
 
   srslte_interp_linsrslte_vec_t lin_vec_sl;
+
+  bool sync_error_enable;
+  bool rsrp_enable;
 
 } srslte_chest_sl_t;
 

@@ -72,6 +72,9 @@ int srslte_chest_sl_init_dmrs(srslte_chest_sl_t* q)
     return SRSLTE_ERROR;
   }
 
+  q->sync_error_enable = true;
+  q->rsrp_enable       = true;
+
   return SRSLTE_SUCCESS;
 }
 
@@ -631,43 +634,26 @@ void srslte_chest_sl_pscch_ls_estimate_equalize(srslte_chest_sl_t* q,
   bzero(q->ce, sizeof(cf_t) * sf_n_re);
 
   if ((tm == SRSLTE_SIDELINK_TM1) || (tm == SRSLTE_SIDELINK_TM2)) {
-    if (cp == SRSLTE_CP_NORM) {
-      srslte_vec_prod_conj_ccc(&sf_buffer[3 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               &q->r_sequence[0][0],
-                               &q->ce[3 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               q->M_sc_rs);
-      srslte_vec_prod_conj_ccc(&sf_buffer[10 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               &q->r_sequence[1][0],
-                               &q->ce[10 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               q->M_sc_rs);
-    } else {
-      srslte_vec_prod_conj_ccc(&sf_buffer[2 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               &q->r_sequence[0][0],
-                               &q->ce[2 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               q->M_sc_rs);
-      srslte_vec_prod_conj_ccc(&sf_buffer[8 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               &q->r_sequence[1][0],
-                               &q->ce[8 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               q->M_sc_rs);
+    uint32_t dmrs_index = 0;
+    for (uint32_t i = 0; i < srslte_sl_get_num_symbols(tm, cp); i++) {
+      if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, tm, i, cp)) {
+        srslte_vec_prod_conj_ccc(&sf_buffer[i * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                                 &q->r_sequence[dmrs_index][0],
+                                 &q->ce[i * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                                 q->M_sc_rs);
+      }
     }
   } else if ((tm == SRSLTE_SIDELINK_TM3) || (tm == SRSLTE_SIDELINK_TM4)) {
     if (cp == SRSLTE_CP_NORM) {
-      srslte_vec_prod_conj_ccc(&sf_buffer[2 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               &q->r_sequence[0][0],
-                               &q->ce[2 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               q->M_sc_rs);
-      srslte_vec_prod_conj_ccc(&sf_buffer[5 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               &q->r_sequence[1][0],
-                               &q->ce[5 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               q->M_sc_rs);
-      srslte_vec_prod_conj_ccc(&sf_buffer[8 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               &q->r_sequence[2][0],
-                               &q->ce[8 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               q->M_sc_rs);
-      srslte_vec_prod_conj_ccc(&sf_buffer[11 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               &q->r_sequence[3][0],
-                               &q->ce[11 * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
-                               q->M_sc_rs);
+      uint32_t dmrs_index = 0;
+      for (uint32_t i = 0; i < srslte_sl_get_num_symbols(tm, cp); i++) {
+        if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, tm, i, cp)) {
+          srslte_vec_prod_conj_ccc(&sf_buffer[i * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                                   &q->r_sequence[dmrs_index][0],
+                                   &q->ce[i * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE],
+                                   q->M_sc_rs);
+        }
+      }
     } else {
       ERROR("Invalid CP");
       return;
@@ -675,6 +661,32 @@ void srslte_chest_sl_pscch_ls_estimate_equalize(srslte_chest_sl_t* q,
   } else {
     ERROR("Invalid TM");
     return;
+  }
+
+  // Estimate synchronization error
+  if (q->sync_error_enable) {
+    float k   = (float)srslte_symbol_sz(nof_prb);
+    float sum = 0.0f;
+    for (uint32_t i = 0; i < srslte_sl_get_num_symbols(tm, cp); i++) {
+      if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, tm, i, cp)) {
+        sum += srslte_vec_estimate_frequency(&q->ce[i * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE], q->M_sc_rs) * k;
+      }
+    }
+    q->sync_err = sum / q->nof_dmrs_symbols;
+  } else {
+    q->sync_err = NAN;
+  }
+
+  // Compute RSRP for the channel estimates in this port
+  if (q->rsrp_enable) {
+    for (uint32_t i = 0; i < srslte_sl_get_num_symbols(tm, cp); i++) {
+      if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, tm, i, cp)) {
+        cf_t corr = srslte_vec_acc_cc(&q->ce[i * nof_prb * SRSLTE_NRE + prb_idx * SRSLTE_NRE], q->M_sc_rs) / q->M_sc_rs;
+        float energy = __real__(corr * conjf(corr));
+        q->rsrp_corr = energy;
+      }
+    }
+    q->rsrp_corr /= q->nof_dmrs_symbols;
   }
 
   interpolate_pilots_sl_pscch(&q->lin_vec_sl, q->ce, nof_prb, prb_idx, tm, cp);
