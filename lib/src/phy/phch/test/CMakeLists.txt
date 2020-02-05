@@ -99,7 +99,8 @@ set_property(TEST pscch_file_test_ideal_tm4_p100 PROPERTY PASS_REGULAR_EXPRESSIO
 add_test(pscch_test_tm4_p50_qc pscch_file_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_qc9150_f5.92e9_s15.36e6_50prb_20offset.dat)
 set_property(TEST pscch_test_tm4_p50_qc PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
 
-add_test(pscch_test_tm4_p50_cmw pscch_file_test -p 50 -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_cmw500_f5.92e9_s11.52e6_50prb_0offset_1ms.dat)
+# Capture has a SFO offset of ~64 samples, but offsetting by 20 is sufficiant to decode it
+add_test(pscch_test_tm4_p50_cmw pscch_file_test -p 50 -t 4 -o 20 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_cmw500_f5.92e9_s11.52e6_50prb_0offset_1ms.dat)
 set_property(TEST pscch_test_tm4_p50_cmw PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
 
 # With PHY retransmission (3 TTI offset)
