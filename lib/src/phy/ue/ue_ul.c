@@ -959,7 +959,7 @@ int srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
 
     /* If all bits are DTX, do not transmit HARQ */
     if (dtx_count == srslte_uci_cfg_total_ack(&cfg->ul_cfg.pusch.uci_cfg)) {
-      for (int i = 0; i < 2; i++) { // Format 1b-CS only supports 2 CC
+      for (int i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
         cfg->ul_cfg.pusch.uci_cfg.ack[i].nof_acks = 0;
       }
     }
