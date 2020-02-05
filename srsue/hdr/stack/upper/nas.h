@@ -136,6 +136,11 @@ private:
   const uint32_t t3410_duration_ms = 15 * 1000; // 15s according to TS 24.301 Sec 10.2
   const uint32_t t3411_duration_ms = 10 * 1000; // 10s according to TS 24.301 Sec 10.2
 
+  // TS 23.003 Sec. 6.2.2 IMEISV's last two octets are Software Version Number (SVN)
+  // which identifies the software version number of the mobile equipment
+  const uint8_t ue_svn_oct1 = 0x5;
+  const uint8_t ue_svn_oct2 = 0x3;
+
   // Security
   bool    eia_caps[8]   = {};
   bool    eea_caps[8]   = {};

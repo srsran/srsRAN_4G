@@ -1280,8 +1280,8 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
     sec_mode_comp.imeisv_present    = true;
     sec_mode_comp.imeisv.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEISV;
     usim->get_imei_vec(sec_mode_comp.imeisv.imeisv, 15);
-    sec_mode_comp.imeisv.imeisv[14] = 5;
-    sec_mode_comp.imeisv.imeisv[15] = 3;
+    sec_mode_comp.imeisv.imeisv[14] = ue_svn_oct1;
+    sec_mode_comp.imeisv.imeisv[15] = ue_svn_oct2;
   } else {
     sec_mode_comp.imeisv_present = false;
   }
@@ -1926,6 +1926,12 @@ void nas::send_identity_response(const uint8 id_type, const uint8_t sec_hdr_type
     case LIBLTE_MME_MOBILE_ID_TYPE_IMEI:
       id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEI;
       usim->get_imei_vec(id_resp.mobile_id.imei, 15);
+      break;
+    case LIBLTE_MME_MOBILE_ID_TYPE_IMEISV:
+      id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEISV;
+      usim->get_imei_vec(id_resp.mobile_id.imeisv, 15);
+      id_resp.mobile_id.imeisv[14] = ue_svn_oct1;
+      id_resp.mobile_id.imeisv[15] = ue_svn_oct2;
       break;
     default:
       nas_log->error("Unhandled ID type: %d\n", id_type);
