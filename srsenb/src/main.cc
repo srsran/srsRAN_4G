@@ -424,6 +424,7 @@ int main(int argc, char* argv[])
 {
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
+  signal(SIGHUP, sig_int_handler);
   all_args_t                         args = {};
   srslte::metrics_hub<enb_metrics_t> metricshub;
   metrics_stdout                     metrics_screen;
