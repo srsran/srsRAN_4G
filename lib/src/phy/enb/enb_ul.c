@@ -175,43 +175,57 @@ static int pucch_resource_selection(srslte_pucch_cfg_t* cfg,
                                     srslte_cell_t*      cell,
                                     uint32_t            n_pucch_i[SRSLTE_PUCCH_CS_MAX_ACK])
 {
-  int ret = 1;
-
   if (!cfg || !cell || !uci_cfg || !n_pucch_i) {
-    ERROR("get_npucch(): Invalid parameters\n");
-    ret = SRSLTE_ERROR_INVALID_INPUTS;
-
-  } else if (uci_cfg->is_scheduling_request_tti) {
-    n_pucch_i[0] = cfg->n_pucch_sr;
-
-  } else if (cfg->format < SRSLTE_PUCCH_FORMAT_2) {
-    if (cfg->sps_enabled) {
-      n_pucch_i[0] = cfg->n_pucch_1[uci_cfg->ack[0].tpc_for_pucch % 4];
-
-    } else {
-      if (cell->frame_type == SRSLTE_FDD) {
-        switch (cfg->ack_nack_feedback_mode) {
-          case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3:
-            n_pucch_i[0] = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_N3];
-            break;
-          case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS:
-            ret = srslte_pucch_cs_resources(cfg, uci_cfg, n_pucch_i);
-            break;
-          default:
-            n_pucch_i[0] = uci_cfg->ack[0].ncce[0] + cfg->N_pucch_1;
-            break;
-        }
-      } else {
-        ERROR("TDD not supported\n");
-        ret = SRSLTE_ERROR;
-      }
-    }
-
-  } else {
-    n_pucch_i[0] = cfg->n_pucch_2;
+    ERROR("pucch_resource_selection(): Invalid parameters\n");
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  return ret;
+  uint32_t total_nof_ack = srslte_uci_cfg_total_ack(uci_cfg);
+
+  // Available scheduling request and PUCCH format is not PUCCH3
+  if (uci_cfg->is_scheduling_request_tti && cfg->format != SRSLTE_PUCCH_FORMAT_3) {
+    n_pucch_i[0] = cfg->n_pucch_sr;
+    return 1;
+  }
+
+  // PUCCH formats 1, 1A and 1B (normal anb channel selection modes)
+  if (cfg->format < SRSLTE_PUCCH_FORMAT_2) {
+    if (cfg->sps_enabled) {
+      n_pucch_i[0] = cfg->n_pucch_1[uci_cfg->ack[0].tpc_for_pucch % 4];
+      return 1;
+    }
+
+    if (cell->frame_type == SRSLTE_TDD) {
+      ERROR("TDD not supported\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+      return srslte_pucch_cs_resources(cfg, uci_cfg, n_pucch_i);
+    }
+
+    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL ||
+        (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
+         total_nof_ack == uci_cfg->ack[0].nof_acks)) {
+      // If normal or feedback mode PUCCH3 with only data in PCell
+      n_pucch_i[0] = uci_cfg->ack[0].ncce[0] + cfg->N_pucch_1;
+      return 1;
+    }
+
+    // Otherwise an error shall be prompt
+    ERROR("Unhandled PUCCH format mode %s\n", srslte_ack_nack_feedback_mode_string(cfg->ack_nack_feedback_mode));
+    return SRSLTE_ERROR;
+  }
+
+  // PUCCH format 3
+  if (cfg->format == SRSLTE_PUCCH_FORMAT_3) {
+    n_pucch_i[0] = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_N3];
+    return 1;
+  }
+
+  // PUCCH format 1
+  n_pucch_i[0] = cfg->n_pucch_2;
+  return 1;
 }
 
 static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* res)

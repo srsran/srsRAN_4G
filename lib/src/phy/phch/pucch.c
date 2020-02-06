@@ -816,8 +816,9 @@ static void decode_bits(srslte_pucch_cfg_t* cfg,
                         srslte_uci_value_t* uci_data)
 {
   if (cfg->format == SRSLTE_PUCCH_FORMAT_3) {
-    memcpy(uci_data->ack.ack_value, pucch_bits, srslte_uci_cfg_total_ack(&cfg->uci_cfg));
-    uci_data->scheduling_request = pucch_bits[srslte_uci_cfg_total_ack(&cfg->uci_cfg)] == 1;
+    uint32_t nof_ack = srslte_uci_cfg_total_ack(&cfg->uci_cfg);
+    memcpy(uci_data->ack.ack_value, pucch_bits, nof_ack);
+    uci_data->scheduling_request = (pucch_bits[nof_ack] == 1);
     uci_data->ack.valid          = true;
   } else {
     // If was looking for scheduling request, update value
