@@ -1017,7 +1017,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step_cell_reselection()
     } else {
       // Out-of-sync, relaunch reselection
       Info("Serving cell is out-of-sync, re-launching re-selection procedure. T311: %d/%d ms\n",
-           rrc_ptr->t311.value(),
+           rrc_ptr->t311.time_elapsed(),
            rrc_ptr->t311.duration());
       if (!rrc_ptr->cell_reselector.launch()) {
         return proc_outcome_t::error;
@@ -1071,7 +1071,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
     // Actions following cell reselection while T311 is running 5.3.7.3
     // Upon selecting a suitable E-UTRA cell, the UE shall:
     Info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
-         rrc_ptr->t311.value());
+         rrc_ptr->t311.time_elapsed());
 
     // stop timer T311;
     rrc_ptr->t311.stop();

@@ -281,7 +281,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
              RB_NAME,
              do_status() ? "yes" : "no",
              status_prohibit_timer.is_running() ? "yes" : "no",
-             status_prohibit_timer.value(),
+             status_prohibit_timer.time_elapsed(),
              status_prohibit_timer.duration());
 
   // Bytes needed for status report

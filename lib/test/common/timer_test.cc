@@ -275,7 +275,7 @@ int timers2_test4()
     // assert no timer got wrong values
     for (uint32_t i = 0; i < nof_timers; i++) {
       if (ctx->timers[i].is_running()) {
-        TESTASSERT(ctx->timers[i].value() <= ctx->timers[i].duration());
+        TESTASSERT(ctx->timers[i].time_elapsed() <= ctx->timers[i].duration());
       }
     }
 

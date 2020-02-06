@@ -69,7 +69,7 @@ class timer_handler
 
     bool is_expired() const { return active and not running and timeout > 0 and timeout <= parent->cur_time; }
 
-    uint32_t value() const { return std::min(duration, parent->cur_time - (timeout - duration)); }
+    uint32_t time_elapsed() const { return std::min(duration, parent->cur_time - (timeout - duration)); }
 
     bool set(uint32_t duration_)
     {
@@ -184,7 +184,7 @@ public:
 
     bool is_expired() const { return impl()->is_expired(); }
 
-    uint32_t value() const { return impl()->value(); }
+    uint32_t time_elapsed() const { return impl()->time_elapsed(); }
 
     void run() { impl()->run(); }
 

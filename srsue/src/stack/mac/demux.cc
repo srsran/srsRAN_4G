@@ -305,8 +305,10 @@ bool demux::process_ce(srslte::sch_subh* subh)
 
 void demux::parse_ta_cmd(srslte::sch_subh *subh) {
   phy_h->set_timeadv(subh->get_ta_cmd());
-  Info("Received TA=%d (%d/%d) \n", subh->get_ta_cmd(),
-       time_alignment_timer->value(), time_alignment_timer->duration());
+  Info("Received TA=%d (%d/%d) \n",
+       subh->get_ta_cmd(),
+       time_alignment_timer->time_elapsed(),
+       time_alignment_timer->duration());
   // Start or restart timeAlignmentTimer only if set
   if (time_alignment_timer->is_set()) {
     time_alignment_timer->run();
