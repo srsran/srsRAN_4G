@@ -352,20 +352,6 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
   return ret;
 }
 
-int mac::set_dl_ant_info(uint16_t rnti, const sched_interface::ant_info_ded_t& dl_ant_info)
-{
-  int ret = -1;
-  pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
-    scheduler.dl_ant_info(rnti, dl_ant_info);
-    ret = 0;
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
-}
-
 int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
 {
   // TODO: add cc_idx to interface

@@ -782,7 +782,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
     }
 
     if (tbs <= 0) {
-      log_h->warning("SCHED: Error DL %s rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d\n",
+      log_h->warning("SCHED: sched_cell_params[CARRIER_IDX].cfg %s rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d\n",
                      is_newtx ? "tx" : "retx",
                      user->get_rnti(),
                      h->get_id(),
@@ -833,7 +833,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
 
     ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cell_index);
     if (tbs <= 0) {
-      log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=(%d,%d), tbs=%d, bsr=%d\n",
+      log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=(%d,%d), bsr=%d\n",
                      ul_alloc.type == ul_alloc_t::MSG3 ? "Msg3" : "UL",
                      ul_alloc.is_retx() ? "retx" : "tx",
                      user->get_rnti(),
@@ -842,7 +842,6 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                      pusch->dci.location.ncce,
                      ul_alloc.alloc.RB_start,
                      ul_alloc.alloc.RB_start + ul_alloc.alloc.L,
-                     tbs,
                      user->get_pending_ul_new_data(get_tti_tx_ul()));
       continue;
     }

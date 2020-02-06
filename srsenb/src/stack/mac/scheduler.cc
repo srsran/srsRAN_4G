@@ -292,11 +292,6 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
   return ue_db_access(rnti, [ce_code](sched_ue& ue) { ue.mac_buffer_state(ce_code); });
 }
 
-int sched::dl_ant_info(uint16_t rnti, const sched_interface::ant_info_ded_t& ant_info)
-{
-  return ue_db_access(rnti, [ant_info](sched_ue& ue) { ue.set_dl_ant_info(ant_info); });
-}
-
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack)
 {
   int ret = -1;

@@ -320,12 +320,6 @@ void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi)
   carriers[cc_idx].dl_cqi_tti = tti;
 }
 
-void sched_ue::set_dl_ant_info(const sched_interface::ant_info_ded_t& ant_info)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  dl_ant_info = ant_info;
-}
-
 void sched_ue::set_ul_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code)
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -960,7 +954,7 @@ srslte_dci_format_t sched_ue::get_dci_format()
 
   if (phy_config_dedicated_enabled) {
     /* TODO: Assumes UE-Specific Search Space (Not common) */
-    switch (dl_ant_info.tx_mode) {
+    switch (cfg.dl_ant_info.tx_mode) {
       case sched_interface::ant_info_ded_t::tx_mode_t::tm1:
       case sched_interface::ant_info_ded_t::tx_mode_t::tm2:
         ret = SRSLTE_DCI_FORMAT1;
@@ -976,7 +970,7 @@ srslte_dci_format_t sched_ue::get_dci_format()
       case sched_interface::ant_info_ded_t::tx_mode_t::tm7:
       case sched_interface::ant_info_ded_t::tx_mode_t::tm8_v920:
       default:
-        Warning("Incorrect transmission mode (rnti=%04x; tm=%d)\n", rnti, static_cast<int>(dl_ant_info.tx_mode));
+        Warning("Incorrect transmission mode (rnti=%04x; tm=%d)\n", rnti, static_cast<int>(cfg.dl_ant_info.tx_mode));
     }
   }
 

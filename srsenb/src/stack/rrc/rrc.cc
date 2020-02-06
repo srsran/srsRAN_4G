@@ -1613,6 +1613,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   current_sched_ue_cfg.pucch_cfg.N_cs      = parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
   current_sched_ue_cfg.pucch_cfg.n_rb_2    = parent->sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
   current_sched_ue_cfg.pucch_cfg.N_pucch_1 = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+  current_sched_ue_cfg.dl_ant_info         = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
 
   // Configure MAC
   parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
@@ -1625,7 +1626,6 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
-  parent->mac->set_dl_ant_info(rnti, srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value()));
   parent->mac->phy_config_enabled(rnti, false);
 
   rr_cfg->drb_to_add_mod_list_present = false;
@@ -1798,7 +1798,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
 
   parent->phy->set_config_dedicated(rnti, phy_cfg);
-  parent->mac->set_dl_ant_info(rnti, srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value()));
+  current_sched_ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
+  parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
   parent->mac->phy_config_enabled(rnti, false);
 
   // Add SRB2 to the message

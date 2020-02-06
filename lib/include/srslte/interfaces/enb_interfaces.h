@@ -144,7 +144,6 @@ public:
   /* Manages UE bearers and associated configuration */
   virtual int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) = 0;
   virtual int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id)                                        = 0;
-  virtual int  set_dl_ant_info(uint16_t rnti, const sched_interface::ant_info_ded_t& dl_ant_info)  = 0;
   virtual void phy_config_enabled(uint16_t rnti, bool enabled)                                     = 0;
   virtual void
   write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) = 0;

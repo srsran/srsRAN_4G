@@ -72,6 +72,7 @@
  **************************/
 uint32_t const seed = time(nullptr);
 // uint32_t const seed = 2452071795; // [{3054, 1656}, {5970, 1595}, ... {204, 3}]
+// uint32_t const seed = 1581009287; // prb==25
 std::default_random_engine            rand_gen(seed);
 std::uniform_real_distribution<float> unif_dist(0, 1.0);
 bool                                  check_old_pids = false;
@@ -585,7 +586,8 @@ int sched_tester::test_tti_result()
   auto* tti_alloc = carrier_schedulers[0]->get_sf_sched_ptr(tti_data.tti_rx);
   if (tti_data.used_cce != tti_alloc->get_pdcch_mask()) {
     std::string mask_str = tti_alloc->get_pdcch_mask().to_string();
-    TESTERROR("[TESTER] The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), tti_data.used_cce.to_hex().c_str());
+    TESTERROR(
+        "[TESTER] The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), tti_data.used_cce.to_string().c_str());
   }
 
   // TODO: Check postponed retxs

@@ -110,7 +110,7 @@ public:
   };
 
   struct ant_info_ded_t {
-    enum class tx_mode_t { tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8_v920, nulltype } tx_mode;
+    enum class tx_mode_t { tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8_v920, nulltype } tx_mode = tx_mode_t::tm1;
     enum class codebook_t {
       n2_tx_ant_tm3,
       n4_tx_ant_tm3,
@@ -121,9 +121,9 @@ public:
       n2_tx_ant_tm6,
       n4_tx_ant_tm6,
       none
-    } cookbook_subset_type;
+    } cookbook_subset_type = codebook_t::none;
     uint64_t codebook_subset_restrict;
-    enum class ue_tx_ant_sel_t { release, closed_loop, open_loop } ue_tx_ant_sel;
+    enum class ue_tx_ant_sel_t { release, closed_loop, open_loop } ue_tx_ant_sel = ue_tx_ant_sel_t::release;
   };
 
   struct ue_cfg_t {
@@ -136,6 +136,7 @@ public:
     srslte_dl_cfg_t                     dl_cfg;
     std::array<ue_bearer_cfg_t, MAX_LC> ue_bearers = {};
     std::vector<uint32_t>               supported_cc_idxs;
+    ant_info_ded_t                      dl_ant_info;
   };
 
   typedef struct {

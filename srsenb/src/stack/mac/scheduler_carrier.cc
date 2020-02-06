@@ -417,9 +417,9 @@ void sched::carrier_sched::generate_phich(sf_sched* tti_sched)
       tti_sched->ul_sched_result.phich[nof_phich_elems].phich =
           h->get_pending_ack() ? ul_sched_phich_t::ACK : ul_sched_phich_t::NACK;
       tti_sched->ul_sched_result.phich[nof_phich_elems].rnti = rnti;
-      log_h->debug("SCHED: Allocated PHICH for rnti=0x%x, value=%d\n",
-                   rnti,
-                   tti_sched->ul_sched_result.phich[nof_phich_elems].phich);
+      log_h->info("SCHED: Allocated PHICH for rnti=0x%x, value=%s\n",
+                  rnti,
+                  tti_sched->ul_sched_result.phich[nof_phich_elems].phich == ul_sched_phich_t::ACK ? "ACK" : "NACK");
       nof_phich_elems++;
     }
   }
