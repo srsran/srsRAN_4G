@@ -174,7 +174,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
  ***************************************************************************/
 // SRBs (5.1.2.2)
-// Returns a boolean indicating weather integrity has passed
+// Returns a boolean indicating whether integrity has passed
 bool pdcp_entity_lte::handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu)
 {
 
@@ -182,19 +182,30 @@ bool pdcp_entity_lte::handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu)
   uint8_t mac[4];
   pdcp_unpack_control_pdu(pdu.get(), &sn, mac);
 
-  // TODO Fix count computation
-  uint32_t count = sn;
+  // Estimate COUNT for integrity check and decryption
+  uint32_t count;
+  if (sn < next_pdcp_rx_sn){
+    count = COUNT(rx_hfn + 1, sn);
+  } else {
+    count = COUNT(rx_hfn, sn);
+  }
  
+  // Perform integrity checks and decription  
   if (do_encryption) {
     cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
 
   if (do_integrity) {
-    if (not integrity_verify(pdu->msg, pdu->N_bytes - 4, sn, &(pdu->msg[pdu->N_bytes - 4]))) {
+    if (not integrity_verify(pdu->msg, pdu->N_bytes, count, mac)) {
       log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
       return false;
     }
+  }
+
+  // Update state variables
+  if (sn < next_pdcp_rx_sn) {
+    rx_hfn++;
   }
 
   log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
