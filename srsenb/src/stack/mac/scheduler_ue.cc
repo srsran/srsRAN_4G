@@ -395,11 +395,17 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
       mcs = mcs0;
     }
 
+    // Ensure tbs >= MIN_DATA_TBS
+    while (tbs < MIN_DATA_TBS and mcs != carriers[cc_idx].max_mcs_dl) {
+      mcs++;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false), nof_prb) / 8;
+    }
     if (tbs < MIN_DATA_TBS) {
       log_h->warning("SCHED: Allocation of TBS=%d that does not account header\n", tbs);
       return 0;
     }
 
+    // Allocate DL Harq
     h->new_tx(user_mask, 0, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
 
     int rem_tbs = tbs;
@@ -420,6 +426,7 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
       rem_tbs -= 2;
     }
 
+    // Allocate PDUs
     do {
       x = alloc_pdu(rem_tbs, &data->pdu[0][data->nof_pdu_elems[0]]);
       if (x) {

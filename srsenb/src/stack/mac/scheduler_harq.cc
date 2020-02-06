@@ -268,10 +268,8 @@ void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs, ul_harq_proc::ul_allo
 
 void ul_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, ul_harq_proc::ul_alloc_t alloc)
 {
-  if (alloc.L != allocation.L or alloc.RB_start != allocation.RB_start) {
-    is_adaptive = true;
-  }
-  allocation = alloc;
+  is_adaptive = alloc.L != allocation.L or alloc.RB_start != allocation.RB_start;
+  allocation  = alloc;
   new_retx_common(tb_idx, tti_, mcs, tbs);
 }
 
