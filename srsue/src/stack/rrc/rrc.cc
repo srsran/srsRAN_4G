@@ -562,12 +562,15 @@ void rrc::clean_neighbours()
 void rrc::log_neighbour_cells()
 {
   if (not neighbour_cells.empty()) {
-    char ordered[512] = {};
+    const int32_t MAX_STR_LEN          = 512;
+    char          ordered[MAX_STR_LEN] = {};
     int  n            = 0;
-    n += snprintf(ordered, 512, "[%s", neighbour_cells[0]->to_string().c_str());
+    n += snprintf(ordered, MAX_STR_LEN, "[%s", neighbour_cells[0]->to_string().c_str());
     for (uint32_t i = 1; i < neighbour_cells.size(); i++) {
-      int m = snprintf(&ordered[n], 512 - n, " | %s", neighbour_cells[i]->to_string().c_str());
-      n += m;
+      if (MAX_STR_LEN - n > 0) { // make sure there is still room left
+        int m = snprintf(&ordered[n], MAX_STR_LEN - n, " | %s", neighbour_cells[i]->to_string().c_str());
+        n += m;
+      }
     }
     rrc_log->info("Neighbours: %s]\n", ordered);
   } else {
