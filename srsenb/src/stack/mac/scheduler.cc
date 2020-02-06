@@ -200,7 +200,7 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
  *
  *******************************************************/
 
-int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* ue_cfg)
+int sched::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg)
 {
   // Add or config user
   pthread_rwlock_rdlock(&rwlock);
@@ -213,7 +213,7 @@ int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* ue_cfg)
     it = ue_db.find(rnti);
     pthread_rwlock_rdlock(&rwlock);
   }
-  it->second.set_cfg(*ue_cfg);
+  it->second.set_cfg(ue_cfg);
   pthread_rwlock_unlock(&rwlock);
 
   return 0;

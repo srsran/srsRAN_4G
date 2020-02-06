@@ -57,7 +57,8 @@ public:
 class harq_proc
 {
 public:
-  void     config(uint32_t id, uint32_t max_retx, srslte::log* log_h);
+  void     init(uint32_t id);
+  void     set_cfg(uint32_t max_retx);
   void     reset(uint32_t tb_idx);
   uint32_t get_id() const;
   bool     is_empty() const;
@@ -78,18 +79,18 @@ protected:
 
   enum ack_t { NULL_ACK, NACK, ACK };
 
-  ack_t    ack_state[SRSLTE_MAX_TB];
-  bool     active[SRSLTE_MAX_TB];
-  bool     ndi[SRSLTE_MAX_TB];
-  uint32_t id;
-  uint32_t max_retx;
-  uint32_t n_rtx[SRSLTE_MAX_TB];
-  uint32_t tx_cnt[SRSLTE_MAX_TB];
-  int      tti;
-  int      last_mcs[SRSLTE_MAX_TB];
-  int      last_tbs[SRSLTE_MAX_TB];
+  ack_t                           ack_state[SRSLTE_MAX_TB];
+  bool                            active[SRSLTE_MAX_TB];
+  std::array<bool, SRSLTE_MAX_TB> ndi = {};
+  uint32_t                        id;
+  uint32_t                        max_retx = 5;
+  uint32_t                        n_rtx[SRSLTE_MAX_TB];
+  uint32_t                        tx_cnt[SRSLTE_MAX_TB];
+  int                             tti;
+  int                             last_mcs[SRSLTE_MAX_TB];
+  int                             last_tbs[SRSLTE_MAX_TB];
 
-  srslte::log* log_h;
+  srslte::log* log_h = nullptr;
 };
 
 typedef srslte::bounded_bitset<25, true> rbgmask_t;

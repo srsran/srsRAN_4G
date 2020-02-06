@@ -54,7 +54,7 @@ int test_erab_setup(bool qci_exists)
   };
 
   uint16_t rnti = 0x46;
-  rrc.add_user(rnti);
+  rrc.add_user(rnti, {});
 
   rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
 

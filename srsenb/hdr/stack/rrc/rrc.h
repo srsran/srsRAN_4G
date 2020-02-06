@@ -164,7 +164,7 @@ public:
 
   // rrc_interface_mac
   void rl_failure(uint16_t rnti) override;
-  void add_user(uint16_t rnti) override;
+  void add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) override;
   void upd_user(uint16_t new_rnti, uint16_t old_rnti) override;
   void set_activity_user(uint16_t rnti) override;
   bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;
@@ -203,7 +203,7 @@ public:
   public:
     class rrc_mobility;
 
-    ue(rrc* outer_rrc, uint16_t rnti);
+    ue(rrc* outer_rrc, uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg);
     bool is_connected();
     bool is_idle();
 
@@ -300,9 +300,11 @@ public:
     uint32_t m_tmsi   = 0;
     uint8_t  mmec     = 0;
 
-    uint32_t    rlf_cnt        = 0;
-    uint8_t     transaction_id = 0;
-    rrc_state_t state          = RRC_STATE_IDLE;
+    // state
+    sched_interface::ue_cfg_t current_sched_ue_cfg;
+    uint32_t                  rlf_cnt        = 0;
+    uint8_t                   transaction_id = 0;
+    rrc_state_t               state          = RRC_STATE_IDLE;
 
     std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
     std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;

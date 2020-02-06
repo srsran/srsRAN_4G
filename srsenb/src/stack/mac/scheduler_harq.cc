@@ -57,14 +57,15 @@ prb_range_t prb_range_t::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vr
  *
  ******************************************************/
 
-void harq_proc::config(uint32_t id_, uint32_t max_retx_, srslte::log* log_h_)
+void harq_proc::init(uint32_t id_)
 {
-  log_h    = log_h_;
-  id       = id_;
+  log_h = srslte::logmap::get("MAC ");
+  id    = id_;
+}
+
+void harq_proc::set_cfg(uint32_t max_retx_)
+{
   max_retx = max_retx_;
-  for (int i = 0; i < SRSLTE_MAX_TB; i++) {
-    ndi[i] = false;
-  }
 }
 
 void harq_proc::reset(uint32_t tb_idx)

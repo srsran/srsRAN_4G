@@ -49,13 +49,8 @@ constexpr uint32_t conres_ce_size = 6;
  *
  *******************************************************/
 
-sched_ue::sched_ue()
+sched_ue::sched_ue() : log_h(srslte::logmap::get("MAC "))
 {
-  log_h = srslte::logmap::get("MAC ");
-
-  bzero(&cell, sizeof(cell));
-  bzero(&lch, sizeof(lch));
-
   reset();
 }
 
@@ -72,50 +67,46 @@ void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell
 void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
   {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::unique_lock<std::mutex> lock(mutex);
 
-    // calculate diffs and update
-
-    // store previous supported cc idxs
-    std::vector<uint32_t> prev_cc_idxs(std::move(cfg.supported_cc_idxs));
-
-    cfg = cfg_;
-
-    // if no list of supported cc idxs is provided, we keep the previous one
+    // for the first configured cc, set it as primary cc
     if (cfg.supported_cc_idxs.empty()) {
-      if (prev_cc_idxs.empty()) {
-        Warning("SCHED: Primary cc idx was not set for user rnti=0x%x. Defaulting to first cc.\n", rnti);
-        cfg.supported_cc_idxs.push_back(0);
+      uint32_t primary_cc_idx = 0;
+      if (not cfg_.supported_cc_idxs.empty()) {
+        primary_cc_idx = cfg_.supported_cc_idxs[0];
       } else {
-        cfg.supported_cc_idxs = prev_cc_idxs;
+        Warning("Primary cc idx not provided in scheduler ue_cfg. Defaulting to cc_idx=0\n");
       }
-    }
-
-    // if primary cc has changed
-    if (prev_cc_idxs.empty() or prev_cc_idxs[0] != cfg.supported_cc_idxs[0]) {
-      main_cc_params = &(*cell_params_list)[cfg.supported_cc_idxs[0]];
+      // setup primary cc
+      main_cc_params = &(*cell_params_list)[primary_cc_idx];
       cell           = main_cc_params->cfg.cell;
       max_msg3retx   = main_cc_params->cfg.maxharq_msg3tx;
     }
+    bool maxharq_tx_changed = cfg.maxharq_tx != cfg_.maxharq_tx;
 
-    // setup sched_ue carriers
-    carriers.clear();
-    enb_ue_cellindex_map.clear();
-    for (uint32_t i = 0; i < cfg.supported_cc_idxs.size(); ++i) {
-      carriers.emplace_back(&cfg, (*cell_params_list)[cfg.supported_cc_idxs[i]], rnti);
-      enb_ue_cellindex_map[cfg.supported_cc_idxs[i]] = i;
+    // update configuration
+    cfg = cfg_;
+
+    // update bearer cfgs
+    for (uint32_t i = 0; i < sched_interface::MAX_LC; ++i) {
+      set_bearer_cfg_unlocked(i, cfg.ue_bearers[i]);
+    }
+
+    // either add a new carrier, or reconfigure existing one
+    for (uint32_t enb_cc_idx : cfg.supported_cc_idxs) {
+      auto it = enb_ue_cellindex_map.find(enb_cc_idx);
+      if (it == enb_ue_cellindex_map.end()) {
+        // add new carrier to sched_ue
+        carriers.emplace_back(cfg, (*cell_params_list)[enb_cc_idx], rnti);
+        enb_ue_cellindex_map[enb_cc_idx] = carriers.size() - 1; // maps enb_cc_idx to ue_cc_idx
+      } else {
+        // reconfiguration of carrier might be needed
+        if (maxharq_tx_changed) {
+          carriers[it->second].set_cfg(cfg);
+        }
+      }
     }
   }
-
-  for (int i = 0; i < sched_interface::MAX_LC; i++) {
-    set_bearer_cfg(i, &cfg.ue_bearers[i]);
-  }
-
-  set_max_mcs(main_cc_params->sched_cfg->pusch_max_mcs,
-              main_cc_params->sched_cfg->pdsch_max_mcs,
-              main_cc_params->sched_cfg->max_aggr_level);
-  set_fixed_mcs(main_cc_params->sched_cfg->pusch_mcs, main_cc_params->sched_cfg->pdsch_mcs);
-  configured = true;
 }
 
 void sched_ue::reset()
@@ -133,32 +124,11 @@ void sched_ue::reset()
     conres_ce_pending            = true;
     carriers.clear();
     enb_ue_cellindex_map.clear();
-  }
 
-  for (int i = 0; i < sched_interface::MAX_LC; i++) {
-    rem_bearer(i);
-  }
-}
-
-void sched_ue::set_fixed_mcs(int mcs_ul, int mcs_dl)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  for (auto& c : carriers) {
-    c.fixed_mcs_dl = mcs_dl;
-    c.fixed_mcs_ul = mcs_ul;
-  }
-}
-
-void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl, int max_aggr_level_)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-  uint32_t                    max_mcs_ul     = mcs_ul >= 0 ? mcs_ul : 28;
-  uint32_t                    max_mcs_dl     = mcs_dl >= 0 ? mcs_dl : 28;
-  uint32_t                    max_aggr_level = max_aggr_level_ >= 0 ? max_aggr_level_ : 3;
-  for (auto& c : carriers) {
-    c.max_mcs_dl     = max_mcs_dl;
-    c.max_mcs_ul     = max_mcs_ul;
-    c.max_aggr_level = max_aggr_level;
+    // erase all bearers
+    for (uint32_t i = 0; i < cfg.ue_bearers.size(); ++i) {
+      set_bearer_cfg_unlocked(i, {});
+    }
   }
 }
 
@@ -171,20 +141,13 @@ void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl, int max_aggr_level_)
 void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  if (lc_id < sched_interface::MAX_LC) {
-    memcpy(&lch[lc_id].cfg, cfg_, sizeof(sched_interface::ue_bearer_cfg_t));
-    if (lch[lc_id].cfg.direction != sched_interface::ue_bearer_cfg_t::IDLE) {
-      Info("SCHED: Set bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
-    }
-  }
+  set_bearer_cfg_unlocked(lc_id, *cfg_);
 }
 
 void sched_ue::rem_bearer(uint32_t lc_id)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  if (lc_id < sched_interface::MAX_LC) {
-    bzero(&lch[lc_id], sizeof(ue_bearer_t));
-  }
+  set_bearer_cfg_unlocked(lc_id, sched_interface::ue_bearer_cfg_t{});
 }
 
 void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
@@ -249,13 +212,11 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
 {
   if (!phy_config_dedicated_enabled) {
     return false;
-  } else {
-    if (cfg.pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, current_tti)) {
-      return (n_cce + cfg.pucch_cfg.N_pucch_1) == cfg.pucch_cfg.n_pucch_sr;
-    } else {
-      return false;
-    }
   }
+  if (cfg.pucch_cfg.sr_configured && srslte_ue_ul_sr_send_tti(&cfg.pucch_cfg, current_tti)) {
+    return (n_cce + cfg.pucch_cfg.N_pucch_1) == cfg.pucch_cfg.n_pucch_sr;
+  }
+  return false;
 }
 
 bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t cc_idx, uint32_t prb_idx[2])
@@ -913,6 +874,19 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes)
   return carriers[cc_idx].get_required_prb_ul(req_bytes);
 }
 
+void sched_ue::set_bearer_cfg_unlocked(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg_)
+{
+  if (lc_id < sched_interface::MAX_LC) {
+    bool is_idle   = lch[lc_id].cfg.direction == sched_interface::ue_bearer_cfg_t::IDLE;
+    lch[lc_id].cfg = cfg_;
+    if (lch[lc_id].cfg.direction != sched_interface::ue_bearer_cfg_t::IDLE) {
+      Info("SCHED: Set bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
+    } else if (not is_idle) {
+      Info("SCHED: Removed bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
+    }
+  }
+}
+
 bool sched_ue::is_sr_triggered()
 {
   return sr;
@@ -1093,19 +1067,27 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
  *                                sched_ue::sched_ue_carrier
  ***********************************************************************************************/
 
-sched_ue_carrier::sched_ue_carrier(sched_interface::ue_cfg_t* cfg_,
-                                   const sched_cell_params_t& cell_cfg_,
-                                   uint16_t                   rnti_) :
-  cfg(cfg_),
+sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
+                                   const sched_cell_params_t&       cell_cfg_,
+                                   uint16_t                         rnti_) :
   cell_params(&cell_cfg_),
   rnti(rnti_),
   log_h(srslte::logmap::get("MAC "))
 {
-  // Config HARQ processes
+  // Init HARQ processes
   for (uint32_t i = 0; i < dl_harq.size(); ++i) {
-    dl_harq[i].config(i, cfg->maxharq_tx, log_h);
-    ul_harq[i].config(i, cfg->maxharq_tx, log_h);
+    dl_harq[i].init(i);
+    ul_harq[i].init(i);
   }
+
+  // set max mcs
+  max_mcs_ul     = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
+  max_mcs_dl     = cell_params->sched_cfg->pdsch_max_mcs >= 0 ? cell_params->sched_cfg->pdsch_max_mcs : 28;
+  max_aggr_level = cell_params->sched_cfg->max_aggr_level >= 0 ? cell_params->sched_cfg->max_aggr_level : 3;
+
+  // set fixed mcs
+  fixed_mcs_dl = cell_params->sched_cfg->pdsch_mcs;
+  fixed_mcs_ul = cell_params->sched_cfg->pusch_mcs;
 
   // Generate allowed CCE locations
   for (int cfi = 0; cfi < 3; cfi++) {
@@ -1113,6 +1095,8 @@ sched_ue_carrier::sched_ue_carrier(sched_interface::ue_cfg_t* cfg_,
       sched::generate_cce_location(cell_params->regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
     }
   }
+
+  set_cfg(cfg_);
 }
 
 void sched_ue_carrier::reset()
@@ -1130,6 +1114,16 @@ void sched_ue_carrier::reset()
       dl_harq[i].reset(tb);
       ul_harq[i].reset(tb);
     }
+  }
+}
+
+void sched_ue_carrier::set_cfg(const sched_interface::ue_cfg_t& cfg_)
+{
+  cfg = &cfg_;
+  // Config HARQ processes
+  for (uint32_t i = 0; i < dl_harq.size(); ++i) {
+    dl_harq[i].set_cfg(cfg->maxharq_tx);
+    ul_harq[i].set_cfg(cfg->maxharq_tx);
   }
 }
 

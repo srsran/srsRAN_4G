@@ -255,7 +255,7 @@ int sched_tester::add_user(uint16_t                                 rnti,
   info.preamble_idx = tti_data.nof_prachs++;
   tester_ues.insert(std::make_pair(rnti, info));
 
-  CONDERROR(ue_cfg(rnti, &ue_cfg_) != SRSLTE_SUCCESS, "[TESTER] Configuring new user rnti=0x%x to sched\n", rnti);
+  CONDERROR(ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "[TESTER] Configuring new user rnti=0x%x to sched\n", rnti);
 
   dl_sched_rar_info_t rar_info = {};
   rar_info.prach_tti           = tti_data.tti_rx;

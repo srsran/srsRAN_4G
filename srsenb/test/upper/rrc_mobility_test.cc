@@ -289,7 +289,7 @@ int test_mobility_class(mobility_test_params test_params)
   };
 
   uint16_t rnti = 0x46;
-  rrc.add_user(rnti);
+  rrc.add_user(rnti, {});
 
   rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
   // Do all the handshaking until the first RRC Connection Reconf

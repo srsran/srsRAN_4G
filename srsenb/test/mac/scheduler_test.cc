@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   bzero(&bearer_cfg, sizeof(srsenb::sched_interface::ue_bearer_cfg_t));
   bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
-  my_sched.ue_cfg(rnti, &ue_cfg);
+  my_sched.ue_cfg(rnti, ue_cfg);
   my_sched.bearer_ue_cfg(rnti, 0, &bearer_cfg);
   // my_sched.dl_rlc_buffer_state(rnti, 0, 1e6, 0);
   my_sched.ul_bsr(rnti, 0, 1e6f, true);

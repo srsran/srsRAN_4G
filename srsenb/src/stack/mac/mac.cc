@@ -214,7 +214,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
     }
 
     // Update Scheduler configuration
-    if ((cfg != nullptr) ? (scheduler.ue_cfg(rnti, cfg) != SRSLTE_SUCCESS) : false) {
+    if ((cfg != nullptr) ? (scheduler.ue_cfg(rnti, *cfg) != SRSLTE_SUCCESS) : false) {
       Error("Registering new UE rnti=0x%x to SCHED\n", rnti);
     } else {
       ret = 0;
@@ -487,13 +487,13 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
   ue_cfg.supported_cc_idxs.push_back(enb_cc_idx);
   ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   ue_cfg.dl_cfg.tm               = SRSLTE_TM1;
-  if (scheduler.ue_cfg(rnti, &ue_cfg) != SRSLTE_SUCCESS) {
+  if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
     Error("Registering new user rnti=0x%x to SCHED\n", rnti);
     return -1;
   }
 
   // Register new user in RRC
-  rrc_h->add_user(rnti);
+  rrc_h->add_user(rnti, ue_cfg);
 
   // Add temporal rnti to the PHY
   if (phy_h->add_rnti(rnti, true)) {
@@ -856,7 +856,7 @@ void mac::write_mcch(sib_type2_s* sib2_, sib_type13_r9_s* sib13_, mcch_msg_s* mc
   current_mcch_length = current_mcch_length + rlc_header_len;
   ue_db[SRSLTE_MRNTI] = new ue(SRSLTE_MRNTI, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
 
-  rrc_h->add_user(SRSLTE_MRNTI);
+  rrc_h->add_user(SRSLTE_MRNTI, {});
 }
 
 } // namespace srsenb

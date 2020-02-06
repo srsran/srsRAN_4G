@@ -43,8 +43,9 @@ struct sched_dci_cce_t {
 struct sched_ue_carrier {
   const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
 
-  sched_ue_carrier(sched_interface::ue_cfg_t* cfg_, const sched_cell_params_t& cell_cfg_, uint16_t rnti_);
+  sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_, const sched_cell_params_t& cell_cfg_, uint16_t rnti_);
   void reset();
+  void set_cfg(const sched_interface::ue_cfg_t& cfg); ///< reconfigure ue carrier
 
   // Harq access
   void          reset_old_pending_pids(uint32_t tti_rx);
@@ -81,10 +82,10 @@ struct sched_ue_carrier {
   std::array<std::array<sched_dci_cce_t, 10>, 3> dci_locations = {};
 
 private:
-  srslte::log*               log_h       = nullptr;
-  sched_interface::ue_cfg_t* cfg         = nullptr;
-  const sched_cell_params_t* cell_params = nullptr;
-  uint16_t                   rnti;
+  srslte::log*                     log_h       = nullptr;
+  const sched_interface::ue_cfg_t* cfg         = nullptr;
+  const sched_cell_params_t*       cell_params = nullptr;
+  uint16_t                         rnti;
 };
 
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
@@ -128,9 +129,6 @@ public:
 
   void tpc_inc();
   void tpc_dec();
-
-  void set_max_mcs(int mcs_ul, int mcs_dl, int max_aggr_level = -1);
-  void set_fixed_mcs(int mcs_ul, int mcs_dl);
 
   dl_harq_proc*             find_dl_harq(uint32_t tti_rx, uint32_t cc_idx);
   dl_harq_proc*             get_dl_harq(uint32_t idx, uint32_t cc_idx);
@@ -214,12 +212,14 @@ public:
                         uint32_t* mcs);
 
 private:
-  typedef struct {
-    sched_interface::ue_bearer_cfg_t cfg;
-    int                              buf_tx;
-    int                              buf_retx;
-    int                              bsr;
-  } ue_bearer_t;
+  struct ue_bearer_t {
+    sched_interface::ue_bearer_cfg_t cfg      = {};
+    int                              buf_tx   = 0;
+    int                              buf_retx = 0;
+    int                              bsr      = 0;
+  };
+
+  void set_bearer_cfg_unlocked(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg_);
 
   bool is_sr_triggered();
   int  alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
@@ -267,7 +267,6 @@ private:
   uint32_t max_msg3retx    = 0;
 
   /* User State */
-  bool configured        = false;
   bool conres_ce_pending = true;
 
   uint32_t nof_ta_cmd = 0;
@@ -275,11 +274,11 @@ private:
   int next_tpc_pusch = 0;
   int next_tpc_pucch = 0;
 
-  bool                            phy_config_dedicated_enabled = false;
-  sched_interface::ant_info_ded_t dl_ant_info;
+  bool phy_config_dedicated_enabled = false;
 
-  std::vector<sched_ue_carrier> carriers;             ///< map of UE CellIndex to carrier configuration
-  std::map<uint32_t, uint32_t>  enb_ue_cellindex_map; ///< map cc idx eNB -> UE
+  sched_interface::ant_info_ded_t dl_ant_info;
+  std::vector<sched_ue_carrier>   carriers;             ///< map of UE CellIndex to carrier configuration
+  std::map<uint32_t, uint32_t>    enb_ue_cellindex_map; ///< map cc idx eNB -> UE
 };
 } // namespace srsenb
 

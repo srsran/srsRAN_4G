@@ -101,13 +101,13 @@ public:
     std::vector<scell_cfg_t> scell_list;
   };
 
-  typedef struct {
+  struct ue_bearer_cfg_t {
     int priority;
     int bsd;
     int pbr;
     int group;
-    enum { IDLE = 0, UL, DL, BOTH } direction;
-  } ue_bearer_cfg_t;
+    enum { IDLE = 0, UL, DL, BOTH } direction = IDLE;
+  };
 
   struct ant_info_ded_t {
     enum class tx_mode_t { tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8_v920, nulltype } tx_mode;
@@ -128,14 +128,14 @@ public:
 
   struct ue_cfg_t {
     /* ue capabilities, etc */
-    uint32_t                maxharq_tx;
-    bool                    continuous_pusch;
-    srslte_uci_offset_cfg_t uci_offset;
-    srslte_pucch_cfg_t      pucch_cfg;
-    uint32_t                aperiodic_cqi_period; // if 0 is periodic CQI
-    srslte_dl_cfg_t         dl_cfg;
-    ue_bearer_cfg_t         ue_bearers[MAX_LC];
-    std::vector<uint32_t>   supported_cc_idxs;
+    uint32_t                            maxharq_tx = 5;
+    bool                                continuous_pusch;
+    srslte_uci_offset_cfg_t             uci_offset;
+    srslte_pucch_cfg_t                  pucch_cfg            = {};
+    uint32_t                            aperiodic_cqi_period = 0; // if 0 is periodic CQI
+    srslte_dl_cfg_t                     dl_cfg;
+    std::array<ue_bearer_cfg_t, MAX_LC> ue_bearers = {};
+    std::vector<uint32_t>               supported_cc_idxs;
   };
 
   typedef struct {
@@ -234,9 +234,9 @@ public:
   virtual int reset()                                           = 0;
 
   /* Manages UE scheduling context */
-  virtual int  ue_cfg(uint16_t rnti, ue_cfg_t* cfg) = 0;
-  virtual int  ue_rem(uint16_t rnti)                = 0;
-  virtual bool ue_exists(uint16_t rnti)             = 0;
+  virtual int  ue_cfg(uint16_t rnti, const ue_cfg_t& cfg) = 0;
+  virtual int  ue_rem(uint16_t rnti)                      = 0;
+  virtual bool ue_exists(uint16_t rnti)                   = 0;
 
   /* Manages UE bearers and associated configuration */
   virtual int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t* cfg) = 0;

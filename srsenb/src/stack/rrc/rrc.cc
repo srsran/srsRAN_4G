@@ -182,12 +182,12 @@ void rrc::log_rrc_message(const std::string&           source,
 void rrc::max_retx_attempted(uint16_t rnti) {}
 
 // This function is called from PRACH worker (can wait)
-void rrc::add_user(uint16_t rnti)
+void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 {
   pthread_mutex_lock(&user_mutex);
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti})));
+    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     rrc_log->info("Added new user rnti=0x%x\n", rnti);
@@ -1009,10 +1009,11 @@ void rrc::tti_clock()
   need extra protection.
 *******************************************************************************/
 
-rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_) :
+rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sched_ue_cfg) :
   parent(outer_rrc),
   rnti(rnti_),
-  pool(srslte::byte_buffer_pool::get_instance())
+  pool(srslte::byte_buffer_pool::get_instance()),
+  current_sched_ue_cfg(sched_ue_cfg)
 {
   activity_timer = outer_rrc->timers->get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
@@ -1241,6 +1242,17 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
+    // Finally, add secondary carriers
+    // TODO: For now the ue supports all cc
+    auto& list = current_sched_ue_cfg.supported_cc_idxs;
+    for (uint32_t i = 0; i < parent->cfg.cell_list.size(); ++i) {
+      auto it = std::find(list.begin(), list.end(), i);
+      if (it == list.end()) {
+        list.push_back(i);
+      }
+    }
+    parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
+
     // Finally, add SRB2 and DRB1 to the scheduler
     srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
     bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
@@ -1580,36 +1592,30 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
 
   // Add SRB1 to Scheduler
-  srsenb::sched_interface::ue_cfg_t ue_cfg = {};
-  ue_cfg.maxharq_tx                        = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
-  ue_cfg.continuous_pusch                  = false;
-  ue_cfg.aperiodic_cqi_period = parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC ? parent->cfg.cqi_cfg.period : 0;
-  ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  current_sched_ue_cfg.maxharq_tx              = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
+  current_sched_ue_cfg.continuous_pusch        = false;
+  current_sched_ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  current_sched_ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    ue_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.mode == parent->cfg.cqi_cfg.period;
-    ue_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
+    current_sched_ue_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.period;
+    current_sched_ue_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
   } else {
-    ue_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_idx;
-    ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
+    current_sched_ue_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_idx;
+    current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
   }
-  ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
-  ue_cfg.pucch_cfg.I_sr              = sr_I;
-  ue_cfg.pucch_cfg.n_pucch_sr        = sr_N_pucch;
-  ue_cfg.pucch_cfg.sr_configured     = true;
-  ue_cfg.pucch_cfg.n_pucch           = cqi_pucch;
-  ue_cfg.pucch_cfg.delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
-  ue_cfg.pucch_cfg.N_cs              = parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
-  ue_cfg.pucch_cfg.n_rb_2            = parent->sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
-  ue_cfg.pucch_cfg.N_pucch_1         = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
-  // TODO: For now the ue supports all cc
-  ue_cfg.supported_cc_idxs.resize(parent->cfg.cell_list.size());
-  for (uint32_t i = 0; i < ue_cfg.supported_cc_idxs.size(); ++i) {
-    ue_cfg.supported_cc_idxs[i] = i;
-  }
+  current_sched_ue_cfg.dl_cfg.tm               = SRSLTE_TM1;
+  current_sched_ue_cfg.pucch_cfg.I_sr          = sr_I;
+  current_sched_ue_cfg.pucch_cfg.n_pucch_sr    = sr_N_pucch;
+  current_sched_ue_cfg.pucch_cfg.sr_configured = true;
+  current_sched_ue_cfg.pucch_cfg.n_pucch       = cqi_pucch;
+  current_sched_ue_cfg.pucch_cfg.delta_pucch_shift =
+      parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  current_sched_ue_cfg.pucch_cfg.N_cs      = parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+  current_sched_ue_cfg.pucch_cfg.n_rb_2    = parent->sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
+  current_sched_ue_cfg.pucch_cfg.N_pucch_1 = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
 
   // Configure MAC
-  parent->mac->ue_cfg(rnti, &ue_cfg);
+  parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
   // Configure SRB1 in RLC
   parent->rlc->add_bearer(rnti, 1, srslte::rlc_config_t::srb_config(1));
