@@ -26,6 +26,3 @@ set(SOURCES enb_stack_lte.cc)
 
 add_library(srsenb_stack STATIC ${SOURCES})
 target_link_libraries(srsenb_stack)
-
-install(TARGETS srsenb_stack DESTINATION ${LIBRARY_DIR})
-

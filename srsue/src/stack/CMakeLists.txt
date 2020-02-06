@@ -23,8 +23,4 @@ add_subdirectory(rrc)
 add_subdirectory(upper)
 
 set(SOURCES ue_stack_lte.cc)
-
 add_library(srsue_stack STATIC ${SOURCES})
-
-install(TARGETS srsue_stack DESTINATION ${LIBRARY_DIR})
-

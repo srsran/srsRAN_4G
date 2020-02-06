@@ -20,5 +20,3 @@
 
 file(GLOB SOURCES "*.cc")
 add_library(srsepc_mme STATIC ${SOURCES})
-install(TARGETS srsepc_mme DESTINATION ${LIBRARY_DIR})
-

@@ -20,5 +20,3 @@
 
 file(GLOB SOURCES "*.cc")
 add_library(srsenb_mac STATIC ${SOURCES})
-install(TARGETS srsenb_mac DESTINATION ${LIBRARY_DIR})
-

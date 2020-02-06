@@ -20,4 +20,3 @@
 
 file(GLOB SOURCES "*.cc")
 add_library(srsepc_mbms_gw STATIC ${SOURCES})
-install(TARGETS srsepc_mbms_gw DESTINATION ${LIBRARY_DIR})

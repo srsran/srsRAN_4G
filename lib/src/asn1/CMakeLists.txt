@@ -26,11 +26,9 @@ add_library(srslte_asn1 STATIC
   liblte_m2ap.cc
   gtpc.cc
 )
-install(TARGETS srslte_asn1 DESTINATION ${LIBRARY_DIR})
 
-# Install ASN1 utils
+# ASN1 utils
 add_library(asn1_utils STATIC asn1_utils.cc)
-install(TARGETS asn1_utils DESTINATION ${LIBRARY_DIR})
 
 add_library(rrc_asn1 STATIC
         rrc_asn1.cc
@@ -40,25 +38,22 @@ add_library(rrc_asn1 STATIC
 # Compile RRC ASN1 optimized for size
 target_compile_options(rrc_asn1 PRIVATE "-Os")
 target_link_libraries(rrc_asn1 asn1_utils)
-install(TARGETS rrc_asn1 DESTINATION ${LIBRARY_DIR})
 
 add_library(s1ap_asn1 STATIC
         s1ap_asn1.cc)
 target_compile_options(s1ap_asn1 PRIVATE "-Os")
 target_link_libraries(s1ap_asn1 asn1_utils)
-install(TARGETS s1ap_asn1 DESTINATION ${LIBRARY_DIR})
 
 if (ENABLE_5GNR)
-    # Install RRC NR ASN1
+    # RRC NR ASN1
     add_library(rrc_nr_asn1 STATIC rrc_nr_asn1.cc)
     target_compile_options(rrc_nr_asn1 PRIVATE "-Os")
     target_link_libraries(rrc_nr_asn1 asn1_utils)
-    install(TARGETS rrc_nr_asn1 DESTINATION ${LIBRARY_DIR})
-    # Install NGAP ASN1
+
+    # NGAP ASN1
     add_library(ngap_nr_asn1 STATIC ngap_nr_asn1.cc)
     target_compile_options(ngap_nr_asn1 PRIVATE "-Os")
     target_link_libraries(ngap_nr_asn1 asn1_utils)
-    install(TARGETS ngap_nr_asn1 DESTINATION ${LIBRARY_DIR})
 endif(ENABLE_5GNR)
 
 

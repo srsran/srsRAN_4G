@@ -60,9 +60,6 @@ if (RPATH)
   set_target_properties(srsmbms PROPERTIES INSTALL_RPATH ".")
 endif (RPATH)
 
-install(TARGETS srsepc DESTINATION ${RUNTIME_DIR})
-install(TARGETS srsmbms DESTINATION ${RUNTIME_DIR})
-
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################
@@ -74,3 +71,4 @@ else(NOT ${BUILDEPC_CMD} STREQUAL "")
 endif (NOT ${BUILDEPC_CMD} STREQUAL "")
 
 install(TARGETS srsepc DESTINATION ${RUNTIME_DIR})
+install(TARGETS srsmbms DESTINATION ${RUNTIME_DIR})

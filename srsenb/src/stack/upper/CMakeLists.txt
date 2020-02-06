@@ -20,5 +20,3 @@
 
 file(GLOB SOURCES "*.cc")
 add_library(srsenb_upper STATIC ${SOURCES})
-install(TARGETS srsenb_upper DESTINATION ${LIBRARY_DIR})
-

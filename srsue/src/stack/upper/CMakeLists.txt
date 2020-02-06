@@ -29,5 +29,3 @@ add_library(srsue_upper STATIC ${SOURCES})
 if(HAVE_PCSC)
   target_link_libraries(srsue_upper ${PCSCLITE_LIBRARY})
 endif(HAVE_PCSC)
-
-install(TARGETS srsue_upper DESTINATION ${LIBRARY_DIR})

@@ -24,6 +24,3 @@ add_library(srsenb_phy STATIC ${SOURCES})
 if(ENABLE_GUI AND SRSGUI_FOUND)
     target_link_libraries(srsenb_phy ${SRSGUI_LIBRARIES})
 endif(ENABLE_GUI AND SRSGUI_FOUND)
-
-install(TARGETS srsenb_phy DESTINATION ${LIBRARY_DIR})
-
