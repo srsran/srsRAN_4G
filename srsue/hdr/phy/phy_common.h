@@ -214,6 +214,7 @@ private:
   received_ack_t pending_dl_ack[TTIMOD_SZ][SRSLTE_MAX_CARRIERS] = {};
   uint32_t       pending_dl_dai[TTIMOD_SZ][SRSLTE_MAX_CARRIERS] = {};
   std::mutex     pending_dl_ack_mutex;
+  std::mutex     pending_dl_grant_mutex;
 
   // Cross-carried grants scheduled from PCell
   typedef struct {

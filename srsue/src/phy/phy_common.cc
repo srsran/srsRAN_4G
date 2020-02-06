@@ -428,6 +428,7 @@ void phy_common::set_dl_pending_grant(uint32_t               tti,
                                       uint32_t               grant_cc_idx,
                                       const srslte_dci_dl_t* dl_dci)
 {
+  std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
   if (!pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable) {
     pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].dl_dci       = *dl_dci;
     pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].grant_cc_idx = grant_cc_idx;
@@ -439,6 +440,7 @@ void phy_common::set_dl_pending_grant(uint32_t               tti,
 
 bool phy_common::get_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t* grant_cc_idx, srslte_dci_dl_t* dl_dci)
 {
+  std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
   if (pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable) {
     // Read grant
     if (dl_dci) {

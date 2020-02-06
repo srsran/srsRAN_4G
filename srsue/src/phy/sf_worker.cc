@@ -149,6 +149,7 @@ void sf_worker::set_cfo(const uint32_t& cc_idx, float cfo)
 
 void sf_worker::set_crnti(uint16_t rnti)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   for (auto& cc_worker : cc_workers) {
     cc_worker->set_crnti(rnti);
   }
@@ -156,6 +157,7 @@ void sf_worker::set_crnti(uint16_t rnti)
 
 void sf_worker::set_tdd_config(srslte_tdd_config_t config)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   for (auto& cc_worker : cc_workers) {
     cc_worker->set_tdd_config(config);
   }
@@ -164,6 +166,7 @@ void sf_worker::set_tdd_config(srslte_tdd_config_t config)
 
 void sf_worker::enable_pregen_signals(bool enabled)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   for (auto& cc_worker : cc_workers) {
     cc_worker->enable_pregen_signals(enabled);
   }
