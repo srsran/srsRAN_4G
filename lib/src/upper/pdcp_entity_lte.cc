@@ -153,45 +153,54 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
   }
 
   std::unique_lock<std::mutex> lock(mutex);
-  if (is_drb()) {
-    // Handle DRB messages
-    if (rlc->rb_is_um(lcid)) {
-      handle_um_drb_pdu(pdu);
-    } else {
-      handle_am_drb_pdu(pdu);
+  if (is_srb()) {
+    bool integrity_valid = handle_srb_pdu(pdu);
+    if (integrity_valid) {
+      rrc->write_pdu(lcid, std::move(pdu));
     }
+  } else if (is_drb() && rlc->rb_is_um(lcid)) {
+    handle_um_drb_pdu(pdu);
+    gw->write_pdu(lcid, std::move(pdu));
+  } else if (is_drb() && !rlc->rb_is_um(lcid)) {
+    handle_am_drb_pdu(pdu);
     gw->write_pdu(lcid, std::move(pdu));
   } else {
-    // Handle SRB messages
-    if (is_srb()) {
-      uint32_t sn = *pdu->msg & 0x1F;
-      if (do_encryption) {
-        cipher_decrypt(
-            &pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, sn, &(pdu->msg[cfg.hdr_len_bytes]));
-        log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
-      }
-
-      if (do_integrity) {
-        if (not integrity_verify(pdu->msg, pdu->N_bytes - 4, sn, &(pdu->msg[pdu->N_bytes - 4]))) {
-          log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
-          goto exit;
-        }
-      }
-
-      pdcp_unpack_control_pdu(pdu.get(), &sn);
-      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
-    }
-    // pass to RRC
-    rrc->write_pdu(lcid, std::move(pdu));
+    log->error("Invalid PDCP/RLC configuration");
   }
-exit:
-  rx_count++;
 }
 
 /****************************************************************************
  * Rx data/control handler functions
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
  ***************************************************************************/
+// SRBs (5.1.2.2)
+// Returns a boolean indicating weather integrity has passed
+bool pdcp_entity_lte::handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu)
+{
+
+  uint32_t sn; 
+  uint8_t mac[4];
+  pdcp_unpack_control_pdu(pdu.get(), &sn, mac);
+
+  // TODO Fix count computation
+  uint32_t count = sn;
+ 
+  if (do_encryption) {
+    cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
+    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+  }
+
+  if (do_integrity) {
+    if (not integrity_verify(pdu->msg, pdu->N_bytes - 4, sn, &(pdu->msg[pdu->N_bytes - 4]))) {
+      log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
+      return false;
+    }
+  }
+
+  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+  return true;
+}
+
 // DRBs mapped on RLC UM (5.1.2.1.3)
 void pdcp_entity_lte::handle_um_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
 {
@@ -332,17 +341,15 @@ void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t* sdu)
   sdu->msg[sdu->N_bytes++] = PDCP_CONTROL_MAC_I & 0xFF;
 }
 
-void pdcp_unpack_control_pdu(byte_buffer_t* pdu, uint32_t* sn)
+void pdcp_unpack_control_pdu(byte_buffer_t* sdu, uint32_t* sn, uint8_t *mac)
 {
   // Strip header
-  *sn = *pdu->msg & 0x1F;
-  pdu->msg++;
-  pdu->N_bytes--;
-
-  // Strip MAC
-  pdu->N_bytes -= 4;
-
-  // TODO: integrity check MAC
+  *sn = sdu->msg[0] & 0x1Fu;
+  sdu->msg++;
+  sdu->N_bytes--;
+  
+  memcpy(mac, sdu->msg, 4);
+  sdu->N_bytes -= 4;
 }
 
 void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t* sdu)
@@ -350,13 +357,14 @@ void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t* sdu)
   // Make room and add header
   sdu->msg--;
   sdu->N_bytes++;
-  sdu->msg[0] = (PDCP_D_C_DATA_PDU << 7) | (sn & 0x7F);
+  sdu->msg[0] = (PDCP_D_C_DATA_PDU << 7) | (sn & 0x7Fu);
 }
+
 
 void pdcp_unpack_data_pdu_short_sn(byte_buffer_t* sdu, uint32_t* sn)
 {
   // Strip header
-  *sn = sdu->msg[0] & 0x7F;
+  *sn = sdu->msg[0] & 0x7Fu;
   sdu->msg++;
   sdu->N_bytes--;
 }
@@ -366,14 +374,14 @@ void pdcp_pack_data_pdu_long_sn(uint32_t sn, byte_buffer_t* sdu)
   // Make room and add header
   sdu->msg -= 2;
   sdu->N_bytes += 2;
-  sdu->msg[0] = (PDCP_D_C_DATA_PDU << 7) | ((sn >> 8) & 0x0F);
-  sdu->msg[1] = sn & 0xFF;
+  sdu->msg[0] = (PDCP_D_C_DATA_PDU << 7) | ((sn >> 8) & 0x0Fu);
+  sdu->msg[1] = sn & 0xFFu;
 }
 
 void pdcp_unpack_data_pdu_long_sn(byte_buffer_t* sdu, uint32_t* sn)
 {
   // Strip header
-  *sn = (sdu->msg[0] & 0x0F) << 8;
+  *sn = (sdu->msg[0] & 0x0Fu) << 8;
   *sn |= sdu->msg[1];
   sdu->msg += 2;
   sdu->N_bytes -= 2;
