@@ -54,6 +54,7 @@ public:
                                    const std::array<uint8_t, 32>             k_up_enc,
                                    const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                    const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)                          = 0;
+  virtual void     release_as_security()                                                                          = 0;
 };
 
 class ss_srb_interface

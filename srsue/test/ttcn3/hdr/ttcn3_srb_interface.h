@@ -124,7 +124,7 @@ private:
           handle_ccch_pdu(document, &rx_buf->at(rx_buf_offset), n - rx_buf_offset);
         } else if (rrcpdu.HasMember("Dcch")) {
           rx_buf_offset += 2;
-          uint32_t lcid = 1;
+          uint32_t lcid = document["Common"]["RoutingInfo"]["RadioBearerId"]["Srb"].GetInt();
           handle_dcch_pdu(document, lcid, &rx_buf->at(rx_buf_offset), n - rx_buf_offset);
         } else {
           log->error("Received unknown request.\n");
@@ -161,7 +161,7 @@ private:
   // Todo: move to SYSSIM
   void handle_dcch_pdu(Document& document, const uint16_t lcid, const uint8_t* payload, const uint16_t len)
   {
-    log->info_hex(payload, len, "Received DCCH RRC PDU\n");
+    log->info_hex(payload, len, "Received DCCH RRC PDU (lcid=%d)\n", lcid);
 
     // pack into byte buffer
     unique_byte_buffer_t pdu = pool_allocate_blocking;

@@ -409,6 +409,9 @@ private:
 
       // configure SS to use AS security
       syssim->set_as_security(lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+    } else if (as_sec.HasMember("Release")) {
+      // release all security configs
+      syssim->release_as_security();
     }
 
     if (config_flag.GetBool() == true) {

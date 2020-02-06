@@ -149,6 +149,7 @@ public:
     pdcp.reset();
     cells.clear();
     pcell_idx = -1;
+    as_security_enabled = false;
   }
 
   // Called from UT before starting testcase
@@ -765,8 +766,17 @@ public:
   void add_srb(uint32_t lcid, pdcp_config_t pdcp_config)
   {
     std::lock_guard<std::mutex> lock(mutex);
+    log.info("Adding SRB%d\n", lcid);
     pdcp.add_bearer(lcid, pdcp_config);
     rlc.add_bearer(lcid, srslte::rlc_config_t::srb_config(lcid));
+
+    // Enable security for SRB2
+    if (lcid == 2) {
+      log.info("Enabling AS security for LCID=%d\n", lcid);
+      pdcp.config_security(lcid, k_rrc_enc.data(), k_rrc_int.data(), k_up_enc.data(), cipher_algo, integ_algo);
+      pdcp.enable_encryption(lcid);
+      pdcp.enable_integrity(lcid);
+    }
   }
 
   void reestablish_bearer(uint32_t lcid)
@@ -780,6 +790,7 @@ public:
   void del_srb(uint32_t lcid)
   {
     std::lock_guard<std::mutex> lock(mutex);
+    log.info("Deleting SRB%d\n", lcid);
     // Only delete SRB1/2
     if (lcid > 0) {
       pdcp.del_bearer(lcid);
@@ -852,17 +863,40 @@ public:
   bool rb_is_um(uint32_t lcid) { return false; }
 
   int set_as_security(const uint32_t                            lcid,
-                      std::array<uint8_t, 32>                   k_rrc_enc,
-                      std::array<uint8_t, 32>                   k_rrc_int,
-                      std::array<uint8_t, 32>                   k_up_enc,
-                      const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                      const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+                      std::array<uint8_t, 32>                   k_rrc_enc_,
+                      std::array<uint8_t, 32>                   k_rrc_int_,
+                      std::array<uint8_t, 32>                   k_up_enc_,
+                      const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                      const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
   {
     log.info("Setting AS security for LCID=%d\n", lcid);
-    pdcp.config_security(lcid, k_rrc_enc.data(), k_rrc_int.data(), k_up_enc.data(), cipher_algo, integ_algo);
+    pdcp.config_security(lcid, k_rrc_enc_.data(), k_rrc_int_.data(), k_up_enc_.data(), cipher_algo_, integ_algo_);
     pdcp.enable_integrity(lcid);
     pdcp.enable_encryption(lcid);
+
+    // if SRB2 is established, also apply security config
+    uint32_t srb2_lcid = 2;
+    if (pdcp.is_lcid_enabled(2)) {
+      log.info("Updating AS security for LCID=%d\n", srb2_lcid);
+      pdcp.config_security(
+          srb2_lcid, k_rrc_enc_.data(), k_rrc_int_.data(), k_up_enc_.data(), cipher_algo_, integ_algo_);
+    }
+
+    // store security config for later use (i.e. new bearer added)
+    as_security_enabled = true;
+    k_rrc_enc           = k_rrc_enc_;
+    k_rrc_int           = k_rrc_int_;
+    k_up_enc            = k_up_enc_;
+    cipher_algo         = cipher_algo_;
+    integ_algo          = integ_algo_;
+
     return 0;
+  }
+
+  void release_as_security()
+  {
+    log.info("Releasing AS security\n");
+    as_security_enabled = false;
   }
 
   void select_cell(srslte_cell_t phy_cell)
@@ -951,6 +985,14 @@ private:
   // Simulator objects
   srslte::rlc  rlc;
   srslte::pdcp pdcp;
+
+  // security config
+  bool                                as_security_enabled = false;
+  std::array<uint8_t, 32>             k_rrc_enc;
+  std::array<uint8_t, 32>             k_rrc_int;
+  std::array<uint8_t, 32>             k_up_enc;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = INTEGRITY_ALGORITHM_ID_EIA0;
 
   std::vector<std::string> rb_id_vec =
       {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};
