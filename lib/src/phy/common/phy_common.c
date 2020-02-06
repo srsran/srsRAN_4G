@@ -854,3 +854,18 @@ bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t
     return srslte_psbch_symbol_map_tm34[i] == type;
   }
 }
+
+const char* srslte_ack_nack_feedback_mode_string(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode)
+{
+  switch (ack_nack_feedback_mode) {
+    case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL:
+      return "normal";
+    case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS:
+      return "cs";
+    case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3:
+      return "pucch3";
+    case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_ERROR:
+    default:
+      return "error";
+  }
+}

@@ -471,4 +471,12 @@ SRSLTE_API char* srslte_nbiot_mode_string(srslte_nbiot_mode_t mode);
 
 bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i);
 
+/**
+ * Returns a constant string pointer with the ACK/NACK feedback mode
+ *
+ * @param ack_nack_feedback_mode Mode
+ * @return Returns constant pointer with the text of the mode if succesful, `error` otherwise
+ */
+SRSLTE_API const char* srslte_ack_nack_feedback_mode_string(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode);
+
 #endif // SRSLTE_PHY_COMMON_H

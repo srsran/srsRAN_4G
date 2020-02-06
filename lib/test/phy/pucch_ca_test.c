@@ -30,9 +30,9 @@
 
 #include "srslte/srslte.h"
 
-static int test_pucch_cs(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode,
+static int test_pucch_ca(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode,
                          uint32_t                        nof_prb,
-                         const uint32_t                  nof_tb[SRSLTE_MAX_CARRIERS],
+                         const uint32_t*                 nof_tb,
                          uint16_t                        nof_carriers)
 {
   srslte_pucch_cfg_t pucch_cfg = {};
@@ -145,28 +145,26 @@ int main(int argc, char** argv)
   // Set PHY lib verbose to INFO
   srslte_verbose = SRSLTE_VERBOSE_INFO;
 
-  uint32_t nof_tb_1[SRSLTE_MAX_CARRIERS] = {1, 1, 1, 1, 0};
-  uint32_t nof_tb_2[SRSLTE_MAX_CARRIERS] = {2, 1, 1, 0, 0};
+  uint32_t nof_tb_1[SRSLTE_MAX_CARRIERS] = {1, 1, 1, 1, 1};
+  uint32_t nof_tb_2[SRSLTE_MAX_CARRIERS] = {2, 1, 1, 1, 1};
   uint32_t nof_tb_3[SRSLTE_MAX_CARRIERS] = {2, 2, 2, 2, 2};
 
-  for (srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS;
-       ack_nack_feedback_mode < SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_ERROR;
-       ack_nack_feedback_mode++) {
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 6, nof_tb_1, 2));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 6, nof_tb_1, 3));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 6, nof_tb_1, 4));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 6, nof_tb_2, 3));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 6, nof_tb_2, 3));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 6, nof_tb_3, 2));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 100, nof_tb_1, 2));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 100, nof_tb_1, 3));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 100, nof_tb_1, 4));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 100, nof_tb_2, 3));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 100, nof_tb_2, 3));
-    TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 100, nof_tb_3, 2));
-    if (ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3) {
-      TESTASSERT(!test_pucch_cs(ack_nack_feedback_mode, 6, nof_tb_3, 5));
-    }
+  TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS, 6, nof_tb_1, 2));
+  TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS, 6, nof_tb_2, 2));
+  TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS, 6, nof_tb_3, 2));
+
+  TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS, 100, nof_tb_1, 2));
+  TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS, 100, nof_tb_2, 2));
+  TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS, 100, nof_tb_3, 2));
+
+  for (uint32_t i = 2; i < SRSLTE_PUCCH_FORMAT3_MAX_CARRIERS; i++) {
+    TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3, 6, nof_tb_1, i));
+    TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3, 6, nof_tb_2, i));
+    TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3, 6, nof_tb_3, i));
+
+    TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3, 100, nof_tb_1, i));
+    TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3, 100, nof_tb_2, i));
+    TESTASSERT(!test_pucch_ca(SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3, 100, nof_tb_3, i));
   }
 
   printf("Ok\n");

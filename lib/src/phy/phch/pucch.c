@@ -1299,41 +1299,48 @@ srslte_pucch_format_t srslte_pucch_select_format(srslte_pucch_cfg_t* cfg, srslte
   return format;
 }
 
-int srslte_pucch_cs_resources(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, uint32_t n_pucch_i[4])
+int srslte_pucch_cs_resources(const srslte_pucch_cfg_t* cfg, const srslte_uci_cfg_t* uci_cfg, uint32_t n_pucch_i[4])
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
-
-  if (cfg && uci_cfg && n_pucch_i) {
-    // Determine the 4 PUCCH resources n_pucch_j associated with HARQ-ACK(j)
-    uint32_t k = 0;
-    for (int i = 0; i < SRSLTE_MAX_CARRIERS && k < SRSLTE_PUCCH_CS_MAX_ACK; i++) {
-      // If grant has been scheduled in PCell
-      if (uci_cfg->ack[i].grant_cc_idx == 0) {
-        for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
-          if (k % 2 == 1) {
-            n_pucch_i[k] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch][k / 2];
-          } else {
-            n_pucch_i[k] = uci_cfg->ack[i].ncce[0] + cfg->N_pucch_1 + j;
-          }
-          k++;
-        }
-      } else {
-        for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks; j++) {
-          if (k < 4) {
-            n_pucch_i[k++] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS]
-                                                [j % SRSLTE_PUCCH_NOF_AN_CS];
-          } else {
-            fprintf(stderr, "get_npucch_cs(): Too many ack bits\n");
-            return SRSLTE_ERROR;
-          }
-        }
-      }
-    }
-
-    ret = (int)k;
+  // Check inputs
+  if (!cfg || !uci_cfg || !n_pucch_i) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
-  return ret;
+  // Determine up to 4 PUCCH resources n_pucch_j associated with HARQ-ACK(j)
+  int k = 0;
+  for (int i = 0; i < SRSLTE_PUCCH_CS_MAX_CARRIERS && k < SRSLTE_PUCCH_CS_MAX_ACK; i++) {
+    if (uci_cfg->ack[i].grant_cc_idx == 0) {
+      // - for a PDSCH transmission indicated by the detection of a corresponding PDCCH in subframe n − 4 on the primary
+      //   cell, or for a PDCCH indicating downlink SPS release (defined in subclause 9.2) in subframe n − 4 on the
+      //   primary cell, the PUCCH resource is n_pucch_i = n_cce + N_pucch_1, and for transmission mode that supports up
+      //   to two transport blocks, the PUCCH resource n_pucch_i+1 = n_cce + N_pucch_1 + 1
+      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
+        n_pucch_i[k++] = uci_cfg->ack[i].ncce[0] + cfg->N_pucch_1 + j;
+      }
+    } else if (i == 0) {
+      // - for a PDSCH transmission on the primary cell where there is not a corresponding PDCCH detected in subframe
+      //   n − 4 , the value of n_pucch_i is determined according to higher layer configuration and Table 9.2-2. For
+      //   transmission mode that supports up to two transport blocks, the PUCCH resource n_pucch_i+1 = n_pucch_i + 1
+      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
+        n_pucch_i[k++] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS][0] + j;
+      }
+    } else {
+      // - for a PDSCH transmission indicated by the detection of a corresponding PDCCH in subframe n − 4 on the
+      //   secondary cell, the value of n_pucch_i, and the value of n_pucch_i+1 for the transmission mode that supports
+      //   up to two transport blocks is determined according to higher layer configuration and Table 10.1.2.2.1-2. The
+      //   TPC field in the DCI format of the corresponding PDCCH shall be used to determine the PUCCH resource values
+      //   from one of the four resource values configured by higher layers, with the mapping defined in Table
+      //   10.1.2.2.1-2. For a UE configured for a transmission mode that supports up to two transport blocks a PUCCH
+      //   resource value in Table 10.1.2.2.1-2 maps to two PUCCH resources (n_pucch_i, n_pucch_i + 1), otherwise the
+      //   PUCCH resource value maps to a single PUCCH resource n_pucch_i.
+      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks && k < SRSLTE_PUCCH_CS_MAX_ACK; j++) {
+        n_pucch_i[k++] =
+            cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS][j % SRSLTE_PUCCH_NOF_AN_CS];
+      }
+    }
+  }
+
+  return k;
 }
 
 #define PUCCH_CS_SET_ACK(J, B0, B1, ...)                                                                               \
