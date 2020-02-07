@@ -43,8 +43,9 @@
                         ? 0                                                                                            \
                         : ((SRSLTE_CP_NSYMB(q->cell.cp) - 3) * SRSLTE_SYMBOL_SZ(q->fft_size, q->cell.cp))))
 
-static cf_t  dummy_buffer0[15 * 2048 / 2];
-static cf_t  dummy_buffer1[15 * 2048 / 2];
+#define DUMMY_BUFFER_NUM_SAMPLES (15 * 2048 / 2)
+static cf_t  dummy_buffer0[DUMMY_BUFFER_NUM_SAMPLES];
+static cf_t  dummy_buffer1[DUMMY_BUFFER_NUM_SAMPLES];
 static cf_t* dummy_offset_buffer[SRSLTE_MAX_PORTS] = {dummy_buffer0, dummy_buffer1, dummy_buffer1, dummy_buffer1};
 
 int srslte_ue_sync_init_file(srslte_ue_sync_t* q, uint32_t nof_prb, char* file_name, int offset_time, float offset_freq)
@@ -123,8 +124,7 @@ void srslte_ue_sync_cfo_reset(srslte_ue_sync_t* q)
 
 void srslte_ue_sync_reset(srslte_ue_sync_t* q)
 {
-
-  if (!q->file_mode) {
+  if (!q->file_mode && q->mode == SYNC_MODE_PSS) {
     srslte_sync_reset(&q->sfind);
     srslte_sync_reset(&q->strack);
   } else {
@@ -182,7 +182,6 @@ int srslte_ue_sync_init_multi(srslte_ue_sync_t* q,
                               void*    stream_handler)
 
 {
-
   return srslte_ue_sync_init_multi_decim(q, max_prb, search_cell, recv_callback, nof_rx_antennas, stream_handler, 1);
 }
 
@@ -194,6 +193,20 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t* q,
                                     void*    stream_handler,
                                     int      decimate)
 {
+  return srslte_ue_sync_init_multi_decim_mode(
+      q, max_prb, search_cell, recv_callback, nof_rx_antennas, stream_handler, 1, SYNC_MODE_PSS);
+}
+
+int srslte_ue_sync_init_multi_decim_mode(
+    srslte_ue_sync_t* q,
+    uint32_t          max_prb,
+    bool              search_cell,
+    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+    uint32_t              nof_rx_antennas,
+    void*                 stream_handler,
+    int                   decimate,
+    srslte_ue_sync_mode_t mode)
+{
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && stream_handler != NULL && nof_rx_antennas <= SRSLTE_MAX_PORTS && recv_callback != NULL) {
@@ -201,6 +214,7 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t* q,
     // int decimate = q->decimate;
     bzero(q, sizeof(srslte_ue_sync_t));
     q->decimate                     = decimate;
+    q->mode                         = mode;
     q->stream                       = stream_handler;
     q->recv_callback                = recv_callback;
     q->nof_rx_antennas              = nof_rx_antennas;
@@ -242,44 +256,46 @@ int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t* q,
       q->decimate = 1;
     }
 
-    if (srslte_sync_init_decim(&q->sfind, q->frame_len, q->frame_len, q->fft_size, q->decimate)) {
-      ERROR("Error initiating sync find\n");
-      goto clean_exit;
-    }
-    if (search_cell) {
-      if (srslte_sync_init(&q->strack, q->frame_len, TRACK_FRAME_SIZE, q->fft_size)) {
-        ERROR("Error initiating sync track\n");
+    if (q->mode == SYNC_MODE_PSS) {
+      if (srslte_sync_init_decim(&q->sfind, q->frame_len, q->frame_len, q->fft_size, q->decimate)) {
+        ERROR("Error initiating sync find\n");
         goto clean_exit;
       }
-    } else {
-      if (srslte_sync_init(&q->strack,
-                           q->frame_len,
-                           SRSLTE_MAX(TRACK_FRAME_SIZE, SRSLTE_CP_LEN_NORM(1, q->fft_size)),
-                           q->fft_size)) {
-        ERROR("Error initiating sync track\n");
-        goto clean_exit;
+      if (search_cell) {
+        if (srslte_sync_init(&q->strack, q->frame_len, TRACK_FRAME_SIZE, q->fft_size)) {
+          ERROR("Error initiating sync track\n");
+          goto clean_exit;
+        }
+      } else {
+        if (srslte_sync_init(&q->strack,
+                             q->frame_len,
+                             SRSLTE_MAX(TRACK_FRAME_SIZE, SRSLTE_CP_LEN_NORM(1, q->fft_size)),
+                             q->fft_size)) {
+          ERROR("Error initiating sync track\n");
+          goto clean_exit;
+        }
       }
+
+      // Configure FIND and TRACK sync objects behaviour (this configuration is always the same)
+      srslte_sync_set_cfo_i_enable(&q->sfind, false);
+      srslte_sync_set_cfo_pss_enable(&q->sfind, true);
+      srslte_sync_set_pss_filt_enable(&q->sfind, true);
+      srslte_sync_set_sss_eq_enable(&q->sfind, false);
+
+      // During track, we do CFO correction outside the sync object
+      srslte_sync_set_cfo_i_enable(&q->strack, false);
+      srslte_sync_set_cfo_pss_enable(&q->strack, true);
+      srslte_sync_set_pss_filt_enable(&q->strack, true);
+      srslte_sync_set_sss_eq_enable(&q->strack, false);
+
+      // TODO: CP detection not working very well. Not supporting Extended CP right now
+      srslte_sync_cp_en(&q->strack, false);
+      srslte_sync_cp_en(&q->sfind, false);
+
+      // Enable SSS on find and disable in track
+      srslte_sync_sss_en(&q->sfind, true);
+      srslte_sync_sss_en(&q->strack, false);
     }
-
-    // Configure FIND and TRACK sync objects behaviour (this configuration is always the same)
-    srslte_sync_set_cfo_i_enable(&q->sfind, false);
-    srslte_sync_set_cfo_pss_enable(&q->sfind, true);
-    srslte_sync_set_pss_filt_enable(&q->sfind, true);
-    srslte_sync_set_sss_eq_enable(&q->sfind, false);
-
-    // During track, we do CFO correction outside the sync object
-    srslte_sync_set_cfo_i_enable(&q->strack, false);
-    srslte_sync_set_cfo_pss_enable(&q->strack, true);
-    srslte_sync_set_pss_filt_enable(&q->strack, true);
-    srslte_sync_set_sss_eq_enable(&q->strack, false);
-
-    // TODO: CP detection not working very well. Not supporting Extended CP right now
-    srslte_sync_cp_en(&q->strack, false);
-    srslte_sync_cp_en(&q->sfind, false);
-
-    // Enable SSS on find and disable in track
-    srslte_sync_sss_en(&q->sfind, true);
-    srslte_sync_sss_en(&q->strack, false);
 
     ret = SRSLTE_SUCCESS;
   }
@@ -301,7 +317,7 @@ void srslte_ue_sync_free(srslte_ue_sync_t* q)
   if (q->do_agc) {
     srslte_agc_free(&q->agc);
   }
-  if (!q->file_mode) {
+  if (!q->file_mode && q->mode == SYNC_MODE_PSS) {
     srslte_sync_free(&q->sfind);
     srslte_sync_free(&q->strack);
   } else {
@@ -336,75 +352,78 @@ int srslte_ue_sync_set_cell(srslte_ue_sync_t* q, srslte_cell_t cell)
 
     q->frame_len = q->nof_recv_sf * q->sf_len;
 
-    if (q->fft_size < 700 && q->decimate) {
-      q->decimate = 1;
-    }
+    if (q->mode == SYNC_MODE_PSS) {
+      // cell configuration for PSS-based sync
+      if (q->fft_size < 700 && q->decimate) {
+        q->decimate = 1;
+      }
 
-    if (srslte_sync_resize(&q->sfind, q->frame_len, q->frame_len, q->fft_size)) {
-      ERROR("Error setting cell sync find\n");
-      return SRSLTE_ERROR;
-    }
-    if (cell.id == 1000) {
-      if (srslte_sync_resize(&q->strack, q->frame_len, TRACK_FRAME_SIZE, q->fft_size)) {
-        ERROR("Error setting cell sync track\n");
+      if (srslte_sync_resize(&q->sfind, q->frame_len, q->frame_len, q->fft_size)) {
+        ERROR("Error setting cell sync find\n");
         return SRSLTE_ERROR;
       }
-    } else {
-      if (srslte_sync_resize(&q->strack,
-                             q->frame_len,
-                             SRSLTE_MAX(TRACK_FRAME_SIZE, SRSLTE_CP_LEN_NORM(1, q->fft_size)),
-                             q->fft_size)) {
-        ERROR("Error setting cell sync track\n");
-        return SRSLTE_ERROR;
+      if (cell.id == 1000) {
+        if (srslte_sync_resize(&q->strack, q->frame_len, TRACK_FRAME_SIZE, q->fft_size)) {
+          ERROR("Error setting cell sync track\n");
+          return SRSLTE_ERROR;
+        }
+      } else {
+        if (srslte_sync_resize(&q->strack,
+                               q->frame_len,
+                               SRSLTE_MAX(TRACK_FRAME_SIZE, SRSLTE_CP_LEN_NORM(1, q->fft_size)),
+                               q->fft_size)) {
+          ERROR("Error setting cell sync track\n");
+          return SRSLTE_ERROR;
+        }
       }
+
+      // When Cell ID is 1000, ue_sync receives nof_avg_find_frames frames in find state and does not go to tracking
+      // state and is used to search a cell
+      if (cell.id == 1000) {
+        q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES;
+
+        srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.8);
+        srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
+
+        srslte_sync_set_em_alpha(&q->sfind, 1);
+
+        srslte_sync_set_threshold(&q->sfind, 2.0);
+        srslte_sync_set_threshold(&q->strack, 1.2);
+
+        srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.1);
+        srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
+
+      } else {
+        q->sfind.cp  = cell.cp;
+        q->strack.cp = cell.cp;
+
+        srslte_sync_set_frame_type(&q->sfind, cell.frame_type);
+        srslte_sync_set_frame_type(&q->strack, cell.frame_type);
+
+        srslte_sync_set_N_id_2(&q->sfind, cell.id % 3);
+        srslte_sync_set_N_id_2(&q->strack, cell.id % 3);
+
+        srslte_sync_set_N_id_1(&q->sfind, cell.id / 3);
+        // track does not correlate SSS so no need to generate sequences
+
+        srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.1);
+        srslte_sync_set_cfo_ema_alpha(&q->strack, DEFAULT_CFO_EMA_TRACK);
+
+        /* In find phase and if the cell is known, do not average pss correlation
+         * because we only capture 1 subframe and do not know where the peak is.
+         */
+        q->nof_avg_find_frames = 1;
+        srslte_sync_set_em_alpha(&q->sfind, 1);
+        srslte_sync_set_threshold(&q->sfind, 3.0);
+
+        srslte_sync_set_em_alpha(&q->strack, 0.0);
+        srslte_sync_set_threshold(&q->strack, 1.5);
+      }
+
+      // When cell is unknown, do CP CFO correction
+      srslte_sync_set_cfo_cp_enable(&q->sfind, true, q->frame_len < 10000 ? 14 : 3);
+      q->cfo_correct_enable_find = false;
     }
-
-    // When Cell ID is 1000, ue_sync receives nof_avg_find_frames frames in find state and does not go to tracking state
-    // and is used to search a cell
-    if (cell.id == 1000) {
-      q->nof_avg_find_frames = FIND_NOF_AVG_FRAMES;
-
-      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.8);
-      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
-
-      srslte_sync_set_em_alpha(&q->sfind, 1);
-
-      srslte_sync_set_threshold(&q->sfind, 2.0);
-      srslte_sync_set_threshold(&q->strack, 1.2);
-
-      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.1);
-      srslte_sync_set_cfo_ema_alpha(&q->strack, 0.1);
-
-    } else {
-      q->sfind.cp  = cell.cp;
-      q->strack.cp = cell.cp;
-
-      srslte_sync_set_frame_type(&q->sfind, cell.frame_type);
-      srslte_sync_set_frame_type(&q->strack, cell.frame_type);
-
-      srslte_sync_set_N_id_2(&q->sfind, cell.id % 3);
-      srslte_sync_set_N_id_2(&q->strack, cell.id % 3);
-
-      srslte_sync_set_N_id_1(&q->sfind, cell.id / 3);
-      // track does not correlate SSS so no need to generate sequences
-
-      srslte_sync_set_cfo_ema_alpha(&q->sfind, 0.1);
-      srslte_sync_set_cfo_ema_alpha(&q->strack, DEFAULT_CFO_EMA_TRACK);
-
-      /* In find phase and if the cell is known, do not average pss correlation
-       * because we only capture 1 subframe and do not know where the peak is.
-       */
-      q->nof_avg_find_frames = 1;
-      srslte_sync_set_em_alpha(&q->sfind, 1);
-      srslte_sync_set_threshold(&q->sfind, 3.0);
-
-      srslte_sync_set_em_alpha(&q->strack, 0.0);
-      srslte_sync_set_threshold(&q->strack, 1.5);
-    }
-
-    // When cell is unknown, do CP CFO correction
-    srslte_sync_set_cfo_cp_enable(&q->sfind, true, q->frame_len < 10000 ? 14 : 3);
-    q->cfo_correct_enable_find = false;
 
     srslte_ue_sync_reset(q);
 
@@ -467,6 +486,11 @@ void srslte_ue_sync_set_cfo_ref(srslte_ue_sync_t* q, float ref_cfo)
       q->cfo_current_value += ref_cfo * q->cfo_loop_bw_ref;
     }
   }
+}
+
+uint32_t srslte_ue_sync_get_sfn(srslte_ue_sync_t* q)
+{
+  return q->frame_number;
 }
 
 uint32_t srslte_ue_sync_get_sfidx(srslte_ue_sync_t* q)
@@ -707,8 +731,7 @@ static int receive_samples(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PO
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
 int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS], const uint32_t max_num_samples)
 {
-  int      ret = SRSLTE_ERROR_INVALID_INPUTS;
-  uint32_t track_idx;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && input_buffer != NULL) {
 
@@ -748,7 +771,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
         ERROR("Error receiving samples\n");
         return SRSLTE_ERROR;
       }
-      int n;
+
       switch (q->state) {
         case SF_FIND:
           // Correct CFO before PSS/SSS find using the sync object corrector (initialized for 1 ms)
@@ -760,46 +783,28 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
               }
             }
           }
-          n = srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx);
-          switch (n) {
-            case SRSLTE_SYNC_ERROR:
-              ERROR("Error finding correlation peak (%d)\n", ret);
-              return SRSLTE_ERROR;
-            case SRSLTE_SYNC_FOUND:
-              ret = find_peak_ok(q, input_buffer);
-              break;
-            case SRSLTE_SYNC_FOUND_NOSPACE:
-              /* If a peak was found but there is not enough space for SSS/CP detection, discard a few samples */
-              INFO("No space for SSS/CP detection. Realigning frame...\n");
-              q->recv_callback(q->stream, dummy_offset_buffer, q->frame_len / 2, NULL);
-              srslte_sync_reset(&q->sfind);
-              ret = SRSLTE_SUCCESS;
-              break;
-            default:
-              ret = SRSLTE_SUCCESS;
-              break;
+
+          // Run mode-specific find operation
+          if (q->mode == SYNC_MODE_PSS) {
+            ret = srslte_ue_sync_run_find_pss_mode(q, input_buffer);
+          } else if (q->mode == SYNC_MODE_GNSS) {
+            ret = srslte_ue_sync_run_find_gnss_mode(q, input_buffer, max_num_samples);
           }
+
           if (q->do_agc) {
             srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);
           }
-
-          INFO("SYNC FIND: sf_idx=%d, ret=%d, peak_pos=%d, peak_value=%.2f, mean_cp_cfo=%.2f, mean_pss_cfo=%.2f, "
-               "total_cfo_khz=%.1f\n",
-               q->sf_idx,
-               ret,
-               q->peak_idx,
-               q->sfind.peak_value,
-               q->sfind.cfo_cp_mean,
-               q->sfind.cfo_pss_mean,
-               15 * srslte_sync_get_cfo(&q->sfind));
 
           break;
         case SF_TRACK:
 
           ret = 1;
 
-          // Increase subframe counter
+          // Increase subframe counter and system frame number
           q->sf_idx = (q->sf_idx + q->nof_recv_sf) % 10;
+          if (q->sf_idx == 0) {
+            q->frame_number = (q->frame_number + 1) % 1024;
+          }
 
           // Correct CFO before PSS/SSS tracking using the sync object corrector (initialized for 1 ms)
           if (q->cfo_correct_enable_track) {
@@ -811,65 +816,230 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
             }
           }
 
-          /* Every SF idx 0 and 5, find peak around known position q->peak_idx */
-          if ((q->sfind.frame_type == SRSLTE_FDD && (q->sf_idx == 0 || q->sf_idx == 5)) ||
-              (q->sfind.frame_type == SRSLTE_TDD && (q->sf_idx == 1 || q->sf_idx == 6)))
-
-          {
-            // Process AGC every period
-            if (q->do_agc && (q->agc_period == 0 || (q->agc_period && (q->frame_total_cnt % q->agc_period) == 0))) {
-              srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);
-            }
-
-            /* Track PSS around the expected PSS position
-             * In tracking phase, the subframe carrying the PSS is always the last one of the frame
-             */
-
-            // Expected PSS position is different for FDD and TDD
-            uint32_t pss_idx = q->frame_len - PSS_OFFSET - q->fft_size - q->strack.max_offset / 2;
-
-            n = srslte_sync_find(&q->strack, input_buffer[0], pss_idx, &track_idx);
-            switch (n) {
-              case SRSLTE_SYNC_ERROR:
-                ERROR("Error tracking correlation peak\n");
-                return SRSLTE_ERROR;
-              case SRSLTE_SYNC_FOUND:
-                ret = track_peak_ok(q, track_idx);
-                break;
-              case SRSLTE_SYNC_FOUND_NOSPACE:
-                // It's very very unlikely that we fall here because this event should happen at FIND phase only
-                ret      = 0;
-                q->state = SF_FIND;
-                INFO("Warning: No space for SSS/CP while in tracking phase\n");
-                break;
-              case SRSLTE_SYNC_NOFOUND:
-                ret = track_peak_no(q);
-                break;
-            }
-
-            if (ret == SRSLTE_ERROR) {
-              ERROR("Error processing tracking peak\n");
-              q->state = SF_FIND;
-              return SRSLTE_SUCCESS;
-            }
-
-            q->frame_total_cnt++;
-
-            INFO("SYNC TRACK: sf_idx=%d, ret=%d, peak_pos=%d, peak_value=%.2f, mean_cp_cfo=%.2f, mean_pss_cfo=%.2f, "
-                 "total_cfo_khz=%.1f\n",
-                 q->sf_idx,
-                 ret,
-                 track_idx,
-                 q->strack.peak_value,
-                 q->strack.cfo_cp_mean,
-                 q->strack.cfo_pss_mean,
-                 15 * srslte_sync_get_cfo(&q->strack));
+          if (q->mode == SYNC_MODE_PSS) {
+            srslte_ue_sync_run_track_pss_mode(q, input_buffer);
           } else {
-            INFO("SYNC TRACK: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
+            srslte_ue_sync_run_track_gnss_mode(q, input_buffer);
           }
           break;
+        default:
+          ERROR("Unknown sync state %d\n", q->state);
       }
     }
   }
   return ret;
+}
+
+int srslte_ue_sync_run_find_pss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+{
+  int ret = SRSLTE_ERROR;
+  int n   = srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx);
+
+  switch (n) {
+    case SRSLTE_SYNC_ERROR:
+      ERROR("Error finding correlation peak (%d)\n", ret);
+      return ret;
+    case SRSLTE_SYNC_FOUND:
+      ret = find_peak_ok(q, input_buffer);
+      break;
+    case SRSLTE_SYNC_FOUND_NOSPACE:
+      /* If a peak was found but there is not enough space for SSS/CP detection, discard a few samples */
+      INFO("No space for SSS/CP detection. Realigning frame...\n");
+      q->recv_callback(q->stream, dummy_offset_buffer, q->frame_len / 2, NULL);
+      srslte_sync_reset(&q->sfind);
+      ret = SRSLTE_SUCCESS;
+      break;
+    default:
+      ret = SRSLTE_SUCCESS;
+      break;
+  }
+
+  INFO("SYNC FIND: sf_idx=%d, ret=%d, peak_pos=%d, peak_value=%.2f, mean_cp_cfo=%.2f, mean_pss_cfo=%.2f, "
+       "total_cfo_khz=%.1f\n",
+       q->sf_idx,
+       ret,
+       q->peak_idx,
+       q->sfind.peak_value,
+       q->sfind.cfo_cp_mean,
+       q->sfind.cfo_pss_mean,
+       15 * srslte_sync_get_cfo(&q->sfind));
+
+  return ret;
+};
+
+int srslte_ue_sync_run_track_pss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+{
+  int      ret       = SRSLTE_ERROR;
+  uint32_t track_idx = 0;
+  /* Every SF idx 0 and 5, find peak around known position q->peak_idx */
+  if ((q->sfind.frame_type == SRSLTE_FDD && (q->sf_idx == 0 || q->sf_idx == 5)) ||
+      (q->sfind.frame_type == SRSLTE_TDD && (q->sf_idx == 1 || q->sf_idx == 6))) {
+    // Process AGC every period
+    if (q->do_agc && (q->agc_period == 0 || (q->agc_period && (q->frame_total_cnt % q->agc_period) == 0))) {
+      srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);
+    }
+
+    /* Track PSS around the expected PSS position
+     * In tracking phase, the subframe carrying the PSS is always the last one of the frame
+     */
+
+    // Expected PSS position is different for FDD and TDD
+    uint32_t pss_idx = q->frame_len - PSS_OFFSET - q->fft_size - q->strack.max_offset / 2;
+
+    int n = srslte_sync_find(&q->strack, input_buffer[0], pss_idx, &track_idx);
+    switch (n) {
+      case SRSLTE_SYNC_ERROR:
+        ERROR("Error tracking correlation peak\n");
+        return SRSLTE_ERROR;
+      case SRSLTE_SYNC_FOUND:
+        ret = track_peak_ok(q, track_idx);
+        break;
+      case SRSLTE_SYNC_FOUND_NOSPACE:
+        // It's very very unlikely that we fall here because this event should happen at FIND phase only
+        ret      = 0;
+        q->state = SF_FIND;
+        INFO("Warning: No space for SSS/CP while in tracking phase\n");
+        break;
+      case SRSLTE_SYNC_NOFOUND:
+        ret = track_peak_no(q);
+        break;
+    }
+
+    if (ret == SRSLTE_ERROR) {
+      ERROR("Error processing tracking peak\n");
+      q->state = SF_FIND;
+      return SRSLTE_SUCCESS;
+    }
+
+    q->frame_total_cnt++;
+
+    INFO("SYNC TRACK: sf_idx=%d, ret=%d, peak_pos=%d, peak_value=%.2f, mean_cp_cfo=%.2f, mean_pss_cfo=%.2f, "
+         "total_cfo_khz=%.1f\n",
+         q->sf_idx,
+         ret,
+         track_idx,
+         q->strack.peak_value,
+         q->strack.cfo_cp_mean,
+         q->strack.cfo_pss_mean,
+         15 * srslte_sync_get_cfo(&q->strack));
+  } else {
+    INFO("SYNC TRACK: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
+  }
+
+  return 1; ///< 1 means subframe in sync
+}
+
+int srslte_ue_sync_run_find_gnss_mode(srslte_ue_sync_t* q,
+                                      cf_t*             input_buffer[SRSLTE_MAX_PORTS],
+                                      const uint32_t    max_num_samples)
+{
+  INFO("Calibration samples received start at %ld + %f\n", q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
+
+  // round to nearest second
+  srslte_timestamp_t ts_next_rx;
+  srslte_timestamp_copy(&ts_next_rx, &q->last_timestamp);
+  ts_next_rx.full_secs++;
+  ts_next_rx.frac_secs = 0.0;
+
+  INFO("Next desired recv at %ld + %f\n", ts_next_rx.full_secs, ts_next_rx.frac_secs);
+
+  // get difference in time between second rx and now
+  srslte_timestamp_sub(&ts_next_rx, q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
+  srslte_timestamp_sub(&ts_next_rx, 0, 0.001); ///< account for samples that have already been rx'ed
+
+  uint32_t align_len = srslte_timestamp_uint64(&ts_next_rx, q->sf_len * 1000);
+
+  DEBUG("Difference between first recv is %ld + %f or %d samples\n",
+        ts_next_rx.full_secs,
+        ts_next_rx.frac_secs,
+        align_len);
+
+  DEBUG("Realigning frame, reading %d samples\n", align_len);
+
+  // receive align_len samples into dummy_buffer, make sure to not exceed buffer len
+  uint32_t sample_count = 0;
+  while (sample_count < align_len) {
+    uint32_t actual_rx_len = SRSLTE_MIN(align_len, DUMMY_BUFFER_NUM_SAMPLES);
+    actual_rx_len          = SRSLTE_MIN(align_len - sample_count, actual_rx_len);
+    q->recv_callback(q->stream, dummy_offset_buffer, actual_rx_len, &q->last_timestamp);
+    sample_count += actual_rx_len;
+  }
+
+  DEBUG("Received %d samples during alignment\n", sample_count);
+
+  // do one normal receive, the first time-aligned subframe
+  if (receive_samples(q, input_buffer, max_num_samples)) {
+    ERROR("Error receiving samples\n");
+    return SRSLTE_ERROR;
+  }
+
+  // switch to track state, from here on, samples should be ms aligned
+  q->state = SF_TRACK;
+
+  // calculate system timing
+  if (srslte_ue_sync_set_tti_from_timestamp(q, &q->last_timestamp)) {
+    ERROR("Error deriving timing from received samples\n");
+    return SRSLTE_ERROR;
+  }
+
+  INFO("SYNC FIND: sfn=%d, sf_idx=%d next_state=%d\n", q->frame_number, q->sf_idx, q->state);
+
+  return 1; ///< 1 means subframe in sync
+}
+
+///< The track function in GNSS mode only needs to increment the system frame number
+int srslte_ue_sync_run_track_gnss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+{
+  INFO("SYNC TRACK: sfn=%d, sf_idx=%d, next_state=%d\n", q->frame_number, q->sf_idx, q->state);
+
+  return 1; ///< 1 means subframe in sync
+}
+
+/** Calculate TTI for UEs that are synced using GNSS time reference (TS 36.331 Sec. 5.10.14)
+ *
+ * @param q Pointer to current object
+ * @param rx_timestamp Pointer to receive timestamp
+ * @return SRSLTE_SUCCESS on success
+ */
+int srslte_ue_sync_set_tti_from_timestamp(srslte_ue_sync_t* q, srslte_timestamp_t* rx_timestamp)
+{
+  // calculate time_t of Rx time
+  time_t t_cur = rx_timestamp->full_secs;
+  DEBUG("t_cur=%ld\n", t_cur);
+
+  // time_t of reference UTC time on 1. Jan 1900 at 0:00
+  // If we put this date in https://www.epochconverter.com it returns a negative number
+  time_t t_ref = {0};
+#if 0
+  struct tm t = {0};
+  t.tm_year = 1900; // year-1900
+  t.tm_mday = 1;          // first of January
+  // t.tm_isdst = 0;        // Is DST on? 1 = yes, 0 = no, -1 = unknown
+  t_ref = mktime(&t);
+#endif
+
+  DEBUG("t_ref=%ld\n", t_ref);
+
+  static const uint32_t MSECS_PER_SEC = 1000;
+
+  DEBUG("diff=%f\n", difftime(t_cur, t_ref));
+
+  double time_diff_secs = difftime(t_cur, t_ref);
+
+  if (time_diff_secs < 0) {
+    fprintf(stderr, "Time diff between Rx timestamp and reference UTC is negative. Is the timestamp correct?\n");
+    return SRSLTE_ERROR;
+  }
+
+  DEBUG("time diff in s %f\n", time_diff_secs);
+
+  // convert to ms and add fractional part
+  double time_diff_msecs = time_diff_secs * MSECS_PER_SEC + rx_timestamp->frac_secs;
+  DEBUG("time diff in ms %f\n", time_diff_msecs);
+
+  // calculate SFN and SF index according to TS 36.331 Sec. 5.10.14
+  q->frame_number = ((uint32_t)floor(0.1 * (time_diff_msecs - q->sfn_offset))) % 1024;
+  q->sf_idx       = ((uint32_t)floor(time_diff_msecs - q->sfn_offset)) % 10;
+
+  return SRSLTE_SUCCESS;
 }
