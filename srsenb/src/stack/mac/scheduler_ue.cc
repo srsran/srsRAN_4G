@@ -33,7 +33,6 @@
 #define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 #define MCS_FIRST_DL 4
-#define MIN_DATA_TBS 4
 
 /******************************************************
  *                  UE class                          *
@@ -42,6 +41,19 @@
 namespace srsenb {
 
 constexpr uint32_t conres_ce_size = 6;
+
+/******************************************************
+ *                 Helper Functions                   *
+ ******************************************************/
+
+namespace sched_utils {
+
+uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool is_ul)
+{
+  return srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, is_ul), nof_alloc_prb);
+}
+
+} // namespace sched_utils
 
 /*******************************************************
  *
@@ -349,8 +361,28 @@ void sched_ue::tpc_dec()
  *
  *******************************************************/
 
+uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs)
+{
+  auto      compute_subheader_size    = [](uint32_t sdu_size) { return sdu_size > 128 ? 3 : 2; };
+  constexpr uint32_t min_mac_sdu_size = 5; // accounts for MAC SDU subheader and RLC header
+  uint32_t           rem_tbs          = total_tbs;
+
+  // if we do not have enough bytes to fit MAC subheader and RLC header, skip MAC SDU allocation
+  while (rem_tbs >= min_mac_sdu_size) {
+    uint32_t max_sdu_bytes   = rem_tbs - compute_subheader_size(rem_tbs - 2);
+    uint32_t alloc_sdu_bytes = alloc_mac_sdu(&data->pdu[0][data->nof_pdu_elems[0]], max_sdu_bytes);
+    if (alloc_sdu_bytes == 0) {
+      break;
+    }
+    rem_tbs -= (alloc_sdu_bytes + compute_subheader_size(alloc_sdu_bytes)); // account for MAC sub-header
+    data->nof_pdu_elems[0]++;
+  }
+
+  return total_tbs - rem_tbs;
+}
+
 // Generates a Format1 dci
-// > return 0 if TBS<MIN_DATA_TBS
+// > return 0 if allocation is invalid
 int sched_ue::generate_format1(dl_harq_proc*                     h,
                                sched_interface::dl_sched_data_t* data,
                                uint32_t                          tti_tx_dl,
@@ -391,25 +423,14 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
     if (mcs0 < 0) { // dynamic MCS
       tbs = carriers[cc_idx].alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs0, false), nof_prb) / 8;
       mcs = mcs0;
-    }
-
-    // Ensure tbs >= MIN_DATA_TBS
-    while (tbs < MIN_DATA_TBS and mcs != carriers[cc_idx].max_mcs_dl) {
-      mcs++;
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false), nof_prb) / 8;
-    }
-    if (tbs < MIN_DATA_TBS) {
-      log_h->warning("SCHED: Allocation of TBS=%d that does not account header\n", tbs);
-      return 0;
+      tbs = sched_utils::get_tbs_bytes(mcs, nof_prb, false);
     }
 
     // Allocate DL Harq
     h->new_tx(user_mask, 0, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
 
     int rem_tbs = tbs;
-    int x       = 0;
 
     // Allocate MAC ConRes CE
     if (need_conres_ce) {
@@ -426,14 +447,8 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
       rem_tbs -= 2;
     }
 
-    // Allocate PDUs
-    do {
-      x = alloc_pdu(rem_tbs, &data->pdu[0][data->nof_pdu_elems[0]]);
-      if (x) {
-        rem_tbs -= x + 2; // count 2-byte header
-        data->nof_pdu_elems[0]++;
-      }
-    } while (rem_tbs >= MIN_DATA_TBS && x > 0);
+    // Allocate MAC SDU and respective subheaders
+    allocate_mac_sdus(data, rem_tbs);
 
     Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
   } else {
@@ -538,17 +553,10 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
               8;
         mcs = carriers[cc_idx].fixed_mcs_dl;
       }
+
       h->new_tx(user_mask, tb, tti, mcs, tbs, data->dci.location.ncce);
 
-      int rem_tbs = tbs;
-      int x       = 0;
-      do {
-        x = alloc_pdu(rem_tbs, &data->pdu[tb][data->nof_pdu_elems[tb]]);
-        rem_tbs -= x;
-        if (x) {
-          data->nof_pdu_elems[tb]++;
-        }
-      } while (rem_tbs >= MIN_DATA_TBS && x > 0);
+      allocate_mac_sdus(data, tbs);
 
       Debug("SCHED: Alloc format2/2a new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
     }
@@ -1006,26 +1014,26 @@ sched_ue_carrier* sched_ue::get_ue_carrier(uint32_t enb_cc_idx)
 }
 
 /* Allocates first available RLC PDU */
-int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
+int sched_ue::alloc_mac_sdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs)
 {
   // TODO: Implement lcid priority (now lowest index is lowest priority)
-  int x = 0;
-  int i = 0;
-  for (i = 0; i < sched_interface::MAX_LC && !x; i++) {
-    if (lch[i].buf_retx) {
-      x = SRSLTE_MIN(lch[i].buf_retx, tbs_bytes);
-      lch[i].buf_retx -= x;
-    } else if (lch[i].buf_tx) {
-      x = SRSLTE_MIN(lch[i].buf_tx, tbs_bytes);
-      lch[i].buf_tx -= x;
+  int alloc_bytes = 0;
+  int i           = 0;
+  for (i = 0; i < sched_interface::MAX_LC and alloc_bytes == 0; i++) {
+    if (lch[i].buf_retx > 0) {
+      alloc_bytes = SRSLTE_MIN(lch[i].buf_retx, rem_tbs);
+      lch[i].buf_retx -= alloc_bytes;
+    } else if (lch[i].buf_tx > 0) {
+      alloc_bytes = SRSLTE_MIN(lch[i].buf_tx, rem_tbs);
+      lch[i].buf_tx -= alloc_bytes;
     }
   }
-  if (x) {
-    pdu->lcid   = i - 1;
-    pdu->nbytes = x;
-    Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", pdu->lcid, pdu->nbytes, tbs_bytes);
+  if (alloc_bytes > 0) {
+    mac_sdu->lcid   = i - 1;
+    mac_sdu->nbytes = alloc_bytes;
+    Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", mac_sdu->lcid, mac_sdu->nbytes, rem_tbs);
   }
-  return x;
+  return alloc_bytes;
 }
 
 uint32_t sched_ue::format1_count_prb(const rbgmask_t& bitmask, uint32_t cc_idx)

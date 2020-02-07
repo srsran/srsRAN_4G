@@ -222,9 +222,10 @@ private:
   void set_bearer_cfg_unlocked(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg_);
 
   bool is_sr_triggered();
-  int  alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
 
   uint32_t format1_count_prb(const rbgmask_t& bitmask, uint32_t cc_idx);
+  int      alloc_mac_sdu(sched_interface::dl_sched_pdu_t* pdu, int rem_tbs);
+  uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs);
 
   static bool bearer_is_ul(ue_bearer_t* lch);
   static bool bearer_is_dl(const ue_bearer_t* lch);

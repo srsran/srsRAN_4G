@@ -23,6 +23,7 @@
 #include "srsenb/hdr/stack/mac/scheduler_carrier.h"
 #include "srsenb/hdr/stack/mac/scheduler_ue.h"
 #include <algorithm>
+#include <chrono>
 #include <random>
 #include <set>
 #include <srslte/srslte.h>
@@ -70,8 +71,8 @@
 /***************************
  * Setup Random generators
  **************************/
-uint32_t const seed = time(nullptr);
-// uint32_t const seed = 2452071795; // [{3054, 1656}, {5970, 1595}, ... {204, 3}]
+uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
+// uint32_t const seed = 2452071795;
 // uint32_t const seed = 1581009287; // prb==25
 std::default_random_engine            rand_gen(seed);
 std::uniform_real_distribution<float> unif_dist(0, 1.0);
@@ -910,16 +911,17 @@ int sched_tester::ack_txs()
 
 srsenb::sched_interface::cell_cfg_t generate_cell_cfg()
 {
-  srsenb::sched_interface::cell_cfg_t cell_cfg;
+  srsenb::sched_interface::cell_cfg_t cell_cfg     = {};
   srslte_cell_t&                      cell_cfg_phy = cell_cfg.cell;
 
-  bzero(&cell_cfg, sizeof(srsenb::sched_interface::cell_cfg_t));
+  std::uniform_int_distribution<uint32_t> dist_prb_idx(0, 5);
+  uint32_t                                prb_idx = dist_prb_idx(rand_gen);
 
   /* Set PHY cell configuration */
   cell_cfg_phy.id              = 1;
   cell_cfg_phy.cp              = SRSLTE_CP_NORM;
   cell_cfg_phy.nof_ports       = 1;
-  cell_cfg_phy.nof_prb         = 6;
+  cell_cfg_phy.nof_prb         = std::array<uint32_t, 6>({6, 15, 25, 50, 75, 100})[prb_idx];
   cell_cfg_phy.phich_length    = SRSLTE_PHICH_NORM;
   cell_cfg_phy.phich_resources = SRSLTE_PHICH_R_1;
 
