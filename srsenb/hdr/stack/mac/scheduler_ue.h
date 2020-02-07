@@ -277,8 +277,7 @@ private:
   bool phy_config_dedicated_enabled = false;
 
   sched_interface::ant_info_ded_t dl_ant_info;
-  std::vector<sched_ue_carrier>   carriers;             ///< map of UE CellIndex to carrier configuration
-  std::map<uint32_t, uint32_t>    enb_ue_cellindex_map; ///< map cc idx eNB -> UE
+  std::vector<sched_ue_carrier>   carriers; ///< map of UE CellIndex to carrier configuration
 };
 } // namespace srsenb
 

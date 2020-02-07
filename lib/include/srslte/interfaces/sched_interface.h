@@ -31,7 +31,7 @@ namespace srsenb {
 class sched_interface
 {
 public:
-  virtual ~sched_interface() {}
+  virtual ~sched_interface() = default;
 
   const static uint32_t max_cce = 128;
   const static uint32_t max_prb = 100;
@@ -127,6 +127,10 @@ public:
   };
 
   struct ue_cfg_t {
+    struct cc_cfg_t {
+      uint32_t enb_cc_idx     = 0; ///< eNB CC index
+      uint32_t periodic_cqi_i = 0; ///< Periodic CQI configuration for this Scell
+    };
     /* ue capabilities, etc */
     uint32_t                            maxharq_tx = 5;
     bool                                continuous_pusch;
@@ -135,7 +139,7 @@ public:
     uint32_t                            aperiodic_cqi_period = 0; // if 0 is periodic CQI
     srslte_dl_cfg_t                     dl_cfg;
     std::array<ue_bearer_cfg_t, MAX_LC> ue_bearers = {};
-    std::vector<uint32_t>               supported_cc_idxs;
+    std::vector<cc_cfg_t>               supported_cc_list; ///< list of UE supported CCs. First index for PCell
     ant_info_ded_t                      dl_ant_info;
   };
 

@@ -470,9 +470,11 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
 
   // Add new user to the scheduler so that it can RX/TX SRB0
   sched_interface::ue_cfg_t ue_cfg = {};
-  ue_cfg.supported_cc_idxs.push_back(enb_cc_idx);
-  ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.dl_cfg.tm               = SRSLTE_TM1;
+  ue_cfg.supported_cc_list.emplace_back();
+  ue_cfg.supported_cc_list.back().enb_cc_idx     = enb_cc_idx;
+  ue_cfg.supported_cc_list.back().periodic_cqi_i = 0;
+  ue_cfg.ue_bearers[0].direction                 = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.dl_cfg.tm                               = SRSLTE_TM1;
   if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
     Error("Registering new user rnti=0x%x to SCHED\n", rnti);
     return -1;

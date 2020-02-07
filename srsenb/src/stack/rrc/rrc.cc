@@ -1241,14 +1241,17 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
+  using cc_cfg_t = sched_interface::ue_cfg_t::cc_cfg_t;
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
     // Finally, add secondary carriers
     // TODO: For now the ue supports all cc
-    auto& list = current_sched_ue_cfg.supported_cc_idxs;
+    auto& list = current_sched_ue_cfg.supported_cc_list;
     for (uint32_t i = 0; i < parent->cfg.cell_list.size(); ++i) {
-      auto it = std::find(list.begin(), list.end(), i);
+      auto it = std::find_if(list.begin(), list.end(), [i](const cc_cfg_t& u) { return u.enb_cc_idx == i; });
       if (it == list.end()) {
-        list.push_back(i);
+        list.emplace_back();
+        list.back().enb_cc_idx     = i;
+        list.back().periodic_cqi_i = 0;
       }
     }
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);

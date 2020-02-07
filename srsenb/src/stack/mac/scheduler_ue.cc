@@ -70,10 +70,10 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
     std::unique_lock<std::mutex> lock(mutex);
 
     // for the first configured cc, set it as primary cc
-    if (cfg.supported_cc_idxs.empty()) {
+    if (cfg.supported_cc_list.empty()) {
       uint32_t primary_cc_idx = 0;
-      if (not cfg_.supported_cc_idxs.empty()) {
-        primary_cc_idx = cfg_.supported_cc_idxs[0];
+      if (not cfg_.supported_cc_list.empty()) {
+        primary_cc_idx = cfg_.supported_cc_list[0].enb_cc_idx;
       } else {
         Warning("Primary cc idx not provided in scheduler ue_cfg. Defaulting to cc_idx=0\n");
       }
@@ -93,16 +93,15 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
     }
 
     // either add a new carrier, or reconfigure existing one
-    for (uint32_t enb_cc_idx : cfg.supported_cc_idxs) {
-      auto it = enb_ue_cellindex_map.find(enb_cc_idx);
-      if (it == enb_ue_cellindex_map.end()) {
+    for (auto& cc_cfg : cfg.supported_cc_list) {
+      sched_ue_carrier* c = get_ue_carrier(cc_cfg.enb_cc_idx);
+      if (c == nullptr) {
         // add new carrier to sched_ue
-        carriers.emplace_back(cfg, (*cell_params_list)[enb_cc_idx], rnti);
-        enb_ue_cellindex_map[enb_cc_idx] = carriers.size() - 1; // maps enb_cc_idx to ue_cc_idx
+        carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti);
       } else {
         // reconfiguration of carrier might be needed
         if (maxharq_tx_changed) {
-          carriers[it->second].set_cfg(cfg);
+          c->set_cfg(cfg);
         }
       }
     }
@@ -123,7 +122,6 @@ void sched_ue::reset()
     cqi_request_tti              = 0;
     conres_ce_pending            = true;
     carriers.clear();
-    enb_ue_cellindex_map.clear();
 
     // erase all bearers
     for (uint32_t i = 0; i < cfg.ue_bearers.size(); ++i) {
@@ -926,26 +924,30 @@ dl_harq_proc* sched_ue::get_dl_harq(uint32_t idx, uint32_t cc_idx)
 
 std::pair<bool, uint32_t> sched_ue::get_cell_index(uint32_t enb_cc_idx) const
 {
-  auto it = enb_ue_cellindex_map.find(enb_cc_idx);
-  if (it == enb_ue_cellindex_map.end()) {
+  auto it =
+      std::find_if(cfg.supported_cc_list.begin(),
+                   cfg.supported_cc_list.end(),
+                   [enb_cc_idx](const sched_interface::ue_cfg_t::cc_cfg_t& u) { return u.enb_cc_idx == enb_cc_idx; });
+  if (it == cfg.supported_cc_list.end()) {
     log_h->error("The carrier with eNB_cc_idx=%d does not exist\n", enb_cc_idx);
     return std::make_pair(false, 0);
   }
-  return std::make_pair(true, it->second);
+  return std::make_pair(true, it->enb_cc_idx);
 }
 
 void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)
 {
-  auto it = enb_ue_cellindex_map.find(enb_cc_idx);
-  if (it == enb_ue_cellindex_map.end()) {
+  auto p = get_cell_index(enb_cc_idx);
+  if (not p.first) {
     return;
   }
+  uint32_t ue_cc_idx = p.second;
 
   /* Clean-up all the UL Harqs with maxretx == 0 */
-  get_ul_harq(tti_params.tti_tx_ul, it->second)->reset_pending_data();
+  get_ul_harq(tti_params.tti_tx_ul, ue_cc_idx)->reset_pending_data();
 
   /* reset PIDs with pending data or blocked */
-  reset_pending_pids(tti_params.tti_rx, it->second);
+  reset_pending_pids(tti_params.tti_rx, ue_cc_idx);
 }
 
 srslte_dci_format_t sched_ue::get_dci_format()
@@ -989,7 +991,11 @@ sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint
 
 sched_ue_carrier* sched_ue::get_ue_carrier(uint32_t enb_cc_idx)
 {
-  return &carriers[enb_ue_cellindex_map[enb_cc_idx]];
+  auto p = get_cell_index(enb_cc_idx);
+  if (not p.first) {
+    return nullptr;
+  }
+  return &carriers[p.second];
 }
 
 /* Allocates first available RLC PDU */

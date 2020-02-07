@@ -108,8 +108,9 @@ int main(int argc, char* argv[])
   srsenb::sched_interface::ul_sched_res_t sched_result_ul;
 
   srsenb::sched_interface::ue_cfg_t ue_cfg = {};
-  ue_cfg.supported_cc_idxs                 = {0};
-  uint16_t rnti                            = 30;
+  ue_cfg.supported_cc_list.emplace_back();
+  ue_cfg.supported_cc_list.back().enb_cc_idx = 0;
+  uint16_t rnti                              = 30;
 
   ue_cfg.aperiodic_cqi_period = 40;
   ue_cfg.maxharq_tx           = 5;

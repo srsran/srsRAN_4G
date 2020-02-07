@@ -985,8 +985,9 @@ sched_sim_args rand_sim_params(const srsenb::sched_interface::cell_cfg_t& cell_c
   sim_args.ue_cfg.aperiodic_cqi_period = 40;
   sim_args.ue_cfg.maxharq_tx           = 5;
   sim_args.ue_cfg.dl_cfg.tm            = SRSLTE_TM1;
-  sim_args.ue_cfg.supported_cc_idxs.push_back(0);
-  sim_args.ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  sim_args.ue_cfg.supported_cc_list.emplace_back();
+  sim_args.ue_cfg.supported_cc_list.back().enb_cc_idx = 0;
+  sim_args.ue_cfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
   bzero(&sim_args.bearer_cfg, sizeof(srsenb::sched_interface::ue_bearer_cfg_t));
   sim_args.bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
