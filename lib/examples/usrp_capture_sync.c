@@ -33,14 +33,17 @@
 #include "srslte/phy/rf/rf.h"
 #include "srslte/srslte.h"
 
-static bool keep_running     = true;
-char*       output_file_name = NULL;
-char*       rf_args          = "";
-float       rf_gain = 60.0, rf_freq = -1.0;
-int         nof_prb         = 6;
-int         nof_subframes   = -1;
-int         N_id_2          = -1;
-uint32_t    nof_rx_antennas = 1;
+static bool           keep_running     = true;
+char*                 output_file_name = NULL;
+static char           rf_devname[64]   = "";
+static char           rf_args[64]      = "auto";
+float                 rf_gain = 60.0, rf_freq = -1.0;
+int                   nof_prb                = 6;
+int                   nof_subframes          = -1;
+int                   N_id_2                 = -1;
+uint32_t              nof_rx_antennas        = 1;
+bool                  use_standard_lte_rates = false;
+srslte_ue_sync_mode_t sync_mode              = SYNC_MODE_PSS;
 
 void int_handler(int dummy)
 {
@@ -51,9 +54,12 @@ void usage(char* prog)
 {
   printf("Usage: %s [agrnv] -l N_id_2 -f rx_frequency_hz -o output_file\n", prog);
   printf("\t-a RF args [Default %s]\n", rf_args);
+  printf("\t-d RF devicename [Default %s]\n", rf_devname);
+  printf("\t-e use_standard_lte_rates [Default %i]\n", use_standard_lte_rates);
   printf("\t-g RF Gain [Default %.2f dB]\n", rf_gain);
   printf("\t-p nof_prb [Default %d]\n", nof_prb);
   printf("\t-n nof_subframes [Default %d]\n", nof_subframes);
+  printf("\t-m Use GPS sync mode [Default %s]\n", sync_mode == SYNC_MODE_PSS ? "false" : "true");
   printf("\t-A nof_rx_antennas [Default %d]\n", nof_rx_antennas);
   printf("\t-v verbose\n");
 }
@@ -61,13 +67,21 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "agpnvfolA")) != -1) {
+  while ((opt = getopt(argc, argv, "adegpnmvfolA")) != -1) {
     switch (opt) {
       case 'o':
         output_file_name = argv[optind];
         break;
       case 'a':
-        rf_args = argv[optind];
+        strncpy(rf_args, argv[optind], 63);
+        rf_args[63] = '\0';
+        break;
+      case 'd':
+        strncpy(rf_devname, argv[optind], 63);
+        rf_devname[63] = '\0';
+        break;
+      case 'e':
+        use_standard_lte_rates = true;
         break;
       case 'g':
         rf_gain = strtof(argv[optind], NULL);
@@ -80,6 +94,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'n':
         nof_subframes = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'm':
+        sync_mode = SYNC_MODE_GNSS;
         break;
       case 'l':
         N_id_2 = (int)strtol(argv[optind], NULL, 10);
@@ -101,14 +118,14 @@ void parse_args(int argc, char** argv)
   }
 }
 
-int srslte_rf_recv_wrapper(void* h, cf_t* data_[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
+int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   void* ptr[SRSLTE_MAX_PORTS];
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    ptr[i] = data_[i];
+    ptr[i] = data[i];
   }
-  return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
+  return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, &t->full_secs, &t->frac_secs);
 }
 
 int main(int argc, char** argv)
@@ -123,6 +140,8 @@ int main(int argc, char** argv)
   signal(SIGINT, int_handler);
 
   parse_args(argc, argv);
+
+  srslte_use_standard_symbol_size(use_standard_lte_rates);
 
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
@@ -163,8 +182,8 @@ int main(int argc, char** argv)
   cell.nof_prb   = nof_prb;
   cell.nof_ports = 1;
 
-  if (srslte_ue_sync_init_multi(
-          &ue_sync, cell.nof_prb, cell.id == 1000, srslte_rf_recv_wrapper, nof_rx_antennas, (void*)&rf)) {
+  if (srslte_ue_sync_init_multi_decim_mode(
+          &ue_sync, cell.nof_prb, cell.id == 1000, srslte_rf_recv_wrapper, nof_rx_antennas, (void*)&rf, 1, sync_mode)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1);
   }
@@ -173,9 +192,10 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  uint32_t subframe_count = 0;
-  bool     start_capture  = false;
-  bool     stop_capture   = false;
+  uint32_t           subframe_count = 0;
+  bool               start_capture  = false;
+  bool               stop_capture   = false;
+  srslte_timestamp_t ts_rx_start    = {};
   while ((subframe_count < nof_subframes || nof_subframes == -1) && !stop_capture) {
     n = srslte_ue_sync_zerocopy(&ue_sync, buffer, max_num_samples);
     if (n < 0) {
@@ -190,6 +210,11 @@ int main(int argc, char** argv)
       } else {
         printf("Writing to file %6d subframes...\r", subframe_count);
         srslte_filesink_write_multi(&sink, (void**)buffer, SRSLTE_SF_LEN_PRB(nof_prb), nof_rx_antennas);
+
+        // store time stamp of first subframe
+        if (subframe_count == 0) {
+          srslte_ue_sync_get_last_timestamp(&ue_sync, &ts_rx_start);
+        }
         subframe_count++;
       }
     }
@@ -211,5 +236,13 @@ int main(int argc, char** argv)
   }
 
   printf("\nOk - wrote %d subframes\n", subframe_count);
-  exit(0);
+
+  srslte_ue_sync_set_tti_from_timestamp(&ue_sync, &ts_rx_start);
+  printf("Start of capture at %ld+%.3f. TTI=%d.%d\n",
+         ts_rx_start.full_secs,
+         ts_rx_start.frac_secs,
+         srslte_ue_sync_get_sfn(&ue_sync),
+         srslte_ue_sync_get_sfidx(&ue_sync));
+
+  return SRSLTE_SUCCESS;
 }
