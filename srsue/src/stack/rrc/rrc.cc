@@ -1825,7 +1825,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
   asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
   if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       dl_ccch_msg.msg.type().value != dl_ccch_msg_type_c::types_opts::c1) {
-    rrc_log->error("Failed to unpack DL-CCCH message\n");
+    rrc_log->error_hex(pdu->msg, pdu->N_bytes, "Failed to unpack DL-CCCH message (%d B)\n", pdu->N_bytes);
     return;
   }
   log_rrc_message(get_rb_name(RB_ID_SRB0).c_str(), Rx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
@@ -1876,7 +1876,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1) {
-    rrc_log->error("Failed to unpack DL-DCCH message\n");
+    rrc_log->error_hex(pdu->msg, pdu->N_bytes, "Failed to unpack DL-DCCH message (%d B)\n", pdu->N_bytes);
     return;
   }
   log_rrc_message(get_rb_name(lcid).c_str(), Rx, pdu.get(), dl_dcch_msg, dl_dcch_msg.msg.c1().type().to_string());
