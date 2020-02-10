@@ -447,9 +447,9 @@ private:
       std::string cipher_algo_string                  = as_sec["StartRestart"]["Ciphering"]["Algorithm"].GetString();
       if (cipher_algo_string == "eea0") {
         cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-      } else if (int_algo_string == "eea1") {
+      } else if (cipher_algo_string == "eea1") {
         cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
-      } else if (int_algo_string == "eea2") {
+      } else if (cipher_algo_string == "eea2") {
         cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
       } else {
         log->error("Unsupported ciphering algorithm %s\n", cipher_algo_string.c_str());
