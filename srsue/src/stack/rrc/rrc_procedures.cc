@@ -276,62 +276,57 @@ proc_outcome_t rrc::serving_cell_config_proc::init(const std::vector<uint32_t>& 
 
   rrc_ptr->serving_cell->has_mcch = false;
 
-  req_idx      = 0;
-  search_state = search_state_t::next_sib;
-  return step();
+  req_idx = 0;
+  return launch_sib_acquire();
+}
+
+srslte::proc_outcome_t rrc::serving_cell_config_proc::launch_sib_acquire()
+{
+  // Obtain the SIBs if not available or apply the configuration if available
+  for (; req_idx < required_sibs.size(); req_idx++) {
+    uint32_t required_sib = required_sibs[req_idx];
+
+    if (not rrc_ptr->serving_cell->has_sib(required_sib)) {
+      Info("Cell has no SIB%d. Obtaining SIB%d\n", required_sib + 1, required_sib + 1);
+      if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, required_sib)) {
+        Error("SI Acquire is already running...\n");
+        return proc_outcome_t::error;
+      }
+      return proc_outcome_t::yield;
+    }
+    // UE had SIB already. Handle its SIB
+    Info("Cell has SIB%d\n", required_sib + 1);
+    switch (required_sib) {
+      case 1:
+        rrc_ptr->handle_sib2();
+        break;
+      case 12:
+        rrc_ptr->handle_sib13();
+        break;
+      default:
+        break;
+    }
+  }
+
+  Info("Serving Cell Configuration Procedure has finished successfully\n");
+  return proc_outcome_t::success;
 }
 
 proc_outcome_t rrc::serving_cell_config_proc::step()
 {
-  if (search_state == search_state_t::next_sib) {
-    // Obtain the SIBs if not available or apply the configuration if available
-    for (; req_idx < required_sibs.size(); req_idx++) {
-      uint32_t required_sib = required_sibs[req_idx];
-
-      if (not rrc_ptr->serving_cell->has_sib(required_sib)) {
-        Info("Cell has no SIB%d. Obtaining SIB%d\n", required_sib + 1, required_sib + 1);
-        if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, required_sib)) {
-          Error("SI Acquire is already running...\n");
-          return proc_outcome_t::error;
-        }
-        search_state = search_state_t::si_acquire;
-        return step();
-      } else {
-        // UE had SIB already. Handle its SIB
-        Info("Cell has SIB%d\n", required_sib + 1);
-        switch (required_sib) {
-          case 1:
-            rrc_ptr->handle_sib2();
-            break;
-          case 12:
-            rrc_ptr->handle_sib13();
-            break;
-          default:
-            break;
-        }
-      }
-    }
-    if (req_idx == required_sibs.size()) {
-      Info("Serving Cell Configuration Procedure has finished successfully\n");
-      return proc_outcome_t::success;
-    }
-  } else if (search_state == search_state_t::si_acquire) {
-    if (rrc_ptr->si_acquirer.run()) {
-      return proc_outcome_t::yield;
-    }
-    uint32_t required_sib = required_sibs[req_idx];
-    if (si_acquire_fut.is_error() or not rrc_ptr->serving_cell->has_sib(required_sib)) {
-      if (required_sib < 2) {
-        log_h->warning("Serving Cell Configuration has failed\n");
-        return proc_outcome_t::error;
-      }
-    }
-    // continue with remaining SIBs
-    search_state = search_state_t::next_sib;
-    req_idx++;
-    return step();
+  if (rrc_ptr->si_acquirer.run()) {
+    return proc_outcome_t::yield;
   }
-  return proc_outcome_t::yield;
+  uint32_t required_sib = required_sibs[req_idx];
+  if (si_acquire_fut.is_error() or not rrc_ptr->serving_cell->has_sib(required_sib)) {
+    if (required_sib < 2) {
+      log_h->warning("Serving Cell Configuration has failed\n");
+      return proc_outcome_t::error;
+    }
+  }
+  // continue with remaining SIBs
+  req_idx++;
+  return launch_sib_acquire();
 }
 
 /**************************************
@@ -355,9 +350,9 @@ proc_outcome_t rrc::cell_selection_proc::init()
 
   Info("Starting a Cell Selection Procedure...\n");
   Info("Current neighbor cells: [%s]\n", rrc_ptr->print_neighbour_cells().c_str());
-  neigh_index = 0;
-  cs_result   = cs_result_t::no_cell;
-  state       = search_state_t::cell_selection;
+  neigh_index     = 0;
+  cs_result       = cs_result_t::no_cell;
+  state           = search_state_t::cell_selection;
   discard_serving = false;
   return step();
 }
@@ -384,7 +379,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
       /* BLOCKING CALL */
       if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
         Info("Wait PHY to be in-synch\n");
-        state = search_state_t::wait_in_sync;
+        state                   = search_state_t::wait_in_sync;
         rrc_ptr->phy_sync_state = phy_unknown_sync;
         return step();
       } else {
@@ -930,9 +925,9 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
   // If security is activated, RRC connected and C-RNTI available
   if (rrc_ptr->security_is_activated && rrc_ptr->state == RRC_STATE_CONNECTED && uernti.crnti != 0) {
     // Save reestablishment cause and current C-RNTI
-    reest_rnti       = uernti.crnti;
-    reest_cause      = cause;
-    reest_source_pci = rrc_ptr->serving_cell->get_pci(); // needed for reestablishment with another cell
+    reest_rnti        = uernti.crnti;
+    reest_cause       = cause;
+    reest_source_pci  = rrc_ptr->serving_cell->get_pci(); // needed for reestablishment with another cell
     reest_source_freq = rrc_ptr->serving_cell->get_earfcn();
 
     // the initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2

@@ -95,11 +95,12 @@ private:
   rrc*         rrc_ptr;
   srslte::log* log_h;
 
+  srslte::proc_outcome_t launch_sib_acquire();
+
   // proc args
   std::vector<uint32_t> required_sibs;
 
   // state variables
-  enum class search_state_t { next_sib, si_acquire } search_state;
   uint32_t                    req_idx = 0;
   srslte::proc_future_t<void> si_acquire_fut;
 };
