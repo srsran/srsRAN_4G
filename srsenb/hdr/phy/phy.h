@@ -51,7 +51,7 @@ public:
   std::string get_type() { return "lte"; };
 
   /* MAC->PHY interface */
-  int  add_rnti(uint16_t rnti, bool is_temporal = false) final;
+  int  add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal) final;
   void rem_rnti(uint16_t rnti) final;
   void set_mch_period_stop(uint32_t stop) final;
 
@@ -62,7 +62,7 @@ public:
   static uint32_t tti_to_subf(uint32_t tti);
 
   void start_plot();
-  void set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated);
+  void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) override;
 
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
 

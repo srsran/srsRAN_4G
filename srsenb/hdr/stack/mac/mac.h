@@ -58,9 +58,9 @@ public:
 
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
-  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value);
+  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) override;
   int snr_info(uint32_t tti, uint16_t rnti, float snr);
-  int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
+  int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) override;
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res);
 
   int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res);

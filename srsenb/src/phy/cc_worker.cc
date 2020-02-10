@@ -186,7 +186,7 @@ void cc_worker::set_tti(uint32_t tti_)
 int cc_worker::add_rnti(uint16_t rnti, bool is_temporal)
 {
 
-  if (!is_temporal) {
+  if (!is_temporal && !ue_db.count(rnti)) {
     if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
       return -1;
     }
@@ -252,7 +252,10 @@ void cc_worker::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& ded
 
   if (ue_db.count(rnti)) {
     ue_db[rnti]->ul_cfg = dedicated.ul_cfg;
+    ue_db[rnti]->ul_cfg.pucch.rnti = rnti;
+    ue_db[rnti]->ul_cfg.pusch.rnti = rnti;
     ue_db[rnti]->dl_cfg = dedicated.dl_cfg;
+    ue_db[rnti]->dl_cfg.pdsch.rnti = rnti;
   } else {
     Error("Setting config dedicated: rnti=0x%x does not exist\n", rnti);
   }
@@ -320,14 +323,17 @@ bool cc_worker::fill_uci_cfg(uint16_t rnti, bool aperiodic_cqi_request, srslte_u
 
   uci_required |= uci_cfg->is_scheduling_request_tti;
 
-  // Get pending ACKs with an associated PUSCH transmission
-  // TODO: Use ue_dl procedures to compute uci_ack_cfg for TDD and CA
-  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-    uci_cfg->ack[cc_idx].pending_tb[tb] = phy->ue_db_is_ack_pending(tti_rx, rnti, tb, &uci_cfg->ack[cc_idx].ncce[0]);
-    Debug("ACK: is pending tti=%d, mod=%d, value=%d\n", tti_rx, TTIMOD(tti_rx), uci_cfg->ack[cc_idx].pending_tb[tb]);
-    if (uci_cfg->ack[cc_idx].pending_tb[tb]) {
-      uci_cfg->ack[cc_idx].nof_acks++;
-      uci_required = true;
+  // Get pending ACKs from PDSCH
+  phy->ue_db_get_ack_pending(tti_rx, cc_idx, rnti, uci_cfg->ack);
+  uint32_t nof_total_ack = srslte_uci_cfg_total_ack(uci_cfg);
+  uci_required |= (nof_total_ack != 0);
+
+  // if UCI is required and the PCell is not the only cell
+  if (uci_required && nof_total_ack != uci_cfg->ack[0].nof_acks) {
+    // More than one carrier requires ACKs
+    for (uint32_t cc = 0; cc < phy->ue_db_get_nof_ca_cells(rnti); cc++) {
+      // Assume all aggregated carriers are on the same transmission mode
+      uci_cfg->ack[cc].nof_acks = (ue_db[rnti]->dl_cfg.tm < SRSLTE_TM3) ? 1 : 2;
     }
   }
 
@@ -352,12 +358,20 @@ void cc_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
 
   /* If only one ACK is required, it can be for TB0 or TB1 */
   uint32_t ack_idx = 0;
-  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-    if (uci_cfg->ack[cc_idx].pending_tb[tb]) {
-      bool ack   = uci_value->ack.ack_value[ack_idx];
-      bool valid = uci_value->ack.valid;
-      phy->stack->ack_info(tti_rx, rnti, tb, ack && valid);
-      ack_idx++;
+  for (uint32_t ue_scell_idx = 0; ue_scell_idx < SRSLTE_MAX_CARRIERS; ue_scell_idx++) {
+    uint32_t cc_ack_idx = phy->ue_db_get_cc_scell(rnti, ue_scell_idx);
+    if (cc_ack_idx < phy->get_nof_carriers()) {
+
+      // For each transport block...
+      for (uint32_t tb = 0; tb < uci_cfg->ack[ue_scell_idx].nof_acks; tb++) {
+        // Check if the SCell ACK was pending
+        if (uci_cfg->ack[ue_scell_idx].pending_tb[tb]) {
+          bool ack   = uci_value->ack.ack_value[ack_idx];
+          bool valid = uci_value->ack.valid;
+          phy->stack->ack_info(tti_rx, rnti, cc_ack_idx, tb, ack && valid);
+        }
+        ack_idx++;
+      }
     }
   }
 
@@ -379,7 +393,7 @@ void cc_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
           cqi_value = uci_value->cqi.subband_ue.wideband_cqi;
           break;
       }
-      phy->stack->cqi_info(tti_rx, rnti, cqi_value);
+      phy->stack->cqi_info(tti_rx, rnti, 0, cqi_value);
     }
     if (uci_cfg->cqi.ri_len) {
       phy->stack->ri_info(tti_rx, rnti, uci_value->ri);
@@ -611,13 +625,9 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 
   /* Scales the Resources Elements affected by the power allocation (p_b) */
   // srslte_enb_dl_prepare_power_allocation(&enb_dl);
-
-  // Prepare for receive ACK for DL grants in t_tx_dl+4
-  phy->ue_db_clear(tti_tx_ul);
-
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t rnti = grants[i].dci.rnti;
-    if (rnti) {
+    if (rnti && ue_db.count(rnti)) {
 
       // Compute DL grant
       if (srslte_ra_dl_dci_to_grant(
@@ -638,14 +648,8 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 
       // Save pending ACK
       if (SRSLTE_RNTI_ISUSER(rnti)) {
-        /* For each TB */
-        for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
-          /* If TB enabled, set pending ACK */
-          if (ue_db[rnti]->dl_cfg.pdsch.grant.tb[tb_idx].enabled) {
-            Debug("ACK: set pending tti=%d, mod=%d\n", tti_tx_ul, TTIMOD(tti_tx_ul));
-            phy->ue_db_set_ack_pending(tti_tx_ul, rnti, tb_idx, grants[i].dci.location.ncce);
-          }
-        }
+        // Push whole DCI
+        phy->ue_db_set_ack_pending(tti_tx_ul, cc_idx, grants[i].dci);
       }
 
       if (LOG_THIS(rnti)) {
@@ -657,6 +661,8 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 
       // Save metrics stats
       ue_db[rnti]->metrics_dl(grants[i].dci.tb[0].mcs_idx);
+    } else {
+      ERROR("RNTI (x%x) not found in Component Carrier worker %d\n", rnti, cc_idx);
     }
   }
 

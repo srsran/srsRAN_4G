@@ -33,8 +33,8 @@ typedef struct SRSLTE_API {
 } srslte_uci_value_ack_t;
 
 typedef struct SRSLTE_API {
-  bool     pending_tb[SRSLTE_MAX_CODEWORDS];
-  uint32_t nof_acks;
+  bool     pending_tb[SRSLTE_MAX_CODEWORDS]; //< Indicates whether there was a grant that requires an ACK/NACK
+  uint32_t nof_acks;                         //< Number of transport blocks, deduced from transmission mode
   uint32_t ncce[SRSLTE_UCI_MAX_M];
   uint32_t N_bundle;
   uint32_t tdd_ack_M;

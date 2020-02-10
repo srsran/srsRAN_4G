@@ -42,6 +42,9 @@ class mac_interface_phy_lte
 public:
   const static int MAX_GRANTS = 64;
 
+  /**
+   * DL grant structure per UE
+   */
   typedef struct {
     srslte_dci_dl_t         dci;
     srslte_dci_cfg_t        dci_cfg;
@@ -49,12 +52,18 @@ public:
     srslte_softbuffer_tx_t* softbuffer_tx[SRSLTE_MAX_TB];
   } dl_sched_grant_t;
 
+  /**
+   * DL Scheduling result per cell/carrier
+   */
   typedef struct {
-    dl_sched_grant_t pdsch[MAX_GRANTS];
-    uint32_t         nof_grants;
-    uint32_t         cfi;
-  } dl_sched_t; // per carrier
+    dl_sched_grant_t pdsch[MAX_GRANTS]; //< DL Grants
+    uint32_t         nof_grants;        //< Number of DL grants
+    uint32_t         cfi;               //< Current CFI of the cell, it can vary across cells
+  } dl_sched_t;
 
+  /**
+   * List of DL scheduling results, one entry per cell/carrier
+   */
   typedef std::vector<dl_sched_t> dl_sched_list_t;
 
   typedef struct {
@@ -62,6 +71,9 @@ public:
     bool     ack;
   } ul_sched_ack_t;
 
+  /**
+   * UL grant information per UE
+   */
   typedef struct {
     srslte_dci_ul_t         dci;
     srslte_dci_cfg_t        dci_cfg;
@@ -71,13 +83,19 @@ public:
     srslte_softbuffer_rx_t* softbuffer_rx;
   } ul_sched_grant_t;
 
+  /**
+   * UL Scheduling result per cell/carrier
+   */
   typedef struct {
     ul_sched_grant_t pusch[MAX_GRANTS];
     ul_sched_ack_t   phich[MAX_GRANTS];
     uint32_t         nof_grants;
     uint32_t         nof_phich;
-  } ul_sched_t; // per carrier
+  } ul_sched_t;
 
+  /**
+   * List of UL scheduling results, one entry per cell/carrier
+   */
   typedef std::vector<ul_sched_t> ul_sched_list_t;
 
   virtual int sr_detected(uint32_t tti, uint16_t rnti)                                                       = 0;
@@ -85,9 +103,30 @@ public:
 
   virtual int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)                 = 0;
   virtual int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)               = 0;
-  virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)               = 0;
+
+  /**
+   * PHY callback for for giving MAC the Channel Quality information of a given RNTI, TTI and eNb cell/carrier
+   * @param tti the given TTI
+   * @param rnti the UE identifier in the eNb
+   * @param cqi_value the corresponding Channel Quality Information
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) = 0;
+
   virtual int snr_info(uint32_t tti, uint16_t rnti, float snr_db)                     = 0;
-  virtual int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)        = 0;
+
+  /**
+   * PHY callback for giving MAC the HARQ DL ACK/NACK feedback information for a given RNTI, TTI, eNb cell/carrier and
+   * Transport block.
+   *
+   * @param tti the given TTI
+   * @param rnti the UE identifier in the eNb
+   * @param cc_idx the eNb Cell/Carrier identifier
+   * @param tb_idx the transport block index
+   * @param ack true for ACK, false for NACK, do not call for DTX
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) = 0;
   virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res) = 0;
 
   virtual int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res)                = 0;
@@ -104,8 +143,16 @@ public:
 class phy_interface_mac_lte
 {
 public:
-  /* MAC adds/removes an RNTI to the list of active RNTIs */
-  virtual int  add_rnti(uint16_t rnti, bool is_temporal = false) = 0;
+  /**
+   * Interface for MAC to add or modify user in the active UE database setting. This function requires a primary cell
+   * (PCell) index and a list of secondary cells (SCell) for the UE. The elements in the list SCell list must follow the
+   * UE's SCell indexes order.
+   *
+   * @param rnti identifier of the user
+   * @param pcell_index Primary cell (PCell) index
+   * @param is_temporal Indicates whether the UE is temporal
+   */
+  virtual int  add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal) = 0;
   virtual void rem_rnti(uint16_t rnti)                           = 0;
   virtual void set_mch_period_stop(uint32_t stop)                = 0;
 };
@@ -126,8 +173,23 @@ public:
   } phy_rrc_cfg_t;
 
   virtual void
-               configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) = 0;
-  virtual void set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated) = 0;
+  configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) = 0;
+
+  typedef struct {
+    uint32_t          cc_idx  = 0;  ///< eNb Cell index
+    srslte::phy_cfg_t phy_cfg = {}; ///< Dedicated physical layer configuration
+  } phy_rrc_dedicated_t;
+
+  typedef std::vector<phy_rrc_dedicated_t> phy_rrc_dedicated_list_t;
+
+  /**
+   * Sets the physical layer dedicated configuration for a given RNTI, a cell index and a secondary cell index.
+   * The cc_idx indicates the eNb cell to configure and the scell_idx is the UE's cell index
+   *
+   * @param rnti the given RNTI
+   * @param dedicated_list Physical layer configuration for the indicated eNb cell
+   */
+  virtual void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) = 0;
 };
 
 class mac_interface_rrc

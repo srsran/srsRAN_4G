@@ -158,31 +158,44 @@ void phy_common::worker_end(uint32_t           tti,
   stack->tti_clock();
 }
 
-void phy_common::ue_db_clear(uint32_t tti)
+void phy_common::ue_db_clear_tti_pending_ack(uint32_t tti)
 {
-  for (auto iter = common_ue_db.begin(); iter != common_ue_db.end(); ++iter) {
-    pending_ack_t* p = &((common_ue*)&iter->second)->pending_ack;
-    for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
-      p->is_pending[TTIMOD(tti)][tb_idx] = false;
-    }
+  std::lock_guard<std::mutex> lock(user_mutex);
+
+  for (auto& iter : common_ue_db) {
+    common_ue& ue = iter.second;
+
+    // Reset all pending ACKs in all carriers
+    ue.pending_ack[TTIMOD(tti)] = {};
   }
 }
 
-void phy_common::ue_db_add_rnti(uint16_t rnti)
+void phy_common::ue_db_addmod_rnti(uint16_t rnti, const std::vector<uint32_t>& cell_index_list)
 {
   std::lock_guard<std::mutex> lock(user_mutex);
+
+  // Create new user if did not exist
   if (!common_ue_db.count(rnti)) {
     add_rnti(rnti);
+  }
+
+  // Get UE by reference
+  common_ue& ue = common_ue_db[rnti];
+
+  // Clear SCell map to avoid overlap from previous calls
+  ue.scell_map.clear();
+
+  // Add SCells to map
+  for (uint32_t i = 0; i < cell_index_list.size(); i++) {
+    common_ue_db[rnti].scell_map[cell_index_list[i]] = i;
   }
 }
 
 // Private function not mutexed
 void phy_common::add_rnti(uint16_t rnti)
 {
-  for (int i = 0; i < TTIMOD_SZ; i++) {
-    for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
-      common_ue_db[rnti].pending_ack.is_pending[i][tb_idx] = false;
-    }
+  for (auto& pending_ack : common_ue_db[rnti].pending_ack) {
+    pending_ack = {};
   }
 }
 
@@ -194,28 +207,106 @@ void phy_common::ue_db_rem_rnti(uint16_t rnti)
   }
 }
 
-void phy_common::ue_db_set_ack_pending(uint32_t tti, uint16_t rnti, uint32_t tb_idx, uint32_t last_n_pdcch)
+void phy_common::ue_db_set_ack_pending(uint32_t tti, uint32_t cc_idx, const srslte_dci_dl_t& dci)
 {
   std::lock_guard<std::mutex> lock(user_mutex);
-  if (common_ue_db.count(rnti)) {
-    common_ue_db[rnti].pending_ack.is_pending[TTIMOD(tti)][tb_idx] = true;
-    common_ue_db[rnti].pending_ack.n_pdcch[TTIMOD(tti)]            = (uint16_t)last_n_pdcch;
+
+  // Check if the UE exists
+  if (!common_ue_db.count(dci.rnti)) {
+    return;
+  }
+
+  // Check Component Carrier is part of UE SCell map
+  common_ue& ue = common_ue_db[dci.rnti];
+  if (!ue.scell_map.count(cc_idx)) {
+    return;
+  }
+
+  uint32_t       scell_idx   = ue.scell_map[cc_idx];
+  uint32_t       tti_idx     = TTIMOD(tti);
+  pending_ack_t& pending_ack = ue.pending_ack[tti_idx];
+
+  // Set DCI info
+  pending_ack.ack[scell_idx].grant_cc_idx = scell_idx; // No cross carrier scheduling supported
+  pending_ack.ack[scell_idx].ncce[0]      = dci.location.ncce;
+
+  // Set TB info
+  for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
+    if (SRSLTE_DCI_IS_TB_EN(dci.tb[i])) {
+      pending_ack.ack[scell_idx].pending_tb[i] = true;
+      pending_ack.ack[scell_idx].nof_acks++;
+    }
   }
 }
 
-bool phy_common::ue_db_is_ack_pending(uint32_t tti, uint16_t rnti, uint32_t tb_idx, uint32_t* last_n_pdcch)
+void phy_common::ue_db_get_ack_pending(uint32_t             tti,
+                                       uint32_t             cc_idx,
+                                       uint16_t             rnti,
+                                       srslte_uci_cfg_ack_t uci_cfg_ack[SRSLTE_MAX_CARRIERS])
 {
-  bool                        ret = false;
   std::lock_guard<std::mutex> lock(user_mutex);
-  if (common_ue_db.count(rnti)) {
-    ret = common_ue_db[rnti].pending_ack.is_pending[TTIMOD(tti)][tb_idx];
-    common_ue_db[rnti].pending_ack.is_pending[TTIMOD(tti)][tb_idx] = false;
 
-    if (ret && last_n_pdcch) {
-      *last_n_pdcch = common_ue_db[rnti].pending_ack.n_pdcch[TTIMOD(tti)];
+  // Check if the UE exists
+  if (!common_ue_db.count(rnti)) {
+    return;
+  }
+
+  common_ue& ue      = common_ue_db[rnti];
+  uint32_t   tti_idx = TTIMOD(tti);
+
+  // Check Component Carrier is the UE PCell
+  if (common_ue_db[rnti].pcell_idx == cc_idx) {
+    srslte_uci_cfg_ack_t* pending_acks = ue.pending_ack[tti_idx].ack;
+
+    for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+      // Copy pending acks
+      uci_cfg_ack[i] = pending_acks[i];
+
+      // Reset stored pending acks
+      pending_acks[i] = {};
+    }
+  } else {
+    for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+      // Set all to zeros, equivalent to no UCI data
+      uci_cfg_ack[i] = {};
     }
   }
+}
+
+uint32_t phy_common::ue_db_get_nof_ca_cells(uint16_t rnti)
+{
+  std::lock_guard<std::mutex> lock(user_mutex);
+  auto                        ret = 0;
+  if (common_ue_db.count(rnti)) {
+    ret = common_ue_db[rnti].scell_map.size();
+  }
   return ret;
+}
+
+uint32_t phy_common::ue_db_get_cc_pcell(uint16_t rnti)
+{
+  std::lock_guard<std::mutex> lock(user_mutex);
+  auto                        ret = static_cast<uint32_t>(cell_list.size());
+  if (common_ue_db.count(rnti)) {
+    ret = common_ue_db[rnti].pcell_idx;
+  }
+  return ret;
+}
+
+uint32_t phy_common::ue_db_get_cc_scell(uint16_t rnti, uint32_t scell_idx)
+{
+  std::lock_guard<std::mutex> lock(user_mutex);
+
+  if (common_ue_db.count(rnti)) {
+    auto& ue = common_ue_db[rnti];
+    for (auto& it : ue.scell_map) {
+      if (it.second == scell_idx) {
+        return it.first;
+      }
+    }
+  }
+
+  return static_cast<uint32_t>(cell_list.size());
 }
 
 void phy_common::ue_db_set_ri(uint16_t rnti, uint8_t ri)

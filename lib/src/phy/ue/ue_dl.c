@@ -978,6 +978,21 @@ static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_dat
     if (ack_info->nof_cc == 1) {
       // If only 1 configured cell, report 1 or 2 bits depending on number of detected TB
       uci_data->cfg.ack[0].nof_acks = tb_count;
+    } else if (ack_info->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
+               tb_count_cc0 == tb_count) {
+      // According to 3GPP 36.213 Section 10.1.2.2.2 PUCCH format 3 HARQ-ACK procedure
+      // For FDD with PUCCH format 3, the UE shall use PUCCH resource n_pucch_3 or n_pucch_1 for transmission of
+      // HARQ-ACK in subframe n where
+      // - for a PDSCH transmission only on the primary cell indicated by the detection of a corresponding PDCCH in
+      //   subframe n − 4 , or for a PDCCH indicating downlink SPS release (defined in subclause 9.2) in subframe n − 4
+      //   on the primary cell, the UE shall use PUCCH format 1a/1b and PUCCH resource n_pucch_1.
+      // - for a PDSCH transmission only on the primary cell where there is not a corresponding PDCCH detected on
+      //   subframe n - 4, the UE shall use PUCCH format 1a/1b and PUCCH resource n_pucch_1 where the value of n_pucch_1
+      //   is determined according to higher layer configuration and Table 9.2-2.
+      // - for a PDSCH transmission on the secondary cell indicated by the detection of a corresponding PDCCH in
+      //   subframe n − 4 , the UE shall use PUCCH format 3 and PUCCH resource n_pucch_3  where the value of n PUCCH
+      //   is determined according to higher layer configuration and Table 10.1.2.2.2-1.
+      uci_data->cfg.ack[0].nof_acks = tb_count_cc0; // So, set only PCell
     } else if (uci_data->cfg.cqi.data_enable && !ack_info->is_pusch_available) {
       // 3GPP 36.213 R.15 Section 10.1.1:
       // For FDD or for FDD-TDD and primary cell frame structure type 1 and for a UE that is configured with more than

@@ -69,11 +69,14 @@ public:
   }
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) final { return mac.ri_info(tti, rnti, ri_value); }
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) final { return mac.pmi_info(tti, rnti, pmi_value); }
-  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) final { return mac.cqi_info(tti, rnti, cqi_value); }
-  int snr_info(uint32_t tti, uint16_t rnti, float snr_db) final { return mac.snr_info(tti, rnti, snr_db); }
-  int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) final
+  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) final
   {
-    return mac.ack_info(tti, rnti, tb_idx, ack);
+    return mac.cqi_info(tti, rnti, cc_idx, cqi_value);
+  }
+  int snr_info(uint32_t tti, uint16_t rnti, float snr_db) final { return mac.snr_info(tti, rnti, snr_db); }
+  int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) final
+  {
+    return mac.ack_info(tti, rnti, cc_idx, tb_idx, ack);
   }
   int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res) final
   {

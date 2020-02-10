@@ -192,17 +192,18 @@ uint32_t phy::tti_to_subf(uint32_t tti)
 }
 
 /***** MAC->PHY interface **********/
-int phy::add_rnti(uint16_t rnti, bool is_temporal)
+int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
 {
   if (SRSLTE_RNTI_ISUSER(rnti)) {
-    workers_common.ue_db_add_rnti(rnti);
+    workers_common.ue_db_addmod_rnti(rnti, {pcell_index});
   }
 
   for (uint32_t i = 0; i < nof_workers; i++) {
-    if (workers[i].add_rnti(rnti, is_temporal)) {
+    if (workers[i].add_rnti(rnti, pcell_index, is_temporal)) {
       return SRSLTE_ERROR;
     }
   }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -253,11 +254,29 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 /***** RRC->PHY interface **********/
 
-void phy::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated)
+void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list)
 {
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    workers[i].set_config_dedicated(rnti, dedicated);
+  // Create list
+  std::vector<uint32_t> scell_idx_list(dedicated_list.size());
+
+  for (uint32_t i = 0; i < dedicated_list.size(); i++) {
+    auto& config = dedicated_list[i];
+
+    // Set SCell index in list
+    scell_idx_list[i] = config.cc_idx;
+
+    // Configure workers
+    for (uint32_t w = 0; w < nof_workers; w++) {
+      // Add RNTI to worker
+      workers[w].add_rnti(rnti, config.cc_idx, false);
+
+      // Configure RNTI
+      workers[w].set_config_dedicated(rnti, config.cc_idx, config.phy_cfg);
+    }
   }
+
+  // Finally, set UE database
+  workers_common.ue_db_addmod_rnti(rnti, scell_idx_list);
 }
 
 void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s mcch)

@@ -57,7 +57,7 @@ private:                                                                        
   {                                                                                                                    \
     std::unique_lock<std::mutex> lock(mutex);                                                                          \
     cvar.notify_all();                                                                                                 \
-    log_h.info(#NAME " received\n");                                                                                   \
+    log_h.debug(#NAME " received\n");                                                                                  \
     received_##NAME = true;                                                                                            \
   }
 
@@ -69,7 +69,6 @@ private:
   srslte::log_filter                log_h;
   std::vector<srslte_ringbuffer_t*> ringbuffers_tx;
   std::vector<srslte_ringbuffer_t*> ringbuffers_rx;
-  srslte_timestamp_t                ts_tx    = {};
   srslte_timestamp_t                ts_rx    = {};
   double                            rx_srate = 0.0;
   bool                              running  = true;
@@ -98,13 +97,13 @@ private:
   CALLBACK(get_info);
 
 public:
-  dummy_radio(uint32_t nof_channels) : log_h("RADIO")
+  explicit dummy_radio(uint32_t nof_channels) : log_h("RADIO")
   {
     log_h.set_level("info");
 
     // Allocate receive ring buffer
     for (uint32_t i = 0; i < nof_channels; i++) {
-      srslte_ringbuffer_t* rb = (srslte_ringbuffer_t*)srslte_vec_malloc(sizeof(srslte_ringbuffer_t));
+      auto* rb = (srslte_ringbuffer_t*)srslte_vec_malloc(sizeof(srslte_ringbuffer_t));
       if (!rb) {
         ERROR("Allocating ring buffer\n");
       }
@@ -118,7 +117,7 @@ public:
 
     // Allocate transmit ring buffer
     for (uint32_t i = 0; i < nof_channels; i++) {
-      srslte_ringbuffer_t* rb = (srslte_ringbuffer_t*)srslte_vec_malloc(sizeof(srslte_ringbuffer_t));
+      auto* rb = (srslte_ringbuffer_t*)srslte_vec_malloc(sizeof(srslte_ringbuffer_t));
       if (!rb) {
         ERROR("Allocating ring buffer\n");
       }
@@ -191,9 +190,6 @@ public:
       err = srslte_ringbuffer_write(ringbuffers_tx[i], buffer[i], nbytes);
     }
 
-    // Copy new timestamp
-    ts_tx = tx_time;
-
     // Notify call
     notify_tx();
 
@@ -257,6 +253,8 @@ public:
 class dummy_stack : public srsenb::stack_interface_phy_lte
 {
 private:
+  static constexpr float prob_dl_grant = 0.50f;
+
   std::mutex              mutex;
   std::condition_variable cvar;
   srslte::log_filter      log_h;
@@ -265,6 +263,7 @@ private:
   srslte_softbuffer_rx_t  softbuffer_rx = {};
   uint8_t*                data          = nullptr;
   uint16_t                ue_rnti       = 0;
+  srslte_random_t         random_gen    = nullptr;
 
   CALLBACK(sr_detected);
   CALLBACK(rach_detected);
@@ -282,8 +281,17 @@ private:
   CALLBACK(rl_ok);
   CALLBACK(tti_clock);
 
+  typedef struct {
+    uint32_t tti;
+    uint32_t cc_idx;
+    uint32_t tb_idx;
+  } tti_dl_info_t;
+
+  std::queue<tti_dl_info_t> tti_dl_info_sched_queue;
+  std::queue<tti_dl_info_t> tti_dl_info_ack_queue;
+
 public:
-  dummy_stack(uint16_t rnti_) : log_h("STACK"), ue_rnti(rnti_)
+  explicit dummy_stack(uint16_t rnti_) : log_h("STACK"), ue_rnti(rnti_), random_gen(srslte_random_init(0))
   {
     log_h.set_level("info");
     srslte_softbuffer_tx_init(&softbuffer_tx, SRSLTE_MAX_PRB);
@@ -321,7 +329,7 @@ public:
     notify_pmi_info();
     return 0;
   }
-  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) override
+  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) override
   {
     notify_cqi_info();
     return 0;
@@ -331,8 +339,16 @@ public:
     notify_snr_info();
     return 0;
   }
-  int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) override
+  int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) override
   {
+    // Push grant info in queue
+    tti_dl_info_t tti_dl_info = {};
+    tti_dl_info.tti           = tti;
+    tti_dl_info.cc_idx        = cc_idx;
+    tti_dl_info.tb_idx        = 0;
+    tti_dl_info_ack_queue.push(tti_dl_info);
+
+    log_h.info("Received ACK tti=%d; rnti=x%x; cc=%d; tb=%d; ack=%d;\n", tti, rnti, cc_idx, tb_idx, ack);
     notify_ack_info();
     return 0;
   }
@@ -343,30 +359,52 @@ public:
   }
   int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override
   {
+    // Notify test engine
+    notify_get_dl_sched();
+
     // Wait for UE
     tti_sync.wait();
 
-    for (auto& dl_sched : dl_sched_res) {
-      dl_sched.cfi                                  = 1;
-      dl_sched.nof_grants                           = 1;
-      dl_sched.pdsch[0].softbuffer_tx[0]            = &softbuffer_tx;
-      dl_sched.pdsch[0].softbuffer_tx[1]            = &softbuffer_tx;
-      dl_sched.pdsch[0].dci.location.ncce           = 0;
-      dl_sched.pdsch[0].dci.location.L              = 1;
-      dl_sched.pdsch[0].dci.type0_alloc.rbg_bitmask = 0xffffffff;
-      dl_sched.pdsch[0].dci.rnti                    = ue_rnti;
-      dl_sched.pdsch[0].dci.alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-      dl_sched.pdsch[0].dci.tb[0].cw_idx            = 0;
-      dl_sched.pdsch[0].dci.tb[0].mcs_idx           = 27;
-      dl_sched.pdsch[0].dci.tb[0].rv                = 0;
-      dl_sched.pdsch[0].dci.tb[0].ndi               = 0;
-      dl_sched.pdsch[0].data[0]                     = data;
-      dl_sched.pdsch[0].data[1]                     = data;
-      dl_sched.pdsch[0].dci.format                  = SRSLTE_DCI_FORMAT1;
-    }
+    for (uint32_t cc_idx = 0; cc_idx < dl_sched_res.size(); cc_idx++) {
+      auto& dl_sched = dl_sched_res[cc_idx];
 
-    // Notify test engine
-    notify_get_dl_sched();
+      // Required
+      dl_sched.cfi = 1;
+
+      // Random decision on whether transmit or not
+      if (srslte_random_uniform_real_dist(random_gen, 0, 1) < prob_dl_grant) {
+        dl_sched.nof_grants                           = 1;
+        dl_sched.pdsch[0].softbuffer_tx[0]            = &softbuffer_tx;
+        dl_sched.pdsch[0].softbuffer_tx[1]            = &softbuffer_tx;
+        dl_sched.pdsch[0].dci.location.ncce           = 0;
+        dl_sched.pdsch[0].dci.location.L              = 1;
+        dl_sched.pdsch[0].dci.type0_alloc.rbg_bitmask = 0xffffffff;
+        dl_sched.pdsch[0].dci.rnti                    = ue_rnti;
+        dl_sched.pdsch[0].dci.alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+        dl_sched.pdsch[0].dci.tb[0].cw_idx            = 0;
+        dl_sched.pdsch[0].dci.tb[0].mcs_idx           = 27;
+        dl_sched.pdsch[0].dci.tb[0].rv                = 0;
+        dl_sched.pdsch[0].dci.tb[0].ndi               = false;
+        dl_sched.pdsch[0].dci.tb[1].cw_idx            = 1;
+        dl_sched.pdsch[0].dci.tb[1].mcs_idx           = 0;
+        dl_sched.pdsch[0].dci.tb[1].rv                = 1;
+        dl_sched.pdsch[0].dci.tb[1].ndi               = false;
+        dl_sched.pdsch[0].data[0]                     = data;
+        dl_sched.pdsch[0].data[1]                     = data;
+        dl_sched.pdsch[0].dci.format                  = SRSLTE_DCI_FORMAT1;
+
+        // Push grant info in queue
+        tti_dl_info_t tti_dl_info = {};
+        tti_dl_info.tti           = tti;
+        tti_dl_info.cc_idx        = cc_idx;
+        tti_dl_info.tb_idx        = 0;
+
+        // Push to queue
+        tti_dl_info_sched_queue.push(tti_dl_info);
+      } else {
+        dl_sched.nof_grants = 0;
+      }
+    }
 
     return 0;
   }
@@ -387,6 +425,28 @@ public:
   {
     notify_tti_clock();
     tti_sync.increase();
+  }
+  int run_tti()
+  {
+    // Check ACKs match with grants
+    while (!tti_dl_info_ack_queue.empty()) {
+      // Get both Info
+      tti_dl_info_t& tti_dl_sched = tti_dl_info_sched_queue.front();
+      tti_dl_info_t& tti_dl_ack   = tti_dl_info_ack_queue.front();
+
+      // Calculate ACK TTI
+      tti_dl_sched.tti = (tti_dl_sched.tti + FDD_HARQ_DELAY_MS) % 10240;
+
+      // Assert that ACKs have been received
+      TESTASSERT(tti_dl_sched.tti == tti_dl_ack.tti);
+      TESTASSERT(tti_dl_sched.cc_idx == tti_dl_ack.cc_idx);
+      TESTASSERT(tti_dl_sched.tb_idx == tti_dl_ack.tb_idx);
+
+      tti_dl_info_sched_queue.pop();
+      tti_dl_info_ack_queue.pop();
+    }
+
+    return SRSLTE_SUCCESS;
   }
 };
 
@@ -412,7 +472,7 @@ public:
            uint16_t                           rnti_,
            const srslte::phy_cfg_t&           dedicated_) :
     radio(&_radio),
-    log_h("UE PHY"),
+    log_h("UE PHY", nullptr, true),
     dedicated(dedicated_)
   {
     // Calculate subframe length
@@ -487,9 +547,12 @@ public:
     memset(tx_data, 0, 150000);
 
     // Push HARQ delay to radio
-    for (uint32_t i = 0; i < FDD_HARQ_DELAY_MS; i++) {
+    for (uint32_t i = 0; i < TX_DELAY; i++) {
       radio->write_rx(buffers, sf_len);
       sf_ul_cfg.tti = (sf_ul_cfg.tti + 1) % 10240; // Advance UL TTI too
+    }
+    for (uint32_t i = 0; i < FDD_HARQ_DELAY_MS; i++) {
+      radio->write_rx(buffers, sf_len);
     }
   }
 
@@ -520,6 +583,9 @@ public:
     srslte_dci_ul_t   dci_ul[SRSLTE_MAX_DCI_MSG] = {};
     int               ret                        = SRSLTE_SUCCESS;
     srslte_uci_data_t uci_data                   = {};
+
+    // Set logging TTI
+    log_h.step(sf_dl_cfg.tti);
 
     uci_data.cfg = dedicated.ul_cfg.pucch.uci_cfg;
 
@@ -634,20 +700,24 @@ private:
   srslte::log_filter    log_h;
   srslte::logger_stdout logger_stdout;
   uint32_t              nof_carriers = 0;
+  srslte::phy_cfg_t     common_dedicated = {};
+  uint16_t              rnti             = 0;
 
 public:
   phy_test_bench(srsenb::phy_args_t&      phy_args,
                  srsenb::phy_cfg_t&       phy_cfg,
-                 uint16_t                 rnti,
-                 const srslte::phy_cfg_t& dedicated) :
+                 uint16_t                 rnti_,
+                 uint32_t                 pcell_index,
+                 const srslte::phy_cfg_t& dedicated_) :
     log_h("TEST BENCH"),
-    stack(rnti),
+    stack(rnti_),
+    rnti(rnti_),
     radio(phy_cfg.phy_cell_cfg.size()),
     enb_phy(&logger_stdout),
-    ue_phy(radio, phy_cfg.phy_cell_cfg, rnti, dedicated)
+    ue_phy(radio, phy_cfg.phy_cell_cfg, rnti_, dedicated_),
+    nof_carriers(static_cast<uint32_t>(phy_cfg.phy_cell_cfg.size())),
+    common_dedicated(dedicated_)
   {
-
-    nof_carriers = phy_cfg.phy_cell_cfg.size();
 
     // Always info
     log_h.set_level("info");
@@ -656,10 +726,17 @@ public:
     enb_phy.init(phy_args, phy_cfg, &radio, &stack);
 
     // Add rnti to enb
-    enb_phy.add_rnti(rnti, false);
+    enb_phy.add_rnti(rnti, pcell_index, false);
 
     // Configure UE PHY
-    enb_phy.set_config_dedicated(rnti, dedicated);
+    uint32_t                                                pcell_idx = 0;
+    srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t dedicated_list(4);
+    for (uint32_t i = 0; i < 4; i++) {
+      common_dedicated.dl_cfg.cqi_report.pmi_idx = 16 + i;
+      dedicated_list[i].cc_idx                   = (i + pcell_idx) % phy_cfg.phy_cell_cfg.size();
+      dedicated_list[i].phy_cfg                  = common_dedicated;
+    }
+    enb_phy.set_config_dedicated(rnti, dedicated_list);
   }
 
   ~phy_test_bench()
@@ -676,6 +753,7 @@ public:
 
     TESTASSERT(!stack.get_received_rl_failure());
     TESTASSERT(ue_phy.run_tti() >= SRSLTE_SUCCESS);
+    TESTASSERT(stack.run_tti() >= SRSLTE_SUCCESS);
 
     return ret;
   }
@@ -723,7 +801,7 @@ int main(int argc, char** argv)
   dedicated.ul_cfg.pucch.simul_cqi_ack          = true;
 
   std::unique_ptr<phy_test_bench> test_bench =
-      std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, phy_cfg, 0x1234, dedicated));
+      std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, phy_cfg, 0x1234, 0, dedicated));
 
   for (uint32_t i = 0; i < 32; i++) {
     TESTASSERT(test_bench->run_tti() >= SRSLTE_SUCCESS);

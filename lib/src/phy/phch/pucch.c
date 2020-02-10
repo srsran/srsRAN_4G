@@ -1255,45 +1255,45 @@ void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data,
 srslte_pucch_format_t srslte_pucch_select_format(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_cp_t cp)
 {
   srslte_pucch_format_t format = SRSLTE_PUCCH_FORMAT_ERROR;
+  uint32_t              total_ack = srslte_uci_cfg_total_ack(uci_cfg);
+
   // No CQI data
   if (!uci_cfg->cqi.data_enable && uci_cfg->cqi.ri_len == 0) {
-    // PUCCH Format 3 condition specified in:
-    // 3GPP 36.213 10.1.2.2.2 PUCCH format 3 HARQ-ACK procedure
     if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
-        srslte_uci_cfg_total_ack(uci_cfg) > 1) {
+        total_ack > uci_cfg->ack[0].nof_acks) {
       format = SRSLTE_PUCCH_FORMAT_3;
     }
     // 1-bit ACK + optional SR
-    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1) {
+    else if (total_ack == 1) {
       format = SRSLTE_PUCCH_FORMAT_1A;
     }
     // 2-bit ACK + optional SR
-    else if (srslte_uci_cfg_total_ack(uci_cfg) >= 2 && srslte_uci_cfg_total_ack(uci_cfg) <= 4) {
+    else if (total_ack >= 2 && total_ack <= 4) {
       format = SRSLTE_PUCCH_FORMAT_1B; // with channel selection if > 2
     }
     // If UCI value is provided, use SR signal only, otherwise SR request opportunity
     else if (uci_cfg->is_scheduling_request_tti) {
       format = SRSLTE_PUCCH_FORMAT_1;
     } else {
-      ERROR("Error selecting PUCCH format: Unsupported number of ACK bits %d\n", srslte_uci_cfg_total_ack(uci_cfg));
+      ERROR("Error selecting PUCCH format: Unsupported number of ACK bits %d\n", total_ack);
     }
   }
   // CQI data
   else {
     // CQI and no ack
-    if (srslte_uci_cfg_total_ack(uci_cfg) == 0) {
+    if (total_ack == 0) {
       format = SRSLTE_PUCCH_FORMAT_2;
     }
     // CQI + 1-bit ACK
-    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1 && SRSLTE_CP_ISNORM(cp)) {
+    else if (total_ack == 1 && SRSLTE_CP_ISNORM(cp)) {
       format = SRSLTE_PUCCH_FORMAT_2A;
     }
     // CQI + 2-bit ACK
-    else if (srslte_uci_cfg_total_ack(uci_cfg) == 2) {
+    else if (total_ack == 2) {
       format = SRSLTE_PUCCH_FORMAT_2B;
     }
     // CQI + 2-bit ACK + cyclic prefix
-    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1 && SRSLTE_CP_ISEXT(cp)) {
+    else if (total_ack == 1 && SRSLTE_CP_ISEXT(cp)) {
       format = SRSLTE_PUCCH_FORMAT_2B;
     }
   }

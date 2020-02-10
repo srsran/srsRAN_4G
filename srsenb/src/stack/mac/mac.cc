@@ -207,7 +207,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
       ue_db[rnti]->is_phy_added = true;
       Info("Registering rnti=0x%x to PHY...\n", rnti);
       // Register new user in PHY
-      if (phy_h->add_rnti(rnti)) {
+      if (phy_h->add_rnti(rnti, 0, false)) {
         Error("Registering new ue rnti=0x%x to PHY\n", rnti);
       }
       Info("Done registering rnti=0x%x to PHY...\n", rnti);
@@ -304,10 +304,9 @@ void mac::rl_ok(uint16_t rnti)
   pthread_rwlock_unlock(&rwlock);
 }
 
-int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
+int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack)
 {
   // TODO: add cc_idx to interface
-  uint32_t cc_idx = 0;
   pthread_rwlock_rdlock(&rwlock);
   log_h->step(tti);
   uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, cc_idx, tb_idx, ack);
@@ -388,10 +387,8 @@ int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
   return ret;
 }
 
-int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
+int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value)
 {
-  // TODO: add cc_idx to interface
-  uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
 
@@ -484,7 +481,7 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
   rrc_h->add_user(rnti, ue_cfg);
 
   // Add temporal rnti to the PHY
-  if (phy_h->add_rnti(rnti, true)) {
+  if (phy_h->add_rnti(rnti, enb_cc_idx, true)) {
     Error("Registering temporal-rnti=0x%x to PHY\n", rnti);
   }
 

@@ -42,7 +42,7 @@ public:
   cf_t* get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
   void  set_time(uint32_t tti, uint32_t tx_worker_cnt, srslte_timestamp_t tx_time);
 
-  int      add_rnti(uint16_t rnti, bool is_temporal);
+  int      add_rnti(uint16_t rnti, uint32_t cc_idx, bool is_temporal);
   void     rem_rnti(uint16_t rnti);
   uint32_t get_nof_rnti();
 
@@ -53,7 +53,7 @@ public:
   int  read_pucch_d(cf_t* pusch_d);
   void start_plot();
 
-  void set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated);
+  void set_config_dedicated(uint16_t rnti, uint32_t cc_idx, const srslte::phy_cfg_t& dedicated);
 
   uint32_t get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
 

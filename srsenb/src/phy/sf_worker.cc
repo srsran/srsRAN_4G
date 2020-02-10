@@ -136,12 +136,16 @@ void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestam
   }
 }
 
-int sf_worker::add_rnti(uint16_t rnti, bool is_temporal)
+int sf_worker::add_rnti(uint16_t rnti, uint32_t cc_idx, bool is_temporal)
 {
-  for (auto& w : cc_workers) {
-    w->add_rnti(rnti, is_temporal);
+  int ret = SRSLTE_ERROR;
+
+  if (cc_idx < cc_workers.size()) {
+    cc_workers[cc_idx]->add_rnti(rnti, is_temporal);
+    ret = SRSLTE_SUCCESS;
   }
-  return SRSLTE_SUCCESS;
+
+  return ret;
 }
 
 void sf_worker::rem_rnti(uint16_t rnti)
@@ -156,10 +160,12 @@ uint32_t sf_worker::get_nof_rnti()
   return cc_workers[0]->get_nof_rnti();
 }
 
-void sf_worker::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated)
+void sf_worker::set_config_dedicated(uint16_t rnti, uint32_t cc_idx, const srslte::phy_cfg_t& dedicated)
 {
-  for (auto& w : cc_workers) {
-    w->set_config_dedicated(rnti, dedicated);
+  if (cc_idx < cc_workers.size()) {
+    cc_workers[cc_idx]->set_config_dedicated(rnti, dedicated);
+  } else {
+    log_h->error("cc_idx %d exceeds the number of carriers (%ld)\n", cc_idx, cc_workers.size());
   }
 }
 
@@ -225,6 +231,9 @@ void sf_worker::work_imp()
   dl_sf.cfi              = dl_grants[t_tx_dl][0].cfi;
   dl_sf.sf_type          = sf_type;
   dl_sf.non_mbsfn_region = mbsfn_cfg.non_mbsfn_region_length;
+
+  // Prepare for receive ACK for DL grants in t_tx_dl+4
+  phy->ue_db_clear_tti_pending_ack(tti_tx_ul);
 
   // Process DL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
