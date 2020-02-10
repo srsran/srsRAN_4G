@@ -285,58 +285,64 @@ public:
         for (int lcid = 0; lcid < SRSLTE_N_RADIO_BEARERS; lcid++) {
           uint32_t buf_state = rlc.get_buffer_state(lcid);
           // Schedule DL transmission if there is data in RLC buffer or we need to send Msg4
-          if (buf_state > 0 || (msg3_tti != -1 && conres_id != 0)) {
+          if ((buf_state > 0 && bearer_follow_on_map[lcid] == false) || (msg3_tti != -1 && conres_id != 0)) {
             log.debug("LCID=%d, buffer_state=%d\n", lcid, buf_state);
+            tx_payload_buffer.clear();
+
             const uint32_t mac_header_size = 10; // Add MAC header (10 B for all subheaders, etc)
-            if (tmp_rlc_buffer.get_tailroom() > (buf_state + mac_header_size)) {
-              uint32_t pdu_size = rlc.read_pdu(lcid, tmp_rlc_buffer.msg, buf_state);
-              tx_payload_buffer.clear();
-              mac_msg_dl.init_tx(&tx_payload_buffer, pdu_size + mac_header_size, false);
+            mac_msg_dl.init_tx(&tx_payload_buffer, buf_state + mac_header_size, false);
 
-              // check if this is Msg4 that needs to contain the contention resolution ID CE
-              if (msg3_tti != -1 && lcid == 0 && conres_id != 0) {
-                if (mac_msg_dl.new_subh()) {
-                  if (mac_msg_dl.get()->set_con_res_id(conres_id)) {
-                    log.info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
-                  } else {
-                    log.error("CE:    Setting Contention Resolution ID CE\n");
-                  }
-                  conres_id = 0; // reset CR so it's not sent twice
-                } else {
-                  log.error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
-                }
-                msg3_tti = -1;
-              }
-
-              // Add payload
+            // check if this is Msg4 that needs to contain the contention resolution ID CE
+            if (msg3_tti != -1 && lcid == 0 && conres_id != 0) {
               if (mac_msg_dl.new_subh()) {
-                int n = mac_msg_dl.get()->set_sdu(lcid, pdu_size, tmp_rlc_buffer.msg);
+                if (mac_msg_dl.get()->set_con_res_id(conres_id)) {
+                  log.info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
+                } else {
+                  log.error("CE:    Setting Contention Resolution ID CE\n");
+                }
+                conres_id = 0; // reset CR so it's not sent twice
+              } else {
+                log.error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
+              }
+              msg3_tti = -1;
+            }
+
+            // allocate SDUs
+            while (buf_state > 0) { // there is pending SDU to allocate
+              if (mac_msg_dl.new_subh()) {
+                int n = mac_msg_dl.get()->set_sdu(lcid, buf_state, &rlc);
                 if (n == -1) {
-                  log.error("Error while adding SDU (%d B) to MAC PDU\n", pdu_size);
+                  log.error("Error while adding SDU (%d B) to MAC PDU\n", buf_state);
                   mac_msg_dl.del_subh();
                 }
+
+                // update buffer state
+                buf_state = rlc.get_buffer_state(lcid);
               }
-
-              uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(&log);
-              if (mac_pdu_ptr != nullptr) {
-                log.info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU (%d B):\n", mac_msg_dl.get_pdu_len());
-
-                // Prepare MAC grant for CCCH
-                mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
-                dl_grant.pid                                   = get_pid(tti);
-                dl_grant.rnti                                  = dl_rnti;
-                dl_grant.tb[0].tbs                             = mac_msg_dl.get_pdu_len();
-                dl_grant.tb[0].ndi_present                     = true;
-                dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
-
-                ue->new_tb(dl_grant, (const uint8_t*)mac_pdu_ptr);
-              } else {
-                log.error("Error writing DL MAC PDU\n");
-              }
-              mac_msg_dl.reset();
-            } else {
-              log.error("Can't fit RLC PDU into buffer (%d > %d)\n", buf_state, tmp_rlc_buffer.get_tailroom());
             }
+
+            // Assemble entire MAC PDU
+            uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(&log);
+
+            if (mac_pdu_ptr != nullptr) {
+              log.info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU (%d B):\n", mac_msg_dl.get_pdu_len());
+
+              // Prepare MAC grant for CCCH
+              mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
+              dl_grant.pid                                   = get_pid(tti);
+              dl_grant.rnti                                  = dl_rnti;
+              dl_grant.tb[0].tbs                             = mac_msg_dl.get_pdu_len();
+              dl_grant.tb[0].ndi_present                     = true;
+              dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
+
+              ue->new_tb(dl_grant, (const uint8_t*)mac_pdu_ptr);
+            } else {
+              log.error("Error writing DL MAC PDU\n");
+            }
+            mac_msg_dl.reset();
+
+          } else if (bearer_follow_on_map[lcid]) {
+            log.info("Waiting for more PDUs for transmission on LCID=%d\n", lcid);
           }
         }
         // Check if we need to provide a UL grant as well
@@ -1140,7 +1146,6 @@ private:
 
   // buffer for DL transmissions
   srslte::byte_buffer_t rar_buffer;
-  srslte::byte_buffer_t tmp_rlc_buffer;    // Used to buffer RLC PDU
   srslte::byte_buffer_t tx_payload_buffer; // Used to buffer final MAC PDU
 
   uint64_t conres_id = 0;
