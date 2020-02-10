@@ -382,6 +382,21 @@ public:
     }
     return timing;
   }
+
+  static bool get_follow_on_flag(Document& document)
+  {
+    const Value& a = document["Common"];
+
+    // check cnf flag
+    assert(a.HasMember("ControlInfo"));
+    const Value& b = a["ControlInfo"];
+    assert(b.HasMember("FollowOnFlag"));
+
+    const Value& config_flag = b["FollowOnFlag"];
+    assert(config_flag.IsBool());
+
+    return config_flag.GetBool();
+  }
 };
 
 #endif // SRSUE_TTCN3_HELPERS_H

@@ -101,7 +101,7 @@ private:
     } else if (rrcpdu.HasMember("Dcch")) {
       rx_buf_offset += 2;
       uint32_t lcid = document["Common"]["RoutingInfo"]["RadioBearerId"]["Srb"].GetInt();
-      handle_dcch_pdu(document, lcid, &rx_buf->at(rx_buf_offset), n - rx_buf_offset);
+      handle_dcch_pdu(document, lcid, &rx_buf->at(rx_buf_offset), n - rx_buf_offset, ttcn3_helpers::get_follow_on_flag(document));
     } else {
       log->error("Received unknown request.\n");
     }
@@ -128,7 +128,8 @@ private:
   }
 
   // Todo: move to SYSSIM
-  void handle_dcch_pdu(Document& document, const uint16_t lcid, const uint8_t* payload, const uint16_t len)
+  void
+  handle_dcch_pdu(Document& document, const uint16_t lcid, const uint8_t* payload, const uint16_t len, bool follow_on)
   {
     log->info_hex(payload, len, "Received DCCH RRC PDU (lcid=%d)\n", lcid);
 
@@ -137,7 +138,7 @@ private:
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
-    syssim->add_dcch_pdu(ttcn3_helpers::get_timing_info(document), lcid, std::move(pdu));
+    syssim->add_dcch_pdu(ttcn3_helpers::get_timing_info(document), lcid, std::move(pdu), follow_on);
   }
 
   bool ccch_is_rrc_reestablishment(Document& document)

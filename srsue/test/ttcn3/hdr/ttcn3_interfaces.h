@@ -71,9 +71,10 @@ public:
 class ss_srb_interface
 {
 public:
-  virtual void add_ccch_pdu(const timing_info_t timing, srslte::unique_byte_buffer_t pdu)                = 0;
-  virtual void add_dcch_pdu(const timing_info_t timing, uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
-  virtual void reestablish_bearer(uint32_t lcid)                             = 0;
+  virtual void add_ccch_pdu(const timing_info_t timing, srslte::unique_byte_buffer_t pdu) = 0;
+  virtual void
+               add_dcch_pdu(const timing_info_t timing, uint32_t lcid, srslte::unique_byte_buffer_t pdu, bool follow_on_flag) = 0;
+  virtual void reestablish_bearer(uint32_t lcid) = 0;
 };
 
 class syssim_interface_phy

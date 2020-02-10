@@ -824,22 +824,23 @@ public:
     }
   }
 
-  void add_dcch_pdu(const timing_info_t timing, uint32_t lcid, unique_byte_buffer_t pdu)
+  void add_dcch_pdu(const timing_info_t timing, uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag)
   {
     if (timing.now) {
-      add_dcch_pdu_impl(lcid, std::move(pdu));
+      add_dcch_pdu_impl(lcid, std::move(pdu), follow_on_flag);
     } else {
       log.debug("Scheduling DCCH PDU for TTI=%d\n", timing.tti);
-      auto task = [this](uint32_t lcid, srslte::unique_byte_buffer_t& pdu) { add_dcch_pdu_impl(lcid, std::move(pdu)); };
-      tti_actions[timing.tti].push_back(std::bind(task, lcid, std::move(pdu)));
+      auto task = [this](uint32_t lcid, srslte::unique_byte_buffer_t& pdu, bool follow_on_flag) { add_dcch_pdu_impl(lcid, std::move(pdu), follow_on_flag); };
+      tti_actions[timing.tti].push_back(std::bind(task, lcid, std::move(pdu), follow_on_flag));
     }
   }
 
-  void add_dcch_pdu_impl(uint32_t lcid, unique_byte_buffer_t pdu)
+  void add_dcch_pdu_impl(uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag)
   {
     // push to PDCP and create DL grant for it
     log.info("Writing PDU (%d B) to LCID=%d\n", pdu->N_bytes, lcid);
     pdcp.write_sdu(lcid, std::move(pdu), true);
+    bearer_follow_on_map[lcid] = follow_on_flag;
   }
 
   void add_pch_pdu(unique_byte_buffer_t pdu)
@@ -978,6 +979,7 @@ public:
     dl_grant.tb[0].ndi_present                     = true;
     dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
 
+    // Pass to UE
     ue->new_tb(dl_grant, (const uint8_t*)mac_pdu_ptr);
   }
 
@@ -1146,6 +1148,7 @@ private:
   // Simulator objects
   srslte::rlc  rlc;
   srslte::pdcp pdcp;
+  std::map<uint32_t, bool> bearer_follow_on_map; ///< Indicates if for a given LCID the follow_on_flag is set or not
 
   // security config
   bool                                as_security_enabled = false;
