@@ -347,6 +347,12 @@ int gw::init_if(char* err_str)
     std::string netns("/run/netns/");
     netns += args.netns;
     netns_fd = open(netns.c_str(), O_RDONLY);
+    if (netns_fd == -1) {
+      err_str = strerror(errno);
+      log.error("Failed to find netns %s (%s): %s\n",
+                args.netns.c_str(), netns.c_str(), err_str);
+      return SRSLTE_ERROR_CANT_START;
+    }
     if (setns(netns_fd, CLONE_NEWNET) == -1) {
       err_str = strerror(errno);
       log.error("Failed to change netns: %s\n", err_str);
