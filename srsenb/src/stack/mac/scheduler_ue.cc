@@ -361,8 +361,15 @@ void sched_ue::tpc_dec()
  *
  *******************************************************/
 
+/**
+ * Allocate space for multiple MAC SDUs (i.e. RLC PDUs) and corresponding MAC SDU subheaders
+ * @param data struct where the rlc pdu allocations are stored
+ * @param total_tbs available TB size for allocations for a single UE
+ * @return allocated bytes, which is always equal or lower than total_tbs
+ */
 uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs)
 {
+  // TS 36.321 sec 7.1.2 - MAC PDU subheader is 2 bytes if L<=128 and 3 otherwise
   auto      compute_subheader_size    = [](uint32_t sdu_size) { return sdu_size > 128 ? 3 : 2; };
   constexpr uint32_t min_mac_sdu_size = 5; // accounts for MAC SDU subheader and RLC header
   uint32_t           rem_tbs          = total_tbs;
@@ -370,7 +377,7 @@ uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uin
   // if we do not have enough bytes to fit MAC subheader and RLC header, skip MAC SDU allocation
   while (rem_tbs >= min_mac_sdu_size) {
     uint32_t max_sdu_bytes   = rem_tbs - compute_subheader_size(rem_tbs - 2);
-    uint32_t alloc_sdu_bytes = alloc_mac_sdu(&data->pdu[0][data->nof_pdu_elems[0]], max_sdu_bytes);
+    uint32_t alloc_sdu_bytes = alloc_rlc_pdu(&data->pdu[0][data->nof_pdu_elems[0]], max_sdu_bytes);
     if (alloc_sdu_bytes == 0) {
       break;
     }
@@ -1014,7 +1021,7 @@ sched_ue_carrier* sched_ue::get_ue_carrier(uint32_t enb_cc_idx)
 }
 
 /* Allocates first available RLC PDU */
-int sched_ue::alloc_mac_sdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs)
+int sched_ue::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs)
 {
   // TODO: Implement lcid priority (now lowest index is lowest priority)
   int alloc_bytes = 0;

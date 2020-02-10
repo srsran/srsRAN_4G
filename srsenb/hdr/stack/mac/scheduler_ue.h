@@ -224,7 +224,7 @@ private:
   bool is_sr_triggered();
 
   uint32_t format1_count_prb(const rbgmask_t& bitmask, uint32_t cc_idx);
-  int      alloc_mac_sdu(sched_interface::dl_sched_pdu_t* pdu, int rem_tbs);
+  int      alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs);
   uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs);
 
   static bool bearer_is_ul(ue_bearer_t* lch);
