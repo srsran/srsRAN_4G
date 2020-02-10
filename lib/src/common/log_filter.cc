@@ -55,6 +55,11 @@ log_filter::log_filter(std::string layer, logger* logger_, bool tti) : log()
   do_tti      = false;
   time_src    = NULL;
   time_format = TIME;
+
+  if (!logger_) {
+    logger_ = &def_logger_stdout;
+  }
+
   init(std::move(layer), logger_, tti);
 }
 
