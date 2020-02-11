@@ -830,6 +830,11 @@ void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
     uci_cfg->cqi.data_enable = false;
   }
 
+  // Set Scheduling request to true in UCI config if SR
+  if (uci_value && uci_value->scheduling_request) {
+    uci_cfg->is_scheduling_request_tti = true;
+  }
+
   // Get PUCCH Resources
   cfg->format  = srslte_pucch_select_format(cfg, uci_cfg, cell->cp);
   cfg->n_pucch = get_npucch(cfg, uci_cfg, uci_value, cell);

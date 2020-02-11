@@ -1013,7 +1013,8 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   parent(outer_rrc),
   rnti(rnti_),
   pool(srslte::byte_buffer_pool::get_instance()),
-  current_sched_ue_cfg(sched_ue_cfg)
+  current_sched_ue_cfg(sched_ue_cfg),
+  phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size())
 {
   activity_timer = outer_rrc->timers->get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
@@ -1628,7 +1629,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   parent->pdcp->add_bearer(rnti, 1, srslte::make_srb_pdcp_config_t(1, false));
 
   // Configure PHY layer
-  parent->phy->set_config_dedicated(rnti, phy_cfg);
+  apply_setup_phy_config(*phy_cfg); // It assumes SCell has not been set before
   parent->mac->phy_config_enabled(rnti, false);
 
   rr_cfg->drb_to_add_mod_list_present = false;
@@ -1707,7 +1708,8 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
   rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded_present = true;
-  rr_cfg_ded_s* rr_cfg = &rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded;
+  auto&         reconfig_r8 = rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8();
+  rr_cfg_ded_s* rr_cfg      = &reconfig_r8.rr_cfg_ded;
 
   rr_cfg->phys_cfg_ded_present       = true;
   phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
@@ -1738,7 +1740,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
       phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
     }
   }
-  parent->phy->set_config_dedicated(rnti, phy_cfg);
+  apply_reconf_phy_config(reconfig_r8);
 
   sr_get(&phy_cfg->sched_request_cfg.setup().sr_cfg_idx, &phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx);
 
@@ -1800,7 +1802,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   phy_cfg->pdsch_cfg_ded_present = true;
   phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
 
-  parent->phy->set_config_dedicated(rnti, phy_cfg);
+  apply_reconf_phy_config(*conn_reconf);
   current_sched_ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
   parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
   parent->mac->phy_config_enabled(rnti, false);
@@ -2141,6 +2143,112 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffe
     parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
   } else {
     parent->rrc_log->error("Allocating pdu\n");
+  }
+}
+
+void rrc::ue::apply_setup_phy_config(const asn1::rrc::phys_cfg_ded_s& phys_cfg_ded)
+{
+  // Return if no cell is supported
+  if (phy_rrc_dedicated_list.empty()) {
+    return;
+  }
+
+  // Set PCell index
+  phy_rrc_dedicated_list[0].active = true;
+  phy_rrc_dedicated_list[0].cc_idx = current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx;
+
+  // Load PCell dedicated configuration
+  srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
+
+  // Deactivates eNb/Cells for this UE
+  for (uint32_t cc = 1; cc < phy_rrc_dedicated_list.size(); cc++) {
+    phy_rrc_dedicated_list[cc].active = false;
+  }
+
+  // Send configuration to physical layer
+  if (parent->phy != nullptr) {
+    parent->phy->set_config_dedicated(rnti, phy_rrc_dedicated_list);
+  }
+}
+
+void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& reconfig_r8)
+{
+  // Return if no cell is supported
+  if (phy_rrc_dedicated_list.empty()) {
+    return;
+  }
+
+  // Configure PCell if available configuration
+  if (reconfig_r8.rr_cfg_ded_present) {
+    auto& rr_cfg_ded = reconfig_r8.rr_cfg_ded;
+    if (rr_cfg_ded.phys_cfg_ded_present) {
+      auto& phys_cfg_ded = rr_cfg_ded.phys_cfg_ded;
+      srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
+    }
+  }
+
+  // Parse extensions
+  if (reconfig_r8.non_crit_ext_present) {
+    auto& reconfig_r890 = reconfig_r8.non_crit_ext;
+    if (reconfig_r890.non_crit_ext_present) {
+      auto& reconfig_r920 = reconfig_r890.non_crit_ext;
+      if (reconfig_r920.non_crit_ext_present) {
+        auto& reconfig_r1020 = reconfig_r920.non_crit_ext;
+
+        // Handle Add/Modify SCell list
+        if (reconfig_r1020.scell_to_add_mod_list_r10_present) {
+          for (const auto& scell_config : reconfig_r1020.scell_to_add_mod_list_r10) {
+            // UE SCell index
+            uint32_t scell_idx = scell_config.scell_idx_r10;
+
+            // Check that the SCell index is correct.
+            if (scell_idx == 0) {
+              // SCell index is reserved for PCell
+              parent->rrc_log->error("SCell index (%d) is reserved for PCell\n", scell_idx);
+
+            } else if (scell_idx < current_sched_ue_cfg.supported_cc_list.size()) {
+              // Get PHY configuration structure, create entry automatically
+              auto& phy_rrc_dedicated = phy_rrc_dedicated_list[scell_idx];
+
+              // Set eNb Cell/Carrier index
+              phy_rrc_dedicated.active = true;
+              phy_rrc_dedicated.cc_idx = current_sched_ue_cfg.supported_cc_list[scell_idx].enb_cc_idx;
+
+              // Set SCell configuration
+              srslte::set_phy_cfg_t_scell_config(&phy_rrc_dedicated.phy_cfg, scell_config);
+            } else {
+              // Out of bounds, log error
+              parent->rrc_log->error("SCell index (%d) points out of the supported list (%ld)\n",
+                                     scell_idx,
+                                     current_sched_ue_cfg.supported_cc_list.size());
+            }
+          }
+        }
+
+        // Handle Remove SCell list
+        if (reconfig_r1020.scell_to_release_list_r10_present) {
+          for (auto& scell_to_release : reconfig_r1020.scell_to_release_list_r10) {
+            if (scell_to_release == 0) {
+              // SCell index is reserved for PCell
+              parent->rrc_log->error("SCell index (%d) is reserved for PCell\n", scell_to_release);
+            } else if (scell_to_release < current_sched_ue_cfg.supported_cc_list.size()) {
+              // Deactivate cell configuration
+              phy_rrc_dedicated_list[scell_to_release].active = false;
+            } else {
+              // Out of bounds, log error
+              parent->rrc_log->error("SCell index (%d) points out of the supported list (%ld)\n",
+                                     scell_to_release,
+                                     current_sched_ue_cfg.supported_cc_list.size());
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Send configuration to physical layer
+  if (parent->phy != nullptr) {
+    parent->phy->set_config_dedicated(rnti, phy_rrc_dedicated_list);
   }
 }
 

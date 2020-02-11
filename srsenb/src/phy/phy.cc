@@ -256,22 +256,25 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list)
 {
-  // Create list
-  std::vector<uint32_t> scell_idx_list(dedicated_list.size());
+  // Create list, empty by default
+  std::vector<uint32_t> scell_idx_list;
 
   for (uint32_t i = 0; i < dedicated_list.size(); i++) {
     auto& config = dedicated_list[i];
 
-    // Set SCell index in list
-    scell_idx_list[i] = config.cc_idx;
+    // Configure only if active, ignore otherwise
+    if (config.active) {
+      // Set PCell/SCell index in list
+      scell_idx_list.push_back(config.cc_idx);
 
-    // Configure workers
-    for (uint32_t w = 0; w < nof_workers; w++) {
-      // Add RNTI to worker
-      workers[w].add_rnti(rnti, config.cc_idx, false);
+      // Configure workers
+      for (uint32_t w = 0; w < nof_workers; w++) {
+        // Add RNTI to worker
+        workers[w].add_rnti(rnti, config.cc_idx, false);
 
-      // Configure RNTI
-      workers[w].set_config_dedicated(rnti, config.cc_idx, config.phy_cfg);
+        // Configure RNTI
+        workers[w].set_config_dedicated(rnti, config.cc_idx, config.phy_cfg);
+      }
     }
   }
 

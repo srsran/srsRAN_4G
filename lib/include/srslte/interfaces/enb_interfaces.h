@@ -176,8 +176,9 @@ public:
   configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) = 0;
 
   typedef struct {
-    uint32_t          cc_idx  = 0;  ///< eNb Cell index
-    srslte::phy_cfg_t phy_cfg = {}; ///< Dedicated physical layer configuration
+    bool              active  = false; ///< Indicates whether PHY shall consider using this or not
+    uint32_t          cc_idx  = 0;     ///< eNb Cell index
+    srslte::phy_cfg_t phy_cfg = {};    ///< Dedicated physical layer configuration
   } phy_rrc_dedicated_t;
 
   typedef std::vector<phy_rrc_dedicated_t> phy_rrc_dedicated_list_t;

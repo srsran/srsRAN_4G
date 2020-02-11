@@ -344,7 +344,26 @@ public:
     int                       get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
     bool                      nas_pending = false;
     srslte::byte_buffer_t     erab_info;
-  };
+
+    ///< UE's Physical layer dedicated configuration
+    phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list = {};
+
+    /**
+     * Setups the PCell physical layer dedicated configuration of the UE. This method shall be called from the
+     * connection setup only.
+     * @param phys_cfg_ded ASN1 Physical layer configuration dedicated
+     */
+    void apply_setup_phy_config(const asn1::rrc::phys_cfg_ded_s& phys_cfg_ded);
+
+    /**
+     * Reconfigures the PCell and SCell physical layer dedicated configuration of the UE. This method shall be called
+     * from the connection reconfiguration. `apply_setup_phy_config` shall not be called before/after. It automatically
+     * parses the PCell and SCell reconfiguration.
+     *
+     * @param reconfig_r8 ASN1 reconfiguration message
+     */
+    void apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& reconfig_r8);
+  }; // class ue
 
 private:
   // args
