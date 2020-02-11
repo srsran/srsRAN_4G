@@ -117,6 +117,11 @@ float srslte_random_gauss_dist(srslte_random_t q, float std_dev)
   return ret;
 }
 
+bool srslte_random_bool(srslte_random_t q, float prob_true)
+{
+  return srslte_random_uniform_real_dist(q, 0, 1) < prob_true;
+}
+
 void srslte_random_free(srslte_random_t q)
 {
   if (q) {
