@@ -146,10 +146,21 @@ SRSLTE_API int srslte_ue_ul_sr_send_tti(srslte_pucch_cfg_t* cfg, uint32_t curren
 SRSLTE_API bool
 srslte_ue_ul_gen_sr(srslte_ue_ul_cfg_t* cfg, srslte_ul_sf_cfg_t* sf, srslte_uci_data_t* uci_data, bool sr_request);
 
-SRSLTE_API void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
-                                                      srslte_pucch_cfg_t* cfg,
-                                                      srslte_uci_cfg_t*   uci_cfg,
-                                                      srslte_uci_value_t* uci_data);
+/**
+ * Determines the PUCCH resource selection according to 3GPP 36.213 R10 Section 10.1. The PUCCH format and resource are
+ * saved in cfg->format and cfg->n_pucch. Also, HARQ-ACK
+ *
+ * @param cell Cell parameter, non-modifiable
+ * @param cfg PUCCH configuration and contains function results
+ * @param uci_cfg UCI configuration
+ * @param uci_data UCI data
+ * @param b Modified bits after applying HARQ-ACK feedback mode "encoding"
+ */
+SRSLTE_API void srslte_ue_ul_pucch_resource_selection(const srslte_cell_t*      cell,
+                                                      srslte_pucch_cfg_t*       cfg,
+                                                      const srslte_uci_cfg_t*   uci_cfg,
+                                                      const srslte_uci_value_t* uci_value,
+                                                      uint8_t                   b[SRSLTE_UCI_MAX_ACK_BITS]);
 
 SRSLTE_API bool srslte_ue_ul_info(srslte_ue_ul_cfg_t* cfg,
                                   srslte_ul_sf_cfg_t* sf,

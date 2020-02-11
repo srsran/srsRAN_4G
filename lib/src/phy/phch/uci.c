@@ -785,7 +785,7 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
   return (int)Qprime;
 }
 
-uint32_t srslte_uci_cfg_total_ack(srslte_uci_cfg_t* uci_cfg)
+uint32_t srslte_uci_cfg_total_ack(const srslte_uci_cfg_t* uci_cfg)
 {
   uint32_t nof_ack = 0;
   for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {

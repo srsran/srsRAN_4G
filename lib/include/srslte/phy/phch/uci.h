@@ -128,7 +128,14 @@ SRSLTE_API int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
                                         uint32_t            nof_bits,
                                         bool                is_ri);
 
-SRSLTE_API uint32_t srslte_uci_cfg_total_ack(srslte_uci_cfg_t* uci_cfg);
+/**
+ * Calculates the number of acknowledgements carried by the Uplink Control Information (UCI) deduced from the number of
+ * transport blocks indicated in the UCI's configuration.
+ *
+ * @param uci_cfg is the UCI configuration
+ * @return the number of acknowledgements
+ */
+SRSLTE_API uint32_t srslte_uci_cfg_total_ack(const srslte_uci_cfg_t* uci_cfg);
 
 SRSLTE_API void srslte_uci_data_reset(srslte_uci_data_t* uci_data);
 

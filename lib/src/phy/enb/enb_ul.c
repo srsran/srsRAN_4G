@@ -26,12 +26,6 @@
 #include <math.h>
 #include <string.h>
 
-#define CURRENT_FFTSIZE srslte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN SRSLTE_SF_LEN(CURRENT_FFTSIZE)
-
-#define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
-#define CURRENT_SFLEN_RE SRSLTE_NOF_RE(q->cell)
-
 int srslte_enb_ul_init(srslte_enb_ul_t* q, cf_t* in_buffer, uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -170,69 +164,11 @@ void srslte_enb_ul_fft(srslte_enb_ul_t* q)
   srslte_ofdm_rx_sf(&q->fft);
 }
 
-static int pucch_resource_selection(srslte_pucch_cfg_t* cfg,
-                                    srslte_uci_cfg_t*   uci_cfg,
-                                    srslte_cell_t*      cell,
-                                    uint32_t            n_pucch_i[SRSLTE_PUCCH_CS_MAX_ACK])
-{
-  if (!cfg || !cell || !uci_cfg || !n_pucch_i) {
-    ERROR("pucch_resource_selection(): Invalid parameters\n");
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
-  uint32_t total_nof_ack = srslte_uci_cfg_total_ack(uci_cfg);
-
-  // Available scheduling request and PUCCH format is not PUCCH3
-  if (uci_cfg->is_scheduling_request_tti && cfg->format != SRSLTE_PUCCH_FORMAT_3) {
-    n_pucch_i[0] = cfg->n_pucch_sr;
-    return 1;
-  }
-
-  // PUCCH formats 1, 1A and 1B (normal anb channel selection modes)
-  if (cfg->format < SRSLTE_PUCCH_FORMAT_2) {
-    if (cfg->sps_enabled) {
-      n_pucch_i[0] = cfg->n_pucch_1[uci_cfg->ack[0].tpc_for_pucch % 4];
-      return 1;
-    }
-
-    if (cell->frame_type == SRSLTE_TDD) {
-      ERROR("TDD not supported\n");
-      return SRSLTE_ERROR;
-    }
-
-    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
-      return srslte_pucch_cs_resources(cfg, uci_cfg, n_pucch_i);
-    }
-
-    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL ||
-        (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
-         total_nof_ack == uci_cfg->ack[0].nof_acks)) {
-      // If normal or feedback mode PUCCH3 with only data in PCell
-      n_pucch_i[0] = uci_cfg->ack[0].ncce[0] + cfg->N_pucch_1;
-      return 1;
-    }
-
-    // Otherwise an error shall be prompt
-    ERROR("Unhandled PUCCH format mode %s\n", srslte_ack_nack_feedback_mode_string(cfg->ack_nack_feedback_mode));
-    return SRSLTE_ERROR;
-  }
-
-  // PUCCH format 3
-  if (cfg->format == SRSLTE_PUCCH_FORMAT_3) {
-    n_pucch_i[0] = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_N3];
-    return 1;
-  }
-
-  // PUCCH format 1
-  n_pucch_i[0] = cfg->n_pucch_2;
-  return 1;
-}
-
 static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* res)
 {
-  int                ret = SRSLTE_SUCCESS;
-  uint32_t           n_pucch_i[SRSLTE_PUCCH_CS_MAX_ACK] = {};
-  srslte_pucch_res_t pucch_res                          = {};
+  int                ret                               = SRSLTE_SUCCESS;
+  uint32_t           n_pucch_i[SRSLTE_PUCCH_MAX_ALLOC] = {};
+  srslte_pucch_res_t pucch_res                         = {};
 
   // Drop CQI if there is collision with ACK
   if (!cfg->simul_cqi_ack && srslte_uci_cfg_total_ack(&cfg->uci_cfg) > 0 && cfg->uci_cfg.cqi.data_enable) {
@@ -240,10 +176,10 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
   }
 
   // Select format
-  cfg->format = srslte_pucch_select_format(cfg, &cfg->uci_cfg, q->cell.cp);
+  cfg->format = srslte_pucch_proc_select_format(&q->cell, cfg, &cfg->uci_cfg, NULL);
 
   // Get possible resources
-  int nof_resources = pucch_resource_selection(cfg, &cfg->uci_cfg, &q->cell, n_pucch_i);
+  int nof_resources = srslte_pucch_proc_get_resources(&q->cell, cfg, &cfg->uci_cfg, NULL, n_pucch_i);
   if (nof_resources < SRSLTE_SUCCESS || nof_resources > SRSLTE_PUCCH_CS_MAX_ACK) {
     ERROR("No PUCCH resource could be calculated\n");
     return SRSLTE_ERROR;
@@ -296,11 +232,11 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t*    q,
 
   if (!srslte_pucch_cfg_isvalid(cfg, q->cell.nof_prb)) {
     ERROR("Invalid PUCCH configuration\n");
-    return -1;
+    return SRSLTE_ERROR_INVALID_INPUTS;
   }
 
   if (get_pucch(q, ul_sf, cfg, res)) {
-    return -1;
+    return SRSLTE_ERROR;
   }
 
   // If we are looking for SR and ACK at the same time and ret=0, means there is no SR.

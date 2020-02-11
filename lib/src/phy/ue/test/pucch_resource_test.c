@@ -42,6 +42,7 @@ int fdd_tests()
   srslte_pucch_cfg_t pucch_cfg;
   srslte_uci_cfg_t   uci_cfg;
   srslte_uci_value_t uci_value;
+  uint8_t            b[SRSLTE_UCI_MAX_ACK_BITS] = {};
 
   ZERO_OBJECT(cell);
   cell.cp         = SRSLTE_CP_NORM;
@@ -61,7 +62,7 @@ int fdd_tests()
   // Format 1
   ZERO_OBJECT(uci_cfg);
   uci_value.scheduling_request = true;
-  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value);
+  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value, b);
   TESTASSERT(pucch_cfg.format == SRSLTE_PUCCH_FORMAT_1);
   TESTASSERT(pucch_cfg.n_pucch == pucch_cfg.n_pucch_sr);
 
@@ -71,7 +72,7 @@ int fdd_tests()
     ZERO_OBJECT(uci_cfg);
     uci_cfg.ack[0].nof_acks = 1;
     uci_cfg.ack[0].ncce[0]  = 13;
-    srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value);
+    srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value, b);
     TESTASSERT(pucch_cfg.format == SRSLTE_PUCCH_FORMAT_1A);
     if (i == 0) {
       TESTASSERT(pucch_cfg.n_pucch == pucch_cfg.n_pucch_sr);
@@ -89,7 +90,7 @@ int fdd_tests()
     ZERO_OBJECT(uci_cfg);
     uci_cfg.ack[0].nof_acks = 2;
     uci_cfg.ack[0].ncce[0]  = 13;
-    srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value);
+    srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value, b);
     TESTASSERT(pucch_cfg.format == SRSLTE_PUCCH_FORMAT_1B);
     if (i == 0) {
       TESTASSERT(pucch_cfg.n_pucch == pucch_cfg.n_pucch_sr);
@@ -112,14 +113,14 @@ int fdd_tests()
   // ACK/ACK, n_pucch = n_pucch_1
   uci_value.ack.ack_value[0] = 1;
   uci_value.ack.ack_value[1] = 1;
-  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value);
+  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value, b);
   TESTASSERT(pucch_cfg.format == SRSLTE_PUCCH_FORMAT_1B);
   TESTASSERT(pucch_cfg.n_pucch == uci_cfg.ack[1].ncce[0] + pucch_cfg.N_pucch_1);
 
   // ACK/DTX, n_pucch = n_pucch_0
   uci_value.ack.ack_value[0] = 1;
   uci_value.ack.ack_value[1] = 2;
-  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value);
+  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value, b);
   TESTASSERT(pucch_cfg.format == SRSLTE_PUCCH_FORMAT_1B);
   TESTASSERT(pucch_cfg.n_pucch == uci_cfg.ack[0].ncce[0] + pucch_cfg.N_pucch_1);
 
@@ -128,7 +129,7 @@ int fdd_tests()
   uci_cfg.ack[1].tpc_for_pucch = 3;
   uci_value.ack.ack_value[0]   = 1;
   uci_value.ack.ack_value[1]   = 1;
-  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value);
+  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value, b);
   TESTASSERT(pucch_cfg.format == SRSLTE_PUCCH_FORMAT_1B);
   TESTASSERT(pucch_cfg.n_pucch == pucch_cfg.n1_pucch_an_cs[uci_cfg.ack[1].tpc_for_pucch][0]);
 
@@ -137,7 +138,7 @@ int fdd_tests()
   uci_cfg.ack[0].tpc_for_pucch = 2;
   uci_value.ack.ack_value[0]   = 1;
   uci_value.ack.ack_value[1]   = 2;
-  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value);
+  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value, b);
   TESTASSERT(pucch_cfg.format == SRSLTE_PUCCH_FORMAT_1B);
   TESTASSERT(pucch_cfg.n_pucch == pucch_cfg.n1_pucch_an_cs[uci_cfg.ack[0].tpc_for_pucch][0]);
 
@@ -148,7 +149,7 @@ int fdd_tests()
   uci_value.scheduling_request = true;
   uci_cfg.ack[0].nof_acks      = 1;
   uci_cfg.ack[1].nof_acks      = 1;
-  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value);
+  srslte_ue_ul_pucch_resource_selection(&cell, &pucch_cfg, &uci_cfg, &uci_value, b);
   TESTASSERT(pucch_cfg.format == SRSLTE_PUCCH_FORMAT_1B);
 
   return 0;

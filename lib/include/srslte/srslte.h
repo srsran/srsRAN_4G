@@ -95,6 +95,7 @@ extern "C" {
 #include "srslte/phy/phch/phich.h"
 #include "srslte/phy/phch/prach.h"
 #include "srslte/phy/phch/pucch.h"
+#include "srslte/phy/phch/pucch_proc.h"
 #include "srslte/phy/phch/pusch.h"
 #include "srslte/phy/phch/ra.h"
 #include "srslte/phy/phch/ra_dl.h"
