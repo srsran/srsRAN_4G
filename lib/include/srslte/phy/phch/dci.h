@@ -236,4 +236,6 @@ SRSLTE_API int srslte_dci_location_set(srslte_dci_location_t* c, uint32_t L, uin
 
 SRSLTE_API bool srslte_dci_location_isvalid(srslte_dci_location_t* c);
 
+SRSLTE_API uint32_t srslte_dci_format_max_tb(srslte_dci_format_t format);
+
 #endif // DCI_

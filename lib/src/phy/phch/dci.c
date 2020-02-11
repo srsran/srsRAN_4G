@@ -1678,3 +1678,32 @@ uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t le
 
   return n;
 }
+
+uint32_t srslte_dci_format_max_tb(srslte_dci_format_t format)
+{
+  uint32_t ret = 0;
+  switch (format) {
+    case SRSLTE_DCI_FORMAT0:
+    case SRSLTE_DCI_FORMAT1:
+    case SRSLTE_DCI_FORMAT1A:
+    case SRSLTE_DCI_FORMAT1C:
+    case SRSLTE_DCI_FORMAT1B:
+    case SRSLTE_DCI_FORMAT1D:
+    case SRSLTE_DCI_FORMATN0:
+    case SRSLTE_DCI_FORMATN1:
+    case SRSLTE_DCI_FORMATN2:
+    case SRSLTE_DCI_FORMAT_RAR:
+      ret = 1;
+      break;
+    case SRSLTE_DCI_FORMAT2:
+    case SRSLTE_DCI_FORMAT2A:
+    case SRSLTE_DCI_FORMAT2B:
+      ret = 2;
+      break;
+    case SRSLTE_DCI_NOF_FORMATS:
+    default:
+      ret = 0;
+      break;
+  }
+  return ret;
+}
