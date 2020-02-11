@@ -96,7 +96,7 @@ void phy::parse_config(const phy_cfg_t& cfg)
   workers_common.ul_cfg_com.pucch.N_cs              = cfg.pucch_cnfg.ncs_an;
   workers_common.ul_cfg_com.pucch.n_rb_2            = cfg.pucch_cnfg.nrb_cqi;
   workers_common.ul_cfg_com.pucch.N_pucch_1         = cfg.pucch_cnfg.n1_pucch_an;
-  workers_common.ul_cfg_com.pucch.threshold_format1 = 0.8;
+  workers_common.ul_cfg_com.pucch.threshold_format1 = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
 
   // PDSCH configuration
   workers_common.dl_cfg_com.tm                 = SRSLTE_TM1;

@@ -252,6 +252,7 @@ void cc_worker::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& ded
 
   if (ue_db.count(rnti)) {
     ue_db[rnti]->ul_cfg = dedicated.ul_cfg;
+    ue_db[rnti]->ul_cfg.pucch.threshold_format1 = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
     ue_db[rnti]->ul_cfg.pucch.rnti = rnti;
     ue_db[rnti]->ul_cfg.pusch.rnti = rnti;
     ue_db[rnti]->dl_cfg = dedicated.dl_cfg;

@@ -53,6 +53,8 @@
 #define SRSLTE_PUCCH_FORMAT3_MAX_CARRIERS 5
 #define SRSLTE_PUCCH_CS_MAX_NOF_ALLOC 4
 
+#define SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1 (0.1f)
+
 typedef struct {
   srslte_sequence_t seq_f2[SRSLTE_NOF_SF_X_FRAME];
   uint32_t          cell_id;
