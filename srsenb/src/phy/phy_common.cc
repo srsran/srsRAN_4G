@@ -224,14 +224,14 @@ void phy_common::ue_db_set_ack_pending(uint32_t tti, uint32_t cc_idx, const srsl
 
   uint32_t       scell_idx   = ue.scell_map[cc_idx];
   uint32_t       tti_idx     = TTIMOD(tti);
-  pending_ack_t& pending_ack = ue.pending_ack[tti_idx];
+  pending_ack_t& pending_ack = ue.pending_ack[tti_idx]; // Assume it has been zero'ed for the TTI
 
   // Set DCI info
   pending_ack.ack[scell_idx].grant_cc_idx = scell_idx; // No cross carrier scheduling supported
   pending_ack.ack[scell_idx].ncce[0]      = dci.location.ncce;
 
   // Set TB info
-  for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
+  for (uint32_t i = 0; i < srslte_dci_format_max_tb(dci.format); i++) {
     if (SRSLTE_DCI_IS_TB_EN(dci.tb[i])) {
       pending_ack.ack[scell_idx].pending_tb[i] = true;
       pending_ack.ack[scell_idx].nof_acks++;

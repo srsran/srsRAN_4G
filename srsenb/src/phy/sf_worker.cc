@@ -215,10 +215,9 @@ void sf_worker::work_imp()
     }
   }
 
-  if (dl_grants[t_tx_dl][0].cfi < 1 || dl_grants[t_tx_dl][0].cfi > 3) {
-    Error("Invalid CFI=%d\n", dl_grants[t_tx_dl][0].cfi);
-    return;
-  }
+  // Make sure CFI is in the right range
+  dl_grants[t_tx_dl][0].cfi = SRSLTE_MAX(dl_grants[t_tx_dl][0].cfi, 1);
+  dl_grants[t_tx_dl][0].cfi = SRSLTE_MIN(dl_grants[t_tx_dl][0].cfi, 3);
 
   // Get UL scheduling for the TX TTI from MAC
   if (stack->get_ul_sched(tti_tx_ul, ul_grants[t_tx_ul]) < 0) {

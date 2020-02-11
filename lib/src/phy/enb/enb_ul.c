@@ -231,8 +231,8 @@ static int pucch_resource_selection(srslte_pucch_cfg_t* cfg,
 static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* res)
 {
   int                ret = SRSLTE_SUCCESS;
-  uint32_t           n_pucch_i[SRSLTE_PUCCH_CS_MAX_ACK];
-  srslte_pucch_res_t pucch_res;
+  uint32_t           n_pucch_i[SRSLTE_PUCCH_CS_MAX_ACK] = {};
+  srslte_pucch_res_t pucch_res                          = {};
 
   // Drop CQI if there is collision with ACK
   if (!cfg->simul_cqi_ack && srslte_uci_cfg_total_ack(&cfg->uci_cfg) > 0 && cfg->uci_cfg.cqi.data_enable) {
@@ -250,7 +250,7 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
   }
 
   // Initialise minimum correlation
-  res->correlation = -INFINITY;
+  res->correlation = 0.0f;
 
   // Iterate possible resources and select the one with higher correlation
   for (int i = 0; i < nof_resources && ret == SRSLTE_SUCCESS; i++) {

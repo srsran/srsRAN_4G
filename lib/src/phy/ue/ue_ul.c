@@ -753,12 +753,12 @@ get_npucch(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
 {
   uint32_t n_pucch_res = 0;
 
-  if (uci_cfg->is_scheduling_request_tti) {
-    return cfg->n_pucch_sr;
-  }
-
-  if (uci_value) {
-    if (uci_value->scheduling_request) {
+  if (cfg->format != SRSLTE_PUCCH_FORMAT_3) {
+    if (uci_value) {
+      if (uci_value->scheduling_request) {
+        return cfg->n_pucch_sr;
+      }
+    } else if (uci_cfg->is_scheduling_request_tti) {
       return cfg->n_pucch_sr;
     }
   }
@@ -768,23 +768,14 @@ get_npucch(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
     return 0;
   }
 
-  if (cfg->format < SRSLTE_PUCCH_FORMAT_2) {
-    if (cfg->sps_enabled) {
-      n_pucch_res = cfg->n_pucch_1[uci_cfg->ack[0].tpc_for_pucch % 4];
-    } else {
-      if (cell->frame_type == SRSLTE_FDD) {
-        switch (cfg->ack_nack_feedback_mode) {
-          case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3:
-            n_pucch_res = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS];
-            break;
-          case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS:
-            n_pucch_res = get_npucch_cs(cfg, uci_cfg, uci_value);
-            break;
-          default:
-            n_pucch_res = uci_cfg->ack[0].ncce[0] + cfg->N_pucch_1;
-            break;
-        }
-      } else {
+  switch (cfg->format) {
+
+    case SRSLTE_PUCCH_FORMAT_1:
+    case SRSLTE_PUCCH_FORMAT_1A:
+    case SRSLTE_PUCCH_FORMAT_1B:
+      if (cfg->sps_enabled) {
+        n_pucch_res = cfg->n_pucch_1[uci_cfg->ack[0].tpc_for_pucch % 4];
+      } else if (cell->frame_type == SRSLTE_TDD) {
         // only 1 CC supported in TDD
         if (!uci_cfg->ack[0].tdd_is_multiplex || uci_cfg->ack[0].tdd_ack_M == 1) {
           n_pucch_res = n_pucch_i_tdd(uci_cfg->ack[0].ncce[0],
@@ -804,10 +795,25 @@ get_npucch(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
             ERROR("Invalid M=%d in PUCCH TDD multiplexing\n", uci_cfg->ack[0].tdd_ack_M);
           }
         }
+      } else if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+        // Channel selection enabled
+        n_pucch_res = get_npucch_cs(cfg, uci_cfg, uci_value);
+      } else {
+        // Normal case
+        n_pucch_res = uci_cfg->ack[0].ncce[0] + cfg->N_pucch_1;
       }
-    }
-  } else {
-    n_pucch_res = cfg->n_pucch_2;
+      break;
+    case SRSLTE_PUCCH_FORMAT_2:
+    case SRSLTE_PUCCH_FORMAT_2A:
+    case SRSLTE_PUCCH_FORMAT_2B:
+      n_pucch_res = cfg->n_pucch_2;
+      break;
+    case SRSLTE_PUCCH_FORMAT_3:
+      n_pucch_res = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS];
+      break;
+    case SRSLTE_PUCCH_FORMAT_ERROR:
+    default:
+      ERROR("Wrong PUCCH format %s\n", srslte_pucch_format_text_short(cfg->format));
   }
 
   return n_pucch_res;
@@ -822,11 +828,6 @@ void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
   // Drop CQI if there is collision with ACK
   if (!cfg->simul_cqi_ack && srslte_uci_cfg_total_ack(uci_cfg) > 0 && uci_cfg->cqi.data_enable) {
     uci_cfg->cqi.data_enable = false;
-  }
-
-  // Assume that if a scheduling request is carried, it is the right TTI
-  if (uci_value) {
-    uci_cfg->is_scheduling_request_tti |= uci_value->scheduling_request;
   }
 
   // Get PUCCH Resources
