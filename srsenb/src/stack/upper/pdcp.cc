@@ -53,7 +53,7 @@ void pdcp::stop()
 
 void pdcp::add_user(uint16_t rnti)
 {
-  pthread_rwlock_rdlock(&rwlock);
+  pthread_rwlock_wrlock(&rwlock);
   if (users.count(rnti) == 0) {
     srslte::pdcp* obj = new srslte::pdcp(timers, log_h);
     obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf);
