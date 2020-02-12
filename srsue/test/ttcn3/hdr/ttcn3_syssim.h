@@ -76,7 +76,7 @@ public:
     }
 
     // init and configure logging
-    log.init("SS  ", logger);
+    log.init("SS  ", logger, true);
     ut_log.init("UT  ", logger);
     sys_log.init("SYS ", logger);
     ip_sock_log.init("IP_S", logger);
@@ -273,6 +273,8 @@ public:
       return;
     }
 
+    log.debug_hex(payload, len, "Received MAC PDU (%d B)\n", len);
+
     // Parse MAC
     mac_msg_ul.init_rx(len, true);
     mac_msg_ul.parse_packet((uint8_t*)payload);
@@ -280,14 +282,6 @@ public:
     while (mac_msg_ul.next()) {
       assert(mac_msg_ul.get());
       if (mac_msg_ul.get()->is_sdu()) {
-        // Route logical channel
-        ss_mac_log.info_hex(mac_msg_ul.get()->get_sdu_ptr(),
-                            mac_msg_ul.get()->get_payload_size(),
-                            "PDU:   rnti=0x%x, lcid=%d, %d bytes\n",
-                            0xdead,
-                            mac_msg_ul.get()->get_sdu_lcid(),
-                            mac_msg_ul.get()->get_payload_size());
-
         // Push PDU to our own RLC (needed to handle status reporting, etc. correctly
         ss_mac_log.info_hex(mac_msg_ul.get()->get_sdu_ptr(),
                             mac_msg_ul.get()->get_payload_size(),
@@ -316,7 +310,7 @@ public:
     }
     mac_msg_ul.reset();
 
-    /* Process CE after all SDUs because we need to update BSR after */
+    // Process CE after all SDUs because we need to update BSR after
     bool bsr_received = false;
     while (mac_msg_ul.next()) {
       assert(mac_msg_ul.get());
@@ -483,7 +477,9 @@ public:
 
         tti = (tti + 1) % 10240;
 
-        log.debug("SYSSIM-TTI=%d\n", tti);
+        log.step(tti);
+        log.debug("Start new TTI\n");
+
         ue->set_current_tti(tti);
 
         // process events, if any
@@ -808,7 +804,18 @@ public:
   // RRC interface for PDCP, PDCP calls RRC to push RRC SDU
   void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   {
-    log.info_hex(pdu->msg, pdu->N_bytes, "RRC SDU received for LCID=%d (%d B)\n", lcid, pdu->N_bytes);
+    log.info_hex(pdu->msg,
+                 pdu->N_bytes,
+                 "RRC SDU received for LCID=%d cell_id=%d (%d B)\n",
+                 lcid,
+                 cells[pcell_idx]->cell.id,
+                 pdu->N_bytes);
+
+    // check cell ID
+    if (cells[pcell_idx]->cell.id > 256) {
+      log.error("Cell ID too large to fit in single byte.\n");
+      return;
+    }
 
     // We don't handle RRC, prepend LCID
     pdu->msg--;
