@@ -1332,10 +1332,10 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, rrc_conn_recfg_s* reconfig)
 }
 
 /* Actions upon reception of RRCConnectionRelease 5.3.8.3 */
-void rrc::rrc_connection_release()
+void rrc::rrc_connection_release(const std::string& cause)
 {
   // Save idleModeMobilityControlInfo, etc.
-  rrc_log->console("Received RRC Connection Release\n");
+  rrc_log->console("Received RRC Connection Release (releaseCause: %s)\n", cause.c_str());
   start_go_idle();
 }
 
@@ -1981,7 +1981,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       handle_ue_capability_enquiry(c1->ue_cap_enquiry());
       break;
     case dl_dcch_msg_type_c::c1_c_::types::rrc_conn_release:
-      rrc_connection_release();
+      rrc_connection_release(c1->rrc_conn_release().crit_exts.c1().rrc_conn_release_r8().release_cause.to_string());
       break;
     default:
       rrc_log->error("The provided DL-CCCH message type is not recognized or supported\n");

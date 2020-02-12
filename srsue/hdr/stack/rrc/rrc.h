@@ -573,7 +573,7 @@ private:
   void ho_failed();
   void start_ho();
   void start_go_idle();
-  void rrc_connection_release();
+  void rrc_connection_release(const std::string& cause);
   void radio_link_failure();
   void leave_connected();
   void stop_timers();
