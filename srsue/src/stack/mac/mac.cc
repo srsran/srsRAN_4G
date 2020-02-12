@@ -291,7 +291,8 @@ uint16_t mac::get_ul_sched_rnti(uint32_t tti)
   if (uernti.crnti) {
     return uernti.crnti;
   }
-  return 0;
+  Error("Couldn't configure RNTI for UL transmission.\n");
+  return SRSLTE_INVALID_RNTI;
 }
 
 bool mac::is_in_window(uint32_t tti, int* start, int* len)
@@ -329,7 +330,7 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
       // TODO: This scheduling decision belongs to RRC
       if (si_window_length > 1) {                     // This is not a SIB1
         if ((tti / 10) % 2 == 0 && (tti % 10) == 5) { // Skip subframe #5 for which SFN mod 2 = 0
-          return 0;
+          return SRSLTE_INVALID_RNTI;
         }
       }
       Debug("SCHED: Searching SI-RNTI, tti=%d, window start=%d, length=%d\n", tti, si_window_start, si_window_length);
@@ -352,7 +353,9 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
     Debug("SCHED: Searching P-RNTI\n");
     return SRSLTE_PRNTI;
   }
-  return 0;
+
+  // turn off DCI search for this TTI
+  return SRSLTE_INVALID_RNTI;
 }
 
 void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)

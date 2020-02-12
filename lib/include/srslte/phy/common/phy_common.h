@@ -71,6 +71,7 @@
 typedef enum { SRSLTE_CP_NORM = 0, SRSLTE_CP_EXT } srslte_cp_t;
 typedef enum { SRSLTE_SF_NORM = 0, SRSLTE_SF_MBSFN } srslte_sf_t;
 
+#define SRSLTE_INVALID_RNTI 0x0 // TS 36.321 - Table 7.1-1 RNTI 0x0 isn't a valid DL RNTI
 #define SRSLTE_CRNTI_START 0x000B
 #define SRSLTE_CRNTI_END 0xFFF3
 #define SRSLTE_RARNTI_START 0x0001

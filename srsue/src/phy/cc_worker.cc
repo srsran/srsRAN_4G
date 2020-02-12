@@ -370,10 +370,9 @@ int cc_worker::decode_pdcch_dl()
 {
   int nof_grants = 0;
 
-  srslte_dci_dl_t dci[SRSLTE_MAX_CARRIERS] = {};
-
   uint16_t dl_rnti = phy->stack->get_dl_sched_rnti(CURRENT_TTI);
-  if (dl_rnti) {
+  if (dl_rnti != SRSLTE_INVALID_RNTI) {
+    srslte_dci_dl_t dci[SRSLTE_MAX_CARRIERS] = {};
 
     /* Blind search first without cross scheduling then with it if enabled */
     for (int i = 0; i < (ue_dl_cfg.cfg.dci.cif_present ? 2 : 1) && !nof_grants; i++) {
