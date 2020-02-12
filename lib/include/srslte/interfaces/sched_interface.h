@@ -130,6 +130,7 @@ public:
     struct cc_cfg_t {
       uint32_t enb_cc_idx     = 0; ///< eNB CC index
       uint32_t periodic_cqi_i = 0; ///< Periodic CQI configuration for this Scell
+      bool     operator==(const cc_cfg_t& c) { return enb_cc_idx == c.enb_cc_idx; }
     };
     /* ue capabilities, etc */
     uint32_t                            maxharq_tx = 5;

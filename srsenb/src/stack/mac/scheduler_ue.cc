@@ -95,6 +95,9 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
       max_msg3retx   = main_cc_params->cfg.maxharq_msg3tx;
     }
     bool maxharq_tx_changed = cfg.maxharq_tx != cfg_.maxharq_tx;
+    bool cc_changed =
+        cfg.supported_cc_list.size() != cfg_.supported_cc_list.size() or
+        not std::equal(cfg.supported_cc_list.begin(), cfg.supported_cc_list.end(), cfg_.supported_cc_list.begin());
 
     // update configuration
     cfg = cfg_;
@@ -116,6 +119,10 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
           c->set_cfg(cfg);
         }
       }
+    }
+
+    if (cc_changed) {
+      pending_ces.push_back(ce_cmd{srslte::sch_subh::SCELL_ACTIVATION});
     }
   }
 }
@@ -214,8 +221,10 @@ void sched_ue::unset_sr()
 
 void sched_ue::set_needs_ta_cmd(uint32_t nof_ta_cmd_)
 {
-  nof_ta_cmd = nof_ta_cmd_;
-  Info("SCHED: rnti=0x%x needs %d TA CMD\n", rnti, nof_ta_cmd);
+  for (uint32_t i = 0; i < nof_ta_cmd_; ++i) {
+    pending_ces.emplace_back(srslte::sch_subh::TA_CMD);
+  }
+  Info("SCHED: rnti=0x%x needs TA CMD\n", rnti);
 }
 
 bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
@@ -398,12 +407,18 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
       conres_ce_pending = false;
       Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
     }
-    while (nof_ta_cmd > 0 && rem_tbs > 2) {
-      data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::TA_CMD;
+
+    // Allocate MAC CE CMDs
+    while (cc_idx == 0 and not pending_ces.empty()) {
+      int toalloc = pending_ces.front().get_req_bytes(cfg);
+      if (rem_tbs < toalloc) {
+        break;
+      }
+      data->pdu[0][data->nof_pdu_elems[0]].lcid = pending_ces.front().cetype;
       data->nof_pdu_elems[0]++;
-      Info("SCHED: Added MAC TA CMD CE for rnti=0x%x\n", rnti);
-      nof_ta_cmd--;
-      rem_tbs -= 2;
+      rem_tbs -= toalloc;
+      Info("SCHED: Added a MAC %s CE for rnti=0x%x\n", pending_ces.front().to_string().c_str(), rnti);
+      pending_ces.pop_front();
     }
 
     // Allocate MAC SDU and respective subheaders
@@ -743,8 +758,8 @@ uint32_t sched_ue::get_pending_dl_new_data_unlocked()
       pending_data += lch[i].buf_retx + lch[i].buf_tx;
     }
   }
-  if (nof_ta_cmd > 0) {
-    pending_data += nof_ta_cmd * 2;
+  for (auto& ce : pending_ces) {
+    pending_data += ce.get_req_bytes(cfg);
   }
   return pending_data;
 }
@@ -1287,6 +1302,50 @@ uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
   }
 
   return n;
+}
+
+/*******************************************************
+ *                   MAC CE Command
+ ******************************************************/
+
+int sched_ue::ce_cmd::get_sdu_size(const sched_interface::ue_cfg_t& c) const
+{
+  // TS 36.321 Sec. 6.1.3 - MAC Control Elements
+  switch (cetype) {
+    case srslte::sch_subh::cetype::TA_CMD:
+      return 1;
+    case srslte::sch_subh::cetype::SCELL_ACTIVATION:
+      // TS 36.321 Sec. 6.1.3.8 - Number of SDU octets is 4 if there are more than 7 Scells (or 8 cells including PCell)
+      return c.supported_cc_list.size() > 8 ? 4 : 1;
+    case srslte::sch_subh::cetype::CON_RES_ID:
+      return 6;
+    default:
+      srslte::logmap::get("MAC ")->error("MAC CE not recognized\n");
+      return 0;
+  }
+}
+
+int sched_ue::ce_cmd::get_req_bytes(const sched_interface::ue_cfg_t& c) const
+{
+  // 36.321 Sec. 6.1.2 - CE subheader format is R/F2/E/LCID (1 octet) for fixed-size MAC CEs.
+  return get_sdu_size(c) + 1;
+}
+
+std::string sched_ue::ce_cmd::to_string() const
+{
+  switch (cetype) {
+    case srslte::sch_subh::cetype::SCELL_ACTIVATION:
+      return "SCell Activation";
+    case srslte::sch_subh::cetype::CON_RES_ID:
+      return "ContentionResolution";
+    case srslte::sch_subh::cetype::TA_CMD:
+      return "Timing Advance";
+    case srslte::sch_subh::cetype::DRX_CMD:
+      return "DRX";
+    default:
+      srslte::logmap::get("MAC ")->error("MAC CE not recognized\n");
+      return "";
+  }
 }
 
 } // namespace srsenb

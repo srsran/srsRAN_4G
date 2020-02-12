@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "scheduler_harq.h"
+#include <deque>
 #include <mutex>
 
 namespace srsenb {
@@ -269,8 +270,6 @@ private:
   /* User State */
   bool conres_ce_pending = true;
 
-  uint32_t nof_ta_cmd = 0;
-
   int next_tpc_pusch = 0;
   int next_tpc_pucch = 0;
 
@@ -278,6 +277,18 @@ private:
 
   sched_interface::ant_info_ded_t dl_ant_info;
   std::vector<sched_ue_carrier>   carriers; ///< map of UE CellIndex to carrier configuration
+
+  // Control Element Command queue
+  struct ce_cmd {
+    int cetype = 0;
+
+    explicit ce_cmd(int lcid) : cetype(lcid) {}
+    int get_sdu_size(const sched_interface::ue_cfg_t& c) const;
+    // considers both MAC CE and subheader
+    int         get_req_bytes(const sched_interface::ue_cfg_t& c) const;
+    std::string to_string() const;
+  };
+  std::deque<ce_cmd> pending_ces;
 };
 } // namespace srsenb
 
