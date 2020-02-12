@@ -324,6 +324,7 @@ int parse_args(int argc, char** argv)
   common.add_options()
       ("duration",                  bpo::value<uint32_t>(&duration_execution_s)->default_value(60),                "Duration of the execution in seconds")
       ("cell.nof_prb",              bpo::value<uint32_t>(&cell_base.nof_prb)->default_value(100),                  "Cell Number of PRB")
+      ("cell.nof_ports",            bpo::value<uint32_t>(&cell_base.nof_ports)->default_value(1),                  "Cell Number of Tx ports")
       ("intra_meas_log_level",      bpo::value<std::string>(&intra_meas_log_level)->default_value("none"),         "Intra measurement log level (none, warning, info, debug)")
       ("intra_freq_meas_len_ms",    bpo::value<uint32_t>(&phy_args.intra_freq_meas_len_ms)->default_value(20),     "Intra measurement measurement length")
       ("intra_freq_meas_period_ms", bpo::value<uint32_t>(&phy_args.intra_freq_meas_period_ms)->default_value(200), "Intra measurement measurement period")
@@ -450,6 +451,7 @@ int main(int argc, char** argv)
   phy_args.cfo_loop_pss_conv            = DEFAULT_PSS_STABLE_TIMEOUT;
   phy_args.snr_estim_alg                = "refs";
   phy_args.snr_ema_coeff                = 0.1f;
+  phy_args.rx_gain_offset               = rx_gain + 62.0f;
 
   // Set phy-lib logging level
   srslte_verbose = phy_lib_log_level;
@@ -490,7 +492,7 @@ int main(int argc, char** argv)
   logger.set_level(intra_meas_log_level);
 
   intra_measure.init(&common, &rrc, &logger);
-  intra_measure.set_primary_cell(serving_cell_id, cell_base);
+  intra_measure.set_primary_cell(SRSLTE_MAX(earfcn_dl, 0), cell_base);
 
   if (earfcn_dl >= 0) {
     // Create radio log
@@ -636,17 +638,19 @@ int main(int argc, char** argv)
           enb->work(&sf_cfg_dl, nullptr, nullptr, nullptr, nullptr, baseband_buffer, ts);
         }
       }
-    }
-
-    srslte_timestamp_add(&ts, 0, 0.001f);
-
-    if (sf_idx > phy_args.intra_freq_meas_period_ms) {
-      if (sf_idx % phy_args.intra_freq_meas_period_ms == 0) {
-        intra_measure.wait_meas();
+      // If it is time for a measurement, wait previous to finish
+      if (sf_idx > phy_args.intra_freq_meas_period_ms) {
+        if (sf_idx % phy_args.intra_freq_meas_period_ms == 0) {
+          intra_measure.wait_meas();
+        }
       }
     }
 
-    intra_measure.write(sf_idx, baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
+    // Increase Time counter
+    srslte_timestamp_add(&ts, 0, 0.001f);
+
+    // Give data to intra measure component
+    intra_measure.write(sf_idx % 10240, baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
     if (sf_idx % 1000 == 0) {
       printf("Done %.1f%%\n", (double)sf_idx * 100.0 / ((double)duration_execution_s * 1000.0));
     }
@@ -656,6 +660,10 @@ int main(int argc, char** argv)
   intra_measure.stop();
 
   ret = rrc.print_stats() ? SRSLTE_SUCCESS : SRSLTE_ERROR;
+
+  if (radio) {
+    radio->stop();
+  }
 
   if (baseband_buffer) {
     free(baseband_buffer);
@@ -673,7 +681,7 @@ int main(int argc, char** argv)
     }
   }
 
-  if (ret) {
+  if (ret && radio == nullptr) {
     printf("Error\n");
   } else {
     printf("Ok\n");

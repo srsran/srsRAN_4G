@@ -30,19 +30,19 @@
  * Constants
  * --------------
  * These constants have been optimized for passing scell_search_test for a number of scenarios.
- * - 6 PRB. 6 cells distributed uniformly 10ms delay
+ * - 6 PRB. 6 cells distributed uniformly 10ms delay. Brut-forced search.
  *     srsue/test/phy/scell_search_test --duration=5 --cell.nof_prb=6 --active_cell_list=all
- *       --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=1000
+ *       --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=10000
  *
- * - 6 PRB. 6 cells distributed uniformly 10ms delay
+ * - 6 PRB. 6 cells distributed uniformly 10ms delay. With PCI set list.
  *     srsue/test/phy/scell_search_test --duration=30 --cell.nof_prb=6 --active_cell_list=2,3,4,5,6
  *       --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=10000
  *
- * - 6 PRB. 6 cell PSS, SSS overlapped:
+ * - 6 PRB. 6 cell PSS, SSS overlapped. Brut-forced search.
  *     srsue/test/phy/scell_search_test --duration=30 --cell.nof_prb=6 --active_cell_list=all
  *       --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=0
  *
- * - 100 PRB, 6 cell, distributed around 1ms
+ * - 100 PRB, 6 cell, distributed around 1ms. With PCI set list.
  *     srsue/test/phy/scell_search_test --duration=30 --cell.nof_prb=100 --active_cell_list=2,3,4,5,6
  *       --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=1000
  */
