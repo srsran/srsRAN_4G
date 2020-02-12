@@ -233,20 +233,18 @@ void mac::run_tti(const uint32_t tti)
   }
 
   ra_procedure.step(tti);
-  ra_window_start  = -1;
-  ra_window_length = -1;
-  ra_procedure.update_rar_window(&ra_window_start, &ra_window_length);
+  ra_procedure.update_rar_window(ra_window_start, ra_window_length);
 }
 
-void mac::bcch_start_rx(int si_window_start, int si_window_length)
+void mac::bcch_start_rx(int si_window_start_, int si_window_length_)
 {
-  if (si_window_length >= 0 && si_window_start >= 0) {
-    dl_harq.at(0)->set_si_window_start(si_window_start);
-    this->si_window_length = si_window_length;
-    this->si_window_start  = si_window_start;
+  if (si_window_length_ >= 0 && si_window_start_ >= 0) {
+    dl_harq.at(0)->set_si_window_start(si_window_start_);
+    si_window_length = si_window_length_;
+    si_window_start  = si_window_start_;
   } else {
-    this->si_window_length = 0;
-    this->si_window_start  = 0;
+    si_window_length = 0;
+    si_window_start  = 0;
   }
   Info("SCHED: Searching for DL dci for SI-RNTI window_st=%d, window_len=%d\n", si_window_start, si_window_length);
 }

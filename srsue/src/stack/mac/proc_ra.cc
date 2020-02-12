@@ -40,7 +40,7 @@ namespace srsue {
 const char* state_str[] = {"RA:    INIT:   ",
                            "RA:    PDCCH:  ",
                            "RA:    Rx:     ",
-                           "RA:    Backof: ",
+                           "RA:    Backoff:",
                            "RA:    ConRes: ",
                            "RA:    WaitComplt: ",
                            "RA:    Complt: "};
@@ -493,7 +493,7 @@ void ra_proc::response_error()
       rDebug("Backoff wait interval %d\n", backoff_interval);
       state = BACKOFF_WAIT;
     } else {
-      rDebug("Transmitting inmediatly (%d/%d)\n", preambleTransmissionCounter, rach_cfg.preambleTransMax);
+      rDebug("Transmitting immediately (%d/%d)\n", preambleTransmissionCounter, rach_cfg.preambleTransMax);
       resource_selection();
     }
   }
@@ -609,22 +609,17 @@ void ra_proc::pdcch_to_crnti(bool is_new_uplink_transmission)
   }
 }
 
-bool ra_proc::update_rar_window(int* rar_window_start, int* rar_window_length)
+void ra_proc::update_rar_window(int& rar_window_start, int& rar_window_length)
 {
-  if (state == RESPONSE_RECEPTION) {
-    if (rar_window_length) {
-      *rar_window_length = rach_cfg.responseWindowSize;
-    }
-    if (rar_window_start) {
-      *rar_window_start = rar_window_st;
-    }
-    return true;
+  if (state != RESPONSE_RECEPTION) {
+    // reset RAR window params to default values to disable RAR search
+    rar_window_start = -1;
+    rar_window_length = -1;
   } else {
-    if (rar_window_length) {
-      *rar_window_length = -1;
-    }
-    return false;
+    rar_window_length = rach_cfg.responseWindowSize;
+    rar_window_start = rar_window_st;
   }
+  rDebug("rar_window_start=%d, rar_window_length=%d\n", rar_window_start, rar_window_length);
 }
 
 // Restart timer at each Msg3 HARQ retransmission (5.1.5)

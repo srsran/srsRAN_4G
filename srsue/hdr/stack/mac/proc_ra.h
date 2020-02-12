@@ -83,7 +83,7 @@ public:
   void start_mac_order(uint32_t msg_len_bits = 56, bool is_ho = false);
   void step(uint32_t tti);
 
-  bool update_rar_window(int* rar_window_start, int* rar_window_length);
+  void update_rar_window(int& rar_window_start, int& rar_window_length);
   bool is_contention_resolution();
   void harq_retx();
   void harq_max_retx();

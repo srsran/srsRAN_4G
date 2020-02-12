@@ -642,7 +642,7 @@ proc_outcome_t rrc::connection_request_proc::step()
 
     // Save dedicatedInfoNAS SDU
     if (rrc_ptr->dedicated_info_nas.get()) {
-      log_h->warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it\n");
+      log_h->warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it.\n");
     }
 
     Info("Waiting for RRCConnectionSetup/Reject or expiry\n");
@@ -680,7 +680,8 @@ void rrc::connection_request_proc::then(const srslte::proc_state_t& result)
 {
   if (result.is_error()) {
     log_h->warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU\n");
-    this->dedicated_info_nas.reset();
+    dedicated_info_nas.reset();
+    rrc_ptr->dedicated_info_nas.reset();
   } else {
     Info("Finished connection request procedure successfully.\n");
   }

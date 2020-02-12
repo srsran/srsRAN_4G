@@ -129,9 +129,9 @@ private:
   mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg;
 
   // RNTI search window scheduling
-  int si_window_length, si_window_start;
-  int ra_window_length, ra_window_start;
-  int p_window_start;
+  int si_window_length = -1, si_window_start = -1;
+  int ra_window_length = -1, ra_window_start = -1;
+  int p_window_start = -1;
 
   // UE-specific RNTIs
   ue_rnti_t uernti;
