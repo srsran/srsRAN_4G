@@ -572,6 +572,11 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id)
 
   rDebug("MAC PDU Contains Contention Resolution ID CE\n");
 
+  if (state != CONTENTION_RESOLUTION) {
+    rError("Received contention resolution in wrong state. Aborting.\n");
+    response_error();
+  }
+
   // MAC PDU successfully decoded and contains MAC CE contention Id
   contention_resolution_timer.stop();
 
