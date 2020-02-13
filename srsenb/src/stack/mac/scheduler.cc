@@ -240,7 +240,9 @@ void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd)
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   // TODO: Check if correct use of last_tti
-  ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti, enabled); });
+  if (ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti, enabled); })) {
+    Error("Error calling phy_config_enabled, user not found\n");
+  }
 }
 
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
@@ -257,7 +259,10 @@ uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
   uint32_t ret = 0;
-  ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); });
+  if (ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); })) {
+    Error("Error calling get_dl_buffer, user not found\n");
+    ret = -1;
+  }
   return ret;
 }
 
@@ -265,7 +270,10 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
   uint32_t ret = 0;
-  ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti); });
+  if (ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti); })) {
+    Error("Error calling get_ul_buffer, user not found\n");
+    ret = -1;
+  }
   return ret;
 }
 
@@ -283,9 +291,10 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int ret = -1;
-  ue_db_access(rnti, [tti, enb_cc_idx, tb_idx, ack, &ret](sched_ue& ue) {
-    ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack);
-  });
+  if (ue_db_access(
+          rnti, [tti, enb_cc_idx, tb_idx, ack, &ret](sched_ue& ue) { ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack); })) {
+    Error("Error calling dl_ack_info, user not found\n");
+  }
   return ret;
 }
 
@@ -349,12 +358,16 @@ void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 
 void sched::tpc_inc(uint16_t rnti)
 {
-  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_inc(); });
+  if (ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_inc(); })) {
+    Error("Error calling tpc_inc, user not found\n");
+  }
 }
 
 void sched::tpc_dec(uint16_t rnti)
 {
-  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); });
+  if (ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); })) {
+    Error("Error calling tpc_dec, user not found\n");
+  }
 }
 
 std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
