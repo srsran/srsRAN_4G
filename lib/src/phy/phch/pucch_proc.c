@@ -75,7 +75,7 @@ srslte_pucch_format_t srslte_pucch_proc_select_format(const srslte_cell_t*      
     else if (total_ack == 2) {
       format = SRSLTE_PUCCH_FORMAT_2B;
     }
-    // CQI + 2-bit ACK + cyclic prefix
+    // CQI + 1-bit ACK + extended cyclic prefix
     else if (total_ack == 1 && SRSLTE_CP_ISEXT(cell->cp)) {
       format = SRSLTE_PUCCH_FORMAT_2B;
     }

@@ -306,7 +306,6 @@ void mac::rl_ok(uint16_t rnti)
 
 int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack)
 {
-  // TODO: add cc_idx to interface
   pthread_rwlock_rdlock(&rwlock);
   log_h->step(tti);
   uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, cc_idx, tb_idx, ack);
@@ -322,10 +321,8 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx,
   return 0;
 }
 
-int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
+int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc)
 {
-  // TODO: add cc_idx to interface
-  uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
   pthread_rwlock_rdlock(&rwlock);
@@ -351,10 +348,8 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
   return ret;
 }
 
-int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
+int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value)
 {
-  // TODO: add cc_idx to interface
-  uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
   pthread_rwlock_rdlock(&rwlock);
@@ -369,10 +364,8 @@ int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
   return ret;
 }
 
-int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
+int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value)
 {
-  // TODO: add cc_idx to interface
-  uint32_t cc_idx = 0;
   log_h->step(tti);
   pthread_rwlock_rdlock(&rwlock);
   int ret = -1;
@@ -404,10 +397,8 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_val
   return ret;
 }
 
-int mac::snr_info(uint32_t tti, uint16_t rnti, float snr)
+int mac::snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr)
 {
-  // TODO: add cc_idx to interface
-  uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
   pthread_rwlock_rdlock(&rwlock);

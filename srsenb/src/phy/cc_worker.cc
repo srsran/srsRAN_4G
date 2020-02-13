@@ -251,12 +251,12 @@ void cc_worker::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& ded
   std::lock_guard<std::mutex> lock(mutex);
 
   if (ue_db.count(rnti)) {
-    ue_db[rnti]->ul_cfg = dedicated.ul_cfg;
+    ue_db[rnti]->ul_cfg                         = dedicated.ul_cfg;
     ue_db[rnti]->ul_cfg.pucch.threshold_format1 = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
-    ue_db[rnti]->ul_cfg.pucch.rnti = rnti;
-    ue_db[rnti]->ul_cfg.pusch.rnti = rnti;
-    ue_db[rnti]->dl_cfg = dedicated.dl_cfg;
-    ue_db[rnti]->dl_cfg.pdsch.rnti = rnti;
+    ue_db[rnti]->ul_cfg.pucch.rnti              = rnti;
+    ue_db[rnti]->ul_cfg.pusch.rnti              = rnti;
+    ue_db[rnti]->dl_cfg                         = dedicated.dl_cfg;
+    ue_db[rnti]->dl_cfg.pdsch.rnti              = rnti;
   } else {
     Error("Setting config dedicated: rnti=0x%x does not exist\n", rnti);
   }
@@ -397,7 +397,7 @@ void cc_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
       phy->stack->cqi_info(tti_rx, rnti, 0, cqi_value);
     }
     if (uci_cfg->cqi.ri_len) {
-      phy->stack->ri_info(tti_rx, rnti, uci_value->ri);
+      phy->stack->ri_info(tti_rx, 0, rnti, uci_value->ri);
       phy->ue_db_set_ri(rnti, uci_value->ri);
     }
     if (uci_cfg->cqi.pmi_present) {
@@ -413,7 +413,7 @@ void cc_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
           Error("CQI type=%d not implemented for PMI\n", uci_cfg->cqi.type);
           break;
       }
-      phy->stack->pmi_info(tti_rx, rnti, pmi_value);
+      phy->stack->pmi_info(tti_rx, rnti, 0, pmi_value);
     }
   }
 }
@@ -466,7 +466,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
       // Notify MAC of RL status
       if (snr_db >= PUSCH_RL_SNR_DB_TH) {
-        phy->stack->snr_info(ul_sf.tti, rnti, snr_db);
+        phy->stack->snr_info(ul_sf.tti, rnti, cc_idx, snr_db);
 
         if (grants[i].dci.tb.rv == 0) {
           if (!pusch_res.crc) {
@@ -483,7 +483,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
       // Notify MAC new received data and HARQ Indication value
       if (pusch_res.data) {
-        phy->stack->crc_info(tti_rx, rnti, grant->tb.tbs / 8, pusch_res.crc);
+        phy->stack->crc_info(tti_rx, rnti, cc_idx, grant->tb.tbs / 8, pusch_res.crc);
 
         // Save metrics stats
         ue_db[rnti]->metrics_ul(grants[i].dci.tb.mcs_idx, 0, snr_db, pusch_res.avg_iterations_block);

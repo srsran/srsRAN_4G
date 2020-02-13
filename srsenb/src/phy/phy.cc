@@ -222,6 +222,11 @@ void phy::set_mch_period_stop(uint32_t stop)
   workers_common.set_mch_period_stop(stop);
 }
 
+void phy::set_activation_deactivation_scell(uint16_t rnti, bool activation[SRSLTE_MAX_CARRIERS])
+{
+  Info("Set activation/deactivation not implemented\n");
+}
+
 void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
   phy_metrics_t metrics_tmp[ENB_METRICS_MAX_USERS] = {};
@@ -259,11 +264,9 @@ void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& de
   // Create list, empty by default
   std::vector<uint32_t> scell_idx_list;
 
-  for (uint32_t i = 0; i < dedicated_list.size(); i++) {
-    auto& config = dedicated_list[i];
-
+  for (const auto& config : dedicated_list) {
     // Configure only if active, ignore otherwise
-    if (config.active) {
+    if (config.configured) {
       // Set PCell/SCell index in list
       scell_idx_list.push_back(config.cc_idx);
 

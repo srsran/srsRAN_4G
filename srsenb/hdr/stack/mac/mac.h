@@ -56,23 +56,23 @@ public:
   int sr_detected(uint32_t tti, uint16_t rnti) final;
   int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final;
 
-  int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
-  int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
+  int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) override;
+  int pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) override;
   int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) override;
-  int snr_info(uint32_t tti, uint16_t rnti, float snr);
+  int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr) override;
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) override;
-  int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res);
+  int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) override;
 
-  int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res);
-  int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res);
-  int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res);
-  void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final
+  int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override;
+  int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) override;
+  int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) override;
+  void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) override
   {
     scheduler.set_dl_tti_mask(tti_mask, nof_sfs);
   }
   void build_mch_sched(uint32_t tbs);
-  void rl_failure(uint16_t rnti);
-  void rl_ok(uint16_t rnti);
+  void rl_failure(uint16_t rnti) override;
+  void rl_ok(uint16_t rnti) override;
 
   /******** Interface from RRC (RRC -> MAC) ****************/
   /* Provides cell configuration including SIB periodicity, etc. */

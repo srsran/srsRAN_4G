@@ -101,19 +101,48 @@ public:
   virtual int sr_detected(uint32_t tti, uint16_t rnti)                                                       = 0;
   virtual int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) = 0;
 
-  virtual int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)                 = 0;
-  virtual int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)               = 0;
+  /**
+   * PHY callback for giving MAC the Rank Indicator information of a given RNTI for an eNb cell/carrier.
+   *
+   * @param tti the given TTI
+   * @param rnti the UE identifier in the eNb
+   * @param cc_idx The eNb Cell/Carrier where the measurement corresponds
+   * @param ri_value the actual Rank Indicator value, 0 for 1 layer, 1 for two layers and so on.
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) = 0;
+
+  /**
+   * PHY callback for giving MAC the Pre-coding Matrix Indicator information of a given RNTI for an eNb cell/carrier.
+   *
+   * @param tti the given TTI
+   * @param rnti the UE identifier in the eNb
+   * @param cc_idx The eNb Cell/Carrier where the measurement corresponds
+   * @param pmi_value the actual PMI value
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) = 0;
 
   /**
    * PHY callback for for giving MAC the Channel Quality information of a given RNTI, TTI and eNb cell/carrier
    * @param tti the given TTI
    * @param rnti the UE identifier in the eNb
+   * @param cc_idx The eNb Cell/Carrier where the measurement corresponds
    * @param cqi_value the corresponding Channel Quality Information
    * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
    */
   virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) = 0;
 
-  virtual int snr_info(uint32_t tti, uint16_t rnti, float snr_db)                     = 0;
+  /**
+   * PHY callback for giving MAC the SNR in dB of an UL transmission for a given RNTI at a given carrier
+   *
+   * @param tti The measurement was made
+   * @param rnti The UE identifier in the eNb
+   * @param cc_idx The eNb Cell/Carrier where the UL transmission was received
+   * @param snr_db The actual SNR of the received signal
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db) = 0;
 
   /**
    * PHY callback for giving MAC the HARQ DL ACK/NACK feedback information for a given RNTI, TTI, eNb cell/carrier and
@@ -127,7 +156,18 @@ public:
    * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
    */
   virtual int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) = 0;
-  virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res) = 0;
+
+  /**
+   * Informs MAC about a received PUSCH transmission for given RNTI, TTI and eNb Cell/carrier.
+   *
+   * @param tti the given TTI
+   * @param rnti the UE identifier in the eNb
+   * @param cc_idx the eNb Cell/Carrier identifier
+   * @param nof_bytes the number of grants carrierd by the PUSCH message
+   * @param crc_res the CRC check, set to true if the message was decoded succesfully
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) = 0;
 
   virtual int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res)                = 0;
   virtual int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) = 0;
@@ -152,9 +192,29 @@ public:
    * @param pcell_index Primary cell (PCell) index
    * @param is_temporal Indicates whether the UE is temporal
    */
-  virtual int  add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal) = 0;
-  virtual void rem_rnti(uint16_t rnti)                           = 0;
-  virtual void set_mch_period_stop(uint32_t stop)                = 0;
+  virtual int add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal) = 0;
+
+  /**
+   * Removes an RNTI context from all the physical layer components, including secondary cells
+   * @param rnti identifier of the user
+   */
+  virtual void rem_rnti(uint16_t rnti) = 0;
+
+  /**
+   *
+   * @param stop
+   */
+  virtual void set_mch_period_stop(uint32_t stop) = 0;
+
+  /**
+   * Activates and/or deactivates Secondary Cells in the PHY for a given RNTI. Requires the RNTI of the given UE and a
+   * vector with the activation/deactivation values. Use true for activation and false for deactivation. The index 0 is
+   * reserved for PCell and will not be used.
+   *
+   * @param rnti identifier of the user
+   * @param activation vector with the activate/deactivate.
+   */
+  virtual void set_activation_deactivation_scell(uint16_t rnti, bool activation[SRSLTE_MAX_CARRIERS]) = 0;
 };
 
 /* Interface RRC -> PHY */
@@ -176,9 +236,9 @@ public:
   configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) = 0;
 
   typedef struct {
-    bool              active  = false; ///< Indicates whether PHY shall consider using this or not
-    uint32_t          cc_idx  = 0;     ///< eNb Cell index
-    srslte::phy_cfg_t phy_cfg = {};    ///< Dedicated physical layer configuration
+    bool              configured = false; ///< Indicates whether PHY shall consider configuring this cell/carrier
+    uint32_t          cc_idx     = 0;     ///< eNb Cell index
+    srslte::phy_cfg_t phy_cfg    = {};    ///< Dedicated physical layer configuration
   } phy_rrc_dedicated_t;
 
   typedef std::vector<phy_rrc_dedicated_t> phy_rrc_dedicated_list_t;

@@ -330,12 +330,12 @@ public:
     notify_rach_detected();
     return 0;
   }
-  int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) override
+  int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) override
   {
     notify_ri_info();
     return 0;
   }
-  int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) override
+  int pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) override
   {
     notify_pmi_info();
     return 0;
@@ -345,7 +345,7 @@ public:
     notify_cqi_info();
     return 0;
   }
-  int snr_info(uint32_t tti, uint16_t rnti, float snr_db) override
+  int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db) override
   {
     notify_snr_info();
     return 0;
@@ -363,7 +363,7 @@ public:
     notify_ack_info();
     return 0;
   }
-  int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res) override
+  int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) override
   {
     notify_crc_info();
     return 0;
@@ -769,7 +769,7 @@ public:
     for (uint32_t i = 0; i < 4; i++) {
       common_dedicated.dl_cfg.cqi_report.pmi_idx = 16 + i;
       dedicated_list[i].cc_idx                   = (i + pcell_idx) % phy_cfg.phy_cell_cfg.size();
-      dedicated_list[i].active                   = true;
+      dedicated_list[i].configured               = true;
       dedicated_list[i].phy_cfg                  = common_dedicated;
 
       // Disable SCell stuff

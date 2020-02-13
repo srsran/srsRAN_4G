@@ -141,9 +141,9 @@ public:
   {
   public:
     pending_ack_t                pending_ack[TTIMOD_SZ]        = {};
-    uint8_t        ri                            = 0;
+    uint8_t                      ri                            = 0;
     uint32_t                     pcell_idx                     = 0;
-    srslte_ra_tb_t last_tb[SRSLTE_MAX_HARQ_PROC] = {};
+    srslte_ra_tb_t               last_tb[SRSLTE_MAX_HARQ_PROC] = {};
     std::map<uint32_t, uint32_t> scell_map;
   };
 
@@ -163,7 +163,7 @@ public:
    *
    * @param rnti identifier of the UE
    */
-  void    ue_db_rem_rnti(uint16_t rnti);
+  void ue_db_rem_rnti(uint16_t rnti);
 
   /**
    * Removes all the pending ACKs of all the RNTIs for a given TTI

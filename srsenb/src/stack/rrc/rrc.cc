@@ -2154,15 +2154,15 @@ void rrc::ue::apply_setup_phy_config(const asn1::rrc::phys_cfg_ded_s& phys_cfg_d
   }
 
   // Set PCell index
-  phy_rrc_dedicated_list[0].active = true;
-  phy_rrc_dedicated_list[0].cc_idx = current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx;
+  phy_rrc_dedicated_list[0].configured = true;
+  phy_rrc_dedicated_list[0].cc_idx     = current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx;
 
   // Load PCell dedicated configuration
   srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
 
   // Deactivates eNb/Cells for this UE
   for (uint32_t cc = 1; cc < phy_rrc_dedicated_list.size(); cc++) {
-    phy_rrc_dedicated_list[cc].active = false;
+    phy_rrc_dedicated_list[cc].configured = false;
   }
 
   // Send configuration to physical layer
@@ -2211,8 +2211,8 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
               auto& phy_rrc_dedicated = phy_rrc_dedicated_list[scell_idx];
 
               // Set eNb Cell/Carrier index
-              phy_rrc_dedicated.active = true;
-              phy_rrc_dedicated.cc_idx = current_sched_ue_cfg.supported_cc_list[scell_idx].enb_cc_idx;
+              phy_rrc_dedicated.configured = true;
+              phy_rrc_dedicated.cc_idx     = current_sched_ue_cfg.supported_cc_list[scell_idx].enb_cc_idx;
 
               // Set SCell configuration
               srslte::set_phy_cfg_t_scell_config(&phy_rrc_dedicated.phy_cfg, scell_config);
@@ -2233,7 +2233,7 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
               parent->rrc_log->error("SCell index (%d) is reserved for PCell\n", scell_to_release);
             } else if (scell_to_release < current_sched_ue_cfg.supported_cc_list.size()) {
               // Deactivate cell configuration
-              phy_rrc_dedicated_list[scell_to_release].active = false;
+              phy_rrc_dedicated_list[scell_to_release].configured = false;
             } else {
               // Out of bounds, log error
               parent->rrc_log->error("SCell index (%d) points out of the supported list (%ld)\n",

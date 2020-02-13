@@ -54,6 +54,7 @@ public:
   int  add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal) final;
   void rem_rnti(uint16_t rnti) final;
   void set_mch_period_stop(uint32_t stop) final;
+  void set_activation_deactivation_scell(uint16_t rnti, bool activation[SRSLTE_MAX_CARRIERS]);
 
   /*RRC-PHY interface*/
   void configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch);
