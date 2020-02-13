@@ -96,6 +96,7 @@ public:
   bool contention_resolution_id_received(uint64_t uecri);
   void start_pcap(srslte::mac_pcap* pcap);
 
+  void notify_phy_config_completed();
   void notify_ra_completed();
 
 private:
@@ -145,6 +146,7 @@ private:
 
   enum {
     IDLE = 0,
+    WAITING_PHY_CONFIG,
     PDCCH_SETUP,
     RESPONSE_RECEPTION,
     BACKOFF_WAIT,

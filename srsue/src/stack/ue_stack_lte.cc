@@ -310,6 +310,16 @@ void ue_stack_lte::wait_ra_completion(uint16_t rnti)
   });
 }
 
+void ue_stack_lte::start_prach_configuration()
+{
+  background_tasks.push_task([this](uint32_t worker_id) {
+    phy->configure_prach_params();
+    // notify back RRC
+    pending_tasks.push(background_queue_id, [this]() { mac.notify_phy_config_completed(); });
+  });
+}
+
+
 /********************
  *  RRC Interface
  *******************/

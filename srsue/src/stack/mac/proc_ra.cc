@@ -38,6 +38,7 @@
 namespace srsue {
 
 const char* state_str[] = {"RA:    INIT:   ",
+                           "RA:    INIT:   ",
                            "RA:    PDCCH:  ",
                            "RA:    Rx:     ",
                            "RA:    Backoff:",
@@ -155,6 +156,7 @@ void ra_proc::step(uint32_t tti_)
     case START_WAIT_COMPLETION:
       state_completition();
       break;
+    case WAITING_PHY_CONFIG:
     case WAITING_COMPLETION:
       // do nothing, bc we are waiting for the phy to finish
       break;
@@ -237,8 +239,17 @@ void ra_proc::state_completition()
 {
   state = WAITING_COMPLETION;
   stack->wait_ra_completion(rntis->crnti);
-  //  phy_h->set_crnti(rntis->crnti);
-  //  state = IDLE;
+}
+
+void ra_proc::notify_phy_config_completed()
+{
+  if (state != WAITING_PHY_CONFIG) {
+    rError("Received unexpected notification of PHY configuration completed\n");
+  } else {
+    rDebug("RA waiting PHY configuration completed\n");
+  }
+  // Jump directly to Resource selection
+  resource_selection();
 }
 
 void ra_proc::notify_ra_completed()
@@ -261,10 +272,9 @@ void ra_proc::initialization()
   backoff_param_ms = 0;
 
   // Instruct phy to configure PRACH
-  phy_h->configure_prach_params();
+  state = WAITING_PHY_CONFIG;
+  stack->start_prach_configuration();
 
-  // Jump directly to Resource selection
-  resource_selection();
 }
 
 /* Resource selection as defined in 5.1.2 */

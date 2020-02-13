@@ -76,6 +76,9 @@ public:
 
   void run_tti(const uint32_t tti);
 
+  /** Stack interface */
+  void notify_phy_config_completed();
+
   /******** Interface from RRC (RRC -> MAC) ****************/
   void bcch_start_rx(int si_window_start, int si_window_length);
   void bcch_stop_rx();

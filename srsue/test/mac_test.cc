@@ -350,6 +350,11 @@ public:
     phy_h->set_crnti(rnti);
     mac_h->notify_ra_completed();
   }
+  void start_prach_configuration() final
+  {
+    phy_h->configure_prach_params();
+    mac_h->notify_phy_config_completed();
+  }
 
 private:
   phy_interface_mac_lte* phy_h;

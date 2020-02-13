@@ -636,6 +636,7 @@ class stack_interface_mac
 public:
   virtual void process_pdus()                    = 0;
   virtual void wait_ra_completion(uint16_t rnti) = 0;
+  virtual void start_prach_configuration()       = 0;
 };
 
 // STACK interface for RRC

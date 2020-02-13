@@ -116,6 +116,7 @@ public:
   // Interface to upper MAC
   void process_pdus() final;
   void wait_ra_completion(uint16_t rnti) final;
+  void start_prach_configuration() final;
 
   // Interface for RRC
   void start_cell_search() final;
