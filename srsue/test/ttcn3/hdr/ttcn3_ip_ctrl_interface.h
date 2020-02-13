@@ -118,7 +118,9 @@ private:
     std::string resp = ttcn3_helpers::get_drbmux_common_ind_cnf();
 
     log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+    if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+      log->error("Error sending message to tester.\n");
+    };
   }
 };
 

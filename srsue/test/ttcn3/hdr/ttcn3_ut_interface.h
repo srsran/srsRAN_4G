@@ -161,7 +161,9 @@ private:
     resp.Accept(writer);
 
     log->info("Sending %s to tester (%zd B)\n", buffer.GetString(), buffer.GetSize());
-    srslte_netsource_write(&net_source, (char*)buffer.GetString(), buffer.GetSize());
+    if (srslte_netsource_write(&net_source, (char*)buffer.GetString(), buffer.GetSize()) != SRSLTE_SUCCESS) {
+      log->error("Error sending message to tester.\n");
+    }
   }
 
   void handle_at_command(Document& document)

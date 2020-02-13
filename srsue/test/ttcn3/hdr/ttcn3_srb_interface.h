@@ -52,7 +52,9 @@ public:
   {
     if (running) {
       log->info_hex(pdu->msg, pdu->N_bytes, "Sending %d B to Titan\n", pdu->N_bytes);
-      srslte_netsource_write(&net_source, (void*)pdu->msg, pdu->N_bytes);
+      if (srslte_netsource_write(&net_source, (void*)pdu->msg, pdu->N_bytes) != SRSLTE_SUCCESS) {
+        log->error("Error sending message to tester.\n");
+      };
     } else {
       log->error("Trying to transmit but port not connected.\n");
     }

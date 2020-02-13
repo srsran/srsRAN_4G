@@ -113,7 +113,9 @@ private:
       std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_name.GetString(), "Cell");
 
       log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-      srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+      if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+        log->error("Error sending message to tester.\n");
+      }
     }
   }
 
@@ -125,7 +127,9 @@ private:
     std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id, "Cell");
 
     log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+    if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+      log->error("Error sending message to tester.\n");
+    }
   }
 
   void handle_request_cell(Document& document, const uint8_t* payload, const uint16_t len)
@@ -183,7 +187,9 @@ private:
       std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "L1MacIndCtrl");
 
       log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-      srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+      if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+        log->error("Error sending message to tester.\n");
+      }
     }
   }
 
@@ -242,7 +248,9 @@ private:
     std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "RadioBearerList");
 
     log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+    if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+      log->error("Error sending message to tester.\n");
+    }
   }
 
   void handle_request_cell_attenuation_list(Document& document)
@@ -291,7 +299,9 @@ private:
     std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "CellAttenuationList");
 
     log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+    if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+      log->error("Error sending message to tester.\n");
+    }
   }
 
   void handle_request_pdcp_count(Document& document)
@@ -328,7 +338,9 @@ private:
     std::string resp = ttcn3_helpers::get_pdcp_count_response(cell_id.GetString(), bearers);
 
     log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+    if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+      log->error("Error sending message to tester.\n");
+    }
   }
 
   void handle_request_as_security(Document& document)
@@ -417,7 +429,9 @@ private:
     if (config_flag.GetBool() == true) {
       std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "AS_Security");
       log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-      srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+      if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+        log->error("Error sending message to tester.\n");
+      }
     } else {
       log->info("Skipping response for AS_Security message.\n");
     }
@@ -455,7 +469,9 @@ private:
         ttcn3_helpers::get_sys_req_cnf_with_time(cell_id.GetString(), "EnquireTiming", syssim->get_tti());
 
     log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+    if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+      log->error("Error sending message to tester.\n");
+    }
   }
 
   void handle_request_paging(Document& document, const uint8_t* payload, const uint16_t len)
@@ -496,7 +512,9 @@ private:
       std::string resp = ttcn3_helpers::get_sys_req_cnf_with_time(cell_id.GetString(), "Paging", syssim->get_tti());
 
       log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-      srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length());
+      if (srslte_netsource_write(&net_source, (char*)resp.c_str(), resp.length()) != SRSLTE_SUCCESS) {
+        log->error("Error sending message to tester.\n");
+      }
     } else {
       log->info("Skipping response for Paging message.\n");
     }
