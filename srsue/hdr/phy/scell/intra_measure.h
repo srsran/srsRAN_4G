@@ -170,7 +170,18 @@ private:
 
   internal_state state;
 
-  void             run_thread() override;
+  /**
+   * Measurement process helper method. Encapusulates the neighbour cell measurement functionality
+   */
+  void measure_proc();
+
+  /**
+   * Internal asynchronous low priority thread, waits for measure internal state to execute the measurement process. It
+   * stops when the internal state transitions to quit.
+   */
+  void run_thread() override;
+
+  ///< Internal Thread priority, low by default
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
   scell_recv             scell                     = {};
