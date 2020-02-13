@@ -25,11 +25,12 @@
 static bool pucch_proc_tx_sr(const srslte_uci_cfg_t* uci_cfg, const srslte_uci_value_t* uci_value)
 {
   // Check SR transmission
-  bool tx_sr = uci_cfg->is_scheduling_request_tti;
   if (uci_value) {
-    tx_sr |= uci_value->scheduling_request;
+    // If UCI value is provided, ignore scheduling request TTI condition
+    return uci_value->scheduling_request;
   }
-  return tx_sr;
+
+  return uci_cfg->is_scheduling_request_tti;
 }
 
 srslte_pucch_format_t srslte_pucch_proc_select_format(const srslte_cell_t*      cell,
