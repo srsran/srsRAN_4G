@@ -162,9 +162,10 @@ public:
 
   /* Custom functions
    */
-  void set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
-  void tpc_inc(uint16_t rnti);
-  void tpc_dec(uint16_t rnti);
+  void            set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
+  void            tpc_inc(uint16_t rnti);
+  void            tpc_dec(uint16_t rnti);
+  const ue_cfg_t* get_ue_cfg(uint16_t rnti) final;
 
   // Static Methods
   static uint32_t get_rvidx(uint32_t retx_idx)

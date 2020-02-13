@@ -128,9 +128,8 @@ public:
 
   struct ue_cfg_t {
     struct cc_cfg_t {
-      uint32_t enb_cc_idx     = 0; ///< eNB CC index
-      uint32_t periodic_cqi_i = 0; ///< Periodic CQI configuration for this Scell
-      bool     operator==(const cc_cfg_t& c) { return enb_cc_idx == c.enb_cc_idx; }
+      bool     active     = false;
+      uint32_t enb_cc_idx = 0; ///< eNB CC index
     };
     /* ue capabilities, etc */
     uint32_t                            maxharq_tx = 5;
@@ -276,7 +275,8 @@ public:
   virtual int ul_sched(uint32_t tti, uint32_t cc_idx, ul_sched_res_t& sched_result) = 0;
 
   /* Custom */
-  virtual void set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) = 0;
+  virtual void            set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) = 0;
+  virtual const ue_cfg_t* get_ue_cfg(uint16_t rnti)                            = 0;
 };
 
 } // namespace srsenb

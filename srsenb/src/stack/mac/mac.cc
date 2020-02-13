@@ -195,31 +195,33 @@ void mac::phy_config_enabled(uint16_t rnti, bool enabled)
 // Update UE configuration
 int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 {
-  int                       ret = -1;
   srslte::rwlock_read_guard lock(rwlock);
-  if (ue_db.count(rnti) > 0) {
 
-    // Add RNTI to the PHY (pregerate signals) now instead of after PRACH
-    if (!ue_db[rnti]->is_phy_added) {
-      ue_db[rnti]->is_phy_added = true;
-      Info("Registering rnti=0x%x to PHY...\n", rnti);
-      // Register new user in PHY
-      if (phy_h->add_rnti(rnti, 0, false)) {
-        Error("Registering new ue rnti=0x%x to PHY\n", rnti);
-      }
-      Info("Done registering rnti=0x%x to PHY...\n", rnti);
-    }
-
-    // Update Scheduler configuration
-    if ((cfg != nullptr) ? (scheduler.ue_cfg(rnti, *cfg) != SRSLTE_SUCCESS) : false) {
-      Error("Registering new UE rnti=0x%x to SCHED\n", rnti);
-    } else {
-      ret = 0;
-    }
-  } else {
+  auto it     = ue_db.find(rnti);
+  ue*  ue_ptr = nullptr;
+  if (it == ue_db.end()) {
     Error("User rnti=0x%x not found\n", rnti);
+    return SRSLTE_ERROR;
   }
-  return ret;
+  ue_ptr = it->second;
+
+  // Add RNTI to the PHY (pregenerate signals) now instead of after PRACH
+  if (not ue_ptr->is_phy_added) {
+    ue_ptr->is_phy_added = true;
+    Info("Registering rnti=0x%x to PHY...\n", rnti);
+    // Register new user in PHY
+    if (phy_h->add_rnti(rnti, 0, false) == SRSLTE_ERROR) {
+      Error("Registering new ue rnti=0x%x to PHY\n", rnti);
+    }
+    Info("Done registering rnti=0x%x to PHY...\n", rnti);
+  }
+
+  // Update Scheduler configuration
+  if (cfg != nullptr and scheduler.ue_cfg(rnti, *cfg) == SRSLTE_ERROR) {
+    Error("Registering new UE rnti=0x%x to SCHED\n", rnti);
+    return SRSLTE_ERROR;
+  }
+  return SRSLTE_SUCCESS;
 }
 
 // Removes UE from DB
@@ -446,10 +448,10 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
   // Add new user to the scheduler so that it can RX/TX SRB0
   sched_interface::ue_cfg_t ue_cfg = {};
   ue_cfg.supported_cc_list.emplace_back();
-  ue_cfg.supported_cc_list.back().enb_cc_idx     = enb_cc_idx;
-  ue_cfg.supported_cc_list.back().periodic_cqi_i = 0;
-  ue_cfg.ue_bearers[0].direction                 = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.dl_cfg.tm                               = SRSLTE_TM1;
+  ue_cfg.supported_cc_list.back().active     = true;
+  ue_cfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
+  ue_cfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.dl_cfg.tm                           = SRSLTE_TM1;
   if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
     Error("Registering new user rnti=0x%x to SCHED\n", rnti);
     return -1;

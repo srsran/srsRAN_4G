@@ -366,6 +366,13 @@ void sched::tpc_dec(uint16_t rnti)
   ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); });
 }
 
+const sched::ue_cfg_t* sched::get_ue_cfg(uint16_t rnti)
+{
+  const ue_cfg_t* cfg = nullptr;
+  ue_db_access(rnti, [&cfg](sched_ue& ue) { cfg = &ue.get_ue_cfg(); });
+  return cfg;
+}
+
 /*******************************************************
  *
  * Main sched functions

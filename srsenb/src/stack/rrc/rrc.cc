@@ -1251,8 +1251,8 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
       auto it = std::find_if(list.begin(), list.end(), [i](const cc_cfg_t& u) { return u.enb_cc_idx == i; });
       if (it == list.end()) {
         list.emplace_back();
-        list.back().enb_cc_idx     = i;
-        list.back().periodic_cqi_i = 0;
+        list.back().active     = true;
+        list.back().enb_cc_idx = i;
       }
     }
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);

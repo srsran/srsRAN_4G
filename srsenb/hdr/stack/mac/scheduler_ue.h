@@ -44,7 +44,10 @@ struct sched_dci_cce_t {
 struct sched_ue_carrier {
   const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
 
-  sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_, const sched_cell_params_t& cell_cfg_, uint16_t rnti_);
+  sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
+                   const sched_cell_params_t&       cell_cfg_,
+                   uint16_t                         rnti_,
+                   uint32_t                         ue_cc_idx);
   void reset();
   void set_cfg(const sched_interface::ue_cfg_t& cfg); ///< reconfigure ue carrier
 
@@ -62,6 +65,8 @@ struct sched_ue_carrier {
   int                        alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
+  bool                       is_active() const { return active; }
+  uint32_t                   get_ue_cc_idx() const { return ue_cc_idx; }
 
   std::array<dl_harq_proc, SCHED_MAX_HARQ_PROC> dl_harq = {};
   std::array<ul_harq_proc, SCHED_MAX_HARQ_PROC> ul_harq = {};
@@ -83,10 +88,15 @@ struct sched_ue_carrier {
   std::array<std::array<sched_dci_cce_t, 10>, 3> dci_locations = {};
 
 private:
+  // config
   srslte::log*                     log_h       = nullptr;
   const sched_interface::ue_cfg_t* cfg         = nullptr;
   const sched_cell_params_t*       cell_params = nullptr;
   uint16_t                         rnti;
+  uint32_t                         ue_cc_idx = 0;
+
+  // state
+  bool active = false;
 };
 
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
@@ -131,10 +141,11 @@ public:
   void tpc_inc();
   void tpc_dec();
 
-  dl_harq_proc*             find_dl_harq(uint32_t tti_rx, uint32_t cc_idx);
-  dl_harq_proc*             get_dl_harq(uint32_t idx, uint32_t cc_idx);
-  uint16_t                  get_rnti() const { return rnti; }
-  std::pair<bool, uint32_t> get_cell_index(uint32_t enb_cc_idx) const;
+  dl_harq_proc*                    find_dl_harq(uint32_t tti_rx, uint32_t cc_idx);
+  dl_harq_proc*                    get_dl_harq(uint32_t idx, uint32_t cc_idx);
+  uint16_t                         get_rnti() const { return rnti; }
+  std::pair<bool, uint32_t>        get_cell_index(uint32_t enb_cc_idx) const;
+  const sched_interface::ue_cfg_t& get_ue_cfg() const { return cfg; }
 
   /*******************************************************
    * Functions used by scheduler metric objects

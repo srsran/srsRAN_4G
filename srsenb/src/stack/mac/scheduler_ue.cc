@@ -55,6 +55,11 @@ uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool is_ul)
 
 } // namespace sched_utils
 
+bool operator==(const sched_interface::ue_cfg_t::cc_cfg_t& lhs, const sched_interface::ue_cfg_t::cc_cfg_t& rhs)
+{
+  return lhs.enb_cc_idx == rhs.enb_cc_idx and lhs.active == rhs.active;
+}
+
 /*******************************************************
  *
  * Initialization and configuration functions
@@ -94,10 +99,6 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
       cell           = main_cc_params->cfg.cell;
       max_msg3retx   = main_cc_params->cfg.maxharq_msg3tx;
     }
-    bool maxharq_tx_changed = cfg.maxharq_tx != cfg_.maxharq_tx;
-    bool cc_changed =
-        cfg.supported_cc_list.size() != cfg_.supported_cc_list.size() or
-        not std::equal(cfg.supported_cc_list.begin(), cfg.supported_cc_list.end(), cfg_.supported_cc_list.begin());
 
     // update configuration
     cfg = cfg_;
@@ -108,21 +109,23 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
     }
 
     // either add a new carrier, or reconfigure existing one
+    bool scell_activation_state_changed = false;
     for (auto& cc_cfg : cfg.supported_cc_list) {
       sched_ue_carrier* c = get_ue_carrier(cc_cfg.enb_cc_idx);
       if (c == nullptr) {
         // add new carrier to sched_ue
-        carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti);
+        carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, carriers.size());
+        scell_activation_state_changed |= carriers.size() > 1 and carriers.back().is_active();
       } else {
-        // reconfiguration of carrier might be needed
-        if (maxharq_tx_changed) {
-          c->set_cfg(cfg);
-        }
+        // if SCell state changed
+        scell_activation_state_changed = c->is_active() != cc_cfg.active and c->get_ue_cc_idx() != 0;
+        // reconfiguration of carrier might be needed.
+        c->set_cfg(cfg);
       }
     }
-
-    if (cc_changed) {
-      pending_ces.push_back(ce_cmd{srslte::sch_subh::SCELL_ACTIVATION});
+    if (scell_activation_state_changed) {
+      pending_ces.emplace_back(srslte::sch_subh::SCELL_ACTIVATION);
+      log_h->info("SCHED: Scheduling SCell Activation CMD for rnti=0x%x\n", rnti);
     }
   }
 }
@@ -1058,10 +1061,12 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
 
 sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
                                    const sched_cell_params_t&       cell_cfg_,
-                                   uint16_t                         rnti_) :
+                                   uint16_t                         rnti_,
+                                   uint32_t                         ue_cc_idx_) :
   cell_params(&cell_cfg_),
   rnti(rnti_),
-  log_h(srslte::logmap::get("MAC "))
+  log_h(srslte::logmap::get("MAC ")),
+  ue_cc_idx(ue_cc_idx_)
 {
   // Init HARQ processes
   for (uint32_t i = 0; i < dl_harq.size(); ++i) {
@@ -1108,12 +1113,17 @@ void sched_ue_carrier::reset()
 
 void sched_ue_carrier::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
+  if (cfg != nullptr and cfg->maxharq_tx == cfg_.maxharq_tx and active == cfg->supported_cc_list[ue_cc_idx].active) {
+    // nothing changed
+    return;
+  }
   cfg = &cfg_;
   // Config HARQ processes
   for (uint32_t i = 0; i < dl_harq.size(); ++i) {
     dl_harq[i].set_cfg(cfg->maxharq_tx);
     ul_harq[i].set_cfg(cfg->maxharq_tx);
   }
+  active = cfg->supported_cc_list[ue_cc_idx].active;
 }
 
 void sched_ue_carrier::reset_old_pending_pids(uint32_t tti_rx)

@@ -64,6 +64,19 @@ public:
     }
   }
 
+  void set(size_t pos, bool val) noexcept
+  {
+    if (pos >= size()) {
+      srslte::logmap::get("COMM")->error("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
+      return;
+    }
+    if (val) {
+      set_(pos);
+    } else {
+      reset_(pos);
+    }
+  }
+
   void set(size_t pos) noexcept
   {
     if (pos >= size()) {
@@ -76,7 +89,7 @@ public:
   void reset(size_t pos) noexcept
   {
     if (pos >= size()) {
-      printf("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
+      srslte::logmap::get("COMM")->error("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
       return;
     }
     reset_(pos);
@@ -92,7 +105,7 @@ public:
   bool test(size_t pos) const noexcept
   {
     if (pos >= size()) {
-      printf("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
+      srslte::logmap::get("COMM")->error("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
       return false;
     }
     return test_(pos);
@@ -110,7 +123,8 @@ public:
   bounded_bitset<N, reversed>& fill(size_t startpos, size_t endpos, bool value = true) noexcept
   {
     if (endpos > size() or startpos > endpos) {
-      printf("ERROR: bounds (%zd, %zd) are not valid for bitset of size: %zd\n", startpos, endpos, size());
+      srslte::logmap::get("COMM")->error(
+          "ERROR: bounds (%zd, %zd) are not valid for bitset of size: %zd\n", startpos, endpos, size());
       return *this;
     }
     // NOTE: can be optimized
@@ -154,7 +168,8 @@ public:
   bool any(size_t start, size_t stop) const noexcept
   {
     if (start > stop or stop > size()) {
-      printf("ERROR: bounds (%zd, %zd) are not valid for bitset of size: %zd\n", start, stop, size());
+      srslte::logmap::get("COMM")->error(
+          "ERROR: bounds (%zd, %zd) are not valid for bitset of size: %zd\n", start, stop, size());
       return false;
     }
     // NOTE: can be optimized
@@ -174,8 +189,8 @@ public:
     for (size_t i = 0; i < nof_words_(); i++) {
       //      result += __builtin_popcountl(buffer[i]);
       word_t w = buffer[i];
-      for (; w; w >>= 1) {
-        result += (w & 1);
+      for (; w; w >>= 1u) {
+        result += (w & 1u);
       }
     }
     return result;
@@ -187,8 +202,9 @@ public:
       return false;
     }
     for (uint32_t i = 0; i < nof_words_(); ++i) {
-      if (buffer[i] != other.buffer[i])
+      if (buffer[i] != other.buffer[i]) {
         return false;
+      }
     }
     return true;
   }
@@ -198,7 +214,8 @@ public:
   bounded_bitset<N, reversed>& operator|=(const bounded_bitset<N, reversed>& other) noexcept
   {
     if (other.size() != size()) {
-      printf("ERROR: operator|= called for bitsets of different sizes (%zd!=%zd)\n", size(), other.size());
+      srslte::logmap::get("COMM")->error(
+          "ERROR: operator|= called for bitsets of different sizes (%zd!=%zd)\n", size(), other.size());
       return *this;
     }
     for (size_t i = 0; i < nof_words_(); ++i) {
@@ -210,7 +227,8 @@ public:
   bounded_bitset<N, reversed>& operator&=(const bounded_bitset<N, reversed>& other) noexcept
   {
     if (other.size() != size()) {
-      printf("ERROR: operator&= called for bitsets of different sizes (%zd!=%zd)\n", size(), other.size());
+      srslte::logmap::get("COMM")->error(
+          "ERROR: operator&= called for bitsets of different sizes (%zd!=%zd)\n", size(), other.size());
       return *this;
     }
     for (size_t i = 0; i < nof_words_(); ++i) {
@@ -249,7 +267,7 @@ public:
   uint64_t to_uint64() const noexcept
   {
     if (nof_words_() > 1) {
-      printf("ERROR: cannot convert bitset of size %zd bits to uint64_t\n", size());
+      srslte::logmap::get("COMM")->error("ERROR: cannot convert bitset of size %zd bits to uint64_t\n", size());
       return 0;
     }
     return get_word_(0);
