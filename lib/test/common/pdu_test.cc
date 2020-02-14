@@ -577,7 +577,12 @@ int mac_sch_pdu_pack_test8()
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
-  log_h->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  log_h->info("Activation mask chosen was 0x%x", tv[1]);
+  log_h->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU with SCell Activation CE (%d B):\n", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_dl_crnti(tv, sizeof(tv), 0x1001, true, 1);
+#endif
 
   return SRSLTE_SUCCESS;
 }
