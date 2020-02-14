@@ -22,21 +22,20 @@
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/pdu.h"
+#include "srslte/common/test_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include <iostream>
 #include <map>
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
+#include <random>
 
 #define HAVE_PCAP 0
+
+std::random_device                     rd;
+std::mt19937                           rand_gen(rd());
+std::uniform_int_distribution<uint8_t> uniform_dist_u8(0, 255);
 
 static std::unique_ptr<srslte::mac_pcap> pcap_handle = nullptr;
 
@@ -545,6 +544,44 @@ int mac_sch_pdu_pack_test7()
   return SRSLTE_SUCCESS;
 }
 
+// Test Packing of SCell Activation CE command
+int mac_sch_pdu_pack_test8()
+{
+  srslte::log* log_h = logmap::get("MAC");
+
+  const uint32_t  pdu_size = 2;
+  srslte::sch_pdu pdu(10, log_h);
+  std::bitset<8>  cc_mask(uniform_dist_u8(rand_gen));
+
+  // subheader: R|F2|E|LCID = 0|0|0|11011
+  uint8_t tv[pdu_size] = {0b00011011, (uint8_t)cc_mask.to_ulong()};
+  // ensure reserved bit
+  tv[1] &= ~(0x1u);
+
+  byte_buffer_t buffer;
+  pdu.init_tx(&buffer, pdu_size, true);
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Try SCell activation CE
+  TESTASSERT(pdu.new_subh());
+  TESTASSERT(pdu.get()->set_scell_activation_cmd(cc_mask));
+
+  // write PDU
+  pdu.write_packet(log_h);
+
+  // compare with tv
+  TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
+
+  // log
+  log_h->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+
+  return SRSLTE_SUCCESS;
+}
+
 // Test for checking error cases
 int mac_sch_pdu_pack_error_test()
 {
@@ -710,6 +747,8 @@ int main(int argc, char** argv)
   pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
   pcap_handle->open("mac_pdu_test.pcap");
 #endif
+  logmap::get_instance()->set_default_hex_limit(32);
+  logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
 
   if (mac_rar_pdu_unpack_test1()) {
     fprintf(stderr, "mac_rar_pdu_unpack_test1 failed.\n");
@@ -785,6 +824,8 @@ int main(int argc, char** argv)
     fprintf(stderr, "mac_sch_pdu_unpack_test2 failed.\n");
     return SRSLTE_ERROR;
   }
+
+  TESTASSERT(mac_sch_pdu_pack_test8() == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }
