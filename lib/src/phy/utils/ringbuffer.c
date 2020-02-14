@@ -68,6 +68,23 @@ void srslte_ringbuffer_reset(srslte_ringbuffer_t* q)
   }
 }
 
+int srslte_ringbuffer_resize(srslte_ringbuffer_t* q, int capacity)
+{
+  if (q->buffer) {
+    free(q->buffer);
+    q->buffer = NULL;
+  }
+  srslte_ringbuffer_reset(q);
+  q->buffer = srslte_vec_malloc(capacity);
+  if (!q->buffer) {
+    return -1;
+  }
+  q->active   = true;
+  q->capacity = capacity;
+
+  return 0;
+}
+
 int srslte_ringbuffer_status(srslte_ringbuffer_t* q)
 {
   return q->count;
@@ -78,37 +95,22 @@ int srslte_ringbuffer_space(srslte_ringbuffer_t* q)
   return q->capacity - q->count;
 }
 
-int srslte_ringbuffer_write(srslte_ringbuffer_t* q, void* p, int nof_bytes)
+int srslte_ringbuffer_write(srslte_ringbuffer_t* q, void* ptr, int nof_bytes)
 {
-  uint8_t* ptr     = (uint8_t*)p;
-  int      w_bytes = nof_bytes;
-  pthread_mutex_lock(&q->mutex);
-  if (!q->active) {
-    pthread_mutex_unlock(&q->mutex);
-    return 0;
-  }
-  if (q->count + w_bytes > q->capacity) {
-    w_bytes = q->capacity - q->count;
-    ERROR("Buffer overrun: lost %d bytes\n", nof_bytes - w_bytes);
-  }
-  if (w_bytes > q->capacity - q->wpm) {
-    int x = q->capacity - q->wpm;
-    memcpy(&q->buffer[q->wpm], ptr, x);
-    memcpy(q->buffer, &ptr[x], w_bytes - x);
-  } else {
-    memcpy(&q->buffer[q->wpm], ptr, w_bytes);
-  }
-  q->wpm += w_bytes;
-  if (q->wpm >= q->capacity) {
-    q->wpm -= q->capacity;
-  }
-  q->count += w_bytes;
-  pthread_cond_broadcast(&q->write_cvar);
-  pthread_mutex_unlock(&q->mutex);
-  return w_bytes;
+  return srslte_ringbuffer_write_timed_block(q, ptr, nof_bytes, 0);
 }
 
-int srslte_ringbuffer_write_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes, uint32_t timeout_ms)
+int srslte_ringbuffer_write_timed(srslte_ringbuffer_t* q, void* ptr, int nof_bytes, int32_t timeout_ms)
+{
+  return srslte_ringbuffer_write_timed_block(q, ptr, nof_bytes, timeout_ms);
+}
+
+int srslte_ringbuffer_write_block(srslte_ringbuffer_t* q, void* ptr, int nof_bytes)
+{
+  return srslte_ringbuffer_write_timed_block(q, ptr, nof_bytes, -1);
+}
+
+int srslte_ringbuffer_write_timed_block(srslte_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
 {
   int             ret     = SRSLTE_SUCCESS;
   uint8_t*        ptr     = (uint8_t*)p;
@@ -117,16 +119,24 @@ int srslte_ringbuffer_write_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes
   struct timeval  now;
 
   // Get current time and update timeout
-  gettimeofday(&now, NULL);
-  towait.tv_sec  = now.tv_sec + timeout_ms / 1000U;
-  towait.tv_nsec = (now.tv_usec + 1000UL * (timeout_ms % 1000U)) * 1000UL;
+  if (timeout_ms > 0) {
+    gettimeofday(&now, NULL);
+    towait.tv_sec  = now.tv_sec + timeout_ms / 1000U;
+    towait.tv_nsec = (now.tv_usec + 1000UL * (timeout_ms % 1000U)) * 1000UL;
+  }
   pthread_mutex_lock(&q->mutex);
 
   // Wait to have enough space in the buffer
   while (q->count + w_bytes > q->capacity && q->active && ret == SRSLTE_SUCCESS) {
-    ret = pthread_cond_timedwait(&q->read_cvar, &q->mutex, &towait);
+    if (timeout_ms > 0) {
+      ret = pthread_cond_timedwait(&q->read_cvar, &q->mutex, &towait);
+    } else if (timeout_ms < 0) {
+      pthread_cond_wait(&q->read_cvar, &q->mutex);
+    } else {
+      w_bytes = q->capacity - q->count;
+      ERROR("Buffer overrun: lost %d bytes\n", nof_bytes - w_bytes);
+    }
   }
-
   if (ret == ETIMEDOUT) {
     ret = SRSLTE_ERROR_TIMEOUT;
   } else if (!q->active) {
@@ -144,43 +154,26 @@ int srslte_ringbuffer_write_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes
       q->wpm -= q->capacity;
     }
     q->count += w_bytes;
+    ret = w_bytes;
   } else {
     ret = SRSLTE_ERROR;
   }
   pthread_cond_broadcast(&q->write_cvar);
   pthread_mutex_unlock(&q->mutex);
-  return w_bytes;
+  return ret;
 }
 
 int srslte_ringbuffer_read(srslte_ringbuffer_t* q, void* p, int nof_bytes)
 {
-  uint8_t* ptr = (uint8_t*)p;
-  pthread_mutex_lock(&q->mutex);
-  while (q->count < nof_bytes && q->active) {
-    pthread_cond_wait(&q->write_cvar, &q->mutex);
-  }
-  if (!q->active) {
-    pthread_mutex_unlock(&q->mutex);
-    return 0;
-  }
-  if (nof_bytes + q->rpm > q->capacity) {
-    int x = q->capacity - q->rpm;
-    memcpy(ptr, &q->buffer[q->rpm], x);
-    memcpy(&ptr[x], q->buffer, nof_bytes - x);
-  } else {
-    memcpy(ptr, &q->buffer[q->rpm], nof_bytes);
-  }
-  q->rpm += nof_bytes;
-  if (q->rpm >= q->capacity) {
-    q->rpm -= q->capacity;
-  }
-  q->count -= nof_bytes;
-  pthread_cond_broadcast(&q->read_cvar);
-  pthread_mutex_unlock(&q->mutex);
-  return nof_bytes;
+  return srslte_ringbuffer_read_timed_block(q, p, nof_bytes, -1);
 }
 
-int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes, uint32_t timeout_ms)
+int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
+{
+  return srslte_ringbuffer_read_timed_block(q, p, nof_bytes, timeout_ms);
+}
+
+int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_bytes, int32_t timeout_ms)
 {
   int             ret = SRSLTE_SUCCESS;
   uint8_t*        ptr = (uint8_t*)p;
@@ -188,16 +181,21 @@ int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes,
   struct timeval  now;
 
   // Get current time and update timeout
-  gettimeofday(&now, NULL);
-  towait.tv_sec  = now.tv_sec + timeout_ms / 1000U;
-  towait.tv_nsec = (now.tv_usec + 1000UL * (timeout_ms % 1000U)) * 1000UL;
-
+  if (timeout_ms > 0) {
+    gettimeofday(&now, NULL);
+    towait.tv_sec  = now.tv_sec + timeout_ms / 1000U;
+    towait.tv_nsec = (now.tv_usec + 1000UL * (timeout_ms % 1000U)) * 1000UL;
+  }
   // Lock mutex
   pthread_mutex_lock(&q->mutex);
 
   // Wait for having enough samples
   while (q->count < nof_bytes && q->active && ret == SRSLTE_SUCCESS) {
-    ret = pthread_cond_timedwait(&q->write_cvar, &q->mutex, &towait);
+    if (timeout_ms > 0) {
+      ret = pthread_cond_timedwait(&q->write_cvar, &q->mutex, &towait);
+    } else {
+      pthread_cond_wait(&q->write_cvar, &q->mutex);
+    }
   }
 
   if (ret == ETIMEDOUT) {
