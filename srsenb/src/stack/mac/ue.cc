@@ -19,12 +19,12 @@
  *
  */
 
+#include <bitset>
 #include <inttypes.h>
 #include <iostream>
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/ue.h"
-#include "srslte/common/bounded_bitset.h"
 #include "srslte/interfaces/enb_interfaces.h"
 
 #define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
@@ -428,12 +428,16 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
     case srslte::sch_subh::SCELL_ACTIVATION:
       if (pdu->new_subh()) {
         const sched_interface::ue_cfg_t* sched_cfg = sched->get_ue_cfg(rnti);
-        srslte::bounded_bitset<32>       active_cc_list(sched_cfg->supported_cc_list.size());
-        for (uint32_t i = 0; i < sched_cfg->supported_cc_list.size(); ++i) {
-          active_cc_list.set(i, sched_cfg->supported_cc_list[i].active);
-        }
-        if (pdu->get()->set_scell_activation_cmd(active_cc_list)) {
-          Info("CE:    Added SCell Activation CE.\n");
+        if (sched_cfg->supported_cc_list.size() <= 8) {
+          std::bitset<8> active_cc_list;
+          for (uint32_t i = 0; i < sched_cfg->supported_cc_list.size(); ++i) {
+            active_cc_list.set(i, sched_cfg->supported_cc_list[i].active);
+          }
+          if (pdu->get()->set_scell_activation_cmd(active_cc_list)) {
+            Info("CE:    Added SCell Activation CE.\n");
+          } else {
+            Error("CE:    Setting SCell Activation CE\n");
+          }
         } else {
           Error("CE:    Setting SCell Activation CE\n");
         }

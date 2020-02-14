@@ -628,19 +628,16 @@ bool sch_subh::set_ta_cmd(uint8_t ta_cmd)
   }
 }
 
-bool sch_subh::set_scell_activation_cmd(srslte::bounded_bitset<32> active_cc_idxs)
+bool sch_subh::set_scell_activation_cmd(std::bitset<8> active_cc_idxs)
 {
-  const uint32_t nof_octets = active_cc_idxs.size() <= 8 ? 1 : 4;
+  const uint32_t nof_octets = 1;
   if (not((sch_pdu*)parent)->has_space_ce(nof_octets)) {
     return false;
   }
   // first bit is reserved
   active_cc_idxs.set(0, false);
-  uint32_t toencode = (uint32_t)active_cc_idxs.to_uint64();
-  for (uint32_t i = 0; i < nof_octets; ++i) {
-    w_payload_ce[i] = (uint8_t)((toencode >> (8u * i)) & 0xffu);
-  }
-  lcid = SCELL_ACTIVATION;
+  w_payload_ce[0] = (uint8_t)(active_cc_idxs.to_ulong() & 0xffu);
+  lcid            = SCELL_ACTIVATION;
   ((sch_pdu*)parent)->update_space_ce(nof_octets);
   nof_bytes = nof_octets;
   return true;

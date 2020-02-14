@@ -22,9 +22,9 @@
 #ifndef SRSLTE_PDU_H
 #define SRSLTE_PDU_H
 
-#include "srslte/common/bounded_bitset.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/log.h"
+#include <bitset>
 #include <stdint.h>
 #include <stdio.h>
 #include <vector>
@@ -271,7 +271,7 @@ public:
   bool set_bsr(uint32_t buff_size[4], sch_subh::cetype format);
   bool set_con_res_id(uint64_t con_res_id);
   bool set_ta_cmd(uint8_t ta_cmd);
-  bool set_scell_activation_cmd(srslte::bounded_bitset<32> active_cc_idxs);
+  bool set_scell_activation_cmd(std::bitset<8> active_cc_idxs);
   bool set_phr(float phr);
   void set_padding();
   void set_padding(uint32_t padding_len);
