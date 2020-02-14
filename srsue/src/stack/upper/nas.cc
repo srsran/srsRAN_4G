@@ -338,7 +338,7 @@ void nas::timer_expired(uint32_t timeout_id)
  */
 void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishment_cause_t cause_)
 {
-  nas_log->info("Attach Request\n");
+  nas_log->info("Attach Request with cause %s.\n", to_string(cause_).c_str());
   switch (state) {
     case EMM_STATE_DEREGISTERED:
 
