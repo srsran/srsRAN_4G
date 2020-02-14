@@ -154,16 +154,12 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 
   std::unique_lock<std::mutex> lock(mutex);
   if (is_srb()) {
-    bool integrity_valid = handle_srb_pdu(pdu);
-    if (integrity_valid) {
-      rrc->write_pdu(lcid, std::move(pdu));
-    }
+    handle_srb_pdu(std::move(pdu));
   } else if (is_drb() && rlc->rb_is_um(lcid)) {
-    handle_um_drb_pdu(pdu);
+    handle_um_drb_pdu(std::move(pdu));
     gw->write_pdu(lcid, std::move(pdu));
   } else if (is_drb() && !rlc->rb_is_um(lcid)) {
-    handle_am_drb_pdu(pdu);
-    gw->write_pdu(lcid, std::move(pdu));
+    handle_am_drb_pdu(std::move(pdu));
   } else {
     log->error("Invalid PDCP/RLC configuration");
   }
@@ -174,14 +170,12 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
  ***************************************************************************/
 // SRBs (5.1.2.2)
-// Returns a boolean indicating whether integrity has passed
-bool pdcp_entity_lte::handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu)
+void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
 {
   log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rrc->get_rb_name(lcid).c_str());
 
-  uint32_t sn; 
-  uint8_t mac[4];
-  pdcp_unpack_control_pdu(pdu.get(), &sn, mac);
+  // Read recvd SN from header
+  uint32_t sn = SN(pdu->msg[0]); 
 
   log->debug("RX SRB PDU. Next_PDCP_RX_SN %d, SN %d", next_pdcp_rx_sn, sn);
 
@@ -193,18 +187,26 @@ bool pdcp_entity_lte::handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu)
     count = COUNT(rx_hfn, sn);
   }
  
-  // Perform integrity checks and decription  
+  // Perform decription  
   if (do_encryption) {
-    cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
+    cipher_decrypt(&pdu->msg[1], pdu->N_bytes - 1, count, pdu->msg);
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
 
+  // Extract MAC
+  uint8_t mac[4];
+  extract_mac(pdu, mac);
+
+  // Perfrom integrity checks
   if (do_integrity) {
     if (not integrity_verify(pdu->msg, pdu->N_bytes, count, mac)) {
       log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
-      return false;
+      return; // Discard
     }
   }
+
+  // Discard header
+  pdu->msg++;
 
   // Update state variables
   if (sn < next_pdcp_rx_sn) {
@@ -217,11 +219,14 @@ bool pdcp_entity_lte::handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu)
     rx_hfn++;
   }
 
-  return true;
+  // Pass to upper layers
+  log->info_hex(pdu->msg, pdu->N_bytes, "Passing SDU to upper layers");
+  rrc->write_pdu(lcid, std::move(pdu));
+  return;
 }
 
 // DRBs mapped on RLC UM (5.1.2.1.3)
-void pdcp_entity_lte::handle_um_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
+void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
 {
   uint32_t sn;
   if (12 == cfg.sn_len) {
@@ -246,12 +251,14 @@ void pdcp_entity_lte::handle_um_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
     rx_hfn++;
   }
 
+  // Pass to upper layers
   log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+  gw->write_pdu(lcid, std::move(pdu));
   return;
 }
 
 // DRBs mapped on RLC AM, without re-ordering (5.1.2.1.2)
-void pdcp_entity_lte::handle_am_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
+void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 {
   uint32_t sn, count;
   pdcp_unpack_data_pdu_long_sn(pdu.get(), &sn);
@@ -266,16 +273,16 @@ void pdcp_entity_lte::handle_am_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
              last_submitted_pdcp_rx_sn,
              next_pdcp_rx_sn);
 
-  bool discard = false;
+  // Handle PDU
   if ((0 <= sn_diff_last_submit && sn_diff_last_submit > (int32_t)reordering_window) ||
       (0 <= last_submit_diff_sn && last_submit_diff_sn < (int32_t)reordering_window)) {
-    log->debug("|SN - last_submitted_sn| is larger than re-ordering window.\n");
+    log->warning("|SN - last_submitted_sn| is larger than re-ordering window.\n");
     if (sn > next_pdcp_rx_sn) {
       count = (rx_hfn - 1) << cfg.sn_len | sn;
     } else {
       count = rx_hfn << cfg.sn_len | sn;
     }
-    discard = true;
+    return; // Discard
   } else if ((int32_t)(next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
     log->debug("(Next_PDCP_RX_SN - SN) is larger than re-ordering window.\n");
     rx_hfn++;
@@ -297,13 +304,16 @@ void pdcp_entity_lte::handle_am_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
     count = (rx_hfn << cfg.sn_len) | sn;
   }
 
-  // TODO Check if PDU is not due to re-establishment of lower layers?
+  // Decrypt
   cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
   log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
 
-  if (!discard) {
-    last_submitted_pdcp_rx_sn = sn;
-  }
+  // Update info on last PDU submitted to upper layers
+  last_submitted_pdcp_rx_sn = sn;
+
+  // Pass to upper layers
+  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+  gw->write_pdu(lcid, std::move(pdu));
   return;
 }
 
@@ -360,17 +370,12 @@ void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t* sdu)
   sdu->msg[sdu->N_bytes++] = PDCP_CONTROL_MAC_I & 0xFF;
 }
 
-void pdcp_unpack_control_pdu(byte_buffer_t* sdu, uint32_t* sn, uint8_t *mac)
+void pdcp_unpack_control_pdu_sn(byte_buffer_t* sdu, uint32_t* sn)
 {
   // Strip header
   *sn = sdu->msg[0] & 0x1Fu;
   sdu->msg++;
   sdu->N_bytes--;
-
-  memcpy(mac, &sdu->msg[sdu->N_bytes - 4], 4);
-  printf("MAC-I (copy) 0x%02x%02x%02x%02x\n", sdu->msg[sdu->N_bytes - 4], sdu->msg[sdu->N_bytes - 3], sdu->msg[sdu->N_bytes - 2], sdu->msg[sdu->N_bytes - 1]);
-  printf("MAC-I (sdu ) 0x%02x%02x%02x%02x\n", mac[0], mac[1], mac[2], mac[3]);
-  sdu->N_bytes -= 4;
 }
 
 void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t* sdu)

@@ -116,10 +116,15 @@ protected:
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = INTEGRITY_ALGORITHM_ID_EIA0;
 
+  // Security functions
   void integrity_generate(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac);
   bool integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac);
   void cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* ct);
   void cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg);
+
+  // Common packing functions
+  void extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac);
+  void append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
 };
 
 inline uint32_t pdcp_entity_base::HFN(uint32_t count)

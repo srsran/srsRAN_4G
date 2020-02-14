@@ -223,4 +223,33 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
   }
   log->debug_hex(msg, ct_len, "Cipher decrypt output msg");
 }
+
+/****************************************************************************
+ * Common pack functions
+ ***************************************************************************/
+void pdcp_entity_base::extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac)
+{
+  // Check enough space for MAC
+  if (pdu->N_bytes < 4) {
+    log->error("PDU too small to extract MAC-I\n");
+    return;
+  }
+
+  // Extract MAC
+  memcpy(mac, &pdu->msg[pdu->N_bytes - 4], 4);
+  pdu->N_bytes -= 4;
+}
+
+void pdcp_entity_base::append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac)
+{
+  // Check enough space for MAC
+  if (sdu->N_bytes + 4 > sdu->get_tailroom()) {
+    log->error("Not enough space to add MAC-I\n");
+    return;
+  }
+
+  // Append MAC
+  memcpy(&sdu->msg[sdu->N_bytes], mac, 4);
+  sdu->N_bytes += 4;
+}
 } // namespace srslte

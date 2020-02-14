@@ -80,9 +80,9 @@ private:
   uint32_t last_submitted_pdcp_rx_sn = 0;
   uint32_t maximum_pdcp_sn           = 0;
 
-  bool handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu);
-  void handle_um_drb_pdu(const srslte::unique_byte_buffer_t& pdu);
-  void handle_am_drb_pdu(const srslte::unique_byte_buffer_t& pdu);
+  void handle_srb_pdu(srslte::unique_byte_buffer_t pdu);
+  void handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu);
+  void handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu);
 };
 
 /****************************************************************************
@@ -91,7 +91,7 @@ private:
  ***************************************************************************/
 
 void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t* sdu);
-void pdcp_unpack_control_pdu(byte_buffer_t* sdu, uint32_t* sn, uint8_t* mac);
+void pdcp_unpack_control_pdu_sn(byte_buffer_t* sdu, uint32_t* sn);
 
 void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t* sdu);
 void pdcp_unpack_data_pdu_short_sn(byte_buffer_t* sdu, uint32_t* sn);
