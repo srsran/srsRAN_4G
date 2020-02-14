@@ -177,10 +177,13 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 // Returns a boolean indicating whether integrity has passed
 bool pdcp_entity_lte::handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu)
 {
+  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rrc->get_rb_name(lcid).c_str());
 
   uint32_t sn; 
   uint8_t mac[4];
   pdcp_unpack_control_pdu(pdu.get(), &sn, mac);
+
+  log->debug("RX SRB PDU. Next_PDCP_RX_SN %d, SN %d", next_pdcp_rx_sn, sn);
 
   // Estimate COUNT for integrity check and decryption
   uint32_t count;
@@ -207,8 +210,13 @@ bool pdcp_entity_lte::handle_srb_pdu(const srslte::unique_byte_buffer_t& pdu)
   if (sn < next_pdcp_rx_sn) {
     rx_hfn++;
   }
+  next_pdcp_rx_sn = sn + 1;
 
-  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+  if (next_pdcp_rx_sn > maximum_pdcp_sn) {
+    next_pdcp_rx_sn = 0;
+    rx_hfn++;
+  }
+
   return true;
 }
 
@@ -358,8 +366,10 @@ void pdcp_unpack_control_pdu(byte_buffer_t* sdu, uint32_t* sn, uint8_t *mac)
   *sn = sdu->msg[0] & 0x1Fu;
   sdu->msg++;
   sdu->N_bytes--;
-  
-  memcpy(mac, sdu->msg, 4);
+
+  memcpy(mac, &sdu->msg[sdu->N_bytes - 4], 4);
+  printf("MAC-I (copy) 0x%02x%02x%02x%02x\n", sdu->msg[sdu->N_bytes - 4], sdu->msg[sdu->N_bytes - 3], sdu->msg[sdu->N_bytes - 2], sdu->msg[sdu->N_bytes - 1]);
+  printf("MAC-I (sdu ) 0x%02x%02x%02x%02x\n", mac[0], mac[1], mac[2], mac[3]);
   sdu->N_bytes -= 4;
 }
 
