@@ -640,13 +640,20 @@ proc_outcome_t rrc::connection_request_proc::step()
     // Send connectionRequest message to lower layers
     rrc_ptr->send_con_request(cause);
 
-    // Save dedicatedInfoNAS SDU
-    if (rrc_ptr->dedicated_info_nas.get()) {
-      log_h->warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it.\n");
+    // Save dedicatedInfoNAS SDU, if needed
+    if (dedicated_info_nas.get()) {
+      if (rrc_ptr->dedicated_info_nas.get()) {
+        Warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it.\n");
+        rrc_ptr->dedicated_info_nas.reset();
+      }
+
+      Debug("Updating dedicatedInfoNAS in RRC\n");
+      rrc_ptr->dedicated_info_nas = std::move(dedicated_info_nas);
+    } else {
+      Debug("dedicatedInfoNAS has already been provided to RRC.\n");
     }
 
     Info("Waiting for RRCConnectionSetup/Reject or expiry\n");
-    rrc_ptr->dedicated_info_nas = std::move(dedicated_info_nas);
     state                       = state_t::wait_t300;
     return step();
 
