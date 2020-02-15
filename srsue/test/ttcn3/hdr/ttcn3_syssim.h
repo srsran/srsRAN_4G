@@ -687,6 +687,7 @@ public:
     // Find cell with highest power and select as serving cell
     if (not ue) {
       log.error("Can't configure cell. UE not initialized.\n");
+      return;
     }
 
     // convert syssim cell list to phy cell list
