@@ -916,6 +916,11 @@ void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
   }
 }
 
+void cc_worker::upd_config_dci(srslte_dci_cfg_t &dci_cfg)
+{
+  ue_dl_cfg.cfg.dci = dci_cfg;
+}
+
 int cc_worker::read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_antenna)
 {
   int sz = srslte_symbol_sz(cell.nof_prb);

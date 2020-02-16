@@ -48,6 +48,7 @@ public:
 
   void set_tdd_config(srslte_tdd_config_t config);
   void set_config(srslte::phy_cfg_t& phy_cfg);
+  void upd_config_dci(srslte_dci_cfg_t& dci_cfg);
   void set_crnti(uint16_t rnti);
   void enable_pregen_signals(bool enabled);
 

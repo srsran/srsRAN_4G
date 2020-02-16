@@ -148,8 +148,10 @@ static uint32_t dci_format0_sizeof_(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf,
   /* SRS request – 0 or 1 bit */
   n += (cfg->srs_request_enabled) ? 1 : 0;
 
-  /* Resource allocation type – 1 bit (N^UL_RB ≤ N^DL_RB) */
-  n += (cfg->ra_format_enabled) ? 1 : 0;
+  /* Resource allocation type – 1 bit (N^UL_RB ≤ N^DL_RB)
+   * This is a release10 field only, but it is backwards compatible to release 8 because a padding bit will be added.
+   */
+  n++;
 
   return n;
 }
@@ -484,13 +486,6 @@ static int dci_format0_unpack(srslte_cell_t*      cell,
   uint8_t* y = msg->payload;
   uint32_t n_ul_hop;
 
-  /* Make sure it's a SRSLTE_DCI_FORMAT0 message */
-  uint32_t msg_len = srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT0);
-  if (msg->nof_bits != msg_len) {
-    ERROR("Invalid message length for format 0 (%d != %d)\n", msg->nof_bits, msg_len);
-    return SRSLTE_ERROR;
-  }
-
   if (cfg->cif_enabled) {
     dci->cif         = srslte_bit_pack(&y, 3);
     dci->cif_present = true;
@@ -624,7 +619,7 @@ static int dci_format1_pack(srslte_cell_t*      cell,
   msg->nof_bits = (y - msg->payload);
 
   if (msg->nof_bits != dci_format1_sizeof(cell, sf, cfg)) {
-    ERROR("Invalid message length for format 1A (Cross scheduling %s)\n", dci->cif_present ? "enabled" : "disabled");
+    ERROR("Invalid message length for format 1 (Cross scheduling %s)\n", dci->cif_present ? "enabled" : "disabled");
   }
 
   return SRSLTE_SUCCESS;
@@ -781,12 +776,6 @@ static int dci_format1As_unpack(srslte_cell_t*      cell,
 
   /* pack bits */
   uint8_t* y = msg->payload;
-
-  /* Make sure it's a SRSLTE_DCI_FORMAT0 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT1A)) {
-    ERROR("Invalid message length for format 1A (Cross scheduling %s)\n", cfg->cif_enabled ? "enabled" : "disabled");
-    return SRSLTE_ERROR;
-  }
 
   if (cfg->cif_enabled) {
     dci->cif         = srslte_bit_pack(&y, 3);
