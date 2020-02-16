@@ -229,7 +229,7 @@ static void ul_fill_ra_mcs(srslte_ra_tb_t* tb, srslte_ra_tb_t* last_tb, uint32_t
   }
 }
 
-static void compute_nof_re(srslte_pusch_grant_t* grant, srslte_cp_t cp, uint32_t N_srs)
+void srslte_ra_ul_compute_nof_re(srslte_pusch_grant_t* grant, srslte_cp_t cp, uint32_t N_srs)
 {
   grant->nof_symb    = 2 * (SRSLTE_CP_NSYMB(cp) - 1) - N_srs;
   grant->nof_re      = grant->nof_symb * grant->L_prb * SRSLTE_NRE;
@@ -299,10 +299,11 @@ int srslte_ra_ul_dci_to_grant(srslte_cell_t*              cell,
     // copy RV
     grant->tb.rv = dci->tb.rv;
 
-    /* Compute final number of bits and RE */
-    compute_nof_re(grant, cell->cp, sf->shortened ? 1 : 0);
+    /* Compute RE assuming shortened is false*/
+    srslte_ra_ul_compute_nof_re(grant, cell->cp, 0);
 
-    // Assume hopping is the same
+    // TODO: Need to compute hopping here before determining if there is collision with SRS, but only MAC knows if it's a
+    //  new tx or a retx. Need to split MAC interface in 2 calls. For now, assume hopping is the same
     for (uint32_t i = 0; i < 2; i++) {
       grant->n_prb_tilde[i] = grant->n_prb[i];
     }

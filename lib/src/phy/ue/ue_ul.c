@@ -207,10 +207,19 @@ int srslte_ue_ul_dci_to_pusch_grant(srslte_ue_ul_t*       q,
                                     srslte_dci_ul_t*      dci,
                                     srslte_pusch_grant_t* grant)
 {
+  if (srslte_ra_ul_dci_to_grant(&q->cell, sf, &cfg->ul_cfg.hopping, dci, grant)) {
+    ERROR("Converting DCI to UL grant\n");
+    return SRSLTE_ERROR;
+  }
+
   // Update shortened before computing grant
   srslte_refsignal_srs_pusch_shortened(&q->signals, sf, &cfg->ul_cfg.srs, &cfg->ul_cfg.pusch);
 
-  return srslte_ra_ul_dci_to_grant(&q->cell, sf, &cfg->ul_cfg.hopping, dci, grant);
+  /* Update RE assuming if shortened is true */
+  if (sf->shortened) {
+    srslte_ra_ul_compute_nof_re(grant, q->cell.cp, true);
+  }
+  return SRSLTE_SUCCESS;
 }
 
 void srslte_ue_ul_pusch_hopping(srslte_ue_ul_t*       q,
@@ -218,6 +227,9 @@ void srslte_ue_ul_pusch_hopping(srslte_ue_ul_t*       q,
                                 srslte_ue_ul_cfg_t*   cfg,
                                 srslte_pusch_grant_t* grant)
 {
+  if (cfg->ul_cfg.srs.configured && cfg->ul_cfg.hopping.hopping_enabled) {
+    ERROR("UL SRS and frequency hopping not currently supported\n");
+  }
   return srslte_ra_ul_pusch_hopping(&q->hopping, sf, &cfg->ul_cfg.hopping, grant);
 }
 
