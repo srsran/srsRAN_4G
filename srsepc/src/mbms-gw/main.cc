@@ -20,10 +20,7 @@
  */
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
 #include "srslte/common/config_file.h"
-#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
-#include <errno.h>
-#include <fstream>
 #include <iostream>
 #include <signal.h>
 
@@ -53,7 +50,7 @@ typedef struct {
 
 srslte::LOG_LEVEL_ENUM level(std::string l)
 {
-  boost::to_upper(l);
+  std::transform(l.begin(), l.end(), l.begin(), ::toupper);
   if ("NONE" == l) {
     return srslte::LOG_LEVEL_NONE;
   } else if ("ERROR" == l) {

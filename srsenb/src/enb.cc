@@ -24,9 +24,7 @@
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srslte/build_info.h"
-#include <boost/algorithm/string.hpp>
 #include <iostream>
-#include <sstream>
 
 namespace srsenb {
 
@@ -183,7 +181,7 @@ bool enb::get_metrics(enb_metrics_t* m)
 
 srslte::LOG_LEVEL_ENUM enb::level(std::string l)
 {
-  boost::to_upper(l);
+  std::transform(l.begin(), l.end(), l.begin(), ::toupper);
   if ("NONE" == l) {
     return srslte::LOG_LEVEL_NONE;
   } else if ("ERROR" == l) {

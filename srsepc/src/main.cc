@@ -26,13 +26,9 @@
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
-#include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
-#include <errno.h>
-#include <fstream>
 #include <iostream>
 #include <signal.h>
-#include <sstream>
 
 using namespace std;
 using namespace srsepc;
@@ -242,13 +238,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
 
-  if (boost::iequals(encryption_algo, "eea0")) {
+  std::transform(encryption_algo.begin(), encryption_algo.end(), encryption_algo.begin(), ::tolower);
+  if (encryption_algo == "eea0") {
     args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-  } else if (boost::iequals(encryption_algo, "eea1")) {
+  } else if (encryption_algo == "eea1") {
     args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
-  } else if (boost::iequals(encryption_algo, "eea2")) {
+  } else if (encryption_algo == "eea2") {
     args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
-  } else if (boost::iequals(encryption_algo, "eea3")) {
+  } else if (encryption_algo == "eea3") {
     args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
   } else {
     args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
@@ -256,15 +253,16 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     cout << "Using default mme.encryption_algo: EEA0" << endl;
   }
 
-  if (boost::iequals(integrity_algo, "eia0")) {
+  std::transform(integrity_algo.begin(), integrity_algo.end(), integrity_algo.begin(), ::tolower);
+  if (integrity_algo == "eia0") {
     args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
     cout << "Warning parsing mme.integrity_algo:" << encryption_algo
          << " - EIA0 will not supported by UEs use EIA1 or EIA2" << endl;
-  } else if (boost::iequals(integrity_algo, "eia1")) {
+  } else if (integrity_algo == "eia1") {
     args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
-  } else if (boost::iequals(integrity_algo, "eia2")) {
+  } else if (integrity_algo == "eia2") {
     args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
-  } else if (boost::iequals(integrity_algo, "eia3")) {
+  } else if (integrity_algo == "eia3") {
     args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
   } else {
     args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
@@ -344,7 +342,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
 srslte::LOG_LEVEL_ENUM level(std::string l)
 {
-  boost::to_upper(l);
+  std::transform(l.begin(), l.end(), l.begin(), ::toupper);
   if ("NONE" == l) {
     return srslte::LOG_LEVEL_NONE;
   } else if ("ERROR" == l) {
@@ -400,7 +398,7 @@ int main(int argc, char* argv[])
   srslte::logger*       logger;
 
   /*Init logger*/
-  if (!args.log_args.filename.compare("stdout")) {
+  if (args.log_args.filename == "stdout") {
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log_args.filename);
