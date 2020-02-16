@@ -374,8 +374,12 @@ void sync::run_thread()
 
   cf_t*    dummy_buffer[SRSLTE_MAX_PORTS];
   uint32_t nof_rf_channels = worker_com->args->nof_rf_channels * worker_com->args->nof_rx_ant;
+  if (nof_rf_channels > SRSLTE_MAX_PORTS) {
+    fprintf(stderr, "Fatal error: nof_rf_channels x nof_rx_ant must be lower than %d\n", SRSLTE_MAX_PORTS);
+    return;
+  }
   for (uint32_t i = 0; i < nof_rf_channels; i++) {
-    dummy_buffer[i] = (cf_t*)malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
+    dummy_buffer[i] = (cf_t*)srslte_vec_cf_malloc(3 * SRSLTE_SF_LEN_PRB(100));
   }
 
   uint32_t prach_nof_sf = 0;
