@@ -54,7 +54,7 @@ public:
   void              set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) override {}
   cell_search_ret_t cell_search(phy_cell_t* cell) override { return {}; }
   bool              cell_is_camping() override { return false; }
-  bool              cell_select(phy_cell_t* cell = nullptr) override { return false; }
+  bool              cell_select(const phy_cell_t* cell = nullptr) override { return false; }
   void              reset() override {}
   void              enable_pregen_signals(bool enable) override {}
 

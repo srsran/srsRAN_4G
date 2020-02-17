@@ -264,7 +264,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
 /* Cell select synchronizes to a new cell (e.g. during HO or during cell reselection on IDLE) or
  * re-synchronizes with the current cell if cell argument is NULL
  */
-bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
+bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell)
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
 
@@ -272,7 +272,7 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
   int  cnt = 0;
 
   // Move state to IDLE
-  if (!new_cell) {
+  if (new_cell == nullptr) {
     Info("Cell Select: Starting cell resynchronization\n");
   } else {
     if (!srslte_cellid_isvalid(new_cell->pci)) {
@@ -298,12 +298,12 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
   srslte_ue_sync_reset(&ue_sync);
 
   /* Reconfigure cell if necessary */
-  if (new_cell) {
-      cell.id = new_cell->pci;
-      if (!set_cell()) {
-        Error("Cell Select: Reconfiguring cell\n");
-        return ret;
-      }
+  if (new_cell != nullptr) {
+    cell.id = new_cell->pci;
+    if (!set_cell()) {
+      Error("Cell Select: Reconfiguring cell\n");
+      return ret;
+    }
 
     /* Select new frequency if necessary */
     if ((int)new_cell->earfcn != current_earfcn) {

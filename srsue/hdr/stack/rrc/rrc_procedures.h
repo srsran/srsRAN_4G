@@ -29,6 +29,20 @@
 
 namespace srsue {
 
+/********************************
+ *           Events
+ *******************************/
+
+// background workers use this event to signal the result of a cell select phy procedure
+struct cell_select_event_t {
+  cell_select_event_t(bool c_) : cs_ret(c_) {}
+  bool cs_ret;
+};
+
+/********************************
+ *         Procedures
+ *******************************/
+
 class rrc::cell_search_proc
 {
 public:
@@ -36,13 +50,15 @@ public:
     phy_interface_rrc_lte::cell_search_ret_t cs_ret;
     phy_interface_rrc_lte::phy_cell_t        found_cell;
   };
-  enum class state_t { phy_cell_search, si_acquire, wait_measurement };
+  enum class state_t { phy_cell_search, si_acquire, wait_measurement, phy_cell_select };
 
   explicit cell_search_proc(rrc* parent_);
   srslte::proc_outcome_t init();
   srslte::proc_outcome_t step();
+  srslte::proc_outcome_t step_si_acquire();
   srslte::proc_outcome_t react(const cell_search_event_t& event);
-  srslte::proc_outcome_t check_sib();
+  srslte::proc_outcome_t react(const cell_select_event_t& event);
+  srslte::proc_outcome_t step_wait_measurement();
 
   phy_interface_rrc_lte::cell_search_ret_t get_result() const { return search_result.cs_ret; }
   static const char*                       name() { return "Cell Search"; }
@@ -116,9 +132,12 @@ public:
   void                   then(const srslte::proc_result_t<cs_result_t>& proc_result) const;
   cs_result_t            get_result() const { return cs_result; }
   static const char*     name() { return "Cell Selection"; }
+  srslte::proc_outcome_t react(const cell_select_event_t& event);
 
 private:
-  srslte::proc_outcome_t step_cell_selection();
+  srslte::proc_outcome_t start_cell_selection();
+  srslte::proc_outcome_t step_cell_selection(const cell_select_event_t& event);
+  srslte::proc_outcome_t step_serv_cell_camp(const cell_select_event_t& event);
   srslte::proc_outcome_t step_wait_in_sync();
   srslte::proc_outcome_t step_cell_search();
   srslte::proc_outcome_t step_cell_config();
@@ -127,7 +146,7 @@ private:
   rrc* rrc_ptr;
 
   // state variables
-  enum class search_state_t { cell_selection, wait_in_sync, cell_config, cell_search };
+  enum class search_state_t { cell_selection, serv_cell_camp, wait_in_sync, cell_config, cell_search };
   cs_result_t                                                     cs_result;
   search_state_t                                                  state;
   uint32_t                                                        neigh_index;
@@ -247,10 +266,10 @@ public:
 private:
   enum class state_t { cell_reselection, cell_configuration } state;
 
-  rrc*                     rrc_ptr          = nullptr;
-  asn1::rrc::reest_cause_e reest_cause      = asn1::rrc::reest_cause_e::nulltype;
-  uint16_t                 reest_rnti       = 0;
-  uint16_t                 reest_source_pci = 0;
+  rrc*                     rrc_ptr           = nullptr;
+  asn1::rrc::reest_cause_e reest_cause       = asn1::rrc::reest_cause_e::nulltype;
+  uint16_t                 reest_rnti        = 0;
+  uint16_t                 reest_source_pci  = 0;
   uint32_t                 reest_source_freq = 0;
 
   srslte::proc_outcome_t step_cell_reselection();

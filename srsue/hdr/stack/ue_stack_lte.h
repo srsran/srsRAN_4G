@@ -120,6 +120,7 @@ public:
 
   // Interface for RRC
   void start_cell_search() final;
+  void start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) final;
 
 private:
   void run_thread() final;

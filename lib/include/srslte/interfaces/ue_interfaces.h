@@ -28,8 +28,8 @@
 #ifndef SRSLTE_UE_INTERFACES_H
 #define SRSLTE_UE_INTERFACES_H
 
-#include <string>
 #include <set>
+#include <string>
 
 #include "rrc_interface_types.h"
 #include "srslte/asn1/liblte_mme.h"
@@ -527,10 +527,10 @@ typedef struct {
   bool          pregenerate_signals              = false;
   float         force_ul_amplitude               = 0.0f;
 
-  float         in_sync_rsrp_dbm_th              = -130.0f;
-  float         in_sync_snr_db_th                = 1.0f;
-  uint32_t      nof_in_sync_events               = 10;
-  uint32_t      nof_out_of_sync_events           = 20;
+  float    in_sync_rsrp_dbm_th    = -130.0f;
+  float    in_sync_snr_db_th      = 1.0f;
+  uint32_t nof_in_sync_events     = 10;
+  uint32_t nof_out_of_sync_events = 20;
 
   srslte::channel::args_t dl_channel_args;
   srslte::channel::args_t ul_channel_args;
@@ -610,9 +610,9 @@ public:
   } phy_cell_t;
 
   /* Cell search and selection procedures */
-  virtual cell_search_ret_t cell_search(phy_cell_t* cell)        = 0;
-  virtual bool              cell_select(phy_cell_t* cell = NULL) = 0;
-  virtual bool              cell_is_camping()                    = 0;
+  virtual cell_search_ret_t cell_search(phy_cell_t* cell)              = 0;
+  virtual bool              cell_select(const phy_cell_t* cell = NULL) = 0;
+  virtual bool              cell_is_camping()                          = 0;
 
   virtual void reset() = 0;
 
@@ -643,7 +643,8 @@ public:
 class stack_interface_rrc
 {
 public:
-  virtual void start_cell_search() = 0;
+  virtual void start_cell_search()                                              = 0;
+  virtual void start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

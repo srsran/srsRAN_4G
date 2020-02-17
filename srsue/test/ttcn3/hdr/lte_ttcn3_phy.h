@@ -87,7 +87,7 @@ public:
 
   // Cell search and selection procedures
   cell_search_ret_t cell_search(phy_cell_t* found_cell);
-  bool              cell_select(phy_cell_t* cell);
+  bool              cell_select(const phy_cell_t* cell) override;
   bool              cell_is_camping();
   void              reset();
 

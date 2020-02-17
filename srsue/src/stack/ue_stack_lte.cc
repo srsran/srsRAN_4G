@@ -319,7 +319,6 @@ void ue_stack_lte::start_prach_configuration()
   });
 }
 
-
 /********************
  *  RRC Interface
  *******************/
@@ -331,6 +330,15 @@ void ue_stack_lte::start_cell_search()
     phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
     // notify back RRC
     pending_tasks.push(background_queue_id, [this, found_cell, ret]() { rrc.cell_search_completed(ret, found_cell); });
+  });
+}
+
+void ue_stack_lte::start_cell_select(const phy_interface_rrc_lte::phy_cell_t* phy_cell)
+{
+  background_tasks.push_task([this, phy_cell](uint32_t worker_id) {
+    bool ret = phy->cell_select(phy_cell);
+    // notify back RRC
+    pending_tasks.push(background_queue_id, [this, ret]() { rrc.cell_select_completed(ret); });
   });
 }
 

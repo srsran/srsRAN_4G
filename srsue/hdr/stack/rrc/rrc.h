@@ -356,6 +356,7 @@ public:
   // STACK interface
   void cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
                              const phy_interface_rrc_lte::phy_cell_t&        found_cell);
+  void cell_select_completed(bool cs_ret);
 
 protected:
   // Moved to protected to be accessible by unit tests

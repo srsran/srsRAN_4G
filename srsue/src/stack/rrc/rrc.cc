@@ -1385,6 +1385,13 @@ void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& 
   cell_searcher.trigger(cell_search_proc::cell_search_event_t{cs_ret, found_cell});
 }
 
+void rrc::cell_select_completed(bool cs_ret)
+{
+  cell_select_event_t ev{cs_ret};
+  cell_searcher.trigger(ev);
+  cell_selector.trigger(ev);
+}
+
 /*******************************************************************************
  *
  * Interface from RRC measurements class

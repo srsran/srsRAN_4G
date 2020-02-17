@@ -325,7 +325,7 @@ void phy::meas_stop()
   sfsync.meas_stop();
 }
 
-bool phy::cell_select(phy_cell_t* cell)
+bool phy::cell_select(const phy_cell_t* cell)
 {
   return sfsync.cell_select(cell);
 }
