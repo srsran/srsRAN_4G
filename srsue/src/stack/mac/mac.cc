@@ -291,7 +291,6 @@ uint16_t mac::get_ul_sched_rnti(uint32_t tti)
   if (uernti.crnti) {
     return uernti.crnti;
   }
-  Error("Couldn't configure RNTI for UL transmission.\n");
   return SRSLTE_INVALID_RNTI;
 }
 
