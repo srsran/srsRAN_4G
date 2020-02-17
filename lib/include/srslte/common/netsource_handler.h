@@ -34,7 +34,7 @@
 #include <iostream>
 #include <memory>
 
-class netsource_handler : public thread
+class netsource_handler : public srslte::thread
 {
 public:
   netsource_handler(const std::string name_) : thread(name_) { rx_buf = unique_byte_array_t(new byte_array_t); }

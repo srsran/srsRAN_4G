@@ -50,7 +50,7 @@ typedef struct {
   enum nas_timer_type type;
 } mme_timer_t;
 
-class mme : public thread, public mme_interface_nas
+class mme : public srslte::thread, public mme_interface_nas
 {
 public:
   static mme* get_instance(void);

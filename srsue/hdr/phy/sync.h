@@ -45,7 +45,7 @@ namespace srsue {
 
 typedef _Complex float cf_t;
 
-class sync : public thread, public chest_feedback_itf
+class sync : public srslte::thread, public chest_feedback_itf
 {
 public:
   sync() : thread("SYNC"){};

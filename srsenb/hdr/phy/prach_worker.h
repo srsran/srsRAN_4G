@@ -30,7 +30,7 @@
 
 namespace srsenb {
 
-class prach_worker : thread
+class prach_worker : srslte::thread
 {
 public:
   prach_worker(uint32_t cc_idx_) : buffer_pool(8), thread("PRACH_WORKER") { cc_idx = cc_idx_; }

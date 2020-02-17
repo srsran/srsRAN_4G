@@ -58,7 +58,7 @@ private:                                                                        
     received_##NAME = true;                                                                                            \
   }
 
-class phy_test_bench : public thread
+class phy_test_bench : public srslte::thread
 {
 private:
   // Dummy classes

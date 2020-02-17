@@ -48,7 +48,7 @@ class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_s1ap_lte,
                             public stack_interface_gtpu_lte,
                             public stack_interface_mac_lte,
-                            public thread
+                            public srslte::thread
 {
 public:
   enb_stack_lte(srslte::logger* logger_);

@@ -32,7 +32,7 @@ namespace srsue {
 namespace scell {
 
 // Class to perform intra-frequency measurements
-class intra_measure : public thread
+class intra_measure : public srslte::thread
 {
   /*
    * The intra-cell measurment has 5 different states:

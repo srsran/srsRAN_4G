@@ -34,7 +34,7 @@ namespace scell {
 
 #define SF_BUFFER_MAX_SAMPLES (5 * SRSLTE_SF_LEN_MAX)
 
-class async_scell_recv : private thread
+class async_scell_recv : private srslte::thread
 {
 public:
   async_scell_recv();

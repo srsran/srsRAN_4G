@@ -62,7 +62,7 @@ typedef struct spgw_tunnel_ctx {
   std::queue<srslte::byte_buffer_t*> paging_queue;
 } spgw_tunnel_ctx_t;
 
-class spgw : public thread
+class spgw : public srslte::thread
 {
   class gtpc;
   class gtpu;

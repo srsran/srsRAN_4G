@@ -22,7 +22,7 @@
 #include <iostream>
 #include <srslte/common/threads.h>
 
-class thread_test : public thread
+class thread_test : public srslte::thread
 {
 public:
   thread_test() : thread("Thread Test") {}

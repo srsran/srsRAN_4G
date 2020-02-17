@@ -34,7 +34,7 @@ namespace srsenb {
 
 typedef _Complex float cf_t;
 
-class txrx : public thread
+class txrx : public srslte::thread
 {
 public:
   txrx();

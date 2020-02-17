@@ -46,7 +46,7 @@ struct gw_args_t {
   std::string tun_dev_netmask;
 };
 
-class gw : public gw_interface_stack, public thread
+class gw : public gw_interface_stack, public srslte::thread
 {
 public:
   gw();

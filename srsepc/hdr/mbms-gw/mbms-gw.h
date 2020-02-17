@@ -59,7 +59,7 @@ struct pseudo_hdr {
   uint16_t udp_len;
 };
 
-class mbms_gw : public thread
+class mbms_gw : public srslte::thread
 {
 public:
   static mbms_gw* get_instance(void);
