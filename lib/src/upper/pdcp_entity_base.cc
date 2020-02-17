@@ -20,6 +20,7 @@
  */
 
 #include "srslte/upper/pdcp_entity_base.h"
+#include "srslte/common/int_helpers.h"
 #include "srslte/common/security.h"
 
 namespace srslte {
@@ -227,6 +228,69 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
 /****************************************************************************
  * Common pack functions
  ***************************************************************************/
+uint32_t pdcp_entity_base::read_data_header(const unique_byte_buffer_t& pdu)
+{
+  // Check PDU is long enough to extract header
+  if (pdu->N_bytes <= cfg.hdr_len_bytes) {
+    log->error("PDU too small to extract header\n");
+    return 0;
+  }
+
+  // Extract RCVD_SN
+  uint16_t rcvd_sn_16 = 0;
+  uint32_t rcvd_sn_32 = 0;
+  switch (cfg.sn_len) {
+    case PDCP_SN_LEN_5:
+      rcvd_sn_32 = SN(pdu->msg[0]);
+      break;
+    case PDCP_SN_LEN_12:
+      srslte::uint8_to_uint16(pdu->msg, &rcvd_sn_16);
+      rcvd_sn_32 = SN(rcvd_sn_16);
+      break;
+    case PDCP_SN_LEN_18:
+      srslte::uint8_to_uint24(pdu->msg, &rcvd_sn_32);
+      rcvd_sn_32 = SN(rcvd_sn_32);
+      break;
+    default:
+      log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);
+  }
+
+  // Discard header
+  pdu->msg += cfg.hdr_len_bytes;
+  pdu->N_bytes -= cfg.hdr_len_bytes;
+  return rcvd_sn_32;
+}
+
+void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count)
+{
+  // Add room for header
+  if (cfg.hdr_len_bytes > sdu->get_headroom()) {
+    log->error("Not enough space to add header\n");
+    return;
+  }
+  sdu->msg -= cfg.hdr_len_bytes;
+  sdu->N_bytes += cfg.hdr_len_bytes;
+
+  // Add SN
+  switch (cfg.sn_len) {
+    case PDCP_SN_LEN_5:
+      sdu->msg[0] = SN(count); // Data PDU and SN LEN 5 implies SRB, D flag must not be present 
+      break;
+    case PDCP_SN_LEN_12:
+      srslte::uint16_to_uint8(SN(count), sdu->msg);
+      if (is_drb()) {
+        sdu->msg[0] |= 0x80; // On Data PDUs for DRBs we must set the D flag.
+      }
+      break;
+    case PDCP_SN_LEN_18:
+      srslte::uint24_to_uint8(SN(count), sdu->msg);
+      sdu->msg[0] |= 0x80; // Data PDU and SN LEN 18 implies DRB, D flag must be present
+      break;
+    default:
+      log->error("Invalid SN length configuration: %d bits\n", cfg.sn_len);
+  }
+}
+
 void pdcp_entity_base::extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac)
 {
   // Check enough space for MAC
