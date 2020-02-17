@@ -213,6 +213,13 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   // Stop all intra-frequency measurement before changing frequency
   meas_stop();
 
+  if (srate_mode != SRATE_FIND) {
+    srate_mode = SRATE_FIND;
+    radio_h->set_rx_srate(0, 1.92e6);
+    radio_h->set_tx_srate(0, 1.92e6);
+    Info("SYNC:  Setting Cell Search sampling rate\n");
+  }
+
   try {
     if (current_earfcn != (int)earfcn.at(cellsearch_earfcn_index)) {
       current_earfcn = (int)earfcn[cellsearch_earfcn_index];
@@ -1048,13 +1055,6 @@ sync::search::ret_code sync::search::run(srslte_cell_t* cell_, std::array<uint8_
   srslte_ue_cellsearch_result_t found_cells[3];
 
   bzero(found_cells, 3 * sizeof(srslte_ue_cellsearch_result_t));
-
-  if (p->srate_mode != SRATE_FIND) {
-    p->srate_mode = SRATE_FIND;
-    p->radio_h->set_rx_srate(0, 1.92e6);
-    p->radio_h->set_tx_srate(0, 1.92e6);
-    Info("SYNC:  Setting Cell Search sampling rate\n");
-  }
 
   /* Find a cell in the given N_id_2 or go through the 3 of them to find the strongest */
   uint32_t max_peak_cell = 0;
