@@ -152,11 +152,7 @@ public:
   float get_rsrp() { return rsrp; }
   float get_rsrq() { return rsrq; }
 
-  void set_sib1(asn1::rrc::sib_type1_s* sib1_)
-  {
-    sib1           = *sib1_;
-    has_valid_sib1 = true;
-  }
+  void set_sib1(asn1::rrc::sib_type1_s* sib1_);
   void set_sib2(asn1::rrc::sib_type2_s* sib2_)
   {
     sib2           = *sib2_;
@@ -259,6 +255,8 @@ public:
     return std::string{buf};
   }
 
+  bool is_sib_scheduled(uint32_t sib_index) const;
+
   phy_interface_rrc_lte::phy_cell_t phy_cell = {};
   bool                              has_mcch = false;
   asn1::rrc::sib_type1_s            sib1;
@@ -273,10 +271,11 @@ private:
 
   struct timeval last_update = {};
 
-  bool has_valid_sib1  = false;
-  bool has_valid_sib2  = false;
-  bool has_valid_sib3  = false;
-  bool has_valid_sib13 = false;
+  bool                         has_valid_sib1  = false;
+  bool                         has_valid_sib2  = false;
+  bool                         has_valid_sib3  = false;
+  bool                         has_valid_sib13 = false;
+  std::map<uint32_t, uint32_t> sib_info_map; ///< map of sib_index to index of schedInfoList in SIB1
 };
 
 class rrc : public rrc_interface_nas,

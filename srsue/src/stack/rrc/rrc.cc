@@ -45,6 +45,24 @@ namespace srsue {
 const static uint32_t NOF_REQUIRED_SIBS                = 4;
 const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0, 1, 2, 12}; // SIB1, SIB2, SIB3 and SIB13 (eMBMS)
 
+void cell_t::set_sib1(asn1::rrc::sib_type1_s* sib1_)
+{
+  sib1           = *sib1_;
+  has_valid_sib1 = true;
+
+  sib_info_map.clear();
+  for (uint32_t i = 0; i < sib1.sched_info_list.size(); ++i) {
+    for (uint32_t j = 0; j < sib1.sched_info_list[i].sib_map_info.size(); ++j) {
+      sib_info_map.insert(std::make_pair(sib1.sched_info_list[i].sib_map_info[j].to_number() - 1, i));
+    }
+  }
+}
+
+bool cell_t::is_sib_scheduled(uint32_t sib_index) const
+{
+  return sib_info_map.find(sib_index) != sib_info_map.end();
+}
+
 /*******************************************************************************
   Base functions
 *******************************************************************************/
