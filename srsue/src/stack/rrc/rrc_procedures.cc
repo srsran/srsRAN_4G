@@ -364,18 +364,18 @@ proc_outcome_t rrc::cell_selection_proc::init()
 {
   if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->phy_sync_state == phy_in_sync and rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
-    Debug("Skipping Cell Selection Procedure ..\n");
+    Debug("Skipping Cell Selection Procedure as there are no neighbour and cell is camping.\n");
     cs_result = cs_result_t::same_cell;
     return proc_outcome_t::success;
   }
 
-  Info("Starting a Cell Selection Procedure...\n");
+  Info("Starting...\n");
   Info("Current neighbor cells: [%s]\n", rrc_ptr->print_neighbour_cells().c_str());
   neigh_index     = 0;
   cs_result       = cs_result_t::no_cell;
   state           = search_state_t::cell_selection;
   discard_serving = false;
-  return step();
+  return start_cell_selection();
 }
 
 proc_outcome_t rrc::cell_selection_proc::react(const cell_select_event_t& event)
