@@ -86,7 +86,6 @@ private:
     };
     var_meas_cfg*                       meas_cfg = nullptr;
     srslte::log*                        log_h    = nullptr;
-    srslte::timer_handler*              timers   = nullptr;
     rrc*                                rrc_ptr  = nullptr;
     std::map<uint32_t, var_meas_report> varMeasReportList;
   };

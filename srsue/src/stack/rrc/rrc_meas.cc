@@ -178,7 +178,6 @@ asn1::dyn_array<cells_to_add_mod_s>::iterator rrc::rrc_meas::find_pci_in_meas_ob
 void rrc::rrc_meas::var_meas_report_list::init(rrc* rrc_ptr_)
 {
   rrc_ptr = rrc_ptr_;
-  timers  = rrc_ptr_->timers;
 }
 
 /* Generate report procedure 5.5.5 */
@@ -338,7 +337,7 @@ void rrc::rrc_meas::var_meas_report_list::set_measId(const uint32_t            m
   // triggerType ‘event’ as well as for triggerType ‘periodical’
   if (!varMeasReportList.at(measId).periodic_timer.is_valid() &&
       (report_cfg.report_amount.to_number() > 1 || report_cfg.report_amount.to_number() == -1)) {
-    varMeasReportList.at(measId).periodic_timer = timers->get_unique_timer();
+    varMeasReportList.at(measId).periodic_timer = rrc_ptr->task_handler->get_unique_timer();
     varMeasReportList.at(measId).periodic_timer.set(report_cfg.report_interv.to_number());
   }
   varMeasReportList.at(measId).report_cfg       = std::move(report_cfg);

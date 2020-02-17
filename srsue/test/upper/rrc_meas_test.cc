@@ -27,6 +27,7 @@
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srsue/hdr/stack/upper/nas.h"
+#include "srsue/test/common/dummy_classes.h"
 #include <iostream>
 
 using namespace asn1::rrc;
@@ -164,25 +165,22 @@ private:
   bool           meas_res_received = false;
 };
 
-static srslte::timer_handler global_timers;
-
 class rrc_test : public rrc
 {
+  srslte::timer_handler* timers = nullptr;
+
 public:
-  rrc_test(srslte::log* log_) : rrc(log_)
+  rrc_test(srslte::log* log_, stack_dummy* task_handler_) : rrc(log_, task_handler_), timers(&task_handler_->timers)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
-    nastest  = std::unique_ptr<nas_test>(new nas_test(&global_timers));
-    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_, &global_timers));
+    nastest  = std::unique_ptr<nas_test>(new nas_test(timers));
+    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_, timers));
   };
-  void init()
-  {
-    rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, &global_timers, nullptr, {});
-  }
+  void init() { rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, nullptr, {}); }
 
   void run_tti(uint32_t tti_)
   {
-    global_timers.step_all();
+    timers->step_all();
     rrc::run_tti(tti_);
   }
 
@@ -276,7 +274,8 @@ int cell_select_test()
   printf("======            Cell Select Testing      ===============\n");
   printf("==========================================================\n");
 
-  rrc_test rrctest(&log1);
+  stack_dummy stack;
+  rrc_test    rrctest(&log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -305,7 +304,8 @@ int meas_obj_test()
   printf("======    Object Configuration Testing    ===============\n");
   printf("==========================================================\n");
 
-  rrc_test rrctest(&log1);
+  stack_dummy stack;
+  rrc_test    rrctest(&log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -720,7 +720,8 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
   printf("============       Report Testing  A1      ===============\n");
   printf("==========================================================\n");
 
-  rrc_test rrctest(&log1);
+  stack_dummy stack;
+  rrc_test    rrctest(&log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -853,7 +854,8 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
   printf("============       Report Testing A3       ===============\n");
   printf("==========================================================\n");
 
-  rrc_test rrctest(&log1);
+  stack_dummy stack;
+  rrc_test    rrctest(&log1, &stack);
   rrctest.init();
   rrctest.connect();
 

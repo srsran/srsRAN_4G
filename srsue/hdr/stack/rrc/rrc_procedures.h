@@ -75,28 +75,35 @@ private:
   state_t                     state;
 };
 
+/****************************************************************
+ * TS 36.331 Sec 5.2.3 - Acquisition of an SI message procedure
+ ***************************************************************/
 class rrc::si_acquire_proc
 {
 public:
   const static int SIB_SEARCH_TIMEOUT_MS = 1000;
+  struct si_acq_timer_expired {
+    uint32_t timer_id;
+  };
 
   explicit si_acquire_proc(rrc* parent_);
   srslte::proc_outcome_t init(uint32_t sib_index_);
   srslte::proc_outcome_t step();
   static const char*     name() { return "SI Acquire"; }
+  srslte::proc_outcome_t react(si_acq_timer_expired ev);
+  void                   then(const srslte::proc_state_t& result);
 
 private:
-  static uint32_t sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf);
+  void start_si_acquire();
 
   // conts
   rrc*         rrc_ptr;
   srslte::log* log_h;
 
   // state
-  uint32_t period = 0, sched_index = 0;
-  uint32_t start_tti      = 0;
-  uint32_t sib_index      = 0;
-  uint32_t last_win_start = 0;
+  srslte::timer_handler::unique_timer si_acq_timeout, si_acq_retry_timer;
+  uint32_t                            period = 0, sched_index = 0;
+  uint32_t                            sib_index = 0;
 };
 
 class rrc::serving_cell_config_proc

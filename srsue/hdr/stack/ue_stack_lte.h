@@ -55,6 +55,7 @@ class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_gw,
                            public stack_interface_mac,
                            public stack_interface_rrc,
+                           public task_handler_interface_lte,
                            public thread
 {
 public:
@@ -121,6 +122,9 @@ public:
   // Interface for RRC
   void start_cell_search() final;
   void start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) final;
+
+  // Task Handling interface
+  srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
 
 private:
   void run_thread() final;

@@ -31,7 +31,6 @@
 #include <iostream>
 #include <math.h>
 #include <numeric>
-#include <srsue/hdr/stack/rrc/rrc.h>
 #include <sstream>
 #include <string.h>
 #include <unistd.h>
@@ -50,7 +49,7 @@ const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0, 1, 2, 12}; // SIB1,
   Base functions
 *******************************************************************************/
 
-rrc::rrc(srslte::log* rrc_log_) :
+rrc::rrc(srslte::log* rrc_log_, task_handler_interface_lte* task_handler_) :
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
@@ -65,7 +64,8 @@ rrc::rrc(srslte::log* rrc_log_) :
   plmn_searcher(this),
   cell_reselector(this),
   connection_reest(this),
-  serving_cell(unique_cell_t(new cell_t()))
+  serving_cell(unique_cell_t(new cell_t())),
+  task_handler(task_handler_)
 {
   measurements = std::unique_ptr<rrc_meas>(new rrc_meas(rrc_log));
 }
@@ -102,7 +102,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                nas_interface_rrc*     nas_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
-               srslte::timer_handler* timers_,
                stack_interface_rrc*   stack_,
                const rrc_args_t&      args_)
 {
@@ -118,19 +117,17 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   args = args_;
 
-  // Use MAC timers
-  timers           = timers_;
   state            = RRC_STATE_IDLE;
   plmn_is_selected = false;
 
   security_is_activated = false;
 
-  t300 = timers->get_unique_timer();
-  t301 = timers->get_unique_timer();
-  t302 = timers->get_unique_timer();
-  t310 = timers->get_unique_timer();
-  t311 = timers->get_unique_timer();
-  t304 = timers->get_unique_timer();
+  t300 = task_handler->get_unique_timer();
+  t301 = task_handler->get_unique_timer();
+  t302 = task_handler->get_unique_timer();
+  t310 = task_handler->get_unique_timer();
+  t311 = task_handler->get_unique_timer();
+  t304 = task_handler->get_unique_timer();
 
   ue_identity_configured = false;
 
@@ -420,7 +417,7 @@ void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
 void rrc::out_of_sync()
 {
   // CAUTION: We do not lock in this function since they are called from real-time threads
-  if (serving_cell && timers && rrc_log) {
+  if (serving_cell && rrc_log) {
     phy_sync_state = phy_out_of_sync;
 
     // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,

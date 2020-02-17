@@ -36,7 +36,7 @@ ue_stack_lte::ue_stack_lte() :
   phy(nullptr),
   rlc(&rlc_log),
   mac(&mac_log),
-  rrc(&rrc_log),
+  rrc(&rrc_log, this),
   pdcp(&timers, &pdcp_log),
   nas(&timers),
   thread("STACK"),
@@ -139,7 +139,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
-  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &timers, this, args.rrc);
+  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, this, args.rrc);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);

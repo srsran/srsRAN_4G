@@ -166,113 +166,186 @@ proc_outcome_t rrc::cell_search_proc::react(const cell_search_event_t& event)
   return proc_outcome_t::yield;
 }
 
-/**************************************
- *       SI Acquire Procedure
- *************************************/
+/****************************************************************
+ * TS 36.331 Sec 5.2.3 - Acquisition of an SI message procedure
+ ***************************************************************/
 
-rrc::si_acquire_proc::si_acquire_proc(rrc* parent_) : rrc_ptr(parent_), log_h(parent_->rrc_log) {}
+// Helper functions
+
+/**
+ * compute "T" (aka si-Periodicity) and "n" (order of entry in schedulingInfoList).
+ * @param sib_index SI index of interest
+ * @param sib1 configuration of SIB1
+ * @return {T, n} if successful, {0, 0} if sib_index was not found
+ */
+std::pair<uint32_t, uint32_t> compute_si_periodicity_and_idx(uint32_t sib_index, const asn1::rrc::sib_type1_s* sib1)
+{
+  if (sib_index == 0) {
+    return {20, 0};
+  }
+  if (sib_index == 1) {
+    // SIB2 scheduling
+    return {sib1->sched_info_list[0].si_periodicity.to_number(), 0};
+  }
+  // SIB3+ scheduling Section 5.2.3
+  for (uint32_t i = 0; i < sib1->sched_info_list.size(); ++i) {
+    for (uint32_t j = 0; j < sib1->sched_info_list[i].sib_map_info.size(); ++j) {
+      if (sib1->sched_info_list[i].sib_map_info[j].to_number() == sib_index + 1) {
+        return {sib1->sched_info_list[i].si_periodicity.to_number(), i};
+      }
+    }
+  }
+  return {0, 0};
+}
+
+/**
+ * Determine the start TTI of SI-window (see TS 36.331 Sec 5.2.3)
+ * @param tti    current TTI
+ * @param T      Parameter "T" representing a SIB si-Periodicity
+ * @param offset frame offset for the start of SI-window
+ * @param a      subframe when SI-window starts
+ * @return       next TTI when SI-window starts
+ */
+uint32_t sib_start_tti(uint32_t tti, uint32_t T, uint32_t offset, uint32_t a)
+{
+  return (T * 10 * (1 + tti / (T * 10)) + (offset * 10) + a) % 10240; // the 1 means next opportunity
+}
+
+/**
+ * Determine SI-window [start, length] (see TS 36.331 Sec 5.2.3)
+ * @param sib_index index of SI-message of interest
+ * @return
+ */
+std::pair<uint32_t, uint32_t>
+compute_si_window(uint32_t tti, uint32_t sib_index, uint32_t n, uint32_t T, const asn1::rrc::sib_type1_s* sib1)
+{
+  uint32_t si_win_start;
+  uint32_t si_win_len; // si-WindowLength or "w"
+  if (sib_index == 0) {
+    si_win_len   = 1;
+    si_win_start = sib_start_tti(tti, 2, 0, 5);
+  } else {
+    si_win_len      = sib1->si_win_len.to_number();
+    uint32_t x      = n * si_win_len;
+    uint32_t a      = x % 10; // subframe #a when the SI-window starts
+    uint32_t offset = x / 10; // frame offset
+    si_win_start    = sib_start_tti(tti, T, offset, a);
+  }
+  return {si_win_start, si_win_len};
+}
+
+// SI Acquire class
+
+rrc::si_acquire_proc::si_acquire_proc(rrc* parent_) :
+  rrc_ptr(parent_),
+  log_h(parent_->rrc_log),
+  si_acq_timeout(rrc_ptr->task_handler->get_unique_timer()),
+  si_acq_retry_timer(rrc_ptr->task_handler->get_unique_timer())
+{
+  // SIB acquisition procedure timeout.
+  // NOTE: The standard does not specify this timeout
+  si_acq_timeout.set(SIB_SEARCH_TIMEOUT_MS,
+                     [this](uint32_t tid) { rrc_ptr->si_acquirer.trigger(si_acq_timer_expired{tid}); });
+}
 
 proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
 {
-  Info("Starting SI Acquire procedure for SIB%d\n", sib_index_ + 1);
-  sib_index      = sib_index_;
-  start_tti      = rrc_ptr->mac->get_current_tti();
-  period         = 0;
-  sched_index    = 0;
-  last_win_start = 0;
+  const uint32_t nof_sib_harq_retxs = 5;
 
-  // set period/sched_index
-  if (sib_index == 0) {
-    period      = 20;
-    sched_index = 0;
-  } else {
-    // Instruct MAC to look for SIB2..13
-    if (not rrc_ptr->serving_cell->has_sib1()) {
-      Error("Trying to acquire SIB%d but SIB1 not received yet\n", sib_index + 1);
-      return proc_outcome_t::error;
-    }
-    asn1::rrc::sib_type1_s* sib1 = rrc_ptr->serving_cell->sib1ptr();
+  // make sure we dont already have the SIB of interest
+  if (rrc_ptr->serving_cell->has_sib(sib_index_)) {
+    Info("The UE has already acquired SIB%d\n", sib_index + 1);
+    return proc_outcome_t::success;
+  }
+  Info("Starting SI Acquisition procedure for SIB%d\n", sib_index_ + 1);
 
-    if (sib_index == 1) {
-      // SIB2 scheduling
-      period      = sib1->sched_info_list[0].si_periodicity.to_number();
-      sched_index = 0;
-    } else {
-      // SIB3+ scheduling Section 5.2.3
-      bool found = false;
-      for (uint32_t i = 0; i < sib1->sched_info_list.size() && not found; ++i) {
-        for (uint32_t j = 0; j < sib1->sched_info_list[i].sib_map_info.size() && not found; ++j) {
-          if (sib1->sched_info_list[i].sib_map_info[j].to_number() == sib_index + 1) {
-            period      = sib1->sched_info_list[i].si_periodicity.to_number();
-            sched_index = i;
-            found       = true;
-          }
-        }
-      }
-      if (not found) {
-        Info("Could not find SIB%d scheduling in SIB1\n", sib_index + 1);
-        return proc_outcome_t::success;
-      }
-    }
+  // make sure SIB1 is captured before other SIBs
+  sib_index = sib_index_;
+  if (sib_index > 0 and not rrc_ptr->serving_cell->has_sib1()) {
+    Error("Trying to acquire SIB%d but SIB1 not received yet\n", sib_index + 1);
+    return proc_outcome_t::error;
   }
 
-  return step();
-}
-
-proc_outcome_t rrc::si_acquire_proc::step()
-{
-  uint32_t tti         = rrc_ptr->mac->get_current_tti();
-  uint32_t tti_diff1   = srslte_tti_interval(tti, start_tti);
-  bool     has_timeout = tti_diff1 >= SIB_SEARCH_TIMEOUT_MS and tti_diff1 < 10240 / 2;
-  if (has_timeout or rrc_ptr->serving_cell->has_sib(sib_index)) {
-    if (rrc_ptr->serving_cell->has_sib(sib_index)) {
-      Info("SIB%d acquired successfully\n", sib_index + 1);
-      return proc_outcome_t::success;
-    } else {
-      Error("Timeout while acquiring SIB%d\n", sib_index + 1);
-      return proc_outcome_t::error;
-    }
-  } else {
-
-    uint32_t tti_diff2 = srslte_tti_interval(tti, last_win_start);
-
-    // If first time or inside retry window, trigger MAC to decode SIB
-    uint32_t retry_period = (sib_index == 0) ? 20 : period * 5;
-    if (last_win_start == 0 or (tti_diff2 > retry_period and tti_diff2 < 1000)) {
-
-      // compute win start and len
-      uint32_t si_win_start, si_win_len;
-      if (sib_index == 0) {
-        si_win_len   = 1;
-        si_win_start = sib_start_tti(tti, 2, 0, 5);
-      } else {
-        asn1::rrc::sib_type1_s* sib1 = rrc_ptr->serving_cell->sib1ptr();
-
-        si_win_len  = sib1->si_win_len.to_number();
-        uint32_t x  = sched_index * si_win_len;
-        uint32_t sf = x % 10, offset = x / 10;
-        si_win_start = sib_start_tti(tti, period, offset, sf);
-      }
-      last_win_start = si_win_start;
-
-      // Instruct MAC to decode SIB
-      rrc_ptr->mac->bcch_start_rx(si_win_start, si_win_len);
-      Info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",
-           sib_index + 1,
-           si_win_start,
-           si_win_len,
-           period,
-           sched_index);
-    }
+  // compute the si-Periodicity and schedInfoList index
+  auto ret = compute_si_periodicity_and_idx(sib_index, rrc_ptr->serving_cell->sib1ptr());
+  if (ret.first == 0) {
+    Info("Could not find SIB%d scheduling in SIB1\n", sib_index + 1);
+    return proc_outcome_t::error;
   }
+  period      = ret.first;
+  sched_index = ret.second;
+
+  // setup retry timer handler based on si-Periodicity and number of retxs
+  uint32_t retry_period = (sib_index == 0) ? 20 : period * nof_sib_harq_retxs;
+  si_acq_retry_timer.set(retry_period,
+                         [this](uint32_t tid) { rrc_ptr->si_acquirer.trigger(si_acq_timer_expired{tid}); });
+
+  // trigger new SI acquisition procedure in MAC
+  start_si_acquire();
+
+  // start timeout timer
+  si_acq_timeout.run();
 
   return proc_outcome_t::yield;
 }
 
-// Determine SI messages scheduling as in 36.331 5.2.3 Acquisition of an SI message
-uint32_t rrc::si_acquire_proc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf)
+void rrc::si_acquire_proc::then(const srslte::proc_state_t& result)
 {
-  return (period * 10 * (1 + tti / (period * 10)) + (offset * 10) + sf) % 10240; // the 1 means next opportunity
+  // make sure timers are stopped
+  si_acq_retry_timer.stop();
+  si_acq_timeout.stop();
+
+  if (result.is_success()) {
+    Info("SIB%d acquired successfully\n", sib_index + 1);
+  } else {
+    Error("Failed to acquire SIB%d\n", sib_index + 1);
+  }
+}
+
+void rrc::si_acquire_proc::start_si_acquire()
+{
+  // Instruct MAC to decode SIB (non-blocking)
+  uint32_t tti          = rrc_ptr->mac->get_current_tti();
+  auto     ret          = compute_si_window(tti, sib_index, sched_index, period, rrc_ptr->serving_cell->sib1ptr());
+  uint32_t si_win_start = ret.first, si_win_len = ret.second;
+  rrc_ptr->mac->bcch_start_rx(si_win_start, si_win_len);
+
+  // start window retry timer
+  si_acq_retry_timer.run();
+
+  Info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",
+       sib_index + 1,
+       si_win_start,
+       si_win_len,
+       period,
+       sched_index);
+}
+
+proc_outcome_t rrc::si_acquire_proc::step()
+{
+  // If meanwhile we have received the SIB, return success
+  return rrc_ptr->serving_cell->has_sib(sib_index) ? proc_outcome_t::success : proc_outcome_t::yield;
+}
+
+srslte::proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
+{
+  if (rrc_ptr->serving_cell->has_sib(sib_index)) {
+    return proc_outcome_t::success;
+  }
+
+  // retry si acquire
+  if (ev.timer_id == si_acq_retry_timer.id()) {
+    start_si_acquire();
+    return proc_outcome_t::yield;
+  }
+
+  // timeout. SI acquire failed
+  if (ev.timer_id == si_acq_timeout.id()) {
+    Error("Timeout while acquiring SIB%d\n", sib_index + 1);
+  } else {
+    Error("Unrecognized timer id\n");
+  }
+  return proc_outcome_t::error;
 }
 
 /**************************************

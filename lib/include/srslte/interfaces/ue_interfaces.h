@@ -657,6 +657,13 @@ class phy_interface_stack_lte : public phy_interface_mac_lte, public phy_interfa
 {
 };
 
+// Generic Task Management + Timer interface for upper stack
+class task_handler_interface_lte
+{
+public:
+  virtual srslte::timer_handler::unique_timer get_unique_timer() = 0;
+};
+
 } // namespace srsue
 
 #endif // SRSLTE_UE_INTERFACES_H

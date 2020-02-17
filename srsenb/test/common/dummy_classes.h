@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_DUMMY_CLASSES_H
-#define SRSLTE_DUMMY_CLASSES_H
+#ifndef SRSENB_DUMMY_CLASSES_H
+#define SRSENB_DUMMY_CLASSES_H
 
 #include "srslte/interfaces/enb_interfaces.h"
 
@@ -134,4 +134,4 @@ public:
 
 } // namespace srsenb
 
-#endif // SRSLTE_DUMMY_CLASSES_H
+#endif // SRSENB_DUMMY_CLASSES_H
