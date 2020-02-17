@@ -157,7 +157,6 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     handle_srb_pdu(std::move(pdu));
   } else if (is_drb() && rlc->rb_is_um(lcid)) {
     handle_um_drb_pdu(std::move(pdu));
-    gw->write_pdu(lcid, std::move(pdu));
   } else if (is_drb() && !rlc->rb_is_um(lcid)) {
     handle_am_drb_pdu(std::move(pdu));
   } else {
