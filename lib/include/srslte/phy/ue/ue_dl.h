@@ -151,6 +151,7 @@ typedef struct {
   bool                            is_pusch_available;
   bool                            tdd_ack_multiplex;
   bool                            simul_cqi_ack;
+  bool                            simul_cqi_ack_pucch3;
 } srslte_pdsch_ack_t;
 
 SRSLTE_API int
@@ -227,10 +228,10 @@ SRSLTE_API void srslte_ue_dl_gen_cqi_aperiodic(srslte_ue_dl_t*     q,
                                                uint32_t            wideband_value,
                                                srslte_uci_data_t*  uci_data);
 
-SRSLTE_API void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
-                                     srslte_dl_sf_cfg_t* sf,
-                                     srslte_pdsch_ack_t* ack_info,
-                                     srslte_uci_data_t*  uci_data);
+SRSLTE_API void srslte_ue_dl_gen_ack(const srslte_cell_t*      cell,
+                                     const srslte_dl_sf_cfg_t* sf,
+                                     const srslte_pdsch_ack_t* ack_info,
+                                     srslte_uci_data_t*        uci_data);
 
 /* Functions used for testing purposes */
 SRSLTE_API int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,

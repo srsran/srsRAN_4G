@@ -413,11 +413,11 @@ void srslte_enb_dl_gen_signal(srslte_enb_dl_t* q)
   }
 }
 
-bool srslte_enb_dl_gen_cqi_periodic(srslte_cell_t*    cell,
-                                    srslte_dl_cfg_t*  dl_cfg,
-                                    uint32_t          tti,
-                                    uint32_t          ri,
-                                    srslte_cqi_cfg_t* cqi_cfg)
+bool srslte_enb_dl_gen_cqi_periodic(const srslte_cell_t*   cell,
+                                    const srslte_dl_cfg_t* dl_cfg,
+                                    uint32_t               tti,
+                                    uint32_t               last_ri,
+                                    srslte_cqi_cfg_t*      cqi_cfg)
 {
   bool cqi_enabled = false;
   if (srslte_cqi_periodic_ri_send(&dl_cfg->cqi_report, tti, cell->frame_type)) {
@@ -427,7 +427,7 @@ bool srslte_enb_dl_gen_cqi_periodic(srslte_cell_t*    cell,
     cqi_cfg->type = SRSLTE_CQI_TYPE_WIDEBAND;
     if (dl_cfg->tm == SRSLTE_TM4) {
       cqi_cfg->pmi_present     = true;
-      cqi_cfg->rank_is_not_one = ri > 0;
+      cqi_cfg->rank_is_not_one = last_ri > 0;
     }
     cqi_enabled          = true;
     cqi_cfg->data_enable = cqi_enabled;
@@ -435,13 +435,13 @@ bool srslte_enb_dl_gen_cqi_periodic(srslte_cell_t*    cell,
   return cqi_enabled;
 }
 
-bool srslte_enb_dl_gen_cqi_aperiodic(srslte_cell_t*    cell,
-                                     srslte_dl_cfg_t*  dl_cfg,
-                                     uint32_t          ri,
-                                     srslte_cqi_cfg_t* cqi_cfg)
+bool srslte_enb_dl_gen_cqi_aperiodic(const srslte_cell_t*   cell,
+                                     const srslte_dl_cfg_t* dl_cfg,
+                                     uint32_t               ri,
+                                     srslte_cqi_cfg_t*      cqi_cfg)
 {
-  bool                     cqi_enabled    = false;
-  srslte_cqi_report_cfg_t* cqi_report_cfg = &dl_cfg->cqi_report;
+  bool                           cqi_enabled    = false;
+  const srslte_cqi_report_cfg_t* cqi_report_cfg = &dl_cfg->cqi_report;
 
   cqi_cfg->type = SRSLTE_CQI_TYPE_SUBBAND_HL;
   if (dl_cfg->tm == SRSLTE_TM3 || dl_cfg->tm == SRSLTE_TM4) {
@@ -475,4 +475,63 @@ void srslte_enb_dl_save_signal(srslte_enb_dl_t* q)
 
   // printf("Saved files for tti=%d, sf=%d, cfi=%d, mcs=%d, tbs=%d, rv=%d, rnti=0x%x\n", tti, tti%10, cfi,
   //       q->dci.mcs[0].idx, q->dci.mcs[0].tbs, rv_idx, rnti);
+}
+
+void srslte_enb_dl_gen_ack(const srslte_cell_t*      cell,
+                           const srslte_dl_sf_cfg_t* sf,
+                           const srslte_pdsch_ack_t* ack_info,
+                           srslte_uci_cfg_t*         uci_cfg)
+{
+  srslte_uci_data_t uci_data = {};
+
+  // Copy UCI configuration
+  uci_data.cfg = *uci_cfg;
+
+  srslte_ue_dl_gen_ack(cell, sf, ack_info, &uci_data);
+
+  // Copy back the result of uci configuration
+  *uci_cfg = uci_data.cfg;
+}
+
+static void get_ack_fdd(const srslte_uci_value_t* uci_value, srslte_pdsch_ack_t* pdsch_ack)
+{
+  uint32_t nof_tb = 1;
+  if (pdsch_ack->transmission_mode > SRSLTE_TM2) {
+    nof_tb = SRSLTE_MAX_CODEWORDS;
+  }
+
+  // Second clause: When 2 CC are configured with PUCCH CS mode and SR is also requested, bundle spatial codewords
+  if (pdsch_ack->nof_cc == SRSLTE_PUCCH_CS_MAX_CARRIERS && uci_value->scheduling_request == true &&
+      pdsch_ack->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+    for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
+      if (pdsch_ack->cc[cc_idx].m[0].present) {
+        if (uci_value->ack.ack_value[cc_idx] == 1) {
+          for (uint32_t tb = 0; tb < nof_tb; tb++) {
+            pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx];
+          }
+        }
+      }
+    }
+  } else {
+    // By default, in FDD we just pass through all HARQ-ACK bits
+    uint32_t n = 0;
+    for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
+      for (uint32_t tb = 0; tb < nof_tb; tb++, n++) {
+        if (pdsch_ack->cc[cc_idx].m[0].present) {
+          pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[n];
+        }
+      }
+    }
+  }
+}
+
+void srslte_enb_dl_get_ack(const srslte_cell_t*      cell,
+                           const srslte_uci_value_t* uci_value,
+                           srslte_pdsch_ack_t*       pdsch_ack)
+{
+  if (cell->frame_type == SRSLTE_FDD) {
+    get_ack_fdd(uci_value, pdsch_ack);
+  } else {
+    ERROR("Not implemented for TDD\n");
+  }
 }

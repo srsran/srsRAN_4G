@@ -278,8 +278,8 @@ uci_mod_bits(srslte_pucch_t* q, srslte_ul_sf_cfg_t* sf, srslte_pucch_cfg_t* cfg,
         srslte_scrambling_b_offset(seq, q->bits_scram, 0, SRSLTE_PUCCH3_NOF_BITS);
         srslte_mod_modulate(&q->mod, q->bits_scram, q->d, SRSLTE_PUCCH3_NOF_BITS);
       } else {
-        fprintf(stderr, "Error modulating PUCCH3 bits: rnti not set\n");
-        return -1;
+        ERROR("Error modulating PUCCH3 bits: rnti not set\n");
+        return SRSLTE_ERROR;
       }
       break;
     default:
@@ -641,8 +641,8 @@ static int decode_signal_format3(srslte_pucch_t*     q,
 
     return (int)srslte_uci_decode_ack_sr_pucch3(q->llr, bits);
   } else {
-    fprintf(stderr, "Error modulating PUCCH3 bits: rnti not set\n");
-    return -1;
+    ERROR("Error modulating PUCCH3 bits: rnti not set\n");
+    return SRSLTE_ERROR;
   }
 
   return SRSLTE_SUCCESS;
@@ -1251,4 +1251,3 @@ void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data,
     srslte_uci_data_info(&cfg->uci_cfg, uci_data, &str[n], str_len - n);
   }
 }
-

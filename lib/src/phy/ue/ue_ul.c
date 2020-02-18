@@ -507,7 +507,7 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
 
   if (q != NULL && cfg != NULL) {
     srslte_uci_value_t uci_value2 = *uci_data; ///< Make copy of UCI Data, so the original input does not get altered
-    ret = SRSLTE_ERROR;
+    ret                           = SRSLTE_ERROR;
 
     if (!srslte_pucch_cfg_isvalid(&cfg->ul_cfg.pucch, q->cell.nof_prb)) {
       ERROR("Invalid PUCCH configuration\n");
@@ -551,7 +551,7 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
 }
 
 /* Returns 1 if a SR needs to be sent at current_tti given I_sr, as defined in Section 10.1 of 36.213 */
-int srslte_ue_ul_sr_send_tti(srslte_pucch_cfg_t* cfg, uint32_t current_tti)
+int srslte_ue_ul_sr_send_tti(const srslte_pucch_cfg_t* cfg, uint32_t current_tti)
 {
   if (!cfg->sr_configured) {
     return SRSLTE_SUCCESS;

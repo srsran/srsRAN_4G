@@ -689,7 +689,7 @@ public:
         srslte_ue_ul_gen_sr(&ue_ul_cfg, &sf_ul_cfg, &uci_data, (bool)(sf_ul_cfg.tti % 20 == 0));
 
         // Generate Acknowledgements
-        srslte_ue_dl_gen_ack(ue_dl_v[0], &sf_dl_cfg, &pdsch_ack, &uci_data);
+        srslte_ue_dl_gen_ack(&ue_dl_v[0]->cell, &sf_dl_cfg, &pdsch_ack, &uci_data);
       }
 
       srslte_pusch_data_t pusch_data = {};

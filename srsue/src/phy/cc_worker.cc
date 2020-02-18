@@ -891,7 +891,7 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
   ack_info.transmission_mode      = ue_dl_cfg.cfg.tm;
 
   // Generate ACK/NACK bits
-  srslte_ue_dl_gen_ack(&ue_dl, &sf_cfg_dl, &ack_info, uci_data);
+  srslte_ue_dl_gen_ack(&ue_dl.cell, &sf_cfg_dl, &ack_info, uci_data);
 }
 
 /************

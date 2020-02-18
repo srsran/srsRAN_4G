@@ -947,7 +947,7 @@ void srslte_ue_dl_gen_cqi_aperiodic(srslte_ue_dl_t*     q,
 
 /* UE downlink procedure for reporting HARQ-ACK bits in FDD, Section 7.3 36.213
  */
-static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_data)
+static void gen_ack_fdd(const srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_data)
 {
   uint32_t nof_tb = 1;
   if (ack_info->transmission_mode > SRSLTE_TM2) {
@@ -955,7 +955,7 @@ static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_dat
   }
 
   // Second clause: When 2 CC are configured with PUCCH CS mode and SR is also requested, bundle spatial codewords
-  if (ack_info->nof_cc == 2 && uci_data->value.scheduling_request == true &&
+  if (ack_info->nof_cc == SRSLTE_PUCCH_CS_MAX_CARRIERS && uci_data->value.scheduling_request == true &&
       ack_info->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
     for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
       if (ack_info->cc[cc_idx].m[0].present) {
@@ -990,6 +990,9 @@ static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_dat
         }
       }
     }
+
+    uint32_t total_uci_bits =
+        tb_count + srslte_cqi_size(&uci_data->cfg.cqi) + (uci_data->value.scheduling_request ? 1 : 0);
     if (ack_info->nof_cc == 1) {
       // If only 1 configured cell, report 1 or 2 bits depending on number of detected TB
       uci_data->cfg.ack[0].nof_acks = tb_count;
@@ -1018,21 +1021,18 @@ static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_dat
         //   corresponds to a PDSCH transmission or PDCCH/EPDCCH indicating downlink SPS release only on the
         //   primary cell, then the periodic CSI report is multiplexed with HARQ-ACK on PUCCH using PUCCH format 2/2a/2b
         uci_data->cfg.ack[0].nof_acks = tb_count_cc0;
-#if 0
-      } else if (ack_info->simul_cqi_ack_pucch3 &&
-          tb_count + srslte_cqi_size(&uci_data->cfg.cqi) + uci_data->value.scheduling_request ? 1 : 0 <= 22) {
+      } else if (ack_info->simul_cqi_ack_pucch3 && total_uci_bits <= 22) {
         // - else if the UE is configured with PUCCH format 3 and if the parameter simultaneousAckNackAndCQI-Format3-
         //   r11 provided by higher layers is set TRUE, and if PUCCH resource is determined according to subclause
         //   10.1.2.2.2, and
         //   - if the total number of bits in the subframe corresponding to HARQ-ACKs, SR (if any), and the CSI is not
         //     larger than 22 or
-        //   - if the total number of bits in the subframe corresponding to spatially bundled HARQ-ACKs, SR (if any), and
-        //     the CSI is not larger than 22 then the periodic CSI report is multiplexed with HARQ-ACK on PUCCH using
-        //     the determined PUCCH format 3 resource according to [4]
+        //   - if the total number of bits in the subframe corresponding to spatially bundled HARQ-ACKs, SR (if any),
+        //     and the CSI is not larger than 22 then the periodic CSI report is multiplexed with HARQ-ACK on PUCCH
+        //     using the determined PUCCH format 3 resource according to [4]
         for (int i = 0; i < ack_info->nof_cc; i++) {
           uci_data->cfg.ack[i].nof_acks = (tb_count != 0) ? nof_tb : 0;
         }
-#endif
       } else {
         // - otherwise, CSI is dropped
         uci_data->cfg.cqi.data_enable = false;
@@ -1065,7 +1065,7 @@ static const uint32_t multiple_acknack[10][2] =
 
 /* UE downlink procedure for reporting HARQ-ACK bits in TDD, Section 7.3 36.213
  */
-static void gen_ack_tdd(bool is_tdd_mode16, srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_data)
+static void gen_ack_tdd(bool is_tdd_mode16, const srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_data)
 {
   uint32_t V_dai_dl = 0;
 
@@ -1079,8 +1079,8 @@ static void gen_ack_tdd(bool is_tdd_mode16, srslte_pdsch_ack_t* ack_info, srslte
   }
 
   // Arrange bits for FDD or TDD Bundling or Multiplexing.
-  srslte_pdsch_ack_cc_t* ack_value = &ack_info->cc[0];
-  srslte_uci_cfg_ack_t*  ack_cfg   = &uci_data->cfg.ack[0];
+  const srslte_pdsch_ack_cc_t* ack_value = &ack_info->cc[0];
+  srslte_uci_cfg_ack_t*        ack_cfg   = &uci_data->cfg.ack[0];
 
   uint32_t min_k = 10;
 
@@ -1166,7 +1166,7 @@ static void gen_ack_tdd(bool is_tdd_mode16, srslte_pdsch_ack_t* ack_info, srslte
   // For TDD PUSCH
   if (is_tdd_mode16) {
 
-    ack_info->V_dai_ul++; // Table 7.3-x
+    uint32_t V_dai_ul = ack_info->V_dai_ul + 1; // Table 7.3-x
 
     ack_cfg->tdd_is_multiplex = ack_info->tdd_ack_multiplex;
 
@@ -1188,14 +1188,14 @@ static void gen_ack_tdd(bool is_tdd_mode16, srslte_pdsch_ack_t* ack_info, srslte
         }
         // Transmitting on PUSCH and based on detected PDCCH
       } else if (ack_info->is_grant_available) {
-        if (ack_info->V_dai_ul != (U_dai - 1) % 4 + 1) {
+        if (V_dai_ul != (U_dai - 1) % 4 + 1) {
           bzero(uci_data->value.ack.ack_value, nof_tb);
-          ack_cfg->N_bundle = ack_info->V_dai_ul + 2;
+          ack_cfg->N_bundle = V_dai_ul + 2;
         } else {
-          ack_cfg->N_bundle = ack_info->V_dai_ul;
+          ack_cfg->N_bundle = V_dai_ul;
         }
         // do not transmit case
-        if (ack_info->V_dai_ul == 4 && U_dai == 0) {
+        if (V_dai_ul == 4 && U_dai == 0) {
           ack_cfg->nof_acks = 0;
         }
         // Transmitting on PUSCH not based on grant
@@ -1224,8 +1224,8 @@ static void gen_ack_tdd(bool is_tdd_mode16, srslte_pdsch_ack_t* ack_info, srslte
       if (ack_info->is_pusch_available) {
         if (ack_info->is_grant_available) {
           // Do not transmit if...
-          if (!(ack_info->V_dai_ul == 4 && U_dai == 0)) {
-            ack_cfg->nof_acks = ack_info->V_dai_ul;
+          if (!(V_dai_ul == 4 && U_dai == 0)) {
+            ack_cfg->nof_acks = V_dai_ul;
           }
         } else {
           ack_cfg->nof_acks = ack_info->cc[0].M;
@@ -1270,13 +1270,13 @@ static void gen_ack_tdd(bool is_tdd_mode16, srslte_pdsch_ack_t* ack_info, srslte
 
 /* UE downlink procedure for reporting ACK/NACK, Section 7.3 36.213
  */
-void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
-                          srslte_dl_sf_cfg_t* sf,
-                          srslte_pdsch_ack_t* ack_info,
-                          srslte_uci_data_t*  uci_data)
+void srslte_ue_dl_gen_ack(const srslte_cell_t*      cell,
+                          const srslte_dl_sf_cfg_t* sf,
+                          const srslte_pdsch_ack_t* ack_info,
+                          srslte_uci_data_t*        uci_data)
 {
 
-  if (q->cell.frame_type == SRSLTE_FDD) {
+  if (cell->frame_type == SRSLTE_FDD) {
     gen_ack_fdd(ack_info, uci_data);
   } else {
     bool is_tdd_mode16 = sf->tdd_config.sf_config >= 1 && sf->tdd_config.sf_config <= 6;

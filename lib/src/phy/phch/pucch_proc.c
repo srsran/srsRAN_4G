@@ -81,6 +81,10 @@ srslte_pucch_format_t srslte_pucch_proc_select_format(const srslte_cell_t*      
       format = SRSLTE_PUCCH_FORMAT_2B;
     }
   }
+  if (format == SRSLTE_PUCCH_FORMAT_ERROR) {
+    ERROR("Returned Error while selecting PUCCH format\n");
+  }
+
   return format;
 }
 

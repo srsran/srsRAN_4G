@@ -141,7 +141,7 @@ SRSLTE_API void srslte_ue_ul_pusch_hopping(srslte_ue_ul_t*       q,
 SRSLTE_API int
 srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg, srslte_pusch_data_t* data);
 
-SRSLTE_API int srslte_ue_ul_sr_send_tti(srslte_pucch_cfg_t* cfg, uint32_t current_tti);
+SRSLTE_API int srslte_ue_ul_sr_send_tti(const srslte_pucch_cfg_t* cfg, uint32_t current_tti);
 
 SRSLTE_API bool
 srslte_ue_ul_gen_sr(srslte_ue_ul_cfg_t* cfg, srslte_ul_sf_cfg_t* sf, srslte_uci_data_t* uci_data, bool sr_request);

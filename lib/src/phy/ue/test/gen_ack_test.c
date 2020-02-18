@@ -96,7 +96,7 @@ int fdd_tests(uint32_t max_cc)
                          simul_cqi_ack ? "yes" : "no",
                          pusch_enabled ? "yes" : "no");
 
-                  srslte_ue_dl_gen_ack(&ue_dl, &sf_cfg_dl, &ack_info, &uci_data);
+                  srslte_ue_dl_gen_ack(&ue_dl.cell, &sf_cfg_dl, &ack_info, &uci_data);
 
                   // Check output
                   if (nof_cc == 1) {

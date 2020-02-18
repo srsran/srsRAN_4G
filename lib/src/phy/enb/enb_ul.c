@@ -177,6 +177,10 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
 
   // Select format
   cfg->format = srslte_pucch_proc_select_format(&q->cell, cfg, &cfg->uci_cfg, NULL);
+  if (cfg->format == SRSLTE_PUCCH_FORMAT_ERROR) {
+    ERROR("Returned Error while selecting PUCCH format\n");
+    return SRSLTE_ERROR;
+  }
 
   // Get possible resources
   int nof_resources = srslte_pucch_proc_get_resources(&q->cell, cfg, &cfg->uci_cfg, NULL, n_pucch_i);
@@ -244,7 +248,7 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t*    q,
   if (cfg->uci_cfg.is_scheduling_request_tti && srslte_uci_cfg_total_ack(&cfg->uci_cfg) && !res->detected) {
     cfg->uci_cfg.is_scheduling_request_tti = false;
     if (get_pucch(q, ul_sf, cfg, res)) {
-      return -1;
+      return SRSLTE_ERROR;
     }
   }
 

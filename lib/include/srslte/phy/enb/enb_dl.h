@@ -118,15 +118,43 @@ SRSLTE_API int srslte_enb_dl_put_pmch(srslte_enb_dl_t* q, srslte_pmch_cfg_t* pmc
 
 SRSLTE_API void srslte_enb_dl_gen_signal(srslte_enb_dl_t* q);
 
-SRSLTE_API bool srslte_enb_dl_gen_cqi_periodic(srslte_cell_t*    cell,
-                                               srslte_dl_cfg_t*  dl_cfg,
-                                               uint32_t          tti,
-                                               uint32_t          ri,
-                                               srslte_cqi_cfg_t* cqi_cfg);
+SRSLTE_API bool srslte_enb_dl_gen_cqi_periodic(const srslte_cell_t*   cell,
+                                               const srslte_dl_cfg_t* dl_cfg,
+                                               uint32_t               tti,
+                                               uint32_t               last_ri,
+                                               srslte_cqi_cfg_t*      cqi_cfg);
 
-SRSLTE_API bool
-srslte_enb_dl_gen_cqi_aperiodic(srslte_cell_t* cell, srslte_dl_cfg_t* dl_cfg, uint32_t ri, srslte_cqi_cfg_t* cqi_cfg);
+SRSLTE_API bool srslte_enb_dl_gen_cqi_aperiodic(const srslte_cell_t*   cell,
+                                                const srslte_dl_cfg_t* dl_cfg,
+                                                uint32_t               ri,
+                                                srslte_cqi_cfg_t*      cqi_cfg);
 
 SRSLTE_API void srslte_enb_dl_save_signal(srslte_enb_dl_t* q);
+
+/**
+ * Generates the uplink control information configuration from the cell, subframe and HARQ ACK information. Note that
+ * it expects the UCI configuration shall have been configured already with scheduling request and channel quality
+ * information prior to this call.
+ *
+ * @param cell points to the physical layer cell parameters
+ * @param sf points to the subframe configuration
+ * @param ack_info is the HARQ-ACK information
+ * @param uci_cfg the UCI configuration destination
+ */
+SRSLTE_API void srslte_enb_dl_gen_ack(const srslte_cell_t*      cell,
+                                      const srslte_dl_sf_cfg_t* sf,
+                                      const srslte_pdsch_ack_t* ack_info,
+                                      srslte_uci_cfg_t*         uci_cfg);
+
+/**
+ * gets the HARQ-ACK values from the received Uplink Control Information configuration, the cell, and HARQ ACK
+ * info itself. Note that it expects that the HARQ-ACK info has been set prior the UCI Data decoding.
+ *
+ * @param cell points to the physical layer cell parameters
+ * @param uci_value points to the received UCI values
+ * @param ack_info is the HARQ-ACK information
+ */
+SRSLTE_API void
+srslte_enb_dl_get_ack(const srslte_cell_t* cell, const srslte_uci_value_t* uci_value, srslte_pdsch_ack_t* pdsch_ack);
 
 #endif // SRSLTE_ENB_DL_H
