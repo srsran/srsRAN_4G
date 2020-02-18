@@ -46,6 +46,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
   pdcp_lte_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
   srslte::pdcp_entity_lte* pdcp_rx   = &pdcp_hlp_rx.pdcp;
   gw_dummy*                gw_rx     = &pdcp_hlp_rx.gw;
+  rrc_dummy*               rrc_rx     = &pdcp_hlp_rx.rrc;
   srslte::timer_handler*   timers_rx = &pdcp_hlp_rx.timers;
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
@@ -59,11 +60,23 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
     }
   }
 
+  log->debug("%d", gw_rx->rx_count);
+  log->debug("%d", rrc_rx->rx_count);
   // Test if the number of RX packets
-  TESTASSERT(gw_rx->rx_count == n_sdus_exp);
-  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
-  gw_rx->get_last_pdu(sdu_act);
-  TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
+  if (rb_type == srslte::PDCP_RB_IS_DRB) {
+    TESTASSERT(gw_rx->rx_count == n_sdus_exp);
+    srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+    gw_rx->get_last_pdu(sdu_act);
+    TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
+  } else {
+    log->debug("%d", rrc_rx->rx_count);
+    TESTASSERT(rrc_rx->rx_count == n_sdus_exp);
+    srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+    rrc_rx->get_last_pdu(sdu_act);
+    log->debug("%d", sdu_act->N_bytes);
+    log->debug("%d", sdu_exp->N_bytes);
+    TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
+  }
   return 0;
 }
 

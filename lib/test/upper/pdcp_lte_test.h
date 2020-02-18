@@ -55,7 +55,7 @@ pdcp_security_cfg sec_cfg = {
     k_int,
     k_enc,
     srslte::INTEGRITY_ALGORITHM_ID_128_EIA2,
-    srslte::CIPHERING_ALGORITHM_ID_128_EEA2,
+    srslte::CIPHERING_ALGORITHM_ID_EEA0,
 };
 
 // Test SDUs for tx

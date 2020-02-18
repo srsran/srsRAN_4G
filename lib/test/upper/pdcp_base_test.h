@@ -100,15 +100,35 @@ private:
 class rrc_dummy : public srsue::rrc_interface_pdcp
 {
 public:
-  rrc_dummy(srslte::log* log_) {}
+  rrc_dummy(srslte::log* log_) { log = log_; }
 
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
   void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) {}
   void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) {}
   void write_pdu_pcch(srslte::unique_byte_buffer_t pdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
 
   std::string get_rb_name(uint32_t lcid) { return "None"; }
+
+  srslte::log*                 log;
+
+  // Members for testing
+  uint32_t rx_count = 0;
+  srslte::unique_byte_buffer_t last_pdu;
+
+  // Methods for testing
+  void get_last_pdu(const srslte::unique_byte_buffer_t& pdu)
+  {
+    memcpy(pdu->msg, last_pdu->msg, last_pdu->N_bytes);
+    pdu->N_bytes = last_pdu->N_bytes;
+    return;
+  }
+
+  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+  {
+    log->info_hex(pdu->msg, pdu->N_bytes, "RRC PDU");
+    rx_count++;
+    last_pdu.swap(pdu);
+  }
 };
 
 class gw_dummy : public srsue::gw_interface_pdcp
