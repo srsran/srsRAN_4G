@@ -246,12 +246,12 @@ rrc::si_acquire_proc::si_acquire_proc(rrc* parent_) :
   // NOTE: The standard does not specify this timeout
   si_acq_timeout.set(SIB_SEARCH_TIMEOUT_MS,
                      [this](uint32_t tid) { rrc_ptr->si_acquirer.trigger(si_acq_timer_expired{tid}); });
+  // Sets the callback. The retry period will change for every run
+  si_acq_retry_timer.set(1, [this](uint32_t tid) { rrc_ptr->si_acquirer.trigger(si_acq_timer_expired{tid}); });
 }
 
 proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
 {
-  const uint32_t nof_sib_harq_retxs = 5;
-
   // make sure we dont already have the SIB of interest
   if (rrc_ptr->serving_cell->has_sib(sib_index_)) {
     Info("The UE has already acquired SIB%d\n", sib_index + 1);
@@ -272,13 +272,8 @@ proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
     Info("Could not find SIB%d scheduling in SIB1\n", sib_index + 1);
     return proc_outcome_t::error;
   }
-  period      = ret.first;
-  sched_index = ret.second;
-
-  // setup retry timer handler based on si-Periodicity and number of retxs
-  uint32_t retry_period = (sib_index == 0) ? 20 : period * nof_sib_harq_retxs;
-  si_acq_retry_timer.set(retry_period,
-                         [this](uint32_t tid) { rrc_ptr->si_acquirer.trigger(si_acq_timer_expired{tid}); });
+  period      = ret.first;  // si-Periodicity
+  sched_index = ret.second; // order index of SI in schedInfoList
 
   // trigger new SI acquisition procedure in MAC
   start_si_acquire();
@@ -304,6 +299,8 @@ void rrc::si_acquire_proc::then(const srslte::proc_state_t& result)
 
 void rrc::si_acquire_proc::start_si_acquire()
 {
+  const uint32_t nof_sib_harq_retxs = 5;
+
   // Instruct MAC to decode SIB (non-blocking)
   uint32_t tti          = rrc_ptr->mac->get_current_tti();
   auto     ret          = compute_si_window(tti, sib_index, sched_index, period, rrc_ptr->serving_cell->sib1ptr());
@@ -311,6 +308,8 @@ void rrc::si_acquire_proc::start_si_acquire()
   rrc_ptr->mac->bcch_start_rx(si_win_start, si_win_len);
 
   // start window retry timer
+  uint32_t retry_period = (sib_index == 0) ? 20 : period * nof_sib_harq_retxs;
+  si_acq_retry_timer.set(retry_period + (si_win_start - tti));
   si_acq_retry_timer.run();
 
   Info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",
@@ -335,6 +334,7 @@ srslte::proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
 
   // retry si acquire
   if (ev.timer_id == si_acq_retry_timer.id()) {
+    Info("SI Acquire Retry Timeout for SIB%d\n", sib_index + 1);
     start_si_acquire();
     return proc_outcome_t::yield;
   }
