@@ -509,9 +509,9 @@ struct phy_cfg_t {
 
   void set_defaults()
   {
-    ZERO_OBJECT(ul_cfg);
-    ZERO_OBJECT(dl_cfg);
-    ZERO_OBJECT(prach_cfg);
+    ul_cfg    = {};
+    dl_cfg    = {};
+    prach_cfg = {};
 
     // CommonConfig defaults for non-zero values
     ul_cfg.pucch.delta_pucch_shift     = 1;
@@ -552,9 +552,9 @@ struct phy_cfg_t {
     ul_cfg.pucch.sr_configured = false;
   }
 
-  srslte_dl_cfg_t    dl_cfg;
-  srslte_ul_cfg_t    ul_cfg;
-  srslte_prach_cfg_t prach_cfg;
+  srslte_dl_cfg_t    dl_cfg    = {};
+  srslte_ul_cfg_t    ul_cfg    = {};
+  srslte_prach_cfg_t prach_cfg = {};
 };
 
 struct mbsfn_sf_cfg_t {

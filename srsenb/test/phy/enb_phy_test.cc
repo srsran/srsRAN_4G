@@ -291,9 +291,16 @@ private:
     uint32_t tti;
   } tti_sr_info_t;
 
-  std::queue<tti_dl_info_t> tti_dl_info_sched_queue;
-  std::queue<tti_dl_info_t> tti_dl_info_ack_queue;
-  std::queue<tti_sr_info_t> tti_sr_info_queue;
+  typedef struct {
+    uint32_t tti;
+    uint32_t cc_idx;
+    uint32_t cqi;
+  } tti_cqi_info_t;
+
+  std::queue<tti_dl_info_t>  tti_dl_info_sched_queue;
+  std::queue<tti_dl_info_t>  tti_dl_info_ack_queue;
+  std::queue<tti_sr_info_t>  tti_sr_info_queue;
+  std::queue<tti_cqi_info_t> tti_cqi_info_queue;
 
 public:
   explicit dummy_stack(uint16_t rnti_) : log_h("STACK"), ue_rnti(rnti_), random_gen(srslte_random_init(0))
@@ -302,6 +309,7 @@ public:
     srslte_softbuffer_tx_init(&softbuffer_tx, SRSLTE_MAX_PRB);
     srslte_softbuffer_rx_init(&softbuffer_rx, SRSLTE_MAX_PRB);
     data = srslte_vec_u8_malloc(150000);
+    memset(data, 0, 150000);
   }
 
   ~dummy_stack()
@@ -312,6 +320,8 @@ public:
     if (data) {
       free(data);
     }
+
+    srslte_random_free(random_gen);
   }
 
   int sr_detected(uint32_t tti, uint16_t rnti) override
@@ -323,6 +333,7 @@ public:
     notify_sr_detected();
 
     log_h.info("Received SR tti=%d; rnti=x%x\n", tti, rnti);
+
     return SRSLTE_SUCCESS;
   }
   int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) override
@@ -342,8 +353,17 @@ public:
   }
   int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) override
   {
+    tti_cqi_info_t tti_cqi_info = {};
+    tti_cqi_info.tti            = tti;
+    tti_cqi_info.cc_idx         = cc_idx;
+    tti_cqi_info.cqi            = cqi_value;
+    tti_cqi_info_queue.push(tti_cqi_info);
+
     notify_cqi_info();
-    return 0;
+
+    log_h.info("Received CQI tti=%d; rnti=x%x; cc_idx=%d; cqi=%d;\n", tti, rnti, cc_idx, cqi_value);
+
+    return SRSLTE_SUCCESS;
   }
   int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db) override
   {
@@ -461,17 +481,21 @@ public:
     while (tti_sr_info_queue.size() > 1) {
       tti_sr_info_t tti_sr_info1 = tti_sr_info_queue.front();
 
-      // Check first TTI
-      TESTASSERT(tti_sr_info1.tti % 20 == 0);
-
       // POP first from queue
       tti_sr_info_queue.pop();
 
       // Get second, do not pop
       tti_sr_info_t& tti_sr_info2 = tti_sr_info_queue.front();
 
-      // Make sure the TTI difference is 20
       uint32_t elapsed_tti = ((tti_sr_info2.tti + 10240) - tti_sr_info1.tti) % 10240;
+
+      // Log SR info
+      log_h.info("SR: tti1=%d; tti2=%d; elapsed %d;\n", tti_sr_info1.tti, tti_sr_info2.tti, elapsed_tti);
+
+      // Check first TTI
+      TESTASSERT(tti_sr_info1.tti % 20 == 0);
+
+      // Make sure the TTI difference is 20
       TESTASSERT(elapsed_tti == 20);
     }
 
@@ -540,7 +564,7 @@ public:
       }
 
       // Set RNTI
-      srslte_ue_dl_set_rnti(ue_dl, rnti);
+      srslte_ue_dl_set_rnti(ue_dl, dedicated.dl_cfg.pdsch.rnti);
 
       // Allocate UE UL
       auto* ue_ul = (srslte_ue_ul_t*)srslte_vec_malloc(sizeof(srslte_ue_ul_t));
@@ -560,7 +584,7 @@ public:
       }
 
       // Set RNTI
-      srslte_ue_ul_set_rnti(ue_ul, rnti);
+      srslte_ue_ul_set_rnti(ue_ul, dedicated.ul_cfg.pusch.rnti);
     }
 
     // Initialise softbuffer
@@ -604,6 +628,9 @@ public:
         free(b);
       }
     }
+    if (tx_data) {
+      free(tx_data);
+    }
     srslte_softbuffer_tx_free(&softbuffer_tx);
   }
 
@@ -629,9 +656,9 @@ public:
     for (uint32_t i = 0; i < buffers.size(); i++) {
       srslte_dci_dl_t    dci_dl[SRSLTE_MAX_DCI_MSG] = {};
       srslte_ue_dl_cfg_t ue_dl_cfg                  = {};
-      //      ue_dl_cfg.cfg.cqi_report.periodic_configured  = true;
-      //      ue_dl_cfg.cfg.cqi_report.periodic_mode        = SRSLTE_CQI_MODE_12;
-      //      ue_dl_cfg.cfg.cqi_report.pmi_idx              = 16 + i;
+      ue_dl_cfg.cfg                                 = dedicated.dl_cfg;
+      ue_dl_cfg.cfg.cqi_report.periodic_mode        = SRSLTE_CQI_MODE_12;
+      ue_dl_cfg.cfg.cqi_report.pmi_idx += i;
       ue_dl_cfg.cfg.pdsch.rnti = rnti;
 
       srslte_ue_dl_decode_fft_estimate(ue_dl_v[i], &sf_dl_cfg, &ue_dl_cfg);
@@ -673,7 +700,7 @@ public:
       TESTASSERT(nof_ul_grants >= SRSLTE_SUCCESS);
 
       // Generate CQI periodic if required
-      srslte_ue_dl_gen_cqi_periodic(ue_dl_v[i], &ue_dl_cfg, 0x0f, sf_dl_cfg.tti, &uci_data);
+      srslte_ue_dl_gen_cqi_periodic(ue_dl_v[i], &ue_dl_cfg, 0x0f, sf_ul_cfg.tti, &uci_data);
     }
 
     // Work UL
@@ -764,20 +791,24 @@ public:
     enb_phy.add_rnti(rnti, pcell_index, false);
 
     // Configure UE PHY
-    uint32_t                                                pcell_idx = 0;
+    bool                                                    activation[SRSLTE_MAX_CARRIERS] = {};
+    uint32_t                                                pcell_idx                       = 0;
     srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t dedicated_list(4);
     for (uint32_t i = 0; i < 4; i++) {
-      common_dedicated.dl_cfg.cqi_report.pmi_idx = 16 + i;
-      dedicated_list[i].cc_idx                   = (i + pcell_idx) % phy_cfg.phy_cell_cfg.size();
-      dedicated_list[i].configured               = true;
-      dedicated_list[i].phy_cfg                  = common_dedicated;
+      dedicated_list[i].cc_idx     = (i + pcell_idx) % phy_cfg.phy_cell_cfg.size();
+      dedicated_list[i].configured = true;
+      dedicated_list[i].phy_cfg    = common_dedicated;
+      dedicated_list[i].phy_cfg.dl_cfg.cqi_report.pmi_idx += i;
 
       // Disable SCell stuff
       if (i != pcell_index) {
         dedicated_list[i].phy_cfg.ul_cfg.pucch.sr_configured = false;
       }
+
+      activation[i] = true;
     }
     enb_phy.set_config_dedicated(rnti, dedicated_list);
+    enb_phy.set_activation_deactivation_scell(rnti, activation);
   }
 
   ~phy_test_bench()
@@ -802,10 +833,10 @@ public:
 
 int main(int argc, char** argv)
 {
-  int                ret = SRSLTE_SUCCESS;
   srsenb::phy_args_t phy_args;
 
-  phy_args.log.phy_level = "info";
+  phy_args.log.phy_level   = "info";
+  phy_args.nof_phy_threads = 1; ///< Set number of phy threads to 1 for avoiding concurrency issues
 
   srsenb::phy_cfg_t phy_cfg = {};
   for (uint32_t i = 0; i < 4; i++) {
@@ -831,24 +862,28 @@ int main(int argc, char** argv)
   phy_cfg.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg = 5;
 
   // Set UE dedicated configuration
-  srslte::phy_cfg_t dedicated                   = {};
-  dedicated.ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3;
-  dedicated.ul_cfg.pucch.delta_pucch_shift      = 1;
-  dedicated.ul_cfg.pucch.n_rb_2                 = 0;
-  dedicated.ul_cfg.pucch.N_cs                   = 0;
-  dedicated.ul_cfg.pucch.n_pucch_sr             = 1;
-  dedicated.ul_cfg.pucch.N_pucch_1              = 2;
-  dedicated.ul_cfg.pucch.n_pucch_2              = 3;
-  dedicated.ul_cfg.pucch.simul_cqi_ack          = true;
-  dedicated.ul_cfg.pucch.sr_configured          = true;
-  dedicated.ul_cfg.pucch.I_sr                   = 5;
+  srslte::phy_cfg_t dedicated                     = {};
+  dedicated.ul_cfg.pucch.ack_nack_feedback_mode   = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3;
+  dedicated.ul_cfg.pucch.delta_pucch_shift        = 1;
+  dedicated.ul_cfg.pucch.n_rb_2                   = 2;
+  dedicated.ul_cfg.pucch.N_cs                     = 0;
+  dedicated.ul_cfg.pucch.n_pucch_sr               = 1;
+  dedicated.ul_cfg.pucch.N_pucch_1                = 2;
+  dedicated.ul_cfg.pucch.n_pucch_2                = 5;
+  dedicated.ul_cfg.pucch.simul_cqi_ack            = true;
+  dedicated.ul_cfg.pucch.sr_configured            = true;
+  dedicated.ul_cfg.pucch.I_sr                     = 5;
+  dedicated.dl_cfg.cqi_report.periodic_configured = true;
+  dedicated.dl_cfg.cqi_report.pmi_idx             = 25;
+  dedicated.dl_cfg.cqi_report.periodic_mode       = SRSLTE_CQI_MODE_20;
 
   std::unique_ptr<phy_test_bench> test_bench =
       std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, phy_cfg, 0x1234, 0, dedicated));
 
-  for (uint32_t i = 0; i < 128; i++) {
+  // Run Simulation
+  for (uint32_t i = 0; i < 256; i++) {
     TESTASSERT(test_bench->run_tti() >= SRSLTE_SUCCESS);
   }
 
-  return ret;
+  return SRSLTE_SUCCESS;
 }

@@ -126,14 +126,14 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
   }
 
   /* Setup SI-RNTI in PHY */
-  add_rnti(SRSLTE_SIRNTI, false);
+  add_rnti(SRSLTE_SIRNTI, false, false);
 
   /* Setup P-RNTI in PHY */
-  add_rnti(SRSLTE_PRNTI, false);
+  add_rnti(SRSLTE_PRNTI, false, false);
 
   /* Setup RA-RNTI in PHY */
   for (int i = 0; i < 10; i++) {
-    add_rnti(1 + i, false);
+    add_rnti(1 + i, false, false);
   }
 
   if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, nof_prb)) {
@@ -177,13 +177,9 @@ void cc_worker::set_tti(uint32_t tti_)
   tti_rx    = tti_;
   tti_tx_dl = TTI_TX(tti_rx);
   tti_tx_ul = TTI_RX_ACK(tti_rx);
-
-  t_tx_dl = TTIMOD(tti_tx_dl);
-  t_rx    = TTIMOD(tti_rx);
-  t_tx_ul = TTIMOD(tti_tx_ul);
 }
 
-int cc_worker::add_rnti(uint16_t rnti, bool is_temporal)
+int cc_worker::add_rnti(uint16_t rnti, bool is_pcell, bool is_temporal)
 {
 
   if (!is_temporal && !ue_db.count(rnti)) {
@@ -198,7 +194,7 @@ int cc_worker::add_rnti(uint16_t rnti, bool is_temporal)
   mutex.lock();
   // Create user unless already exists
   if (!ue_db.count(rnti)) {
-    ue_db[rnti] = new ue(rnti, phy);
+    ue_db[rnti] = new ue(rnti, is_pcell);
   }
   mutex.unlock();
 
@@ -244,22 +240,6 @@ uint32_t cc_worker::get_nof_rnti()
 {
   std::lock_guard<std::mutex> lock(mutex);
   return ue_db.size();
-}
-
-void cc_worker::set_config_dedicated(uint16_t rnti, const srslte::phy_cfg_t& dedicated)
-{
-  std::lock_guard<std::mutex> lock(mutex);
-
-  if (ue_db.count(rnti)) {
-    ue_db[rnti]->ul_cfg                         = dedicated.ul_cfg;
-    ue_db[rnti]->ul_cfg.pucch.threshold_format1 = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
-    ue_db[rnti]->ul_cfg.pucch.rnti              = rnti;
-    ue_db[rnti]->ul_cfg.pusch.rnti              = rnti;
-    ue_db[rnti]->dl_cfg                         = dedicated.dl_cfg;
-    ue_db[rnti]->dl_cfg.pdsch.rnti              = rnti;
-  } else {
-    Error("Setting config dedicated: rnti=0x%x does not exist\n", rnti);
-  }
 }
 
 void cc_worker::work_ul(const srslte_ul_sf_cfg_t& ul_sf_cfg, stack_interface_phy_lte::ul_sched_t& ul_grants)
@@ -313,126 +293,28 @@ void cc_worker::work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
   srslte_enb_dl_gen_signal(&enb_dl);
 }
 
-bool cc_worker::fill_uci_cfg(uint16_t rnti, bool aperiodic_cqi_request, srslte_uci_cfg_t* uci_cfg)
-{
-  bool uci_required = false;
-
-  bzero(uci_cfg, sizeof(srslte_uci_cfg_t));
-
-  // Check if SR opportunity (will only be used in PUCCH)
-  uci_cfg->is_scheduling_request_tti = (srslte_ue_ul_sr_send_tti(&ue_db[rnti]->ul_cfg.pucch, tti_rx) == 1);
-
-  uci_required |= uci_cfg->is_scheduling_request_tti;
-
-  // Get pending ACKs from PDSCH
-  phy->ue_db_get_ack_pending(tti_rx, cc_idx, rnti, uci_cfg->ack);
-  uint32_t nof_total_ack = srslte_uci_cfg_total_ack(uci_cfg);
-  uci_required |= (nof_total_ack != 0);
-
-  // if UCI is required and the PCell is not the only cell
-  if (uci_required && nof_total_ack != uci_cfg->ack[0].nof_acks) {
-    // More than one carrier requires ACKs
-    for (uint32_t cc = 0; cc < phy->ue_db_get_nof_ca_cells(rnti); cc++) {
-      // Assume all aggregated carriers are on the same transmission mode
-      uci_cfg->ack[cc].nof_acks = (ue_db[rnti]->dl_cfg.tm < SRSLTE_TM3) ? 1 : 2;
-    }
-  }
-
-  // Get pending CQI reports for this TTI
-  if (srslte_enb_dl_gen_cqi_periodic(
-          &enb_dl.cell, &ue_db[rnti]->dl_cfg, tti_rx, phy->ue_db_get_ri(rnti), &uci_cfg->cqi)) {
-    uci_required = true;
-  } else if (aperiodic_cqi_request) {
-    srslte_enb_dl_gen_cqi_aperiodic(&enb_dl.cell, &ue_db[rnti]->dl_cfg, phy->ue_db_get_ri(rnti), &uci_cfg->cqi);
-    uci_required = true;
-  }
-
-  return uci_required;
-}
-
-void cc_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_value)
-{
-  // Notify SR
-  if (uci_cfg->is_scheduling_request_tti && uci_value->scheduling_request) {
-    phy->stack->sr_detected(tti_rx, rnti);
-  }
-
-  /* If only one ACK is required, it can be for TB0 or TB1 */
-  uint32_t ack_idx = 0;
-  for (uint32_t ue_scell_idx = 0; ue_scell_idx < SRSLTE_MAX_CARRIERS; ue_scell_idx++) {
-    uint32_t cc_ack_idx = phy->ue_db_get_cc_scell(rnti, ue_scell_idx);
-    if (cc_ack_idx < phy->get_nof_carriers()) {
-
-      // For each transport block...
-      for (uint32_t tb = 0; tb < uci_cfg->ack[ue_scell_idx].nof_acks; tb++) {
-        // Check if the SCell ACK was pending
-        if (uci_cfg->ack[ue_scell_idx].pending_tb[tb]) {
-          bool ack   = uci_value->ack.ack_value[ack_idx];
-          bool valid = uci_value->ack.valid;
-          phy->stack->ack_info(tti_rx, rnti, cc_ack_idx, tb, ack && valid);
-        }
-        ack_idx++;
-      }
-    }
-  }
-
-  // Notify CQI only if CRC is valid
-  if (uci_value->cqi.data_crc) {
-    if (uci_cfg->cqi.data_enable) {
-      uint8_t cqi_value = 0;
-      switch (uci_cfg->cqi.type) {
-        case SRSLTE_CQI_TYPE_WIDEBAND:
-          cqi_value = uci_value->cqi.wideband.wideband_cqi;
-          break;
-        case SRSLTE_CQI_TYPE_SUBBAND:
-          cqi_value = uci_value->cqi.subband.subband_cqi;
-          break;
-        case SRSLTE_CQI_TYPE_SUBBAND_HL:
-          cqi_value = uci_value->cqi.subband_hl.wideband_cqi_cw0;
-          break;
-        case SRSLTE_CQI_TYPE_SUBBAND_UE:
-          cqi_value = uci_value->cqi.subband_ue.wideband_cqi;
-          break;
-      }
-      phy->stack->cqi_info(tti_rx, rnti, 0, cqi_value);
-    }
-    if (uci_cfg->cqi.ri_len) {
-      phy->stack->ri_info(tti_rx, 0, rnti, uci_value->ri);
-      phy->ue_db_set_ri(rnti, uci_value->ri);
-    }
-    if (uci_cfg->cqi.pmi_present) {
-      uint8_t pmi_value = 0;
-      switch (uci_cfg->cqi.type) {
-        case SRSLTE_CQI_TYPE_WIDEBAND:
-          pmi_value = uci_value->cqi.wideband.pmi;
-          break;
-        case SRSLTE_CQI_TYPE_SUBBAND_HL:
-          pmi_value = uci_value->cqi.subband_hl.pmi;
-          break;
-        default:
-          Error("CQI type=%d not implemented for PMI\n", uci_cfg->cqi.type);
-          break;
-      }
-      phy->stack->pmi_info(tti_rx, rnti, 0, pmi_value);
-    }
-  }
-}
-
 int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch)
 {
   srslte_pusch_res_t pusch_res;
-
   for (uint32_t i = 0; i < nof_pusch; i++) {
-    uint16_t rnti = grants[i].dci.rnti;
+    // Get grant itself and RNTI
+    auto&    ul_grant = grants[i];
+    uint16_t rnti     = ul_grant.dci.rnti;
+
     if (rnti) {
+      // Get UE configuration
+      srslte::phy_cfg_t phy_cfg = phy->ue_db.get_config(rnti, cc_idx);
+      srslte_ul_cfg_t&  ul_cfg  = phy_cfg.ul_cfg;
+
       // mark this tti as having an ul dci to avoid pucch
       ue_db[rnti]->is_grant_available = true;
 
-      fill_uci_cfg(rnti, grants->dci.cqi_request, &ue_db[rnti]->ul_cfg.pusch.uci_cfg);
+      // Fill UCI configuration
+      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, grants->dci.cqi_request, phy_cfg.ul_cfg.pucch.uci_cfg);
 
       // Compute UL grant
-      srslte_pusch_grant_t* grant = &ue_db[rnti]->ul_cfg.pusch.grant;
-      if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ue_db[rnti]->ul_cfg.hopping, &grants[i].dci, grant)) {
+      srslte_pusch_grant_t& grant = phy_cfg.ul_cfg.pusch.grant;
+      if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
         Error("Computing PUSCH dci\n");
         return SRSLTE_ERROR;
       }
@@ -441,25 +323,25 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
       // Handle Format0 adaptive retx
       // Use last TBS for this TB in case of mcs>28
-      if (grants[i].dci.tb.mcs_idx > 28) {
-        grant->tb = phy->ue_db_get_last_ul_tb(rnti, ul_pid);
-        Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", grants[i].dci.tb.mcs_idx, grant->tb.tbs, ul_pid);
+      if (ul_grant.dci.tb.mcs_idx > 28) {
+        grant.tb = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_pid);
+        Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", grants[i].dci.tb.mcs_idx, grant.tb.tbs, ul_pid);
       }
-      phy->ue_db_set_last_ul_tb(rnti, ul_pid, grant->tb);
+      phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_pid, grant.tb);
 
       // Run PUSCH decoder
-      pusch_res                                = {};
-      ue_db[rnti]->ul_cfg.pusch.softbuffers.rx = grants[i].softbuffer_rx;
-      pusch_res.data                           = grants[i].data;
+      pusch_res                   = {};
+      ul_cfg.pusch.softbuffers.rx = grants[i].softbuffer_rx;
+      pusch_res.data              = grants[i].data;
       if (pusch_res.data) {
-        if (srslte_enb_ul_get_pusch(&enb_ul, &ul_sf, &ue_db[rnti]->ul_cfg.pusch, &pusch_res)) {
+        if (srslte_enb_ul_get_pusch(&enb_ul, &ul_sf, &ul_cfg.pusch, &pusch_res)) {
           Error("Decoding PUSCH\n");
           return SRSLTE_ERROR;
         }
       }
 
       // Save PHICH scheduling for this user. Each user can have just 1 PUSCH dci per TTI
-      ue_db[rnti]->phich_grant.n_prb_lowest = grant->n_prb_tilde[0];
+      ue_db[rnti]->phich_grant.n_prb_lowest = grant.n_prb_tilde[0];
       ue_db[rnti]->phich_grant.n_dmrs       = grants[i].dci.n_dmrs;
 
       float snr_db = enb_ul.chest_res.snr_db;
@@ -479,18 +361,18 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
       }
 
       // Send UCI data to MAC
-      send_uci_data(rnti, &ue_db[rnti]->ul_cfg.pusch.uci_cfg, &pusch_res.uci);
+      phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pusch.uci_cfg, pusch_res.uci);
 
       // Notify MAC new received data and HARQ Indication value
       if (pusch_res.data) {
-        phy->stack->crc_info(tti_rx, rnti, cc_idx, grant->tb.tbs / 8, pusch_res.crc);
+        phy->stack->crc_info(tti_rx, rnti, cc_idx, grant.tb.tbs / 8, pusch_res.crc);
 
         // Save metrics stats
         ue_db[rnti]->metrics_ul(grants[i].dci.tb.mcs_idx, 0, snr_db, pusch_res.avg_iterations_block);
 
         // Logging
         char str[512];
-        srslte_pusch_rx_info(&ue_db[rnti]->ul_cfg.pusch, &pusch_res, str, 512);
+        srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, str, 512);
         Info("PUSCH: %s, snr=%.1f dB\n", str, snr_db);
       }
     }
@@ -500,24 +382,25 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
 int cc_worker::decode_pucch()
 {
-  srslte_pucch_res_t pucch_res;
-  ZERO_OBJECT(pucch_res);
+  srslte_pucch_res_t pucch_res = {};
 
   for (auto& iter : ue_db) {
-    auto rnti = (uint16_t)iter.first;
+    auto  rnti    = (uint16_t)iter.first;
+    auto  phy_cfg = phy->ue_db.get_config(rnti, cc_idx);
+    auto& ul_cfg  = phy_cfg.ul_cfg;
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
-    if (SRSLTE_RNTI_ISUSER(rnti) && !ue_db[rnti]->is_grant_available) {
+    if (SRSLTE_RNTI_ISUSER(rnti) && !ue_db[rnti]->is_grant_available && ue_db[rnti]->is_pcell()) {
       // Check if user needs to receive PUCCH
-      if (fill_uci_cfg(rnti, false, &ue_db[rnti]->ul_cfg.pucch.uci_cfg)) {
+      if (phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, ul_cfg.pucch.uci_cfg)) {
         // Decode PUCCH
-        if (srslte_enb_ul_get_pucch(&enb_ul, &ul_sf, &ue_db[rnti]->ul_cfg.pucch, &pucch_res)) {
+        if (srslte_enb_ul_get_pucch(&enb_ul, &ul_sf, &ul_cfg.pucch, &pucch_res)) {
           ERROR("Error getting PUCCH\n");
           return SRSLTE_ERROR;
         }
 
         // Notify MAC of RL status (skip SR subframes)
-        if (!ue_db[rnti]->ul_cfg.pucch.uci_cfg.is_scheduling_request_tti) {
+        if (!ul_cfg.pucch.uci_cfg.is_scheduling_request_tti) {
           if (pucch_res.correlation < PUCCH_RL_CORR_TH) {
             Debug("PUCCH: Radio-Link failure corr=%.1f\n", pucch_res.correlation);
             phy->stack->rl_failure(rnti);
@@ -527,12 +410,12 @@ int cc_worker::decode_pucch()
         }
 
         // Send UCI data to MAC
-        send_uci_data(rnti, &ue_db[rnti]->ul_cfg.pucch.uci_cfg, &pucch_res.uci_data);
+        phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pucch.uci_cfg, pucch_res.uci_data);
 
         // Logging
         char str[512];
-        srslte_pucch_rx_info(&ue_db[rnti]->ul_cfg.pucch, &pucch_res.uci_data, str, 512);
-        Info("PUCCH: %s, corr=%.1f\n", str, pucch_res.correlation);
+        srslte_pucch_rx_info(&ul_cfg.pucch, &pucch_res.uci_data, str, 512);
+        Info("PUCCH: cc=%d; %s, corr=%.1f\n", cc_idx, str, pucch_res.correlation);
       }
     }
   }
@@ -627,22 +510,24 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
   /* Scales the Resources Elements affected by the power allocation (p_b) */
   // srslte_enb_dl_prepare_power_allocation(&enb_dl);
   for (uint32_t i = 0; i < nof_grants; i++) {
-    uint16_t rnti = grants[i].dci.rnti;
+    uint16_t         rnti    = grants[i].dci.rnti;
+    auto             phy_cfg = phy->ue_db.get_config(rnti, cc_idx);
+    srslte_dl_cfg_t& dl_cfg  = phy_cfg.dl_cfg;
+
     if (rnti && ue_db.count(rnti)) {
 
       // Compute DL grant
-      if (srslte_ra_dl_dci_to_grant(
-              &enb_dl.cell, &dl_sf, ue_db[rnti]->dl_cfg.tm, false, &grants[i].dci, &ue_db[rnti]->dl_cfg.pdsch.grant)) {
+      if (srslte_ra_dl_dci_to_grant(&enb_dl.cell, &dl_sf, dl_cfg.tm, false, &grants[i].dci, &dl_cfg.pdsch.grant)) {
         Error("Computing DL grant\n");
       }
 
       // Set soft buffer
       for (uint32_t j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
-        ue_db[rnti]->dl_cfg.pdsch.softbuffers.tx[j] = grants[i].softbuffer_tx[j];
+        dl_cfg.pdsch.softbuffers.tx[j] = grants[i].softbuffer_tx[j];
       }
 
       // Encode PDSCH
-      if (srslte_enb_dl_put_pdsch(&enb_dl, &ue_db[rnti]->dl_cfg.pdsch, grants[i].data)) {
+      if (srslte_enb_dl_put_pdsch(&enb_dl, &dl_cfg.pdsch, grants[i].data)) {
         Error("Error putting PDSCH %d\n", i);
         return SRSLTE_ERROR;
       }
@@ -650,13 +535,13 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
       // Save pending ACK
       if (SRSLTE_RNTI_ISUSER(rnti)) {
         // Push whole DCI
-        phy->ue_db_set_ack_pending(tti_tx_ul, cc_idx, grants[i].dci);
+        phy->ue_db.set_ack_pending(tti_tx_ul, cc_idx, grants[i].dci);
       }
 
       if (LOG_THIS(rnti)) {
         // Logging
         char str[512];
-        srslte_pdsch_tx_info(&ue_db[rnti]->dl_cfg.pdsch, str, 512);
+        srslte_pdsch_tx_info(&dl_cfg.pdsch, str, 512);
         Info("PDSCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
       }
 

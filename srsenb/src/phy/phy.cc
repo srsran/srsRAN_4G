@@ -195,11 +195,15 @@ uint32_t phy::tti_to_subf(uint32_t tti)
 int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
 {
   if (SRSLTE_RNTI_ISUSER(rnti)) {
-    workers_common.ue_db_addmod_rnti(rnti, {pcell_index});
+    // Create default PHY configuration with the desired PCell index
+    phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list(1);
+    phy_rrc_dedicated_list[0].cc_idx = pcell_index;
+
+    workers_common.ue_db.addmod_rnti(rnti, phy_rrc_dedicated_list);
   }
 
   for (uint32_t i = 0; i < nof_workers; i++) {
-    if (workers[i].add_rnti(rnti, pcell_index, is_temporal)) {
+    if (workers[i].add_rnti(rnti, pcell_index, true, is_temporal)) {
       return SRSLTE_ERROR;
     }
   }
@@ -210,7 +214,7 @@ int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
 void phy::rem_rnti(uint16_t rnti)
 {
   if (SRSLTE_RNTI_ISUSER(rnti)) {
-    workers_common.ue_db_rem_rnti(rnti);
+    workers_common.ue_db.rem_rnti(rnti);
   }
   for (uint32_t i = 0; i < nof_workers; i++) {
     workers[i].rem_rnti(rnti);
@@ -224,7 +228,10 @@ void phy::set_mch_period_stop(uint32_t stop)
 
 void phy::set_activation_deactivation_scell(uint16_t rnti, bool activation[SRSLTE_MAX_CARRIERS])
 {
-  Info("Set activation/deactivation not implemented\n");
+  // Iterate all elements except 0 that is reserved for primary cell
+  for (uint32_t scell_idx = 1; scell_idx < SRSLTE_MAX_CARRIERS; scell_idx++) {
+    workers_common.ue_db.activate_deactivate_scell(rnti, scell_idx, activation[scell_idx]);
+  }
 }
 
 void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
@@ -261,28 +268,21 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list)
 {
-  // Create list, empty by default
-  std::vector<uint32_t> scell_idx_list;
+  // Update UE Database
+  workers_common.ue_db.addmod_rnti(rnti, dedicated_list);
 
-  for (const auto& config : dedicated_list) {
+  // Iterate over the list and add the RNTIs
+  for (uint32_t scell_idx = 0; scell_idx < dedicated_list.size(); scell_idx++) {
+    auto& config = dedicated_list[scell_idx];
+
     // Configure only if active, ignore otherwise
-    if (config.configured) {
-      // Set PCell/SCell index in list
-      scell_idx_list.push_back(config.cc_idx);
-
-      // Configure workers
+    if (scell_idx != 0 && config.configured) {
+      // Add RNTI to workers
       for (uint32_t w = 0; w < nof_workers; w++) {
-        // Add RNTI to worker
-        workers[w].add_rnti(rnti, config.cc_idx, false);
-
-        // Configure RNTI
-        workers[w].set_config_dedicated(rnti, config.cc_idx, config.phy_cfg);
+        workers[w].add_rnti(rnti, config.cc_idx, false, false);
       }
     }
   }
-
-  // Finally, set UE database
-  workers_common.ue_db_addmod_rnti(rnti, scell_idx_list);
 }
 
 void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s mcch)
