@@ -58,6 +58,22 @@ void cell_t::set_sib1(asn1::rrc::sib_type1_s* sib1_)
   }
 }
 
+void cell_t::set_sib2(asn1::rrc::sib_type2_s* sib2_)
+{
+  sib2           = *sib2_;
+  has_valid_sib2 = true;
+}
+void cell_t::set_sib3(asn1::rrc::sib_type3_s* sib3_)
+{
+  sib3           = *sib3_;
+  has_valid_sib3 = true;
+}
+void cell_t::set_sib13(asn1::rrc::sib_type13_r9_s* sib13_)
+{
+  sib13           = *sib13_;
+  has_valid_sib13 = true;
+}
+
 bool cell_t::is_sib_scheduled(uint32_t sib_index) const
 {
   return sib_info_map.find(sib_index) != sib_info_map.end();
@@ -1499,6 +1515,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
   if (dlsch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
     rrc_log->info("Processing SIB1 (1/1)\n");
     serving_cell->set_sib1(&dlsch_msg.msg.c1().sib_type1());
+    si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
     handle_sib1();
   } else {
     sys_info_r8_ies_s::sib_type_and_info_l_& sib_list =
@@ -1509,18 +1526,21 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
         case sib_info_item_c::types::sib2:
           if (not serving_cell->has_sib2()) {
             serving_cell->set_sib2(&sib_list[i].sib2());
+            si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib2();
           break;
         case sib_info_item_c::types::sib3:
           if (not serving_cell->has_sib3()) {
             serving_cell->set_sib3(&sib_list[i].sib3());
+            si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib3();
           break;
         case sib_info_item_c::types::sib13_v920:
           if (not serving_cell->has_sib13()) {
             serving_cell->set_sib13(&sib_list[i].sib13_v920());
+            si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib13();
           break;

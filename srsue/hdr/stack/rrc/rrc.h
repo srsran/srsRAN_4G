@@ -153,21 +153,9 @@ public:
   float get_rsrq() { return rsrq; }
 
   void set_sib1(asn1::rrc::sib_type1_s* sib1_);
-  void set_sib2(asn1::rrc::sib_type2_s* sib2_)
-  {
-    sib2           = *sib2_;
-    has_valid_sib2 = true;
-  }
-  void set_sib3(asn1::rrc::sib_type3_s* sib3_)
-  {
-    sib3           = *sib3_;
-    has_valid_sib3 = true;
-  }
-  void set_sib13(asn1::rrc::sib_type13_r9_s* sib13_)
-  {
-    sib13           = *sib13_;
-    has_valid_sib13 = true;
-  }
+  void set_sib2(asn1::rrc::sib_type2_s* sib2_);
+  void set_sib3(asn1::rrc::sib_type3_s* sib3_);
+  void set_sib13(asn1::rrc::sib_type13_r9_s* sib13_);
 
   // TODO: replace with TTI count
   uint32_t timeout_secs(struct timeval now)

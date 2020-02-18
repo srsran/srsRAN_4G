@@ -85,12 +85,15 @@ public:
   struct si_acq_timer_expired {
     uint32_t timer_id;
   };
+  struct sib_received_ev {
+  };
 
   explicit si_acquire_proc(rrc* parent_);
   srslte::proc_outcome_t init(uint32_t sib_index_);
-  srslte::proc_outcome_t step();
+  srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
   static const char*     name() { return "SI Acquire"; }
   srslte::proc_outcome_t react(si_acq_timer_expired ev);
+  srslte::proc_outcome_t react(sib_received_ev ev);
   void                   then(const srslte::proc_state_t& result);
 
 private:

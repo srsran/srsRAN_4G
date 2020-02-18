@@ -64,7 +64,7 @@ proc_outcome_t rrc::cell_search_proc::step()
 
 proc_outcome_t rrc::cell_search_proc::step_si_acquire()
 {
-  if (rrc_ptr->si_acquirer.run()) {
+  if (not si_acquire_fut.is_complete()) {
     return proc_outcome_t::yield;
   }
   // SI Acquire has completed
@@ -320,13 +320,12 @@ void rrc::si_acquire_proc::start_si_acquire()
        sched_index);
 }
 
-proc_outcome_t rrc::si_acquire_proc::step()
+proc_outcome_t rrc::si_acquire_proc::react(sib_received_ev ev)
 {
-  // If meanwhile we have received the SIB, return success
   return rrc_ptr->serving_cell->has_sib(sib_index) ? proc_outcome_t::success : proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
+proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
 {
   if (rrc_ptr->serving_cell->has_sib(sib_index)) {
     return proc_outcome_t::success;
@@ -408,7 +407,7 @@ srslte::proc_outcome_t rrc::serving_cell_config_proc::launch_sib_acquire()
 
 proc_outcome_t rrc::serving_cell_config_proc::step()
 {
-  if (rrc_ptr->si_acquirer.run()) {
+  if (not si_acquire_fut.is_complete()) {
     return proc_outcome_t::yield;
   }
   uint32_t required_sib = required_sibs[req_idx];
