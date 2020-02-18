@@ -85,12 +85,6 @@ private:
   std::map<uint32_t, unique_byte_buffer_t> reorder_queue;
   timer_handler::unique_timer              reordering_timer;
 
-  // Packing/Unpacking Helper functions
-  uint32_t read_data_header(const unique_byte_buffer_t& sdu);
-  void     write_data_header(const unique_byte_buffer_t& sdu, uint32_t sn);
-  void     extract_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
-  void     append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
-
   // Pass to Upper Layers Helper function
   void deliver_all_consecutive_counts();
   void pass_to_upper_layers(unique_byte_buffer_t pdu);
