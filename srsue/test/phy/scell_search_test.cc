@@ -656,6 +656,11 @@ int main(int argc, char** argv)
     }
   }
 
+  // make sure last measurement has been received before stopping
+  if (not radio) {
+    intra_measure.wait_meas();
+  }
+
   // Stop
   intra_measure.stop();
 
