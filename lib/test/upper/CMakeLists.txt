@@ -82,6 +82,10 @@ if (ENABLE_5GNR)
   add_test(pdcp_nr_test_discard_sdu pdcp_nr_test_discard_sdu)
 endif(ENABLE_5GNR)
 
+add_executable(pdcp_lte_test_rx pdcp_lte_test_rx.cc)
+target_link_libraries(pdcp_lte_test_rx srslte_upper srslte_common)
+add_test(pdcp_lte_test_rx pdcp_lte_test_rx)
+
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################
