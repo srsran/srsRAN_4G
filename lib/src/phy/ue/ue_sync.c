@@ -709,7 +709,7 @@ static int receive_samples(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PO
 
   ///< Make sure receive buffer is big enough
   if (q->frame_len - q->next_rf_sample_offset > max_num_samples) {
-    fprintf(stderr, "Receive buffer too small (%d < %d)n", max_num_samples, q->frame_len - q->next_rf_sample_offset);
+    fprintf(stderr, "Receive buffer too small (%d < %d)\n", max_num_samples, q->frame_len - q->next_rf_sample_offset);
     return SRSLTE_ERROR;
   }
 
