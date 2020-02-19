@@ -56,9 +56,6 @@ void srslte_modem_table_free(srslte_modem_table_t* q)
   if (q->symbol_table_16qam) {
     free(q->symbol_table_16qam);
   }
-  if (q->symbol_table_256qam) {
-    free(q->symbol_table_256qam);
-  }
   bzero(q, sizeof(srslte_modem_table_t));
 }
 void srslte_modem_table_reset(srslte_modem_table_t* q)

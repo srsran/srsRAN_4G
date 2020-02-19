@@ -67,9 +67,9 @@ typedef struct SRSLTE_API {
     srslte_softbuffer_rx_t* rx[SRSLTE_MAX_CODEWORDS];
   } softbuffers;
 
+  bool     meas_evm_en;
   bool     meas_time_en;
   uint32_t meas_time_value;
-
 } srslte_pdsch_cfg_t;
 
 #endif // SRSLTE_PDSCH_CFG_H

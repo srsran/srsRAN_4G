@@ -36,6 +36,7 @@
 #include "srslte/phy/mimo/layermap.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/modem/evm.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/dci.h"
 #include "srslte/phy/phch/pdsch_cfg.h"
@@ -72,7 +73,10 @@ typedef struct SRSLTE_API {
   float* csi[SRSLTE_MAX_CODEWORDS]; /* Channel Strengh Indicator */
 
   /* tx & rx objects */
-  srslte_modem_table_t mod[5];
+  srslte_modem_table_t mod[SRSLTE_NOF_MODULATIONS];
+
+  // EVM buffers, one for each codeword (avoid concurrency issue with coworker)
+  srslte_evm_buffer_t* evm_buffer[SRSLTE_MAX_CODEWORDS];
 
   // This is to generate the scrambling seq for multiple CRNTIs
   srslte_pdsch_user_t** users;
@@ -89,6 +93,7 @@ typedef struct {
   uint8_t* payload;
   bool     crc;
   float    avg_iterations_block;
+  float    evm;
 } srslte_pdsch_res_t;
 
 SRSLTE_API int srslte_pdsch_init_ue(srslte_pdsch_t* q, uint32_t max_prb, uint32_t nof_rx_antennas);

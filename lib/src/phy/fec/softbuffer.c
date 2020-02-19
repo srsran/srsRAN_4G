@@ -45,7 +45,7 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t* q, uint32_t nof_prb)
   if (q != NULL) {
     bzero(q, sizeof(srslte_softbuffer_rx_t));
 
-    ret = srslte_ra_tbs_from_idx(33, nof_prb);
+    ret = srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb = (uint32_t)ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1;
       ret       = SRSLTE_ERROR;
@@ -163,7 +163,7 @@ int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t* q, uint32_t nof_prb)
 
     bzero(q, sizeof(srslte_softbuffer_tx_t));
 
-    ret = srslte_ra_tbs_from_idx(33, nof_prb);
+    ret = srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, nof_prb);
     if (ret != SRSLTE_ERROR) {
       q->max_cb = (uint32_t)ret / (SRSLTE_TCOD_MAX_LEN_CB - 24) + 1;
 

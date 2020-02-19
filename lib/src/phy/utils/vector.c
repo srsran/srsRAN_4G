@@ -200,7 +200,7 @@ void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_size)
 #endif
 }
 
-void srslte_vec_fprint_c(FILE* stream, cf_t* x, const uint32_t len)
+void srslte_vec_fprint_c(FILE* stream, const cf_t* x, const uint32_t len)
 {
   int i;
   fprintf(stream, "[");
@@ -210,7 +210,7 @@ void srslte_vec_fprint_c(FILE* stream, cf_t* x, const uint32_t len)
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_f(FILE* stream, float* x, const uint32_t len)
+void srslte_vec_fprint_f(FILE* stream, const float* x, const uint32_t len)
 {
   int i;
   fprintf(stream, "[");
@@ -220,7 +220,7 @@ void srslte_vec_fprint_f(FILE* stream, float* x, const uint32_t len)
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_b(FILE* stream, uint8_t* x, const uint32_t len)
+void srslte_vec_fprint_b(FILE* stream, const uint8_t* x, const uint32_t len)
 {
   int i;
   fprintf(stream, "[");
@@ -230,7 +230,7 @@ void srslte_vec_fprint_b(FILE* stream, uint8_t* x, const uint32_t len)
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_bs(FILE* stream, int8_t* x, const uint32_t len)
+void srslte_vec_fprint_bs(FILE* stream, const int8_t* x, const uint32_t len)
 {
   int i;
   fprintf(stream, "[");
@@ -240,7 +240,7 @@ void srslte_vec_fprint_bs(FILE* stream, int8_t* x, const uint32_t len)
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_byte(FILE* stream, uint8_t* x, const uint32_t len)
+void srslte_vec_fprint_byte(FILE* stream, const uint8_t* x, const uint32_t len)
 {
   int i;
   fprintf(stream, "[");
@@ -250,7 +250,7 @@ void srslte_vec_fprint_byte(FILE* stream, uint8_t* x, const uint32_t len)
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_i(FILE* stream, int* x, const uint32_t len)
+void srslte_vec_fprint_i(FILE* stream, const int* x, const uint32_t len)
 {
   int i;
   fprintf(stream, "[");
@@ -260,7 +260,7 @@ void srslte_vec_fprint_i(FILE* stream, int* x, const uint32_t len)
   fprintf(stream, "];\n");
 }
 
-void srslte_vec_fprint_s(FILE* stream, short* x, const uint32_t len)
+void srslte_vec_fprint_s(FILE* stream, const int16_t* x, const uint32_t len)
 {
   int i;
   fprintf(stream, "[");

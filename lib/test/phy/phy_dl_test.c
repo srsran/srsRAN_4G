@@ -140,9 +140,6 @@ void parse_args(int argc, char** argv)
   }
 }
 
-int prbset_num = 1, last_prbset_num = 1;
-int prbset_orig = 0;
-
 int work_enb(srslte_enb_dl_t*         enb_dl,
              srslte_dl_sf_cfg_t*      dl_sf,
              srslte_dci_cfg_t*        dci_cfg,
@@ -203,16 +200,16 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
 {
   if (srslte_ue_dl_decode_fft_estimate(ue_dl, sf_cfg_dl, ue_dl_cfg) < 0) {
     ERROR("Getting PDCCH FFT estimate sf_idx=%d\n", sf_idx);
-    return -1;
+    return SRSLTE_ERROR;
   }
 
   int nof_grants = srslte_ue_dl_find_dl_dci(ue_dl, sf_cfg_dl, ue_dl_cfg, rnti, dci_dl);
   if (nof_grants < 0) {
     ERROR("Looking for DL grants sf_idx=%d\n", sf_idx);
-    return -1;
+    return SRSLTE_ERROR;
   } else if (nof_grants == 0) {
     ERROR("Failed to find DCI in sf_idx=%d\n", sf_idx);
-    return -1;
+    return SRSLTE_ERROR;
   }
 
   // Enable power allocation
@@ -221,15 +218,18 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
   ue_dl_cfg->cfg.pdsch.p_b         = (transmission_mode > SRSLTE_TM1) ? 1 : 0; // 0 dB
   ue_dl_cfg->cfg.pdsch.rnti        = dci_dl->rnti;
   ue_dl_cfg->cfg.pdsch.csi_enable  = false;
+  ue_dl_cfg->cfg.pdsch.meas_evm_en = true;
 
-  char str[512];
-  srslte_dci_dl_info(&dci_dl[0], str, 512);
-  INFO("UE PDCCH: rnti=0x%x, %s\n", rnti, str);
+  if (srslte_verbose >= SRSLTE_VERBOSE_INFO) {
+    char str[512];
+    srslte_dci_dl_info(&dci_dl[0], str, 512);
+    INFO("UE PDCCH: rnti=0x%x, %s\n", rnti, str);
+  }
 
   if (srslte_ra_dl_dci_to_grant(
           &cell, sf_cfg_dl, transmission_mode, enable_256qam, &dci_dl[0], &ue_dl_cfg->cfg.pdsch.grant)) {
     ERROR("Computing DL grant sf_idx=%d\n", sf_idx);
-    return -1;
+    return SRSLTE_ERROR;
   }
 
   // Reset softbuffer
@@ -241,34 +241,16 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
 
   if (srslte_ue_dl_decode_pdsch(ue_dl, sf_cfg_dl, &ue_dl_cfg->cfg.pdsch, pdsch_res)) {
     ERROR("ERROR: Decoding PDSCH sf_idx=%d\n", sf_idx);
-    return -1;
+    return SRSLTE_ERROR;
   }
 
-  srslte_pdsch_tx_info(&ue_dl_cfg->cfg.pdsch, str, 512);
-  INFO("UE PDSCH: rnti=0x%x, %s\n", rnti, str);
-
-  return 0;
-}
-
-unsigned int reverse(register unsigned int x)
-{
-  x = (((x & (uint32_t)0xaaaaaaaa) >> (uint32_t)1) | ((x & (uint32_t)0x55555555) << (uint32_t)1));
-  x = (((x & (uint32_t)0xcccccccc) >> (uint32_t)2) | ((x & (uint32_t)0x33333333) << (uint32_t)2));
-  x = (((x & (uint32_t)0xf0f0f0f0) >> (uint32_t)4) | ((x & (uint32_t)0x0f0f0f0f) << (uint32_t)4));
-  x = (((x & (uint32_t)0xff00ff00) >> (uint32_t)8) | ((x & (uint32_t)0x00ff00ff) << (uint32_t)8));
-  return ((x >> (uint32_t)16) | (x << (uint32_t)16));
-}
-
-uint32_t prbset_to_bitmask()
-{
-  uint32_t mask = 0;
-  uint32_t nb   = (uint32_t)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
-  for (uint32_t i = 0; i < nb; i++) {
-    if (i >= prbset_orig && i < prbset_orig + prbset_num) {
-      mask = mask | ((uint32_t)0x1 << i);
-    }
+  if (srslte_verbose >= SRSLTE_VERBOSE_INFO) {
+    char str[512];
+    srslte_pdsch_rx_info(&ue_dl_cfg->cfg.pdsch, pdsch_res, str, 512);
+    INFO("eNb PDSCH: rnti=0x%x, %s\n", rnti, str);
   }
-  return reverse(mask) >> (uint32_t)(32 - nb);
+
+  return SRSLTE_SUCCESS;
 }
 
 static int
@@ -448,8 +430,8 @@ int main(int argc, char** argv)
   /*
    *  DCI Configuration
    */
-  srslte_dci_dl_t  dci;
-  srslte_dci_cfg_t dci_cfg;
+  srslte_dci_dl_t  dci                 = {};
+  srslte_dci_cfg_t dci_cfg             = {};
   dci_cfg.srs_request_enabled          = false;
   dci_cfg.ra_format_enabled            = false;
   dci_cfg.multiple_csi_request_enabled = false;
@@ -480,14 +462,19 @@ int main(int argc, char** argv)
   }
 
   // Set PRB Allocation type
+#if 0
+  dci.alloc_type      = SRSLTE_RA_ALLOC_TYPE2;
+  uint32_t n_prb      = 1; ///< Number of PRB
+  uint32_t s_prb      = 0; ///< Start
+  dci.type2_alloc.riv = srslte_ra_type2_to_riv(n_prb, s_prb, cell.nof_prb);
+#else
   dci.alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-  prbset_num                  = (int)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
-  last_prbset_num             = prbset_num;
-  dci.type0_alloc.rbg_bitmask = prbset_to_bitmask();
+  dci.type0_alloc.rbg_bitmask = 0xffffffff; // All PRB
+#endif
 
   // Set TB
   if (transmission_mode < SRSLTE_TM3) {
-    dci.format        = SRSLTE_DCI_FORMAT1;
+    dci.format        = (dci.alloc_type == SRSLTE_RA_ALLOC_TYPE2) ? SRSLTE_DCI_FORMAT1A : SRSLTE_DCI_FORMAT1;
     dci.tb[0].mcs_idx = mcs;
     dci.tb[0].rv      = 0;
     dci.tb[0].ndi     = 0;
@@ -530,7 +517,7 @@ int main(int argc, char** argv)
     /*
      * Run eNodeB
      */
-    srslte_dl_sf_cfg_t sf_cfg_dl;
+    srslte_dl_sf_cfg_t sf_cfg_dl = {};
     sf_cfg_dl.tti     = sf_idx % 10;
     sf_cfg_dl.cfi     = cfi;
     sf_cfg_dl.sf_type = SRSLTE_SF_NORM;

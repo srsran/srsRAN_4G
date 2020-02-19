@@ -64,7 +64,7 @@ typedef struct {
   srslte_sch_t        dl_sch;
 
   /* Encoder/Decoder data pointers: they must be set before posting start semaphore  */
-  uint8_t* data;
+  srslte_pdsch_res_t* data;
 
   /* Execution status */
   int ret_status;
@@ -254,7 +254,7 @@ static int pdsch_init(srslte_pdsch_t* q, uint32_t max_prb, bool is_ue, uint32_t 
 
     INFO("Init PDSCH: %d PRBs, max_symbols: %d\n", max_prb, q->max_re);
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < SRSLTE_NOF_MODULATIONS; i++) {
       if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
         goto clean;
       }
@@ -268,29 +268,38 @@ static int pdsch_init(srslte_pdsch_t* q, uint32_t max_prb, bool is_ue, uint32_t 
 
     for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       // Allocate int16_t for reception (LLRs)
-      q->e[i] = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM));
+      q->e[i] = srslte_vec_i16_malloc(q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM));
       if (!q->e[i]) {
         goto clean;
       }
 
-      q->d[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->d[i] = srslte_vec_cf_malloc(q->max_re);
       if (!q->d[i]) {
         goto clean;
+      }
+
+      // If it is the UE, allocate EVM buffer, for only minimum PRB
+      if (is_ue) {
+        q->evm_buffer[i] = srslte_evm_buffer_alloc(6);
+        if (!q->evm_buffer[i]) {
+          ERROR("Allocating EVM buffer\n");
+          goto clean;
+        }
       }
     }
 
     for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->x[i] = srslte_vec_cf_malloc(q->max_re);
       if (!q->x[i]) {
         goto clean;
       }
-      q->symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->symbols[i] = srslte_vec_cf_malloc(q->max_re);
       if (!q->symbols[i]) {
         goto clean;
       }
       if (q->is_ue) {
         for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
-          q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+          q->ce[i][j] = srslte_vec_cf_malloc(q->max_re);
           if (!q->ce[i][j]) {
             goto clean;
           }
@@ -310,7 +319,7 @@ static int pdsch_init(srslte_pdsch_t* q, uint32_t max_prb, bool is_ue, uint32_t 
 
     for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       if (!q->csi[i]) {
-        q->csi[i] = srslte_vec_malloc(sizeof(float) * q->max_re * 2);
+        q->csi[i] = srslte_vec_f_malloc(q->max_re * 2);
         if (!q->csi[i]) {
           return SRSLTE_ERROR;
         }
@@ -413,6 +422,10 @@ void srslte_pdsch_free(srslte_pdsch_t* q)
     if (q->csi[i]) {
       free(q->csi[i]);
     }
+
+    if (q->evm_buffer[i]) {
+      srslte_evm_free(q->evm_buffer[i]);
+    }
   }
 
   /* Free sch objects */
@@ -448,7 +461,7 @@ void srslte_pdsch_free(srslte_pdsch_t* q)
 
   srslte_sequence_free(&q->tmp_seq);
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < SRSLTE_NOF_MODULATIONS; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
 
@@ -462,6 +475,13 @@ int srslte_pdsch_set_cell(srslte_pdsch_t* q, srslte_cell_t cell)
   if (q != NULL && srslte_cell_isvalid(&cell)) {
     q->cell   = cell;
     q->max_re = q->cell.nof_prb * MAX_PDSCH_RE(q->cell.cp);
+
+    // Resize EVM buffer, only for UE
+    if (q->is_ue) {
+      for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+        srslte_evm_buffer_resize(q->evm_buffer[i], cell.nof_prb);
+      }
+    }
 
     INFO("PDSCH: Cell config PCI=%d, %d ports, %d PRBs, max_symbols: %d\n",
          q->cell.id,
@@ -740,7 +760,7 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t*     q,
                                         srslte_dl_sf_cfg_t* sf,
                                         srslte_pdsch_cfg_t* cfg,
                                         srslte_sch_t*       dl_sch,
-                                        uint8_t*            data,
+                                        srslte_pdsch_res_t* data,
                                         uint32_t            tb_idx,
                                         bool*               ack)
 {
@@ -772,6 +792,23 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t*     q,
     } else {
       srslte_demod_soft_demodulate_s(mcs->mod, q->d[codeword_idx], q->e[codeword_idx], cfg->grant.nof_re);
     }
+    if (cfg->meas_evm_en && q->evm_buffer[codeword_idx]) {
+      if (q->llr_is_8bit) {
+        data[tb_idx].evm = srslte_evm_run_b(q->evm_buffer[codeword_idx],
+                                            &q->mod[mcs->mod],
+                                            q->d[codeword_idx],
+                                            q->e[codeword_idx],
+                                            cfg->grant.tb[tb_idx].nof_bits);
+      } else {
+        data[tb_idx].evm = srslte_evm_run_s(q->evm_buffer[codeword_idx],
+                                            &q->mod[mcs->mod],
+                                            q->d[codeword_idx],
+                                            q->e[codeword_idx],
+                                            cfg->grant.tb[tb_idx].nof_bits);
+      }
+    } else {
+      data[tb_idx].evm = NAN;
+    }
 
     /* Select scrambling sequence */
     srslte_sequence_t* seq =
@@ -793,7 +830,7 @@ static int srslte_pdsch_codeword_decode(srslte_pdsch_t*     q,
     }
 
     /* Return  */
-    ret = srslte_dlsch_decode2(dl_sch, cfg, q->e[codeword_idx], data, tb_idx, nof_layers);
+    ret = srslte_dlsch_decode2(dl_sch, cfg, q->e[codeword_idx], data[tb_idx].payload, tb_idx, nof_layers);
 
     if (ret == SRSLTE_SUCCESS) {
       *ack = true;
@@ -957,7 +994,7 @@ int srslte_pdsch_decode(srslte_pdsch_t*        q,
             h->pdsch_ptr             = q;
             h->cfg                   = cfg;
             h->sf                    = sf;
-            h->data                  = data[tb_idx].payload;
+            h->data                  = &data[tb_idx];
             h->tb_idx                = tb_idx;
             h->ack                   = &data[tb_idx].crc;
             h->dl_sch.max_iterations = q->dl_sch.max_iterations;
@@ -965,7 +1002,7 @@ int srslte_pdsch_decode(srslte_pdsch_t*        q,
             sem_post(&h->start);
 
           } else {
-            ret = srslte_pdsch_codeword_decode(q, sf, cfg, &q->dl_sch, data[tb_idx].payload, tb_idx, &data[tb_idx].crc);
+            ret = srslte_pdsch_codeword_decode(q, sf, cfg, &q->dl_sch, data, tb_idx, &data[tb_idx].crc);
 
             data[tb_idx].avg_iterations_block = srslte_sch_last_noi(&q->dl_sch);
           }
@@ -1100,7 +1137,7 @@ int srslte_pdsch_encode(srslte_pdsch_t*     q,
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
-    if (cfg->grant.nof_re > q->max_re || cfg->grant.nof_re > q->max_re) {
+    if (cfg->grant.nof_re > q->max_re) {
       ERROR("Error too many RE per subframe (%d). PDSCH configured for %d RE (%d PRB)\n",
             cfg->grant.nof_re,
             q->max_re,
@@ -1254,6 +1291,21 @@ srslte_pdsch_rx_info(srslte_pdsch_cfg_t* cfg, srslte_pdsch_res_t res[SRSLTE_MAX_
 
   uint32_t len = srslte_print_check(str, str_len, 0, "rnti=0x%x", cfg->rnti);
   len += srslte_pdsch_grant_rx_info(&cfg->grant, res, &str[len], str_len - len);
+
+  if (cfg->meas_evm_en) {
+    len = srslte_print_check(str, str_len, len, ", evm={", 0);
+    for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      if (cfg->grant.tb[i].enabled && !isnan(res[i].evm)) {
+        len = srslte_print_check(str, str_len, len, "%.2f", res[i].evm);
+        if (i < SRSLTE_MAX_CODEWORDS - 1) {
+          if (cfg->grant.tb[i + 1].enabled) {
+            len = srslte_print_check(str, str_len, len, "/", 0);
+          }
+        }
+      }
+    }
+    len = srslte_print_check(str, str_len, len, "}", 0);
+  }
 
   if (cfg->meas_time_en) {
     len = srslte_print_check(str, str_len, len, ", t=%d us\n", cfg->meas_time_value);

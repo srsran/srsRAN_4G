@@ -95,13 +95,13 @@ SRSLTE_API void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_f_zero(float* ptr, uint32_t nsamples);
 
 /* print vectors */
-SRSLTE_API void srslte_vec_fprint_c(FILE* stream, cf_t* x, const uint32_t len);
-SRSLTE_API void srslte_vec_fprint_f(FILE* stream, float* x, const uint32_t len);
-SRSLTE_API void srslte_vec_fprint_b(FILE* stream, uint8_t* x, const uint32_t len);
-SRSLTE_API void srslte_vec_fprint_bs(FILE* stream, int8_t* x, const uint32_t len);
-SRSLTE_API void srslte_vec_fprint_byte(FILE* stream, uint8_t* x, const uint32_t len);
-SRSLTE_API void srslte_vec_fprint_i(FILE* stream, int* x, const uint32_t len);
-SRSLTE_API void srslte_vec_fprint_s(FILE* stream, short* x, const uint32_t len);
+SRSLTE_API void srslte_vec_fprint_c(FILE* stream, const cf_t* x, const uint32_t len);
+SRSLTE_API void srslte_vec_fprint_f(FILE* stream, const float* x, const uint32_t len);
+SRSLTE_API void srslte_vec_fprint_b(FILE* stream, const uint8_t* x, const uint32_t len);
+SRSLTE_API void srslte_vec_fprint_bs(FILE* stream, const int8_t* x, const uint32_t len);
+SRSLTE_API void srslte_vec_fprint_byte(FILE* stream, const uint8_t* x, const uint32_t len);
+SRSLTE_API void srslte_vec_fprint_i(FILE* stream, const int* x, const uint32_t len);
+SRSLTE_API void srslte_vec_fprint_s(FILE* stream, const int16_t* x, const uint32_t len);
 SRSLTE_API void srslte_vec_fprint_hex(FILE* stream, uint8_t* x, const uint32_t len);
 SRSLTE_API void srslte_vec_sprint_hex(char* str, const uint32_t max_str_len, uint8_t* x, const uint32_t len);
 

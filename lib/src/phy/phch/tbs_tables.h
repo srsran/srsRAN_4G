@@ -32,7 +32,7 @@ static const int ul_mcs_tbs_idx_table[29] = {0,  1,  2,  3,  4,  5,  6,  7,  8, 
                                              14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 23, 24, 25, 26};
 
 /* Transport Block Size from 3GPP TS 36.213 v12.13.0 table 7.1.7.2.1-1 */
-static const int tbs_table[34][110] = {
+static const int tbs_table[SRSLTE_RA_NOF_TBS_IDX][110] = {
     /* The matrix below is automatically generated from ETSI TS 136 213 V12.13.0 (2019-03) */
     {16,   32,   56,   88,   120,  152,  176,  208,  224,  256,  288,  328,  344,  376,  392,  424,  456,  488,  504,
      536,  568,  600,  616,  648,  680,  712,  744,  776,  776,  808,  840,  872,  904,  936,  968,  1000, 1032, 1032,

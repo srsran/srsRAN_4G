@@ -33,8 +33,6 @@
 
 #include "tbs_tables.h"
 
-#define min(a, b) (a < b ? a : b)
-
 /* Convert Type2 scheduling L_crb and RB_start to RIV value */
 uint32_t srslte_ra_type2_to_riv(uint32_t L_crb, uint32_t RB_start, uint32_t nof_prb)
 {
@@ -201,7 +199,7 @@ int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx, bool is_ul)
 /* Table 7.1.7.2.1-1: Transport block size table on 36.213 */
 int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb)
 {
-  if (tbs_idx < 34 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
+  if (tbs_idx < SRSLTE_RA_NOF_TBS_IDX && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
     return tbs_table[tbs_idx][n_prb - 1];
   } else {
     return SRSLTE_ERROR;

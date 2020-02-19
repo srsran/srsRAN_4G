@@ -19,7 +19,7 @@
  *
  */
 
-typedef _Complex float cf_t;
+#include <srslte/config.h>
 
 #define BPSK_LEVEL M_SQRT1_2
 

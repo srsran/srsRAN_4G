@@ -30,7 +30,7 @@
 
 /** Low-level API */
 
-int srslte_mod_modulate(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+int srslte_mod_modulate(const srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   uint32_t i, j, idx;
   uint8_t* b_ptr = (uint8_t*)bits;
@@ -47,7 +47,7 @@ int srslte_mod_modulate(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, u
   return j;
 }
 
-void mod_bpsk_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_bpsk_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   uint8_t mask_bpsk[8]  = {0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01};
   uint8_t shift_bpsk[8] = {7, 6, 5, 4, 3, 2, 1, 0};
@@ -60,7 +60,7 @@ void mod_bpsk_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint3
   }
 }
 
-void mod_qpsk_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_qpsk_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   uint8_t mask_qpsk[4]  = {0xc0, 0x30, 0x0c, 0x03};
   uint8_t shift_qpsk[4] = {6, 4, 2, 0};
@@ -73,7 +73,7 @@ void mod_qpsk_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint3
   }
 }
 
-void mod_16qam_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_16qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   for (int i = 0; i < nbits / 8; i++) {
     memcpy(&symbols[2 * i], &q->symbol_table_16qam[bits[i]], sizeof(qam16_packed_t));
@@ -84,7 +84,7 @@ void mod_16qam_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint
   }
 }
 
-void mod_64qam_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_64qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   uint8_t  in0, in1, in2, in3;
   uint32_t in80, in81, in82;
@@ -124,7 +124,7 @@ void mod_64qam_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint
   }
 }
 
-void mod_256qam_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+static void mod_256qam_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
   for (int i = 0; i < nbits / 8; i++) {
     symbols[i] = q->symbol_table[bits[i]];
@@ -132,12 +132,12 @@ void mod_256qam_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uin
 }
 
 /* Assumes packet bits as input */
-int srslte_mod_modulate_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+int srslte_mod_modulate_bytes(const srslte_modem_table_t* q, const uint8_t* bits, cf_t* symbols, uint32_t nbits)
 {
 
   if (!q->byte_tables_init) {
     ERROR("Error need to initiated modem tables for packeted bits before calling srslte_mod_modulate_bytes()\n");
-    return -1;
+    return SRSLTE_ERROR;
   }
   if (nbits % q->nbits_x_symbol) {
     ERROR("Error modulator expects number of bits (%d) to be multiple of %d\n", nbits, q->nbits_x_symbol);
@@ -161,7 +161,7 @@ int srslte_mod_modulate_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symb
       break;
     default:
       ERROR("srslte_mod_modulate_bytes() accepts QPSK/16QAM/64QAM modulations only\n");
-      return -1;
+      return SRSLTE_ERROR;
   }
   return nbits / q->nbits_x_symbol;
 }

@@ -62,7 +62,6 @@ typedef struct SRSLTE_API {
   bpsk_packed_t*   symbol_table_bpsk;
   qpsk_packed_t*   symbol_table_qpsk;
   qam16_packed_t*  symbol_table_16qam;
-  qam256_packed_t* symbol_table_256qam;
 } srslte_modem_table_t;
 
 SRSLTE_API void srslte_modem_table_init(srslte_modem_table_t* q);

@@ -75,6 +75,8 @@ typedef struct SRSLTE_API {
   enum { SRSLTE_RA_TYPE2_LOC = 0, SRSLTE_RA_TYPE2_DIST = 1 } mode;
 } srslte_ra_type2_t;
 
+#define SRSLTE_RA_NOF_TBS_IDX 34
+
 SRSLTE_API uint32_t srslte_ra_type0_P(uint32_t nof_prb);
 
 SRSLTE_API uint32_t srslte_ra_type2_n_vrb_dl(uint32_t nof_prb, bool ngap_is_1);
