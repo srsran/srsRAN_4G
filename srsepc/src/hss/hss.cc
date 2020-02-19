@@ -87,13 +87,6 @@ int hss::init(hss_args_t* hss_args, srslte::log_filter* hss_log)
 void hss::stop()
 {
   write_db_file(db_file);
-  std::map<uint64_t, hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
-  while (it != m_imsi_to_ue_ctx.end()) {
-    m_hss_log->info("Deleting UE context in HSS. IMSI: %015" PRIu64 "\n", it->second->imsi);
-    m_hss_log->console("Deleting UE context in HSS. IMSI: %015" PRIu64 "\n", it->second->imsi);
-    delete it->second;
-    m_imsi_to_ue_ctx.erase(it++);
-  }
   return;
 }
 
@@ -223,7 +216,7 @@ bool hss::write_db_file(std::string db_filename)
             << "#                                                                                           \n"
             << "# Note: Lines starting by '#' are ignored and will be overwritten                           \n";
 
-  std::map<uint64_t, hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
+  std::map<uint64_t, std::unique_ptr<hss_ue_ctx_t> >::iterator it = m_imsi_to_ue_ctx.begin();
   while (it != m_imsi_to_ue_ctx.end()) {
     m_db_file << it->second->name;
     m_db_file << ",";
@@ -435,13 +428,13 @@ bool hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t* k_asme, uint8_t* autn
 
 bool hss::gen_update_loc_answer(uint64_t imsi, uint8_t* qci)
 {
-  std::map<uint64_t, hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
+  std::map<uint64_t, std::unique_ptr<hss_ue_ctx_t> >::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if (ue_ctx_it == m_imsi_to_ue_ctx.end()) {
     m_hss_log->info("User not found. IMSI: %015" PRIu64 "\n", imsi);
     m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
     return false;
   }
-  hss_ue_ctx_t* ue_ctx = ue_ctx_it->second;
+  const std::unique_ptr<hss_ue_ctx_t>& ue_ctx = ue_ctx_it->second;
   m_hss_log->info("Found User %015" PRIu64 "\n", imsi);
   *qci = ue_ctx->qci;
   return true;
@@ -449,13 +442,13 @@ bool hss::gen_update_loc_answer(uint64_t imsi, uint8_t* qci)
 
 bool hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* opc, uint8_t* sqn)
 {
-  std::map<uint64_t, hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
+  std::map<uint64_t, std::unique_ptr<hss_ue_ctx_t> >::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if (ue_ctx_it == m_imsi_to_ue_ctx.end()) {
     m_hss_log->info("User not found. IMSI: %015" PRIu64 "\n", imsi);
     m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
     return false;
   }
-  hss_ue_ctx_t* ue_ctx = ue_ctx_it->second;
+  const std::unique_ptr<hss_ue_ctx_t>& ue_ctx = ue_ctx_it->second;
   m_hss_log->info("Found User %015" PRIu64 "\n", imsi);
   memcpy(k, ue_ctx->key, 16);
   memcpy(amf, ue_ctx->amf, 2);
@@ -670,9 +663,9 @@ void hss::gen_rand(uint8_t rand_[16])
   return;
 }
 
-bool hss::get_ue_ctx(uint64_t imsi, hss_ue_ctx_t** ue_ctx)
+const std::unique_ptr<hss_ue_ctx_t>& hss::get_ue_ctx(uint64_t imsi)
 {
-  std::map<uint64_t, hss_ue_ctx_t*>::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
+  std::map<uint64_t, std::unique_ptr<hss_ue_ctx_t> >::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if (ue_ctx_it == m_imsi_to_ue_ctx.end()) {
     m_hss_log->info("User not found. IMSI: %015" PRIu64 "\n", imsi);
     return false;
