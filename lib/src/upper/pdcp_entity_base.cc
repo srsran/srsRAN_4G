@@ -255,10 +255,13 @@ uint32_t pdcp_entity_base::read_data_header(const unique_byte_buffer_t& pdu)
       log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);
   }
 
-  // Discard header
+  return rcvd_sn_32;
+}
+
+void pdcp_entity_base::discard_data_header(const unique_byte_buffer_t& pdu)
+{
   pdu->msg += cfg.hdr_len_bytes;
   pdu->N_bytes -= cfg.hdr_len_bytes;
-  return rcvd_sn_32;
 }
 
 void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count)

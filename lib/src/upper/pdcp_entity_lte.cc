@@ -172,7 +172,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rrc->get_rb_name(lcid).c_str());
 
   // Read recvd SN from header
-  uint32_t sn = SN(pdu->msg[0]); 
+  uint32_t sn = read_data_header(pdu); 
 
   log->debug("RX SRB PDU. Next_PDCP_RX_SN %d, SN %d", next_pdcp_rx_sn, sn);
 
@@ -186,7 +186,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
  
   // Perform decription  
   if (do_encryption) {
-    cipher_decrypt(&pdu->msg[1], pdu->N_bytes - 1, count, pdu->msg);
+    cipher_decrypt(&pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, count, &pdu->msg[cfg.hdr_len_bytes]);
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
 
@@ -203,7 +203,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   }
 
   // Discard header
-  pdu->msg++;
+  discard_data_header(pdu);
 
   // Update state variables
   if (sn < next_pdcp_rx_sn) {
@@ -226,6 +226,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
 void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
 {
   uint32_t sn = read_data_header(pdu);
+  discard_data_header(pdu);
 
   if (sn < next_pdcp_rx_sn) {
     rx_hfn++;
@@ -253,6 +254,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
 void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 {
   uint32_t sn = read_data_header(pdu);
+  discard_data_header(pdu);
 
   int32_t last_submit_diff_sn     = last_submitted_pdcp_rx_sn - sn;
   int32_t sn_diff_last_submit     = sn - last_submitted_pdcp_rx_sn;

@@ -124,6 +124,7 @@ protected:
 
   // Common packing functions
   uint32_t read_data_header(const unique_byte_buffer_t& pdu);
+  void     discard_data_header(const unique_byte_buffer_t& pdu);
   void     write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count);
   void     extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac);
   void     append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
