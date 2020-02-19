@@ -172,19 +172,19 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rrc->get_rb_name(lcid).c_str());
 
   // Read recvd SN from header
-  uint32_t sn = read_data_header(pdu); 
+  uint32_t sn = read_data_header(pdu);
 
   log->debug("RX SRB PDU. Next_PDCP_RX_SN %d, SN %d", next_pdcp_rx_sn, sn);
 
   // Estimate COUNT for integrity check and decryption
   uint32_t count;
-  if (sn < next_pdcp_rx_sn){
+  if (sn < next_pdcp_rx_sn) {
     count = COUNT(rx_hfn + 1, sn);
   } else {
     count = COUNT(rx_hfn, sn);
   }
- 
-  // Perform decription  
+
+  // Perform decription
   if (do_encryption) {
     cipher_decrypt(&pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, count, &pdu->msg[cfg.hdr_len_bytes]);
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());

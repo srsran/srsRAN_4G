@@ -244,8 +244,8 @@ int main(int argc, char** argv)
   int                ret                        = SRSLTE_ERROR;
   radio*             radio_h[SRSLTE_MAX_RADIOS] = {NULL};
   srslte_timestamp_t ts_prev[SRSLTE_MAX_RADIOS], ts_rx[SRSLTE_MAX_RADIOS], ts_tx;
-  uint32_t           nof_gaps      = 0;
-  char               filename[256] = {};
+  uint32_t           nof_gaps                    = 0;
+  char               filename[256]               = {};
   srslte_filesink_t  filesink[SRSLTE_MAX_RADIOS] = {};
   srslte_dft_plan_t  dft_plan = {}, idft_plan = {};
   srslte_agc_t       agc[SRSLTE_MAX_RADIOS] = {};

@@ -59,10 +59,10 @@ typedef struct {
 } rf_zmq_tx_t;
 
 typedef struct {
-  char                id[ZMQ_ID_STRLEN];
-  uint32_t            socket_type;
-  rf_zmq_format_t     sample_format;
-  void*               sock;
+  char            id[ZMQ_ID_STRLEN];
+  uint32_t        socket_type;
+  rf_zmq_format_t sample_format;
+  void*           sock;
 #if ZMQ_MONITOR
   void* socket_monitor;
   bool  tx_connected;
@@ -75,7 +75,7 @@ typedef struct {
   cf_t*               temp_buffer;
   void*               temp_buffer_convert;
   uint32_t            frequency_mhz;
-  bool fail_on_disconnect;
+  bool                fail_on_disconnect;
 } rf_zmq_rx_t;
 
 typedef struct {

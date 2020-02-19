@@ -19,8 +19,8 @@
  *
  */
 
-#include <stdbool.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "srslte/config.h"
 #include "srslte/phy/rf/rf.h"

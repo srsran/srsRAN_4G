@@ -277,7 +277,7 @@ void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu
   // Add SN
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_5:
-      sdu->msg[0] = SN(count); // Data PDU and SN LEN 5 implies SRB, D flag must not be present 
+      sdu->msg[0] = SN(count); // Data PDU and SN LEN 5 implies SRB, D flag must not be present
       break;
     case PDCP_SN_LEN_12:
       srslte::uint16_to_uint8(SN(count), sdu->msg);

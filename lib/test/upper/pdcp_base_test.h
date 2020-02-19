@@ -109,10 +109,10 @@ public:
 
   std::string get_rb_name(uint32_t lcid) { return "None"; }
 
-  srslte::log*                 log;
+  srslte::log* log;
 
   // Members for testing
-  uint32_t rx_count = 0;
+  uint32_t                     rx_count = 0;
   srslte::unique_byte_buffer_t last_pdu;
 
   // Methods for testing

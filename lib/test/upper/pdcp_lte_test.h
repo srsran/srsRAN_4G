@@ -89,16 +89,16 @@ public:
   void set_pdcp_initial_state(pdcp_lte_initial_state init_state)
   {
 
-    pdcp.set_tx_count(init_state.tx_count); 
+    pdcp.set_tx_count(init_state.tx_count);
     pdcp.set_rx_hfn(init_state.rx_hfn);
     pdcp.set_next_pdcp_rx_sn(init_state.next_pdcp_rx_sn);
     pdcp.set_last_submitted_pdcp_rx_sn(init_state.last_submitted_pdcp_rx_sn);
   }
 
-  rlc_dummy              rlc;
-  rrc_dummy              rrc;
-  gw_dummy               gw;
-  srslte::timer_handler  timers;
+  rlc_dummy               rlc;
+  rrc_dummy               rrc;
+  gw_dummy                gw;
+  srslte::timer_handler   timers;
   srslte::pdcp_entity_lte pdcp;
 };
 

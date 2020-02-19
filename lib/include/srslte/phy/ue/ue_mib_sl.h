@@ -49,15 +49,15 @@ typedef struct SRSLTE_API {
 
 } srslte_ue_mib_sl_t;
 
-int  srslte_ue_mib_sl_set(srslte_ue_mib_sl_t* q,
-                           uint32_t            nof_prb,
-                           uint32_t            tdd_config,
-                           uint32_t            direct_frame_number,
-                           uint32_t            direct_subframe_number,
-                           bool                in_coverage);
+int srslte_ue_mib_sl_set(srslte_ue_mib_sl_t* q,
+                         uint32_t            nof_prb,
+                         uint32_t            tdd_config,
+                         uint32_t            direct_frame_number,
+                         uint32_t            direct_subframe_number,
+                         bool                in_coverage);
 
-void srslte_ue_mib_sl_pack(srslte_ue_mib_sl_t *q, uint8_t *msg);
-void srlste_ue_mib_sl_unpack(srslte_ue_mib_sl_t *q, uint8_t *msg);
+void srslte_ue_mib_sl_pack(srslte_ue_mib_sl_t* q, uint8_t* msg);
+void srlste_ue_mib_sl_unpack(srslte_ue_mib_sl_t* q, uint8_t* msg);
 
 void srslte_ue_mib_sl_free(srslte_ue_mib_sl_t* q);
 

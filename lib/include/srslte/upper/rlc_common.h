@@ -278,7 +278,7 @@ public:
   virtual void discard_sdu(uint32_t discard_sn)                   = 0;
 
   // MAC interface
-  virtual bool     has_data()                                      = 0;
+  virtual bool     has_data() = 0;
   bool             is_suspended() { return suspended; };
   virtual uint32_t get_buffer_state()                              = 0;
   virtual int      read_pdu(uint8_t* payload, uint32_t nof_bytes)  = 0;

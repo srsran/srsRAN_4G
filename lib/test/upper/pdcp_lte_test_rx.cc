@@ -46,7 +46,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
   pdcp_lte_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
   srslte::pdcp_entity_lte* pdcp_rx   = &pdcp_hlp_rx.pdcp;
   gw_dummy*                gw_rx     = &pdcp_hlp_rx.gw;
-  rrc_dummy*               rrc_rx     = &pdcp_hlp_rx.rrc;
+  rrc_dummy*               rrc_rx    = &pdcp_hlp_rx.rrc;
   srslte::timer_handler*   timers_rx = &pdcp_hlp_rx.timers;
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
@@ -115,7 +115,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 12)
    */
   {
-    std::vector<uint32_t> test_counts(2);                     // Test two packets
+    std::vector<uint32_t> test_counts(2);                    // Test two packets
     std::iota(test_counts.begin(), test_counts.end(), 4095); // Starting at COUNT 4095
     std::vector<pdcp_test_event_t> test_pdus = gen_expected_pdus_vector(
         tst_sdu1, test_counts, srslte::PDCP_SN_LEN_12, srslte::PDCP_RB_IS_DRB, sec_cfg, pool, log);

@@ -228,7 +228,6 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
  * Packing / Unpacking Helpers
  */
 
-
 // Deliver all consecutivly associated COUNTs.
 // Update RX_NEXT after submitting to higher layers
 void pdcp_entity_nr::deliver_all_consecutive_counts()
