@@ -171,17 +171,18 @@ proc_outcome_t rrc::cell_search_proc::react(const cell_search_event_t& event)
  ***************************************************************/
 
 // Helper functions
+const uint32_t sib1_periodicity = 20;
 
 /**
  * compute "T" (aka si-Periodicity) and "n" (order of entry in schedulingInfoList).
  * @param sib_index SI index of interest
  * @param sib1 configuration of SIB1
- * @return {T, n} if successful, {0, 0} if sib_index was not found
+ * @return {T, n} if successful, {0, -1} if sib_index was not found
  */
-std::pair<uint32_t, uint32_t> compute_si_periodicity_and_idx(uint32_t sib_index, const asn1::rrc::sib_type1_s* sib1)
+std::pair<uint32_t, int32_t> compute_si_periodicity_and_idx(uint32_t sib_index, const asn1::rrc::sib_type1_s* sib1)
 {
   if (sib_index == 0) {
-    return {20, 0};
+    return {sib1_periodicity, 0};
   }
   if (sib_index == 1) {
     // SIB2 scheduling
@@ -195,7 +196,7 @@ std::pair<uint32_t, uint32_t> compute_si_periodicity_and_idx(uint32_t sib_index,
       }
     }
   }
-  return {0, 0};
+  return {0, -1};
 }
 
 /**
@@ -268,7 +269,7 @@ proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
 
   // compute the si-Periodicity and schedInfoList index
   auto ret = compute_si_periodicity_and_idx(sib_index, rrc_ptr->serving_cell->sib1ptr());
-  if (ret.first == 0) {
+  if (ret.second < 0) {
     Info("Could not find SIB%d scheduling in SIB1\n", sib_index + 1);
     return proc_outcome_t::error;
   }
@@ -308,7 +309,7 @@ void rrc::si_acquire_proc::start_si_acquire()
   rrc_ptr->mac->bcch_start_rx(si_win_start, si_win_len);
 
   // start window retry timer
-  uint32_t retry_period = (sib_index == 0) ? 20 : period * nof_sib_harq_retxs;
+  uint32_t retry_period = (sib_index == 0) ? sib1_periodicity : period * nof_sib_harq_retxs;
   si_acq_retry_timer.set(retry_period + (si_win_start - tti));
   si_acq_retry_timer.run();
 
