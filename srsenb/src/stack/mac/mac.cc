@@ -41,12 +41,6 @@ namespace srsenb {
 
 mac::mac() : last_rnti(0), rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload()
 {
-  bzero(&cell, sizeof(cell));
-  bzero(&bcch_dlsch_payload, sizeof(bcch_dlsch_payload));
-  bzero(&pcch_payload_buffer, sizeof(pcch_payload_buffer));
-  bzero(&bcch_softbuffer_tx, sizeof(bcch_softbuffer_tx));
-  bzero(&pcch_softbuffer_tx, sizeof(pcch_softbuffer_tx));
-  bzero(&rar_softbuffer_tx, sizeof(rar_softbuffer_tx));
   pthread_rwlock_init(&rwlock, nullptr);
 }
 

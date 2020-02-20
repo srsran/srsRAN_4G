@@ -84,25 +84,23 @@ public:
   int ue_rem(uint16_t rnti) override;
 
   // Indicates that the PHY config dedicated has been enabled or not
-  void phy_config_enabled(uint16_t rnti, bool enabled);
+  void phy_config_enabled(uint16_t rnti, bool enabled) override;
 
   /* Manages UE bearers and associated configuration */
-  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg);
-  int bearer_ue_rem(uint16_t rnti, uint32_t lc_id);
-  int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
+  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override;
+  int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override;
+  int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override;
 
   bool process_pdus();
 
-  uint32_t get_current_tti();
   void     get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
-  void     write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch);
+  void
+  write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override;
 
 private:
   static const int      MAX_LOCATIONS            = 20;
   static const uint32_t cfi                      = 3;
   srslte_dci_location_t locations[MAX_LOCATIONS] = {};
-
-  static const int MAC_PDU_THREAD_PRIO = 60;
 
   // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since
   // access for different TTIs
@@ -115,7 +113,7 @@ private:
   stack_interface_mac_lte* stack = nullptr;
   srslte::log*             log_h = nullptr;
 
-  srslte_cell_t cell;
+  srslte_cell_t cell = {};
   mac_args_t    args = {};
 
   bool started = false;
@@ -124,11 +122,11 @@ private:
   sched                                    scheduler;
   std::vector<sched_interface::cell_cfg_t> cell_config;
 
-  sched_interface::dl_pdu_mch_t mch;
+  sched_interface::dl_pdu_mch_t mch = {};
 
   /* Map of active UEs */
   std::map<uint16_t, ue*> ue_db;
-  uint16_t                last_rnti;
+  uint16_t                last_rnti = 0;
 
   uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
                         uint32_t                               nof_grants,
@@ -142,23 +140,23 @@ private:
   srslte::byte_buffer_t        rar_payload[sched_interface::MAX_RAR_LIST];
 
   const static int NOF_BCCH_DLSCH_MSG = sched_interface::MAX_SIBS;
-  uint8_t          bcch_dlsch_payload[sched_interface::MAX_SIB_PAYLOAD_LEN];
+  uint8_t          bcch_dlsch_payload[sched_interface::MAX_SIB_PAYLOAD_LEN] = {};
 
   const static int       pcch_payload_buffer_len = 1024;
-  uint8_t                pcch_payload_buffer[pcch_payload_buffer_len];
-  srslte_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG];
-  srslte_softbuffer_tx_t pcch_softbuffer_tx;
-  srslte_softbuffer_tx_t rar_softbuffer_tx;
+  uint8_t                pcch_payload_buffer[pcch_payload_buffer_len] = {};
+  srslte_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG]       = {};
+  srslte_softbuffer_tx_t pcch_softbuffer_tx                           = {};
+  srslte_softbuffer_tx_t rar_softbuffer_tx                            = {};
 
   const static int           mcch_payload_len = 3000; // TODO FIND OUT MAX LENGTH
-  int                        current_mcch_length;
-  uint8_t                    mcch_payload_buffer[mcch_payload_len];
+  int                        current_mcch_length                   = 0;
+  uint8_t                    mcch_payload_buffer[mcch_payload_len] = {};
   asn1::rrc::mcch_msg_s      mcch;
   asn1::rrc::sib_type2_s     sib2;
   asn1::rrc::sib_type13_r9_s sib13;
 
   const static int mtch_payload_len = 10000;
-  uint8_t          mtch_payload_buffer[mtch_payload_len];
+  uint8_t          mtch_payload_buffer[mtch_payload_len] = {};
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap = nullptr;
