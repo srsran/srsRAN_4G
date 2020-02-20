@@ -58,8 +58,69 @@ public:
   int test_dci_values_consistency(const sched_interface::dl_sched_res_t& dl_result,
                                   const sched_interface::ul_sched_res_t& ul_result) const;
 
+  int test_all(const tti_params_t&                    tti_params,
+               const sched_interface::dl_sched_res_t& dl_result,
+               const sched_interface::ul_sched_res_t& ul_result) const;
+
 private:
   const sched_cell_params_t& cell_params;
+};
+
+class user_state_sched_tester
+{
+public:
+  struct ue_state {
+    int                               prach_tti = -1, rar_tti = -1, msg3_tti = -1, msg4_tti = -1;
+    bool                              drb_cfg_flag = false;
+    srsenb::sched_interface::ue_cfg_t user_cfg;
+    uint32_t                          dl_data      = 0;
+    uint32_t                          ul_data      = 0;
+    uint32_t                          preamble_idx = 0;
+  };
+
+  explicit user_state_sched_tester(const std::vector<srsenb::sched::cell_cfg_t>& cell_params_) :
+    cell_params(cell_params_)
+  {
+  }
+
+  void            new_tti(uint32_t tti_rx) { tti_params = tti_params_t{tti_rx}; }
+  bool            user_exists(uint16_t rnti) const { return users.find(rnti) != users.end(); }
+  const ue_state* get_user_state(uint16_t rnti) const
+  {
+    return users.count(rnti) > 0 ? &users.find(rnti)->second : nullptr;
+  }
+
+  /* Register new users */
+  int add_user(uint16_t rnti, uint32_t preamble_idx, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
+  int user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
+  int bearer_cfg(uint16_t rnti, uint32_t lcid, const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg);
+
+  void rem_user(uint16_t rnti);
+
+  /* Test the timing of RAR, Msg3, Msg4 */
+  int test_ra(uint32_t                               enb_cc_idx,
+              const sched_interface::dl_sched_res_t& dl_result,
+              const sched_interface::ul_sched_res_t& ul_result);
+
+  /* Test allocs control content */
+  int test_ctrl_info(uint32_t                               enb_cc_idx,
+                     const sched_interface::dl_sched_res_t& dl_result,
+                     const sched_interface::ul_sched_res_t& ul_result);
+
+  /* Test correct activation of SCells */
+  int test_scell_activation(uint32_t                               enb_cc_idx,
+                            const sched_interface::dl_sched_res_t& dl_result,
+                            const sched_interface::ul_sched_res_t& ul_result);
+
+  int test_all(uint32_t                               enb_cc_idx,
+               const sched_interface::dl_sched_res_t& dl_result,
+               const sched_interface::ul_sched_res_t& ul_result);
+
+private:
+  const std::vector<srsenb::sched::cell_cfg_t> cell_params;
+
+  std::map<uint16_t, ue_state> users;
+  tti_params_t                 tti_params{10241};
 };
 
 } // namespace srsenb

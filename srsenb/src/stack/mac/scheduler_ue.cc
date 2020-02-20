@@ -101,7 +101,8 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
     }
 
     // update configuration
-    cfg = cfg_;
+    std::vector<sched::ue_cfg_t::cc_cfg_t> prev_supported_cc_list = std::move(cfg.supported_cc_list);
+    cfg                                                           = cfg_;
 
     // update bearer cfgs
     for (uint32_t i = 0; i < sched_interface::MAX_LC; ++i) {
@@ -110,17 +111,24 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 
     // either add a new carrier, or reconfigure existing one
     bool scell_activation_state_changed = false;
-    for (auto& cc_cfg : cfg.supported_cc_list) {
-      sched_ue_carrier* c = get_ue_carrier(cc_cfg.enb_cc_idx);
-      if (c == nullptr) {
-        // add new carrier to sched_ue
-        carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, carriers.size());
-        scell_activation_state_changed |= carriers.size() > 1 and carriers.back().is_active();
+    for (uint32_t ue_idx = 0; ue_idx < cfg.supported_cc_list.size(); ++ue_idx) {
+      auto& cc_cfg = cfg.supported_cc_list[ue_idx];
+
+      if (ue_idx >= prev_supported_cc_list.size()) {
+        // New carrier needs to be added
+        carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx);
+        scell_activation_state_changed |= ue_idx > 0 and carriers.back().is_active();
+      } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
+        // TODO: Check if this will ever happen.
+        // One carrier was added in the place of another
+        carriers[ue_idx] = sched_ue_carrier{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
+        scell_activation_state_changed |= ue_idx > 0 and carriers[ue_idx].is_active();
       } else {
-        // if SCell state changed
-        scell_activation_state_changed = c->is_active() != cc_cfg.active and c->get_ue_cc_idx() != 0;
+        // The enb_cc_idx, ue_cc_idx match previous configuration.
+        // The SCell state may have changed. In such case we will schedule a SCell Activation CE
+        scell_activation_state_changed = carriers[ue_idx].is_active() != cc_cfg.active and ue_idx > 0;
         // reconfiguration of carrier might be needed.
-        c->set_cfg(cfg);
+        carriers[ue_idx].set_cfg(cfg);
       }
     }
     if (scell_activation_state_changed) {
@@ -921,7 +929,6 @@ std::pair<bool, uint32_t> sched_ue::get_cell_index(uint32_t enb_cc_idx) const
                    cfg.supported_cc_list.end(),
                    [enb_cc_idx](const sched_interface::ue_cfg_t::cc_cfg_t& u) { return u.enb_cc_idx == enb_cc_idx; });
   if (it == cfg.supported_cc_list.end()) {
-    log_h->error("The carrier with eNB_cc_idx=%d does not exist\n", enb_cc_idx);
     return std::make_pair(false, 0);
   }
   return std::make_pair(true, it->enb_cc_idx);

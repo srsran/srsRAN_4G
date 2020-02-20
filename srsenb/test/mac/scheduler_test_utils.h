@@ -33,8 +33,8 @@
  * Setup Random generators
  **************************/
 
-uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
-// uint32_t const seed = 2452071795;
+// uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
+uint32_t const seed = 2452071795;
 // uint32_t const seed = 1581009287; // prb==25
 std::default_random_engine            rand_gen(seed);
 std::uniform_real_distribution<float> unif_dist(0, 1.0);
@@ -209,6 +209,8 @@ struct sched_sim_event_generator {
     }
     tti_ev::user_cfg_ev* user = get_user_cfg(rnti);
     user->ue_cfg.reset(new srsenb::sched_interface::ue_cfg_t{generate_default_ue_cfg()});
+    // it should by now have a DRB1. Add other DRBs manually
+    user->ue_cfg->ue_bearers[2].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
     return user;
   }
 
@@ -220,6 +222,7 @@ private:
         user_updates.begin(), user_updates.end(), [&rnti](tti_ev::user_cfg_ev& user) { return user.rnti == rnti; });
     if (it == user_updates.end()) {
       user_updates.emplace_back();
+      user_updates.back().rnti = rnti;
       return &user_updates.back();
     }
     return &(*it);
@@ -255,90 +258,5 @@ private:
     current_users.erase(rem_it, current_users.end());
   }
 };
-
-int add_user(srsenb::sched*           sched_ptr,
-             uint16_t                 rnti,
-             uint32_t                 prach_tti,
-             uint32_t                 preamble_idx,
-             uint32_t                 enb_cc_idx,
-             srsenb::sched::ue_cfg_t& ue_cfg)
-{
-  CONDERROR(sched_ptr->ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
-
-  srsenb::sched::dl_sched_rar_info_t rar_info = {};
-  rar_info.prach_tti                          = prach_tti;
-  rar_info.temp_crnti                         = rnti;
-  rar_info.msg3_size                          = 7;
-  rar_info.preamble_idx                       = preamble_idx;
-  sched_ptr->dl_rach_info(enb_cc_idx, rar_info);
-
-  //  // setup bearers
-  //  bearer_ue_cfg(rnti, 0, &bearer_cfg);
-
-  srslte::logmap::get("TEST")->info("Adding user rnti=0x%x\n", rnti);
-
-  return SRSLTE_SUCCESS;
-}
-
-int apply_tti_events(srsenb::sched* sched_ptr, uint32_t tti, const tti_ev& events)
-{
-  uint32_t prach_preamble_idx = 0;
-  uint32_t enb_cc_idx         = 0; // TODO: Users can connect from any carrier
-  for (const tti_ev::user_cfg_ev& user_ev : events.user_updates) {
-    // may add a new user
-    if (user_ev.ue_cfg != nullptr) {
-      add_user(sched_ptr, user_ev.rnti, tti, prach_preamble_idx++, enb_cc_idx, *user_ev.ue_cfg);
-    }
-
-    // may remove an existing user
-    if (user_ev.rem_user) {
-      sched_ptr->bearer_ue_rem(user_ev.rnti, 0);
-      sched_ptr->ue_rem(user_ev.rnti);
-      srslte::logmap::get("TEST")->info("Adding user rnti=0x%x\n", user_ev.rnti);
-    }
-
-    // push UL SRs and DL packets
-  }
-
-  //  // may remove an existing user
-  //  if (sim_args.tti_events[tti_data.tti_rx].rem_user) {
-  //    uint16_t rnti = sim_args.tti_events[tti_data.tti_rx].rem_rnti;
-  //    bearer_ue_rem(rnti, 0);
-  //    ue_rem(rnti);
-  //    rem_user(rnti);
-  //    log_global->info("[TESTER] Removing user rnti=0x%x\n", rnti);
-  //  }
-  //
-  //  // push UL SRs and DL packets
-  //  for (auto& e : sim_args.tti_events[tti_data.tti_rx].users) {
-  //    if (e.second.sr_data > 0 and tester_ues[e.first].drb_cfg_flag) {
-  //      uint32_t tot_ul_data = ue_db[e.first].get_pending_ul_new_data(tti_data.tti_tx_ul) + e.second.sr_data;
-  //      uint32_t lcid        = 0;
-  //      ul_bsr(e.first, lcid, tot_ul_data, true);
-  //    }
-  //    if (e.second.dl_data > 0 and tester_ues[e.first].msg3_tti >= 0 and
-  //        tester_ues[e.first].msg3_tti < (int)tti_data.tti_rx) {
-  //      // If Msg4 not yet sent, allocate data in SRB0 buffer
-  //      uint32_t lcid                = (tester_ues[e.first].msg4_tti >= 0) ? 2 : 0;
-  //      uint32_t pending_dl_new_data = ue_db[e.first].get_pending_dl_new_data();
-  //      if (lcid == 2 and not tester_ues[e.first].drb_cfg_flag) {
-  //        // If RRCSetup finished
-  //        if (pending_dl_new_data == 0) {
-  //          // setup lcid==2 bearer
-  //          tester_ues[e.first].drb_cfg_flag = true;
-  //          bearer_ue_cfg(e.first, 2, &tester_ues[e.first].bearer_cfg);
-  //        } else {
-  //          // Let SRB0 get emptied
-  //          continue;
-  //        }
-  //      }
-  //      // TODO: Does it need TTI for checking pending data?
-  //      uint32_t tot_dl_data = pending_dl_new_data + e.second.dl_data;
-  //      dl_rlc_buffer_state(e.first, lcid, tot_dl_data, 0);
-  //    }
-  //  }
-
-  return SRSLTE_SUCCESS;
-}
 
 #endif // SRSLTE_SCHEDULER_TEST_UTILS_H

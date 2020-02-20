@@ -793,9 +793,10 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
     }
 
     // Print Resulting DL Allocation
-    log_h->info("SCHED: DL %s rnti=0x%x, pid=%d, mask=0x%s, dci=(%d,%d), n_rtx=%d, tbs=%d, buffer=%d/%d\n",
+    log_h->info("SCHED: DL %s rnti=0x%x, cc=%d, pid=%d, mask=0x%s, dci=(%d,%d), n_rtx=%d, tbs=%d, buffer=%d/%d\n",
                 !is_newtx ? "retx" : "tx",
                 user->get_rnti(),
+                cc_cfg->enb_cc_idx,
                 h->get_id(),
                 data_alloc.user_mask.to_hex().c_str(),
                 data->dci.location.L,
