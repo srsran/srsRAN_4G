@@ -26,6 +26,7 @@
 #include <linux/ip.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <stdio.h>
 
 using namespace srslte;
 namespace srsenb {
@@ -47,6 +48,8 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
   mme_addr      = mme_addr_;
   pool          = byte_buffer_pool::get_instance();
   stack         = stack_;
+
+  char errbuf[128];
 
   // Set up socket
   fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -71,8 +74,9 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
   bindaddr.sin_port        = htons(GTPU_PORT);
 
   if (bind(fd, (struct sockaddr*)&bindaddr, sizeof(struct sockaddr_in))) {
-    gtpu_log->error("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
-    gtpu_log->console("Failed to bind on address %s, port %d\n", gtp_bind_addr.c_str(), GTPU_PORT);
+    snprintf(errbuf, sizeof(errbuf), "%s", strerror(errno));
+    gtpu_log->error("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), GTPU_PORT, errbuf);
+    gtpu_log->console("Failed to bind on address %s, port %d: %s\n", gtp_bind_addr.c_str(), GTPU_PORT, errbuf);
     return false;
   }
 
