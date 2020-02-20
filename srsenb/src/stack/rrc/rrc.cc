@@ -957,17 +957,9 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
   mac->write_mcch(sib2_, sib13_, &mcch);
 }
 
-void rrc::configure_security(uint16_t                            rnti,
-                             uint32_t                            lcid,
-                             uint8_t*                            k_rrc_enc,
-                             uint8_t*                            k_rrc_int,
-                             uint8_t*                            k_up_enc,
-                             uint8_t*                            k_up_int,
-                             srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                             srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+void rrc::configure_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg)
 {
-  // TODO: add k_up_enc, k_up_int support to PDCP
-  pdcp->config_security(rnti, lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+  pdcp->config_security(rnti, lcid, sec_cfg);
 }
 
 void rrc::enable_integrity(uint16_t rnti, uint32_t lcid)
@@ -1053,8 +1045,6 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 {
   activity_timer = outer_rrc->timers->get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
-  integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
-  cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
   mobility_handler.reset(new rrc_mobility(this));
 
   // Configure
@@ -1374,21 +1364,23 @@ void rrc::ue::set_security_key(const asn1::fixed_bitstring<256, false, true>& ke
   // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences
   select_security_algorithms();
 
-  parent->rrc_log->info("Selected security algorithms EEA: EEA%d EIA: EIA%d\n", cipher_algo, integ_algo);
+  parent->rrc_log->info("Selected security algorithms EEA: EEA%d EIA: EIA%d\n", sec_cfg.cipher_algo, sec_cfg.integ_algo);
 
   // Generate K_rrc_enc and K_rrc_int
-  srslte::security_generate_k_rrc(k_enb, cipher_algo, integ_algo, k_rrc_enc, k_rrc_int);
+  srslte::security_generate_k_rrc(
+      k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_rrc_enc.data(), sec_cfg.k_rrc_int.data());
 
   // Generate K_up_enc and K_up_int
-  security_generate_k_up(k_enb, cipher_algo, integ_algo, k_up_enc, k_up_int);
+  security_generate_k_up(
+      k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_up_enc.data(), sec_cfg.k_up_int.data());
 
-  parent->configure_security(rnti, RB_ID_SRB1, k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
+  parent->configure_security(rnti, RB_ID_SRB1, sec_cfg);
 
   parent->enable_integrity(rnti, RB_ID_SRB1);
 
-  parent->rrc_log->info_hex(k_rrc_enc, 32, "RRC Encryption Key (k_rrc_enc)");
-  parent->rrc_log->info_hex(k_rrc_int, 32, "RRC Integrity Key (k_rrc_int)");
-  parent->rrc_log->info_hex(k_up_enc, 32, "UP Encryption Key (k_up_enc)");
+  parent->rrc_log->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC Encryption Key (k_rrc_enc)");
+  parent->rrc_log->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC Integrity Key (k_rrc_int)");
+  parent->rrc_log->info_hex(sec_cfg.k_up_enc.data(), 32, "UP Encryption Key (k_up_enc)");
 }
 
 bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e)
@@ -1966,7 +1958,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 
   // Configure SRB2 in PDCP
   parent->pdcp->add_bearer(rnti, 2, srslte::make_srb_pdcp_config_t(2, false));
-  parent->pdcp->config_security(rnti, 2, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+  parent->pdcp->config_security(rnti, 2, sec_cfg);
   parent->pdcp->enable_integrity(rnti, 2);
   parent->pdcp->enable_encryption(rnti, 2);
 
@@ -1982,7 +1974,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     }
   }
   parent->pdcp->add_bearer(rnti, 3, pdcp_cnfg_drb);
-  parent->pdcp->config_security(rnti, 3, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+  parent->pdcp->config_security(rnti, 3, sec_cfg);
   parent->pdcp->enable_integrity(rnti, 3);
   parent->pdcp->enable_encryption(rnti, 3);
   // DRB1 has already been configured in GTPU through bearer setup
@@ -2083,9 +2075,9 @@ void rrc::ue::send_security_mode_command()
   // TODO: select these based on UE capabilities and preference order
   comm->crit_exts.set_c1().set_security_mode_cmd_r8();
   comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg.ciphering_algorithm =
-      (ciphering_algorithm_r12_e::options)cipher_algo;
+      (ciphering_algorithm_r12_e::options)sec_cfg.cipher_algo;
   comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm =
-      (security_algorithm_cfg_s::integrity_prot_algorithm_e_::options)integ_algo;
+      (security_algorithm_cfg_s::integrity_prot_algorithm_e_::options)sec_cfg.integ_algo;
   last_security_mode_cmd = comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg;
 
   send_dl_dcch(&dl_dcch_msg);
@@ -2136,15 +2128,15 @@ bool rrc::ue::select_security_algorithms()
         // “all bits equal to 0” – UE supports no other algorithm than EEA0,
         // specification does not cover the case in which EEA0 is supported with other algorithms
         // just assume that EEA0 is always supported even this can not be explicity signaled by S1AP
-        cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-        enc_algo_found = true;
+        sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+        enc_algo_found      = true;
         parent->rrc_log->info("Selected EEA0 as RRC encryption algorithm\n");
         break;
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
         // “first bit” – 128-EEA1,
         if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA1)) {
-          cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
-          enc_algo_found = true;
+          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+          enc_algo_found      = true;
           parent->rrc_log->info("Selected EEA1 as RRC encryption algorithm\n");
           break;
         } else {
@@ -2154,8 +2146,8 @@ bool rrc::ue::select_security_algorithms()
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
         // “second bit” – 128-EEA2,
         if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA2)) {
-          cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
-          enc_algo_found = true;
+          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+          enc_algo_found      = true;
           parent->rrc_log->info("Selected EEA2 as RRC encryption algorithm\n");
           break;
         } else {
@@ -2165,8 +2157,8 @@ bool rrc::ue::select_security_algorithms()
       case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
         // “third bit” – 128-EEA3,
         if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA3)) {
-          cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
-          enc_algo_found = true;
+          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
+          enc_algo_found      = true;
           parent->rrc_log->info("Selected EEA3 as RRC encryption algorithm\n");
           break;
         } else {
@@ -2192,8 +2184,8 @@ bool rrc::ue::select_security_algorithms()
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
         // “first bit” – 128-EIA1,
         if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
-          integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
-          integ_algo_found = true;
+          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+          integ_algo_found   = true;
           parent->rrc_log->info("Selected EIA1 as RRC integrity algorithm.\n");
         } else {
           parent->rrc_log->info("Failed to selected EIA1 as RRC encryption algorithm, due to unsupported algorithm\n");
@@ -2202,8 +2194,8 @@ bool rrc::ue::select_security_algorithms()
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
         // “second bit” – 128-EIA2,
         if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
-          integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
-          integ_algo_found = true;
+          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+          integ_algo_found   = true;
           parent->rrc_log->info("Selected EIA2 as RRC integrity algorithm.\n");
         } else {
           parent->rrc_log->info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm\n");
@@ -2212,7 +2204,7 @@ bool rrc::ue::select_security_algorithms()
       case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
         // “third bit” – 128-EIA3,
         if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
-          integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
+          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
           integ_algo_found = true;
           parent->rrc_log->info("Selected EIA3 as RRC integrity algorithm.\n");
         } else {

@@ -61,24 +61,8 @@ public:
                          srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
   // RRC interface
-  void generate_as_keys(uint8_t*                            k_asme,
-                        uint32_t                            count_ul,
-                        uint8_t*                            k_rrc_enc,
-                        uint8_t*                            k_rrc_int,
-                        uint8_t*                            k_up_enc,
-                        uint8_t*                            k_up_int,
-                        srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
-
-  void generate_as_keys_ho(uint32_t                            pci,
-                           uint32_t                            earfcn,
-                           int                                 ncc,
-                           uint8_t*                            k_rrc_enc,
-                           uint8_t*                            k_rrc_int,
-                           uint8_t*                            k_up_enc,
-                           uint8_t*                            k_up_int,
-                           srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                           srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg);
+  void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg);
 
 private:
   auth_result_t gen_auth_res_milenage(uint8_t* rand,

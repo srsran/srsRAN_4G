@@ -22,7 +22,7 @@
 #ifndef SRSLTE_RRC_ASN1_UTILS_H
 #define SRSLTE_RRC_ASN1_UTILS_H
 
-#include "srslte/common/interfaces_common.h"
+#include "srslte/upper/pdcp_config.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
 

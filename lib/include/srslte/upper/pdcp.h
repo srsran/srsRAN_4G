@@ -50,17 +50,8 @@ public:
   void add_bearer_mrb(uint32_t lcid, pdcp_config_t cnfg);
   void del_bearer(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
-  void config_security(uint32_t                    lcid,
-                       uint8_t*                    k_rrc_enc,
-                       uint8_t*                    k_rrc_int,
-                       uint8_t*                    k_up_enc,
-                       CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                       INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
-  void config_security_all(uint8_t*                    k_rrc_enc,
-                           uint8_t*                    k_rrc_int,
-                           uint8_t*                    k_up_enc,
-                           CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                           INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  void config_security(uint32_t lcid, as_security_config_t sec_cfg);
+  void config_security_all(as_security_config_t sec_cfg);
   void enable_integrity(uint32_t lcid, srslte_direction_t direction);
   void enable_encryption(uint32_t lcid, srslte_direction_t direction);
   bool get_bearer_status(uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn);

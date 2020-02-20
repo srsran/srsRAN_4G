@@ -29,6 +29,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
+#include "srslte/upper/pdcp_config.h"
 #include <mutex>
 
 namespace srslte {
@@ -97,12 +98,7 @@ public:
     }
   }
 
-  void config_security(uint8_t*                    k_rrc_enc_,
-                       uint8_t*                    k_rrc_int_,
-                       uint8_t*                    k_up_enc_,
-                       uint8_t*                    k_up_int_, // NR Only, pass nullptr in LTE
-                       CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                       INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
+  void config_security(as_security_config_t sec_cfg_);
 
   // GW/SDAP/RRC interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
@@ -134,13 +130,7 @@ protected:
 
   std::mutex mutex;
 
-  uint8_t k_rrc_enc[32] = {};
-  uint8_t k_rrc_int[32] = {};
-  uint8_t k_up_enc[32]  = {};
-  uint8_t k_up_int[32]  = {};
-
-  CIPHERING_ALGORITHM_ID_ENUM cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
-  INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = INTEGRITY_ALGORITHM_ID_EIA0;
+  srslte::as_security_config_t sec_cfg = {};
 
   // Security functions
   void integrity_generate(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac);

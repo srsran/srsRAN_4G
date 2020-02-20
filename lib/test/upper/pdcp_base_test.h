@@ -22,6 +22,7 @@
 #ifndef SRSLTE_PDCP_BASE_TEST_H
 #define SRSLTE_PDCP_BASE_TEST_H
 
+#include "srslte/upper/pdcp_config.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/security.h"
@@ -35,18 +36,6 @@ int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::
   TESTASSERT(memcmp(msg1->msg, msg2->msg, msg1->N_bytes) == 0);
   return 0;
 }
-
-/*
- * Definition of helpful structs for testing
- */
-struct pdcp_security_cfg {
-  uint8_t*                            k_int_rrc;
-  uint8_t*                            k_enc_rrc;
-  uint8_t*                            k_int_up;
-  uint8_t*                            k_enc_up;
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM int_algo;
-  srslte::CIPHERING_ALGORITHM_ID_ENUM enc_algo;
-};
 
 /*
  * Dummy classes

@@ -1037,11 +1037,12 @@ public:
                             const ttcn3_helpers::pdcp_count_map_t     bearers)
   {
     // store security config for later use (i.e. new bearer added)
-    k_rrc_enc   = k_rrc_enc_;
-    k_rrc_int   = k_rrc_int_;
-    k_up_enc    = k_up_enc_;
-    cipher_algo = cipher_algo_;
-    integ_algo  = integ_algo_;
+    sec_cfg = {.k_rrc_int   = k_rrc_int_,
+               .k_rrc_enc   = k_rrc_enc_,
+               .k_up_int    = {},
+               .k_up_enc    = k_up_enc_,
+               .integ_algo  = integ_algo_,
+               .cipher_algo = cipher_algo_};
 
     // try to apply security config on bearers
     pending_bearer_config = try_set_pdcp_security(bearers);
@@ -1072,8 +1073,7 @@ public:
         // make sure the current DL SN value match
         if (lcid.dl_value == dl_sn) {
           log.info("Setting AS security for LCID=%d in DL direction\n", lcid.rb_id);
-          pdcp.config_security(
-              lcid.rb_id, k_rrc_enc.data(), k_rrc_int.data(), k_up_enc.data(), cipher_algo, integ_algo);
+          pdcp.config_security(lcid.rb_id, sec_cfg);
           pdcp.enable_integrity(lcid.rb_id, DIRECTION_TX);
           pdcp.enable_encryption(lcid.rb_id, DIRECTION_TX);
           lcid.dl_value_valid = false;
@@ -1088,8 +1088,7 @@ public:
         // Check UL count
         if (lcid.ul_value == ul_sn) {
           log.info("Setting AS security for LCID=%d in UL direction\n", lcid.rb_id);
-          pdcp.config_security(
-              lcid.rb_id, k_rrc_enc.data(), k_rrc_int.data(), k_up_enc.data(), cipher_algo, integ_algo);
+          pdcp.config_security(lcid.rb_id, sec_cfg);
           pdcp.enable_integrity(lcid.rb_id, DIRECTION_RX);
           pdcp.enable_encryption(lcid.rb_id, DIRECTION_RX);
           lcid.ul_value_valid = false;
@@ -1245,12 +1244,8 @@ private:
   std::map<uint32_t, bool> bearer_follow_on_map; ///< Indicates if for a given LCID the follow_on_flag is set or not
 
   // security config
-  ttcn3_helpers::pdcp_count_map_t     pending_bearer_config; ///< List of bearers with pending security configuration
-  std::array<uint8_t, 32>             k_rrc_enc;
-  std::array<uint8_t, 32>             k_rrc_int;
-  std::array<uint8_t, 32>             k_up_enc;
-  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = INTEGRITY_ALGORITHM_ID_EIA0;
+  ttcn3_helpers::pdcp_count_map_t pending_bearer_config; ///< List of bearers with pending security configuration
+  srslte::as_security_config_t    sec_cfg;
 
   std::vector<std::string> rb_id_vec =
       {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};

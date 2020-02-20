@@ -401,13 +401,7 @@ private:
   bool                        pending_mob_reconf = false;
   asn1::rrc::rrc_conn_recfg_s mob_reconf         = {};
 
-  uint8_t k_rrc_enc[32] = {};
-  uint8_t k_rrc_int[32] = {};
-  uint8_t k_up_enc[32]  = {};
-  uint8_t k_up_int[32]  = {}; // Not used: only for relay nodes (3GPP 33.401 Annex A.7)
-
-  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+  srslte::as_security_config_t sec_cfg = {};
 
   std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
   std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;

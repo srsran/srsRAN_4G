@@ -112,16 +112,17 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 
     write_data_header(sdu, tx_count);
 
+    // Append MAC (SRBs only)
     uint8_t mac[4] = {};
-    if (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX) {
+    bool do_integrity = integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX;
+    if (do_integrity && is_srb()) { 
       integrity_generate(sdu->msg, sdu->N_bytes, tx_count, mac);
     }
 
-    // Append MAC-I
     if (is_srb()) {
       append_mac(sdu, mac);
     }
-
+ 
     if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
       cipher_encrypt(
           &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);

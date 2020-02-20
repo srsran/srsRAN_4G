@@ -38,6 +38,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/interfaces/rrc_interface_types.h"
+#include "srslte/upper/pdcp_config.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/upper/pdcp_entity_base.h"
@@ -73,23 +74,8 @@ public:
 class usim_interface_rrc
 {
 public:
-  virtual void generate_as_keys(uint8_t*                            k_asme,
-                                uint32_t                            count_ul,
-                                uint8_t*                            k_rrc_enc,
-                                uint8_t*                            k_rrc_int,
-                                uint8_t*                            k_up_enc,
-                                uint8_t*                            k_up_int,
-                                srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)    = 0;
-  virtual void generate_as_keys_ho(uint32_t                            pci,
-                                   uint32_t                            earfcn,
-                                   int                                 ncc,
-                                   uint8_t*                            k_rrc_enc,
-                                   uint8_t*                            k_rrc_int,
-                                   uint8_t*                            k_up_enc,
-                                   uint8_t*                            k_up_int,
-                                   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
+  virtual void generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg)        = 0;
+  virtual void generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg) = 0;
 };
 
 // GW interface for NAS
@@ -234,17 +220,8 @@ public:
   virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)                            = 0;
   virtual void add_bearer(uint32_t lcid, srslte::pdcp_config_t cnfg)                                                = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                                    = 0;
-  virtual void config_security(uint32_t                            lcid,
-                               uint8_t*                            k_rrc_enc_,
-                               uint8_t*                            k_rrc_int_,
-                               uint8_t*                            k_up_enc_,
-                               srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                               srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)                                     = 0;
-  virtual void config_security_all(uint8_t*                            k_rrc_enc_,
-                                   uint8_t*                            k_rrc_int_,
-                                   uint8_t*                            k_up_enc_,
-                                   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                                   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)                                 = 0;
+  virtual void config_security(uint32_t lcid, srslte::as_security_config_t sec_cfg)                                    = 0;
+  virtual void config_security_all(srslte::as_security_config_t sec_cfg)                                               = 0;
   virtual void enable_integrity(uint32_t lcid, srslte::srslte_direction_t direction)                                = 0;
   virtual void enable_encryption(uint32_t                   lcid,
                                  srslte::srslte_direction_t direction = srslte::srslte_direction_t::DIRECTION_TXRX) = 0;

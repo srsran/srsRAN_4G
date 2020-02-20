@@ -289,13 +289,7 @@ public:
     std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
     uint8_t k_enb[32]; // Provided by MME
-    uint8_t k_rrc_enc[32];
-    uint8_t k_rrc_int[32];
-    uint8_t k_up_enc[32];
-    uint8_t k_up_int[32]; // Not used: only for relay nodes (3GPP 33.401 Annex A.7)
-
-    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+    srslte::as_security_config_t sec_cfg = {};
 
     asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
     asn1::s1ap::ue_security_cap_s              security_capabilities;
@@ -380,14 +374,7 @@ private:
   void config_mac();
   void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
-  void configure_security(uint16_t                            rnti,
-                          uint32_t                            lcid,
-                          uint8_t*                            k_rrc_enc,
-                          uint8_t*                            k_rrc_int,
-                          uint8_t*                            k_up_enc,
-                          uint8_t*                            k_up_int,
-                          srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                          srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  void configure_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg);
   void enable_integrity(uint16_t rnti, uint32_t lcid);
   void enable_encryption(uint16_t rnti, uint32_t lcid);
 

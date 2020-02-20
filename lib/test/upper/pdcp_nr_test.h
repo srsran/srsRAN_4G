@@ -43,13 +43,15 @@ struct pdcp_test_event_t {
  * Constant definitions that are common to multiple tests
  */
 // Encryption and Integrity Keys
-uint8_t k_int[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
-                   0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
-uint8_t k_enc[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
-                   0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
+std::array<uint8_t, 32> k_int = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
+                                 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x20, 0x21,
+                                 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
+std::array<uint8_t, 32> k_enc = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
+                                 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x20, 0x21,
+                                 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
 
 // Security Configuration, common to all tests.
-pdcp_security_cfg sec_cfg = {
+srslte::as_security_config_t sec_cfg = {
     k_int,
     k_enc,
     k_int,
@@ -93,7 +95,7 @@ pdcp_initial_state near_wraparound_init_state = {.tx_next  = 4294967295,
 class pdcp_nr_test_helper
 {
 public:
-  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, pdcp_security_cfg sec_cfg, srslte::log* log) :
+  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg, srslte::log* log) :
     rlc(log),
     rrc(log),
     gw(log),
@@ -101,8 +103,7 @@ public:
     pdcp(&rlc, &rrc, &gw, &timers, log)
   {
     pdcp.init(0, cfg);
-    pdcp.config_security(
-        sec_cfg.k_enc_rrc, sec_cfg.k_int_rrc, sec_cfg.k_enc_up, sec_cfg.k_int_up, sec_cfg.enc_algo, sec_cfg.int_algo);
+    pdcp.config_security(sec_cfg);
     pdcp.enable_integrity(srslte::DIRECTION_TXRX);
     pdcp.enable_encryption(srslte::DIRECTION_TXRX);
   }
@@ -126,7 +127,7 @@ public:
 srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t& in_sdu,
                                               uint32_t                            count,
                                               uint8_t                             pdcp_sn_len,
-                                              pdcp_security_cfg                   sec_cfg,
+                                              srslte::as_security_config_t        sec_cfg,
                                               srslte::byte_buffer_pool*           pool,
                                               srslte::log*                        log)
 {
@@ -159,7 +160,7 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
 std::vector<pdcp_test_event_t> gen_expected_pdus_vector(const srslte::unique_byte_buffer_t& in_sdu,
                                                         const std::vector<uint32_t>&        tx_nexts,
                                                         uint8_t                             pdcp_sn_len,
-                                                        pdcp_security_cfg                   sec_cfg,
+                                                        srslte::as_security_config_t        sec_cfg,
                                                         srslte::byte_buffer_pool*           pool,
                                                         srslte::log*                        log)
 {

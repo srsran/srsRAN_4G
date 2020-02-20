@@ -215,16 +215,8 @@ void usim::generate_nas_keys(uint8_t*                    k_asme,
   RRC interface
 *******************************************************************************/
 
-void usim::generate_as_keys(uint8_t*                    k_asme,
-                            uint32_t                    count_ul,
-                            uint8_t*                    k_rrc_enc,
-                            uint8_t*                    k_rrc_int,
-                            uint8_t*                    k_up_enc,
-                            uint8_t*                    k_up_int,
-                            CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                            INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+void usim::generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t *sec_cfg)
 {
-
   // Generate K_enb
   security_generate_k_enb(k_asme, count_ul, k_enb);
 
@@ -234,24 +226,18 @@ void usim::generate_as_keys(uint8_t*                    k_asme,
   memcpy(k_enb_initial, k_enb, 32);
 
   // Generate K_rrc_enc and K_rrc_int
-  security_generate_k_rrc(k_enb, cipher_algo, integ_algo, k_rrc_enc, k_rrc_int);
+  security_generate_k_rrc(
+      k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_int.data());
 
   // Generate K_up_enc and K_up_int
-  security_generate_k_up(k_enb, cipher_algo, integ_algo, k_up_enc, k_up_int);
+  security_generate_k_up(
+      k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_up_enc.data(), sec_cfg->k_up_int.data());
 
   current_ncc  = 0;
   is_first_ncc = true;
 }
 
-void usim::generate_as_keys_ho(uint32_t                    pci,
-                               uint32_t                    earfcn,
-                               int                         ncc,
-                               uint8_t*                    k_rrc_enc,
-                               uint8_t*                    k_rrc_int,
-                               uint8_t*                    k_up_enc,
-                               uint8_t*                    k_up_int,
-                               CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                               INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+void usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg)
 {
   uint8_t* enb_star_key = k_enb;
 
@@ -285,10 +271,12 @@ void usim::generate_as_keys_ho(uint32_t                    pci,
   memcpy(k_enb, k_enb_star, 32);
 
   // Generate K_rrc_enc and K_rrc_int
-  security_generate_k_rrc(k_enb, cipher_algo, integ_algo, k_rrc_enc, k_rrc_int);
+  security_generate_k_rrc(
+      k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_int.data());
 
   // Generate K_up_enc and K_up_int
-  security_generate_k_up(k_enb, cipher_algo, integ_algo, k_up_enc, k_up_int);
+  security_generate_k_up(
+      k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_up_enc.data(), sec_cfg->k_up_int.data());
 }
 
 /*******************************************************************************

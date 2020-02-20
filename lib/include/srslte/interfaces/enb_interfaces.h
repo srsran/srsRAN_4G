@@ -29,6 +29,7 @@
 #include "srslte/common/security.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/upper/pdcp_config.h"
 #include <vector>
 
 #ifndef SRSLTE_ENB_INTERFACES_H
@@ -340,20 +341,14 @@ public:
 class pdcp_interface_rrc
 {
 public:
-  virtual void reset(uint16_t rnti)                                                      = 0;
-  virtual void add_user(uint16_t rnti)                                                   = 0;
-  virtual void rem_user(uint16_t rnti)                                                   = 0;
-  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg)      = 0;
-  virtual void config_security(uint16_t                            rnti,
-                               uint32_t                            lcid,
-                               uint8_t*                            k_rrc_enc_,
-                               uint8_t*                            k_rrc_int_,
-                               uint8_t*                            k_up_enc_,
-                               srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                               srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)          = 0;
-  virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                            = 0;
-  virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                           = 0;
+  virtual void reset(uint16_t rnti)                                                                = 0;
+  virtual void add_user(uint16_t rnti)                                                             = 0;
+  virtual void rem_user(uint16_t rnti)                                                             = 0;
+  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)           = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg)                = 0;
+  virtual void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg) = 0;
+  virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                                      = 0;
+  virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                                     = 0;
   virtual bool
   get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn) = 0;
 };

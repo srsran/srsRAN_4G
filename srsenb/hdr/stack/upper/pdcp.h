@@ -48,13 +48,7 @@ public:
   void rem_user(uint16_t rnti) override;
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override;
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg) override;
-  void config_security(uint16_t                            rnti,
-                       uint32_t                            lcid,
-                       uint8_t*                            k_rrc_enc_,
-                       uint8_t*                            k_rrc_int_,
-                       uint8_t*                            k_up_enc_,
-                       srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                       srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_) override;
+  void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t cfg_sec) override;
   void enable_integrity(uint16_t rnti, uint32_t lcid) override;
   void enable_encryption(uint16_t rnti, uint32_t lcid) override;
   bool get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)

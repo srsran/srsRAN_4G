@@ -96,16 +96,10 @@ void pdcp::reset(uint16_t rnti)
   }
 }
 
-void pdcp::config_security(uint16_t                            rnti,
-                           uint32_t                            lcid,
-                           uint8_t*                            k_rrc_enc_,
-                           uint8_t*                            k_rrc_int_,
-                           uint8_t*                            k_up_enc_,
-                           srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                           srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
+void pdcp::config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg)
 {
   if (users.count(rnti)) {
-    users[rnti].pdcp->config_security(lcid, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_);
+    users[rnti].pdcp->config_security(lcid, sec_cfg);
   }
 }
 

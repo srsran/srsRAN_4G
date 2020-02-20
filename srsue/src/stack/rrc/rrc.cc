@@ -934,9 +934,9 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
 
   // Compute MAC-I
   uint8_t mac_key[4] = {};
-  switch (integ_algo) {
+  switch (sec_cfg.integ_algo) {
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
-      security_128_eia1(&k_rrc_int[16],
+      security_128_eia1(&sec_cfg.k_rrc_int[16],
                         0xffffffff, // 32-bit all to ones
                         0x1f,       // 5-bit all to ones
                         1,          // 1-bit to one
@@ -945,7 +945,7 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
                         mac_key);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
-      security_128_eia2(&k_rrc_int[16],
+      security_128_eia2(&sec_cfg.k_rrc_int[16],
                         0xffffffff, // 32-bit all to ones
                         0x1f,       // 5-bit all to ones
                         1,          // 1-bit to one
@@ -954,7 +954,7 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
                         mac_key);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA3:
-      security_128_eia3(&k_rrc_int[16],
+      security_128_eia3(&sec_cfg.k_rrc_int[16],
                         0xffffffff, // 32-bit all to ones
                         0x1f,       // 5-bit all to ones
                         1,          // 1-bit to one
@@ -1130,27 +1130,19 @@ bool rrc::ho_prepare()
         return false;
       }
       if (mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().security_algorithm_cfg_present) {
-        cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.handov_type.intra_lte()
-                          .security_algorithm_cfg.ciphering_algorithm.to_number();
-        integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.handov_type.intra_lte()
-                         .security_algorithm_cfg.integrity_prot_algorithm.to_number();
+        sec_cfg.cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.handov_type.intra_lte()
+                                  .security_algorithm_cfg.ciphering_algorithm.to_number();
+        sec_cfg.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.handov_type.intra_lte()
+                                 .security_algorithm_cfg.integrity_prot_algorithm.to_number();
         rrc_log->info("Changed Ciphering to %s and Integrity to %s\n",
-                      ciphering_algorithm_id_text[cipher_algo],
-                      integrity_algorithm_id_text[integ_algo]);
+                      ciphering_algorithm_id_text[sec_cfg.cipher_algo],
+                      integrity_algorithm_id_text[sec_cfg.integ_algo]);
       }
     }
 
-    usim->generate_as_keys_ho(mob_ctrl_info->target_pci,
-                              serving_cell->get_earfcn(),
-                              ncc,
-                              k_rrc_enc,
-                              k_rrc_int,
-                              k_up_enc,
-                              k_up_int,
-                              cipher_algo,
-                              integ_algo);
+    usim->generate_as_keys_ho(mob_ctrl_info->target_pci, serving_cell->get_earfcn(), ncc, &sec_cfg);
 
-    pdcp->config_security_all(k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+    pdcp->config_security_all(sec_cfg);
     send_rrc_con_reconfig_complete();
   }
   return true;
@@ -1940,34 +1932,33 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
     case dl_dcch_msg_type_c::c1_c_::types::security_mode_cmd:
       transaction_id = c1->security_mode_cmd().rrc_transaction_id;
 
-      cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM)c1->security_mode_cmd()
-                        .crit_exts.c1()
-                        .security_mode_cmd_r8()
-                        .security_cfg_smc.security_algorithm_cfg.ciphering_algorithm.value;
-      integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)c1->security_mode_cmd()
-                       .crit_exts.c1()
-                       .security_mode_cmd_r8()
-                       .security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm.value;
+      sec_cfg.cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM)c1->security_mode_cmd()
+                                .crit_exts.c1()
+                                .security_mode_cmd_r8()
+                                .security_cfg_smc.security_algorithm_cfg.ciphering_algorithm.value;
+      sec_cfg.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)c1->security_mode_cmd()
+                               .crit_exts.c1()
+                               .security_mode_cmd_r8()
+                               .security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm.value;
 
       rrc_log->info("Received Security Mode Command eea: %s, eia: %s\n",
-                    ciphering_algorithm_id_text[cipher_algo],
-                    integrity_algorithm_id_text[integ_algo]);
+                    ciphering_algorithm_id_text[sec_cfg.cipher_algo],
+                    integrity_algorithm_id_text[sec_cfg.integ_algo]);
 
       // Generate AS security keys
       uint8_t k_asme[32];
       nas->get_k_asme(k_asme, 32);
       rrc_log->debug_hex(k_asme, 32, "UE K_asme");
       rrc_log->debug("Generating K_enb with UL NAS COUNT: %d\n", nas->get_k_enb_count());
-      usim->generate_as_keys(
-          k_asme, nas->get_k_enb_count(), k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
-      rrc_log->info_hex(k_rrc_enc, 32, "RRC encryption key - k_rrc_enc");
-      rrc_log->info_hex(k_rrc_int, 32, "RRC integrity key  - k_rrc_int");
-      rrc_log->info_hex(k_up_enc, 32, "UP encryption key  - k_up_enc");
+      usim->generate_as_keys(k_asme, nas->get_k_enb_count(), &sec_cfg);
+      rrc_log->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC encryption key - k_rrc_enc");
+      rrc_log->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC integrity key  - k_rrc_int");
+      rrc_log->info_hex(sec_cfg.k_up_enc.data(), 32, "UP encryption key  - k_up_enc");
 
       security_is_activated = true;
 
       // Configure PDCP for security
-      pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+      pdcp->config_security(lcid, sec_cfg);
       pdcp->enable_integrity(lcid, DIRECTION_TXRX);
       send_security_mode_complete();
       pdcp->enable_encryption(lcid, DIRECTION_TXRX);
@@ -2631,16 +2622,8 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 
   // Update RRC Integrity keys
   int ncc = setup->crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
-  usim->generate_as_keys_ho(serving_cell->get_pci(),
-                            serving_cell->get_earfcn(),
-                            ncc,
-                            k_rrc_enc,
-                            k_rrc_int,
-                            k_up_enc,
-                            k_up_int,
-                            cipher_algo,
-                            integ_algo);
-  pdcp->config_security_all(k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+  usim->generate_as_keys_ho(serving_cell->get_pci(), serving_cell->get_earfcn(), ncc, &sec_cfg);
+  pdcp->config_security_all(sec_cfg);
 
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
@@ -2659,7 +2642,7 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
   // Setup PDCP
   pdcp->add_bearer(srb_cnfg->srb_id, make_srb_pdcp_config_t(srb_cnfg->srb_id, true));
   if (RB_ID_SRB2 == srb_cnfg->srb_id) {
-    pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+    pdcp->config_security(srb_cnfg->srb_id, sec_cfg);
     pdcp->enable_integrity(srb_cnfg->srb_id, DIRECTION_TXRX);
     pdcp->enable_encryption(srb_cnfg->srb_id, DIRECTION_TXRX);
   }
@@ -2737,7 +2720,7 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
     }
   }
   pdcp->add_bearer(lcid, pdcp_cfg);
-  pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+  pdcp->config_security(lcid, sec_cfg);
   pdcp->enable_encryption(lcid);
 
   // Setup RLC

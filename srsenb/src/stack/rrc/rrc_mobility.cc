@@ -871,8 +871,8 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
       rrc_details::compute_mac_i(rrc_ue->rnti,
                                  rrc_enb->cfg.sib1.cell_access_related_info.cell_id.to_number(),
                                  rrc_enb->cfg.cell_list.at(0).pci, // TODO: use actual PCI of source cell
-                                 rrc_ue->integ_algo,
-                                 rrc_ue->k_rrc_int));
+                                 rrc_ue->sec_cfg.integ_algo,
+                                 rrc_ue->sec_cfg.k_rrc_int.data()));
 
   /*** pack HO Preparation Info into an RRC container buffer ***/
   srslte::unique_byte_buffer_t buffer = srslte::allocate_unique_buffer(*pool);
