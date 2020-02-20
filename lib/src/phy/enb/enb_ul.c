@@ -169,9 +169,10 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
   int                ret                               = SRSLTE_SUCCESS;
   uint32_t           n_pucch_i[SRSLTE_PUCCH_MAX_ALLOC] = {};
   srslte_pucch_res_t pucch_res                         = {};
+  uint32_t           uci_cfg_total_ack                 = srslte_uci_cfg_total_ack(&cfg->uci_cfg);
 
   // Drop CQI if there is collision with ACK
-  if (!cfg->simul_cqi_ack && srslte_uci_cfg_total_ack(&cfg->uci_cfg) > 0 && cfg->uci_cfg.cqi.data_enable) {
+  if (!cfg->simul_cqi_ack && uci_cfg_total_ack > 0 && cfg->uci_cfg.cqi.data_enable) {
     cfg->uci_cfg.cqi.data_enable = false;
   }
 
@@ -209,7 +210,7 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
     } else {
 
       // If channel selection enabled
-      if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+      if (uci_cfg_total_ack > 0 && cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
         uint8_t b[2] = {pucch_res.uci_data.ack.ack_value[0], pucch_res.uci_data.ack.ack_value[1]};
         srslte_pucch_cs_get_ack(cfg, &cfg->uci_cfg, i, b, &pucch_res.uci_data);
       }
