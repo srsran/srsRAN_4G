@@ -32,9 +32,7 @@
 int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::unique_byte_buffer_t& msg2)
 {
   TESTASSERT(msg1->N_bytes == msg2->N_bytes);
-  for (uint32_t i = 0; i < msg1->N_bytes; ++i) {
-    TESTASSERT(msg1->msg[i] == msg2->msg[i]);
-  }
+  TESTASSERT(memcmp(msg1->msg, msg2->msg, msg1->N_bytes) == 0);
   return 0;
 }
 
