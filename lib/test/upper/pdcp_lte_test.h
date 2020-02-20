@@ -88,7 +88,6 @@ public:
 
   void set_pdcp_initial_state(pdcp_lte_initial_state init_state)
   {
-
     pdcp.set_tx_count(init_state.tx_count);
     pdcp.set_rx_hfn(init_state.rx_hfn);
     pdcp.set_next_pdcp_rx_sn(init_state.next_pdcp_rx_sn);

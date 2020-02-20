@@ -34,7 +34,6 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
             srslte::log*                        log)
 
 {
-
   srslte::pdcp_config_t cfg_rx = {1,
                                   rb_type,
                                   srslte::SECURITY_DIRECTION_DOWNLINK,
