@@ -214,7 +214,7 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
     return;
   }
   if (ntohs(iph->tot_len) < 20) {
-    m_gtpu_log->warning("Invalid IP header length. IP lenght %d.\n", ntohs(iph->tot_len));
+    m_gtpu_log->warning("Invalid IP header length. IP length %d.\n", ntohs(iph->tot_len));
     return;
   }
 
