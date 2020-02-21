@@ -22,14 +22,28 @@
 #ifndef SRSLTE_SCHEDULER_TEST_COMMON_H
 #define SRSLTE_SCHEDULER_TEST_COMMON_H
 
+#include "scheduler_test_utils.h"
 #include "srsenb/hdr/stack/mac/scheduler.h"
+#include <random>
 
 namespace srsenb {
 
-// helpers
+/***************************
+ *     Random Utils
+ **************************/
+
+void                        set_randseed(uint64_t seed);
+float                       randf();
+std::default_random_engine& get_rand_gen();
+
+// other helpers
 int extract_dl_prbmask(const srslte_cell_t&               cell,
                        const srslte_dci_dl_t&             dci,
                        srslte::bounded_bitset<100, true>* alloc_mask);
+
+/**************************
+ *       Testers
+ *************************/
 
 class output_sched_tester
 {
@@ -70,7 +84,8 @@ class user_state_sched_tester
 {
 public:
   struct ue_state {
-    int                               prach_tti = -1, rar_tti = -1, msg3_tti = -1, msg4_tti = -1;
+    tti_counter prach_tic, rar_tic, msg3_tic, msg4_tic;
+    //    int                               prach_tic = -1, rar_tic = -1, msg3_tic = -1, msg4_tic = -1;
     bool                              drb_cfg_flag = false;
     srsenb::sched_interface::ue_cfg_t user_cfg;
     uint32_t                          dl_data      = 0;
@@ -83,18 +98,17 @@ public:
   {
   }
 
-  void            new_tti(uint32_t tti_rx) { tti_params = tti_params_t{tti_rx}; }
+  void            new_tti(uint32_t tti_rx);
   bool            user_exists(uint16_t rnti) const { return users.find(rnti) != users.end(); }
   const ue_state* get_user_state(uint16_t rnti) const
   {
     return users.count(rnti) > 0 ? &users.find(rnti)->second : nullptr;
   }
 
-  /* Register new users */
-  int add_user(uint16_t rnti, uint32_t preamble_idx, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
-  int user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
-  int bearer_cfg(uint16_t rnti, uint32_t lcid, const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg);
-
+  /* Config users */
+  int  add_user(uint16_t rnti, uint32_t preamble_idx, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
+  int  user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
+  int  bearer_cfg(uint16_t rnti, uint32_t lcid, const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg);
   void rem_user(uint16_t rnti);
 
   /* Test the timing of RAR, Msg3, Msg4 */
@@ -117,10 +131,10 @@ public:
                const sched_interface::ul_sched_res_t& ul_result);
 
 private:
-  const std::vector<srsenb::sched::cell_cfg_t> cell_params;
+  const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
 
   std::map<uint16_t, ue_state> users;
-  tti_params_t                 tti_params{10241};
+  tti_counter                  tic;
 };
 
 class sched_result_stats
@@ -147,6 +161,64 @@ private:
   user_stats* get_user(uint16_t rnti);
 
   const std::vector<srsenb::sched::cell_cfg_t> cell_params;
+};
+
+// Intrusive Scheduler Tester
+class common_sched_tester : public sched
+{
+public:
+  struct tti_info_t {
+    tti_params_t                                 tti_params{10241};
+    uint32_t                                     nof_prachs = 0;
+    std::vector<sched_interface::dl_sched_res_t> dl_sched_result;
+    std::vector<sched_interface::ul_sched_res_t> ul_sched_result;
+  };
+
+  int  sim_cfg(sim_sched_args args);
+  int  add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_);
+  void rem_user(uint16_t rnti);
+  int  process_ack_txs();
+  int  schedule_acks();
+  int  process_results();
+
+  int         test_next_ttis(const std::vector<tti_ev>& tti_events);
+  virtual int run_tti(const tti_ev& tti_events) = 0;
+
+  // args
+  sim_sched_args sim_args0; ///< arguments used to generate TTI events
+  srslte::log*   tester_log = nullptr;
+
+  // tti specific params
+  tti_info_t  tti_info;
+  tti_counter tic;
+
+  // testers
+  std::vector<output_sched_tester>         output_tester;
+  std::unique_ptr<user_state_sched_tester> ue_tester;
+  std::unique_ptr<sched_result_stats>      sched_stats;
+
+protected:
+  struct ack_info_t {
+    uint16_t             rnti;
+    uint32_t             tti;
+    uint32_t             ue_cc_idx;
+    bool                 ack        = false;
+    uint32_t             retx_delay = 0;
+    srsenb::dl_harq_proc dl_harq;
+  };
+  struct ul_ack_info_t {
+    uint16_t             rnti;
+    uint32_t             tti_ack, tti_tx_ul;
+    uint32_t             ue_cc_idx;
+    bool                 ack = false;
+    srsenb::ul_harq_proc ul_harq;
+  };
+
+  void new_test_tti();
+
+  // control params
+  std::multimap<uint32_t, ack_info_t>    to_ack;
+  std::multimap<uint32_t, ul_ack_info_t> to_ul_ack;
 };
 
 } // namespace srsenb

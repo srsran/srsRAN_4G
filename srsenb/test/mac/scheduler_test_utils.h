@@ -27,36 +27,67 @@
 #include "srslte/interfaces/sched_interface.h"
 #include <algorithm>
 #include <chrono>
-#include <random>
+
+struct tti_counter {
+  tti_counter() = default;
+  void         set_start_tti(uint32_t tti_) { counter = tti_; }
+  uint32_t     tti_rx() const { return counter % 10240u; }
+  tti_counter  tic_tx_dl() const { return tti_counter{counter + TX_DELAY}; }
+  tti_counter  tic_tx_ul() const { return tti_counter{counter + TX_DELAY + FDD_HARQ_DELAY_MS}; }
+  bool         operator==(const tti_counter& other) const { return counter == other.counter; }
+  bool         operator!=(const tti_counter& other) const { return counter != other.counter; }
+  bool         operator<(const tti_counter& other) const { return counter < other.counter; }
+  bool         operator<=(const tti_counter& other) const { return counter <= other.counter; }
+  bool         operator>=(const tti_counter& other) const { return counter >= other.counter; }
+  bool         operator>(const tti_counter& other) const { return counter > other.counter; }
+  uint32_t     operator-(const tti_counter& other) const { return counter - other.counter; }
+  tti_counter& operator-=(uint32_t jump)
+  {
+    counter -= jump;
+    return *this;
+  }
+  tti_counter& operator+=(uint32_t jump)
+  {
+    counter += jump;
+    return *this;
+  }
+  tti_counter& operator+=(int32_t jump)
+  {
+    counter += jump;
+    return *this;
+  }
+  tti_counter& operator++() { return this->operator+=(1); }
+  tti_counter  operator+(int32_t jump) { return tti_counter{counter + jump}; }
+  tti_counter  operator++(int) { return tti_counter{++counter}; }
+  bool         is_valid() const { return counter != std::numeric_limits<uint32_t>::max(); }
+  uint32_t     total_count() const { return counter; }
+
+private:
+  explicit tti_counter(uint32_t c_) : counter(c_) {}
+  uint32_t counter = std::numeric_limits<uint32_t>::max();
+};
 
 /***************************
- * Setup Random generators
+ *   Function helpers
  **************************/
 
-uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
-// uint32_t const seed = 2452071795;
-// uint32_t const seed = 1581009287; // prb==25
-std::default_random_engine            rand_gen(seed);
-std::uniform_real_distribution<float> unif_dist(0, 1.0);
-bool                                  check_old_pids = false;
-
-float randf()
+template <class MapContainer, class Predicate>
+void erase_if(MapContainer& c, Predicate should_remove)
 {
-  return unif_dist(rand_gen);
-}
-
-template <typename Integer>
-Integer rand_int(Integer lb, Integer ub)
-{
-  std::uniform_int_distribution<Integer> dist(lb, ub);
-  return dist(rand_gen);
+  for (auto it = c.begin(); it != c.end();) {
+    if (should_remove(*it)) {
+      it = c.erase(it);
+    } else {
+      ++it;
+    }
+  }
 }
 
 /*****************************
  * Setup Sched Configuration
  ****************************/
 
-srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t nof_prb)
+inline srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t nof_prb)
 {
   srsenb::sched_interface::cell_cfg_t cell_cfg     = {};
   srslte_cell_t&                      cell_cfg_phy = cell_cfg.cell;
@@ -82,7 +113,7 @@ srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t nof_prb)
   return cell_cfg;
 }
 
-srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
+inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
 {
   srsenb::sched_interface::ue_cfg_t ue_cfg = {};
 
@@ -98,7 +129,7 @@ srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
 }
 
 /*****************************
- *   Event Setup Helpers
+ *       Event Types
  ****************************/
 
 // Struct that represents all the events that take place in a TTI
@@ -119,11 +150,12 @@ struct tti_ev {
 };
 
 struct sim_sched_args {
-  uint32_t                                         nof_ttis;
+  uint32_t                                         start_tti = 0;
   float                                            P_retx;
   srsenb::sched_interface::ue_cfg_t                ue_cfg;
   srsenb::sched_interface::ue_bearer_cfg_t         bearer_cfg;
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg;
+  srslte::log*                                     sim_log = nullptr;
 };
 
 // generate all events up front

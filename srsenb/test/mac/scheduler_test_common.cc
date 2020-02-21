@@ -29,6 +29,32 @@
 
 using namespace srsenb;
 
+/***************************
+ *     Random Utils
+ **************************/
+
+std::default_random_engine rand_gen;
+
+float ::srsenb::randf()
+{
+  static std::uniform_real_distribution<float> unif_dist(0, 1.0);
+  return unif_dist(rand_gen);
+}
+
+void ::srsenb::set_randseed(uint64_t seed)
+{
+  rand_gen = std::default_random_engine(seed);
+}
+
+std::default_random_engine& ::srsenb::get_rand_gen()
+{
+  return rand_gen;
+}
+
+/***************************
+ *     Sched Testers
+ **************************/
+
 int output_sched_tester::test_pusch_collisions(const tti_params_t&                    tti_params,
                                                const sched_interface::ul_sched_res_t& ul_result,
                                                prbmask_t&                             ul_allocs) const
@@ -294,6 +320,11 @@ int srsenb::extract_dl_prbmask(const srslte_cell_t&               cell,
   return SRSLTE_SUCCESS;
 }
 
+void user_state_sched_tester::new_tti(uint32_t tti_rx)
+{
+  tic++;
+}
+
 int user_state_sched_tester::add_user(uint16_t                                 rnti,
                                       uint32_t                                 preamble_idx,
                                       const srsenb::sched_interface::ue_cfg_t& ue_cfg)
@@ -301,7 +332,7 @@ int user_state_sched_tester::add_user(uint16_t                                 r
   TESTASSERT(users.count(rnti) == 0);
   ue_state ue;
   ue.user_cfg     = ue_cfg;
-  ue.prach_tti    = tti_params.tti_rx;
+  ue.prach_tic    = tic;
   ue.preamble_idx = preamble_idx;
   users.insert(std::make_pair(rnti, ue));
   return SRSLTE_SUCCESS;
@@ -361,89 +392,104 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
     // No UL allocations before Msg3
     for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
       if (ul_result.pusch[i].dci.rnti == rnti) {
-        CONDERROR(ul_result.pusch[i].needs_pdcch and userinfo.msg3_tti < 0,
+        CONDERROR(ul_result.pusch[i].needs_pdcch and not userinfo.msg3_tic.is_valid(),
                   "[TESTER] No UL data allocation allowed before Msg3\n");
-        CONDERROR(userinfo.rar_tti < 0, "[TESTER] No UL allocation allowed before RAR\n");
-        uint32_t msg3_tti = (uint32_t)(userinfo.rar_tti + FDD_HARQ_DELAY_MS + MSG3_DELAY_MS) % 10240;
-        CONDERROR(msg3_tti > tti_params.tti_tx_ul, "No UL allocs allowed before Msg3 alloc\n");
+        CONDERROR(not userinfo.rar_tic.is_valid(), "[TESTER] No UL allocs allowed before RAR\n");
+        tti_counter msg3_tic = userinfo.rar_tic + FDD_HARQ_DELAY_MS + MSG3_DELAY_MS;
+        CONDERROR(msg3_tic > tic.tic_tx_ul(), "No UL allocs allowed before Msg3 alloc\n");
       }
     }
 
     // No DL data allocations before Msg3 is received
     for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
       if (dl_result.data[i].dci.rnti == rnti) {
-        CONDERROR(userinfo.msg3_tti < 0, "[TESTER] No DL data alloc allowed before Msg3 alloc\n");
-        CONDERROR(tti_params.tti_rx < (uint32_t)userinfo.msg3_tti,
-                  "[TESTER] Msg4 cannot be tx without Msg3 being received\n");
+        CONDERROR(not userinfo.msg3_tic.is_valid(), "[TESTER] No DL data alloc allowed before Msg3 alloc\n");
+        CONDERROR(tic < userinfo.msg3_tic, "[TESTER] Msg4 cannot be tx without Msg3 being received\n");
       }
     }
 
-    if (enb_cc_idx != userinfo.user_cfg.supported_cc_list[0].enb_cc_idx) {
+    uint32_t primary_cc_idx = userinfo.user_cfg.supported_cc_list[0].enb_cc_idx;
+    if (enb_cc_idx != primary_cc_idx) {
       // only check for RAR/Msg3 presence for a UE's PCell
       continue;
     }
 
     // No RAR allocations outside of rar_window
-    uint32_t                prach_tti      = (uint32_t)userinfo.prach_tti;
-    uint32_t                primary_cc_idx = userinfo.user_cfg.supported_cc_list[0].enb_cc_idx;
-    std::array<uint32_t, 2> rar_window = {prach_tti + 3, prach_tti + 3 + cell_params[primary_cc_idx].prach_rar_window};
+    std::array<tti_counter, 2> rar_window = {
+        userinfo.prach_tic + 3, userinfo.prach_tic + 3 + (int)cell_params[primary_cc_idx].prach_rar_window};
 
-    CONDERROR(userinfo.rar_tti < 0 and tti_params.tti_tx_dl > rar_window[1],
+    tti_counter tic_tx_dl = tic.tic_tx_dl();
+    CONDERROR(not userinfo.rar_tic.is_valid() and tic.tic_tx_dl() > rar_window[1],
               "[TESTER] RAR not scheduled within the RAR Window\n");
-    if (tti_params.tti_tx_dl <= rar_window[1] and tti_params.tti_tx_dl >= rar_window[0]) {
+    if (tic_tx_dl <= rar_window[1] and tic_tx_dl >= rar_window[0]) {
       // Inside RAR window
       for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
         for (uint32_t j = 0; j < dl_result.rar[i].nof_grants; ++j) {
           auto& data = dl_result.rar[i].msg3_grant[j].data;
-          if (data.prach_tti == (uint32_t)userinfo.prach_tti and data.preamble_idx == userinfo.preamble_idx) {
-            CONDERROR(userinfo.rar_tti >= 0, "There was more than one RAR for the same user\n");
-            userinfo.rar_tti = tti_params.tti_tx_dl;
+          if (data.prach_tti == (uint32_t)userinfo.prach_tic.tti_rx() and data.preamble_idx == userinfo.preamble_idx) {
+            CONDERROR(userinfo.rar_tic.is_valid(), "There was more than one RAR for the same user\n");
+            userinfo.rar_tic = tic_tx_dl;
           }
         }
       }
     }
 
     // Check whether Msg3 was allocated in expected TTI
-    if (userinfo.rar_tti >= 0) {
-      uint32_t expected_msg3_tti = (uint32_t)(userinfo.rar_tti + FDD_HARQ_DELAY_MS + MSG3_DELAY_MS) % 10240;
-      if (expected_msg3_tti == tti_params.tti_tx_ul) {
+    if (userinfo.rar_tic.is_valid()) {
+      tti_counter expected_msg3_tti = userinfo.rar_tic + FDD_HARQ_DELAY_MS + MSG3_DELAY_MS;
+      if (expected_msg3_tti == tic.tic_tx_ul()) {
         for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
           if (ul_result.pusch[i].dci.rnti == rnti) {
-            CONDERROR(userinfo.msg3_tti >= 0, "[TESTER] Only one Msg3 allowed per user\n");
+            CONDERROR(userinfo.msg3_tic.is_valid(), "Only one Msg3 allowed per user\n");
             CONDERROR(ul_result.pusch[i].needs_pdcch, "[TESTER] Msg3 allocations do not require PDCCH\n");
             //              CONDERROR(tti_data.ul_pending_msg3.rnti != rnti, "[TESTER] The UL pending msg3 RNTI did not
             //              match\n"); CONDERROR(not tti_data.ul_pending_msg3_present, "[TESTER] The UL pending msg3
             //              RNTI did not match\n");
-            userinfo.msg3_tti = tti_params.tti_tx_ul;
+            userinfo.msg3_tic = tic.tic_tx_ul();
             msg3_count++;
           }
         }
-      } else if (expected_msg3_tti < tti_params.tti_tx_ul) {
-        CONDERROR(userinfo.msg3_tti < 0, "[TESTER] No UL msg3 allocation was made\n");
+      } else if (expected_msg3_tti < tic.tic_tx_ul()) {
+        CONDERROR(not userinfo.msg3_tic.is_valid(), "[TESTER] No UL msg3 allocation was made\n");
       }
     }
 
     // Find any Msg4 Allocation
-    if (userinfo.msg4_tti < 0) {
-      for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
-        if (dl_result.data[i].dci.rnti == rnti) {
-          for (uint32_t j = 0; j < dl_result.data[i].nof_pdu_elems[0]; ++j) {
-            if (dl_result.data[i].pdu[0][j].lcid == srslte::sch_subh::CON_RES_ID) {
-              // ConRes found
-              CONDERROR(dl_result.data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
-              CONDERROR(userinfo.msg4_tti >= 0, "ConRes CE cannot be retransmitted for the same rnti\n");
-              userinfo.msg4_tti = tti_params.tti_tx_dl;
-            }
+    for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+      if (dl_result.data[i].dci.rnti == rnti) {
+        for (uint32_t j = 0; j < dl_result.data[i].nof_pdu_elems[0]; ++j) {
+          if (dl_result.data[i].pdu[0][j].lcid == srslte::sch_subh::CON_RES_ID) {
+            // ConRes found
+            CONDERROR(dl_result.data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
+            CONDERROR(userinfo.msg4_tic.is_valid(), "Duplicate ConRes CE for the same rnti\n");
+            userinfo.msg4_tic = tic.tic_tx_dl();
           }
-          CONDERROR(userinfo.msg4_tti < 0, "Data allocations are not allowed without first receiving ConRes\n");
         }
+        CONDERROR(not userinfo.msg4_tic.is_valid(), "Data allocs are not allowed without first receiving ConRes\n");
       }
     }
   }
 
+  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+    auto& pusch_alloc = ul_result.pusch[i];
+    if (not pusch_alloc.needs_pdcch) {
+      // can be adaptive retx or msg3
+      auto& ue = users[pusch_alloc.dci.rnti];
+      if (tic.tic_tx_ul() == ue.msg3_tic) {
+        msg3_count--;
+      }
+    }
+  }
+  CONDERROR(msg3_count > 0, "[TESTER] There are pending msg3 that do not belong to any active UE\n");
+
   return SRSLTE_SUCCESS;
 }
 
+/**
+ * Individual tests:
+ * - All RARs belong to a user that just PRACHed
+ * - All DL/UL data allocs have a valid RNTI
+ */
 int user_state_sched_tester::test_ctrl_info(uint32_t                               enb_cc_idx,
                                             const sched_interface::dl_sched_res_t& dl_result,
                                             const sched_interface::ul_sched_res_t& ul_result)
@@ -454,7 +500,7 @@ int user_state_sched_tester::test_ctrl_info(uint32_t                            
       uint32_t prach_tti    = dl_result.rar[i].msg3_grant[j].data.prach_tti;
       uint32_t preamble_idx = dl_result.rar[i].msg3_grant[j].data.preamble_idx;
       auto     it           = std::find_if(users.begin(), users.end(), [&](const std::pair<uint16_t, ue_state>& u) {
-        return u.second.preamble_idx == preamble_idx and ((uint32_t)u.second.prach_tti == prach_tti);
+        return u.second.preamble_idx == preamble_idx and ((uint32_t)u.second.prach_tic.tti_rx() == prach_tti);
       });
       CONDERROR(it == users.end(), "There was a RAR allocation with no associated user");
       CONDERROR(it->second.user_cfg.supported_cc_list[0].enb_cc_idx != enb_cc_idx,
@@ -549,4 +595,235 @@ sched_result_stats::user_stats* sched_result_stats::get_user(uint16_t rnti)
   users[rnti].tot_dl_sched_data.resize(cell_params.size(), 0);
   users[rnti].tot_ul_sched_data.resize(cell_params.size(), 0);
   return &users[rnti];
+}
+
+/***********************
+ * Common Sched Tester
+ **********************/
+
+int common_sched_tester::sim_cfg(sim_sched_args args)
+{
+  sim_args0 = std::move(args);
+
+  sched::cell_cfg(sim_args0.cell_cfg); // call parent cfg
+
+  ue_tester.reset(new user_state_sched_tester{sim_args0.cell_cfg});
+  output_tester.clear();
+  output_tester.reserve(sim_args0.cell_cfg.size());
+  for (uint32_t i = 0; i < sim_args0.cell_cfg.size(); ++i) {
+    output_tester.emplace_back(sched_cell_params[i]);
+  }
+  sched_stats.reset(new sched_result_stats{sim_args0.cell_cfg});
+
+  tester_log = sim_args0.sim_log;
+
+  return SRSLTE_SUCCESS;
+}
+
+int common_sched_tester::add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_)
+{
+  CONDERROR(ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "[TESTER] Configuring new user rnti=0x%x to sched\n", rnti);
+
+  dl_sched_rar_info_t rar_info = {};
+  rar_info.prach_tti           = tti_info.tti_params.tti_rx;
+  rar_info.temp_crnti          = rnti;
+  rar_info.msg3_size           = 7;
+  rar_info.preamble_idx        = tti_info.nof_prachs++;
+  uint32_t pcell_idx           = ue_cfg_.supported_cc_list[0].enb_cc_idx;
+  dl_rach_info(pcell_idx, rar_info);
+
+  ue_tester->add_user(rnti, rar_info.preamble_idx, ue_cfg_);
+
+  tester_log->info("[TESTER] Adding user rnti=0x%x\n", rnti);
+  return SRSLTE_SUCCESS;
+}
+
+void common_sched_tester::rem_user(uint16_t rnti)
+{
+  ue_tester->rem_user(rnti);
+}
+
+void common_sched_tester::new_test_tti()
+{
+  if (not tic.is_valid()) {
+    tic.set_start_tti(sim_args0.start_tti);
+  } else {
+    tic++;
+  }
+
+  tti_info.tti_params = tti_params_t{tic.tti_rx()};
+  tti_info.nof_prachs = 0;
+  tti_info.dl_sched_result.clear();
+  tti_info.ul_sched_result.clear();
+
+  tester_log->step(tti_info.tti_params.tti_rx);
+
+  ue_tester->new_tti(tti_info.tti_params.tti_rx);
+}
+
+int common_sched_tester::process_ack_txs()
+{
+  /* check if user was removed. If so, clean respective acks */
+  erase_if(to_ack,
+           [this](std::pair<const uint32_t, ack_info_t>& elem) { return this->ue_db.count(elem.second.rnti) == 0; });
+  erase_if(to_ul_ack,
+           [this](std::pair<const uint32_t, ul_ack_info_t>& elem) { return this->ue_db.count(elem.second.rnti) == 0; });
+
+  /* Ack DL HARQs */
+  for (const auto& ack_it : to_ack) {
+    if (ack_it.second.tti != tti_info.tti_params.tti_rx) {
+      continue;
+    }
+    const ack_info_t& dl_ack = ack_it.second;
+
+    srsenb::dl_harq_proc*       h    = ue_db[dl_ack.rnti].get_dl_harq(ack_it.second.dl_harq.get_id(), dl_ack.ue_cc_idx);
+    const srsenb::dl_harq_proc& hack = dl_ack.dl_harq;
+    CONDERROR(hack.is_empty(), "[TESTER] The acked DL harq was not active\n");
+
+    bool ret = false;
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; ++tb) {
+      if (dl_ack.dl_harq.is_empty(tb)) {
+        continue;
+      }
+      ret |= dl_ack_info(tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.ue_cc_idx, tb, dl_ack.ack) > 0;
+    }
+    CONDERROR(not ret, "[TESTER] The dl harq proc that was ACKed does not exist\n");
+
+    if (dl_ack.ack) {
+      CONDERROR(!h->is_empty(), "[TESTER] ACKed dl harq was not emptied\n");
+      CONDERROR(h->has_pending_retx(0, tti_info.tti_params.tti_tx_dl),
+                "[TESTER] ACKed dl harq still has pending retx\n");
+      tester_log->info("[TESTER] DL ACK tti=%u rnti=0x%x pid=%d\n",
+                       tti_info.tti_params.tti_rx,
+                       dl_ack.rnti,
+                       dl_ack.dl_harq.get_id());
+    } else {
+      CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "[TESTER] NACKed DL harq got emptied\n");
+    }
+  }
+
+  /* Ack UL HARQs */
+  for (const auto& ack_it : to_ul_ack) {
+    if (ack_it.first != tti_info.tti_params.tti_rx) {
+      continue;
+    }
+    const ul_ack_info_t& ul_ack = ack_it.second;
+
+    srsenb::ul_harq_proc*       h    = ue_db[ul_ack.rnti].get_ul_harq(tti_info.tti_params.tti_rx, ul_ack.ue_cc_idx);
+    const srsenb::ul_harq_proc& hack = ul_ack.ul_harq;
+    CONDERROR(h == nullptr or h->get_tti() != hack.get_tti(), "[TESTER] UL Harq TTI does not match the ACK TTI\n");
+    CONDERROR(h->is_empty(0), "[TESTER] The acked UL harq is not active\n");
+    CONDERROR(hack.is_empty(0), "[TESTER] The acked UL harq was not active\n");
+
+    ul_crc_info(tti_info.tti_params.tti_rx, ul_ack.rnti, ul_ack.ue_cc_idx, ul_ack.ack);
+
+    CONDERROR(!h->get_pending_data(), "[TESTER] UL harq lost its pending data\n");
+    CONDERROR(!h->has_pending_ack(), "[TESTER] ACK/NACKed UL harq should have a pending ACK\n");
+
+    if (ul_ack.ack) {
+      CONDERROR(!h->is_empty(), "[TESTER] ACKed UL harq did not get emptied\n");
+      CONDERROR(h->has_pending_retx(), "[TESTER] ACKed UL harq still has pending retx\n");
+      tester_log->info(
+          "[TESTER] UL ACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, ul_ack.rnti, hack.get_id());
+    } else {
+      // NACK
+      CONDERROR(!h->is_empty() and !h->has_pending_retx(), "[TESTER] If NACKed, UL harq has to have pending retx\n");
+      CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(),
+                "[TESTER] Nacked UL harq did get emptied\n");
+    }
+  }
+
+  // erase processed acks
+  to_ack.erase(tti_info.tti_params.tti_rx);
+  to_ul_ack.erase(tti_info.tti_params.tti_rx);
+
+  //  bool ack = true; //(tti_data.tti_rx % 3) == 0;
+  //  if (tti_data.tti_rx >= FDD_HARQ_DELAY_MS) {
+  //    for (auto it = ue_db.begin(); it != ue_db.end(); ++it) {
+  //      uint16_t              rnti = it->first;
+  //      srsenb::ul_harq_proc* h    = ue_db[rnti].get_ul_harq(tti_data.tti_rx);
+  //      if (h != nullptr and not h->is_empty()) {
+  //        ul_crc_info(tti_data.tti_rx, rnti, ack);
+  //      }
+  //    }
+  //  }
+  return SRSLTE_SUCCESS;
+}
+
+int common_sched_tester::schedule_acks()
+{
+  for (uint32_t ccidx = 0; ccidx < sched_cell_params.size(); ++ccidx) {
+    // schedule future acks
+    for (uint32_t i = 0; i < tti_info.dl_sched_result[ccidx].nof_data_elems; ++i) {
+      ack_info_t ack_data;
+      ack_data.rnti      = tti_info.dl_sched_result[ccidx].data[i].dci.rnti;
+      ack_data.tti       = FDD_HARQ_DELAY_MS + tti_info.tti_params.tti_tx_dl;
+      ack_data.ue_cc_idx = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
+      const srsenb::dl_harq_proc* dl_h =
+          ue_db[ack_data.rnti].get_dl_harq(tti_info.dl_sched_result[ccidx].data[i].dci.pid, ccidx);
+      ack_data.dl_harq = *dl_h;
+      if (ack_data.dl_harq.nof_retx(0) == 0) {
+        ack_data.ack = randf() > sim_args0.P_retx;
+      } else { // always ack after three retxs
+        ack_data.ack = ack_data.dl_harq.nof_retx(0) == 3;
+      }
+
+      // Remove harq from the ack list if there was a harq rewrite
+      auto it = to_ack.begin();
+      while (it != to_ack.end() and it->first < ack_data.tti) {
+        if (it->second.rnti == ack_data.rnti and it->second.dl_harq.get_id() == ack_data.dl_harq.get_id() and
+            it->second.ue_cc_idx == ack_data.ue_cc_idx) {
+          CONDERROR(it->second.tti + 2 * FDD_HARQ_DELAY_MS > ack_data.tti,
+                    "[TESTER] The retx dl harq id=%d was transmitted too soon\n",
+                    ack_data.dl_harq.get_id());
+          auto toerase_it = it++;
+          to_ack.erase(toerase_it);
+          continue;
+        }
+        ++it;
+      }
+      // add new ack to the list
+      to_ack.insert(std::make_pair(ack_data.tti, ack_data));
+    }
+
+    /* Schedule UL ACKs */
+    for (uint32_t i = 0; i < tti_info.ul_sched_result[ccidx].nof_dci_elems; ++i) {
+      const auto&   pusch = tti_info.ul_sched_result[ccidx].pusch[i];
+      ul_ack_info_t ack_data;
+      ack_data.rnti      = pusch.dci.rnti;
+      ack_data.ul_harq   = *ue_db[ack_data.rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, ccidx);
+      ack_data.tti_tx_ul = tti_info.tti_params.tti_tx_ul;
+      ack_data.tti_ack   = tti_info.tti_params.tti_tx_ul + FDD_HARQ_DELAY_MS;
+      ack_data.ue_cc_idx = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
+      if (ack_data.ul_harq.nof_retx(0) == 0) {
+        ack_data.ack = randf() > sim_args0.P_retx;
+      } else {
+        ack_data.ack = ack_data.ul_harq.nof_retx(0) == 3;
+      }
+      to_ul_ack.insert(std::make_pair(ack_data.tti_tx_ul, ack_data));
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
+int common_sched_tester::process_results()
+{
+  for (uint32_t i = 0; i < sched_cell_params.size(); ++i) {
+    TESTASSERT(ue_tester->test_all(i, tti_info.dl_sched_result[i], tti_info.ul_sched_result[i]) == SRSLTE_SUCCESS);
+    TESTASSERT(output_tester[i].test_all(
+                   tti_info.tti_params, tti_info.dl_sched_result[i], tti_info.ul_sched_result[i]) == SRSLTE_SUCCESS);
+  }
+  sched_stats->process_results(tti_info.tti_params, tti_info.dl_sched_result, tti_info.ul_sched_result);
+
+  return SRSLTE_SUCCESS;
+}
+
+int common_sched_tester::test_next_ttis(const std::vector<tti_ev>& tti_events)
+{
+  uint32_t next_idx = tic.is_valid() ? tic.total_count() - sim_args0.start_tti + 1 : 0;
+
+  for (; next_idx < tti_events.size(); ++next_idx) {
+    TESTASSERT(run_tti(tti_events[next_idx]) == SRSLTE_SUCCESS);
+  }
+  return SRSLTE_SUCCESS;
 }
