@@ -30,5 +30,6 @@ target_link_libraries(ttcn3_dut srsue_stack
                                 srsue_phy
                                 srsue_mac
                                 rrc_asn1
+                                sctp
                                 ${Boost_LIBRARIES})
 include_directories(${PROJECT_SOURCE_DIR}/srsue/test/ttcn3/hdr)

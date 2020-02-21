@@ -31,119 +31,88 @@
 using namespace rapidjson;
 
 // The UpperTester interface
-class ttcn3_ut_interface : public netsource_handler
+class ttcn3_ut_interface : public ttcn3_port_handler
 {
 public:
-  ttcn3_ut_interface() : netsource_handler("TTCN3_UT_IF") {}
+  ttcn3_ut_interface() {}
   ~ttcn3_ut_interface(){};
 
-  void init(ss_ut_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  int init(ss_ut_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
   {
     syssim      = syssim_;
     log         = log_;
     net_ip      = net_ip_;
     net_port    = net_port_;
     initialized = true;
-    log->debug("Initialized.\n");
+
+    // create socket and
+    return port_listen();
   }
 
 private:
-  void run_thread()
+  int handle_message(const unique_byte_array_t& rx_buf, const uint32_t n)
   {
-    if (!initialized) {
-      fprintf(stderr, "UT interface not initialized. Exiting.\n");
-      exit(-1);
+    Document document;
+    if (document.Parse((char*)rx_buf->begin()).HasParseError() || document.IsObject() == false) {
+      log->error_hex(rx_buf->begin(), n, "Error parsing incoming data.\n");
+      return SRSLTE_ERROR;
     }
 
-    // open TCP socket
-    if (srslte_netsource_init(&net_source, net_ip.c_str(), net_port, SRSLTE_NETSOURCE_TCP)) {
-      fprintf(stderr, "Error creating input TCP socket at port %d\n", net_port);
-      exit(-1);
-    }
+    // Pretty-print
+    StringBuffer               buffer;
+    PrettyWriter<StringBuffer> writer(buffer);
+    document.Accept(writer);
+    log->info("Received %d bytes\n%s\n", n, (char*)buffer.GetString());
 
-    log->info("Listening on %s:%d for incoming connections ..\n", net_ip.c_str(), net_port);
+    // check for command
+    assert(document.HasMember("Cmd"));
+    assert(document["Cmd"].IsObject());
 
-    running = true;
+    // get Cmd
+    const Value& a = document["Cmd"];
 
-    int n;
-    while (run_enable) {
-      log->debug("Reading from UT port ..\n");
+    if (a.HasMember("MMI")) {
+      assert(a.HasMember("MMI"));
 
-      n = srslte_netsource_read(&net_source, rx_buf->begin(), RX_BUF_SIZE);
-      if (n > 0) {
-        // Terminate
-        rx_buf->at(n) = '\0';
+      // get MMI and make sure it has another Cmd nested
+      const Value& mmi = a["MMI"];
+      assert(mmi.HasMember("Cmd"));
 
-        Document document;
-        if (document.Parse((char*)rx_buf->begin()).HasParseError()) {
-          log->error_hex(rx_buf->begin(), n, "Error parsing incoming data.\n");
-          continue;
-        }
-        assert(document.IsObject());
+      // get MMI cmd
+      const Value& mmi_cmd = mmi["Cmd"];
+      assert(mmi_cmd.IsString());
 
-        // Pretty-print
-        StringBuffer               buffer;
-        PrettyWriter<StringBuffer> writer(buffer);
-        document.Accept(writer);
-        log->info("Received %d bytes\n%s\n", n, (char*)buffer.GetString());
+      // check for CnfRequired
+      assert(document.HasMember("CnfRequired"));
 
-        // check for command
-        assert(document.HasMember("Cmd"));
-        assert(document["Cmd"].IsObject());
-
-        // get Cmd
-        const Value& a = document["Cmd"];
-
-        if (a.HasMember("MMI")) {
-          assert(a.HasMember("MMI"));
-
-          // get MMI and make sure it has another Cmd nested
-          const Value& mmi = a["MMI"];
-          assert(mmi.HasMember("Cmd"));
-
-          // get MMI cmd
-          const Value& mmi_cmd = mmi["Cmd"];
-          assert(mmi_cmd.IsString());
-
-          // check for CnfRequired
-          assert(document.HasMember("CnfRequired"));
-
-          if (strcmp(mmi_cmd.GetString(), "POWER_OFF") == 0) {
-            log->info("Received POWER_OFF command.\n");
-            handle_power_off(document);
-          } else if (strcmp(mmi_cmd.GetString(), "SWITCH_ON") == 0) {
-            log->info("Received SWITCH_ON command.\n");
-            syssim->switch_on_ue();
-          } else if (strcmp(mmi_cmd.GetString(), "SWITCH_OFF") == 0) {
-            log->info("Received SWITCH_OFF command.\n");
-            syssim->switch_off_ue();
-          } else {
-            log->error("Received unknown command: %s\n", mmi_cmd.GetString());
-          }
-        } else if (a.HasMember("AT")) {
-          handle_at_command(document);
-        } else if (a.HasMember("TC_START")) {
-          log->info("Received TC_START command.\n");
-          const Value& cmd = a["TC_START"];
-          assert(cmd.HasMember("Name"));
-          const Value& tc_name = cmd["Name"];
-          syssim->tc_start(tc_name.GetString());
-        } else if (a.HasMember("TC_END")) {
-          log->info("Received TC_END command.\n");
-          syssim->tc_end();
-        } else {
-          log->error("Unknown command type.\n");
-        }
-      } else if (n == 0) {
-        log->error("Connection closed on UT interface.\n");
+      if (strcmp(mmi_cmd.GetString(), "POWER_OFF") == 0) {
+        log->info("Received POWER_OFF command.\n");
+        handle_power_off(document);
+      } else if (strcmp(mmi_cmd.GetString(), "SWITCH_ON") == 0) {
+        log->info("Received SWITCH_ON command.\n");
+        syssim->switch_on_ue();
+      } else if (strcmp(mmi_cmd.GetString(), "SWITCH_OFF") == 0) {
+        log->info("Received SWITCH_OFF command.\n");
+        syssim->switch_off_ue();
       } else {
-        log->error("Error receiving from network\n");
-        exit(-1);
+        log->error("Received unknown command: %s\n", mmi_cmd.GetString());
       }
+    } else if (a.HasMember("AT")) {
+      handle_at_command(document);
+    } else if (a.HasMember("TC_START")) {
+      log->info("Received TC_START command.\n");
+      const Value& cmd = a["TC_START"];
+      assert(cmd.HasMember("Name"));
+      const Value& tc_name = cmd["Name"];
+      syssim->tc_start(tc_name.GetString());
+    } else if (a.HasMember("TC_END")) {
+      log->info("Received TC_END command.\n");
+      syssim->tc_end();
+    } else {
+      log->error("Unknown command type.\n");
     }
-    running = false;
 
-    srslte_netsource_free(&net_source);
+    return SRSLTE_SUCCESS;
   }
 
   void handle_power_off(Document& document)
@@ -161,9 +130,7 @@ private:
     resp.Accept(writer);
 
     log->info("Sending %s to tester (%zd B)\n", buffer.GetString(), buffer.GetSize());
-    if (srslte_netsource_write(&net_source, (char*)buffer.GetString(), buffer.GetSize()) != SRSLTE_SUCCESS) {
-      log->error("Error sending message to tester.\n");
-    }
+    send((const uint8_t*)buffer.GetString(), buffer.GetSize());
   }
 
   void handle_at_command(Document& document)

@@ -19,8 +19,6 @@
  *
  */
 
-#include "rapidjson/document.h"     // rapidjson's DOM-style API
-#include "rapidjson/prettywriter.h" // for stringify JSON
 #include "srslte/build_info.h"
 #include "srslte/common/logmap.h"
 #include "srsue/hdr/ue.h"
@@ -28,7 +26,6 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
-#include <signal.h>
 
 using namespace srslte;
 using namespace srsue;
@@ -112,39 +109,26 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
   return all_args;
 }
 
-bool go_exit = false;
-void sig_int_handler(int signo)
-{
-  printf("SIGINT received. Exiting...\n");
-  if (signo == SIGINT) {
-    go_exit = true;
-  }
-}
-
 int main(int argc, char** argv)
 {
   std::cout << "Built in " << srslte_get_build_mode() << " mode using " << srslte_get_build_info() << "." << std::endl;
 
-  ttcn3_dut_args_t dut_args;
-
+  ttcn3_dut_args_t dut_args = {};
   all_args_t ue_args = parse_args(&dut_args, argc, argv);
-
-  signal(SIGINT, sig_int_handler);
 
   // Instantiate file logger
   srslte::logger_file logger_file;
   srslte::logmap::get_instance()->set_default_logger(&logger_file);
 
-  // create and init SYSSIM
-  ttcn3_syssim syssim(&logger_file);
-  syssim.init(ue_args);
+  // Create UE object
+  unique_ptr<ttcn3_ue> ue = std::unique_ptr<ttcn3_ue>(new ttcn3_ue());
 
-  // Loop until finished ..
-  while (!go_exit) {
-    sleep(1);
+  // create and init SYSSIM
+  ttcn3_syssim syssim(&logger_file, ue.get());
+  if (syssim.init(ue_args) != SRSLTE_SUCCESS) {
+    fprintf(stderr, "Error: Couldn't initialize system simulator\n");
+    return SRSLTE_ERROR;
   }
 
-  syssim.stop();
-
-  return SRSLTE_SUCCESS;
+  return syssim.run();
 }

@@ -45,7 +45,7 @@ public:
   typedef std::vector<cell_t> cell_list_t;
 
   lte_ttcn3_phy(srslte::logger* logger_);
-  ~lte_ttcn3_phy();
+  ~lte_ttcn3_phy() = default;
 
   int init(const phy_args_t& args_, stack_interface_phy_lte* stack_, syssim_interface_phy* syssim_);
 

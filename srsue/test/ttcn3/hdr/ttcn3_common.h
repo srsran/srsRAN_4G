@@ -19,26 +19,17 @@
  *
  */
 
-#include "ttcn3_ip_ctrl_interface.h"
-#include "ttcn3_ip_sock_interface.h"
-#include "ttcn3_srb_interface.h"
-#include "ttcn3_sys_interface.h"
-#include "ttcn3_ut_interface.h"
+/*! \brief Common types for TTCN3 test systems
+ *
+ */
 
-int if_handler_test()
-{
-  ttcn3_ut_interface      ut;
-  ttcn3_sys_interface     sys;
-  ttcn3_ip_sock_interface ip_sock;
-  ttcn3_ip_ctrl_interface ip_ctrl;
-  ttcn3_srb_interface     srb;
+#ifndef SRSUE_TTCN3_COMMON_H
+#define SRSUE_TTCN3_COMMON_H
 
-  return SRSLTE_SUCCESS;
-}
+#include <memory>
 
-int main(int argc, char** argv)
-{
-  if_handler_test();
+const static uint32_t                    RX_BUF_SIZE = 1024 * 1024;
+typedef std::array<uint8_t, RX_BUF_SIZE> byte_array_t;
+typedef std::unique_ptr<byte_array_t>    unique_byte_array_t;
 
-  return SRSLTE_SUCCESS;
-}
+#endif // SRSUE_TTCN3_COMMON_H

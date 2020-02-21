@@ -28,8 +28,6 @@ namespace srsue {
 
 lte_ttcn3_phy::lte_ttcn3_phy(srslte::logger* logger_) : logger(logger_) {}
 
-lte_ttcn3_phy::~lte_ttcn3_phy() {}
-
 int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, syssim_interface_phy* syssim_)
 {
   stack  = stack_;

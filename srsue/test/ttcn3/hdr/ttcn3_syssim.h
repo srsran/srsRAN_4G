@@ -23,24 +23,23 @@
 #define SRSUE_TTCN3_SYSSIM_H
 
 #include "dut_utils.h"
-#include "srslte/common/netsource_handler.h"
 #include "srslte/common/pdu_queue.h"
 #include "srslte/common/threads.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
+#include "ttcn3_common.h"
 #include "ttcn3_ip_ctrl_interface.h"
 #include "ttcn3_ip_sock_interface.h"
 #include "ttcn3_srb_interface.h"
 #include "ttcn3_sys_interface.h"
 #include "ttcn3_ue.h"
 #include "ttcn3_ut_interface.h"
-
+#include <functional>
 #include <srslte/interfaces/ue_interfaces.h>
 
 #define TTCN3_CRNTI (0x1001)
 
-class ttcn3_syssim : public thread,
-                     public syssim_interface_phy,
+class ttcn3_syssim : public syssim_interface_phy,
                      public ss_ut_interface,
                      public ss_sys_interface,
                      public ss_srb_interface,
@@ -50,7 +49,7 @@ class ttcn3_syssim : public thread,
                      public srslte::pdu_queue::process_callback
 {
 public:
-  ttcn3_syssim(srslte::logger_file* logger_file_) :
+  ttcn3_syssim(srslte::logger_file* logger_file_, ttcn3_ue* ue_) :
     mac_msg_ul(20, &ss_mac_log),
     mac_msg_dl(20, &ss_mac_log),
     timers(8),
@@ -58,16 +57,16 @@ public:
     logger(logger_file_),
     logger_file(logger_file_),
     pool(byte_buffer_pool::get_instance()),
-    thread("TTCN3_SYSSIM"),
+    ue(ue_),
     rlc(&ss_rlc_log),
+    signal_handler(&running),
+    timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); }),
     pdcp(&timers, &ss_pdcp_log){};
 
   ~ttcn3_syssim(){};
 
-  void init(const all_args_t& args_)
+  int init(const all_args_t& args_)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-
     args = args_;
 
     // Make sure to get SS logging as well
@@ -106,40 +105,236 @@ public:
     ss_rlc_log.set_hex_limit(args.log.all_hex_limit);
     ss_pdcp_log.set_hex_limit(args.log.all_hex_limit);
 
+    // Init epoll socket and add FDs
+    epoll_fd = epoll_create1(0);
+    if (epoll_fd == -1) {
+      log.error("Error creating epoll\n");
+      return SRSLTE_ERROR;
+    }
+
+    // add signalfd
+    signal_fd = add_signalfd();
+    if (add_epoll(signal_fd, epoll_fd) != SRSLTE_SUCCESS) {
+      log.error("Error while adding signalfd to epoll\n");
+      return SRSLTE_ERROR;
+    }
+    event_handler.insert({signal_fd, &signal_handler});
+
     // init system interfaces to tester
-    ut.init(this, &ut_log, "0.0.0.0", 2222);
-    sys.init(this, &sys_log, "0.0.0.0", 2223);
-    ip_sock.init(&ip_sock_log, "0.0.0.0", 2224);
-    ip_ctrl.init(&ip_ctrl_log, "0.0.0.0", 2225);
-    srb.init(this, &srb_log, "0.0.0.0", 2226);
+    if (add_port_handler() != SRSLTE_SUCCESS) {
+      log.error("Error creating port handlers\n");
+      return SRSLTE_ERROR;
+    }
 
-    ut.start(-2);
-    sys.start(-2);
-    ip_sock.start(-2);
-    ip_ctrl.start(-2);
-    srb.start(-2);
-
+    // Init SS layers
     pdus.init(this, &log);
     rlc.init(&pdcp, this, &timers, 0 /* RB_ID_SRB0 */);
     pdcp.init(&rlc, this, nullptr);
+
+    return SRSLTE_SUCCESS;
+  }
+
+  int add_port_handler()
+  {
+    // UT port
+    int ut_fd = ut.init(this, &ut_log, listen_address, UT_PORT);
+    if (add_epoll(ut_fd, epoll_fd) != SRSLTE_SUCCESS) {
+      log.error("Error while adding UT port to epoll\n");
+      return SRSLTE_ERROR;
+    }
+    event_handler.insert({ut_fd, &ut});
+    log.console("UT handler listening on SCTP port %d\n", UT_PORT);
+
+    // SYS port
+    int sys_fd = sys.init(this, &sys_log, listen_address, SYS_PORT);
+    if (add_epoll(sys_fd, epoll_fd) != SRSLTE_SUCCESS) {
+      log.error("Error while adding SYS port to epoll\n");
+      return SRSLTE_ERROR;
+    }
+    event_handler.insert({sys_fd, &sys});
+    log.console("SYS handler listening on SCTP port %d\n", SYS_PORT);
+
+    // IPsock port
+    int ip_sock_fd = ip_sock.init(&ip_sock_log, listen_address, IPSOCK_PORT);
+    if (add_epoll(ip_sock_fd, epoll_fd) != SRSLTE_SUCCESS) {
+      log.error("Error while adding IP sock port to epoll\n");
+      return SRSLTE_ERROR;
+    }
+    event_handler.insert({ip_sock_fd, &ip_sock});
+    log.console("IPSOCK handler listening on SCTP port %d\n", IPSOCK_PORT);
+
+    // IPctrl port
+    int ip_ctrl_fd = ip_ctrl.init(&ip_ctrl_log, listen_address, IPCTRL_PORT);
+    if (add_epoll(ip_ctrl_fd, epoll_fd) != SRSLTE_SUCCESS) {
+      log.error("Error while adding IP ctrl port to epoll\n");
+      return SRSLTE_ERROR;
+    }
+    event_handler.insert({ip_ctrl_fd, &ip_ctrl});
+    log.console("IPCTRL handler listening on SCTP port %d\n", IPCTRL_PORT);
+
+    // add SRB fd
+    int srb_fd = srb.init(this, &srb_log, listen_address, SRB_PORT);
+    if (add_epoll(srb_fd, epoll_fd) != SRSLTE_SUCCESS) {
+      log.error("Error while adding SRB port to epoll\n");
+      return SRSLTE_ERROR;
+    }
+    event_handler.insert({srb_fd, &srb});
+    log.console("SRB handler listening on SCTP port %d\n", SRB_PORT);
+
+    return SRSLTE_SUCCESS;
+  }
+
+  ///< Function called by epoll timer handler when TTI timer expires
+  void new_tti_indication(uint64_t res)
+  {
+    tti = (tti + 1) % 10240;
+
+    log.step(tti);
+    log.debug("Start new TTI\n");
+
+    ue->set_current_tti(tti);
+
+    // process events, if any
+    while (not event_queue.empty()) {
+      ss_events_t ev = event_queue.wait_pop();
+      switch (ev) {
+        case UE_SWITCH_ON:
+          log.console("Switching on UE ID=%d\n", run_id);
+          ue->switch_on();
+          break;
+        case UE_SWITCH_OFF:
+          log.console("Switching off UE ID=%d\n", run_id);
+          ue->switch_off();
+          break;
+        case ENABLE_DATA:
+          log.console("Enabling data for UE ID=%d\n", run_id);
+          ue->enable_data();
+          break;
+        case DISABLE_DATA:
+          log.console("Disabling data for UE ID=%d\n", run_id);
+          ue->disable_data();
+          break;
+      }
+    }
+
+    if (pcell_idx == -1) {
+      log.debug("Skipping TTI. Pcell not yet selected.\n");
+      return;
+    }
+
+    // DL/UL processing if UE has selected cell
+    dl_rnti = ue->get_dl_sched_rnti(tti);
+    if (SRSLTE_RNTI_ISSI(dl_rnti)) {
+      // deliver SIBs one after another
+      mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
+      dl_grant.pid                                   = get_pid(tti);
+      dl_grant.rnti                                  = dl_rnti;
+      dl_grant.tb[0].tbs                             = cells[pcell_idx]->sibs[cells[pcell_idx]->sib_idx]->N_bytes;
+      dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
+      ue->new_tb(dl_grant, cells[pcell_idx]->sibs[cells[pcell_idx]->sib_idx]->msg);
+      log.info("Delivered SIB%d for pcell_idx=%d\n", cells[pcell_idx]->sib_idx, pcell_idx);
+      cells[pcell_idx]->sib_idx = (cells[pcell_idx]->sib_idx + 1) % cells[pcell_idx]->sibs.size();
+    } else if (SRSLTE_RNTI_ISRAR(dl_rnti)) {
+      if (prach_tti != -1) {
+        rar_tti = (prach_tti + 3) % 10240;
+        if (tti == rar_tti) {
+          send_rar(prach_preamble_index);
+        }
+      }
+    } else if (SRSLTE_RNTI_ISPA(dl_rnti)) {
+      log.debug("Searching for paging RNTI\n");
+      // PCH will be triggered from SYSSIM after receiving Paging
+    } else if (SRSLTE_RNTI_ISUSER(dl_rnti)) {
+      // check if this is for contention resolution after PRACH/RAR
+      if (dl_rnti == crnti) {
+        log.debug("Searching for C-RNTI=%d\n", crnti);
+
+        if (rar_tti != -1) {
+          msg3_tti = (rar_tti + 3) % 10240;
+          if (tti == msg3_tti) {
+            send_msg3_grant();
+            rar_tti = -1;
+          }
+        }
+      }
+
+      // check for SR
+      if (sr_tti != -1) {
+        send_sr_ul_grant();
+      }
+
+      if (dl_rnti != SRSLTE_INVALID_RNTI) {
+        log.debug("Searching for RNTI=%d\n", dl_rnti);
+
+        // look for DL data to be send in each bearer and provide grant accordingly
+        for (int lcid = 0; lcid < SRSLTE_N_RADIO_BEARERS; lcid++) {
+          uint32_t buf_state = rlc.get_buffer_state(lcid);
+          if (buf_state > 0) {
+            log.debug("LCID=%d, buffer_state=%d\n", lcid, buf_state);
+            const uint32_t mac_header_size = 10; // Add MAC header (10 B for all subheaders, etc)
+            if (tmp_rlc_buffer.get_tailroom() > (buf_state + mac_header_size)) {
+              uint32_t pdu_size = rlc.read_pdu(lcid, tmp_rlc_buffer.msg, buf_state);
+              tx_payload_buffer.clear();
+              mac_msg_dl.init_tx(&tx_payload_buffer, pdu_size + mac_header_size, false);
+
+              // check if this is Msg4 that needs to contain the contention resolution ID CE
+              if (msg3_tti != -1) {
+                if (lcid == 0) {
+                  if (mac_msg_dl.new_subh()) {
+                    if (mac_msg_dl.get()->set_con_res_id(conres_id)) {
+                      log.info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
+                    } else {
+                      log.error("CE:    Setting Contention Resolution ID CE\n");
+                    }
+                  } else {
+                    log.error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
+                  }
+                  msg3_tti = -1;
+                }
+              }
+
+              // Add payload
+              if (mac_msg_dl.new_subh()) {
+                int n = mac_msg_dl.get()->set_sdu(lcid, pdu_size, tmp_rlc_buffer.msg);
+                if (n == -1) {
+                  log.error("Error while adding SDU (%d B) to MAC PDU\n", pdu_size);
+                  mac_msg_dl.del_subh();
+                }
+              }
+
+              uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(&log);
+              if (mac_pdu_ptr != nullptr) {
+                log.info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU (%d B):\n", mac_msg_dl.get_pdu_len());
+
+                // Prepare MAC grant for CCCH
+                mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
+                dl_grant.pid                                   = get_pid(tti);
+                dl_grant.rnti                                  = dl_rnti;
+                dl_grant.tb[0].tbs                             = mac_msg_dl.get_pdu_len();
+                dl_grant.tb[0].ndi_present                     = true;
+                dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
+
+                ue->new_tb(dl_grant, (const uint8_t*)mac_pdu_ptr);
+              } else {
+                log.error("Error writing DL MAC PDU\n");
+              }
+              mac_msg_dl.reset();
+            } else {
+              log.error("Can't fit RLC PDU into buffer (%d > %d)\n", buf_state, tmp_rlc_buffer.get_tailroom());
+            }
+          }
+        }
+        // Check if we need to provide a UL grant as well
+      }
+    } else {
+      log.debug("Not handling RNTI=%d\n", dl_rnti);
+    }
   }
 
   void stop()
   {
-    std::lock_guard<std::mutex> lock(mutex);
-
     running = false;
-
-    if (ue != NULL) {
-      ue->stop();
-    }
-
-    // Stopping system interface
-    ut.stop();
-    sys.stop();
-    ip_sock.stop();
-    ip_ctrl.stop();
-    srb.stop();
+    ue->stop();
   }
 
   // Internal function called with acquired lock
@@ -148,85 +343,66 @@ public:
     rlc.reset();
     pdcp.reset();
     cells.clear();
-    pcell_idx = -1;
+    pcell_idx           = -1;
     as_security_enabled = false;
   }
 
   // Called from UT before starting testcase
   void tc_start(const char* name)
   {
-    std::lock_guard<std::mutex> lock(mutex);
+    // strip testsuite name
+    std::string tc_name = get_tc_name(name);
 
-    if (ue == nullptr) {
-      // strip testsuite name
-      std::string tc_name = get_tc_name(name);
+    // Make a copy of the UE args for this run
+    all_args_t local_args = args;
 
-      // Make a copy of the UE args for this run
-      all_args_t local_args = args;
-
-      // set up logging
-      if (args.log.filename == "stdout") {
-        logger = &logger_stdout;
-      } else {
-        logger_file->init(get_filename_with_tc_name(local_args.log.filename, run_id, tc_name).c_str(), -1);
-        logger = logger_file;
-      }
-
-      log.info("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
-      log.console("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
-
-      // Patch UE config
-      local_args.stack.pcap.filename     = get_filename_with_tc_name(args.stack.pcap.filename, run_id, tc_name);
-      local_args.stack.pcap.nas_filename = get_filename_with_tc_name(args.stack.pcap.nas_filename, run_id, tc_name);
-
-      // bring up UE
-      ue = std::unique_ptr<ttcn3_ue>(new ttcn3_ue());
-      if (ue->init(local_args, logger, this, tc_name)) {
-        ue->stop();
-        ue.reset(nullptr);
-        std::string err("Couldn't initialize UE.\n");
-        log.error("%s\n", err.c_str());
-        log.console("%s\n", err.c_str());
-        return;
-      }
-
-      // Start simulator thread
-      running = true;
-      start();
+    // set up logging
+    if (args.log.filename == "stdout") {
+      logger = &logger_stdout;
     } else {
-      log.error("UE hasn't been deallocated properly because TC didn't finish correctly.\n");
-      log.console("UE hasn't been deallocated properly because TC didn't finish correctly.\n");
+      logger_file->init(get_filename_with_tc_name(local_args.log.filename, run_id, tc_name).c_str(), -1);
+      logger = logger_file;
     }
+
+    log.info("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
+    log.console("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
+
+    // Patch UE config
+    local_args.stack.pcap.filename     = get_filename_with_tc_name(args.stack.pcap.filename, run_id, tc_name);
+    local_args.stack.pcap.nas_filename = get_filename_with_tc_name(args.stack.pcap.nas_filename, run_id, tc_name);
+
+    // bring up UE
+    if (ue->init(local_args, logger, this, tc_name)) {
+      ue->stop();
+      std::string err("Couldn't initialize UE.\n");
+      log.error("%s\n", err.c_str());
+      log.console("%s\n", err.c_str());
+      return;
+    }
+
+    // create and add TTI timer to epoll
+    if (add_epoll(timer_handler.get_timer_fd(), epoll_fd) != SRSLTE_SUCCESS) {
+      log.error("Error while adding TTI timer to epoll\n");
+    }
+    event_handler.insert({timer_handler.get_timer_fd(), &timer_handler});
   }
 
   // Called from UT to terminate the testcase
   void tc_end()
   {
-    // ask periodic thread to stop before locking mutex
-    running = false;
+    log.info("Deinitializing UE ID=%d\n", run_id);
+    log.console("Deinitializing UE ID=%d\n", run_id);
+    ue->stop();
 
-    std::lock_guard<std::mutex> lock(mutex);
+    // stop TTI timer
+    del_epoll(timer_handler.get_timer_fd(), epoll_fd);
 
-    if (ue != nullptr) {
-      log.info("Deinitializing UE ID=%d\n", run_id);
-      log.console("Deinitializing UE ID=%d\n", run_id);
-      ue->stop();
+    logger_file->stop();
 
-      // wait until SS main thread has terminated before resetting UE
-      wait_thread_finish();
+    run_id++;
 
-      ue.reset();
-
-      // Reset SS' RLC and PDCP
-      reset();
-
-      logger_file->stop();
-
-      run_id++;
-    } else {
-      log.error("UE is not allocated. Nothing needs to be done.\n");
-      log.console("UE is not allocated. Nothing needs to be done.\n");
-    }
+    // Reset SS' RLC and PDCP
+    reset();
   }
 
   void power_off_ue()
@@ -248,8 +424,7 @@ public:
   {
     // verify that UE intends to send PRACH on current Pcell
     if (cells[pcell_idx]->cell.id != cell_id) {
-      log.error(
-          "UE is attempting to PRACH on pci=%d while current Pcell is pci=%d\n", cell_id, cells[pcell_idx]->cell.id);
+      log.error("UE is attempting to PRACH on pci=%d, current Pcell=%d\n", cell_id, cells[pcell_idx]->cell.id);
       return;
     }
 
@@ -374,7 +549,7 @@ public:
     ul_grant.rnti           = crnti;
     ul_grant.pid            = get_pid(tti);
     ul_grant.is_rar         = true;
-    
+
     ue->new_grant_ul(ul_grant);
   }
 
@@ -467,163 +642,42 @@ public:
     return last_dl_ndi[pid];
   }
 
-  void run_thread()
+  int run()
   {
-    uint32_t sib_idx = 0;
+    running = true;
 
     while (running) {
-      {
-        std::lock_guard<std::mutex> lock(mutex);
+      // wait for event
+      const int32_t      epoll_timeout_ms   = -1;
+      const uint32_t     MAX_EVENTS         = 1;
+      struct epoll_event events[MAX_EVENTS] = {};
+      int                nof_events         = epoll_wait(epoll_fd, events, MAX_EVENTS, epoll_timeout_ms);
 
-        tti = (tti + 1) % 10240;
+      // handle event
+      if (nof_events == -1) {
+        perror("epoll_wait() error");
+        break;
+      }
+      if (nof_events == 0) {
+        printf("time out %f sec expired\n", epoll_timeout_ms / 1000.0);
+        continue;
+      }
 
-        log.step(tti);
-        log.debug("Start new TTI\n");
-
-        ue->set_current_tti(tti);
-
-        // process events, if any
-        while (not event_queue.empty()) {
-          ss_events_t ev = event_queue.wait_pop();
-          switch (ev) {
-            case UE_SWITCH_ON:
-              log.console("Switching on UE ID=%d\n", run_id);
-              ue->switch_on();
-              break;
-            case UE_SWITCH_OFF:
-              log.console("Switching off UE ID=%d\n", run_id);
-              ue->switch_off();
-              break;
-            case ENABLE_DATA:
-              log.console("Enabling data for UE ID=%d\n", run_id);
-              ue->enable_data();
-              break;
-            case DISABLE_DATA:
-              log.console("Disabling data for UE ID=%d\n", run_id);
-              ue->disable_data();
-              break;
-          }
-        }
-
-        if (pcell_idx == -1) {
-          log.debug("Skipping TTI. Pcell not yet selected.\n");
+      for (int i = 0; i < nof_events; ++i) {
+        if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP) || (!(events[i].events & EPOLLIN))) {
+          ///< An error has occured on this fd, or the socket is not ready for reading
+          fprintf(stderr, "epoll error\n");
+          close(events[i].data.fd);
           continue;
         }
 
-        // DL/UL processing if UE has selected cell
-        dl_rnti = ue->get_dl_sched_rnti(tti);
-        if (SRSLTE_RNTI_ISSI(dl_rnti)) {
-          // deliver SIBs one after another
-          mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
-          dl_grant.pid                                   = get_pid(tti);
-          dl_grant.rnti                                  = dl_rnti;
-          dl_grant.tb[0].tbs                             = cells[pcell_idx]->sibs[sib_idx]->N_bytes;
-          dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
-          ue->new_tb(dl_grant, cells[pcell_idx]->sibs[sib_idx]->msg);
-          log.info("Delivered SIB%d for pcell_idx=%d\n", sib_idx, pcell_idx);
-          sib_idx = (sib_idx + 1) % cells[pcell_idx]->sibs.size();
-        } else if (SRSLTE_RNTI_ISRAR(dl_rnti)) {
-          if (prach_tti != -1) {
-            rar_tti = (prach_tti + 3) % 10240;
-            if (tti == rar_tti) {
-              send_rar(prach_preamble_index);
-            }
-          }
-        } else if (SRSLTE_RNTI_ISPA(dl_rnti)) {
-          log.debug("Searching for paging RNTI\n");
-          // PCH will be triggered from SYSSIM after receiving Paging
-        } else if (SRSLTE_RNTI_ISUSER(dl_rnti)) {
-          // check if this is for contention resolution after PRACH/RAR
-          if (dl_rnti == crnti) {
-            log.debug("Searching for C-RNTI=%d\n", crnti);
-
-            if (rar_tti != -1) {
-              msg3_tti = (rar_tti + 3) % 10240;
-              if (tti == msg3_tti) {
-                send_msg3_grant();
-                rar_tti = -1;
-              }
-            }
-          }
-
-          // check for SR
-          if (sr_tti != -1) {
-            send_sr_ul_grant();
-          }
-
-          if (dl_rnti != 0) {
-            log.debug("Searching for RNTI=%d\n", dl_rnti);
-
-            // look for DL data to be send in each bearer and provide grant accordingly
-            for (int lcid = 0; lcid < SRSLTE_N_RADIO_BEARERS; lcid++) {
-              uint32_t buf_state = rlc.get_buffer_state(lcid);
-              if (buf_state > 0) {
-                log.debug("LCID=%d, buffer_state=%d\n", lcid, buf_state);
-                const uint32_t mac_header_size = 10; // Add MAC header (10 B for all subheaders, etc)
-                if (tmp_rlc_buffer.get_tailroom() > (buf_state + mac_header_size)) {
-                  uint32_t pdu_size = rlc.read_pdu(lcid, tmp_rlc_buffer.msg, buf_state);
-                  tx_payload_buffer.clear();
-                  mac_msg_dl.init_tx(&tx_payload_buffer, pdu_size + mac_header_size, false);
-
-                  // check if this is Msg4 that needs to contain the contention resolution ID CE
-                  if (msg3_tti != -1) {
-                    if (lcid == 0) {
-                      if (mac_msg_dl.new_subh()) {
-                        if (mac_msg_dl.get()->set_con_res_id(conres_id)) {
-                          log.info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
-                        } else {
-                          log.error("CE:    Setting Contention Resolution ID CE\n");
-                        }
-                      } else {
-                        log.error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
-                      }
-                      msg3_tti = -1;
-                    }
-                  }
-
-                  // Add payload
-                  if (mac_msg_dl.new_subh()) {
-                    int n = mac_msg_dl.get()->set_sdu(lcid, pdu_size, tmp_rlc_buffer.msg);
-                    if (n == -1) {
-                      log.error("Error while adding SDU (%d B) to MAC PDU\n", pdu_size);
-                      mac_msg_dl.del_subh();
-                    }
-                  }
-
-                  uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(&log);
-                  if (mac_pdu_ptr != nullptr) {
-                    log.info_hex(
-                        mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU (%d B):\n", mac_msg_dl.get_pdu_len());
-
-                    // Prepare MAC grant for CCCH
-                    mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
-                    dl_grant.pid                                   = get_pid(tti);
-                    dl_grant.rnti                                  = dl_rnti;
-                    dl_grant.tb[0].tbs                             = mac_msg_dl.get_pdu_len();
-                    dl_grant.tb[0].ndi_present                     = true;
-                    dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
-
-                    ue->new_tb(dl_grant, (const uint8_t*)mac_pdu_ptr);
-                  } else {
-                    log.error("Error writing DL MAC PDU\n");
-                  }
-                  mac_msg_dl.reset();
-                } else {
-                  log.error("Can't fit RLC PDU into buffer (%d > %d)\n", buf_state, tmp_rlc_buffer.get_tailroom());
-                }
-              }
-            }
-            // Check if we need to provide a UL grant as well
-          }
-        } else {
-          log.debug("Not handling RNTI=%d\n", dl_rnti);
+        int fd = events[i].data.fd;
+        if (event_handler.find(fd) != event_handler.end()) {
+          event_handler[fd]->handle_event(fd, events[i], epoll_fd);
         }
       }
-      usleep(1000);
     }
-
-    log.info("Leaving main thread.\n");
-    log.console("Leaving main thread.\n");
+    return SRSLTE_SUCCESS;
   }
 
   uint32_t get_tti() { return tti; }
@@ -927,6 +981,13 @@ private:
   ttcn3_ip_ctrl_interface ip_ctrl;
   ttcn3_srb_interface     srb;
 
+  // Epoll
+  int                                epoll_fd  = -1;
+  int                                signal_fd = -1; ///< FD for signals
+  std::map<uint32_t, epoll_handler*> event_handler;  ///< Lookup table for handler
+  epoll_timer_handler                timer_handler;
+  epoll_signal_handler               signal_handler;
+
   // Logging stuff
   srslte::logger_stdout logger_stdout;
   srslte::logger_file*  logger_file = nullptr;
@@ -946,9 +1007,8 @@ private:
   srslte::byte_buffer_pool* pool = nullptr;
 
   // Simulator vars
-  unique_ptr<ttcn3_ue> ue = nullptr;
-  std::mutex           mutex;
-  bool                 running = false;
+  ttcn3_ue* ue      = nullptr;
+  bool      running = false;
 
   typedef enum { UE_SWITCH_ON = 0, UE_SWITCH_OFF, ENABLE_DATA, DISABLE_DATA } ss_events_t;
   block_queue<ss_events_t> event_queue;
@@ -975,6 +1035,7 @@ private:
     float                             attenuation   = 0.0;
     uint32_t                          earfcn        = 0;
     std::vector<unique_byte_buffer_t> sibs;
+    int                               sib_idx = 0; ///< Index of SIB scheduled for next transmission
   } syssim_cell_t;
   typedef std::unique_ptr<syssim_cell_t> unique_syssim_cell_t;
   std::vector<unique_syssim_cell_t>      cells;
@@ -1004,6 +1065,14 @@ private:
 
   std::vector<std::string> rb_id_vec =
       {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};
+
+  // port constants
+  const std::string listen_address = "0.0.0.0";
+  const uint32_t    UT_PORT        = 2222;
+  const uint32_t    SYS_PORT       = 2223;
+  const uint32_t    IPSOCK_PORT    = 2224;
+  const uint32_t    IPCTRL_PORT    = 2225;
+  const uint32_t    SRB_PORT       = 2226;
 };
 
 #endif // SRSUE_TTCN3_SYSSIM_H
