@@ -153,8 +153,8 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
       // Set SCell state, all deactivated by default except PCell
       scell_info.state = scell_idx == 0 ? scell_state_active : scell_state_deactivated;
     } else {
-      // Cell without configuration shall be default
-      scell_info.state = scell_state_default;
+      // Cell without configuration shall be default except if it PCell
+      scell_info.state = scell_idx == 0 ? scell_state_active : scell_state_default;
     }
   }
 
@@ -215,7 +215,6 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
     /* Check SCell is active */                                                                                        \
     auto& scell_info = ue_db.at(RNTI).scell_info[_get_scell_idx(RNTI, CC_IDX)];                                        \
     if (scell_info.state != scell_state_active) {                                                                      \
-      ERROR("Failed to assert active cell/carrier %d for RNTI x%x", CC_IDX, RNTI);                                     \
       return RET;                                                                                                      \
     }                                                                                                                  \
   } while (false)
@@ -248,9 +247,9 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
     /* Assert RNTI exists and eNb cell/carrier is configured */                                                        \
     UE_DB_ASSERT_SCELL(RNTI, SCELL_IDX, RET);                                                                          \
                                                                                                                        \
-    /* Check SCell is active */                                                                                        \
+    /* Check SCell is active, ignore PCell state */                                                                    \
     auto& scell_info = ue_db.at(RNTI).scell_info[SCELL_IDX];                                                           \
-    if (scell_info.state != scell_state_active) {                                                                      \
+    if (SCELL_IDX != 0 && scell_info.state != scell_state_active) {                                                    \
       ERROR("Failed to assert active SCell %d for RNTI x%x", SCELL_IDX, RNTI);                                         \
       return RET;                                                                                                      \
     }                                                                                                                  \
@@ -291,7 +290,13 @@ srslte::phy_cfg_t phy_ue_db::get_config(uint16_t rnti, uint32_t cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  UE_DB_ASSERT_ACTIVE_CELL(rnti, cc_idx, {});
+  srslte::phy_cfg_t default_cfg = {};
+  default_cfg.set_defaults();
+  default_cfg.dl_cfg.pdsch.rnti = rnti;
+  default_cfg.ul_cfg.pusch.rnti = rnti;
+  default_cfg.ul_cfg.pucch.rnti = rnti;
+
+  UE_DB_ASSERT_ACTIVE_CELL(rnti, cc_idx, default_cfg);
 
   return ue_db.at(rnti).scell_info[_get_scell_idx(rnti, cc_idx)].phy_cfg;
 }
@@ -334,6 +339,9 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
 {
   std::lock_guard<std::mutex> lock(mutex);
 
+  // Reset UCI CFG, avoid returning carrying cached information
+  uci_cfg = {};
+
   // Assert rnti and cell exits and it is active
   UE_DB_ASSERT_PCELL(rnti, cc_idx, false);
 
@@ -343,8 +351,6 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   const auto& ue           = ue_db.at(rnti);
   const auto& pcell_cfg    = ue.scell_info[0].phy_cfg;
   bool        uci_required = false;
-
-  uci_cfg = {};
 
   // Check if SR opportunity (will only be used in PUCCH)
   uci_cfg.is_scheduling_request_tti = (srslte_ue_ul_sr_send_tti(&pcell_cfg.ul_cfg.pucch, tti) == 1);

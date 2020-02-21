@@ -993,7 +993,13 @@ static void gen_ack_fdd(const srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* u
 
     uint32_t total_uci_bits =
         tb_count + srslte_cqi_size(&uci_data->cfg.cqi) + (uci_data->value.scheduling_request ? 1 : 0);
-    if (ack_info->nof_cc == 1) {
+
+    if (tb_count == 0) {
+      // If no PDSCH TB detected, set all to zeros and do not modify the UCI configuration
+      for (int i = 0; i < ack_info->nof_cc; i++) {
+        uci_data->cfg.ack[i].nof_acks = 0;
+      }
+    } else if (ack_info->nof_cc == 1) {
       // If only 1 configured cell, report 1 or 2 bits depending on number of detected TB
       uci_data->cfg.ack[0].nof_acks = tb_count;
     } else if (ack_info->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
@@ -1031,7 +1037,7 @@ static void gen_ack_fdd(const srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* u
         //     and the CSI is not larger than 22 then the periodic CSI report is multiplexed with HARQ-ACK on PUCCH
         //     using the determined PUCCH format 3 resource according to [4]
         for (int i = 0; i < ack_info->nof_cc; i++) {
-          uci_data->cfg.ack[i].nof_acks = (tb_count != 0) ? nof_tb : 0;
+          uci_data->cfg.ack[i].nof_acks = nof_tb;
         }
       } else {
         // - otherwise, CSI is dropped
@@ -1039,14 +1045,14 @@ static void gen_ack_fdd(const srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* u
 
         //
         for (int i = 0; i < ack_info->nof_cc; i++) {
-          uci_data->cfg.ack[i].nof_acks = (tb_count != 0) ? nof_tb : 0;
+          uci_data->cfg.ack[i].nof_acks = nof_tb;
         }
       }
     } else {
       // For 2 or more configured cells, report nof_tb per carrier except if there are no HARQ-ACK bits to report, in
       // which case we set to 0
       for (int i = 0; i < ack_info->nof_cc; i++) {
-        uci_data->cfg.ack[i].nof_acks = (tb_count != 0) ? nof_tb : 0;
+        uci_data->cfg.ack[i].nof_acks = nof_tb;
       }
     }
   }

@@ -310,7 +310,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
       ue_db[rnti]->is_grant_available = true;
 
       // Fill UCI configuration
-      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, grants->dci.cqi_request, phy_cfg.ul_cfg.pucch.uci_cfg);
+      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, grants->dci.cqi_request, phy_cfg.ul_cfg.pusch.uci_cfg);
 
       // Compute UL grant
       srslte_pusch_grant_t& grant = phy_cfg.ul_cfg.pusch.grant;
