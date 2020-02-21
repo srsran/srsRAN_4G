@@ -444,6 +444,7 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
       } else {
         Error("CE:    Setting SCell Activation CE. No space for a subheader\n");
       }
+      break;
     default:
       Error("CE:    Allocating CE=0x%x. Not supported\n", lcid);
       break;

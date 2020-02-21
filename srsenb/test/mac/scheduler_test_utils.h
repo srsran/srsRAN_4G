@@ -33,8 +33,8 @@
  * Setup Random generators
  **************************/
 
-// uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
-uint32_t const seed = 2452071795;
+uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
+// uint32_t const seed = 2452071795;
 // uint32_t const seed = 1581009287; // prb==25
 std::default_random_engine            rand_gen(seed);
 std::uniform_real_distribution<float> unif_dist(0, 1.0);
@@ -134,7 +134,7 @@ struct sched_sim_events {
 
 struct sched_sim_event_generator {
   uint16_t next_rnti   = 70;
-  uint32_t current_tti = 0;
+  uint32_t tti_counter = 0;
 
   struct user_data {
     uint16_t rnti;
@@ -148,29 +148,31 @@ struct sched_sim_event_generator {
 
   void step_tti(uint32_t nof_ttis = 1)
   {
-    current_tti += nof_ttis;
-    if (current_tti >= tti_events.size()) {
-      tti_events.resize(current_tti + 1);
+    tti_counter += nof_ttis;
+    if (tti_counter >= tti_events.size()) {
+      tti_events.resize(tti_counter + 1);
     }
     rem_old_users();
   }
 
-  void step_until(uint32_t tti)
+  int step_until(uint32_t tti)
   {
-    if (current_tti >= tti) {
+    if (tti_counter >= tti) {
       // error
-      return;
+      return -1;
     }
-    current_tti = tti;
-    if (current_tti >= tti_events.size()) {
-      tti_events.resize(current_tti + 1);
+    int jump    = tti - tti_counter;
+    tti_counter = tti;
+    if (tti_counter >= tti_events.size()) {
+      tti_events.resize(tti_counter + 1);
     }
     rem_old_users();
+    return jump;
   }
 
   tti_ev::user_cfg_ev* add_new_default_user(uint32_t duration)
   {
-    std::vector<tti_ev::user_cfg_ev>& user_updates = tti_events[current_tti].user_updates;
+    std::vector<tti_ev::user_cfg_ev>& user_updates = tti_events[tti_counter].user_updates;
     user_updates.emplace_back();
     auto& user = user_updates.back();
     user.rnti  = next_rnti++;
@@ -178,7 +180,7 @@ struct sched_sim_event_generator {
     user.ue_cfg.reset(new srsenb::sched_interface::ue_cfg_t{generate_default_ue_cfg()});
     current_users.emplace_back();
     current_users.back().rnti         = user.rnti;
-    current_users.back().tti_start    = current_tti;
+    current_users.back().tti_start    = tti_counter;
     current_users.back().tti_duration = duration;
     return &user;
   }
@@ -187,7 +189,9 @@ struct sched_sim_event_generator {
   {
     TESTASSERT(user_exists(rnti));
     tti_ev::user_cfg_ev* user = get_user_cfg(rnti);
-    user->buffer_ev.reset(new tti_ev::user_buffer_ev{});
+    if (user->buffer_ev == nullptr) {
+      user->buffer_ev.reset(new tti_ev::user_buffer_ev{});
+    }
     user->buffer_ev->dl_data = new_data;
     return SRSLTE_SUCCESS;
   }
@@ -196,8 +200,9 @@ struct sched_sim_event_generator {
   {
     TESTASSERT(user_exists(rnti));
     tti_ev::user_cfg_ev* user = get_user_cfg(rnti);
-    TESTASSERT(user != nullptr);
-    user->buffer_ev.reset(new tti_ev::user_buffer_ev{});
+    if (user->buffer_ev == nullptr) {
+      user->buffer_ev.reset(new tti_ev::user_buffer_ev{});
+    }
     user->buffer_ev->sr_data = new_data;
     return SRSLTE_SUCCESS;
   }
@@ -217,7 +222,7 @@ struct sched_sim_event_generator {
 private:
   tti_ev::user_cfg_ev* get_user_cfg(uint16_t rnti)
   {
-    std::vector<tti_ev::user_cfg_ev>& user_updates = tti_events[current_tti].user_updates;
+    std::vector<tti_ev::user_cfg_ev>& user_updates = tti_events[tti_counter].user_updates;
     auto                              it           = std::find_if(
         user_updates.begin(), user_updates.end(), [&rnti](tti_ev::user_cfg_ev& user) { return user.rnti == rnti; });
     if (it == user_updates.end()) {
@@ -239,7 +244,7 @@ private:
   {
     // remove users that pass their connection duration
     auto rem_it = std::remove_if(current_users.begin(), current_users.end(), [this](const user_data& u) {
-      return u.tti_start + u.tti_duration < current_tti;
+      return u.tti_start + u.tti_duration < tti_counter;
     });
 
     // set the call rem_user(...) at the right tti

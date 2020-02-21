@@ -19,6 +19,7 @@
  *
  */
 
+#include "lib/include/srslte/common/pdu.h"
 #include "scheduler_test_common.h"
 #include "scheduler_test_utils.h"
 #include "srsenb/hdr/stack/mac/scheduler.h"
@@ -57,109 +58,6 @@ public:
 srslte::scoped_log<sched_test_log> log_global{};
 
 /******************************
- * Setup Scheduler Tester Args
- *****************************/
-
-sched_sim_events generate_default_sim_events(uint32_t nof_prb, uint32_t nof_ccs)
-{
-  sched_sim_events sim_events;
-  sim_sched_args&  sim_args = sim_events.sim_args;
-
-  sim_args.nof_ttis = 10240 + 10;
-  sim_args.P_retx   = 0.1;
-
-  sim_args.ue_cfg = generate_default_ue_cfg();
-
-  // setup two cells
-  std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg(nof_ccs, generate_default_cell_cfg(nof_prb));
-  cell_cfg[0].scell_list.resize(1);
-  cell_cfg[0].scell_list[0].enb_cc_idx               = 1;
-  cell_cfg[0].scell_list[0].cross_carrier_scheduling = false;
-  cell_cfg[0].scell_list[0].ul_allowed               = true;
-  cell_cfg[1].cell.id                                = 2; // id=2
-  cell_cfg[1].scell_list                             = cell_cfg[0].scell_list;
-  cell_cfg[1].scell_list[0].enb_cc_idx               = 0;
-  sim_args.cell_cfg                                  = std::move(cell_cfg);
-
-  sim_args.bearer_cfg           = {};
-  sim_args.bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-
-  /* Setup Derived Params */
-  sim_args.ue_cfg.supported_cc_list.resize(nof_ccs);
-  for (uint32_t i = 0; i < sim_args.ue_cfg.supported_cc_list.size(); ++i) {
-    sim_args.ue_cfg.supported_cc_list[i].active     = true;
-    sim_args.ue_cfg.supported_cc_list[i].enb_cc_idx = i;
-  }
-
-  return sim_events;
-}
-
-sched_sim_events generate_sim1()
-{
-  /* Simulation Configuration */
-  uint32_t nof_prb = 25;
-  uint32_t nof_ccs = 2;
-
-  sched_sim_events sim_events = generate_default_sim_events(nof_prb, nof_ccs);
-
-  /* Internal configurations. Do not touch */
-  float ul_sr_exps[]   = {1, 4}; // log rand
-  float dl_data_exps[] = {1, 4}; // log rand
-  float P_ul_sr = randf() * 0.5, P_dl = randf() * 0.5;
-
-  sched_sim_event_generator generator;
-
-  /* Setup Events */
-  uint32_t prach_tti = 1, msg4_tot_delay = 10; // TODO: check correct value
-  uint32_t msg4_size = 20;                     // TODO: Check
-  uint32_t duration  = 1000;
-
-  // Event PRACH: at prach_tti
-  generator.step_until(prach_tti);
-  tti_ev::user_cfg_ev* user = generator.add_new_default_user(duration);
-  uint16_t             rnti = user->rnti;
-
-  // Event (TTI=prach_tti+msg4_tot_delay): First Tx (Msg4). Goes in SRB0 and contains ConRes
-  generator.step_tti(msg4_tot_delay);
-  generator.add_dl_data(rnti, msg4_size);
-
-  // Event (20 TTIs): Data back and forth
-  auto generate_data = [&](uint32_t nof_ttis) {
-    for (uint32_t i = 0; i < nof_ttis; ++i) {
-      generator.step_tti();
-      bool ul_flag = randf() < P_ul_sr, dl_flag = randf() < P_dl;
-      if (dl_flag) {
-        float exp = dl_data_exps[0] + randf() * (dl_data_exps[1] - dl_data_exps[0]);
-        generator.add_dl_data(rnti, pow(10, exp));
-      }
-      if (ul_flag) {
-        float exp = ul_sr_exps[0] + randf() * (ul_sr_exps[1] - ul_sr_exps[0]);
-        generator.add_ul_data(rnti, pow(10, exp));
-      }
-    }
-  };
-  generate_data(20);
-
-  // Event: Reconf Complete. Activate SCells
-  user = generator.user_reconf(rnti);
-  user->ue_cfg->supported_cc_list.resize(nof_ccs);
-  for (uint32_t i = 0; i < user->ue_cfg->supported_cc_list.size(); ++i) {
-    user->ue_cfg->supported_cc_list[i].active     = true;
-    user->ue_cfg->supported_cc_list[i].enb_cc_idx = i;
-  }
-  // now we have two CCs
-
-  // Generate a bit more data, now it should go through both cells
-  generate_data(20);
-  // We should have scheduled the SCell Activation by now
-
-  sim_events.tti_events        = std::move(generator.tti_events);
-  sim_events.sim_args.nof_ttis = sim_events.tti_events.size();
-
-  return sim_events;
-}
-
-/******************************
  *   Scheduler Tester for CA
  *****************************/
 
@@ -189,10 +87,12 @@ public:
 
   // tti specific params
   tti_info_t tti_info;
+  uint32_t   tti_counter = 0;
 
   // testers
   std::vector<output_sched_tester>         output_tester;
   std::unique_ptr<user_state_sched_tester> ue_tester;
+  std::unique_ptr<sched_result_stats>      sched_stats;
 
 private:
   struct ack_info_t {
@@ -219,6 +119,7 @@ int sched_ca_tester::cell_cfg(const std::vector<cell_cfg_t>& cell_params)
 {
   sched::cell_cfg(cell_params); // call parent
   ue_tester.reset(new user_state_sched_tester{cell_params});
+  sched_stats.reset(new sched_result_stats{cell_params});
   output_tester.clear();
   output_tester.reserve(cell_params.size());
   for (uint32_t i = 0; i < cell_params.size(); ++i) {
@@ -435,6 +336,8 @@ void sched_ca_tester::run_tti(uint32_t tti_rx, const tti_ev& tti_events)
 
   process_results();
   set_acks();
+
+  tti_counter++;
 }
 
 int sched_ca_tester::process_results()
@@ -444,6 +347,7 @@ int sched_ca_tester::process_results()
     TESTASSERT(output_tester[i].test_all(
                    tti_info.tti_params, tti_info.dl_sched_result[i], tti_info.ul_sched_result[i]) == SRSLTE_SUCCESS);
   }
+  sched_stats->process_results(tti_info.tti_params, tti_info.dl_sched_result, tti_info.ul_sched_result);
 
   return SRSLTE_SUCCESS;
 }
@@ -504,22 +408,144 @@ int sched_ca_tester::set_acks()
   return SRSLTE_SUCCESS;
 }
 
-int test_scheduler_ca(const sched_sim_events& sim_events)
+/******************************
+ *      Scheduler Tests
+ *****************************/
+
+sim_sched_args generate_default_sim_args(uint32_t nof_prb, uint32_t nof_ccs)
 {
-  sched_ca_tester tester;
-  tester.sim_args = sim_events.sim_args;
+  sim_sched_args sim_args;
 
-  // Setup scheduler
-  tester.init(nullptr);
-  TESTASSERT(tester.cell_cfg(sim_events.sim_args.cell_cfg) == SRSLTE_SUCCESS);
+  sim_args.nof_ttis = 10240 + 10;
+  sim_args.P_retx   = 0.1;
 
-  uint32_t tti_start = 0; // rand_int(0, 10240);
-  for (uint32_t nof_ttis = 0; nof_ttis < sim_events.sim_args.nof_ttis; ++nof_ttis) {
-    uint32_t tti = (tti_start + nof_ttis) % 10240;
-    log_global->step(tti);
-    tester.run_tti(tti, sim_events.tti_events[nof_ttis]);
+  sim_args.ue_cfg = generate_default_ue_cfg();
+
+  // setup two cells
+  std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg(nof_ccs, generate_default_cell_cfg(nof_prb));
+  cell_cfg[0].scell_list.resize(1);
+  cell_cfg[0].scell_list[0].enb_cc_idx               = 1;
+  cell_cfg[0].scell_list[0].cross_carrier_scheduling = false;
+  cell_cfg[0].scell_list[0].ul_allowed               = true;
+  cell_cfg[1].cell.id                                = 2; // id=2
+  cell_cfg[1].scell_list                             = cell_cfg[0].scell_list;
+  cell_cfg[1].scell_list[0].enb_cc_idx               = 0;
+  sim_args.cell_cfg                                  = std::move(cell_cfg);
+
+  sim_args.bearer_cfg           = {};
+  sim_args.bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+
+  /* Setup Derived Params */
+  sim_args.ue_cfg.supported_cc_list.resize(nof_ccs);
+  for (uint32_t i = 0; i < sim_args.ue_cfg.supported_cc_list.size(); ++i) {
+    sim_args.ue_cfg.supported_cc_list[i].active     = true;
+    sim_args.ue_cfg.supported_cc_list[i].enb_cc_idx = i;
   }
 
+  return sim_args;
+}
+
+int run_sim1()
+{
+  /* Simulation Configuration Arguments */
+  uint32_t nof_prb = 25;
+  uint32_t nof_ccs = 2;
+
+  /* Simulation Objects Setup */
+  sched_sim_event_generator generator;
+  // Setup scheduler
+  sched_ca_tester tester;
+  tester.sim_args = generate_default_sim_args(nof_prb, nof_ccs);
+  tester.init(nullptr);
+  TESTASSERT(tester.cell_cfg(tester.sim_args.cell_cfg) == SRSLTE_SUCCESS);
+
+  /* Internal configurations. Do not touch */
+  float          ul_sr_exps[]   = {1, 4}; // log rand
+  float          dl_data_exps[] = {1, 4}; // log rand
+  float          P_ul_sr = randf() * 0.5, P_dl = randf() * 0.5;
+  uint32_t       tti_start = 0; // rand_int(0, 10240);
+  const uint16_t rnti1     = 70;
+  uint32_t       pcell_idx = 0;
+
+  /* Setup Simulation */
+  uint32_t prach_tti = 1, msg4_tot_delay = 10; // TODO: check correct value
+  uint32_t msg4_size    = 20;                  // TODO: Check
+  uint32_t duration     = 1000;
+  auto     process_ttis = [&generator, &tti_start, &tester]() {
+    for (; tester.tti_counter <= generator.tti_counter;) {
+      uint32_t tti = (tti_start + tester.tti_counter) % 10240;
+      log_global->step(tti);
+      tester.run_tti(tti, generator.tti_events[tester.tti_counter]);
+    }
+  };
+
+  /* Simulation */
+
+  // Event PRACH: PRACH takes place for "rnti1", and carrier "pcell_idx"
+  generator.step_until(prach_tti);
+  tti_ev::user_cfg_ev* user                     = generator.add_new_default_user(duration);
+  user->ue_cfg->supported_cc_list[0].enb_cc_idx = pcell_idx;
+  user->rnti                                    = rnti1;
+  process_ttis();
+  TESTASSERT(tester.ue_tester->user_exists(rnti1));
+
+  // Event (TTI=prach_tti+msg4_tot_delay): First Tx (Msg4). Goes in SRB0 and contains ConRes
+  generator.step_tti(msg4_tot_delay);
+  generator.add_dl_data(rnti1, msg4_size);
+  process_ttis();
+
+  // Event (20 TTIs): Data back and forth
+  auto generate_data = [&](uint32_t nof_ttis, float prob_dl, float prob_ul) {
+    for (uint32_t i = 0; i < nof_ttis; ++i) {
+      generator.step_tti();
+      bool ul_flag = randf() < prob_ul, dl_flag = randf() < prob_dl;
+      if (dl_flag) {
+        float exp = dl_data_exps[0] + randf() * (dl_data_exps[1] - dl_data_exps[0]);
+        generator.add_dl_data(rnti1, pow(10, exp));
+      }
+      if (ul_flag) {
+        float exp = ul_sr_exps[0] + randf() * (ul_sr_exps[1] - ul_sr_exps[0]);
+        generator.add_ul_data(rnti1, pow(10, exp));
+      }
+    }
+  };
+  generate_data(20, P_dl, P_ul_sr);
+  process_ttis();
+
+  // Event: Reconf Complete. Activate SCells. Check if CE correctly transmitted
+  generator.step_tti();
+  user          = generator.user_reconf(rnti1);
+  *user->ue_cfg = *tester.get_ue_cfg(rnti1); // use current cfg as starting point, and add more supported ccs
+  user->ue_cfg->supported_cc_list.resize(nof_ccs);
+  for (uint32_t i = 0; i < user->ue_cfg->supported_cc_list.size(); ++i) {
+    user->ue_cfg->supported_cc_list[i].active     = true;
+    user->ue_cfg->supported_cc_list[i].enb_cc_idx = i;
+  }
+  process_ttis();
+  // When a new DL tx takes place, it should also encode the CE
+  for (uint32_t i = 0; i < 100; ++i) {
+    TESTASSERT(tester.tti_info.dl_sched_result[pcell_idx].nof_data_elems > 0);
+    if (tester.tti_info.dl_sched_result[pcell_idx].data[0].nof_pdu_elems[0] > 0) {
+      // it is a new DL tx
+      TESTASSERT(tester.tti_info.dl_sched_result[pcell_idx].data[0].pdu[0][0].lcid ==
+                 srslte::sch_subh::cetype::SCELL_ACTIVATION);
+      break;
+    }
+    generator.step_tti();
+    process_ttis();
+    // now we have two CCs
+  }
+  // now we have two CCs
+
+  // Event: Generate a bit more data, now it should go through both cells
+  generate_data(10, 1.0, 1.0);
+  process_ttis();
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[0] > 0);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[1] > 0);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[0] > 0);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[1] > 0);
+
+  log_global->info("[TESTER] Sim1 finished successfully\n");
   return SRSLTE_SUCCESS;
 }
 
@@ -530,9 +556,7 @@ int main()
   uint32_t N_runs = 1;
   for (uint32_t n = 0; n < N_runs; ++n) {
     printf("Sim run number: %u\n", n + 1);
-    sched_sim_events sim_events = generate_sim1();
-
-    TESTASSERT(test_scheduler_ca(sim_events) == SRSLTE_SUCCESS);
+    TESTASSERT(run_sim1() == SRSLTE_SUCCESS);
   }
 
   return 0;

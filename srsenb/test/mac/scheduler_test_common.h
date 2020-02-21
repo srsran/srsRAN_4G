@@ -123,6 +123,32 @@ private:
   tti_params_t                 tti_params{10241};
 };
 
+class sched_result_stats
+{
+public:
+  explicit sched_result_stats(std::vector<srsenb::sched::cell_cfg_t> cell_params_) :
+    cell_params(std::move(cell_params_))
+  {
+  }
+
+  void process_results(const tti_params_t&                                 tti_params,
+                       const std::vector<sched_interface::dl_sched_res_t>& dl_result,
+                       const std::vector<sched_interface::ul_sched_res_t>& ul_result);
+
+  struct user_stats {
+    uint16_t              rnti;
+    std::vector<uint64_t> tot_dl_sched_data; // includes retxs
+    std::vector<uint64_t> tot_ul_sched_data;
+  };
+
+  std::map<uint16_t, user_stats> users;
+
+private:
+  user_stats* get_user(uint16_t rnti);
+
+  const std::vector<srsenb::sched::cell_cfg_t> cell_params;
+};
+
 } // namespace srsenb
 
 #endif // SRSLTE_SCHEDULER_TEST_COMMON_H

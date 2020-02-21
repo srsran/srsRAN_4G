@@ -522,3 +522,31 @@ int user_state_sched_tester::test_all(uint32_t                               enb
   TESTASSERT(test_scell_activation(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
   return SRSLTE_SUCCESS;
 }
+
+void sched_result_stats::process_results(const tti_params_t&                                 tti_params,
+                                         const std::vector<sched_interface::dl_sched_res_t>& dl_result,
+                                         const std::vector<sched_interface::ul_sched_res_t>& ul_result)
+{
+  for (uint32_t ccidx = 0; ccidx < dl_result.size(); ++ccidx) {
+    for (uint32_t i = 0; i < dl_result[ccidx].nof_data_elems; ++i) {
+      user_stats* user = get_user(dl_result[ccidx].data[i].dci.rnti);
+      user->tot_dl_sched_data[ccidx] += dl_result[ccidx].data[i].tbs[0];
+      user->tot_dl_sched_data[ccidx] += dl_result[ccidx].data[i].tbs[1];
+    }
+    for (uint32_t i = 0; i < ul_result[ccidx].nof_dci_elems; ++i) {
+      user_stats* user = get_user(ul_result[ccidx].pusch[i].dci.rnti);
+      user->tot_ul_sched_data[ccidx] += ul_result[ccidx].pusch[i].tbs;
+    }
+  }
+}
+
+sched_result_stats::user_stats* sched_result_stats::get_user(uint16_t rnti)
+{
+  if (users.count(rnti) != 0) {
+    return &users[rnti];
+  }
+  users[rnti].rnti = rnti;
+  users[rnti].tot_dl_sched_data.resize(cell_params.size(), 0);
+  users[rnti].tot_ul_sched_data.resize(cell_params.size(), 0);
+  return &users[rnti];
+}

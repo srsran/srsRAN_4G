@@ -854,10 +854,11 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     }
 
     // Print Resulting UL Allocation
-    log_h->info("SCHED: %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=(%d,%d), n_rtx=%d, tbs=%d, bsr=%d (%d-%d)\n",
+    log_h->info("SCHED: %s %s rnti=0x%x, cc=%d, pid=%d, dci=(%d,%d), prb=(%d,%d), n_rtx=%d, tbs=%d, bsr=%d (%d-%d)\n",
                 ul_alloc.is_msg3() ? "Msg3" : "UL",
                 ul_alloc.is_retx() ? "retx" : "tx",
                 user->get_rnti(),
+                cc_cfg->enb_cc_idx,
                 h->get_id(),
                 pusch->dci.location.L,
                 pusch->dci.location.ncce,

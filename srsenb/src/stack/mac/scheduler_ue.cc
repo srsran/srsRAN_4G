@@ -133,7 +133,7 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
     }
     if (scell_activation_state_changed) {
       pending_ces.emplace_back(srslte::sch_subh::SCELL_ACTIVATION);
-      log_h->info("SCHED: Scheduling SCell Activation CMD for rnti=0x%x\n", rnti);
+      log_h->info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x\n", rnti);
     }
   }
 }
@@ -169,12 +169,14 @@ void sched_ue::reset()
 void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
 {
   std::lock_guard<std::mutex> lock(mutex);
+  cfg.ue_bearers[lc_id] = *cfg_;
   set_bearer_cfg_unlocked(lc_id, *cfg_);
 }
 
 void sched_ue::rem_bearer(uint32_t lc_id)
 {
   std::lock_guard<std::mutex> lock(mutex);
+  cfg.ue_bearers[lc_id] = sched_interface::ue_bearer_cfg_t{};
   set_bearer_cfg_unlocked(lc_id, sched_interface::ue_bearer_cfg_t{});
 }
 
@@ -870,9 +872,12 @@ void sched_ue::set_bearer_cfg_unlocked(uint32_t lc_id, const sched_interface::ue
 {
   if (lc_id < sched_interface::MAX_LC) {
     bool is_idle   = lch[lc_id].cfg.direction == sched_interface::ue_bearer_cfg_t::IDLE;
+    bool is_equal  = memcmp(&cfg_, &lch[lc_id].cfg, sizeof(cfg_)) == 0;
     lch[lc_id].cfg = cfg_;
     if (lch[lc_id].cfg.direction != sched_interface::ue_bearer_cfg_t::IDLE) {
-      Info("SCHED: Set bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
+      if (not is_equal) {
+        Info("SCHED: Set bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
+      }
     } else if (not is_idle) {
       Info("SCHED: Removed bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
     }
