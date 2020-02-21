@@ -123,28 +123,49 @@ SRSLTE_API int srslte_pucch_decode(srslte_pucch_t*        q,
                                    srslte_pucch_res_t*    data);
 
 /* Other utilities. These functions do not modify the state and run in real-time */
-SRSLTE_API float srslte_pucch_alpha_format1(uint32_t            n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB],
-                                            srslte_pucch_cfg_t* cfg,
-                                            srslte_cp_t         cp,
-                                            bool                is_dmrs,
-                                            uint32_t            ns,
-                                            uint32_t            l,
-                                            uint32_t*           n_oc,
-                                            uint32_t*           n_prime_ns);
+SRSLTE_API float srslte_pucch_alpha_format1(const uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB],
+                                            const srslte_pucch_cfg_t* cfg,
+                                            srslte_cp_t               cp,
+                                            bool                      is_dmrs,
+                                            uint32_t                  ns,
+                                            uint32_t                  l,
+                                            uint32_t*                 n_oc,
+                                            uint32_t*                 n_prime_ns);
 
-SRSLTE_API float srslte_pucch_alpha_format2(uint32_t            n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB],
-                                            srslte_pucch_cfg_t* cfg,
-                                            uint32_t            ns,
-                                            uint32_t            l);
+SRSLTE_API float srslte_pucch_alpha_format2(const uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB],
+                                            const srslte_pucch_cfg_t* cfg,
+                                            uint32_t                  ns,
+                                            uint32_t                  l);
 
 SRSLTE_API int srslte_pucch_format2ab_mod_bits(srslte_pucch_format_t format, uint8_t bits[2], cf_t* d_10);
 
-SRSLTE_API uint32_t srslte_pucch_m(srslte_pucch_cfg_t* cfg, srslte_cp_t cp);
+SRSLTE_API uint32_t srslte_pucch_m(const srslte_pucch_cfg_t* cfg, srslte_cp_t cp);
 
 SRSLTE_API uint32_t srslte_pucch_n_prb(srslte_cell_t* cell, srslte_pucch_cfg_t* cfg, uint32_t ns);
 
 SRSLTE_API int srslte_pucch_n_cs_cell(srslte_cell_t cell,
                                       uint32_t      n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB]);
+
+/**
+ * Checks PUCCH collision from cell and two PUCCH configurations. The provided configurations shall provide format and
+ * n_pucch resource prior to this call.
+ *
+ * @param cell cell parameters
+ * @param cfg1 First PUCCH configuration
+ * @param cfg2 Second PUCCH configuration
+ * @return SRSLTE_SUCCESS if no collision, SRSLTE_ERROR if collision and otherwise SRSLTE_INVALID_INPUTS
+ */
+SRSLTE_API int
+srslte_pucch_collision(const srslte_cell_t* cell, const srslte_pucch_cfg_t* cfg1, const srslte_pucch_cfg_t* cfg2);
+
+/**
+ * Checks PUCCH format 1b with channel selection collision configuration from a cell.
+ *
+ * @param cell cell parameters
+ * @param cfg PUCCH configuration
+ * @return SRSLTE_SUCCESS if no collision, SRSLTE_ERROR if collision and otherwise SRSLTE_INVALID_INPUTS
+ */
+SRSLTE_API int srslte_pucch_cfg_assert(const srslte_cell_t* cell, const srslte_pucch_cfg_t* cfg);
 
 SRSLTE_API char* srslte_pucch_format_text(srslte_pucch_format_t format);
 

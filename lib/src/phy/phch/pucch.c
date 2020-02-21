@@ -479,7 +479,8 @@ static int encode_signal_format12(srslte_pucch_t*     q,
     }
   }
   uint32_t N_sf_0 = get_N_sf(cfg->format, 0, sf->shortened);
-  for (uint32_t ns = 2 * (sf->tti % 10); ns < 2 * ((sf->tti % 10) + 1); ns++) {
+  uint32_t sf_idx = sf->tti % SRSLTE_NOF_SF_X_FRAME;
+  for (uint32_t ns = SRSLTE_NOF_SLOTS_PER_SF * sf_idx; ns < SRSLTE_NOF_SLOTS_PER_SF * (sf_idx + 1); ns++) {
     uint32_t N_sf = get_N_sf(cfg->format, ns % 2, sf->shortened);
     DEBUG("ns=%d, N_sf=%d\n", ns, N_sf);
     // Get group hopping number u
@@ -929,8 +930,7 @@ int srslte_pucch_decode(srslte_pucch_t*        q,
         break;
       case SRSLTE_PUCCH_FORMAT_1:
       case SRSLTE_PUCCH_FORMAT_3:
-      default:
-        /* Not considered, do nothing */;
+      default:; // Not considered, do nothing
     }
 
     ret = SRSLTE_SUCCESS;
@@ -1055,7 +1055,7 @@ uint32_t srslte_pucch_n_prb(srslte_cell_t* cell, srslte_pucch_cfg_t* cfg, uint32
 }
 
 // Compute m according to Section 5.4.3 of 36.211
-uint32_t srslte_pucch_m(srslte_pucch_cfg_t* cfg, srslte_cp_t cp)
+uint32_t srslte_pucch_m(const srslte_pucch_cfg_t* cfg, srslte_cp_t cp)
 {
   uint32_t m = 0;
   switch (cfg->format) {
@@ -1105,15 +1105,128 @@ int srslte_pucch_n_cs_cell(srslte_cell_t cell, uint32_t n_cs_cell[SRSLTE_NSLOTS_
   return SRSLTE_SUCCESS;
 }
 
+int srslte_pucch_collision(const srslte_cell_t* cell, const srslte_pucch_cfg_t* cfg1, const srslte_pucch_cfg_t* cfg2)
+{
+  // Invalid inputs, return false
+  if (!cell || !cfg1 || !cfg2) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Different formats, not possible to compute collision
+  if (cfg1->format != cfg2->format) {
+    return SRSLTE_SUCCESS;
+  }
+
+  // If resources are the same, return collision and do not compute more
+  if (cfg1->n_pucch == cfg2->n_pucch) {
+    return SRSLTE_ERROR;
+  }
+
+  // Calculate frequency domain resource
+  uint32_t m1 = srslte_pucch_m(cfg1, cell->cp);
+  uint32_t m2 = srslte_pucch_m(cfg2, cell->cp);
+
+  // Check if they are different, no collison
+  if (m1 != m2) {
+    return SRSLTE_SUCCESS;
+  }
+
+  uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB] = {};
+  srslte_pucch_n_cs_cell(*cell, n_cs_cell);
+
+  float    alpha1, alpha2;
+  uint32_t n_oc1    = 0;
+  uint32_t n_oc2    = 0;
+  uint32_t n_prime1 = 0;
+  uint32_t n_prime2 = 0;
+
+  switch (cfg1->format) {
+
+    case SRSLTE_PUCCH_FORMAT_1:
+    case SRSLTE_PUCCH_FORMAT_1A:
+    case SRSLTE_PUCCH_FORMAT_1B:
+      srslte_pucch_alpha_format1(n_cs_cell, cfg1, cell->cp, false, 0, 0, &n_oc1, &n_prime1);
+      srslte_pucch_alpha_format1(n_cs_cell, cfg2, cell->cp, false, 0, 0, &n_oc2, &n_prime2);
+      return ((n_oc1 == n_oc2) && (n_prime1 % 2 == n_prime2 % 2)) ? SRSLTE_ERROR : SRSLTE_SUCCESS;
+
+    case SRSLTE_PUCCH_FORMAT_2:
+    case SRSLTE_PUCCH_FORMAT_2A:
+    case SRSLTE_PUCCH_FORMAT_2B:
+      alpha1 = srslte_pucch_alpha_format2(n_cs_cell, cfg1, 0, 0);
+      alpha2 = srslte_pucch_alpha_format2(n_cs_cell, cfg2, 0, 0);
+      return (alpha1 == alpha2) ? SRSLTE_ERROR : SRSLTE_SUCCESS;
+
+    case SRSLTE_PUCCH_FORMAT_3:
+      return (cfg1->n_pucch % 5 == cfg2->n_pucch % 5) ? SRSLTE_ERROR : SRSLTE_SUCCESS;
+
+    case SRSLTE_PUCCH_FORMAT_ERROR:
+    default:; // Do nothing
+  }
+
+  return SRSLTE_ERROR;
+}
+
+int srslte_pucch_cfg_assert(const srslte_cell_t* cell, const srslte_pucch_cfg_t* cfg)
+{
+  // Invalid inouts, return error
+  if (!cell || !cfg) {
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+
+  // Load base configuration
+  srslte_pucch_cfg_t cfg1 = *cfg;
+  srslte_pucch_cfg_t cfg2 = *cfg;
+
+  // Set Format 1b
+  cfg1.format = SRSLTE_PUCCH_FORMAT_1B;
+  cfg2.format = SRSLTE_PUCCH_FORMAT_1B;
+
+  // Check collision with N_pucch_1 Vs n_pucch_sr
+  cfg1.n_pucch = cfg->N_pucch_1;
+  cfg2.n_pucch = cfg->n_pucch_sr;
+  if (srslte_pucch_collision(cell, &cfg1, &cfg2) != SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  }
+
+  if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+    // Checks channel selection resources do not collide with N_pucch_1
+    for (uint32_t i = 0; i < SRSLTE_PUCCH_SIZE_AN_CS; i++) {
+      for (uint32_t j = 0; j < SRSLTE_PUCCH_NOF_AN_CS; j++) {
+        cfg2.n_pucch = cfg2.n1_pucch_an_cs[i][j];
+
+        // Check collision with N_pucch_1
+        cfg1.n_pucch = cfg->N_pucch_1;
+        if (srslte_pucch_collision(cell, &cfg1, &cfg2) != SRSLTE_SUCCESS) {
+          return SRSLTE_ERROR;
+        }
+
+        // Check collision with n_pucch_sr
+        cfg1.n_pucch = cfg->n_pucch_sr;
+        if (srslte_pucch_collision(cell, &cfg1, &cfg2) != SRSLTE_SUCCESS) {
+          return SRSLTE_ERROR;
+        }
+
+        // Check collision with j + 1
+        cfg1.n_pucch = cfg2.n1_pucch_an_cs[i][(j + 1) % SRSLTE_PUCCH_NOF_AN_CS];
+        if (srslte_pucch_collision(cell, &cfg1, &cfg2) != SRSLTE_SUCCESS) {
+          return SRSLTE_ERROR;
+        }
+      }
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 /* Calculates alpha for format 1/a/b according to 5.5.2.2.2 (is_dmrs=true) or 5.4.1 (is_dmrs=false) of 36.211 */
-float srslte_pucch_alpha_format1(uint32_t            n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB],
-                                 srslte_pucch_cfg_t* cfg,
-                                 srslte_cp_t         cp,
-                                 bool                is_dmrs,
-                                 uint32_t            ns,
-                                 uint32_t            l,
-                                 uint32_t*           n_oc_ptr,
-                                 uint32_t*           n_prime_ns)
+float srslte_pucch_alpha_format1(const uint32_t            n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB],
+                                 const srslte_pucch_cfg_t* cfg,
+                                 srslte_cp_t               cp,
+                                 bool                      is_dmrs,
+                                 uint32_t                  ns,
+                                 uint32_t                  l,
+                                 uint32_t*                 n_oc_ptr,
+                                 uint32_t*                 n_prime_ns)
 {
   uint32_t c       = SRSLTE_CP_ISNORM(cp) ? 3 : 2;
   uint32_t N_prime = (cfg->n_pucch < c * cfg->N_cs / cfg->delta_pucch_shift) ? cfg->N_cs : SRSLTE_NRE;
@@ -1138,7 +1251,7 @@ float srslte_pucch_alpha_format1(uint32_t            n_cs_cell[SRSLTE_NSLOTS_X_F
 
   uint32_t n_oc_div = (!is_dmrs && SRSLTE_CP_ISEXT(cp)) ? 2 : 1;
 
-  uint32_t n_oc = n_prime * cfg->delta_pucch_shift / N_prime;
+  uint32_t n_oc = (n_prime * cfg->delta_pucch_shift) / N_prime;
   if (!is_dmrs && SRSLTE_CP_ISEXT(cp)) {
     n_oc *= 2;
   }
@@ -1166,10 +1279,10 @@ float srslte_pucch_alpha_format1(uint32_t            n_cs_cell[SRSLTE_NSLOTS_X_F
 }
 
 /* Calculates alpha for format 2/a/b according to 5.4.2 of 36.211 */
-float srslte_pucch_alpha_format2(uint32_t            n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB],
-                                 srslte_pucch_cfg_t* cfg,
-                                 uint32_t            ns,
-                                 uint32_t            l)
+float srslte_pucch_alpha_format2(const uint32_t            n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB],
+                                 const srslte_pucch_cfg_t* cfg,
+                                 uint32_t                  ns,
+                                 uint32_t                  l)
 {
   uint32_t n_prime = cfg->n_pucch % SRSLTE_NRE;
   if (cfg->n_pucch >= SRSLTE_NRE * cfg->n_rb_2) {
