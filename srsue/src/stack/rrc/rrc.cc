@@ -1506,7 +1506,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
   asn1::SRSASN_CODE err = dlsch_msg.unpack(dlsch_bref);
 
   if (err != asn1::SRSASN_SUCCESS or dlsch_msg.msg.type().value != bcch_dl_sch_msg_type_c::types_opts::c1) {
-    rrc_log->error("Could not unpack BCCH DL-SCH message.\n");
+    rrc_log->error_hex(pdu->msg, pdu->N_bytes, "Could not unpack BCCH DL-SCH message (%d B).\n", pdu->N_bytes);
     return;
   }
 
