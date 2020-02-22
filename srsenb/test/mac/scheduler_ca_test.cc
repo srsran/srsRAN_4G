@@ -55,103 +55,7 @@ class sched_ca_tester : public common_sched_tester
 {
 public:
   int process_tti_events(const tti_ev& tti_events);
-  int run_tti(const tti_ev& tti_events) override;
 };
-
-int sched_ca_tester::process_tti_events(const tti_ev& tti_ev)
-{
-  for (const tti_ev::user_cfg_ev& ue_ev : tti_ev.user_updates) {
-    // There is a new configuration
-    if (ue_ev.ue_cfg != nullptr) {
-      if (not ue_tester->user_exists(ue_ev.rnti)) {
-        // new user
-        TESTASSERT(add_user(ue_ev.rnti, *ue_ev.ue_cfg) == SRSLTE_SUCCESS);
-      } else {
-        // reconfiguration
-        TESTASSERT(ue_cfg(ue_ev.rnti, *ue_ev.ue_cfg) == SRSLTE_SUCCESS);
-        ue_tester->user_reconf(ue_ev.rnti, *ue_ev.ue_cfg);
-      }
-    }
-
-    // There is a user to remove
-    if (ue_ev.rem_user) {
-      //        bearer_ue_rem(ue_ev.rnti, 0);
-      ue_rem(ue_ev.rnti);
-      ue_tester->rem_user(ue_ev.rnti);
-      log_global->info("[TESTER] Removing user rnti=0x%x\n", ue_ev.rnti);
-    }
-
-    // configure carriers
-    if (ue_ev.bearer_cfg != nullptr) {
-      CONDERROR(not ue_tester->user_exists(ue_ev.rnti), "User rnti=0x%x does not exist\n", ue_ev.rnti);
-      // TODO: Instantiate more bearers
-      bearer_ue_cfg(ue_ev.rnti, 0, ue_ev.bearer_cfg.get());
-    }
-
-    // push UL SRs and DL packets
-    if (ue_ev.buffer_ev != nullptr) {
-      auto* user = ue_tester->get_user_state(ue_ev.rnti);
-      CONDERROR(user == nullptr, "TESTER ERROR: Trying to schedule data for user that does not exist\n");
-
-      if (ue_ev.buffer_ev->dl_data > 0) {
-        // If Msg3 has already been received
-        if (user->msg3_tic.is_valid() and user->msg3_tic <= tic) {
-          // If Msg4 not yet sent, allocate data in SRB0 buffer
-          uint32_t lcid                = (user->msg4_tic.is_valid()) ? 2 : 0;
-          uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
-          if (lcid == 2 and not user->drb_cfg_flag) {
-            // If RRCSetup finished
-            if (pending_dl_new_data == 0) {
-              // setup lcid==2 bearer
-              sched::ue_bearer_cfg_t cfg = {};
-              cfg.direction              = ue_bearer_cfg_t::BOTH;
-              ue_tester->bearer_cfg(ue_ev.rnti, 2, cfg);
-              bearer_ue_cfg(ue_ev.rnti, 2, &cfg);
-            } else {
-              // Let SRB0 get emptied
-              continue;
-            }
-          }
-          // Update DL buffer
-          uint32_t tot_dl_data = pending_dl_new_data + ue_ev.buffer_ev->dl_data; // TODO: derive pending based on rx
-          dl_rlc_buffer_state(ue_ev.rnti, lcid, tot_dl_data, 0);                 // TODO: Check retx_queue
-        }
-      }
-
-      if (ue_ev.buffer_ev->sr_data > 0 and user->drb_cfg_flag) {
-        uint32_t tot_ul_data =
-            ue_db[ue_ev.rnti].get_pending_ul_new_data(tti_info.tti_params.tti_tx_ul) + ue_ev.buffer_ev->sr_data;
-        uint32_t lcid = 2;
-        ul_bsr(ue_ev.rnti, lcid, tot_ul_data, true);
-      }
-    }
-  }
-  return SRSLTE_SUCCESS;
-}
-
-int sched_ca_tester::run_tti(const tti_ev& tti_events)
-{
-  new_test_tti();
-  log_global->info("[TESTER] ---- tti=%u | nof_ues=%zd ----\n", tic.tti_rx(), ue_db.size());
-
-  process_tti_events(tti_events);
-  process_ack_txs();
-  //  before_sched();
-
-  // Call scheduler for all carriers
-  tti_info.dl_sched_result.resize(sched_cell_params.size());
-  for (uint32_t i = 0; i < sched_cell_params.size(); ++i) {
-    dl_sched(tti_info.tti_params.tti_tx_dl, i, tti_info.dl_sched_result[i]);
-  }
-  tti_info.ul_sched_result.resize(sched_cell_params.size());
-  for (uint32_t i = 0; i < sched_cell_params.size(); ++i) {
-    ul_sched(tti_info.tti_params.tti_tx_ul, i, tti_info.ul_sched_result[i]);
-  }
-
-  process_results();
-  schedule_acks();
-  return SRSLTE_SUCCESS;
-}
 
 /******************************
  *      Scheduler Tests
@@ -175,9 +79,6 @@ sim_sched_args generate_default_sim_args(uint32_t nof_prb, uint32_t nof_ccs)
   cell_cfg[1].scell_list                             = cell_cfg[0].scell_list;
   cell_cfg[1].scell_list[0].enb_cc_idx               = 0;
   sim_args.cell_cfg                                  = std::move(cell_cfg);
-
-  sim_args.bearer_cfg           = {};
-  sim_args.bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
   /* Setup Derived Params */
   sim_args.ue_cfg.supported_cc_list.resize(nof_ccs);

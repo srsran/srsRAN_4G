@@ -84,13 +84,11 @@ class user_state_sched_tester
 {
 public:
   struct ue_state {
-    tti_counter prach_tic, rar_tic, msg3_tic, msg4_tic;
-    //    int                               prach_tic = -1, rar_tic = -1, msg3_tic = -1, msg4_tic = -1;
+    tti_counter                       prach_tic, rar_tic, msg3_tic, msg4_tic;
     bool                              drb_cfg_flag = false;
     srsenb::sched_interface::ue_cfg_t user_cfg;
-    uint32_t                          dl_data      = 0;
-    uint32_t                          ul_data      = 0;
     uint32_t                          preamble_idx = 0;
+    uint32_t                          msg3_riv     = 0;
   };
 
   explicit user_state_sched_tester(const std::vector<srsenb::sched::cell_cfg_t>& cell_params_) :
@@ -174,15 +172,18 @@ public:
     std::vector<sched_interface::ul_sched_res_t> ul_sched_result;
   };
 
-  int  sim_cfg(sim_sched_args args);
-  int  add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_);
-  void rem_user(uint16_t rnti);
-  int  process_ack_txs();
-  int  schedule_acks();
-  int  process_results();
+  ~common_sched_tester() override = default;
 
-  int         test_next_ttis(const std::vector<tti_ev>& tti_events);
-  virtual int run_tti(const tti_ev& tti_events) = 0;
+  int          sim_cfg(sim_sched_args args);
+  virtual int  add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_);
+  virtual void rem_user(uint16_t rnti);
+  int          process_ack_txs();
+  int          schedule_acks();
+  virtual int  process_results();
+  int          process_tti_events(const tti_ev& tti_ev);
+
+  int test_next_ttis(const std::vector<tti_ev>& tti_events);
+  int run_tti(const tti_ev& tti_events);
 
   // args
   sim_sched_args sim_args0; ///< arguments used to generate TTI events
@@ -214,7 +215,8 @@ protected:
     srsenb::ul_harq_proc ul_harq;
   };
 
-  void new_test_tti();
+  virtual void new_test_tti();
+  virtual void before_sched() {}
 
   // control params
   std::multimap<uint32_t, ack_info_t>    to_ack;

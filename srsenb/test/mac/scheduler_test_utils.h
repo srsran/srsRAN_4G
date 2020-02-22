@@ -27,6 +27,7 @@
 #include "srslte/interfaces/sched_interface.h"
 #include <algorithm>
 #include <chrono>
+#include <unordered_map>
 
 struct tti_counter {
   tti_counter() = default;
@@ -153,7 +154,6 @@ struct sim_sched_args {
   uint32_t                                         start_tti = 0;
   float                                            P_retx;
   srsenb::sched_interface::ue_cfg_t                ue_cfg;
-  srsenb::sched_interface::ue_bearer_cfg_t         bearer_cfg;
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg;
   srslte::log*                                     sim_log = nullptr;
 };
@@ -170,13 +170,15 @@ struct sched_sim_event_generator {
 
   struct user_data {
     uint16_t rnti;
-    uint32_t tti_start;
-    uint32_t tti_duration;
+    uint32_t tti_start    = 0;
+    uint32_t tti_duration = 0;
   };
-  std::vector<user_data> current_users;
+  std::unordered_map<uint16_t, user_data> current_users;
 
   // generated events
   std::vector<tti_ev> tti_events;
+
+  sched_sim_event_generator() { tti_events.push_back(tti_ev{}); }
 
   void step_tti(uint32_t nof_ttis = 1)
   {
@@ -210,10 +212,10 @@ struct sched_sim_event_generator {
     user.rnti  = next_rnti++;
     // creates a user with one supported CC (PRACH stage)
     user.ue_cfg.reset(new srsenb::sched_interface::ue_cfg_t{generate_default_ue_cfg()});
-    current_users.emplace_back();
-    current_users.back().rnti         = user.rnti;
-    current_users.back().tti_start    = tti_counter;
-    current_users.back().tti_duration = duration;
+    auto& u        = current_users[user.rnti];
+    u.rnti         = user.rnti;
+    u.tti_start    = tti_counter;
+    u.tti_duration = duration;
     return &user;
   }
 
@@ -265,34 +267,30 @@ private:
     return &(*it);
   }
 
-  bool user_exists(uint16_t rnti)
-  {
-    return std::find_if(current_users.begin(), current_users.end(), [&rnti](const user_data& u) {
-             return u.rnti == rnti;
-           }) != current_users.end();
-  }
+  bool user_exists(uint16_t rnti) { return current_users.find(rnti) != current_users.end(); }
 
   void rem_old_users()
   {
     // remove users that pass their connection duration
-    auto rem_it = std::remove_if(current_users.begin(), current_users.end(), [this](const user_data& u) {
-      return u.tti_start + u.tti_duration < tti_counter;
-    });
-
-    // set the call rem_user(...) at the right tti
-    for (auto it = rem_it; it != current_users.end(); ++it) {
-      uint32_t rem_tti = it->tti_start + it->tti_duration;
-      auto&    l       = tti_events[rem_tti].user_updates;
-      auto     user_it = std::find_if(l.begin(), l.end(), [&it](tti_ev::user_cfg_ev& u) { return it->rnti == u.rnti; });
+    for (auto it = current_users.begin(); it != current_users.end();) {
+      user_data& user    = it->second;
+      uint32_t   rem_tti = user.tti_start + user.tti_duration;
+      if (rem_tti > tti_counter) {
+        ++it;
+        continue;
+      }
+      // set the call rem_user(...) at the right tti
+      auto& l       = tti_events[rem_tti].user_updates;
+      auto  user_it = std::find_if(l.begin(), l.end(), [&it](tti_ev::user_cfg_ev& u) { return it->first == u.rnti; });
       if (user_it == l.end()) {
         l.emplace_back();
         l.back().rem_user = true;
+        l.back().rnti     = it->first;
       } else {
         user_it->rem_user = true;
       }
+      it = current_users.erase(it);
     }
-
-    current_users.erase(rem_it, current_users.end());
   }
 };
 
