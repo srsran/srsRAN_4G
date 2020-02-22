@@ -48,16 +48,6 @@ public:
 srslte::scoped_log<sched_test_log> log_global{};
 
 /******************************
- *   Scheduler Tester for CA
- *****************************/
-
-class sched_ca_tester : public common_sched_tester
-{
-public:
-  int process_tti_events(const tti_ev& tti_events);
-};
-
-/******************************
  *      Scheduler Tests
  *****************************/
 
@@ -105,7 +95,7 @@ int run_sim1()
   /* Simulation Objects Setup */
   sched_sim_event_generator generator;
   // Setup scheduler
-  sched_ca_tester tester;
+  common_sched_tester tester;
   tester.init(nullptr);
   tester.sim_cfg(sim_args);
 
