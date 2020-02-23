@@ -24,7 +24,7 @@
 
 #include <stdint.h>
 
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/common/sequence.h"
 #include "srslte/phy/dft/dft_precoding.h"
 #include "srslte/phy/fec/convcoder.h"

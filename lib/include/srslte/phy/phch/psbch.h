@@ -22,6 +22,7 @@
 #ifndef SRSLTE_PSBCH_H
 #define SRSLTE_PSBCH_H
 
+#include <srslte/phy/common/phy_common_sl.h>
 #include <srslte/phy/dft/dft_precoding.h>
 #include <srslte/phy/fec/convcoder.h>
 #include <srslte/phy/fec/crc.h>

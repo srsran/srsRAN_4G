@@ -27,7 +27,7 @@
 #include "srslte/config.h"
 #include "srslte/phy/ch_estimation/chest_common.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/resampling/interp.h"
 
 #define SRSLTE_SL_N_RU_SEQ (30)

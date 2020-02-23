@@ -340,67 +340,6 @@ typedef struct SRSLTE_API {
 #define SRSLTE_NBIOT_NPBCH_NOF_BITS_SF                                                                                 \
   (SRSLTE_NBIOT_NPBCH_NOF_TOTAL_BITS / 8) ///< The NPBCH is transmitted in 8 blocks (See 36.211 Sec 10.2.4.4)
 
-///< Sidelink
-typedef enum SRSLTE_API {
-  SRSLTE_SIDELINK_TM1 = 0,
-  SRSLTE_SIDELINK_TM2,
-  SRSLTE_SIDELINK_TM3,
-  SRSLTE_SIDELINK_TM4
-} srslte_sl_tm_t;
-
-typedef enum SRSLTE_API {
-  SRSLTE_SIDELINK_PSBCH = 0,
-  SRSLTE_SIDELINK_PSCCH,
-  SRSLTE_SIDELINK_PSSCH,
-  SRSLTE_SIDELINK_PSDCH
-} srslte_sl_channels_t;
-
-typedef enum SRSLTE_API {
-  SRSLTE_SIDELINK_DATA_SYMBOL = 0,
-  SRSLTE_SIDELINK_SYNC_SYMBOL,
-  SRSLTE_SIDELINK_DMRS_SYMBOL,
-  SRSLTE_SIDELINK_GUARD_SYMBOL
-} srslte_sl_symbol_t;
-
-typedef enum {
-  SRSLTE_SCI_FORMAT0 = 0,
-  SRSLTE_SCI_FORMAT1
-} srslte_sci_format_t;
-
-#define SRSLTE_PSBCH_NOF_PRB (6)
-#define SRSLTE_PSCCH_TM34_NOF_PRB (2)
-
-#define SRSLTE_MIB_SL_LEN (40)     // TM1/2: 40 bits
-#define SRSLTE_MIB_SL_V2X_LEN (48) // TM3/4: 48 bits
-#define SRSLTE_MIB_SL_MAX_LEN (SRSLTE_MIB_SL_V2X_LEN)
-
-#define SRSLTE_SL_TM12_DEFAULT_NUM_DMRS_SYMBOLS (2)
-#define SRSLTE_SL_TM34_DEFAULT_NUM_DMRS_SYMBOLS (4) ///< In TM3/4, all channels have 4 DMRS by default
-
-#define SRSLTE_PSBCH_TM12_NUM_DATA_SYMBOLS (8) ///< SL-BCH is in 8 OFDM symbols (but only 7 are tx'ed)
-#define SRSLTE_PSBCH_TM12_NUM_DMRS_SYMBOLS (2) ///< PSBCH has 2 DMRS symbols
-#define SRSLTE_PSBCH_TM12_NUM_SYNC_SYMBOLS (4) ///< Two symbols PSSS and two SSSS
-
-#define SRSLTE_PSBCH_TM34_NUM_DATA_SYMBOLS (7) ///< SL-BCH is in 7 OFDM symbols (but only 6 are tx'ed)
-#define SRSLTE_PSBCH_TM34_NUM_DMRS_SYMBOLS (3) ///< PSBCH has 3 DMRS symbols in TM3 and TM4
-#define SRSLTE_PSBCH_TM34_NUM_SYNC_SYMBOLS (4) ///< Two symbols PSSS and two SSSS
-
-#define SRSLTE_SCI_CRC_LEN (16)
-#define SRSLTE_SCI_MAX_LEN (45)
-#define SRSLTE_SCI_TM34_LEN (32)
-
-#define SRSLTE_PSCCH_QM 2
-#define SRSLTE_PSCCH_TM12_NOF_PRB (1)
-#define SRSLTE_PSCCH_TM34_NOF_PRB (2)
-#define SRSLTE_PSCCH_SCRAMBLING_SEED (510) ///< Scrambling seed for PSCCH is 510
-
-#define SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS (12)
-#define SRSLTE_PSCCH_TM12_NUM_DMRS_SYMBOLS (2)
-#define SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS_EXT (10)
-
-#define SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS (10)
-#define SRSLTE_PSCCH_TM34_NUM_DMRS_SYMBOLS (4)
-
 ///< PHY common function declarations
 
 SRSLTE_API bool srslte_cell_isvalid(srslte_cell_t* cell);
@@ -495,11 +434,6 @@ SRSLTE_API bool  srslte_nbiot_portid_isvalid(uint32_t port_id);
 SRSLTE_API float srslte_band_fu_nbiot(uint32_t ul_earfcn, const float m_ul);
 
 SRSLTE_API char* srslte_nbiot_mode_string(srslte_nbiot_mode_t mode);
-
-SRSLTE_API int  srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp);
-SRSLTE_API bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i);
-SRSLTE_API bool srslte_pscch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
-SRSLTE_API uint32_t srslte_sci_format0_sizeof(uint32_t nof_prb);
 
 /**
  * Returns a constant string pointer with the ACK/NACK feedback mode

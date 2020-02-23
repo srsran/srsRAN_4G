@@ -26,7 +26,7 @@
 #include <stdint.h>
 
 #include "srslte/config.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_sl.h"
 
 /**
  * Master information block - Sidelink (MIB-SL and MIB-SL-V2X).

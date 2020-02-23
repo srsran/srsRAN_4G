@@ -21,16 +21,18 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
-#include "srslte/phy/phch/pscch.h"
 #include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/phch/pscch.h"
+#include "srslte/phy/phch/sch.h"
+#include "srslte/phy/phch/sci.h"
+#include "srslte/phy/scrambling/scrambling.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
-#include "srslte/phy/modem/demod_soft.h"
-#include "srslte/phy/modem/mod.h"
-#include "srslte/phy/phch/sch.h"
-#include "srslte/phy/scrambling/scrambling.h"
 
 int srslte_pscch_init(srslte_pscch_t* q, uint32_t nof_prb, srslte_sl_tm_t tm, srslte_cp_t cp)
 {

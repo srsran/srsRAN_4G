@@ -18,5 +18,5 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.c")
+set(SOURCES phy_common.c phy_common_sl.c sequence.c timestamp.c)
 add_library(srslte_phy_common OBJECT ${SOURCES})

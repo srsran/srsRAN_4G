@@ -168,3 +168,29 @@ void srslte_sci_free(srslte_sci_t* q)
     bzero(q, sizeof(srslte_sci_t));
   }
 }
+
+uint32_t srslte_sci_format0_sizeof(uint32_t nof_prb)
+{
+  // 3GPP TS 36.212 5.4.3.1
+  uint32_t n = 0;
+
+  // Frequency hopping flag – 1 bit
+  n += 1;
+
+  // Resource block assignment and hopping resource allocation
+  n += (uint32_t)ceil(log((nof_prb * (nof_prb + 1)) / 2.0) / log(2));
+
+  // Time resource pattern – 7 bits
+  n += 7;
+
+  // Modulation and coding scheme – 5 bit
+  n += 5;
+
+  // Timing advance indication – 11 bits
+  n += 11;
+
+  // Group destination ID – 8 bits
+  n += 8;
+
+  return n;
+}

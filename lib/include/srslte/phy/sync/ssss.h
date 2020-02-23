@@ -34,7 +34,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/dft/dft.h"
 
 #define SRSLTE_SSSS_NOF_SEQ 336

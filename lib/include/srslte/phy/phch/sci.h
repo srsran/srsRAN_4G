@@ -26,9 +26,15 @@
 #include <stdint.h>
 
 #include "srslte/config.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_sl.h"
 
 #define SRSLTE_SCI_MSG_MAX_LEN 80
+
+#define SRSLTE_SCI_CRC_LEN (16)
+#define SRSLTE_SCI_MAX_LEN (45)
+#define SRSLTE_SCI_TM34_LEN (32)
+
+typedef enum { SRSLTE_SCI_FORMAT0 = 0, SRSLTE_SCI_FORMAT1 } srslte_sci_format_t;
 
 /**
  * Sidelink Control Information - Sidelink (SCI0 and SCI1).
