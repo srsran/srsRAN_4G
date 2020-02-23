@@ -349,8 +349,17 @@ public:
     phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list = {};
 
     /**
+     * Setups the PCell physical layer common configuration of the UE from the SIB2 message. This methods is designed to
+     * be called from the constructor.
+     *
+     * @param config ASN1 Common SIB struct carrying the common physical layer parameters
+     */
+    void apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& config);
+
+    /**
      * Setups the PCell physical layer dedicated configuration of the UE. This method shall be called from the
      * connection setup only.
+     *
      * @param phys_cfg_ded ASN1 Physical layer configuration dedicated
      */
     void apply_setup_phy_config(const asn1::rrc::phys_cfg_ded_s& phys_cfg_ded);

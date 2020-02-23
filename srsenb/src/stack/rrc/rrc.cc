@@ -1023,6 +1023,9 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
   cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
   mobility_handler.reset(new rrc_mobility(this));
+
+  // Configure
+  apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
 }
 
 rrc_state_t rrc::ue::get_state()
@@ -2145,6 +2148,28 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffe
     parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
   } else {
     parent->rrc_log->error("Allocating pdu\n");
+  }
+}
+
+void rrc::ue::apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& config)
+{
+  // Return if no cell is supported
+  if (phy_rrc_dedicated_list.empty()) {
+    return;
+  }
+
+  // Flatten common configuration
+  auto& current_phy_cfg = phy_rrc_dedicated_list[0].phy_cfg;
+  set_phy_cfg_t_common_prach(&current_phy_cfg, &config.prach_cfg.prach_cfg_info, config.prach_cfg.root_seq_idx);
+  set_phy_cfg_t_common_pdsch(&current_phy_cfg, config.pdsch_cfg_common);
+  set_phy_cfg_t_common_pusch(&current_phy_cfg, config.pusch_cfg_common);
+  set_phy_cfg_t_common_pucch(&current_phy_cfg, config.pucch_cfg_common);
+  set_phy_cfg_t_common_srs(&current_phy_cfg, config.srs_ul_cfg_common);
+  set_phy_cfg_t_common_pwr_ctrl(&current_phy_cfg, config.ul_pwr_ctrl_common);
+
+  // Send configuration to physical layer
+  if (parent->phy != nullptr) {
+    parent->phy->set_config_dedicated(rnti, phy_rrc_dedicated_list);
   }
 }
 
