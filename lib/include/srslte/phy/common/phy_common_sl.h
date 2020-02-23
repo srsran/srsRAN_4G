@@ -47,10 +47,8 @@ typedef enum SRSLTE_API {
 } srslte_sl_channels_t;
 
 typedef struct SRSLTE_API {
-  srslte_sl_tm_t mode;
+  srslte_sl_tm_t tm;
   uint32_t       nof_prb;
-  uint32_t       nof_ports;
-  uint32_t       id;
   srslte_cp_t    cp;
 } srslte_cell_sl_t;
 

@@ -40,8 +40,7 @@
 
 typedef struct SRSLTE_API {
 
-  srslte_sl_tm_t tm;
-  srslte_cp_t    cp;
+  srslte_cell_sl_t cell;
 
   uint32_t sci_len;
   uint32_t nof_tx_re;
@@ -72,8 +71,6 @@ typedef struct SRSLTE_API {
   uint8_t*  codeword;
   uint8_t*  codeword_bytes;
 
-  uint32_t nof_prb;
-
   // scrambling
   srslte_sequence_t seq;
 
@@ -86,11 +83,11 @@ typedef struct SRSLTE_API {
   srslte_dft_precoding_t dft_precoder;
   srslte_dft_precoding_t idft_precoder;
 
-  cf_t*    scfdma_symbols;
+  cf_t* scfdma_symbols;
 
 } srslte_pscch_t;
 
-SRSLTE_API int  srslte_pscch_init(srslte_pscch_t* q, uint32_t nof_prb, srslte_sl_tm_t tm, srslte_cp_t cp);
+SRSLTE_API int  srslte_pscch_init(srslte_pscch_t* q, srslte_cell_sl_t cell);
 SRSLTE_API int  srslte_pscch_encode(srslte_pscch_t* q, uint8_t* sci, cf_t* sf_buffer, uint32_t prb_idx);
 SRSLTE_API int  srslte_pscch_decode(srslte_pscch_t* q, cf_t* equalized_sf_syms, uint8_t* sci, uint32_t prb_idx);
 SRSLTE_API int  srslte_pscch_put(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx);

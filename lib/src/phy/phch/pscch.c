@@ -19,6 +19,7 @@
  *
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -34,32 +35,30 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-int srslte_pscch_init(srslte_pscch_t* q, uint32_t nof_prb, srslte_sl_tm_t tm, srslte_cp_t cp)
+int srslte_pscch_init(srslte_pscch_t* q, srslte_cell_sl_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
     ret = SRSLTE_ERROR;
 
-    q->cp      = cp;
-    q->tm      = tm;
-    q->nof_prb = nof_prb;
-
-    if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
-      q->sci_len       = srslte_sci_format0_sizeof(nof_prb);
+    if (cell.tm == SRSLTE_SIDELINK_TM1 || cell.tm == SRSLTE_SIDELINK_TM2) {
+      q->sci_len       = srslte_sci_format0_sizeof(cell.nof_prb);
       q->nof_symbols   = SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS;
       q->pscch_nof_prb = SRSLTE_PSCCH_TM12_NOF_PRB;
 
-      if (cp == SRSLTE_CP_EXT) {
+      if (cell.cp == SRSLTE_CP_EXT) {
         q->nof_symbols = SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS_EXT;
       }
-    } else if (tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) {
+    } else if (cell.tm == SRSLTE_SIDELINK_TM3 || cell.tm == SRSLTE_SIDELINK_TM4) {
       q->sci_len       = SRSLTE_SCI_TM34_LEN;
       q->nof_symbols   = SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS;
       q->pscch_nof_prb = SRSLTE_PSCCH_TM34_NOF_PRB;
     } else {
-      return SRSLTE_ERROR;
+      return ret;
     }
+
+    q->cell = cell;
 
     // CRC
     uint32_t crc_poly = 0x11021;
@@ -155,7 +154,7 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t nof_prb, srslte_sl_tm_t tm, sr
     }
 
     // DFT Precoding
-    if (srslte_dft_precoding_init(&q->dft_precoder, q->nof_prb, true)) {
+    if (srslte_dft_precoding_init(&q->dft_precoder, q->cell.nof_prb, true)) {
       return SRSLTE_ERROR;
     }
     q->scfdma_symbols = srslte_vec_malloc(sizeof(cf_t) * q->E / SRSLTE_PSCCH_QM);
@@ -169,7 +168,8 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t nof_prb, srslte_sl_tm_t tm, sr
       return SRSLTE_ERROR;
     }
 
-    q->nof_tx_re = (q->nof_symbols - 1) * SRSLTE_NRE * q->pscch_nof_prb; // Last OFDM symbol is used channel processing but not transmitted
+    ///< Last OFDM symbol is processed but not transmitted
+    q->nof_tx_re = (q->nof_symbols - 1) * SRSLTE_NRE * q->pscch_nof_prb;
 
     ret = SRSLTE_SUCCESS;
   }
@@ -281,10 +281,10 @@ int srslte_pscch_decode(srslte_pscch_t* q, cf_t* equalized_sf_syms, uint8_t* sci
 int srslte_pscch_put(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx)
 {
   int sample_pos = 0;
-  int k         = prb_idx * SRSLTE_NRE;
-  for (int i = 0; i < srslte_sl_get_num_symbols(q->tm, q->cp); ++i) {
-    if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i, q->cp)) {
-      memcpy(&sf_buffer[k + i * q->nof_prb * SRSLTE_NRE],
+  int k          = prb_idx * SRSLTE_NRE;
+  for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); ++i) {
+    if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->cell.tm, i, q->cell.cp)) {
+      memcpy(&sf_buffer[k + i * q->cell.nof_prb * SRSLTE_NRE],
              &q->scfdma_symbols[sample_pos],
              sizeof(cf_t) * (SRSLTE_NRE * q->pscch_nof_prb));
       sample_pos += (SRSLTE_NRE * q->pscch_nof_prb);
@@ -296,11 +296,11 @@ int srslte_pscch_put(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx)
 int srslte_pscch_get(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx)
 {
   int sample_pos = 0;
-  int k         = prb_idx * SRSLTE_NRE;
-  for (int i = 0; i < srslte_sl_get_num_symbols(q->tm, q->cp); ++i) {
-    if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i, q->cp)) {
+  int k          = prb_idx * SRSLTE_NRE;
+  for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); ++i) {
+    if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->cell.tm, i, q->cell.cp)) {
       memcpy(&q->scfdma_symbols[sample_pos],
-             &sf_buffer[k + i * q->nof_prb * SRSLTE_NRE],
+             &sf_buffer[k + i * q->cell.nof_prb * SRSLTE_NRE],
              sizeof(cf_t) * (SRSLTE_NRE * q->pscch_nof_prb));
       sample_pos += (SRSLTE_NRE * q->pscch_nof_prb);
     }

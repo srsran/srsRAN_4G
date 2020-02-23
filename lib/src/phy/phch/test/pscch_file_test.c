@@ -36,14 +36,12 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-char*          input_file_name;
-srslte_cp_t    cp                     = SRSLTE_CP_NORM;
-uint32_t       nof_prb                = 6;
-bool           use_standard_lte_rates = false;
-srslte_sl_tm_t tm                     = SRSLTE_SIDELINK_TM2;
-uint32_t       size_sub_channel       = 10;
-uint32_t       num_sub_channel        = 5;
-uint32_t       file_offset            = 0;
+char*            input_file_name;
+srslte_cell_sl_t cell                   = {.nof_prb = 6, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
+bool             use_standard_lte_rates = false;
+uint32_t         size_sub_channel       = 10;
+uint32_t         num_sub_channel        = 5;
+uint32_t         file_offset            = 0;
 
 uint32_t          sf_n_samples;
 uint32_t          sf_n_re;
@@ -62,10 +60,10 @@ void usage(char* prog)
   printf("Usage: %s [deioptxzn]\n", prog);
   printf("\t-i input_file_name\n");
   printf("\t-o File offset samples [Default %d]\n", file_offset);
-  printf("\t-p nof_prb [Default %d]\n", nof_prb);
+  printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e Extended CP [Default normal]\n");
   printf("\t-d use_standard_lte_rates [Default %i]\n", use_standard_lte_rates);
-  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (tm + 1));
+  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell.tm + 1));
   printf("\t-z Size of sub-channels [Default %i]\n", size_sub_channel);
   printf("\t-n Number of sub-channels [Default %i]\n", num_sub_channel);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
@@ -83,27 +81,27 @@ void parse_args(int argc, char** argv)
         file_offset = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
-        cp = SRSLTE_CP_EXT;
+        cell.cp = SRSLTE_CP_EXT;
         break;
       case 'i':
         input_file_name = argv[optind];
         break;
       case 'p':
-        nof_prb = (int32_t)strtol(argv[optind], NULL, 10);
+        cell.nof_prb = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
         switch ((int32_t)strtol(argv[optind], NULL, 10)) {
           case 1:
-            tm = SRSLTE_SIDELINK_TM1;
+            cell.tm = SRSLTE_SIDELINK_TM1;
             break;
           case 2:
-            tm = SRSLTE_SIDELINK_TM2;
+            cell.tm = SRSLTE_SIDELINK_TM2;
             break;
           case 3:
-            tm = SRSLTE_SIDELINK_TM3;
+            cell.tm = SRSLTE_SIDELINK_TM3;
             break;
           case 4:
-            tm = SRSLTE_SIDELINK_TM4;
+            cell.tm = SRSLTE_SIDELINK_TM4;
             break;
           default:
             usage(argv[0]);
@@ -128,9 +126,9 @@ void parse_args(int argc, char** argv)
 
 int base_init()
 {
-  sf_n_samples = srslte_symbol_sz(nof_prb) * 15;
+  sf_n_samples = srslte_symbol_sz(cell.nof_prb) * 15;
 
-  sf_n_re = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE * 2 * nof_prb;
+  sf_n_re = SRSLTE_CP_NSYMB(cell.cp) * SRSLTE_NRE * 2 * cell.nof_prb;
 
   sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
   if (!sf_buffer) {
@@ -150,9 +148,9 @@ int base_init()
     return SRSLTE_ERROR;
   }
 
-  srslte_sci_init(&sci, nof_prb, tm, size_sub_channel, num_sub_channel);
+  srslte_sci_init(&sci, cell.nof_prb, cell.tm, size_sub_channel, num_sub_channel);
 
-  if (srslte_pscch_init(&pscch, nof_prb, tm, cp) != SRSLTE_SUCCESS) {
+  if (srslte_pscch_init(&pscch, cell) != SRSLTE_SUCCESS) {
     ERROR("Error in PSCCH init\n");
     return SRSLTE_ERROR;
   }
@@ -172,7 +170,7 @@ int base_init()
     return SRSLTE_ERROR;
   }
 
-  if (srslte_ofdm_rx_init(&fft, cp, input_buffer, sf_buffer, nof_prb)) {
+  if (srslte_ofdm_rx_init(&fft, cell.cp, input_buffer, sf_buffer, cell.nof_prb)) {
     fprintf(stderr, "Error creating FFT object\n");
     return SRSLTE_ERROR;
   }
@@ -241,16 +239,16 @@ int main(int argc, char** argv)
     }
 
     // CFO estimation and correction
-    srslte_sl_cfo_est_corr_cp(input_buffer, nof_prb, cp);
+    srslte_sl_cfo_est_corr_cp(input_buffer, cell.nof_prb, cell.cp);
     srslte_ofdm_rx_sf(&fft);
 
-    if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
-      uint32_t prb_num      = (uint32_t)ceil(nof_prb / 2);
+    if (cell.tm == SRSLTE_SIDELINK_TM1 || cell.tm == SRSLTE_SIDELINK_TM2) {
+      uint32_t prb_num      = (uint32_t)ceil(cell.nof_prb / 2);
       uint32_t prb_start    = 0;
-      uint32_t prb_end      = nof_prb - 1;
+      uint32_t prb_end      = cell.nof_prb - 1;
       uint32_t cyclic_shift = 0;
 
-      srslte_chest_sl_gen_pscch_dmrs(&pscch_chest, cyclic_shift, tm);
+      srslte_chest_sl_gen_pscch_dmrs(&pscch_chest, cyclic_shift, cell.tm);
 
       for (uint32_t pscch_prb_idx = prb_start; pscch_prb_idx <= prb_end; pscch_prb_idx++) {
         if (pscch_prb_idx == (prb_start + prb_num)) {
@@ -259,7 +257,7 @@ int main(int argc, char** argv)
 
         // PSCCH Channel estimation
         srslte_chest_sl_pscch_ls_estimate_equalize(
-            &pscch_chest, sf_buffer, pscch_prb_idx, equalized_sf_buffer, nof_prb, tm, cp);
+            &pscch_chest, sf_buffer, pscch_prb_idx, equalized_sf_buffer, cell.nof_prb, cell.tm, cell.cp);
 
         if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_idx) == SRSLTE_SUCCESS) {
           if (srslte_sci_format0_unpack(&sci, sci_rx) != SRSLTE_SUCCESS) {
@@ -273,15 +271,15 @@ int main(int argc, char** argv)
           num_decoded_sci++;
         }
       }
-    } else if (tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) {
+    } else if (cell.tm == SRSLTE_SIDELINK_TM3 || cell.tm == SRSLTE_SIDELINK_TM4) {
       for (int i = 0; i < num_sub_channel; i++) {
         uint32_t pscch_prb_idx = size_sub_channel * i;
 
         for (uint32_t cyclic_shift = 0; cyclic_shift <= 9; cyclic_shift += 3) {
           // PSCCH Channel estimation
-          srslte_chest_sl_gen_pscch_dmrs(&pscch_chest, cyclic_shift, tm);
+          srslte_chest_sl_gen_pscch_dmrs(&pscch_chest, cyclic_shift, cell.tm);
           srslte_chest_sl_pscch_ls_estimate_equalize(
-              &pscch_chest, sf_buffer, pscch_prb_idx, equalized_sf_buffer, nof_prb, tm, cp);
+              &pscch_chest, sf_buffer, pscch_prb_idx, equalized_sf_buffer, cell.nof_prb, cell.tm, cell.cp);
 
           if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_idx) == SRSLTE_SUCCESS) {
             if (srslte_sci_format1_unpack(&sci, sci_rx) != SRSLTE_SUCCESS) {
