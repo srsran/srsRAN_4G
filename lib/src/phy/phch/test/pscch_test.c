@@ -31,22 +31,18 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-int32_t        N_sl_id = 168;
-uint32_t       nof_prb = 6;
-srslte_cp_t    cp      = SRSLTE_CP_NORM;
-srslte_sl_tm_t tm      = SRSLTE_SIDELINK_TM2;
-
-uint32_t size_sub_channel = 10;
-uint32_t num_sub_channel  = 5;
+srslte_cell_sl_t cell             = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
+uint32_t         size_sub_channel = 10;
+uint32_t         num_sub_channel  = 5;
 
 uint32_t prb_idx = 0;
 
 void usage(char* prog)
 {
   printf("Usage: %s [cdeipt]\n", prog);
-  printf("\t-p nof_prb [Default %d]\n", nof_prb);
-  printf("\t-c N_sl_id [Default %d]\n", N_sl_id);
-  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (tm + 1));
+  printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
+  printf("\t-c N_sl_id [Default %d]\n", cell.N_sl_id);
+  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell.tm + 1));
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
@@ -56,24 +52,24 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "ceiptv")) != -1) {
     switch (opt) {
       case 'c':
-        N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
+        cell.N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
-        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
         switch (strtol(argv[optind], NULL, 10)) {
           case 1:
-            tm = SRSLTE_SIDELINK_TM1;
+            cell.tm = SRSLTE_SIDELINK_TM1;
             break;
           case 2:
-            tm = SRSLTE_SIDELINK_TM2;
+            cell.tm = SRSLTE_SIDELINK_TM2;
             break;
           case 3:
-            tm = SRSLTE_SIDELINK_TM3;
+            cell.tm = SRSLTE_SIDELINK_TM3;
             break;
           case 4:
-            tm = SRSLTE_SIDELINK_TM4;
+            cell.tm = SRSLTE_SIDELINK_TM4;
             break;
           default:
             usage(argv[0]);
@@ -99,16 +95,21 @@ int main(int argc, char** argv)
 
   char sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = "";
 
-  uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(nof_prb, cp);
+  uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
   cf_t*    sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
 
   // SCI
   srslte_sci_t sci;
-  srslte_sci_init(&sci, nof_prb, tm, size_sub_channel, num_sub_channel);
+  srslte_sci_init(&sci, cell.nof_prb, cell.tm, size_sub_channel, num_sub_channel);
 
   // PSCCH
   srslte_pscch_t pscch;
-  if (srslte_pscch_init(&pscch, nof_prb, tm, cp) != SRSLTE_SUCCESS) {
+  if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
+    ERROR("Error in PSCCH init\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (srslte_pscch_set_cell(&pscch, cell) != SRSLTE_SUCCESS) {
     ERROR("Error in PSCCH init\n");
     return SRSLTE_ERROR;
   }

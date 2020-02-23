@@ -37,7 +37,7 @@
 #include "srslte/phy/utils/vector.h"
 
 char*            input_file_name;
-srslte_cell_sl_t cell                   = {.nof_prb = 6, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
+srslte_cell_sl_t cell                   = {.nof_prb = 6, .N_sl_id = 0, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
 bool             use_standard_lte_rates = false;
 uint32_t         size_sub_channel       = 10;
 uint32_t         num_sub_channel        = 5;
@@ -150,8 +150,13 @@ int base_init()
 
   srslte_sci_init(&sci, cell.nof_prb, cell.tm, size_sub_channel, num_sub_channel);
 
-  if (srslte_pscch_init(&pscch, cell) != SRSLTE_SUCCESS) {
+  if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
     ERROR("Error in PSCCH init\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (srslte_pscch_set_cell(&pscch, cell) != SRSLTE_SUCCESS) {
+    ERROR("Error in PSCCH set cell\n");
     return SRSLTE_ERROR;
   }
 

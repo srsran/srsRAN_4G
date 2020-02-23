@@ -48,6 +48,7 @@ typedef enum SRSLTE_API {
 
 typedef struct SRSLTE_API {
   srslte_sl_tm_t tm;
+  uint32_t       N_sl_id;
   uint32_t       nof_prb;
   srslte_cp_t    cp;
 } srslte_cell_sl_t;
@@ -80,7 +81,10 @@ typedef enum SRSLTE_API {
 #define SRSLTE_PSCCH_QM 2
 #define SRSLTE_PSCCH_TM12_NOF_PRB (1)
 #define SRSLTE_PSCCH_TM34_NOF_PRB (2)
+#define SRSLTE_PSCCH_MAX_NOF_PRB (SRSLTE_PSCCH_TM34_NOF_PRB)
 #define SRSLTE_PSCCH_SCRAMBLING_SEED (510) ///< Scrambling seed for PSCCH is 510
+
+#define SRSLTE_PSCCH_MAX_CODED_BITS (3 * (SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN))
 
 #define SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS (12)
 #define SRSLTE_PSCCH_TM12_NUM_DMRS_SYMBOLS (2)
@@ -88,6 +92,8 @@ typedef enum SRSLTE_API {
 
 #define SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS (10)
 #define SRSLTE_PSCCH_TM34_NUM_DMRS_SYMBOLS (4)
+
+#define SRSLTE_PSCCH_MAX_NUM_DATA_SYMBOLS (SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS)
 
 SRSLTE_API int srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp);
 

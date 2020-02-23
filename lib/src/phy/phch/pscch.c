@@ -35,30 +35,14 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-int srslte_pscch_init(srslte_pscch_t* q, srslte_cell_sl_t cell)
+int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
     ret = SRSLTE_ERROR;
 
-    if (cell.tm == SRSLTE_SIDELINK_TM1 || cell.tm == SRSLTE_SIDELINK_TM2) {
-      q->sci_len       = srslte_sci_format0_sizeof(cell.nof_prb);
-      q->nof_symbols   = SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS;
-      q->pscch_nof_prb = SRSLTE_PSCCH_TM12_NOF_PRB;
-
-      if (cell.cp == SRSLTE_CP_EXT) {
-        q->nof_symbols = SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS_EXT;
-      }
-    } else if (cell.tm == SRSLTE_SIDELINK_TM3 || cell.tm == SRSLTE_SIDELINK_TM4) {
-      q->sci_len       = SRSLTE_SCI_TM34_LEN;
-      q->nof_symbols   = SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS;
-      q->pscch_nof_prb = SRSLTE_PSCCH_TM34_NOF_PRB;
-    } else {
-      return ret;
-    }
-
-    q->cell = cell;
+    q->max_prb = max_prb;
 
     // CRC
     uint32_t crc_poly = 0x11021;
@@ -82,14 +66,14 @@ int srslte_pscch_init(srslte_pscch_t* q, srslte_cell_sl_t cell)
     q->encoder.tail_biting = true;
     int poly[3]            = {0x6D, 0x4F, 0x57};
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
-    q->d = srslte_vec_malloc(sizeof(uint8_t) * (3 * (SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN)));
+    q->d = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_PSCCH_MAX_CODED_BITS);
     if (!q->d) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
-    bzero(q->d, sizeof(uint8_t) * (3 * (SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN)));
+    memset(q->d, 0, sizeof(uint8_t) * SRSLTE_PSCCH_MAX_CODED_BITS);
 
-    q->d_16 = srslte_vec_malloc(sizeof(int16_t) * (3 * (SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN)));
+    q->d_16 = srslte_vec_malloc(sizeof(int16_t) * SRSLTE_PSCCH_MAX_CODED_BITS);
     if (!q->d_16) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
@@ -98,35 +82,36 @@ int srslte_pscch_init(srslte_pscch_t* q, srslte_cell_sl_t cell)
     srslte_viterbi_init(
         &q->dec, SRSLTE_VITERBI_37, q->encoder.poly, SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN, q->encoder.tail_biting);
 
-    q->E = SRSLTE_NRE * q->nof_symbols * q->pscch_nof_prb * SRSLTE_PSCCH_QM;
-    q->e = srslte_vec_malloc(sizeof(uint8_t) * q->E);
+    ///< Max E value for memory allocation
+    uint32_t E_max = SRSLTE_NRE * SRSLTE_PSCCH_MAX_NUM_DATA_SYMBOLS * SRSLTE_PSCCH_MAX_NOF_PRB * SRSLTE_PSCCH_QM;
+    q->e           = srslte_vec_malloc(sizeof(uint8_t) * E_max);
     if (!q->e) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
-    q->e_16 = srslte_vec_malloc(sizeof(int16_t) * q->E);
+    q->e_16 = srslte_vec_malloc(sizeof(int16_t) * E_max);
     if (!q->e_16) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
-    q->e_bytes = srslte_vec_malloc(sizeof(uint8_t) * q->E / 8);
+    q->e_bytes = srslte_vec_malloc(sizeof(uint8_t) * E_max / 8);
     if (!q->e_bytes) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
 
-    q->interleaver_lut = srslte_vec_malloc(sizeof(uint32_t) * q->E);
+    q->interleaver_lut = srslte_vec_malloc(sizeof(uint32_t) * E_max);
     if (!q->interleaver_lut) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
 
-    q->codeword = srslte_vec_malloc(sizeof(uint8_t) * q->E);
+    q->codeword = srslte_vec_malloc(sizeof(uint8_t) * E_max);
     if (!q->codeword) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
-    q->codeword_bytes = srslte_vec_malloc(sizeof(uint8_t) * q->E / 8);
+    q->codeword_bytes = srslte_vec_malloc(sizeof(uint8_t) * E_max / 8);
     if (!q->codeword_bytes) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
@@ -134,39 +119,73 @@ int srslte_pscch_init(srslte_pscch_t* q, srslte_cell_sl_t cell)
 
     // Scrambling
     bzero(&q->seq, sizeof(srslte_sequence_t));
-    srslte_sequence_LTE_pr(&q->seq, q->E, SRSLTE_PSCCH_SCRAMBLING_SEED);
+    srslte_sequence_LTE_pr(&q->seq, E_max, SRSLTE_PSCCH_SCRAMBLING_SEED);
 
     // Modulation
     if (srslte_modem_table_lte(&q->mod, SRSLTE_MOD_QPSK)) {
       return SRSLTE_ERROR;
     }
 
-    q->mod_symbols = srslte_vec_malloc(sizeof(cf_t) * q->E / SRSLTE_PSCCH_QM);
+    q->mod_symbols = srslte_vec_malloc(sizeof(cf_t) * E_max / SRSLTE_PSCCH_QM);
     if (!q->mod_symbols) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
 
-    q->llr = srslte_vec_malloc(sizeof(float) * q->E);
+    q->llr = srslte_vec_malloc(sizeof(float) * E_max);
     if (!q->llr) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
 
     // DFT Precoding
-    if (srslte_dft_precoding_init(&q->dft_precoder, q->cell.nof_prb, true)) {
+    if (srslte_dft_precoding_init(&q->dft_precoder, SRSLTE_PSCCH_MAX_NOF_PRB, true)) {
       return SRSLTE_ERROR;
     }
-    q->scfdma_symbols = srslte_vec_malloc(sizeof(cf_t) * q->E / SRSLTE_PSCCH_QM);
+    q->scfdma_symbols = srslte_vec_malloc(sizeof(cf_t) * E_max / SRSLTE_PSCCH_QM);
     if (!q->scfdma_symbols) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
 
     // IDFT Predecoding
-    if (srslte_dft_precoding_init(&q->idft_precoder, q->pscch_nof_prb, false)) {
+    if (srslte_dft_precoding_init(&q->idft_precoder, SRSLTE_PSCCH_MAX_NOF_PRB, false)) {
       return SRSLTE_ERROR;
     }
+
+    ret = SRSLTE_SUCCESS;
+  }
+
+  return ret;
+}
+
+int srslte_pscch_set_cell(srslte_pscch_t* q, srslte_cell_sl_t cell)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL && cell.nof_prb <= q->max_prb) {
+    ret = SRSLTE_ERROR;
+
+    if (cell.tm == SRSLTE_SIDELINK_TM1 || cell.tm == SRSLTE_SIDELINK_TM2) {
+      q->sci_len       = srslte_sci_format0_sizeof(cell.nof_prb);
+      q->nof_symbols   = SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS;
+      q->pscch_nof_prb = SRSLTE_PSCCH_TM12_NOF_PRB;
+
+      if (cell.cp == SRSLTE_CP_EXT) {
+        q->nof_symbols = SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS_EXT;
+      }
+    } else if (cell.tm == SRSLTE_SIDELINK_TM3 || cell.tm == SRSLTE_SIDELINK_TM4) {
+      q->sci_len       = SRSLTE_SCI_TM34_LEN;
+      q->nof_symbols   = SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS;
+      q->pscch_nof_prb = SRSLTE_PSCCH_TM34_NOF_PRB;
+    } else {
+      return ret;
+    }
+
+    q->cell = cell;
+
+    ///< Calculate actual number of RE
+    q->E = SRSLTE_NRE * q->nof_symbols * q->pscch_nof_prb * SRSLTE_PSCCH_QM;
 
     ///< Last OFDM symbol is processed but not transmitted
     q->nof_tx_re = (q->nof_symbols - 1) * SRSLTE_NRE * q->pscch_nof_prb;
