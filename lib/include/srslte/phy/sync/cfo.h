@@ -62,6 +62,4 @@ srslte_cfo_correct_offset(srslte_cfo_t* h, const cf_t* input, cf_t* output, floa
 
 SRSLTE_API float srslte_cfo_est_corr_cp(cf_t* input_buffer, uint32_t nof_prb);
 
-SRSLTE_API float srslte_sl_cfo_est_corr_cp(cf_t* input_buffer, uint32_t nof_prb, srslte_cp_t cp);
-
 #endif // SRSLTE_CFO_H

@@ -238,8 +238,7 @@ int main(int argc, char** argv)
       nread = -1;
     }
 
-    // CFO estimation and correction
-    srslte_sl_cfo_est_corr_cp(input_buffer, cell.nof_prb, cell.cp);
+    // Convert to frequency domain
     srslte_ofdm_rx_sf(&fft);
 
     if (cell.tm == SRSLTE_SIDELINK_TM1 || cell.tm == SRSLTE_SIDELINK_TM2) {
