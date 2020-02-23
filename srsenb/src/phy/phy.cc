@@ -181,16 +181,6 @@ void phy::stop()
   }
 }
 
-uint32_t phy::tti_to_SFN(uint32_t tti)
-{
-  return tti / 10;
-}
-
-uint32_t phy::tti_to_subf(uint32_t tti)
-{
-  return tti % 10;
-}
-
 /***** MAC->PHY interface **********/
 int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
 {
