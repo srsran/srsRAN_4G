@@ -41,7 +41,7 @@ const char* state_str[] = {"RA:    INIT:   ",
                            "RA:    INIT:   ",
                            "RA:    PDCCH:  ",
                            "RA:    Rx:     ",
-                           "RA:    Backoff:",
+                           "RA:    Backoff: ",
                            "RA:    ConRes: ",
                            "RA:    WaitComplt: ",
                            "RA:    Complt: "};

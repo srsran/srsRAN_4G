@@ -269,7 +269,8 @@ public:
         // look for DL data to be send in each bearer and provide grant accordingly
         for (int lcid = 0; lcid < SRSLTE_N_RADIO_BEARERS; lcid++) {
           uint32_t buf_state = rlc.get_buffer_state(lcid);
-          if (buf_state > 0) {
+          // Schedule DL transmission if there is data in RLC buffer or we need to send Msg4
+          if (buf_state > 0 || (msg3_tti != -1 && conres_id != 0)) {
             log.debug("LCID=%d, buffer_state=%d\n", lcid, buf_state);
             const uint32_t mac_header_size = 10; // Add MAC header (10 B for all subheaders, etc)
             if (tmp_rlc_buffer.get_tailroom() > (buf_state + mac_header_size)) {
@@ -278,19 +279,18 @@ public:
               mac_msg_dl.init_tx(&tx_payload_buffer, pdu_size + mac_header_size, false);
 
               // check if this is Msg4 that needs to contain the contention resolution ID CE
-              if (msg3_tti != -1) {
-                if (lcid == 0) {
-                  if (mac_msg_dl.new_subh()) {
-                    if (mac_msg_dl.get()->set_con_res_id(conres_id)) {
-                      log.info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
-                    } else {
-                      log.error("CE:    Setting Contention Resolution ID CE\n");
-                    }
+              if (msg3_tti != -1 && lcid == 0 && conres_id != 0) {
+                if (mac_msg_dl.new_subh()) {
+                  if (mac_msg_dl.get()->set_con_res_id(conres_id)) {
+                    log.info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
                   } else {
-                    log.error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
+                    log.error("CE:    Setting Contention Resolution ID CE\n");
                   }
-                  msg3_tti = -1;
+                  conres_id = 0; // reset CR so it's not sent twice
+                } else {
+                  log.error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
                 }
+                msg3_tti = -1;
               }
 
               // Add payload
