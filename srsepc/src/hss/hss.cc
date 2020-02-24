@@ -267,7 +267,7 @@ bool hss::gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, ui
   bool ret = false; // FIXME
   switch (ue_ctx->algo) {
     case HSS_ALGO_XOR:
-      ret = gen_auth_info_answer_xor(imsi, k_asme, autn, rand, xres);
+      gen_auth_info_answer_xor(ue_ctx, k_asme, autn, rand, xres);
       break;
     case HSS_ALGO_MILENAGE:
       ret = gen_auth_info_answer_milenage(imsi, k_asme, autn, rand, xres);
@@ -331,13 +331,15 @@ bool hss::gen_auth_info_answer_milenage(uint64_t imsi, uint8_t* k_asme, uint8_t*
   return true;
 }
 
-bool hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres)
+void hss::gen_auth_info_answer_xor(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres)
 {
-  uint8_t k[16];
-  uint8_t amf[2];
-  uint8_t opc[16];
-  uint8_t sqn[6];
+  // Get K, AMF, OPC and SQN
+  uint8_t *k = ue_ctx->key;
+  uint8_t *amf = ue_ctx->amf;
+  uint8_t *opc = ue_ctx->opc;
+  uint8_t *sqn = ue_ctx->sqn;
 
+  // Temp variables
   uint8_t xdout[16];
   uint8_t cdout[8];
 
@@ -348,9 +350,7 @@ bool hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t* k_asme, uint8_t* autn
 
   int i = 0;
 
-  if (!get_k_amf_opc_sqn(imsi, k, amf, opc, sqn)) {
-    return false;
-  }
+  // Gen RAND
   gen_rand(rand);
 
   // Use RAND and K to compute RES, CK, IK and AK
@@ -421,9 +421,9 @@ bool hss::gen_auth_info_answer_xor(uint64_t imsi, uint8_t* k_asme, uint8_t* autn
 
   m_hss_log->debug_hex(autn, 8, "User AUTN: ");
 
-  set_last_rand(imsi, rand);
-
-  return true;
+  // Set last RAND
+  memcpy(ue_ctx->last_rand, rand, 16);
+  return;
 }
 
 bool hss::gen_update_loc_answer(uint64_t imsi, uint8_t* qci)
