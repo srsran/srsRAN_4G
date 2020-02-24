@@ -272,7 +272,7 @@ bool hss::gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, ui
       gen_auth_info_answer_milenage(ue_ctx, k_asme, autn, rand, xres);
       break;
   }
-  increment_ue_sqn(imsi);
+  increment_ue_sqn(ue_ctx);
   return true;
 }
 
@@ -546,15 +546,10 @@ bool hss::resync_sqn_milenage(uint64_t imsi, uint8_t* auts)
   return true;
 }
 
-void hss::increment_ue_sqn(uint64_t imsi)
+void hss::increment_ue_sqn(hss_ue_ctx_t* ue_ctx)
 {
-  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
-  if (ue_ctx == nullptr) {
-    return;
-  }
-
   increment_sqn(ue_ctx->sqn, ue_ctx->sqn);
-  m_hss_log->debug("Incremented SQN  -- IMSI: %015" PRIu64 "\n", imsi);
+  m_hss_log->debug("Incremented SQN  -- IMSI: %015" PRIu64 "\n", ue_ctx->imsi);
   m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN: ");
 }
 

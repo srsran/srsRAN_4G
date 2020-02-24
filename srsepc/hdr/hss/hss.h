@@ -101,7 +101,7 @@ private:
   std::vector<std::string> split_string(const std::string& str, char delimiter);
   void                     get_uint_vec_from_hex_str(const std::string& key_str, uint8_t* key, uint len);
 
-  void increment_ue_sqn(uint64_t imsi);
+  void increment_ue_sqn(hss_ue_ctx_t* ue_ctx);
   void increment_seq_after_resync(uint64_t imsi);
   void increment_sqn(uint8_t* sqn, uint8_t* next_sqn);
   void set_sqn(uint64_t imsi, uint8_t* sqn);
