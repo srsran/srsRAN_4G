@@ -39,7 +39,7 @@
 namespace srsenb {
 
 struct ue_ctxt_t {
-  static const uint16_t invalid_rnti   = std::numeric_limits<uint16_t>::max();
+  static const uint16_t invalid_rnti   = 0;
   static const uint32_t invalid_id     = std::numeric_limits<uint32_t>::max();
   uint16_t              rnti           = invalid_rnti;
   uint32_t              enb_ue_s1ap_id = invalid_id;
