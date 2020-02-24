@@ -93,7 +93,7 @@ private:
   bool get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* opc, uint8_t* sqn);
 
   void gen_auth_info_answer_xor(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
-  bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
+  void gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
 
   bool resync_sqn_milenage(uint64_t imsi, uint8_t* auts);
   bool resync_sqn_xor(uint64_t imsi, uint8_t* auts);
