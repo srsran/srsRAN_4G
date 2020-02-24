@@ -118,7 +118,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rlc.init(&pdcp, &rrc, &mac, &timers, &rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(&rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
-  s1ap.init(args.s1ap, &rrc, &s1ap_log, &timers, this);
+  s1ap.init(args.s1ap, &rrc, &timers, this);
   gtpu.init(args.s1ap.gtp_bind_addr,
             args.s1ap.mme_addr,
             args.embms.m1u_multiaddr,
