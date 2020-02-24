@@ -34,7 +34,7 @@ script:
    fi
  - mkdir build
  - cd build
- - cmake -DRF_FOUND=True -G Ninja ..
+ - cmake -DENABLE_5GNR=True -DENABLE_TTCN3=True -DRF_FOUND=True -G Ninja ..
  - ninja
  - ninja test
  - sudo ninja install
