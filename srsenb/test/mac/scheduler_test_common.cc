@@ -65,12 +65,12 @@ int output_sched_tester::test_pusch_collisions(const tti_params_t&              
 
   auto try_ul_fill = [&](srsenb::ul_harq_proc::ul_alloc_t alloc, const char* ch_str, bool strict = true) {
     CONDERROR((alloc.RB_start + alloc.L) > nof_prb,
-              "[TESTER] Allocated RBs (%d,%d) out-of-bounds\n",
+              "Allocated RBs (%d,%d) out-of-bounds\n",
               alloc.RB_start,
               alloc.RB_start + alloc.L);
-    CONDERROR(alloc.L == 0, "[TESTER] Allocations must have at least one PRB\n");
+    CONDERROR(alloc.L == 0, "Allocations must have at least one PRB\n");
     if (strict and ul_allocs.any(alloc.RB_start, alloc.RB_start + alloc.L)) {
-      TESTERROR("[TESTER] Collision Detected of %s alloc=(%d,%d) and cumulative_mask=0x%s\n",
+      TESTERROR("Collision Detected of %s alloc=(%d,%d) and cumulative_mask=0x%s\n",
                 ch_str,
                 alloc.RB_start,
                 alloc.RB_start + alloc.L,
@@ -116,7 +116,7 @@ int output_sched_tester::test_pdsch_collisions(const tti_params_t&              
       return SRSLTE_ERROR;
     }
     if ((dl_allocs & alloc_mask).any()) {
-      TESTERROR("[TESTER] Detected collision in the DL %s allocation (%s intersects %s)\n",
+      TESTERROR("Detected collision in the DL %s allocation (%s intersects %s)\n",
                 channel,
                 dl_allocs.to_string().c_str(),
                 alloc_mask.to_string().c_str());
@@ -155,7 +155,7 @@ int output_sched_tester::test_pdsch_collisions(const tti_params_t&              
   for (uint32_t i = 0; i < cell_params.nof_rbgs; ++i) {
     uint32_t lim = SRSLTE_MIN((i + 1) * cell_params.P, dl_allocs.size());
     bool     val = dl_allocs.any(i * cell_params.P, lim);
-    CONDERROR(rev_alloc.any(i * cell_params.P, lim) and val, "[TESTER] No holes can be left in an RBG\n");
+    CONDERROR(rev_alloc.any(i * cell_params.P, lim) and val, "No holes can be left in an RBG\n");
     if (val) {
       rbgmask.set(i);
     }
@@ -216,7 +216,7 @@ int output_sched_tester::test_pdcch_collisions(const sched_interface::dl_sched_r
   auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
     uint32_t cce_start = dci_loc.ncce, cce_stop = dci_loc.ncce + (1u << dci_loc.L);
     if (used_cce->any(cce_start, cce_stop)) {
-      TESTERROR("[TESTER] %s DCI collision between CCE positions (%u, %u)\n", ch, cce_start, cce_stop);
+      TESTERROR("%s DCI collision between CCE positions (%u, %u)\n", ch, cce_start, cce_stop);
     }
     used_cce->fill(cce_start, cce_stop);
     return SRSLTE_SUCCESS;
@@ -256,7 +256,7 @@ int output_sched_tester::test_dci_values_consistency(const sched_interface::dl_s
       continue;
     }
     CONDERROR(pusch.dci.location.L == 0,
-              "[TESTER] Invalid aggregation level %d\n",
+              "Invalid aggregation level %d\n",
               pusch.dci.location.L); // TODO: Extend this test
   }
   for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
@@ -331,7 +331,7 @@ int user_state_sched_tester::add_user(uint16_t                                 r
 {
   CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
                 cell_params[ue_cfg.supported_cc_list[0].enb_cc_idx].prach_config, tic.tti_rx(), -1),
-            "[TESTER] New user added in a non-PRACH TTI\n");
+            "New user added in a non-PRACH TTI\n");
   TESTASSERT(users.count(rnti) == 0);
   ue_state ue;
   ue.user_cfg     = ue_cfg;
@@ -430,7 +430,7 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
           auto& data = dl_result.rar[i].msg3_grant[j].data;
           if (data.prach_tti == (uint32_t)userinfo.prach_tic.tti_rx() and data.preamble_idx == userinfo.preamble_idx) {
             CONDERROR(userinfo.rar_tic.is_valid(), "There was more than one RAR for the same user\n");
-            CONDERROR(rnti != data.temp_crnti, "[TESTER] RAR grant C-RNTI does not match the expected.\n");
+            CONDERROR(rnti != data.temp_crnti, "RAR grant C-RNTI does not match the expected.\n");
             userinfo.msg3_riv = dl_result.rar[i].msg3_grant[j].grant.rba;
             userinfo.rar_tic  = tic_tx_dl;
           }
@@ -453,7 +453,7 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
           }
         }
       } else if (expected_msg3_tti < tic.tic_tx_ul()) {
-        CONDERROR(not userinfo.msg3_tic.is_valid(), "[TESTER] No UL msg3 allocation was made\n");
+        CONDERROR(not userinfo.msg3_tic.is_valid(), "No UL msg3 allocation was made\n");
       }
     }
 
@@ -483,7 +483,7 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
       }
     }
   }
-  CONDERROR(msg3_count > 0, "[TESTER] There are pending msg3 that do not belong to any active UE\n");
+  CONDERROR(msg3_count > 0, "There are pending msg3 that do not belong to any active UE\n");
 
   return SRSLTE_SUCCESS;
 }
@@ -625,10 +625,10 @@ int common_sched_tester::sim_cfg(sim_sched_args args)
 
 int common_sched_tester::add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_)
 {
-  CONDERROR(ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "[TESTER] Configuring new user rnti=0x%x to sched\n", rnti);
+  CONDERROR(ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
   //        CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
   //            sched_cell_params[CARRIER_IDX].cfg.prach_config, tti_info.tti_params.tti_rx, -1),
-  //                  "[TESTER] New user added in a non-PRACH TTI\n");
+  //                  "New user added in a non-PRACH TTI\n");
 
   dl_sched_rar_info_t rar_info = {};
   rar_info.prach_tti           = tti_info.tti_params.tti_rx;
@@ -640,13 +640,13 @@ int common_sched_tester::add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_)
 
   ue_tester->add_user(rnti, rar_info.preamble_idx, ue_cfg_);
 
-  tester_log->info("[TESTER] Adding user rnti=0x%x\n", rnti);
+  tester_log->info("Adding user rnti=0x%x\n", rnti);
   return SRSLTE_SUCCESS;
 }
 
 void common_sched_tester::rem_user(uint16_t rnti)
 {
-  tester_log->info("[TESTER] Removing user rnti=0x%x\n", rnti);
+  tester_log->info("Removing user rnti=0x%x\n", rnti);
   sched::ue_rem(rnti);
   ue_tester->rem_user(rnti);
 }
@@ -688,7 +688,7 @@ int common_sched_tester::process_ack_txs()
 
     srsenb::dl_harq_proc*       h    = ue_db[dl_ack.rnti].get_dl_harq(ack_it.second.dl_harq.get_id(), dl_ack.ue_cc_idx);
     const srsenb::dl_harq_proc& hack = dl_ack.dl_harq;
-    CONDERROR(hack.is_empty(), "[TESTER] The acked DL harq was not active\n");
+    CONDERROR(hack.is_empty(), "The acked DL harq was not active\n");
 
     bool ret = false;
     for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; ++tb) {
@@ -697,18 +697,15 @@ int common_sched_tester::process_ack_txs()
       }
       ret |= dl_ack_info(tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.ue_cc_idx, tb, dl_ack.ack) > 0;
     }
-    CONDERROR(not ret, "[TESTER] The dl harq proc that was ACKed does not exist\n");
+    CONDERROR(not ret, "The dl harq proc that was ACKed does not exist\n");
 
     if (dl_ack.ack) {
-      CONDERROR(!h->is_empty(), "[TESTER] ACKed dl harq was not emptied\n");
-      CONDERROR(h->has_pending_retx(0, tti_info.tti_params.tti_tx_dl),
-                "[TESTER] ACKed dl harq still has pending retx\n");
-      tester_log->info("[TESTER] DL ACK tti=%u rnti=0x%x pid=%d\n",
-                       tti_info.tti_params.tti_rx,
-                       dl_ack.rnti,
-                       dl_ack.dl_harq.get_id());
+      CONDERROR(!h->is_empty(), "ACKed dl harq was not emptied\n");
+      CONDERROR(h->has_pending_retx(0, tti_info.tti_params.tti_tx_dl), "ACKed dl harq still has pending retx\n");
+      tester_log->info(
+          "DL ACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.dl_harq.get_id());
     } else {
-      CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "[TESTER] NACKed DL harq got emptied\n");
+      CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "NACKed DL harq got emptied\n");
     }
   }
 
@@ -721,25 +718,23 @@ int common_sched_tester::process_ack_txs()
 
     srsenb::ul_harq_proc*       h    = ue_db[ul_ack.rnti].get_ul_harq(tti_info.tti_params.tti_rx, ul_ack.ue_cc_idx);
     const srsenb::ul_harq_proc& hack = ul_ack.ul_harq;
-    CONDERROR(h == nullptr or h->get_tti() != hack.get_tti(), "[TESTER] UL Harq TTI does not match the ACK TTI\n");
-    CONDERROR(h->is_empty(0), "[TESTER] The acked UL harq is not active\n");
-    CONDERROR(hack.is_empty(0), "[TESTER] The acked UL harq was not active\n");
+    CONDERROR(h == nullptr or h->get_tti() != hack.get_tti(), "UL Harq TTI does not match the ACK TTI\n");
+    CONDERROR(h->is_empty(0), "The acked UL harq is not active\n");
+    CONDERROR(hack.is_empty(0), "The acked UL harq was not active\n");
 
     ul_crc_info(tti_info.tti_params.tti_rx, ul_ack.rnti, ul_ack.ue_cc_idx, ul_ack.ack);
 
-    CONDERROR(!h->get_pending_data(), "[TESTER] UL harq lost its pending data\n");
-    CONDERROR(!h->has_pending_ack(), "[TESTER] ACK/NACKed UL harq should have a pending ACK\n");
+    CONDERROR(!h->get_pending_data(), "UL harq lost its pending data\n");
+    CONDERROR(!h->has_pending_ack(), "ACK/NACKed UL harq should have a pending ACK\n");
 
     if (ul_ack.ack) {
-      CONDERROR(!h->is_empty(), "[TESTER] ACKed UL harq did not get emptied\n");
-      CONDERROR(h->has_pending_retx(), "[TESTER] ACKed UL harq still has pending retx\n");
-      tester_log->info(
-          "[TESTER] UL ACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, ul_ack.rnti, hack.get_id());
+      CONDERROR(!h->is_empty(), "ACKed UL harq did not get emptied\n");
+      CONDERROR(h->has_pending_retx(), "ACKed UL harq still has pending retx\n");
+      tester_log->info("UL ACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, ul_ack.rnti, hack.get_id());
     } else {
       // NACK
-      CONDERROR(!h->is_empty() and !h->has_pending_retx(), "[TESTER] If NACKed, UL harq has to have pending retx\n");
-      CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(),
-                "[TESTER] Nacked UL harq did get emptied\n");
+      CONDERROR(!h->is_empty() and !h->has_pending_retx(), "If NACKed, UL harq has to have pending retx\n");
+      CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "Nacked UL harq did get emptied\n");
     }
   }
 
@@ -747,16 +742,6 @@ int common_sched_tester::process_ack_txs()
   to_ack.erase(tti_info.tti_params.tti_rx);
   to_ul_ack.erase(tti_info.tti_params.tti_rx);
 
-  //  bool ack = true; //(tti_data.tti_rx % 3) == 0;
-  //  if (tti_data.tti_rx >= FDD_HARQ_DELAY_MS) {
-  //    for (auto it = ue_db.begin(); it != ue_db.end(); ++it) {
-  //      uint16_t              rnti = it->first;
-  //      srsenb::ul_harq_proc* h    = ue_db[rnti].get_ul_harq(tti_data.tti_rx);
-  //      if (h != nullptr and not h->is_empty()) {
-  //        ul_crc_info(tti_data.tti_rx, rnti, ack);
-  //      }
-  //    }
-  //  }
   return SRSLTE_SUCCESS;
 }
 
@@ -784,7 +769,7 @@ int common_sched_tester::schedule_acks()
         if (it->second.rnti == ack_data.rnti and it->second.dl_harq.get_id() == ack_data.dl_harq.get_id() and
             it->second.ue_cc_idx == ack_data.ue_cc_idx) {
           CONDERROR(it->second.tti + 2 * FDD_HARQ_DELAY_MS > ack_data.tti,
-                    "[TESTER] The retx dl harq id=%d was transmitted too soon\n",
+                    "The retx dl harq id=%d was transmitted too soon\n",
                     ack_data.dl_harq.get_id());
           auto toerase_it = it++;
           to_ack.erase(toerase_it);
@@ -899,7 +884,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 int common_sched_tester::run_tti(const tti_ev& tti_events)
 {
   new_test_tti();
-  tester_log->info("[TESTER] ---- tti=%u | nof_ues=%zd ----\n", tic.tti_rx(), ue_db.size());
+  tester_log->info("---- tti=%u | nof_ues=%zd ----\n", tic.tti_rx(), ue_db.size());
 
   process_tti_events(tti_events);
   process_ack_txs();
