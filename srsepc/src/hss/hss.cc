@@ -114,8 +114,8 @@ bool hss::read_db_file(std::string db_filename)
         m_hss_log->console("See 'srsepc/user_db.csv.example' for an example.\n\n");
         return false;
       }
-      hss_ue_ctx_t* ue_ctx = new hss_ue_ctx_t;
-      ue_ctx->name         = split[0];
+      std::unique_ptr<hss_ue_ctx_t> ue_ctx = std::unique_ptr<hss_ue_ctx_t>(new hss_ue_ctx_t);
+      ue_ctx->name                         = split[0];
       if (split[1] == std::string("xor")) {
         ue_ctx->algo = HSS_ALGO_XOR;
       } else if (split[1] == std::string("mil")) {
@@ -168,7 +168,7 @@ bool hss::read_db_file(std::string db_filename)
           return false;
         }
       }
-      m_imsi_to_ue_ctx.insert(std::pair<uint64_t, hss_ue_ctx_t*>(ue_ctx->imsi, ue_ctx));
+      m_imsi_to_ue_ctx.insert(std::pair<uint64_t, std::unique_ptr<hss_ue_ctx_t> >(ue_ctx->imsi, std::move(ue_ctx)));
     }
   }
 
@@ -256,15 +256,15 @@ bool hss::write_db_file(std::string db_filename)
 
 bool hss::gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres)
 {
-  hss_ue_ctx_t* ue_ctx = NULL;
 
-  bool ret = get_ue_ctx(imsi, &ue_ctx);
-  if (ret == false) {
+  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
+  if (ue_ctx == nullptr) {
     m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
     m_hss_log->error("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
     return false;
   }
 
+  bool ret = false; // FIXME
   switch (ue_ctx->algo) {
     case HSS_ALGO_XOR:
       ret = gen_auth_info_answer_xor(imsi, k_asme, autn, rand, xres);
@@ -459,15 +459,15 @@ bool hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* op
 
 bool hss::resync_sqn(uint64_t imsi, uint8_t* auts)
 {
-  hss_ue_ctx_t* ue_ctx = NULL;
 
-  bool ret = get_ue_ctx(imsi, &ue_ctx);
-  if (ret == false) {
+  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
+  if (ue_ctx == nullptr) {
     m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
     m_hss_log->error("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
     return false;
   }
 
+  bool ret = false; //FIXME
   switch (ue_ctx->algo) {
     case HSS_ALGO_XOR:
       ret = resync_sqn_xor(imsi, auts);
@@ -548,9 +548,8 @@ bool hss::resync_sqn_milenage(uint64_t imsi, uint8_t* auts)
 
 void hss::increment_ue_sqn(uint64_t imsi)
 {
-  hss_ue_ctx_t* ue_ctx = NULL;
-  bool          ret    = get_ue_ctx(imsi, &ue_ctx);
-  if (ret == false) {
+  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
+  if (ue_ctx == nullptr) {
     return;
   }
 
@@ -592,9 +591,8 @@ void hss::increment_sqn(uint8_t* sqn, uint8_t* next_sqn)
 void hss::increment_seq_after_resync(uint64_t imsi)
 {
   // This function only increment the SEQ part of the SQN for resynchronization purpose
-  hss_ue_ctx_t* ue_ctx = NULL;
-  bool          ret    = get_ue_ctx(imsi, &ue_ctx);
-  if (ret == false) {
+  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
+  if (ue_ctx == nullptr) {
     return;
   }
 
@@ -627,9 +625,8 @@ void hss::increment_seq_after_resync(uint64_t imsi)
 
 void hss::set_sqn(uint64_t imsi, uint8_t* sqn)
 {
-  hss_ue_ctx_t* ue_ctx = NULL;
-  bool          ret    = get_ue_ctx(imsi, &ue_ctx);
-  if (ret == false) {
+  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
+  if (ue_ctx == nullptr) {
     return;
   }
   memcpy(ue_ctx->sqn, sqn, 6);
@@ -637,9 +634,8 @@ void hss::set_sqn(uint64_t imsi, uint8_t* sqn)
 
 void hss::set_last_rand(uint64_t imsi, uint8_t* rand)
 {
-  hss_ue_ctx_t* ue_ctx = NULL;
-  bool          ret    = get_ue_ctx(imsi, &ue_ctx);
-  if (ret == false) {
+  hss_ue_ctx_t* ue_ctx  = get_ue_ctx(imsi);
+  if (ue_ctx == nullptr) {
     return;
   }
   memcpy(ue_ctx->last_rand, rand, 16);
@@ -647,9 +643,8 @@ void hss::set_last_rand(uint64_t imsi, uint8_t* rand)
 
 void hss::get_last_rand(uint64_t imsi, uint8_t* rand)
 {
-  hss_ue_ctx_t* ue_ctx = NULL;
-  bool          ret    = get_ue_ctx(imsi, &ue_ctx);
-  if (ret == false) {
+  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
+  if (ue_ctx == nullptr) {
     return;
   }
   memcpy(rand, ue_ctx->last_rand, 16);
@@ -663,16 +658,15 @@ void hss::gen_rand(uint8_t rand_[16])
   return;
 }
 
-const std::unique_ptr<hss_ue_ctx_t>& hss::get_ue_ctx(uint64_t imsi)
+hss_ue_ctx_t* hss::get_ue_ctx(uint64_t imsi)
 {
   std::map<uint64_t, std::unique_ptr<hss_ue_ctx_t> >::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
   if (ue_ctx_it == m_imsi_to_ue_ctx.end()) {
     m_hss_log->info("User not found. IMSI: %015" PRIu64 "\n", imsi);
-    return false;
+    return nullptr;
   }
 
-  *ue_ctx = ue_ctx_it->second;
-  return true;
+  return ue_ctx_it->second.get();
 }
 
 /* Helper functions*/
