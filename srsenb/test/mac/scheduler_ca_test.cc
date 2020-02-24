@@ -110,13 +110,6 @@ int run_sim1()
   uint32_t prach_tti = 1, msg4_tot_delay = 10; // TODO: check correct value
   uint32_t msg4_size = 20;                     // TODO: Check
   uint32_t duration  = 1000;
-  //  auto     process_ttis = [&generator, &tti_start, &tester]() {
-  //    for (; tester.tti_counter <= generator.tti_counter;) {
-  //      uint32_t tti = (tti_start + tester.tti_count) % 10240;
-  //      log_global->step(tti);
-  //      tester.run_tti(generator.tti_events[tester.tti_count]);
-  //    }
-  //  };
 
   /* Simulation */
 
@@ -161,7 +154,8 @@ int run_sim1()
     user->ue_cfg->supported_cc_list[i].enb_cc_idx = i;
   }
   tester.test_next_ttis(generator.tti_events);
-  // When a new DL tx takes place, it should also encode the CE
+
+  // When a DL newtx takes place, it should also encode the CE
   for (uint32_t i = 0; i < 100; ++i) {
     TESTASSERT(tester.tti_info.dl_sched_result[pcell_idx].nof_data_elems > 0);
     if (tester.tti_info.dl_sched_result[pcell_idx].data[0].nof_pdu_elems[0] > 0) {
@@ -172,11 +166,24 @@ int run_sim1()
     }
     generator.step_tti();
     tester.test_next_ttis(generator.tti_events);
-    // now we have two CCs
   }
-  // now we have two CCs
+  for (uint32_t i = 0; i < TX_DELAY; ++i) {
+    generator.step_tti();
+  }
+  tester.test_next_ttis(generator.tti_events);
+  // The UE has now received the CE
 
-  // Event: Generate a bit more data, now it should go through both cells
+  // Event: Generate a bit more data, it should *not* go through SCells until we send a CQI
+  generate_data(5, P_dl, P_ul_sr);
+  tester.test_next_ttis(generator.tti_events);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[0] > 0);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[1] == 0);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[0] > 0);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[1] == 0);
+
+  // Event: Scheduler receives dl_cqi for SCell. Data should go through SCells
+  const uint32_t cqi = 14;
+  tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, 1, cqi);
   generate_data(10, 1.0, 1.0);
   tester.test_next_ttis(generator.tti_events);
   TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[0] > 0);

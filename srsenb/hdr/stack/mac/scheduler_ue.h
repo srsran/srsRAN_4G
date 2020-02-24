@@ -54,7 +54,7 @@ struct sched_ue_carrier {
   // Harq access
   void          reset_old_pending_pids(uint32_t tti_rx);
   dl_harq_proc* get_pending_dl_harq(uint32_t tti_tx_dl);
-  dl_harq_proc* get_empty_dl_harq();
+  dl_harq_proc* get_empty_dl_harq(uint32_t tti_tx_dl);
   int           set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack);
   ul_harq_proc* get_ul_harq(uint32_t tti);
   uint32_t      get_pending_ul_old_data();
@@ -66,7 +66,7 @@ struct sched_ue_carrier {
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
   bool                       is_active() const { return active; }
-  uint32_t                   get_ue_cc_idx() const { return ue_cc_idx; }
+  void                       update_cell_activity();
 
   std::array<dl_harq_proc, SCHED_MAX_HARQ_PROC> dl_harq = {};
   std::array<ul_harq_proc, SCHED_MAX_HARQ_PROC> ul_harq = {};
@@ -94,9 +94,7 @@ private:
   const sched_cell_params_t*       cell_params = nullptr;
   uint16_t                         rnti;
   uint32_t                         ue_cc_idx = 0;
-
-  // state
-  bool active = false;
+  bool                             active    = false;
 };
 
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
@@ -160,8 +158,8 @@ public:
   uint32_t get_pending_dl_new_data_total();
 
   void          reset_pending_pids(uint32_t tti_rx, uint32_t cc_idx);
-  dl_harq_proc* get_pending_dl_harq(uint32_t tti, uint32_t cc_idx);
-  dl_harq_proc* get_empty_dl_harq(uint32_t cc_idx);
+  dl_harq_proc* get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx);
+  dl_harq_proc* get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx);
   ul_harq_proc* get_ul_harq(uint32_t tti, uint32_t cc_idx);
 
   /*******************************************************

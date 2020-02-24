@@ -117,19 +117,15 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
       if (ue_idx >= prev_supported_cc_list.size()) {
         // New carrier needs to be added
         carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx);
-        scell_activation_state_changed |= ue_idx > 0 and carriers.back().is_active();
       } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
         // TODO: Check if this will ever happen.
         // One carrier was added in the place of another
         carriers[ue_idx] = sched_ue_carrier{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
-        scell_activation_state_changed |= ue_idx > 0 and carriers[ue_idx].is_active();
       } else {
-        // The enb_cc_idx, ue_cc_idx match previous configuration.
-        // The SCell state may have changed. In such case we will schedule a SCell Activation CE
-        scell_activation_state_changed = carriers[ue_idx].is_active() != cc_cfg.active and ue_idx > 0;
-        // reconfiguration of carrier might be needed.
+        // The SCell internal configuration may have changed
         carriers[ue_idx].set_cfg(cfg);
       }
+      scell_activation_state_changed |= carriers[ue_idx].is_active() != cc_cfg.active and ue_idx > 0;
     }
     if (scell_activation_state_changed) {
       pending_ces.emplace_back(srslte::sch_subh::SCELL_ACTIVATION);
@@ -254,7 +250,13 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
 int sched_ue::set_ack_info(uint32_t tti, uint32_t cc_idx, uint32_t tb_idx, bool ack)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return carriers[cc_idx].set_ack_info(tti, tb_idx, ack);
+  int                         ret = -1;
+  if (cc_idx < carriers.size()) {
+    ret = carriers[cc_idx].set_ack_info(tti, tb_idx, ack);
+  } else {
+    log_h->warning("Received DL ACK for invalid cell index %d\n", cc_idx);
+  }
+  return ret;
 }
 
 void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
@@ -293,6 +295,10 @@ void sched_ue::set_dl_ri(uint32_t tti, uint32_t cc_idx, uint32_t ri)
 void sched_ue::set_dl_pmi(uint32_t tti, uint32_t cc_idx, uint32_t pmi)
 {
   std::lock_guard<std::mutex> lock(mutex);
+  if (cc_idx >= carriers.size()) {
+    log_h->warning("Received DL PMI for invalid cell index %d\n", cc_idx);
+    return;
+  }
   carriers[cc_idx].dl_pmi     = pmi;
   carriers[cc_idx].dl_pmi_tti = tti;
 }
@@ -300,8 +306,13 @@ void sched_ue::set_dl_pmi(uint32_t tti, uint32_t cc_idx, uint32_t pmi)
 void sched_ue::set_dl_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi)
 {
   std::lock_guard<std::mutex> lock(mutex);
+  if (cc_idx >= carriers.size()) {
+    log_h->warning("Received DL CQI for invalid cell index %d\n", cc_idx);
+    return;
+  }
   carriers[cc_idx].dl_cqi     = cqi;
   carriers[cc_idx].dl_cqi_tti = tti;
+  carriers[cc_idx].update_cell_activity();
 }
 
 void sched_ue::set_ul_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code)
@@ -898,18 +909,27 @@ void sched_ue::reset_pending_pids(uint32_t tti_rx, uint32_t cc_idx)
 dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return carriers[cc_idx].get_pending_dl_harq(tti_tx_dl);
+  if (cc_idx < carriers.size() and carriers[cc_idx].is_active()) {
+    return carriers[cc_idx].get_pending_dl_harq(tti_tx_dl);
+  }
+  return nullptr;
 }
 
-dl_harq_proc* sched_ue::get_empty_dl_harq(uint32_t cc_idx)
+dl_harq_proc* sched_ue::get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  return carriers[cc_idx].get_empty_dl_harq();
+  if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].is_active()) {
+    return carriers[ue_cc_idx].get_empty_dl_harq(tti_tx_dl);
+  }
+  return nullptr;
 }
 
-ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti_tx_ul, uint32_t cc_idx)
+ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti_tx_ul, uint32_t ue_cc_idx)
 {
-  return carriers[cc_idx].get_ul_harq(tti_tx_ul);
+  if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].is_active()) {
+    return carriers[ue_cc_idx].get_ul_harq(tti_tx_ul);
+  }
+  return nullptr;
 }
 
 dl_harq_proc* sched_ue::find_dl_harq(uint32_t tti_rx, uint32_t cc_idx)
@@ -929,14 +949,15 @@ dl_harq_proc* sched_ue::get_dl_harq(uint32_t idx, uint32_t cc_idx)
 
 std::pair<bool, uint32_t> sched_ue::get_cell_index(uint32_t enb_cc_idx) const
 {
-  auto it =
-      std::find_if(cfg.supported_cc_list.begin(),
-                   cfg.supported_cc_list.end(),
-                   [enb_cc_idx](const sched_interface::ue_cfg_t::cc_cfg_t& u) { return u.enb_cc_idx == enb_cc_idx; });
-  if (it == cfg.supported_cc_list.end()) {
-    return std::make_pair(false, 0);
+  auto it = std::find_if(
+      cfg.supported_cc_list.begin(),
+      cfg.supported_cc_list.end(),
+      [enb_cc_idx](const sched_interface::ue_cfg_t::cc_cfg_t& u) { return u.enb_cc_idx == enb_cc_idx and u.active; });
+  if (it != cfg.supported_cc_list.end()) {
+    uint32_t ue_cc_idx = std::distance(cfg.supported_cc_list.begin(), it);
+    return {carriers[ue_cc_idx].is_active(), enb_cc_idx};
   }
-  return std::make_pair(true, it->enb_cc_idx);
+  return {false, 0};
 }
 
 void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)
@@ -1080,6 +1101,9 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
   log_h(srslte::logmap::get("MAC ")),
   ue_cc_idx(ue_cc_idx_)
 {
+  // only PCell starts active. Remaining ones wait for valid CQI
+  active = ue_cc_idx == 0;
+
   // Init HARQ processes
   for (uint32_t i = 0; i < dl_harq.size(); ++i) {
     dl_harq[i].init(i);
@@ -1125,7 +1149,7 @@ void sched_ue_carrier::reset()
 
 void sched_ue_carrier::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
-  if (cfg != nullptr and cfg->maxharq_tx == cfg_.maxharq_tx and active == cfg->supported_cc_list[ue_cc_idx].active) {
+  if (cfg != nullptr and cfg->maxharq_tx == cfg_.maxharq_tx) {
     // nothing changed
     return;
   }
@@ -1135,7 +1159,6 @@ void sched_ue_carrier::set_cfg(const sched_interface::ue_cfg_t& cfg_)
     dl_harq[i].set_cfg(cfg->maxharq_tx);
     ul_harq[i].set_cfg(cfg->maxharq_tx);
   }
-  active = cfg->supported_cc_list[ue_cc_idx].active;
 }
 
 void sched_ue_carrier::reset_old_pending_pids(uint32_t tti_rx)
@@ -1162,7 +1185,10 @@ void sched_ue_carrier::reset_old_pending_pids(uint32_t tti_rx)
 
 dl_harq_proc* sched_ue_carrier::get_pending_dl_harq(uint32_t tti_tx_dl)
 {
-#if ASYNC_DL_SCHED
+  if (not ASYNC_DL_SCHED) {
+    dl_harq_proc* h = &dl_harq[tti_tx_dl % SCHED_MAX_HARQ_PROC];
+    return h->is_empty() ? nullptr : h;
+  }
 
   int      oldest_idx = -1;
   uint32_t oldest_tti = 0;
@@ -1180,16 +1206,16 @@ dl_harq_proc* sched_ue_carrier::get_pending_dl_harq(uint32_t tti_tx_dl)
     h = &dl_harq[oldest_idx];
   }
   return h;
-
-#else
-  return &dl_harq[tti % SCHED_MAX_HARQ_PROC];
-#endif
 }
 
-dl_harq_proc* sched_ue_carrier::get_empty_dl_harq()
+dl_harq_proc* sched_ue_carrier::get_empty_dl_harq(uint32_t tti_tx_dl)
 {
-  auto it =
-      std::find_if(dl_harq.begin(), dl_harq.end(), [](dl_harq_proc& h) { return h.is_empty(0) and h.is_empty(1); });
+  if (not ASYNC_DL_SCHED) {
+    dl_harq_proc* h = &dl_harq[tti_tx_dl % SCHED_MAX_HARQ_PROC];
+    return h->is_empty() ? nullptr : h;
+  }
+
+  auto it = std::find_if(dl_harq.begin(), dl_harq.end(), [](dl_harq_proc& h) { return h.is_empty(); });
   return it != dl_harq.end() ? &(*it) : nullptr;
 }
 
@@ -1202,7 +1228,6 @@ int sched_ue_carrier::set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack)
       return h.get_tbs(tb_idx);
     }
   }
-
   Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti_rx);
   return -1;
 }
@@ -1324,6 +1349,14 @@ uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
   }
 
   return n;
+}
+
+void sched_ue_carrier::update_cell_activity()
+{
+  if (ue_cc_idx > 0 and active != cfg->supported_cc_list[ue_cc_idx].active) {
+    active = cfg->supported_cc_list[ue_cc_idx].active;
+    log_h->info("SCell index=%d is now %s\n", ue_cc_idx, active ? "active" : "inactive");
+  }
 }
 
 /*******************************************************

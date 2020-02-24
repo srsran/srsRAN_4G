@@ -81,9 +81,11 @@ bool dl_metric_rr::find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask)
 
 dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
 {
+  // Do not allocate a user multiple times in the same tti
   if (tti_alloc->is_dl_alloc(user)) {
     return nullptr;
   }
+  // Do not allocate a user to an inactive carrier
   auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
     return nullptr;
@@ -97,11 +99,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   uint32_t        req_bytes = user->get_pending_dl_new_data_total();
 
   // Schedule retx if we have space
-#if ASYNC_DL_SCHED
   if (h != nullptr) {
-#else
-  if (h && !h->is_empty()) {
-#endif
     // Try to reuse the same mask
     rbgmask_t retx_mask = h->get_rbgmask();
     code                = tti_alloc->alloc_dl_user(user, retx_mask, h->get_id());
@@ -127,12 +125,8 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   }
 
   // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID
-#if ASYNC_DL_SCHED
-  h = user->get_empty_dl_harq(cell_idx);
+  h = user->get_empty_dl_harq(tti_dl, cell_idx);
   if (h != nullptr) {
-#else
-  if (h && h->is_empty()) {
-#endif
     // Allocate resources based on pending data
     if (req_bytes > 0) {
       uint32_t  pending_prbs = user->get_required_prb_dl(cell_idx, req_bytes, tti_alloc->get_nof_ctrl_symbols());

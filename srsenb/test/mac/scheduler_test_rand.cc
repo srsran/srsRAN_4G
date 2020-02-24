@@ -164,7 +164,9 @@ void sched_tester::before_sched()
     d.has_ul_retx             = hul->has_pending_retx();
     d.has_ul_tx               = d.has_ul_retx or d.ul_pending_data > 0;
     srsenb::dl_harq_proc* hdl = user->get_pending_dl_harq(tti_info.tti_params.tti_tx_dl, CARRIER_IDX);
-    d.has_dl_tx = (hdl != nullptr) or (it.second.get_empty_dl_harq(CARRIER_IDX) != nullptr and d.dl_pending_data > 0);
+    d.has_dl_tx =
+        (hdl != nullptr) or
+        (it.second.get_empty_dl_harq(tti_info.tti_params.tti_tx_dl, CARRIER_IDX) != nullptr and d.dl_pending_data > 0);
     d.has_ul_newtx = not d.has_ul_retx and d.ul_pending_data > 0;
     tti_data.ue_data.insert(std::make_pair(rnti, d));
     tti_data.total_ues.dl_pending_data += d.dl_pending_data;
