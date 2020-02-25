@@ -328,7 +328,7 @@ void hss::gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, u
   m_hss_log->debug_hex(autn, 16, "User AUTN: ");
 
   // Set last RAND
-  memcpy(ue_ctx->last_rand, rand, 16);
+  ue_ctx->set_last_rand(rand);
   return;
 }
 
@@ -423,7 +423,7 @@ void hss::gen_auth_info_answer_xor(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_
   m_hss_log->debug_hex(autn, 8, "User AUTN: ");
 
   // Set last RAND
-  memcpy(ue_ctx->last_rand, rand, 16);
+  ue_ctx->set_last_rand(rand);
   return;
 }
 
@@ -468,28 +468,27 @@ bool hss::resync_sqn(uint64_t imsi, uint8_t* auts)
     return false;
   }
 
-  bool ret = false; //FIXME
   switch (ue_ctx->algo) {
     case HSS_ALGO_XOR:
-      ret = resync_sqn_xor(ue_ctx, auts);
+      resync_sqn_xor(ue_ctx, auts);
       break;
     case HSS_ALGO_MILENAGE:
-      ret = resync_sqn_milenage(ue_ctx, auts);
+      resync_sqn_milenage(ue_ctx, auts);
       break;
   }
 
   increment_seq_after_resync(ue_ctx);
-  return ret;
+  return true;
 }
 
-bool hss::resync_sqn_xor(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
+void hss::resync_sqn_xor(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
 {
   m_hss_log->error("XOR SQN synchronization not supported yet\n");
   m_hss_log->console("XOR SQNs synchronization not supported yet\n");
-  return false;
+  return;
 }
 
-bool hss::resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
+void hss::resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
 {
   // Get K, AMF, OPC and SQN
   uint8_t *k = ue_ctx->key;
@@ -503,7 +502,7 @@ bool hss::resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
   uint8_t mac_s[8];
   uint8_t sqn_ms_xor_ak[6];
 
-  get_last_rand(ue_ctx->imsi, last_rand);
+  ue_ctx->get_last_rand(last_rand);
 
   for (int i = 0; i < 6; i++) {
     sqn_ms_xor_ak[i] = auts[i];
@@ -538,8 +537,8 @@ bool hss::resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
   srslte::security_milenage_f1_star(k, opc, last_rand, sqn_ms, dummy_amf, mac_s_tmp);
   m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
 
-  set_sqn(ue_ctx->imsi, sqn_ms);
-  return true;
+  ue_ctx->set_sqn(sqn_ms);
+  return;
 }
 
 void hss::increment_ue_sqn(hss_ue_ctx_t* ue_ctx)
@@ -607,33 +606,6 @@ void hss::increment_seq_after_resync(hss_ue_ctx_t* ue_ctx)
     sqn[i] = (nextsqn >> (5 - i) * 8) & 0xFF;
   }
   return;
-}
-
-void hss::set_sqn(uint64_t imsi, uint8_t* sqn)
-{
-  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
-  if (ue_ctx == nullptr) {
-    return;
-  }
-  memcpy(ue_ctx->sqn, sqn, 6);
-}
-
-void hss::set_last_rand(uint64_t imsi, uint8_t* rand)
-{
-  hss_ue_ctx_t* ue_ctx  = get_ue_ctx(imsi);
-  if (ue_ctx == nullptr) {
-    return;
-  }
-  memcpy(ue_ctx->last_rand, rand, 16);
-}
-
-void hss::get_last_rand(uint64_t imsi, uint8_t* rand)
-{
-  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
-  if (ue_ctx == nullptr) {
-    return;
-  }
-  memcpy(rand, ue_ctx->last_rand, 16);
 }
 
 void hss::gen_rand(uint8_t rand_[16])

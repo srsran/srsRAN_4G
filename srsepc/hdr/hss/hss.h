@@ -53,6 +53,7 @@ typedef struct {
 enum hss_auth_algo { HSS_ALGO_XOR, HSS_ALGO_MILENAGE };
 
 typedef struct {
+  // Members
   std::string        name;
   uint64_t           imsi;
   enum hss_auth_algo algo;
@@ -65,6 +66,11 @@ typedef struct {
   uint16_t           qci;
   uint8_t            last_rand[16];
   std::string        static_ip_addr;
+
+  // Helper getters/setters
+  void set_sqn(uint8_t* sqn_);
+  void set_last_rand(uint8_t* rand_);
+  void get_last_rand(uint8_t* rand_);
 } hss_ue_ctx_t;
 
 class hss : public hss_interface_nas
@@ -95,8 +101,8 @@ private:
   void gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
   void gen_auth_info_answer_xor(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
 
-  bool resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
-  bool resync_sqn_xor(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
+  void resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
+  void resync_sqn_xor(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
 
   std::vector<std::string> split_string(const std::string& str, char delimiter);
   void                     get_uint_vec_from_hex_str(const std::string& key_str, uint8_t* key, uint len);
@@ -104,10 +110,6 @@ private:
   void increment_ue_sqn(hss_ue_ctx_t* ue_ctx);
   void increment_seq_after_resync(hss_ue_ctx_t* ue_ctx);
   void increment_sqn(uint8_t* sqn, uint8_t* next_sqn);
-  void set_sqn(uint64_t imsi, uint8_t* sqn);
-
-  void set_last_rand(uint64_t imsi, uint8_t* rand);
-  void get_last_rand(uint64_t imsi, uint8_t* rand);
 
   bool set_auth_algo(std::string auth_algo);
   bool read_db_file(std::string db_file);
@@ -127,5 +129,19 @@ private:
   std::map<std::string, uint64_t> m_ip_to_imsi;
 };
 
+inline void hss_ue_ctx_t::set_sqn(uint8_t* sqn_)
+{
+  memcpy(sqn, sqn_, 6);
+}
+
+inline void hss_ue_ctx_t::set_last_rand(uint8_t* last_rand_)
+{
+  memcpy(last_rand, last_rand_, 16);
+}
+
+inline void hss_ue_ctx_t::get_last_rand(uint8_t* last_rand_)
+{
+  memcpy(last_rand_, last_rand, 16);
+}
 } // namespace srsepc
 #endif // SRSEPC_HSS_H
