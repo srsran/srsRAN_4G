@@ -470,41 +470,39 @@ bool hss::resync_sqn(uint64_t imsi, uint8_t* auts)
   bool ret = false; //FIXME
   switch (ue_ctx->algo) {
     case HSS_ALGO_XOR:
-      ret = resync_sqn_xor(imsi, auts);
+      ret = resync_sqn_xor(ue_ctx, auts);
       break;
     case HSS_ALGO_MILENAGE:
-      ret = resync_sqn_milenage(imsi, auts);
+      ret = resync_sqn_milenage(ue_ctx, auts);
       break;
   }
 
-  increment_seq_after_resync(imsi);
+  increment_seq_after_resync(ue_ctx);
   return ret;
 }
 
-bool hss::resync_sqn_xor(uint64_t imsi, uint8_t* auts)
+bool hss::resync_sqn_xor(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
 {
   m_hss_log->error("XOR SQN synchronization not supported yet\n");
   m_hss_log->console("XOR SQNs synchronization not supported yet\n");
   return false;
 }
 
-bool hss::resync_sqn_milenage(uint64_t imsi, uint8_t* auts)
+bool hss::resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
 {
+  // Get K, AMF, OPC and SQN
+  uint8_t *k = ue_ctx->key;
+  uint8_t *amf = ue_ctx->amf;
+  uint8_t *opc = ue_ctx->opc;
+  uint8_t *sqn = ue_ctx->sqn;
+ 
+  // Temp variables
   uint8_t last_rand[16];
   uint8_t ak[6];
   uint8_t mac_s[8];
   uint8_t sqn_ms_xor_ak[6];
 
-  uint8_t k[16];
-  uint8_t amf[2];
-  uint8_t opc[16];
-  uint8_t sqn[6];
-
-  if (!get_k_amf_opc_sqn(imsi, k, amf, opc, sqn)) {
-    return false;
-  }
-
-  get_last_rand(imsi, last_rand);
+  get_last_rand(ue_ctx->imsi, last_rand);
 
   for (int i = 0; i < 6; i++) {
     sqn_ms_xor_ak[i] = auts[i];
@@ -542,7 +540,7 @@ bool hss::resync_sqn_milenage(uint64_t imsi, uint8_t* auts)
   srslte::security_milenage_f1_star(k, opc, last_rand, sqn_ms, amf, mac_s_tmp);
   m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
 
-  set_sqn(imsi, sqn_ms);
+  set_sqn(ue_ctx->imsi, sqn_ms);
   return true;
 }
 
@@ -583,14 +581,9 @@ void hss::increment_sqn(uint8_t* sqn, uint8_t* next_sqn)
   return;
 }
 
-void hss::increment_seq_after_resync(uint64_t imsi)
+void hss::increment_seq_after_resync(hss_ue_ctx_t* ue_ctx)
 {
   // This function only increment the SEQ part of the SQN for resynchronization purpose
-  hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
-  if (ue_ctx == nullptr) {
-    return;
-  }
-
   uint8_t* sqn = ue_ctx->sqn;
 
   uint64_t seq;
