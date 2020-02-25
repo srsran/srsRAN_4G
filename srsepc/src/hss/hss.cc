@@ -444,23 +444,6 @@ bool hss::gen_update_loc_answer(uint64_t imsi, uint8_t* qci)
   return true;
 }
 
-bool hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* opc, uint8_t* sqn)
-{
-  std::map<uint64_t, std::unique_ptr<hss_ue_ctx_t> >::iterator ue_ctx_it = m_imsi_to_ue_ctx.find(imsi);
-  if (ue_ctx_it == m_imsi_to_ue_ctx.end()) {
-    m_hss_log->info("User not found. IMSI: %015" PRIu64 "\n", imsi);
-    m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
-    return false;
-  }
-  const std::unique_ptr<hss_ue_ctx_t>& ue_ctx = ue_ctx_it->second;
-  m_hss_log->info("Found User %015" PRIu64 "\n", imsi);
-  memcpy(k, ue_ctx->key, 16);
-  memcpy(amf, ue_ctx->amf, 2);
-  memcpy(opc, ue_ctx->opc, 16);
-  memcpy(sqn, ue_ctx->sqn, 6);
-  return true;
-}
-
 bool hss::resync_sqn(uint64_t imsi, uint8_t* auts)
 {
   m_hss_log->debug("Re-syncing SQN\n");

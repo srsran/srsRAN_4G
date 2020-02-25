@@ -96,7 +96,6 @@ private:
   std::map<uint64_t, std::unique_ptr<hss_ue_ctx_t> > m_imsi_to_ue_ctx;
 
   void gen_rand(uint8_t rand_[16]);
-  bool get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* opc, uint8_t* sqn);
 
   void
        gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
