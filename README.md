@@ -112,17 +112,6 @@ Build Instructions
     * lksctp:            http://lksctp.sourceforge.net/
     * config:            http://www.hyperrealm.com/libconfig/
 
-For example, on Ubuntu 17.04, one can install the required libraries with:
-```
-sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
-```
-or on Fedora:
-```
-dnf install cmake fftw3-devel polarssl-devel lksctp-tools-devel libconfig-devel boost-devel
-```
-
-Note that depending on your flavor and version of Linux, the actual package names may be different.
-
 * Optional requirements: 
   * srsgui:              https://github.com/srslte/srsgui - for real-time plotting.
   * libpcsclite-dev:     https://pcsclite.apdu.fr/ - for accessing smart card readers
@@ -132,6 +121,23 @@ Note that depending on your flavor and version of Linux, the actual package name
   * SoapySDR:            https://github.com/pothosware/SoapySDR
   * BladeRF:             https://github.com/Nuand/bladeRF
   * ZeroMQ:              https://github.com/zeromq
+
+For example, on Ubuntu 17.04, one can install the required tools and libraries with:
+```
+sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
+```
+or on Fedora:
+```
+# mandatory
+dnf install git g++ make cmake fftw3-devel mbedtls-devel lksctp-tools-devel libconfig-devel boost-devel
+# optional
+dnf install pcsc-lite-devel
+dnf install uhd-devel
+dnf install SoapySDR-devel
+dnf install zeromq-devel
+```
+
+Note that depending on your flavor and version of Linux, the actual package names may be different.
 
 Download and build srsLTE: 
 ```
