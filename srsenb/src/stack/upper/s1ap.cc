@@ -986,8 +986,8 @@ bool s1ap::ue::send_initial_ctxt_setup_failure()
   tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
   auto& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_request().protocol_ies;
 
-  container.enb_ue_s1ap_id.value                  = ctxt.mme_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value                  = ctxt.enb_ue_s1ap_id;
+  container.enb_ue_s1ap_id.value                  = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value                  = ctxt.mme_ue_s1ap_id;
   container.cause.value.set_radio_network().value = cause_radio_network_opts::unspecified;
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "InitialContextSetupFailure");
@@ -1003,8 +1003,8 @@ bool s1ap::ue::send_uectxtmodifyresp()
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_MOD);
   auto& container = tx_pdu.successful_outcome().value.ue_context_mod_request().protocol_ies;
 
-  container.enb_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationResponse");
 }
@@ -1019,8 +1019,8 @@ bool s1ap::ue::send_uectxtmodifyfailure(const cause_c& cause)
   tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_MOD);
   auto& container = tx_pdu.unsuccessful_outcome().value.ue_context_mod_request().protocol_ies;
 
-  container.enb_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
-  container.mme_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
+  container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
   container.cause.value          = cause;
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UEContextModificationFailure");
@@ -1102,7 +1102,7 @@ bool s1ap::send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_statu
 
 s1ap::ue* s1ap::user_list::find_ue_rnti(uint16_t rnti)
 {
-  if (rnti == ue_ctxt_t::invalid_rnti) {
+  if (rnti == SRSLTE_INVALID_RNTI) {
     return nullptr;
   }
   auto it = std::find_if(
@@ -1118,11 +1118,8 @@ s1ap::ue* s1ap::user_list::find_ue_enbid(uint32_t enbid)
 
 s1ap::ue* s1ap::user_list::find_ue_mmeid(uint32_t mmeid)
 {
-  if (mmeid == ue_ctxt_t::invalid_id) {
-    return nullptr;
-  }
   auto it = std::find_if(users.begin(), users.end(), [mmeid](const user_list::pair_type& v) {
-    return v.second->ctxt.mme_ue_s1ap_id == mmeid;
+    return v.second->ctxt.mme_ue_s1ap_id_present and v.second->ctxt.mme_ue_s1ap_id == mmeid;
   });
   return it != users.end() ? it->second.get() : nullptr;
 }
@@ -1219,10 +1216,11 @@ s1ap::ue* s1ap::find_s1apmsg_user(uint32_t enb_id, uint32_t mme_id)
     s1ap_log->warning("enb_ue_s1ap_id=%d not found - discarding message\n", enb_id);
     return nullptr;
   }
-  if (user_ptr->ctxt.mme_ue_s1ap_id != ue_ctxt_t::invalid_id and user_ptr->ctxt.mme_ue_s1ap_id != mme_id) {
+  if (user_ptr->ctxt.mme_ue_s1ap_id_present and user_ptr->ctxt.mme_ue_s1ap_id != mme_id) {
     s1ap_log->warning("MME_UE_S1AP_ID has changed - old:%d, new:%d\n", user_ptr->ctxt.mme_ue_s1ap_id, mme_id);
   }
-  user_ptr->ctxt.mme_ue_s1ap_id = mme_id;
+  user_ptr->ctxt.mme_ue_s1ap_id_present = true;
+  user_ptr->ctxt.mme_ue_s1ap_id         = mme_id;
   return user_ptr;
 }
 

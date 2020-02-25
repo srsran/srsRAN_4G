@@ -39,12 +39,13 @@
 namespace srsenb {
 
 struct ue_ctxt_t {
-  static const uint16_t invalid_rnti   = 0;
-  static const uint32_t invalid_id     = std::numeric_limits<uint32_t>::max();
-  uint16_t              rnti           = invalid_rnti;
-  uint32_t              enb_ue_s1ap_id = invalid_id;
-  uint32_t              mme_ue_s1ap_id = invalid_id;
-  struct timeval        init_timestamp = {};
+  static const uint32_t invalid_enb_id = std::numeric_limits<uint32_t>::max();
+
+  bool           mme_ue_s1ap_id_present = false;
+  uint16_t       rnti                   = SRSLTE_INVALID_RNTI;
+  uint32_t       enb_ue_s1ap_id         = invalid_enb_id;
+  uint32_t       mme_ue_s1ap_id         = 0;
+  struct timeval init_timestamp         = {};
 };
 
 class s1ap : public s1ap_interface_rrc
