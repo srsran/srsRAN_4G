@@ -257,6 +257,7 @@ bool hss::write_db_file(std::string db_filename)
 bool hss::gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres)
 {
 
+  m_hss_log->debug("Generating AUTH info answer\n");
   hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
   if (ue_ctx == nullptr) {
     m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
@@ -459,7 +460,7 @@ bool hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* op
 
 bool hss::resync_sqn(uint64_t imsi, uint8_t* auts)
 {
-
+  m_hss_log->debug("Re-syncing SQN\n");
   hss_ue_ctx_t* ue_ctx = get_ue_ctx(imsi);
   if (ue_ctx == nullptr) {
     m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
@@ -514,6 +515,7 @@ bool hss::resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
 
   m_hss_log->debug_hex(k, 16, "User Key : ");
   m_hss_log->debug_hex(opc, 16, "User OPc : ");
+  m_hss_log->debug_hex(amf, 2, "User AMF : ");
   m_hss_log->debug_hex(last_rand, 16, "User Last Rand : ");
   m_hss_log->debug_hex(auts, 16, "AUTS : ");
   m_hss_log->debug_hex(sqn_ms_xor_ak, 6, "SQN xor AK : ");
@@ -529,15 +531,11 @@ bool hss::resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
   m_hss_log->debug_hex(sqn_ms, 6, "SQN MS : ");
   m_hss_log->debug_hex(sqn, 6, "SQN HE : ");
 
-  m_hss_log->debug_hex(amf, 2, "AMF : ");
-
   uint8_t mac_s_tmp[8];
 
-  for (int i = 0; i < 2; i++) {
-    amf[i] = 0;
-  }
+  uint8_t dummy_amf[2] = {};
 
-  srslte::security_milenage_f1_star(k, opc, last_rand, sqn_ms, amf, mac_s_tmp);
+  srslte::security_milenage_f1_star(k, opc, last_rand, sqn_ms, dummy_amf, mac_s_tmp);
   m_hss_log->debug_hex(mac_s_tmp, 8, "MAC calc : ");
 
   set_sqn(ue_ctx->imsi, sqn_ms);
