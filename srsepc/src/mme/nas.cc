@@ -798,7 +798,7 @@ bool nas::handle_tracking_area_update_request(uint32_t                m_tmsi,
   nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
   nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
-  srslte::byte_buffer_t* nas_tx    = pool->allocate();
+  srslte::byte_buffer_t* nas_tx = pool->allocate();
   nas_tmp.pack_tracking_area_update_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
   s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx, *enb_sri);
   pool->deallocate(nas_tx);
@@ -1584,8 +1584,8 @@ bool nas::pack_tracking_area_update_reject(srslte::byte_buffer_t* nas_buffer, ui
     m_nas_log->error("Tracking Area Update Reject EMM Cause set to \"CONGESTION\", but back-off timer not set.\n");
   }
 
-  LIBLTE_ERROR_ENUM err = liblte_mme_pack_tracking_area_update_reject_msg(&tau_rej, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, 0,
-                                                                         (LIBLTE_BYTE_MSG_STRUCT*)nas_buffer);
+  LIBLTE_ERROR_ENUM err = liblte_mme_pack_tracking_area_update_reject_msg(
+      &tau_rej, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, 0, (LIBLTE_BYTE_MSG_STRUCT*)nas_buffer);
   if (err != LIBLTE_SUCCESS) {
     m_nas_log->error("Error packing Tracking Area Update Reject\n");
     m_nas_log->console("Error packing Tracking Area Update Reject\n");

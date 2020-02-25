@@ -277,13 +277,17 @@ bool hss::gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, ui
   return true;
 }
 
-void hss::gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres)
+void hss::gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx,
+                                        uint8_t*      k_asme,
+                                        uint8_t*      autn,
+                                        uint8_t*      rand,
+                                        uint8_t*      xres)
 {
   // Get K, AMF, OPC and SQN
-  uint8_t *k = ue_ctx->key;
-  uint8_t *amf = ue_ctx->amf;
-  uint8_t *opc = ue_ctx->opc;
-  uint8_t *sqn = ue_ctx->sqn;
+  uint8_t* k   = ue_ctx->key;
+  uint8_t* amf = ue_ctx->amf;
+  uint8_t* opc = ue_ctx->opc;
+  uint8_t* sqn = ue_ctx->sqn;
 
   // Temp variables
   uint8_t xdout[16];
@@ -335,10 +339,10 @@ void hss::gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, u
 void hss::gen_auth_info_answer_xor(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres)
 {
   // Get K, AMF, OPC and SQN
-  uint8_t *k = ue_ctx->key;
-  uint8_t *amf = ue_ctx->amf;
-  uint8_t *opc = ue_ctx->opc;
-  uint8_t *sqn = ue_ctx->sqn;
+  uint8_t* k   = ue_ctx->key;
+  uint8_t* amf = ue_ctx->amf;
+  uint8_t* opc = ue_ctx->opc;
+  uint8_t* sqn = ue_ctx->sqn;
 
   // Temp variables
   uint8_t xdout[16];
@@ -491,11 +495,11 @@ void hss::resync_sqn_xor(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
 void hss::resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts)
 {
   // Get K, AMF, OPC and SQN
-  uint8_t *k = ue_ctx->key;
-  uint8_t *amf = ue_ctx->amf;
-  uint8_t *opc = ue_ctx->opc;
-  uint8_t *sqn = ue_ctx->sqn;
- 
+  uint8_t* k   = ue_ctx->key;
+  uint8_t* amf = ue_ctx->amf;
+  uint8_t* opc = ue_ctx->opc;
+  uint8_t* sqn = ue_ctx->sqn;
+
   // Temp variables
   uint8_t last_rand[16];
   uint8_t ak[6];

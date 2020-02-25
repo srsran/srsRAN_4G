@@ -98,7 +98,8 @@ private:
   void gen_rand(uint8_t rand_[16]);
   bool get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* opc, uint8_t* sqn);
 
-  void gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
+  void
+       gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
   void gen_auth_info_answer_xor(hss_ue_ctx_t* ue_ctx, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
 
   void resync_sqn_milenage(hss_ue_ctx_t* ue_ctx, uint8_t* auts);
@@ -111,9 +112,9 @@ private:
   void increment_seq_after_resync(hss_ue_ctx_t* ue_ctx);
   void increment_sqn(uint8_t* sqn, uint8_t* next_sqn);
 
-  bool set_auth_algo(std::string auth_algo);
-  bool read_db_file(std::string db_file);
-  bool write_db_file(std::string db_file);
+  bool          set_auth_algo(std::string auth_algo);
+  bool          read_db_file(std::string db_file);
+  bool          write_db_file(std::string db_file);
   hss_ue_ctx_t* get_ue_ctx(uint64_t imsi);
 
   std::string hex_string(uint8_t* hex, int size);
