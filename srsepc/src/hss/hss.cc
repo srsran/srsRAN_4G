@@ -290,7 +290,6 @@ void hss::gen_auth_info_answer_milenage(hss_ue_ctx_t* ue_ctx,
   uint8_t* sqn = ue_ctx->sqn;
 
   // Temp variables
-  uint8_t xdout[16];
   uint8_t ck[16];
   uint8_t ik[16];
   uint8_t ak[6];
