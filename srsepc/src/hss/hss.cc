@@ -168,7 +168,7 @@ bool hss::read_db_file(std::string db_filename)
           return false;
         }
       }
-      m_imsi_to_ue_ctx.insert(std::pair<uint64_t, std::unique_ptr<hss_ue_ctx_t> >(ue_ctx->imsi, std::move(ue_ctx)));
+      m_imsi_to_ue_ctx.insert(std::make_pair(ue_ctx->imsi, std::move(ue_ctx)));
     }
   }
 

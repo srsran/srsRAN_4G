@@ -68,8 +68,8 @@ typedef struct {
   std::string        static_ip_addr;
 
   // Helper getters/setters
-  void set_sqn(uint8_t* sqn_);
-  void set_last_rand(uint8_t* rand_);
+  void set_sqn(const uint8_t* sqn_);
+  void set_last_rand(const uint8_t* rand_);
   void get_last_rand(uint8_t* rand_);
 } hss_ue_ctx_t;
 
@@ -129,12 +129,12 @@ private:
   std::map<std::string, uint64_t> m_ip_to_imsi;
 };
 
-inline void hss_ue_ctx_t::set_sqn(uint8_t* sqn_)
+inline void hss_ue_ctx_t::set_sqn(const uint8_t* sqn_)
 {
   memcpy(sqn, sqn_, 6);
 }
 
-inline void hss_ue_ctx_t::set_last_rand(uint8_t* last_rand_)
+inline void hss_ue_ctx_t::set_last_rand(const uint8_t* last_rand_)
 {
   memcpy(last_rand, last_rand_, 16);
 }
