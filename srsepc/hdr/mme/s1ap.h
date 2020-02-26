@@ -30,7 +30,7 @@
 #include "srsepc/hdr/hss/hss.h"
 #include "srslte/asn1/gtpc.h"
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/s1ap_pcap.h"
@@ -48,6 +48,8 @@ namespace srsepc {
 
 const uint16_t S1MME_PORT = 36412;
 
+using s1ap_pdu_t = asn1::s1ap::s1ap_pdu_c;
+
 class s1ap : public s1ap_interface_nas, public s1ap_interface_gtpc, public s1ap_interface_mme
 {
 public:
@@ -62,10 +64,10 @@ public:
 
   void delete_enb_ctx(int32_t assoc_id);
 
-  bool s1ap_tx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri);
-  bool handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri);
-  bool handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* msg, struct sctp_sndrcvinfo* enb_sri);
-  bool handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* msg);
+  bool s1ap_tx_pdu(const s1ap_pdu_t& pdu, struct sctp_sndrcvinfo* enb_sri);
+  void handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri);
+  void handle_initiating_message(const asn1::s1ap::init_msg_s& msg, struct sctp_sndrcvinfo* enb_sri);
+  void handle_successful_outcome(const asn1::s1ap::successful_outcome_s& msg);
 
   void activate_eps_bearer(uint64_t imsi, uint8_t ebi);
 

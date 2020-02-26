@@ -648,7 +648,9 @@ public:
            std::string                                                    log_level,
            uint16_t                                                       rnti_,
            const srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t& phy_rrc_cfg_) :
-    radio(_radio), log_h("UE PHY", nullptr, true), phy_rrc_cfg(phy_rrc_cfg_)
+    radio(_radio),
+    log_h("UE PHY", nullptr, true),
+    phy_rrc_cfg(phy_rrc_cfg_)
   {
     // Calculate subframe length
     sf_len = static_cast<uint32_t>(SRSLTE_SF_LEN_PRB(cell_list[0].cell.nof_prb));

@@ -21,7 +21,6 @@
 
 #include "srslte/srslte.h"
 
-#include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/common.h"

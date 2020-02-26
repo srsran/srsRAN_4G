@@ -22,7 +22,7 @@
 #define SRSEPC_S1AP_MNGMT_PROC_H
 
 #include "s1ap_common.h"
-#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log_filter.h"
 
@@ -39,15 +39,12 @@ public:
   static void             cleanup(void);
   void                    init(void);
 
-  bool handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT* msg,
-                               sctp_sndrcvinfo*                           enb_sri,
-                               srslte::byte_buffer_t*                     reply_buffer,
-                               bool*                                      reply_flag);
+  bool handle_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg, sctp_sndrcvinfo* enb_sri);
 
   // Packing/unpacking helper functions
-  bool unpack_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT* msg, enb_ctx_t* enb_ctx);
-  bool pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_ENUM cause, srslte::byte_buffer_t* msg);
-  bool pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buffer_t* msg);
+  bool unpack_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg, enb_ctx_t* enb_ctx);
+  bool send_s1_setup_failure(asn1::s1ap::cause_misc_opts::options cause, struct sctp_sndrcvinfo* enb_sri);
+  bool send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_sndrcvinfo* enb_sri);
 
 private:
   s1ap_mngmt_proc();

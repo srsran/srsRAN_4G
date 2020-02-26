@@ -66,13 +66,13 @@ void s1ap_mngmt_proc::init(void)
   m_s1ap_args = m_s1ap->m_s1ap_args;
 }
 
-bool s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT* msg,
-                                              struct sctp_sndrcvinfo*                    enb_sri,
-                                              srslte::byte_buffer_t*                     reply_buffer,
-                                              bool*                                      reply_flag)
+bool s1ap_mngmt_proc::handle_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg,
+                                              struct sctp_sndrcvinfo*               enb_sri)
 {
-  enb_ctx_t                   enb_ctx;
-  LIBLTE_S1AP_S1AP_PDU_STRUCT reply_pdu;
+  m_s1ap_log->console("Received S1 Setup Request.\n");
+  m_s1ap_log->info("Received S1 Setup Request.\n");
+
+  enb_ctx_t enb_ctx = {};
 
   if (!unpack_s1_setup_request(msg, &enb_ctx)) {
     m_s1ap_log->error("Malformed S1 Setup Request\n");
@@ -81,19 +81,19 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST
 
   // Store SCTP sendrecv info
   memcpy(&enb_ctx.sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
+  m_s1ap_log->debug("eNB SCTP association Id: %d\n", enb_sri->sinfo_assoc_id);
 
   // Log S1 Setup Request Info
-  m_s1ap_log->console("Received S1 Setup Request.\n");
   m_s1ap->print_enb_ctx_info(std::string("S1 Setup Request"), enb_ctx);
 
   // Check matching PLMNs
   if (enb_ctx.plmn != m_s1ap->get_plmn()) {
     m_s1ap_log->console("Sending S1 Setup Failure - Unknown PLMN\n");
     m_s1ap_log->warning("Sending S1 Setup Failure - Unknown PLMN\n");
-    pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_UNKNOWN_PLMN, reply_buffer);
+    send_s1_setup_failure(asn1::s1ap::cause_misc_opts::unknown_plmn, enb_sri);
   } else {
     enb_ctx_t* enb_ptr = m_s1ap->find_enb_ctx(enb_ctx.enb_id);
-    if (enb_ptr != NULL) {
+    if (enb_ptr != nullptr) {
       // eNB already registered
       // TODO replace enb_ctx
       m_s1ap_log->warning("eNB Already registered\n");
@@ -102,19 +102,17 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST
       m_s1ap->add_new_enb_ctx(enb_ctx, enb_sri);
     }
 
-    pack_s1_setup_response(m_s1ap_args, reply_buffer);
+    send_s1_setup_response(m_s1ap_args, enb_sri);
     m_s1ap_log->console("Sending S1 Setup Response\n");
     m_s1ap_log->info("Sending S1 Setup Response\n");
   }
-
-  *reply_flag = true;
   return true;
 }
 
 /*
  * Packing/Unpacking helper functions.
  */
-bool s1ap_mngmt_proc::unpack_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST_STRUCT* msg, enb_ctx_t* enb_ctx)
+bool s1ap_mngmt_proc::unpack_s1_setup_request(const asn1::s1ap::s1_setup_request_s& msg, enb_ctx_t* enb_ctx)
 {
 
   uint8_t  enb_id_bits[32];
@@ -122,128 +120,105 @@ bool s1ap_mngmt_proc::unpack_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST
   uint16_t tac, bplmn;
 
   uint32_t tmp32 = 0;
+
+  const asn1::s1ap::s1_setup_request_ies_container& s1_req = msg.protocol_ies;
+
   // eNB Name
-  enb_ctx->enb_name_present = msg->eNBname_present;
-  if (msg->eNBname_present) {
-    bzero(enb_ctx->enb_name, sizeof(enb_ctx->enb_name));
-    memcpy(enb_ctx->enb_name, &msg->eNBname.buffer, msg->eNBname.n_octets);
+  enb_ctx->enb_name_present = s1_req.enbname_present;
+  if (s1_req.enbname_present) {
+    enb_ctx->enb_name = s1_req.enbname.value.to_string();
   }
+
   // eNB Id
-  bzero(enb_id_bits, sizeof(enb_id_bits));
-  memcpy(&enb_id_bits[32 - LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN],
-         msg->Global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer,
-         LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
-  liblte_pack(enb_id_bits, 32, (uint8_t*)&tmp32);
-  enb_ctx->enb_id = ntohl(tmp32);
+  enb_ctx->enb_id = s1_req.global_enb_id.value.enb_id.macro_enb_id().to_number();
 
   // PLMN Id
-  ((uint8_t*)&plmn)[1] = msg->Global_ENB_ID.pLMNidentity.buffer[0];
-  ((uint8_t*)&plmn)[2] = msg->Global_ENB_ID.pLMNidentity.buffer[1];
-  ((uint8_t*)&plmn)[3] = msg->Global_ENB_ID.pLMNidentity.buffer[2];
+  ((uint8_t*)&plmn)[1] = s1_req.global_enb_id.value.plm_nid[0];
+  ((uint8_t*)&plmn)[2] = s1_req.global_enb_id.value.plm_nid[1];
+  ((uint8_t*)&plmn)[3] = s1_req.global_enb_id.value.plm_nid[2];
 
   enb_ctx->plmn = ntohl(plmn);
   srslte::s1ap_plmn_to_mccmnc(enb_ctx->plmn, &enb_ctx->mcc, &enb_ctx->mnc);
 
   // SupportedTAs
-  enb_ctx->nof_supported_ta = msg->SupportedTAs.len;
-  for (uint16_t i = 0; i < msg->SupportedTAs.len; i++) {
+  enb_ctx->nof_supported_ta = s1_req.supported_tas.value.size();
+  for (uint16_t i = 0; i < enb_ctx->nof_supported_ta; i++) {
+    const asn1::s1ap::supported_tas_item_s& tas = s1_req.supported_tas.value[i];
     // TAC
-    ((uint8_t*)&enb_ctx->tac[i])[0]  = msg->SupportedTAs.buffer[i].tAC.buffer[0];
-    ((uint8_t*)&enb_ctx->tac[i])[1]  = msg->SupportedTAs.buffer[i].tAC.buffer[1];
+    ((uint8_t*)&enb_ctx->tac[i])[0]  = tas.tac[0];
+    ((uint8_t*)&enb_ctx->tac[i])[1]  = tas.tac[1];
     enb_ctx->tac[i]                  = ntohs(enb_ctx->tac[i]);
-    enb_ctx->nof_supported_bplmns[i] = msg->SupportedTAs.buffer[i].broadcastPLMNs.len;
-    for (uint16_t j = 0; j < msg->SupportedTAs.buffer[i].broadcastPLMNs.len; j++) {
+    enb_ctx->nof_supported_bplmns[i] = tas.broadcast_plmns.size();
+    for (uint16_t j = 0; j < tas.broadcast_plmns.size(); j++) {
       // BPLMNs
-      ((uint8_t*)&enb_ctx->bplmns[i][j])[1] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[0];
-      ((uint8_t*)&enb_ctx->bplmns[i][j])[2] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[1];
-      ((uint8_t*)&enb_ctx->bplmns[i][j])[3] = msg->SupportedTAs.buffer[i].broadcastPLMNs.buffer[j].buffer[2];
+      ((uint8_t*)&enb_ctx->bplmns[i][j])[1] = tas.broadcast_plmns[j][0];
+      ((uint8_t*)&enb_ctx->bplmns[i][j])[2] = tas.broadcast_plmns[j][1];
+      ((uint8_t*)&enb_ctx->bplmns[i][j])[3] = tas.broadcast_plmns[j][2];
 
       enb_ctx->bplmns[i][j] = ntohl(enb_ctx->bplmns[i][j]);
     }
   }
 
   // Default Paging DRX
-  enb_ctx->drx = msg->DefaultPagingDRX.e;
+  enb_ctx->drx = s1_req.default_paging_drx.value;
 
   return true;
 }
 
-bool s1ap_mngmt_proc::pack_s1_setup_failure(LIBLTE_S1AP_CAUSEMISC_ENUM cause, srslte::byte_buffer_t* msg)
+bool s1ap_mngmt_proc::send_s1_setup_failure(asn1::s1ap::cause_misc_opts::options cause, struct sctp_sndrcvinfo* enb_sri)
 {
-  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
-  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+  s1ap_pdu_t tx_pdu;
+  tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_S1_SETUP);
 
-  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME;
+  asn1::s1ap::s1_setup_fail_ies_container& s1_fail = tx_pdu.unsuccessful_outcome().value.s1_setup_fail().protocol_ies;
 
-  LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT* unsucc = &pdu.choice.unsuccessfulOutcome;
-  unsucc->procedureCode                          = LIBLTE_S1AP_PROC_ID_S1SETUP;
-  unsucc->criticality                            = LIBLTE_S1AP_CRITICALITY_REJECT;
-  unsucc->choice_type                            = LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_S1SETUPFAILURE;
+  s1_fail.cause.value.set(asn1::s1ap::cause_c::types_opts::misc);
+  s1_fail.cause.value.misc().value = cause;
 
-  LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT* s1_fail = (LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT*)&unsucc->choice;
-
-  s1_fail->TimeToWait_present             = false;
-  s1_fail->CriticalityDiagnostics_present = false;
-  s1_fail->Cause.ext                      = false;
-  s1_fail->Cause.choice_type              = LIBLTE_S1AP_CAUSE_CHOICE_MISC;
-  s1_fail->Cause.choice.misc.ext          = false;
-  s1_fail->Cause.choice.misc.e            = cause;
-
-  liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)msg);
+  m_s1ap->s1ap_tx_pdu(tx_pdu, enb_sri);
   return true;
 }
 
-bool s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte_buffer_t* msg)
+bool s1ap_mngmt_proc::send_s1_setup_response(s1ap_args_t s1ap_args, struct sctp_sndrcvinfo* enb_sri)
 {
+  m_s1ap_log->debug("Sending S1 Setup Response\n");
 
-  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
-  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
+  s1ap_pdu_t tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_S1_SETUP);
 
-  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
-
-  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* succ = &pdu.choice.successfulOutcome;
-  succ->procedureCode                        = LIBLTE_S1AP_PROC_ID_S1SETUP;
-  succ->criticality                          = LIBLTE_S1AP_CRITICALITY_IGNORE;
-  succ->choice_type                          = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE;
-
-  LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* s1_resp = (LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT*)&succ->choice;
-
-  s1_resp->ext = false;
+  asn1::s1ap::s1_setup_resp_ies_container& s1_resp = tx_pdu.successful_outcome().value.s1_setup_resp().protocol_ies;
 
   // MME Name
-  s1_resp->MMEname_present  = true;
-  s1_resp->MMEname.ext      = false;
-  s1_resp->MMEname.n_octets = s1ap_args.mme_name.length();
-  memcpy(s1_resp->MMEname.buffer, s1ap_args.mme_name.c_str(), s1ap_args.mme_name.length());
+  s1_resp.mm_ename_present = true;
+  s1_resp.mm_ename.value.from_string(s1ap_args.mme_name);
 
   // Served GUMEIs
-  s1_resp->ServedGUMMEIs.len                        = 1; // TODO Only one served GUMMEI supported
-  LIBLTE_S1AP_SERVEDGUMMEISITEM_STRUCT* serv_gummei = &s1_resp->ServedGUMMEIs.buffer[0];
-
-  serv_gummei->ext                   = false;
-  serv_gummei->iE_Extensions_present = false;
+  s1_resp.served_gummeis.value.resize(1); // TODO Only one served GUMMEI supported
 
   uint32_t plmn = 0;
   srslte::s1ap_mccmnc_to_plmn(s1ap_args.mcc, s1ap_args.mnc, &plmn);
-  plmn                                         = htonl(plmn);
-  serv_gummei->servedPLMNs.len                 = 1; // Only one PLMN supported
-  serv_gummei->servedPLMNs.buffer[0].buffer[0] = ((uint8_t*)&plmn)[1];
-  serv_gummei->servedPLMNs.buffer[0].buffer[1] = ((uint8_t*)&plmn)[2];
-  serv_gummei->servedPLMNs.buffer[0].buffer[2] = ((uint8_t*)&plmn)[3];
+  plmn = htonl(plmn);
 
-  serv_gummei->servedGroupIDs.len                 = 1; // LIBLTE_S1AP_SERVEDGROUPIDS_STRUCT
-  uint16_t tmp                                    = htons(s1ap_args.mme_group);
-  serv_gummei->servedGroupIDs.buffer[0].buffer[0] = ((uint8_t*)&tmp)[0];
-  serv_gummei->servedGroupIDs.buffer[0].buffer[1] = ((uint8_t*)&tmp)[1];
+  asn1::s1ap::served_gummeis_item_s& serv_gummei = s1_resp.served_gummeis.value[0];
 
-  serv_gummei->servedMMECs.len                 = 1; // Only one MMEC served
-  serv_gummei->servedMMECs.buffer[0].buffer[0] = s1ap_args.mme_code;
+  serv_gummei.served_plmns.resize(1);
+  serv_gummei.served_plmns[0][0] = ((uint8_t*)&plmn)[1];
+  serv_gummei.served_plmns[0][1] = ((uint8_t*)&plmn)[2];
+  serv_gummei.served_plmns[0][2] = ((uint8_t*)&plmn)[3];
 
-  s1_resp->RelativeMMECapacity.RelativeMMECapacity = 255;
-  s1_resp->MMERelaySupportIndicator_present        = false;
-  s1_resp->CriticalityDiagnostics_present          = false;
+  serv_gummei.served_group_ids.resize(1);
+  serv_gummei.served_group_ids[0].from_number(htons(s1ap_args.mme_group));
 
-  liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)msg);
+  serv_gummei.served_mmecs.resize(1); // Only one MMEC served
+  serv_gummei.served_mmecs[0].from_number(s1ap_args.mme_code);
+
+  s1_resp.relative_mme_capacity.value = 255;
+
+  if (!m_s1ap->s1ap_tx_pdu(tx_pdu, enb_sri)) {
+    m_s1ap_log->error("Error sending S1 Setup Response.\n");
+  } else {
+    m_s1ap_log->debug("S1 Setup Response sent\n");
+  }
   return true;
 }
 

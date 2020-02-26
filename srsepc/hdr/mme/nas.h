@@ -24,7 +24,6 @@
 
 #include "srslte/asn1/gtpc_ies.h"
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/epc_interfaces.h"

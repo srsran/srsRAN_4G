@@ -74,14 +74,9 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
   m_s1ap_log->info("Preparing to Page UE -- IMSI %015" PRIu64 "\n", imsi);
 
   // Prepare reply PDU
-  LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;
-  bzero(&pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-  pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* init = &pdu.choice.initiatingMessage;
-  init->procedureCode                        = LIBLTE_S1AP_PROC_ID_PAGING;
-  init->choice_type                          = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_PAGING;
-  LIBLTE_S1AP_MESSAGE_PAGING_STRUCT* paging  = &init->choice.Paging;
+  s1ap_pdu_t tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_PAGING);
+  asn1::s1ap::paging_ies_container& paging = tx_pdu.init_msg().value.paging().protocol_ies;
 
   // Getting UE NAS Context
   nas* nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
@@ -91,42 +86,26 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
   }
 
   // UE Identity Index
-  uint16_t ue_index = imsi % 1024; // LIBLTE_S1AP_UEIDENTITYINDEXVALUE_BIT_STRING_LEN == 10
-  uint8_t* tmp_ptr  = paging->UEIdentityIndexValue.buffer;
-  liblte_value_2_bits(ue_index, &tmp_ptr, 10);
+  uint16_t ue_index = imsi % 1024;
+  paging.ue_id_idx_value.value.from_number(ue_index);
 
   // UE Paging Id
-  paging->UEPagingID.choice_type                  = LIBLTE_S1AP_UEPAGINGID_CHOICE_S_TMSI;
-  paging->UEPagingID.choice.s_TMSI.ext            = false;
-  paging->UEPagingID.choice.s_TMSI.mMEC.buffer[0] = m_s1ap->m_s1ap_args.mme_code;
-  uint32_t m_tmsi                                 = nas_ctx->m_sec_ctx.guti.m_tmsi;
-  srslte::uint32_to_uint8(m_tmsi, paging->UEPagingID.choice.s_TMSI.m_TMSI.buffer);
-  paging->UEPagingID.choice.s_TMSI.iE_Extensions_present = false;
-
-  // Paging DRX
-  paging->pagingDRX_present = false;
+  paging.ue_paging_id.value.set_s_tmsi();
+  paging.ue_paging_id.value.s_tmsi().mmec.from_number(m_s1ap->m_s1ap_args.mme_code);
+  paging.ue_paging_id.value.s_tmsi().m_tmsi.from_number(nas_ctx->m_sec_ctx.guti.m_tmsi);
 
   // CMDomain
-  paging->CNDomain = LIBLTE_S1AP_CNDOMAIN_PS;
+  paging.cn_domain.value = asn1::s1ap::cn_domain_opts::ps;
 
   // TAI List
-  paging->TAIList.len               = 1;
-  paging->TAIList.buffer[0].ext     = false;
-  paging->TAIList.buffer[0].tAI.ext = false;
-  uint32_t plmn                     = htonl(m_s1ap->get_plmn()); // LIBLTE_S1AP_TBCD_STRING_OCTET_STRING_LEN == 3
-  paging->TAIList.buffer[0].tAI.pLMNidentity.buffer[0] = ((uint8_t*)&plmn)[1];
-  paging->TAIList.buffer[0].tAI.pLMNidentity.buffer[1] = ((uint8_t*)&plmn)[2];
-  paging->TAIList.buffer[0].tAI.pLMNidentity.buffer[2] = ((uint8_t*)&plmn)[3];
-  uint16_t tac = htons(m_s1ap->m_s1ap_args.tac); // LIBLTE_S1AP_TAC_OCTET_STRING_LEN == 2
-  memcpy(paging->TAIList.buffer[0].tAI.tAC.buffer, &tac, sizeof(uint16_t));
-  paging->TAIList.buffer[0].tAI.iE_Extensions_present = false;
-  paging->TAIList.buffer[0].iE_Extensions_present     = false;
+  paging.tai_list.value.resize(1);
+  paging.tai_list.value[0].load_info_obj(ASN1_S1AP_ID_TAI_ITEM);
 
-  // CSG Id List
-  paging->CSG_IdList_present = false;
+  uint32_t plmn = m_s1ap->get_plmn();
+  paging.tai_list.value[0].value.tai_item().tai.plm_nid.from_number(plmn);
 
-  // Paging Priority
-  paging->PagingPriority_present = false;
+  uint16_t tac = m_s1ap->m_s1ap_args.tac;
+  paging.tai_list.value[0].value.tai_item().tai.tac.from_number(tac);
 
   // Start T3413
   if (!nas_ctx->start_timer(T_3413)) {
@@ -134,22 +113,12 @@ bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
     // TODO Send data notification failure to SPGW
     return false;
   }
-  // Send Paging to eNBs
-  m_s1ap_log->info("Paging UE -- M-TMSI :0x%x\n", m_tmsi);
-  srslte::byte_buffer_t* reply_buffer = m_pool->allocate();
-  LIBLTE_ERROR_ENUM      err          = liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_buffer);
-  if (err != LIBLTE_SUCCESS) {
-    m_s1ap_log->error("Could not pack Paging Message\n");
-    m_pool->deallocate(reply_buffer);
-    return false;
-  }
 
   for (std::map<uint16_t, enb_ctx_t*>::iterator it = m_s1ap->m_active_enbs.begin(); it != m_s1ap->m_active_enbs.end();
        it++) {
     enb_ctx_t* enb_ctx = it->second;
-    if (!m_s1ap->s1ap_tx_pdu(reply_buffer, &enb_ctx->sri)) {
+    if (!m_s1ap->s1ap_tx_pdu(tx_pdu, &enb_ctx->sri)) {
       m_s1ap_log->error("Error paging to eNB. eNB Id: 0x%x.\n", enb_ctx->enb_id);
-      m_pool->deallocate(reply_buffer);
       return false;
     }
   }

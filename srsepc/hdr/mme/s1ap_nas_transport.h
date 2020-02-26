@@ -25,7 +25,7 @@
 #include "s1ap_common.h"
 #include "srsepc/hdr/hss/hss.h"
 #include "srslte/asn1/gtpc.h"
-#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/buffer_pool.h"
 
 namespace srsepc {
@@ -38,16 +38,8 @@ public:
   static void                cleanup();
   void                       init();
 
-  bool handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT* init_ue,
-                                 struct sctp_sndrcvinfo*                      enb_sri,
-                                 srslte::byte_buffer_t*                       reply_buffer,
-                                 bool*                                        reply_flag);
-
-  bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT* ul_xport,
-                                   struct sctp_sndrcvinfo*                        enb_sri,
-                                   srslte::byte_buffer_t*                         reply_buffer,
-                                   bool*                                          reply_flag);
-
+  bool handle_initial_ue_message(const asn1::s1ap::init_ue_msg_s& init_ue, struct sctp_sndrcvinfo* enb_sri);
+  bool handle_uplink_nas_transport(const asn1::s1ap::ul_nas_transport_s& ul_xport, struct sctp_sndrcvinfo* enb_sri);
   bool send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                    uint32_t               mme_ue_s1ap_id,
                                    srslte::byte_buffer_t* nas_msg,

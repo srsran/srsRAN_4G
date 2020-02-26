@@ -82,7 +82,7 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
 
   // init regs
   regs.reset(new srslte_regs_t{});
-  if (srslte_regs_init(regs.get(), cfg.cell) != LIBLTE_SUCCESS) {
+  if (srslte_regs_init(regs.get(), cfg.cell) != SRSLTE_SUCCESS) {
     Error("Getting DCI locations\n");
     return false;
   }

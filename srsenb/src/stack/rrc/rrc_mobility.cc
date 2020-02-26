@@ -809,7 +809,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   //  obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list.resize(0);
   empty_meascfg.compute_diff_meas_cfg(target_var_meas, &hoprep_r8.as_cfg.source_meas_cfg);
   // - fill source RR Config
-  hoprep_r8.as_cfg.source_rr_cfg.sps_cfg_present      = false; // TODO: CHECK
+  hoprep_r8.as_cfg.source_rr_cfg.sps_cfg_present = false; // TODO: CHECK
   hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg_present =
       rrc_ue->last_rrc_conn_recfg.crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded.mac_main_cfg_present;
   hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg =

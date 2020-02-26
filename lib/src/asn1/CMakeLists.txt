@@ -22,7 +22,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch -Wno-unused-variable -Wno-re
 add_library(srslte_asn1 STATIC
   liblte_common.cc
   liblte_mme.cc
-  liblte_s1ap.cc
   liblte_m2ap.cc
   gtpc.cc
 )

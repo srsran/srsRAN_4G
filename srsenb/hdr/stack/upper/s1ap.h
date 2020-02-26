@@ -111,8 +111,8 @@ private:
   srslte::timer_handler::unique_timer mme_connect_timer, s1setup_timeout;
 
   // Protocol IEs sent with every UL S1AP message
-  LIBLTE_S1AP_TAI_STRUCT        tai;
-  LIBLTE_S1AP_EUTRAN_CGI_STRUCT eutran_cgi;
+  asn1::s1ap::tai_s        tai;
+  asn1::s1ap::eutran_cgi_s eutran_cgi;
 
   asn1::s1ap::s1_setup_resp_s s1setupresponse;
 

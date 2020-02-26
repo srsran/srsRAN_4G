@@ -24,9 +24,10 @@
 
 #include "srslte/asn1/gtpc_ies.h"
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/security.h"
 #include <netinet/sctp.h>
+#include <string.h>
 
 namespace srsepc {
 
@@ -51,17 +52,17 @@ typedef struct {
 } s1ap_args_t;
 
 typedef struct {
-  bool                       enb_name_present;
-  uint32_t                   enb_id;
-  uint8_t                    enb_name[150];
-  uint16_t                   mcc, mnc;
-  uint32_t                   plmn;
-  uint8_t                    nof_supported_ta;
-  uint16_t                   tac[MAX_TA];
-  uint8_t                    nof_supported_bplmns[MAX_TA];
-  uint16_t                   bplmns[MAX_TA][MAX_BPLMN];
-  LIBLTE_S1AP_PAGINGDRX_ENUM drx;
-  struct sctp_sndrcvinfo     sri;
+  bool                                                enb_name_present;
+  uint32_t                                            enb_id;
+  std::string                                         enb_name;
+  uint16_t                                            mcc, mnc;
+  uint32_t                                            plmn;
+  uint8_t                                             nof_supported_ta;
+  std::array<uint8_t, MAX_TA>                         tac;
+  std::array<uint16_t, MAX_BPLMN>                     nof_supported_bplmns;
+  std::array<std::array<uint16_t, MAX_BPLMN>, MAX_TA> bplmns;
+  asn1::s1ap::paging_drx_opts                         drx;
+  struct sctp_sndrcvinfo                              sri;
 } enb_ctx_t;
 
 } // namespace srsepc

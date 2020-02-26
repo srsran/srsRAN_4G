@@ -176,7 +176,8 @@ void phy_common::build_mcch_table()
 {
   ZERO_OBJECT(mcch_table);
 
-  generate_mcch_table(mcch_table, static_cast<uint32>(mbsfn.mbsfn_area_info.mcch_cfg_r9.sf_alloc_info_r9.to_number()));
+  generate_mcch_table(mcch_table,
+                      static_cast<uint32_t>(mbsfn.mbsfn_area_info.mcch_cfg_r9.sf_alloc_info_r9.to_number()));
 
   std::stringstream ss;
   ss << "|";

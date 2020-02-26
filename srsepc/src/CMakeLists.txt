@@ -38,6 +38,7 @@ add_executable(srsepc main.cc)
 target_link_libraries( srsepc  srsepc_mme
                                srsepc_hss
                                srsepc_sgw
+                               s1ap_asn1
                                srslte_upper
                                srslte_common
                                ${CMAKE_THREAD_LIBS_INIT}

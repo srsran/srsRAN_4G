@@ -193,111 +193,112 @@ int s1ap::enb_listen()
   return sock_fd;
 }
 
-bool s1ap::s1ap_tx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri)
+bool s1ap::s1ap_tx_pdu(const asn1::s1ap::s1ap_pdu_c& pdu, struct sctp_sndrcvinfo* enb_sri)
 {
-  m_s1ap_log->debug("Tx S1AP PDU. %d\n", enb_sri->sinfo_assoc_id);
-  ssize_t n_sent = sctp_send(m_s1mme, pdu->msg, pdu->N_bytes, enb_sri, 0);
+  m_s1ap_log->debug("Transmitting S1AP PDU. eNB SCTP association Id: %d\n", enb_sri->sinfo_assoc_id);
+
+  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*m_pool);
+  if (buf == nullptr) {
+    m_s1ap_log->error("Fatal Error: Couldn't allocate buffer for S1AP PDU.\n");
+    return false;
+  }
+  asn1::bit_ref bref(buf->msg, buf->get_tailroom());
+  if (pdu.pack(bref) != asn1::SRSASN_SUCCESS) {
+    m_s1ap_log->error("Could not pack S1AP PDU correctly.\n");
+    return false;
+  }
+  buf->N_bytes = bref.distance_bytes();
+
+  ssize_t n_sent = sctp_send(m_s1mme, buf->msg, buf->N_bytes, enb_sri, 0);
   if (n_sent == -1) {
-    m_s1ap_log->console("Failed to send S1AP PDU.\n");
-    m_s1ap_log->error("Failed to send S1AP PDU. \n");
+    m_s1ap_log->console("Failed to send S1AP PDU. Error: %s\n", strerror(errno));
+    m_s1ap_log->error("Failed to send S1AP PDU. Error: %s \n", strerror(errno));
     return false;
   }
+
   if (m_pcap_enable) {
-    m_pcap.write_s1ap(pdu->msg, pdu->N_bytes);
+    m_pcap.write_s1ap(buf->msg, buf->N_bytes);
   }
+
   return true;
 }
 
-bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri)
+void s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri)
 {
-  LIBLTE_S1AP_S1AP_PDU_STRUCT rx_pdu;
+  // Save PCAP
+  if (m_pcap_enable) {
+    m_pcap.write_s1ap(pdu->msg, pdu->N_bytes);
+  }
 
-  if (liblte_s1ap_unpack_s1ap_pdu((LIBLTE_BYTE_MSG_STRUCT*)pdu, &rx_pdu) != LIBLTE_SUCCESS) {
+  // Get PDU type
+  s1ap_pdu_t     rx_pdu;
+  asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
+  if (rx_pdu.unpack(bref) != asn1::SRSASN_SUCCESS) {
     m_s1ap_log->error("Failed to unpack received PDU\n");
-    return false;
+    return;
   }
 
-  if (m_pcap_enable) {
-    m_pcap.write_s1ap(pdu->msg, pdu->N_bytes);
-  }
-
-  switch (rx_pdu.choice_type) {
-    case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
-      m_s1ap_log->info("Received initiating PDU\n");
-      return handle_initiating_message(&rx_pdu.choice.initiatingMessage, enb_sri);
+  switch (rx_pdu.type().value) {
+    case s1ap_pdu_t::types_opts::init_msg:
+      m_s1ap_log->info("Received Initiating PDU\n");
+      handle_initiating_message(rx_pdu.init_msg(), enb_sri);
       break;
-    case LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME:
+    case s1ap_pdu_t::types_opts::successful_outcome:
       m_s1ap_log->info("Received Succeseful Outcome PDU\n");
-      return handle_successful_outcome(&rx_pdu.choice.successfulOutcome);
+      handle_successful_outcome(rx_pdu.successful_outcome());
       break;
-    case LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME:
+    case s1ap_pdu_t::types_opts::unsuccessful_outcome:
       m_s1ap_log->info("Received Unsucceseful Outcome PDU\n");
-      return true; // TODO handle_unsuccessfuloutcome(&rx_pdu.choice.unsuccessfulOutcome);
+      // TODO handle_unsuccessfuloutcome(&rx_pdu.choice.unsuccessfulOutcome);
       break;
     default:
-      m_s1ap_log->error("Unhandled PDU type %d\n", rx_pdu.choice_type);
-      return false;
+      m_s1ap_log->error("Unhandled PDU type %d\n", rx_pdu.type().value);
   }
-
-  return true;
 }
 
-bool s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* msg, struct sctp_sndrcvinfo* enb_sri)
+void s1ap::handle_initiating_message(const asn1::s1ap::init_msg_s& msg, struct sctp_sndrcvinfo* enb_sri)
 {
-  bool                   reply_flag   = false;
-  srslte::byte_buffer_t* reply_buffer = m_pool->allocate();
-  bool                   ret          = false;
+  using init_msg_type_opts_t = asn1::s1ap::s1ap_elem_procs_o::init_msg_c::types_opts;
 
-  switch (msg->choice_type) {
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_S1SETUPREQUEST:
+  switch (msg.value.type().value) {
+    case init_msg_type_opts_t::s1_setup_request:
       m_s1ap_log->info("Received S1 Setup Request.\n");
-      m_s1ap_mngmt_proc->handle_s1_setup_request(&msg->choice.S1SetupRequest, enb_sri, reply_buffer, &reply_flag);
+      m_s1ap_mngmt_proc->handle_s1_setup_request(msg.value.s1_setup_request(), enb_sri);
       break;
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALUEMESSAGE:
+    case init_msg_type_opts_t::init_ue_msg:
       m_s1ap_log->info("Received Initial UE Message.\n");
-      m_s1ap_nas_transport->handle_initial_ue_message(
-          &msg->choice.InitialUEMessage, enb_sri, reply_buffer, &reply_flag);
+      m_s1ap_nas_transport->handle_initial_ue_message(msg.value.init_ue_msg(), enb_sri);
       break;
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UPLINKNASTRANSPORT:
+    case init_msg_type_opts_t::ul_nas_transport:
       m_s1ap_log->info("Received Uplink NAS Transport Message.\n");
-      m_s1ap_nas_transport->handle_uplink_nas_transport(
-          &msg->choice.UplinkNASTransport, enb_sri, reply_buffer, &reply_flag);
+      m_s1ap_nas_transport->handle_uplink_nas_transport(msg.value.ul_nas_transport(), enb_sri);
       break;
-    case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASEREQUEST:
+    case init_msg_type_opts_t::ue_context_release_request:
       m_s1ap_log->info("Received UE Context Release Request Message.\n");
-      m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(
-          &msg->choice.UEContextReleaseRequest, enb_sri, reply_buffer, &reply_flag);
+      m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(msg.value.ue_context_release_request(), enb_sri);
       break;
     default:
-      m_s1ap_log->error("Unhandled S1AP intiating message: %s\n",
-                        liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
-      m_s1ap_log->console("Unhandled S1APintiating message: %s\n",
-                          liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
+      m_s1ap_log->error("Unhandled S1AP intiating message: %s\n", msg.value.type().to_string().c_str());
+      m_s1ap_log->console("Unhandled S1APintiating message: %s\n", msg.value.type().to_string().c_str());
   }
-
-  // Send Reply to eNB
-  if (reply_flag == true) {
-    ret = s1ap_tx_pdu(reply_buffer, enb_sri);
-  }
-
-  m_pool->deallocate(reply_buffer);
-  return ret;
 }
 
-bool s1ap::handle_successful_outcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* msg)
+void s1ap::handle_successful_outcome(const asn1::s1ap::successful_outcome_s& msg)
 {
-  switch (msg->choice_type) {
-    case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_INITIALCONTEXTSETUPRESPONSE:
+  using successful_outcome_type_opts_t = asn1::s1ap::s1ap_elem_procs_o::successful_outcome_c::types_opts;
+
+  switch (msg.value.type().value) {
+    case successful_outcome_type_opts_t::init_context_setup_resp:
       m_s1ap_log->info("Received Initial Context Setup Response.\n");
-      return m_s1ap_ctx_mngmt_proc->handle_initial_context_setup_response(&msg->choice.InitialContextSetupResponse);
-    case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_UECONTEXTRELEASECOMPLETE:
+      m_s1ap_ctx_mngmt_proc->handle_initial_context_setup_response(msg.value.init_context_setup_resp());
+      break;
+    case successful_outcome_type_opts_t::ue_context_release_complete:
       m_s1ap_log->info("Received UE Context Release Complete\n");
-      return m_s1ap_ctx_mngmt_proc->handle_ue_context_release_complete(&msg->choice.UEContextReleaseComplete);
+      m_s1ap_ctx_mngmt_proc->handle_ue_context_release_complete(msg.value.ue_context_release_complete());
+      break;
     default:
-      m_s1ap_log->error("Unhandled successful outcome message: %s\n",
-                        liblte_s1ap_successfuloutcome_choice_text[msg->choice_type]);
+      m_s1ap_log->error("Unhandled successful outcome message: %s\n", msg.value.type().to_string().c_str());
   }
-  return true;
 }
 
 // eNB Context Managment
@@ -306,19 +307,17 @@ void s1ap::add_new_enb_ctx(const enb_ctx_t& enb_ctx, const struct sctp_sndrcvinf
   m_s1ap_log->info("Adding new eNB context. eNB ID %d\n", enb_ctx.enb_id);
   std::set<uint32_t> ue_set;
   enb_ctx_t*         enb_ptr = new enb_ctx_t;
-  memcpy(enb_ptr, &enb_ctx, sizeof(enb_ctx_t));
+  *enb_ptr                   = enb_ctx;
   m_active_enbs.insert(std::pair<uint16_t, enb_ctx_t*>(enb_ptr->enb_id, enb_ptr));
   m_sctp_to_enb_id.insert(std::pair<int32_t, uint16_t>(enb_sri->sinfo_assoc_id, enb_ptr->enb_id));
   m_enb_assoc_to_ue_ids.insert(std::pair<int32_t, std::set<uint32_t> >(enb_sri->sinfo_assoc_id, ue_set));
-
-  return;
 }
 
 enb_ctx_t* s1ap::find_enb_ctx(uint16_t enb_id)
 {
   std::map<uint16_t, enb_ctx_t*>::iterator it = m_active_enbs.find(enb_id);
   if (it == m_active_enbs.end()) {
-    return NULL;
+    return nullptr;
   } else {
     return it->second;
   }
@@ -574,8 +573,8 @@ void s1ap::print_enb_ctx_info(const std::string& prefix, const enb_ctx_t& enb_ct
   std::string mnc_str, mcc_str;
 
   if (enb_ctx.enb_name_present) {
-    m_s1ap_log->console("%s - eNB Name: %s, eNB id: 0x%x\n", prefix.c_str(), enb_ctx.enb_name, enb_ctx.enb_id);
-    m_s1ap_log->info("%s - eNB Name: %s, eNB id: 0x%x\n", prefix.c_str(), enb_ctx.enb_name, enb_ctx.enb_id);
+    m_s1ap_log->console("%s - eNB Name: %s, eNB id: 0x%x\n", prefix.c_str(), enb_ctx.enb_name.c_str(), enb_ctx.enb_id);
+    m_s1ap_log->info("%s - eNB Name: %s, eNB id: 0x%x\n", prefix.c_str(), enb_ctx.enb_name.c_str(), enb_ctx.enb_id);
   } else {
     m_s1ap_log->console("%s - eNB Id 0x%x\n", prefix.c_str(), enb_ctx.enb_id);
     m_s1ap_log->info("%s - eNB Id 0x%x\n", prefix.c_str(), enb_ctx.enb_id);
@@ -591,7 +590,7 @@ void s1ap::print_enb_ctx_info(const std::string& prefix, const enb_ctx_t& enb_ct
       m_s1ap_log->console("%s - TAC %d, B-PLMN %d\n", prefix.c_str(), enb_ctx.tac[i], enb_ctx.bplmns[i][j]);
     }
   }
-  m_s1ap_log->console("%s - Paging DRX %d\n", prefix.c_str(), enb_ctx.drx);
+  m_s1ap_log->console("%s - Paging DRX %s\n", prefix.c_str(), enb_ctx.drx.to_string().c_str());
   return;
 }
 

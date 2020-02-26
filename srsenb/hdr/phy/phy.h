@@ -72,7 +72,7 @@ private:
   phy_rrc_cfg_t phy_rrc_config = {};
   uint32_t      nof_workers    = 0;
 
-  const static int MAX_WORKERS     = 4;
+  const static int MAX_WORKERS = 4;
 
   const static int PRACH_WORKER_THREAD_PRIO = 3;
   const static int SF_RECV_THREAD_PRIO      = 1;

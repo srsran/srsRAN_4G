@@ -84,11 +84,11 @@ void txrx::stop()
 
 void txrx::run_thread()
 {
-  sf_worker*         worker                   = nullptr;
+  sf_worker*         worker                                                                = nullptr;
   cf_t*              buffer[worker_com->get_nof_carriers() * worker_com->get_nof_ports(0)] = {};
-  srslte_timestamp_t rx_time                  = {};
-  srslte_timestamp_t tx_time                  = {};
-  uint32_t           sf_len                   = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
+  srslte_timestamp_t rx_time                                                               = {};
+  srslte_timestamp_t tx_time                                                               = {};
+  uint32_t           sf_len = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
 
   float samp_rate = srslte_sampling_freq_hz(worker_com->get_nof_prb(0));
 

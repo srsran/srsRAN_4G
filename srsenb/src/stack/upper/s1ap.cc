@@ -289,34 +289,15 @@ void s1ap::build_tai_cgi()
   uint16_t tmp16;
 
   // TAI
-  tai.ext                   = false;
-  tai.iE_Extensions_present = false;
   s1ap_mccmnc_to_plmn(args.mcc, args.mnc, &plmn);
-  tmp32                      = htonl(plmn);
-  tai.pLMNidentity.buffer[0] = ((uint8_t*)&tmp32)[1];
-  tai.pLMNidentity.buffer[1] = ((uint8_t*)&tmp32)[2];
-  tai.pLMNidentity.buffer[2] = ((uint8_t*)&tmp32)[3];
-  tmp16                      = htons(args.tac);
-  memcpy(tai.tAC.buffer, (uint8_t*)&tmp16, 2);
+  tai.plm_nid.from_number(plmn);
+
+  tai.tac.from_number(args.tac);
 
   // EUTRAN_CGI
-  eutran_cgi.ext                   = false;
-  eutran_cgi.iE_Extensions_present = false;
-  s1ap_mccmnc_to_plmn(args.mcc, args.mnc, &plmn);
-  tmp32                             = htonl(plmn);
-  eutran_cgi.pLMNidentity.buffer[0] = ((uint8_t*)&tmp32)[1];
-  eutran_cgi.pLMNidentity.buffer[1] = ((uint8_t*)&tmp32)[2];
-  eutran_cgi.pLMNidentity.buffer[2] = ((uint8_t*)&tmp32)[3];
+  eutran_cgi.plm_nid.from_number(plmn);
 
-  tmp32 = htonl(args.enb_id);
-  uint8_t enb_id_bits[4 * 8];
-  liblte_unpack((uint8_t*)&tmp32, 4, enb_id_bits);
-  uint8_t cell_id_bits[1 * 8];
-  liblte_unpack(&args.cell_id, 1, cell_id_bits);
-  memcpy(eutran_cgi.cell_ID.buffer,
-         &enb_id_bits[32 - LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN],
-         LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
-  memcpy(&eutran_cgi.cell_ID.buffer[LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN], cell_id_bits, 8);
+  eutran_cgi.cell_id.from_number((uint32_t)(args.enb_id << 8) | args.cell_id);
 }
 
 /*******************************************************************************
@@ -826,18 +807,10 @@ bool s1ap::ue::send_initialuemessage(asn1::s1ap::rrc_establishment_cause_e cause
   memcpy(container.nas_pdu.value.data(), pdu->msg, pdu->N_bytes);
 
   // TAI
-  container.tai.value.ie_exts_present = s1ap_ptr->tai.iE_Extensions_present;
-  container.tai.value.ext             = s1ap_ptr->tai.ext;
-  memcpy(container.tai.value.tac.data(), s1ap_ptr->tai.tAC.buffer, 2);
-  memcpy(container.tai.value.plm_nid.data(), s1ap_ptr->tai.pLMNidentity.buffer, 3);
+  container.tai.value = s1ap_ptr->tai;
 
   // EUTRAN_CGI
-  container.eutran_cgi.value.ext             = s1ap_ptr->eutran_cgi.ext;
-  container.eutran_cgi.value.ie_exts_present = s1ap_ptr->eutran_cgi.iE_Extensions_present;
-  memcpy(container.eutran_cgi.value.plm_nid.data(), s1ap_ptr->eutran_cgi.pLMNidentity.buffer, 3);
-  for (uint32_t i = 0; i < 28; ++i) {
-    container.eutran_cgi.value.cell_id.set(i, (bool)s1ap_ptr->eutran_cgi.cell_ID.buffer[i]);
-  }
+  container.eutran_cgi.value = s1ap_ptr->eutran_cgi;
 
   // RRC Establishment Cause
   container.rrc_establishment_cause.value = cause;
@@ -862,18 +835,10 @@ bool s1ap::ue::send_ulnastransport(srslte::unique_byte_buffer_t pdu)
   memcpy(container.nas_pdu.value.data(), pdu->msg, pdu->N_bytes);
 
   // EUTRAN CGI
-  container.eutran_cgi.value.ext             = s1ap_ptr->eutran_cgi.ext;
-  container.eutran_cgi.value.ie_exts_present = s1ap_ptr->eutran_cgi.iE_Extensions_present;
-  memcpy(container.eutran_cgi.value.plm_nid.data(), s1ap_ptr->eutran_cgi.pLMNidentity.buffer, 3);
-  for (uint32_t i = 0; i < 28; ++i) {
-    container.eutran_cgi.value.cell_id.set(i, (bool)s1ap_ptr->eutran_cgi.cell_ID.buffer[i]);
-  }
+  container.eutran_cgi.value = s1ap_ptr->eutran_cgi;
 
   // TAI
-  container.tai.value.ie_exts_present = s1ap_ptr->tai.iE_Extensions_present;
-  container.tai.value.ext             = s1ap_ptr->tai.ext;
-  memcpy(container.tai.value.tac.data(), s1ap_ptr->tai.tAC.buffer, 2);
-  memcpy(container.tai.value.plm_nid.data(), s1ap_ptr->tai.pLMNidentity.buffer, 3);
+  container.tai.value = s1ap_ptr->tai;
 
   return s1ap_ptr->sctp_send_s1ap_pdu(tx_pdu, ctxt.rnti, "UplinkNASTransport");
 }
@@ -1317,9 +1282,8 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   auto& eutra                     = transparent_cntr.ue_history_info[0].set_e_utran_cell();
   eutra.cell_type.cell_size.value = cell_size_opts::medium;
   target_plmn.to_s1ap_plmn_bytes(eutra.global_cell_id.plm_nid.data());
-  for (uint32_t i = 0; i < eutra.global_cell_id.cell_id.length(); ++i) {
-    eutra.global_cell_id.cell_id.set(i, s1ap_ptr->eutran_cgi.cell_ID.buffer[i]);
-  }
+  eutra.global_cell_id.cell_id = s1ap_ptr->eutran_cgi.cell_id;
+
   // - set time spent in current source cell
   struct timeval ts[3];
   memcpy(&ts[1], &ctxt.init_timestamp, sizeof(struct timeval));

@@ -23,7 +23,7 @@
 
 #include "mme_gtpc.h"
 #include "s1ap_common.h"
-#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log_filter.h"
@@ -42,13 +42,11 @@ public:
   void init(void);
 
   bool send_initial_context_setup_request(nas* nas_ctx, uint16_t erab_to_setup);
-  bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* in_ctxt_resp);
-  bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT* ue_rel,
-                                         struct sctp_sndrcvinfo*                             enb_sri,
-                                         srslte::byte_buffer_t*                              reply_buffer,
-                                         bool*                                               reply_flag);
+  bool handle_initial_context_setup_response(const asn1::s1ap::init_context_setup_resp_s& in_ctxt_resp);
+  bool handle_ue_context_release_request(const asn1::s1ap::ue_context_release_request_s& ue_rel,
+                                         struct sctp_sndrcvinfo*                         enb_sri);
   bool send_ue_context_release_command(nas* nas_ctx);
-  bool handle_ue_context_release_complete(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMPLETE_STRUCT* rel_comp);
+  bool handle_ue_context_release_complete(const asn1::s1ap::ue_context_release_complete_s& rel_comp);
 
 private:
   s1ap_ctx_mngmt_proc();

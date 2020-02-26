@@ -88,27 +88,25 @@ void s1ap_nas_transport::init()
   m_nas_if.mme  = mme::get_instance();
 }
 
-bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT* init_ue,
-                                                   struct sctp_sndrcvinfo*                      enb_sri,
-                                                   srslte::byte_buffer_t*                       reply_buffer,
-                                                   bool*                                        reply_flag)
+bool s1ap_nas_transport::handle_initial_ue_message(const asn1::s1ap::init_ue_msg_s& init_ue,
+                                                   struct sctp_sndrcvinfo*          enb_sri)
 {
   bool                   err, mac_valid;
   uint8_t                pd, msg_type, sec_hdr_type;
   srslte::byte_buffer_t* nas_msg = m_pool->allocate();
-  memcpy(nas_msg->msg, &init_ue->NAS_PDU.buffer, init_ue->NAS_PDU.n_octets);
-  nas_msg->N_bytes = init_ue->NAS_PDU.n_octets;
+  memcpy(nas_msg->msg, init_ue.protocol_ies.nas_pdu.value.data(), init_ue.protocol_ies.nas_pdu.value.size());
+  nas_msg->N_bytes = init_ue.protocol_ies.nas_pdu.value.size();
 
   uint64_t imsi           = 0;
   uint32_t m_tmsi         = 0;
-  uint32_t enb_ue_s1ap_id = init_ue->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
+  uint32_t enb_ue_s1ap_id = init_ue.protocol_ies.enb_ue_s1ap_id.value.value;
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)nas_msg, &pd, &msg_type);
 
   m_s1ap_log->console("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
   m_s1ap_log->info("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
 
-  if (init_ue->S_TMSI_present) {
-    srslte::uint8_to_uint32(init_ue->S_TMSI.m_TMSI.buffer, &m_tmsi);
+  if (init_ue.protocol_ies.s_tmsi_present) {
+    srslte::uint8_to_uint32(init_ue.protocol_ies.s_tmsi.value.m_tmsi.data(), &m_tmsi);
   }
 
   switch (msg_type) {
@@ -144,20 +142,18 @@ bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUE
   return err;
 }
 
-bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT* ul_xport,
-                                                     struct sctp_sndrcvinfo*                        enb_sri,
-                                                     srslte::byte_buffer_t*                         reply_buffer,
-                                                     bool*                                          reply_flag)
+bool s1ap_nas_transport::handle_uplink_nas_transport(const asn1::s1ap::ul_nas_transport_s& ul_xport,
+                                                     struct sctp_sndrcvinfo*               enb_sri)
 {
   uint8_t  pd, msg_type, sec_hdr_type;
-  uint32_t enb_ue_s1ap_id      = ul_xport->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID;
-  uint32_t mme_ue_s1ap_id      = ul_xport->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  uint32_t enb_ue_s1ap_id      = ul_xport.protocol_ies.enb_ue_s1ap_id.value.value;
+  uint32_t mme_ue_s1ap_id      = ul_xport.protocol_ies.mme_ue_s1ap_id.value.value;
   bool     mac_valid           = false;
   bool     increase_ul_nas_cnt = true;
 
   // Get UE NAS context
   nas* nas_ctx = m_s1ap->find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
-  if (nas_ctx == NULL) {
+  if (nas_ctx == nullptr) {
     m_s1ap_log->warning("Received uplink NAS, but could not find UE NAS context. MME-UE S1AP id: %d\n", mme_ue_s1ap_id);
     return false;
   }
@@ -169,8 +165,8 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
 
   // Parse NAS message header
   srslte::byte_buffer_t* nas_msg = m_pool->allocate();
-  memcpy(nas_msg->msg, &ul_xport->NAS_PDU.buffer, ul_xport->NAS_PDU.n_octets);
-  nas_msg->N_bytes   = ul_xport->NAS_PDU.n_octets;
+  memcpy(nas_msg->msg, ul_xport.protocol_ies.nas_pdu.value.data(), ul_xport.protocol_ies.nas_pdu.value.size());
+  nas_msg->N_bytes   = ul_xport.protocol_ies.nas_pdu.value.size();
   bool msg_encrypted = false;
 
   // Parse the message security header
@@ -351,42 +347,21 @@ bool s1ap_nas_transport::send_downlink_nas_transport(uint32_t               enb_
                     mme_ue_s1ap_id,
                     enb_ue_s1ap_id);
 
-  // Allocate Reply buffer
-  srslte::byte_buffer_t* reply_msg = m_pool->allocate();
-
   // Setup initiating message
-  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
-  bzero(&tx_pdu, sizeof(LIBLTE_S1AP_S1AP_PDU_STRUCT));
-
-  tx_pdu.ext         = false;
-  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
-
-  LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* init = &tx_pdu.choice.initiatingMessage;
-  init->procedureCode                        = LIBLTE_S1AP_PROC_ID_DOWNLINKNASTRANSPORT;
-  init->choice_type                          = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_DOWNLINKNASTRANSPORT;
+  s1ap_pdu_t tx_pdu;
+  tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_DL_NAS_TRANSPORT);
 
   // Setup Dw NAS structure
-  LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT* dw_nas = &init->choice.DownlinkNASTransport;
-  dw_nas->ext                                             = false;
-  dw_nas->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID                   = enb_ue_s1ap_id;
-  dw_nas->MME_UE_S1AP_ID.MME_UE_S1AP_ID                   = mme_ue_s1ap_id;
-  dw_nas->HandoverRestrictionList_present                 = false;
-  dw_nas->SubscriberProfileIDforRFP_present               = false;
+  asn1::s1ap::dl_nas_transport_ies_container& dw_nas = tx_pdu.init_msg().value.dl_nas_transport().protocol_ies;
+  dw_nas.enb_ue_s1ap_id.value                        = enb_ue_s1ap_id;
+  dw_nas.mme_ue_s1ap_id.value                        = mme_ue_s1ap_id;
 
   // Copy NAS PDU to Downlink NAS Trasport message buffer
-  memcpy(dw_nas->NAS_PDU.buffer, nas_msg->msg, nas_msg->N_bytes);
-  dw_nas->NAS_PDU.n_octets = nas_msg->N_bytes;
+  dw_nas.nas_pdu.value.resize(nas_msg->N_bytes);
+  memcpy(dw_nas.nas_pdu.value.data(), nas_msg->msg, nas_msg->N_bytes);
 
-  // Pack Downlink NAS Transport Message
-  LIBLTE_ERROR_ENUM err = liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)reply_msg);
-  if (err != LIBLTE_SUCCESS) {
-    m_s1ap_log->error("Error packing Downlink NAS Transport.\n");
-    m_s1ap_log->console("Error packing Downlink NAS Transport.\n");
-    m_pool->deallocate(reply_msg);
-    return false;
-  }
-  m_s1ap->s1ap_tx_pdu(reply_msg, &enb_sri);
-  m_pool->deallocate(reply_msg);
+  // Send Downlink NAS Transport Message
+  m_s1ap->s1ap_tx_pdu(tx_pdu, &enb_sri);
   return true;
 }
 
