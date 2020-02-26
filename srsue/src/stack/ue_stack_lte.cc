@@ -295,8 +295,15 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
   nas.run_tti(tti);
   timers.step_all();
 
-  auto end = std::chrono::steady_clock::now();
-  calc_tti_stats(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+  if (args.have_tti_time_stats) {
+    auto end = std::chrono::steady_clock::now();
+    calc_tti_stats(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+  }
+
+  // print warning if PHY pushes new TTI messages faster than we process them
+  if (pending_tasks.size(sync_queue_id) > SYNC_QUEUE_WARN_THRESHOLD) {
+    log.warning("Detected slow task processing (sync_queue_len=%zd).\n", pending_tasks.size(sync_queue_id));
+  }
 }
 
 void ue_stack_lte::calc_tti_stats(const uint32_t duration_us)
@@ -318,11 +325,6 @@ void ue_stack_lte::calc_tti_stats(const uint32_t duration_us)
     log.info("proc_time=%.2f,%.2f,%.2f (min,avg,max)\n", min / US_PER_MS, avg / US_PER_MS, max / US_PER_MS);
 
     proc_time.clear();
-  }
-
-  // print warning if PHY pushes new TTI messages faster than we process them
-  if (pending_tasks.size(sync_queue_id) > SYNC_QUEUE_WARN_THRESHOLD) {
-    log.warning("Detected slow task processing (sync_queue_len=%zd).\n", pending_tasks.size(sync_queue_id));
   }
 }
 

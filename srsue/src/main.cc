@@ -366,7 +366,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
     ("general.metrics_csv_filename",
        bpo::value<string>(&args->general.metrics_csv_filename)->default_value("/tmp/ue_metrics.csv"),
-       "Metrics CSV filename");
+       "Metrics CSV filename")
+
+    ("stack.have_tti_time_stats",
+        bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
+        "Calculate TTI execution statistics");
 
   // Positional options - config file location
   bpo::options_description position("Positional options");

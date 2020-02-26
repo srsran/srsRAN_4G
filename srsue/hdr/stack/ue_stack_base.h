@@ -66,6 +66,7 @@ typedef struct {
   std::string      ue_category_str;
   nas_args_t       nas;
   gw_args_t        gw;
+  bool             have_tti_time_stats;
 } stack_args_t;
 
 class ue_stack_base

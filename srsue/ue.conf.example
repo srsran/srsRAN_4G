@@ -348,8 +348,11 @@ enable = false
 #
 # metrics_csv_filename: File path to use for CSV metrics.
 #
+# have_tti_time_stats:  Calculate TTI execution statistics using system clock
+#
 #####################################################################
 [general]
 #metrics_csv_enable  = false
 #metrics_period_secs = 1
 #metrics_csv_filename = /tmp/ue_metrics.csv
+#have_tti_time_stats = true
