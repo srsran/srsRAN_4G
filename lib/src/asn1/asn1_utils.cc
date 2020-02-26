@@ -1090,11 +1090,14 @@ SRSASN_CODE pack_length_prefix(bit_ref& bref,
   return SRSASN_SUCCESS;
 }
 
-SRSASN_CODE pack_bitfield(bit_ref& bref, const uint8_t* buf, uint32_t nbits)
+SRSASN_CODE pack_bitfield(bit_ref& bref, const uint8_t* buf, uint32_t nbits, uint32_t lb, uint32_t ub, bool is_aligned)
 {
   if (nbits == 0) {
     srsasn_log_print(LOG_LEVEL_ERROR, "Invalid bitstring size=%d\n", nbits);
     return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  if (is_aligned and (lb != ub or ub > 16)) {
+    bref.align_bytes();
   }
   uint32_t n_octs = ceil_frac(nbits, 8u);
   uint32_t offset = ((nbits - 1) % 8) + 1;
@@ -1112,7 +1115,7 @@ SRSASN_CODE
 pack(bit_ref& bref, const uint8_t* data, uint32_t len, uint32_t lb, uint32_t ub, bool has_ext, bool is_aligned)
 {
   HANDLE_CODE(bitstring_utils::pack_length_prefix(bref, len, lb, ub, has_ext, is_aligned));
-  return pack_bitfield(bref, data, len);
+  return pack_bitfield(bref, data, len, lb, ub, is_aligned);
 }
 
 // Unpack prefix, excluding ext bit
