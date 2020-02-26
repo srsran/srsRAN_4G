@@ -61,7 +61,13 @@ public:
     rlc(&ss_rlc_log),
     signal_handler(&running),
     timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); }),
-    pdcp(&timers, &ss_pdcp_log){};
+    pdcp(&timers, &ss_pdcp_log)
+  {
+    if (ue->init(all_args_t{}, logger, this, "INIT_TEST") != SRSLTE_SUCCESS) {
+      ue->stop();
+      fprintf(stderr, "Couldn't initialize UE.\n");
+    }
+  }
 
   ~ttcn3_syssim(){};
 
@@ -738,12 +744,6 @@ public:
   // Internal function
   void update_cell_map()
   {
-    // Find cell with highest power and select as serving cell
-    if (not ue) {
-      log.error("Can't configure cell. UE not initialized.\n");
-      return;
-    }
-
     // convert syssim cell list to phy cell list
     {
       lte_ttcn3_phy::cell_list_t phy_cells;
