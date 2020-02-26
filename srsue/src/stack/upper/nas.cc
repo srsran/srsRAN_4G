@@ -1119,8 +1119,19 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
     t3410.stop();
   }
 
+  // 5.5.1.2.5
+  if (attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_ILLEGAL_UE ||
+      attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_ILLEGAL_ME ||
+      attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_REQUESTED_SERVICE_OPTION_NOT_AUTHORIZED) {
+    // delete security context
+    have_guti = false;
+    have_ctxt = false;
+    ctxt      = {};
+  }
+
+  // TODO: handle other relevant reject causes
+
   enter_emm_deregistered();
-  // TODO: Command RRC to release?
 }
 
 void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
