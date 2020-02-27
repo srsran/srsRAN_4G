@@ -309,8 +309,13 @@ void rrc::si_acquire_proc::start_si_acquire()
   rrc_ptr->mac->bcch_start_rx(si_win_start, si_win_len);
 
   // start window retry timer
-  uint32_t retry_period = (sib_index == 0) ? sib1_periodicity : period * nof_sib_harq_retxs;
-  si_acq_retry_timer.set(retry_period + (si_win_start - tti));
+  uint32_t retry_period            = (sib_index == 0) ? sib1_periodicity : period * nof_sib_harq_retxs;
+  uint32_t tics_until_si_win_start = srslte_tti_interval(si_win_start, tti);
+  if (tics_until_si_win_start > 10240 / 2) {
+    Error("The SI Window start was incorrectly calculated. si_win_start=%d, tti=%d\n", si_win_start, tti);
+  }
+  uint32_t tics_until_si_retry = retry_period + tics_until_si_win_start;
+  si_acq_retry_timer.set(tics_until_si_retry);
   si_acq_retry_timer.run();
 
   Info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",

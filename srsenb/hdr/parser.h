@@ -373,11 +373,11 @@ int parse_default_field(T&            obj,
 template <typename T>
 int parse_bounded_number(T& number, Setting& fieldroot, T num_min, T num_max)
 {
-  T num = (T)fieldroot;
-  if (num < num_min or num > num_max) {
+  number = (T)fieldroot;
+  if (number < num_min or number > num_max) {
     std::cout << "Parser Warning: Value of " << fieldroot.getName() << " must be within bound [" << num_min << ", "
               << num_max << "]\n";
-    num = (num > num_max) ? num_max : num_min;
+    number = (number > num_max) ? num_max : num_min;
   }
   return 0;
 }

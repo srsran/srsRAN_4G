@@ -799,7 +799,7 @@ void rrc::config_mac()
     item.cell = cfg.cell;
 
     // copy secondary cell list info
-    sched_cfg[ccidx].scell_list.resize(cfg.cell_list[ccidx].scell_list.size());
+    sched_cfg[ccidx].scell_list.reserve(cfg.cell_list[ccidx].scell_list.size());
     for (uint32_t scidx = 0; scidx < cfg.cell_list[ccidx].scell_list.size(); ++scidx) {
       const auto& scellitem = cfg.cell_list[ccidx].scell_list[scidx];
       // search enb_cc_idx specific to cell_id
@@ -808,11 +808,13 @@ void rrc::config_mac()
       });
       if (it == cfg.cell_list.end()) {
         rrc_log->warning("Secondary cell 0x%x not configured\n", scellitem.cell_id);
+        continue;
       }
-      uint32_t scell_enb_idx                                      = it - cfg.cell_list.begin();
-      sched_cfg[ccidx].scell_list[scidx].enb_cc_idx               = scell_enb_idx;
-      sched_cfg[ccidx].scell_list[scidx].ul_allowed               = scellitem.ul_allowed;
-      sched_cfg[ccidx].scell_list[scidx].cross_carrier_scheduling = scellitem.cross_carrier_sched;
+      sched_interface::cell_cfg_t::scell_cfg_t scellcfg;
+      scellcfg.enb_cc_idx               = it - cfg.cell_list.begin();
+      scellcfg.ul_allowed               = scellitem.ul_allowed;
+      scellcfg.cross_carrier_scheduling = scellitem.cross_carrier_sched;
+      sched_cfg[ccidx].scell_list.push_back(std::move(scellcfg));
     }
   }
 
