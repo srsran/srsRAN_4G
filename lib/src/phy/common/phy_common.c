@@ -869,3 +869,29 @@ const char* srslte_ack_nack_feedback_mode_string(srslte_ack_nack_feedback_mode_t
       return "error";
   }
 }
+
+srslte_ack_nack_feedback_mode_t srslte_string_ack_nack_feedback_mode(const char* str)
+{
+  int  i       = 0;
+  char str2[8] = {};
+
+  // Copy string in local buffer
+  strncpy(str2, str, sizeof(str2));
+
+  // Convert to lower case
+  while (str2[i] |= ' ', str2[++i])
+    ;
+
+  // Format 1b with channel selection
+  if (strcmp(str2, "cs") == 0) {
+    return SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS;
+  }
+
+  // Detect PUCCH3
+  if (strcmp(str2, "pucch3") == 0) {
+    return SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3;
+  }
+
+  // Otherwise Normal
+  return SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
+}

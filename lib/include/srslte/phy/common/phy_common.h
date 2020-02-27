@@ -35,6 +35,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "srslte/config.h"
 
 #define SRSLTE_NOF_SF_X_FRAME 10
@@ -123,7 +127,7 @@ typedef enum { SRSLTE_SF_NORM = 0, SRSLTE_SF_MBSFN } srslte_sf_t;
 #define SRSLTE_SF_LEN_MAX (SRSLTE_SF_LEN(SRSLTE_SYMBOL_SZ_MAX))
 
 #define SRSLTE_SLOT_LEN_PRB(nof_prb) (SRSLTE_SLOT_LEN(srslte_symbol_sz(nof_prb)))
-#define SRSLTE_SF_LEN_PRB(nof_prb) (SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb)))
+#define SRSLTE_SF_LEN_PRB(nof_prb) ((uint32_t)SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb)))
 
 #define SRSLTE_SLOT_LEN_RE(nof_prb, cp) (nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cp))
 #define SRSLTE_SF_LEN_RE(nof_prb, cp) (2 * SRSLTE_SLOT_LEN_RE(nof_prb, cp))
@@ -480,5 +484,17 @@ bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t
  * @return Returns constant pointer with the text of the mode if succesful, `error` otherwise
  */
 SRSLTE_API const char* srslte_ack_nack_feedback_mode_string(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode);
+
+/**
+ * Returns a constant string pointer with the ACK/NACK feedback mode
+ *
+ * @param ack_nack_feedback_mode Mode
+ * @return Returns constant pointer with the text of the mode if succesful, `error` otherwise
+ */
+SRSLTE_API srslte_ack_nack_feedback_mode_t srslte_string_ack_nack_feedback_mode(const char* str);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_PHY_COMMON_H
