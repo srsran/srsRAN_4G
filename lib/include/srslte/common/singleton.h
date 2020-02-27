@@ -22,6 +22,8 @@
 #ifndef SRSLTE_SINGLETON_H
 #define SRSLTE_SINGLETON_H
 
+#include <memory>
+
 // CRTP pattern to create class singletons
 template <typename T>
 class singleton_t
