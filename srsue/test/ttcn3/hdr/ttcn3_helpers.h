@@ -29,6 +29,7 @@
 
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h" // for stringify JSON
+#include "ttcn3_interfaces.h"
 #include <algorithm>
 #include <assert.h>
 #include <bitset>
@@ -354,6 +355,32 @@ public:
     assert(config_flag.IsBool());
 
     return config_flag.GetBool();
+  }
+
+  static timing_info_t get_timing_info(Document& document)
+  {
+    timing_info_t timing = {};
+
+    // check for Now flag
+    if (document.HasMember("Common") && document["Common"].HasMember("TimingInfo") &&
+        document["Common"]["TimingInfo"].HasMember("Now")) {
+      timing.now = true;
+    }
+
+    if (document.HasMember("Common") && document["Common"].HasMember("TimingInfo") &&
+        document["Common"]["TimingInfo"].HasMember("SubFrame") &&
+        document["Common"]["TimingInfo"]["SubFrame"].HasMember("SFN") &&
+        document["Common"]["TimingInfo"]["SubFrame"]["SFN"].HasMember("Number")) {
+
+      timing.tti = document["Common"]["TimingInfo"]["SubFrame"]["SFN"]["Number"].GetInt() * 10;
+
+      // check SF index only
+      if (document["Common"]["TimingInfo"]["SubFrame"].HasMember("Subframe") &&
+          document["Common"]["TimingInfo"]["SubFrame"]["Subframe"].HasMember("Number")) {
+        timing.tti += document["Common"]["TimingInfo"]["SubFrame"]["Subframe"]["Number"].GetInt();
+      }
+    }
+    return timing;
   }
 };
 

@@ -119,7 +119,7 @@ private:
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
-    syssim->add_ccch_pdu(std::move(pdu));
+    syssim->add_ccch_pdu(ttcn3_helpers::get_timing_info(document), std::move(pdu));
 
     // TODO: is there a better way to check for RRCConnectionReestablishment?
     if (ccch_is_rrc_reestablishment(document)) {
@@ -137,7 +137,7 @@ private:
     pdu->N_bytes             = len;
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
-    syssim->add_dcch_pdu(lcid, std::move(pdu));
+    syssim->add_dcch_pdu(ttcn3_helpers::get_timing_info(document), lcid, std::move(pdu));
   }
 
   bool ccch_is_rrc_reestablishment(Document& document)

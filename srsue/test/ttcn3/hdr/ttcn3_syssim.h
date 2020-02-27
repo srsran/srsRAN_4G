@@ -24,7 +24,6 @@
 
 #include "dut_utils.h"
 #include "srslte/common/pdu_queue.h"
-#include "srslte/common/threads.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
 #include "ttcn3_common.h"
@@ -196,9 +195,19 @@ public:
     tti = (tti + 1) % 10240;
 
     log.step(tti);
-    log.debug("Start new TTI\n");
+    log.debug("Start TTI\n");
 
     ue->set_current_tti(tti);
+
+    // check scheduled actions for this TTI
+    if (tti_actions.find(tti) != tti_actions.end()) {
+      while (!tti_actions[tti].empty()) {
+        log.debug("Running scheduled action\n");
+        move_task_t task = std::move(tti_actions[tti].back());
+        task();
+        tti_actions[tti].pop_back();
+      }
+    }
 
     // process events, if any
     while (not event_queue.empty()) {
@@ -439,14 +448,14 @@ public:
     prach_preamble_index = preamble_index_;
   }
 
-  // Called from PHY but always from the SS main thread with lock being hold
+  // Called from PHY
   void sr_req(uint32_t tti_tx)
   {
     log.info("Received SR from PHY\n");
     sr_tti = tti_tx;
   }
 
-  // Called from PHY but always from the SS main thread with lock being hold
+  // Called from PHY
   void tx_pdu(const uint8_t* payload, const int len, const uint32_t tx_tti)
   {
     if (payload == NULL) {
@@ -692,8 +701,6 @@ public:
 
   void set_cell_config(std::string name, uint32_t earfcn_, srslte_cell_t cell_, const float power)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-
     // check if cell already exists
     if (not syssim_has_cell(name)) {
       // insert new cell
@@ -725,7 +732,6 @@ public:
 
   void set_cell_attenuation(std::string cell_name, const float value)
   {
-    std::lock_guard<std::mutex> lock(mutex);
     if (not syssim_has_cell(cell_name)) {
       log.error("Can't set cell power. Cell not found.\n");
     }
@@ -765,8 +771,6 @@ public:
 
   void add_bcch_dlsch_pdu(const string cell_name, unique_byte_buffer_t pdu)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-
     if (not syssim_has_cell(cell_name)) {
       log.error("Can't add BCCH to cell. Cell not found.\n");
     }
@@ -780,18 +784,31 @@ public:
     }
   }
 
-  void add_ccch_pdu(unique_byte_buffer_t pdu)
+  void add_ccch_pdu(const timing_info_t timing, unique_byte_buffer_t pdu)
   {
-    std::lock_guard<std::mutex> lock(mutex);
-
-    // Add to SRB0 Tx queue
-    rlc.write_sdu(0, std::move(pdu));
+    if (timing.now) {
+      // Add to SRB0 Tx queue
+      rlc.write_sdu(0, std::move(pdu));
+    } else {
+      log.debug("Scheduling CCCH PDU for TTI=%d\n", timing.tti);
+      auto task = [this](srslte::unique_byte_buffer_t& pdu) { rlc.write_sdu(0, std::move(pdu)); };
+      tti_actions[timing.tti].push_back(std::bind(task, std::move(pdu)));
+    }
   }
 
-  void add_dcch_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
+  void add_dcch_pdu(const timing_info_t timing, uint32_t lcid, unique_byte_buffer_t pdu)
   {
-    std::lock_guard<std::mutex> lock(mutex);
+    if (timing.now) {
+      add_dcch_pdu_impl(lcid, std::move(pdu));
+    } else {
+      log.debug("Scheduling DCCH PDU for TTI=%d\n", timing.tti);
+      auto task = [this](uint32_t lcid, srslte::unique_byte_buffer_t& pdu) { add_dcch_pdu_impl(lcid, std::move(pdu)); };
+      tti_actions[timing.tti].push_back(std::bind(task, lcid, std::move(pdu)));
+    }
+  }
 
+  void add_dcch_pdu_impl(uint32_t lcid, unique_byte_buffer_t pdu)
+  {
     // push to PDCP and create DL grant for it
     log.info("Writing PDU (%d B) to LCID=%d\n", pdu->N_bytes, lcid);
     pdcp.write_sdu(lcid, std::move(pdu), true);
@@ -799,7 +816,6 @@ public:
 
   void add_pch_pdu(unique_byte_buffer_t pdu)
   {
-    std::lock_guard<std::mutex> lock(mutex);
     log.info("Received PCH PDU (%d B)\n", pdu->N_bytes);
 
     // Prepare MAC grant for PCH
@@ -814,9 +830,18 @@ public:
 
   void step_timer() { timers.step_all(); }
 
-  void add_srb(uint32_t lcid, pdcp_config_t pdcp_config)
+  void add_srb(const timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config)
   {
-    std::lock_guard<std::mutex> lock(mutex);
+    if (timing.now) {
+      add_srb_impl(lcid, pdcp_config);
+    } else {
+      log.debug("Scheduling SRB%d addition for TTI=%d\n", lcid, timing.tti);
+      tti_actions[timing.tti].push_back([this, lcid, pdcp_config]() { add_srb_impl(lcid, pdcp_config); });
+    }
+  }
+
+  void add_srb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config)
+  {
     log.info("Adding SRB%d\n", lcid);
     pdcp.add_bearer(lcid, pdcp_config);
     rlc.add_bearer(lcid, srslte::rlc_config_t::srb_config(lcid));
@@ -832,15 +857,23 @@ public:
 
   void reestablish_bearer(uint32_t lcid)
   {
-    std::lock_guard<std::mutex> lock(mutex);
     log.info("Reestablishing LCID=%d\n", lcid);
     pdcp.reestablish(lcid);
     rlc.reestablish(lcid);
   }
 
-  void del_srb(uint32_t lcid)
+  void del_srb(const timing_info_t timing, const uint32_t lcid)
   {
-    std::lock_guard<std::mutex> lock(mutex);
+    if (timing.now) {
+      del_srb_impl(lcid);
+    } else {
+      log.debug("Scheduling SRB%d deletion for TTI=%d\n", lcid, timing.tti);
+      tti_actions[timing.tti].push_back([this, lcid]() { del_srb_impl(lcid); });
+    }
+  }
+
+  void del_srb_impl(uint32_t lcid)
+  {
     log.info("Deleting SRB%d\n", lcid);
     // Only delete SRB1/2
     if (lcid > 0) {
@@ -1026,6 +1059,11 @@ private:
   srslte::timer_handler timers;
   bool                  last_dl_ndi[2 * FDD_HARQ_DELAY_MS] = {};
   bool                  last_ul_ndi[2 * FDD_HARQ_DELAY_MS] = {};
+
+  // For events/actions that need to be carried out in a specific TTI
+  typedef std::vector<move_task_t>              task_list_t;
+  typedef std::map<const uint32_t, task_list_t> tti_action_map_t;
+  tti_action_map_t                              tti_actions;
 
   // Map between the cellId (name) used by 3GPP test suite and srsLTE cell struct
   typedef struct {

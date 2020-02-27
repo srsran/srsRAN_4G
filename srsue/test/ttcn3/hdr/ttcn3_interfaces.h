@@ -25,6 +25,11 @@
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
+typedef struct {
+  bool     now; ///< If set to false, the TTI field contains a valid TTI
+  uint32_t tti;
+} timing_info_t;
+
 // Interfaces used by system interface to communicate with main component
 class ss_ut_interface
 {
@@ -45,8 +50,8 @@ public:
   virtual void     add_pch_pdu(srslte::unique_byte_buffer_t pdu)                                                  = 0;
   virtual void     set_cell_attenuation(std::string cell_name, const float attenuation)                           = 0;
   virtual void     set_cell_config(std::string cell_name, uint32_t earfcn, srslte_cell_t cell, const float power) = 0;
-  virtual void     add_srb(uint32_t lcid, srslte::pdcp_config_t pdcp_config)                                      = 0;
-  virtual void     del_srb(uint32_t lcid)                                                                         = 0;
+  virtual void add_srb(const timing_info_t timing, const uint32_t lcid, const srslte::pdcp_config_t pdcp_config)  = 0;
+  virtual void del_srb(const timing_info_t timing, const uint32_t lcid)                                           = 0;
   virtual uint32_t get_tti()                                                                                      = 0;
   virtual int      set_as_security(const uint32_t                            lcid,
                                    const std::array<uint8_t, 32>             k_rrc_enc,
@@ -60,8 +65,8 @@ public:
 class ss_srb_interface
 {
 public:
-  virtual void add_ccch_pdu(srslte::unique_byte_buffer_t pdu)                = 0;
-  virtual void add_dcch_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
+  virtual void add_ccch_pdu(const timing_info_t timing, srslte::unique_byte_buffer_t pdu)                = 0;
+  virtual void add_dcch_pdu(const timing_info_t timing, uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
   virtual void reestablish_bearer(uint32_t lcid)                             = 0;
 };
 

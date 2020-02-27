@@ -212,6 +212,10 @@ private:
     const Value& b = a["ControlInfo"];
     assert(b.HasMember("CnfFlag"));
 
+    if (ttcn3_helpers::get_timing_info(document).now == false) {
+      log->error("Timing info not supported in %s\n", __FUNCTION__);
+    }
+
     // Handle cell creation
     if (document["Request"]["Cell"].HasMember("AddOrReconfigure")) {
       if (document["Request"]["Cell"]["AddOrReconfigure"].HasMember("Basic")) {
@@ -287,7 +291,6 @@ private:
         if (config.HasMember("AddOrReconfigure")) {
           uint32_t lcid = id["Srb"].GetInt();
           if (lcid > 0) {
-            log->info("Configure SRB%d\n", lcid);
             pdcp_config_t pdcp_cfg = {.bearer_id     = static_cast<uint8_t>(lcid),
                                       .rb_type       = PDCP_RB_IS_SRB,
                                       .tx_direction  = SECURITY_DIRECTION_DOWNLINK,
@@ -295,12 +298,11 @@ private:
                                       .sn_len        = PDCP_SN_LEN_5,
                                       .t_reorderding = srslte::pdcp_t_reordering_t::ms500,
                                       .discard_timer = srslte::pdcp_discard_timer_t::infinity};
-            syssim->add_srb(lcid, pdcp_cfg);
+            syssim->add_srb(ttcn3_helpers::get_timing_info(document), lcid, pdcp_cfg);
           }
         } else if (config.HasMember("Release")) {
-          log->info("Releasing SRB%d\n", id["Srb"].GetInt());
           uint32_t lcid = id["Srb"].GetInt();
-          syssim->del_srb(lcid);
+          syssim->del_srb(ttcn3_helpers::get_timing_info(document), lcid);
         } else {
           log->error("Unknown config.\n");
         }
@@ -335,6 +337,10 @@ private:
 
     const Value& cells = req["CellAttenuationList"];
     assert(cells.IsArray());
+
+    if (ttcn3_helpers::get_timing_info(document).now == false) {
+      log->error("Timing info not supported in %s\n", __FUNCTION__);
+    }
 
     // iterate over all bearers and configure them
     for (Value::ConstValueIterator itr = cells.Begin(); itr != cells.End(); ++itr) {
@@ -421,6 +427,11 @@ private:
     // check request
     const Value& req = document["Request"];
     assert(req.HasMember("AS_Security"));
+
+    if (ttcn3_helpers::get_timing_info(document).now == false) {
+      log->error("Timing info not supported in %s\n", __FUNCTION__);
+      // continue ...
+    }
 
     // check AS security start
     const Value& as_sec = req["AS_Security"];
