@@ -70,7 +70,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_cfg = rrc_cfg_;
 
   // setup logging for each layer
-  srslte::logmap::get_instance()->set_default_logger(logger);
+  srslte::logmap::set_default_logger(logger);
   mac_log.init("MAC ", logger, true);
   rlc_log.init("RLC ", logger);
   pdcp_log.init("PDCP", logger);

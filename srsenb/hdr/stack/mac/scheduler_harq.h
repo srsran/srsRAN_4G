@@ -90,7 +90,7 @@ protected:
   int                             last_mcs[SRSLTE_MAX_TB];
   int                             last_tbs[SRSLTE_MAX_TB];
 
-  srslte::log* log_h = nullptr;
+  srslte::log_ref log_h;
 };
 
 typedef srslte::bounded_bitset<25, true> rbgmask_t;

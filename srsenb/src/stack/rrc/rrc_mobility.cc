@@ -610,9 +610,9 @@ void var_meas_cfg_t::compute_diff_quant_cfg(const var_meas_cfg_t& target_cfg, as
  *                                  mobility_cfg class
  ************************************************************************************************/
 
-rrc::mobility_cfg::mobility_cfg(const rrc_cfg_t* cfg_, srslte::log* log_) : cfg(cfg_)
+rrc::mobility_cfg::mobility_cfg(const rrc_cfg_t* cfg_) : cfg(cfg_)
 {
-  var_meas_cfg_t var_meas{log_};
+  var_meas_cfg_t var_meas{};
 
   if (cfg->meas_cfg_present) {
     // inserts all neighbor cells
@@ -650,9 +650,9 @@ rrc::ue::rrc_mobility::rrc_mobility(rrc::ue* outer_ue) :
   cfg(outer_ue->parent->enb_mobility_cfg.get()),
   pool(outer_ue->pool),
   rrc_log(outer_ue->parent->rrc_log),
-  source_ho_proc(this)
+  source_ho_proc(this),
+  ue_var_meas(std::make_shared<var_meas_cfg_t>())
 {
-  ue_var_meas = std::make_shared<var_meas_cfg_t>(outer_ue->parent->rrc_log);
 }
 
 //! Method to add Mobility Info to a RRC Connection Reconfiguration Message
@@ -803,7 +803,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   /*** fill AS-Config ***/
   hoprep_r8.as_cfg_present = true;
   // NOTE: set source_meas_cnfg equal to the UE's current var_meas_cfg
-  var_meas_cfg_t empty_meascfg{rrc_log}, target_var_meas = *ue_var_meas;
+  var_meas_cfg_t empty_meascfg{}, target_var_meas = *ue_var_meas;
   //  // however, reset the MeasObjToAdd Cells, so that the UE does not measure again the target eNB
   //  meas_obj_to_add_mod_s* obj = rrc_details::binary_find(target_var_meas.meas_objs(), measobj_id);
   //  obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list.resize(0);

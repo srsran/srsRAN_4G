@@ -52,9 +52,9 @@ private:
 
   // args
   const sched_cell_params_t*    cc_cfg = nullptr;
-  srslte::log*                  log_h  = nullptr;
-  rrc_interface_mac*            rrc    = nullptr;
-  std::map<uint16_t, sched_ue>* ue_db  = nullptr;
+  srslte::log_ref               log_h;
+  rrc_interface_mac*            rrc   = nullptr;
+  std::map<uint16_t, sched_ue>* ue_db = nullptr;
   std::unique_ptr<metric_dl>    dl_metric;
   std::unique_ptr<metric_ul>    ul_metric;
   const uint32_t                enb_cc_idx;
@@ -114,7 +114,7 @@ public:
   using dl_sched_rar_t       = sched_interface::dl_sched_rar_t;
   using dl_sched_rar_grant_t = sched_interface::dl_sched_rar_grant_t;
 
-  explicit ra_sched(const sched_cell_params_t& cfg_, srslte::log* log_, std::map<uint16_t, sched_ue>& ue_db_);
+  explicit ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>& ue_db_);
   void dl_sched(sf_sched* tti_sched);
   void ul_sched(sf_sched* tti_sched);
   int  dl_rach_info(dl_sched_rar_info_t rar_info);
@@ -123,7 +123,7 @@ public:
 
 private:
   // args
-  srslte::log*                  log_h  = nullptr;
+  srslte::log_ref               log_h;
   const sched_cell_params_t*    cc_cfg = nullptr;
   std::map<uint16_t, sched_ue>* ue_db  = nullptr;
 

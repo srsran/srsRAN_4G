@@ -136,9 +136,9 @@ void bc_sched::reset()
  *                 RAR scheduling
  *******************************************************/
 
-ra_sched::ra_sched(const sched_cell_params_t& cfg_, srslte::log* log_, std::map<uint16_t, sched_ue>& ue_db_) :
+ra_sched::ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>& ue_db_) :
   cc_cfg(&cfg_),
-  log_h(log_),
+  log_h(srslte::logmap::get("MAC")),
   ue_db(&ue_db_)
 {
 }
@@ -311,7 +311,7 @@ void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
 
   // init Broadcast/RA schedulers
   bc_sched_ptr.reset(new bc_sched{*cc_cfg, rrc});
-  ra_sched_ptr.reset(new ra_sched{*cc_cfg, log_h, *ue_db});
+  ra_sched_ptr.reset(new ra_sched{*cc_cfg, *ue_db});
 
   // Setup data scheduling algorithms
   dl_metric.reset(new srsenb::dl_metric_rr{});

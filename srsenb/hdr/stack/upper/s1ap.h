@@ -27,7 +27,7 @@
 #include "common_enb.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
 
@@ -98,9 +98,9 @@ private:
   // args
   rrc_interface_s1ap*               rrc = nullptr;
   s1ap_args_t                       args;
-  srslte::log*                      s1ap_log = nullptr;
-  srslte::byte_buffer_pool*         pool     = nullptr;
-  srsenb::stack_interface_s1ap_lte* stack    = nullptr;
+  srslte::log_ref                   s1ap_log;
+  srslte::byte_buffer_pool*         pool  = nullptr;
+  srsenb::stack_interface_s1ap_lte* stack = nullptr;
 
   srslte::socket_handler_t            s1ap_socket;
   struct sockaddr_in                  mme_addr            = {}; // MME address
@@ -198,8 +198,8 @@ private:
     //! TS 36.413, Section 8.4.6 - eNB Status Transfer procedure
 
     // args
-    s1ap*        s1ap_ptr;
-    srslte::log* s1ap_log;
+    s1ap*           s1ap_ptr;
+    srslte::log_ref s1ap_log;
 
     // state
     bool                                release_requested = false;

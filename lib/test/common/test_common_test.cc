@@ -31,7 +31,7 @@ int test_nullsink_log()
   //              without contaminating the console/log file, and to check what error message was stored
   scoped_log<nullsink_log> null_log("TEST");
 
-  TESTASSERT(srslte::logmap::get("TEST") == null_log.get());
+  TESTASSERT(srslte::logmap::get("TEST").get() == null_log.get());
   TESTASSERT(null_log->error_counter == 0);
   TESTASSERT(null_log->last_log_level == srslte::LOG_LEVEL_NONE);
   TESTASSERT(null_log->last_log_msg.empty());
@@ -50,7 +50,7 @@ int test_log_scoping()
   //              This behavior is useful for the cases we have one generic logger for all tests, but in a specific test
   //              we want to use a different one
   scoped_log<nullsink_log> log1("TEST");
-  TESTASSERT(srslte::logmap::get("TEST") == log1.get());
+  TESTASSERT(srslte::logmap::get("TEST").get() == log1.get());
 
   log1->error("message1");
   log1->error("message2");
@@ -60,7 +60,7 @@ int test_log_scoping()
   {
     // the global test log should be overwriten here, and used by TESTASSERT macro
     scoped_log<nullsink_log> log2("TEST");
-    TESTASSERT(srslte::logmap::get("TEST") == log2.get());
+    TESTASSERT(srslte::logmap::get("TEST").get() == log2.get());
     TESTASSERT(log2->error_counter == 0);
     log2->error("error message in logger2\n");
     TESTASSERT(log2->last_log_msg == "error message in logger2\n");
@@ -68,7 +68,7 @@ int test_log_scoping()
   }
   // the last logger should be recovered
 
-  TESTASSERT(srslte::logmap::get("TEST") == log1.get());
+  TESTASSERT(srslte::logmap::get("TEST").get() == log1.get());
   TESTASSERT(log1->error_counter == 2);
   return 0;
 }

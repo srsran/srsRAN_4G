@@ -23,6 +23,7 @@
 #define SRSENB_RRC_MOBILITY_H
 
 #include "rrc.h"
+#include "srslte/common/logmap.h"
 #include <map>
 
 namespace srsenb {
@@ -34,12 +35,12 @@ namespace srsenb {
 class var_meas_cfg_t
 {
 public:
-  explicit var_meas_cfg_t(srslte::log* log_) : rrc_log(log_) {}
   using meas_cell_t  = asn1::rrc::cells_to_add_mod_s;
   using meas_id_t    = asn1::rrc::meas_id_to_add_mod_s;
   using meas_obj_t   = asn1::rrc::meas_obj_to_add_mod_s;
   using report_cfg_t = asn1::rrc::report_cfg_to_add_mod_s;
 
+  var_meas_cfg_t() : rrc_log(srslte::logmap::get("RRC")) {}
   std::tuple<bool, meas_obj_t*, meas_cell_t*> add_cell_cfg(const meas_cell_cfg_t& cellcfg);
   report_cfg_t*                               add_report_cfg(const asn1::rrc::report_cfg_eutra_s& reportcfg);
   meas_id_t*                                  add_measid_cfg(uint8_t measobjid, uint8_t repid);
@@ -64,13 +65,13 @@ public:
 
 private:
   asn1::rrc::var_meas_cfg_s var_meas;
-  srslte::log*              rrc_log = nullptr;
+  srslte::log_ref           rrc_log;
 };
 
 class rrc::mobility_cfg
 {
 public:
-  explicit mobility_cfg(const rrc_cfg_t* cfg_, srslte::log* log_);
+  explicit mobility_cfg(const rrc_cfg_t* cfg_);
 
   std::shared_ptr<const var_meas_cfg_t> current_meas_cfg; ///< const to enable ptr comparison as identity comparison
 

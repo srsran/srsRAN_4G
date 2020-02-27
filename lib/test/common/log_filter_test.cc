@@ -142,17 +142,27 @@ int basic_hex_test()
 
 int test_log_singleton()
 {
-  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
-  srslte::log* log_ptr = srslte::logmap::get("LAYER1");
-  TESTASSERT(log_ptr->get_service_name() == "LAYER1");
-  TESTASSERT(log_ptr->get_level() == LOG_LEVEL_DEBUG);
-  // register logger manually
+  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
+
+  // TEST: Check if default setters are working
+  srslte::log_ref log1 = srslte::logmap::get("LAYER1");
+  TESTASSERT(log1->get_service_name() == "LAYER1");
+  TESTASSERT(log1->get_level() == LOG_LEVEL_DEBUG);
+
+  // TEST: register logger manually. Verify log_ref stays valid after overwrite
   std::unique_ptr<srslte::log_filter> log_ptr2(new srslte::log_filter("LAYER2"));
   log_ptr2->set_level(LOG_LEVEL_WARNING);
-  TESTASSERT(srslte::logmap::get("LAYER2")->get_level() == LOG_LEVEL_DEBUG);
-  srslte::logmap::get_instance()->register_log(std::move(log_ptr2));
-  TESTASSERT(srslte::logmap::get("LAYER2")->get_level() == LOG_LEVEL_WARNING);
+  srslte::log_ref old_ref = srslte::logmap::get("LAYER2");
+  TESTASSERT(old_ref->get_level() == LOG_LEVEL_DEBUG);
+  srslte::logmap::register_log(std::move(log_ptr2));
+  srslte::log_ref new_ref = srslte::logmap::get("LAYER2");
+  TESTASSERT(new_ref->get_level() == LOG_LEVEL_WARNING);
+  TESTASSERT(old_ref == new_ref);
 
+  // TEST: padding working correctly
+  TESTASSERT(srslte::logmap::get("MAC").get() == srslte::logmap::get("MAC ").get());
+
+  log1->info("logmap test finished successfully\n");
   return SRSLTE_SUCCESS;
 }
 
@@ -175,6 +185,7 @@ int full_test()
 
   return SRSLTE_SUCCESS;
 }
+
 int main(int argc, char** argv)
 {
   TESTASSERT(basic_hex_test() == SRSLTE_SUCCESS);

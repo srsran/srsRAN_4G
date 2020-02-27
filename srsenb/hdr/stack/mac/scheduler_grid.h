@@ -94,7 +94,7 @@ private:
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
-  srslte::log*               log_h  = nullptr;
+  srslte::log_ref            log_h;
 
   // tti vars
   const tti_params_t*      tti_params   = nullptr;
@@ -131,8 +131,8 @@ private:
   alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
 
   // consts
-  const sched_cell_params_t* cc_cfg   = nullptr;
-  srslte::log*               log_h    = nullptr;
+  const sched_cell_params_t* cc_cfg = nullptr;
+  srslte::log_ref            log_h;
   uint32_t                   nof_rbgs = 0;
   uint32_t                   si_n_rbg = 0, rar_n_rbg = 0;
 
@@ -286,7 +286,7 @@ private:
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
-  srslte::log*               log_h  = nullptr;
+  srslte::log_ref            log_h;
 
   // internal state
   tti_params_t               tti_params{10241};

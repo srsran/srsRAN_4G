@@ -76,7 +76,7 @@ int test_correct_insertion()
 
   // TEST 1: cell/rep insertion in empty varMeasCfg
   {
-    var_meas_cfg_t var_cfg(srslte::logmap::get("RRC "));
+    var_meas_cfg_t var_cfg;
     auto           ret = var_cfg.add_cell_cfg(cell1);
     TESTASSERT(std::get<0>(ret) and std::get<1>(ret) != nullptr);
     const auto& objs = var_cfg.meas_objs();
@@ -94,7 +94,7 @@ int test_correct_insertion()
   }
 
   {
-    var_meas_cfg_t var_cfg(srslte::logmap::get("RRC "));
+    var_meas_cfg_t var_cfg;
     const auto&    objs = var_cfg.meas_objs();
 
     // TEST 2: insertion of out-of-order cell ids in same earfcn
@@ -133,7 +133,7 @@ int test_correct_insertion()
 
 int test_correct_meascfg_calculation()
 {
-  var_meas_cfg_t src_var(srslte::logmap::get("RRC ")), target_var(srslte::logmap::get("RRC "));
+  var_meas_cfg_t src_var, target_var;
 
   meas_cell_cfg_t cell1{}, cell2{};
   cell1.earfcn   = 3400;
@@ -213,7 +213,7 @@ int test_correct_meascfg_calculation()
 
     // TEST: Removal of cell/rep from target propagates to the resulting meas_cfg_s
     src_var    = target_var;
-    target_var = var_meas_cfg_t{srslte::logmap::get("RRC ")};
+    target_var = var_meas_cfg_t{};
     target_var.add_cell_cfg(cell2);
     target_var.add_report_cfg(rep1);
     target_var.add_report_cfg(rep3);
@@ -363,7 +363,7 @@ int test_mobility_class(mobility_test_params test_params)
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::get_instance()->set_default_log_level(srslte::LOG_LEVEL_INFO);
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
 
   if (argc < 3) {
     argparse::usage(argv[0]);

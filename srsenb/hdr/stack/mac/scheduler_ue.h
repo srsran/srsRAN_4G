@@ -89,7 +89,7 @@ struct sched_ue_carrier {
 
 private:
   // config
-  srslte::log*                     log_h       = nullptr;
+  srslte::log_ref                  log_h;
   const sched_interface::ue_cfg_t* cfg         = nullptr;
   const sched_cell_params_t*       cell_params = nullptr;
   uint16_t                         rnti;
@@ -259,9 +259,9 @@ private:
   bool is_first_dl_tx();
 
   /* Args */
-  sched_interface::ue_cfg_t               cfg              = {};
-  srslte_cell_t                           cell             = {};
-  srslte::log*                            log_h            = nullptr;
+  sched_interface::ue_cfg_t               cfg  = {};
+  srslte_cell_t                           cell = {};
+  srslte::log_ref                         log_h;
   const std::vector<sched_cell_params_t>* cell_params_list = nullptr;
   const sched_cell_params_t*              main_cc_params   = nullptr;
 

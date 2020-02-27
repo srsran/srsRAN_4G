@@ -108,7 +108,7 @@ int test_erab_setup(bool qci_exists)
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::get_instance()->set_default_log_level(srslte::LOG_LEVEL_INFO);
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
 
   if (argc < 3) {
     argparse::usage(argv[0]);

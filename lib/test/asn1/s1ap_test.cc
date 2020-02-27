@@ -133,8 +133,8 @@ int test_eci_pack()
 
 int main()
 {
-  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
-  srslte::logmap::get_instance()->set_default_hex_limit(1024);
+  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
+  srslte::logmap::set_default_hex_limit(1024);
 
   TESTASSERT(unpack_test_served_gummeis_with_multiple_plmns() == SRSLTE_SUCCESS);
   TESTASSERT(test_initial_ctxt_setup_response() == SRSLTE_SUCCESS);

@@ -112,8 +112,8 @@ public:
     }
   }
 
-  LOG_LEVEL_ENUM get_level() { return level; }
-  std::string    get_service_name() { return service_name; }
+  LOG_LEVEL_ENUM     get_level() { return level; }
+  const std::string& get_service_name() const { return service_name; }
 
   void set_hex_limit(int limit) { hex_limit = limit; }
   int  get_hex_limit() { return hex_limit; }

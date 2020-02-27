@@ -38,8 +38,8 @@ private:
   bool          find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask);
   dl_harq_proc* allocate_user(sched_ue* user);
 
-  const sched_cell_params_t* cc_cfg    = nullptr;
-  srslte::log*               log_h     = nullptr;
+  const sched_cell_params_t* cc_cfg = nullptr;
+  srslte::log_ref            log_h;
   dl_sf_sched_itf*           tti_alloc = nullptr;
 };
 
@@ -54,8 +54,8 @@ private:
   ul_harq_proc* allocate_user_newtx_prbs(sched_ue* user);
   ul_harq_proc* allocate_user_retx_prbs(sched_ue* user);
 
-  const sched_cell_params_t* cc_cfg      = nullptr;
-  srslte::log*               log_h       = nullptr;
+  const sched_cell_params_t* cc_cfg = nullptr;
+  srslte::log_ref            log_h;
   ul_sf_sched_itf*           tti_alloc   = nullptr;
   uint32_t                   current_tti = 0;
 };

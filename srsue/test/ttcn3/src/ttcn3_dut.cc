@@ -118,7 +118,7 @@ int main(int argc, char** argv)
 
   // Instantiate file logger
   srslte::logger_file logger_file;
-  srslte::logmap::get_instance()->set_default_logger(&logger_file);
+  srslte::logmap::set_default_logger(&logger_file);
 
   // Create UE object
   unique_ptr<ttcn3_ue> ue = std::unique_ptr<ttcn3_ue>(new ttcn3_ue());

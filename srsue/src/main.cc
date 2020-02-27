@@ -573,7 +573,7 @@ int main(int argc, char* argv[])
     logger_file.init(args.log.filename, args.log.file_max_size);
     logger = &logger_file;
   }
-  srslte::logmap::get_instance()->set_default_logger(logger);
+  srslte::logmap::set_default_logger(logger);
 
   // Create UE instance
   srsue::ue ue;

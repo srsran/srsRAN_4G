@@ -21,7 +21,6 @@
 
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/pdu.h"
@@ -547,10 +546,10 @@ int mac_sch_pdu_pack_test7()
 // Test Packing of SCell Activation CE command
 int mac_sch_pdu_pack_test8()
 {
-  srslte::log* log_h = logmap::get("MAC");
+  srslte::log_ref log_h = logmap::get("MAC");
 
   const uint32_t  pdu_size = 2;
-  srslte::sch_pdu pdu(10, log_h);
+  srslte::sch_pdu pdu(10, log_h.get());
   std::bitset<8>  cc_mask(uniform_dist_u8(rand_gen));
 
   // subheader: R|F2|E|LCID = 0|0|0|11011
@@ -571,7 +570,7 @@ int mac_sch_pdu_pack_test8()
   TESTASSERT(pdu.get()->set_scell_activation_cmd(cc_mask));
 
   // write PDU
-  pdu.write_packet(log_h);
+  pdu.write_packet(log_h.get());
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
@@ -752,8 +751,8 @@ int main(int argc, char** argv)
   pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
   pcap_handle->open("mac_pdu_test.pcap");
 #endif
-  logmap::get_instance()->set_default_hex_limit(32);
-  logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
+  logmap::set_default_hex_limit(100000);
+  logmap::set_default_log_level(LOG_LEVEL_DEBUG);
 
   if (mac_rar_pdu_unpack_test1()) {
     fprintf(stderr, "mac_rar_pdu_unpack_test1 failed.\n");

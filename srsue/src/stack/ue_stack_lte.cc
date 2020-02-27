@@ -114,7 +114,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   asn1::rrc::rrc_log_register_handler(&rrc_log);
 
   // Set NAS log
-  srslte::log* log_ptr = logmap::get("NAS ");
+  srslte::log_ref log_ptr = logmap::get("NAS");
   log_ptr->set_level(args.log.nas_level);
   log_ptr->set_hex_limit(args.log.nas_hex_limit);
 

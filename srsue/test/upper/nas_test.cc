@@ -478,8 +478,8 @@ int dedicated_eps_bearer_test()
 
 int main(int argc, char** argv)
 {
-  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
-  srslte::logmap::get_instance()->set_default_hex_limit(100000);
+  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
+  srslte::logmap::set_default_hex_limit(100000);
 
   if (security_command_test()) {
     printf("Security command test failed.\n");

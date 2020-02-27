@@ -139,7 +139,7 @@ sched::~sched()
 
 void sched::init(rrc_interface_mac* rrc_)
 {
-  log_h = srslte::logmap::get("MAC ");
+  log_h = srslte::logmap::get("MAC");
   rrc   = rrc_;
 
   // Initialize first carrier scheduler

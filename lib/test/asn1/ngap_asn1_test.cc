@@ -345,9 +345,9 @@ int test_session_res_setup_request()
 
 int main()
 {
-  srslte::logmap::get_instance()->set_default_log_level(LOG_LEVEL_DEBUG);
-  srsasn_log_register_handler(srslte::logmap::get("ASN1"));
-  ngap_nr_log_register_handler(srslte::logmap::get("NGAP"));
+  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
+  srsasn_log_register_handler(srslte::logmap::get("ASN1").get());
+  ngap_nr_log_register_handler(srslte::logmap::get("NGAP").get());
 
   TESTASSERT(test_amf_upd() == 0);
   TESTASSERT(test_ngsetup_request() == 0);

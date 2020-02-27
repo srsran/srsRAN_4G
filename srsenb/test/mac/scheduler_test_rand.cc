@@ -1041,7 +1041,7 @@ sched_sim_args rand_sim_params(const srsenb::sched_interface::cell_cfg_t& cell_c
 
 int main()
 {
-  srslte::logmap::get_instance()->set_default_log_level(srslte::LOG_LEVEL_INFO);
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
   printf("[TESTER] This is the chosen seed: %u\n", seed);
   /* initialize random seed: */
   uint32_t N_runs = 1, nof_ttis = 10240 + 10;
