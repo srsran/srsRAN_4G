@@ -384,26 +384,30 @@ srslte::proc_outcome_t rrc::serving_cell_config_proc::launch_sib_acquire()
   // Obtain the SIBs if not available or apply the configuration if available
   for (; req_idx < required_sibs.size(); req_idx++) {
     uint32_t required_sib = required_sibs[req_idx];
-    if (not rrc_ptr->serving_cell->has_sib(required_sib) and
-        (required_sib < 2 or rrc_ptr->serving_cell->is_sib_scheduled(required_sib))) {
-      Info("Cell has no SIB%d. Obtaining SIB%d\n", required_sib + 1, required_sib + 1);
-      if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, required_sib)) {
-        Error("SI Acquire is already running...\n");
-        return proc_outcome_t::error;
+    if (not rrc_ptr->serving_cell->has_sib(required_sib)) {
+      if (required_sib < 2 or rrc_ptr->serving_cell->is_sib_scheduled(required_sib)) {
+        Info("Cell has no SIB%d. Obtaining SIB%d\n", required_sib + 1, required_sib + 1);
+        if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, required_sib)) {
+          Error("SI Acquire is already running...\n");
+          return proc_outcome_t::error;
+        }
+        // wait for si acquire to finish
+        return proc_outcome_t::yield;
       }
-      return proc_outcome_t::yield;
-    }
-    // UE had SIB already. Handle its SIB
-    Info("Cell has SIB%d\n", required_sib + 1);
-    switch (required_sib) {
-      case 1:
-        rrc_ptr->handle_sib2();
-        break;
-      case 12:
-        rrc_ptr->handle_sib13();
-        break;
-      default:
-        break;
+      // SIB is not scheduled in SchedInfoList. Skipping it...
+    } else {
+      // UE had SIB already. Handle its SIB
+      Info("Cell has SIB%d\n", required_sib + 1);
+      switch (required_sib) {
+        case 1:
+          rrc_ptr->handle_sib2();
+          break;
+        case 12:
+          rrc_ptr->handle_sib13();
+          break;
+        default:
+          break;
+      }
     }
   }
 
