@@ -86,13 +86,13 @@ void txrx::stop()
 void txrx::run_thread()
 {
   sf_worker*         worker                   = nullptr;
-  cf_t*              buffer[SRSLTE_MAX_PORTS] = {};
+  cf_t*              buffer[worker_com->get_nof_carriers() * worker_com->get_nof_ports(0)] = {};
   srslte_timestamp_t rx_time                  = {};
   srslte_timestamp_t tx_time                  = {};
   uint32_t           sf_len                   = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
 
   float samp_rate = srslte_sampling_freq_hz(worker_com->get_nof_prb(0));
-  log_h->console("Setting Sampling frequency %.2f MHz\n", (float)samp_rate / 1000000);
+  log_h->console("Setting Sampling frequency %.2f MHz\n", samp_rate / 1000000.0f);
 
   // Configure radio
   radio_h->set_rx_srate(0, samp_rate);
@@ -122,7 +122,7 @@ void txrx::run_thread()
 
   // Main loop
   while (running) {
-    tti    = (tti + 1) % 10240;
+    tti    = TTI_ADD(tti, 1);
     worker = (sf_worker*)workers_pool->wait_worker(tti);
     if (worker) {
       // Multiple cell buffer mapping

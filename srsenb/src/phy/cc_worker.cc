@@ -301,7 +301,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
     auto&    ul_grant = grants[i];
     uint16_t rnti     = ul_grant.dci.rnti;
 
-    if (rnti) {
+    if (rnti && ue_db.count(rnti)) {
       // Get UE configuration
       srslte::phy_cfg_t phy_cfg = phy->ue_db.get_config(rnti, cc_idx);
       srslte_ul_cfg_t&  ul_cfg  = phy_cfg.ul_cfg;
@@ -373,7 +373,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
         // Logging
         char str[512];
         srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, str, 512);
-        Info("PUSCH: %s, snr=%.1f dB\n", str, snr_db);
+        Info("PUSCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, snr_db);
       }
     }
   }
@@ -451,7 +451,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       // Logging
       char str[512];
       srslte_dci_ul_info(&grants[i].dci, str, 512);
-      Info("PDCCH: %s, tti_tx_dl=%d\n", str, tti_tx_dl);
+      Info("PDCCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
     }
   }
   return SRSLTE_SUCCESS;
@@ -471,7 +471,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
         // Logging
         char str[512];
         srslte_dci_dl_info(&grants[i].dci, str, 512);
-        Info("PDCCH: %s, tti_tx_dl=%d\n", str, tti_tx_dl);
+        Info("PDCCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
       }
     }
   }
