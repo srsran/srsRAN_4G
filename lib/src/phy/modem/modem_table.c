@@ -122,6 +122,8 @@ int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation)
       }
       set_256QAMtable(q->symbol_table);
       break;
+    case SRSLTE_MOD_NITEMS:
+    default:; // Do nothing
   }
   return SRSLTE_SUCCESS;
 }

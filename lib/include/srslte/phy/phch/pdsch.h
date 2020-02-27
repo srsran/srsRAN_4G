@@ -73,7 +73,7 @@ typedef struct SRSLTE_API {
   float* csi[SRSLTE_MAX_CODEWORDS]; /* Channel Strengh Indicator */
 
   /* tx & rx objects */
-  srslte_modem_table_t mod[SRSLTE_NOF_MODULATIONS];
+  srslte_modem_table_t mod[SRSLTE_MOD_NITEMS];
 
   // EVM buffers, one for each codeword (avoid concurrency issue with coworker)
   srslte_evm_buffer_t* evm_buffer[SRSLTE_MAX_CODEWORDS];

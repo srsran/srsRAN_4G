@@ -254,7 +254,7 @@ static int pdsch_init(srslte_pdsch_t* q, uint32_t max_prb, bool is_ue, uint32_t 
 
     INFO("Init PDSCH: %d PRBs, max_symbols: %d\n", max_prb, q->max_re);
 
-    for (int i = 0; i < SRSLTE_NOF_MODULATIONS; i++) {
+    for (int i = 0; i < SRSLTE_MOD_NITEMS; i++) {
       if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
         goto clean;
       }
@@ -461,7 +461,7 @@ void srslte_pdsch_free(srslte_pdsch_t* q)
 
   srslte_sequence_free(&q->tmp_seq);
 
-  for (int i = 0; i < SRSLTE_NOF_MODULATIONS; i++) {
+  for (int i = 0; i < SRSLTE_MOD_NITEMS; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
 
@@ -700,6 +700,8 @@ static void csi_correction(srslte_pdsch_t* q, srslte_pdsch_cfg_t* cfg, uint32_t 
           _e += 2;
         }
         break;
+      case SRSLTE_MOD_NITEMS:
+      default:; // Do nothing
     }
 
     i /= qm;

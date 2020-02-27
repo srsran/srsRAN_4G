@@ -84,7 +84,6 @@ static inline srslte_evm_buffer_t* srslte_evm_buffer_alloc(uint32_t nof_prb)
  */
 static inline void srslte_evm_buffer_resize(srslte_evm_buffer_t* q, uint32_t nof_prb)
 {
-
   // Assert pointer and number of PRB
   if (!q || !nof_prb) {
     ERROR("Invalid inputs");

@@ -60,6 +60,8 @@ int srslte_demod_hard_demodulate(srslte_demod_hard_t* q, cf_t* symbols, uint8_t*
       hard_qam256_demod(symbols, bits, nsymbols);
       nbits = nsymbols * 8;
       break;
+    case SRSLTE_MOD_NITEMS:
+    default:; // Do nothing
   }
   return nbits;
 }
