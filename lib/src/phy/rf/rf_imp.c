@@ -108,7 +108,7 @@ int srslte_rf_open_devname(srslte_rf_t* rf, const char* devname, char* args, uin
     if (devname[0] != '\0') {
       int i = 0;
       while (available_devices[i] != NULL) {
-        if (!strcmp(available_devices[i]->name, devname)) {
+        if (!strcasecmp(available_devices[i]->name, devname)) {
           rf->dev = available_devices[i];
           return available_devices[i]->srslte_rf_open_multi(args, &rf->handler, nof_channels);
         }
