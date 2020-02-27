@@ -24,8 +24,8 @@
 
 SET(CTEST_OUTPUT_ON_FAILURE TRUE)
 
-if (ZEROMQ_FOUND)
+if (ZEROMQ_FOUND AND ENABLE_ZMQ_TEST)
   foreach (cell_n_prb 6 15 25 50 75 100)
     add_test(e2e_${cell_n_prb}prb ${CMAKE_CURRENT_SOURCE_DIR}/run_lte.sh ${CMAKE_CURRENT_BINARY_DIR}/../ ${cell_n_prb})
   endforeach (cell_n_prb)
-endif (ZEROMQ_FOUND)
+endif (ZEROMQ_FOUND AND ENABLE_ZMQ_TEST)
