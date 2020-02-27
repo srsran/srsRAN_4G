@@ -33,4 +33,22 @@ target_link_libraries(enb_phy_test
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
 
-#add_test(enb_phy_test enb_phy_test)
+# Basic eNb PHY test:
+#  - 128 Frames
+#  - 1 eNb cell/carrier (no carrier aggregation)
+#  - maximum bandwidth 100
+add_test(enb_phy_test enb_phy_test --duration=128 --cell.nof_prb=100 )
+
+# Two carrier aggregation using PUCCH3
+#  - 128 frames
+#  - 3 eNb cell/carrier (only using 2 aggregated)
+#  - minimum bandwidth to reduce memcheck time
+#  - PUCCH format 3 ACK/NACK feedback mode
+add_test(enb_phy_test enb_phy_test --duration=128 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=pucch3 --cell.nof_prb=6 )
+
+# Two carrier aggregation using Channel Selection
+#  - 128 frames
+#  - 6 eNb cell/carrier (only using 2 aggregated)
+#  - minimum bandwidth to reduce memcheck time
+#  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
+add_test(enb_phy_test enb_phy_test --duration=128 --nof_enb_cells=6 --ue_cell_list=5,4 --ack_mode=cs --cell.nof_prb=6 )
