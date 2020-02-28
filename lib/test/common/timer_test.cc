@@ -35,7 +35,7 @@
 
 using namespace srslte;
 
-int timers2_test()
+int timers_test1()
 {
   timer_handler timers;
   uint32_t      dur = 5;
@@ -130,7 +130,7 @@ int timers2_test()
   return SRSLTE_SUCCESS;
 }
 
-int timers2_test2()
+int timers_test2()
 {
   /**
    * Description:
@@ -165,7 +165,7 @@ int timers2_test2()
   return SRSLTE_SUCCESS;
 }
 
-int timers2_test3()
+int timers_test3()
 {
   /**
    * Description:
@@ -196,14 +196,14 @@ int timers2_test3()
   return SRSLTE_SUCCESS;
 }
 
-struct timers2_test4_context {
+struct timers_test4_ctxt {
   std::vector<timer_handler::unique_timer> timers;
   srslte::tti_sync_cv                      tti_sync1;
   srslte::tti_sync_cv                      tti_sync2;
   const uint32_t                           duration = 1000;
 };
 
-static void timers2_test4_thread(timers2_test4_context* ctx)
+static void timers2_test4_thread(timers_test4_ctxt* ctx)
 {
   std::mt19937                          mt19937(4);
   std::uniform_real_distribution<float> real_dist(0.0f, 1.0f);
@@ -230,9 +230,9 @@ static void timers2_test4_thread(timers2_test4_context* ctx)
   }
 }
 
-int timers2_test4()
+int timers_test4()
 {
-  timers2_test4_context*                ctx = new timers2_test4_context;
+  timers_test4_ctxt*                    ctx = new timers_test4_ctxt;
   timer_handler                         timers;
   uint32_t                              nof_timers = 32;
   std::mt19937                          mt19937(4);
@@ -305,12 +305,75 @@ int timers2_test4()
   return SRSLTE_SUCCESS;
 }
 
+/**
+ * Description: Delaying a callback using the timer_handler
+ */
+int timers_test5()
+{
+  timer_handler timers;
+  TESTASSERT(timers.nof_timers() == 0);
+  TESTASSERT(timers.nof_running_timers() == 0);
+
+  std::vector<int> vals;
+
+  // TTI 0: Add a unique_timer of duration=5
+  timer_handler::unique_timer t = timers.get_unique_timer();
+  TESTASSERT(timers.nof_timers() == 1);
+  t.set(5, [&vals](uint32_t tid) { vals.push_back(1); });
+  t.run();
+  TESTASSERT(timers.nof_running_timers() == 1);
+  timers.step_all();
+
+  // TTI 1: Add two delayed callbacks, with duration=2 and 6
+  {
+    // ensure captures by value are ok
+    std::string string = "test string";
+    timers.defer_callback(2, [&vals, string]() {
+      vals.push_back(2);
+      if (string != "test string") {
+        ERROR("string was not captured correctly\n");
+        exit(-1);
+      }
+    });
+  }
+  timers.defer_callback(6, [&vals]() { vals.push_back(3); });
+  TESTASSERT(timers.nof_timers() == 3);
+  TESTASSERT(timers.nof_running_timers() == 3);
+  timers.step_all();
+  timers.step_all();
+
+  // TTI 3: First callback should have been triggered by now
+  TESTASSERT(timers.nof_running_timers() == 2);
+  TESTASSERT(timers.nof_timers() == 2);
+  TESTASSERT(vals.size() == 1);
+  TESTASSERT(vals[0] == 2);
+  timers.step_all();
+  timers.step_all();
+
+  // TTI 5: Unique timer should have been triggered by now
+  TESTASSERT(timers.nof_running_timers() == 1);
+  TESTASSERT(timers.nof_timers() == 2);
+  TESTASSERT(vals.size() == 2);
+  TESTASSERT(vals[1] == 1);
+  timers.step_all();
+  timers.step_all();
+
+  // TTI 7: Second callback should have been triggered by now
+  TESTASSERT(timers.nof_running_timers() == 0);
+  TESTASSERT(timers.nof_timers() == 1);
+  TESTASSERT(vals.size() == 3);
+  TESTASSERT(vals[2] == 3);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
-  TESTASSERT(timers2_test() == SRSLTE_SUCCESS);
-  TESTASSERT(timers2_test2() == SRSLTE_SUCCESS);
-  TESTASSERT(timers2_test3() == SRSLTE_SUCCESS);
-  TESTASSERT(timers2_test4() == SRSLTE_SUCCESS);
+  TESTASSERT(timers_test1() == SRSLTE_SUCCESS);
+  TESTASSERT(timers_test2() == SRSLTE_SUCCESS);
+  TESTASSERT(timers_test3() == SRSLTE_SUCCESS);
+  TESTASSERT(timers_test4() == SRSLTE_SUCCESS);
+  TESTASSERT(timers_test5() == SRSLTE_SUCCESS);
   printf("Success\n");
   return 0;
 }

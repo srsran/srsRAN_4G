@@ -142,7 +142,7 @@ public:
   class unique_timer
   {
   public:
-    unique_timer() : parent(nullptr), timer_id(std::numeric_limits<decltype(timer_id)>::max()) {}
+    unique_timer() : timer_id(std::numeric_limits<decltype(timer_id)>::max()) {}
     explicit unique_timer(timer_handler* parent_, uint32_t timer_id_) : parent(parent_), timer_id(timer_id_) {}
 
     unique_timer(const unique_timer&) = delete;
@@ -154,7 +154,7 @@ public:
 
     ~unique_timer()
     {
-      if (parent) {
+      if (parent != nullptr) {
         // does not call callback
         impl()->clear();
       }
@@ -207,7 +207,7 @@ public:
 
     const timer_impl* impl() const { return &parent->timer_list[timer_id]; }
 
-    timer_handler* parent;
+    timer_handler* parent = nullptr;
     uint32_t       timer_id;
   };
 
@@ -256,20 +256,7 @@ public:
     }
   }
 
-  unique_timer get_unique_timer()
-  {
-    uint32_t i = 0;
-    for (; i < timer_list.size(); ++i) {
-      if (not timer_list[i].active) {
-        break;
-      }
-    }
-    if (i == timer_list.size()) {
-      timer_list.emplace_back(this);
-    }
-    timer_list[i].active = true;
-    return unique_timer(this, i);
-  }
+  unique_timer get_unique_timer() { return unique_timer(this, alloc_timer()); }
 
   uint32_t get_cur_time() const { return cur_time; }
 
@@ -281,6 +268,19 @@ public:
   uint32_t nof_running_timers() const
   {
     return std::count_if(timer_list.begin(), timer_list.end(), [](const timer_impl& t) { return t.is_running(); });
+  }
+
+  template <typename F>
+  void defer_callback(uint32_t duration, const F& func)
+  {
+    uint32_t                      id = alloc_timer();
+    std::function<void(uint32_t)> c  = [func, this, id](uint32_t tid) {
+      func();
+      // auto-deletes timer
+      timer_list[id].clear();
+    };
+    timer_list[id].set(duration, std::move(c));
+    timer_list[id].run();
   }
 
 private:
@@ -299,6 +299,21 @@ private:
       return (other.timeout - timeout) > MAX_TIMER_VALUE / 2;
     }
   };
+
+  uint32_t alloc_timer()
+  {
+    uint32_t i = 0;
+    for (; i < timer_list.size(); ++i) {
+      if (not timer_list[i].active) {
+        break;
+      }
+    }
+    if (i == timer_list.size()) {
+      timer_list.emplace_back(this);
+    }
+    timer_list[i].active = true;
+    return i;
+  }
 
   std::vector<timer_impl>        timer_list;
   std::priority_queue<timer_run> running_timers;
