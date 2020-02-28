@@ -367,6 +367,51 @@ int timers_test5()
   return SRSLTE_SUCCESS;
 }
 
+/**
+ * Description: Check if erasure of a running timer is safe
+ */
+int timers_test6()
+{
+  timer_handler timers;
+
+  std::vector<int> vals;
+
+  // Event: Add a timer that gets erased 1 tti after.
+  {
+    timer_handler::unique_timer t = timers.get_unique_timer();
+    t.set(2, [&vals](uint32_t tid) { vals.push_back(1); });
+    t.run();
+    TESTASSERT(timers.nof_running_timers() == 1);
+    timers.step_all();
+  }
+  TESTASSERT(timers.nof_running_timers() == 0);
+  TESTASSERT(timers.nof_timers() == 0);
+
+  // TEST: The timer callback should not have been called
+  timers.step_all();
+  TESTASSERT(vals.empty());
+
+  // Event: Add a timer that gets erased right after, and add another timer with same timeout
+  {
+    timer_handler::unique_timer t = timers.get_unique_timer();
+    t.set(2, [&vals](uint32_t tid) { vals.push_back(2); });
+    t.run();
+    TESTASSERT(timers.nof_running_timers() == 1);
+    timers.step_all();
+    TESTASSERT(t.time_elapsed() == 1);
+  }
+  timer_handler::unique_timer t = timers.get_unique_timer();
+  t.set(1, [&vals](uint32_t tid) { vals.push_back(3); });
+  t.run();
+  TESTASSERT(timers.nof_running_timers() == 1);
+
+  // TEST: The second timer's callback should be the one being called, and should be called only once
+  timers.step_all();
+  TESTASSERT(vals.size() == 1 and vals[0] == 3);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   TESTASSERT(timers_test1() == SRSLTE_SUCCESS);
@@ -374,6 +419,7 @@ int main()
   TESTASSERT(timers_test3() == SRSLTE_SUCCESS);
   TESTASSERT(timers_test4() == SRSLTE_SUCCESS);
   TESTASSERT(timers_test5() == SRSLTE_SUCCESS);
+  TESTASSERT(timers_test6() == SRSLTE_SUCCESS);
   printf("Success\n");
   return 0;
 }
