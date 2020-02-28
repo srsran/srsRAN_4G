@@ -78,8 +78,8 @@ int test_ngsetup_request()
   ng_setup_request_s& ngsetup = pdu.init_msg().value.ng_setup_request();
   TESTASSERT(not ngsetup.ext);
   // Field 0
-  TESTASSERT(ngsetup.protocol_ies.global_ran_node_id.id == 27);                        // FIXME: Is this really needed?
-  TESTASSERT(ngsetup.protocol_ies.global_ran_node_id.crit.value == crit_opts::reject); // FIXME: Is this really needed?
+  TESTASSERT(ngsetup.protocol_ies.global_ran_node_id.id == 27);
+  TESTASSERT(ngsetup.protocol_ies.global_ran_node_id.crit.value == crit_opts::reject);
   TESTASSERT(ngsetup.protocol_ies.global_ran_node_id.value.type().value ==
              global_ran_node_id_c::types_opts::global_gnb_id);
   global_gnb_id_s& global_gnb = ngsetup.protocol_ies.global_ran_node_id.value.global_gnb_id();
@@ -133,7 +133,7 @@ int test_ngsetup_response()
   TESTASSERT(pdu.successful_outcome().proc_code == 21);
   TESTASSERT(pdu.successful_outcome().crit.value == crit_opts::reject);
   TESTASSERT(pdu.successful_outcome().value.type().value ==
-             ngap_elem_procs_o::successful_outcome_c::types_opts::ng_setup_resp); // FIXME: Change name
+             ngap_elem_procs_o::successful_outcome_c::types_opts::ng_setup_resp);
   ng_setup_resp_s& resp = pdu.successful_outcome().value.ng_setup_resp();
   // field 0
   TESTASSERT(resp.protocol_ies.amf_name.id == 1);
