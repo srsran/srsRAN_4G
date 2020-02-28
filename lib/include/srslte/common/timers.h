@@ -225,8 +225,17 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
     cur_time++;
-    while (not running_timers.empty() and cur_time >= running_timers.top().timeout) {
-      timer_impl* ptr = &timer_list[running_timers.top().timer_id];
+    while (not running_timers.empty()) {
+      uint32_t    next_timeout = running_timers.top().timeout;
+      timer_impl* ptr          = &timer_list[running_timers.top().timer_id];
+      if (not ptr->is_running() or next_timeout != ptr->timeout) {
+        // remove timers that were explicitly stopped, or re-run, to avoid unnecessary priority_queue growth
+        running_timers.pop();
+        continue;
+      }
+      if (cur_time < next_timeout) {
+        break;
+      }
       // if the timer_run and timer_impl timeouts do not match, it means that timer_impl::timeout was overwritten.
       // in such case, do not trigger
       uint32_t timeout = running_timers.top().timeout;
