@@ -227,7 +227,8 @@ nas::nas(srslte::timer_handler* timers_) :
   rrc_connector(this),
   timers(timers_),
   t3410(timers_->get_unique_timer()),
-  t3411(timers_->get_unique_timer())
+  t3411(timers_->get_unique_timer()),
+  reattach_timer(timers_->get_unique_timer())
 {
 }
 
@@ -283,6 +284,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   // Configure T3410 and T3411
   t3410.set(t3410_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
   t3411.set(t3411_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
+  reattach_timer.set(reattach_timer_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
 
   running = true;
 }
@@ -318,6 +320,9 @@ void nas::timer_expired(uint32_t timeout_id)
     t3411.run();
   } else if (timeout_id == t3411.id()) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
+    start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+  } else if (timeout_id == reattach_timer.id()) {
+    nas_log->info("Reattach timer expired: trying to attach again\n");
     start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
   } else {
     nas_log->error("Timeout from unknown timer id %d\n", timeout_id);
@@ -1372,15 +1377,24 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &detach_request);
   ctxt.rx_count++;
 
+  nas_log->info("Received detach request (type=%d)\n", detach_request.detach_type.type_of_detach);
+
   switch (state) {
     case EMM_STATE_DEREGISTERED_INITIATED:
       nas_log->info("Received detach from network while performing UE initiated detach. Aborting UE detach.\n");
+      // intentional fall-through to complete detach procedure
     case EMM_STATE_REGISTERED:
-      nas_log->info("Received detach request (type=%d)\n", detach_request.detach_type.type_of_detach);
-
       // send accept and leave state
       send_detach_accept();
       enter_emm_deregistered();
+
+      // schedule reattach if required
+      if (detach_request.detach_type.type_of_detach == LIBLTE_MME_TOD_DL_REATTACH_REQUIRED) {
+        // Section 5.5.2.3.2
+        // delay re-attach to allow RRC to release
+        nas_log->debug("Starting reattach timer\n");
+        reattach_timer.run();
+      }
       break;
     default:
       nas_log->warning("Received detach request in invalid state (%s)\n", emm_state_text[state]);
