@@ -46,20 +46,26 @@ public:
 class ss_sys_interface
 {
 public:
-  virtual void     add_bcch_dlsch_pdu(const std::string cell_name, srslte::unique_byte_buffer_t pdu)              = 0;
-  virtual void     add_pch_pdu(srslte::unique_byte_buffer_t pdu)                                                  = 0;
-  virtual void     set_cell_attenuation(std::string cell_name, const float attenuation)                           = 0;
-  virtual void     set_cell_config(std::string cell_name, uint32_t earfcn, srslte_cell_t cell, const float power) = 0;
-  virtual void add_srb(const timing_info_t timing, const uint32_t lcid, const srslte::pdcp_config_t pdcp_config)  = 0;
-  virtual void del_srb(const timing_info_t timing, const uint32_t lcid)                                           = 0;
-  virtual uint32_t get_tti()                                                                                      = 0;
-  virtual int      set_as_security(const uint32_t                            lcid,
+  virtual void add_bcch_dlsch_pdu(const std::string cell_name, srslte::unique_byte_buffer_t pdu) = 0;
+  virtual void add_pch_pdu(srslte::unique_byte_buffer_t pdu)                                     = 0;
+  virtual void
+               set_cell_attenuation(const timing_info_t timing, const std::string cell_name, const float attenuation) = 0;
+  virtual void set_cell_config(const timing_info_t timing,
+                               const std::string   cell_name,
+                               const uint32_t      earfcn,
+                               const srslte_cell_t cell,
+                               const float         power)                                                                = 0;
+  virtual void add_srb(const timing_info_t timing, const uint32_t lcid, const srslte::pdcp_config_t pdcp_config) = 0;
+  virtual void del_srb(const timing_info_t timing, const uint32_t lcid)                                          = 0;
+  virtual uint32_t get_tti()                                                                                     = 0;
+  virtual void     set_as_security(const timing_info_t                       timing,
+                                   const uint32_t                            lcid,
                                    const std::array<uint8_t, 32>             k_rrc_enc,
                                    const std::array<uint8_t, 32>             k_rrc_int,
                                    const std::array<uint8_t, 32>             k_up_enc,
                                    const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                                   const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)                          = 0;
-  virtual void     release_as_security()                                                                          = 0;
+                                   const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)                         = 0;
+  virtual void     release_as_security(const timing_info_t timing)                                               = 0;
 };
 
 class ss_srb_interface

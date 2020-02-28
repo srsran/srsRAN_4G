@@ -160,7 +160,8 @@ private:
       assert(cell_name.IsString());
 
       // Now configure cell
-      syssim->set_cell_config(cell_name.GetString(), earfcn.GetInt(), cell, ref_power.GetInt());
+      syssim->set_cell_config(
+          ttcn3_helpers::get_timing_info(document), cell_name.GetString(), earfcn.GetInt(), cell, ref_power.GetInt());
 
       // Pull out SIBs and send to syssim
       uint16_t       consumed_bytes = 0;
@@ -211,10 +212,6 @@ private:
     assert(a.HasMember("ControlInfo"));
     const Value& b = a["ControlInfo"];
     assert(b.HasMember("CnfFlag"));
-
-    if (ttcn3_helpers::get_timing_info(document).now == false) {
-      log->error("Timing info not supported in %s\n", __FUNCTION__);
-    }
 
     // Handle cell creation
     if (document["Request"]["Cell"].HasMember("AddOrReconfigure")) {
@@ -338,10 +335,6 @@ private:
     const Value& cells = req["CellAttenuationList"];
     assert(cells.IsArray());
 
-    if (ttcn3_helpers::get_timing_info(document).now == false) {
-      log->error("Timing info not supported in %s\n", __FUNCTION__);
-    }
-
     // iterate over all bearers and configure them
     for (Value::ConstValueIterator itr = cells.Begin(); itr != cells.End(); ++itr) {
       assert(itr->HasMember("CellId"));
@@ -363,7 +356,7 @@ private:
       }
 
       log->info("Configuring attenuation of %s to %.2f dB\n", id.GetString(), att_value);
-      syssim->set_cell_attenuation(id.GetString(), att_value);
+      syssim->set_cell_attenuation(ttcn3_helpers::get_timing_info(document), id.GetString(), att_value);
     }
 
     std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "CellAttenuationList");
@@ -428,11 +421,6 @@ private:
     const Value& req = document["Request"];
     assert(req.HasMember("AS_Security"));
 
-    if (ttcn3_helpers::get_timing_info(document).now == false) {
-      log->error("Timing info not supported in %s\n", __FUNCTION__);
-      // continue ...
-    }
-
     // check AS security start
     const Value& as_sec = req["AS_Security"];
     if (as_sec.HasMember("StartRestart")) {
@@ -491,10 +479,11 @@ private:
       }
 
       // configure SS to use AS security
-      syssim->set_as_security(lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+      syssim->set_as_security(
+          ttcn3_helpers::get_timing_info(document), lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
     } else if (as_sec.HasMember("Release")) {
       // release all security configs
-      syssim->release_as_security();
+      syssim->release_as_security(ttcn3_helpers::get_timing_info(document));
     }
 
     if (config_flag.GetBool() == true) {

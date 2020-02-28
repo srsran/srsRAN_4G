@@ -699,16 +699,34 @@ public:
 
   void process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel) {}
 
-  void set_cell_config(std::string name, uint32_t earfcn_, srslte_cell_t cell_, const float power)
+  void set_cell_config(const timing_info_t timing,
+                       const std::string   cell_name,
+                       const uint32_t      earfcn,
+                       const srslte_cell_t cell,
+                       const float         power)
+  {
+    if (timing.now) {
+      set_cell_config_impl(cell_name, earfcn, cell, power);
+    } else {
+      log.debug("Scheduling Cell configuration of %s for TTI=%d\n", cell_name.c_str(), timing.tti);
+      tti_actions[timing.tti].push_back(
+          [this, cell_name, earfcn, cell, power]() { set_cell_config_impl(cell_name, earfcn, cell, power); });
+    }
+  }
+
+  void set_cell_config_impl(const std::string   cell_name_,
+                            const uint32_t      earfcn_,
+                            const srslte_cell_t cell_,
+                            const float         power_)
   {
     // check if cell already exists
-    if (not syssim_has_cell(name)) {
+    if (not syssim_has_cell(cell_name_)) {
       // insert new cell
-      log.info("Adding cell %s with cellId=%d and power=%.2f dBm\n", name.c_str(), cell_.id, power);
+      log.info("Adding cell %s with cellId=%d and power=%.2f dBm\n", cell_name_.c_str(), cell_.id, power_);
       unique_syssim_cell_t cell = unique_syssim_cell_t(new syssim_cell_t);
-      cell->name                = name;
+      cell->name                = cell_name_;
       cell->cell                = cell_;
-      cell->initial_power       = power;
+      cell->initial_power       = power_;
       cell->earfcn              = earfcn_;
       cells.push_back(std::move(cell));
     } else {
@@ -730,7 +748,17 @@ public:
     return false;
   }
 
-  void set_cell_attenuation(std::string cell_name, const float value)
+  void set_cell_attenuation(const timing_info_t timing, const std::string cell_name, const float value)
+  {
+    if (timing.now) {
+      set_cell_attenuation_impl(cell_name, value);
+    } else {
+      log.debug("Scheduling Cell attenuation reconfiguration of %s for TTI=%d\n", cell_name.c_str(), timing.tti);
+      tti_actions[timing.tti].push_back([this, cell_name, value]() { set_cell_attenuation_impl(cell_name, value); });
+    }
+  }
+
+  void set_cell_attenuation_impl(const std::string cell_name, const float value)
   {
     if (not syssim_has_cell(cell_name)) {
       log.error("Can't set cell power. Cell not found.\n");
@@ -957,12 +985,30 @@ public:
 
   bool rb_is_um(uint32_t lcid) { return false; }
 
-  int set_as_security(const uint32_t                            lcid,
-                      std::array<uint8_t, 32>                   k_rrc_enc_,
-                      std::array<uint8_t, 32>                   k_rrc_int_,
-                      std::array<uint8_t, 32>                   k_up_enc_,
-                      const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                      const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
+  void set_as_security(const timing_info_t                       timing,
+                       const uint32_t                            lcid,
+                       std::array<uint8_t, 32>                   k_rrc_enc_,
+                       std::array<uint8_t, 32>                   k_rrc_int_,
+                       std::array<uint8_t, 32>                   k_up_enc_,
+                       const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                       const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
+  {
+    if (timing.now) {
+      set_as_security_impl(lcid, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_);
+    } else {
+      log.debug("Scheduling AS security configuration of lcid=%d for TTI=%d\n", lcid, timing.tti);
+      tti_actions[timing.tti].push_back([this, lcid, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_]() {
+        set_as_security_impl(lcid, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_);
+      });
+    }
+  }
+
+  void set_as_security_impl(const uint32_t                            lcid,
+                            std::array<uint8_t, 32>                   k_rrc_enc_,
+                            std::array<uint8_t, 32>                   k_rrc_int_,
+                            std::array<uint8_t, 32>                   k_up_enc_,
+                            const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
+                            const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
   {
     log.info("Setting AS security for LCID=%d\n", lcid);
     pdcp.config_security(lcid, k_rrc_enc_.data(), k_rrc_int_.data(), k_up_enc_.data(), cipher_algo_, integ_algo_);
@@ -984,11 +1030,19 @@ public:
     k_up_enc            = k_up_enc_;
     cipher_algo         = cipher_algo_;
     integ_algo          = integ_algo_;
-
-    return 0;
   }
 
-  void release_as_security()
+  void release_as_security(const timing_info_t timing)
+  {
+    if (timing.now) {
+      release_as_security_impl();
+    } else {
+      log.debug("Scheduling Release of AS security for TTI=%d\n", timing.tti);
+      tti_actions[timing.tti].push_back([this]() { release_as_security_impl(); });
+    }
+  }
+
+  void release_as_security_impl()
   {
     log.info("Releasing AS security\n");
     as_security_enabled = false;
