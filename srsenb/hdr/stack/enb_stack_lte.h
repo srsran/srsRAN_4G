@@ -153,7 +153,6 @@ private:
   srslte::log_filter s1ap_log;
   srslte::log_filter gtpu_log;
   srslte::log_filter stack_log;
-  srslte::log_filter asn1_log, rrc_asn1_log;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;

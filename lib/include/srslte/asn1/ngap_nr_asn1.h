@@ -39,12 +39,6 @@ namespace ngap_nr {
  *                        Functions for external logging
  ******************************************************************************/
 
-extern srslte::log* ngap_nr_log_ptr;
-
-void ngap_nr_log_register_handler(srslte::log* ctx);
-
-void ngap_nr_log_print(srslte::LOG_LEVEL_ENUM log_level, const char* format, ...);
-
 void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
 
 void assert_choice_type(uint32_t val, uint32_t choice_id);
@@ -56,19 +50,7 @@ void assert_choice_type(const std::string& access_type,
 const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 template <class ItemType>
-ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
-{
-  if (enum_val >= nof_types) {
-    if (enum_val == nof_types) {
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
-    } else {
-      ngap_nr_log_print(
-          LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be converted.\n", enum_val, enum_type);
-    }
-    return 0;
-  }
-  return array[enum_val];
-}
+ItemType map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 /*******************************************************************************
  *                             Constant Definitions
@@ -14805,586 +14787,6 @@ struct write_replace_warning_resp_s {
   void        to_json(json_writer& j) const;
 };
 
-// NGAP-ELEMENTARY-PROCEDURES-CLASS-1 ::= OBJECT SET OF NGAP-ELEMENTARY-PROCEDURE
-struct ngap_elem_procs_class_minus1_o {
-  // InitiatingMessage ::= OPEN TYPE
-  struct init_msg_c {
-    struct types_opts {
-      enum options {
-        amf_cfg_upd,
-        ho_cancel,
-        ho_required,
-        ho_request,
-        init_context_setup_request,
-        ng_reset,
-        ng_setup_request,
-        path_switch_request,
-        pdu_session_res_modify_request,
-        pdu_session_res_modify_ind,
-        pdu_session_res_release_cmd,
-        pdu_session_res_setup_request,
-        pws_cancel_request,
-        ran_cfg_upd,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        ue_radio_cap_check_request,
-        write_replace_warning_request,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    init_msg_c() = default;
-    init_msg_c(const init_msg_c& other);
-    init_msg_c& operator=(const init_msg_c& other);
-    ~init_msg_c() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    amf_cfg_upd_s&                          amf_cfg_upd();
-    ho_cancel_s&                            ho_cancel();
-    ho_required_s&                          ho_required();
-    ho_request_s&                           ho_request();
-    init_context_setup_request_s&           init_context_setup_request();
-    ng_reset_s&                             ng_reset();
-    ng_setup_request_s&                     ng_setup_request();
-    path_switch_request_s&                  path_switch_request();
-    pdu_session_res_modify_request_s&       pdu_session_res_modify_request();
-    pdu_session_res_modify_ind_s&           pdu_session_res_modify_ind();
-    pdu_session_res_release_cmd_s&          pdu_session_res_release_cmd();
-    pdu_session_res_setup_request_s&        pdu_session_res_setup_request();
-    pws_cancel_request_s&                   pws_cancel_request();
-    ran_cfg_upd_s&                          ran_cfg_upd();
-    ue_context_mod_request_s&               ue_context_mod_request();
-    ue_context_release_cmd_s&               ue_context_release_cmd();
-    ue_radio_cap_check_request_s&           ue_radio_cap_check_request();
-    write_replace_warning_request_s&        write_replace_warning_request();
-    const amf_cfg_upd_s&                    amf_cfg_upd() const;
-    const ho_cancel_s&                      ho_cancel() const;
-    const ho_required_s&                    ho_required() const;
-    const ho_request_s&                     ho_request() const;
-    const init_context_setup_request_s&     init_context_setup_request() const;
-    const ng_reset_s&                       ng_reset() const;
-    const ng_setup_request_s&               ng_setup_request() const;
-    const path_switch_request_s&            path_switch_request() const;
-    const pdu_session_res_modify_request_s& pdu_session_res_modify_request() const;
-    const pdu_session_res_modify_ind_s&     pdu_session_res_modify_ind() const;
-    const pdu_session_res_release_cmd_s&    pdu_session_res_release_cmd() const;
-    const pdu_session_res_setup_request_s&  pdu_session_res_setup_request() const;
-    const pws_cancel_request_s&             pws_cancel_request() const;
-    const ran_cfg_upd_s&                    ran_cfg_upd() const;
-    const ue_context_mod_request_s&         ue_context_mod_request() const;
-    const ue_context_release_cmd_s&         ue_context_release_cmd() const;
-    const ue_radio_cap_check_request_s&     ue_radio_cap_check_request() const;
-    const write_replace_warning_request_s&  write_replace_warning_request() const;
-
-  private:
-    types type_;
-    choice_buffer_t<amf_cfg_upd_s,
-                    ho_cancel_s,
-                    ho_request_s,
-                    ho_required_s,
-                    init_context_setup_request_s,
-                    ng_reset_s,
-                    ng_setup_request_s,
-                    path_switch_request_s,
-                    pdu_session_res_modify_ind_s,
-                    pdu_session_res_modify_request_s,
-                    pdu_session_res_release_cmd_s,
-                    pdu_session_res_setup_request_s,
-                    pws_cancel_request_s,
-                    ran_cfg_upd_s,
-                    ue_context_mod_request_s,
-                    ue_context_release_cmd_s,
-                    ue_radio_cap_check_request_s,
-                    write_replace_warning_request_s>
-        c;
-
-    void destroy_();
-  };
-  // SuccessfulOutcome ::= OPEN TYPE
-  struct successful_outcome_c {
-    struct types_opts {
-      enum options {
-        amf_cfg_upd,
-        ho_cancel,
-        ho_required,
-        ho_request,
-        init_context_setup_request,
-        ng_reset,
-        ng_setup_request,
-        path_switch_request,
-        pdu_session_res_modify_request,
-        pdu_session_res_modify_ind,
-        pdu_session_res_release_cmd,
-        pdu_session_res_setup_request,
-        pws_cancel_request,
-        ran_cfg_upd,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        ue_radio_cap_check_request,
-        write_replace_warning_request,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    successful_outcome_c() = default;
-    successful_outcome_c(const successful_outcome_c& other);
-    successful_outcome_c& operator=(const successful_outcome_c& other);
-    ~successful_outcome_c() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    amf_cfg_upd_ack_s&                      amf_cfg_upd();
-    ho_cancel_ack_s&                        ho_cancel();
-    ho_cmd_s&                               ho_required();
-    ho_request_ack_s&                       ho_request();
-    init_context_setup_resp_s&              init_context_setup_request();
-    ng_reset_ack_s&                         ng_reset();
-    ng_setup_resp_s&                        ng_setup_request();
-    path_switch_request_ack_s&              path_switch_request();
-    pdu_session_res_modify_resp_s&          pdu_session_res_modify_request();
-    pdu_session_res_modify_confirm_s&       pdu_session_res_modify_ind();
-    pdu_session_res_release_resp_s&         pdu_session_res_release_cmd();
-    pdu_session_res_setup_resp_s&           pdu_session_res_setup_request();
-    pws_cancel_resp_s&                      pws_cancel_request();
-    ran_cfg_upd_ack_s&                      ran_cfg_upd();
-    ue_context_mod_resp_s&                  ue_context_mod_request();
-    ue_context_release_complete_s&          ue_context_release_cmd();
-    ue_radio_cap_check_resp_s&              ue_radio_cap_check_request();
-    write_replace_warning_resp_s&           write_replace_warning_request();
-    const amf_cfg_upd_ack_s&                amf_cfg_upd() const;
-    const ho_cancel_ack_s&                  ho_cancel() const;
-    const ho_cmd_s&                         ho_required() const;
-    const ho_request_ack_s&                 ho_request() const;
-    const init_context_setup_resp_s&        init_context_setup_request() const;
-    const ng_reset_ack_s&                   ng_reset() const;
-    const ng_setup_resp_s&                  ng_setup_request() const;
-    const path_switch_request_ack_s&        path_switch_request() const;
-    const pdu_session_res_modify_resp_s&    pdu_session_res_modify_request() const;
-    const pdu_session_res_modify_confirm_s& pdu_session_res_modify_ind() const;
-    const pdu_session_res_release_resp_s&   pdu_session_res_release_cmd() const;
-    const pdu_session_res_setup_resp_s&     pdu_session_res_setup_request() const;
-    const pws_cancel_resp_s&                pws_cancel_request() const;
-    const ran_cfg_upd_ack_s&                ran_cfg_upd() const;
-    const ue_context_mod_resp_s&            ue_context_mod_request() const;
-    const ue_context_release_complete_s&    ue_context_release_cmd() const;
-    const ue_radio_cap_check_resp_s&        ue_radio_cap_check_request() const;
-    const write_replace_warning_resp_s&     write_replace_warning_request() const;
-
-  private:
-    types type_;
-    choice_buffer_t<amf_cfg_upd_ack_s,
-                    ho_cancel_ack_s,
-                    ho_cmd_s,
-                    ho_request_ack_s,
-                    init_context_setup_resp_s,
-                    ng_reset_ack_s,
-                    ng_setup_resp_s,
-                    path_switch_request_ack_s,
-                    pdu_session_res_modify_confirm_s,
-                    pdu_session_res_modify_resp_s,
-                    pdu_session_res_release_resp_s,
-                    pdu_session_res_setup_resp_s,
-                    pws_cancel_resp_s,
-                    ran_cfg_upd_ack_s,
-                    ue_context_mod_resp_s,
-                    ue_context_release_complete_s,
-                    ue_radio_cap_check_resp_s,
-                    write_replace_warning_resp_s>
-        c;
-
-    void destroy_();
-  };
-  // UnsuccessfulOutcome ::= OPEN TYPE
-  struct unsuccessful_outcome_c {
-    struct types_opts {
-      enum options {
-        amf_cfg_upd,
-        ho_cancel,
-        ho_required,
-        ho_request,
-        init_context_setup_request,
-        ng_reset,
-        ng_setup_request,
-        path_switch_request,
-        pdu_session_res_modify_request,
-        pdu_session_res_modify_ind,
-        pdu_session_res_release_cmd,
-        pdu_session_res_setup_request,
-        pws_cancel_request,
-        ran_cfg_upd,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        ue_radio_cap_check_request,
-        write_replace_warning_request,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    unsuccessful_outcome_c() = default;
-    unsuccessful_outcome_c(const unsuccessful_outcome_c& other);
-    unsuccessful_outcome_c& operator=(const unsuccessful_outcome_c& other);
-    ~unsuccessful_outcome_c() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    amf_cfg_upd_fail_s&               amf_cfg_upd();
-    ho_prep_fail_s&                   ho_required();
-    ho_fail_s&                        ho_request();
-    init_context_setup_fail_s&        init_context_setup_request();
-    ng_setup_fail_s&                  ng_setup_request();
-    path_switch_request_fail_s&       path_switch_request();
-    ran_cfg_upd_fail_s&               ran_cfg_upd();
-    ue_context_mod_fail_s&            ue_context_mod_request();
-    const amf_cfg_upd_fail_s&         amf_cfg_upd() const;
-    const ho_prep_fail_s&             ho_required() const;
-    const ho_fail_s&                  ho_request() const;
-    const init_context_setup_fail_s&  init_context_setup_request() const;
-    const ng_setup_fail_s&            ng_setup_request() const;
-    const path_switch_request_fail_s& path_switch_request() const;
-    const ran_cfg_upd_fail_s&         ran_cfg_upd() const;
-    const ue_context_mod_fail_s&      ue_context_mod_request() const;
-
-  private:
-    types type_;
-    choice_buffer_t<amf_cfg_upd_fail_s,
-                    ho_fail_s,
-                    ho_prep_fail_s,
-                    init_context_setup_fail_s,
-                    ng_setup_fail_s,
-                    path_switch_request_fail_s,
-                    ran_cfg_upd_fail_s,
-                    ue_context_mod_fail_s>
-        c;
-
-    void destroy_();
-  };
-
-  // members lookup methods
-  static uint16_t               idx_to_proc_code(uint32_t idx);
-  static bool                   is_proc_code_valid(const uint16_t& proc_code);
-  static init_msg_c             get_init_msg(const uint16_t& proc_code);
-  static successful_outcome_c   get_successful_outcome(const uint16_t& proc_code);
-  static unsuccessful_outcome_c get_unsuccessful_outcome(const uint16_t& proc_code);
-  static crit_e                 get_crit(const uint16_t& proc_code);
-};
-
-// NGAP-ELEMENTARY-PROCEDURES-CLASS-2 ::= OBJECT SET OF NGAP-ELEMENTARY-PROCEDURE
-struct ngap_elem_procs_class_minus2_o {
-  // InitiatingMessage ::= OPEN TYPE
-  struct init_msg_c {
-    struct types_opts {
-      enum options {
-        amf_status_ind,
-        cell_traffic_trace,
-        deactiv_trace,
-        dl_nas_transport,
-        dl_non_ueassociated_nrp_pa_transport,
-        dl_ran_cfg_transfer,
-        dl_ran_status_transfer,
-        dl_ueassociated_nrp_pa_transport,
-        error_ind,
-        ho_notify,
-        init_ue_msg,
-        location_report,
-        location_report_ctrl,
-        location_report_fail_ind,
-        nas_non_delivery_ind,
-        overload_start,
-        overload_stop,
-        paging,
-        pdu_session_res_notify,
-        private_msg,
-        pws_fail_ind,
-        pws_restart_ind,
-        reroute_nas_request,
-        rrc_inactive_transition_report,
-        secondary_rat_data_usage_report,
-        trace_fail_ind,
-        trace_start,
-        ue_context_release_request,
-        ue_radio_cap_info_ind,
-        uetnla_binding_release_request,
-        ul_nas_transport,
-        ul_non_ueassociated_nrp_pa_transport,
-        ul_ran_cfg_transfer,
-        ul_ran_status_transfer,
-        ul_ueassociated_nrp_pa_transport,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    init_msg_c() = default;
-    init_msg_c(const init_msg_c& other);
-    init_msg_c& operator=(const init_msg_c& other);
-    ~init_msg_c() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    amf_status_ind_s&                             amf_status_ind();
-    cell_traffic_trace_s&                         cell_traffic_trace();
-    deactiv_trace_s&                              deactiv_trace();
-    dl_nas_transport_s&                           dl_nas_transport();
-    dl_non_ueassociated_nrp_pa_transport_s&       dl_non_ueassociated_nrp_pa_transport();
-    dl_ran_cfg_transfer_s&                        dl_ran_cfg_transfer();
-    dl_ran_status_transfer_s&                     dl_ran_status_transfer();
-    dl_ueassociated_nrp_pa_transport_s&           dl_ueassociated_nrp_pa_transport();
-    error_ind_s&                                  error_ind();
-    ho_notify_s&                                  ho_notify();
-    init_ue_msg_s&                                init_ue_msg();
-    location_report_s&                            location_report();
-    location_report_ctrl_s&                       location_report_ctrl();
-    location_report_fail_ind_s&                   location_report_fail_ind();
-    nas_non_delivery_ind_s&                       nas_non_delivery_ind();
-    overload_start_s&                             overload_start();
-    overload_stop_s&                              overload_stop();
-    paging_s&                                     paging();
-    pdu_session_res_notify_s&                     pdu_session_res_notify();
-    private_msg_s&                                private_msg();
-    pws_fail_ind_s&                               pws_fail_ind();
-    pws_restart_ind_s&                            pws_restart_ind();
-    reroute_nas_request_s&                        reroute_nas_request();
-    rrc_inactive_transition_report_s&             rrc_inactive_transition_report();
-    secondary_rat_data_usage_report_s&            secondary_rat_data_usage_report();
-    trace_fail_ind_s&                             trace_fail_ind();
-    trace_start_s&                                trace_start();
-    ue_context_release_request_s&                 ue_context_release_request();
-    ue_radio_cap_info_ind_s&                      ue_radio_cap_info_ind();
-    uetnla_binding_release_request_s&             uetnla_binding_release_request();
-    ul_nas_transport_s&                           ul_nas_transport();
-    ul_non_ueassociated_nrp_pa_transport_s&       ul_non_ueassociated_nrp_pa_transport();
-    ul_ran_cfg_transfer_s&                        ul_ran_cfg_transfer();
-    ul_ran_status_transfer_s&                     ul_ran_status_transfer();
-    ul_ueassociated_nrp_pa_transport_s&           ul_ueassociated_nrp_pa_transport();
-    const amf_status_ind_s&                       amf_status_ind() const;
-    const cell_traffic_trace_s&                   cell_traffic_trace() const;
-    const deactiv_trace_s&                        deactiv_trace() const;
-    const dl_nas_transport_s&                     dl_nas_transport() const;
-    const dl_non_ueassociated_nrp_pa_transport_s& dl_non_ueassociated_nrp_pa_transport() const;
-    const dl_ran_cfg_transfer_s&                  dl_ran_cfg_transfer() const;
-    const dl_ran_status_transfer_s&               dl_ran_status_transfer() const;
-    const dl_ueassociated_nrp_pa_transport_s&     dl_ueassociated_nrp_pa_transport() const;
-    const error_ind_s&                            error_ind() const;
-    const ho_notify_s&                            ho_notify() const;
-    const init_ue_msg_s&                          init_ue_msg() const;
-    const location_report_s&                      location_report() const;
-    const location_report_ctrl_s&                 location_report_ctrl() const;
-    const location_report_fail_ind_s&             location_report_fail_ind() const;
-    const nas_non_delivery_ind_s&                 nas_non_delivery_ind() const;
-    const overload_start_s&                       overload_start() const;
-    const overload_stop_s&                        overload_stop() const;
-    const paging_s&                               paging() const;
-    const pdu_session_res_notify_s&               pdu_session_res_notify() const;
-    const private_msg_s&                          private_msg() const;
-    const pws_fail_ind_s&                         pws_fail_ind() const;
-    const pws_restart_ind_s&                      pws_restart_ind() const;
-    const reroute_nas_request_s&                  reroute_nas_request() const;
-    const rrc_inactive_transition_report_s&       rrc_inactive_transition_report() const;
-    const secondary_rat_data_usage_report_s&      secondary_rat_data_usage_report() const;
-    const trace_fail_ind_s&                       trace_fail_ind() const;
-    const trace_start_s&                          trace_start() const;
-    const ue_context_release_request_s&           ue_context_release_request() const;
-    const ue_radio_cap_info_ind_s&                ue_radio_cap_info_ind() const;
-    const uetnla_binding_release_request_s&       uetnla_binding_release_request() const;
-    const ul_nas_transport_s&                     ul_nas_transport() const;
-    const ul_non_ueassociated_nrp_pa_transport_s& ul_non_ueassociated_nrp_pa_transport() const;
-    const ul_ran_cfg_transfer_s&                  ul_ran_cfg_transfer() const;
-    const ul_ran_status_transfer_s&               ul_ran_status_transfer() const;
-    const ul_ueassociated_nrp_pa_transport_s&     ul_ueassociated_nrp_pa_transport() const;
-
-  private:
-    types type_;
-    choice_buffer_t<amf_status_ind_s,
-                    cell_traffic_trace_s,
-                    deactiv_trace_s,
-                    dl_nas_transport_s,
-                    dl_non_ueassociated_nrp_pa_transport_s,
-                    dl_ran_cfg_transfer_s,
-                    dl_ran_status_transfer_s,
-                    dl_ueassociated_nrp_pa_transport_s,
-                    error_ind_s,
-                    ho_notify_s,
-                    init_ue_msg_s,
-                    location_report_ctrl_s,
-                    location_report_fail_ind_s,
-                    location_report_s,
-                    nas_non_delivery_ind_s,
-                    overload_start_s,
-                    overload_stop_s,
-                    paging_s,
-                    pdu_session_res_notify_s,
-                    private_msg_s,
-                    pws_fail_ind_s,
-                    pws_restart_ind_s,
-                    reroute_nas_request_s,
-                    rrc_inactive_transition_report_s,
-                    secondary_rat_data_usage_report_s,
-                    trace_fail_ind_s,
-                    trace_start_s,
-                    ue_context_release_request_s,
-                    ue_radio_cap_info_ind_s,
-                    uetnla_binding_release_request_s,
-                    ul_nas_transport_s,
-                    ul_non_ueassociated_nrp_pa_transport_s,
-                    ul_ran_cfg_transfer_s,
-                    ul_ran_status_transfer_s,
-                    ul_ueassociated_nrp_pa_transport_s>
-        c;
-
-    void destroy_();
-  };
-  // SuccessfulOutcome ::= OPEN TYPE
-  struct successful_outcome_c {
-    struct types_opts {
-      enum options {
-        amf_status_ind,
-        cell_traffic_trace,
-        deactiv_trace,
-        dl_nas_transport,
-        dl_non_ueassociated_nrp_pa_transport,
-        dl_ran_cfg_transfer,
-        dl_ran_status_transfer,
-        dl_ueassociated_nrp_pa_transport,
-        error_ind,
-        ho_notify,
-        init_ue_msg,
-        location_report,
-        location_report_ctrl,
-        location_report_fail_ind,
-        nas_non_delivery_ind,
-        overload_start,
-        overload_stop,
-        paging,
-        pdu_session_res_notify,
-        private_msg,
-        pws_fail_ind,
-        pws_restart_ind,
-        reroute_nas_request,
-        rrc_inactive_transition_report,
-        secondary_rat_data_usage_report,
-        trace_fail_ind,
-        trace_start,
-        ue_context_release_request,
-        ue_radio_cap_info_ind,
-        uetnla_binding_release_request,
-        ul_nas_transport,
-        ul_non_ueassociated_nrp_pa_transport,
-        ul_ran_cfg_transfer,
-        ul_ran_status_transfer,
-        ul_ueassociated_nrp_pa_transport,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    successful_outcome_c() = default;
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-
-  private:
-    types type_;
-  };
-  // UnsuccessfulOutcome ::= OPEN TYPE
-  struct unsuccessful_outcome_c {
-    struct types_opts {
-      enum options {
-        amf_status_ind,
-        cell_traffic_trace,
-        deactiv_trace,
-        dl_nas_transport,
-        dl_non_ueassociated_nrp_pa_transport,
-        dl_ran_cfg_transfer,
-        dl_ran_status_transfer,
-        dl_ueassociated_nrp_pa_transport,
-        error_ind,
-        ho_notify,
-        init_ue_msg,
-        location_report,
-        location_report_ctrl,
-        location_report_fail_ind,
-        nas_non_delivery_ind,
-        overload_start,
-        overload_stop,
-        paging,
-        pdu_session_res_notify,
-        private_msg,
-        pws_fail_ind,
-        pws_restart_ind,
-        reroute_nas_request,
-        rrc_inactive_transition_report,
-        secondary_rat_data_usage_report,
-        trace_fail_ind,
-        trace_start,
-        ue_context_release_request,
-        ue_radio_cap_info_ind,
-        uetnla_binding_release_request,
-        ul_nas_transport,
-        ul_non_ueassociated_nrp_pa_transport,
-        ul_ran_cfg_transfer,
-        ul_ran_status_transfer,
-        ul_ueassociated_nrp_pa_transport,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    unsuccessful_outcome_c() = default;
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-
-  private:
-    types type_;
-  };
-
-  // members lookup methods
-  static uint16_t               idx_to_proc_code(uint32_t idx);
-  static bool                   is_proc_code_valid(const uint16_t& proc_code);
-  static init_msg_c             get_init_msg(const uint16_t& proc_code);
-  static successful_outcome_c   get_successful_outcome(const uint16_t& proc_code);
-  static unsuccessful_outcome_c get_unsuccessful_outcome(const uint16_t& proc_code);
-  static crit_e                 get_crit(const uint16_t& proc_code);
-};
-
 // NGAP-ELEMENTARY-PROCEDURES ::= OBJECT SET OF NGAP-ELEMENTARY-PROCEDURE
 struct ngap_elem_procs_o {
   // InitiatingMessage ::= OPEN TYPE
@@ -15632,59 +15034,24 @@ struct ngap_elem_procs_o {
   struct successful_outcome_c {
     struct types_opts {
       enum options {
-        amf_cfg_upd,
-        ho_cancel,
-        ho_required,
-        ho_request,
-        init_context_setup_request,
-        ng_reset,
-        ng_setup_request,
-        path_switch_request,
-        pdu_session_res_modify_request,
-        pdu_session_res_modify_ind,
-        pdu_session_res_release_cmd,
-        pdu_session_res_setup_request,
-        pws_cancel_request,
-        ran_cfg_upd,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        ue_radio_cap_check_request,
-        write_replace_warning_request,
-        amf_status_ind,
-        cell_traffic_trace,
-        deactiv_trace,
-        dl_nas_transport,
-        dl_non_ueassociated_nrp_pa_transport,
-        dl_ran_cfg_transfer,
-        dl_ran_status_transfer,
-        dl_ueassociated_nrp_pa_transport,
-        error_ind,
-        ho_notify,
-        init_ue_msg,
-        location_report,
-        location_report_ctrl,
-        location_report_fail_ind,
-        nas_non_delivery_ind,
-        overload_start,
-        overload_stop,
-        paging,
-        pdu_session_res_notify,
-        private_msg,
-        pws_fail_ind,
-        pws_restart_ind,
-        reroute_nas_request,
-        rrc_inactive_transition_report,
-        secondary_rat_data_usage_report,
-        trace_fail_ind,
-        trace_start,
-        ue_context_release_request,
-        ue_radio_cap_info_ind,
-        uetnla_binding_release_request,
-        ul_nas_transport,
-        ul_non_ueassociated_nrp_pa_transport,
-        ul_ran_cfg_transfer,
-        ul_ran_status_transfer,
-        ul_ueassociated_nrp_pa_transport,
+        amf_cfg_upd_ack,
+        ho_cancel_ack,
+        ho_cmd,
+        ho_request_ack,
+        init_context_setup_resp,
+        ng_reset_ack,
+        ng_setup_resp,
+        path_switch_request_ack,
+        pdu_session_res_modify_resp,
+        pdu_session_res_modify_confirm,
+        pdu_session_res_release_resp,
+        pdu_session_res_setup_resp,
+        pws_cancel_resp,
+        ran_cfg_upd_ack,
+        ue_context_mod_resp,
+        ue_context_release_complete,
+        ue_radio_cap_check_resp,
+        write_replace_warning_resp,
         nulltype
       } value;
 
@@ -15703,42 +15070,42 @@ struct ngap_elem_procs_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    amf_cfg_upd_ack_s&                      amf_cfg_upd();
-    ho_cancel_ack_s&                        ho_cancel();
-    ho_cmd_s&                               ho_required();
-    ho_request_ack_s&                       ho_request();
-    init_context_setup_resp_s&              init_context_setup_request();
-    ng_reset_ack_s&                         ng_reset();
-    ng_setup_resp_s&                        ng_setup_request();
-    path_switch_request_ack_s&              path_switch_request();
-    pdu_session_res_modify_resp_s&          pdu_session_res_modify_request();
-    pdu_session_res_modify_confirm_s&       pdu_session_res_modify_ind();
-    pdu_session_res_release_resp_s&         pdu_session_res_release_cmd();
-    pdu_session_res_setup_resp_s&           pdu_session_res_setup_request();
-    pws_cancel_resp_s&                      pws_cancel_request();
-    ran_cfg_upd_ack_s&                      ran_cfg_upd();
-    ue_context_mod_resp_s&                  ue_context_mod_request();
-    ue_context_release_complete_s&          ue_context_release_cmd();
-    ue_radio_cap_check_resp_s&              ue_radio_cap_check_request();
-    write_replace_warning_resp_s&           write_replace_warning_request();
-    const amf_cfg_upd_ack_s&                amf_cfg_upd() const;
-    const ho_cancel_ack_s&                  ho_cancel() const;
-    const ho_cmd_s&                         ho_required() const;
-    const ho_request_ack_s&                 ho_request() const;
-    const init_context_setup_resp_s&        init_context_setup_request() const;
-    const ng_reset_ack_s&                   ng_reset() const;
-    const ng_setup_resp_s&                  ng_setup_request() const;
-    const path_switch_request_ack_s&        path_switch_request() const;
-    const pdu_session_res_modify_resp_s&    pdu_session_res_modify_request() const;
-    const pdu_session_res_modify_confirm_s& pdu_session_res_modify_ind() const;
-    const pdu_session_res_release_resp_s&   pdu_session_res_release_cmd() const;
-    const pdu_session_res_setup_resp_s&     pdu_session_res_setup_request() const;
-    const pws_cancel_resp_s&                pws_cancel_request() const;
-    const ran_cfg_upd_ack_s&                ran_cfg_upd() const;
-    const ue_context_mod_resp_s&            ue_context_mod_request() const;
-    const ue_context_release_complete_s&    ue_context_release_cmd() const;
-    const ue_radio_cap_check_resp_s&        ue_radio_cap_check_request() const;
-    const write_replace_warning_resp_s&     write_replace_warning_request() const;
+    amf_cfg_upd_ack_s&                      amf_cfg_upd_ack();
+    ho_cancel_ack_s&                        ho_cancel_ack();
+    ho_cmd_s&                               ho_cmd();
+    ho_request_ack_s&                       ho_request_ack();
+    init_context_setup_resp_s&              init_context_setup_resp();
+    ng_reset_ack_s&                         ng_reset_ack();
+    ng_setup_resp_s&                        ng_setup_resp();
+    path_switch_request_ack_s&              path_switch_request_ack();
+    pdu_session_res_modify_resp_s&          pdu_session_res_modify_resp();
+    pdu_session_res_modify_confirm_s&       pdu_session_res_modify_confirm();
+    pdu_session_res_release_resp_s&         pdu_session_res_release_resp();
+    pdu_session_res_setup_resp_s&           pdu_session_res_setup_resp();
+    pws_cancel_resp_s&                      pws_cancel_resp();
+    ran_cfg_upd_ack_s&                      ran_cfg_upd_ack();
+    ue_context_mod_resp_s&                  ue_context_mod_resp();
+    ue_context_release_complete_s&          ue_context_release_complete();
+    ue_radio_cap_check_resp_s&              ue_radio_cap_check_resp();
+    write_replace_warning_resp_s&           write_replace_warning_resp();
+    const amf_cfg_upd_ack_s&                amf_cfg_upd_ack() const;
+    const ho_cancel_ack_s&                  ho_cancel_ack() const;
+    const ho_cmd_s&                         ho_cmd() const;
+    const ho_request_ack_s&                 ho_request_ack() const;
+    const init_context_setup_resp_s&        init_context_setup_resp() const;
+    const ng_reset_ack_s&                   ng_reset_ack() const;
+    const ng_setup_resp_s&                  ng_setup_resp() const;
+    const path_switch_request_ack_s&        path_switch_request_ack() const;
+    const pdu_session_res_modify_resp_s&    pdu_session_res_modify_resp() const;
+    const pdu_session_res_modify_confirm_s& pdu_session_res_modify_confirm() const;
+    const pdu_session_res_release_resp_s&   pdu_session_res_release_resp() const;
+    const pdu_session_res_setup_resp_s&     pdu_session_res_setup_resp() const;
+    const pws_cancel_resp_s&                pws_cancel_resp() const;
+    const ran_cfg_upd_ack_s&                ran_cfg_upd_ack() const;
+    const ue_context_mod_resp_s&            ue_context_mod_resp() const;
+    const ue_context_release_complete_s&    ue_context_release_complete() const;
+    const ue_radio_cap_check_resp_s&        ue_radio_cap_check_resp() const;
+    const write_replace_warning_resp_s&     write_replace_warning_resp() const;
 
   private:
     types type_;
@@ -15768,59 +15135,14 @@ struct ngap_elem_procs_o {
   struct unsuccessful_outcome_c {
     struct types_opts {
       enum options {
-        amf_cfg_upd,
-        ho_cancel,
-        ho_required,
-        ho_request,
-        init_context_setup_request,
-        ng_reset,
-        ng_setup_request,
-        path_switch_request,
-        pdu_session_res_modify_request,
-        pdu_session_res_modify_ind,
-        pdu_session_res_release_cmd,
-        pdu_session_res_setup_request,
-        pws_cancel_request,
-        ran_cfg_upd,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        ue_radio_cap_check_request,
-        write_replace_warning_request,
-        amf_status_ind,
-        cell_traffic_trace,
-        deactiv_trace,
-        dl_nas_transport,
-        dl_non_ueassociated_nrp_pa_transport,
-        dl_ran_cfg_transfer,
-        dl_ran_status_transfer,
-        dl_ueassociated_nrp_pa_transport,
-        error_ind,
-        ho_notify,
-        init_ue_msg,
-        location_report,
-        location_report_ctrl,
-        location_report_fail_ind,
-        nas_non_delivery_ind,
-        overload_start,
-        overload_stop,
-        paging,
-        pdu_session_res_notify,
-        private_msg,
-        pws_fail_ind,
-        pws_restart_ind,
-        reroute_nas_request,
-        rrc_inactive_transition_report,
-        secondary_rat_data_usage_report,
-        trace_fail_ind,
-        trace_start,
-        ue_context_release_request,
-        ue_radio_cap_info_ind,
-        uetnla_binding_release_request,
-        ul_nas_transport,
-        ul_non_ueassociated_nrp_pa_transport,
-        ul_ran_cfg_transfer,
-        ul_ran_status_transfer,
-        ul_ueassociated_nrp_pa_transport,
+        amf_cfg_upd_fail,
+        ho_prep_fail,
+        ho_fail,
+        init_context_setup_fail,
+        ng_setup_fail,
+        path_switch_request_fail,
+        ran_cfg_upd_fail,
+        ue_context_mod_fail,
         nulltype
       } value;
 
@@ -15839,22 +15161,22 @@ struct ngap_elem_procs_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    amf_cfg_upd_fail_s&               amf_cfg_upd();
-    ho_prep_fail_s&                   ho_required();
-    ho_fail_s&                        ho_request();
-    init_context_setup_fail_s&        init_context_setup_request();
-    ng_setup_fail_s&                  ng_setup_request();
-    path_switch_request_fail_s&       path_switch_request();
-    ran_cfg_upd_fail_s&               ran_cfg_upd();
-    ue_context_mod_fail_s&            ue_context_mod_request();
-    const amf_cfg_upd_fail_s&         amf_cfg_upd() const;
-    const ho_prep_fail_s&             ho_required() const;
-    const ho_fail_s&                  ho_request() const;
-    const init_context_setup_fail_s&  init_context_setup_request() const;
-    const ng_setup_fail_s&            ng_setup_request() const;
-    const path_switch_request_fail_s& path_switch_request() const;
-    const ran_cfg_upd_fail_s&         ran_cfg_upd() const;
-    const ue_context_mod_fail_s&      ue_context_mod_request() const;
+    amf_cfg_upd_fail_s&               amf_cfg_upd_fail();
+    ho_prep_fail_s&                   ho_prep_fail();
+    ho_fail_s&                        ho_fail();
+    init_context_setup_fail_s&        init_context_setup_fail();
+    ng_setup_fail_s&                  ng_setup_fail();
+    path_switch_request_fail_s&       path_switch_request_fail();
+    ran_cfg_upd_fail_s&               ran_cfg_upd_fail();
+    ue_context_mod_fail_s&            ue_context_mod_fail();
+    const amf_cfg_upd_fail_s&         amf_cfg_upd_fail() const;
+    const ho_prep_fail_s&             ho_prep_fail() const;
+    const ho_fail_s&                  ho_fail() const;
+    const init_context_setup_fail_s&  init_context_setup_fail() const;
+    const ng_setup_fail_s&            ng_setup_fail() const;
+    const path_switch_request_fail_s& path_switch_request_fail() const;
+    const ran_cfg_upd_fail_s&         ran_cfg_upd_fail() const;
+    const ue_context_mod_fail_s&      ue_context_mod_fail() const;
 
   private:
     types type_;

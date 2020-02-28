@@ -22,7 +22,7 @@
 #ifndef SRSASN_COMMON_UTILS_H
 #define SRSASN_COMMON_UTILS_H
 
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -45,20 +45,6 @@ constexpr Integer ceil_frac(Integer n, Integer d)
 {
   return (n + (d - 1)) / d;
 }
-
-/************************
-        logging
-************************/
-
-using srsasn_logger_level_t = srslte::LOG_LEVEL_ENUM;
-using srslte::LOG_LEVEL_DEBUG;
-using srslte::LOG_LEVEL_ERROR;
-using srslte::LOG_LEVEL_INFO;
-using srslte::LOG_LEVEL_WARNING;
-
-void vlog_print(srslte::log* log_ptr, srsasn_logger_level_t log_level, const char* format, va_list args);
-void srsasn_log_register_handler(srslte::log* ctx);
-void srsasn_log_print(srsasn_logger_level_t log_level, const char* format, ...);
 
 /************************
      error handling
@@ -251,7 +237,7 @@ public:
   void push_back(const T& elem)
   {
     if (current_size >= MAX_N) {
-      srsasn_log_print(srslte::LOG_LEVEL_ERROR, "Maximum size %d achieved for bounded_array.\n", MAX_N);
+      srslte::logmap::get("ASN1")->error("Maximum size %d achieved for bounded_array.\n", MAX_N);
     }
     data_[current_size++] = elem;
   }
@@ -614,8 +600,8 @@ public:
   fixed_octstring<N, aligned>& from_string(const std::string& hexstr)
   {
     if (hexstr.size() != 2 * N) {
-      srsasn_log_print(
-          srslte::LOG_LEVEL_ERROR, "The provided hex string size is not valid (%d!=2*%d).\n", hexstr.size(), N);
+      srslte::logmap::get("ASN1")->error(
+          "The provided hex string size is not valid (%zd!=2*%zd).\n", hexstr.size(), (size_t)N);
     } else {
       string_to_octstring(&octets_[0], hexstr);
     }
@@ -784,11 +770,8 @@ public:
   this_type&  from_string(const std::string& s)
   {
     if (s.size() < lb or s.size() > ub) {
-      srsasn_log_print(srslte::LOG_LEVEL_ERROR,
-                       "The provided string size=%zd is not withing the bounds [%d, %d]\n",
-                       s.size(),
-                       lb,
-                       ub);
+      srslte::logmap::get("ASN1")->error(
+          "The provided string size=%zd is not withing the bounds [%d, %d]\n", s.size(), lb, ub);
     } else {
       resize(s.size());
       for (uint32_t i = 0; i < s.size(); ++i) {
@@ -1116,6 +1099,8 @@ struct choice_buffer_base_t {
   using buffer_t                      = typename std::aligned_storage<data_size, data_align>::type;
   buffer_t buffer;
 
+  choice_buffer_base_t() : buffer() {}
+
   template <typename T>
   T& get()
   {
@@ -1275,17 +1260,17 @@ int test_pack_unpack_consistency(const Msg& msg)
 
   // unpack and last pack done for the same number of bits
   if (bref3.distance() != bref2.distance()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "[%s][%d] .\n", __FILE__, __LINE__);
+    srslte::logmap::get("ASN1")->error("[%s][%d] .\n", __FILE__, __LINE__);
     return -1;
   }
 
   // ensure packed messages are the same
   if (bref3.distance() != bref.distance()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "[%s][%d] .\n", __FILE__, __LINE__);
+    srslte::logmap::get("ASN1")->error("[%s][%d] .\n", __FILE__, __LINE__);
     return -1;
   }
   if (memcmp(buf, buf2, bref.distance_bytes()) != 0) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "[%s][%d] .\n", __FILE__, __LINE__);
+    srslte::logmap::get("ASN1")->error("[%s][%d] .\n", __FILE__, __LINE__);
     return -1;
   }
   return SRSASN_SUCCESS;

@@ -61,7 +61,7 @@ int test_initial_ctxt_setup_response()
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
 
   // Fill in the MME and eNB IDs
-  auto& container                = tx_pdu.successful_outcome().value.init_context_setup_request().protocol_ies;
+  auto& container                = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
   container.mme_ue_s1ap_id.value = 1;
   container.enb_ue_s1ap_id.value = 1;
 
@@ -133,7 +133,7 @@ int test_eci_pack()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
   srslte::logmap::set_default_hex_limit(1024);
 
   TESTASSERT(unpack_test_served_gummeis_with_multiple_plmns() == SRSLTE_SUCCESS);

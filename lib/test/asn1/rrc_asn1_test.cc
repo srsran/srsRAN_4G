@@ -36,15 +36,12 @@ int test_generic()
 
   // test logger handler
   {
-    srslte::nullsink_log null_log("NULL");
-    null_log.set_level(LOG_LEVEL_INFO);
-    rrc_log_register_handler(&null_log);
-    std::string test_str = "This is a console test to see if the RRC logger is working fine\n";
-    rrc_log_print(LOG_LEVEL_INFO, test_str.c_str());
-    TESTASSERT(null_log.last_log_msg == test_str);
-    TESTASSERT(null_log.last_log_level == LOG_LEVEL_INFO);
+    srslte::scoped_log<srslte::nullsink_log> null_log("ASN1::RRC");
+    null_log->set_level(srslte::LOG_LEVEL_INFO);
+    srslte::logmap::get("ASN1::RRC")->info("This is a console test to see if the RRC logger is working fine\n");
+    TESTASSERT(null_log->last_log_msg == "This is a console test to see if the RRC logger is working fine\n");
+    TESTASSERT(null_log->last_log_level == srslte::LOG_LEVEL_INFO);
     // go back to original logger
-    rrc_log_register_handler(srslte::logmap::get("RRC ").get());
   }
 
   // Test deep copy of choice types
@@ -599,9 +596,7 @@ int test_rrc_conn_reconf_r15_2()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
-  srsasn_log_register_handler(srslte::logmap::get("ASN1").get());
-  rrc_log_register_handler(srslte::logmap::get("RRC ").get());
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
 
   TESTASSERT(test_generic() == 0);
   TESTASSERT(test_json_printer() == 0);

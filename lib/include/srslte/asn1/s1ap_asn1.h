@@ -39,12 +39,6 @@ namespace s1ap {
  *                        Functions for external logging
  ******************************************************************************/
 
-extern srslte::log* s1ap_log_ptr;
-
-void s1ap_log_register_handler(srslte::log* ctx);
-
-void s1ap_log_print(srslte::LOG_LEVEL_ENUM log_level, const char* format, ...);
-
 void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
 
 void assert_choice_type(uint32_t val, uint32_t choice_id);
@@ -56,19 +50,7 @@ void assert_choice_type(const std::string& access_type,
 const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 template <class ItemType>
-ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
-{
-  if (enum_val >= nof_types) {
-    if (enum_val == nof_types) {
-      s1ap_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
-    } else {
-      s1ap_log_print(
-          LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be converted.\n", enum_val, enum_type);
-    }
-    return 0;
-  }
-  return array[enum_val];
-}
+ItemType map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 /*******************************************************************************
  *                             Constant Definitions
@@ -15505,532 +15487,6 @@ struct write_replace_warning_resp_s {
   void        to_json(json_writer& j) const;
 };
 
-// S1AP-ELEMENTARY-PROCEDURES-CLASS-1 ::= OBJECT SET OF S1AP-ELEMENTARY-PROCEDURE
-struct s1ap_elem_procs_class_minus1_o {
-  // InitiatingMessage ::= OPEN TYPE
-  struct init_msg_c {
-    struct types_opts {
-      enum options {
-        ho_required,
-        ho_request,
-        path_switch_request,
-        erab_setup_request,
-        erab_modify_request,
-        erab_release_cmd,
-        init_context_setup_request,
-        ho_cancel,
-        kill_request,
-        reset,
-        s1_setup_request,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        enb_cfg_upd,
-        mme_cfg_upd,
-        write_replace_warning_request,
-        nulltype
-      } value;
-      typedef uint8_t number_type;
-
-      std::string to_string() const;
-      uint8_t     to_number() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    init_msg_c() = default;
-    init_msg_c(const init_msg_c& other);
-    init_msg_c& operator=(const init_msg_c& other);
-    ~init_msg_c() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    ho_required_s&                         ho_required();
-    ho_request_s&                          ho_request();
-    path_switch_request_s&                 path_switch_request();
-    erab_setup_request_s&                  erab_setup_request();
-    erab_modify_request_s&                 erab_modify_request();
-    erab_release_cmd_s&                    erab_release_cmd();
-    init_context_setup_request_s&          init_context_setup_request();
-    ho_cancel_s&                           ho_cancel();
-    kill_request_s&                        kill_request();
-    reset_s&                               reset();
-    s1_setup_request_s&                    s1_setup_request();
-    ue_context_mod_request_s&              ue_context_mod_request();
-    ue_context_release_cmd_s&              ue_context_release_cmd();
-    enb_cfg_upd_s&                         enb_cfg_upd();
-    mme_cfg_upd_s&                         mme_cfg_upd();
-    write_replace_warning_request_s&       write_replace_warning_request();
-    const ho_required_s&                   ho_required() const;
-    const ho_request_s&                    ho_request() const;
-    const path_switch_request_s&           path_switch_request() const;
-    const erab_setup_request_s&            erab_setup_request() const;
-    const erab_modify_request_s&           erab_modify_request() const;
-    const erab_release_cmd_s&              erab_release_cmd() const;
-    const init_context_setup_request_s&    init_context_setup_request() const;
-    const ho_cancel_s&                     ho_cancel() const;
-    const kill_request_s&                  kill_request() const;
-    const reset_s&                         reset() const;
-    const s1_setup_request_s&              s1_setup_request() const;
-    const ue_context_mod_request_s&        ue_context_mod_request() const;
-    const ue_context_release_cmd_s&        ue_context_release_cmd() const;
-    const enb_cfg_upd_s&                   enb_cfg_upd() const;
-    const mme_cfg_upd_s&                   mme_cfg_upd() const;
-    const write_replace_warning_request_s& write_replace_warning_request() const;
-
-  private:
-    types type_;
-    choice_buffer_t<enb_cfg_upd_s,
-                    erab_modify_request_s,
-                    erab_release_cmd_s,
-                    erab_setup_request_s,
-                    ho_cancel_s,
-                    ho_request_s,
-                    ho_required_s,
-                    init_context_setup_request_s,
-                    kill_request_s,
-                    mme_cfg_upd_s,
-                    path_switch_request_s,
-                    reset_s,
-                    s1_setup_request_s,
-                    ue_context_mod_request_s,
-                    ue_context_release_cmd_s,
-                    write_replace_warning_request_s>
-        c;
-
-    void destroy_();
-  };
-  // SuccessfulOutcome ::= OPEN TYPE
-  struct successful_outcome_c {
-    struct types_opts {
-      enum options {
-        ho_required,
-        ho_request,
-        path_switch_request,
-        erab_setup_request,
-        erab_modify_request,
-        erab_release_cmd,
-        init_context_setup_request,
-        ho_cancel,
-        kill_request,
-        reset,
-        s1_setup_request,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        enb_cfg_upd,
-        mme_cfg_upd,
-        write_replace_warning_request,
-        nulltype
-      } value;
-      typedef uint8_t number_type;
-
-      std::string to_string() const;
-      uint8_t     to_number() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    successful_outcome_c() = default;
-    successful_outcome_c(const successful_outcome_c& other);
-    successful_outcome_c& operator=(const successful_outcome_c& other);
-    ~successful_outcome_c() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    ho_cmd_s&                            ho_required();
-    ho_request_ack_s&                    ho_request();
-    path_switch_request_ack_s&           path_switch_request();
-    erab_setup_resp_s&                   erab_setup_request();
-    erab_modify_resp_s&                  erab_modify_request();
-    erab_release_resp_s&                 erab_release_cmd();
-    init_context_setup_resp_s&           init_context_setup_request();
-    ho_cancel_ack_s&                     ho_cancel();
-    kill_resp_s&                         kill_request();
-    reset_ack_s&                         reset();
-    s1_setup_resp_s&                     s1_setup_request();
-    ue_context_mod_resp_s&               ue_context_mod_request();
-    ue_context_release_complete_s&       ue_context_release_cmd();
-    enb_cfg_upd_ack_s&                   enb_cfg_upd();
-    mme_cfg_upd_ack_s&                   mme_cfg_upd();
-    write_replace_warning_resp_s&        write_replace_warning_request();
-    const ho_cmd_s&                      ho_required() const;
-    const ho_request_ack_s&              ho_request() const;
-    const path_switch_request_ack_s&     path_switch_request() const;
-    const erab_setup_resp_s&             erab_setup_request() const;
-    const erab_modify_resp_s&            erab_modify_request() const;
-    const erab_release_resp_s&           erab_release_cmd() const;
-    const init_context_setup_resp_s&     init_context_setup_request() const;
-    const ho_cancel_ack_s&               ho_cancel() const;
-    const kill_resp_s&                   kill_request() const;
-    const reset_ack_s&                   reset() const;
-    const s1_setup_resp_s&               s1_setup_request() const;
-    const ue_context_mod_resp_s&         ue_context_mod_request() const;
-    const ue_context_release_complete_s& ue_context_release_cmd() const;
-    const enb_cfg_upd_ack_s&             enb_cfg_upd() const;
-    const mme_cfg_upd_ack_s&             mme_cfg_upd() const;
-    const write_replace_warning_resp_s&  write_replace_warning_request() const;
-
-  private:
-    types type_;
-    choice_buffer_t<enb_cfg_upd_ack_s,
-                    erab_modify_resp_s,
-                    erab_release_resp_s,
-                    erab_setup_resp_s,
-                    ho_cancel_ack_s,
-                    ho_cmd_s,
-                    ho_request_ack_s,
-                    init_context_setup_resp_s,
-                    kill_resp_s,
-                    mme_cfg_upd_ack_s,
-                    path_switch_request_ack_s,
-                    reset_ack_s,
-                    s1_setup_resp_s,
-                    ue_context_mod_resp_s,
-                    ue_context_release_complete_s,
-                    write_replace_warning_resp_s>
-        c;
-
-    void destroy_();
-  };
-  // UnsuccessfulOutcome ::= OPEN TYPE
-  struct unsuccessful_outcome_c {
-    struct types_opts {
-      enum options {
-        ho_required,
-        ho_request,
-        path_switch_request,
-        erab_setup_request,
-        erab_modify_request,
-        erab_release_cmd,
-        init_context_setup_request,
-        ho_cancel,
-        kill_request,
-        reset,
-        s1_setup_request,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        enb_cfg_upd,
-        mme_cfg_upd,
-        write_replace_warning_request,
-        nulltype
-      } value;
-      typedef uint8_t number_type;
-
-      std::string to_string() const;
-      uint8_t     to_number() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    unsuccessful_outcome_c() = default;
-    unsuccessful_outcome_c(const unsuccessful_outcome_c& other);
-    unsuccessful_outcome_c& operator=(const unsuccessful_outcome_c& other);
-    ~unsuccessful_outcome_c() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    ho_prep_fail_s&                   ho_required();
-    ho_fail_s&                        ho_request();
-    path_switch_request_fail_s&       path_switch_request();
-    init_context_setup_fail_s&        init_context_setup_request();
-    s1_setup_fail_s&                  s1_setup_request();
-    ue_context_mod_fail_s&            ue_context_mod_request();
-    enb_cfg_upd_fail_s&               enb_cfg_upd();
-    mme_cfg_upd_fail_s&               mme_cfg_upd();
-    const ho_prep_fail_s&             ho_required() const;
-    const ho_fail_s&                  ho_request() const;
-    const path_switch_request_fail_s& path_switch_request() const;
-    const init_context_setup_fail_s&  init_context_setup_request() const;
-    const s1_setup_fail_s&            s1_setup_request() const;
-    const ue_context_mod_fail_s&      ue_context_mod_request() const;
-    const enb_cfg_upd_fail_s&         enb_cfg_upd() const;
-    const mme_cfg_upd_fail_s&         mme_cfg_upd() const;
-
-  private:
-    types type_;
-    choice_buffer_t<enb_cfg_upd_fail_s,
-                    ho_fail_s,
-                    ho_prep_fail_s,
-                    init_context_setup_fail_s,
-                    mme_cfg_upd_fail_s,
-                    path_switch_request_fail_s,
-                    s1_setup_fail_s,
-                    ue_context_mod_fail_s>
-        c;
-
-    void destroy_();
-  };
-
-  // members lookup methods
-  static uint16_t               idx_to_proc_code(uint32_t idx);
-  static bool                   is_proc_code_valid(const uint16_t& proc_code);
-  static init_msg_c             get_init_msg(const uint16_t& proc_code);
-  static successful_outcome_c   get_successful_outcome(const uint16_t& proc_code);
-  static unsuccessful_outcome_c get_unsuccessful_outcome(const uint16_t& proc_code);
-  static crit_e                 get_crit(const uint16_t& proc_code);
-};
-
-// S1AP-ELEMENTARY-PROCEDURES-CLASS-2 ::= OBJECT SET OF S1AP-ELEMENTARY-PROCEDURE
-struct s1ap_elem_procs_class_minus2_o {
-  // InitiatingMessage ::= OPEN TYPE
-  struct init_msg_c {
-    struct types_opts {
-      enum options {
-        ho_notify,
-        erab_release_ind,
-        paging,
-        dl_nas_transport,
-        init_ue_msg,
-        ul_nas_transport,
-        error_ind,
-        nas_non_delivery_ind,
-        ue_context_release_request,
-        dl_s1cdma2000tunnelling,
-        ul_s1cdma2000tunnelling,
-        ue_cap_info_ind,
-        enb_status_transfer,
-        mme_status_transfer,
-        deactiv_trace,
-        trace_start,
-        trace_fail_ind,
-        cell_traffic_trace,
-        location_report_ctrl,
-        location_report_fail_ind,
-        location_report,
-        overload_start,
-        overload_stop,
-        enb_direct_info_transfer,
-        mme_direct_info_transfer,
-        enb_cfg_transfer,
-        mme_cfg_transfer,
-        private_msg,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    init_msg_c() = default;
-    init_msg_c(const init_msg_c& other);
-    init_msg_c& operator=(const init_msg_c& other);
-    ~init_msg_c() { destroy_(); }
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-    // getters
-    ho_notify_s&                        ho_notify();
-    erab_release_ind_s&                 erab_release_ind();
-    paging_s&                           paging();
-    dl_nas_transport_s&                 dl_nas_transport();
-    init_ue_msg_s&                      init_ue_msg();
-    ul_nas_transport_s&                 ul_nas_transport();
-    error_ind_s&                        error_ind();
-    nas_non_delivery_ind_s&             nas_non_delivery_ind();
-    ue_context_release_request_s&       ue_context_release_request();
-    dl_s1cdma2000tunnelling_s&          dl_s1cdma2000tunnelling();
-    ul_s1cdma2000tunnelling_s&          ul_s1cdma2000tunnelling();
-    ue_cap_info_ind_s&                  ue_cap_info_ind();
-    enb_status_transfer_s&              enb_status_transfer();
-    mme_status_transfer_s&              mme_status_transfer();
-    deactiv_trace_s&                    deactiv_trace();
-    trace_start_s&                      trace_start();
-    trace_fail_ind_s&                   trace_fail_ind();
-    cell_traffic_trace_s&               cell_traffic_trace();
-    location_report_ctrl_s&             location_report_ctrl();
-    location_report_fail_ind_s&         location_report_fail_ind();
-    location_report_s&                  location_report();
-    overload_start_s&                   overload_start();
-    overload_stop_s&                    overload_stop();
-    enb_direct_info_transfer_s&         enb_direct_info_transfer();
-    mme_direct_info_transfer_s&         mme_direct_info_transfer();
-    enb_cfg_transfer_s&                 enb_cfg_transfer();
-    mme_cfg_transfer_s&                 mme_cfg_transfer();
-    private_msg_s&                      private_msg();
-    const ho_notify_s&                  ho_notify() const;
-    const erab_release_ind_s&           erab_release_ind() const;
-    const paging_s&                     paging() const;
-    const dl_nas_transport_s&           dl_nas_transport() const;
-    const init_ue_msg_s&                init_ue_msg() const;
-    const ul_nas_transport_s&           ul_nas_transport() const;
-    const error_ind_s&                  error_ind() const;
-    const nas_non_delivery_ind_s&       nas_non_delivery_ind() const;
-    const ue_context_release_request_s& ue_context_release_request() const;
-    const dl_s1cdma2000tunnelling_s&    dl_s1cdma2000tunnelling() const;
-    const ul_s1cdma2000tunnelling_s&    ul_s1cdma2000tunnelling() const;
-    const ue_cap_info_ind_s&            ue_cap_info_ind() const;
-    const enb_status_transfer_s&        enb_status_transfer() const;
-    const mme_status_transfer_s&        mme_status_transfer() const;
-    const deactiv_trace_s&              deactiv_trace() const;
-    const trace_start_s&                trace_start() const;
-    const trace_fail_ind_s&             trace_fail_ind() const;
-    const cell_traffic_trace_s&         cell_traffic_trace() const;
-    const location_report_ctrl_s&       location_report_ctrl() const;
-    const location_report_fail_ind_s&   location_report_fail_ind() const;
-    const location_report_s&            location_report() const;
-    const overload_start_s&             overload_start() const;
-    const overload_stop_s&              overload_stop() const;
-    const enb_direct_info_transfer_s&   enb_direct_info_transfer() const;
-    const mme_direct_info_transfer_s&   mme_direct_info_transfer() const;
-    const enb_cfg_transfer_s&           enb_cfg_transfer() const;
-    const mme_cfg_transfer_s&           mme_cfg_transfer() const;
-    const private_msg_s&                private_msg() const;
-
-  private:
-    types type_;
-    choice_buffer_t<cell_traffic_trace_s,
-                    deactiv_trace_s,
-                    dl_nas_transport_s,
-                    dl_s1cdma2000tunnelling_s,
-                    enb_cfg_transfer_s,
-                    enb_direct_info_transfer_s,
-                    enb_status_transfer_s,
-                    erab_release_ind_s,
-                    error_ind_s,
-                    ho_notify_s,
-                    init_ue_msg_s,
-                    location_report_ctrl_s,
-                    location_report_fail_ind_s,
-                    location_report_s,
-                    mme_cfg_transfer_s,
-                    mme_direct_info_transfer_s,
-                    mme_status_transfer_s,
-                    nas_non_delivery_ind_s,
-                    overload_start_s,
-                    overload_stop_s,
-                    paging_s,
-                    private_msg_s,
-                    trace_fail_ind_s,
-                    trace_start_s,
-                    ue_cap_info_ind_s,
-                    ue_context_release_request_s,
-                    ul_nas_transport_s,
-                    ul_s1cdma2000tunnelling_s>
-        c;
-
-    void destroy_();
-  };
-  // SuccessfulOutcome ::= OPEN TYPE
-  struct successful_outcome_c {
-    struct types_opts {
-      enum options {
-        ho_notify,
-        erab_release_ind,
-        paging,
-        dl_nas_transport,
-        init_ue_msg,
-        ul_nas_transport,
-        error_ind,
-        nas_non_delivery_ind,
-        ue_context_release_request,
-        dl_s1cdma2000tunnelling,
-        ul_s1cdma2000tunnelling,
-        ue_cap_info_ind,
-        enb_status_transfer,
-        mme_status_transfer,
-        deactiv_trace,
-        trace_start,
-        trace_fail_ind,
-        cell_traffic_trace,
-        location_report_ctrl,
-        location_report_fail_ind,
-        location_report,
-        overload_start,
-        overload_stop,
-        enb_direct_info_transfer,
-        mme_direct_info_transfer,
-        enb_cfg_transfer,
-        mme_cfg_transfer,
-        private_msg,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    successful_outcome_c() = default;
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-
-  private:
-    types type_;
-  };
-  // UnsuccessfulOutcome ::= OPEN TYPE
-  struct unsuccessful_outcome_c {
-    struct types_opts {
-      enum options {
-        ho_notify,
-        erab_release_ind,
-        paging,
-        dl_nas_transport,
-        init_ue_msg,
-        ul_nas_transport,
-        error_ind,
-        nas_non_delivery_ind,
-        ue_context_release_request,
-        dl_s1cdma2000tunnelling,
-        ul_s1cdma2000tunnelling,
-        ue_cap_info_ind,
-        enb_status_transfer,
-        mme_status_transfer,
-        deactiv_trace,
-        trace_start,
-        trace_fail_ind,
-        cell_traffic_trace,
-        location_report_ctrl,
-        location_report_fail_ind,
-        location_report,
-        overload_start,
-        overload_stop,
-        enb_direct_info_transfer,
-        mme_direct_info_transfer,
-        enb_cfg_transfer,
-        mme_cfg_transfer,
-        private_msg,
-        nulltype
-      } value;
-
-      std::string to_string() const;
-    };
-    typedef enumerated<types_opts> types;
-
-    // choice methods
-    unsuccessful_outcome_c() = default;
-    void        set(types::options e = types::nulltype);
-    types       type() const { return type_; }
-    SRSASN_CODE pack(bit_ref& bref) const;
-    SRSASN_CODE unpack(cbit_ref& bref);
-    void        to_json(json_writer& j) const;
-
-  private:
-    types type_;
-  };
-
-  // members lookup methods
-  static uint16_t               idx_to_proc_code(uint32_t idx);
-  static bool                   is_proc_code_valid(const uint16_t& proc_code);
-  static init_msg_c             get_init_msg(const uint16_t& proc_code);
-  static successful_outcome_c   get_successful_outcome(const uint16_t& proc_code);
-  static unsuccessful_outcome_c get_unsuccessful_outcome(const uint16_t& proc_code);
-  static crit_e                 get_crit(const uint16_t& proc_code);
-};
-
 // S1AP-ELEMENTARY-PROCEDURES ::= OBJECT SET OF S1AP-ELEMENTARY-PROCEDURE
 struct s1ap_elem_procs_o {
   // InitiatingMessage ::= OPEN TYPE
@@ -16242,50 +15698,22 @@ struct s1ap_elem_procs_o {
   struct successful_outcome_c {
     struct types_opts {
       enum options {
-        ho_required,
-        ho_request,
-        path_switch_request,
-        erab_setup_request,
-        erab_modify_request,
-        erab_release_cmd,
-        init_context_setup_request,
-        ho_cancel,
-        kill_request,
-        reset,
-        s1_setup_request,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        enb_cfg_upd,
-        mme_cfg_upd,
-        write_replace_warning_request,
-        ho_notify,
-        erab_release_ind,
-        paging,
-        dl_nas_transport,
-        init_ue_msg,
-        ul_nas_transport,
-        error_ind,
-        nas_non_delivery_ind,
-        ue_context_release_request,
-        dl_s1cdma2000tunnelling,
-        ul_s1cdma2000tunnelling,
-        ue_cap_info_ind,
-        enb_status_transfer,
-        mme_status_transfer,
-        deactiv_trace,
-        trace_start,
-        trace_fail_ind,
-        cell_traffic_trace,
-        location_report_ctrl,
-        location_report_fail_ind,
-        location_report,
-        overload_start,
-        overload_stop,
-        enb_direct_info_transfer,
-        mme_direct_info_transfer,
-        enb_cfg_transfer,
-        mme_cfg_transfer,
-        private_msg,
+        ho_cmd,
+        ho_request_ack,
+        path_switch_request_ack,
+        erab_setup_resp,
+        erab_modify_resp,
+        erab_release_resp,
+        init_context_setup_resp,
+        ho_cancel_ack,
+        kill_resp,
+        reset_ack,
+        s1_setup_resp,
+        ue_context_mod_resp,
+        ue_context_release_complete,
+        enb_cfg_upd_ack,
+        mme_cfg_upd_ack,
+        write_replace_warning_resp,
         nulltype
       } value;
       typedef uint8_t number_type;
@@ -16306,38 +15734,38 @@ struct s1ap_elem_procs_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    ho_cmd_s&                            ho_required();
-    ho_request_ack_s&                    ho_request();
-    path_switch_request_ack_s&           path_switch_request();
-    erab_setup_resp_s&                   erab_setup_request();
-    erab_modify_resp_s&                  erab_modify_request();
-    erab_release_resp_s&                 erab_release_cmd();
-    init_context_setup_resp_s&           init_context_setup_request();
-    ho_cancel_ack_s&                     ho_cancel();
-    kill_resp_s&                         kill_request();
-    reset_ack_s&                         reset();
-    s1_setup_resp_s&                     s1_setup_request();
-    ue_context_mod_resp_s&               ue_context_mod_request();
-    ue_context_release_complete_s&       ue_context_release_cmd();
-    enb_cfg_upd_ack_s&                   enb_cfg_upd();
-    mme_cfg_upd_ack_s&                   mme_cfg_upd();
-    write_replace_warning_resp_s&        write_replace_warning_request();
-    const ho_cmd_s&                      ho_required() const;
-    const ho_request_ack_s&              ho_request() const;
-    const path_switch_request_ack_s&     path_switch_request() const;
-    const erab_setup_resp_s&             erab_setup_request() const;
-    const erab_modify_resp_s&            erab_modify_request() const;
-    const erab_release_resp_s&           erab_release_cmd() const;
-    const init_context_setup_resp_s&     init_context_setup_request() const;
-    const ho_cancel_ack_s&               ho_cancel() const;
-    const kill_resp_s&                   kill_request() const;
-    const reset_ack_s&                   reset() const;
-    const s1_setup_resp_s&               s1_setup_request() const;
-    const ue_context_mod_resp_s&         ue_context_mod_request() const;
-    const ue_context_release_complete_s& ue_context_release_cmd() const;
-    const enb_cfg_upd_ack_s&             enb_cfg_upd() const;
-    const mme_cfg_upd_ack_s&             mme_cfg_upd() const;
-    const write_replace_warning_resp_s&  write_replace_warning_request() const;
+    ho_cmd_s&                            ho_cmd();
+    ho_request_ack_s&                    ho_request_ack();
+    path_switch_request_ack_s&           path_switch_request_ack();
+    erab_setup_resp_s&                   erab_setup_resp();
+    erab_modify_resp_s&                  erab_modify_resp();
+    erab_release_resp_s&                 erab_release_resp();
+    init_context_setup_resp_s&           init_context_setup_resp();
+    ho_cancel_ack_s&                     ho_cancel_ack();
+    kill_resp_s&                         kill_resp();
+    reset_ack_s&                         reset_ack();
+    s1_setup_resp_s&                     s1_setup_resp();
+    ue_context_mod_resp_s&               ue_context_mod_resp();
+    ue_context_release_complete_s&       ue_context_release_complete();
+    enb_cfg_upd_ack_s&                   enb_cfg_upd_ack();
+    mme_cfg_upd_ack_s&                   mme_cfg_upd_ack();
+    write_replace_warning_resp_s&        write_replace_warning_resp();
+    const ho_cmd_s&                      ho_cmd() const;
+    const ho_request_ack_s&              ho_request_ack() const;
+    const path_switch_request_ack_s&     path_switch_request_ack() const;
+    const erab_setup_resp_s&             erab_setup_resp() const;
+    const erab_modify_resp_s&            erab_modify_resp() const;
+    const erab_release_resp_s&           erab_release_resp() const;
+    const init_context_setup_resp_s&     init_context_setup_resp() const;
+    const ho_cancel_ack_s&               ho_cancel_ack() const;
+    const kill_resp_s&                   kill_resp() const;
+    const reset_ack_s&                   reset_ack() const;
+    const s1_setup_resp_s&               s1_setup_resp() const;
+    const ue_context_mod_resp_s&         ue_context_mod_resp() const;
+    const ue_context_release_complete_s& ue_context_release_complete() const;
+    const enb_cfg_upd_ack_s&             enb_cfg_upd_ack() const;
+    const mme_cfg_upd_ack_s&             mme_cfg_upd_ack() const;
+    const write_replace_warning_resp_s&  write_replace_warning_resp() const;
 
   private:
     types type_;
@@ -16365,50 +15793,14 @@ struct s1ap_elem_procs_o {
   struct unsuccessful_outcome_c {
     struct types_opts {
       enum options {
-        ho_required,
-        ho_request,
-        path_switch_request,
-        erab_setup_request,
-        erab_modify_request,
-        erab_release_cmd,
-        init_context_setup_request,
-        ho_cancel,
-        kill_request,
-        reset,
-        s1_setup_request,
-        ue_context_mod_request,
-        ue_context_release_cmd,
-        enb_cfg_upd,
-        mme_cfg_upd,
-        write_replace_warning_request,
-        ho_notify,
-        erab_release_ind,
-        paging,
-        dl_nas_transport,
-        init_ue_msg,
-        ul_nas_transport,
-        error_ind,
-        nas_non_delivery_ind,
-        ue_context_release_request,
-        dl_s1cdma2000tunnelling,
-        ul_s1cdma2000tunnelling,
-        ue_cap_info_ind,
-        enb_status_transfer,
-        mme_status_transfer,
-        deactiv_trace,
-        trace_start,
-        trace_fail_ind,
-        cell_traffic_trace,
-        location_report_ctrl,
-        location_report_fail_ind,
-        location_report,
-        overload_start,
-        overload_stop,
-        enb_direct_info_transfer,
-        mme_direct_info_transfer,
-        enb_cfg_transfer,
-        mme_cfg_transfer,
-        private_msg,
+        ho_prep_fail,
+        ho_fail,
+        path_switch_request_fail,
+        init_context_setup_fail,
+        s1_setup_fail,
+        ue_context_mod_fail,
+        enb_cfg_upd_fail,
+        mme_cfg_upd_fail,
         nulltype
       } value;
       typedef uint8_t number_type;
@@ -16429,22 +15821,22 @@ struct s1ap_elem_procs_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    ho_prep_fail_s&                   ho_required();
-    ho_fail_s&                        ho_request();
-    path_switch_request_fail_s&       path_switch_request();
-    init_context_setup_fail_s&        init_context_setup_request();
-    s1_setup_fail_s&                  s1_setup_request();
-    ue_context_mod_fail_s&            ue_context_mod_request();
-    enb_cfg_upd_fail_s&               enb_cfg_upd();
-    mme_cfg_upd_fail_s&               mme_cfg_upd();
-    const ho_prep_fail_s&             ho_required() const;
-    const ho_fail_s&                  ho_request() const;
-    const path_switch_request_fail_s& path_switch_request() const;
-    const init_context_setup_fail_s&  init_context_setup_request() const;
-    const s1_setup_fail_s&            s1_setup_request() const;
-    const ue_context_mod_fail_s&      ue_context_mod_request() const;
-    const enb_cfg_upd_fail_s&         enb_cfg_upd() const;
-    const mme_cfg_upd_fail_s&         mme_cfg_upd() const;
+    ho_prep_fail_s&                   ho_prep_fail();
+    ho_fail_s&                        ho_fail();
+    path_switch_request_fail_s&       path_switch_request_fail();
+    init_context_setup_fail_s&        init_context_setup_fail();
+    s1_setup_fail_s&                  s1_setup_fail();
+    ue_context_mod_fail_s&            ue_context_mod_fail();
+    enb_cfg_upd_fail_s&               enb_cfg_upd_fail();
+    mme_cfg_upd_fail_s&               mme_cfg_upd_fail();
+    const ho_prep_fail_s&             ho_prep_fail() const;
+    const ho_fail_s&                  ho_fail() const;
+    const path_switch_request_fail_s& path_switch_request_fail() const;
+    const init_context_setup_fail_s&  init_context_setup_fail() const;
+    const s1_setup_fail_s&            s1_setup_fail() const;
+    const ue_context_mod_fail_s&      ue_context_mod_fail() const;
+    const enb_cfg_upd_fail_s&         enb_cfg_upd_fail() const;
+    const mme_cfg_upd_fail_s&         mme_cfg_upd_fail() const;
 
   private:
     types type_;

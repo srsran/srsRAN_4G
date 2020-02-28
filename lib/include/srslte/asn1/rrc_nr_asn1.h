@@ -39,12 +39,6 @@ namespace rrc_nr {
  *                        Functions for external logging
  ******************************************************************************/
 
-extern srslte::log* rrc_nr_log_ptr;
-
-void rrc_nr_log_register_handler(srslte::log* ctx);
-
-void rrc_nr_log_print(srslte::LOG_LEVEL_ENUM log_level, const char* format, ...);
-
 void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
 
 void assert_choice_type(uint32_t val, uint32_t choice_id);
@@ -56,19 +50,7 @@ void assert_choice_type(const std::string& access_type,
 const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 template <class ItemType>
-ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
-{
-  if (enum_val >= nof_types) {
-    if (enum_val == nof_types) {
-      rrc_nr_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
-    } else {
-      rrc_nr_log_print(
-          LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be converted.\n", enum_val, enum_type);
-    }
-    return 0;
-  }
-  return array[enum_val];
-}
+ItemType map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 /*******************************************************************************
  *                             Constant Definitions

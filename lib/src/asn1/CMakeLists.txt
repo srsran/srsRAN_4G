@@ -37,23 +37,23 @@ add_library(rrc_asn1 STATIC
         )
 # Compile RRC ASN1 optimized for size
 target_compile_options(rrc_asn1 PRIVATE "-Os")
-target_link_libraries(rrc_asn1 asn1_utils)
+target_link_libraries(rrc_asn1 asn1_utils srslte_common)
 
 add_library(s1ap_asn1 STATIC
         s1ap_asn1.cc)
 target_compile_options(s1ap_asn1 PRIVATE "-Os")
-target_link_libraries(s1ap_asn1 asn1_utils)
+target_link_libraries(s1ap_asn1 asn1_utils srslte_common)
 
 if (ENABLE_5GNR)
     # RRC NR ASN1
     add_library(rrc_nr_asn1 STATIC rrc_nr_asn1.cc)
     target_compile_options(rrc_nr_asn1 PRIVATE "-Os")
-    target_link_libraries(rrc_nr_asn1 asn1_utils)
+    target_link_libraries(rrc_nr_asn1 asn1_utils srslte_common)
 
     # NGAP ASN1
     add_library(ngap_nr_asn1 STATIC ngap_nr_asn1.cc)
     target_compile_options(ngap_nr_asn1 PRIVATE "-Os")
-    target_link_libraries(ngap_nr_asn1 asn1_utils)
+    target_link_libraries(ngap_nr_asn1 asn1_utils srslte_common)
 endif(ENABLE_5GNR)
 
 

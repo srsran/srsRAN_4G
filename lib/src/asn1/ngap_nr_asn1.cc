@@ -24,29 +24,15 @@
 
 using namespace asn1;
 using namespace asn1::ngap_nr;
+using srslte::logmap;
 
 /*******************************************************************************
  *                              Logging Utilities
  ******************************************************************************/
 
-srslte::log* asn1::ngap_nr::ngap_nr_log_ptr = nullptr;
-
-void asn1::ngap_nr::ngap_nr_log_register_handler(srslte::log* ctx)
-{
-  ngap_nr_log_ptr = ctx;
-}
-
-void asn1::ngap_nr::ngap_nr_log_print(srslte::LOG_LEVEL_ENUM log_level, const char* format, ...)
-{
-  va_list args;
-  va_start(args, format);
-  vlog_print(ngap_nr_log_ptr, log_level, format, args);
-  va_end(args);
-}
-
 void asn1::ngap_nr::log_invalid_access_choice_id(uint32_t val, uint32_t choice_id)
 {
-  ngap_nr_log_print(LOG_LEVEL_ERROR, "The access choice id is invalid (%d!=%d)\n", val, choice_id);
+  logmap::get("ASN1::NGAP_NR")->error("The access choice id is invalid (%d!=%d)\n", val, choice_id);
 }
 
 void asn1::ngap_nr::assert_choice_type(uint32_t val, uint32_t choice_id)
@@ -61,11 +47,11 @@ void asn1::ngap_nr::assert_choice_type(const std::string& access_type,
                                        const std::string& choice_type)
 {
   if (access_type != current_type) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR,
-                      "Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
-                      choice_type.c_str(),
-                      access_type.c_str(),
-                      current_type.c_str());
+    logmap::get("ASN1::NGAP_NR")
+        ->error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
+                choice_type.c_str(),
+                access_type.c_str(),
+                current_type.c_str());
   }
 }
 
@@ -74,29 +60,81 @@ asn1::ngap_nr::convert_enum_idx(const char* array[], uint32_t nof_types, uint32_
 {
   if (enum_val >= nof_types) {
     if (enum_val == nof_types) {
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
+      logmap::get("ASN1::NGAP_NR")->error("The enum of type %s was not initialized.\n", enum_type);
     } else {
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+      logmap::get("ASN1::NGAP_NR")->error("The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
     }
     return "";
   }
   return array[enum_val];
 }
 
-#define ngap_nr_asn1_warn_assert(cond, file, line)                                                                     \
-  if ((cond)) {                                                                                                        \
-    ngap_nr_log_print(LOG_LEVEL_WARNING, "Assertion in [%s][%d] failed.\n", (file), (line));                           \
+template <class ItemType>
+ItemType asn1::ngap_nr::map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+{
+  if (enum_val >= nof_types) {
+    if (enum_val == nof_types) {
+      logmap::get("ASN1::NGAP_NR")->error("The enum of type %s is not initialized.\n", enum_type);
+    } else {
+      logmap::get("ASN1::NGAP_NR")
+          ->error("The enum value=%d of type %s cannot be converted to a number.\n", enum_val, enum_type);
+    }
+    return 0;
   }
+  return array[enum_val];
+}
+template const uint8_t  asn1::ngap_nr::map_enum_number<const uint8_t>(const uint8_t* array,
+                                                                     uint32_t       nof_types,
+                                                                     uint32_t       enum_val,
+                                                                     const char*    enum_type);
+template const uint16_t asn1::ngap_nr::map_enum_number<const uint16_t>(const uint16_t* array,
+                                                                       uint32_t        nof_types,
+                                                                       uint32_t        enum_val,
+                                                                       const char*     enum_type);
+template const uint32_t asn1::ngap_nr::map_enum_number<const uint32_t>(const uint32_t* array,
+                                                                       uint32_t        nof_types,
+                                                                       uint32_t        enum_val,
+                                                                       const char*     enum_type);
+template const uint64_t asn1::ngap_nr::map_enum_number<const uint64_t>(const uint64_t* array,
+                                                                       uint32_t        nof_types,
+                                                                       uint32_t        enum_val,
+                                                                       const char*     enum_type);
+template const int8_t   asn1::ngap_nr::map_enum_number<const int8_t>(const int8_t* array,
+                                                                   uint32_t      nof_types,
+                                                                   uint32_t      enum_val,
+                                                                   const char*   enum_type);
+template const int16_t  asn1::ngap_nr::map_enum_number<const int16_t>(const int16_t* array,
+                                                                     uint32_t       nof_types,
+                                                                     uint32_t       enum_val,
+                                                                     const char*    enum_type);
+template const int32_t  asn1::ngap_nr::map_enum_number<const int32_t>(const int32_t* array,
+                                                                     uint32_t       nof_types,
+                                                                     uint32_t       enum_val,
+                                                                     const char*    enum_type);
+template const int64_t  asn1::ngap_nr::map_enum_number<const int64_t>(const int64_t* array,
+                                                                     uint32_t       nof_types,
+                                                                     uint32_t       enum_val,
+                                                                     const char*    enum_type);
+template const float    asn1::ngap_nr::map_enum_number<const float>(const float* array,
+                                                                 uint32_t     nof_types,
+                                                                 uint32_t     enum_val,
+                                                                 const char*  enum_type);
 
+void ngap_nr_asn1_warn_assert(bool cond, const char* filename, int lineno)
+{
+  if (cond) {
+    logmap::get("ASN1::NGAP_NR")->warning("Assertion in [%s][%d] failed.\n", filename, lineno);
+  }
+}
 static void log_invalid_choice_id(uint32_t val, const char* choice_type)
 {
-  ngap_nr_log_print(LOG_LEVEL_ERROR, "Invalid choice id=%d for choice type %s\n", val, choice_type);
+  logmap::get("ASN1::NGAP_NR")->error("Invalid choice id=%d for choice type %s\n", val, choice_type);
 }
 
 static void invalid_enum_number(int value, const char* name)
 {
-  ngap_nr_log_print(
-      LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
+  logmap::get("ASN1::NGAP_NR")
+      ->error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
 }
 
 /*******************************************************************************
@@ -106,14 +144,14 @@ static void invalid_enum_number(int value, const char* name)
 // Criticality ::= ENUMERATED
 std::string crit_opts::to_string() const
 {
-  static constexpr const char* options[] = {"reject", "ignore", "notify"};
+  static const char* options[] = {"reject", "ignore", "notify"};
   return convert_enum_idx(options, 3, value, "crit_e");
 }
 
 // Presence ::= ENUMERATED
 std::string presence_opts::to_string() const
 {
-  static constexpr const char* options[] = {"optional", "conditional", "mandatory"};
+  static const char* options[] = {"optional", "conditional", "mandatory"};
   return convert_enum_idx(options, 3, value, "presence_e");
 }
 
@@ -155,30 +193,30 @@ bool protocol_ie_field_s<ies_set_paramT_>::load_info_obj(const uint32_t& id_)
   id    = id_;
   crit  = ies_set_paramT_::get_crit(id);
   value = ies_set_paramT_::get_value(id);
-  return true;
+  return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
 }
 
 uint32_t ngap_protocol_ies_empty_o::idx_to_id(uint32_t idx)
 {
-  ngap_nr_log_print(LOG_LEVEL_ERROR, "object set is empty\n");
+  logmap::get("ASN1::NGAP_NR")->error("object set is empty\n");
   return 0;
 }
 bool ngap_protocol_ies_empty_o::is_id_valid(const uint32_t& id)
 {
-  ngap_nr_log_print(LOG_LEVEL_ERROR, "object set is empty\n");
+  logmap::get("ASN1::NGAP_NR")->error("object set is empty\n");
   return false;
 }
 crit_e ngap_protocol_ies_empty_o::get_crit(const uint32_t& id)
 {
-  return crit_e();
+  return {};
 }
 ngap_protocol_ies_empty_o::value_c ngap_protocol_ies_empty_o::get_value(const uint32_t& id)
 {
-  return ngap_protocol_ies_empty_o::value_c();
+  return {};
 }
 presence_e ngap_protocol_ies_empty_o::get_presence(const uint32_t& id)
 {
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -200,7 +238,7 @@ SRSASN_CODE ngap_protocol_ies_empty_o::value_c::unpack(cbit_ref& bref)
 
 std::string ngap_protocol_ies_empty_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {};
+  static const char* options[] = {};
   return convert_enum_idx(options, 0, value, "ngap_protocol_ies_empty_o::value_c::types");
 }
 
@@ -242,7 +280,7 @@ bool protocol_ext_field_s<ext_set_paramT_>::load_info_obj(const uint32_t& id_)
   id        = id_;
   crit      = ext_set_paramT_::get_crit(id);
   ext_value = ext_set_paramT_::get_ext(id);
-  return true;
+  return ext_value.type().value != ext_set_paramT_::ext_c::types_opts::nulltype;
 }
 
 // ProtocolIE-SingleContainer{NGAP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{NGAP-PROTOCOL-IES}}
@@ -283,30 +321,30 @@ bool protocol_ie_single_container_s<ies_set_paramT_>::load_info_obj(const uint32
   id    = id_;
   crit  = ies_set_paramT_::get_crit(id);
   value = ies_set_paramT_::get_value(id);
-  return true;
+  return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
 }
 
 uint32_t ngap_protocol_ext_empty_o::idx_to_id(uint32_t idx)
 {
-  ngap_nr_log_print(LOG_LEVEL_ERROR, "object set is empty\n");
+  logmap::get("ASN1::NGAP_NR")->error("object set is empty\n");
   return 0;
 }
 bool ngap_protocol_ext_empty_o::is_id_valid(const uint32_t& id)
 {
-  ngap_nr_log_print(LOG_LEVEL_ERROR, "object set is empty\n");
+  logmap::get("ASN1::NGAP_NR")->error("object set is empty\n");
   return false;
 }
 crit_e ngap_protocol_ext_empty_o::get_crit(const uint32_t& id)
 {
-  return crit_e();
+  return {};
 }
 ngap_protocol_ext_empty_o::ext_c ngap_protocol_ext_empty_o::get_ext(const uint32_t& id)
 {
-  return ngap_protocol_ext_empty_o::ext_c();
+  return {};
 }
 presence_e ngap_protocol_ext_empty_o::get_presence(const uint32_t& id)
 {
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -328,7 +366,7 @@ SRSASN_CODE ngap_protocol_ext_empty_o::ext_c::unpack(cbit_ref& bref)
 
 std::string ngap_protocol_ext_empty_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {};
+  static const char* options[] = {};
   return convert_enum_idx(options, 0, value, "ngap_protocol_ext_empty_o::ext_c::types");
 }
 
@@ -453,7 +491,7 @@ SRSASN_CODE cp_transport_layer_info_c::unpack(cbit_ref& bref)
 
 std::string cp_transport_layer_info_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"endpointIPAddress", "choice-Extensions"};
+  static const char* options[] = {"endpointIPAddress", "choice-Extensions"};
   return convert_enum_idx(options, 2, value, "cp_transport_layer_info_c::types");
 }
 
@@ -555,7 +593,7 @@ void amf_tnlassoc_setup_item_s::to_json(json_writer& j) const
 // TNLAssociationUsage ::= ENUMERATED
 std::string tnlassoc_usage_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ue", "non-ue", "both"};
+  static const char* options[] = {"ue", "non-ue", "both"};
   return convert_enum_idx(options, 3, value, "tnlassoc_usage_e");
 }
 
@@ -867,8 +905,8 @@ void plmn_support_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("pLMNIdentity", plmn_id.to_string());
   j.start_array("sliceSupportList");
-  for (uint32_t i1 = 0; i1 < slice_support_list.size(); ++i1) {
-    slice_support_list[i1].to_json(j);
+  for (const auto& e1 : slice_support_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -929,14 +967,14 @@ void served_guami_item_s::to_json(json_writer& j) const
 // AMFConfigurationUpdateIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t amf_cfg_upd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {1, 96, 86, 80, 6, 7, 8};
-  return convert_enum_idx(options, 7, idx, "id");
+  static const uint32_t options[] = {1, 96, 86, 80, 6, 7, 8};
+  return map_enum_number(options, 7, idx, "id");
 }
 bool amf_cfg_upd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {1, 96, 86, 80, 6, 7, 8};
-  for (uint32_t i = 0; i < 7; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {1, 96, 86, 80, 6, 7, 8};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -960,9 +998,9 @@ crit_e amf_cfg_upd_ies_o::get_crit(const uint32_t& id)
     case 8:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 amf_cfg_upd_ies_o::value_c amf_cfg_upd_ies_o::get_value(const uint32_t& id)
 {
@@ -990,7 +1028,7 @@ amf_cfg_upd_ies_o::value_c amf_cfg_upd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::amf_tnlassoc_to_upd_list);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -1012,9 +1050,9 @@ presence_e amf_cfg_upd_ies_o::get_presence(const uint32_t& id)
     case 8:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -1220,8 +1258,8 @@ void amf_cfg_upd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::served_guami_list:
       j.start_array("ServedGUAMIList");
-      for (uint32_t i1 = 0; i1 < c.get<served_guami_list_l>().size(); ++i1) {
-        c.get<served_guami_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<served_guami_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -1230,29 +1268,29 @@ void amf_cfg_upd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::plmn_support_list:
       j.start_array("PLMNSupportList");
-      for (uint32_t i1 = 0; i1 < c.get<plmn_support_list_l>().size(); ++i1) {
-        c.get<plmn_support_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<plmn_support_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::amf_tnlassoc_to_add_list:
       j.start_array("AMF-TNLAssociationToAddList");
-      for (uint32_t i1 = 0; i1 < c.get<amf_tnlassoc_to_add_list_l>().size(); ++i1) {
-        c.get<amf_tnlassoc_to_add_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<amf_tnlassoc_to_add_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::amf_tnlassoc_to_rem_list:
       j.start_array("AMF-TNLAssociationToRemoveList");
-      for (uint32_t i1 = 0; i1 < c.get<amf_tnlassoc_to_rem_list_l>().size(); ++i1) {
-        c.get<amf_tnlassoc_to_rem_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<amf_tnlassoc_to_rem_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::amf_tnlassoc_to_upd_list:
       j.start_array("AMF-TNLAssociationToUpdateList");
-      for (uint32_t i1 = 0; i1 < c.get<amf_tnlassoc_to_upd_list_l>().size(); ++i1) {
-        c.get<amf_tnlassoc_to_upd_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<amf_tnlassoc_to_upd_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -1326,23 +1364,21 @@ SRSASN_CODE amf_cfg_upd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string amf_cfg_upd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PrintableString",
-                                            "ServedGUAMIList",
-                                            "INTEGER (0..255)",
-                                            "PLMNSupportList",
-                                            "AMF-TNLAssociationToAddList",
-                                            "AMF-TNLAssociationToRemoveList",
-                                            "AMF-TNLAssociationToUpdateList"};
+  static const char* options[] = {"PrintableString",
+                                  "ServedGUAMIList",
+                                  "INTEGER (0..255)",
+                                  "PLMNSupportList",
+                                  "AMF-TNLAssociationToAddList",
+                                  "AMF-TNLAssociationToRemoveList",
+                                  "AMF-TNLAssociationToUpdateList"};
   return convert_enum_idx(options, 7, value, "amf_cfg_upd_ies_o::value_c::types");
 }
 uint8_t amf_cfg_upd_ies_o::value_c::types_opts::to_number() const
 {
-  switch (value) {
-    case relative_amf_capacity:
-      return 0;
-    default:
-      invalid_enum_number(value, "amf_cfg_upd_ies_o::value_c::types");
+  if (value == relative_amf_capacity) {
+    return 0;
   }
+  invalid_enum_number(value, "amf_cfg_upd_ies_o::value_c::types");
   return 0;
 }
 
@@ -1382,7 +1418,7 @@ void protocol_ie_container_item_s<valueT_>::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<amf_cfg_upd_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<amf_cfg_upd_ies_o>;
 
 amf_cfg_upd_ies_container::amf_cfg_upd_ies_container() :
   amf_name(1, crit_e::reject),
@@ -1482,7 +1518,7 @@ SRSASN_CODE amf_cfg_upd_ies_container::unpack(cbit_ref& bref)
         amf_tnlassoc_to_upd_list.value   = c.value.amf_tnlassoc_to_upd_list();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -1549,99 +1585,99 @@ void amf_cfg_upd_s::to_json(json_writer& j) const
 // CauseMisc ::= ENUMERATED
 std::string cause_misc_opts::to_string() const
 {
-  static constexpr const char* options[] = {"control-processing-overload",
-                                            "not-enough-user-plane-processing-resources",
-                                            "hardware-failure",
-                                            "om-intervention",
-                                            "unknown-PLMN",
-                                            "unspecified"};
+  static const char* options[] = {"control-processing-overload",
+                                  "not-enough-user-plane-processing-resources",
+                                  "hardware-failure",
+                                  "om-intervention",
+                                  "unknown-PLMN",
+                                  "unspecified"};
   return convert_enum_idx(options, 6, value, "cause_misc_e");
 }
 
 // CauseNas ::= ENUMERATED
 std::string cause_nas_opts::to_string() const
 {
-  static constexpr const char* options[] = {"normal-release", "authentication-failure", "deregister", "unspecified"};
+  static const char* options[] = {"normal-release", "authentication-failure", "deregister", "unspecified"};
   return convert_enum_idx(options, 4, value, "cause_nas_e");
 }
 
 // CauseProtocol ::= ENUMERATED
 std::string cause_protocol_opts::to_string() const
 {
-  static constexpr const char* options[] = {"transfer-syntax-error",
-                                            "abstract-syntax-error-reject",
-                                            "abstract-syntax-error-ignore-and-notify",
-                                            "message-not-compatible-with-receiver-state",
-                                            "semantic-error",
-                                            "abstract-syntax-error-falsely-constructed-message",
-                                            "unspecified"};
+  static const char* options[] = {"transfer-syntax-error",
+                                  "abstract-syntax-error-reject",
+                                  "abstract-syntax-error-ignore-and-notify",
+                                  "message-not-compatible-with-receiver-state",
+                                  "semantic-error",
+                                  "abstract-syntax-error-falsely-constructed-message",
+                                  "unspecified"};
   return convert_enum_idx(options, 7, value, "cause_protocol_e");
 }
 
 // CauseRadioNetwork ::= ENUMERATED
 std::string cause_radio_network_opts::to_string() const
 {
-  static constexpr const char* options[] = {"unspecified",
-                                            "txnrelocoverall-expiry",
-                                            "successful-handover",
-                                            "release-due-to-ngran-generated-reason",
-                                            "release-due-to-5gc-generated-reason",
-                                            "handover-cancelled",
-                                            "partial-handover",
-                                            "ho-failure-in-target-5GC-ngran-node-or-target-system",
-                                            "ho-target-not-allowed",
-                                            "tngrelocoverall-expiry",
-                                            "tngrelocprep-expiry",
-                                            "cell-not-available",
-                                            "unknown-targetID",
-                                            "no-radio-resources-available-in-target-cell",
-                                            "unknown-local-UE-NGAP-ID",
-                                            "inconsistent-remote-UE-NGAP-ID",
-                                            "handover-desirable-for-radio-reason",
-                                            "time-critical-handover",
-                                            "resource-optimisation-handover",
-                                            "reduce-load-in-serving-cell",
-                                            "user-inactivity",
-                                            "radio-connection-with-ue-lost",
-                                            "radio-resources-not-available",
-                                            "invalid-qos-combination",
-                                            "failure-in-radio-interface-procedure",
-                                            "interaction-with-other-procedure",
-                                            "unknown-PDU-session-ID",
-                                            "unkown-qos-flow-ID",
-                                            "multiple-PDU-session-ID-instances",
-                                            "multiple-qos-flow-ID-instances",
-                                            "encryption-and-or-integrity-protection-algorithms-not-supported",
-                                            "ng-intra-system-handover-triggered",
-                                            "ng-inter-system-handover-triggered",
-                                            "xn-handover-triggered",
-                                            "not-supported-5QI-value",
-                                            "ue-context-transfer",
-                                            "ims-voice-eps-fallback-or-rat-fallback-triggered",
-                                            "up-integrity-protection-not-possible",
-                                            "up-confidentiality-protection-not-possible",
-                                            "slice-not-supported",
-                                            "ue-in-rrc-inactive-state-not-reachable",
-                                            "redirection",
-                                            "resources-not-available-for-the-slice",
-                                            "ue-max-integrity-protected-data-rate-reason",
-                                            "release-due-to-cn-detected-mobility",
-                                            "n26-interface-not-available",
-                                            "release-due-to-pre-emption"};
+  static const char* options[] = {"unspecified",
+                                  "txnrelocoverall-expiry",
+                                  "successful-handover",
+                                  "release-due-to-ngran-generated-reason",
+                                  "release-due-to-5gc-generated-reason",
+                                  "handover-cancelled",
+                                  "partial-handover",
+                                  "ho-failure-in-target-5GC-ngran-node-or-target-system",
+                                  "ho-target-not-allowed",
+                                  "tngrelocoverall-expiry",
+                                  "tngrelocprep-expiry",
+                                  "cell-not-available",
+                                  "unknown-targetID",
+                                  "no-radio-resources-available-in-target-cell",
+                                  "unknown-local-UE-NGAP-ID",
+                                  "inconsistent-remote-UE-NGAP-ID",
+                                  "handover-desirable-for-radio-reason",
+                                  "time-critical-handover",
+                                  "resource-optimisation-handover",
+                                  "reduce-load-in-serving-cell",
+                                  "user-inactivity",
+                                  "radio-connection-with-ue-lost",
+                                  "radio-resources-not-available",
+                                  "invalid-qos-combination",
+                                  "failure-in-radio-interface-procedure",
+                                  "interaction-with-other-procedure",
+                                  "unknown-PDU-session-ID",
+                                  "unkown-qos-flow-ID",
+                                  "multiple-PDU-session-ID-instances",
+                                  "multiple-qos-flow-ID-instances",
+                                  "encryption-and-or-integrity-protection-algorithms-not-supported",
+                                  "ng-intra-system-handover-triggered",
+                                  "ng-inter-system-handover-triggered",
+                                  "xn-handover-triggered",
+                                  "not-supported-5QI-value",
+                                  "ue-context-transfer",
+                                  "ims-voice-eps-fallback-or-rat-fallback-triggered",
+                                  "up-integrity-protection-not-possible",
+                                  "up-confidentiality-protection-not-possible",
+                                  "slice-not-supported",
+                                  "ue-in-rrc-inactive-state-not-reachable",
+                                  "redirection",
+                                  "resources-not-available-for-the-slice",
+                                  "ue-max-integrity-protected-data-rate-reason",
+                                  "release-due-to-cn-detected-mobility",
+                                  "n26-interface-not-available",
+                                  "release-due-to-pre-emption"};
   return convert_enum_idx(options, 47, value, "cause_radio_network_e");
 }
 
 // CauseTransport ::= ENUMERATED
 std::string cause_transport_opts::to_string() const
 {
-  static constexpr const char* options[] = {"transport-resource-unavailable", "unspecified"};
+  static const char* options[] = {"transport-resource-unavailable", "unspecified"};
   return convert_enum_idx(options, 2, value, "cause_transport_e");
 }
 
 // TypeOfError ::= ENUMERATED
 std::string type_of_error_opts::to_string() const
 {
-  static constexpr const char* options[] = {"not-understood", "missing"};
+  static const char* options[] = {"not-understood", "missing"};
   return convert_enum_idx(options, 2, value, "type_of_error_e");
 }
 
@@ -1830,14 +1866,13 @@ SRSASN_CODE cause_c::unpack(cbit_ref& bref)
 
 std::string cause_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "radioNetwork", "transport", "nas", "protocol", "misc", "choice-Extensions"};
+  static const char* options[] = {"radioNetwork", "transport", "nas", "protocol", "misc", "choice-Extensions"};
   return convert_enum_idx(options, 6, value, "cause_c::types");
 }
 uint8_t cause_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {2};
-  return convert_enum_idx(options, 1, value, "cause_c::types");
+  static const uint8_t options[] = {2};
+  return map_enum_number(options, 1, value, "cause_c::types");
 }
 
 // CriticalityDiagnostics-IE-Item ::= SEQUENCE
@@ -1926,7 +1961,7 @@ void tnlassoc_item_s::to_json(json_writer& j) const
 // TriggeringMessage ::= ENUMERATED
 std::string trigger_msg_opts::to_string() const
 {
-  static constexpr const char* options[] = {"initiating-message", "successful-outcome", "unsuccessfull-outcome"};
+  static const char* options[] = {"initiating-message", "successful-outcome", "unsuccessfull-outcome"};
   return convert_enum_idx(options, 3, value, "trigger_msg_e");
 }
 
@@ -1999,8 +2034,8 @@ void crit_diagnostics_s::to_json(json_writer& j) const
   }
   if (ies_crit_diagnostics_present) {
     j.start_array("iEsCriticalityDiagnostics");
-    for (uint32_t i1 = 0; i1 < ies_crit_diagnostics.size(); ++i1) {
-      ies_crit_diagnostics[i1].to_json(j);
+    for (const auto& e1 : ies_crit_diagnostics) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -2014,14 +2049,14 @@ void crit_diagnostics_s::to_json(json_writer& j) const
 // AMFConfigurationUpdateAcknowledgeIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t amf_cfg_upd_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {5, 4, 19};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {5, 4, 19};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool amf_cfg_upd_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {5, 4, 19};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {5, 4, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -2037,9 +2072,9 @@ crit_e amf_cfg_upd_ack_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 amf_cfg_upd_ack_ies_o::value_c amf_cfg_upd_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -2055,7 +2090,7 @@ amf_cfg_upd_ack_ies_o::value_c amf_cfg_upd_ack_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -2069,9 +2104,9 @@ presence_e amf_cfg_upd_ack_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -2190,15 +2225,15 @@ void amf_cfg_upd_ack_ies_o::value_c::to_json(json_writer& j) const
   switch (type_) {
     case types::amf_tnlassoc_setup_list:
       j.start_array("AMF-TNLAssociationSetupList");
-      for (uint32_t i1 = 0; i1 < c.get<amf_tnlassoc_setup_list_l>().size(); ++i1) {
-        c.get<amf_tnlassoc_setup_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<amf_tnlassoc_setup_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::amf_tnlassoc_failed_to_setup_list:
       j.start_array("TNLAssociationList");
-      for (uint32_t i1 = 0; i1 < c.get<tnlassoc_list_l>().size(); ++i1) {
-        c.get<tnlassoc_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tnlassoc_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -2252,12 +2287,11 @@ SRSASN_CODE amf_cfg_upd_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string amf_cfg_upd_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "AMF-TNLAssociationSetupList", "TNLAssociationList", "CriticalityDiagnostics"};
+  static const char* options[] = {"AMF-TNLAssociationSetupList", "TNLAssociationList", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "amf_cfg_upd_ack_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<amf_cfg_upd_ack_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<amf_cfg_upd_ack_ies_o>;
 
 amf_cfg_upd_ack_ies_container::amf_cfg_upd_ack_ies_container() :
   amf_tnlassoc_setup_list(5, crit_e::ignore),
@@ -2313,7 +2347,7 @@ SRSASN_CODE amf_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -2364,26 +2398,26 @@ void amf_cfg_upd_ack_s::to_json(json_writer& j) const
 // TimeToWait ::= ENUMERATED
 std::string time_to_wait_opts::to_string() const
 {
-  static constexpr const char* options[] = {"v1s", "v2s", "v5s", "v10s", "v20s", "v60s"};
+  static const char* options[] = {"v1s", "v2s", "v5s", "v10s", "v20s", "v60s"};
   return convert_enum_idx(options, 6, value, "time_to_wait_e");
 }
 uint8_t time_to_wait_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1, 2, 5, 10, 20, 60};
-  return convert_enum_idx(options, 6, value, "time_to_wait_e");
+  static const uint8_t options[] = {1, 2, 5, 10, 20, 60};
+  return map_enum_number(options, 6, value, "time_to_wait_e");
 }
 
 // AMFConfigurationUpdateFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t amf_cfg_upd_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {15, 107, 19};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {15, 107, 19};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool amf_cfg_upd_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {15, 107, 19};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {15, 107, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -2399,9 +2433,9 @@ crit_e amf_cfg_upd_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 amf_cfg_upd_fail_ies_o::value_c amf_cfg_upd_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -2417,7 +2451,7 @@ amf_cfg_upd_fail_ies_o::value_c amf_cfg_upd_fail_ies_o::get_value(const uint32_t
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -2431,9 +2465,9 @@ presence_e amf_cfg_upd_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -2604,11 +2638,11 @@ SRSASN_CODE amf_cfg_upd_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string amf_cfg_upd_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
+  static const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "amf_cfg_upd_fail_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<amf_cfg_upd_fail_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<amf_cfg_upd_fail_ies_o>;
 
 amf_cfg_upd_fail_ies_container::amf_cfg_upd_fail_ies_container() :
   cause(15, crit_e::ignore),
@@ -2663,12 +2697,13 @@ SRSASN_CODE amf_cfg_upd_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -2833,7 +2868,7 @@ SRSASN_CODE gnb_id_c::unpack(cbit_ref& bref)
 
 std::string gnb_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"gNB-ID", "choice-Extensions"};
+  static const char* options[] = {"gNB-ID", "choice-Extensions"};
   return convert_enum_idx(options, 2, value, "gnb_id_c::types");
 }
 
@@ -2958,13 +2993,13 @@ SRSASN_CODE n3_iwf_id_c::unpack(cbit_ref& bref)
 
 std::string n3_iwf_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"n3IWF-ID", "choice-Extensions"};
+  static const char* options[] = {"n3IWF-ID", "choice-Extensions"};
   return convert_enum_idx(options, 2, value, "n3_iwf_id_c::types");
 }
 uint8_t n3_iwf_id_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {3};
-  return convert_enum_idx(options, 1, value, "n3_iwf_id_c::types");
+  static const uint8_t options[] = {3};
+  return map_enum_number(options, 1, value, "n3_iwf_id_c::types");
 }
 
 // NgENB-ID ::= CHOICE
@@ -3130,8 +3165,7 @@ SRSASN_CODE ng_enb_id_c::unpack(cbit_ref& bref)
 
 std::string ng_enb_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "macroNgENB-ID", "shortMacroNgENB-ID", "longMacroNgENB-ID", "choice-Extensions"};
+  static const char* options[] = {"macroNgENB-ID", "shortMacroNgENB-ID", "longMacroNgENB-ID", "choice-Extensions"};
   return convert_enum_idx(options, 4, value, "ng_enb_id_c::types");
 }
 
@@ -3421,17 +3455,15 @@ SRSASN_CODE global_ran_node_id_c::unpack(cbit_ref& bref)
 
 std::string global_ran_node_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"globalGNB-ID", "globalNgENB-ID", "globalN3IWF-ID", "choice-Extensions"};
+  static const char* options[] = {"globalGNB-ID", "globalNgENB-ID", "globalN3IWF-ID", "choice-Extensions"};
   return convert_enum_idx(options, 4, value, "global_ran_node_id_c::types");
 }
 uint8_t global_ran_node_id_c::types_opts::to_number() const
 {
-  switch (value) {
-    case global_n3_iwf_id:
-      return 3;
-    default:
-      invalid_enum_number(value, "global_ran_node_id_c::types");
+  if (value == global_n3_iwf_id) {
+    return 3;
   }
+  invalid_enum_number(value, "global_ran_node_id_c::types");
   return 0;
 }
 
@@ -3618,14 +3650,14 @@ SRSASN_CODE amf_paging_target_c::unpack(cbit_ref& bref)
 
 std::string amf_paging_target_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"globalRANNodeID", "tAI", "choice-Extensions"};
+  static const char* options[] = {"globalRANNodeID", "tAI", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "amf_paging_target_c::types");
 }
 
 // TimerApproachForGUAMIRemoval ::= ENUMERATED
 std::string timer_approach_for_guami_removal_opts::to_string() const
 {
-  static constexpr const char* options[] = {"apply-timer"};
+  static const char* options[] = {"apply-timer"};
   return convert_enum_idx(options, 1, value, "timer_approach_for_guami_removal_e");
 }
 
@@ -3691,49 +3723,36 @@ void unavailable_guami_item_s::to_json(json_writer& j) const
 // AMFStatusIndicationIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t amf_status_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {120};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {120};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool amf_status_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {120};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 120 == id;
 }
 crit_e amf_status_ind_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 120:
-      return crit_e::reject;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 120) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 amf_status_ind_ies_o::value_c amf_status_ind_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 120:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 120) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e amf_status_ind_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 120:
-      return presence_e::mandatory;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 120) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -3741,8 +3760,8 @@ void amf_status_ind_ies_o::value_c::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("UnavailableGUAMIList");
-  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-    c[i1].to_json(j);
+  for (const auto& e1 : c) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -3762,11 +3781,11 @@ SRSASN_CODE amf_status_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string amf_status_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UnavailableGUAMIList"};
+  static const char* options[] = {"UnavailableGUAMIList"};
   return convert_enum_idx(options, 1, value, "amf_status_ind_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<amf_status_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<amf_status_ind_ies_o>;
 
 amf_status_ind_ies_container::amf_status_ind_ies_container() : unavailable_guami_list(120, crit_e::reject) {}
 SRSASN_CODE amf_status_ind_ies_container::pack(bit_ref& bref) const
@@ -3788,20 +3807,19 @@ SRSASN_CODE amf_status_ind_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<amf_status_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 120:
-        nof_mandatory_ies--;
-        unavailable_guami_list.id    = c.id;
-        unavailable_guami_list.crit  = c.crit;
-        unavailable_guami_list.value = c.value.unavailable_guami_list();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 120) {
+      nof_mandatory_ies--;
+      unavailable_guami_list.id    = c.id;
+      unavailable_guami_list.crit  = c.crit;
+      unavailable_guami_list.value = c.value.unavailable_guami_list();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -3840,7 +3858,7 @@ void amf_status_ind_s::to_json(json_writer& j) const
 // DataForwardingAccepted ::= ENUMERATED
 std::string data_forwarding_accepted_opts::to_string() const
 {
-  static constexpr const char* options[] = {"data-forwarding-accepted"};
+  static const char* options[] = {"data-forwarding-accepted"};
   return convert_enum_idx(options, 1, value, "data_forwarding_accepted_e");
 }
 
@@ -4052,7 +4070,7 @@ SRSASN_CODE up_transport_layer_info_c::unpack(cbit_ref& bref)
 
 std::string up_transport_layer_info_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"gTPTunnel", "choice-Extensions"};
+  static const char* options[] = {"gTPTunnel", "choice-Extensions"};
   return convert_enum_idx(options, 2, value, "up_transport_layer_info_c::types");
 }
 
@@ -4097,8 +4115,8 @@ void add_dluptnl_info_for_ho_item_s::to_json(json_writer& j) const
   j.write_fieldname("additionalDL-NGU-UP-TNLInformation");
   add_dl_ngu_up_tnl_info.to_json(j);
   j.start_array("additionalQosFlowSetupResponseList");
-  for (uint32_t i1 = 0; i1 < add_qos_flow_setup_resp_list.size(); ++i1) {
-    add_qos_flow_setup_resp_list[i1].to_json(j);
+  for (const auto& e1 : add_qos_flow_setup_resp_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (add_dl_forwarding_uptnl_info_present) {
@@ -4115,14 +4133,14 @@ void add_dluptnl_info_for_ho_item_s::to_json(json_writer& j) const
 // Pre-emptionCapability ::= ENUMERATED
 std::string pre_emption_cap_opts::to_string() const
 {
-  static constexpr const char* options[] = {"shall-not-trigger-pre-emption", "may-trigger-pre-emption"};
+  static const char* options[] = {"shall-not-trigger-pre-emption", "may-trigger-pre-emption"};
   return convert_enum_idx(options, 2, value, "pre_emption_cap_e");
 }
 
 // Pre-emptionVulnerability ::= ENUMERATED
 std::string pre_emption_vulnerability_opts::to_string() const
 {
-  static constexpr const char* options[] = {"not-pre-emptable", "pre-emptable"};
+  static const char* options[] = {"not-pre-emptable", "pre-emptable"};
   return convert_enum_idx(options, 2, value, "pre_emption_vulnerability_e");
 }
 
@@ -4427,7 +4445,7 @@ SRSASN_CODE ngran_cgi_c::unpack(cbit_ref& bref)
 
 std::string ngran_cgi_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"nR-CGI", "eUTRA-CGI", "choice-Extensions"};
+  static const char* options[] = {"nR-CGI", "eUTRA-CGI", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "ngran_cgi_c::types");
 }
 
@@ -4594,22 +4612,22 @@ void area_of_interest_s::to_json(json_writer& j) const
   j.start_obj();
   if (area_of_interest_tai_list_present) {
     j.start_array("areaOfInterestTAIList");
-    for (uint32_t i1 = 0; i1 < area_of_interest_tai_list.size(); ++i1) {
-      area_of_interest_tai_list[i1].to_json(j);
+    for (const auto& e1 : area_of_interest_tai_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (area_of_interest_cell_list_present) {
     j.start_array("areaOfInterestCellList");
-    for (uint32_t i1 = 0; i1 < area_of_interest_cell_list.size(); ++i1) {
-      area_of_interest_cell_list[i1].to_json(j);
+    for (const auto& e1 : area_of_interest_cell_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (area_of_interest_ran_node_list_present) {
     j.start_array("areaOfInterestRANNodeList");
-    for (uint32_t i1 = 0; i1 < area_of_interest_ran_node_list.size(); ++i1) {
-      area_of_interest_ran_node_list[i1].to_json(j);
+    for (const auto& e1 : area_of_interest_ran_node_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -4711,7 +4729,7 @@ void recommended_cell_item_s::to_json(json_writer& j) const
 // NextPagingAreaScope ::= ENUMERATED
 std::string next_paging_area_scope_opts::to_string() const
 {
-  static constexpr const char* options[] = {"same", "changed"};
+  static const char* options[] = {"same", "changed"};
   return convert_enum_idx(options, 2, value, "next_paging_area_scope_e");
 }
 
@@ -4744,8 +4762,8 @@ void recommended_cells_for_paging_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("recommendedCellList");
-  for (uint32_t i1 = 0; i1 < recommended_cell_list.size(); ++i1) {
-    recommended_cell_list[i1].to_json(j);
+  for (const auto& e1 : recommended_cell_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -4948,7 +4966,7 @@ void associated_qos_flow_item_s::to_json(json_writer& j) const
 
 std::string associated_qos_flow_item_s::qos_flow_map_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ul", "dl"};
+  static const char* options[] = {"ul", "dl"};
   return convert_enum_idx(options, 2, value, "associated_qos_flow_item_s::qos_flow_map_ind_e_");
 }
 
@@ -5224,8 +5242,8 @@ void emergency_area_id_cancelled_eutra_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("emergencyAreaID", emergency_area_id.to_string());
   j.start_array("cancelledCellsInEAI-EUTRA");
-  for (uint32_t i1 = 0; i1 < cancelled_cells_in_eai_eutra.size(); ++i1) {
-    cancelled_cells_in_eai_eutra[i1].to_json(j);
+  for (const auto& e1 : cancelled_cells_in_eai_eutra) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -5267,8 +5285,8 @@ void emergency_area_id_cancelled_nr_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("emergencyAreaID", emergency_area_id.to_string());
   j.start_array("cancelledCellsInEAI-NR");
-  for (uint32_t i1 = 0; i1 < cancelled_cells_in_eai_nr.size(); ++i1) {
-    cancelled_cells_in_eai_nr[i1].to_json(j);
+  for (const auto& e1 : cancelled_cells_in_eai_nr) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -5311,8 +5329,8 @@ void tai_cancelled_eutra_item_s::to_json(json_writer& j) const
   j.write_fieldname("tAI");
   tai.to_json(j);
   j.start_array("cancelledCellsInTAI-EUTRA");
-  for (uint32_t i1 = 0; i1 < cancelled_cells_in_tai_eutra.size(); ++i1) {
-    cancelled_cells_in_tai_eutra[i1].to_json(j);
+  for (const auto& e1 : cancelled_cells_in_tai_eutra) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -5355,8 +5373,8 @@ void tai_cancelled_nr_item_s::to_json(json_writer& j) const
   j.write_fieldname("tAI");
   tai.to_json(j);
   j.start_array("cancelledCellsInTAI-NR");
-  for (uint32_t i1 = 0; i1 < cancelled_cells_in_tai_nr.size(); ++i1) {
-    cancelled_cells_in_tai_nr[i1].to_json(j);
+  for (const auto& e1 : cancelled_cells_in_tai_nr) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -5501,43 +5519,43 @@ void broadcast_cancelled_area_list_c::to_json(json_writer& j) const
   switch (type_) {
     case types::cell_id_cancelled_eutra:
       j.start_array("cellIDCancelledEUTRA");
-      for (uint32_t i1 = 0; i1 < c.get<cell_id_cancelled_eutra_l>().size(); ++i1) {
-        c.get<cell_id_cancelled_eutra_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<cell_id_cancelled_eutra_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::tai_cancelled_eutra:
       j.start_array("tAICancelledEUTRA");
-      for (uint32_t i1 = 0; i1 < c.get<tai_cancelled_eutra_l>().size(); ++i1) {
-        c.get<tai_cancelled_eutra_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_cancelled_eutra_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_cancelled_eutra:
       j.start_array("emergencyAreaIDCancelledEUTRA");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_cancelled_eutra_l>().size(); ++i1) {
-        c.get<emergency_area_id_cancelled_eutra_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<emergency_area_id_cancelled_eutra_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::cell_id_cancelled_nr:
       j.start_array("cellIDCancelledNR");
-      for (uint32_t i1 = 0; i1 < c.get<cell_id_cancelled_nr_l>().size(); ++i1) {
-        c.get<cell_id_cancelled_nr_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<cell_id_cancelled_nr_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::tai_cancelled_nr:
       j.start_array("tAICancelledNR");
-      for (uint32_t i1 = 0; i1 < c.get<tai_cancelled_nr_l>().size(); ++i1) {
-        c.get<tai_cancelled_nr_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_cancelled_nr_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_cancelled_nr:
       j.start_array("emergencyAreaIDCancelledNR");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_cancelled_nr_l>().size(); ++i1) {
-        c.get<emergency_area_id_cancelled_nr_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<emergency_area_id_cancelled_nr_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -5617,13 +5635,13 @@ SRSASN_CODE broadcast_cancelled_area_list_c::unpack(cbit_ref& bref)
 
 std::string broadcast_cancelled_area_list_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellIDCancelledEUTRA",
-                                            "tAICancelledEUTRA",
-                                            "emergencyAreaIDCancelledEUTRA",
-                                            "cellIDCancelledNR",
-                                            "tAICancelledNR",
-                                            "emergencyAreaIDCancelledNR",
-                                            "choice-Extensions"};
+  static const char* options[] = {"cellIDCancelledEUTRA",
+                                  "tAICancelledEUTRA",
+                                  "emergencyAreaIDCancelledEUTRA",
+                                  "cellIDCancelledNR",
+                                  "tAICancelledNR",
+                                  "emergencyAreaIDCancelledNR",
+                                  "choice-Extensions"};
   return convert_enum_idx(options, 7, value, "broadcast_cancelled_area_list_c::types");
 }
 
@@ -5881,8 +5899,8 @@ void emergency_area_id_broadcast_eutra_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("emergencyAreaID", emergency_area_id.to_string());
   j.start_array("completedCellsInEAI-EUTRA");
-  for (uint32_t i1 = 0; i1 < completed_cells_in_eai_eutra.size(); ++i1) {
-    completed_cells_in_eai_eutra[i1].to_json(j);
+  for (const auto& e1 : completed_cells_in_eai_eutra) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -5924,8 +5942,8 @@ void emergency_area_id_broadcast_nr_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("emergencyAreaID", emergency_area_id.to_string());
   j.start_array("completedCellsInEAI-NR");
-  for (uint32_t i1 = 0; i1 < completed_cells_in_eai_nr.size(); ++i1) {
-    completed_cells_in_eai_nr[i1].to_json(j);
+  for (const auto& e1 : completed_cells_in_eai_nr) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -5968,8 +5986,8 @@ void tai_broadcast_eutra_item_s::to_json(json_writer& j) const
   j.write_fieldname("tAI");
   tai.to_json(j);
   j.start_array("completedCellsInTAI-EUTRA");
-  for (uint32_t i1 = 0; i1 < completed_cells_in_tai_eutra.size(); ++i1) {
-    completed_cells_in_tai_eutra[i1].to_json(j);
+  for (const auto& e1 : completed_cells_in_tai_eutra) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -6012,8 +6030,8 @@ void tai_broadcast_nr_item_s::to_json(json_writer& j) const
   j.write_fieldname("tAI");
   tai.to_json(j);
   j.start_array("completedCellsInTAI-NR");
-  for (uint32_t i1 = 0; i1 < completed_cells_in_tai_nr.size(); ++i1) {
-    completed_cells_in_tai_nr[i1].to_json(j);
+  for (const auto& e1 : completed_cells_in_tai_nr) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -6158,43 +6176,43 @@ void broadcast_completed_area_list_c::to_json(json_writer& j) const
   switch (type_) {
     case types::cell_id_broadcast_eutra:
       j.start_array("cellIDBroadcastEUTRA");
-      for (uint32_t i1 = 0; i1 < c.get<cell_id_broadcast_eutra_l>().size(); ++i1) {
-        c.get<cell_id_broadcast_eutra_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<cell_id_broadcast_eutra_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::tai_broadcast_eutra:
       j.start_array("tAIBroadcastEUTRA");
-      for (uint32_t i1 = 0; i1 < c.get<tai_broadcast_eutra_l>().size(); ++i1) {
-        c.get<tai_broadcast_eutra_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_broadcast_eutra_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_broadcast_eutra:
       j.start_array("emergencyAreaIDBroadcastEUTRA");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_broadcast_eutra_l>().size(); ++i1) {
-        c.get<emergency_area_id_broadcast_eutra_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<emergency_area_id_broadcast_eutra_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::cell_id_broadcast_nr:
       j.start_array("cellIDBroadcastNR");
-      for (uint32_t i1 = 0; i1 < c.get<cell_id_broadcast_nr_l>().size(); ++i1) {
-        c.get<cell_id_broadcast_nr_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<cell_id_broadcast_nr_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::tai_broadcast_nr:
       j.start_array("tAIBroadcastNR");
-      for (uint32_t i1 = 0; i1 < c.get<tai_broadcast_nr_l>().size(); ++i1) {
-        c.get<tai_broadcast_nr_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_broadcast_nr_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_broadcast_nr:
       j.start_array("emergencyAreaIDBroadcastNR");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_broadcast_nr_l>().size(); ++i1) {
-        c.get<emergency_area_id_broadcast_nr_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<emergency_area_id_broadcast_nr_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -6274,13 +6292,13 @@ SRSASN_CODE broadcast_completed_area_list_c::unpack(cbit_ref& bref)
 
 std::string broadcast_completed_area_list_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellIDBroadcastEUTRA",
-                                            "tAIBroadcastEUTRA",
-                                            "emergencyAreaIDBroadcastEUTRA",
-                                            "cellIDBroadcastNR",
-                                            "tAIBroadcastNR",
-                                            "emergencyAreaIDBroadcastNR",
-                                            "choice-Extensions"};
+  static const char* options[] = {"cellIDBroadcastEUTRA",
+                                  "tAIBroadcastEUTRA",
+                                  "emergencyAreaIDBroadcastEUTRA",
+                                  "cellIDBroadcastNR",
+                                  "tAIBroadcastNR",
+                                  "emergencyAreaIDBroadcastNR",
+                                  "choice-Extensions"};
   return convert_enum_idx(options, 7, value, "broadcast_completed_area_list_c::types");
 }
 
@@ -6316,8 +6334,8 @@ void broadcast_plmn_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("pLMNIdentity", plmn_id.to_string());
   j.start_array("tAISliceSupportList");
-  for (uint32_t i1 = 0; i1 < tai_slice_support_list.size(); ++i1) {
-    tai_slice_support_list[i1].to_json(j);
+  for (const auto& e1 : tai_slice_support_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -6491,15 +6509,15 @@ void cell_id_list_for_restart_c::to_json(json_writer& j) const
   switch (type_) {
     case types::eutra_cgi_listfor_restart:
       j.start_array("eUTRA-CGIListforRestart");
-      for (uint32_t i1 = 0; i1 < c.get<eutra_cgi_list_l>().size(); ++i1) {
-        c.get<eutra_cgi_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<eutra_cgi_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::nr_cgi_listfor_restart:
       j.start_array("nR-CGIListforRestart");
-      for (uint32_t i1 = 0; i1 < c.get<nr_cgi_list_l>().size(); ++i1) {
-        c.get<nr_cgi_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<nr_cgi_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -6555,21 +6573,21 @@ SRSASN_CODE cell_id_list_for_restart_c::unpack(cbit_ref& bref)
 
 std::string cell_id_list_for_restart_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"eUTRA-CGIListforRestart", "nR-CGIListforRestart", "choice-Extensions"};
+  static const char* options[] = {"eUTRA-CGIListforRestart", "nR-CGIListforRestart", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "cell_id_list_for_restart_c::types");
 }
 
 // CellTrafficTraceIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t cell_traffic_trace_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 44, 43, 109};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 44, 43, 109};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool cell_traffic_trace_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 44, 43, 109};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 44, 43, 109};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -6589,9 +6607,9 @@ crit_e cell_traffic_trace_ies_o::get_crit(const uint32_t& id)
     case 109:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 cell_traffic_trace_ies_o::value_c cell_traffic_trace_ies_o::get_value(const uint32_t& id)
 {
@@ -6613,7 +6631,7 @@ cell_traffic_trace_ies_o::value_c cell_traffic_trace_ies_o::get_value(const uint
       ret.set(value_c::types::trace_collection_entity_ip_address);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -6631,9 +6649,9 @@ presence_e cell_traffic_trace_ies_o::get_presence(const uint32_t& id)
     case 109:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -6862,12 +6880,12 @@ SRSASN_CODE cell_traffic_trace_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string cell_traffic_trace_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "NGRAN-CGI", "BIT STRING"};
   return convert_enum_idx(options, 5, value, "cell_traffic_trace_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<cell_traffic_trace_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<cell_traffic_trace_ies_o>;
 
 cell_traffic_trace_ies_container::cell_traffic_trace_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -6932,12 +6950,13 @@ SRSASN_CODE cell_traffic_trace_ies_container::unpack(cbit_ref& bref)
         trace_collection_entity_ip_address.value = c.value.trace_collection_entity_ip_address();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -6984,7 +7003,7 @@ void cell_traffic_trace_s::to_json(json_writer& j) const
 // CellSize ::= ENUMERATED
 std::string cell_size_opts::to_string() const
 {
-  static constexpr const char* options[] = {"verysmall", "small", "medium", "large"};
+  static const char* options[] = {"verysmall", "small", "medium", "large"};
   return convert_enum_idx(options, 4, value, "cell_size_e");
 }
 
@@ -7075,20 +7094,20 @@ void expected_ue_moving_trajectory_item_s::to_json(json_writer& j) const
 // SourceOfUEActivityBehaviourInformation ::= ENUMERATED
 std::string source_of_ue_activity_behaviour_info_opts::to_string() const
 {
-  static constexpr const char* options[] = {"subscription-information", "statistics"};
+  static const char* options[] = {"subscription-information", "statistics"};
   return convert_enum_idx(options, 2, value, "source_of_ue_activity_behaviour_info_e");
 }
 
 // ExpectedHOInterval ::= ENUMERATED
 std::string expected_ho_interv_opts::to_string() const
 {
-  static constexpr const char* options[] = {"sec15", "sec30", "sec60", "sec90", "sec120", "sec180", "long-time"};
+  static const char* options[] = {"sec15", "sec30", "sec60", "sec90", "sec120", "sec180", "long-time"};
   return convert_enum_idx(options, 7, value, "expected_ho_interv_e");
 }
 uint8_t expected_ho_interv_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {15, 30, 60, 90, 120, 180};
-  return convert_enum_idx(options, 6, value, "expected_ho_interv_e");
+  static const uint8_t options[] = {15, 30, 60, 90, 120, 180};
+  return map_enum_number(options, 6, value, "expected_ho_interv_e");
 }
 
 // ExpectedUEActivityBehaviour ::= SEQUENCE
@@ -7160,7 +7179,7 @@ void expected_ue_activity_behaviour_s::to_json(json_writer& j) const
 // ExpectedUEMobility ::= ENUMERATED
 std::string expected_ue_mob_opts::to_string() const
 {
-  static constexpr const char* options[] = {"stationary", "mobile"};
+  static const char* options[] = {"stationary", "mobile"};
   return convert_enum_idx(options, 2, value, "expected_ue_mob_e");
 }
 
@@ -7271,8 +7290,8 @@ void expected_ue_behaviour_s::to_json(json_writer& j) const
   }
   if (expected_ue_moving_trajectory_present) {
     j.start_array("expectedUEMovingTrajectory");
-    for (uint32_t i1 = 0; i1 < expected_ue_moving_trajectory.size(); ++i1) {
-      expected_ue_moving_trajectory[i1].to_json(j);
+    for (const auto& e1 : expected_ue_moving_trajectory) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -7286,20 +7305,20 @@ void expected_ue_behaviour_s::to_json(json_writer& j) const
 // MICOModeIndication ::= ENUMERATED
 std::string mico_mode_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "mico_mode_ind_e");
 }
 
 // PagingDRX ::= ENUMERATED
 std::string paging_drx_opts::to_string() const
 {
-  static constexpr const char* options[] = {"v32", "v64", "v128", "v256"};
+  static const char* options[] = {"v32", "v64", "v128", "v256"};
   return convert_enum_idx(options, 4, value, "paging_drx_e");
 }
 uint16_t paging_drx_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {32, 64, 128, 256};
-  return convert_enum_idx(options, 4, value, "paging_drx_e");
+  static const uint16_t options[] = {32, 64, 128, 256};
+  return map_enum_number(options, 4, value, "paging_drx_e");
 }
 
 // UEIdentityIndexValue ::= CHOICE
@@ -7423,13 +7442,13 @@ SRSASN_CODE ue_id_idx_value_c::unpack(cbit_ref& bref)
 
 std::string ue_id_idx_value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"indexLength10", "choice-Extensions"};
+  static const char* options[] = {"indexLength10", "choice-Extensions"};
   return convert_enum_idx(options, 2, value, "ue_id_idx_value_c::types");
 }
 uint8_t ue_id_idx_value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {10};
-  return convert_enum_idx(options, 1, value, "ue_id_idx_value_c::types");
+  static const uint8_t options[] = {10};
+  return map_enum_number(options, 1, value, "ue_id_idx_value_c::types");
 }
 
 // CoreNetworkAssistanceInformation ::= SEQUENCE
@@ -7498,8 +7517,8 @@ void core_network_assist_info_s::to_json(json_writer& j) const
     j.write_str("mICOModeIndication", "true");
   }
   j.start_array("tAIListForInactive");
-  for (uint32_t i1 = 0; i1 < tai_list_for_inactive.size(); ++i1) {
-    tai_list_for_inactive[i1].to_json(j);
+  for (const auto& e1 : tai_list_for_inactive) {
+    e1.to_json(j);
   }
   j.end_array();
   if (expected_ue_behaviour_present) {
@@ -7731,13 +7750,13 @@ SRSASN_CODE drb_status_dl_c::unpack(cbit_ref& bref)
 
 std::string drb_status_dl_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"dRBStatusDL12", "dRBStatusDL18", "choice-Extensions"};
+  static const char* options[] = {"dRBStatusDL12", "dRBStatusDL18", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "drb_status_dl_c::types");
 }
 uint8_t drb_status_dl_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {12, 18};
-  return convert_enum_idx(options, 2, value, "drb_status_dl_c::types");
+  static const uint8_t options[] = {12, 18};
+  return map_enum_number(options, 2, value, "drb_status_dl_c::types");
 }
 
 // DRBStatusUL12 ::= SEQUENCE
@@ -7980,13 +7999,13 @@ SRSASN_CODE drb_status_ul_c::unpack(cbit_ref& bref)
 
 std::string drb_status_ul_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"dRBStatusUL12", "dRBStatusUL18", "choice-Extensions"};
+  static const char* options[] = {"dRBStatusUL12", "dRBStatusUL18", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "drb_status_ul_c::types");
 }
 uint8_t drb_status_ul_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {12, 18};
-  return convert_enum_idx(options, 2, value, "drb_status_ul_c::types");
+  static const uint8_t options[] = {12, 18};
+  return map_enum_number(options, 2, value, "drb_status_ul_c::types");
 }
 
 // DRBsSubjectToStatusTransferItem ::= SEQUENCE
@@ -8065,8 +8084,8 @@ void drbs_to_qos_flows_map_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_int("dRB-ID", drb_id);
   j.start_array("associatedQosFlowList");
-  for (uint32_t i1 = 0; i1 < associated_qos_flow_list.size(); ++i1) {
-    associated_qos_flow_list[i1].to_json(j);
+  for (const auto& e1 : associated_qos_flow_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -8139,14 +8158,14 @@ void data_forwarding_resp_drb_item_s::to_json(json_writer& j) const
 // DeactivateTraceIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t deactiv_trace_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 44};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 44};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool deactiv_trace_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 44};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 44};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -8162,9 +8181,9 @@ crit_e deactiv_trace_ies_o::get_crit(const uint32_t& id)
     case 44:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 deactiv_trace_ies_o::value_c deactiv_trace_ies_o::get_value(const uint32_t& id)
 {
@@ -8180,7 +8199,7 @@ deactiv_trace_ies_o::value_c deactiv_trace_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::ngran_trace_id);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -8194,9 +8213,9 @@ presence_e deactiv_trace_ies_o::get_presence(const uint32_t& id)
     case 44:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -8360,11 +8379,11 @@ SRSASN_CODE deactiv_trace_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string deactiv_trace_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING"};
   return convert_enum_idx(options, 3, value, "deactiv_trace_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<deactiv_trace_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<deactiv_trace_ies_o>;
 
 deactiv_trace_ies_container::deactiv_trace_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -8413,12 +8432,13 @@ SRSASN_CODE deactiv_trace_ies_container::unpack(cbit_ref& bref)
         ngran_trace_id.value = c.value.ngran_trace_id();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -8490,8 +8510,8 @@ void forbidden_area_info_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("pLMNIdentity", plmn_id.to_string());
   j.start_array("forbiddenTACs");
-  for (uint32_t i1 = 0; i1 < forbidden_tacs.size(); ++i1) {
-    j.write_str(forbidden_tacs[i1].to_string());
+  for (const auto& e1 : forbidden_tacs) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   if (ie_exts_present) {
@@ -8587,15 +8607,15 @@ void service_area_info_item_s::to_json(json_writer& j) const
   j.write_str("pLMNIdentity", plmn_id.to_string());
   if (allowed_tacs_present) {
     j.start_array("allowedTACs");
-    for (uint32_t i1 = 0; i1 < allowed_tacs.size(); ++i1) {
-      j.write_str(allowed_tacs[i1].to_string());
+    for (const auto& e1 : allowed_tacs) {
+      j.write_str(e1.to_string());
     }
     j.end_array();
   }
   if (not_allowed_tacs_present) {
     j.start_array("notAllowedTACs");
-    for (uint32_t i1 = 0; i1 < not_allowed_tacs.size(); ++i1) {
-      j.write_str(not_allowed_tacs[i1].to_string());
+    for (const auto& e1 : not_allowed_tacs) {
+      j.write_str(e1.to_string());
     }
     j.end_array();
   }
@@ -8609,49 +8629,36 @@ void service_area_info_item_s::to_json(json_writer& j) const
 // MobilityRestrictionList-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t mob_restrict_list_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {150};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {150};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool mob_restrict_list_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {150};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 150 == id;
 }
 crit_e mob_restrict_list_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 150:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 150) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 mob_restrict_list_ext_ies_o::ext_c mob_restrict_list_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 150:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 150) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e mob_restrict_list_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 150:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 150) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -8676,11 +8683,11 @@ SRSASN_CODE mob_restrict_list_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string mob_restrict_list_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"OCTET STRING"};
+  static const char* options[] = {"OCTET STRING"};
   return convert_enum_idx(options, 1, value, "mob_restrict_list_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<mob_restrict_list_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<mob_restrict_list_ext_ies_o>;
 
 mob_restrict_list_ext_ies_container::mob_restrict_list_ext_ies_container() : last_eutran_plmn_id(150, crit_e::ignore) {}
 SRSASN_CODE mob_restrict_list_ext_ies_container::pack(bit_ref& bref) const
@@ -8703,16 +8710,14 @@ SRSASN_CODE mob_restrict_list_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<mob_restrict_list_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 150:
-        last_eutran_plmn_id_present = true;
-        last_eutran_plmn_id.id      = c.id;
-        last_eutran_plmn_id.crit    = c.crit;
-        last_eutran_plmn_id.ext     = c.ext_value.last_eutran_plmn_id();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 150) {
+      last_eutran_plmn_id_present = true;
+      last_eutran_plmn_id.id      = c.id;
+      last_eutran_plmn_id.crit    = c.crit;
+      last_eutran_plmn_id.ext     = c.ext_value.last_eutran_plmn_id();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -8791,29 +8796,29 @@ void mob_restrict_list_s::to_json(json_writer& j) const
   j.write_str("servingPLMN", serving_plmn.to_string());
   if (equivalent_plmns_present) {
     j.start_array("equivalentPLMNs");
-    for (uint32_t i1 = 0; i1 < equivalent_plmns.size(); ++i1) {
-      j.write_str(equivalent_plmns[i1].to_string());
+    for (const auto& e1 : equivalent_plmns) {
+      j.write_str(e1.to_string());
     }
     j.end_array();
   }
   if (rat_restricts_present) {
     j.start_array("rATRestrictions");
-    for (uint32_t i1 = 0; i1 < rat_restricts.size(); ++i1) {
-      rat_restricts[i1].to_json(j);
+    for (const auto& e1 : rat_restricts) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (forbidden_area_info_present) {
     j.start_array("forbiddenAreaInformation");
-    for (uint32_t i1 = 0; i1 < forbidden_area_info.size(); ++i1) {
-      forbidden_area_info[i1].to_json(j);
+    for (const auto& e1 : forbidden_area_info) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (service_area_info_present) {
     j.start_array("serviceAreaInformation");
-    for (uint32_t i1 = 0; i1 < service_area_info.size(); ++i1) {
-      service_area_info[i1].to_json(j);
+    for (const auto& e1 : service_area_info) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -8868,14 +8873,14 @@ void ue_aggregate_maximum_bit_rate_s::to_json(json_writer& j) const
 // DownlinkNASTransport-IEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t dl_nas_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 48, 83, 38, 36, 31, 110, 0};
-  return convert_enum_idx(options, 9, idx, "id");
+  static const uint32_t options[] = {10, 85, 48, 83, 38, 36, 31, 110, 0};
+  return map_enum_number(options, 9, idx, "id");
 }
 bool dl_nas_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 48, 83, 38, 36, 31, 110, 0};
-  for (uint32_t i = 0; i < 9; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 48, 83, 38, 36, 31, 110, 0};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -8903,9 +8908,9 @@ crit_e dl_nas_transport_ies_o::get_crit(const uint32_t& id)
     case 0:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_nas_transport_ies_o::value_c dl_nas_transport_ies_o::get_value(const uint32_t& id)
 {
@@ -8939,7 +8944,7 @@ dl_nas_transport_ies_o::value_c dl_nas_transport_ies_o::get_value(const uint32_t
       ret.set(value_c::types::allowed_nssai);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -8965,9 +8970,9 @@ presence_e dl_nas_transport_ies_o::get_presence(const uint32_t& id)
     case 0:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -9229,8 +9234,8 @@ void dl_nas_transport_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::allowed_nssai:
       j.start_array("AllowedNSSAI");
-      for (uint32_t i1 = 0; i1 < c.get<allowed_nssai_l>().size(); ++i1) {
-        c.get<allowed_nssai_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<allowed_nssai_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -9316,19 +9321,19 @@ SRSASN_CODE dl_nas_transport_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string dl_nas_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PrintableString",
-                                            "INTEGER (1..256)",
-                                            "OCTET STRING",
-                                            "MobilityRestrictionList",
-                                            "INTEGER (1..256,...)",
-                                            "UEAggregateMaximumBitRate",
-                                            "AllowedNSSAI"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PrintableString",
+                                  "INTEGER (1..256)",
+                                  "OCTET STRING",
+                                  "MobilityRestrictionList",
+                                  "INTEGER (1..256,...)",
+                                  "UEAggregateMaximumBitRate",
+                                  "AllowedNSSAI"};
   return convert_enum_idx(options, 9, value, "dl_nas_transport_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_nas_transport_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<dl_nas_transport_ies_o>;
 
 dl_nas_transport_ies_container::dl_nas_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -9443,12 +9448,13 @@ SRSASN_CODE dl_nas_transport_ies_container::unpack(cbit_ref& bref)
         allowed_nssai.value   = c.value.allowed_nssai();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -9515,14 +9521,14 @@ void dl_nas_transport_s::to_json(json_writer& j) const
 // DownlinkNonUEAssociatedNRPPaTransportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t dl_non_ueassociated_nrp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {89, 46};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {89, 46};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool dl_non_ueassociated_nrp_pa_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {89, 46};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {89, 46};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -9536,9 +9542,9 @@ crit_e dl_non_ueassociated_nrp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 46:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_non_ueassociated_nrp_pa_transport_ies_o::value_c
 dl_non_ueassociated_nrp_pa_transport_ies_o::get_value(const uint32_t& id)
@@ -9552,7 +9558,7 @@ dl_non_ueassociated_nrp_pa_transport_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::nrp_pa_pdu);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -9564,9 +9570,9 @@ presence_e dl_non_ueassociated_nrp_pa_transport_ies_o::get_presence(const uint32
     case 46:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -9709,11 +9715,11 @@ SRSASN_CODE dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::unpack(cbit_ref
 
 std::string dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"OCTET STRING", "OCTET STRING"};
+  static const char* options[] = {"OCTET STRING", "OCTET STRING"};
   return convert_enum_idx(options, 2, value, "dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_non_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<dl_non_ueassociated_nrp_pa_transport_ies_o>;
 
 dl_non_ueassociated_nrp_pa_transport_ies_container::dl_non_ueassociated_nrp_pa_transport_ies_container() :
   routing_id(89, crit_e::reject),
@@ -9754,12 +9760,13 @@ SRSASN_CODE dl_non_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref&
         nrp_pa_pdu.value = c.value.nrp_pa_pdu();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -9844,8 +9851,8 @@ void xn_ext_tla_item_s::to_json(json_writer& j) const
   }
   if (gtp_tlas_present) {
     j.start_array("gTP-TLAs");
-    for (uint32_t i1 = 0; i1 < gtp_tlas.size(); ++i1) {
-      j.write_str(gtp_tlas[i1].to_string());
+    for (const auto& e1 : gtp_tlas) {
+      j.write_str(e1.to_string());
     }
     j.end_array();
   }
@@ -9893,14 +9900,14 @@ void xn_tnl_cfg_info_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("xnTransportLayerAddresses");
-  for (uint32_t i1 = 0; i1 < xn_transport_layer_addresses.size(); ++i1) {
-    j.write_str(xn_transport_layer_addresses[i1].to_string());
+  for (const auto& e1 : xn_transport_layer_addresses) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   if (xn_extended_transport_layer_addresses_present) {
     j.start_array("xnExtendedTransportLayerAddresses");
-    for (uint32_t i1 = 0; i1 < xn_extended_transport_layer_addresses.size(); ++i1) {
-      xn_extended_transport_layer_addresses[i1].to_json(j);
+    for (const auto& e1 : xn_extended_transport_layer_addresses) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -9959,7 +9966,7 @@ void son_info_reply_s::to_json(json_writer& j) const
 // SONInformationRequest ::= ENUMERATED
 std::string son_info_request_opts::to_string() const
 {
-  static constexpr const char* options[] = {"xn-TNL-configuration-info"};
+  static const char* options[] = {"xn-TNL-configuration-info"};
   return convert_enum_idx(options, 1, value, "son_info_request_e");
 }
 
@@ -10102,7 +10109,7 @@ SRSASN_CODE son_info_c::unpack(cbit_ref& bref)
 
 std::string son_info_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"sONInformationRequest", "sONInformationReply", "choice-Extensions"};
+  static const char* options[] = {"sONInformationRequest", "sONInformationReply", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "son_info_c::types");
 }
 
@@ -10248,14 +10255,14 @@ void son_cfg_transfer_s::to_json(json_writer& j) const
 // DownlinkRANConfigurationTransferIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t dl_ran_cfg_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {98, 157};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {98, 157};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool dl_ran_cfg_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {98, 157};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {98, 157};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -10269,9 +10276,9 @@ crit_e dl_ran_cfg_transfer_ies_o::get_crit(const uint32_t& id)
     case 157:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_ran_cfg_transfer_ies_o::value_c dl_ran_cfg_transfer_ies_o::get_value(const uint32_t& id)
 {
@@ -10284,7 +10291,7 @@ dl_ran_cfg_transfer_ies_o::value_c dl_ran_cfg_transfer_ies_o::get_value(const ui
       ret.set(value_c::types::endc_son_cfg_transfer_dl);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -10296,9 +10303,9 @@ presence_e dl_ran_cfg_transfer_ies_o::get_presence(const uint32_t& id)
     case 157:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -10441,11 +10448,11 @@ SRSASN_CODE dl_ran_cfg_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string dl_ran_cfg_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SONConfigurationTransfer", "OCTET STRING"};
+  static const char* options[] = {"SONConfigurationTransfer", "OCTET STRING"};
   return convert_enum_idx(options, 2, value, "dl_ran_cfg_transfer_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_ran_cfg_transfer_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<dl_ran_cfg_transfer_ies_o>;
 
 dl_ran_cfg_transfer_ies_container::dl_ran_cfg_transfer_ies_container() :
   son_cfg_transfer_dl(98, crit_e::ignore),
@@ -10490,7 +10497,7 @@ SRSASN_CODE dl_ran_cfg_transfer_ies_container::unpack(cbit_ref& bref)
         endc_son_cfg_transfer_dl.value   = c.value.endc_son_cfg_transfer_dl();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -10563,8 +10570,8 @@ void ran_status_transfer_transparent_container_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("dRBsSubjectToStatusTransferList");
-  for (uint32_t i1 = 0; i1 < drbs_subject_to_status_transfer_list.size(); ++i1) {
-    drbs_subject_to_status_transfer_list[i1].to_json(j);
+  for (const auto& e1 : drbs_subject_to_status_transfer_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -10577,14 +10584,14 @@ void ran_status_transfer_transparent_container_s::to_json(json_writer& j) const
 // DownlinkRANStatusTransferIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t dl_ran_status_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 84};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 84};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool dl_ran_status_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 84};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 84};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -10600,9 +10607,9 @@ crit_e dl_ran_status_transfer_ies_o::get_crit(const uint32_t& id)
     case 84:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_ran_status_transfer_ies_o::value_c dl_ran_status_transfer_ies_o::get_value(const uint32_t& id)
 {
@@ -10618,7 +10625,7 @@ dl_ran_status_transfer_ies_o::value_c dl_ran_status_transfer_ies_o::get_value(co
       ret.set(value_c::types::ran_status_transfer_transparent_container);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -10632,9 +10639,9 @@ presence_e dl_ran_status_transfer_ies_o::get_presence(const uint32_t& id)
     case 84:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -10802,12 +10809,12 @@ SRSASN_CODE dl_ran_status_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string dl_ran_status_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "RANStatusTransfer-TransparentContainer"};
   return convert_enum_idx(options, 3, value, "dl_ran_status_transfer_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_ran_status_transfer_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<dl_ran_status_transfer_ies_o>;
 
 dl_ran_status_transfer_ies_container::dl_ran_status_transfer_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -10856,12 +10863,13 @@ SRSASN_CODE dl_ran_status_transfer_ies_container::unpack(cbit_ref& bref)
         ran_status_transfer_transparent_container.value = c.value.ran_status_transfer_transparent_container();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -10904,14 +10912,14 @@ void dl_ran_status_transfer_s::to_json(json_writer& j) const
 // DownlinkUEAssociatedNRPPaTransportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t dl_ueassociated_nrp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 89, 46};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 89, 46};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool dl_ueassociated_nrp_pa_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 89, 46};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 89, 46};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -10929,9 +10937,9 @@ crit_e dl_ueassociated_nrp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 46:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_ueassociated_nrp_pa_transport_ies_o::value_c dl_ueassociated_nrp_pa_transport_ies_o::get_value(const uint32_t& id)
 {
@@ -10950,7 +10958,7 @@ dl_ueassociated_nrp_pa_transport_ies_o::value_c dl_ueassociated_nrp_pa_transport
       ret.set(value_c::types::nrp_pa_pdu);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -10966,9 +10974,9 @@ presence_e dl_ueassociated_nrp_pa_transport_ies_o::get_presence(const uint32_t& 
     case 46:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -11164,12 +11172,12 @@ SRSASN_CODE dl_ueassociated_nrp_pa_transport_ies_o::value_c::unpack(cbit_ref& br
 
 std::string dl_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "OCTET STRING"};
   return convert_enum_idx(options, 4, value, "dl_ueassociated_nrp_pa_transport_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<dl_ueassociated_nrp_pa_transport_ies_o>;
 
 dl_ueassociated_nrp_pa_transport_ies_container::dl_ueassociated_nrp_pa_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -11226,12 +11234,13 @@ SRSASN_CODE dl_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref& bre
         nrp_pa_pdu.value = c.value.nrp_pa_pdu();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -11276,7 +11285,7 @@ void dl_ueassociated_nrp_pa_transport_s::to_json(json_writer& j) const
 // DelayCritical ::= ENUMERATED
 std::string delay_crit_opts::to_string() const
 {
-  static constexpr const char* options[] = {"delay-critical", "non-delay-critical"};
+  static const char* options[] = {"delay-critical", "non-delay-critical"};
   return convert_enum_idx(options, 2, value, "delay_crit_e");
 }
 
@@ -11409,7 +11418,7 @@ void dynamic5_qi_descriptor_s::to_json(json_writer& j) const
 // DLForwarding ::= ENUMERATED
 std::string dl_forwarding_opts::to_string() const
 {
-  static constexpr const char* options[] = {"dl-forwarding-proposed"};
+  static const char* options[] = {"dl-forwarding-proposed"};
   return convert_enum_idx(options, 1, value, "dl_forwarding_e");
 }
 
@@ -11502,20 +11511,20 @@ void eps_tai_s::to_json(json_writer& j) const
 // EmergencyFallbackRequestIndicator ::= ENUMERATED
 std::string emergency_fallback_request_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"emergency-fallback-requested"};
+  static const char* options[] = {"emergency-fallback-requested"};
   return convert_enum_idx(options, 1, value, "emergency_fallback_request_ind_e");
 }
 
 // EmergencyServiceTargetCN ::= ENUMERATED
 std::string emergency_service_target_cn_opts::to_string() const
 {
-  static constexpr const char* options[] = {"fiveGC", "epc"};
+  static const char* options[] = {"fiveGC", "epc"};
   return convert_enum_idx(options, 2, value, "emergency_service_target_cn_e");
 }
 uint8_t emergency_service_target_cn_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {5};
-  return convert_enum_idx(options, 1, value, "emergency_service_target_cn_e");
+  static const uint8_t options[] = {5};
+  return map_enum_number(options, 1, value, "emergency_service_target_cn_e");
 }
 
 // EmergencyFallbackIndicator ::= SEQUENCE
@@ -11568,14 +11577,14 @@ void emergency_fallback_ind_s::to_json(json_writer& j) const
 // ErrorIndicationIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t error_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15, 19};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 15, 19};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool error_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15, 19};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 15, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -11593,9 +11602,9 @@ crit_e error_ind_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 error_ind_ies_o::value_c error_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -11614,7 +11623,7 @@ error_ind_ies_o::value_c error_ind_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -11630,9 +11639,9 @@ presence_e error_ind_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -11829,12 +11838,12 @@ SRSASN_CODE error_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string error_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "error_ind_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<error_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<error_ind_ies_o>;
 
 error_ind_ies_container::error_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -11901,7 +11910,7 @@ SRSASN_CODE error_ind_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -11998,7 +12007,7 @@ void five_g_s_tmsi_s::to_json(json_writer& j) const
 // NotificationControl ::= ENUMERATED
 std::string notif_ctrl_opts::to_string() const
 {
-  static constexpr const char* options[] = {"notification-requested"};
+  static const char* options[] = {"notification-requested"};
   return convert_enum_idx(options, 1, value, "notif_ctrl_e");
 }
 
@@ -12083,14 +12092,14 @@ void gbr_qos_info_s::to_json(json_writer& j) const
 // HandoverCancelIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_cancel_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 15};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ho_cancel_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 15};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -12106,9 +12115,9 @@ crit_e ho_cancel_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_cancel_ies_o::value_c ho_cancel_ies_o::get_value(const uint32_t& id)
 {
@@ -12124,7 +12133,7 @@ ho_cancel_ies_o::value_c ho_cancel_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::cause);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -12138,9 +12147,9 @@ presence_e ho_cancel_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -12305,11 +12314,11 @@ SRSASN_CODE ho_cancel_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_cancel_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "Cause"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "Cause"};
   return convert_enum_idx(options, 3, value, "ho_cancel_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_cancel_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_cancel_ies_o>;
 
 ho_cancel_ies_container::ho_cancel_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -12358,12 +12367,13 @@ SRSASN_CODE ho_cancel_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -12406,14 +12416,14 @@ void ho_cancel_s::to_json(json_writer& j) const
 // HandoverCancelAcknowledgeIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_cancel_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 19};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 19};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ho_cancel_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 19};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -12429,9 +12439,9 @@ crit_e ho_cancel_ack_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_cancel_ack_ies_o::value_c ho_cancel_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -12447,7 +12457,7 @@ ho_cancel_ack_ies_o::value_c ho_cancel_ack_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -12461,9 +12471,9 @@ presence_e ho_cancel_ack_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -12628,12 +12638,11 @@ SRSASN_CODE ho_cancel_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_cancel_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "ho_cancel_ack_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_cancel_ack_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_cancel_ack_ies_o>;
 
 ho_cancel_ack_ies_container::ho_cancel_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -12685,12 +12694,13 @@ SRSASN_CODE ho_cancel_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -12765,8 +12775,8 @@ void qos_flow_per_tnl_info_s::to_json(json_writer& j) const
   j.write_fieldname("uPTransportLayerInformation");
   uptransport_layer_info.to_json(j);
   j.start_array("associatedQosFlowList");
-  for (uint32_t i1 = 0; i1 < associated_qos_flow_list.size(); ++i1) {
-    associated_qos_flow_list[i1].to_json(j);
+  for (const auto& e1 : associated_qos_flow_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -12852,49 +12862,36 @@ void qos_flow_to_be_forwarded_item_s::to_json(json_writer& j) const
 // HandoverCommandTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t ho_cmd_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {152};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {152};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool ho_cmd_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {152};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 152 == id;
 }
 crit_e ho_cmd_transfer_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 152:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 152) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 ho_cmd_transfer_ext_ies_o::ext_c ho_cmd_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 152:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 152) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e ho_cmd_transfer_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 152:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 152) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -12902,8 +12899,8 @@ void ho_cmd_transfer_ext_ies_o::ext_c::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("QosFlowPerTNLInformationList");
-  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-    c[i1].to_json(j);
+  for (const auto& e1 : c) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -12923,11 +12920,11 @@ SRSASN_CODE ho_cmd_transfer_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string ho_cmd_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"QosFlowPerTNLInformationList"};
+  static const char* options[] = {"QosFlowPerTNLInformationList"};
   return convert_enum_idx(options, 1, value, "ho_cmd_transfer_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<ho_cmd_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<ho_cmd_transfer_ext_ies_o>;
 
 ho_cmd_transfer_ext_ies_container::ho_cmd_transfer_ext_ies_container() :
   add_dl_forwarding_uptnl_info(152, crit_e::ignore)
@@ -12953,16 +12950,14 @@ SRSASN_CODE ho_cmd_transfer_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<ho_cmd_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 152:
-        add_dl_forwarding_uptnl_info_present = true;
-        add_dl_forwarding_uptnl_info.id      = c.id;
-        add_dl_forwarding_uptnl_info.crit    = c.crit;
-        add_dl_forwarding_uptnl_info.ext     = c.ext_value.add_dl_forwarding_uptnl_info();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 152) {
+      add_dl_forwarding_uptnl_info_present = true;
+      add_dl_forwarding_uptnl_info.id      = c.id;
+      add_dl_forwarding_uptnl_info.crit    = c.crit;
+      add_dl_forwarding_uptnl_info.ext     = c.ext_value.add_dl_forwarding_uptnl_info();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -13034,15 +13029,15 @@ void ho_cmd_transfer_s::to_json(json_writer& j) const
   }
   if (qos_flow_to_be_forwarded_list_present) {
     j.start_array("qosFlowToBeForwardedList");
-    for (uint32_t i1 = 0; i1 < qos_flow_to_be_forwarded_list.size(); ++i1) {
-      qos_flow_to_be_forwarded_list[i1].to_json(j);
+    for (const auto& e1 : qos_flow_to_be_forwarded_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (data_forwarding_resp_drb_list_present) {
     j.start_array("dataForwardingResponseDRBList");
-    for (uint32_t i1 = 0; i1 < data_forwarding_resp_drb_list.size(); ++i1) {
-      data_forwarding_resp_drb_list[i1].to_json(j);
+    for (const auto& e1 : data_forwarding_resp_drb_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -13171,21 +13166,21 @@ void pdu_session_res_to_release_item_ho_cmd_s::to_json(json_writer& j) const
 // HandoverType ::= ENUMERATED
 std::string handov_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"intra5gs", "fivegs-to-eps", "eps-to-5gs"};
+  static const char* options[] = {"intra5gs", "fivegs-to-eps", "eps-to-5gs"};
   return convert_enum_idx(options, 3, value, "handov_type_e");
 }
 
 // HandoverCommandIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_cmd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 29, 39, 59, 78, 106, 19};
-  return convert_enum_idx(options, 8, idx, "id");
+  static const uint32_t options[] = {10, 85, 29, 39, 59, 78, 106, 19};
+  return map_enum_number(options, 8, idx, "id");
 }
 bool ho_cmd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 29, 39, 59, 78, 106, 19};
-  for (uint32_t i = 0; i < 8; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 29, 39, 59, 78, 106, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -13211,9 +13206,9 @@ crit_e ho_cmd_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_cmd_ies_o::value_c ho_cmd_ies_o::get_value(const uint32_t& id)
 {
@@ -13244,7 +13239,7 @@ ho_cmd_ies_o::value_c ho_cmd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -13268,9 +13263,9 @@ presence_e ho_cmd_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -13499,15 +13494,15 @@ void ho_cmd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_ho_list:
       j.start_array("PDUSessionResourceHandoverList");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_ho_list_l>().size(); ++i1) {
-        c.get<pdu_session_res_ho_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_ho_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_to_release_list_ho_cmd:
       j.start_array("PDUSessionResourceToReleaseListHOCmd");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_to_release_list_ho_cmd_l>().size(); ++i1) {
-        c.get<pdu_session_res_to_release_list_ho_cmd_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_to_release_list_ho_cmd_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -13594,18 +13589,18 @@ SRSASN_CODE ho_cmd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_cmd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "HandoverType",
-                                            "OCTET STRING",
-                                            "PDUSessionResourceHandoverList",
-                                            "PDUSessionResourceToReleaseListHOCmd",
-                                            "OCTET STRING",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "HandoverType",
+                                  "OCTET STRING",
+                                  "PDUSessionResourceHandoverList",
+                                  "PDUSessionResourceToReleaseListHOCmd",
+                                  "OCTET STRING",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 8, value, "ho_cmd_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_cmd_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_cmd_ies_o>;
 
 ho_cmd_ies_container::ho_cmd_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -13703,12 +13698,13 @@ SRSASN_CODE ho_cmd_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -13767,14 +13763,14 @@ void ho_cmd_s::to_json(json_writer& j) const
 // HandoverFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 15, 19};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 15, 19};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ho_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 15, 19};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 15, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -13790,9 +13786,9 @@ crit_e ho_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_fail_ies_o::value_c ho_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -13808,7 +13804,7 @@ ho_fail_ies_o::value_c ho_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -13822,9 +13818,9 @@ presence_e ho_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -13994,16 +13990,16 @@ SRSASN_CODE ho_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)", "Cause", "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "ho_fail_ies_o::value_c::types");
 }
 uint8_t ho_fail_ies_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {0};
-  return convert_enum_idx(options, 1, value, "ho_fail_ies_o::value_c::types");
+  static const uint8_t options[] = {0};
+  return map_enum_number(options, 1, value, "ho_fail_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_fail_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_fail_ies_o>;
 
 ho_fail_ies_container::ho_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -14055,12 +14051,13 @@ SRSASN_CODE ho_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -14411,32 +14408,30 @@ SRSASN_CODE user_location_info_c::unpack(cbit_ref& bref)
 
 std::string user_location_info_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "userLocationInformationEUTRA", "userLocationInformationNR", "userLocationInformationN3IWF", "choice-Extensions"};
   return convert_enum_idx(options, 4, value, "user_location_info_c::types");
 }
 uint8_t user_location_info_c::types_opts::to_number() const
 {
-  switch (value) {
-    case user_location_info_n3_iwf:
-      return 3;
-    default:
-      invalid_enum_number(value, "user_location_info_c::types");
+  if (value == user_location_info_n3_iwf) {
+    return 3;
   }
+  invalid_enum_number(value, "user_location_info_c::types");
   return 0;
 }
 
 // HandoverNotifyIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_notify_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 121};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 121};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ho_notify_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 121};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 121};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -14452,9 +14447,9 @@ crit_e ho_notify_ies_o::get_crit(const uint32_t& id)
     case 121:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_notify_ies_o::value_c ho_notify_ies_o::get_value(const uint32_t& id)
 {
@@ -14470,7 +14465,7 @@ ho_notify_ies_o::value_c ho_notify_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -14484,9 +14479,9 @@ presence_e ho_notify_ies_o::get_presence(const uint32_t& id)
     case 121:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -14651,12 +14646,11 @@ SRSASN_CODE ho_notify_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_notify_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "UserLocationInformation"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "UserLocationInformation"};
   return convert_enum_idx(options, 3, value, "ho_notify_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_notify_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_notify_ies_o>;
 
 ho_notify_ies_container::ho_notify_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -14705,12 +14699,13 @@ SRSASN_CODE ho_notify_ies_container::unpack(cbit_ref& bref)
         user_location_info.value = c.value.user_location_info();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -14753,14 +14748,14 @@ void ho_notify_s::to_json(json_writer& j) const
 // HandoverPreparationFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_prep_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15, 19};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 15, 19};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ho_prep_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15, 19};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 15, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -14778,9 +14773,9 @@ crit_e ho_prep_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_prep_fail_ies_o::value_c ho_prep_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -14799,7 +14794,7 @@ ho_prep_fail_ies_o::value_c ho_prep_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -14815,9 +14810,9 @@ presence_e ho_prep_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -15014,12 +15009,12 @@ SRSASN_CODE ho_prep_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_prep_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "ho_prep_fail_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_prep_fail_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_prep_fail_ies_o>;
 
 ho_prep_fail_ies_container::ho_prep_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -15079,12 +15074,13 @@ SRSASN_CODE ho_prep_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -15200,7 +15196,7 @@ void non_dynamic5_qi_descriptor_s::to_json(json_writer& j) const
 // AdditionalQosFlowInformation ::= ENUMERATED
 std::string add_qos_flow_info_opts::to_string() const
 {
-  static constexpr const char* options[] = {"more-likely"};
+  static const char* options[] = {"more-likely"};
   return convert_enum_idx(options, 1, value, "add_qos_flow_info_e");
 }
 
@@ -15348,27 +15344,27 @@ SRSASN_CODE qos_characteristics_c::unpack(cbit_ref& bref)
 
 std::string qos_characteristics_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"nonDynamic5QI", "dynamic5QI", "choice-Extensions"};
+  static const char* options[] = {"nonDynamic5QI", "dynamic5QI", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "qos_characteristics_c::types");
 }
 
 // ReflectiveQosAttribute ::= ENUMERATED
 std::string reflective_qos_attribute_opts::to_string() const
 {
-  static constexpr const char* options[] = {"subject-to"};
+  static const char* options[] = {"subject-to"};
   return convert_enum_idx(options, 1, value, "reflective_qos_attribute_e");
 }
 
 // MaximumIntegrityProtectedDataRate ::= ENUMERATED
 std::string maximum_integrity_protected_data_rate_opts::to_string() const
 {
-  static constexpr const char* options[] = {"bitrate64kbs", "maximum-UE-rate"};
+  static const char* options[] = {"bitrate64kbs", "maximum-UE-rate"};
   return convert_enum_idx(options, 2, value, "maximum_integrity_protected_data_rate_e");
 }
 uint8_t maximum_integrity_protected_data_rate_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {64};
-  return convert_enum_idx(options, 1, value, "maximum_integrity_protected_data_rate_e");
+  static const uint8_t options[] = {64};
+  return map_enum_number(options, 1, value, "maximum_integrity_protected_data_rate_e");
 }
 
 // QosFlowLevelQosParameters ::= SEQUENCE
@@ -15449,14 +15445,14 @@ void qos_flow_level_qos_params_s::to_json(json_writer& j) const
 // ConfidentialityProtectionIndication ::= ENUMERATED
 std::string confidentiality_protection_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"required", "preferred", "not-needed"};
+  static const char* options[] = {"required", "preferred", "not-needed"};
   return convert_enum_idx(options, 3, value, "confidentiality_protection_ind_e");
 }
 
 // IntegrityProtectionIndication ::= ENUMERATED
 std::string integrity_protection_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"required", "preferred", "not-needed"};
+  static const char* options[] = {"required", "preferred", "not-needed"};
   return convert_enum_idx(options, 3, value, "integrity_protection_ind_e");
 }
 
@@ -15514,49 +15510,36 @@ void qos_flow_setup_request_item_s::to_json(json_writer& j) const
 // SecurityIndication-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t security_ind_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {151};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {151};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool security_ind_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {151};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 151 == id;
 }
 crit_e security_ind_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 151:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 151) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 security_ind_ext_ies_o::ext_c security_ind_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 151:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 151) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e security_ind_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 151:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 151) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -15581,7 +15564,7 @@ SRSASN_CODE security_ind_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string security_ind_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"MaximumIntegrityProtectedDataRate"};
+  static const char* options[] = {"MaximumIntegrityProtectedDataRate"};
   return convert_enum_idx(options, 1, value, "security_ind_ext_ies_o::ext_c::types");
 }
 
@@ -15625,7 +15608,7 @@ void up_transport_layer_info_item_s::to_json(json_writer& j) const
 // DataForwardingNotPossible ::= ENUMERATED
 std::string data_forwarding_not_possible_opts::to_string() const
 {
-  static constexpr const char* options[] = {"data-forwarding-not-possible"};
+  static const char* options[] = {"data-forwarding-not-possible"};
   return convert_enum_idx(options, 1, value, "data_forwarding_not_possible_e");
 }
 
@@ -15675,11 +15658,11 @@ void pdu_session_aggregate_maximum_bit_rate_s::to_json(json_writer& j) const
 // PDUSessionType ::= ENUMERATED
 std::string pdu_session_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ipv4", "ipv6", "ipv4v6", "ethernet", "unstructured"};
+  static const char* options[] = {"ipv4", "ipv6", "ipv4v6", "ethernet", "unstructured"};
   return convert_enum_idx(options, 5, value, "pdu_session_type_e");
 }
 
-template struct protocol_ext_field_s<security_ind_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<security_ind_ext_ies_o>;
 
 security_ind_ext_ies_container::security_ind_ext_ies_container() :
   maximum_integrity_protected_data_rate_dl(151, crit_e::ignore)
@@ -15705,16 +15688,14 @@ SRSASN_CODE security_ind_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<security_ind_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 151:
-        maximum_integrity_protected_data_rate_dl_present = true;
-        maximum_integrity_protected_data_rate_dl.id      = c.id;
-        maximum_integrity_protected_data_rate_dl.crit    = c.crit;
-        maximum_integrity_protected_data_rate_dl.ext     = c.ext_value.maximum_integrity_protected_data_rate_dl();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 151) {
+      maximum_integrity_protected_data_rate_dl_present = true;
+      maximum_integrity_protected_data_rate_dl.id      = c.id;
+      maximum_integrity_protected_data_rate_dl.crit    = c.crit;
+      maximum_integrity_protected_data_rate_dl.ext     = c.ext_value.maximum_integrity_protected_data_rate_dl();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -15783,14 +15764,14 @@ void security_ind_s::to_json(json_writer& j) const
 // PDUSessionResourceSetupRequestTransferIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_setup_request_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {130, 139, 126, 127, 134, 138, 129, 136};
-  return convert_enum_idx(options, 8, idx, "id");
+  static const uint32_t options[] = {130, 139, 126, 127, 134, 138, 129, 136};
+  return map_enum_number(options, 8, idx, "id");
 }
 bool pdu_session_res_setup_request_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {130, 139, 126, 127, 134, 138, 129, 136};
-  for (uint32_t i = 0; i < 8; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {130, 139, 126, 127, 134, 138, 129, 136};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -15816,9 +15797,9 @@ crit_e pdu_session_res_setup_request_transfer_ies_o::get_crit(const uint32_t& id
     case 136:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_setup_request_transfer_ies_o::value_c
 pdu_session_res_setup_request_transfer_ies_o::get_value(const uint32_t& id)
@@ -15850,7 +15831,7 @@ pdu_session_res_setup_request_transfer_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::qos_flow_setup_request_list);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -15874,9 +15855,9 @@ presence_e pdu_session_res_setup_request_transfer_ies_o::get_presence(const uint
     case 136:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -16108,8 +16089,8 @@ void pdu_session_res_setup_request_transfer_ies_o::value_c::to_json(json_writer&
       break;
     case types::add_ul_ngu_up_tnl_info:
       j.start_array("UPTransportLayerInformationList");
-      for (uint32_t i1 = 0; i1 < c.get<up_transport_layer_info_list_l>().size(); ++i1) {
-        c.get<up_transport_layer_info_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<up_transport_layer_info_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -16128,8 +16109,8 @@ void pdu_session_res_setup_request_transfer_ies_o::value_c::to_json(json_writer&
       break;
     case types::qos_flow_setup_request_list:
       j.start_array("QosFlowSetupRequestList");
-      for (uint32_t i1 = 0; i1 < c.get<qos_flow_setup_request_list_l>().size(); ++i1) {
-        c.get<qos_flow_setup_request_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<qos_flow_setup_request_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -16209,28 +16190,26 @@ SRSASN_CODE pdu_session_res_setup_request_transfer_ies_o::value_c::unpack(cbit_r
 
 std::string pdu_session_res_setup_request_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PDUSessionAggregateMaximumBitRate",
-                                            "UPTransportLayerInformation",
-                                            "UPTransportLayerInformationList",
-                                            "DataForwardingNotPossible",
-                                            "PDUSessionType",
-                                            "SecurityIndication",
-                                            "INTEGER (1..256,...)",
-                                            "QosFlowSetupRequestList"};
+  static const char* options[] = {"PDUSessionAggregateMaximumBitRate",
+                                  "UPTransportLayerInformation",
+                                  "UPTransportLayerInformationList",
+                                  "DataForwardingNotPossible",
+                                  "PDUSessionType",
+                                  "SecurityIndication",
+                                  "INTEGER (1..256,...)",
+                                  "QosFlowSetupRequestList"};
   return convert_enum_idx(options, 8, value, "pdu_session_res_setup_request_transfer_ies_o::value_c::types");
 }
 uint8_t pdu_session_res_setup_request_transfer_ies_o::value_c::types_opts::to_number() const
 {
-  switch (value) {
-    case network_instance:
-      return 1;
-    default:
-      invalid_enum_number(value, "pdu_session_res_setup_request_transfer_ies_o::value_c::types");
+  if (value == network_instance) {
+    return 1;
   }
+  invalid_enum_number(value, "pdu_session_res_setup_request_transfer_ies_o::value_c::types");
   return 0;
 }
 
-template struct protocol_ie_field_s<pdu_session_res_setup_request_transfer_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_setup_request_transfer_ies_o>;
 
 pdu_session_res_setup_request_transfer_ies_container::pdu_session_res_setup_request_transfer_ies_container() :
   pdu_session_aggregate_maximum_bit_rate(130, crit_e::reject),
@@ -16334,12 +16313,13 @@ SRSASN_CODE pdu_session_res_setup_request_transfer_ies_container::unpack(cbit_re
         qos_flow_setup_request_list.value = c.value.qos_flow_setup_request_list();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -16402,12 +16382,12 @@ void pdu_session_res_setup_request_transfer_s::to_json(json_writer& j) const
 // EventType ::= ENUMERATED
 std::string event_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"direct",
-                                            "change-of-serve-cell",
-                                            "ue-presence-in-area-of-interest",
-                                            "stop-change-of-serve-cell",
-                                            "stop-ue-presence-in-area-of-interest",
-                                            "cancel-location-reporting-for-the-ue"};
+  static const char* options[] = {"direct",
+                                  "change-of-serve-cell",
+                                  "ue-presence-in-area-of-interest",
+                                  "stop-change-of-serve-cell",
+                                  "stop-ue-presence-in-area-of-interest",
+                                  "cancel-location-reporting-for-the-ue"};
   return convert_enum_idx(options, 6, value, "event_type_e");
 }
 
@@ -16457,19 +16437,19 @@ void pdu_session_res_setup_item_ho_req_s::to_json(json_writer& j) const
 // ReportArea ::= ENUMERATED
 std::string report_area_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cell"};
+  static const char* options[] = {"cell"};
   return convert_enum_idx(options, 1, value, "report_area_e");
 }
 
 // TraceDepth ::= ENUMERATED
 std::string trace_depth_opts::to_string() const
 {
-  static constexpr const char* options[] = {"minimum",
-                                            "medium",
-                                            "maximum",
-                                            "minimumWithoutVendorSpecificExtension",
-                                            "mediumWithoutVendorSpecificExtension",
-                                            "maximumWithoutVendorSpecificExtension"};
+  static const char* options[] = {"minimum",
+                                  "medium",
+                                  "maximum",
+                                  "minimumWithoutVendorSpecificExtension",
+                                  "mediumWithoutVendorSpecificExtension",
+                                  "maximumWithoutVendorSpecificExtension"};
   return convert_enum_idx(options, 6, value, "trace_depth_e");
 }
 
@@ -16523,8 +16503,8 @@ void location_report_request_type_s::to_json(json_writer& j) const
   j.write_str("reportArea", "cell");
   if (area_of_interest_list_present) {
     j.start_array("areaOfInterestList");
-    for (uint32_t i1 = 0; i1 < area_of_interest_list.size(); ++i1) {
-      area_of_interest_list[i1].to_json(j);
+    for (const auto& e1 : area_of_interest_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -16541,14 +16521,14 @@ void location_report_request_type_s::to_json(json_writer& j) const
 // NewSecurityContextInd ::= ENUMERATED
 std::string new_security_context_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "new_security_context_ind_e");
 }
 
 // RRCInactiveTransitionReportRequest ::= ENUMERATED
 std::string rrc_inactive_transition_report_request_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "subsequent-state-transition-report", "single-rrc-connected-state-report", "cancel-report"};
   return convert_enum_idx(options, 3, value, "rrc_inactive_transition_report_request_e");
 }
@@ -16556,7 +16536,7 @@ std::string rrc_inactive_transition_report_request_opts::to_string() const
 // RedirectionVoiceFallback ::= ENUMERATED
 std::string redirection_voice_fallback_opts::to_string() const
 {
-  static constexpr const char* options[] = {"possible", "not-possible"};
+  static const char* options[] = {"possible", "not-possible"};
   return convert_enum_idx(options, 2, value, "redirection_voice_fallback_e");
 }
 
@@ -16692,16 +16672,14 @@ void ue_security_cap_s::to_json(json_writer& j) const
 // HandoverRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {
-      10, 29, 15, 110, 18, 119, 93, 41, 37, 73, 0, 108, 34, 101, 36, 33, 91, 28, 146};
-  return convert_enum_idx(options, 19, idx, "id");
+  static const uint32_t options[] = {10, 29, 15, 110, 18, 119, 93, 41, 37, 73, 0, 108, 34, 101, 36, 33, 91, 28, 146};
+  return map_enum_number(options, 19, idx, "id");
 }
 bool ho_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {
-      10, 29, 15, 110, 18, 119, 93, 41, 37, 73, 0, 108, 34, 101, 36, 33, 91, 28, 146};
-  for (uint32_t i = 0; i < 19; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 29, 15, 110, 18, 119, 93, 41, 37, 73, 0, 108, 34, 101, 36, 33, 91, 28, 146};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -16749,9 +16727,9 @@ crit_e ho_request_ies_o::get_crit(const uint32_t& id)
     case 146:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_request_ies_o::value_c ho_request_ies_o::get_value(const uint32_t& id)
 {
@@ -16815,7 +16793,7 @@ ho_request_ies_o::value_c ho_request_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::redirection_voice_fallback);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -16861,9 +16839,9 @@ presence_e ho_request_ies_o::get_presence(const uint32_t& id)
     case 146:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -17347,15 +17325,15 @@ void ho_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_setup_list_ho_req:
       j.start_array("PDUSessionResourceSetupListHOReq");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_setup_list_ho_req_l>().size(); ++i1) {
-        c.get<pdu_session_res_setup_list_ho_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_setup_list_ho_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::allowed_nssai:
       j.start_array("AllowedNSSAI");
-      for (uint32_t i1 = 0; i1 < c.get<allowed_nssai_l>().size(); ++i1) {
-        c.get<allowed_nssai_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<allowed_nssai_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -17529,25 +17507,25 @@ SRSASN_CODE ho_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "HandoverType",
-                                            "Cause",
-                                            "UEAggregateMaximumBitRate",
-                                            "CoreNetworkAssistanceInformation",
-                                            "UESecurityCapabilities",
-                                            "SecurityContext",
-                                            "NewSecurityContextInd",
-                                            "OCTET STRING",
-                                            "PDUSessionResourceSetupListHOReq",
-                                            "AllowedNSSAI",
-                                            "TraceActivation",
-                                            "BIT STRING",
-                                            "OCTET STRING",
-                                            "MobilityRestrictionList",
-                                            "LocationReportingRequestType",
-                                            "RRCInactiveTransitionReportRequest",
-                                            "GUAMI",
-                                            "RedirectionVoiceFallback"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "HandoverType",
+                                  "Cause",
+                                  "UEAggregateMaximumBitRate",
+                                  "CoreNetworkAssistanceInformation",
+                                  "UESecurityCapabilities",
+                                  "SecurityContext",
+                                  "NewSecurityContextInd",
+                                  "OCTET STRING",
+                                  "PDUSessionResourceSetupListHOReq",
+                                  "AllowedNSSAI",
+                                  "TraceActivation",
+                                  "BIT STRING",
+                                  "OCTET STRING",
+                                  "MobilityRestrictionList",
+                                  "LocationReportingRequestType",
+                                  "RRCInactiveTransitionReportRequest",
+                                  "GUAMI",
+                                  "RedirectionVoiceFallback"};
   return convert_enum_idx(options, 19, value, "ho_request_ies_o::value_c::types");
 }
 uint8_t ho_request_ies_o::value_c::types_opts::to_number() const
@@ -17563,7 +17541,7 @@ uint8_t ho_request_ies_o::value_c::types_opts::to_number() const
   return 0;
 }
 
-template struct protocol_ie_field_s<ho_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_request_ies_o>;
 
 ho_request_ies_container::ho_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -17767,12 +17745,13 @@ SRSASN_CODE ho_request_ies_container::unpack(cbit_ref& bref)
         redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -17865,14 +17844,14 @@ void ho_request_s::to_json(json_writer& j) const
 // ConfidentialityProtectionResult ::= ENUMERATED
 std::string confidentiality_protection_result_opts::to_string() const
 {
-  static constexpr const char* options[] = {"performed", "not-performed"};
+  static const char* options[] = {"performed", "not-performed"};
   return convert_enum_idx(options, 2, value, "confidentiality_protection_result_e");
 }
 
 // IntegrityProtectionResult ::= ENUMERATED
 std::string integrity_protection_result_opts::to_string() const
 {
-  static constexpr const char* options[] = {"performed", "not-performed"};
+  static const char* options[] = {"performed", "not-performed"};
   return convert_enum_idx(options, 2, value, "integrity_protection_result_e");
 }
 
@@ -17919,49 +17898,36 @@ void qos_flow_with_cause_item_s::to_json(json_writer& j) const
 // HandoverRequestAcknowledgeTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t ho_request_ack_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {153};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {153};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool ho_request_ack_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {153};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 153 == id;
 }
 crit_e ho_request_ack_transfer_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 153:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 153) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 ho_request_ack_transfer_ext_ies_o::ext_c ho_request_ack_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 153:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 153) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e ho_request_ack_transfer_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 153:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 153) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -17969,8 +17935,8 @@ void ho_request_ack_transfer_ext_ies_o::ext_c::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("AdditionalDLUPTNLInformationForHOList");
-  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-    c[i1].to_json(j);
+  for (const auto& e1 : c) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -17990,7 +17956,7 @@ SRSASN_CODE ho_request_ack_transfer_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string ho_request_ack_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"AdditionalDLUPTNLInformationForHOList"};
+  static const char* options[] = {"AdditionalDLUPTNLInformationForHOList"};
   return convert_enum_idx(options, 1, value, "ho_request_ack_transfer_ext_ies_o::ext_c::types");
 }
 
@@ -18033,7 +17999,7 @@ void security_result_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<ho_request_ack_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<ho_request_ack_transfer_ext_ies_o>;
 
 ho_request_ack_transfer_ext_ies_container::ho_request_ack_transfer_ext_ies_container() :
   add_dluptnl_info_for_ho_list(153, crit_e::ignore)
@@ -18059,16 +18025,14 @@ SRSASN_CODE ho_request_ack_transfer_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<ho_request_ack_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 153:
-        add_dluptnl_info_for_ho_list_present = true;
-        add_dluptnl_info_for_ho_list.id      = c.id;
-        add_dluptnl_info_for_ho_list.crit    = c.crit;
-        add_dluptnl_info_for_ho_list.ext     = c.ext_value.add_dluptnl_info_for_ho_list();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 153) {
+      add_dluptnl_info_for_ho_list_present = true;
+      add_dluptnl_info_for_ho_list.id      = c.id;
+      add_dluptnl_info_for_ho_list.crit    = c.crit;
+      add_dluptnl_info_for_ho_list.ext     = c.ext_value.add_dluptnl_info_for_ho_list();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -18157,21 +18121,21 @@ void ho_request_ack_transfer_s::to_json(json_writer& j) const
     security_result.to_json(j);
   }
   j.start_array("qosFlowSetupResponseList");
-  for (uint32_t i1 = 0; i1 < qos_flow_setup_resp_list.size(); ++i1) {
-    qos_flow_setup_resp_list[i1].to_json(j);
+  for (const auto& e1 : qos_flow_setup_resp_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (qos_flow_failed_to_setup_list_present) {
     j.start_array("qosFlowFailedToSetupList");
-    for (uint32_t i1 = 0; i1 < qos_flow_failed_to_setup_list.size(); ++i1) {
-      qos_flow_failed_to_setup_list[i1].to_json(j);
+    for (const auto& e1 : qos_flow_failed_to_setup_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (data_forwarding_resp_drb_list_present) {
     j.start_array("dataForwardingResponseDRBList");
-    for (uint32_t i1 = 0; i1 < data_forwarding_resp_drb_list.size(); ++i1) {
-      data_forwarding_resp_drb_list[i1].to_json(j);
+    for (const auto& e1 : data_forwarding_resp_drb_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -18312,14 +18276,14 @@ void pdu_session_res_failed_to_setup_item_ho_ack_s::to_json(json_writer& j) cons
 // HandoverRequestAcknowledgeIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_request_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 53, 56, 106, 19};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {10, 85, 53, 56, 106, 19};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool ho_request_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 53, 56, 106, 19};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 53, 56, 106, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -18341,9 +18305,9 @@ crit_e ho_request_ack_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_request_ack_ies_o::value_c ho_request_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -18368,7 +18332,7 @@ ho_request_ack_ies_o::value_c ho_request_ack_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -18388,9 +18352,9 @@ presence_e ho_request_ack_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -18575,15 +18539,15 @@ void ho_request_ack_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_admitted_list:
       j.start_array("PDUSessionResourceAdmittedList");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_admitted_list_l>().size(); ++i1) {
-        c.get<pdu_session_res_admitted_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_admitted_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_failed_to_setup_list_ho_ack:
       j.start_array("PDUSessionResourceFailedToSetupListHOAck");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_failed_to_setup_list_ho_ack_l>().size(); ++i1) {
-        c.get<pdu_session_res_failed_to_setup_list_ho_ack_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_failed_to_setup_list_ho_ack_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -18658,16 +18622,16 @@ SRSASN_CODE ho_request_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_request_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceAdmittedList",
-                                            "PDUSessionResourceFailedToSetupListHOAck",
-                                            "OCTET STRING",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceAdmittedList",
+                                  "PDUSessionResourceFailedToSetupListHOAck",
+                                  "OCTET STRING",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 6, value, "ho_request_ack_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_request_ack_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_request_ack_ies_o>;
 
 ho_request_ack_ies_container::ho_request_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -18746,12 +18710,13 @@ SRSASN_CODE ho_request_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -18804,7 +18769,7 @@ void ho_request_ack_s::to_json(json_writer& j) const
 // DirectForwardingPathAvailability ::= ENUMERATED
 std::string direct_forwarding_path_availability_opts::to_string() const
 {
-  static constexpr const char* options[] = {"direct-path-available"};
+  static const char* options[] = {"direct-path-available"};
   return convert_enum_idx(options, 1, value, "direct_forwarding_path_availability_e");
 }
 
@@ -19076,21 +19041,21 @@ SRSASN_CODE target_id_c::unpack(cbit_ref& bref)
 
 std::string target_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"targetRANNodeID", "targeteNB-ID", "choice-Extensions"};
+  static const char* options[] = {"targetRANNodeID", "targeteNB-ID", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "target_id_c::types");
 }
 
 // HandoverRequiredIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ho_required_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 29, 15, 105, 22, 61, 101};
-  return convert_enum_idx(options, 8, idx, "id");
+  static const uint32_t options[] = {10, 85, 29, 15, 105, 22, 61, 101};
+  return map_enum_number(options, 8, idx, "id");
 }
 bool ho_required_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 29, 15, 105, 22, 61, 101};
-  for (uint32_t i = 0; i < 8; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 29, 15, 105, 22, 61, 101};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -19116,9 +19081,9 @@ crit_e ho_required_ies_o::get_crit(const uint32_t& id)
     case 101:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_required_ies_o::value_c ho_required_ies_o::get_value(const uint32_t& id)
 {
@@ -19149,7 +19114,7 @@ ho_required_ies_o::value_c ho_required_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::source_to_target_transparent_container);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -19173,9 +19138,9 @@ presence_e ho_required_ies_o::get_presence(const uint32_t& id)
     case 101:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -19408,8 +19373,8 @@ void ho_required_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_list_ho_rqd:
       j.start_array("PDUSessionResourceListHORqd");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_list_ho_rqd_l>().size(); ++i1) {
-        c.get<pdu_session_res_list_ho_rqd_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_list_ho_rqd_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -19492,18 +19457,18 @@ SRSASN_CODE ho_required_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_required_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "HandoverType",
-                                            "Cause",
-                                            "TargetID",
-                                            "DirectForwardingPathAvailability",
-                                            "PDUSessionResourceListHORqd",
-                                            "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "HandoverType",
+                                  "Cause",
+                                  "TargetID",
+                                  "DirectForwardingPathAvailability",
+                                  "PDUSessionResourceListHORqd",
+                                  "OCTET STRING"};
   return convert_enum_idx(options, 8, value, "ho_required_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_required_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ho_required_ies_o>;
 
 ho_required_ies_container::ho_required_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -19595,12 +19560,13 @@ SRSASN_CODE ho_required_ies_container::unpack(cbit_ref& bref)
         source_to_target_transparent_container.value = c.value.source_to_target_transparent_container();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -19718,8 +19684,8 @@ void recommended_ran_nodes_for_paging_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("recommendedRANNodeList");
-  for (uint32_t i1 = 0; i1 < recommended_ran_node_list.size(); ++i1) {
-    recommended_ran_node_list[i1].to_json(j);
+  for (const auto& e1 : recommended_ran_node_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -19861,14 +19827,14 @@ void pdu_session_res_failed_to_setup_item_cxt_fail_s::to_json(json_writer& j) co
 // InitialContextSetupFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t init_context_setup_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 132, 15, 19};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 132, 15, 19};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool init_context_setup_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 132, 15, 19};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 132, 15, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -19888,9 +19854,9 @@ crit_e init_context_setup_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 init_context_setup_fail_ies_o::value_c init_context_setup_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -19912,7 +19878,7 @@ init_context_setup_fail_ies_o::value_c init_context_setup_fail_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -19930,9 +19896,9 @@ presence_e init_context_setup_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -20096,8 +20062,8 @@ void init_context_setup_fail_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_failed_to_setup_list_cxt_fail:
       j.start_array("PDUSessionResourceFailedToSetupListCxtFail");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_failed_to_setup_list_cxt_fail_l>().size(); ++i1) {
-        c.get<pdu_session_res_failed_to_setup_list_cxt_fail_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_failed_to_setup_list_cxt_fail_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -20167,15 +20133,15 @@ SRSASN_CODE init_context_setup_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string init_context_setup_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceFailedToSetupListCxtFail",
-                                            "Cause",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceFailedToSetupListCxtFail",
+                                  "Cause",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "init_context_setup_fail_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<init_context_setup_fail_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<init_context_setup_fail_ies_o>;
 
 init_context_setup_fail_ies_container::init_context_setup_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -20246,12 +20212,13 @@ SRSASN_CODE init_context_setup_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -20411,16 +20378,16 @@ void ue_radio_cap_for_paging_s::to_json(json_writer& j) const
 // InitialContextSetupRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t init_context_setup_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10,  85, 48,  110, 18, 28, 71, 0,  119, 94,
-                                               108, 36, 117, 31,  34, 38, 24, 91, 118, 146};
-  return convert_enum_idx(options, 20, idx, "id");
+  static const uint32_t options[] = {10,  85, 48,  110, 18, 28, 71, 0,  119, 94,
+                                     108, 36, 117, 31,  34, 38, 24, 91, 118, 146};
+  return map_enum_number(options, 20, idx, "id");
 }
 bool init_context_setup_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10,  85, 48,  110, 18, 28, 71, 0,  119, 94,
-                                               108, 36, 117, 31,  34, 38, 24, 91, 118, 146};
-  for (uint32_t i = 0; i < 20; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10,  85, 48,  110, 18, 28, 71, 0,  119, 94,
+                                     108, 36, 117, 31,  34, 38, 24, 91, 118, 146};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -20470,9 +20437,9 @@ crit_e init_context_setup_request_ies_o::get_crit(const uint32_t& id)
     case 146:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 init_context_setup_request_ies_o::value_c init_context_setup_request_ies_o::get_value(const uint32_t& id)
 {
@@ -20539,7 +20506,7 @@ init_context_setup_request_ies_o::value_c init_context_setup_request_ies_o::get_
       ret.set(value_c::types::redirection_voice_fallback);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -20587,9 +20554,9 @@ presence_e init_context_setup_request_ies_o::get_presence(const uint32_t& id)
     case 146:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -21087,15 +21054,15 @@ void init_context_setup_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_setup_list_cxt_req:
       j.start_array("PDUSessionResourceSetupListCxtReq");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_setup_list_cxt_req_l>().size(); ++i1) {
-        c.get<pdu_session_res_setup_list_cxt_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_setup_list_cxt_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::allowed_nssai:
       j.start_array("AllowedNSSAI");
-      for (uint32_t i1 = 0; i1 < c.get<allowed_nssai_l>().size(); ++i1) {
-        c.get<allowed_nssai_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<allowed_nssai_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -21288,30 +21255,30 @@ SRSASN_CODE init_context_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string init_context_setup_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PrintableString",
-                                            "UEAggregateMaximumBitRate",
-                                            "CoreNetworkAssistanceInformation",
-                                            "GUAMI",
-                                            "PDUSessionResourceSetupListCxtReq",
-                                            "AllowedNSSAI",
-                                            "UESecurityCapabilities",
-                                            "BIT STRING",
-                                            "TraceActivation",
-                                            "MobilityRestrictionList",
-                                            "OCTET STRING",
-                                            "INTEGER (1..256,...)",
-                                            "BIT STRING",
-                                            "OCTET STRING",
-                                            "EmergencyFallbackIndicator",
-                                            "RRCInactiveTransitionReportRequest",
-                                            "UERadioCapabilityForPaging",
-                                            "RedirectionVoiceFallback"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PrintableString",
+                                  "UEAggregateMaximumBitRate",
+                                  "CoreNetworkAssistanceInformation",
+                                  "GUAMI",
+                                  "PDUSessionResourceSetupListCxtReq",
+                                  "AllowedNSSAI",
+                                  "UESecurityCapabilities",
+                                  "BIT STRING",
+                                  "TraceActivation",
+                                  "MobilityRestrictionList",
+                                  "OCTET STRING",
+                                  "INTEGER (1..256,...)",
+                                  "BIT STRING",
+                                  "OCTET STRING",
+                                  "EmergencyFallbackIndicator",
+                                  "RRCInactiveTransitionReportRequest",
+                                  "UERadioCapabilityForPaging",
+                                  "RedirectionVoiceFallback"};
   return convert_enum_idx(options, 20, value, "init_context_setup_request_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<init_context_setup_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<init_context_setup_request_ies_o>;
 
 init_context_setup_request_ies_container::init_context_setup_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -21538,12 +21505,13 @@ SRSASN_CODE init_context_setup_request_ies_container::unpack(cbit_ref& bref)
         redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -21701,8 +21669,8 @@ void pdu_session_res_setup_resp_transfer_s::to_json(json_writer& j) const
   dlqos_flow_per_tnl_info.to_json(j);
   if (add_dl_qos_flow_per_tnl_info_present) {
     j.start_array("additionalDLQosFlowPerTNLInformation");
-    for (uint32_t i1 = 0; i1 < add_dl_qos_flow_per_tnl_info.size(); ++i1) {
-      add_dl_qos_flow_per_tnl_info[i1].to_json(j);
+    for (const auto& e1 : add_dl_qos_flow_per_tnl_info) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -21712,8 +21680,8 @@ void pdu_session_res_setup_resp_transfer_s::to_json(json_writer& j) const
   }
   if (qos_flow_failed_to_setup_list_present) {
     j.start_array("qosFlowFailedToSetupList");
-    for (uint32_t i1 = 0; i1 < qos_flow_failed_to_setup_list.size(); ++i1) {
-      qos_flow_failed_to_setup_list[i1].to_json(j);
+    for (const auto& e1 : qos_flow_failed_to_setup_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -21805,14 +21773,14 @@ void pdu_session_res_setup_item_cxt_res_s::to_json(json_writer& j) const
 // InitialContextSetupResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t init_context_setup_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 72, 55, 19};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 72, 55, 19};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool init_context_setup_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 72, 55, 19};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 72, 55, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -21832,9 +21800,9 @@ crit_e init_context_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 init_context_setup_resp_ies_o::value_c init_context_setup_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -21856,7 +21824,7 @@ init_context_setup_resp_ies_o::value_c init_context_setup_resp_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -21874,9 +21842,9 @@ presence_e init_context_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -22041,15 +22009,15 @@ void init_context_setup_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_setup_list_cxt_res:
       j.start_array("PDUSessionResourceSetupListCxtRes");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_setup_list_cxt_res_l>().size(); ++i1) {
-        c.get<pdu_session_res_setup_list_cxt_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_setup_list_cxt_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_failed_to_setup_list_cxt_res:
       j.start_array("PDUSessionResourceFailedToSetupListCxtRes");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_failed_to_setup_list_cxt_res_l>().size(); ++i1) {
-        c.get<pdu_session_res_failed_to_setup_list_cxt_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_failed_to_setup_list_cxt_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -22115,15 +22083,15 @@ SRSASN_CODE init_context_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string init_context_setup_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceSetupListCxtRes",
-                                            "PDUSessionResourceFailedToSetupListCxtRes",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceSetupListCxtRes",
+                                  "PDUSessionResourceFailedToSetupListCxtRes",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "init_context_setup_resp_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<init_context_setup_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<init_context_setup_resp_ies_o>;
 
 init_context_setup_resp_ies_container::init_context_setup_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -22197,12 +22165,13 @@ SRSASN_CODE init_context_setup_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -22255,38 +22224,38 @@ void init_context_setup_resp_s::to_json(json_writer& j) const
 // RRCEstablishmentCause ::= ENUMERATED
 std::string rrcestablishment_cause_opts::to_string() const
 {
-  static constexpr const char* options[] = {"emergency",
-                                            "highPriorityAccess",
-                                            "mt-Access",
-                                            "mo-Signalling",
-                                            "mo-Data",
-                                            "mo-VoiceCall",
-                                            "mo-VideoCall",
-                                            "mo-SMS",
-                                            "mps-PriorityAccess",
-                                            "mcs-PriorityAccess",
-                                            "notAvailable"};
+  static const char* options[] = {"emergency",
+                                  "highPriorityAccess",
+                                  "mt-Access",
+                                  "mo-Signalling",
+                                  "mo-Data",
+                                  "mo-VoiceCall",
+                                  "mo-VideoCall",
+                                  "mo-SMS",
+                                  "mps-PriorityAccess",
+                                  "mcs-PriorityAccess",
+                                  "notAvailable"};
   return convert_enum_idx(options, 11, value, "rrcestablishment_cause_e");
 }
 
 // UEContextRequest ::= ENUMERATED
 std::string ue_context_request_opts::to_string() const
 {
-  static constexpr const char* options[] = {"requested"};
+  static const char* options[] = {"requested"};
   return convert_enum_idx(options, 1, value, "ue_context_request_e");
 }
 
 // InitialUEMessage-IEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t init_ue_msg_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {85, 38, 121, 90, 26, 3, 112, 0};
-  return convert_enum_idx(options, 8, idx, "id");
+  static const uint32_t options[] = {85, 38, 121, 90, 26, 3, 112, 0};
+  return map_enum_number(options, 8, idx, "id");
 }
 bool init_ue_msg_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {85, 38, 121, 90, 26, 3, 112, 0};
-  for (uint32_t i = 0; i < 8; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {85, 38, 121, 90, 26, 3, 112, 0};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -22312,9 +22281,9 @@ crit_e init_ue_msg_ies_o::get_crit(const uint32_t& id)
     case 0:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 init_ue_msg_ies_o::value_c init_ue_msg_ies_o::get_value(const uint32_t& id)
 {
@@ -22345,7 +22314,7 @@ init_ue_msg_ies_o::value_c init_ue_msg_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::allowed_nssai);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -22369,9 +22338,9 @@ presence_e init_ue_msg_ies_o::get_presence(const uint32_t& id)
     case 0:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -22611,8 +22580,8 @@ void init_ue_msg_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::allowed_nssai:
       j.start_array("AllowedNSSAI");
-      for (uint32_t i1 = 0; i1 < c.get<allowed_nssai_l>().size(); ++i1) {
-        c.get<allowed_nssai_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<allowed_nssai_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -22692,23 +22661,23 @@ SRSASN_CODE init_ue_msg_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string init_ue_msg_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "OCTET STRING",
-                                            "UserLocationInformation",
-                                            "RRCEstablishmentCause",
-                                            "FiveG-S-TMSI",
-                                            "BIT STRING",
-                                            "UEContextRequest",
-                                            "AllowedNSSAI"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "OCTET STRING",
+                                  "UserLocationInformation",
+                                  "RRCEstablishmentCause",
+                                  "FiveG-S-TMSI",
+                                  "BIT STRING",
+                                  "UEContextRequest",
+                                  "AllowedNSSAI"};
   return convert_enum_idx(options, 8, value, "init_ue_msg_ies_o::value_c::types");
 }
 uint8_t init_ue_msg_ies_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {0};
-  return convert_enum_idx(options, 1, value, "init_ue_msg_ies_o::value_c::types");
+  static const uint8_t options[] = {0};
+  return map_enum_number(options, 1, value, "init_ue_msg_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<init_ue_msg_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<init_ue_msg_ies_o>;
 
 init_ue_msg_ies_container::init_ue_msg_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -22809,12 +22778,13 @@ SRSASN_CODE init_ue_msg_ies_container::unpack(cbit_ref& bref)
         allowed_nssai.value   = c.value.allowed_nssai();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -22960,8 +22930,8 @@ void qo_sflows_usage_report_item_s::to_json(json_writer& j) const
   j.write_int("qosFlowIdentifier", qos_flow_id);
   j.write_str("rATType", rat_type.to_string());
   j.start_array("qoSFlowsTimedReportList");
-  for (uint32_t i1 = 0; i1 < qo_sflows_timed_report_list.size(); ++i1) {
-    qo_sflows_timed_report_list[i1].to_json(j);
+  for (const auto& e1 : qo_sflows_timed_report_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -22973,7 +22943,7 @@ void qo_sflows_usage_report_item_s::to_json(json_writer& j) const
 
 std::string qo_sflows_usage_report_item_s::rat_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"nr", "eutra"};
+  static const char* options[] = {"nr", "eutra"};
   return convert_enum_idx(options, 2, value, "qo_sflows_usage_report_item_s::rat_type_e_");
 }
 
@@ -23009,8 +22979,8 @@ void pdu_session_usage_report_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("rATType", rat_type.to_string());
   j.start_array("pDUSessionTimedReportList");
-  for (uint32_t i1 = 0; i1 < pdu_session_timed_report_list.size(); ++i1) {
-    pdu_session_timed_report_list[i1].to_json(j);
+  for (const auto& e1 : pdu_session_timed_report_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -23022,14 +22992,14 @@ void pdu_session_usage_report_s::to_json(json_writer& j) const
 
 std::string pdu_session_usage_report_s::rat_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"nr", "eutra"};
+  static const char* options[] = {"nr", "eutra"};
   return convert_enum_idx(options, 2, value, "pdu_session_usage_report_s::rat_type_e_");
 }
 
 // NotificationCause ::= ENUMERATED
 std::string notif_cause_opts::to_string() const
 {
-  static constexpr const char* options[] = {"fulfilled", "not-fulfilled"};
+  static const char* options[] = {"fulfilled", "not-fulfilled"};
   return convert_enum_idx(options, 2, value, "notif_cause_e");
 }
 
@@ -23140,8 +23110,8 @@ void secondary_ratusage_info_s::to_json(json_writer& j) const
   }
   if (qos_flows_usage_report_list_present) {
     j.start_array("qosFlowsUsageReportList");
-    for (uint32_t i1 = 0; i1 < qos_flows_usage_report_list.size(); ++i1) {
-      qos_flows_usage_report_list[i1].to_json(j);
+    for (const auto& e1 : qos_flows_usage_report_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -23237,50 +23207,37 @@ void up_transport_layer_info_pair_item_s::to_json(json_writer& j) const
 // PDUSessionResourceReleaseResponseTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t pdu_session_res_release_resp_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {144};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {144};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool pdu_session_res_release_resp_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {144};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 144 == id;
 }
 crit_e pdu_session_res_release_resp_transfer_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 144:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 144) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 pdu_session_res_release_resp_transfer_ext_ies_o::ext_c
 pdu_session_res_release_resp_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 144:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 144) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e pdu_session_res_release_resp_transfer_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 144:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 144) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -23306,7 +23263,7 @@ SRSASN_CODE pdu_session_res_release_resp_transfer_ext_ies_o::ext_c::unpack(cbit_
 
 std::string pdu_session_res_release_resp_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SecondaryRATUsageInformation"};
+  static const char* options[] = {"SecondaryRATUsageInformation"};
   return convert_enum_idx(options, 1, value, "pdu_session_res_release_resp_transfer_ext_ies_o::ext_c::types");
 }
 
@@ -23460,31 +23417,31 @@ void qos_flow_notify_item_s::to_json(json_writer& j) const
 // DL-NGU-TNLInformationReused ::= ENUMERATED
 std::string dl_ngu_tnl_info_reused_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "dl_ngu_tnl_info_reused_e");
 }
 
 // OverloadAction ::= ENUMERATED
 std::string overload_action_opts::to_string() const
 {
-  static constexpr const char* options[] = {"reject-non-emergency-mo-dt",
-                                            "reject-rrc-cr-signalling",
-                                            "permit-emergency-sessions-and-mobile-terminated-services-only",
-                                            "permit-high-priority-sessions-and-mobile-terminated-services-only"};
+  static const char* options[] = {"reject-non-emergency-mo-dt",
+                                  "reject-rrc-cr-signalling",
+                                  "permit-emergency-sessions-and-mobile-terminated-services-only",
+                                  "permit-high-priority-sessions-and-mobile-terminated-services-only"};
   return convert_enum_idx(options, 4, value, "overload_action_e");
 }
 
 // PDUSessionResourceModifyIndicationTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t pdu_session_res_modify_ind_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {144, 156};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {144, 156};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool pdu_session_res_modify_ind_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {144, 156};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {144, 156};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -23498,9 +23455,9 @@ crit_e pdu_session_res_modify_ind_transfer_ext_ies_o::get_crit(const uint32_t& i
     case 156:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c
 pdu_session_res_modify_ind_transfer_ext_ies_o::get_ext(const uint32_t& id)
@@ -23514,7 +23471,7 @@ pdu_session_res_modify_ind_transfer_ext_ies_o::get_ext(const uint32_t& id)
       ret.set(ext_c::types::security_result);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -23526,9 +23483,9 @@ presence_e pdu_session_res_modify_ind_transfer_ext_ies_o::get_presence(const uin
     case 156:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -23673,21 +23630,21 @@ SRSASN_CODE pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::unpack(cbit_re
 
 std::string pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SecondaryRATUsageInformation", "SecurityResult"};
+  static const char* options[] = {"SecondaryRATUsageInformation", "SecurityResult"};
   return convert_enum_idx(options, 2, value, "pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::types");
 }
 
 // PDUSessionResourceModifyRequestTransferIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_modify_request_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {130, 140, 129, 135, 137, 126};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {130, 140, 129, 135, 137, 126};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool pdu_session_res_modify_request_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {130, 140, 129, 135, 137, 126};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {130, 140, 129, 135, 137, 126};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -23709,9 +23666,9 @@ crit_e pdu_session_res_modify_request_transfer_ies_o::get_crit(const uint32_t& i
     case 126:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_modify_request_transfer_ies_o::value_c
 pdu_session_res_modify_request_transfer_ies_o::get_value(const uint32_t& id)
@@ -23737,7 +23694,7 @@ pdu_session_res_modify_request_transfer_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::add_ul_ngu_up_tnl_info);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -23757,9 +23714,9 @@ presence_e pdu_session_res_modify_request_transfer_ies_o::get_presence(const uin
     case 126:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -23953,8 +23910,8 @@ void pdu_session_res_modify_request_transfer_ies_o::value_c::to_json(json_writer
       break;
     case types::ul_ngu_up_tnl_modify_list:
       j.start_array("UL-NGU-UP-TNLModifyList");
-      for (uint32_t i1 = 0; i1 < c.get<ul_ngu_up_tnl_modify_list_l>().size(); ++i1) {
-        c.get<ul_ngu_up_tnl_modify_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<ul_ngu_up_tnl_modify_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -23963,22 +23920,22 @@ void pdu_session_res_modify_request_transfer_ies_o::value_c::to_json(json_writer
       break;
     case types::qos_flow_add_or_modify_request_list:
       j.start_array("QosFlowAddOrModifyRequestList");
-      for (uint32_t i1 = 0; i1 < c.get<qos_flow_add_or_modify_request_list_l>().size(); ++i1) {
-        c.get<qos_flow_add_or_modify_request_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<qos_flow_add_or_modify_request_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::qos_flow_to_release_list:
       j.start_array("QosFlowListWithCause");
-      for (uint32_t i1 = 0; i1 < c.get<qos_flow_list_with_cause_l>().size(); ++i1) {
-        c.get<qos_flow_list_with_cause_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<qos_flow_list_with_cause_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::add_ul_ngu_up_tnl_info:
       j.start_array("UPTransportLayerInformationList");
-      for (uint32_t i1 = 0; i1 < c.get<up_transport_layer_info_list_l>().size(); ++i1) {
-        c.get<up_transport_layer_info_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<up_transport_layer_info_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -24046,72 +24003,57 @@ SRSASN_CODE pdu_session_res_modify_request_transfer_ies_o::value_c::unpack(cbit_
 
 std::string pdu_session_res_modify_request_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PDUSessionAggregateMaximumBitRate",
-                                            "UL-NGU-UP-TNLModifyList",
-                                            "INTEGER (1..256,...)",
-                                            "QosFlowAddOrModifyRequestList",
-                                            "QosFlowListWithCause",
-                                            "UPTransportLayerInformationList"};
+  static const char* options[] = {"PDUSessionAggregateMaximumBitRate",
+                                  "UL-NGU-UP-TNLModifyList",
+                                  "INTEGER (1..256,...)",
+                                  "QosFlowAddOrModifyRequestList",
+                                  "QosFlowListWithCause",
+                                  "UPTransportLayerInformationList"};
   return convert_enum_idx(options, 6, value, "pdu_session_res_modify_request_transfer_ies_o::value_c::types");
 }
 uint8_t pdu_session_res_modify_request_transfer_ies_o::value_c::types_opts::to_number() const
 {
-  switch (value) {
-    case network_instance:
-      return 1;
-    default:
-      invalid_enum_number(value, "pdu_session_res_modify_request_transfer_ies_o::value_c::types");
+  if (value == network_instance) {
+    return 1;
   }
+  invalid_enum_number(value, "pdu_session_res_modify_request_transfer_ies_o::value_c::types");
   return 0;
 }
 
 // PDUSessionResourceModifyResponseTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t pdu_session_res_modify_resp_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {154};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {154};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool pdu_session_res_modify_resp_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {154};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 154 == id;
 }
 crit_e pdu_session_res_modify_resp_transfer_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 154:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 154) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 pdu_session_res_modify_resp_transfer_ext_ies_o::ext_c
 pdu_session_res_modify_resp_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 154:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 154) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e pdu_session_res_modify_resp_transfer_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 154:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 154) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -24119,8 +24061,8 @@ void pdu_session_res_modify_resp_transfer_ext_ies_o::ext_c::to_json(json_writer&
 {
   j.start_obj();
   j.start_array("UPTransportLayerInformationPairList");
-  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-    c[i1].to_json(j);
+  for (const auto& e1 : c) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -24140,57 +24082,44 @@ SRSASN_CODE pdu_session_res_modify_resp_transfer_ext_ies_o::ext_c::unpack(cbit_r
 
 std::string pdu_session_res_modify_resp_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UPTransportLayerInformationPairList"};
+  static const char* options[] = {"UPTransportLayerInformationPairList"};
   return convert_enum_idx(options, 1, value, "pdu_session_res_modify_resp_transfer_ext_ies_o::ext_c::types");
 }
 
 // PDUSessionResourceNotifyReleasedTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t pdu_session_res_notify_released_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {144};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {144};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool pdu_session_res_notify_released_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {144};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 144 == id;
 }
 crit_e pdu_session_res_notify_released_transfer_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 144:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 144) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 pdu_session_res_notify_released_transfer_ext_ies_o::ext_c
 pdu_session_res_notify_released_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 144:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 144) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e pdu_session_res_notify_released_transfer_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 144:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 144) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -24216,56 +24145,43 @@ SRSASN_CODE pdu_session_res_notify_released_transfer_ext_ies_o::ext_c::unpack(cb
 
 std::string pdu_session_res_notify_released_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SecondaryRATUsageInformation"};
+  static const char* options[] = {"SecondaryRATUsageInformation"};
   return convert_enum_idx(options, 1, value, "pdu_session_res_notify_released_transfer_ext_ies_o::ext_c::types");
 }
 
 // PDUSessionResourceNotifyTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t pdu_session_res_notify_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {144};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {144};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool pdu_session_res_notify_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {144};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 144 == id;
 }
 crit_e pdu_session_res_notify_transfer_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 144:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 144) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 pdu_session_res_notify_transfer_ext_ies_o::ext_c pdu_session_res_notify_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 144:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 144) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e pdu_session_res_notify_transfer_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 144:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 144) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -24291,11 +24207,11 @@ SRSASN_CODE pdu_session_res_notify_transfer_ext_ies_o::ext_c::unpack(cbit_ref& b
 
 std::string pdu_session_res_notify_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SecondaryRATUsageInformation"};
+  static const char* options[] = {"SecondaryRATUsageInformation"};
   return convert_enum_idx(options, 1, value, "pdu_session_res_notify_transfer_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<pdu_session_res_release_resp_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<pdu_session_res_release_resp_transfer_ext_ies_o>;
 
 pdu_session_res_release_resp_transfer_ext_ies_container::pdu_session_res_release_resp_transfer_ext_ies_container() :
   secondary_ratusage_info(144, crit_e::ignore)
@@ -24321,16 +24237,14 @@ SRSASN_CODE pdu_session_res_release_resp_transfer_ext_ies_container::unpack(cbit
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<pdu_session_res_release_resp_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 144:
-        secondary_ratusage_info_present = true;
-        secondary_ratusage_info.id      = c.id;
-        secondary_ratusage_info.crit    = c.crit;
-        secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 144) {
+      secondary_ratusage_info_present = true;
+      secondary_ratusage_info.id      = c.id;
+      secondary_ratusage_info.crit    = c.crit;
+      secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -24382,50 +24296,37 @@ void pdu_session_res_release_resp_transfer_s::to_json(json_writer& j) const
 // PathSwitchRequestAcknowledgeTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t path_switch_request_ack_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {154};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {154};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool path_switch_request_ack_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {154};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 154 == id;
 }
 crit_e path_switch_request_ack_transfer_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 154:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 154) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 path_switch_request_ack_transfer_ext_ies_o::ext_c
 path_switch_request_ack_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 154:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 154) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e path_switch_request_ack_transfer_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 154:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 154) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -24433,8 +24334,8 @@ void path_switch_request_ack_transfer_ext_ies_o::ext_c::to_json(json_writer& j) 
 {
   j.start_obj();
   j.start_array("UPTransportLayerInformationPairList");
-  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-    c[i1].to_json(j);
+  for (const auto& e1 : c) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -24454,56 +24355,43 @@ SRSASN_CODE path_switch_request_ack_transfer_ext_ies_o::ext_c::unpack(cbit_ref& 
 
 std::string path_switch_request_ack_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UPTransportLayerInformationPairList"};
+  static const char* options[] = {"UPTransportLayerInformationPairList"};
   return convert_enum_idx(options, 1, value, "path_switch_request_ack_transfer_ext_ies_o::ext_c::types");
 }
 
 // PathSwitchRequestTransfer-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t path_switch_request_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {155};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {155};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool path_switch_request_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {155};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 155 == id;
 }
 crit_e path_switch_request_transfer_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 155:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 155) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 path_switch_request_transfer_ext_ies_o::ext_c path_switch_request_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 155:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 155) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e path_switch_request_transfer_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 155:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 155) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -24511,8 +24399,8 @@ void path_switch_request_transfer_ext_ies_o::ext_c::to_json(json_writer& j) cons
 {
   j.start_obj();
   j.start_array("QosFlowPerTNLInformationList");
-  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-    c[i1].to_json(j);
+  for (const auto& e1 : c) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -24532,7 +24420,7 @@ SRSASN_CODE path_switch_request_transfer_ext_ies_o::ext_c::unpack(cbit_ref& bref
 
 std::string path_switch_request_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"QosFlowPerTNLInformationList"};
+  static const char* options[] = {"QosFlowPerTNLInformationList"};
   return convert_enum_idx(options, 1, value, "path_switch_request_transfer_ext_ies_o::ext_c::types");
 }
 
@@ -24731,57 +24619,44 @@ SRSASN_CODE overload_resp_c::unpack(cbit_ref& bref)
 
 std::string overload_resp_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"overloadAction", "choice-Extensions"};
+  static const char* options[] = {"overloadAction", "choice-Extensions"};
   return convert_enum_idx(options, 2, value, "overload_resp_c::types");
 }
 
 // PDUSessionResourceItemCxtRelCpl-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t pdu_session_res_item_cxt_rel_cpl_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {145};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {145};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool pdu_session_res_item_cxt_rel_cpl_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {145};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 145 == id;
 }
 crit_e pdu_session_res_item_cxt_rel_cpl_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 145:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 145) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 pdu_session_res_item_cxt_rel_cpl_ext_ies_o::ext_c
 pdu_session_res_item_cxt_rel_cpl_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 145:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 145) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e pdu_session_res_item_cxt_rel_cpl_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 145:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 145) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -24806,7 +24681,7 @@ SRSASN_CODE pdu_session_res_item_cxt_rel_cpl_ext_ies_o::ext_c::unpack(cbit_ref& 
 
 std::string pdu_session_res_item_cxt_rel_cpl_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"OCTET STRING"};
+  static const char* options[] = {"OCTET STRING"};
   return convert_enum_idx(options, 1, value, "pdu_session_res_item_cxt_rel_cpl_ext_ies_o::ext_c::types");
 }
 
@@ -24857,23 +24732,23 @@ void pdu_session_res_modify_confirm_transfer_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("qosFlowModifyConfirmList");
-  for (uint32_t i1 = 0; i1 < qos_flow_modify_confirm_list.size(); ++i1) {
-    qos_flow_modify_confirm_list[i1].to_json(j);
+  for (const auto& e1 : qos_flow_modify_confirm_list) {
+    e1.to_json(j);
   }
   j.end_array();
   j.write_fieldname("uLNGU-UP-TNLInformation");
   ulngu_up_tnl_info.to_json(j);
   if (add_ng_uuptnl_info_present) {
     j.start_array("additionalNG-UUPTNLInformation");
-    for (uint32_t i1 = 0; i1 < add_ng_uuptnl_info.size(); ++i1) {
-      add_ng_uuptnl_info[i1].to_json(j);
+    for (const auto& e1 : add_ng_uuptnl_info) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (qos_flow_failed_to_modify_list_present) {
     j.start_array("qosFlowFailedToModifyList");
-    for (uint32_t i1 = 0; i1 < qos_flow_failed_to_modify_list.size(); ++i1) {
-      qos_flow_failed_to_modify_list[i1].to_json(j);
+    for (const auto& e1 : qos_flow_failed_to_modify_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -24884,7 +24759,7 @@ void pdu_session_res_modify_confirm_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<pdu_session_res_modify_ind_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<pdu_session_res_modify_ind_transfer_ext_ies_o>;
 
 pdu_session_res_modify_ind_transfer_ext_ies_container::pdu_session_res_modify_ind_transfer_ext_ies_container() :
   secondary_ratusage_info(144, crit_e::ignore),
@@ -24929,7 +24804,7 @@ SRSASN_CODE pdu_session_res_modify_ind_transfer_ext_ies_container::unpack(cbit_r
         security_result.ext     = c.ext_value.security_result();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -24990,8 +24865,8 @@ void pdu_session_res_modify_ind_transfer_s::to_json(json_writer& j) const
   dlqos_flow_per_tnl_info.to_json(j);
   if (add_dl_qos_flow_per_tnl_info_present) {
     j.start_array("additionalDLQosFlowPerTNLInformation");
-    for (uint32_t i1 = 0; i1 < add_dl_qos_flow_per_tnl_info.size(); ++i1) {
-      add_dl_qos_flow_per_tnl_info[i1].to_json(j);
+    for (const auto& e1 : add_dl_qos_flow_per_tnl_info) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -25042,50 +24917,37 @@ void pdu_session_res_modify_ind_unsuccessful_transfer_s::to_json(json_writer& j)
 // PDUSessionResourceModifyItemModReq-ExtIEs ::= OBJECT SET OF NGAP-PROTOCOL-EXTENSION
 uint32_t pdu_session_res_modify_item_mod_req_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {148};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {148};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool pdu_session_res_modify_item_mod_req_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {148};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 148 == id;
 }
 crit_e pdu_session_res_modify_item_mod_req_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 148:
-      return crit_e::reject;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 148) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 pdu_session_res_modify_item_mod_req_ext_ies_o::ext_c
 pdu_session_res_modify_item_mod_req_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 148:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 148) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e pdu_session_res_modify_item_mod_req_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 148:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 148) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -25111,11 +24973,11 @@ SRSASN_CODE pdu_session_res_modify_item_mod_req_ext_ies_o::ext_c::unpack(cbit_re
 
 std::string pdu_session_res_modify_item_mod_req_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"S-NSSAI"};
+  static const char* options[] = {"S-NSSAI"};
   return convert_enum_idx(options, 1, value, "pdu_session_res_modify_item_mod_req_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ie_field_s<pdu_session_res_modify_request_transfer_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_request_transfer_ies_o>;
 
 pdu_session_res_modify_request_transfer_ies_container::pdu_session_res_modify_request_transfer_ies_container() :
   pdu_session_aggregate_maximum_bit_rate(130, crit_e::reject),
@@ -25204,7 +25066,7 @@ SRSASN_CODE pdu_session_res_modify_request_transfer_ies_container::unpack(cbit_r
         add_ul_ngu_up_tnl_info.value   = c.value.add_ul_ngu_up_tnl_info();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -25264,7 +25126,7 @@ void pdu_session_res_modify_request_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<pdu_session_res_modify_resp_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<pdu_session_res_modify_resp_transfer_ext_ies_o>;
 
 pdu_session_res_modify_resp_transfer_ext_ies_container::pdu_session_res_modify_resp_transfer_ext_ies_container() :
   add_ngu_up_tnl_info(154, crit_e::ignore)
@@ -25290,16 +25152,14 @@ SRSASN_CODE pdu_session_res_modify_resp_transfer_ext_ies_container::unpack(cbit_
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<pdu_session_res_modify_resp_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 154:
-        add_ngu_up_tnl_info_present = true;
-        add_ngu_up_tnl_info.id      = c.id;
-        add_ngu_up_tnl_info.crit    = c.crit;
-        add_ngu_up_tnl_info.ext     = c.ext_value.add_ngu_up_tnl_info();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 154) {
+      add_ngu_up_tnl_info_present = true;
+      add_ngu_up_tnl_info.id      = c.id;
+      add_ngu_up_tnl_info.crit    = c.crit;
+      add_ngu_up_tnl_info.ext     = c.ext_value.add_ngu_up_tnl_info();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -25391,22 +25251,22 @@ void pdu_session_res_modify_resp_transfer_s::to_json(json_writer& j) const
   }
   if (qos_flow_add_or_modify_resp_list_present) {
     j.start_array("qosFlowAddOrModifyResponseList");
-    for (uint32_t i1 = 0; i1 < qos_flow_add_or_modify_resp_list.size(); ++i1) {
-      qos_flow_add_or_modify_resp_list[i1].to_json(j);
+    for (const auto& e1 : qos_flow_add_or_modify_resp_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (add_dl_qos_flow_per_tnl_info_present) {
     j.start_array("additionalDLQosFlowPerTNLInformation");
-    for (uint32_t i1 = 0; i1 < add_dl_qos_flow_per_tnl_info.size(); ++i1) {
-      add_dl_qos_flow_per_tnl_info[i1].to_json(j);
+    for (const auto& e1 : add_dl_qos_flow_per_tnl_info) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (qos_flow_failed_to_add_or_modify_list_present) {
     j.start_array("qosFlowFailedToAddOrModifyList");
-    for (uint32_t i1 = 0; i1 < qos_flow_failed_to_add_or_modify_list.size(); ++i1) {
-      qos_flow_failed_to_add_or_modify_list[i1].to_json(j);
+    for (const auto& e1 : qos_flow_failed_to_add_or_modify_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -25466,7 +25326,7 @@ void pdu_session_res_modify_unsuccessful_transfer_s::to_json(json_writer& j) con
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<pdu_session_res_notify_released_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<pdu_session_res_notify_released_transfer_ext_ies_o>;
 
 pdu_session_res_notify_released_transfer_ext_ies_container::
     pdu_session_res_notify_released_transfer_ext_ies_container() :
@@ -25493,16 +25353,14 @@ SRSASN_CODE pdu_session_res_notify_released_transfer_ext_ies_container::unpack(c
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<pdu_session_res_notify_released_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 144:
-        secondary_ratusage_info_present = true;
-        secondary_ratusage_info.id      = c.id;
-        secondary_ratusage_info.crit    = c.crit;
-        secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 144) {
+      secondary_ratusage_info_present = true;
+      secondary_ratusage_info.id      = c.id;
+      secondary_ratusage_info.crit    = c.crit;
+      secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -25555,7 +25413,7 @@ void pdu_session_res_notify_released_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<pdu_session_res_notify_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<pdu_session_res_notify_transfer_ext_ies_o>;
 
 pdu_session_res_notify_transfer_ext_ies_container::pdu_session_res_notify_transfer_ext_ies_container() :
   secondary_ratusage_info(144, crit_e::ignore)
@@ -25581,16 +25439,14 @@ SRSASN_CODE pdu_session_res_notify_transfer_ext_ies_container::unpack(cbit_ref& 
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<pdu_session_res_notify_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 144:
-        secondary_ratusage_info_present = true;
-        secondary_ratusage_info.id      = c.id;
-        secondary_ratusage_info.crit    = c.crit;
-        secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 144) {
+      secondary_ratusage_info_present = true;
+      secondary_ratusage_info.id      = c.id;
+      secondary_ratusage_info.crit    = c.crit;
+      secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -25650,15 +25506,15 @@ void pdu_session_res_notify_transfer_s::to_json(json_writer& j) const
   j.start_obj();
   if (qos_flow_notify_list_present) {
     j.start_array("qosFlowNotifyList");
-    for (uint32_t i1 = 0; i1 < qos_flow_notify_list.size(); ++i1) {
-      qos_flow_notify_list[i1].to_json(j);
+    for (const auto& e1 : qos_flow_notify_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (qos_flow_released_list_present) {
     j.start_array("qosFlowReleasedList");
-    for (uint32_t i1 = 0; i1 < qos_flow_released_list.size(); ++i1) {
-      qos_flow_released_list[i1].to_json(j);
+    for (const auto& e1 : qos_flow_released_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -25706,7 +25562,7 @@ void pdu_session_res_release_cmd_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<path_switch_request_ack_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<path_switch_request_ack_transfer_ext_ies_o>;
 
 path_switch_request_ack_transfer_ext_ies_container::path_switch_request_ack_transfer_ext_ies_container() :
   add_ngu_up_tnl_info(154, crit_e::ignore)
@@ -25732,16 +25588,14 @@ SRSASN_CODE path_switch_request_ack_transfer_ext_ies_container::unpack(cbit_ref&
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<path_switch_request_ack_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 154:
-        add_ngu_up_tnl_info_present = true;
-        add_ngu_up_tnl_info.id      = c.id;
-        add_ngu_up_tnl_info.crit    = c.crit;
-        add_ngu_up_tnl_info.ext     = c.ext_value.add_ngu_up_tnl_info();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 154) {
+      add_ngu_up_tnl_info_present = true;
+      add_ngu_up_tnl_info.id      = c.id;
+      add_ngu_up_tnl_info.crit    = c.crit;
+      add_ngu_up_tnl_info.ext     = c.ext_value.add_ngu_up_tnl_info();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -25851,7 +25705,7 @@ void path_switch_request_setup_failed_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<path_switch_request_transfer_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<path_switch_request_transfer_ext_ies_o>;
 
 path_switch_request_transfer_ext_ies_container::path_switch_request_transfer_ext_ies_container() :
   add_dl_qos_flow_per_tnl_info(155, crit_e::ignore)
@@ -25877,16 +25731,14 @@ SRSASN_CODE path_switch_request_transfer_ext_ies_container::unpack(cbit_ref& bre
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<path_switch_request_transfer_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 155:
-        add_dl_qos_flow_per_tnl_info_present = true;
-        add_dl_qos_flow_per_tnl_info.id      = c.id;
-        add_dl_qos_flow_per_tnl_info.crit    = c.crit;
-        add_dl_qos_flow_per_tnl_info.ext     = c.ext_value.add_dl_qos_flow_per_tnl_info();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 155) {
+      add_dl_qos_flow_per_tnl_info_present = true;
+      add_dl_qos_flow_per_tnl_info.id      = c.id;
+      add_dl_qos_flow_per_tnl_info.crit    = c.crit;
+      add_dl_qos_flow_per_tnl_info.ext     = c.ext_value.add_dl_qos_flow_per_tnl_info();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -25958,8 +25810,8 @@ void path_switch_request_transfer_s::to_json(json_writer& j) const
     user_plane_security_info.to_json(j);
   }
   j.start_array("qosFlowAcceptedList");
-  for (uint32_t i1 = 0; i1 < qos_flow_accepted_list.size(); ++i1) {
-    qos_flow_accepted_list[i1].to_json(j);
+  for (const auto& e1 : qos_flow_accepted_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -26097,7 +25949,7 @@ SRSASN_CODE private_ie_id_c::unpack(cbit_ref& bref)
 
 std::string private_ie_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"local", "global"};
+  static const char* options[] = {"local", "global"};
   return convert_enum_idx(options, 2, value, "private_ie_id_c::types");
 }
 
@@ -26204,7 +26056,7 @@ void ue_associated_lc_ng_conn_item_s::to_json(json_writer& j) const
 // UEPresence ::= ENUMERATED
 std::string ue_presence_opts::to_string() const
 {
-  static constexpr const char* options[] = {"in", "out", "unknown"};
+  static const char* options[] = {"in", "out", "unknown"};
   return convert_enum_idx(options, 3, value, "ue_presence_e");
 }
 
@@ -26253,8 +26105,8 @@ void overload_start_nssai_item_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("sliceOverloadList");
-  for (uint32_t i1 = 0; i1 < slice_overload_list.size(); ++i1) {
-    slice_overload_list[i1].to_json(j);
+  for (const auto& e1 : slice_overload_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (slice_overload_resp_present) {
@@ -26428,7 +26280,7 @@ void pdu_session_res_failed_to_setup_item_su_res_s::to_json(json_writer& j) cons
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<pdu_session_res_item_cxt_rel_cpl_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<pdu_session_res_item_cxt_rel_cpl_ext_ies_o>;
 
 pdu_session_res_item_cxt_rel_cpl_ext_ies_container::pdu_session_res_item_cxt_rel_cpl_ext_ies_container() :
   pdu_session_res_release_resp_transfer(145, crit_e::ignore)
@@ -26454,16 +26306,14 @@ SRSASN_CODE pdu_session_res_item_cxt_rel_cpl_ext_ies_container::unpack(cbit_ref&
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<pdu_session_res_item_cxt_rel_cpl_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 145:
-        pdu_session_res_release_resp_transfer_present = true;
-        pdu_session_res_release_resp_transfer.id      = c.id;
-        pdu_session_res_release_resp_transfer.crit    = c.crit;
-        pdu_session_res_release_resp_transfer.ext     = c.ext_value.pdu_session_res_release_resp_transfer();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 145) {
+      pdu_session_res_release_resp_transfer_present = true;
+      pdu_session_res_release_resp_transfer.id      = c.id;
+      pdu_session_res_release_resp_transfer.crit    = c.crit;
+      pdu_session_res_release_resp_transfer.ext     = c.ext_value.pdu_session_res_release_resp_transfer();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -26629,7 +26479,7 @@ void pdu_session_res_modify_item_mod_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<pdu_session_res_modify_item_mod_req_ext_ies_o>;
+template struct asn1::ngap_nr::protocol_ext_field_s<pdu_session_res_modify_item_mod_req_ext_ies_o>;
 
 pdu_session_res_modify_item_mod_req_ext_ies_container::pdu_session_res_modify_item_mod_req_ext_ies_container() :
   s_nssai(148, crit_e::reject)
@@ -26655,16 +26505,14 @@ SRSASN_CODE pdu_session_res_modify_item_mod_req_ext_ies_container::unpack(cbit_r
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<pdu_session_res_modify_item_mod_req_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 148:
-        s_nssai_present = true;
-        s_nssai.id      = c.id;
-        s_nssai.crit    = c.crit;
-        s_nssai.ext     = c.ext_value.s_nssai();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 148) {
+      s_nssai_present = true;
+      s_nssai.id      = c.id;
+      s_nssai.crit    = c.crit;
+      s_nssai.ext     = c.ext_value.s_nssai();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -27216,7 +27064,7 @@ void pdu_session_res_to_release_item_rel_cmd_s::to_json(json_writer& j) const
 // ResetAll ::= ENUMERATED
 std::string reset_all_opts::to_string() const
 {
-  static constexpr const char* options[] = {"reset-all"};
+  static const char* options[] = {"reset-all"};
   return convert_enum_idx(options, 1, value, "reset_all_e");
 }
 
@@ -27252,8 +27100,8 @@ void supported_ta_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("tAC", tac.to_string());
   j.start_array("broadcastPLMNList");
-  for (uint32_t i1 = 0; i1 < broadcast_plmn_list.size(); ++i1) {
-    broadcast_plmn_list[i1].to_json(j);
+  for (const auto& e1 : broadcast_plmn_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -27381,28 +27229,28 @@ void ue_presence_in_area_of_interest_item_s::to_json(json_writer& j) const
 // CancelAllWarningMessages ::= ENUMERATED
 std::string cancel_all_warning_msgs_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "cancel_all_warning_msgs_e");
 }
 
 // ConcurrentWarningMessageInd ::= ENUMERATED
 std::string concurrent_warning_msg_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "concurrent_warning_msg_ind_e");
 }
 
 // HandoverFlag ::= ENUMERATED
 std::string ho_flag_opts::to_string() const
 {
-  static constexpr const char* options[] = {"handover-preparation"};
+  static const char* options[] = {"handover-preparation"};
   return convert_enum_idx(options, 1, value, "ho_flag_e");
 }
 
 // IMSVoiceSupportIndicator ::= ENUMERATED
 std::string ims_voice_support_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"supported", "not-supported"};
+  static const char* options[] = {"supported", "not-supported"};
   return convert_enum_idx(options, 2, value, "ims_voice_support_ind_e");
 }
 
@@ -27492,15 +27340,15 @@ void pws_failed_cell_id_list_c::to_json(json_writer& j) const
   switch (type_) {
     case types::eutra_cgi_pws_failed_list:
       j.start_array("eUTRA-CGI-PWSFailedList");
-      for (uint32_t i1 = 0; i1 < c.get<eutra_cgi_list_l>().size(); ++i1) {
-        c.get<eutra_cgi_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<eutra_cgi_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::nr_cgi_pws_failed_list:
       j.start_array("nR-CGI-PWSFailedList");
-      for (uint32_t i1 = 0; i1 < c.get<nr_cgi_list_l>().size(); ++i1) {
-        c.get<nr_cgi_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<nr_cgi_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -27556,33 +27404,33 @@ SRSASN_CODE pws_failed_cell_id_list_c::unpack(cbit_ref& bref)
 
 std::string pws_failed_cell_id_list_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"eUTRA-CGI-PWSFailedList", "nR-CGI-PWSFailedList", "choice-Extensions"};
+  static const char* options[] = {"eUTRA-CGI-PWSFailedList", "nR-CGI-PWSFailedList", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "pws_failed_cell_id_list_c::types");
 }
 
 // PagingOrigin ::= ENUMERATED
 std::string paging_origin_opts::to_string() const
 {
-  static constexpr const char* options[] = {"non-3gpp"};
+  static const char* options[] = {"non-3gpp"};
   return convert_enum_idx(options, 1, value, "paging_origin_e");
 }
 int8_t paging_origin_opts::to_number() const
 {
-  static constexpr int8_t options[] = {-3};
-  return convert_enum_idx(options, 1, value, "paging_origin_e");
+  static const int8_t options[] = {-3};
+  return map_enum_number(options, 1, value, "paging_origin_e");
 }
 
 // PagingPriority ::= ENUMERATED
 std::string paging_prio_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "priolevel1", "priolevel2", "priolevel3", "priolevel4", "priolevel5", "priolevel6", "priolevel7", "priolevel8"};
   return convert_enum_idx(options, 8, value, "paging_prio_e");
 }
 uint8_t paging_prio_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8};
-  return convert_enum_idx(options, 8, value, "paging_prio_e");
+  static const uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8};
+  return map_enum_number(options, 8, value, "paging_prio_e");
 }
 
 // PrivateIE-Field{NGAP-PRIVATE-IES : IEsSetParam} ::= SEQUENCE{{NGAP-PRIVATE-IES}}
@@ -27617,7 +27465,7 @@ void private_ie_field_s<ies_set_paramT_>::to_json(json_writer& j) const
 // RRCState ::= ENUMERATED
 std::string rrc_state_opts::to_string() const
 {
-  static constexpr const char* options[] = {"inactive", "connected"};
+  static const char* options[] = {"inactive", "connected"};
   return convert_enum_idx(options, 2, value, "rrc_state_e");
 }
 
@@ -27706,8 +27554,8 @@ void reset_type_c::to_json(json_writer& j) const
       break;
     case types::part_of_ng_interface:
       j.start_array("partOfNG-Interface");
-      for (uint32_t i1 = 0; i1 < c.get<ue_associated_lc_ng_conn_list_l>().size(); ++i1) {
-        c.get<ue_associated_lc_ng_conn_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<ue_associated_lc_ng_conn_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -27763,7 +27611,7 @@ SRSASN_CODE reset_type_c::unpack(cbit_ref& bref)
 
 std::string reset_type_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"nG-Interface", "partOfNG-Interface", "choice-Extensions"};
+  static const char* options[] = {"nG-Interface", "partOfNG-Interface", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "reset_type_c::types");
 }
 
@@ -27906,7 +27754,7 @@ SRSASN_CODE ue_ngap_ids_c::unpack(cbit_ref& bref)
 
 std::string ue_ngap_ids_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"uE-NGAP-ID-pair", "aMF-UE-NGAP-ID", "choice-Extensions"};
+  static const char* options[] = {"uE-NGAP-ID-pair", "aMF-UE-NGAP-ID", "choice-Extensions"};
   return convert_enum_idx(options, 3, value, "ue_ngap_ids_c::types");
 }
 
@@ -28032,19 +27880,19 @@ SRSASN_CODE ue_paging_id_c::unpack(cbit_ref& bref)
 
 std::string ue_paging_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"fiveG-S-TMSI", "choice-Extensions"};
+  static const char* options[] = {"fiveG-S-TMSI", "choice-Extensions"};
   return convert_enum_idx(options, 2, value, "ue_paging_id_c::types");
 }
 uint8_t ue_paging_id_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {5};
-  return convert_enum_idx(options, 1, value, "ue_paging_id_c::types");
+  static const uint8_t options[] = {5};
+  return map_enum_number(options, 1, value, "ue_paging_id_c::types");
 }
 
 // UERetentionInformation ::= ENUMERATED
 std::string ue_retention_info_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ues-retained"};
+  static const char* options[] = {"ues-retained"};
   return convert_enum_idx(options, 1, value, "ue_retention_info_e");
 }
 
@@ -28158,29 +28006,29 @@ void warning_area_list_c::to_json(json_writer& j) const
   switch (type_) {
     case types::eutra_cgi_list_for_warning:
       j.start_array("eUTRA-CGIListForWarning");
-      for (uint32_t i1 = 0; i1 < c.get<eutra_cgi_list_for_warning_l>().size(); ++i1) {
-        c.get<eutra_cgi_list_for_warning_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<eutra_cgi_list_for_warning_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::nr_cgi_list_for_warning:
       j.start_array("nR-CGIListForWarning");
-      for (uint32_t i1 = 0; i1 < c.get<nr_cgi_list_for_warning_l>().size(); ++i1) {
-        c.get<nr_cgi_list_for_warning_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<nr_cgi_list_for_warning_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::tai_list_for_warning:
       j.start_array("tAIListForWarning");
-      for (uint32_t i1 = 0; i1 < c.get<tai_list_for_warning_l>().size(); ++i1) {
-        c.get<tai_list_for_warning_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_list_for_warning_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_list:
       j.start_array("emergencyAreaIDList");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_list_l>().size(); ++i1) {
-        j.write_str(c.get<emergency_area_id_list_l>()[i1].to_string());
+      for (const auto& e1 : c.get<emergency_area_id_list_l>()) {
+        j.write_str(e1.to_string());
       }
       j.end_array();
       break;
@@ -28248,25 +28096,25 @@ SRSASN_CODE warning_area_list_c::unpack(cbit_ref& bref)
 
 std::string warning_area_list_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"eUTRA-CGIListForWarning",
-                                            "nR-CGIListForWarning",
-                                            "tAIListForWarning",
-                                            "emergencyAreaIDList",
-                                            "choice-Extensions"};
+  static const char* options[] = {"eUTRA-CGIListForWarning",
+                                  "nR-CGIListForWarning",
+                                  "tAIListForWarning",
+                                  "emergencyAreaIDList",
+                                  "choice-Extensions"};
   return convert_enum_idx(options, 5, value, "warning_area_list_c::types");
 }
 
 // LocationReportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t location_report_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 121, 116, 33, 149};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {10, 85, 121, 116, 33, 149};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool location_report_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 121, 116, 33, 149};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 121, 116, 33, 149};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -28288,9 +28136,9 @@ crit_e location_report_ies_o::get_crit(const uint32_t& id)
     case 149:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 location_report_ies_o::value_c location_report_ies_o::get_value(const uint32_t& id)
 {
@@ -28315,7 +28163,7 @@ location_report_ies_o::value_c location_report_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::ps_cell_info);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -28335,9 +28183,9 @@ presence_e location_report_ies_o::get_presence(const uint32_t& id)
     case 149:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -28525,8 +28373,8 @@ void location_report_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::ue_presence_in_area_of_interest_list:
       j.start_array("UEPresenceInAreaOfInterestList");
-      for (uint32_t i1 = 0; i1 < c.get<ue_presence_in_area_of_interest_list_l>().size(); ++i1) {
-        c.get<ue_presence_in_area_of_interest_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<ue_presence_in_area_of_interest_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -28602,26 +28450,26 @@ SRSASN_CODE location_report_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string location_report_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "UserLocationInformation",
-                                            "UEPresenceInAreaOfInterestList",
-                                            "LocationReportingRequestType",
-                                            "NGRAN-CGI"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "UserLocationInformation",
+                                  "UEPresenceInAreaOfInterestList",
+                                  "LocationReportingRequestType",
+                                  "NGRAN-CGI"};
   return convert_enum_idx(options, 6, value, "location_report_ies_o::value_c::types");
 }
 
 // LocationReportingControlIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t location_report_ctrl_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 33};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 33};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool location_report_ctrl_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 33};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 33};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -28637,9 +28485,9 @@ crit_e location_report_ctrl_ies_o::get_crit(const uint32_t& id)
     case 33:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 location_report_ctrl_ies_o::value_c location_report_ctrl_ies_o::get_value(const uint32_t& id)
 {
@@ -28655,7 +28503,7 @@ location_report_ctrl_ies_o::value_c location_report_ctrl_ies_o::get_value(const 
       ret.set(value_c::types::location_report_request_type);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -28669,9 +28517,9 @@ presence_e location_report_ctrl_ies_o::get_presence(const uint32_t& id)
     case 33:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -28837,7 +28685,7 @@ SRSASN_CODE location_report_ctrl_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string location_report_ctrl_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "LocationReportingRequestType"};
   return convert_enum_idx(options, 3, value, "location_report_ctrl_ies_o::value_c::types");
 }
@@ -28845,14 +28693,14 @@ std::string location_report_ctrl_ies_o::value_c::types_opts::to_string() const
 // LocationReportingFailureIndicationIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t location_report_fail_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 15};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool location_report_fail_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 15};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -28868,9 +28716,9 @@ crit_e location_report_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 location_report_fail_ind_ies_o::value_c location_report_fail_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -28886,7 +28734,7 @@ location_report_fail_ind_ies_o::value_c location_report_fail_ind_ies_o::get_valu
       ret.set(value_c::types::cause);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -28900,9 +28748,9 @@ presence_e location_report_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -29068,21 +28916,21 @@ SRSASN_CODE location_report_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string location_report_fail_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "Cause"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "Cause"};
   return convert_enum_idx(options, 3, value, "location_report_fail_ind_ies_o::value_c::types");
 }
 
 // NASNonDeliveryIndication-IEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t nas_non_delivery_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 38, 15};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 38, 15};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool nas_non_delivery_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 38, 15};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 38, 15};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -29100,9 +28948,9 @@ crit_e nas_non_delivery_ind_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 nas_non_delivery_ind_ies_o::value_c nas_non_delivery_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -29121,7 +28969,7 @@ nas_non_delivery_ind_ies_o::value_c nas_non_delivery_ind_ies_o::get_value(const 
       ret.set(value_c::types::cause);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29137,9 +28985,9 @@ presence_e nas_non_delivery_ind_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -29336,22 +29184,21 @@ SRSASN_CODE nas_non_delivery_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string nas_non_delivery_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "Cause"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "Cause"};
   return convert_enum_idx(options, 4, value, "nas_non_delivery_ind_ies_o::value_c::types");
 }
 
 // NGResetAcknowledgeIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ng_reset_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {111, 19};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {111, 19};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool ng_reset_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {111, 19};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {111, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -29365,9 +29212,9 @@ crit_e ng_reset_ack_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ng_reset_ack_ies_o::value_c ng_reset_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -29380,7 +29227,7 @@ ng_reset_ack_ies_o::value_c ng_reset_ack_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29392,9 +29239,9 @@ presence_e ng_reset_ack_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -29491,8 +29338,8 @@ void ng_reset_ack_ies_o::value_c::to_json(json_writer& j) const
   switch (type_) {
     case types::ue_associated_lc_ng_conn_list:
       j.start_array("UE-associatedLogicalNG-connectionList");
-      for (uint32_t i1 = 0; i1 < c.get<ue_associated_lc_ng_conn_list_l>().size(); ++i1) {
-        c.get<ue_associated_lc_ng_conn_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<ue_associated_lc_ng_conn_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -29540,21 +29387,21 @@ SRSASN_CODE ng_reset_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ng_reset_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UE-associatedLogicalNG-connectionList", "CriticalityDiagnostics"};
+  static const char* options[] = {"UE-associatedLogicalNG-connectionList", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 2, value, "ng_reset_ack_ies_o::value_c::types");
 }
 
 // NGResetIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ng_reset_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {15, 88};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {15, 88};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool ng_reset_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {15, 88};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {15, 88};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -29568,9 +29415,9 @@ crit_e ng_reset_ies_o::get_crit(const uint32_t& id)
     case 88:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ng_reset_ies_o::value_c ng_reset_ies_o::get_value(const uint32_t& id)
 {
@@ -29583,7 +29430,7 @@ ng_reset_ies_o::value_c ng_reset_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::reset_type);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29595,9 +29442,9 @@ presence_e ng_reset_ies_o::get_presence(const uint32_t& id)
     case 88:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -29740,21 +29587,21 @@ SRSASN_CODE ng_reset_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ng_reset_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Cause", "ResetType"};
+  static const char* options[] = {"Cause", "ResetType"};
   return convert_enum_idx(options, 2, value, "ng_reset_ies_o::value_c::types");
 }
 
 // NGSetupFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ng_setup_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {15, 107, 19};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {15, 107, 19};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ng_setup_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {15, 107, 19};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {15, 107, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -29770,9 +29617,9 @@ crit_e ng_setup_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ng_setup_fail_ies_o::value_c ng_setup_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -29788,7 +29635,7 @@ ng_setup_fail_ies_o::value_c ng_setup_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29802,9 +29649,9 @@ presence_e ng_setup_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -29974,21 +29821,21 @@ SRSASN_CODE ng_setup_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ng_setup_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
+  static const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "ng_setup_fail_ies_o::value_c::types");
 }
 
 // NGSetupRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ng_setup_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {27, 82, 102, 21, 147};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {27, 82, 102, 21, 147};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool ng_setup_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {27, 82, 102, 21, 147};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {27, 82, 102, 21, 147};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -30008,9 +29855,9 @@ crit_e ng_setup_request_ies_o::get_crit(const uint32_t& id)
     case 147:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ng_setup_request_ies_o::value_c ng_setup_request_ies_o::get_value(const uint32_t& id)
 {
@@ -30032,7 +29879,7 @@ ng_setup_request_ies_o::value_c ng_setup_request_ies_o::get_value(const uint32_t
       ret.set(value_c::types::ue_retention_info);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -30050,9 +29897,9 @@ presence_e ng_setup_request_ies_o::get_presence(const uint32_t& id)
     case 147:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -30215,8 +30062,8 @@ void ng_setup_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::supported_ta_list:
       j.start_array("SupportedTAList");
-      for (uint32_t i1 = 0; i1 < c.get<supported_ta_list_l>().size(); ++i1) {
-        c.get<supported_ta_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<supported_ta_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -30284,7 +30131,7 @@ SRSASN_CODE ng_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ng_setup_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "GlobalRANNodeID", "PrintableString", "SupportedTAList", "PagingDRX", "UERetentionInformation"};
   return convert_enum_idx(options, 5, value, "ng_setup_request_ies_o::value_c::types");
 }
@@ -30292,14 +30139,14 @@ std::string ng_setup_request_ies_o::value_c::types_opts::to_string() const
 // NGSetupResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ng_setup_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {1, 96, 86, 80, 19, 147};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {1, 96, 86, 80, 19, 147};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool ng_setup_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {1, 96, 86, 80, 19, 147};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {1, 96, 86, 80, 19, 147};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -30321,9 +30168,9 @@ crit_e ng_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 147:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ng_setup_resp_ies_o::value_c ng_setup_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -30348,7 +30195,7 @@ ng_setup_resp_ies_o::value_c ng_setup_resp_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::ue_retention_info);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -30368,9 +30215,9 @@ presence_e ng_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 147:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -30550,8 +30397,8 @@ void ng_setup_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::served_guami_list:
       j.start_array("ServedGUAMIList");
-      for (uint32_t i1 = 0; i1 < c.get<served_guami_list_l>().size(); ++i1) {
-        c.get<served_guami_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<served_guami_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -30560,8 +30407,8 @@ void ng_setup_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::plmn_support_list:
       j.start_array("PLMNSupportList");
-      for (uint32_t i1 = 0; i1 < c.get<plmn_support_list_l>().size(); ++i1) {
-        c.get<plmn_support_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<plmn_support_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -30636,36 +30483,34 @@ SRSASN_CODE ng_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ng_setup_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PrintableString",
-                                            "ServedGUAMIList",
-                                            "INTEGER (0..255)",
-                                            "PLMNSupportList",
-                                            "CriticalityDiagnostics",
-                                            "UERetentionInformation"};
+  static const char* options[] = {"PrintableString",
+                                  "ServedGUAMIList",
+                                  "INTEGER (0..255)",
+                                  "PLMNSupportList",
+                                  "CriticalityDiagnostics",
+                                  "UERetentionInformation"};
   return convert_enum_idx(options, 6, value, "ng_setup_resp_ies_o::value_c::types");
 }
 uint8_t ng_setup_resp_ies_o::value_c::types_opts::to_number() const
 {
-  switch (value) {
-    case relative_amf_capacity:
-      return 0;
-    default:
-      invalid_enum_number(value, "ng_setup_resp_ies_o::value_c::types");
+  if (value == relative_amf_capacity) {
+    return 0;
   }
+  invalid_enum_number(value, "ng_setup_resp_ies_o::value_c::types");
   return 0;
 }
 
 // OverloadStartIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t overload_start_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {2, 9, 49};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {2, 9, 49};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool overload_start_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {2, 9, 49};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {2, 9, 49};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -30681,9 +30526,9 @@ crit_e overload_start_ies_o::get_crit(const uint32_t& id)
     case 49:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 overload_start_ies_o::value_c overload_start_ies_o::get_value(const uint32_t& id)
 {
@@ -30699,7 +30544,7 @@ overload_start_ies_o::value_c overload_start_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::overload_start_nssai_list);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -30713,9 +30558,9 @@ presence_e overload_start_ies_o::get_presence(const uint32_t& id)
     case 49:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -30837,8 +30682,8 @@ void overload_start_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::overload_start_nssai_list:
       j.start_array("OverloadStartNSSAIList");
-      for (uint32_t i1 = 0; i1 < c.get<overload_start_nssai_list_l>().size(); ++i1) {
-        c.get<overload_start_nssai_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<overload_start_nssai_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -30888,31 +30733,29 @@ SRSASN_CODE overload_start_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string overload_start_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"OverloadResponse", "INTEGER (1..99)", "OverloadStartNSSAIList"};
+  static const char* options[] = {"OverloadResponse", "INTEGER (1..99)", "OverloadStartNSSAIList"};
   return convert_enum_idx(options, 3, value, "overload_start_ies_o::value_c::types");
 }
 uint8_t overload_start_ies_o::value_c::types_opts::to_number() const
 {
-  switch (value) {
-    case amf_traffic_load_reduction_ind:
-      return 1;
-    default:
-      invalid_enum_number(value, "overload_start_ies_o::value_c::types");
+  if (value == amf_traffic_load_reduction_ind) {
+    return 1;
   }
+  invalid_enum_number(value, "overload_start_ies_o::value_c::types");
   return 0;
 }
 
 // PDUSessionResourceModifyConfirmIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_modify_confirm_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 62, 131, 19};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 62, 131, 19};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool pdu_session_res_modify_confirm_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 62, 131, 19};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 62, 131, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -30932,9 +30775,9 @@ crit_e pdu_session_res_modify_confirm_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_modify_confirm_ies_o::value_c pdu_session_res_modify_confirm_ies_o::get_value(const uint32_t& id)
 {
@@ -30956,7 +30799,7 @@ pdu_session_res_modify_confirm_ies_o::value_c pdu_session_res_modify_confirm_ies
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -30974,9 +30817,9 @@ presence_e pdu_session_res_modify_confirm_ies_o::get_presence(const uint32_t& id
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -31142,15 +30985,15 @@ void pdu_session_res_modify_confirm_ies_o::value_c::to_json(json_writer& j) cons
       break;
     case types::pdu_session_res_modify_list_mod_cfm:
       j.start_array("PDUSessionResourceModifyListModCfm");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_modify_list_mod_cfm_l>().size(); ++i1) {
-        c.get<pdu_session_res_modify_list_mod_cfm_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_modify_list_mod_cfm_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_failed_to_modify_list_mod_cfm:
       j.start_array("PDUSessionResourceFailedToModifyListModCfm");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_failed_to_modify_list_mod_cfm_l>().size(); ++i1) {
-        c.get<pdu_session_res_failed_to_modify_list_mod_cfm_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_failed_to_modify_list_mod_cfm_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -31216,25 +31059,25 @@ SRSASN_CODE pdu_session_res_modify_confirm_ies_o::value_c::unpack(cbit_ref& bref
 
 std::string pdu_session_res_modify_confirm_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceModifyListModCfm",
-                                            "PDUSessionResourceFailedToModifyListModCfm",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceModifyListModCfm",
+                                  "PDUSessionResourceFailedToModifyListModCfm",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "pdu_session_res_modify_confirm_ies_o::value_c::types");
 }
 
 // PDUSessionResourceModifyIndicationIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_modify_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 63};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 63};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool pdu_session_res_modify_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 63};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 63};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -31250,9 +31093,9 @@ crit_e pdu_session_res_modify_ind_ies_o::get_crit(const uint32_t& id)
     case 63:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_modify_ind_ies_o::value_c pdu_session_res_modify_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -31268,7 +31111,7 @@ pdu_session_res_modify_ind_ies_o::value_c pdu_session_res_modify_ind_ies_o::get_
       ret.set(value_c::types::pdu_session_res_modify_list_mod_ind);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -31282,9 +31125,9 @@ presence_e pdu_session_res_modify_ind_ies_o::get_presence(const uint32_t& id)
     case 63:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -31403,8 +31246,8 @@ void pdu_session_res_modify_ind_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_modify_list_mod_ind:
       j.start_array("PDUSessionResourceModifyListModInd");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_modify_list_mod_ind_l>().size(); ++i1) {
-        c.get<pdu_session_res_modify_list_mod_ind_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_modify_list_mod_ind_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -31454,7 +31297,7 @@ SRSASN_CODE pdu_session_res_modify_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pdu_session_res_modify_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "PDUSessionResourceModifyListModInd"};
   return convert_enum_idx(options, 3, value, "pdu_session_res_modify_ind_ies_o::value_c::types");
 }
@@ -31462,14 +31305,14 @@ std::string pdu_session_res_modify_ind_ies_o::value_c::types_opts::to_string() c
 // PDUSessionResourceModifyRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_modify_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 83, 64};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 83, 64};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool pdu_session_res_modify_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 83, 64};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 83, 64};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -31487,9 +31330,9 @@ crit_e pdu_session_res_modify_request_ies_o::get_crit(const uint32_t& id)
     case 64:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_modify_request_ies_o::value_c pdu_session_res_modify_request_ies_o::get_value(const uint32_t& id)
 {
@@ -31508,7 +31351,7 @@ pdu_session_res_modify_request_ies_o::value_c pdu_session_res_modify_request_ies
       ret.set(value_c::types::pdu_session_res_modify_list_mod_req);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -31524,9 +31367,9 @@ presence_e pdu_session_res_modify_request_ies_o::get_presence(const uint32_t& id
     case 64:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -31667,8 +31510,8 @@ void pdu_session_res_modify_request_ies_o::value_c::to_json(json_writer& j) cons
       break;
     case types::pdu_session_res_modify_list_mod_req:
       j.start_array("PDUSessionResourceModifyListModReq");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_modify_list_mod_req_l>().size(); ++i1) {
-        c.get<pdu_session_res_modify_list_mod_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_modify_list_mod_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -31724,24 +31567,24 @@ SRSASN_CODE pdu_session_res_modify_request_ies_o::value_c::unpack(cbit_ref& bref
 
 std::string pdu_session_res_modify_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "INTEGER (1..256)",
-                                            "PDUSessionResourceModifyListModReq"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "INTEGER (1..256)",
+                                  "PDUSessionResourceModifyListModReq"};
   return convert_enum_idx(options, 4, value, "pdu_session_res_modify_request_ies_o::value_c::types");
 }
 
 // PDUSessionResourceModifyResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_modify_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 65, 54, 121, 19};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {10, 85, 65, 54, 121, 19};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool pdu_session_res_modify_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 65, 54, 121, 19};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 65, 54, 121, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -31763,9 +31606,9 @@ crit_e pdu_session_res_modify_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_modify_resp_ies_o::value_c pdu_session_res_modify_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -31790,7 +31633,7 @@ pdu_session_res_modify_resp_ies_o::value_c pdu_session_res_modify_resp_ies_o::ge
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -31810,9 +31653,9 @@ presence_e pdu_session_res_modify_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -31999,15 +31842,15 @@ void pdu_session_res_modify_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_modify_list_mod_res:
       j.start_array("PDUSessionResourceModifyListModRes");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_modify_list_mod_res_l>().size(); ++i1) {
-        c.get<pdu_session_res_modify_list_mod_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_modify_list_mod_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_failed_to_modify_list_mod_res:
       j.start_array("PDUSessionResourceFailedToModifyListModRes");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_failed_to_modify_list_mod_res_l>().size(); ++i1) {
-        c.get<pdu_session_res_failed_to_modify_list_mod_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_failed_to_modify_list_mod_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -32083,26 +31926,26 @@ SRSASN_CODE pdu_session_res_modify_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pdu_session_res_modify_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceModifyListModRes",
-                                            "PDUSessionResourceFailedToModifyListModRes",
-                                            "UserLocationInformation",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceModifyListModRes",
+                                  "PDUSessionResourceFailedToModifyListModRes",
+                                  "UserLocationInformation",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 6, value, "pdu_session_res_modify_resp_ies_o::value_c::types");
 }
 
 // PDUSessionResourceNotifyIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_notify_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 66, 67, 121};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 66, 67, 121};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool pdu_session_res_notify_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 66, 67, 121};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 66, 67, 121};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -32122,9 +31965,9 @@ crit_e pdu_session_res_notify_ies_o::get_crit(const uint32_t& id)
     case 121:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_notify_ies_o::value_c pdu_session_res_notify_ies_o::get_value(const uint32_t& id)
 {
@@ -32146,7 +31989,7 @@ pdu_session_res_notify_ies_o::value_c pdu_session_res_notify_ies_o::get_value(co
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -32164,9 +32007,9 @@ presence_e pdu_session_res_notify_ies_o::get_presence(const uint32_t& id)
     case 121:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -32329,15 +32172,15 @@ void pdu_session_res_notify_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_notify_list:
       j.start_array("PDUSessionResourceNotifyList");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_notify_list_l>().size(); ++i1) {
-        c.get<pdu_session_res_notify_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_notify_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_released_list_not:
       j.start_array("PDUSessionResourceReleasedListNot");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_released_list_not_l>().size(); ++i1) {
-        c.get<pdu_session_res_released_list_not_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_released_list_not_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -32403,25 +32246,25 @@ SRSASN_CODE pdu_session_res_notify_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pdu_session_res_notify_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceNotifyList",
-                                            "PDUSessionResourceReleasedListNot",
-                                            "UserLocationInformation"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceNotifyList",
+                                  "PDUSessionResourceReleasedListNot",
+                                  "UserLocationInformation"};
   return convert_enum_idx(options, 5, value, "pdu_session_res_notify_ies_o::value_c::types");
 }
 
 // PDUSessionResourceReleaseCommandIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_release_cmd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 83, 38, 79};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 83, 38, 79};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool pdu_session_res_release_cmd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 83, 38, 79};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 83, 38, 79};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -32441,9 +32284,9 @@ crit_e pdu_session_res_release_cmd_ies_o::get_crit(const uint32_t& id)
     case 79:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_release_cmd_ies_o::value_c pdu_session_res_release_cmd_ies_o::get_value(const uint32_t& id)
 {
@@ -32465,7 +32308,7 @@ pdu_session_res_release_cmd_ies_o::value_c pdu_session_res_release_cmd_ies_o::ge
       ret.set(value_c::types::pdu_session_res_to_release_list_rel_cmd);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -32483,9 +32326,9 @@ presence_e pdu_session_res_release_cmd_ies_o::get_presence(const uint32_t& id)
     case 79:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -32651,8 +32494,8 @@ void pdu_session_res_release_cmd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_to_release_list_rel_cmd:
       j.start_array("PDUSessionResourceToReleaseListRelCmd");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_to_release_list_rel_cmd_l>().size(); ++i1) {
-        c.get<pdu_session_res_to_release_list_rel_cmd_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_to_release_list_rel_cmd_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -32714,25 +32557,25 @@ SRSASN_CODE pdu_session_res_release_cmd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pdu_session_res_release_cmd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "INTEGER (1..256)",
-                                            "OCTET STRING",
-                                            "PDUSessionResourceToReleaseListRelCmd"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "INTEGER (1..256)",
+                                  "OCTET STRING",
+                                  "PDUSessionResourceToReleaseListRelCmd"};
   return convert_enum_idx(options, 5, value, "pdu_session_res_release_cmd_ies_o::value_c::types");
 }
 
 // PDUSessionResourceReleaseResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_release_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 70, 121, 19};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 70, 121, 19};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool pdu_session_res_release_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 70, 121, 19};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 70, 121, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -32752,9 +32595,9 @@ crit_e pdu_session_res_release_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_release_resp_ies_o::value_c pdu_session_res_release_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -32776,7 +32619,7 @@ pdu_session_res_release_resp_ies_o::value_c pdu_session_res_release_resp_ies_o::
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -32794,9 +32637,9 @@ presence_e pdu_session_res_release_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -32960,8 +32803,8 @@ void pdu_session_res_release_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_released_list_rel_res:
       j.start_array("PDUSessionResourceReleasedListRelRes");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_released_list_rel_res_l>().size(); ++i1) {
-        c.get<pdu_session_res_released_list_rel_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_released_list_rel_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -33031,25 +32874,25 @@ SRSASN_CODE pdu_session_res_release_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pdu_session_res_release_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceReleasedListRelRes",
-                                            "UserLocationInformation",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceReleasedListRelRes",
+                                  "UserLocationInformation",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "pdu_session_res_release_resp_ies_o::value_c::types");
 }
 
 // PDUSessionResourceSetupRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_setup_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 83, 38, 74, 110};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {10, 85, 83, 38, 74, 110};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool pdu_session_res_setup_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 83, 38, 74, 110};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 83, 38, 74, 110};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -33071,9 +32914,9 @@ crit_e pdu_session_res_setup_request_ies_o::get_crit(const uint32_t& id)
     case 110:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_setup_request_ies_o::value_c pdu_session_res_setup_request_ies_o::get_value(const uint32_t& id)
 {
@@ -33098,7 +32941,7 @@ pdu_session_res_setup_request_ies_o::value_c pdu_session_res_setup_request_ies_o
       ret.set(value_c::types::ue_aggregate_maximum_bit_rate);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -33118,9 +32961,9 @@ presence_e pdu_session_res_setup_request_ies_o::get_presence(const uint32_t& id)
     case 110:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -33308,8 +33151,8 @@ void pdu_session_res_setup_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_setup_list_su_req:
       j.start_array("PDUSessionResourceSetupListSUReq");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_setup_list_su_req_l>().size(); ++i1) {
-        c.get<pdu_session_res_setup_list_su_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_setup_list_su_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -33381,26 +33224,26 @@ SRSASN_CODE pdu_session_res_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pdu_session_res_setup_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "INTEGER (1..256)",
-                                            "OCTET STRING",
-                                            "PDUSessionResourceSetupListSUReq",
-                                            "UEAggregateMaximumBitRate"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "INTEGER (1..256)",
+                                  "OCTET STRING",
+                                  "PDUSessionResourceSetupListSUReq",
+                                  "UEAggregateMaximumBitRate"};
   return convert_enum_idx(options, 6, value, "pdu_session_res_setup_request_ies_o::value_c::types");
 }
 
 // PDUSessionResourceSetupResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pdu_session_res_setup_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 75, 58, 19};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 75, 58, 19};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool pdu_session_res_setup_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 75, 58, 19};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 75, 58, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -33420,9 +33263,9 @@ crit_e pdu_session_res_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pdu_session_res_setup_resp_ies_o::value_c pdu_session_res_setup_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -33444,7 +33287,7 @@ pdu_session_res_setup_resp_ies_o::value_c pdu_session_res_setup_resp_ies_o::get_
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -33462,9 +33305,9 @@ presence_e pdu_session_res_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -33629,15 +33472,15 @@ void pdu_session_res_setup_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_setup_list_su_res:
       j.start_array("PDUSessionResourceSetupListSURes");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_setup_list_su_res_l>().size(); ++i1) {
-        c.get<pdu_session_res_setup_list_su_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_setup_list_su_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_failed_to_setup_list_su_res:
       j.start_array("PDUSessionResourceFailedToSetupListSURes");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_failed_to_setup_list_su_res_l>().size(); ++i1) {
-        c.get<pdu_session_res_failed_to_setup_list_su_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_failed_to_setup_list_su_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -33703,25 +33546,25 @@ SRSASN_CODE pdu_session_res_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pdu_session_res_setup_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceSetupListSURes",
-                                            "PDUSessionResourceFailedToSetupListSURes",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceSetupListSURes",
+                                  "PDUSessionResourceFailedToSetupListSURes",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "pdu_session_res_setup_resp_ies_o::value_c::types");
 }
 
 // PWSCancelRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pws_cancel_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {35, 95, 122, 14};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {35, 95, 122, 14};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool pws_cancel_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {35, 95, 122, 14};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {35, 95, 122, 14};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -33739,9 +33582,9 @@ crit_e pws_cancel_request_ies_o::get_crit(const uint32_t& id)
     case 14:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pws_cancel_request_ies_o::value_c pws_cancel_request_ies_o::get_value(const uint32_t& id)
 {
@@ -33760,7 +33603,7 @@ pws_cancel_request_ies_o::value_c pws_cancel_request_ies_o::get_value(const uint
       ret.set(value_c::types::cancel_all_warning_msgs);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -33776,9 +33619,9 @@ presence_e pws_cancel_request_ies_o::get_presence(const uint32_t& id)
     case 14:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -33979,21 +33822,21 @@ SRSASN_CODE pws_cancel_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pws_cancel_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"BIT STRING", "BIT STRING", "WarningAreaList", "CancelAllWarningMessages"};
+  static const char* options[] = {"BIT STRING", "BIT STRING", "WarningAreaList", "CancelAllWarningMessages"};
   return convert_enum_idx(options, 4, value, "pws_cancel_request_ies_o::value_c::types");
 }
 
 // PWSCancelResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pws_cancel_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {35, 95, 12, 19};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {35, 95, 12, 19};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool pws_cancel_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {35, 95, 12, 19};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {35, 95, 12, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -34011,9 +33854,9 @@ crit_e pws_cancel_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pws_cancel_resp_ies_o::value_c pws_cancel_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -34032,7 +33875,7 @@ pws_cancel_resp_ies_o::value_c pws_cancel_resp_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34048,9 +33891,9 @@ presence_e pws_cancel_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -34255,22 +34098,21 @@ SRSASN_CODE pws_cancel_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pws_cancel_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "BIT STRING", "BIT STRING", "BroadcastCancelledAreaList", "CriticalityDiagnostics"};
+  static const char* options[] = {"BIT STRING", "BIT STRING", "BroadcastCancelledAreaList", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "pws_cancel_resp_ies_o::value_c::types");
 }
 
 // PWSFailureIndicationIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pws_fail_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {81, 27};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {81, 27};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool pws_fail_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {81, 27};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {81, 27};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -34284,9 +34126,9 @@ crit_e pws_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 27:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pws_fail_ind_ies_o::value_c pws_fail_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -34299,7 +34141,7 @@ pws_fail_ind_ies_o::value_c pws_fail_ind_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::global_ran_node_id);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34311,9 +34153,9 @@ presence_e pws_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 27:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -34456,21 +34298,21 @@ SRSASN_CODE pws_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pws_fail_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PWSFailedCellIDList", "GlobalRANNodeID"};
+  static const char* options[] = {"PWSFailedCellIDList", "GlobalRANNodeID"};
   return convert_enum_idx(options, 2, value, "pws_fail_ind_ies_o::value_c::types");
 }
 
 // PWSRestartIndicationIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t pws_restart_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {16, 27, 104, 23};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {16, 27, 104, 23};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool pws_restart_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {16, 27, 104, 23};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {16, 27, 104, 23};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -34488,9 +34330,9 @@ crit_e pws_restart_ind_ies_o::get_crit(const uint32_t& id)
     case 23:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pws_restart_ind_ies_o::value_c pws_restart_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -34509,7 +34351,7 @@ pws_restart_ind_ies_o::value_c pws_restart_ind_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::emergency_area_id_list_for_restart);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34525,9 +34367,9 @@ presence_e pws_restart_ind_ies_o::get_presence(const uint32_t& id)
     case 23:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -34676,15 +34518,15 @@ void pws_restart_ind_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::tai_list_for_restart:
       j.start_array("TAIListForRestart");
-      for (uint32_t i1 = 0; i1 < c.get<tai_list_for_restart_l>().size(); ++i1) {
-        c.get<tai_list_for_restart_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_list_for_restart_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_list_for_restart:
       j.start_array("EmergencyAreaIDListForRestart");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_list_for_restart_l>().size(); ++i1) {
-        j.write_str(c.get<emergency_area_id_list_for_restart_l>()[i1].to_string());
+      for (const auto& e1 : c.get<emergency_area_id_list_for_restart_l>()) {
+        j.write_str(e1.to_string());
       }
       j.end_array();
       break;
@@ -34740,7 +34582,7 @@ SRSASN_CODE pws_restart_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pws_restart_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "CellIDListForRestart", "GlobalRANNodeID", "TAIListForRestart", "EmergencyAreaIDListForRestart"};
   return convert_enum_idx(options, 4, value, "pws_restart_ind_ies_o::value_c::types");
 }
@@ -34748,14 +34590,14 @@ std::string pws_restart_ind_ies_o::value_c::types_opts::to_string() const
 // PagingIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t paging_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {115, 50, 103, 52, 118, 51, 11};
-  return convert_enum_idx(options, 7, idx, "id");
+  static const uint32_t options[] = {115, 50, 103, 52, 118, 51, 11};
+  return map_enum_number(options, 7, idx, "id");
 }
 bool paging_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {115, 50, 103, 52, 118, 51, 11};
-  for (uint32_t i = 0; i < 7; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {115, 50, 103, 52, 118, 51, 11};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -34779,9 +34621,9 @@ crit_e paging_ies_o::get_crit(const uint32_t& id)
     case 11:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 paging_ies_o::value_c paging_ies_o::get_value(const uint32_t& id)
 {
@@ -34809,7 +34651,7 @@ paging_ies_o::value_c paging_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::assist_data_for_paging);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34831,9 +34673,9 @@ presence_e paging_ies_o::get_presence(const uint32_t& id)
     case 11:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -35035,8 +34877,8 @@ void paging_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::tai_list_for_paging:
       j.start_array("TAIListForPaging");
-      for (uint32_t i1 = 0; i1 < c.get<tai_list_for_paging_l>().size(); ++i1) {
-        c.get<tai_list_for_paging_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_list_for_paging_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -35124,27 +34966,27 @@ SRSASN_CODE paging_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string paging_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UEPagingIdentity",
-                                            "PagingDRX",
-                                            "TAIListForPaging",
-                                            "PagingPriority",
-                                            "UERadioCapabilityForPaging",
-                                            "PagingOrigin",
-                                            "AssistanceDataForPaging"};
+  static const char* options[] = {"UEPagingIdentity",
+                                  "PagingDRX",
+                                  "TAIListForPaging",
+                                  "PagingPriority",
+                                  "UERadioCapabilityForPaging",
+                                  "PagingOrigin",
+                                  "AssistanceDataForPaging"};
   return convert_enum_idx(options, 7, value, "paging_ies_o::value_c::types");
 }
 
 // PathSwitchRequestAcknowledgeIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t path_switch_request_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 119, 93, 41, 77, 68, 0, 18, 91, 19, 146};
-  return convert_enum_idx(options, 12, idx, "id");
+  static const uint32_t options[] = {10, 85, 119, 93, 41, 77, 68, 0, 18, 91, 19, 146};
+  return map_enum_number(options, 12, idx, "id");
 }
 bool path_switch_request_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 119, 93, 41, 77, 68, 0, 18, 91, 19, 146};
-  for (uint32_t i = 0; i < 12; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 119, 93, 41, 77, 68, 0, 18, 91, 19, 146};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -35178,9 +35020,9 @@ crit_e path_switch_request_ack_ies_o::get_crit(const uint32_t& id)
     case 146:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 path_switch_request_ack_ies_o::value_c path_switch_request_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -35223,7 +35065,7 @@ path_switch_request_ack_ies_o::value_c path_switch_request_ack_ies_o::get_value(
       ret.set(value_c::types::redirection_voice_fallback);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35255,9 +35097,9 @@ presence_e path_switch_request_ack_ies_o::get_presence(const uint32_t& id)
     case 146:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -35575,22 +35417,22 @@ void path_switch_request_ack_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_switched_list:
       j.start_array("PDUSessionResourceSwitchedList");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_switched_list_l>().size(); ++i1) {
-        c.get<pdu_session_res_switched_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_switched_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_released_list_ps_ack:
       j.start_array("PDUSessionResourceReleasedListPSAck");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_released_list_ps_ack_l>().size(); ++i1) {
-        c.get<pdu_session_res_released_list_ps_ack_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_released_list_ps_ack_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::allowed_nssai:
       j.start_array("AllowedNSSAI");
-      for (uint32_t i1 = 0; i1 < c.get<allowed_nssai_l>().size(); ++i1) {
-        c.get<allowed_nssai_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<allowed_nssai_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -35708,32 +35550,32 @@ SRSASN_CODE path_switch_request_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string path_switch_request_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "UESecurityCapabilities",
-                                            "SecurityContext",
-                                            "NewSecurityContextInd",
-                                            "PDUSessionResourceSwitchedList",
-                                            "PDUSessionResourceReleasedListPSAck",
-                                            "AllowedNSSAI",
-                                            "CoreNetworkAssistanceInformation",
-                                            "RRCInactiveTransitionReportRequest",
-                                            "CriticalityDiagnostics",
-                                            "RedirectionVoiceFallback"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "UESecurityCapabilities",
+                                  "SecurityContext",
+                                  "NewSecurityContextInd",
+                                  "PDUSessionResourceSwitchedList",
+                                  "PDUSessionResourceReleasedListPSAck",
+                                  "AllowedNSSAI",
+                                  "CoreNetworkAssistanceInformation",
+                                  "RRCInactiveTransitionReportRequest",
+                                  "CriticalityDiagnostics",
+                                  "RedirectionVoiceFallback"};
   return convert_enum_idx(options, 12, value, "path_switch_request_ack_ies_o::value_c::types");
 }
 
 // PathSwitchRequestFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t path_switch_request_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 69, 19};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 69, 19};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool path_switch_request_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 69, 19};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 69, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -35751,9 +35593,9 @@ crit_e path_switch_request_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 path_switch_request_fail_ies_o::value_c path_switch_request_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -35772,7 +35614,7 @@ path_switch_request_fail_ies_o::value_c path_switch_request_fail_ies_o::get_valu
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35788,9 +35630,9 @@ presence_e path_switch_request_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -35932,8 +35774,8 @@ void path_switch_request_fail_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_released_list_ps_fail:
       j.start_array("PDUSessionResourceReleasedListPSFail");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_released_list_ps_fail_l>().size(); ++i1) {
-        c.get<pdu_session_res_released_list_ps_fail_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_released_list_ps_fail_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -35993,24 +35835,24 @@ SRSASN_CODE path_switch_request_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string path_switch_request_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceReleasedListPSFail",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceReleasedListPSFail",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "path_switch_request_fail_ies_o::value_c::types");
 }
 
 // PathSwitchRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t path_switch_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {85, 100, 121, 119, 76, 57};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {85, 100, 121, 119, 76, 57};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool path_switch_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {85, 100, 121, 119, 76, 57};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {85, 100, 121, 119, 76, 57};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -36032,9 +35874,9 @@ crit_e path_switch_request_ies_o::get_crit(const uint32_t& id)
     case 57:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 path_switch_request_ies_o::value_c path_switch_request_ies_o::get_value(const uint32_t& id)
 {
@@ -36059,7 +35901,7 @@ path_switch_request_ies_o::value_c path_switch_request_ies_o::get_value(const ui
       ret.set(value_c::types::pdu_session_res_failed_to_setup_list_ps_req);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36079,9 +35921,9 @@ presence_e path_switch_request_ies_o::get_presence(const uint32_t& id)
     case 57:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36276,15 +36118,15 @@ void path_switch_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_to_be_switched_dl_list:
       j.start_array("PDUSessionResourceToBeSwitchedDLList");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_to_be_switched_dl_list_l>().size(); ++i1) {
-        c.get<pdu_session_res_to_be_switched_dl_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_to_be_switched_dl_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::pdu_session_res_failed_to_setup_list_ps_req:
       j.start_array("PDUSessionResourceFailedToSetupListPSReq");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_failed_to_setup_list_ps_req_l>().size(); ++i1) {
-        c.get<pdu_session_res_failed_to_setup_list_ps_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_failed_to_setup_list_ps_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -36352,12 +36194,12 @@ SRSASN_CODE path_switch_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string path_switch_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..1099511627775)",
-                                            "UserLocationInformation",
-                                            "UESecurityCapabilities",
-                                            "PDUSessionResourceToBeSwitchedDLList",
-                                            "PDUSessionResourceFailedToSetupListPSReq"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..1099511627775)",
+                                  "UserLocationInformation",
+                                  "UESecurityCapabilities",
+                                  "PDUSessionResourceToBeSwitchedDLList",
+                                  "PDUSessionResourceFailedToSetupListPSReq"};
   return convert_enum_idx(options, 6, value, "path_switch_request_ies_o::value_c::types");
 }
 
@@ -36380,56 +36222,43 @@ SRSASN_CODE ngap_private_ies_empty_o::value_c::unpack(cbit_ref& bref)
 
 std::string ngap_private_ies_empty_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {};
+  static const char* options[] = {};
   return convert_enum_idx(options, 0, value, "ngap_private_ies_empty_o::value_c::types");
 }
 
 // RANConfigurationUpdateAcknowledgeIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ran_cfg_upd_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {19};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {19};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool ran_cfg_upd_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {19};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 19 == id;
 }
 crit_e ran_cfg_upd_ack_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 19:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 19) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 ran_cfg_upd_ack_ies_o::value_c ran_cfg_upd_ack_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 19:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 19) {
+    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e ran_cfg_upd_ack_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 19:
-      return presence_e::optional;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 19) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36455,21 +36284,21 @@ SRSASN_CODE ran_cfg_upd_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ran_cfg_upd_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"CriticalityDiagnostics"};
+  static const char* options[] = {"CriticalityDiagnostics"};
   return convert_enum_idx(options, 1, value, "ran_cfg_upd_ack_ies_o::value_c::types");
 }
 
 // RANConfigurationUpdateFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ran_cfg_upd_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {15, 107, 19};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {15, 107, 19};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ran_cfg_upd_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {15, 107, 19};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {15, 107, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -36485,9 +36314,9 @@ crit_e ran_cfg_upd_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ran_cfg_upd_fail_ies_o::value_c ran_cfg_upd_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -36503,7 +36332,7 @@ ran_cfg_upd_fail_ies_o::value_c ran_cfg_upd_fail_ies_o::get_value(const uint32_t
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36517,9 +36346,9 @@ presence_e ran_cfg_upd_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36690,21 +36519,21 @@ SRSASN_CODE ran_cfg_upd_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ran_cfg_upd_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
+  static const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "ran_cfg_upd_fail_ies_o::value_c::types");
 }
 
 // RANConfigurationUpdateIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ran_cfg_upd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {82, 102, 21, 27};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {82, 102, 21, 27};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ran_cfg_upd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {82, 102, 21, 27};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {82, 102, 21, 27};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -36722,9 +36551,9 @@ crit_e ran_cfg_upd_ies_o::get_crit(const uint32_t& id)
     case 27:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ran_cfg_upd_ies_o::value_c ran_cfg_upd_ies_o::get_value(const uint32_t& id)
 {
@@ -36743,7 +36572,7 @@ ran_cfg_upd_ies_o::value_c ran_cfg_upd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::global_ran_node_id);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36759,9 +36588,9 @@ presence_e ran_cfg_upd_ies_o::get_presence(const uint32_t& id)
     case 27:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36901,8 +36730,8 @@ void ran_cfg_upd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::supported_ta_list:
       j.start_array("SupportedTAList");
-      for (uint32_t i1 = 0; i1 < c.get<supported_ta_list_l>().size(); ++i1) {
-        c.get<supported_ta_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<supported_ta_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -36965,21 +36794,21 @@ SRSASN_CODE ran_cfg_upd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ran_cfg_upd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PrintableString", "SupportedTAList", "PagingDRX", "GlobalRANNodeID"};
+  static const char* options[] = {"PrintableString", "SupportedTAList", "PagingDRX", "GlobalRANNodeID"};
   return convert_enum_idx(options, 4, value, "ran_cfg_upd_ies_o::value_c::types");
 }
 
 // RRCInactiveTransitionReportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t rrc_inactive_transition_report_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 92, 121};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 92, 121};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool rrc_inactive_transition_report_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 92, 121};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 92, 121};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -36997,9 +36826,9 @@ crit_e rrc_inactive_transition_report_ies_o::get_crit(const uint32_t& id)
     case 121:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 rrc_inactive_transition_report_ies_o::value_c rrc_inactive_transition_report_ies_o::get_value(const uint32_t& id)
 {
@@ -37018,7 +36847,7 @@ rrc_inactive_transition_report_ies_o::value_c rrc_inactive_transition_report_ies
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37034,9 +36863,9 @@ presence_e rrc_inactive_transition_report_ies_o::get_presence(const uint32_t& id
     case 121:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37229,7 +37058,7 @@ SRSASN_CODE rrc_inactive_transition_report_ies_o::value_c::unpack(cbit_ref& bref
 
 std::string rrc_inactive_transition_report_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "RRCState", "UserLocationInformation"};
   return convert_enum_idx(options, 4, value, "rrc_inactive_transition_report_ies_o::value_c::types");
 }
@@ -37237,14 +37066,14 @@ std::string rrc_inactive_transition_report_ies_o::value_c::types_opts::to_string
 // RerouteNASRequest-IEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t reroute_nas_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {85, 10, 42, 3, 0};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {85, 10, 42, 3, 0};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool reroute_nas_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {85, 10, 42, 3, 0};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {85, 10, 42, 3, 0};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -37264,9 +37093,9 @@ crit_e reroute_nas_request_ies_o::get_crit(const uint32_t& id)
     case 0:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 reroute_nas_request_ies_o::value_c reroute_nas_request_ies_o::get_value(const uint32_t& id)
 {
@@ -37288,7 +37117,7 @@ reroute_nas_request_ies_o::value_c reroute_nas_request_ies_o::get_value(const ui
       ret.set(value_c::types::allowed_nssai);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37306,9 +37135,9 @@ presence_e reroute_nas_request_ies_o::get_presence(const uint32_t& id)
     case 0:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37476,8 +37305,8 @@ void reroute_nas_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::allowed_nssai:
       j.start_array("AllowedNSSAI");
-      for (uint32_t i1 = 0; i1 < c.get<allowed_nssai_l>().size(); ++i1) {
-        c.get<allowed_nssai_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<allowed_nssai_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -37539,7 +37368,7 @@ SRSASN_CODE reroute_nas_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string reroute_nas_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..1099511627775)", "OCTET STRING", "BIT STRING", "AllowedNSSAI"};
   return convert_enum_idx(options, 5, value, "reroute_nas_request_ies_o::value_c::types");
 }
@@ -37547,14 +37376,14 @@ std::string reroute_nas_request_ies_o::value_c::types_opts::to_string() const
 // SecondaryRATDataUsageReportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t secondary_rat_data_usage_report_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 142, 143};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 142, 143};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool secondary_rat_data_usage_report_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 142, 143};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 142, 143};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -37572,9 +37401,9 @@ crit_e secondary_rat_data_usage_report_ies_o::get_crit(const uint32_t& id)
     case 143:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 secondary_rat_data_usage_report_ies_o::value_c secondary_rat_data_usage_report_ies_o::get_value(const uint32_t& id)
 {
@@ -37593,7 +37422,7 @@ secondary_rat_data_usage_report_ies_o::value_c secondary_rat_data_usage_report_i
       ret.set(value_c::types::ho_flag);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37609,9 +37438,9 @@ presence_e secondary_rat_data_usage_report_ies_o::get_presence(const uint32_t& i
     case 143:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37749,8 +37578,8 @@ void secondary_rat_data_usage_report_ies_o::value_c::to_json(json_writer& j) con
       break;
     case types::pdu_session_res_secondary_ratusage_list:
       j.start_array("PDUSessionResourceSecondaryRATUsageList");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_secondary_ratusage_list_l>().size(); ++i1) {
-        c.get<pdu_session_res_secondary_ratusage_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_secondary_ratusage_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -37809,24 +37638,24 @@ SRSASN_CODE secondary_rat_data_usage_report_ies_o::value_c::unpack(cbit_ref& bre
 
 std::string secondary_rat_data_usage_report_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "PDUSessionResourceSecondaryRATUsageList",
-                                            "HandoverFlag"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "PDUSessionResourceSecondaryRATUsageList",
+                                  "HandoverFlag"};
   return convert_enum_idx(options, 4, value, "secondary_rat_data_usage_report_ies_o::value_c::types");
 }
 
 // TraceFailureIndicationIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t trace_fail_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 44, 15};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 44, 15};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool trace_fail_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 44, 15};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 44, 15};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -37844,9 +37673,9 @@ crit_e trace_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 trace_fail_ind_ies_o::value_c trace_fail_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -37865,7 +37694,7 @@ trace_fail_ind_ies_o::value_c trace_fail_ind_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::cause);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37881,9 +37710,9 @@ presence_e trace_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -38079,22 +37908,21 @@ SRSASN_CODE trace_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string trace_fail_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "Cause"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "Cause"};
   return convert_enum_idx(options, 4, value, "trace_fail_ind_ies_o::value_c::types");
 }
 
 // TraceStartIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t trace_start_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 108};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 108};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool trace_start_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 108};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 108};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -38110,9 +37938,9 @@ crit_e trace_start_ies_o::get_crit(const uint32_t& id)
     case 108:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 trace_start_ies_o::value_c trace_start_ies_o::get_value(const uint32_t& id)
 {
@@ -38128,7 +37956,7 @@ trace_start_ies_o::value_c trace_start_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::trace_activation);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -38142,9 +37970,9 @@ presence_e trace_start_ies_o::get_presence(const uint32_t& id)
     case 108:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -38309,21 +38137,21 @@ SRSASN_CODE trace_start_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string trace_start_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "TraceActivation"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "TraceActivation"};
   return convert_enum_idx(options, 3, value, "trace_start_ies_o::value_c::types");
 }
 
 // UEContextModificationFailureIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_context_mod_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15, 19};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 15, 19};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_mod_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 15, 19};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 15, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -38341,9 +38169,9 @@ crit_e ue_context_mod_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_mod_fail_ies_o::value_c ue_context_mod_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -38362,7 +38190,7 @@ ue_context_mod_fail_ies_o::value_c ue_context_mod_fail_ies_o::get_value(const ui
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -38378,9 +38206,9 @@ presence_e ue_context_mod_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -38578,7 +38406,7 @@ SRSASN_CODE ue_context_mod_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_mod_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "ue_context_mod_fail_ies_o::value_c::types");
 }
@@ -38586,14 +38414,14 @@ std::string ue_context_mod_fail_ies_o::value_c::types_opts::to_string() const
 // UEContextModificationRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_context_mod_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 83, 94, 31, 110, 119, 18, 24, 40, 91};
-  return convert_enum_idx(options, 11, idx, "id");
+  static const uint32_t options[] = {10, 85, 83, 94, 31, 110, 119, 18, 24, 40, 91};
+  return map_enum_number(options, 11, idx, "id");
 }
 bool ue_context_mod_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 83, 94, 31, 110, 119, 18, 24, 40, 91};
-  for (uint32_t i = 0; i < 11; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 83, 94, 31, 110, 119, 18, 24, 40, 91};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -38625,9 +38453,9 @@ crit_e ue_context_mod_request_ies_o::get_crit(const uint32_t& id)
     case 91:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_mod_request_ies_o::value_c ue_context_mod_request_ies_o::get_value(const uint32_t& id)
 {
@@ -38667,7 +38495,7 @@ ue_context_mod_request_ies_o::value_c ue_context_mod_request_ies_o::get_value(co
       ret.set(value_c::types::rrc_inactive_transition_report_request);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -38697,9 +38525,9 @@ presence_e ue_context_mod_request_ies_o::get_presence(const uint32_t& id)
     case 91:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -39102,31 +38930,31 @@ SRSASN_CODE ue_context_mod_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_mod_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "INTEGER (1..256)",
-                                            "BIT STRING",
-                                            "INTEGER (1..256,...)",
-                                            "UEAggregateMaximumBitRate",
-                                            "UESecurityCapabilities",
-                                            "CoreNetworkAssistanceInformation",
-                                            "EmergencyFallbackIndicator",
-                                            "INTEGER (0..1099511627775)",
-                                            "RRCInactiveTransitionReportRequest"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "INTEGER (1..256)",
+                                  "BIT STRING",
+                                  "INTEGER (1..256,...)",
+                                  "UEAggregateMaximumBitRate",
+                                  "UESecurityCapabilities",
+                                  "CoreNetworkAssistanceInformation",
+                                  "EmergencyFallbackIndicator",
+                                  "INTEGER (0..1099511627775)",
+                                  "RRCInactiveTransitionReportRequest"};
   return convert_enum_idx(options, 11, value, "ue_context_mod_request_ies_o::value_c::types");
 }
 
 // UEContextModificationResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_context_mod_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 92, 121, 19};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {10, 85, 92, 121, 19};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool ue_context_mod_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 92, 121, 19};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 92, 121, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -39146,9 +38974,9 @@ crit_e ue_context_mod_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_mod_resp_ies_o::value_c ue_context_mod_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -39170,7 +38998,7 @@ ue_context_mod_resp_ies_o::value_c ue_context_mod_resp_ies_o::get_value(const ui
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39188,9 +39016,9 @@ presence_e ue_context_mod_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -39415,25 +39243,25 @@ SRSASN_CODE ue_context_mod_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_mod_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "RRCState",
-                                            "UserLocationInformation",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "RRCState",
+                                  "UserLocationInformation",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "ue_context_mod_resp_ies_o::value_c::types");
 }
 
 // UEContextReleaseCommand-IEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_context_release_cmd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {114, 15};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {114, 15};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool ue_context_release_cmd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {114, 15};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {114, 15};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -39447,9 +39275,9 @@ crit_e ue_context_release_cmd_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_release_cmd_ies_o::value_c ue_context_release_cmd_ies_o::get_value(const uint32_t& id)
 {
@@ -39462,7 +39290,7 @@ ue_context_release_cmd_ies_o::value_c ue_context_release_cmd_ies_o::get_value(co
       ret.set(value_c::types::cause);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39474,9 +39302,9 @@ presence_e ue_context_release_cmd_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -39620,21 +39448,21 @@ SRSASN_CODE ue_context_release_cmd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_release_cmd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UE-NGAP-IDs", "Cause"};
+  static const char* options[] = {"UE-NGAP-IDs", "Cause"};
   return convert_enum_idx(options, 2, value, "ue_context_release_cmd_ies_o::value_c::types");
 }
 
 // UEContextReleaseComplete-IEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_context_release_complete_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 121, 32, 60, 19};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {10, 85, 121, 32, 60, 19};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool ue_context_release_complete_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 121, 32, 60, 19};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 121, 32, 60, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -39656,9 +39484,9 @@ crit_e ue_context_release_complete_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_release_complete_ies_o::value_c ue_context_release_complete_ies_o::get_value(const uint32_t& id)
 {
@@ -39683,7 +39511,7 @@ ue_context_release_complete_ies_o::value_c ue_context_release_complete_ies_o::ge
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39703,9 +39531,9 @@ presence_e ue_context_release_complete_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -39900,8 +39728,8 @@ void ue_context_release_complete_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_list_cxt_rel_cpl:
       j.start_array("PDUSessionResourceListCxtRelCpl");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_list_cxt_rel_cpl_l>().size(); ++i1) {
-        c.get<pdu_session_res_list_cxt_rel_cpl_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_list_cxt_rel_cpl_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -39973,26 +39801,26 @@ SRSASN_CODE ue_context_release_complete_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_release_complete_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)",
-                                            "INTEGER (0..4294967295)",
-                                            "UserLocationInformation",
-                                            "InfoOnRecommendedCellsAndRANNodesForPaging",
-                                            "PDUSessionResourceListCxtRelCpl",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..1099511627775)",
+                                  "INTEGER (0..4294967295)",
+                                  "UserLocationInformation",
+                                  "InfoOnRecommendedCellsAndRANNodesForPaging",
+                                  "PDUSessionResourceListCxtRelCpl",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 6, value, "ue_context_release_complete_ies_o::value_c::types");
 }
 
 // UEContextReleaseRequest-IEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_context_release_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 133, 15};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 133, 15};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_release_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 133, 15};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 133, 15};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -40010,9 +39838,9 @@ crit_e ue_context_release_request_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_release_request_ies_o::value_c ue_context_release_request_ies_o::get_value(const uint32_t& id)
 {
@@ -40031,7 +39859,7 @@ ue_context_release_request_ies_o::value_c ue_context_release_request_ies_o::get_
       ret.set(value_c::types::cause);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40047,9 +39875,9 @@ presence_e ue_context_release_request_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -40190,8 +40018,8 @@ void ue_context_release_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::pdu_session_res_list_cxt_rel_req:
       j.start_array("PDUSessionResourceListCxtRelReq");
-      for (uint32_t i1 = 0; i1 < c.get<pdu_session_res_list_cxt_rel_req_l>().size(); ++i1) {
-        c.get<pdu_session_res_list_cxt_rel_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pdu_session_res_list_cxt_rel_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -40251,7 +40079,7 @@ SRSASN_CODE ue_context_release_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_release_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "PDUSessionResourceListCxtRelReq", "Cause"};
   return convert_enum_idx(options, 4, value, "ue_context_release_request_ies_o::value_c::types");
 }
@@ -40259,14 +40087,14 @@ std::string ue_context_release_request_ies_o::value_c::types_opts::to_string() c
 // UERadioCapabilityCheckRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_radio_cap_check_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 117};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 117};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ue_radio_cap_check_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 117};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 117};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -40282,9 +40110,9 @@ crit_e ue_radio_cap_check_request_ies_o::get_crit(const uint32_t& id)
     case 117:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_radio_cap_check_request_ies_o::value_c ue_radio_cap_check_request_ies_o::get_value(const uint32_t& id)
 {
@@ -40300,7 +40128,7 @@ ue_radio_cap_check_request_ies_o::value_c ue_radio_cap_check_request_ies_o::get_
       ret.set(value_c::types::ue_radio_cap);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40314,9 +40142,9 @@ presence_e ue_radio_cap_check_request_ies_o::get_presence(const uint32_t& id)
     case 117:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -40481,21 +40309,21 @@ SRSASN_CODE ue_radio_cap_check_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_radio_cap_check_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING"};
   return convert_enum_idx(options, 3, value, "ue_radio_cap_check_request_ies_o::value_c::types");
 }
 
 // UERadioCapabilityCheckResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_radio_cap_check_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 30, 19};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 30, 19};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_radio_cap_check_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 30, 19};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 30, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -40513,9 +40341,9 @@ crit_e ue_radio_cap_check_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_radio_cap_check_resp_ies_o::value_c ue_radio_cap_check_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -40534,7 +40362,7 @@ ue_radio_cap_check_resp_ies_o::value_c ue_radio_cap_check_resp_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40550,9 +40378,9 @@ presence_e ue_radio_cap_check_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -40745,7 +40573,7 @@ SRSASN_CODE ue_radio_cap_check_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_radio_cap_check_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "IMSVoiceSupportIndicator", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "ue_radio_cap_check_resp_ies_o::value_c::types");
 }
@@ -40753,14 +40581,14 @@ std::string ue_radio_cap_check_resp_ies_o::value_c::types_opts::to_string() cons
 // UERadioCapabilityInfoIndicationIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ue_radio_cap_info_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 117, 118};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 117, 118};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_radio_cap_info_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 117, 118};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 117, 118};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -40778,9 +40606,9 @@ crit_e ue_radio_cap_info_ind_ies_o::get_crit(const uint32_t& id)
     case 118:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_radio_cap_info_ind_ies_o::value_c ue_radio_cap_info_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -40799,7 +40627,7 @@ ue_radio_cap_info_ind_ies_o::value_c ue_radio_cap_info_ind_ies_o::get_value(cons
       ret.set(value_c::types::ue_radio_cap_for_paging);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40815,9 +40643,9 @@ presence_e ue_radio_cap_info_ind_ies_o::get_presence(const uint32_t& id)
     case 118:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41014,7 +40842,7 @@ SRSASN_CODE ue_radio_cap_info_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_radio_cap_info_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "UERadioCapabilityForPaging"};
   return convert_enum_idx(options, 4, value, "ue_radio_cap_info_ind_ies_o::value_c::types");
 }
@@ -41022,14 +40850,14 @@ std::string ue_radio_cap_info_ind_ies_o::value_c::types_opts::to_string() const
 // UETNLABindingReleaseRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t uetnla_binding_release_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {10, 85};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool uetnla_binding_release_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41043,9 +40871,9 @@ crit_e uetnla_binding_release_request_ies_o::get_crit(const uint32_t& id)
     case 85:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 uetnla_binding_release_request_ies_o::value_c uetnla_binding_release_request_ies_o::get_value(const uint32_t& id)
 {
@@ -41058,7 +40886,7 @@ uetnla_binding_release_request_ies_o::value_c uetnla_binding_release_request_ies
       ret.set(value_c::types::ran_ue_ngap_id);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41070,9 +40898,9 @@ presence_e uetnla_binding_release_request_ies_o::get_presence(const uint32_t& id
     case 85:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41190,21 +41018,21 @@ SRSASN_CODE uetnla_binding_release_request_ies_o::value_c::unpack(cbit_ref& bref
 
 std::string uetnla_binding_release_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)"};
+  static const char* options[] = {"INTEGER (0..1099511627775)", "INTEGER (0..4294967295)"};
   return convert_enum_idx(options, 2, value, "uetnla_binding_release_request_ies_o::value_c::types");
 }
 
 // UplinkNASTransport-IEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ul_nas_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 38, 121};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 38, 121};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ul_nas_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 38, 121};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 38, 121};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41222,9 +41050,9 @@ crit_e ul_nas_transport_ies_o::get_crit(const uint32_t& id)
     case 121:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_nas_transport_ies_o::value_c ul_nas_transport_ies_o::get_value(const uint32_t& id)
 {
@@ -41243,7 +41071,7 @@ ul_nas_transport_ies_o::value_c ul_nas_transport_ies_o::get_value(const uint32_t
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41259,9 +41087,9 @@ presence_e ul_nas_transport_ies_o::get_presence(const uint32_t& id)
     case 121:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41458,7 +41286,7 @@ SRSASN_CODE ul_nas_transport_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ul_nas_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "UserLocationInformation"};
   return convert_enum_idx(options, 4, value, "ul_nas_transport_ies_o::value_c::types");
 }
@@ -41466,14 +41294,14 @@ std::string ul_nas_transport_ies_o::value_c::types_opts::to_string() const
 // UplinkNonUEAssociatedNRPPaTransportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ul_non_ueassociated_nrp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {89, 46};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {89, 46};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool ul_non_ueassociated_nrp_pa_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {89, 46};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {89, 46};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41487,9 +41315,9 @@ crit_e ul_non_ueassociated_nrp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 46:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_non_ueassociated_nrp_pa_transport_ies_o::value_c
 ul_non_ueassociated_nrp_pa_transport_ies_o::get_value(const uint32_t& id)
@@ -41503,7 +41331,7 @@ ul_non_ueassociated_nrp_pa_transport_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::nrp_pa_pdu);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41515,9 +41343,9 @@ presence_e ul_non_ueassociated_nrp_pa_transport_ies_o::get_presence(const uint32
     case 46:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41660,21 +41488,21 @@ SRSASN_CODE ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::unpack(cbit_ref
 
 std::string ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"OCTET STRING", "OCTET STRING"};
+  static const char* options[] = {"OCTET STRING", "OCTET STRING"};
   return convert_enum_idx(options, 2, value, "ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::types");
 }
 
 // UplinkRANConfigurationTransferIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ul_ran_cfg_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {99, 158};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {99, 158};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool ul_ran_cfg_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {99, 158};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {99, 158};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41688,9 +41516,9 @@ crit_e ul_ran_cfg_transfer_ies_o::get_crit(const uint32_t& id)
     case 158:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_ran_cfg_transfer_ies_o::value_c ul_ran_cfg_transfer_ies_o::get_value(const uint32_t& id)
 {
@@ -41703,7 +41531,7 @@ ul_ran_cfg_transfer_ies_o::value_c ul_ran_cfg_transfer_ies_o::get_value(const ui
       ret.set(value_c::types::endc_son_cfg_transfer_ul);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41715,9 +41543,9 @@ presence_e ul_ran_cfg_transfer_ies_o::get_presence(const uint32_t& id)
     case 158:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41860,21 +41688,21 @@ SRSASN_CODE ul_ran_cfg_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ul_ran_cfg_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SONConfigurationTransfer", "OCTET STRING"};
+  static const char* options[] = {"SONConfigurationTransfer", "OCTET STRING"};
   return convert_enum_idx(options, 2, value, "ul_ran_cfg_transfer_ies_o::value_c::types");
 }
 
 // UplinkRANStatusTransferIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ul_ran_status_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 84};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {10, 85, 84};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ul_ran_status_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 84};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 84};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41890,9 +41718,9 @@ crit_e ul_ran_status_transfer_ies_o::get_crit(const uint32_t& id)
     case 84:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_ran_status_transfer_ies_o::value_c ul_ran_status_transfer_ies_o::get_value(const uint32_t& id)
 {
@@ -41908,7 +41736,7 @@ ul_ran_status_transfer_ies_o::value_c ul_ran_status_transfer_ies_o::get_value(co
       ret.set(value_c::types::ran_status_transfer_transparent_container);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41922,9 +41750,9 @@ presence_e ul_ran_status_transfer_ies_o::get_presence(const uint32_t& id)
     case 84:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -42092,7 +41920,7 @@ SRSASN_CODE ul_ran_status_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ul_ran_status_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "RANStatusTransfer-TransparentContainer"};
   return convert_enum_idx(options, 3, value, "ul_ran_status_transfer_ies_o::value_c::types");
 }
@@ -42100,14 +41928,14 @@ std::string ul_ran_status_transfer_ies_o::value_c::types_opts::to_string() const
 // UplinkUEAssociatedNRPPaTransportIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t ul_ueassociated_nrp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {10, 85, 89, 46};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {10, 85, 89, 46};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ul_ueassociated_nrp_pa_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {10, 85, 89, 46};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {10, 85, 89, 46};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -42125,9 +41953,9 @@ crit_e ul_ueassociated_nrp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 46:
       return crit_e::reject;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_ueassociated_nrp_pa_transport_ies_o::value_c ul_ueassociated_nrp_pa_transport_ies_o::get_value(const uint32_t& id)
 {
@@ -42146,7 +41974,7 @@ ul_ueassociated_nrp_pa_transport_ies_o::value_c ul_ueassociated_nrp_pa_transport
       ret.set(value_c::types::nrp_pa_pdu);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -42162,9 +41990,9 @@ presence_e ul_ueassociated_nrp_pa_transport_ies_o::get_presence(const uint32_t& 
     case 46:
       return presence_e::mandatory;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -42360,7 +42188,7 @@ SRSASN_CODE ul_ueassociated_nrp_pa_transport_ies_o::value_c::unpack(cbit_ref& br
 
 std::string ul_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..1099511627775)", "INTEGER (0..4294967295)", "OCTET STRING", "OCTET STRING"};
   return convert_enum_idx(options, 4, value, "ul_ueassociated_nrp_pa_transport_ies_o::value_c::types");
 }
@@ -42368,14 +42196,14 @@ std::string ul_ueassociated_nrp_pa_transport_ies_o::value_c::types_opts::to_stri
 // WriteReplaceWarningRequestIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t write_replace_warning_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {35, 95, 122, 87, 47, 125, 124, 20, 123, 17, 141};
-  return convert_enum_idx(options, 11, idx, "id");
+  static const uint32_t options[] = {35, 95, 122, 87, 47, 125, 124, 20, 123, 17, 141};
+  return map_enum_number(options, 11, idx, "id");
 }
 bool write_replace_warning_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {35, 95, 122, 87, 47, 125, 124, 20, 123, 17, 141};
-  for (uint32_t i = 0; i < 11; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {35, 95, 122, 87, 47, 125, 124, 20, 123, 17, 141};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -42407,9 +42235,9 @@ crit_e write_replace_warning_request_ies_o::get_crit(const uint32_t& id)
     case 141:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 write_replace_warning_request_ies_o::value_c write_replace_warning_request_ies_o::get_value(const uint32_t& id)
 {
@@ -42449,7 +42277,7 @@ write_replace_warning_request_ies_o::value_c write_replace_warning_request_ies_o
       ret.set(value_c::types::warning_area_coordinates);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -42479,9 +42307,9 @@ presence_e write_replace_warning_request_ies_o::get_presence(const uint32_t& id)
     case 141:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -42891,31 +42719,31 @@ SRSASN_CODE write_replace_warning_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string write_replace_warning_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"BIT STRING",
-                                            "BIT STRING",
-                                            "WarningAreaList",
-                                            "INTEGER (0..131071)",
-                                            "INTEGER (0..65535)",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "BIT STRING",
-                                            "OCTET STRING",
-                                            "ConcurrentWarningMessageInd",
-                                            "OCTET STRING"};
+  static const char* options[] = {"BIT STRING",
+                                  "BIT STRING",
+                                  "WarningAreaList",
+                                  "INTEGER (0..131071)",
+                                  "INTEGER (0..65535)",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "BIT STRING",
+                                  "OCTET STRING",
+                                  "ConcurrentWarningMessageInd",
+                                  "OCTET STRING"};
   return convert_enum_idx(options, 11, value, "write_replace_warning_request_ies_o::value_c::types");
 }
 
 // WriteReplaceWarningResponseIEs ::= OBJECT SET OF NGAP-PROTOCOL-IES
 uint32_t write_replace_warning_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {35, 95, 13, 19};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {35, 95, 13, 19};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool write_replace_warning_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {35, 95, 13, 19};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {35, 95, 13, 19};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -42933,9 +42761,9 @@ crit_e write_replace_warning_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 write_replace_warning_resp_ies_o::value_c write_replace_warning_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -42954,7 +42782,7 @@ write_replace_warning_resp_ies_o::value_c write_replace_warning_resp_ies_o::get_
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -42970,9 +42798,9 @@ presence_e write_replace_warning_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -43178,12 +43006,11 @@ SRSASN_CODE write_replace_warning_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string write_replace_warning_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "BIT STRING", "BIT STRING", "BroadcastCompletedAreaList", "CriticalityDiagnostics"};
+  static const char* options[] = {"BIT STRING", "BIT STRING", "BroadcastCompletedAreaList", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "write_replace_warning_resp_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<location_report_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<location_report_ies_o>;
 
 location_report_ies_container::location_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43262,12 +43089,13 @@ SRSASN_CODE location_report_ies_container::unpack(cbit_ref& bref)
         ps_cell_info.value   = c.value.ps_cell_info();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -43317,7 +43145,7 @@ void location_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<location_report_ctrl_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<location_report_ctrl_ies_o>;
 
 location_report_ctrl_ies_container::location_report_ctrl_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43366,12 +43194,13 @@ SRSASN_CODE location_report_ctrl_ies_container::unpack(cbit_ref& bref)
         location_report_request_type.value = c.value.location_report_request_type();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -43411,7 +43240,7 @@ void location_report_ctrl_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<location_report_fail_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<location_report_fail_ind_ies_o>;
 
 location_report_fail_ind_ies_container::location_report_fail_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43460,12 +43289,13 @@ SRSASN_CODE location_report_fail_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -43505,7 +43335,7 @@ void location_report_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<nas_non_delivery_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<nas_non_delivery_ind_ies_o>;
 
 nas_non_delivery_ind_ies_container::nas_non_delivery_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -43562,12 +43392,13 @@ SRSASN_CODE nas_non_delivery_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -43609,7 +43440,7 @@ void nas_non_delivery_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ng_reset_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ng_reset_ies_o>;
 
 ng_reset_ies_container::ng_reset_ies_container() : cause(15, crit_e::ignore), reset_type(88, crit_e::reject) {}
 SRSASN_CODE ng_reset_ies_container::pack(bit_ref& bref) const
@@ -43646,12 +43477,13 @@ SRSASN_CODE ng_reset_ies_container::unpack(cbit_ref& bref)
         reset_type.value = c.value.reset_type();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -43689,7 +43521,7 @@ void ng_reset_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ng_reset_ack_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ng_reset_ack_ies_o>;
 
 ng_reset_ack_ies_container::ng_reset_ack_ies_container() :
   ue_associated_lc_ng_conn_list(111, crit_e::ignore),
@@ -43734,7 +43566,7 @@ SRSASN_CODE ng_reset_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43778,7 +43610,7 @@ void ng_reset_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ng_setup_fail_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ng_setup_fail_ies_o>;
 
 ng_setup_fail_ies_container::ng_setup_fail_ies_container() :
   cause(15, crit_e::ignore),
@@ -43833,12 +43665,13 @@ SRSASN_CODE ng_setup_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -43882,7 +43715,7 @@ void ng_setup_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ng_setup_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ng_setup_request_ies_o>;
 
 ng_setup_request_ies_container::ng_setup_request_ies_container() :
   global_ran_node_id(27, crit_e::reject),
@@ -43953,12 +43786,13 @@ SRSASN_CODE ng_setup_request_ies_container::unpack(cbit_ref& bref)
         ue_retention_info.value   = c.value.ue_retention_info();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -44006,7 +43840,7 @@ void ng_setup_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ng_setup_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ng_setup_resp_ies_o>;
 
 ng_setup_resp_ies_container::ng_setup_resp_ies_container() :
   amf_name(1, crit_e::reject),
@@ -44085,12 +43919,13 @@ SRSASN_CODE ng_setup_resp_ies_container::unpack(cbit_ref& bref)
         ue_retention_info.value   = c.value.ue_retention_info();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -44140,7 +43975,7 @@ void ng_setup_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<overload_start_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<overload_start_ies_o>;
 
 overload_start_ies_container::overload_start_ies_container() :
   amf_overload_resp(2, crit_e::reject),
@@ -44196,7 +44031,7 @@ SRSASN_CODE overload_start_ies_container::unpack(cbit_ref& bref)
         overload_start_nssai_list.value   = c.value.overload_start_nssai_list();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44289,7 +44124,7 @@ void overload_stop_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_modify_confirm_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_confirm_ies_o>;
 
 pdu_session_res_modify_confirm_ies_container::pdu_session_res_modify_confirm_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -44360,12 +44195,13 @@ SRSASN_CODE pdu_session_res_modify_confirm_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -44413,7 +44249,7 @@ void pdu_session_res_modify_confirm_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_modify_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_ind_ies_o>;
 
 pdu_session_res_modify_ind_ies_container::pdu_session_res_modify_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44462,12 +44298,13 @@ SRSASN_CODE pdu_session_res_modify_ind_ies_container::unpack(cbit_ref& bref)
         pdu_session_res_modify_list_mod_ind.value = c.value.pdu_session_res_modify_list_mod_ind();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -44507,7 +44344,7 @@ void pdu_session_res_modify_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_modify_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_request_ies_o>;
 
 pdu_session_res_modify_request_ies_container::pdu_session_res_modify_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44567,12 +44404,13 @@ SRSASN_CODE pdu_session_res_modify_request_ies_container::unpack(cbit_ref& bref)
         pdu_session_res_modify_list_mod_req.value = c.value.pdu_session_res_modify_list_mod_req();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -44616,7 +44454,7 @@ void pdu_session_res_modify_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_modify_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_modify_resp_ies_o>;
 
 pdu_session_res_modify_resp_ies_container::pdu_session_res_modify_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -44701,12 +44539,13 @@ SRSASN_CODE pdu_session_res_modify_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -44760,7 +44599,7 @@ void pdu_session_res_modify_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_notify_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_notify_ies_o>;
 
 pdu_session_res_notify_ies_container::pdu_session_res_notify_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44834,12 +44673,13 @@ SRSASN_CODE pdu_session_res_notify_ies_container::unpack(cbit_ref& bref)
         user_location_info.value   = c.value.user_location_info();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -44889,7 +44729,7 @@ void pdu_session_res_notify_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_release_cmd_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_release_cmd_ies_o>;
 
 pdu_session_res_release_cmd_ies_container::pdu_session_res_release_cmd_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -44960,12 +44800,13 @@ SRSASN_CODE pdu_session_res_release_cmd_ies_container::unpack(cbit_ref& bref)
         pdu_session_res_to_release_list_rel_cmd.value = c.value.pdu_session_res_to_release_list_rel_cmd();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45013,7 +44854,7 @@ void pdu_session_res_release_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_release_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_release_resp_ies_o>;
 
 pdu_session_res_release_resp_ies_container::pdu_session_res_release_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -45084,12 +44925,13 @@ SRSASN_CODE pdu_session_res_release_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45137,7 +44979,7 @@ void pdu_session_res_release_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_setup_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_setup_request_ies_o>;
 
 pdu_session_res_setup_request_ies_container::pdu_session_res_setup_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -45219,12 +45061,13 @@ SRSASN_CODE pdu_session_res_setup_request_ies_container::unpack(cbit_ref& bref)
         ue_aggregate_maximum_bit_rate.value   = c.value.ue_aggregate_maximum_bit_rate();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45276,7 +45119,7 @@ void pdu_session_res_setup_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pdu_session_res_setup_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pdu_session_res_setup_resp_ies_o>;
 
 pdu_session_res_setup_resp_ies_container::pdu_session_res_setup_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -45350,12 +45193,13 @@ SRSASN_CODE pdu_session_res_setup_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45405,7 +45249,7 @@ void pdu_session_res_setup_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pws_cancel_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pws_cancel_request_ies_o>;
 
 pws_cancel_request_ies_container::pws_cancel_request_ies_container() :
   msg_id(35, crit_e::reject),
@@ -45468,12 +45312,13 @@ SRSASN_CODE pws_cancel_request_ies_container::unpack(cbit_ref& bref)
         cancel_all_warning_msgs.value   = c.value.cancel_all_warning_msgs();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45519,7 +45364,7 @@ void pws_cancel_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pws_cancel_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pws_cancel_resp_ies_o>;
 
 pws_cancel_resp_ies_container::pws_cancel_resp_ies_container() :
   msg_id(35, crit_e::reject),
@@ -45582,12 +45427,13 @@ SRSASN_CODE pws_cancel_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45633,7 +45479,7 @@ void pws_cancel_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pws_fail_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pws_fail_ind_ies_o>;
 
 pws_fail_ind_ies_container::pws_fail_ind_ies_container() :
   pws_failed_cell_id_list(81, crit_e::reject),
@@ -45674,12 +45520,13 @@ SRSASN_CODE pws_fail_ind_ies_container::unpack(cbit_ref& bref)
         global_ran_node_id.value = c.value.global_ran_node_id();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45717,7 +45564,7 @@ void pws_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pws_restart_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<pws_restart_ind_ies_o>;
 
 pws_restart_ind_ies_container::pws_restart_ind_ies_container() :
   cell_id_list_for_restart(16, crit_e::reject),
@@ -45777,12 +45624,13 @@ SRSASN_CODE pws_restart_ind_ies_container::unpack(cbit_ref& bref)
         emergency_area_id_list_for_restart.value   = c.value.emergency_area_id_list_for_restart();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45826,7 +45674,7 @@ void pws_restart_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<paging_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<paging_ies_o>;
 
 paging_ies_container::paging_ies_container() :
   ue_paging_id(115, crit_e::ignore),
@@ -45922,12 +45770,13 @@ SRSASN_CODE paging_ies_container::unpack(cbit_ref& bref)
         assist_data_for_paging.value   = c.value.assist_data_for_paging();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -45985,7 +45834,7 @@ void paging_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<path_switch_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<path_switch_request_ies_o>;
 
 path_switch_request_ies_container::path_switch_request_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -46061,12 +45910,13 @@ SRSASN_CODE path_switch_request_ies_container::unpack(cbit_ref& bref)
         pdu_session_res_failed_to_setup_list_ps_req.value   = c.value.pdu_session_res_failed_to_setup_list_ps_req();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -46114,7 +45964,7 @@ void path_switch_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<path_switch_request_ack_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<path_switch_request_ack_ies_o>;
 
 path_switch_request_ack_ies_container::path_switch_request_ack_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -46256,12 +46106,13 @@ SRSASN_CODE path_switch_request_ack_ies_container::unpack(cbit_ref& bref)
         redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -46333,7 +46184,7 @@ void path_switch_request_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<path_switch_request_fail_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<path_switch_request_fail_ies_o>;
 
 path_switch_request_fail_ies_container::path_switch_request_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -46393,12 +46244,13 @@ SRSASN_CODE path_switch_request_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -46534,7 +46386,7 @@ void private_msg_s::to_json(json_writer& j) const
   j.end_array();
 }
 
-template struct protocol_ie_field_s<ran_cfg_upd_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ran_cfg_upd_ies_o>;
 
 ran_cfg_upd_ies_container::ran_cfg_upd_ies_container() :
   ran_node_name(82, crit_e::ignore),
@@ -46601,7 +46453,7 @@ SRSASN_CODE ran_cfg_upd_ies_container::unpack(cbit_ref& bref)
         global_ran_node_id.value   = c.value.global_ran_node_id();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -46653,7 +46505,7 @@ void ran_cfg_upd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ran_cfg_upd_ack_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ran_cfg_upd_ack_ies_o>;
 
 ran_cfg_upd_ack_ies_container::ran_cfg_upd_ack_ies_container() : crit_diagnostics(19, crit_e::ignore) {}
 SRSASN_CODE ran_cfg_upd_ack_ies_container::pack(bit_ref& bref) const
@@ -46676,16 +46528,14 @@ SRSASN_CODE ran_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<ran_cfg_upd_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 19:
-        crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
-        break;
-      default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 19) {
+      crit_diagnostics_present = true;
+      crit_diagnostics.id      = c.id;
+      crit_diagnostics.crit    = c.crit;
+      crit_diagnostics.value   = c.value.crit_diagnostics();
+    } else {
+      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -46724,7 +46574,7 @@ void ran_cfg_upd_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ran_cfg_upd_fail_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ran_cfg_upd_fail_ies_o>;
 
 ran_cfg_upd_fail_ies_container::ran_cfg_upd_fail_ies_container() :
   cause(15, crit_e::ignore),
@@ -46779,12 +46629,13 @@ SRSASN_CODE ran_cfg_upd_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -46828,7 +46679,7 @@ void ran_cfg_upd_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<rrc_inactive_transition_report_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<rrc_inactive_transition_report_ies_o>;
 
 rrc_inactive_transition_report_ies_container::rrc_inactive_transition_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -46885,12 +46736,13 @@ SRSASN_CODE rrc_inactive_transition_report_ies_container::unpack(cbit_ref& bref)
         user_location_info.value = c.value.user_location_info();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -46932,7 +46784,7 @@ void rrc_inactive_transition_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<reroute_nas_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<reroute_nas_request_ies_o>;
 
 reroute_nas_request_ies_container::reroute_nas_request_ies_container() :
   ran_ue_ngap_id(85, crit_e::reject),
@@ -47003,12 +46855,13 @@ SRSASN_CODE reroute_nas_request_ies_container::unpack(cbit_ref& bref)
         allowed_nssai.value   = c.value.allowed_nssai();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -47056,7 +46909,7 @@ void reroute_nas_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<secondary_rat_data_usage_report_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<secondary_rat_data_usage_report_ies_o>;
 
 secondary_rat_data_usage_report_ies_container::secondary_rat_data_usage_report_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -47116,12 +46969,13 @@ SRSASN_CODE secondary_rat_data_usage_report_ies_container::unpack(cbit_ref& bref
         ho_flag.value   = c.value.ho_flag();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -47165,7 +47019,7 @@ void secondary_rat_data_usage_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<trace_fail_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<trace_fail_ind_ies_o>;
 
 trace_fail_ind_ies_container::trace_fail_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -47222,12 +47076,13 @@ SRSASN_CODE trace_fail_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -47269,7 +47124,7 @@ void trace_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<trace_start_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<trace_start_ies_o>;
 
 trace_start_ies_container::trace_start_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -47318,12 +47173,13 @@ SRSASN_CODE trace_start_ies_container::unpack(cbit_ref& bref)
         trace_activation.value = c.value.trace_activation();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -47363,7 +47219,7 @@ void trace_start_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_mod_fail_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_mod_fail_ies_o>;
 
 ue_context_mod_fail_ies_container::ue_context_mod_fail_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -47423,12 +47279,13 @@ SRSASN_CODE ue_context_mod_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -47472,7 +47329,7 @@ void ue_context_mod_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_mod_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_mod_request_ies_o>;
 
 ue_context_mod_request_ies_container::ue_context_mod_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -47612,12 +47469,13 @@ SRSASN_CODE ue_context_mod_request_ies_container::unpack(cbit_ref& bref)
         rrc_inactive_transition_report_request.value   = c.value.rrc_inactive_transition_report_request();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -47691,7 +47549,7 @@ void ue_context_mod_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_mod_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_mod_resp_ies_o>;
 
 ue_context_mod_resp_ies_container::ue_context_mod_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -47765,12 +47623,13 @@ SRSASN_CODE ue_context_mod_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -47820,7 +47679,7 @@ void ue_context_mod_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_release_cmd_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
 
 ue_context_release_cmd_ies_container::ue_context_release_cmd_ies_container() :
   ue_ngap_ids(114, crit_e::reject),
@@ -47861,12 +47720,13 @@ SRSASN_CODE ue_context_release_cmd_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -47904,7 +47764,7 @@ void ue_context_release_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_release_complete_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_release_complete_ies_o>;
 
 ue_context_release_complete_ies_container::ue_context_release_complete_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -47990,12 +47850,13 @@ SRSASN_CODE ue_context_release_complete_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48049,7 +47910,7 @@ void ue_context_release_complete_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_release_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_context_release_request_ies_o>;
 
 ue_context_release_request_ies_container::ue_context_release_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -48109,12 +47970,13 @@ SRSASN_CODE ue_context_release_request_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48158,7 +48020,7 @@ void ue_context_release_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_radio_cap_check_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_radio_cap_check_request_ies_o>;
 
 ue_radio_cap_check_request_ies_container::ue_radio_cap_check_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -48210,12 +48072,13 @@ SRSASN_CODE ue_radio_cap_check_request_ies_container::unpack(cbit_ref& bref)
         ue_radio_cap.value   = c.value.ue_radio_cap();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48257,7 +48120,7 @@ void ue_radio_cap_check_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_radio_cap_check_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_radio_cap_check_resp_ies_o>;
 
 ue_radio_cap_check_resp_ies_container::ue_radio_cap_check_resp_ies_container() :
   amf_ue_ngap_id(10, crit_e::ignore),
@@ -48317,12 +48180,13 @@ SRSASN_CODE ue_radio_cap_check_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48366,7 +48230,7 @@ void ue_radio_cap_check_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_radio_cap_info_ind_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ue_radio_cap_info_ind_ies_o>;
 
 ue_radio_cap_info_ind_ies_container::ue_radio_cap_info_ind_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -48426,12 +48290,13 @@ SRSASN_CODE ue_radio_cap_info_ind_ies_container::unpack(cbit_ref& bref)
         ue_radio_cap_for_paging.value   = c.value.ue_radio_cap_for_paging();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48475,7 +48340,7 @@ void ue_radio_cap_info_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<uetnla_binding_release_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<uetnla_binding_release_request_ies_o>;
 
 uetnla_binding_release_request_ies_container::uetnla_binding_release_request_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -48516,12 +48381,13 @@ SRSASN_CODE uetnla_binding_release_request_ies_container::unpack(cbit_ref& bref)
         ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48559,7 +48425,7 @@ void uetnla_binding_release_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_nas_transport_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ul_nas_transport_ies_o>;
 
 ul_nas_transport_ies_container::ul_nas_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -48616,12 +48482,13 @@ SRSASN_CODE ul_nas_transport_ies_container::unpack(cbit_ref& bref)
         user_location_info.value = c.value.user_location_info();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48663,7 +48530,7 @@ void ul_nas_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_non_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ul_non_ueassociated_nrp_pa_transport_ies_o>;
 
 ul_non_ueassociated_nrp_pa_transport_ies_container::ul_non_ueassociated_nrp_pa_transport_ies_container() :
   routing_id(89, crit_e::reject),
@@ -48704,12 +48571,13 @@ SRSASN_CODE ul_non_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref&
         nrp_pa_pdu.value = c.value.nrp_pa_pdu();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48747,7 +48615,7 @@ void ul_non_ueassociated_nrp_pa_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_ran_cfg_transfer_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ul_ran_cfg_transfer_ies_o>;
 
 ul_ran_cfg_transfer_ies_container::ul_ran_cfg_transfer_ies_container() :
   son_cfg_transfer_ul(99, crit_e::ignore),
@@ -48792,7 +48660,7 @@ SRSASN_CODE ul_ran_cfg_transfer_ies_container::unpack(cbit_ref& bref)
         endc_son_cfg_transfer_ul.value   = c.value.endc_son_cfg_transfer_ul();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -48836,7 +48704,7 @@ void ul_ran_cfg_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_ran_status_transfer_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ul_ran_status_transfer_ies_o>;
 
 ul_ran_status_transfer_ies_container::ul_ran_status_transfer_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -48885,12 +48753,13 @@ SRSASN_CODE ul_ran_status_transfer_ies_container::unpack(cbit_ref& bref)
         ran_status_transfer_transparent_container.value = c.value.ran_status_transfer_transparent_container();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -48930,7 +48799,7 @@ void ul_ran_status_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_ueassociated_nrp_pa_transport_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<ul_ueassociated_nrp_pa_transport_ies_o>;
 
 ul_ueassociated_nrp_pa_transport_ies_container::ul_ueassociated_nrp_pa_transport_ies_container() :
   amf_ue_ngap_id(10, crit_e::reject),
@@ -48987,12 +48856,13 @@ SRSASN_CODE ul_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref& bre
         nrp_pa_pdu.value = c.value.nrp_pa_pdu();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -49034,7 +48904,7 @@ void ul_ueassociated_nrp_pa_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<write_replace_warning_request_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<write_replace_warning_request_ies_o>;
 
 write_replace_warning_request_ies_container::write_replace_warning_request_ies_container() :
   msg_id(35, crit_e::reject),
@@ -49168,12 +49038,13 @@ SRSASN_CODE write_replace_warning_request_ies_container::unpack(cbit_ref& bref)
         warning_area_coordinates.value   = c.value.warning_area_coordinates();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -49243,7 +49114,7 @@ void write_replace_warning_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<write_replace_warning_resp_ies_o>;
+template struct asn1::ngap_nr::protocol_ie_field_s<write_replace_warning_resp_ies_o>;
 
 write_replace_warning_resp_ies_container::write_replace_warning_resp_ies_container() :
   msg_id(35, crit_e::reject),
@@ -49306,12 +49177,13 @@ SRSASN_CODE write_replace_warning_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        ngap_nr_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    ngap_nr_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -49357,3772 +49229,21 @@ void write_replace_warning_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// NGAP-ELEMENTARY-PROCEDURES-CLASS-1 ::= OBJECT SET OF NGAP-ELEMENTARY-PROCEDURE
-uint16_t ngap_elem_procs_class_minus1_o::idx_to_proc_code(uint32_t idx)
-{
-  static constexpr const uint16_t options[] = {0, 10, 12, 13, 14, 20, 21, 25, 26, 27, 28, 29, 32, 35, 40, 41, 43, 51};
-  return convert_enum_idx(options, 18, idx, "proc_code");
-}
-bool ngap_elem_procs_class_minus1_o::is_proc_code_valid(const uint16_t& proc_code)
-{
-  static constexpr const uint16_t options[] = {0, 10, 12, 13, 14, 20, 21, 25, 26, 27, 28, 29, 32, 35, 40, 41, 43, 51};
-  for (uint32_t i = 0; i < 18; ++i) {
-    if (options[i] == proc_code) {
-      return true;
-    }
-  }
-  return false;
-}
-ngap_elem_procs_class_minus1_o::init_msg_c ngap_elem_procs_class_minus1_o::get_init_msg(const uint16_t& proc_code)
-{
-  init_msg_c ret{};
-  switch (proc_code) {
-    case 0:
-      ret.set(init_msg_c::types::amf_cfg_upd);
-      break;
-    case 10:
-      ret.set(init_msg_c::types::ho_cancel);
-      break;
-    case 12:
-      ret.set(init_msg_c::types::ho_required);
-      break;
-    case 13:
-      ret.set(init_msg_c::types::ho_request);
-      break;
-    case 14:
-      ret.set(init_msg_c::types::init_context_setup_request);
-      break;
-    case 20:
-      ret.set(init_msg_c::types::ng_reset);
-      break;
-    case 21:
-      ret.set(init_msg_c::types::ng_setup_request);
-      break;
-    case 25:
-      ret.set(init_msg_c::types::path_switch_request);
-      break;
-    case 26:
-      ret.set(init_msg_c::types::pdu_session_res_modify_request);
-      break;
-    case 27:
-      ret.set(init_msg_c::types::pdu_session_res_modify_ind);
-      break;
-    case 28:
-      ret.set(init_msg_c::types::pdu_session_res_release_cmd);
-      break;
-    case 29:
-      ret.set(init_msg_c::types::pdu_session_res_setup_request);
-      break;
-    case 32:
-      ret.set(init_msg_c::types::pws_cancel_request);
-      break;
-    case 35:
-      ret.set(init_msg_c::types::ran_cfg_upd);
-      break;
-    case 40:
-      ret.set(init_msg_c::types::ue_context_mod_request);
-      break;
-    case 41:
-      ret.set(init_msg_c::types::ue_context_release_cmd);
-      break;
-    case 43:
-      ret.set(init_msg_c::types::ue_radio_cap_check_request);
-      break;
-    case 51:
-      ret.set(init_msg_c::types::write_replace_warning_request);
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-ngap_elem_procs_class_minus1_o::successful_outcome_c
-ngap_elem_procs_class_minus1_o::get_successful_outcome(const uint16_t& proc_code)
-{
-  successful_outcome_c ret{};
-  switch (proc_code) {
-    case 0:
-      ret.set(successful_outcome_c::types::amf_cfg_upd);
-      break;
-    case 10:
-      ret.set(successful_outcome_c::types::ho_cancel);
-      break;
-    case 12:
-      ret.set(successful_outcome_c::types::ho_required);
-      break;
-    case 13:
-      ret.set(successful_outcome_c::types::ho_request);
-      break;
-    case 14:
-      ret.set(successful_outcome_c::types::init_context_setup_request);
-      break;
-    case 20:
-      ret.set(successful_outcome_c::types::ng_reset);
-      break;
-    case 21:
-      ret.set(successful_outcome_c::types::ng_setup_request);
-      break;
-    case 25:
-      ret.set(successful_outcome_c::types::path_switch_request);
-      break;
-    case 26:
-      ret.set(successful_outcome_c::types::pdu_session_res_modify_request);
-      break;
-    case 27:
-      ret.set(successful_outcome_c::types::pdu_session_res_modify_ind);
-      break;
-    case 28:
-      ret.set(successful_outcome_c::types::pdu_session_res_release_cmd);
-      break;
-    case 29:
-      ret.set(successful_outcome_c::types::pdu_session_res_setup_request);
-      break;
-    case 32:
-      ret.set(successful_outcome_c::types::pws_cancel_request);
-      break;
-    case 35:
-      ret.set(successful_outcome_c::types::ran_cfg_upd);
-      break;
-    case 40:
-      ret.set(successful_outcome_c::types::ue_context_mod_request);
-      break;
-    case 41:
-      ret.set(successful_outcome_c::types::ue_context_release_cmd);
-      break;
-    case 43:
-      ret.set(successful_outcome_c::types::ue_radio_cap_check_request);
-      break;
-    case 51:
-      ret.set(successful_outcome_c::types::write_replace_warning_request);
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c
-ngap_elem_procs_class_minus1_o::get_unsuccessful_outcome(const uint16_t& proc_code)
-{
-  unsuccessful_outcome_c ret{};
-  switch (proc_code) {
-    case 0:
-      ret.set(unsuccessful_outcome_c::types::amf_cfg_upd);
-      break;
-    case 10:
-      break;
-    case 12:
-      ret.set(unsuccessful_outcome_c::types::ho_required);
-      break;
-    case 13:
-      ret.set(unsuccessful_outcome_c::types::ho_request);
-      break;
-    case 14:
-      ret.set(unsuccessful_outcome_c::types::init_context_setup_request);
-      break;
-    case 20:
-      break;
-    case 21:
-      ret.set(unsuccessful_outcome_c::types::ng_setup_request);
-      break;
-    case 25:
-      ret.set(unsuccessful_outcome_c::types::path_switch_request);
-      break;
-    case 26:
-      break;
-    case 27:
-      break;
-    case 28:
-      break;
-    case 29:
-      break;
-    case 32:
-      break;
-    case 35:
-      ret.set(unsuccessful_outcome_c::types::ran_cfg_upd);
-      break;
-    case 40:
-      ret.set(unsuccessful_outcome_c::types::ue_context_mod_request);
-      break;
-    case 41:
-      break;
-    case 43:
-      break;
-    case 51:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-crit_e ngap_elem_procs_class_minus1_o::get_crit(const uint16_t& proc_code)
-{
-  switch (proc_code) {
-    case 0:
-      return crit_e::reject;
-    case 10:
-      return crit_e::reject;
-    case 12:
-      return crit_e::reject;
-    case 13:
-      return crit_e::reject;
-    case 14:
-      return crit_e::reject;
-    case 20:
-      return crit_e::reject;
-    case 21:
-      return crit_e::reject;
-    case 25:
-      return crit_e::reject;
-    case 26:
-      return crit_e::reject;
-    case 27:
-      return crit_e::reject;
-    case 28:
-      return crit_e::reject;
-    case 29:
-      return crit_e::reject;
-    case 32:
-      return crit_e::reject;
-    case 35:
-      return crit_e::reject;
-    case 40:
-      return crit_e::reject;
-    case 41:
-      return crit_e::reject;
-    case 43:
-      return crit_e::reject;
-    case 51:
-      return crit_e::reject;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return crit_e();
-}
-
-// InitiatingMessage ::= OPEN TYPE
-amf_cfg_upd_s& ngap_elem_procs_class_minus1_o::init_msg_c::amf_cfg_upd()
-{
-  assert_choice_type("AMFConfigurationUpdate", type_.to_string(), "InitiatingMessage");
-  return c.get<amf_cfg_upd_s>();
-}
-ho_cancel_s& ngap_elem_procs_class_minus1_o::init_msg_c::ho_cancel()
-{
-  assert_choice_type("HandoverCancel", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_cancel_s>();
-}
-ho_required_s& ngap_elem_procs_class_minus1_o::init_msg_c::ho_required()
-{
-  assert_choice_type("HandoverRequired", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_required_s>();
-}
-ho_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::ho_request()
-{
-  assert_choice_type("HandoverRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_request_s>();
-}
-init_context_setup_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::init_context_setup_request()
-{
-  assert_choice_type("InitialContextSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<init_context_setup_request_s>();
-}
-ng_reset_s& ngap_elem_procs_class_minus1_o::init_msg_c::ng_reset()
-{
-  assert_choice_type("NGReset", type_.to_string(), "InitiatingMessage");
-  return c.get<ng_reset_s>();
-}
-ng_setup_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::ng_setup_request()
-{
-  assert_choice_type("NGSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ng_setup_request_s>();
-}
-path_switch_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::path_switch_request()
-{
-  assert_choice_type("PathSwitchRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<path_switch_request_s>();
-}
-pdu_session_res_modify_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::pdu_session_res_modify_request()
-{
-  assert_choice_type("PDUSessionResourceModifyRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_modify_request_s>();
-}
-pdu_session_res_modify_ind_s& ngap_elem_procs_class_minus1_o::init_msg_c::pdu_session_res_modify_ind()
-{
-  assert_choice_type("PDUSessionResourceModifyIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_modify_ind_s>();
-}
-pdu_session_res_release_cmd_s& ngap_elem_procs_class_minus1_o::init_msg_c::pdu_session_res_release_cmd()
-{
-  assert_choice_type("PDUSessionResourceReleaseCommand", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_release_cmd_s>();
-}
-pdu_session_res_setup_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::pdu_session_res_setup_request()
-{
-  assert_choice_type("PDUSessionResourceSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_setup_request_s>();
-}
-pws_cancel_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::pws_cancel_request()
-{
-  assert_choice_type("PWSCancelRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<pws_cancel_request_s>();
-}
-ran_cfg_upd_s& ngap_elem_procs_class_minus1_o::init_msg_c::ran_cfg_upd()
-{
-  assert_choice_type("RANConfigurationUpdate", type_.to_string(), "InitiatingMessage");
-  return c.get<ran_cfg_upd_s>();
-}
-ue_context_mod_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::ue_context_mod_request()
-{
-  assert_choice_type("UEContextModificationRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_mod_request_s>();
-}
-ue_context_release_cmd_s& ngap_elem_procs_class_minus1_o::init_msg_c::ue_context_release_cmd()
-{
-  assert_choice_type("UEContextReleaseCommand", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_release_cmd_s>();
-}
-ue_radio_cap_check_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::ue_radio_cap_check_request()
-{
-  assert_choice_type("UERadioCapabilityCheckRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_radio_cap_check_request_s>();
-}
-write_replace_warning_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::write_replace_warning_request()
-{
-  assert_choice_type("WriteReplaceWarningRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<write_replace_warning_request_s>();
-}
-const amf_cfg_upd_s& ngap_elem_procs_class_minus1_o::init_msg_c::amf_cfg_upd() const
-{
-  assert_choice_type("AMFConfigurationUpdate", type_.to_string(), "InitiatingMessage");
-  return c.get<amf_cfg_upd_s>();
-}
-const ho_cancel_s& ngap_elem_procs_class_minus1_o::init_msg_c::ho_cancel() const
-{
-  assert_choice_type("HandoverCancel", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_cancel_s>();
-}
-const ho_required_s& ngap_elem_procs_class_minus1_o::init_msg_c::ho_required() const
-{
-  assert_choice_type("HandoverRequired", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_required_s>();
-}
-const ho_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::ho_request() const
-{
-  assert_choice_type("HandoverRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_request_s>();
-}
-const init_context_setup_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::init_context_setup_request() const
-{
-  assert_choice_type("InitialContextSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<init_context_setup_request_s>();
-}
-const ng_reset_s& ngap_elem_procs_class_minus1_o::init_msg_c::ng_reset() const
-{
-  assert_choice_type("NGReset", type_.to_string(), "InitiatingMessage");
-  return c.get<ng_reset_s>();
-}
-const ng_setup_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::ng_setup_request() const
-{
-  assert_choice_type("NGSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ng_setup_request_s>();
-}
-const path_switch_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::path_switch_request() const
-{
-  assert_choice_type("PathSwitchRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<path_switch_request_s>();
-}
-const pdu_session_res_modify_request_s&
-ngap_elem_procs_class_minus1_o::init_msg_c::pdu_session_res_modify_request() const
-{
-  assert_choice_type("PDUSessionResourceModifyRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_modify_request_s>();
-}
-const pdu_session_res_modify_ind_s& ngap_elem_procs_class_minus1_o::init_msg_c::pdu_session_res_modify_ind() const
-{
-  assert_choice_type("PDUSessionResourceModifyIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_modify_ind_s>();
-}
-const pdu_session_res_release_cmd_s& ngap_elem_procs_class_minus1_o::init_msg_c::pdu_session_res_release_cmd() const
-{
-  assert_choice_type("PDUSessionResourceReleaseCommand", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_release_cmd_s>();
-}
-const pdu_session_res_setup_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::pdu_session_res_setup_request() const
-{
-  assert_choice_type("PDUSessionResourceSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_setup_request_s>();
-}
-const pws_cancel_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::pws_cancel_request() const
-{
-  assert_choice_type("PWSCancelRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<pws_cancel_request_s>();
-}
-const ran_cfg_upd_s& ngap_elem_procs_class_minus1_o::init_msg_c::ran_cfg_upd() const
-{
-  assert_choice_type("RANConfigurationUpdate", type_.to_string(), "InitiatingMessage");
-  return c.get<ran_cfg_upd_s>();
-}
-const ue_context_mod_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::ue_context_mod_request() const
-{
-  assert_choice_type("UEContextModificationRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_mod_request_s>();
-}
-const ue_context_release_cmd_s& ngap_elem_procs_class_minus1_o::init_msg_c::ue_context_release_cmd() const
-{
-  assert_choice_type("UEContextReleaseCommand", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_release_cmd_s>();
-}
-const ue_radio_cap_check_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::ue_radio_cap_check_request() const
-{
-  assert_choice_type("UERadioCapabilityCheckRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_radio_cap_check_request_s>();
-}
-const write_replace_warning_request_s& ngap_elem_procs_class_minus1_o::init_msg_c::write_replace_warning_request() const
-{
-  assert_choice_type("WriteReplaceWarningRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<write_replace_warning_request_s>();
-}
-void ngap_elem_procs_class_minus1_o::init_msg_c::destroy_()
-{
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.destroy<amf_cfg_upd_s>();
-      break;
-    case types::ho_cancel:
-      c.destroy<ho_cancel_s>();
-      break;
-    case types::ho_required:
-      c.destroy<ho_required_s>();
-      break;
-    case types::ho_request:
-      c.destroy<ho_request_s>();
-      break;
-    case types::init_context_setup_request:
-      c.destroy<init_context_setup_request_s>();
-      break;
-    case types::ng_reset:
-      c.destroy<ng_reset_s>();
-      break;
-    case types::ng_setup_request:
-      c.destroy<ng_setup_request_s>();
-      break;
-    case types::path_switch_request:
-      c.destroy<path_switch_request_s>();
-      break;
-    case types::pdu_session_res_modify_request:
-      c.destroy<pdu_session_res_modify_request_s>();
-      break;
-    case types::pdu_session_res_modify_ind:
-      c.destroy<pdu_session_res_modify_ind_s>();
-      break;
-    case types::pdu_session_res_release_cmd:
-      c.destroy<pdu_session_res_release_cmd_s>();
-      break;
-    case types::pdu_session_res_setup_request:
-      c.destroy<pdu_session_res_setup_request_s>();
-      break;
-    case types::pws_cancel_request:
-      c.destroy<pws_cancel_request_s>();
-      break;
-    case types::ran_cfg_upd:
-      c.destroy<ran_cfg_upd_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.destroy<ue_context_mod_request_s>();
-      break;
-    case types::ue_context_release_cmd:
-      c.destroy<ue_context_release_cmd_s>();
-      break;
-    case types::ue_radio_cap_check_request:
-      c.destroy<ue_radio_cap_check_request_s>();
-      break;
-    case types::write_replace_warning_request:
-      c.destroy<write_replace_warning_request_s>();
-      break;
-    default:
-      break;
-  }
-}
-void ngap_elem_procs_class_minus1_o::init_msg_c::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.init<amf_cfg_upd_s>();
-      break;
-    case types::ho_cancel:
-      c.init<ho_cancel_s>();
-      break;
-    case types::ho_required:
-      c.init<ho_required_s>();
-      break;
-    case types::ho_request:
-      c.init<ho_request_s>();
-      break;
-    case types::init_context_setup_request:
-      c.init<init_context_setup_request_s>();
-      break;
-    case types::ng_reset:
-      c.init<ng_reset_s>();
-      break;
-    case types::ng_setup_request:
-      c.init<ng_setup_request_s>();
-      break;
-    case types::path_switch_request:
-      c.init<path_switch_request_s>();
-      break;
-    case types::pdu_session_res_modify_request:
-      c.init<pdu_session_res_modify_request_s>();
-      break;
-    case types::pdu_session_res_modify_ind:
-      c.init<pdu_session_res_modify_ind_s>();
-      break;
-    case types::pdu_session_res_release_cmd:
-      c.init<pdu_session_res_release_cmd_s>();
-      break;
-    case types::pdu_session_res_setup_request:
-      c.init<pdu_session_res_setup_request_s>();
-      break;
-    case types::pws_cancel_request:
-      c.init<pws_cancel_request_s>();
-      break;
-    case types::ran_cfg_upd:
-      c.init<ran_cfg_upd_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.init<ue_context_mod_request_s>();
-      break;
-    case types::ue_context_release_cmd:
-      c.init<ue_context_release_cmd_s>();
-      break;
-    case types::ue_radio_cap_check_request:
-      c.init<ue_radio_cap_check_request_s>();
-      break;
-    case types::write_replace_warning_request:
-      c.init<write_replace_warning_request_s>();
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::init_msg_c");
-  }
-}
-ngap_elem_procs_class_minus1_o::init_msg_c::init_msg_c(const ngap_elem_procs_class_minus1_o::init_msg_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.init(other.c.get<amf_cfg_upd_s>());
-      break;
-    case types::ho_cancel:
-      c.init(other.c.get<ho_cancel_s>());
-      break;
-    case types::ho_required:
-      c.init(other.c.get<ho_required_s>());
-      break;
-    case types::ho_request:
-      c.init(other.c.get<ho_request_s>());
-      break;
-    case types::init_context_setup_request:
-      c.init(other.c.get<init_context_setup_request_s>());
-      break;
-    case types::ng_reset:
-      c.init(other.c.get<ng_reset_s>());
-      break;
-    case types::ng_setup_request:
-      c.init(other.c.get<ng_setup_request_s>());
-      break;
-    case types::path_switch_request:
-      c.init(other.c.get<path_switch_request_s>());
-      break;
-    case types::pdu_session_res_modify_request:
-      c.init(other.c.get<pdu_session_res_modify_request_s>());
-      break;
-    case types::pdu_session_res_modify_ind:
-      c.init(other.c.get<pdu_session_res_modify_ind_s>());
-      break;
-    case types::pdu_session_res_release_cmd:
-      c.init(other.c.get<pdu_session_res_release_cmd_s>());
-      break;
-    case types::pdu_session_res_setup_request:
-      c.init(other.c.get<pdu_session_res_setup_request_s>());
-      break;
-    case types::pws_cancel_request:
-      c.init(other.c.get<pws_cancel_request_s>());
-      break;
-    case types::ran_cfg_upd:
-      c.init(other.c.get<ran_cfg_upd_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.init(other.c.get<ue_context_mod_request_s>());
-      break;
-    case types::ue_context_release_cmd:
-      c.init(other.c.get<ue_context_release_cmd_s>());
-      break;
-    case types::ue_radio_cap_check_request:
-      c.init(other.c.get<ue_radio_cap_check_request_s>());
-      break;
-    case types::write_replace_warning_request:
-      c.init(other.c.get<write_replace_warning_request_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::init_msg_c");
-  }
-}
-ngap_elem_procs_class_minus1_o::init_msg_c& ngap_elem_procs_class_minus1_o::init_msg_c::
-                                            operator=(const ngap_elem_procs_class_minus1_o::init_msg_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.set(other.c.get<amf_cfg_upd_s>());
-      break;
-    case types::ho_cancel:
-      c.set(other.c.get<ho_cancel_s>());
-      break;
-    case types::ho_required:
-      c.set(other.c.get<ho_required_s>());
-      break;
-    case types::ho_request:
-      c.set(other.c.get<ho_request_s>());
-      break;
-    case types::init_context_setup_request:
-      c.set(other.c.get<init_context_setup_request_s>());
-      break;
-    case types::ng_reset:
-      c.set(other.c.get<ng_reset_s>());
-      break;
-    case types::ng_setup_request:
-      c.set(other.c.get<ng_setup_request_s>());
-      break;
-    case types::path_switch_request:
-      c.set(other.c.get<path_switch_request_s>());
-      break;
-    case types::pdu_session_res_modify_request:
-      c.set(other.c.get<pdu_session_res_modify_request_s>());
-      break;
-    case types::pdu_session_res_modify_ind:
-      c.set(other.c.get<pdu_session_res_modify_ind_s>());
-      break;
-    case types::pdu_session_res_release_cmd:
-      c.set(other.c.get<pdu_session_res_release_cmd_s>());
-      break;
-    case types::pdu_session_res_setup_request:
-      c.set(other.c.get<pdu_session_res_setup_request_s>());
-      break;
-    case types::pws_cancel_request:
-      c.set(other.c.get<pws_cancel_request_s>());
-      break;
-    case types::ran_cfg_upd:
-      c.set(other.c.get<ran_cfg_upd_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.set(other.c.get<ue_context_mod_request_s>());
-      break;
-    case types::ue_context_release_cmd:
-      c.set(other.c.get<ue_context_release_cmd_s>());
-      break;
-    case types::ue_radio_cap_check_request:
-      c.set(other.c.get<ue_radio_cap_check_request_s>());
-      break;
-    case types::write_replace_warning_request:
-      c.set(other.c.get<write_replace_warning_request_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::init_msg_c");
-  }
-
-  return *this;
-}
-void ngap_elem_procs_class_minus1_o::init_msg_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::amf_cfg_upd:
-      j.write_fieldname("AMFConfigurationUpdate");
-      c.get<amf_cfg_upd_s>().to_json(j);
-      break;
-    case types::ho_cancel:
-      j.write_fieldname("HandoverCancel");
-      c.get<ho_cancel_s>().to_json(j);
-      break;
-    case types::ho_required:
-      j.write_fieldname("HandoverRequired");
-      c.get<ho_required_s>().to_json(j);
-      break;
-    case types::ho_request:
-      j.write_fieldname("HandoverRequest");
-      c.get<ho_request_s>().to_json(j);
-      break;
-    case types::init_context_setup_request:
-      j.write_fieldname("InitialContextSetupRequest");
-      c.get<init_context_setup_request_s>().to_json(j);
-      break;
-    case types::ng_reset:
-      j.write_fieldname("NGReset");
-      c.get<ng_reset_s>().to_json(j);
-      break;
-    case types::ng_setup_request:
-      j.write_fieldname("NGSetupRequest");
-      c.get<ng_setup_request_s>().to_json(j);
-      break;
-    case types::path_switch_request:
-      j.write_fieldname("PathSwitchRequest");
-      c.get<path_switch_request_s>().to_json(j);
-      break;
-    case types::pdu_session_res_modify_request:
-      j.write_fieldname("PDUSessionResourceModifyRequest");
-      c.get<pdu_session_res_modify_request_s>().to_json(j);
-      break;
-    case types::pdu_session_res_modify_ind:
-      j.write_fieldname("PDUSessionResourceModifyIndication");
-      c.get<pdu_session_res_modify_ind_s>().to_json(j);
-      break;
-    case types::pdu_session_res_release_cmd:
-      j.write_fieldname("PDUSessionResourceReleaseCommand");
-      c.get<pdu_session_res_release_cmd_s>().to_json(j);
-      break;
-    case types::pdu_session_res_setup_request:
-      j.write_fieldname("PDUSessionResourceSetupRequest");
-      c.get<pdu_session_res_setup_request_s>().to_json(j);
-      break;
-    case types::pws_cancel_request:
-      j.write_fieldname("PWSCancelRequest");
-      c.get<pws_cancel_request_s>().to_json(j);
-      break;
-    case types::ran_cfg_upd:
-      j.write_fieldname("RANConfigurationUpdate");
-      c.get<ran_cfg_upd_s>().to_json(j);
-      break;
-    case types::ue_context_mod_request:
-      j.write_fieldname("UEContextModificationRequest");
-      c.get<ue_context_mod_request_s>().to_json(j);
-      break;
-    case types::ue_context_release_cmd:
-      j.write_fieldname("UEContextReleaseCommand");
-      c.get<ue_context_release_cmd_s>().to_json(j);
-      break;
-    case types::ue_radio_cap_check_request:
-      j.write_fieldname("UERadioCapabilityCheckRequest");
-      c.get<ue_radio_cap_check_request_s>().to_json(j);
-      break;
-    case types::write_replace_warning_request:
-      j.write_fieldname("WriteReplaceWarningRequest");
-      c.get<write_replace_warning_request_s>().to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::init_msg_c");
-  }
-  j.end_obj();
-}
-SRSASN_CODE ngap_elem_procs_class_minus1_o::init_msg_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::amf_cfg_upd:
-      HANDLE_CODE(c.get<amf_cfg_upd_s>().pack(bref));
-      break;
-    case types::ho_cancel:
-      HANDLE_CODE(c.get<ho_cancel_s>().pack(bref));
-      break;
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_required_s>().pack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_request_s>().pack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_request_s>().pack(bref));
-      break;
-    case types::ng_reset:
-      HANDLE_CODE(c.get<ng_reset_s>().pack(bref));
-      break;
-    case types::ng_setup_request:
-      HANDLE_CODE(c.get<ng_setup_request_s>().pack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_s>().pack(bref));
-      break;
-    case types::pdu_session_res_modify_request:
-      HANDLE_CODE(c.get<pdu_session_res_modify_request_s>().pack(bref));
-      break;
-    case types::pdu_session_res_modify_ind:
-      HANDLE_CODE(c.get<pdu_session_res_modify_ind_s>().pack(bref));
-      break;
-    case types::pdu_session_res_release_cmd:
-      HANDLE_CODE(c.get<pdu_session_res_release_cmd_s>().pack(bref));
-      break;
-    case types::pdu_session_res_setup_request:
-      HANDLE_CODE(c.get<pdu_session_res_setup_request_s>().pack(bref));
-      break;
-    case types::pws_cancel_request:
-      HANDLE_CODE(c.get<pws_cancel_request_s>().pack(bref));
-      break;
-    case types::ran_cfg_upd:
-      HANDLE_CODE(c.get<ran_cfg_upd_s>().pack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_request_s>().pack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      HANDLE_CODE(c.get<ue_context_release_cmd_s>().pack(bref));
-      break;
-    case types::ue_radio_cap_check_request:
-      HANDLE_CODE(c.get<ue_radio_cap_check_request_s>().pack(bref));
-      break;
-    case types::write_replace_warning_request:
-      HANDLE_CODE(c.get<write_replace_warning_request_s>().pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ngap_elem_procs_class_minus1_o::init_msg_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::amf_cfg_upd:
-      HANDLE_CODE(c.get<amf_cfg_upd_s>().unpack(bref));
-      break;
-    case types::ho_cancel:
-      HANDLE_CODE(c.get<ho_cancel_s>().unpack(bref));
-      break;
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_required_s>().unpack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_request_s>().unpack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_request_s>().unpack(bref));
-      break;
-    case types::ng_reset:
-      HANDLE_CODE(c.get<ng_reset_s>().unpack(bref));
-      break;
-    case types::ng_setup_request:
-      HANDLE_CODE(c.get<ng_setup_request_s>().unpack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_modify_request:
-      HANDLE_CODE(c.get<pdu_session_res_modify_request_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_modify_ind:
-      HANDLE_CODE(c.get<pdu_session_res_modify_ind_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_release_cmd:
-      HANDLE_CODE(c.get<pdu_session_res_release_cmd_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_setup_request:
-      HANDLE_CODE(c.get<pdu_session_res_setup_request_s>().unpack(bref));
-      break;
-    case types::pws_cancel_request:
-      HANDLE_CODE(c.get<pws_cancel_request_s>().unpack(bref));
-      break;
-    case types::ran_cfg_upd:
-      HANDLE_CODE(c.get<ran_cfg_upd_s>().unpack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_request_s>().unpack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      HANDLE_CODE(c.get<ue_context_release_cmd_s>().unpack(bref));
-      break;
-    case types::ue_radio_cap_check_request:
-      HANDLE_CODE(c.get<ue_radio_cap_check_request_s>().unpack(bref));
-      break;
-    case types::write_replace_warning_request:
-      HANDLE_CODE(c.get<write_replace_warning_request_s>().unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string ngap_elem_procs_class_minus1_o::init_msg_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"AMFConfigurationUpdate",
-                                            "HandoverCancel",
-                                            "HandoverRequired",
-                                            "HandoverRequest",
-                                            "InitialContextSetupRequest",
-                                            "NGReset",
-                                            "NGSetupRequest",
-                                            "PathSwitchRequest",
-                                            "PDUSessionResourceModifyRequest",
-                                            "PDUSessionResourceModifyIndication",
-                                            "PDUSessionResourceReleaseCommand",
-                                            "PDUSessionResourceSetupRequest",
-                                            "PWSCancelRequest",
-                                            "RANConfigurationUpdate",
-                                            "UEContextModificationRequest",
-                                            "UEContextReleaseCommand",
-                                            "UERadioCapabilityCheckRequest",
-                                            "WriteReplaceWarningRequest"};
-  return convert_enum_idx(options, 18, value, "ngap_elem_procs_class_minus1_o::init_msg_c::types");
-}
-
-// SuccessfulOutcome ::= OPEN TYPE
-amf_cfg_upd_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::amf_cfg_upd()
-{
-  assert_choice_type("AMFConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<amf_cfg_upd_ack_s>();
-}
-ho_cancel_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ho_cancel()
-{
-  assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_cancel_ack_s>();
-}
-ho_cmd_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ho_required()
-{
-  assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_cmd_s>();
-}
-ho_request_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ho_request()
-{
-  assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_request_ack_s>();
-}
-init_context_setup_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::init_context_setup_request()
-{
-  assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<init_context_setup_resp_s>();
-}
-ng_reset_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ng_reset()
-{
-  assert_choice_type("NGResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ng_reset_ack_s>();
-}
-ng_setup_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ng_setup_request()
-{
-  assert_choice_type("NGSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ng_setup_resp_s>();
-}
-path_switch_request_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::path_switch_request()
-{
-  assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<path_switch_request_ack_s>();
-}
-pdu_session_res_modify_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::pdu_session_res_modify_request()
-{
-  assert_choice_type("PDUSessionResourceModifyResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pdu_session_res_modify_resp_s>();
-}
-pdu_session_res_modify_confirm_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::pdu_session_res_modify_ind()
-{
-  assert_choice_type("PDUSessionResourceModifyConfirm", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pdu_session_res_modify_confirm_s>();
-}
-pdu_session_res_release_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::pdu_session_res_release_cmd()
-{
-  assert_choice_type("PDUSessionResourceReleaseResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pdu_session_res_release_resp_s>();
-}
-pdu_session_res_setup_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::pdu_session_res_setup_request()
-{
-  assert_choice_type("PDUSessionResourceSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pdu_session_res_setup_resp_s>();
-}
-pws_cancel_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::pws_cancel_request()
-{
-  assert_choice_type("PWSCancelResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pws_cancel_resp_s>();
-}
-ran_cfg_upd_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ran_cfg_upd()
-{
-  assert_choice_type("RANConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ran_cfg_upd_ack_s>();
-}
-ue_context_mod_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ue_context_mod_request()
-{
-  assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_context_mod_resp_s>();
-}
-ue_context_release_complete_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ue_context_release_cmd()
-{
-  assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_context_release_complete_s>();
-}
-ue_radio_cap_check_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ue_radio_cap_check_request()
-{
-  assert_choice_type("UERadioCapabilityCheckResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_radio_cap_check_resp_s>();
-}
-write_replace_warning_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::write_replace_warning_request()
-{
-  assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<write_replace_warning_resp_s>();
-}
-const amf_cfg_upd_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::amf_cfg_upd() const
-{
-  assert_choice_type("AMFConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<amf_cfg_upd_ack_s>();
-}
-const ho_cancel_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ho_cancel() const
-{
-  assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_cancel_ack_s>();
-}
-const ho_cmd_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ho_required() const
-{
-  assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_cmd_s>();
-}
-const ho_request_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ho_request() const
-{
-  assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_request_ack_s>();
-}
-const init_context_setup_resp_s&
-ngap_elem_procs_class_minus1_o::successful_outcome_c::init_context_setup_request() const
-{
-  assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<init_context_setup_resp_s>();
-}
-const ng_reset_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ng_reset() const
-{
-  assert_choice_type("NGResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ng_reset_ack_s>();
-}
-const ng_setup_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ng_setup_request() const
-{
-  assert_choice_type("NGSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ng_setup_resp_s>();
-}
-const path_switch_request_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::path_switch_request() const
-{
-  assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<path_switch_request_ack_s>();
-}
-const pdu_session_res_modify_resp_s&
-ngap_elem_procs_class_minus1_o::successful_outcome_c::pdu_session_res_modify_request() const
-{
-  assert_choice_type("PDUSessionResourceModifyResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pdu_session_res_modify_resp_s>();
-}
-const pdu_session_res_modify_confirm_s&
-ngap_elem_procs_class_minus1_o::successful_outcome_c::pdu_session_res_modify_ind() const
-{
-  assert_choice_type("PDUSessionResourceModifyConfirm", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pdu_session_res_modify_confirm_s>();
-}
-const pdu_session_res_release_resp_s&
-ngap_elem_procs_class_minus1_o::successful_outcome_c::pdu_session_res_release_cmd() const
-{
-  assert_choice_type("PDUSessionResourceReleaseResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pdu_session_res_release_resp_s>();
-}
-const pdu_session_res_setup_resp_s&
-ngap_elem_procs_class_minus1_o::successful_outcome_c::pdu_session_res_setup_request() const
-{
-  assert_choice_type("PDUSessionResourceSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pdu_session_res_setup_resp_s>();
-}
-const pws_cancel_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::pws_cancel_request() const
-{
-  assert_choice_type("PWSCancelResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<pws_cancel_resp_s>();
-}
-const ran_cfg_upd_ack_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ran_cfg_upd() const
-{
-  assert_choice_type("RANConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ran_cfg_upd_ack_s>();
-}
-const ue_context_mod_resp_s& ngap_elem_procs_class_minus1_o::successful_outcome_c::ue_context_mod_request() const
-{
-  assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_context_mod_resp_s>();
-}
-const ue_context_release_complete_s&
-ngap_elem_procs_class_minus1_o::successful_outcome_c::ue_context_release_cmd() const
-{
-  assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_context_release_complete_s>();
-}
-const ue_radio_cap_check_resp_s&
-ngap_elem_procs_class_minus1_o::successful_outcome_c::ue_radio_cap_check_request() const
-{
-  assert_choice_type("UERadioCapabilityCheckResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_radio_cap_check_resp_s>();
-}
-const write_replace_warning_resp_s&
-ngap_elem_procs_class_minus1_o::successful_outcome_c::write_replace_warning_request() const
-{
-  assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<write_replace_warning_resp_s>();
-}
-void ngap_elem_procs_class_minus1_o::successful_outcome_c::destroy_()
-{
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.destroy<amf_cfg_upd_ack_s>();
-      break;
-    case types::ho_cancel:
-      c.destroy<ho_cancel_ack_s>();
-      break;
-    case types::ho_required:
-      c.destroy<ho_cmd_s>();
-      break;
-    case types::ho_request:
-      c.destroy<ho_request_ack_s>();
-      break;
-    case types::init_context_setup_request:
-      c.destroy<init_context_setup_resp_s>();
-      break;
-    case types::ng_reset:
-      c.destroy<ng_reset_ack_s>();
-      break;
-    case types::ng_setup_request:
-      c.destroy<ng_setup_resp_s>();
-      break;
-    case types::path_switch_request:
-      c.destroy<path_switch_request_ack_s>();
-      break;
-    case types::pdu_session_res_modify_request:
-      c.destroy<pdu_session_res_modify_resp_s>();
-      break;
-    case types::pdu_session_res_modify_ind:
-      c.destroy<pdu_session_res_modify_confirm_s>();
-      break;
-    case types::pdu_session_res_release_cmd:
-      c.destroy<pdu_session_res_release_resp_s>();
-      break;
-    case types::pdu_session_res_setup_request:
-      c.destroy<pdu_session_res_setup_resp_s>();
-      break;
-    case types::pws_cancel_request:
-      c.destroy<pws_cancel_resp_s>();
-      break;
-    case types::ran_cfg_upd:
-      c.destroy<ran_cfg_upd_ack_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.destroy<ue_context_mod_resp_s>();
-      break;
-    case types::ue_context_release_cmd:
-      c.destroy<ue_context_release_complete_s>();
-      break;
-    case types::ue_radio_cap_check_request:
-      c.destroy<ue_radio_cap_check_resp_s>();
-      break;
-    case types::write_replace_warning_request:
-      c.destroy<write_replace_warning_resp_s>();
-      break;
-    default:
-      break;
-  }
-}
-void ngap_elem_procs_class_minus1_o::successful_outcome_c::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.init<amf_cfg_upd_ack_s>();
-      break;
-    case types::ho_cancel:
-      c.init<ho_cancel_ack_s>();
-      break;
-    case types::ho_required:
-      c.init<ho_cmd_s>();
-      break;
-    case types::ho_request:
-      c.init<ho_request_ack_s>();
-      break;
-    case types::init_context_setup_request:
-      c.init<init_context_setup_resp_s>();
-      break;
-    case types::ng_reset:
-      c.init<ng_reset_ack_s>();
-      break;
-    case types::ng_setup_request:
-      c.init<ng_setup_resp_s>();
-      break;
-    case types::path_switch_request:
-      c.init<path_switch_request_ack_s>();
-      break;
-    case types::pdu_session_res_modify_request:
-      c.init<pdu_session_res_modify_resp_s>();
-      break;
-    case types::pdu_session_res_modify_ind:
-      c.init<pdu_session_res_modify_confirm_s>();
-      break;
-    case types::pdu_session_res_release_cmd:
-      c.init<pdu_session_res_release_resp_s>();
-      break;
-    case types::pdu_session_res_setup_request:
-      c.init<pdu_session_res_setup_resp_s>();
-      break;
-    case types::pws_cancel_request:
-      c.init<pws_cancel_resp_s>();
-      break;
-    case types::ran_cfg_upd:
-      c.init<ran_cfg_upd_ack_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.init<ue_context_mod_resp_s>();
-      break;
-    case types::ue_context_release_cmd:
-      c.init<ue_context_release_complete_s>();
-      break;
-    case types::ue_radio_cap_check_request:
-      c.init<ue_radio_cap_check_resp_s>();
-      break;
-    case types::write_replace_warning_request:
-      c.init<write_replace_warning_resp_s>();
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::successful_outcome_c");
-  }
-}
-ngap_elem_procs_class_minus1_o::successful_outcome_c::successful_outcome_c(
-    const ngap_elem_procs_class_minus1_o::successful_outcome_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.init(other.c.get<amf_cfg_upd_ack_s>());
-      break;
-    case types::ho_cancel:
-      c.init(other.c.get<ho_cancel_ack_s>());
-      break;
-    case types::ho_required:
-      c.init(other.c.get<ho_cmd_s>());
-      break;
-    case types::ho_request:
-      c.init(other.c.get<ho_request_ack_s>());
-      break;
-    case types::init_context_setup_request:
-      c.init(other.c.get<init_context_setup_resp_s>());
-      break;
-    case types::ng_reset:
-      c.init(other.c.get<ng_reset_ack_s>());
-      break;
-    case types::ng_setup_request:
-      c.init(other.c.get<ng_setup_resp_s>());
-      break;
-    case types::path_switch_request:
-      c.init(other.c.get<path_switch_request_ack_s>());
-      break;
-    case types::pdu_session_res_modify_request:
-      c.init(other.c.get<pdu_session_res_modify_resp_s>());
-      break;
-    case types::pdu_session_res_modify_ind:
-      c.init(other.c.get<pdu_session_res_modify_confirm_s>());
-      break;
-    case types::pdu_session_res_release_cmd:
-      c.init(other.c.get<pdu_session_res_release_resp_s>());
-      break;
-    case types::pdu_session_res_setup_request:
-      c.init(other.c.get<pdu_session_res_setup_resp_s>());
-      break;
-    case types::pws_cancel_request:
-      c.init(other.c.get<pws_cancel_resp_s>());
-      break;
-    case types::ran_cfg_upd:
-      c.init(other.c.get<ran_cfg_upd_ack_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.init(other.c.get<ue_context_mod_resp_s>());
-      break;
-    case types::ue_context_release_cmd:
-      c.init(other.c.get<ue_context_release_complete_s>());
-      break;
-    case types::ue_radio_cap_check_request:
-      c.init(other.c.get<ue_radio_cap_check_resp_s>());
-      break;
-    case types::write_replace_warning_request:
-      c.init(other.c.get<write_replace_warning_resp_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::successful_outcome_c");
-  }
-}
-ngap_elem_procs_class_minus1_o::successful_outcome_c& ngap_elem_procs_class_minus1_o::successful_outcome_c::
-                                                      operator=(const ngap_elem_procs_class_minus1_o::successful_outcome_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.set(other.c.get<amf_cfg_upd_ack_s>());
-      break;
-    case types::ho_cancel:
-      c.set(other.c.get<ho_cancel_ack_s>());
-      break;
-    case types::ho_required:
-      c.set(other.c.get<ho_cmd_s>());
-      break;
-    case types::ho_request:
-      c.set(other.c.get<ho_request_ack_s>());
-      break;
-    case types::init_context_setup_request:
-      c.set(other.c.get<init_context_setup_resp_s>());
-      break;
-    case types::ng_reset:
-      c.set(other.c.get<ng_reset_ack_s>());
-      break;
-    case types::ng_setup_request:
-      c.set(other.c.get<ng_setup_resp_s>());
-      break;
-    case types::path_switch_request:
-      c.set(other.c.get<path_switch_request_ack_s>());
-      break;
-    case types::pdu_session_res_modify_request:
-      c.set(other.c.get<pdu_session_res_modify_resp_s>());
-      break;
-    case types::pdu_session_res_modify_ind:
-      c.set(other.c.get<pdu_session_res_modify_confirm_s>());
-      break;
-    case types::pdu_session_res_release_cmd:
-      c.set(other.c.get<pdu_session_res_release_resp_s>());
-      break;
-    case types::pdu_session_res_setup_request:
-      c.set(other.c.get<pdu_session_res_setup_resp_s>());
-      break;
-    case types::pws_cancel_request:
-      c.set(other.c.get<pws_cancel_resp_s>());
-      break;
-    case types::ran_cfg_upd:
-      c.set(other.c.get<ran_cfg_upd_ack_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.set(other.c.get<ue_context_mod_resp_s>());
-      break;
-    case types::ue_context_release_cmd:
-      c.set(other.c.get<ue_context_release_complete_s>());
-      break;
-    case types::ue_radio_cap_check_request:
-      c.set(other.c.get<ue_radio_cap_check_resp_s>());
-      break;
-    case types::write_replace_warning_request:
-      c.set(other.c.get<write_replace_warning_resp_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::successful_outcome_c");
-  }
-
-  return *this;
-}
-void ngap_elem_procs_class_minus1_o::successful_outcome_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::amf_cfg_upd:
-      j.write_fieldname("AMFConfigurationUpdateAcknowledge");
-      c.get<amf_cfg_upd_ack_s>().to_json(j);
-      break;
-    case types::ho_cancel:
-      j.write_fieldname("HandoverCancelAcknowledge");
-      c.get<ho_cancel_ack_s>().to_json(j);
-      break;
-    case types::ho_required:
-      j.write_fieldname("HandoverCommand");
-      c.get<ho_cmd_s>().to_json(j);
-      break;
-    case types::ho_request:
-      j.write_fieldname("HandoverRequestAcknowledge");
-      c.get<ho_request_ack_s>().to_json(j);
-      break;
-    case types::init_context_setup_request:
-      j.write_fieldname("InitialContextSetupResponse");
-      c.get<init_context_setup_resp_s>().to_json(j);
-      break;
-    case types::ng_reset:
-      j.write_fieldname("NGResetAcknowledge");
-      c.get<ng_reset_ack_s>().to_json(j);
-      break;
-    case types::ng_setup_request:
-      j.write_fieldname("NGSetupResponse");
-      c.get<ng_setup_resp_s>().to_json(j);
-      break;
-    case types::path_switch_request:
-      j.write_fieldname("PathSwitchRequestAcknowledge");
-      c.get<path_switch_request_ack_s>().to_json(j);
-      break;
-    case types::pdu_session_res_modify_request:
-      j.write_fieldname("PDUSessionResourceModifyResponse");
-      c.get<pdu_session_res_modify_resp_s>().to_json(j);
-      break;
-    case types::pdu_session_res_modify_ind:
-      j.write_fieldname("PDUSessionResourceModifyConfirm");
-      c.get<pdu_session_res_modify_confirm_s>().to_json(j);
-      break;
-    case types::pdu_session_res_release_cmd:
-      j.write_fieldname("PDUSessionResourceReleaseResponse");
-      c.get<pdu_session_res_release_resp_s>().to_json(j);
-      break;
-    case types::pdu_session_res_setup_request:
-      j.write_fieldname("PDUSessionResourceSetupResponse");
-      c.get<pdu_session_res_setup_resp_s>().to_json(j);
-      break;
-    case types::pws_cancel_request:
-      j.write_fieldname("PWSCancelResponse");
-      c.get<pws_cancel_resp_s>().to_json(j);
-      break;
-    case types::ran_cfg_upd:
-      j.write_fieldname("RANConfigurationUpdateAcknowledge");
-      c.get<ran_cfg_upd_ack_s>().to_json(j);
-      break;
-    case types::ue_context_mod_request:
-      j.write_fieldname("UEContextModificationResponse");
-      c.get<ue_context_mod_resp_s>().to_json(j);
-      break;
-    case types::ue_context_release_cmd:
-      j.write_fieldname("UEContextReleaseComplete");
-      c.get<ue_context_release_complete_s>().to_json(j);
-      break;
-    case types::ue_radio_cap_check_request:
-      j.write_fieldname("UERadioCapabilityCheckResponse");
-      c.get<ue_radio_cap_check_resp_s>().to_json(j);
-      break;
-    case types::write_replace_warning_request:
-      j.write_fieldname("WriteReplaceWarningResponse");
-      c.get<write_replace_warning_resp_s>().to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::successful_outcome_c");
-  }
-  j.end_obj();
-}
-SRSASN_CODE ngap_elem_procs_class_minus1_o::successful_outcome_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::amf_cfg_upd:
-      HANDLE_CODE(c.get<amf_cfg_upd_ack_s>().pack(bref));
-      break;
-    case types::ho_cancel:
-      HANDLE_CODE(c.get<ho_cancel_ack_s>().pack(bref));
-      break;
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_cmd_s>().pack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_request_ack_s>().pack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_resp_s>().pack(bref));
-      break;
-    case types::ng_reset:
-      HANDLE_CODE(c.get<ng_reset_ack_s>().pack(bref));
-      break;
-    case types::ng_setup_request:
-      HANDLE_CODE(c.get<ng_setup_resp_s>().pack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_ack_s>().pack(bref));
-      break;
-    case types::pdu_session_res_modify_request:
-      HANDLE_CODE(c.get<pdu_session_res_modify_resp_s>().pack(bref));
-      break;
-    case types::pdu_session_res_modify_ind:
-      HANDLE_CODE(c.get<pdu_session_res_modify_confirm_s>().pack(bref));
-      break;
-    case types::pdu_session_res_release_cmd:
-      HANDLE_CODE(c.get<pdu_session_res_release_resp_s>().pack(bref));
-      break;
-    case types::pdu_session_res_setup_request:
-      HANDLE_CODE(c.get<pdu_session_res_setup_resp_s>().pack(bref));
-      break;
-    case types::pws_cancel_request:
-      HANDLE_CODE(c.get<pws_cancel_resp_s>().pack(bref));
-      break;
-    case types::ran_cfg_upd:
-      HANDLE_CODE(c.get<ran_cfg_upd_ack_s>().pack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_resp_s>().pack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      HANDLE_CODE(c.get<ue_context_release_complete_s>().pack(bref));
-      break;
-    case types::ue_radio_cap_check_request:
-      HANDLE_CODE(c.get<ue_radio_cap_check_resp_s>().pack(bref));
-      break;
-    case types::write_replace_warning_request:
-      HANDLE_CODE(c.get<write_replace_warning_resp_s>().pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::successful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ngap_elem_procs_class_minus1_o::successful_outcome_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::amf_cfg_upd:
-      HANDLE_CODE(c.get<amf_cfg_upd_ack_s>().unpack(bref));
-      break;
-    case types::ho_cancel:
-      HANDLE_CODE(c.get<ho_cancel_ack_s>().unpack(bref));
-      break;
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_cmd_s>().unpack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_request_ack_s>().unpack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_resp_s>().unpack(bref));
-      break;
-    case types::ng_reset:
-      HANDLE_CODE(c.get<ng_reset_ack_s>().unpack(bref));
-      break;
-    case types::ng_setup_request:
-      HANDLE_CODE(c.get<ng_setup_resp_s>().unpack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_ack_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_modify_request:
-      HANDLE_CODE(c.get<pdu_session_res_modify_resp_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_modify_ind:
-      HANDLE_CODE(c.get<pdu_session_res_modify_confirm_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_release_cmd:
-      HANDLE_CODE(c.get<pdu_session_res_release_resp_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_setup_request:
-      HANDLE_CODE(c.get<pdu_session_res_setup_resp_s>().unpack(bref));
-      break;
-    case types::pws_cancel_request:
-      HANDLE_CODE(c.get<pws_cancel_resp_s>().unpack(bref));
-      break;
-    case types::ran_cfg_upd:
-      HANDLE_CODE(c.get<ran_cfg_upd_ack_s>().unpack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_resp_s>().unpack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      HANDLE_CODE(c.get<ue_context_release_complete_s>().unpack(bref));
-      break;
-    case types::ue_radio_cap_check_request:
-      HANDLE_CODE(c.get<ue_radio_cap_check_resp_s>().unpack(bref));
-      break;
-    case types::write_replace_warning_request:
-      HANDLE_CODE(c.get<write_replace_warning_resp_s>().unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::successful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string ngap_elem_procs_class_minus1_o::successful_outcome_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"AMFConfigurationUpdateAcknowledge",
-                                            "HandoverCancelAcknowledge",
-                                            "HandoverCommand",
-                                            "HandoverRequestAcknowledge",
-                                            "InitialContextSetupResponse",
-                                            "NGResetAcknowledge",
-                                            "NGSetupResponse",
-                                            "PathSwitchRequestAcknowledge",
-                                            "PDUSessionResourceModifyResponse",
-                                            "PDUSessionResourceModifyConfirm",
-                                            "PDUSessionResourceReleaseResponse",
-                                            "PDUSessionResourceSetupResponse",
-                                            "PWSCancelResponse",
-                                            "RANConfigurationUpdateAcknowledge",
-                                            "UEContextModificationResponse",
-                                            "UEContextReleaseComplete",
-                                            "UERadioCapabilityCheckResponse",
-                                            "WriteReplaceWarningResponse"};
-  return convert_enum_idx(options, 18, value, "ngap_elem_procs_class_minus1_o::successful_outcome_c::types");
-}
-
-// UnsuccessfulOutcome ::= OPEN TYPE
-amf_cfg_upd_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::amf_cfg_upd()
-{
-  assert_choice_type("AMFConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<amf_cfg_upd_fail_s>();
-}
-ho_prep_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ho_required()
-{
-  assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ho_prep_fail_s>();
-}
-ho_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ho_request()
-{
-  assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ho_fail_s>();
-}
-init_context_setup_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::init_context_setup_request()
-{
-  assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<init_context_setup_fail_s>();
-}
-ng_setup_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ng_setup_request()
-{
-  assert_choice_type("NGSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ng_setup_fail_s>();
-}
-path_switch_request_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::path_switch_request()
-{
-  assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<path_switch_request_fail_s>();
-}
-ran_cfg_upd_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ran_cfg_upd()
-{
-  assert_choice_type("RANConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ran_cfg_upd_fail_s>();
-}
-ue_context_mod_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ue_context_mod_request()
-{
-  assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ue_context_mod_fail_s>();
-}
-const amf_cfg_upd_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::amf_cfg_upd() const
-{
-  assert_choice_type("AMFConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<amf_cfg_upd_fail_s>();
-}
-const ho_prep_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ho_required() const
-{
-  assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ho_prep_fail_s>();
-}
-const ho_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ho_request() const
-{
-  assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ho_fail_s>();
-}
-const init_context_setup_fail_s&
-ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::init_context_setup_request() const
-{
-  assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<init_context_setup_fail_s>();
-}
-const ng_setup_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ng_setup_request() const
-{
-  assert_choice_type("NGSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ng_setup_fail_s>();
-}
-const path_switch_request_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::path_switch_request() const
-{
-  assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<path_switch_request_fail_s>();
-}
-const ran_cfg_upd_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ran_cfg_upd() const
-{
-  assert_choice_type("RANConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ran_cfg_upd_fail_s>();
-}
-const ue_context_mod_fail_s& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ue_context_mod_request() const
-{
-  assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ue_context_mod_fail_s>();
-}
-void ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::destroy_()
-{
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.destroy<amf_cfg_upd_fail_s>();
-      break;
-    case types::ho_required:
-      c.destroy<ho_prep_fail_s>();
-      break;
-    case types::ho_request:
-      c.destroy<ho_fail_s>();
-      break;
-    case types::init_context_setup_request:
-      c.destroy<init_context_setup_fail_s>();
-      break;
-    case types::ng_setup_request:
-      c.destroy<ng_setup_fail_s>();
-      break;
-    case types::path_switch_request:
-      c.destroy<path_switch_request_fail_s>();
-      break;
-    case types::ran_cfg_upd:
-      c.destroy<ran_cfg_upd_fail_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.destroy<ue_context_mod_fail_s>();
-      break;
-    default:
-      break;
-  }
-}
-void ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.init<amf_cfg_upd_fail_s>();
-      break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
-      c.init<ho_prep_fail_s>();
-      break;
-    case types::ho_request:
-      c.init<ho_fail_s>();
-      break;
-    case types::init_context_setup_request:
-      c.init<init_context_setup_fail_s>();
-      break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
-      c.init<ng_setup_fail_s>();
-      break;
-    case types::path_switch_request:
-      c.init<path_switch_request_fail_s>();
-      break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
-      c.init<ran_cfg_upd_fail_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.init<ue_context_mod_fail_s>();
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-  }
-}
-ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::unsuccessful_outcome_c(
-    const ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.init(other.c.get<amf_cfg_upd_fail_s>());
-      break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
-      c.init(other.c.get<ho_prep_fail_s>());
-      break;
-    case types::ho_request:
-      c.init(other.c.get<ho_fail_s>());
-      break;
-    case types::init_context_setup_request:
-      c.init(other.c.get<init_context_setup_fail_s>());
-      break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
-      c.init(other.c.get<ng_setup_fail_s>());
-      break;
-    case types::path_switch_request:
-      c.init(other.c.get<path_switch_request_fail_s>());
-      break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
-      c.init(other.c.get<ran_cfg_upd_fail_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.init(other.c.get<ue_context_mod_fail_s>());
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-  }
-}
-ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c& ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::
-                                                        operator=(const ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::amf_cfg_upd:
-      c.set(other.c.get<amf_cfg_upd_fail_s>());
-      break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
-      c.set(other.c.get<ho_prep_fail_s>());
-      break;
-    case types::ho_request:
-      c.set(other.c.get<ho_fail_s>());
-      break;
-    case types::init_context_setup_request:
-      c.set(other.c.get<init_context_setup_fail_s>());
-      break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
-      c.set(other.c.get<ng_setup_fail_s>());
-      break;
-    case types::path_switch_request:
-      c.set(other.c.get<path_switch_request_fail_s>());
-      break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
-      c.set(other.c.get<ran_cfg_upd_fail_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.set(other.c.get<ue_context_mod_fail_s>());
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-  }
-
-  return *this;
-}
-void ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::amf_cfg_upd:
-      j.write_fieldname("AMFConfigurationUpdateFailure");
-      c.get<amf_cfg_upd_fail_s>().to_json(j);
-      break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
-      j.write_fieldname("HandoverPreparationFailure");
-      c.get<ho_prep_fail_s>().to_json(j);
-      break;
-    case types::ho_request:
-      j.write_fieldname("HandoverFailure");
-      c.get<ho_fail_s>().to_json(j);
-      break;
-    case types::init_context_setup_request:
-      j.write_fieldname("InitialContextSetupFailure");
-      c.get<init_context_setup_fail_s>().to_json(j);
-      break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
-      j.write_fieldname("NGSetupFailure");
-      c.get<ng_setup_fail_s>().to_json(j);
-      break;
-    case types::path_switch_request:
-      j.write_fieldname("PathSwitchRequestFailure");
-      c.get<path_switch_request_fail_s>().to_json(j);
-      break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
-      j.write_fieldname("RANConfigurationUpdateFailure");
-      c.get<ran_cfg_upd_fail_s>().to_json(j);
-      break;
-    case types::ue_context_mod_request:
-      j.write_fieldname("UEContextModificationFailure");
-      c.get<ue_context_mod_fail_s>().to_json(j);
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-  }
-  j.end_obj();
-}
-SRSASN_CODE ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::amf_cfg_upd:
-      HANDLE_CODE(c.get<amf_cfg_upd_fail_s>().pack(bref));
-      break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_prep_fail_s>().pack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_fail_s>().pack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_fail_s>().pack(bref));
-      break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
-      HANDLE_CODE(c.get<ng_setup_fail_s>().pack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_fail_s>().pack(bref));
-      break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
-      HANDLE_CODE(c.get<ran_cfg_upd_fail_s>().pack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_fail_s>().pack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::amf_cfg_upd:
-      HANDLE_CODE(c.get<amf_cfg_upd_fail_s>().unpack(bref));
-      break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_prep_fail_s>().unpack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_fail_s>().unpack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_fail_s>().unpack(bref));
-      break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
-      HANDLE_CODE(c.get<ng_setup_fail_s>().unpack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_fail_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
-      HANDLE_CODE(c.get<ran_cfg_upd_fail_s>().unpack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_fail_s>().unpack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"AMFConfigurationUpdateFailure",
-                                            "NULL",
-                                            "HandoverPreparationFailure",
-                                            "HandoverFailure",
-                                            "InitialContextSetupFailure",
-                                            "NULL",
-                                            "NGSetupFailure",
-                                            "PathSwitchRequestFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "RANConfigurationUpdateFailure",
-                                            "UEContextModificationFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL"};
-  return convert_enum_idx(options, 18, value, "ngap_elem_procs_class_minus1_o::unsuccessful_outcome_c::types");
-}
-
-// NGAP-ELEMENTARY-PROCEDURES-CLASS-2 ::= OBJECT SET OF NGAP-ELEMENTARY-PROCEDURE
-uint16_t ngap_elem_procs_class_minus2_o::idx_to_proc_code(uint32_t idx)
-{
-  static constexpr const uint16_t options[] = {1,  2,  3,  4,  5,  6,  7,  8,  9,  11, 15, 18, 16, 17, 19, 22, 23, 24,
-                                               30, 31, 33, 34, 36, 37, 52, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50};
-  return convert_enum_idx(options, 35, idx, "proc_code");
-}
-bool ngap_elem_procs_class_minus2_o::is_proc_code_valid(const uint16_t& proc_code)
-{
-  static constexpr const uint16_t options[] = {1,  2,  3,  4,  5,  6,  7,  8,  9,  11, 15, 18, 16, 17, 19, 22, 23, 24,
-                                               30, 31, 33, 34, 36, 37, 52, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50};
-  for (uint32_t i = 0; i < 35; ++i) {
-    if (options[i] == proc_code) {
-      return true;
-    }
-  }
-  return false;
-}
-ngap_elem_procs_class_minus2_o::init_msg_c ngap_elem_procs_class_minus2_o::get_init_msg(const uint16_t& proc_code)
-{
-  init_msg_c ret{};
-  switch (proc_code) {
-    case 1:
-      ret.set(init_msg_c::types::amf_status_ind);
-      break;
-    case 2:
-      ret.set(init_msg_c::types::cell_traffic_trace);
-      break;
-    case 3:
-      ret.set(init_msg_c::types::deactiv_trace);
-      break;
-    case 4:
-      ret.set(init_msg_c::types::dl_nas_transport);
-      break;
-    case 5:
-      ret.set(init_msg_c::types::dl_non_ueassociated_nrp_pa_transport);
-      break;
-    case 6:
-      ret.set(init_msg_c::types::dl_ran_cfg_transfer);
-      break;
-    case 7:
-      ret.set(init_msg_c::types::dl_ran_status_transfer);
-      break;
-    case 8:
-      ret.set(init_msg_c::types::dl_ueassociated_nrp_pa_transport);
-      break;
-    case 9:
-      ret.set(init_msg_c::types::error_ind);
-      break;
-    case 11:
-      ret.set(init_msg_c::types::ho_notify);
-      break;
-    case 15:
-      ret.set(init_msg_c::types::init_ue_msg);
-      break;
-    case 18:
-      ret.set(init_msg_c::types::location_report);
-      break;
-    case 16:
-      ret.set(init_msg_c::types::location_report_ctrl);
-      break;
-    case 17:
-      ret.set(init_msg_c::types::location_report_fail_ind);
-      break;
-    case 19:
-      ret.set(init_msg_c::types::nas_non_delivery_ind);
-      break;
-    case 22:
-      ret.set(init_msg_c::types::overload_start);
-      break;
-    case 23:
-      ret.set(init_msg_c::types::overload_stop);
-      break;
-    case 24:
-      ret.set(init_msg_c::types::paging);
-      break;
-    case 30:
-      ret.set(init_msg_c::types::pdu_session_res_notify);
-      break;
-    case 31:
-      ret.set(init_msg_c::types::private_msg);
-      break;
-    case 33:
-      ret.set(init_msg_c::types::pws_fail_ind);
-      break;
-    case 34:
-      ret.set(init_msg_c::types::pws_restart_ind);
-      break;
-    case 36:
-      ret.set(init_msg_c::types::reroute_nas_request);
-      break;
-    case 37:
-      ret.set(init_msg_c::types::rrc_inactive_transition_report);
-      break;
-    case 52:
-      ret.set(init_msg_c::types::secondary_rat_data_usage_report);
-      break;
-    case 38:
-      ret.set(init_msg_c::types::trace_fail_ind);
-      break;
-    case 39:
-      ret.set(init_msg_c::types::trace_start);
-      break;
-    case 42:
-      ret.set(init_msg_c::types::ue_context_release_request);
-      break;
-    case 44:
-      ret.set(init_msg_c::types::ue_radio_cap_info_ind);
-      break;
-    case 45:
-      ret.set(init_msg_c::types::uetnla_binding_release_request);
-      break;
-    case 46:
-      ret.set(init_msg_c::types::ul_nas_transport);
-      break;
-    case 47:
-      ret.set(init_msg_c::types::ul_non_ueassociated_nrp_pa_transport);
-      break;
-    case 48:
-      ret.set(init_msg_c::types::ul_ran_cfg_transfer);
-      break;
-    case 49:
-      ret.set(init_msg_c::types::ul_ran_status_transfer);
-      break;
-    case 50:
-      ret.set(init_msg_c::types::ul_ueassociated_nrp_pa_transport);
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-ngap_elem_procs_class_minus2_o::successful_outcome_c
-ngap_elem_procs_class_minus2_o::get_successful_outcome(const uint16_t& proc_code)
-{
-  successful_outcome_c ret{};
-  switch (proc_code) {
-    case 1:
-      break;
-    case 2:
-      break;
-    case 3:
-      break;
-    case 4:
-      break;
-    case 5:
-      break;
-    case 6:
-      break;
-    case 7:
-      break;
-    case 8:
-      break;
-    case 9:
-      break;
-    case 11:
-      break;
-    case 15:
-      break;
-    case 18:
-      break;
-    case 16:
-      break;
-    case 17:
-      break;
-    case 19:
-      break;
-    case 22:
-      break;
-    case 23:
-      break;
-    case 24:
-      break;
-    case 30:
-      break;
-    case 31:
-      break;
-    case 33:
-      break;
-    case 34:
-      break;
-    case 36:
-      break;
-    case 37:
-      break;
-    case 52:
-      break;
-    case 38:
-      break;
-    case 39:
-      break;
-    case 42:
-      break;
-    case 44:
-      break;
-    case 45:
-      break;
-    case 46:
-      break;
-    case 47:
-      break;
-    case 48:
-      break;
-    case 49:
-      break;
-    case 50:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-ngap_elem_procs_class_minus2_o::unsuccessful_outcome_c
-ngap_elem_procs_class_minus2_o::get_unsuccessful_outcome(const uint16_t& proc_code)
-{
-  unsuccessful_outcome_c ret{};
-  switch (proc_code) {
-    case 1:
-      break;
-    case 2:
-      break;
-    case 3:
-      break;
-    case 4:
-      break;
-    case 5:
-      break;
-    case 6:
-      break;
-    case 7:
-      break;
-    case 8:
-      break;
-    case 9:
-      break;
-    case 11:
-      break;
-    case 15:
-      break;
-    case 18:
-      break;
-    case 16:
-      break;
-    case 17:
-      break;
-    case 19:
-      break;
-    case 22:
-      break;
-    case 23:
-      break;
-    case 24:
-      break;
-    case 30:
-      break;
-    case 31:
-      break;
-    case 33:
-      break;
-    case 34:
-      break;
-    case 36:
-      break;
-    case 37:
-      break;
-    case 52:
-      break;
-    case 38:
-      break;
-    case 39:
-      break;
-    case 42:
-      break;
-    case 44:
-      break;
-    case 45:
-      break;
-    case 46:
-      break;
-    case 47:
-      break;
-    case 48:
-      break;
-    case 49:
-      break;
-    case 50:
-      break;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-crit_e ngap_elem_procs_class_minus2_o::get_crit(const uint16_t& proc_code)
-{
-  switch (proc_code) {
-    case 1:
-      return crit_e::ignore;
-    case 2:
-      return crit_e::ignore;
-    case 3:
-      return crit_e::ignore;
-    case 4:
-      return crit_e::ignore;
-    case 5:
-      return crit_e::ignore;
-    case 6:
-      return crit_e::ignore;
-    case 7:
-      return crit_e::ignore;
-    case 8:
-      return crit_e::ignore;
-    case 9:
-      return crit_e::ignore;
-    case 11:
-      return crit_e::ignore;
-    case 15:
-      return crit_e::ignore;
-    case 18:
-      return crit_e::ignore;
-    case 16:
-      return crit_e::ignore;
-    case 17:
-      return crit_e::ignore;
-    case 19:
-      return crit_e::ignore;
-    case 22:
-      return crit_e::ignore;
-    case 23:
-      return crit_e::reject;
-    case 24:
-      return crit_e::ignore;
-    case 30:
-      return crit_e::ignore;
-    case 31:
-      return crit_e::ignore;
-    case 33:
-      return crit_e::ignore;
-    case 34:
-      return crit_e::ignore;
-    case 36:
-      return crit_e::reject;
-    case 37:
-      return crit_e::ignore;
-    case 52:
-      return crit_e::ignore;
-    case 38:
-      return crit_e::ignore;
-    case 39:
-      return crit_e::ignore;
-    case 42:
-      return crit_e::ignore;
-    case 44:
-      return crit_e::ignore;
-    case 45:
-      return crit_e::ignore;
-    case 46:
-      return crit_e::ignore;
-    case 47:
-      return crit_e::ignore;
-    case 48:
-      return crit_e::ignore;
-    case 49:
-      return crit_e::ignore;
-    case 50:
-      return crit_e::ignore;
-    default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return crit_e();
-}
-
-// InitiatingMessage ::= OPEN TYPE
-amf_status_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::amf_status_ind()
-{
-  assert_choice_type("AMFStatusIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<amf_status_ind_s>();
-}
-cell_traffic_trace_s& ngap_elem_procs_class_minus2_o::init_msg_c::cell_traffic_trace()
-{
-  assert_choice_type("CellTrafficTrace", type_.to_string(), "InitiatingMessage");
-  return c.get<cell_traffic_trace_s>();
-}
-deactiv_trace_s& ngap_elem_procs_class_minus2_o::init_msg_c::deactiv_trace()
-{
-  assert_choice_type("DeactivateTrace", type_.to_string(), "InitiatingMessage");
-  return c.get<deactiv_trace_s>();
-}
-dl_nas_transport_s& ngap_elem_procs_class_minus2_o::init_msg_c::dl_nas_transport()
-{
-  assert_choice_type("DownlinkNASTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_nas_transport_s>();
-}
-dl_non_ueassociated_nrp_pa_transport_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::dl_non_ueassociated_nrp_pa_transport()
-{
-  assert_choice_type("DownlinkNonUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_non_ueassociated_nrp_pa_transport_s>();
-}
-dl_ran_cfg_transfer_s& ngap_elem_procs_class_minus2_o::init_msg_c::dl_ran_cfg_transfer()
-{
-  assert_choice_type("DownlinkRANConfigurationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_ran_cfg_transfer_s>();
-}
-dl_ran_status_transfer_s& ngap_elem_procs_class_minus2_o::init_msg_c::dl_ran_status_transfer()
-{
-  assert_choice_type("DownlinkRANStatusTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_ran_status_transfer_s>();
-}
-dl_ueassociated_nrp_pa_transport_s& ngap_elem_procs_class_minus2_o::init_msg_c::dl_ueassociated_nrp_pa_transport()
-{
-  assert_choice_type("DownlinkUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_ueassociated_nrp_pa_transport_s>();
-}
-error_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::error_ind()
-{
-  assert_choice_type("ErrorIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<error_ind_s>();
-}
-ho_notify_s& ngap_elem_procs_class_minus2_o::init_msg_c::ho_notify()
-{
-  assert_choice_type("HandoverNotify", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_notify_s>();
-}
-init_ue_msg_s& ngap_elem_procs_class_minus2_o::init_msg_c::init_ue_msg()
-{
-  assert_choice_type("InitialUEMessage", type_.to_string(), "InitiatingMessage");
-  return c.get<init_ue_msg_s>();
-}
-location_report_s& ngap_elem_procs_class_minus2_o::init_msg_c::location_report()
-{
-  assert_choice_type("LocationReport", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_s>();
-}
-location_report_ctrl_s& ngap_elem_procs_class_minus2_o::init_msg_c::location_report_ctrl()
-{
-  assert_choice_type("LocationReportingControl", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_ctrl_s>();
-}
-location_report_fail_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::location_report_fail_ind()
-{
-  assert_choice_type("LocationReportingFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_fail_ind_s>();
-}
-nas_non_delivery_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::nas_non_delivery_ind()
-{
-  assert_choice_type("NASNonDeliveryIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<nas_non_delivery_ind_s>();
-}
-overload_start_s& ngap_elem_procs_class_minus2_o::init_msg_c::overload_start()
-{
-  assert_choice_type("OverloadStart", type_.to_string(), "InitiatingMessage");
-  return c.get<overload_start_s>();
-}
-overload_stop_s& ngap_elem_procs_class_minus2_o::init_msg_c::overload_stop()
-{
-  assert_choice_type("OverloadStop", type_.to_string(), "InitiatingMessage");
-  return c.get<overload_stop_s>();
-}
-paging_s& ngap_elem_procs_class_minus2_o::init_msg_c::paging()
-{
-  assert_choice_type("Paging", type_.to_string(), "InitiatingMessage");
-  return c.get<paging_s>();
-}
-pdu_session_res_notify_s& ngap_elem_procs_class_minus2_o::init_msg_c::pdu_session_res_notify()
-{
-  assert_choice_type("PDUSessionResourceNotify", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_notify_s>();
-}
-private_msg_s& ngap_elem_procs_class_minus2_o::init_msg_c::private_msg()
-{
-  assert_choice_type("PrivateMessage", type_.to_string(), "InitiatingMessage");
-  return c.get<private_msg_s>();
-}
-pws_fail_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::pws_fail_ind()
-{
-  assert_choice_type("PWSFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<pws_fail_ind_s>();
-}
-pws_restart_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::pws_restart_ind()
-{
-  assert_choice_type("PWSRestartIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<pws_restart_ind_s>();
-}
-reroute_nas_request_s& ngap_elem_procs_class_minus2_o::init_msg_c::reroute_nas_request()
-{
-  assert_choice_type("RerouteNASRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<reroute_nas_request_s>();
-}
-rrc_inactive_transition_report_s& ngap_elem_procs_class_minus2_o::init_msg_c::rrc_inactive_transition_report()
-{
-  assert_choice_type("RRCInactiveTransitionReport", type_.to_string(), "InitiatingMessage");
-  return c.get<rrc_inactive_transition_report_s>();
-}
-secondary_rat_data_usage_report_s& ngap_elem_procs_class_minus2_o::init_msg_c::secondary_rat_data_usage_report()
-{
-  assert_choice_type("SecondaryRATDataUsageReport", type_.to_string(), "InitiatingMessage");
-  return c.get<secondary_rat_data_usage_report_s>();
-}
-trace_fail_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::trace_fail_ind()
-{
-  assert_choice_type("TraceFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<trace_fail_ind_s>();
-}
-trace_start_s& ngap_elem_procs_class_minus2_o::init_msg_c::trace_start()
-{
-  assert_choice_type("TraceStart", type_.to_string(), "InitiatingMessage");
-  return c.get<trace_start_s>();
-}
-ue_context_release_request_s& ngap_elem_procs_class_minus2_o::init_msg_c::ue_context_release_request()
-{
-  assert_choice_type("UEContextReleaseRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_release_request_s>();
-}
-ue_radio_cap_info_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::ue_radio_cap_info_ind()
-{
-  assert_choice_type("UERadioCapabilityInfoIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_radio_cap_info_ind_s>();
-}
-uetnla_binding_release_request_s& ngap_elem_procs_class_minus2_o::init_msg_c::uetnla_binding_release_request()
-{
-  assert_choice_type("UETNLABindingReleaseRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<uetnla_binding_release_request_s>();
-}
-ul_nas_transport_s& ngap_elem_procs_class_minus2_o::init_msg_c::ul_nas_transport()
-{
-  assert_choice_type("UplinkNASTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_nas_transport_s>();
-}
-ul_non_ueassociated_nrp_pa_transport_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::ul_non_ueassociated_nrp_pa_transport()
-{
-  assert_choice_type("UplinkNonUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_non_ueassociated_nrp_pa_transport_s>();
-}
-ul_ran_cfg_transfer_s& ngap_elem_procs_class_minus2_o::init_msg_c::ul_ran_cfg_transfer()
-{
-  assert_choice_type("UplinkRANConfigurationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_ran_cfg_transfer_s>();
-}
-ul_ran_status_transfer_s& ngap_elem_procs_class_minus2_o::init_msg_c::ul_ran_status_transfer()
-{
-  assert_choice_type("UplinkRANStatusTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_ran_status_transfer_s>();
-}
-ul_ueassociated_nrp_pa_transport_s& ngap_elem_procs_class_minus2_o::init_msg_c::ul_ueassociated_nrp_pa_transport()
-{
-  assert_choice_type("UplinkUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_ueassociated_nrp_pa_transport_s>();
-}
-const amf_status_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::amf_status_ind() const
-{
-  assert_choice_type("AMFStatusIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<amf_status_ind_s>();
-}
-const cell_traffic_trace_s& ngap_elem_procs_class_minus2_o::init_msg_c::cell_traffic_trace() const
-{
-  assert_choice_type("CellTrafficTrace", type_.to_string(), "InitiatingMessage");
-  return c.get<cell_traffic_trace_s>();
-}
-const deactiv_trace_s& ngap_elem_procs_class_minus2_o::init_msg_c::deactiv_trace() const
-{
-  assert_choice_type("DeactivateTrace", type_.to_string(), "InitiatingMessage");
-  return c.get<deactiv_trace_s>();
-}
-const dl_nas_transport_s& ngap_elem_procs_class_minus2_o::init_msg_c::dl_nas_transport() const
-{
-  assert_choice_type("DownlinkNASTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_nas_transport_s>();
-}
-const dl_non_ueassociated_nrp_pa_transport_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::dl_non_ueassociated_nrp_pa_transport() const
-{
-  assert_choice_type("DownlinkNonUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_non_ueassociated_nrp_pa_transport_s>();
-}
-const dl_ran_cfg_transfer_s& ngap_elem_procs_class_minus2_o::init_msg_c::dl_ran_cfg_transfer() const
-{
-  assert_choice_type("DownlinkRANConfigurationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_ran_cfg_transfer_s>();
-}
-const dl_ran_status_transfer_s& ngap_elem_procs_class_minus2_o::init_msg_c::dl_ran_status_transfer() const
-{
-  assert_choice_type("DownlinkRANStatusTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_ran_status_transfer_s>();
-}
-const dl_ueassociated_nrp_pa_transport_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::dl_ueassociated_nrp_pa_transport() const
-{
-  assert_choice_type("DownlinkUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_ueassociated_nrp_pa_transport_s>();
-}
-const error_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::error_ind() const
-{
-  assert_choice_type("ErrorIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<error_ind_s>();
-}
-const ho_notify_s& ngap_elem_procs_class_minus2_o::init_msg_c::ho_notify() const
-{
-  assert_choice_type("HandoverNotify", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_notify_s>();
-}
-const init_ue_msg_s& ngap_elem_procs_class_minus2_o::init_msg_c::init_ue_msg() const
-{
-  assert_choice_type("InitialUEMessage", type_.to_string(), "InitiatingMessage");
-  return c.get<init_ue_msg_s>();
-}
-const location_report_s& ngap_elem_procs_class_minus2_o::init_msg_c::location_report() const
-{
-  assert_choice_type("LocationReport", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_s>();
-}
-const location_report_ctrl_s& ngap_elem_procs_class_minus2_o::init_msg_c::location_report_ctrl() const
-{
-  assert_choice_type("LocationReportingControl", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_ctrl_s>();
-}
-const location_report_fail_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::location_report_fail_ind() const
-{
-  assert_choice_type("LocationReportingFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_fail_ind_s>();
-}
-const nas_non_delivery_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::nas_non_delivery_ind() const
-{
-  assert_choice_type("NASNonDeliveryIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<nas_non_delivery_ind_s>();
-}
-const overload_start_s& ngap_elem_procs_class_minus2_o::init_msg_c::overload_start() const
-{
-  assert_choice_type("OverloadStart", type_.to_string(), "InitiatingMessage");
-  return c.get<overload_start_s>();
-}
-const overload_stop_s& ngap_elem_procs_class_minus2_o::init_msg_c::overload_stop() const
-{
-  assert_choice_type("OverloadStop", type_.to_string(), "InitiatingMessage");
-  return c.get<overload_stop_s>();
-}
-const paging_s& ngap_elem_procs_class_minus2_o::init_msg_c::paging() const
-{
-  assert_choice_type("Paging", type_.to_string(), "InitiatingMessage");
-  return c.get<paging_s>();
-}
-const pdu_session_res_notify_s& ngap_elem_procs_class_minus2_o::init_msg_c::pdu_session_res_notify() const
-{
-  assert_choice_type("PDUSessionResourceNotify", type_.to_string(), "InitiatingMessage");
-  return c.get<pdu_session_res_notify_s>();
-}
-const private_msg_s& ngap_elem_procs_class_minus2_o::init_msg_c::private_msg() const
-{
-  assert_choice_type("PrivateMessage", type_.to_string(), "InitiatingMessage");
-  return c.get<private_msg_s>();
-}
-const pws_fail_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::pws_fail_ind() const
-{
-  assert_choice_type("PWSFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<pws_fail_ind_s>();
-}
-const pws_restart_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::pws_restart_ind() const
-{
-  assert_choice_type("PWSRestartIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<pws_restart_ind_s>();
-}
-const reroute_nas_request_s& ngap_elem_procs_class_minus2_o::init_msg_c::reroute_nas_request() const
-{
-  assert_choice_type("RerouteNASRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<reroute_nas_request_s>();
-}
-const rrc_inactive_transition_report_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::rrc_inactive_transition_report() const
-{
-  assert_choice_type("RRCInactiveTransitionReport", type_.to_string(), "InitiatingMessage");
-  return c.get<rrc_inactive_transition_report_s>();
-}
-const secondary_rat_data_usage_report_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::secondary_rat_data_usage_report() const
-{
-  assert_choice_type("SecondaryRATDataUsageReport", type_.to_string(), "InitiatingMessage");
-  return c.get<secondary_rat_data_usage_report_s>();
-}
-const trace_fail_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::trace_fail_ind() const
-{
-  assert_choice_type("TraceFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<trace_fail_ind_s>();
-}
-const trace_start_s& ngap_elem_procs_class_minus2_o::init_msg_c::trace_start() const
-{
-  assert_choice_type("TraceStart", type_.to_string(), "InitiatingMessage");
-  return c.get<trace_start_s>();
-}
-const ue_context_release_request_s& ngap_elem_procs_class_minus2_o::init_msg_c::ue_context_release_request() const
-{
-  assert_choice_type("UEContextReleaseRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_release_request_s>();
-}
-const ue_radio_cap_info_ind_s& ngap_elem_procs_class_minus2_o::init_msg_c::ue_radio_cap_info_ind() const
-{
-  assert_choice_type("UERadioCapabilityInfoIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_radio_cap_info_ind_s>();
-}
-const uetnla_binding_release_request_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::uetnla_binding_release_request() const
-{
-  assert_choice_type("UETNLABindingReleaseRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<uetnla_binding_release_request_s>();
-}
-const ul_nas_transport_s& ngap_elem_procs_class_minus2_o::init_msg_c::ul_nas_transport() const
-{
-  assert_choice_type("UplinkNASTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_nas_transport_s>();
-}
-const ul_non_ueassociated_nrp_pa_transport_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::ul_non_ueassociated_nrp_pa_transport() const
-{
-  assert_choice_type("UplinkNonUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_non_ueassociated_nrp_pa_transport_s>();
-}
-const ul_ran_cfg_transfer_s& ngap_elem_procs_class_minus2_o::init_msg_c::ul_ran_cfg_transfer() const
-{
-  assert_choice_type("UplinkRANConfigurationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_ran_cfg_transfer_s>();
-}
-const ul_ran_status_transfer_s& ngap_elem_procs_class_minus2_o::init_msg_c::ul_ran_status_transfer() const
-{
-  assert_choice_type("UplinkRANStatusTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_ran_status_transfer_s>();
-}
-const ul_ueassociated_nrp_pa_transport_s&
-ngap_elem_procs_class_minus2_o::init_msg_c::ul_ueassociated_nrp_pa_transport() const
-{
-  assert_choice_type("UplinkUEAssociatedNRPPaTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_ueassociated_nrp_pa_transport_s>();
-}
-void ngap_elem_procs_class_minus2_o::init_msg_c::destroy_()
-{
-  switch (type_) {
-    case types::amf_status_ind:
-      c.destroy<amf_status_ind_s>();
-      break;
-    case types::cell_traffic_trace:
-      c.destroy<cell_traffic_trace_s>();
-      break;
-    case types::deactiv_trace:
-      c.destroy<deactiv_trace_s>();
-      break;
-    case types::dl_nas_transport:
-      c.destroy<dl_nas_transport_s>();
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      c.destroy<dl_non_ueassociated_nrp_pa_transport_s>();
-      break;
-    case types::dl_ran_cfg_transfer:
-      c.destroy<dl_ran_cfg_transfer_s>();
-      break;
-    case types::dl_ran_status_transfer:
-      c.destroy<dl_ran_status_transfer_s>();
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      c.destroy<dl_ueassociated_nrp_pa_transport_s>();
-      break;
-    case types::error_ind:
-      c.destroy<error_ind_s>();
-      break;
-    case types::ho_notify:
-      c.destroy<ho_notify_s>();
-      break;
-    case types::init_ue_msg:
-      c.destroy<init_ue_msg_s>();
-      break;
-    case types::location_report:
-      c.destroy<location_report_s>();
-      break;
-    case types::location_report_ctrl:
-      c.destroy<location_report_ctrl_s>();
-      break;
-    case types::location_report_fail_ind:
-      c.destroy<location_report_fail_ind_s>();
-      break;
-    case types::nas_non_delivery_ind:
-      c.destroy<nas_non_delivery_ind_s>();
-      break;
-    case types::overload_start:
-      c.destroy<overload_start_s>();
-      break;
-    case types::overload_stop:
-      c.destroy<overload_stop_s>();
-      break;
-    case types::paging:
-      c.destroy<paging_s>();
-      break;
-    case types::pdu_session_res_notify:
-      c.destroy<pdu_session_res_notify_s>();
-      break;
-    case types::private_msg:
-      c.destroy<private_msg_s>();
-      break;
-    case types::pws_fail_ind:
-      c.destroy<pws_fail_ind_s>();
-      break;
-    case types::pws_restart_ind:
-      c.destroy<pws_restart_ind_s>();
-      break;
-    case types::reroute_nas_request:
-      c.destroy<reroute_nas_request_s>();
-      break;
-    case types::rrc_inactive_transition_report:
-      c.destroy<rrc_inactive_transition_report_s>();
-      break;
-    case types::secondary_rat_data_usage_report:
-      c.destroy<secondary_rat_data_usage_report_s>();
-      break;
-    case types::trace_fail_ind:
-      c.destroy<trace_fail_ind_s>();
-      break;
-    case types::trace_start:
-      c.destroy<trace_start_s>();
-      break;
-    case types::ue_context_release_request:
-      c.destroy<ue_context_release_request_s>();
-      break;
-    case types::ue_radio_cap_info_ind:
-      c.destroy<ue_radio_cap_info_ind_s>();
-      break;
-    case types::uetnla_binding_release_request:
-      c.destroy<uetnla_binding_release_request_s>();
-      break;
-    case types::ul_nas_transport:
-      c.destroy<ul_nas_transport_s>();
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      c.destroy<ul_non_ueassociated_nrp_pa_transport_s>();
-      break;
-    case types::ul_ran_cfg_transfer:
-      c.destroy<ul_ran_cfg_transfer_s>();
-      break;
-    case types::ul_ran_status_transfer:
-      c.destroy<ul_ran_status_transfer_s>();
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
-      c.destroy<ul_ueassociated_nrp_pa_transport_s>();
-      break;
-    default:
-      break;
-  }
-}
-void ngap_elem_procs_class_minus2_o::init_msg_c::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-  switch (type_) {
-    case types::amf_status_ind:
-      c.init<amf_status_ind_s>();
-      break;
-    case types::cell_traffic_trace:
-      c.init<cell_traffic_trace_s>();
-      break;
-    case types::deactiv_trace:
-      c.init<deactiv_trace_s>();
-      break;
-    case types::dl_nas_transport:
-      c.init<dl_nas_transport_s>();
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      c.init<dl_non_ueassociated_nrp_pa_transport_s>();
-      break;
-    case types::dl_ran_cfg_transfer:
-      c.init<dl_ran_cfg_transfer_s>();
-      break;
-    case types::dl_ran_status_transfer:
-      c.init<dl_ran_status_transfer_s>();
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      c.init<dl_ueassociated_nrp_pa_transport_s>();
-      break;
-    case types::error_ind:
-      c.init<error_ind_s>();
-      break;
-    case types::ho_notify:
-      c.init<ho_notify_s>();
-      break;
-    case types::init_ue_msg:
-      c.init<init_ue_msg_s>();
-      break;
-    case types::location_report:
-      c.init<location_report_s>();
-      break;
-    case types::location_report_ctrl:
-      c.init<location_report_ctrl_s>();
-      break;
-    case types::location_report_fail_ind:
-      c.init<location_report_fail_ind_s>();
-      break;
-    case types::nas_non_delivery_ind:
-      c.init<nas_non_delivery_ind_s>();
-      break;
-    case types::overload_start:
-      c.init<overload_start_s>();
-      break;
-    case types::overload_stop:
-      c.init<overload_stop_s>();
-      break;
-    case types::paging:
-      c.init<paging_s>();
-      break;
-    case types::pdu_session_res_notify:
-      c.init<pdu_session_res_notify_s>();
-      break;
-    case types::private_msg:
-      c.init<private_msg_s>();
-      break;
-    case types::pws_fail_ind:
-      c.init<pws_fail_ind_s>();
-      break;
-    case types::pws_restart_ind:
-      c.init<pws_restart_ind_s>();
-      break;
-    case types::reroute_nas_request:
-      c.init<reroute_nas_request_s>();
-      break;
-    case types::rrc_inactive_transition_report:
-      c.init<rrc_inactive_transition_report_s>();
-      break;
-    case types::secondary_rat_data_usage_report:
-      c.init<secondary_rat_data_usage_report_s>();
-      break;
-    case types::trace_fail_ind:
-      c.init<trace_fail_ind_s>();
-      break;
-    case types::trace_start:
-      c.init<trace_start_s>();
-      break;
-    case types::ue_context_release_request:
-      c.init<ue_context_release_request_s>();
-      break;
-    case types::ue_radio_cap_info_ind:
-      c.init<ue_radio_cap_info_ind_s>();
-      break;
-    case types::uetnla_binding_release_request:
-      c.init<uetnla_binding_release_request_s>();
-      break;
-    case types::ul_nas_transport:
-      c.init<ul_nas_transport_s>();
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      c.init<ul_non_ueassociated_nrp_pa_transport_s>();
-      break;
-    case types::ul_ran_cfg_transfer:
-      c.init<ul_ran_cfg_transfer_s>();
-      break;
-    case types::ul_ran_status_transfer:
-      c.init<ul_ran_status_transfer_s>();
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
-      c.init<ul_ueassociated_nrp_pa_transport_s>();
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus2_o::init_msg_c");
-  }
-}
-ngap_elem_procs_class_minus2_o::init_msg_c::init_msg_c(const ngap_elem_procs_class_minus2_o::init_msg_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::amf_status_ind:
-      c.init(other.c.get<amf_status_ind_s>());
-      break;
-    case types::cell_traffic_trace:
-      c.init(other.c.get<cell_traffic_trace_s>());
-      break;
-    case types::deactiv_trace:
-      c.init(other.c.get<deactiv_trace_s>());
-      break;
-    case types::dl_nas_transport:
-      c.init(other.c.get<dl_nas_transport_s>());
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      c.init(other.c.get<dl_non_ueassociated_nrp_pa_transport_s>());
-      break;
-    case types::dl_ran_cfg_transfer:
-      c.init(other.c.get<dl_ran_cfg_transfer_s>());
-      break;
-    case types::dl_ran_status_transfer:
-      c.init(other.c.get<dl_ran_status_transfer_s>());
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      c.init(other.c.get<dl_ueassociated_nrp_pa_transport_s>());
-      break;
-    case types::error_ind:
-      c.init(other.c.get<error_ind_s>());
-      break;
-    case types::ho_notify:
-      c.init(other.c.get<ho_notify_s>());
-      break;
-    case types::init_ue_msg:
-      c.init(other.c.get<init_ue_msg_s>());
-      break;
-    case types::location_report:
-      c.init(other.c.get<location_report_s>());
-      break;
-    case types::location_report_ctrl:
-      c.init(other.c.get<location_report_ctrl_s>());
-      break;
-    case types::location_report_fail_ind:
-      c.init(other.c.get<location_report_fail_ind_s>());
-      break;
-    case types::nas_non_delivery_ind:
-      c.init(other.c.get<nas_non_delivery_ind_s>());
-      break;
-    case types::overload_start:
-      c.init(other.c.get<overload_start_s>());
-      break;
-    case types::overload_stop:
-      c.init(other.c.get<overload_stop_s>());
-      break;
-    case types::paging:
-      c.init(other.c.get<paging_s>());
-      break;
-    case types::pdu_session_res_notify:
-      c.init(other.c.get<pdu_session_res_notify_s>());
-      break;
-    case types::private_msg:
-      c.init(other.c.get<private_msg_s>());
-      break;
-    case types::pws_fail_ind:
-      c.init(other.c.get<pws_fail_ind_s>());
-      break;
-    case types::pws_restart_ind:
-      c.init(other.c.get<pws_restart_ind_s>());
-      break;
-    case types::reroute_nas_request:
-      c.init(other.c.get<reroute_nas_request_s>());
-      break;
-    case types::rrc_inactive_transition_report:
-      c.init(other.c.get<rrc_inactive_transition_report_s>());
-      break;
-    case types::secondary_rat_data_usage_report:
-      c.init(other.c.get<secondary_rat_data_usage_report_s>());
-      break;
-    case types::trace_fail_ind:
-      c.init(other.c.get<trace_fail_ind_s>());
-      break;
-    case types::trace_start:
-      c.init(other.c.get<trace_start_s>());
-      break;
-    case types::ue_context_release_request:
-      c.init(other.c.get<ue_context_release_request_s>());
-      break;
-    case types::ue_radio_cap_info_ind:
-      c.init(other.c.get<ue_radio_cap_info_ind_s>());
-      break;
-    case types::uetnla_binding_release_request:
-      c.init(other.c.get<uetnla_binding_release_request_s>());
-      break;
-    case types::ul_nas_transport:
-      c.init(other.c.get<ul_nas_transport_s>());
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      c.init(other.c.get<ul_non_ueassociated_nrp_pa_transport_s>());
-      break;
-    case types::ul_ran_cfg_transfer:
-      c.init(other.c.get<ul_ran_cfg_transfer_s>());
-      break;
-    case types::ul_ran_status_transfer:
-      c.init(other.c.get<ul_ran_status_transfer_s>());
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
-      c.init(other.c.get<ul_ueassociated_nrp_pa_transport_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus2_o::init_msg_c");
-  }
-}
-ngap_elem_procs_class_minus2_o::init_msg_c& ngap_elem_procs_class_minus2_o::init_msg_c::
-                                            operator=(const ngap_elem_procs_class_minus2_o::init_msg_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::amf_status_ind:
-      c.set(other.c.get<amf_status_ind_s>());
-      break;
-    case types::cell_traffic_trace:
-      c.set(other.c.get<cell_traffic_trace_s>());
-      break;
-    case types::deactiv_trace:
-      c.set(other.c.get<deactiv_trace_s>());
-      break;
-    case types::dl_nas_transport:
-      c.set(other.c.get<dl_nas_transport_s>());
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      c.set(other.c.get<dl_non_ueassociated_nrp_pa_transport_s>());
-      break;
-    case types::dl_ran_cfg_transfer:
-      c.set(other.c.get<dl_ran_cfg_transfer_s>());
-      break;
-    case types::dl_ran_status_transfer:
-      c.set(other.c.get<dl_ran_status_transfer_s>());
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      c.set(other.c.get<dl_ueassociated_nrp_pa_transport_s>());
-      break;
-    case types::error_ind:
-      c.set(other.c.get<error_ind_s>());
-      break;
-    case types::ho_notify:
-      c.set(other.c.get<ho_notify_s>());
-      break;
-    case types::init_ue_msg:
-      c.set(other.c.get<init_ue_msg_s>());
-      break;
-    case types::location_report:
-      c.set(other.c.get<location_report_s>());
-      break;
-    case types::location_report_ctrl:
-      c.set(other.c.get<location_report_ctrl_s>());
-      break;
-    case types::location_report_fail_ind:
-      c.set(other.c.get<location_report_fail_ind_s>());
-      break;
-    case types::nas_non_delivery_ind:
-      c.set(other.c.get<nas_non_delivery_ind_s>());
-      break;
-    case types::overload_start:
-      c.set(other.c.get<overload_start_s>());
-      break;
-    case types::overload_stop:
-      c.set(other.c.get<overload_stop_s>());
-      break;
-    case types::paging:
-      c.set(other.c.get<paging_s>());
-      break;
-    case types::pdu_session_res_notify:
-      c.set(other.c.get<pdu_session_res_notify_s>());
-      break;
-    case types::private_msg:
-      c.set(other.c.get<private_msg_s>());
-      break;
-    case types::pws_fail_ind:
-      c.set(other.c.get<pws_fail_ind_s>());
-      break;
-    case types::pws_restart_ind:
-      c.set(other.c.get<pws_restart_ind_s>());
-      break;
-    case types::reroute_nas_request:
-      c.set(other.c.get<reroute_nas_request_s>());
-      break;
-    case types::rrc_inactive_transition_report:
-      c.set(other.c.get<rrc_inactive_transition_report_s>());
-      break;
-    case types::secondary_rat_data_usage_report:
-      c.set(other.c.get<secondary_rat_data_usage_report_s>());
-      break;
-    case types::trace_fail_ind:
-      c.set(other.c.get<trace_fail_ind_s>());
-      break;
-    case types::trace_start:
-      c.set(other.c.get<trace_start_s>());
-      break;
-    case types::ue_context_release_request:
-      c.set(other.c.get<ue_context_release_request_s>());
-      break;
-    case types::ue_radio_cap_info_ind:
-      c.set(other.c.get<ue_radio_cap_info_ind_s>());
-      break;
-    case types::uetnla_binding_release_request:
-      c.set(other.c.get<uetnla_binding_release_request_s>());
-      break;
-    case types::ul_nas_transport:
-      c.set(other.c.get<ul_nas_transport_s>());
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      c.set(other.c.get<ul_non_ueassociated_nrp_pa_transport_s>());
-      break;
-    case types::ul_ran_cfg_transfer:
-      c.set(other.c.get<ul_ran_cfg_transfer_s>());
-      break;
-    case types::ul_ran_status_transfer:
-      c.set(other.c.get<ul_ran_status_transfer_s>());
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
-      c.set(other.c.get<ul_ueassociated_nrp_pa_transport_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus2_o::init_msg_c");
-  }
-
-  return *this;
-}
-void ngap_elem_procs_class_minus2_o::init_msg_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::amf_status_ind:
-      j.write_fieldname("AMFStatusIndication");
-      c.get<amf_status_ind_s>().to_json(j);
-      break;
-    case types::cell_traffic_trace:
-      j.write_fieldname("CellTrafficTrace");
-      c.get<cell_traffic_trace_s>().to_json(j);
-      break;
-    case types::deactiv_trace:
-      j.write_fieldname("DeactivateTrace");
-      c.get<deactiv_trace_s>().to_json(j);
-      break;
-    case types::dl_nas_transport:
-      j.write_fieldname("DownlinkNASTransport");
-      c.get<dl_nas_transport_s>().to_json(j);
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      j.write_fieldname("DownlinkNonUEAssociatedNRPPaTransport");
-      c.get<dl_non_ueassociated_nrp_pa_transport_s>().to_json(j);
-      break;
-    case types::dl_ran_cfg_transfer:
-      j.write_fieldname("DownlinkRANConfigurationTransfer");
-      c.get<dl_ran_cfg_transfer_s>().to_json(j);
-      break;
-    case types::dl_ran_status_transfer:
-      j.write_fieldname("DownlinkRANStatusTransfer");
-      c.get<dl_ran_status_transfer_s>().to_json(j);
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      j.write_fieldname("DownlinkUEAssociatedNRPPaTransport");
-      c.get<dl_ueassociated_nrp_pa_transport_s>().to_json(j);
-      break;
-    case types::error_ind:
-      j.write_fieldname("ErrorIndication");
-      c.get<error_ind_s>().to_json(j);
-      break;
-    case types::ho_notify:
-      j.write_fieldname("HandoverNotify");
-      c.get<ho_notify_s>().to_json(j);
-      break;
-    case types::init_ue_msg:
-      j.write_fieldname("InitialUEMessage");
-      c.get<init_ue_msg_s>().to_json(j);
-      break;
-    case types::location_report:
-      j.write_fieldname("LocationReport");
-      c.get<location_report_s>().to_json(j);
-      break;
-    case types::location_report_ctrl:
-      j.write_fieldname("LocationReportingControl");
-      c.get<location_report_ctrl_s>().to_json(j);
-      break;
-    case types::location_report_fail_ind:
-      j.write_fieldname("LocationReportingFailureIndication");
-      c.get<location_report_fail_ind_s>().to_json(j);
-      break;
-    case types::nas_non_delivery_ind:
-      j.write_fieldname("NASNonDeliveryIndication");
-      c.get<nas_non_delivery_ind_s>().to_json(j);
-      break;
-    case types::overload_start:
-      j.write_fieldname("OverloadStart");
-      c.get<overload_start_s>().to_json(j);
-      break;
-    case types::overload_stop:
-      j.write_fieldname("OverloadStop");
-      c.get<overload_stop_s>().to_json(j);
-      break;
-    case types::paging:
-      j.write_fieldname("Paging");
-      c.get<paging_s>().to_json(j);
-      break;
-    case types::pdu_session_res_notify:
-      j.write_fieldname("PDUSessionResourceNotify");
-      c.get<pdu_session_res_notify_s>().to_json(j);
-      break;
-    case types::private_msg:
-      j.write_fieldname("PrivateMessage");
-      c.get<private_msg_s>().to_json(j);
-      break;
-    case types::pws_fail_ind:
-      j.write_fieldname("PWSFailureIndication");
-      c.get<pws_fail_ind_s>().to_json(j);
-      break;
-    case types::pws_restart_ind:
-      j.write_fieldname("PWSRestartIndication");
-      c.get<pws_restart_ind_s>().to_json(j);
-      break;
-    case types::reroute_nas_request:
-      j.write_fieldname("RerouteNASRequest");
-      c.get<reroute_nas_request_s>().to_json(j);
-      break;
-    case types::rrc_inactive_transition_report:
-      j.write_fieldname("RRCInactiveTransitionReport");
-      c.get<rrc_inactive_transition_report_s>().to_json(j);
-      break;
-    case types::secondary_rat_data_usage_report:
-      j.write_fieldname("SecondaryRATDataUsageReport");
-      c.get<secondary_rat_data_usage_report_s>().to_json(j);
-      break;
-    case types::trace_fail_ind:
-      j.write_fieldname("TraceFailureIndication");
-      c.get<trace_fail_ind_s>().to_json(j);
-      break;
-    case types::trace_start:
-      j.write_fieldname("TraceStart");
-      c.get<trace_start_s>().to_json(j);
-      break;
-    case types::ue_context_release_request:
-      j.write_fieldname("UEContextReleaseRequest");
-      c.get<ue_context_release_request_s>().to_json(j);
-      break;
-    case types::ue_radio_cap_info_ind:
-      j.write_fieldname("UERadioCapabilityInfoIndication");
-      c.get<ue_radio_cap_info_ind_s>().to_json(j);
-      break;
-    case types::uetnla_binding_release_request:
-      j.write_fieldname("UETNLABindingReleaseRequest");
-      c.get<uetnla_binding_release_request_s>().to_json(j);
-      break;
-    case types::ul_nas_transport:
-      j.write_fieldname("UplinkNASTransport");
-      c.get<ul_nas_transport_s>().to_json(j);
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      j.write_fieldname("UplinkNonUEAssociatedNRPPaTransport");
-      c.get<ul_non_ueassociated_nrp_pa_transport_s>().to_json(j);
-      break;
-    case types::ul_ran_cfg_transfer:
-      j.write_fieldname("UplinkRANConfigurationTransfer");
-      c.get<ul_ran_cfg_transfer_s>().to_json(j);
-      break;
-    case types::ul_ran_status_transfer:
-      j.write_fieldname("UplinkRANStatusTransfer");
-      c.get<ul_ran_status_transfer_s>().to_json(j);
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
-      j.write_fieldname("UplinkUEAssociatedNRPPaTransport");
-      c.get<ul_ueassociated_nrp_pa_transport_s>().to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus2_o::init_msg_c");
-  }
-  j.end_obj();
-}
-SRSASN_CODE ngap_elem_procs_class_minus2_o::init_msg_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::amf_status_ind:
-      HANDLE_CODE(c.get<amf_status_ind_s>().pack(bref));
-      break;
-    case types::cell_traffic_trace:
-      HANDLE_CODE(c.get<cell_traffic_trace_s>().pack(bref));
-      break;
-    case types::deactiv_trace:
-      HANDLE_CODE(c.get<deactiv_trace_s>().pack(bref));
-      break;
-    case types::dl_nas_transport:
-      HANDLE_CODE(c.get<dl_nas_transport_s>().pack(bref));
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      HANDLE_CODE(c.get<dl_non_ueassociated_nrp_pa_transport_s>().pack(bref));
-      break;
-    case types::dl_ran_cfg_transfer:
-      HANDLE_CODE(c.get<dl_ran_cfg_transfer_s>().pack(bref));
-      break;
-    case types::dl_ran_status_transfer:
-      HANDLE_CODE(c.get<dl_ran_status_transfer_s>().pack(bref));
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      HANDLE_CODE(c.get<dl_ueassociated_nrp_pa_transport_s>().pack(bref));
-      break;
-    case types::error_ind:
-      HANDLE_CODE(c.get<error_ind_s>().pack(bref));
-      break;
-    case types::ho_notify:
-      HANDLE_CODE(c.get<ho_notify_s>().pack(bref));
-      break;
-    case types::init_ue_msg:
-      HANDLE_CODE(c.get<init_ue_msg_s>().pack(bref));
-      break;
-    case types::location_report:
-      HANDLE_CODE(c.get<location_report_s>().pack(bref));
-      break;
-    case types::location_report_ctrl:
-      HANDLE_CODE(c.get<location_report_ctrl_s>().pack(bref));
-      break;
-    case types::location_report_fail_ind:
-      HANDLE_CODE(c.get<location_report_fail_ind_s>().pack(bref));
-      break;
-    case types::nas_non_delivery_ind:
-      HANDLE_CODE(c.get<nas_non_delivery_ind_s>().pack(bref));
-      break;
-    case types::overload_start:
-      HANDLE_CODE(c.get<overload_start_s>().pack(bref));
-      break;
-    case types::overload_stop:
-      HANDLE_CODE(c.get<overload_stop_s>().pack(bref));
-      break;
-    case types::paging:
-      HANDLE_CODE(c.get<paging_s>().pack(bref));
-      break;
-    case types::pdu_session_res_notify:
-      HANDLE_CODE(c.get<pdu_session_res_notify_s>().pack(bref));
-      break;
-    case types::private_msg:
-      HANDLE_CODE(c.get<private_msg_s>().pack(bref));
-      break;
-    case types::pws_fail_ind:
-      HANDLE_CODE(c.get<pws_fail_ind_s>().pack(bref));
-      break;
-    case types::pws_restart_ind:
-      HANDLE_CODE(c.get<pws_restart_ind_s>().pack(bref));
-      break;
-    case types::reroute_nas_request:
-      HANDLE_CODE(c.get<reroute_nas_request_s>().pack(bref));
-      break;
-    case types::rrc_inactive_transition_report:
-      HANDLE_CODE(c.get<rrc_inactive_transition_report_s>().pack(bref));
-      break;
-    case types::secondary_rat_data_usage_report:
-      HANDLE_CODE(c.get<secondary_rat_data_usage_report_s>().pack(bref));
-      break;
-    case types::trace_fail_ind:
-      HANDLE_CODE(c.get<trace_fail_ind_s>().pack(bref));
-      break;
-    case types::trace_start:
-      HANDLE_CODE(c.get<trace_start_s>().pack(bref));
-      break;
-    case types::ue_context_release_request:
-      HANDLE_CODE(c.get<ue_context_release_request_s>().pack(bref));
-      break;
-    case types::ue_radio_cap_info_ind:
-      HANDLE_CODE(c.get<ue_radio_cap_info_ind_s>().pack(bref));
-      break;
-    case types::uetnla_binding_release_request:
-      HANDLE_CODE(c.get<uetnla_binding_release_request_s>().pack(bref));
-      break;
-    case types::ul_nas_transport:
-      HANDLE_CODE(c.get<ul_nas_transport_s>().pack(bref));
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      HANDLE_CODE(c.get<ul_non_ueassociated_nrp_pa_transport_s>().pack(bref));
-      break;
-    case types::ul_ran_cfg_transfer:
-      HANDLE_CODE(c.get<ul_ran_cfg_transfer_s>().pack(bref));
-      break;
-    case types::ul_ran_status_transfer:
-      HANDLE_CODE(c.get<ul_ran_status_transfer_s>().pack(bref));
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
-      HANDLE_CODE(c.get<ul_ueassociated_nrp_pa_transport_s>().pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus2_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ngap_elem_procs_class_minus2_o::init_msg_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::amf_status_ind:
-      HANDLE_CODE(c.get<amf_status_ind_s>().unpack(bref));
-      break;
-    case types::cell_traffic_trace:
-      HANDLE_CODE(c.get<cell_traffic_trace_s>().unpack(bref));
-      break;
-    case types::deactiv_trace:
-      HANDLE_CODE(c.get<deactiv_trace_s>().unpack(bref));
-      break;
-    case types::dl_nas_transport:
-      HANDLE_CODE(c.get<dl_nas_transport_s>().unpack(bref));
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      HANDLE_CODE(c.get<dl_non_ueassociated_nrp_pa_transport_s>().unpack(bref));
-      break;
-    case types::dl_ran_cfg_transfer:
-      HANDLE_CODE(c.get<dl_ran_cfg_transfer_s>().unpack(bref));
-      break;
-    case types::dl_ran_status_transfer:
-      HANDLE_CODE(c.get<dl_ran_status_transfer_s>().unpack(bref));
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      HANDLE_CODE(c.get<dl_ueassociated_nrp_pa_transport_s>().unpack(bref));
-      break;
-    case types::error_ind:
-      HANDLE_CODE(c.get<error_ind_s>().unpack(bref));
-      break;
-    case types::ho_notify:
-      HANDLE_CODE(c.get<ho_notify_s>().unpack(bref));
-      break;
-    case types::init_ue_msg:
-      HANDLE_CODE(c.get<init_ue_msg_s>().unpack(bref));
-      break;
-    case types::location_report:
-      HANDLE_CODE(c.get<location_report_s>().unpack(bref));
-      break;
-    case types::location_report_ctrl:
-      HANDLE_CODE(c.get<location_report_ctrl_s>().unpack(bref));
-      break;
-    case types::location_report_fail_ind:
-      HANDLE_CODE(c.get<location_report_fail_ind_s>().unpack(bref));
-      break;
-    case types::nas_non_delivery_ind:
-      HANDLE_CODE(c.get<nas_non_delivery_ind_s>().unpack(bref));
-      break;
-    case types::overload_start:
-      HANDLE_CODE(c.get<overload_start_s>().unpack(bref));
-      break;
-    case types::overload_stop:
-      HANDLE_CODE(c.get<overload_stop_s>().unpack(bref));
-      break;
-    case types::paging:
-      HANDLE_CODE(c.get<paging_s>().unpack(bref));
-      break;
-    case types::pdu_session_res_notify:
-      HANDLE_CODE(c.get<pdu_session_res_notify_s>().unpack(bref));
-      break;
-    case types::private_msg:
-      HANDLE_CODE(c.get<private_msg_s>().unpack(bref));
-      break;
-    case types::pws_fail_ind:
-      HANDLE_CODE(c.get<pws_fail_ind_s>().unpack(bref));
-      break;
-    case types::pws_restart_ind:
-      HANDLE_CODE(c.get<pws_restart_ind_s>().unpack(bref));
-      break;
-    case types::reroute_nas_request:
-      HANDLE_CODE(c.get<reroute_nas_request_s>().unpack(bref));
-      break;
-    case types::rrc_inactive_transition_report:
-      HANDLE_CODE(c.get<rrc_inactive_transition_report_s>().unpack(bref));
-      break;
-    case types::secondary_rat_data_usage_report:
-      HANDLE_CODE(c.get<secondary_rat_data_usage_report_s>().unpack(bref));
-      break;
-    case types::trace_fail_ind:
-      HANDLE_CODE(c.get<trace_fail_ind_s>().unpack(bref));
-      break;
-    case types::trace_start:
-      HANDLE_CODE(c.get<trace_start_s>().unpack(bref));
-      break;
-    case types::ue_context_release_request:
-      HANDLE_CODE(c.get<ue_context_release_request_s>().unpack(bref));
-      break;
-    case types::ue_radio_cap_info_ind:
-      HANDLE_CODE(c.get<ue_radio_cap_info_ind_s>().unpack(bref));
-      break;
-    case types::uetnla_binding_release_request:
-      HANDLE_CODE(c.get<uetnla_binding_release_request_s>().unpack(bref));
-      break;
-    case types::ul_nas_transport:
-      HANDLE_CODE(c.get<ul_nas_transport_s>().unpack(bref));
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      HANDLE_CODE(c.get<ul_non_ueassociated_nrp_pa_transport_s>().unpack(bref));
-      break;
-    case types::ul_ran_cfg_transfer:
-      HANDLE_CODE(c.get<ul_ran_cfg_transfer_s>().unpack(bref));
-      break;
-    case types::ul_ran_status_transfer:
-      HANDLE_CODE(c.get<ul_ran_status_transfer_s>().unpack(bref));
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
-      HANDLE_CODE(c.get<ul_ueassociated_nrp_pa_transport_s>().unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "ngap_elem_procs_class_minus2_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string ngap_elem_procs_class_minus2_o::init_msg_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"AMFStatusIndication",
-                                            "CellTrafficTrace",
-                                            "DeactivateTrace",
-                                            "DownlinkNASTransport",
-                                            "DownlinkNonUEAssociatedNRPPaTransport",
-                                            "DownlinkRANConfigurationTransfer",
-                                            "DownlinkRANStatusTransfer",
-                                            "DownlinkUEAssociatedNRPPaTransport",
-                                            "ErrorIndication",
-                                            "HandoverNotify",
-                                            "InitialUEMessage",
-                                            "LocationReport",
-                                            "LocationReportingControl",
-                                            "LocationReportingFailureIndication",
-                                            "NASNonDeliveryIndication",
-                                            "OverloadStart",
-                                            "OverloadStop",
-                                            "Paging",
-                                            "PDUSessionResourceNotify",
-                                            "PrivateMessage",
-                                            "PWSFailureIndication",
-                                            "PWSRestartIndication",
-                                            "RerouteNASRequest",
-                                            "RRCInactiveTransitionReport",
-                                            "SecondaryRATDataUsageReport",
-                                            "TraceFailureIndication",
-                                            "TraceStart",
-                                            "UEContextReleaseRequest",
-                                            "UERadioCapabilityInfoIndication",
-                                            "UETNLABindingReleaseRequest",
-                                            "UplinkNASTransport",
-                                            "UplinkNonUEAssociatedNRPPaTransport",
-                                            "UplinkRANConfigurationTransfer",
-                                            "UplinkRANStatusTransfer",
-                                            "UplinkUEAssociatedNRPPaTransport"};
-  return convert_enum_idx(options, 35, value, "ngap_elem_procs_class_minus2_o::init_msg_c::types");
-}
-
-// SuccessfulOutcome ::= OPEN TYPE
-void ngap_elem_procs_class_minus2_o::successful_outcome_c::set(types::options e)
-{
-  type_ = e;
-}
-void ngap_elem_procs_class_minus2_o::successful_outcome_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.end_obj();
-}
-SRSASN_CODE ngap_elem_procs_class_minus2_o::successful_outcome_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ngap_elem_procs_class_minus2_o::successful_outcome_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-
-std::string ngap_elem_procs_class_minus2_o::successful_outcome_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL",
-                                            "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL",
-                                            "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL",
-                                            "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL"};
-  return convert_enum_idx(options, 35, value, "ngap_elem_procs_class_minus2_o::successful_outcome_c::types");
-}
-
-// UnsuccessfulOutcome ::= OPEN TYPE
-void ngap_elem_procs_class_minus2_o::unsuccessful_outcome_c::set(types::options e)
-{
-  type_ = e;
-}
-void ngap_elem_procs_class_minus2_o::unsuccessful_outcome_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.end_obj();
-}
-SRSASN_CODE ngap_elem_procs_class_minus2_o::unsuccessful_outcome_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE ngap_elem_procs_class_minus2_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-
-std::string ngap_elem_procs_class_minus2_o::unsuccessful_outcome_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL",
-                                            "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL",
-                                            "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL",
-                                            "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL"};
-  return convert_enum_idx(options, 35, value, "ngap_elem_procs_class_minus2_o::unsuccessful_outcome_c::types");
-}
-
 // NGAP-ELEMENTARY-PROCEDURES ::= OBJECT SET OF NGAP-ELEMENTARY-PROCEDURE
 uint16_t ngap_elem_procs_o::idx_to_proc_code(uint32_t idx)
 {
-  static constexpr const uint16_t options[] = {0,  10, 12, 13, 14, 20, 21, 25, 26, 27, 28, 29, 32, 35, 40, 41, 43, 51,
-                                               1,  2,  3,  4,  5,  6,  7,  8,  9,  11, 15, 18, 16, 17, 19, 22, 23, 24,
-                                               30, 31, 33, 34, 36, 37, 52, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50};
-  return convert_enum_idx(options, 53, idx, "proc_code");
+  static const uint16_t options[] = {0,  10, 12, 13, 14, 20, 21, 25, 26, 27, 28, 29, 32, 35, 40, 41, 43, 51,
+                                     1,  2,  3,  4,  5,  6,  7,  8,  9,  11, 15, 18, 16, 17, 19, 22, 23, 24,
+                                     30, 31, 33, 34, 36, 37, 52, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50};
+  return map_enum_number(options, 53, idx, "proc_code");
 }
 bool ngap_elem_procs_o::is_proc_code_valid(const uint16_t& proc_code)
 {
-  static constexpr const uint16_t options[] = {0,  10, 12, 13, 14, 20, 21, 25, 26, 27, 28, 29, 32, 35, 40, 41, 43, 51,
-                                               1,  2,  3,  4,  5,  6,  7,  8,  9,  11, 15, 18, 16, 17, 19, 22, 23, 24,
-                                               30, 31, 33, 34, 36, 37, 52, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50};
-  for (uint32_t i = 0; i < 53; ++i) {
-    if (options[i] == proc_code) {
+  static const uint16_t options[] = {0,  10, 12, 13, 14, 20, 21, 25, 26, 27, 28, 29, 32, 35, 40, 41, 43, 51,
+                                     1,  2,  3,  4,  5,  6,  7,  8,  9,  11, 15, 18, 16, 17, 19, 22, 23, 24,
+                                     30, 31, 33, 34, 36, 37, 52, 38, 39, 42, 44, 45, 46, 47, 48, 49, 50};
+  for (const auto& o : options) {
+    if (o == proc_code) {
       return true;
     }
   }
@@ -53292,7 +49413,7 @@ ngap_elem_procs_o::init_msg_c ngap_elem_procs_o::get_init_msg(const uint16_t& pr
       ret.set(init_msg_c::types::ul_ueassociated_nrp_pa_transport);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
+      logmap::get("ASN1::NGAP_NR")->error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -53301,131 +49422,61 @@ ngap_elem_procs_o::successful_outcome_c ngap_elem_procs_o::get_successful_outcom
   successful_outcome_c ret{};
   switch (proc_code) {
     case 0:
-      ret.set(successful_outcome_c::types::amf_cfg_upd);
+      ret.set(successful_outcome_c::types::amf_cfg_upd_ack);
       break;
     case 10:
-      ret.set(successful_outcome_c::types::ho_cancel);
+      ret.set(successful_outcome_c::types::ho_cancel_ack);
       break;
     case 12:
-      ret.set(successful_outcome_c::types::ho_required);
+      ret.set(successful_outcome_c::types::ho_cmd);
       break;
     case 13:
-      ret.set(successful_outcome_c::types::ho_request);
+      ret.set(successful_outcome_c::types::ho_request_ack);
       break;
     case 14:
-      ret.set(successful_outcome_c::types::init_context_setup_request);
+      ret.set(successful_outcome_c::types::init_context_setup_resp);
       break;
     case 20:
-      ret.set(successful_outcome_c::types::ng_reset);
+      ret.set(successful_outcome_c::types::ng_reset_ack);
       break;
     case 21:
-      ret.set(successful_outcome_c::types::ng_setup_request);
+      ret.set(successful_outcome_c::types::ng_setup_resp);
       break;
     case 25:
-      ret.set(successful_outcome_c::types::path_switch_request);
+      ret.set(successful_outcome_c::types::path_switch_request_ack);
       break;
     case 26:
-      ret.set(successful_outcome_c::types::pdu_session_res_modify_request);
+      ret.set(successful_outcome_c::types::pdu_session_res_modify_resp);
       break;
     case 27:
-      ret.set(successful_outcome_c::types::pdu_session_res_modify_ind);
+      ret.set(successful_outcome_c::types::pdu_session_res_modify_confirm);
       break;
     case 28:
-      ret.set(successful_outcome_c::types::pdu_session_res_release_cmd);
+      ret.set(successful_outcome_c::types::pdu_session_res_release_resp);
       break;
     case 29:
-      ret.set(successful_outcome_c::types::pdu_session_res_setup_request);
+      ret.set(successful_outcome_c::types::pdu_session_res_setup_resp);
       break;
     case 32:
-      ret.set(successful_outcome_c::types::pws_cancel_request);
+      ret.set(successful_outcome_c::types::pws_cancel_resp);
       break;
     case 35:
-      ret.set(successful_outcome_c::types::ran_cfg_upd);
+      ret.set(successful_outcome_c::types::ran_cfg_upd_ack);
       break;
     case 40:
-      ret.set(successful_outcome_c::types::ue_context_mod_request);
+      ret.set(successful_outcome_c::types::ue_context_mod_resp);
       break;
     case 41:
-      ret.set(successful_outcome_c::types::ue_context_release_cmd);
+      ret.set(successful_outcome_c::types::ue_context_release_complete);
       break;
     case 43:
-      ret.set(successful_outcome_c::types::ue_radio_cap_check_request);
+      ret.set(successful_outcome_c::types::ue_radio_cap_check_resp);
       break;
     case 51:
-      ret.set(successful_outcome_c::types::write_replace_warning_request);
-      break;
-    case 1:
-      break;
-    case 2:
-      break;
-    case 3:
-      break;
-    case 4:
-      break;
-    case 5:
-      break;
-    case 6:
-      break;
-    case 7:
-      break;
-    case 8:
-      break;
-    case 9:
-      break;
-    case 11:
-      break;
-    case 15:
-      break;
-    case 18:
-      break;
-    case 16:
-      break;
-    case 17:
-      break;
-    case 19:
-      break;
-    case 22:
-      break;
-    case 23:
-      break;
-    case 24:
-      break;
-    case 30:
-      break;
-    case 31:
-      break;
-    case 33:
-      break;
-    case 34:
-      break;
-    case 36:
-      break;
-    case 37:
-      break;
-    case 52:
-      break;
-    case 38:
-      break;
-    case 39:
-      break;
-    case 42:
-      break;
-    case 44:
-      break;
-    case 45:
-      break;
-    case 46:
-      break;
-    case 47:
-      break;
-    case 48:
-      break;
-    case 49:
-      break;
-    case 50:
+      ret.set(successful_outcome_c::types::write_replace_warning_resp);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
+      logmap::get("ASN1::NGAP_NR")->error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -53434,121 +49485,31 @@ ngap_elem_procs_o::unsuccessful_outcome_c ngap_elem_procs_o::get_unsuccessful_ou
   unsuccessful_outcome_c ret{};
   switch (proc_code) {
     case 0:
-      ret.set(unsuccessful_outcome_c::types::amf_cfg_upd);
-      break;
-    case 10:
+      ret.set(unsuccessful_outcome_c::types::amf_cfg_upd_fail);
       break;
     case 12:
-      ret.set(unsuccessful_outcome_c::types::ho_required);
+      ret.set(unsuccessful_outcome_c::types::ho_prep_fail);
       break;
     case 13:
-      ret.set(unsuccessful_outcome_c::types::ho_request);
+      ret.set(unsuccessful_outcome_c::types::ho_fail);
       break;
     case 14:
-      ret.set(unsuccessful_outcome_c::types::init_context_setup_request);
-      break;
-    case 20:
+      ret.set(unsuccessful_outcome_c::types::init_context_setup_fail);
       break;
     case 21:
-      ret.set(unsuccessful_outcome_c::types::ng_setup_request);
+      ret.set(unsuccessful_outcome_c::types::ng_setup_fail);
       break;
     case 25:
-      ret.set(unsuccessful_outcome_c::types::path_switch_request);
-      break;
-    case 26:
-      break;
-    case 27:
-      break;
-    case 28:
-      break;
-    case 29:
-      break;
-    case 32:
+      ret.set(unsuccessful_outcome_c::types::path_switch_request_fail);
       break;
     case 35:
-      ret.set(unsuccessful_outcome_c::types::ran_cfg_upd);
+      ret.set(unsuccessful_outcome_c::types::ran_cfg_upd_fail);
       break;
     case 40:
-      ret.set(unsuccessful_outcome_c::types::ue_context_mod_request);
-      break;
-    case 41:
-      break;
-    case 43:
-      break;
-    case 51:
-      break;
-    case 1:
-      break;
-    case 2:
-      break;
-    case 3:
-      break;
-    case 4:
-      break;
-    case 5:
-      break;
-    case 6:
-      break;
-    case 7:
-      break;
-    case 8:
-      break;
-    case 9:
-      break;
-    case 11:
-      break;
-    case 15:
-      break;
-    case 18:
-      break;
-    case 16:
-      break;
-    case 17:
-      break;
-    case 19:
-      break;
-    case 22:
-      break;
-    case 23:
-      break;
-    case 24:
-      break;
-    case 30:
-      break;
-    case 31:
-      break;
-    case 33:
-      break;
-    case 34:
-      break;
-    case 36:
-      break;
-    case 37:
-      break;
-    case 52:
-      break;
-    case 38:
-      break;
-    case 39:
-      break;
-    case 42:
-      break;
-    case 44:
-      break;
-    case 45:
-      break;
-    case 46:
-      break;
-    case 47:
-      break;
-    case 48:
-      break;
-    case 49:
-      break;
-    case 50:
+      ret.set(unsuccessful_outcome_c::types::ue_context_mod_fail);
       break;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
+      logmap::get("ASN1::NGAP_NR")->error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -53662,9 +49623,9 @@ crit_e ngap_elem_procs_o::get_crit(const uint16_t& proc_code)
     case 50:
       return crit_e::ignore;
     default:
-      ngap_nr_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
+      logmap::get("ASN1::NGAP_NR")->error("The proc_code=%d is not recognized", proc_code);
   }
-  return crit_e();
+  return {};
 }
 
 // InitiatingMessage ::= OPEN TYPE
@@ -55441,239 +51402,239 @@ SRSASN_CODE ngap_elem_procs_o::init_msg_c::unpack(cbit_ref& bref)
 
 std::string ngap_elem_procs_o::init_msg_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"AMFConfigurationUpdate",
-                                            "HandoverCancel",
-                                            "HandoverRequired",
-                                            "HandoverRequest",
-                                            "InitialContextSetupRequest",
-                                            "NGReset",
-                                            "NGSetupRequest",
-                                            "PathSwitchRequest",
-                                            "PDUSessionResourceModifyRequest",
-                                            "PDUSessionResourceModifyIndication",
-                                            "PDUSessionResourceReleaseCommand",
-                                            "PDUSessionResourceSetupRequest",
-                                            "PWSCancelRequest",
-                                            "RANConfigurationUpdate",
-                                            "UEContextModificationRequest",
-                                            "UEContextReleaseCommand",
-                                            "UERadioCapabilityCheckRequest",
-                                            "WriteReplaceWarningRequest",
-                                            "AMFStatusIndication",
-                                            "CellTrafficTrace",
-                                            "DeactivateTrace",
-                                            "DownlinkNASTransport",
-                                            "DownlinkNonUEAssociatedNRPPaTransport",
-                                            "DownlinkRANConfigurationTransfer",
-                                            "DownlinkRANStatusTransfer",
-                                            "DownlinkUEAssociatedNRPPaTransport",
-                                            "ErrorIndication",
-                                            "HandoverNotify",
-                                            "InitialUEMessage",
-                                            "LocationReport",
-                                            "LocationReportingControl",
-                                            "LocationReportingFailureIndication",
-                                            "NASNonDeliveryIndication",
-                                            "OverloadStart",
-                                            "OverloadStop",
-                                            "Paging",
-                                            "PDUSessionResourceNotify",
-                                            "PrivateMessage",
-                                            "PWSFailureIndication",
-                                            "PWSRestartIndication",
-                                            "RerouteNASRequest",
-                                            "RRCInactiveTransitionReport",
-                                            "SecondaryRATDataUsageReport",
-                                            "TraceFailureIndication",
-                                            "TraceStart",
-                                            "UEContextReleaseRequest",
-                                            "UERadioCapabilityInfoIndication",
-                                            "UETNLABindingReleaseRequest",
-                                            "UplinkNASTransport",
-                                            "UplinkNonUEAssociatedNRPPaTransport",
-                                            "UplinkRANConfigurationTransfer",
-                                            "UplinkRANStatusTransfer",
-                                            "UplinkUEAssociatedNRPPaTransport"};
+  static const char* options[] = {"AMFConfigurationUpdate",
+                                  "HandoverCancel",
+                                  "HandoverRequired",
+                                  "HandoverRequest",
+                                  "InitialContextSetupRequest",
+                                  "NGReset",
+                                  "NGSetupRequest",
+                                  "PathSwitchRequest",
+                                  "PDUSessionResourceModifyRequest",
+                                  "PDUSessionResourceModifyIndication",
+                                  "PDUSessionResourceReleaseCommand",
+                                  "PDUSessionResourceSetupRequest",
+                                  "PWSCancelRequest",
+                                  "RANConfigurationUpdate",
+                                  "UEContextModificationRequest",
+                                  "UEContextReleaseCommand",
+                                  "UERadioCapabilityCheckRequest",
+                                  "WriteReplaceWarningRequest",
+                                  "AMFStatusIndication",
+                                  "CellTrafficTrace",
+                                  "DeactivateTrace",
+                                  "DownlinkNASTransport",
+                                  "DownlinkNonUEAssociatedNRPPaTransport",
+                                  "DownlinkRANConfigurationTransfer",
+                                  "DownlinkRANStatusTransfer",
+                                  "DownlinkUEAssociatedNRPPaTransport",
+                                  "ErrorIndication",
+                                  "HandoverNotify",
+                                  "InitialUEMessage",
+                                  "LocationReport",
+                                  "LocationReportingControl",
+                                  "LocationReportingFailureIndication",
+                                  "NASNonDeliveryIndication",
+                                  "OverloadStart",
+                                  "OverloadStop",
+                                  "Paging",
+                                  "PDUSessionResourceNotify",
+                                  "PrivateMessage",
+                                  "PWSFailureIndication",
+                                  "PWSRestartIndication",
+                                  "RerouteNASRequest",
+                                  "RRCInactiveTransitionReport",
+                                  "SecondaryRATDataUsageReport",
+                                  "TraceFailureIndication",
+                                  "TraceStart",
+                                  "UEContextReleaseRequest",
+                                  "UERadioCapabilityInfoIndication",
+                                  "UETNLABindingReleaseRequest",
+                                  "UplinkNASTransport",
+                                  "UplinkNonUEAssociatedNRPPaTransport",
+                                  "UplinkRANConfigurationTransfer",
+                                  "UplinkRANStatusTransfer",
+                                  "UplinkUEAssociatedNRPPaTransport"};
   return convert_enum_idx(options, 53, value, "ngap_elem_procs_o::init_msg_c::types");
 }
 
 // SuccessfulOutcome ::= OPEN TYPE
-amf_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::amf_cfg_upd()
+amf_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::amf_cfg_upd_ack()
 {
   assert_choice_type("AMFConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<amf_cfg_upd_ack_s>();
 }
-ho_cancel_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_cancel()
+ho_cancel_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_cancel_ack()
 {
   assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_cancel_ack_s>();
 }
-ho_cmd_s& ngap_elem_procs_o::successful_outcome_c::ho_required()
+ho_cmd_s& ngap_elem_procs_o::successful_outcome_c::ho_cmd()
 {
   assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_cmd_s>();
 }
-ho_request_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_request()
+ho_request_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_request_ack()
 {
   assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_request_ack_s>();
 }
-init_context_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::init_context_setup_request()
+init_context_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::init_context_setup_resp()
 {
   assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<init_context_setup_resp_s>();
 }
-ng_reset_ack_s& ngap_elem_procs_o::successful_outcome_c::ng_reset()
+ng_reset_ack_s& ngap_elem_procs_o::successful_outcome_c::ng_reset_ack()
 {
   assert_choice_type("NGResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ng_reset_ack_s>();
 }
-ng_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::ng_setup_request()
+ng_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::ng_setup_resp()
 {
   assert_choice_type("NGSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<ng_setup_resp_s>();
 }
-path_switch_request_ack_s& ngap_elem_procs_o::successful_outcome_c::path_switch_request()
+path_switch_request_ack_s& ngap_elem_procs_o::successful_outcome_c::path_switch_request_ack()
 {
   assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<path_switch_request_ack_s>();
 }
-pdu_session_res_modify_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_request()
+pdu_session_res_modify_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_resp()
 {
   assert_choice_type("PDUSessionResourceModifyResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<pdu_session_res_modify_resp_s>();
 }
-pdu_session_res_modify_confirm_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_ind()
+pdu_session_res_modify_confirm_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_confirm()
 {
   assert_choice_type("PDUSessionResourceModifyConfirm", type_.to_string(), "SuccessfulOutcome");
   return c.get<pdu_session_res_modify_confirm_s>();
 }
-pdu_session_res_release_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_release_cmd()
+pdu_session_res_release_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_release_resp()
 {
   assert_choice_type("PDUSessionResourceReleaseResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<pdu_session_res_release_resp_s>();
 }
-pdu_session_res_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_setup_request()
+pdu_session_res_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_setup_resp()
 {
   assert_choice_type("PDUSessionResourceSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<pdu_session_res_setup_resp_s>();
 }
-pws_cancel_resp_s& ngap_elem_procs_o::successful_outcome_c::pws_cancel_request()
+pws_cancel_resp_s& ngap_elem_procs_o::successful_outcome_c::pws_cancel_resp()
 {
   assert_choice_type("PWSCancelResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<pws_cancel_resp_s>();
 }
-ran_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::ran_cfg_upd()
+ran_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::ran_cfg_upd_ack()
 {
   assert_choice_type("RANConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ran_cfg_upd_ack_s>();
 }
-ue_context_mod_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_context_mod_request()
+ue_context_mod_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_context_mod_resp()
 {
   assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_context_mod_resp_s>();
 }
-ue_context_release_complete_s& ngap_elem_procs_o::successful_outcome_c::ue_context_release_cmd()
+ue_context_release_complete_s& ngap_elem_procs_o::successful_outcome_c::ue_context_release_complete()
 {
   assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_context_release_complete_s>();
 }
-ue_radio_cap_check_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_radio_cap_check_request()
+ue_radio_cap_check_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_radio_cap_check_resp()
 {
   assert_choice_type("UERadioCapabilityCheckResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_radio_cap_check_resp_s>();
 }
-write_replace_warning_resp_s& ngap_elem_procs_o::successful_outcome_c::write_replace_warning_request()
+write_replace_warning_resp_s& ngap_elem_procs_o::successful_outcome_c::write_replace_warning_resp()
 {
   assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<write_replace_warning_resp_s>();
 }
-const amf_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::amf_cfg_upd() const
+const amf_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::amf_cfg_upd_ack() const
 {
   assert_choice_type("AMFConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<amf_cfg_upd_ack_s>();
 }
-const ho_cancel_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_cancel() const
+const ho_cancel_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_cancel_ack() const
 {
   assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_cancel_ack_s>();
 }
-const ho_cmd_s& ngap_elem_procs_o::successful_outcome_c::ho_required() const
+const ho_cmd_s& ngap_elem_procs_o::successful_outcome_c::ho_cmd() const
 {
   assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_cmd_s>();
 }
-const ho_request_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_request() const
+const ho_request_ack_s& ngap_elem_procs_o::successful_outcome_c::ho_request_ack() const
 {
   assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_request_ack_s>();
 }
-const init_context_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::init_context_setup_request() const
+const init_context_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::init_context_setup_resp() const
 {
   assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<init_context_setup_resp_s>();
 }
-const ng_reset_ack_s& ngap_elem_procs_o::successful_outcome_c::ng_reset() const
+const ng_reset_ack_s& ngap_elem_procs_o::successful_outcome_c::ng_reset_ack() const
 {
   assert_choice_type("NGResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ng_reset_ack_s>();
 }
-const ng_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::ng_setup_request() const
+const ng_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::ng_setup_resp() const
 {
   assert_choice_type("NGSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<ng_setup_resp_s>();
 }
-const path_switch_request_ack_s& ngap_elem_procs_o::successful_outcome_c::path_switch_request() const
+const path_switch_request_ack_s& ngap_elem_procs_o::successful_outcome_c::path_switch_request_ack() const
 {
   assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<path_switch_request_ack_s>();
 }
-const pdu_session_res_modify_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_request() const
+const pdu_session_res_modify_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_resp() const
 {
   assert_choice_type("PDUSessionResourceModifyResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<pdu_session_res_modify_resp_s>();
 }
-const pdu_session_res_modify_confirm_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_ind() const
+const pdu_session_res_modify_confirm_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_modify_confirm() const
 {
   assert_choice_type("PDUSessionResourceModifyConfirm", type_.to_string(), "SuccessfulOutcome");
   return c.get<pdu_session_res_modify_confirm_s>();
 }
-const pdu_session_res_release_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_release_cmd() const
+const pdu_session_res_release_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_release_resp() const
 {
   assert_choice_type("PDUSessionResourceReleaseResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<pdu_session_res_release_resp_s>();
 }
-const pdu_session_res_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_setup_request() const
+const pdu_session_res_setup_resp_s& ngap_elem_procs_o::successful_outcome_c::pdu_session_res_setup_resp() const
 {
   assert_choice_type("PDUSessionResourceSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<pdu_session_res_setup_resp_s>();
 }
-const pws_cancel_resp_s& ngap_elem_procs_o::successful_outcome_c::pws_cancel_request() const
+const pws_cancel_resp_s& ngap_elem_procs_o::successful_outcome_c::pws_cancel_resp() const
 {
   assert_choice_type("PWSCancelResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<pws_cancel_resp_s>();
 }
-const ran_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::ran_cfg_upd() const
+const ran_cfg_upd_ack_s& ngap_elem_procs_o::successful_outcome_c::ran_cfg_upd_ack() const
 {
   assert_choice_type("RANConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ran_cfg_upd_ack_s>();
 }
-const ue_context_mod_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_context_mod_request() const
+const ue_context_mod_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_context_mod_resp() const
 {
   assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_context_mod_resp_s>();
 }
-const ue_context_release_complete_s& ngap_elem_procs_o::successful_outcome_c::ue_context_release_cmd() const
+const ue_context_release_complete_s& ngap_elem_procs_o::successful_outcome_c::ue_context_release_complete() const
 {
   assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_context_release_complete_s>();
 }
-const ue_radio_cap_check_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_radio_cap_check_request() const
+const ue_radio_cap_check_resp_s& ngap_elem_procs_o::successful_outcome_c::ue_radio_cap_check_resp() const
 {
   assert_choice_type("UERadioCapabilityCheckResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_radio_cap_check_resp_s>();
 }
-const write_replace_warning_resp_s& ngap_elem_procs_o::successful_outcome_c::write_replace_warning_request() const
+const write_replace_warning_resp_s& ngap_elem_procs_o::successful_outcome_c::write_replace_warning_resp() const
 {
   assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<write_replace_warning_resp_s>();
@@ -55681,58 +51642,58 @@ const write_replace_warning_resp_s& ngap_elem_procs_o::successful_outcome_c::wri
 void ngap_elem_procs_o::successful_outcome_c::destroy_()
 {
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_ack:
       c.destroy<amf_cfg_upd_ack_s>();
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       c.destroy<ho_cancel_ack_s>();
       break;
-    case types::ho_required:
+    case types::ho_cmd:
       c.destroy<ho_cmd_s>();
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       c.destroy<ho_request_ack_s>();
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       c.destroy<init_context_setup_resp_s>();
       break;
-    case types::ng_reset:
+    case types::ng_reset_ack:
       c.destroy<ng_reset_ack_s>();
       break;
-    case types::ng_setup_request:
+    case types::ng_setup_resp:
       c.destroy<ng_setup_resp_s>();
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       c.destroy<path_switch_request_ack_s>();
       break;
-    case types::pdu_session_res_modify_request:
+    case types::pdu_session_res_modify_resp:
       c.destroy<pdu_session_res_modify_resp_s>();
       break;
-    case types::pdu_session_res_modify_ind:
+    case types::pdu_session_res_modify_confirm:
       c.destroy<pdu_session_res_modify_confirm_s>();
       break;
-    case types::pdu_session_res_release_cmd:
+    case types::pdu_session_res_release_resp:
       c.destroy<pdu_session_res_release_resp_s>();
       break;
-    case types::pdu_session_res_setup_request:
+    case types::pdu_session_res_setup_resp:
       c.destroy<pdu_session_res_setup_resp_s>();
       break;
-    case types::pws_cancel_request:
+    case types::pws_cancel_resp:
       c.destroy<pws_cancel_resp_s>();
       break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_ack:
       c.destroy<ran_cfg_upd_ack_s>();
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       c.destroy<ue_context_mod_resp_s>();
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       c.destroy<ue_context_release_complete_s>();
       break;
-    case types::ue_radio_cap_check_request:
+    case types::ue_radio_cap_check_resp:
       c.destroy<ue_radio_cap_check_resp_s>();
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       c.destroy<write_replace_warning_resp_s>();
       break;
     default:
@@ -55744,129 +51705,59 @@ void ngap_elem_procs_o::successful_outcome_c::set(types::options e)
   destroy_();
   type_ = e;
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_ack:
       c.init<amf_cfg_upd_ack_s>();
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       c.init<ho_cancel_ack_s>();
       break;
-    case types::ho_required:
+    case types::ho_cmd:
       c.init<ho_cmd_s>();
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       c.init<ho_request_ack_s>();
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       c.init<init_context_setup_resp_s>();
       break;
-    case types::ng_reset:
+    case types::ng_reset_ack:
       c.init<ng_reset_ack_s>();
       break;
-    case types::ng_setup_request:
+    case types::ng_setup_resp:
       c.init<ng_setup_resp_s>();
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       c.init<path_switch_request_ack_s>();
       break;
-    case types::pdu_session_res_modify_request:
+    case types::pdu_session_res_modify_resp:
       c.init<pdu_session_res_modify_resp_s>();
       break;
-    case types::pdu_session_res_modify_ind:
+    case types::pdu_session_res_modify_confirm:
       c.init<pdu_session_res_modify_confirm_s>();
       break;
-    case types::pdu_session_res_release_cmd:
+    case types::pdu_session_res_release_resp:
       c.init<pdu_session_res_release_resp_s>();
       break;
-    case types::pdu_session_res_setup_request:
+    case types::pdu_session_res_setup_resp:
       c.init<pdu_session_res_setup_resp_s>();
       break;
-    case types::pws_cancel_request:
+    case types::pws_cancel_resp:
       c.init<pws_cancel_resp_s>();
       break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_ack:
       c.init<ran_cfg_upd_ack_s>();
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       c.init<ue_context_mod_resp_s>();
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       c.init<ue_context_release_complete_s>();
       break;
-    case types::ue_radio_cap_check_request:
+    case types::ue_radio_cap_check_resp:
       c.init<ue_radio_cap_check_resp_s>();
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       c.init<write_replace_warning_resp_s>();
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     case types::nulltype:
       break;
@@ -55878,129 +51769,59 @@ ngap_elem_procs_o::successful_outcome_c::successful_outcome_c(const ngap_elem_pr
 {
   type_ = other.type();
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_ack:
       c.init(other.c.get<amf_cfg_upd_ack_s>());
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       c.init(other.c.get<ho_cancel_ack_s>());
       break;
-    case types::ho_required:
+    case types::ho_cmd:
       c.init(other.c.get<ho_cmd_s>());
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       c.init(other.c.get<ho_request_ack_s>());
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       c.init(other.c.get<init_context_setup_resp_s>());
       break;
-    case types::ng_reset:
+    case types::ng_reset_ack:
       c.init(other.c.get<ng_reset_ack_s>());
       break;
-    case types::ng_setup_request:
+    case types::ng_setup_resp:
       c.init(other.c.get<ng_setup_resp_s>());
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       c.init(other.c.get<path_switch_request_ack_s>());
       break;
-    case types::pdu_session_res_modify_request:
+    case types::pdu_session_res_modify_resp:
       c.init(other.c.get<pdu_session_res_modify_resp_s>());
       break;
-    case types::pdu_session_res_modify_ind:
+    case types::pdu_session_res_modify_confirm:
       c.init(other.c.get<pdu_session_res_modify_confirm_s>());
       break;
-    case types::pdu_session_res_release_cmd:
+    case types::pdu_session_res_release_resp:
       c.init(other.c.get<pdu_session_res_release_resp_s>());
       break;
-    case types::pdu_session_res_setup_request:
+    case types::pdu_session_res_setup_resp:
       c.init(other.c.get<pdu_session_res_setup_resp_s>());
       break;
-    case types::pws_cancel_request:
+    case types::pws_cancel_resp:
       c.init(other.c.get<pws_cancel_resp_s>());
       break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_ack:
       c.init(other.c.get<ran_cfg_upd_ack_s>());
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       c.init(other.c.get<ue_context_mod_resp_s>());
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       c.init(other.c.get<ue_context_release_complete_s>());
       break;
-    case types::ue_radio_cap_check_request:
+    case types::ue_radio_cap_check_resp:
       c.init(other.c.get<ue_radio_cap_check_resp_s>());
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       c.init(other.c.get<write_replace_warning_resp_s>());
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     case types::nulltype:
       break;
@@ -56016,129 +51837,59 @@ ngap_elem_procs_o::successful_outcome_c& ngap_elem_procs_o::successful_outcome_c
   }
   set(other.type());
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_ack:
       c.set(other.c.get<amf_cfg_upd_ack_s>());
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       c.set(other.c.get<ho_cancel_ack_s>());
       break;
-    case types::ho_required:
+    case types::ho_cmd:
       c.set(other.c.get<ho_cmd_s>());
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       c.set(other.c.get<ho_request_ack_s>());
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       c.set(other.c.get<init_context_setup_resp_s>());
       break;
-    case types::ng_reset:
+    case types::ng_reset_ack:
       c.set(other.c.get<ng_reset_ack_s>());
       break;
-    case types::ng_setup_request:
+    case types::ng_setup_resp:
       c.set(other.c.get<ng_setup_resp_s>());
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       c.set(other.c.get<path_switch_request_ack_s>());
       break;
-    case types::pdu_session_res_modify_request:
+    case types::pdu_session_res_modify_resp:
       c.set(other.c.get<pdu_session_res_modify_resp_s>());
       break;
-    case types::pdu_session_res_modify_ind:
+    case types::pdu_session_res_modify_confirm:
       c.set(other.c.get<pdu_session_res_modify_confirm_s>());
       break;
-    case types::pdu_session_res_release_cmd:
+    case types::pdu_session_res_release_resp:
       c.set(other.c.get<pdu_session_res_release_resp_s>());
       break;
-    case types::pdu_session_res_setup_request:
+    case types::pdu_session_res_setup_resp:
       c.set(other.c.get<pdu_session_res_setup_resp_s>());
       break;
-    case types::pws_cancel_request:
+    case types::pws_cancel_resp:
       c.set(other.c.get<pws_cancel_resp_s>());
       break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_ack:
       c.set(other.c.get<ran_cfg_upd_ack_s>());
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       c.set(other.c.get<ue_context_mod_resp_s>());
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       c.set(other.c.get<ue_context_release_complete_s>());
       break;
-    case types::ue_radio_cap_check_request:
+    case types::ue_radio_cap_check_resp:
       c.set(other.c.get<ue_radio_cap_check_resp_s>());
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       c.set(other.c.get<write_replace_warning_resp_s>());
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     case types::nulltype:
       break;
@@ -56152,147 +51903,77 @@ void ngap_elem_procs_o::successful_outcome_c::to_json(json_writer& j) const
 {
   j.start_obj();
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_ack:
       j.write_fieldname("AMFConfigurationUpdateAcknowledge");
       c.get<amf_cfg_upd_ack_s>().to_json(j);
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       j.write_fieldname("HandoverCancelAcknowledge");
       c.get<ho_cancel_ack_s>().to_json(j);
       break;
-    case types::ho_required:
+    case types::ho_cmd:
       j.write_fieldname("HandoverCommand");
       c.get<ho_cmd_s>().to_json(j);
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       j.write_fieldname("HandoverRequestAcknowledge");
       c.get<ho_request_ack_s>().to_json(j);
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       j.write_fieldname("InitialContextSetupResponse");
       c.get<init_context_setup_resp_s>().to_json(j);
       break;
-    case types::ng_reset:
+    case types::ng_reset_ack:
       j.write_fieldname("NGResetAcknowledge");
       c.get<ng_reset_ack_s>().to_json(j);
       break;
-    case types::ng_setup_request:
+    case types::ng_setup_resp:
       j.write_fieldname("NGSetupResponse");
       c.get<ng_setup_resp_s>().to_json(j);
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       j.write_fieldname("PathSwitchRequestAcknowledge");
       c.get<path_switch_request_ack_s>().to_json(j);
       break;
-    case types::pdu_session_res_modify_request:
+    case types::pdu_session_res_modify_resp:
       j.write_fieldname("PDUSessionResourceModifyResponse");
       c.get<pdu_session_res_modify_resp_s>().to_json(j);
       break;
-    case types::pdu_session_res_modify_ind:
+    case types::pdu_session_res_modify_confirm:
       j.write_fieldname("PDUSessionResourceModifyConfirm");
       c.get<pdu_session_res_modify_confirm_s>().to_json(j);
       break;
-    case types::pdu_session_res_release_cmd:
+    case types::pdu_session_res_release_resp:
       j.write_fieldname("PDUSessionResourceReleaseResponse");
       c.get<pdu_session_res_release_resp_s>().to_json(j);
       break;
-    case types::pdu_session_res_setup_request:
+    case types::pdu_session_res_setup_resp:
       j.write_fieldname("PDUSessionResourceSetupResponse");
       c.get<pdu_session_res_setup_resp_s>().to_json(j);
       break;
-    case types::pws_cancel_request:
+    case types::pws_cancel_resp:
       j.write_fieldname("PWSCancelResponse");
       c.get<pws_cancel_resp_s>().to_json(j);
       break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_ack:
       j.write_fieldname("RANConfigurationUpdateAcknowledge");
       c.get<ran_cfg_upd_ack_s>().to_json(j);
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       j.write_fieldname("UEContextModificationResponse");
       c.get<ue_context_mod_resp_s>().to_json(j);
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       j.write_fieldname("UEContextReleaseComplete");
       c.get<ue_context_release_complete_s>().to_json(j);
       break;
-    case types::ue_radio_cap_check_request:
+    case types::ue_radio_cap_check_resp:
       j.write_fieldname("UERadioCapabilityCheckResponse");
       c.get<ue_radio_cap_check_resp_s>().to_json(j);
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       j.write_fieldname("WriteReplaceWarningResponse");
       c.get<write_replace_warning_resp_s>().to_json(j);
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::successful_outcome_c");
@@ -56303,129 +51984,59 @@ SRSASN_CODE ngap_elem_procs_o::successful_outcome_c::pack(bit_ref& bref) const
 {
   varlength_field_pack_guard varlen_scope(bref, true);
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_ack:
       HANDLE_CODE(c.get<amf_cfg_upd_ack_s>().pack(bref));
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       HANDLE_CODE(c.get<ho_cancel_ack_s>().pack(bref));
       break;
-    case types::ho_required:
+    case types::ho_cmd:
       HANDLE_CODE(c.get<ho_cmd_s>().pack(bref));
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       HANDLE_CODE(c.get<ho_request_ack_s>().pack(bref));
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       HANDLE_CODE(c.get<init_context_setup_resp_s>().pack(bref));
       break;
-    case types::ng_reset:
+    case types::ng_reset_ack:
       HANDLE_CODE(c.get<ng_reset_ack_s>().pack(bref));
       break;
-    case types::ng_setup_request:
+    case types::ng_setup_resp:
       HANDLE_CODE(c.get<ng_setup_resp_s>().pack(bref));
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       HANDLE_CODE(c.get<path_switch_request_ack_s>().pack(bref));
       break;
-    case types::pdu_session_res_modify_request:
+    case types::pdu_session_res_modify_resp:
       HANDLE_CODE(c.get<pdu_session_res_modify_resp_s>().pack(bref));
       break;
-    case types::pdu_session_res_modify_ind:
+    case types::pdu_session_res_modify_confirm:
       HANDLE_CODE(c.get<pdu_session_res_modify_confirm_s>().pack(bref));
       break;
-    case types::pdu_session_res_release_cmd:
+    case types::pdu_session_res_release_resp:
       HANDLE_CODE(c.get<pdu_session_res_release_resp_s>().pack(bref));
       break;
-    case types::pdu_session_res_setup_request:
+    case types::pdu_session_res_setup_resp:
       HANDLE_CODE(c.get<pdu_session_res_setup_resp_s>().pack(bref));
       break;
-    case types::pws_cancel_request:
+    case types::pws_cancel_resp:
       HANDLE_CODE(c.get<pws_cancel_resp_s>().pack(bref));
       break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_ack:
       HANDLE_CODE(c.get<ran_cfg_upd_ack_s>().pack(bref));
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       HANDLE_CODE(c.get<ue_context_mod_resp_s>().pack(bref));
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       HANDLE_CODE(c.get<ue_context_release_complete_s>().pack(bref));
       break;
-    case types::ue_radio_cap_check_request:
+    case types::ue_radio_cap_check_resp:
       HANDLE_CODE(c.get<ue_radio_cap_check_resp_s>().pack(bref));
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       HANDLE_CODE(c.get<write_replace_warning_resp_s>().pack(bref));
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::successful_outcome_c");
@@ -56437,129 +52048,59 @@ SRSASN_CODE ngap_elem_procs_o::successful_outcome_c::unpack(cbit_ref& bref)
 {
   varlength_field_unpack_guard varlen_scope(bref, true);
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_ack:
       HANDLE_CODE(c.get<amf_cfg_upd_ack_s>().unpack(bref));
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       HANDLE_CODE(c.get<ho_cancel_ack_s>().unpack(bref));
       break;
-    case types::ho_required:
+    case types::ho_cmd:
       HANDLE_CODE(c.get<ho_cmd_s>().unpack(bref));
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       HANDLE_CODE(c.get<ho_request_ack_s>().unpack(bref));
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       HANDLE_CODE(c.get<init_context_setup_resp_s>().unpack(bref));
       break;
-    case types::ng_reset:
+    case types::ng_reset_ack:
       HANDLE_CODE(c.get<ng_reset_ack_s>().unpack(bref));
       break;
-    case types::ng_setup_request:
+    case types::ng_setup_resp:
       HANDLE_CODE(c.get<ng_setup_resp_s>().unpack(bref));
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       HANDLE_CODE(c.get<path_switch_request_ack_s>().unpack(bref));
       break;
-    case types::pdu_session_res_modify_request:
+    case types::pdu_session_res_modify_resp:
       HANDLE_CODE(c.get<pdu_session_res_modify_resp_s>().unpack(bref));
       break;
-    case types::pdu_session_res_modify_ind:
+    case types::pdu_session_res_modify_confirm:
       HANDLE_CODE(c.get<pdu_session_res_modify_confirm_s>().unpack(bref));
       break;
-    case types::pdu_session_res_release_cmd:
+    case types::pdu_session_res_release_resp:
       HANDLE_CODE(c.get<pdu_session_res_release_resp_s>().unpack(bref));
       break;
-    case types::pdu_session_res_setup_request:
+    case types::pdu_session_res_setup_resp:
       HANDLE_CODE(c.get<pdu_session_res_setup_resp_s>().unpack(bref));
       break;
-    case types::pws_cancel_request:
+    case types::pws_cancel_resp:
       HANDLE_CODE(c.get<pws_cancel_resp_s>().unpack(bref));
       break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_ack:
       HANDLE_CODE(c.get<ran_cfg_upd_ack_s>().unpack(bref));
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       HANDLE_CODE(c.get<ue_context_mod_resp_s>().unpack(bref));
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       HANDLE_CODE(c.get<ue_context_release_complete_s>().unpack(bref));
       break;
-    case types::ue_radio_cap_check_request:
+    case types::ue_radio_cap_check_resp:
       HANDLE_CODE(c.get<ue_radio_cap_check_resp_s>().unpack(bref));
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       HANDLE_CODE(c.get<write_replace_warning_resp_s>().unpack(bref));
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::successful_outcome_c");
@@ -56570,139 +52111,104 @@ SRSASN_CODE ngap_elem_procs_o::successful_outcome_c::unpack(cbit_ref& bref)
 
 std::string ngap_elem_procs_o::successful_outcome_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"AMFConfigurationUpdateAcknowledge",
-                                            "HandoverCancelAcknowledge",
-                                            "HandoverCommand",
-                                            "HandoverRequestAcknowledge",
-                                            "InitialContextSetupResponse",
-                                            "NGResetAcknowledge",
-                                            "NGSetupResponse",
-                                            "PathSwitchRequestAcknowledge",
-                                            "PDUSessionResourceModifyResponse",
-                                            "PDUSessionResourceModifyConfirm",
-                                            "PDUSessionResourceReleaseResponse",
-                                            "PDUSessionResourceSetupResponse",
-                                            "PWSCancelResponse",
-                                            "RANConfigurationUpdateAcknowledge",
-                                            "UEContextModificationResponse",
-                                            "UEContextReleaseComplete",
-                                            "UERadioCapabilityCheckResponse",
-                                            "WriteReplaceWarningResponse",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL"};
-  return convert_enum_idx(options, 53, value, "ngap_elem_procs_o::successful_outcome_c::types");
+  static const char* options[] = {"AMFConfigurationUpdateAcknowledge",
+                                  "HandoverCancelAcknowledge",
+                                  "HandoverCommand",
+                                  "HandoverRequestAcknowledge",
+                                  "InitialContextSetupResponse",
+                                  "NGResetAcknowledge",
+                                  "NGSetupResponse",
+                                  "PathSwitchRequestAcknowledge",
+                                  "PDUSessionResourceModifyResponse",
+                                  "PDUSessionResourceModifyConfirm",
+                                  "PDUSessionResourceReleaseResponse",
+                                  "PDUSessionResourceSetupResponse",
+                                  "PWSCancelResponse",
+                                  "RANConfigurationUpdateAcknowledge",
+                                  "UEContextModificationResponse",
+                                  "UEContextReleaseComplete",
+                                  "UERadioCapabilityCheckResponse",
+                                  "WriteReplaceWarningResponse"};
+  return convert_enum_idx(options, 18, value, "ngap_elem_procs_o::successful_outcome_c::types");
 }
 
 // UnsuccessfulOutcome ::= OPEN TYPE
-amf_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::amf_cfg_upd()
+amf_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::amf_cfg_upd_fail()
 {
   assert_choice_type("AMFConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<amf_cfg_upd_fail_s>();
 }
-ho_prep_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_required()
+ho_prep_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_prep_fail()
 {
   assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ho_prep_fail_s>();
 }
-ho_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_request()
+ho_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_fail()
 {
   assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ho_fail_s>();
 }
-init_context_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_request()
+init_context_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_fail()
 {
   assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<init_context_setup_fail_s>();
 }
-ng_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ng_setup_request()
+ng_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ng_setup_fail()
 {
   assert_choice_type("NGSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ng_setup_fail_s>();
 }
-path_switch_request_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::path_switch_request()
+path_switch_request_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::path_switch_request_fail()
 {
   assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<path_switch_request_fail_s>();
 }
-ran_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ran_cfg_upd()
+ran_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ran_cfg_upd_fail()
 {
   assert_choice_type("RANConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ran_cfg_upd_fail_s>();
 }
-ue_context_mod_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_request()
+ue_context_mod_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_fail()
 {
   assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ue_context_mod_fail_s>();
 }
-const amf_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::amf_cfg_upd() const
+const amf_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::amf_cfg_upd_fail() const
 {
   assert_choice_type("AMFConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<amf_cfg_upd_fail_s>();
 }
-const ho_prep_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_required() const
+const ho_prep_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_prep_fail() const
 {
   assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ho_prep_fail_s>();
 }
-const ho_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_request() const
+const ho_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ho_fail() const
 {
   assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ho_fail_s>();
 }
-const init_context_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_request() const
+const init_context_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_fail() const
 {
   assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<init_context_setup_fail_s>();
 }
-const ng_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ng_setup_request() const
+const ng_setup_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ng_setup_fail() const
 {
   assert_choice_type("NGSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ng_setup_fail_s>();
 }
-const path_switch_request_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::path_switch_request() const
+const path_switch_request_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::path_switch_request_fail() const
 {
   assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<path_switch_request_fail_s>();
 }
-const ran_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ran_cfg_upd() const
+const ran_cfg_upd_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ran_cfg_upd_fail() const
 {
   assert_choice_type("RANConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ran_cfg_upd_fail_s>();
 }
-const ue_context_mod_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_request() const
+const ue_context_mod_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_fail() const
 {
   assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ue_context_mod_fail_s>();
@@ -56710,28 +52216,28 @@ const ue_context_mod_fail_s& ngap_elem_procs_o::unsuccessful_outcome_c::ue_conte
 void ngap_elem_procs_o::unsuccessful_outcome_c::destroy_()
 {
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_fail:
       c.destroy<amf_cfg_upd_fail_s>();
       break;
-    case types::ho_required:
+    case types::ho_prep_fail:
       c.destroy<ho_prep_fail_s>();
       break;
-    case types::ho_request:
+    case types::ho_fail:
       c.destroy<ho_fail_s>();
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       c.destroy<init_context_setup_fail_s>();
       break;
-    case types::ng_setup_request:
+    case types::ng_setup_fail:
       c.destroy<ng_setup_fail_s>();
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       c.destroy<path_switch_request_fail_s>();
       break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_fail:
       c.destroy<ran_cfg_upd_fail_s>();
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       c.destroy<ue_context_mod_fail_s>();
       break;
     default:
@@ -56743,119 +52249,29 @@ void ngap_elem_procs_o::unsuccessful_outcome_c::set(types::options e)
   destroy_();
   type_ = e;
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_fail:
       c.init<amf_cfg_upd_fail_s>();
       break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
+    case types::ho_prep_fail:
       c.init<ho_prep_fail_s>();
       break;
-    case types::ho_request:
+    case types::ho_fail:
       c.init<ho_fail_s>();
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       c.init<init_context_setup_fail_s>();
       break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
+    case types::ng_setup_fail:
       c.init<ng_setup_fail_s>();
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       c.init<path_switch_request_fail_s>();
       break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_fail:
       c.init<ran_cfg_upd_fail_s>();
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       c.init<ue_context_mod_fail_s>();
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     case types::nulltype:
       break;
@@ -56868,119 +52284,29 @@ ngap_elem_procs_o::unsuccessful_outcome_c::unsuccessful_outcome_c(
 {
   type_ = other.type();
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_fail:
       c.init(other.c.get<amf_cfg_upd_fail_s>());
       break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
+    case types::ho_prep_fail:
       c.init(other.c.get<ho_prep_fail_s>());
       break;
-    case types::ho_request:
+    case types::ho_fail:
       c.init(other.c.get<ho_fail_s>());
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       c.init(other.c.get<init_context_setup_fail_s>());
       break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
+    case types::ng_setup_fail:
       c.init(other.c.get<ng_setup_fail_s>());
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       c.init(other.c.get<path_switch_request_fail_s>());
       break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_fail:
       c.init(other.c.get<ran_cfg_upd_fail_s>());
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       c.init(other.c.get<ue_context_mod_fail_s>());
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     case types::nulltype:
       break;
@@ -56996,119 +52322,29 @@ ngap_elem_procs_o::unsuccessful_outcome_c& ngap_elem_procs_o::unsuccessful_outco
   }
   set(other.type());
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_fail:
       c.set(other.c.get<amf_cfg_upd_fail_s>());
       break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
+    case types::ho_prep_fail:
       c.set(other.c.get<ho_prep_fail_s>());
       break;
-    case types::ho_request:
+    case types::ho_fail:
       c.set(other.c.get<ho_fail_s>());
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       c.set(other.c.get<init_context_setup_fail_s>());
       break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
+    case types::ng_setup_fail:
       c.set(other.c.get<ng_setup_fail_s>());
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       c.set(other.c.get<path_switch_request_fail_s>());
       break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_fail:
       c.set(other.c.get<ran_cfg_upd_fail_s>());
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       c.set(other.c.get<ue_context_mod_fail_s>());
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     case types::nulltype:
       break;
@@ -57122,127 +52358,37 @@ void ngap_elem_procs_o::unsuccessful_outcome_c::to_json(json_writer& j) const
 {
   j.start_obj();
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_fail:
       j.write_fieldname("AMFConfigurationUpdateFailure");
       c.get<amf_cfg_upd_fail_s>().to_json(j);
       break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
+    case types::ho_prep_fail:
       j.write_fieldname("HandoverPreparationFailure");
       c.get<ho_prep_fail_s>().to_json(j);
       break;
-    case types::ho_request:
+    case types::ho_fail:
       j.write_fieldname("HandoverFailure");
       c.get<ho_fail_s>().to_json(j);
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       j.write_fieldname("InitialContextSetupFailure");
       c.get<init_context_setup_fail_s>().to_json(j);
       break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
+    case types::ng_setup_fail:
       j.write_fieldname("NGSetupFailure");
       c.get<ng_setup_fail_s>().to_json(j);
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       j.write_fieldname("PathSwitchRequestFailure");
       c.get<path_switch_request_fail_s>().to_json(j);
       break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_fail:
       j.write_fieldname("RANConfigurationUpdateFailure");
       c.get<ran_cfg_upd_fail_s>().to_json(j);
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       j.write_fieldname("UEContextModificationFailure");
       c.get<ue_context_mod_fail_s>().to_json(j);
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::unsuccessful_outcome_c");
@@ -57253,119 +52399,29 @@ SRSASN_CODE ngap_elem_procs_o::unsuccessful_outcome_c::pack(bit_ref& bref) const
 {
   varlength_field_pack_guard varlen_scope(bref, true);
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_fail:
       HANDLE_CODE(c.get<amf_cfg_upd_fail_s>().pack(bref));
       break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
+    case types::ho_prep_fail:
       HANDLE_CODE(c.get<ho_prep_fail_s>().pack(bref));
       break;
-    case types::ho_request:
+    case types::ho_fail:
       HANDLE_CODE(c.get<ho_fail_s>().pack(bref));
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       HANDLE_CODE(c.get<init_context_setup_fail_s>().pack(bref));
       break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
+    case types::ng_setup_fail:
       HANDLE_CODE(c.get<ng_setup_fail_s>().pack(bref));
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       HANDLE_CODE(c.get<path_switch_request_fail_s>().pack(bref));
       break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_fail:
       HANDLE_CODE(c.get<ran_cfg_upd_fail_s>().pack(bref));
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       HANDLE_CODE(c.get<ue_context_mod_fail_s>().pack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::unsuccessful_outcome_c");
@@ -57377,119 +52433,29 @@ SRSASN_CODE ngap_elem_procs_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
 {
   varlength_field_unpack_guard varlen_scope(bref, true);
   switch (type_) {
-    case types::amf_cfg_upd:
+    case types::amf_cfg_upd_fail:
       HANDLE_CODE(c.get<amf_cfg_upd_fail_s>().unpack(bref));
       break;
-    case types::ho_cancel:
-      break;
-    case types::ho_required:
+    case types::ho_prep_fail:
       HANDLE_CODE(c.get<ho_prep_fail_s>().unpack(bref));
       break;
-    case types::ho_request:
+    case types::ho_fail:
       HANDLE_CODE(c.get<ho_fail_s>().unpack(bref));
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       HANDLE_CODE(c.get<init_context_setup_fail_s>().unpack(bref));
       break;
-    case types::ng_reset:
-      break;
-    case types::ng_setup_request:
+    case types::ng_setup_fail:
       HANDLE_CODE(c.get<ng_setup_fail_s>().unpack(bref));
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       HANDLE_CODE(c.get<path_switch_request_fail_s>().unpack(bref));
       break;
-    case types::pdu_session_res_modify_request:
-      break;
-    case types::pdu_session_res_modify_ind:
-      break;
-    case types::pdu_session_res_release_cmd:
-      break;
-    case types::pdu_session_res_setup_request:
-      break;
-    case types::pws_cancel_request:
-      break;
-    case types::ran_cfg_upd:
+    case types::ran_cfg_upd_fail:
       HANDLE_CODE(c.get<ran_cfg_upd_fail_s>().unpack(bref));
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       HANDLE_CODE(c.get<ue_context_mod_fail_s>().unpack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::ue_radio_cap_check_request:
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::amf_status_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::dl_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::dl_ran_cfg_transfer:
-      break;
-    case types::dl_ran_status_transfer:
-      break;
-    case types::dl_ueassociated_nrp_pa_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::ho_notify:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::location_report:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::paging:
-      break;
-    case types::pdu_session_res_notify:
-      break;
-    case types::private_msg:
-      break;
-    case types::pws_fail_ind:
-      break;
-    case types::pws_restart_ind:
-      break;
-    case types::reroute_nas_request:
-      break;
-    case types::rrc_inactive_transition_report:
-      break;
-    case types::secondary_rat_data_usage_report:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::trace_start:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::ue_radio_cap_info_ind:
-      break;
-    case types::uetnla_binding_release_request:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::ul_non_ueassociated_nrp_pa_transport:
-      break;
-    case types::ul_ran_cfg_transfer:
-      break;
-    case types::ul_ran_status_transfer:
-      break;
-    case types::ul_ueassociated_nrp_pa_transport:
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::unsuccessful_outcome_c");
@@ -57500,60 +52466,15 @@ SRSASN_CODE ngap_elem_procs_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
 
 std::string ngap_elem_procs_o::unsuccessful_outcome_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"AMFConfigurationUpdateFailure",
-                                            "NULL",
-                                            "HandoverPreparationFailure",
-                                            "HandoverFailure",
-                                            "InitialContextSetupFailure",
-                                            "NULL",
-                                            "NGSetupFailure",
-                                            "PathSwitchRequestFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "RANConfigurationUpdateFailure",
-                                            "UEContextModificationFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL"};
-  return convert_enum_idx(options, 53, value, "ngap_elem_procs_o::unsuccessful_outcome_c::types");
+  static const char* options[] = {"AMFConfigurationUpdateFailure",
+                                  "HandoverPreparationFailure",
+                                  "HandoverFailure",
+                                  "InitialContextSetupFailure",
+                                  "NGSetupFailure",
+                                  "PathSwitchRequestFailure",
+                                  "RANConfigurationUpdateFailure",
+                                  "UEContextModificationFailure"};
+  return convert_enum_idx(options, 8, value, "ngap_elem_procs_o::unsuccessful_outcome_c::types");
 }
 
 // InitiatingMessage ::= SEQUENCE{{NGAP-ELEMENTARY-PROCEDURE}}
@@ -57592,7 +52513,7 @@ bool init_msg_s::load_info_obj(const uint16_t& proc_code_)
   proc_code = proc_code_;
   crit      = ngap_elem_procs_o::get_crit(proc_code);
   value     = ngap_elem_procs_o::get_init_msg(proc_code);
-  return true;
+  return value.type().value != ngap_elem_procs_o::init_msg_c::types_opts::nulltype;
 }
 
 // LastVisitedNGRANCellInformation ::= SEQUENCE
@@ -57849,7 +52770,7 @@ SRSASN_CODE last_visited_cell_info_c::unpack(cbit_ref& bref)
 
 std::string last_visited_cell_info_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"nGRANCell", "eUTRANCell", "uTRANCell", "gERANCell", "choice-Extensions"};
+  static const char* options[] = {"nGRANCell", "eUTRANCell", "uTRANCell", "gERANCell", "choice-Extensions"};
   return convert_enum_idx(options, 5, value, "last_visited_cell_info_c::types");
 }
 
@@ -57926,7 +52847,7 @@ bool successful_outcome_s::load_info_obj(const uint16_t& proc_code_)
   proc_code = proc_code_;
   crit      = ngap_elem_procs_o::get_crit(proc_code);
   value     = ngap_elem_procs_o::get_successful_outcome(proc_code);
-  return true;
+  return value.type().value != ngap_elem_procs_o::successful_outcome_c::types_opts::nulltype;
 }
 
 // UnsuccessfulOutcome ::= SEQUENCE{{NGAP-ELEMENTARY-PROCEDURE}}
@@ -57965,7 +52886,7 @@ bool unsuccessful_outcome_s::load_info_obj(const uint16_t& proc_code_)
   proc_code = proc_code_;
   crit      = ngap_elem_procs_o::get_crit(proc_code);
   value     = ngap_elem_procs_o::get_unsuccessful_outcome(proc_code);
-  return true;
+  return value.type().value != ngap_elem_procs_o::unsuccessful_outcome_c::types_opts::nulltype;
 }
 
 // NGAP-PDU ::= CHOICE
@@ -58112,7 +53033,7 @@ SRSASN_CODE ngap_pdu_c::unpack(cbit_ref& bref)
 
 std::string ngap_pdu_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"initiatingMessage", "successfulOutcome", "unsuccessfulOutcome"};
+  static const char* options[] = {"initiatingMessage", "successfulOutcome", "unsuccessfulOutcome"};
   return convert_enum_idx(options, 3, value, "ngap_pdu_c::types");
 }
 
@@ -58203,14 +53124,14 @@ void pdu_session_res_info_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_int("pDUSessionID", pdu_session_id);
   j.start_array("qosFlowInformationList");
-  for (uint32_t i1 = 0; i1 < qos_flow_info_list.size(); ++i1) {
-    qos_flow_info_list[i1].to_json(j);
+  for (const auto& e1 : qos_flow_info_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (drbs_to_qos_flows_map_list_present) {
     j.start_array("dRBsToQosFlowsMappingList");
-    for (uint32_t i1 = 0; i1 < drbs_to_qos_flows_map_list.size(); ++i1) {
-      drbs_to_qos_flows_map_list[i1].to_json(j);
+    for (const auto& e1 : drbs_to_qos_flows_map_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -58268,7 +53189,8 @@ bool protocol_ie_field_pair_s<ies_set_paramT_>::load_info_obj(const uint32_t& id
   first_value  = ies_set_paramT_::get_first_value(id);
   second_crit  = ies_set_paramT_::get_second_crit(id);
   second_value = ies_set_paramT_::get_second_value(id);
-  return true;
+  return first_value.type().value != ies_set_paramT_::first_value_c::types_opts::nulltype and
+         second_value.type().value != ies_set_paramT_::second_value_c::types_opts::nulltype;
 }
 
 // QosFlowSetupResponseItemSURes ::= SEQUENCE
@@ -58366,15 +53288,15 @@ void source_ngran_node_to_target_ngran_node_transparent_container_s::to_json(jso
   j.write_str("rRCContainer", rrc_container.to_string());
   if (pdu_session_res_info_list_present) {
     j.start_array("pDUSessionResourceInformationList");
-    for (uint32_t i1 = 0; i1 < pdu_session_res_info_list.size(); ++i1) {
-      pdu_session_res_info_list[i1].to_json(j);
+    for (const auto& e1 : pdu_session_res_info_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (erab_info_list_present) {
     j.start_array("e-RABInformationList");
-    for (uint32_t i1 = 0; i1 < erab_info_list.size(); ++i1) {
-      erab_info_list[i1].to_json(j);
+    for (const auto& e1 : erab_info_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -58384,8 +53306,8 @@ void source_ngran_node_to_target_ngran_node_transparent_container_s::to_json(jso
     j.write_int("indexToRFSP", idx_to_rfsp);
   }
   j.start_array("uEHistoryInformation");
-  for (uint32_t i1 = 0; i1 < uehistory_info.size(); ++i1) {
-    uehistory_info[i1].to_json(j);
+  for (const auto& e1 : uehistory_info) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {

@@ -145,8 +145,6 @@ private:
   srslte::log_filter rrc_log;
   srslte::log_filter usim_log;
   srslte::log_filter pool_log;
-  srslte::log_filter asn1_log;
-  srslte::log_filter rrc_asn1_log;
 
   // stack components
   srsue::mac                 mac;

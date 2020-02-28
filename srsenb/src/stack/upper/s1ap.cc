@@ -571,10 +571,10 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
 bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
 {
   switch (msg.value.type().value) {
-    case s1ap_elem_procs_o::successful_outcome_c::types_opts::s1_setup_request:
-      return handle_s1setupresponse(msg.value.s1_setup_request());
-    case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_required:
-      return handle_s1hocommand(msg.value.ho_required());
+    case s1ap_elem_procs_o::successful_outcome_c::types_opts::s1_setup_resp:
+      return handle_s1setupresponse(msg.value.s1_setup_resp());
+    case s1ap_elem_procs_o::successful_outcome_c::types_opts::ho_cmd:
+      return handle_s1hocommand(msg.value.ho_cmd());
     default:
       s1ap_log->error("Unhandled successful outcome message: %s\n", msg.value.type().to_string().c_str());
   }
@@ -584,10 +584,10 @@ bool s1ap::handle_successfuloutcome(const successful_outcome_s& msg)
 bool s1ap::handle_unsuccessfuloutcome(const unsuccessful_outcome_s& msg)
 {
   switch (msg.value.type().value) {
-    case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::s1_setup_request:
-      return handle_s1setupfailure(msg.value.s1_setup_request());
-    case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ho_required:
-      return handle_hopreparationfailure(msg.value.ho_required());
+    case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::s1_setup_fail:
+      return handle_s1setupfailure(msg.value.s1_setup_fail());
+    case s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::ho_prep_fail:
+      return handle_hopreparationfailure(msg.value.ho_prep_fail());
     default:
       s1ap_log->error("Unhandled unsuccessful outcome message: %s\n", msg.value.type().to_string().c_str());
   }
@@ -906,7 +906,7 @@ bool s1ap::ue::send_uectxtreleasecomplete()
 
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE);
-  auto& container                = tx_pdu.successful_outcome().value.ue_context_release_cmd().protocol_ies;
+  auto& container                = tx_pdu.successful_outcome().value.ue_context_release_complete().protocol_ies;
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
 
@@ -923,10 +923,10 @@ bool s1ap::ue::send_initial_ctxt_setup_response(const asn1::s1ap::init_context_s
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
 
   // Copy in the provided response message
-  tx_pdu.successful_outcome().value.init_context_setup_request() = res_;
+  tx_pdu.successful_outcome().value.init_context_setup_resp() = res_;
 
   // Fill in the MME and eNB IDs
-  auto& container                = tx_pdu.successful_outcome().value.init_context_setup_request().protocol_ies;
+  auto& container                = tx_pdu.successful_outcome().value.init_context_setup_resp().protocol_ies;
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
 
@@ -952,7 +952,7 @@ bool s1ap::ue::send_erab_setup_response(const erab_setup_resp_s& res_)
 
   asn1::s1ap::s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_ERAB_SETUP);
-  erab_setup_resp_s& res = tx_pdu.successful_outcome().value.erab_setup_request();
+  erab_setup_resp_s& res = tx_pdu.successful_outcome().value.erab_setup_resp();
 
   res = res_;
 
@@ -984,7 +984,7 @@ bool s1ap::ue::send_initial_ctxt_setup_failure()
 
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_INIT_CONTEXT_SETUP);
-  auto& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_request().protocol_ies;
+  auto& container = tx_pdu.unsuccessful_outcome().value.init_context_setup_fail().protocol_ies;
 
   container.enb_ue_s1ap_id.value                  = ctxt.enb_ue_s1ap_id;
   container.mme_ue_s1ap_id.value                  = ctxt.mme_ue_s1ap_id;
@@ -1001,7 +1001,7 @@ bool s1ap::ue::send_uectxtmodifyresp()
 
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_MOD);
-  auto& container = tx_pdu.successful_outcome().value.ue_context_mod_request().protocol_ies;
+  auto& container = tx_pdu.successful_outcome().value.ue_context_mod_resp().protocol_ies;
 
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;
@@ -1017,7 +1017,7 @@ bool s1ap::ue::send_uectxtmodifyfailure(const cause_c& cause)
 
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_MOD);
-  auto& container = tx_pdu.unsuccessful_outcome().value.ue_context_mod_request().protocol_ies;
+  auto& container = tx_pdu.unsuccessful_outcome().value.ue_context_mod_fail().protocol_ies;
 
   container.enb_ue_s1ap_id.value = ctxt.enb_ue_s1ap_id;
   container.mme_ue_s1ap_id.value = ctxt.mme_ue_s1ap_id;

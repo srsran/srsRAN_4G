@@ -133,8 +133,8 @@ int test_ngsetup_response()
   TESTASSERT(pdu.successful_outcome().proc_code == 21);
   TESTASSERT(pdu.successful_outcome().crit.value == crit_opts::reject);
   TESTASSERT(pdu.successful_outcome().value.type().value ==
-             ngap_elem_procs_o::successful_outcome_c::types_opts::ng_setup_request); // FIXME: Change name
-  ng_setup_resp_s& resp = pdu.successful_outcome().value.ng_setup_request();
+             ngap_elem_procs_o::successful_outcome_c::types_opts::ng_setup_resp); // FIXME: Change name
+  ng_setup_resp_s& resp = pdu.successful_outcome().value.ng_setup_resp();
   // field 0
   TESTASSERT(resp.protocol_ies.amf_name.id == 1);
   TESTASSERT(resp.protocol_ies.amf_name.crit.value == crit_opts::reject);
@@ -288,7 +288,7 @@ int test_ue_context_release_complete()
   TESTASSERT(pdu.successful_outcome().proc_code == 41);
   TESTASSERT(pdu.successful_outcome().crit.value == crit_opts::reject);
   TESTASSERT(pdu.successful_outcome().value.type().value ==
-             ngap_elem_procs_o::successful_outcome_c::types_opts::ue_context_release_cmd);
+             ngap_elem_procs_o::successful_outcome_c::types_opts::ue_context_release_complete);
 
   TESTASSERT(ceil(bref.distance(ngap_msg) / 8.0) == sizeof(ngap_msg));
   TESTASSERT(test_pack_unpack_consistency(pdu) == SRSASN_SUCCESS);
@@ -345,9 +345,7 @@ int test_session_res_setup_request()
 
 int main()
 {
-  srslte::logmap::set_default_log_level(LOG_LEVEL_DEBUG);
-  srsasn_log_register_handler(srslte::logmap::get("ASN1").get());
-  ngap_nr_log_register_handler(srslte::logmap::get("NGAP").get());
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_DEBUG);
 
   TESTASSERT(test_amf_upd() == 0);
   TESTASSERT(test_ngsetup_request() == 0);

@@ -24,29 +24,15 @@
 
 using namespace asn1;
 using namespace asn1::s1ap;
+using srslte::logmap;
 
 /*******************************************************************************
  *                              Logging Utilities
  ******************************************************************************/
 
-srslte::log* asn1::s1ap::s1ap_log_ptr = nullptr;
-
-void asn1::s1ap::s1ap_log_register_handler(srslte::log* ctx)
-{
-  s1ap_log_ptr = ctx;
-}
-
-void asn1::s1ap::s1ap_log_print(srslte::LOG_LEVEL_ENUM log_level, const char* format, ...)
-{
-  va_list args;
-  va_start(args, format);
-  vlog_print(s1ap_log_ptr, log_level, format, args);
-  va_end(args);
-}
-
 void asn1::s1ap::log_invalid_access_choice_id(uint32_t val, uint32_t choice_id)
 {
-  s1ap_log_print(LOG_LEVEL_ERROR, "The access choice id is invalid (%d!=%d)\n", val, choice_id);
+  logmap::get("ASN1::S1AP")->error("The access choice id is invalid (%d!=%d)\n", val, choice_id);
 }
 
 void asn1::s1ap::assert_choice_type(uint32_t val, uint32_t choice_id)
@@ -61,11 +47,11 @@ void asn1::s1ap::assert_choice_type(const std::string& access_type,
                                     const std::string& choice_type)
 {
   if (access_type != current_type) {
-    s1ap_log_print(LOG_LEVEL_ERROR,
-                   "Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
-                   choice_type.c_str(),
-                   access_type.c_str(),
-                   current_type.c_str());
+    logmap::get("ASN1::S1AP")
+        ->error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
+                choice_type.c_str(),
+                access_type.c_str(),
+                current_type.c_str());
   }
 }
 
@@ -74,29 +60,81 @@ asn1::s1ap::convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t e
 {
   if (enum_val >= nof_types) {
     if (enum_val == nof_types) {
-      s1ap_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
+      logmap::get("ASN1::S1AP")->error("The enum of type %s was not initialized.\n", enum_type);
     } else {
-      s1ap_log_print(LOG_LEVEL_ERROR, "The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+      logmap::get("ASN1::S1AP")->error("The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
     }
     return "";
   }
   return array[enum_val];
 }
 
-#define s1ap_asn1_warn_assert(cond, file, line)                                                                        \
-  if ((cond)) {                                                                                                        \
-    s1ap_log_print(LOG_LEVEL_WARNING, "Assertion in [%s][%d] failed.\n", (file), (line));                              \
+template <class ItemType>
+ItemType asn1::s1ap::map_enum_number(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+{
+  if (enum_val >= nof_types) {
+    if (enum_val == nof_types) {
+      logmap::get("ASN1::S1AP")->error("The enum of type %s is not initialized.\n", enum_type);
+    } else {
+      logmap::get("ASN1::S1AP")
+          ->error("The enum value=%d of type %s cannot be converted to a number.\n", enum_val, enum_type);
+    }
+    return 0;
   }
+  return array[enum_val];
+}
+template const uint8_t  asn1::s1ap::map_enum_number<const uint8_t>(const uint8_t* array,
+                                                                  uint32_t       nof_types,
+                                                                  uint32_t       enum_val,
+                                                                  const char*    enum_type);
+template const uint16_t asn1::s1ap::map_enum_number<const uint16_t>(const uint16_t* array,
+                                                                    uint32_t        nof_types,
+                                                                    uint32_t        enum_val,
+                                                                    const char*     enum_type);
+template const uint32_t asn1::s1ap::map_enum_number<const uint32_t>(const uint32_t* array,
+                                                                    uint32_t        nof_types,
+                                                                    uint32_t        enum_val,
+                                                                    const char*     enum_type);
+template const uint64_t asn1::s1ap::map_enum_number<const uint64_t>(const uint64_t* array,
+                                                                    uint32_t        nof_types,
+                                                                    uint32_t        enum_val,
+                                                                    const char*     enum_type);
+template const int8_t   asn1::s1ap::map_enum_number<const int8_t>(const int8_t* array,
+                                                                uint32_t      nof_types,
+                                                                uint32_t      enum_val,
+                                                                const char*   enum_type);
+template const int16_t  asn1::s1ap::map_enum_number<const int16_t>(const int16_t* array,
+                                                                  uint32_t       nof_types,
+                                                                  uint32_t       enum_val,
+                                                                  const char*    enum_type);
+template const int32_t  asn1::s1ap::map_enum_number<const int32_t>(const int32_t* array,
+                                                                  uint32_t       nof_types,
+                                                                  uint32_t       enum_val,
+                                                                  const char*    enum_type);
+template const int64_t  asn1::s1ap::map_enum_number<const int64_t>(const int64_t* array,
+                                                                  uint32_t       nof_types,
+                                                                  uint32_t       enum_val,
+                                                                  const char*    enum_type);
+template const float    asn1::s1ap::map_enum_number<const float>(const float* array,
+                                                              uint32_t     nof_types,
+                                                              uint32_t     enum_val,
+                                                              const char*  enum_type);
 
+void s1ap_asn1_warn_assert(bool cond, const char* filename, int lineno)
+{
+  if (cond) {
+    logmap::get("ASN1::S1AP")->warning("Assertion in [%s][%d] failed.\n", filename, lineno);
+  }
+}
 static void log_invalid_choice_id(uint32_t val, const char* choice_type)
 {
-  s1ap_log_print(LOG_LEVEL_ERROR, "Invalid choice id=%d for choice type %s\n", val, choice_type);
+  logmap::get("ASN1::S1AP")->error("Invalid choice id=%d for choice type %s\n", val, choice_type);
 }
 
 static void invalid_enum_number(int value, const char* name)
 {
-  s1ap_log_print(
-      LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
+  logmap::get("ASN1::S1AP")
+      ->error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
 }
 
 /*******************************************************************************
@@ -106,14 +144,14 @@ static void invalid_enum_number(int value, const char* name)
 // Criticality ::= ENUMERATED
 std::string crit_opts::to_string() const
 {
-  static constexpr const char* options[] = {"reject", "ignore", "notify"};
+  static const char* options[] = {"reject", "ignore", "notify"};
   return convert_enum_idx(options, 3, value, "crit_e");
 }
 
 // Presence ::= ENUMERATED
 std::string presence_opts::to_string() const
 {
-  static constexpr const char* options[] = {"optional", "conditional", "mandatory"};
+  static const char* options[] = {"optional", "conditional", "mandatory"};
   return convert_enum_idx(options, 3, value, "presence_e");
 }
 
@@ -208,7 +246,7 @@ SRSASN_CODE private_ie_id_c::unpack(cbit_ref& bref)
 
 std::string private_ie_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"local", "global"};
+  static const char* options[] = {"local", "global"};
   return convert_enum_idx(options, 2, value, "private_ie_id_c::types");
 }
 
@@ -279,7 +317,7 @@ bool protocol_ext_field_s<ext_set_paramT_>::load_info_obj(const uint32_t& id_)
   id        = id_;
   crit      = ext_set_paramT_::get_crit(id);
   ext_value = ext_set_paramT_::get_ext(id);
-  return true;
+  return ext_value.type().value != ext_set_paramT_::ext_c::types_opts::nulltype;
 }
 
 // ProtocolIE-Field{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES}}
@@ -320,7 +358,7 @@ bool protocol_ie_field_s<ies_set_paramT_>::load_info_obj(const uint32_t& id_)
   id    = id_;
   crit  = ies_set_paramT_::get_crit(id);
   value = ies_set_paramT_::get_value(id);
-  return true;
+  return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
 }
 
 // ProtocolIE-SingleContainer{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES}}
@@ -361,7 +399,7 @@ bool protocol_ie_single_container_s<ies_set_paramT_>::load_info_obj(const uint32
   id    = id_;
   crit  = ies_set_paramT_::get_crit(id);
   value = ies_set_paramT_::get_value(id);
-  return true;
+  return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
 }
 
 // ProtocolIE-FieldPair{S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES-PAIR}}
@@ -411,7 +449,8 @@ bool protocol_ie_field_pair_s<ies_set_paramT_>::load_info_obj(const uint32_t& id
   first_value  = ies_set_paramT_::get_first_value(id);
   second_crit  = ies_set_paramT_::get_second_crit(id);
   second_value = ies_set_paramT_::get_second_value(id);
-  return true;
+  return first_value.type().value != ies_set_paramT_::first_value_c::types_opts::nulltype and
+         second_value.type().value != ies_set_paramT_::second_value_c::types_opts::nulltype;
 }
 
 // ActivatedCellsList-Item ::= SEQUENCE
@@ -438,25 +477,25 @@ void activ_cells_list_item_s::to_json(json_writer& j) const
 
 uint32_t s1ap_protocol_ext_empty_o::idx_to_id(uint32_t idx)
 {
-  s1ap_log_print(LOG_LEVEL_ERROR, "object set is empty\n");
+  logmap::get("ASN1::S1AP")->error("object set is empty\n");
   return 0;
 }
 bool s1ap_protocol_ext_empty_o::is_id_valid(const uint32_t& id)
 {
-  s1ap_log_print(LOG_LEVEL_ERROR, "object set is empty\n");
+  logmap::get("ASN1::S1AP")->error("object set is empty\n");
   return false;
 }
 crit_e s1ap_protocol_ext_empty_o::get_crit(const uint32_t& id)
 {
-  return crit_e();
+  return {};
 }
 s1ap_protocol_ext_empty_o::ext_c s1ap_protocol_ext_empty_o::get_ext(const uint32_t& id)
 {
-  return s1ap_protocol_ext_empty_o::ext_c();
+  return {};
 }
 presence_e s1ap_protocol_ext_empty_o::get_presence(const uint32_t& id)
 {
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -478,7 +517,7 @@ SRSASN_CODE s1ap_protocol_ext_empty_o::ext_c::unpack(cbit_ref& bref)
 
 std::string s1ap_protocol_ext_empty_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {};
+  static const char* options[] = {};
   return convert_enum_idx(options, 0, value, "s1ap_protocol_ext_empty_o::ext_c::types");
 }
 
@@ -625,14 +664,14 @@ void add_guti_s::to_json(json_writer& j) const
 // Pre-emptionCapability ::= ENUMERATED
 std::string pre_emption_cap_opts::to_string() const
 {
-  static constexpr const char* options[] = {"shall-not-trigger-pre-emption", "may-trigger-pre-emption"};
+  static const char* options[] = {"shall-not-trigger-pre-emption", "may-trigger-pre-emption"};
   return convert_enum_idx(options, 2, value, "pre_emption_cap_e");
 }
 
 // Pre-emptionVulnerability ::= ENUMERATED
 std::string pre_emption_vulnerability_opts::to_string() const
 {
-  static constexpr const char* options[] = {"not-pre-emptable", "pre-emptable"};
+  static const char* options[] = {"not-pre-emptable", "pre-emptable"};
   return convert_enum_idx(options, 2, value, "pre_emption_vulnerability_e");
 }
 
@@ -785,8 +824,8 @@ void cell_based_mdt_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("cellIdListforMDT");
-  for (uint32_t i1 = 0; i1 < cell_id_listfor_mdt.size(); ++i1) {
-    cell_id_listfor_mdt[i1].to_json(j);
+  for (const auto& e1 : cell_id_listfor_mdt) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -825,8 +864,8 @@ void ta_based_mdt_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("tAListforMDT");
-  for (uint32_t i1 = 0; i1 < talistfor_mdt.size(); ++i1) {
-    j.write_str(talistfor_mdt[i1].to_string());
+  for (const auto& e1 : talistfor_mdt) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   if (ie_exts_present) {
@@ -865,8 +904,8 @@ void tai_based_mdt_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("tAIListforMDT");
-  for (uint32_t i1 = 0; i1 < tai_listfor_mdt.size(); ++i1) {
-    tai_listfor_mdt[i1].to_json(j);
+  for (const auto& e1 : tai_listfor_mdt) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -1034,7 +1073,7 @@ SRSASN_CODE area_scope_of_mdt_c::unpack(cbit_ref& bref)
 
 std::string area_scope_of_mdt_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellBased", "tABased", "pLMNWide", "tAIBased"};
+  static const char* options[] = {"cellBased", "tABased", "pLMNWide", "tAIBased"};
   return convert_enum_idx(options, 4, value, "area_scope_of_mdt_c::types");
 }
 
@@ -1166,49 +1205,36 @@ void recommended_cell_item_s::to_json(json_writer& j) const
 // RecommendedCellItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t recommended_cell_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {214};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {214};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool recommended_cell_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {214};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 214 == id;
 }
 crit_e recommended_cell_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 214:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 214) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 recommended_cell_item_ies_o::value_c recommended_cell_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 214:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 214) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e recommended_cell_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 214:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 214) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -1234,16 +1260,16 @@ SRSASN_CODE recommended_cell_item_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string recommended_cell_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"RecommendedCellItem"};
+  static const char* options[] = {"RecommendedCellItem"};
   return convert_enum_idx(options, 1, value, "recommended_cell_item_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<recommended_cell_item_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<recommended_cell_item_ies_o>;
 
 // NextPagingAreaScope ::= ENUMERATED
 std::string next_paging_area_scope_opts::to_string() const
 {
-  static constexpr const char* options[] = {"same", "changed"};
+  static const char* options[] = {"same", "changed"};
   return convert_enum_idx(options, 2, value, "next_paging_area_scope_e");
 }
 
@@ -1276,8 +1302,8 @@ void recommended_cells_for_paging_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("recommendedCellList");
-  for (uint32_t i1 = 0; i1 < recommended_cell_list.size(); ++i1) {
-    recommended_cell_list[i1].to_json(j);
+  for (const auto& e1 : recommended_cell_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -1524,14 +1550,14 @@ void coun_tvalue_pdcp_snlen18_s::to_json(json_writer& j) const
 // Bearers-SubjectToStatusTransfer-ItemExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t bearers_subject_to_status_transfer_item_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {179, 180, 181, 217, 218, 219};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {179, 180, 181, 217, 218, 219};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool bearers_subject_to_status_transfer_item_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {179, 180, 181, 217, 218, 219};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {179, 180, 181, 217, 218, 219};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -1553,9 +1579,9 @@ crit_e bearers_subject_to_status_transfer_item_ext_ies_o::get_crit(const uint32_
     case 219:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 bearers_subject_to_status_transfer_item_ext_ies_o::ext_c
 bearers_subject_to_status_transfer_item_ext_ies_o::get_ext(const uint32_t& id)
@@ -1581,7 +1607,7 @@ bearers_subject_to_status_transfer_item_ext_ies_o::get_ext(const uint32_t& id)
       ret.set(ext_c::types::receive_status_of_ulpdcpsdus_pdcp_snlen18);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -1601,9 +1627,9 @@ presence_e bearers_subject_to_status_transfer_item_ext_ies_o::get_presence(const
     case 219:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -1880,12 +1906,12 @@ SRSASN_CODE bearers_subject_to_status_transfer_item_ext_ies_o::ext_c::unpack(cbi
 
 std::string bearers_subject_to_status_transfer_item_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"COUNTValueExtended",
-                                            "COUNTValueExtended",
-                                            "BIT STRING",
-                                            "COUNTvaluePDCP-SNlength18",
-                                            "COUNTvaluePDCP-SNlength18",
-                                            "BIT STRING"};
+  static const char* options[] = {"COUNTValueExtended",
+                                  "COUNTValueExtended",
+                                  "BIT STRING",
+                                  "COUNTvaluePDCP-SNlength18",
+                                  "COUNTvaluePDCP-SNlength18",
+                                  "BIT STRING"};
   return convert_enum_idx(options, 6, value, "bearers_subject_to_status_transfer_item_ext_ies_o::ext_c::types");
 }
 
@@ -1928,7 +1954,7 @@ void coun_tvalue_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<bearers_subject_to_status_transfer_item_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<bearers_subject_to_status_transfer_item_ext_ies_o>;
 
 bearers_subject_to_status_transfer_item_ext_ies_container::bearers_subject_to_status_transfer_item_ext_ies_container() :
   ulcount_value_extended(179, crit_e::ignore),
@@ -2017,7 +2043,7 @@ SRSASN_CODE bearers_subject_to_status_transfer_item_ext_ies_container::unpack(cb
         receive_status_of_ulpdcpsdus_pdcp_snlen18.ext     = c.ext_value.receive_status_of_ulpdcpsdus_pdcp_snlen18();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -2112,50 +2138,37 @@ void bearers_subject_to_status_transfer_item_s::to_json(json_writer& j) const
 // Bearers-SubjectToStatusTransfer-ItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t bearers_subject_to_status_transfer_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {89};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {89};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool bearers_subject_to_status_transfer_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {89};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 89 == id;
 }
 crit_e bearers_subject_to_status_transfer_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 89:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 89) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 bearers_subject_to_status_transfer_item_ies_o::value_c
 bearers_subject_to_status_transfer_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 89:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 89) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e bearers_subject_to_status_transfer_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 89:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 89) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -2181,11 +2194,11 @@ SRSASN_CODE bearers_subject_to_status_transfer_item_ies_o::value_c::unpack(cbit_
 
 std::string bearers_subject_to_status_transfer_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Bearers-SubjectToStatusTransfer-Item"};
+  static const char* options[] = {"Bearers-SubjectToStatusTransfer-Item"};
   return convert_enum_idx(options, 1, value, "bearers_subject_to_status_transfer_item_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<bearers_subject_to_status_transfer_item_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<bearers_subject_to_status_transfer_item_ies_o>;
 
 // CancelledCellinEAI-Item ::= SEQUENCE
 SRSASN_CODE cancelled_cellin_eai_item_s::pack(bit_ref& bref) const
@@ -2339,8 +2352,8 @@ void emergency_area_id_cancelled_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("emergencyAreaID", emergency_area_id.to_string());
   j.start_array("cancelledCellinEAI");
-  for (uint32_t i1 = 0; i1 < cancelled_cellin_eai.size(); ++i1) {
-    cancelled_cellin_eai[i1].to_json(j);
+  for (const auto& e1 : cancelled_cellin_eai) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -2383,8 +2396,8 @@ void tai_cancelled_item_s::to_json(json_writer& j) const
   j.write_fieldname("tAI");
   tai.to_json(j);
   j.start_array("cancelledCellinTAI");
-  for (uint32_t i1 = 0; i1 < cancelled_cellin_tai.size(); ++i1) {
-    cancelled_cellin_tai[i1].to_json(j);
+  for (const auto& e1 : cancelled_cellin_tai) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -2481,22 +2494,22 @@ void broadcast_cancelled_area_list_c::to_json(json_writer& j) const
   switch (type_) {
     case types::cell_id_cancelled:
       j.start_array("cellID-Cancelled");
-      for (uint32_t i1 = 0; i1 < c.get<cell_id_cancelled_l>().size(); ++i1) {
-        c.get<cell_id_cancelled_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<cell_id_cancelled_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::tai_cancelled:
       j.start_array("tAI-Cancelled");
-      for (uint32_t i1 = 0; i1 < c.get<tai_cancelled_l>().size(); ++i1) {
-        c.get<tai_cancelled_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_cancelled_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_cancelled:
       j.start_array("emergencyAreaID-Cancelled");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_cancelled_l>().size(); ++i1) {
-        c.get<emergency_area_id_cancelled_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<emergency_area_id_cancelled_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -2548,7 +2561,7 @@ SRSASN_CODE broadcast_cancelled_area_list_c::unpack(cbit_ref& bref)
 
 std::string broadcast_cancelled_area_list_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellID-Cancelled", "tAI-Cancelled", "emergencyAreaID-Cancelled"};
+  static const char* options[] = {"cellID-Cancelled", "tAI-Cancelled", "emergencyAreaID-Cancelled"};
   return convert_enum_idx(options, 3, value, "broadcast_cancelled_area_list_c::types");
 }
 
@@ -2695,8 +2708,8 @@ void emergency_area_id_broadcast_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("emergencyAreaID", emergency_area_id.to_string());
   j.start_array("completedCellinEAI");
-  for (uint32_t i1 = 0; i1 < completed_cellin_eai.size(); ++i1) {
-    completed_cellin_eai[i1].to_json(j);
+  for (const auto& e1 : completed_cellin_eai) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -2739,8 +2752,8 @@ void tai_broadcast_item_s::to_json(json_writer& j) const
   j.write_fieldname("tAI");
   tai.to_json(j);
   j.start_array("completedCellinTAI");
-  for (uint32_t i1 = 0; i1 < completed_cellin_tai.size(); ++i1) {
-    completed_cellin_tai[i1].to_json(j);
+  for (const auto& e1 : completed_cellin_tai) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -2837,22 +2850,22 @@ void broadcast_completed_area_list_c::to_json(json_writer& j) const
   switch (type_) {
     case types::cell_id_broadcast:
       j.start_array("cellID-Broadcast");
-      for (uint32_t i1 = 0; i1 < c.get<cell_id_broadcast_l>().size(); ++i1) {
-        c.get<cell_id_broadcast_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<cell_id_broadcast_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::tai_broadcast:
       j.start_array("tAI-Broadcast");
-      for (uint32_t i1 = 0; i1 < c.get<tai_broadcast_l>().size(); ++i1) {
-        c.get<tai_broadcast_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_broadcast_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_broadcast:
       j.start_array("emergencyAreaID-Broadcast");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_broadcast_l>().size(); ++i1) {
-        c.get<emergency_area_id_broadcast_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<emergency_area_id_broadcast_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -2904,7 +2917,7 @@ SRSASN_CODE broadcast_completed_area_list_c::unpack(cbit_ref& bref)
 
 std::string broadcast_completed_area_list_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellID-Broadcast", "tAI-Broadcast", "emergencyAreaID-Broadcast"};
+  static const char* options[] = {"cellID-Broadcast", "tAI-Broadcast", "emergencyAreaID-Broadcast"};
   return convert_enum_idx(options, 3, value, "broadcast_completed_area_list_c::types");
 }
 
@@ -3000,14 +3013,14 @@ void csg_id_list_item_s::to_json(json_writer& j) const
 // CSGMembershipStatus ::= ENUMERATED
 std::string csg_membership_status_opts::to_string() const
 {
-  static constexpr const char* options[] = {"member", "not-member"};
+  static const char* options[] = {"member", "not-member"};
   return convert_enum_idx(options, 2, value, "csg_membership_status_e");
 }
 
 // CellAccessMode ::= ENUMERATED
 std::string cell_access_mode_opts::to_string() const
 {
-  static constexpr const char* options[] = {"hybrid"};
+  static const char* options[] = {"hybrid"};
   return convert_enum_idx(options, 1, value, "cell_access_mode_e");
 }
 
@@ -3236,7 +3249,7 @@ SRSASN_CODE irat_cell_id_c::unpack(cbit_ref& bref)
 
 std::string irat_cell_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"eUTRAN", "uTRAN", "gERAN", "eHRPD"};
+  static const char* options[] = {"eUTRAN", "uTRAN", "gERAN", "eHRPD"};
   return convert_enum_idx(options, 4, value, "irat_cell_id_c::types");
 }
 
@@ -3268,19 +3281,19 @@ void candidate_pci_s::to_json(json_writer& j) const
 // CauseMisc ::= ENUMERATED
 std::string cause_misc_opts::to_string() const
 {
-  static constexpr const char* options[] = {"control-processing-overload",
-                                            "not-enough-user-plane-processing-resources",
-                                            "hardware-failure",
-                                            "om-intervention",
-                                            "unspecified",
-                                            "unknown-PLMN"};
+  static const char* options[] = {"control-processing-overload",
+                                  "not-enough-user-plane-processing-resources",
+                                  "hardware-failure",
+                                  "om-intervention",
+                                  "unspecified",
+                                  "unknown-PLMN"};
   return convert_enum_idx(options, 6, value, "cause_misc_e");
 }
 
 // CauseNas ::= ENUMERATED
 std::string cause_nas_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "normal-release", "authentication-failure", "detach", "unspecified", "csg-subscription-expiry"};
   return convert_enum_idx(options, 5, value, "cause_nas_e");
 }
@@ -3288,66 +3301,66 @@ std::string cause_nas_opts::to_string() const
 // CauseProtocol ::= ENUMERATED
 std::string cause_protocol_opts::to_string() const
 {
-  static constexpr const char* options[] = {"transfer-syntax-error",
-                                            "abstract-syntax-error-reject",
-                                            "abstract-syntax-error-ignore-and-notify",
-                                            "message-not-compatible-with-receiver-state",
-                                            "semantic-error",
-                                            "abstract-syntax-error-falsely-constructed-message",
-                                            "unspecified"};
+  static const char* options[] = {"transfer-syntax-error",
+                                  "abstract-syntax-error-reject",
+                                  "abstract-syntax-error-ignore-and-notify",
+                                  "message-not-compatible-with-receiver-state",
+                                  "semantic-error",
+                                  "abstract-syntax-error-falsely-constructed-message",
+                                  "unspecified"};
   return convert_enum_idx(options, 7, value, "cause_protocol_e");
 }
 
 // CauseRadioNetwork ::= ENUMERATED
 std::string cause_radio_network_opts::to_string() const
 {
-  static constexpr const char* options[] = {"unspecified",
-                                            "tx2relocoverall-expiry",
-                                            "successful-handover",
-                                            "release-due-to-eutran-generated-reason",
-                                            "handover-cancelled",
-                                            "partial-handover",
-                                            "ho-failure-in-target-EPC-eNB-or-target-system",
-                                            "ho-target-not-allowed",
-                                            "tS1relocoverall-expiry",
-                                            "tS1relocprep-expiry",
-                                            "cell-not-available",
-                                            "unknown-targetID",
-                                            "no-radio-resources-available-in-target-cell",
-                                            "unknown-mme-ue-s1ap-id",
-                                            "unknown-enb-ue-s1ap-id",
-                                            "unknown-pair-ue-s1ap-id",
-                                            "handover-desirable-for-radio-reason",
-                                            "time-critical-handover",
-                                            "resource-optimisation-handover",
-                                            "reduce-load-in-serving-cell",
-                                            "user-inactivity",
-                                            "radio-connection-with-ue-lost",
-                                            "load-balancing-tau-required",
-                                            "cs-fallback-triggered",
-                                            "ue-not-available-for-ps-service",
-                                            "radio-resources-not-available",
-                                            "failure-in-radio-interface-procedure",
-                                            "invalid-qos-combination",
-                                            "interrat-redirection",
-                                            "interaction-with-other-procedure",
-                                            "unknown-E-RAB-ID",
-                                            "multiple-E-RAB-ID-instances",
-                                            "encryption-and-or-integrity-protection-algorithms-not-supported",
-                                            "s1-intra-system-handover-triggered",
-                                            "s1-inter-system-handover-triggered",
-                                            "x2-handover-triggered",
-                                            "redirection-towards-1xRTT",
-                                            "not-supported-QCI-value",
-                                            "invalid-CSG-Id",
-                                            "release-due-to-pre-emption"};
+  static const char* options[] = {"unspecified",
+                                  "tx2relocoverall-expiry",
+                                  "successful-handover",
+                                  "release-due-to-eutran-generated-reason",
+                                  "handover-cancelled",
+                                  "partial-handover",
+                                  "ho-failure-in-target-EPC-eNB-or-target-system",
+                                  "ho-target-not-allowed",
+                                  "tS1relocoverall-expiry",
+                                  "tS1relocprep-expiry",
+                                  "cell-not-available",
+                                  "unknown-targetID",
+                                  "no-radio-resources-available-in-target-cell",
+                                  "unknown-mme-ue-s1ap-id",
+                                  "unknown-enb-ue-s1ap-id",
+                                  "unknown-pair-ue-s1ap-id",
+                                  "handover-desirable-for-radio-reason",
+                                  "time-critical-handover",
+                                  "resource-optimisation-handover",
+                                  "reduce-load-in-serving-cell",
+                                  "user-inactivity",
+                                  "radio-connection-with-ue-lost",
+                                  "load-balancing-tau-required",
+                                  "cs-fallback-triggered",
+                                  "ue-not-available-for-ps-service",
+                                  "radio-resources-not-available",
+                                  "failure-in-radio-interface-procedure",
+                                  "invalid-qos-combination",
+                                  "interrat-redirection",
+                                  "interaction-with-other-procedure",
+                                  "unknown-E-RAB-ID",
+                                  "multiple-E-RAB-ID-instances",
+                                  "encryption-and-or-integrity-protection-algorithms-not-supported",
+                                  "s1-intra-system-handover-triggered",
+                                  "s1-inter-system-handover-triggered",
+                                  "x2-handover-triggered",
+                                  "redirection-towards-1xRTT",
+                                  "not-supported-QCI-value",
+                                  "invalid-CSG-Id",
+                                  "release-due-to-pre-emption"};
   return convert_enum_idx(options, 40, value, "cause_radio_network_e");
 }
 
 // CauseTransport ::= ENUMERATED
 std::string cause_transport_opts::to_string() const
 {
-  static constexpr const char* options[] = {"transport-resource-unavailable", "unspecified"};
+  static const char* options[] = {"transport-resource-unavailable", "unspecified"};
   return convert_enum_idx(options, 2, value, "cause_transport_e");
 }
 
@@ -3492,13 +3505,13 @@ SRSASN_CODE cause_c::unpack(cbit_ref& bref)
 
 std::string cause_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"radioNetwork", "transport", "nas", "protocol", "misc"};
+  static const char* options[] = {"radioNetwork", "transport", "nas", "protocol", "misc"};
   return convert_enum_idx(options, 5, value, "cause_c::types");
 }
 uint8_t cause_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {2};
-  return convert_enum_idx(options, 1, value, "cause_c::types");
+  static const uint8_t options[] = {2};
+  return map_enum_number(options, 1, value, "cause_c::types");
 }
 
 // Cdma2000OneXSRVCCInfo ::= SEQUENCE
@@ -3594,8 +3607,8 @@ void cell_activation_request_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("cellsToActivateList");
-  for (uint32_t i1 = 0; i1 < cells_to_activ_list.size(); ++i1) {
-    cells_to_activ_list[i1].to_json(j);
+  for (const auto& e1 : cells_to_activ_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (minimum_activation_time_present) {
@@ -3623,8 +3636,8 @@ void cell_activation_resp_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("activatedCellsList");
-  for (uint32_t i1 = 0; i1 < activ_cells_list.size(); ++i1) {
-    activ_cells_list[i1].to_json(j);
+  for (const auto& e1 : activ_cells_list) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -3870,14 +3883,14 @@ SRSASN_CODE cell_load_report_resp_c::unpack(cbit_ref& bref)
 
 std::string cell_load_report_resp_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"eUTRAN", "uTRAN", "gERAN", "eHRPD"};
+  static const char* options[] = {"eUTRAN", "uTRAN", "gERAN", "eHRPD"};
   return convert_enum_idx(options, 4, value, "cell_load_report_resp_c::types");
 }
 
 // NotifyFlag ::= ENUMERATED
 std::string notify_flag_opts::to_string() const
 {
-  static constexpr const char* options[] = {"activated", "deactivated"};
+  static const char* options[] = {"activated", "deactivated"};
   return convert_enum_idx(options, 2, value, "notify_flag_e");
 }
 
@@ -3925,8 +3938,8 @@ void cell_state_ind_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("notificationCellList");
-  for (uint32_t i1 = 0; i1 < notif_cell_list.size(); ++i1) {
-    notif_cell_list[i1].to_json(j);
+  for (const auto& e1 : notif_cell_list) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -3935,21 +3948,21 @@ void cell_state_ind_s::to_json(json_writer& j) const
 // PrivacyIndicator ::= ENUMERATED
 std::string privacy_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"immediate-MDT", "logged-MDT"};
+  static const char* options[] = {"immediate-MDT", "logged-MDT"};
   return convert_enum_idx(options, 2, value, "privacy_ind_e");
 }
 
 // CellTrafficTraceIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t cell_traffic_trace_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 86, 100, 131, 166};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {0, 8, 86, 100, 131, 166};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool cell_traffic_trace_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 86, 100, 131, 166};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 86, 100, 131, 166};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -3971,9 +3984,9 @@ crit_e cell_traffic_trace_ies_o::get_crit(const uint32_t& id)
     case 166:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 cell_traffic_trace_ies_o::value_c cell_traffic_trace_ies_o::get_value(const uint32_t& id)
 {
@@ -3998,7 +4011,7 @@ cell_traffic_trace_ies_o::value_c cell_traffic_trace_ies_o::get_value(const uint
       ret.set(value_c::types::privacy_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -4018,9 +4031,9 @@ presence_e cell_traffic_trace_ies_o::get_presence(const uint32_t& id)
     case 166:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -4276,12 +4289,12 @@ SRSASN_CODE cell_traffic_trace_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string cell_traffic_trace_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "OCTET STRING",
-                                            "EUTRAN-CGI",
-                                            "BIT STRING",
-                                            "PrivacyIndicator"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "OCTET STRING",
+                                  "EUTRAN-CGI",
+                                  "BIT STRING",
+                                  "PrivacyIndicator"};
   return convert_enum_idx(options, 6, value, "cell_traffic_trace_ies_o::value_c::types");
 }
 
@@ -4321,7 +4334,7 @@ void protocol_ie_container_item_s<valueT_>::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<cell_traffic_trace_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<cell_traffic_trace_ies_o>;
 
 cell_traffic_trace_ies_container::cell_traffic_trace_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -4397,12 +4410,13 @@ SRSASN_CODE cell_traffic_trace_ies_container::unpack(cbit_ref& bref)
         privacy_ind.value   = c.value.privacy_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -4453,7 +4467,7 @@ void cell_traffic_trace_s::to_json(json_writer& j) const
 // Cell-Size ::= ENUMERATED
 std::string cell_size_opts::to_string() const
 {
-  static constexpr const char* options[] = {"verysmall", "small", "medium", "large"};
+  static const char* options[] = {"verysmall", "small", "medium", "large"};
   return convert_enum_idx(options, 4, value, "cell_size_e");
 }
 
@@ -4496,7 +4510,7 @@ void cell_type_s::to_json(json_writer& j) const
 // CE-ModeBRestricted ::= ENUMERATED
 std::string ce_mode_brestricted_opts::to_string() const
 {
-  static constexpr const char* options[] = {"restricted", "not-restricted"};
+  static const char* options[] = {"restricted", "not-restricted"};
   return convert_enum_idx(options, 2, value, "ce_mode_brestricted_e");
 }
 
@@ -4539,21 +4553,21 @@ void dl_cp_security_info_s::to_json(json_writer& j) const
 // EnhancedCoverageRestricted ::= ENUMERATED
 std::string enhanced_coverage_restricted_opts::to_string() const
 {
-  static constexpr const char* options[] = {"restricted"};
+  static const char* options[] = {"restricted"};
   return convert_enum_idx(options, 1, value, "enhanced_coverage_restricted_e");
 }
 
 // ConnectionEstablishmentIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t conn_establishment_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 74, 251, 253, 271};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {0, 8, 74, 251, 253, 271};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool conn_establishment_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 74, 251, 253, 271};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 74, 251, 253, 271};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -4575,9 +4589,9 @@ crit_e conn_establishment_ind_ies_o::get_crit(const uint32_t& id)
     case 271:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 conn_establishment_ind_ies_o::value_c conn_establishment_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -4602,7 +4616,7 @@ conn_establishment_ind_ies_o::value_c conn_establishment_ind_ies_o::get_value(co
       ret.set(value_c::types::ce_mode_brestricted);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -4622,9 +4636,9 @@ presence_e conn_establishment_ind_ies_o::get_presence(const uint32_t& id)
     case 271:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -4875,16 +4889,16 @@ SRSASN_CODE conn_establishment_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string conn_establishment_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "OCTET STRING",
-                                            "EnhancedCoverageRestricted",
-                                            "DL-CP-SecurityInformation",
-                                            "CE-ModeBRestricted"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "OCTET STRING",
+                                  "EnhancedCoverageRestricted",
+                                  "DL-CP-SecurityInformation",
+                                  "CE-ModeBRestricted"};
   return convert_enum_idx(options, 6, value, "conn_establishment_ind_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<conn_establishment_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<conn_establishment_ind_ies_o>;
 
 conn_establishment_ind_ies_container::conn_establishment_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -4969,12 +4983,13 @@ SRSASN_CODE conn_establishment_ind_ies_container::unpack(cbit_ref& bref)
         ce_mode_brestricted.value   = c.value.ce_mode_brestricted();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -5031,7 +5046,7 @@ void conn_establishment_ind_s::to_json(json_writer& j) const
 // TypeOfError ::= ENUMERATED
 std::string type_of_error_opts::to_string() const
 {
-  static constexpr const char* options[] = {"not-understood", "missing"};
+  static const char* options[] = {"not-understood", "missing"};
   return convert_enum_idx(options, 2, value, "type_of_error_e");
 }
 
@@ -5080,7 +5095,7 @@ void crit_diagnostics_ie_item_s::to_json(json_writer& j) const
 // TriggeringMessage ::= ENUMERATED
 std::string trigger_msg_opts::to_string() const
 {
-  static constexpr const char* options[] = {"initiating-message", "successful-outcome", "unsuccessfull-outcome"};
+  static const char* options[] = {"initiating-message", "successful-outcome", "unsuccessfull-outcome"};
   return convert_enum_idx(options, 3, value, "trigger_msg_e");
 }
 
@@ -5153,8 +5168,8 @@ void crit_diagnostics_s::to_json(json_writer& j) const
   }
   if (ies_crit_diagnostics_present) {
     j.start_array("iEsCriticalityDiagnostics");
-    for (uint32_t i1 = 0; i1 < ies_crit_diagnostics.size(); ++i1) {
-      ies_crit_diagnostics[i1].to_json(j);
+    for (const auto& e1 : ies_crit_diagnostics) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -5168,14 +5183,14 @@ void crit_diagnostics_s::to_json(json_writer& j) const
 // DeactivateTraceIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t deactiv_trace_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 86};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 86};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool deactiv_trace_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 86};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 86};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -5191,9 +5206,9 @@ crit_e deactiv_trace_ies_o::get_crit(const uint32_t& id)
     case 86:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 deactiv_trace_ies_o::value_c deactiv_trace_ies_o::get_value(const uint32_t& id)
 {
@@ -5209,7 +5224,7 @@ deactiv_trace_ies_o::value_c deactiv_trace_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::e_utran_trace_id);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -5223,9 +5238,9 @@ presence_e deactiv_trace_ies_o::get_presence(const uint32_t& id)
     case 86:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -5389,11 +5404,11 @@ SRSASN_CODE deactiv_trace_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string deactiv_trace_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING"};
   return convert_enum_idx(options, 3, value, "deactiv_trace_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<deactiv_trace_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<deactiv_trace_ies_o>;
 
 deactiv_trace_ies_container::deactiv_trace_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -5442,12 +5457,13 @@ SRSASN_CODE deactiv_trace_ies_container::unpack(cbit_ref& bref)
         e_utran_trace_id.value = c.value.e_utran_trace_id();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -5519,8 +5535,8 @@ void forbidden_las_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("pLMN-Identity", plmn_id.to_string());
   j.start_array("forbiddenLACs");
-  for (uint32_t i1 = 0; i1 < forbidden_lacs.size(); ++i1) {
-    j.write_str(forbidden_lacs[i1].to_string());
+  for (const auto& e1 : forbidden_lacs) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   if (ie_exts_present) {
@@ -5562,8 +5578,8 @@ void forbidden_tas_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("pLMN-Identity", plmn_id.to_string());
   j.start_array("forbiddenTACs");
-  for (uint32_t i1 = 0; i1 < forbidden_tacs.size(); ++i1) {
-    j.write_str(forbidden_tacs[i1].to_string());
+  for (const auto& e1 : forbidden_tacs) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   if (ie_exts_present) {
@@ -5576,14 +5592,14 @@ void forbidden_tas_item_s::to_json(json_writer& j) const
 // ForbiddenInterRATs ::= ENUMERATED
 std::string forbidden_inter_rats_opts::to_string() const
 {
-  static constexpr const char* options[] = {"all", "geran", "utran", "cdma2000", "geranandutran", "cdma2000andutran"};
+  static const char* options[] = {"all", "geran", "utran", "cdma2000", "geranandutran", "cdma2000andutran"};
   return convert_enum_idx(options, 6, value, "forbidden_inter_rats_e");
 }
 
 // DLNASPDUDeliveryAckRequest ::= ENUMERATED
 std::string dlnaspdu_delivery_ack_request_opts::to_string() const
 {
-  static constexpr const char* options[] = {"requested"};
+  static const char* options[] = {"requested"};
   return convert_enum_idx(options, 1, value, "dlnaspdu_delivery_ack_request_e");
 }
 
@@ -5650,22 +5666,22 @@ void ho_restrict_list_s::to_json(json_writer& j) const
   j.write_str("servingPLMN", serving_plmn.to_string());
   if (equivalent_plmns_present) {
     j.start_array("equivalentPLMNs");
-    for (uint32_t i1 = 0; i1 < equivalent_plmns.size(); ++i1) {
-      j.write_str(equivalent_plmns[i1].to_string());
+    for (const auto& e1 : equivalent_plmns) {
+      j.write_str(e1.to_string());
     }
     j.end_array();
   }
   if (forbidden_tas_present) {
     j.start_array("forbiddenTAs");
-    for (uint32_t i1 = 0; i1 < forbidden_tas.size(); ++i1) {
-      forbidden_tas[i1].to_json(j);
+    for (const auto& e1 : forbidden_tas) {
+      e1.to_json(j);
     }
     j.end_array();
   }
   if (forbidden_las_present) {
     j.start_array("forbiddenLAs");
-    for (uint32_t i1 = 0; i1 < forbidden_las.size(); ++i1) {
-      forbidden_las[i1].to_json(j);
+    for (const auto& e1 : forbidden_las) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -5682,28 +5698,28 @@ void ho_restrict_list_s::to_json(json_writer& j) const
 // PendingDataIndication ::= ENUMERATED
 std::string pending_data_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "pending_data_ind_e");
 }
 
 // SRVCCOperationPossible ::= ENUMERATED
 std::string srvcc_operation_possible_opts::to_string() const
 {
-  static constexpr const char* options[] = {"possible"};
+  static const char* options[] = {"possible"};
   return convert_enum_idx(options, 1, value, "srvcc_operation_possible_e");
 }
 
 // DownlinkNASTransport-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t dl_nas_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 26, 41, 106, 124, 74, 249, 251, 271, 283};
-  return convert_enum_idx(options, 11, idx, "id");
+  static const uint32_t options[] = {0, 8, 26, 41, 106, 124, 74, 249, 251, 271, 283};
+  return map_enum_number(options, 11, idx, "id");
 }
 bool dl_nas_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 26, 41, 106, 124, 74, 249, 251, 271, 283};
-  for (uint32_t i = 0; i < 11; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 26, 41, 106, 124, 74, 249, 251, 271, 283};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -5735,9 +5751,9 @@ crit_e dl_nas_transport_ies_o::get_crit(const uint32_t& id)
     case 283:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_nas_transport_ies_o::value_c dl_nas_transport_ies_o::get_value(const uint32_t& id)
 {
@@ -5777,7 +5793,7 @@ dl_nas_transport_ies_o::value_c dl_nas_transport_ies_o::get_value(const uint32_t
       ret.set(value_c::types::pending_data_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -5807,9 +5823,9 @@ presence_e dl_nas_transport_ies_o::get_presence(const uint32_t& id)
     case 283:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -6199,21 +6215,21 @@ SRSASN_CODE dl_nas_transport_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string dl_nas_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "OCTET STRING",
-                                            "HandoverRestrictionList",
-                                            "INTEGER (1..256)",
-                                            "SRVCCOperationPossible",
-                                            "OCTET STRING",
-                                            "DLNASPDUDeliveryAckRequest",
-                                            "EnhancedCoverageRestricted",
-                                            "CE-ModeBRestricted",
-                                            "PendingDataIndication"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "OCTET STRING",
+                                  "HandoverRestrictionList",
+                                  "INTEGER (1..256)",
+                                  "SRVCCOperationPossible",
+                                  "OCTET STRING",
+                                  "DLNASPDUDeliveryAckRequest",
+                                  "EnhancedCoverageRestricted",
+                                  "CE-ModeBRestricted",
+                                  "PendingDataIndication"};
   return convert_enum_idx(options, 11, value, "dl_nas_transport_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_nas_transport_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<dl_nas_transport_ies_o>;
 
 dl_nas_transport_ies_container::dl_nas_transport_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -6350,12 +6366,13 @@ SRSASN_CODE dl_nas_transport_ies_container::unpack(cbit_ref& bref)
         pending_data_ind.value   = c.value.pending_data_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -6430,14 +6447,14 @@ void dl_nas_transport_s::to_json(json_writer& j) const
 // DownlinkNonUEAssociatedLPPaTransport-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t dl_non_ueassociated_lp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {148, 147};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {148, 147};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool dl_non_ueassociated_lp_pa_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {148, 147};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {148, 147};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -6451,9 +6468,9 @@ crit_e dl_non_ueassociated_lp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 147:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_non_ueassociated_lp_pa_transport_ies_o::value_c
 dl_non_ueassociated_lp_pa_transport_ies_o::get_value(const uint32_t& id)
@@ -6467,7 +6484,7 @@ dl_non_ueassociated_lp_pa_transport_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::lp_pa_pdu);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -6479,9 +6496,9 @@ presence_e dl_non_ueassociated_lp_pa_transport_ies_o::get_presence(const uint32_
     case 147:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -6620,16 +6637,16 @@ SRSASN_CODE dl_non_ueassociated_lp_pa_transport_ies_o::value_c::unpack(cbit_ref&
 
 std::string dl_non_ueassociated_lp_pa_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..255)", "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..255)", "OCTET STRING"};
   return convert_enum_idx(options, 2, value, "dl_non_ueassociated_lp_pa_transport_ies_o::value_c::types");
 }
 uint8_t dl_non_ueassociated_lp_pa_transport_ies_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {0};
-  return convert_enum_idx(options, 1, value, "dl_non_ueassociated_lp_pa_transport_ies_o::value_c::types");
+  static const uint8_t options[] = {0};
+  return map_enum_number(options, 1, value, "dl_non_ueassociated_lp_pa_transport_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_non_ueassociated_lp_pa_transport_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<dl_non_ueassociated_lp_pa_transport_ies_o>;
 
 dl_non_ueassociated_lp_pa_transport_ies_container::dl_non_ueassociated_lp_pa_transport_ies_container() :
   routing_id(148, crit_e::reject),
@@ -6670,12 +6687,13 @@ SRSASN_CODE dl_non_ueassociated_lp_pa_transport_ies_container::unpack(cbit_ref& 
         lp_pa_pdu.value = c.value.lp_pa_pdu();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -6796,49 +6814,36 @@ void erab_data_forwarding_item_s::to_json(json_writer& j) const
 // E-RABDataForwardingItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_data_forwarding_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {14};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {14};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_data_forwarding_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {14};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 14 == id;
 }
 crit_e erab_data_forwarding_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 14:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 14) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_data_forwarding_item_ies_o::value_c erab_data_forwarding_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 14:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 14) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_data_forwarding_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 14:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 14) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -6864,31 +6869,29 @@ SRSASN_CODE erab_data_forwarding_item_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_data_forwarding_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABDataForwardingItem"};
+  static const char* options[] = {"E-RABDataForwardingItem"};
   return convert_enum_idx(options, 1, value, "erab_data_forwarding_item_ies_o::value_c::types");
 }
 
 // Cdma2000HOStatus ::= ENUMERATED
 std::string cdma2000_ho_status_opts::to_string() const
 {
-  static constexpr const char* options[] = {"hOSuccess", "hOFailure"};
+  static const char* options[] = {"hOSuccess", "hOFailure"};
   return convert_enum_idx(options, 2, value, "cdma2000_ho_status_e");
 }
 
 // Cdma2000RATType ::= ENUMERATED
 std::string cdma2000_rat_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"hRPD", "onexRTT"};
+  static const char* options[] = {"hRPD", "onexRTT"};
   return convert_enum_idx(options, 2, value, "cdma2000_rat_type_e");
 }
 uint8_t cdma2000_rat_type_opts::to_number() const
 {
-  switch (value) {
-    case onex_rtt:
-      return 1;
-    default:
-      invalid_enum_number(value, "cdma2000_rat_type_e");
+  if (value == onex_rtt) {
+    return 1;
   }
+  invalid_enum_number(value, "cdma2000_rat_type_e");
   return 0;
 }
 
@@ -6951,20 +6954,19 @@ SRSASN_CODE erab_data_forwarding_item_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_data_forwarding_item_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 14:
-        nof_mandatory_ies--;
-        erab_data_forwarding_item.id    = c.id;
-        erab_data_forwarding_item.crit  = c.crit;
-        erab_data_forwarding_item.value = c.value.erab_data_forwarding_item();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 14) {
+      nof_mandatory_ies--;
+      erab_data_forwarding_item.id    = c.id;
+      erab_data_forwarding_item.crit  = c.crit;
+      erab_data_forwarding_item.value = c.value.erab_data_forwarding_item();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -6980,14 +6982,14 @@ void erab_data_forwarding_item_ies_container::to_json(json_writer& j) const
 // DownlinkS1cdma2000tunnellingIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t dl_s1cdma2000tunnelling_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 12, 83, 71, 70};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {0, 8, 12, 83, 71, 70};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool dl_s1cdma2000tunnelling_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 12, 83, 71, 70};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 12, 83, 71, 70};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -7009,9 +7011,9 @@ crit_e dl_s1cdma2000tunnelling_ies_o::get_crit(const uint32_t& id)
     case 70:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_s1cdma2000tunnelling_ies_o::value_c dl_s1cdma2000tunnelling_ies_o::get_value(const uint32_t& id)
 {
@@ -7036,7 +7038,7 @@ dl_s1cdma2000tunnelling_ies_o::value_c dl_s1cdma2000tunnelling_ies_o::get_value(
       ret.set(value_c::types::cdma2000_pdu);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -7056,9 +7058,9 @@ presence_e dl_s1cdma2000tunnelling_ies_o::get_presence(const uint32_t& id)
     case 70:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -7310,12 +7312,12 @@ SRSASN_CODE dl_s1cdma2000tunnelling_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string dl_s1cdma2000tunnelling_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "", "Cdma2000HOStatus", "Cdma2000RATType", "OCTET STRING"};
   return convert_enum_idx(options, 6, value, "dl_s1cdma2000tunnelling_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_s1cdma2000tunnelling_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<dl_s1cdma2000tunnelling_ies_o>;
 
 dl_s1cdma2000tunnelling_ies_container::dl_s1cdma2000tunnelling_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -7394,12 +7396,13 @@ SRSASN_CODE dl_s1cdma2000tunnelling_ies_container::unpack(cbit_ref& bref)
         cdma2000_pdu.value = c.value.cdma2000_pdu();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -7452,14 +7455,14 @@ void dl_s1cdma2000tunnelling_s::to_json(json_writer& j) const
 // DownlinkUEAssociatedLPPaTransport-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t dl_ueassociated_lp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 148, 147};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 148, 147};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool dl_ueassociated_lp_pa_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 148, 147};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 148, 147};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -7477,9 +7480,9 @@ crit_e dl_ueassociated_lp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 147:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 dl_ueassociated_lp_pa_transport_ies_o::value_c dl_ueassociated_lp_pa_transport_ies_o::get_value(const uint32_t& id)
 {
@@ -7498,7 +7501,7 @@ dl_ueassociated_lp_pa_transport_ies_o::value_c dl_ueassociated_lp_pa_transport_i
       ret.set(value_c::types::lp_pa_pdu);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -7514,9 +7517,9 @@ presence_e dl_ueassociated_lp_pa_transport_ies_o::get_presence(const uint32_t& i
     case 147:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -7708,12 +7711,12 @@ SRSASN_CODE dl_ueassociated_lp_pa_transport_ies_o::value_c::unpack(cbit_ref& bre
 
 std::string dl_ueassociated_lp_pa_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "INTEGER (0..255)", "OCTET STRING"};
   return convert_enum_idx(options, 4, value, "dl_ueassociated_lp_pa_transport_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<dl_ueassociated_lp_pa_transport_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<dl_ueassociated_lp_pa_transport_ies_o>;
 
 dl_ueassociated_lp_pa_transport_ies_container::dl_ueassociated_lp_pa_transport_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -7770,12 +7773,13 @@ SRSASN_CODE dl_ueassociated_lp_pa_transport_ies_container::unpack(cbit_ref& bref
         lp_pa_pdu.value = c.value.lp_pa_pdu();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -7906,49 +7910,36 @@ void erab_admitted_item_s::to_json(json_writer& j) const
 // E-RABAdmittedItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_admitted_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {20};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {20};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_admitted_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {20};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 20 == id;
 }
 crit_e erab_admitted_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 20:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 20) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_admitted_item_ies_o::value_c erab_admitted_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 20:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 20) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_admitted_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 20:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 20) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -7974,7 +7965,7 @@ SRSASN_CODE erab_admitted_item_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_admitted_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABAdmittedItem"};
+  static const char* options[] = {"E-RABAdmittedItem"};
   return convert_enum_idx(options, 1, value, "erab_admitted_item_ies_o::value_c::types");
 }
 
@@ -7998,20 +7989,19 @@ SRSASN_CODE erab_admitted_item_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_admitted_item_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 20:
-        nof_mandatory_ies--;
-        erab_admitted_item.id    = c.id;
-        erab_admitted_item.crit  = c.crit;
-        erab_admitted_item.value = c.value.erab_admitted_item();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 20) {
+      nof_mandatory_ies--;
+      erab_admitted_item.id    = c.id;
+      erab_admitted_item.crit  = c.crit;
+      erab_admitted_item.value = c.value.erab_admitted_item();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -8067,50 +8057,37 @@ void erab_failed_to_resume_item_resume_req_s::to_json(json_writer& j) const
 // E-RABFailedToResumeItemResumeReqIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_failed_to_resume_item_resume_req_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {236};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {236};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_failed_to_resume_item_resume_req_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {236};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 236 == id;
 }
 crit_e erab_failed_to_resume_item_resume_req_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 236:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 236) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_failed_to_resume_item_resume_req_ies_o::value_c
 erab_failed_to_resume_item_resume_req_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 236:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 236) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_failed_to_resume_item_resume_req_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 236:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 236) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -8136,7 +8113,7 @@ SRSASN_CODE erab_failed_to_resume_item_resume_req_ies_o::value_c::unpack(cbit_re
 
 std::string erab_failed_to_resume_item_resume_req_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABFailedToResumeItemResumeReq"};
+  static const char* options[] = {"E-RABFailedToResumeItemResumeReq"};
   return convert_enum_idx(options, 1, value, "erab_failed_to_resume_item_resume_req_ies_o::value_c::types");
 }
 
@@ -8183,50 +8160,37 @@ void erab_failed_to_resume_item_resume_res_s::to_json(json_writer& j) const
 // E-RABFailedToResumeItemResumeResIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_failed_to_resume_item_resume_res_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {238};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {238};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_failed_to_resume_item_resume_res_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {238};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 238 == id;
 }
 crit_e erab_failed_to_resume_item_resume_res_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 238:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 238) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_failed_to_resume_item_resume_res_ies_o::value_c
 erab_failed_to_resume_item_resume_res_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 238:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 238) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_failed_to_resume_item_resume_res_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 238:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 238) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -8252,7 +8216,7 @@ SRSASN_CODE erab_failed_to_resume_item_resume_res_ies_o::value_c::unpack(cbit_re
 
 std::string erab_failed_to_resume_item_resume_res_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABFailedToResumeItemResumeRes"};
+  static const char* options[] = {"E-RABFailedToResumeItemResumeRes"};
   return convert_enum_idx(options, 1, value, "erab_failed_to_resume_item_resume_res_ies_o::value_c::types");
 }
 
@@ -8279,20 +8243,19 @@ SRSASN_CODE erab_failed_to_resume_item_resume_req_ies_container::unpack(cbit_ref
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_failed_to_resume_item_resume_req_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 236:
-        nof_mandatory_ies--;
-        erab_failed_to_resume_item_resume_req.id    = c.id;
-        erab_failed_to_resume_item_resume_req.crit  = c.crit;
-        erab_failed_to_resume_item_resume_req.value = c.value.erab_failed_to_resume_item_resume_req();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 236) {
+      nof_mandatory_ies--;
+      erab_failed_to_resume_item_resume_req.id    = c.id;
+      erab_failed_to_resume_item_resume_req.crit  = c.crit;
+      erab_failed_to_resume_item_resume_req.value = c.value.erab_failed_to_resume_item_resume_req();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -8328,20 +8291,19 @@ SRSASN_CODE erab_failed_to_resume_item_resume_res_ies_container::unpack(cbit_ref
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_failed_to_resume_item_resume_res_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 238:
-        nof_mandatory_ies--;
-        erab_failed_to_resume_item_resume_res.id    = c.id;
-        erab_failed_to_resume_item_resume_res.crit  = c.crit;
-        erab_failed_to_resume_item_resume_res.value = c.value.erab_failed_to_resume_item_resume_res();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 238) {
+      nof_mandatory_ies--;
+      erab_failed_to_resume_item_resume_res.id    = c.id;
+      erab_failed_to_resume_item_resume_res.crit  = c.crit;
+      erab_failed_to_resume_item_resume_res.value = c.value.erab_failed_to_resume_item_resume_res();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -8397,50 +8359,37 @@ void erab_failed_to_setup_item_ho_req_ack_s::to_json(json_writer& j) const
 // E-RABFailedtoSetupItemHOReqAckIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_failedto_setup_item_ho_req_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {21};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {21};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_failedto_setup_item_ho_req_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {21};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 21 == id;
 }
 crit_e erab_failedto_setup_item_ho_req_ack_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 21:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 21) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_failedto_setup_item_ho_req_ack_ies_o::value_c
 erab_failedto_setup_item_ho_req_ack_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 21:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 21) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_failedto_setup_item_ho_req_ack_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 21:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 21) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -8466,7 +8415,7 @@ SRSASN_CODE erab_failedto_setup_item_ho_req_ack_ies_o::value_c::unpack(cbit_ref&
 
 std::string erab_failedto_setup_item_ho_req_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABFailedToSetupItemHOReqAck"};
+  static const char* options[] = {"E-RABFailedToSetupItemHOReqAck"};
   return convert_enum_idx(options, 1, value, "erab_failedto_setup_item_ho_req_ack_ies_o::value_c::types");
 }
 
@@ -8493,20 +8442,19 @@ SRSASN_CODE erab_failedto_setup_item_ho_req_ack_ies_container::unpack(cbit_ref& 
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_failedto_setup_item_ho_req_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 21:
-        nof_mandatory_ies--;
-        erab_failedto_setup_item_ho_req_ack.id    = c.id;
-        erab_failedto_setup_item_ho_req_ack.crit  = c.crit;
-        erab_failedto_setup_item_ho_req_ack.value = c.value.erab_failedto_setup_item_ho_req_ack();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 21) {
+      nof_mandatory_ies--;
+      erab_failedto_setup_item_ho_req_ack.id    = c.id;
+      erab_failedto_setup_item_ho_req_ack.crit  = c.crit;
+      erab_failedto_setup_item_ho_req_ack.value = c.value.erab_failedto_setup_item_ho_req_ack();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -8522,7 +8470,7 @@ void erab_failedto_setup_item_ho_req_ack_ies_container::to_json(json_writer& j) 
 // DL-Forwarding ::= ENUMERATED
 std::string dl_forwarding_opts::to_string() const
 {
-  static constexpr const char* options[] = {"dL-Forwarding-proposed"};
+  static const char* options[] = {"dL-Forwarding-proposed"};
   return convert_enum_idx(options, 1, value, "dl_forwarding_e");
 }
 
@@ -8576,49 +8524,36 @@ void erab_info_list_item_s::to_json(json_writer& j) const
 // E-RABInformationListIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_info_list_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {78};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {78};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_info_list_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {78};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 78 == id;
 }
 crit_e erab_info_list_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 78:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 78) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_info_list_ies_o::value_c erab_info_list_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 78:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 78) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_info_list_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 78:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 78) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -8644,11 +8579,11 @@ SRSASN_CODE erab_info_list_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_info_list_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABInformationListItem"};
+  static const char* options[] = {"E-RABInformationListItem"};
   return convert_enum_idx(options, 1, value, "erab_info_list_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<erab_info_list_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_info_list_ies_o>;
 
 // E-RABItem ::= SEQUENCE
 SRSASN_CODE erab_item_s::pack(bit_ref& bref) const
@@ -8693,49 +8628,36 @@ void erab_item_s::to_json(json_writer& j) const
 // E-RABItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {35};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {35};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {35};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 35 == id;
 }
 crit_e erab_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 35:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 35) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_item_ies_o::value_c erab_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 35:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 35) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 35:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 35) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -8761,7 +8683,7 @@ SRSASN_CODE erab_item_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABItem"};
+  static const char* options[] = {"E-RABItem"};
   return convert_enum_idx(options, 1, value, "erab_item_ies_o::value_c::types");
 }
 
@@ -8862,7 +8784,7 @@ void erab_level_qos_params_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_single_container_s<erab_item_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_item_ies_o>;
 
 // E-RABModifyItemBearerModConf ::= SEQUENCE
 SRSASN_CODE erab_modify_item_bearer_mod_conf_s::pack(bit_ref& bref) const
@@ -8903,49 +8825,36 @@ void erab_modify_item_bearer_mod_conf_s::to_json(json_writer& j) const
 // E-RABModifyItemBearerModConfIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_modify_item_bearer_mod_conf_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {204};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {204};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_modify_item_bearer_mod_conf_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {204};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 204 == id;
 }
 crit_e erab_modify_item_bearer_mod_conf_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 204:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 204) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_modify_item_bearer_mod_conf_ies_o::value_c erab_modify_item_bearer_mod_conf_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 204:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 204) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_modify_item_bearer_mod_conf_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 204:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 204) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -8971,23 +8880,23 @@ SRSASN_CODE erab_modify_item_bearer_mod_conf_ies_o::value_c::unpack(cbit_ref& br
 
 std::string erab_modify_item_bearer_mod_conf_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABModifyItemBearerModConf"};
+  static const char* options[] = {"E-RABModifyItemBearerModConf"};
   return convert_enum_idx(options, 1, value, "erab_modify_item_bearer_mod_conf_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<erab_modify_item_bearer_mod_conf_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_modify_item_bearer_mod_conf_ies_o>;
 
 // E-RABModificationConfirmIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_mod_confirm_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 203, 205, 210, 58, 146};
-  return convert_enum_idx(options, 7, idx, "id");
+  static const uint32_t options[] = {0, 8, 203, 205, 210, 58, 146};
+  return map_enum_number(options, 7, idx, "id");
 }
 bool erab_mod_confirm_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 203, 205, 210, 58, 146};
-  for (uint32_t i = 0; i < 7; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 203, 205, 210, 58, 146};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -9011,9 +8920,9 @@ crit_e erab_mod_confirm_ies_o::get_crit(const uint32_t& id)
     case 146:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_mod_confirm_ies_o::value_c erab_mod_confirm_ies_o::get_value(const uint32_t& id)
 {
@@ -9041,7 +8950,7 @@ erab_mod_confirm_ies_o::value_c erab_mod_confirm_ies_o::get_value(const uint32_t
       ret.set(value_c::types::csg_membership_status);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -9063,9 +8972,9 @@ presence_e erab_mod_confirm_ies_o::get_presence(const uint32_t& id)
     case 146:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -9267,22 +9176,22 @@ void erab_mod_confirm_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_modify_list_bearer_mod_conf:
       j.start_array("E-RABModifyListBearerModConf");
-      for (uint32_t i1 = 0; i1 < c.get<erab_modify_list_bearer_mod_conf_l>().size(); ++i1) {
-        c.get<erab_modify_list_bearer_mod_conf_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_modify_list_bearer_mod_conf_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::erab_failed_to_modify_list_bearer_mod_conf:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::erab_to_be_released_list_bearer_mod_conf:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -9363,17 +9272,17 @@ SRSASN_CODE erab_mod_confirm_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_mod_confirm_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "E-RABModifyListBearerModConf",
-                                            "E-RABList",
-                                            "E-RABList",
-                                            "CriticalityDiagnostics",
-                                            "CSGMembershipStatus"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "E-RABModifyListBearerModConf",
+                                  "E-RABList",
+                                  "E-RABList",
+                                  "CriticalityDiagnostics",
+                                  "CSGMembershipStatus"};
   return convert_enum_idx(options, 7, value, "erab_mod_confirm_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_mod_confirm_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_mod_confirm_ies_o>;
 
 erab_mod_confirm_ies_container::erab_mod_confirm_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -9469,12 +9378,13 @@ SRSASN_CODE erab_mod_confirm_ies_container::unpack(cbit_ref& bref)
         csg_membership_status.value   = c.value.csg_membership_status();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -9619,50 +9529,37 @@ void erab_to_be_modified_item_bearer_mod_ind_s::to_json(json_writer& j) const
 // E-RABNotToBeModifiedItemBearerModIndIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_not_to_be_modified_item_bearer_mod_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {202};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {202};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_not_to_be_modified_item_bearer_mod_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {202};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 202 == id;
 }
 crit_e erab_not_to_be_modified_item_bearer_mod_ind_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 202:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 202) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_not_to_be_modified_item_bearer_mod_ind_ies_o::value_c
 erab_not_to_be_modified_item_bearer_mod_ind_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 202:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 202) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_not_to_be_modified_item_bearer_mod_ind_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 202:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 202) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -9688,57 +9585,44 @@ SRSASN_CODE erab_not_to_be_modified_item_bearer_mod_ind_ies_o::value_c::unpack(c
 
 std::string erab_not_to_be_modified_item_bearer_mod_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABNotToBeModifiedItemBearerModInd"};
+  static const char* options[] = {"E-RABNotToBeModifiedItemBearerModInd"};
   return convert_enum_idx(options, 1, value, "erab_not_to_be_modified_item_bearer_mod_ind_ies_o::value_c::types");
 }
 
 // E-RABToBeModifiedItemBearerModIndIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_to_be_modified_item_bearer_mod_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {200};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {200};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_to_be_modified_item_bearer_mod_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {200};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 200 == id;
 }
 crit_e erab_to_be_modified_item_bearer_mod_ind_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 200:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 200) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_to_be_modified_item_bearer_mod_ind_ies_o::value_c
 erab_to_be_modified_item_bearer_mod_ind_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 200:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 200) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_to_be_modified_item_bearer_mod_ind_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 200:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 200) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -9764,7 +9648,7 @@ SRSASN_CODE erab_to_be_modified_item_bearer_mod_ind_ies_o::value_c::unpack(cbit_
 
 std::string erab_to_be_modified_item_bearer_mod_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABToBeModifiedItemBearerModInd"};
+  static const char* options[] = {"E-RABToBeModifiedItemBearerModInd"};
   return convert_enum_idx(options, 1, value, "erab_to_be_modified_item_bearer_mod_ind_ies_o::value_c::types");
 }
 
@@ -9791,20 +9675,19 @@ SRSASN_CODE erab_not_to_be_modified_item_bearer_mod_ind_ies_container::unpack(cb
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 202:
-        nof_mandatory_ies--;
-        erab_not_to_be_modified_item_bearer_mod_ind.id    = c.id;
-        erab_not_to_be_modified_item_bearer_mod_ind.crit  = c.crit;
-        erab_not_to_be_modified_item_bearer_mod_ind.value = c.value.erab_not_to_be_modified_item_bearer_mod_ind();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 202) {
+      nof_mandatory_ies--;
+      erab_not_to_be_modified_item_bearer_mod_ind.id    = c.id;
+      erab_not_to_be_modified_item_bearer_mod_ind.crit  = c.crit;
+      erab_not_to_be_modified_item_bearer_mod_ind.value = c.value.erab_not_to_be_modified_item_bearer_mod_ind();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -9840,20 +9723,19 @@ SRSASN_CODE erab_to_be_modified_item_bearer_mod_ind_ies_container::unpack(cbit_r
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_to_be_modified_item_bearer_mod_ind_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 200:
-        nof_mandatory_ies--;
-        erab_to_be_modified_item_bearer_mod_ind.id    = c.id;
-        erab_to_be_modified_item_bearer_mod_ind.crit  = c.crit;
-        erab_to_be_modified_item_bearer_mod_ind.value = c.value.erab_to_be_modified_item_bearer_mod_ind();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 200) {
+      nof_mandatory_ies--;
+      erab_to_be_modified_item_bearer_mod_ind.id    = c.id;
+      erab_to_be_modified_item_bearer_mod_ind.crit  = c.crit;
+      erab_to_be_modified_item_bearer_mod_ind.value = c.value.erab_to_be_modified_item_bearer_mod_ind();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -9916,14 +9798,14 @@ void tunnel_info_s::to_json(json_writer& j) const
 // E-RABModificationIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_mod_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 199, 201, 226, 176};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {0, 8, 199, 201, 226, 176};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool erab_mod_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 199, 201, 226, 176};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 199, 201, 226, 176};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -9945,9 +9827,9 @@ crit_e erab_mod_ind_ies_o::get_crit(const uint32_t& id)
     case 176:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_mod_ind_ies_o::value_c erab_mod_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -9972,7 +9854,7 @@ erab_mod_ind_ies_o::value_c erab_mod_ind_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::tunnel_info_for_bbf);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -9992,9 +9874,9 @@ presence_e erab_mod_ind_ies_o::get_presence(const uint32_t& id)
     case 176:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -10259,12 +10141,12 @@ SRSASN_CODE erab_mod_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_mod_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "", "", "CSGMembershipInfo", "TunnelInformation"};
   return convert_enum_idx(options, 6, value, "erab_mod_ind_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_mod_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_mod_ind_ies_o>;
 
 erab_mod_ind_ies_container::erab_mod_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -10346,12 +10228,13 @@ SRSASN_CODE erab_mod_ind_ies_container::unpack(cbit_ref& bref)
         tunnel_info_for_bbf.value   = c.value.tunnel_info_for_bbf();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -10442,49 +10325,36 @@ void erab_modify_item_bearer_mod_res_s::to_json(json_writer& j) const
 // E-RABModifyItemBearerModResIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_modify_item_bearer_mod_res_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {37};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {37};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_modify_item_bearer_mod_res_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {37};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 37 == id;
 }
 crit_e erab_modify_item_bearer_mod_res_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 37:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 37) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_modify_item_bearer_mod_res_ies_o::value_c erab_modify_item_bearer_mod_res_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 37:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 37) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_modify_item_bearer_mod_res_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 37:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 37) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -10510,11 +10380,11 @@ SRSASN_CODE erab_modify_item_bearer_mod_res_ies_o::value_c::unpack(cbit_ref& bre
 
 std::string erab_modify_item_bearer_mod_res_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABModifyItemBearerModRes"};
+  static const char* options[] = {"E-RABModifyItemBearerModRes"};
   return convert_enum_idx(options, 1, value, "erab_modify_item_bearer_mod_res_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<erab_modify_item_bearer_mod_res_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_modify_item_bearer_mod_res_ies_o>;
 
 // TransportInformation ::= SEQUENCE
 SRSASN_CODE transport_info_s::pack(bit_ref& bref) const
@@ -10544,50 +10414,37 @@ void transport_info_s::to_json(json_writer& j) const
 // E-RABToBeModifyItemBearerModReqExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t erab_to_be_modify_item_bearer_mod_req_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {185};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {185};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_to_be_modify_item_bearer_mod_req_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {185};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 185 == id;
 }
 crit_e erab_to_be_modify_item_bearer_mod_req_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 185:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 185) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_to_be_modify_item_bearer_mod_req_ext_ies_o::ext_c
 erab_to_be_modify_item_bearer_mod_req_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 185:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 185) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_to_be_modify_item_bearer_mod_req_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 185:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 185) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -10613,11 +10470,11 @@ SRSASN_CODE erab_to_be_modify_item_bearer_mod_req_ext_ies_o::ext_c::unpack(cbit_
 
 std::string erab_to_be_modify_item_bearer_mod_req_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"TransportInformation"};
+  static const char* options[] = {"TransportInformation"};
   return convert_enum_idx(options, 1, value, "erab_to_be_modify_item_bearer_mod_req_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<erab_to_be_modify_item_bearer_mod_req_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_modify_item_bearer_mod_req_ext_ies_o>;
 
 erab_to_be_modify_item_bearer_mod_req_ext_ies_container::erab_to_be_modify_item_bearer_mod_req_ext_ies_container() :
   transport_info(185, crit_e::reject)
@@ -10643,16 +10500,14 @@ SRSASN_CODE erab_to_be_modify_item_bearer_mod_req_ext_ies_container::unpack(cbit
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<erab_to_be_modify_item_bearer_mod_req_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 185:
-        transport_info_present = true;
-        transport_info.id      = c.id;
-        transport_info.crit    = c.crit;
-        transport_info.ext     = c.ext_value.transport_info();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 185) {
+      transport_info_present = true;
+      transport_info.id      = c.id;
+      transport_info.crit    = c.crit;
+      transport_info.ext     = c.ext_value.transport_info();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -10714,50 +10569,37 @@ void erab_to_be_modified_item_bearer_mod_req_s::to_json(json_writer& j) const
 // E-RABToBeModifiedItemBearerModReqIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_to_be_modified_item_bearer_mod_req_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {36};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {36};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_to_be_modified_item_bearer_mod_req_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {36};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 36 == id;
 }
 crit_e erab_to_be_modified_item_bearer_mod_req_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 36:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 36) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_to_be_modified_item_bearer_mod_req_ies_o::value_c
 erab_to_be_modified_item_bearer_mod_req_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 36:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 36) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_to_be_modified_item_bearer_mod_req_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 36:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 36) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -10783,11 +10625,11 @@ SRSASN_CODE erab_to_be_modified_item_bearer_mod_req_ies_o::value_c::unpack(cbit_
 
 std::string erab_to_be_modified_item_bearer_mod_req_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABToBeModifiedItemBearerModReq"};
+  static const char* options[] = {"E-RABToBeModifiedItemBearerModReq"};
   return convert_enum_idx(options, 1, value, "erab_to_be_modified_item_bearer_mod_req_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<erab_to_be_modified_item_bearer_mod_req_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_to_be_modified_item_bearer_mod_req_ies_o>;
 
 // UEAggregateMaximumBitrate ::= SEQUENCE
 SRSASN_CODE ue_aggregate_maximum_bitrate_s::pack(bit_ref& bref) const
@@ -10831,14 +10673,14 @@ void ue_aggregate_maximum_bitrate_s::to_json(json_writer& j) const
 // E-RABModifyRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_modify_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 66, 30};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 66, 30};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool erab_modify_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 66, 30};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 66, 30};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -10856,9 +10698,9 @@ crit_e erab_modify_request_ies_o::get_crit(const uint32_t& id)
     case 30:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_modify_request_ies_o::value_c erab_modify_request_ies_o::get_value(const uint32_t& id)
 {
@@ -10877,7 +10719,7 @@ erab_modify_request_ies_o::value_c erab_modify_request_ies_o::get_value(const ui
       ret.set(value_c::types::erab_to_be_modified_list_bearer_mod_req);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -10893,9 +10735,9 @@ presence_e erab_modify_request_ies_o::get_presence(const uint32_t& id)
     case 30:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -11040,8 +10882,8 @@ void erab_modify_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_to_be_modified_list_bearer_mod_req:
       j.start_array("E-RABToBeModifiedListBearerModReq");
-      for (uint32_t i1 = 0; i1 < c.get<erab_to_be_modified_list_bearer_mod_req_l>().size(); ++i1) {
-        c.get<erab_to_be_modified_list_bearer_mod_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_to_be_modified_list_bearer_mod_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -11097,14 +10939,14 @@ SRSASN_CODE erab_modify_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_modify_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "UEAggregateMaximumBitrate",
-                                            "E-RABToBeModifiedListBearerModReq"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "UEAggregateMaximumBitrate",
+                                  "E-RABToBeModifiedListBearerModReq"};
   return convert_enum_idx(options, 4, value, "erab_modify_request_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_modify_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_modify_request_ies_o>;
 
 erab_modify_request_ies_container::erab_modify_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -11164,12 +11006,13 @@ SRSASN_CODE erab_modify_request_ies_container::unpack(cbit_ref& bref)
         erab_to_be_modified_list_bearer_mod_req.value = c.value.erab_to_be_modified_list_bearer_mod_req();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -11216,14 +11059,14 @@ void erab_modify_request_s::to_json(json_writer& j) const
 // E-RABModifyResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_modify_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 31, 32, 58};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {0, 8, 31, 32, 58};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool erab_modify_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 31, 32, 58};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 31, 32, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -11243,9 +11086,9 @@ crit_e erab_modify_resp_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_modify_resp_ies_o::value_c erab_modify_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -11267,7 +11110,7 @@ erab_modify_resp_ies_o::value_c erab_modify_resp_ies_o::get_value(const uint32_t
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -11285,9 +11128,9 @@ presence_e erab_modify_resp_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -11449,15 +11292,15 @@ void erab_modify_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_modify_list_bearer_mod_res:
       j.start_array("E-RABModifyListBearerModRes");
-      for (uint32_t i1 = 0; i1 < c.get<erab_modify_list_bearer_mod_res_l>().size(); ++i1) {
-        c.get<erab_modify_list_bearer_mod_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_modify_list_bearer_mod_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::erab_failed_to_modify_list:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -11523,15 +11366,15 @@ SRSASN_CODE erab_modify_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_modify_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "E-RABModifyListBearerModRes",
-                                            "E-RABList",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "E-RABModifyListBearerModRes",
+                                  "E-RABList",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "erab_modify_resp_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_modify_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_modify_resp_ies_o>;
 
 erab_modify_resp_ies_container::erab_modify_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -11605,12 +11448,13 @@ SRSASN_CODE erab_modify_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -11663,14 +11507,14 @@ void erab_modify_resp_s::to_json(json_writer& j) const
 // E-RABReleaseCommandIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_release_cmd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 66, 33, 26};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {0, 8, 66, 33, 26};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool erab_release_cmd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 66, 33, 26};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 66, 33, 26};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -11690,9 +11534,9 @@ crit_e erab_release_cmd_ies_o::get_crit(const uint32_t& id)
     case 26:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_release_cmd_ies_o::value_c erab_release_cmd_ies_o::get_value(const uint32_t& id)
 {
@@ -11714,7 +11558,7 @@ erab_release_cmd_ies_o::value_c erab_release_cmd_ies_o::get_value(const uint32_t
       ret.set(value_c::types::nas_pdu);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -11732,9 +11576,9 @@ presence_e erab_release_cmd_ies_o::get_presence(const uint32_t& id)
     case 26:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -11900,8 +11744,8 @@ void erab_release_cmd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_to_be_released_list:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -11966,12 +11810,12 @@ SRSASN_CODE erab_release_cmd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_release_cmd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "UEAggregateMaximumBitrate", "E-RABList", "OCTET STRING"};
   return convert_enum_idx(options, 5, value, "erab_release_cmd_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_release_cmd_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_release_cmd_ies_o>;
 
 erab_release_cmd_ies_container::erab_release_cmd_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -12042,12 +11886,13 @@ SRSASN_CODE erab_release_cmd_ies_container::unpack(cbit_ref& bref)
         nas_pdu.value   = c.value.nas_pdu();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -12139,14 +11984,14 @@ void user_location_info_s::to_json(json_writer& j) const
 // E-RABReleaseIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_release_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 110, 189};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 110, 189};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool erab_release_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 110, 189};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 110, 189};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -12164,9 +12009,9 @@ crit_e erab_release_ind_ies_o::get_crit(const uint32_t& id)
     case 189:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_release_ind_ies_o::value_c erab_release_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -12185,7 +12030,7 @@ erab_release_ind_ies_o::value_c erab_release_ind_ies_o::get_value(const uint32_t
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -12201,9 +12046,9 @@ presence_e erab_release_ind_ies_o::get_presence(const uint32_t& id)
     case 189:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -12343,8 +12188,8 @@ void erab_release_ind_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_released_list:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -12404,12 +12249,12 @@ SRSASN_CODE erab_release_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_release_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "E-RABList", "UserLocationInformation"};
   return convert_enum_idx(options, 4, value, "erab_release_ind_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_release_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_release_ind_ies_o>;
 
 erab_release_ind_ies_container::erab_release_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -12469,12 +12314,13 @@ SRSASN_CODE erab_release_ind_ies_container::unpack(cbit_ref& bref)
         user_location_info.value   = c.value.user_location_info();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -12557,49 +12403,36 @@ void erab_release_item_bearer_rel_comp_s::to_json(json_writer& j) const
 // E-RABReleaseItemBearerRelCompIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_release_item_bearer_rel_comp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {15};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {15};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_release_item_bearer_rel_comp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {15};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 15 == id;
 }
 crit_e erab_release_item_bearer_rel_comp_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 15:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 15) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_release_item_bearer_rel_comp_ies_o::value_c erab_release_item_bearer_rel_comp_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 15:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 15) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_release_item_bearer_rel_comp_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 15:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 15) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -12625,23 +12458,23 @@ SRSASN_CODE erab_release_item_bearer_rel_comp_ies_o::value_c::unpack(cbit_ref& b
 
 std::string erab_release_item_bearer_rel_comp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABReleaseItemBearerRelComp"};
+  static const char* options[] = {"E-RABReleaseItemBearerRelComp"};
   return convert_enum_idx(options, 1, value, "erab_release_item_bearer_rel_comp_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<erab_release_item_bearer_rel_comp_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_release_item_bearer_rel_comp_ies_o>;
 
 // E-RABReleaseResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_release_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 69, 34, 58, 189};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {0, 8, 69, 34, 58, 189};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool erab_release_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 69, 34, 58, 189};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 69, 34, 58, 189};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -12663,9 +12496,9 @@ crit_e erab_release_resp_ies_o::get_crit(const uint32_t& id)
     case 189:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_release_resp_ies_o::value_c erab_release_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -12690,7 +12523,7 @@ erab_release_resp_ies_o::value_c erab_release_resp_ies_o::get_value(const uint32
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -12710,9 +12543,9 @@ presence_e erab_release_resp_ies_o::get_presence(const uint32_t& id)
     case 189:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -12896,15 +12729,15 @@ void erab_release_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_release_list_bearer_rel_comp:
       j.start_array("E-RABReleaseListBearerRelComp");
-      for (uint32_t i1 = 0; i1 < c.get<erab_release_list_bearer_rel_comp_l>().size(); ++i1) {
-        c.get<erab_release_list_bearer_rel_comp_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_release_list_bearer_rel_comp_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::erab_failed_to_release_list:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -12980,16 +12813,16 @@ SRSASN_CODE erab_release_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_release_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "E-RABReleaseListBearerRelComp",
-                                            "E-RABList",
-                                            "CriticalityDiagnostics",
-                                            "UserLocationInformation"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "E-RABReleaseListBearerRelComp",
+                                  "E-RABList",
+                                  "CriticalityDiagnostics",
+                                  "UserLocationInformation"};
   return convert_enum_idx(options, 6, value, "erab_release_resp_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_release_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_release_resp_ies_o>;
 
 erab_release_resp_ies_container::erab_release_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -13074,12 +12907,13 @@ SRSASN_CODE erab_release_resp_ies_container::unpack(cbit_ref& bref)
         user_location_info.value   = c.value.user_location_info();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -13178,49 +13012,36 @@ void erab_setup_item_bearer_su_res_s::to_json(json_writer& j) const
 // E-RABSetupItemBearerSUResIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_setup_item_bearer_su_res_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {39};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {39};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_setup_item_bearer_su_res_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {39};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 39 == id;
 }
 crit_e erab_setup_item_bearer_su_res_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 39:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 39) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_setup_item_bearer_su_res_ies_o::value_c erab_setup_item_bearer_su_res_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 39:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 39) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_setup_item_bearer_su_res_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 39:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 39) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -13246,7 +13067,7 @@ SRSASN_CODE erab_setup_item_bearer_su_res_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_setup_item_bearer_su_res_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABSetupItemBearerSURes"};
+  static const char* options[] = {"E-RABSetupItemBearerSURes"};
   return convert_enum_idx(options, 1, value, "erab_setup_item_bearer_su_res_ies_o::value_c::types");
 }
 
@@ -13295,49 +13116,36 @@ void erab_setup_item_ctxt_su_res_s::to_json(json_writer& j) const
 // E-RABSetupItemCtxtSUResIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_setup_item_ctxt_su_res_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {50};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {50};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_setup_item_ctxt_su_res_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {50};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 50 == id;
 }
 crit_e erab_setup_item_ctxt_su_res_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 50:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 50) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_setup_item_ctxt_su_res_ies_o::value_c erab_setup_item_ctxt_su_res_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 50:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 50) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_setup_item_ctxt_su_res_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 50:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 50) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -13363,32 +13171,32 @@ SRSASN_CODE erab_setup_item_ctxt_su_res_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_setup_item_ctxt_su_res_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABSetupItemCtxtSURes"};
+  static const char* options[] = {"E-RABSetupItemCtxtSURes"};
   return convert_enum_idx(options, 1, value, "erab_setup_item_ctxt_su_res_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<erab_setup_item_bearer_su_res_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_setup_item_bearer_su_res_ies_o>;
 
-template struct protocol_ie_single_container_s<erab_setup_item_ctxt_su_res_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_setup_item_ctxt_su_res_ies_o>;
 
 // BearerType ::= ENUMERATED
 std::string bearer_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"non-IP"};
+  static const char* options[] = {"non-IP"};
   return convert_enum_idx(options, 1, value, "bearer_type_e");
 }
 
 // E-RABToBeSetupItemBearerSUReqExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t erab_to_be_setup_item_bearer_su_req_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {156, 183, 233};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {156, 183, 233};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool erab_to_be_setup_item_bearer_su_req_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {156, 183, 233};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {156, 183, 233};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -13404,9 +13212,9 @@ crit_e erab_to_be_setup_item_bearer_su_req_ext_ies_o::get_crit(const uint32_t& i
     case 233:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c
 erab_to_be_setup_item_bearer_su_req_ext_ies_o::get_ext(const uint32_t& id)
@@ -13423,7 +13231,7 @@ erab_to_be_setup_item_bearer_su_req_ext_ies_o::get_ext(const uint32_t& id)
       ret.set(ext_c::types::bearer_type);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -13437,9 +13245,9 @@ presence_e erab_to_be_setup_item_bearer_su_req_ext_ies_o::get_presence(const uin
     case 233:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -13609,11 +13417,11 @@ SRSASN_CODE erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c::unpack(cbit_re
 
 std::string erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"OCTET STRING", "OCTET STRING", "BearerType"};
+  static const char* options[] = {"OCTET STRING", "OCTET STRING", "BearerType"};
   return convert_enum_idx(options, 3, value, "erab_to_be_setup_item_bearer_su_req_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<erab_to_be_setup_item_bearer_su_req_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_setup_item_bearer_su_req_ext_ies_o>;
 
 erab_to_be_setup_item_bearer_su_req_ext_ies_container::erab_to_be_setup_item_bearer_su_req_ext_ies_container() :
   correlation_id(156, crit_e::ignore),
@@ -13669,7 +13477,7 @@ SRSASN_CODE erab_to_be_setup_item_bearer_su_req_ext_ies_container::unpack(cbit_r
         bearer_type.ext     = c.ext_value.bearer_type();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -13746,50 +13554,37 @@ void erab_to_be_setup_item_bearer_su_req_s::to_json(json_writer& j) const
 // E-RABToBeSetupItemBearerSUReqIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_to_be_setup_item_bearer_su_req_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {17};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {17};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_to_be_setup_item_bearer_su_req_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {17};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 17 == id;
 }
 crit_e erab_to_be_setup_item_bearer_su_req_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 17:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 17) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_to_be_setup_item_bearer_su_req_ies_o::value_c
 erab_to_be_setup_item_bearer_su_req_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 17:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 17) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_to_be_setup_item_bearer_su_req_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 17:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 17) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -13815,23 +13610,23 @@ SRSASN_CODE erab_to_be_setup_item_bearer_su_req_ies_o::value_c::unpack(cbit_ref&
 
 std::string erab_to_be_setup_item_bearer_su_req_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABToBeSetupItemBearerSUReq"};
+  static const char* options[] = {"E-RABToBeSetupItemBearerSUReq"};
   return convert_enum_idx(options, 1, value, "erab_to_be_setup_item_bearer_su_req_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<erab_to_be_setup_item_bearer_su_req_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_to_be_setup_item_bearer_su_req_ies_o>;
 
 // E-RABSetupRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_setup_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 66, 16};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 66, 16};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool erab_setup_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 66, 16};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 66, 16};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -13849,9 +13644,9 @@ crit_e erab_setup_request_ies_o::get_crit(const uint32_t& id)
     case 16:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_setup_request_ies_o::value_c erab_setup_request_ies_o::get_value(const uint32_t& id)
 {
@@ -13870,7 +13665,7 @@ erab_setup_request_ies_o::value_c erab_setup_request_ies_o::get_value(const uint
       ret.set(value_c::types::erab_to_be_setup_list_bearer_su_req);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -13886,9 +13681,9 @@ presence_e erab_setup_request_ies_o::get_presence(const uint32_t& id)
     case 16:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -14033,8 +13828,8 @@ void erab_setup_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_to_be_setup_list_bearer_su_req:
       j.start_array("E-RABToBeSetupListBearerSUReq");
-      for (uint32_t i1 = 0; i1 < c.get<erab_to_be_setup_list_bearer_su_req_l>().size(); ++i1) {
-        c.get<erab_to_be_setup_list_bearer_su_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_to_be_setup_list_bearer_su_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -14090,12 +13885,12 @@ SRSASN_CODE erab_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_setup_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "UEAggregateMaximumBitrate", "E-RABToBeSetupListBearerSUReq"};
   return convert_enum_idx(options, 4, value, "erab_setup_request_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_setup_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_setup_request_ies_o>;
 
 erab_setup_request_ies_container::erab_setup_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -14155,12 +13950,13 @@ SRSASN_CODE erab_setup_request_ies_container::unpack(cbit_ref& bref)
         erab_to_be_setup_list_bearer_su_req.value = c.value.erab_to_be_setup_list_bearer_su_req();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -14207,14 +14003,14 @@ void erab_setup_request_s::to_json(json_writer& j) const
 // E-RABSetupResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_setup_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 28, 29, 58};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {0, 8, 28, 29, 58};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool erab_setup_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 28, 29, 58};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 28, 29, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -14234,9 +14030,9 @@ crit_e erab_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_setup_resp_ies_o::value_c erab_setup_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -14258,7 +14054,7 @@ erab_setup_resp_ies_o::value_c erab_setup_resp_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -14276,9 +14072,9 @@ presence_e erab_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -14439,15 +14235,15 @@ void erab_setup_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_setup_list_bearer_su_res:
       j.start_array("E-RABSetupListBearerSURes");
-      for (uint32_t i1 = 0; i1 < c.get<erab_setup_list_bearer_su_res_l>().size(); ++i1) {
-        c.get<erab_setup_list_bearer_su_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_setup_list_bearer_su_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::erab_failed_to_setup_list_bearer_su_res:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -14513,15 +14309,15 @@ SRSASN_CODE erab_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_setup_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "E-RABSetupListBearerSURes",
-                                            "E-RABList",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "E-RABSetupListBearerSURes",
+                                  "E-RABList",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "erab_setup_resp_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<erab_setup_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<erab_setup_resp_ies_o>;
 
 erab_setup_resp_ies_container::erab_setup_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -14595,12 +14391,13 @@ SRSASN_CODE erab_setup_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -14653,14 +14450,14 @@ void erab_setup_resp_s::to_json(json_writer& j) const
 // E-RABToBeSetupItemCtxtSUReqExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t erab_to_be_setup_item_ctxt_su_req_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {156, 183, 233};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {156, 183, 233};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool erab_to_be_setup_item_ctxt_su_req_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {156, 183, 233};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {156, 183, 233};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -14676,9 +14473,9 @@ crit_e erab_to_be_setup_item_ctxt_su_req_ext_ies_o::get_crit(const uint32_t& id)
     case 233:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c
 erab_to_be_setup_item_ctxt_su_req_ext_ies_o::get_ext(const uint32_t& id)
@@ -14695,7 +14492,7 @@ erab_to_be_setup_item_ctxt_su_req_ext_ies_o::get_ext(const uint32_t& id)
       ret.set(ext_c::types::bearer_type);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -14709,9 +14506,9 @@ presence_e erab_to_be_setup_item_ctxt_su_req_ext_ies_o::get_presence(const uint3
     case 233:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -14881,11 +14678,11 @@ SRSASN_CODE erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c::unpack(cbit_ref&
 
 std::string erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"OCTET STRING", "OCTET STRING", "BearerType"};
+  static const char* options[] = {"OCTET STRING", "OCTET STRING", "BearerType"};
   return convert_enum_idx(options, 3, value, "erab_to_be_setup_item_ctxt_su_req_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<erab_to_be_setup_item_ctxt_su_req_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_setup_item_ctxt_su_req_ext_ies_o>;
 
 erab_to_be_setup_item_ctxt_su_req_ext_ies_container::erab_to_be_setup_item_ctxt_su_req_ext_ies_container() :
   correlation_id(156, crit_e::ignore),
@@ -14941,7 +14738,7 @@ SRSASN_CODE erab_to_be_setup_item_ctxt_su_req_ext_ies_container::unpack(cbit_ref
         bearer_type.ext     = c.ext_value.bearer_type();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -15026,49 +14823,36 @@ void erab_to_be_setup_item_ctxt_su_req_s::to_json(json_writer& j) const
 // E-RABToBeSetupItemCtxtSUReqIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_to_be_setup_item_ctxt_su_req_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {52};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {52};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_to_be_setup_item_ctxt_su_req_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {52};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 52 == id;
 }
 crit_e erab_to_be_setup_item_ctxt_su_req_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 52:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 52) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_to_be_setup_item_ctxt_su_req_ies_o::value_c erab_to_be_setup_item_ctxt_su_req_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 52:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 52) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_to_be_setup_item_ctxt_su_req_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 52:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 52) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -15094,28 +14878,28 @@ SRSASN_CODE erab_to_be_setup_item_ctxt_su_req_ies_o::value_c::unpack(cbit_ref& b
 
 std::string erab_to_be_setup_item_ctxt_su_req_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABToBeSetupItemCtxtSUReq"};
+  static const char* options[] = {"E-RABToBeSetupItemCtxtSUReq"};
   return convert_enum_idx(options, 1, value, "erab_to_be_setup_item_ctxt_su_req_ies_o::value_c::types");
 }
 
 // Data-Forwarding-Not-Possible ::= ENUMERATED
 std::string data_forwarding_not_possible_opts::to_string() const
 {
-  static constexpr const char* options[] = {"data-Forwarding-not-Possible"};
+  static const char* options[] = {"data-Forwarding-not-Possible"};
   return convert_enum_idx(options, 1, value, "data_forwarding_not_possible_e");
 }
 
 // E-RABToBeSetupItemHOReq-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t erab_to_be_setup_item_ho_req_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {143, 233};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {143, 233};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool erab_to_be_setup_item_ho_req_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {143, 233};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {143, 233};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -15129,9 +14913,9 @@ crit_e erab_to_be_setup_item_ho_req_ext_ies_o::get_crit(const uint32_t& id)
     case 233:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 erab_to_be_setup_item_ho_req_ext_ies_o::ext_c erab_to_be_setup_item_ho_req_ext_ies_o::get_ext(const uint32_t& id)
 {
@@ -15144,7 +14928,7 @@ erab_to_be_setup_item_ho_req_ext_ies_o::ext_c erab_to_be_setup_item_ho_req_ext_i
       ret.set(ext_c::types::bearer_type);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -15156,9 +14940,9 @@ presence_e erab_to_be_setup_item_ho_req_ext_ies_o::get_presence(const uint32_t& 
     case 233:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -15277,11 +15061,11 @@ SRSASN_CODE erab_to_be_setup_item_ho_req_ext_ies_o::ext_c::unpack(cbit_ref& bref
 
 std::string erab_to_be_setup_item_ho_req_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Data-Forwarding-Not-Possible", "BearerType"};
+  static const char* options[] = {"Data-Forwarding-Not-Possible", "BearerType"};
   return convert_enum_idx(options, 2, value, "erab_to_be_setup_item_ho_req_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<erab_to_be_setup_item_ho_req_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_setup_item_ho_req_ext_ies_o>;
 
 erab_to_be_setup_item_ho_req_ext_ies_container::erab_to_be_setup_item_ho_req_ext_ies_container() :
   data_forwarding_not_possible(143, crit_e::ignore),
@@ -15326,7 +15110,7 @@ SRSASN_CODE erab_to_be_setup_item_ho_req_ext_ies_container::unpack(cbit_ref& bre
         bearer_type.ext     = c.ext_value.bearer_type();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -15396,49 +15180,36 @@ void erab_to_be_setup_item_ho_req_s::to_json(json_writer& j) const
 // E-RABToBeSetupItemHOReqIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_to_be_setup_item_ho_req_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {27};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {27};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_to_be_setup_item_ho_req_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {27};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 27 == id;
 }
 crit_e erab_to_be_setup_item_ho_req_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 27:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 27) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_to_be_setup_item_ho_req_ies_o::value_c erab_to_be_setup_item_ho_req_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 27:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 27) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_to_be_setup_item_ho_req_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 27:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 27) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -15464,11 +15235,11 @@ SRSASN_CODE erab_to_be_setup_item_ho_req_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_to_be_setup_item_ho_req_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABToBeSetupItemHOReq"};
+  static const char* options[] = {"E-RABToBeSetupItemHOReq"};
   return convert_enum_idx(options, 1, value, "erab_to_be_setup_item_ho_req_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<erab_to_be_setup_item_ctxt_su_req_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<erab_to_be_setup_item_ctxt_su_req_ies_o>;
 
 erab_to_be_setup_item_ho_req_ies_container::erab_to_be_setup_item_ho_req_ies_container() :
   erab_to_be_setup_item_ho_req(27, crit_e::reject)
@@ -15493,20 +15264,19 @@ SRSASN_CODE erab_to_be_setup_item_ho_req_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_to_be_setup_item_ho_req_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 27:
-        nof_mandatory_ies--;
-        erab_to_be_setup_item_ho_req.id    = c.id;
-        erab_to_be_setup_item_ho_req.crit  = c.crit;
-        erab_to_be_setup_item_ho_req.value = c.value.erab_to_be_setup_item_ho_req();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 27) {
+      nof_mandatory_ies--;
+      erab_to_be_setup_item_ho_req.id    = c.id;
+      erab_to_be_setup_item_ho_req.crit  = c.crit;
+      erab_to_be_setup_item_ho_req.value = c.value.erab_to_be_setup_item_ho_req();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -15564,49 +15334,36 @@ void erab_to_be_switched_dl_item_s::to_json(json_writer& j) const
 // E-RABToBeSwitchedDLItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_to_be_switched_dl_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {23};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {23};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_to_be_switched_dl_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {23};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 23 == id;
 }
 crit_e erab_to_be_switched_dl_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 23:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 23) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_to_be_switched_dl_item_ies_o::value_c erab_to_be_switched_dl_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 23:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 23) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_to_be_switched_dl_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 23:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 23) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -15632,7 +15389,7 @@ SRSASN_CODE erab_to_be_switched_dl_item_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_to_be_switched_dl_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABToBeSwitchedDLItem"};
+  static const char* options[] = {"E-RABToBeSwitchedDLItem"};
   return convert_enum_idx(options, 1, value, "erab_to_be_switched_dl_item_ies_o::value_c::types");
 }
 
@@ -15659,20 +15416,19 @@ SRSASN_CODE erab_to_be_switched_dl_item_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_to_be_switched_dl_item_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 23:
-        nof_mandatory_ies--;
-        erab_to_be_switched_dl_item.id    = c.id;
-        erab_to_be_switched_dl_item.crit  = c.crit;
-        erab_to_be_switched_dl_item.value = c.value.erab_to_be_switched_dl_item();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 23) {
+      nof_mandatory_ies--;
+      erab_to_be_switched_dl_item.id    = c.id;
+      erab_to_be_switched_dl_item.crit  = c.crit;
+      erab_to_be_switched_dl_item.value = c.value.erab_to_be_switched_dl_item();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -15730,49 +15486,36 @@ void erab_to_be_switched_ul_item_s::to_json(json_writer& j) const
 // E-RABToBeSwitchedULItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t erab_to_be_switched_ul_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {94};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {94};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool erab_to_be_switched_ul_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {94};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 94 == id;
 }
 crit_e erab_to_be_switched_ul_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 94:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 94) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 erab_to_be_switched_ul_item_ies_o::value_c erab_to_be_switched_ul_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 94:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 94) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e erab_to_be_switched_ul_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 94:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 94) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -15798,7 +15541,7 @@ SRSASN_CODE erab_to_be_switched_ul_item_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_to_be_switched_ul_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"E-RABToBeSwitchedULItem"};
+  static const char* options[] = {"E-RABToBeSwitchedULItem"};
   return convert_enum_idx(options, 1, value, "erab_to_be_switched_ul_item_ies_o::value_c::types");
 }
 
@@ -15825,20 +15568,19 @@ SRSASN_CODE erab_to_be_switched_ul_item_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_single_container_item_s<erab_to_be_switched_ul_item_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 94:
-        nof_mandatory_ies--;
-        erab_to_be_switched_ul_item.id    = c.id;
-        erab_to_be_switched_ul_item.crit  = c.crit;
-        erab_to_be_switched_ul_item.value = c.value.erab_to_be_switched_ul_item();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 94) {
+      nof_mandatory_ies--;
+      erab_to_be_switched_ul_item.id    = c.id;
+      erab_to_be_switched_ul_item.crit  = c.crit;
+      erab_to_be_switched_ul_item.value = c.value.erab_to_be_switched_ul_item();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -15906,8 +15648,8 @@ void enb_status_transfer_transparent_container_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("bearers-SubjectToStatusTransferList");
-  for (uint32_t i1 = 0; i1 < bearers_subject_to_status_transfer_list.size(); ++i1) {
-    bearers_subject_to_status_transfer_list[i1].to_json(j);
+  for (const auto& e1 : bearers_subject_to_status_transfer_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -15998,14 +15740,14 @@ void ul_cp_security_info_s::to_json(json_writer& j) const
 // ENBCPRelocationIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enbcp_relocation_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {8, 96, 100, 67, 254};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {8, 96, 100, 67, 254};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool enbcp_relocation_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {8, 96, 100, 67, 254};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {8, 96, 100, 67, 254};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -16025,9 +15767,9 @@ crit_e enbcp_relocation_ind_ies_o::get_crit(const uint32_t& id)
     case 254:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 enbcp_relocation_ind_ies_o::value_c enbcp_relocation_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -16049,7 +15791,7 @@ enbcp_relocation_ind_ies_o::value_c enbcp_relocation_ind_ies_o::get_value(const 
       ret.set(value_c::types::ul_cp_security_info);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -16067,9 +15809,9 @@ presence_e enbcp_relocation_ind_ies_o::get_presence(const uint32_t& id)
     case 254:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -16304,17 +16046,16 @@ SRSASN_CODE enbcp_relocation_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string enbcp_relocation_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..16777215)", "S-TMSI", "EUTRAN-CGI", "TAI", "UL-CP-SecurityInformation"};
+  static const char* options[] = {"INTEGER (0..16777215)", "S-TMSI", "EUTRAN-CGI", "TAI", "UL-CP-SecurityInformation"};
   return convert_enum_idx(options, 5, value, "enbcp_relocation_ind_ies_o::value_c::types");
 }
 uint8_t enbcp_relocation_ind_ies_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {0};
-  return convert_enum_idx(options, 1, value, "enbcp_relocation_ind_ies_o::value_c::types");
+  static const uint8_t options[] = {0};
+  return map_enum_number(options, 1, value, "enbcp_relocation_ind_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<enbcp_relocation_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<enbcp_relocation_ind_ies_o>;
 
 enbcp_relocation_ind_ies_container::enbcp_relocation_ind_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
@@ -16379,12 +16120,13 @@ SRSASN_CODE enbcp_relocation_ind_ies_container::unpack(cbit_ref& bref)
         ul_cp_security_info.value = c.value.ul_cp_security_info();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -16475,8 +16217,8 @@ void enbx2_ext_tla_s::to_json(json_writer& j) const
   }
   if (gtptl_aa_present) {
     j.start_array("gTPTLAa");
-    for (uint32_t i1 = 0; i1 < gtptl_aa.size(); ++i1) {
-      j.write_str(gtptl_aa[i1].to_string());
+    for (const auto& e1 : gtptl_aa) {
+      j.write_str(e1.to_string());
     }
     j.end_array();
   }
@@ -16490,7 +16232,7 @@ void enbx2_ext_tla_s::to_json(json_writer& j) const
 // MutingAvailabilityIndication ::= ENUMERATED
 std::string muting_availability_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"available", "unavailable"};
+  static const char* options[] = {"available", "unavailable"};
   return convert_enum_idx(options, 2, value, "muting_availability_ind_e");
 }
 
@@ -16544,56 +16286,43 @@ void rlf_report_info_s::to_json(json_writer& j) const
 // SynchronisationStatus ::= ENUMERATED
 std::string synchronisation_status_opts::to_string() const
 {
-  static constexpr const char* options[] = {"synchronous", "asynchronous"};
+  static const char* options[] = {"synchronous", "asynchronous"};
   return convert_enum_idx(options, 2, value, "synchronisation_status_e");
 }
 
 // TimeSynchronisationInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t time_synchronisation_info_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {207};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {207};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool time_synchronisation_info_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {207};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 207 == id;
 }
 crit_e time_synchronisation_info_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 207:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 207) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 time_synchronisation_info_ext_ies_o::ext_c time_synchronisation_info_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 207:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 207) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e time_synchronisation_info_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 207:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 207) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -16618,7 +16347,7 @@ SRSASN_CODE time_synchronisation_info_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string time_synchronisation_info_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"MutingAvailabilityIndication"};
+  static const char* options[] = {"MutingAvailabilityIndication"};
   return convert_enum_idx(options, 1, value, "time_synchronisation_info_ext_ies_o::ext_c::types");
 }
 
@@ -16671,13 +16400,13 @@ void muting_pattern_info_s::to_json(json_writer& j) const
 
 std::string muting_pattern_info_s::muting_pattern_period_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ms0", "ms1280", "ms2560", "ms5120", "ms10240"};
+  static const char* options[] = {"ms0", "ms1280", "ms2560", "ms5120", "ms10240"};
   return convert_enum_idx(options, 5, value, "muting_pattern_info_s::muting_pattern_period_e_");
 }
 uint16_t muting_pattern_info_s::muting_pattern_period_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {0, 1280, 2560, 5120, 10240};
-  return convert_enum_idx(options, 5, value, "muting_pattern_info_s::muting_pattern_period_e_");
+  static const uint16_t options[] = {0, 1280, 2560, 5120, 10240};
+  return map_enum_number(options, 5, value, "muting_pattern_info_s::muting_pattern_period_e_");
 }
 
 // SONInformationReport ::= CHOICE
@@ -16708,11 +16437,11 @@ SRSASN_CODE son_info_report_c::unpack(cbit_ref& bref)
 
 std::string son_info_report_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"rLFReportInformation"};
+  static const char* options[] = {"rLFReportInformation"};
   return convert_enum_idx(options, 1, value, "son_info_report_c::types");
 }
 
-template struct protocol_ext_field_s<time_synchronisation_info_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<time_synchronisation_info_ext_ies_o>;
 
 time_synchronisation_info_ext_ies_container::time_synchronisation_info_ext_ies_container() :
   muting_availability_ind(207, crit_e::ignore)
@@ -16738,16 +16467,14 @@ SRSASN_CODE time_synchronisation_info_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<time_synchronisation_info_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 207:
-        muting_availability_ind_present = true;
-        muting_availability_ind.id      = c.id;
-        muting_availability_ind.crit    = c.crit;
-        muting_availability_ind.ext     = c.ext_value.muting_availability_ind();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 207) {
+      muting_availability_ind_present = true;
+      muting_availability_ind.id      = c.id;
+      muting_availability_ind.crit    = c.crit;
+      muting_availability_ind.ext     = c.ext_value.muting_availability_ind();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -16805,14 +16532,14 @@ void time_synchronisation_info_s::to_json(json_writer& j) const
 // X2TNLConfigurationInfo-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t x2_tnl_cfg_info_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {153, 193};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {153, 193};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool x2_tnl_cfg_info_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {153, 193};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {153, 193};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -16826,9 +16553,9 @@ crit_e x2_tnl_cfg_info_ext_ies_o::get_crit(const uint32_t& id)
     case 193:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 x2_tnl_cfg_info_ext_ies_o::ext_c x2_tnl_cfg_info_ext_ies_o::get_ext(const uint32_t& id)
 {
@@ -16841,7 +16568,7 @@ x2_tnl_cfg_info_ext_ies_o::ext_c x2_tnl_cfg_info_ext_ies_o::get_ext(const uint32
       ret.set(ext_c::types::enb_indirect_x2_transport_layer_addresses);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -16853,9 +16580,9 @@ presence_e x2_tnl_cfg_info_ext_ies_o::get_presence(const uint32_t& id)
     case 193:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -16955,15 +16682,15 @@ void x2_tnl_cfg_info_ext_ies_o::ext_c::to_json(json_writer& j) const
   switch (type_) {
     case types::enbx2_extended_transport_layer_addresses:
       j.start_array("ENBX2ExtTLAs");
-      for (uint32_t i1 = 0; i1 < c.get<enbx2_ext_tlas_l>().size(); ++i1) {
-        c.get<enbx2_ext_tlas_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<enbx2_ext_tlas_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::enb_indirect_x2_transport_layer_addresses:
       j.start_array("ENBIndirectX2TransportLayerAddresses");
-      for (uint32_t i1 = 0; i1 < c.get<enb_indirect_x2_transport_layer_addresses_l>().size(); ++i1) {
-        j.write_str(c.get<enb_indirect_x2_transport_layer_addresses_l>()[i1].to_string());
+      for (const auto& e1 : c.get<enb_indirect_x2_transport_layer_addresses_l>()) {
+        j.write_str(e1.to_string());
       }
       j.end_array();
       break;
@@ -17007,7 +16734,7 @@ SRSASN_CODE x2_tnl_cfg_info_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string x2_tnl_cfg_info_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ENBX2ExtTLAs", "ENBIndirectX2TransportLayerAddresses"};
+  static const char* options[] = {"ENBX2ExtTLAs", "ENBIndirectX2TransportLayerAddresses"};
   return convert_enum_idx(options, 2, value, "x2_tnl_cfg_info_ext_ies_o::ext_c::types");
 }
 
@@ -17177,7 +16904,7 @@ SRSASN_CODE enb_id_c::unpack(cbit_ref& bref)
 
 std::string enb_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"macroENB-ID", "homeENB-ID", "short-macroENB-ID", "long-macroENB-ID"};
+  static const char* options[] = {"macroENB-ID", "homeENB-ID", "short-macroENB-ID", "long-macroENB-ID"};
   return convert_enum_idx(options, 4, value, "enb_id_c::types");
 }
 
@@ -17222,61 +16949,48 @@ void listening_sf_pattern_s::to_json(json_writer& j) const
 
 std::string listening_sf_pattern_s::pattern_period_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ms1280", "ms2560", "ms5120", "ms10240"};
+  static const char* options[] = {"ms1280", "ms2560", "ms5120", "ms10240"};
   return convert_enum_idx(options, 4, value, "listening_sf_pattern_s::pattern_period_e_");
 }
 uint16_t listening_sf_pattern_s::pattern_period_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {1280, 2560, 5120, 10240};
-  return convert_enum_idx(options, 4, value, "listening_sf_pattern_s::pattern_period_e_");
+  static const uint16_t options[] = {1280, 2560, 5120, 10240};
+  return map_enum_number(options, 4, value, "listening_sf_pattern_s::pattern_period_e_");
 }
 
 // SONInformation-ExtensionIE ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t son_info_ext_ie_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {206};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {206};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool son_info_ext_ie_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {206};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 206 == id;
 }
 crit_e son_info_ext_ie_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 206:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 206) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 son_info_ext_ie_o::value_c son_info_ext_ie_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 206:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 206) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e son_info_ext_ie_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 206:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 206) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -17302,56 +17016,43 @@ SRSASN_CODE son_info_ext_ie_o::value_c::unpack(cbit_ref& bref)
 
 std::string son_info_ext_ie_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SONInformationReport"};
+  static const char* options[] = {"SONInformationReport"};
   return convert_enum_idx(options, 1, value, "son_info_ext_ie_o::value_c::types");
 }
 
 // SONInformationReply-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t son_info_reply_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {149};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {149};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool son_info_reply_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {149};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 149 == id;
 }
 crit_e son_info_reply_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 149:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 149) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 son_info_reply_ext_ies_o::ext_c son_info_reply_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 149:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 149) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e son_info_reply_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 149:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 149) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -17377,11 +17078,11 @@ SRSASN_CODE son_info_reply_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string son_info_reply_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"TimeSynchronisationInfo"};
+  static const char* options[] = {"TimeSynchronisationInfo"};
   return convert_enum_idx(options, 1, value, "son_info_reply_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<x2_tnl_cfg_info_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<x2_tnl_cfg_info_ext_ies_o>;
 
 x2_tnl_cfg_info_ext_ies_container::x2_tnl_cfg_info_ext_ies_container() :
   enbx2_extended_transport_layer_addresses(153, crit_e::ignore),
@@ -17426,7 +17127,7 @@ SRSASN_CODE x2_tnl_cfg_info_ext_ies_container::unpack(cbit_ref& bref)
         enb_indirect_x2_transport_layer_addresses.ext     = c.ext_value.enb_indirect_x2_transport_layer_addresses();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -17476,8 +17177,8 @@ void x2_tnl_cfg_info_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("eNBX2TransportLayerAddresses");
-  for (uint32_t i1 = 0; i1 < enbx2_transport_layer_addresses.size(); ++i1) {
-    j.write_str(enbx2_transport_layer_addresses[i1].to_string());
+  for (const auto& e1 : enbx2_transport_layer_addresses) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   if (ie_exts_present) {
@@ -17527,9 +17228,9 @@ void global_enb_id_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_single_container_s<son_info_ext_ie_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<son_info_ext_ie_o>;
 
-template struct protocol_ext_field_s<son_info_reply_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<son_info_reply_ext_ies_o>;
 
 son_info_reply_ext_ies_container::son_info_reply_ext_ies_container() : time_synchronisation_info(149, crit_e::ignore) {}
 SRSASN_CODE son_info_reply_ext_ies_container::pack(bit_ref& bref) const
@@ -17552,16 +17253,14 @@ SRSASN_CODE son_info_reply_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<son_info_reply_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 149:
-        time_synchronisation_info_present = true;
-        time_synchronisation_info.id      = c.id;
-        time_synchronisation_info.crit    = c.crit;
-        time_synchronisation_info.ext     = c.ext_value.time_synchronisation_info();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 149) {
+      time_synchronisation_info_present = true;
+      time_synchronisation_info.id      = c.id;
+      time_synchronisation_info.crit    = c.crit;
+      time_synchronisation_info.ext     = c.ext_value.time_synchronisation_info();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -17625,14 +17324,14 @@ void son_info_reply_s::to_json(json_writer& j) const
 // SONInformationRequest ::= ENUMERATED
 std::string son_info_request_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "x2TNL-Configuration-Info", "time-Synchronisation-Info", "activate-Muting", "deactivate-Muting"};
   return convert_enum_idx(options, 4, value, "son_info_request_e");
 }
 uint8_t son_info_request_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {2};
-  return convert_enum_idx(options, 1, value, "son_info_request_e");
+  static const uint8_t options[] = {2};
+  return map_enum_number(options, 1, value, "son_info_request_e");
 }
 
 // SynchronisationInformation ::= SEQUENCE
@@ -17694,8 +17393,8 @@ void synchronisation_info_s::to_json(json_writer& j) const
   }
   if (aggressore_cgi_list_present) {
     j.start_array("aggressoreCGI-List");
-    for (uint32_t i1 = 0; i1 < aggressore_cgi_list.size(); ++i1) {
-      aggressore_cgi_list[i1].to_json(j);
+    for (const auto& e1 : aggressore_cgi_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -17709,14 +17408,14 @@ void synchronisation_info_s::to_json(json_writer& j) const
 // SONConfigurationTransfer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t son_cfg_transfer_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {152, 209};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {152, 209};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool son_cfg_transfer_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {152, 209};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {152, 209};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -17730,9 +17429,9 @@ crit_e son_cfg_transfer_ext_ies_o::get_crit(const uint32_t& id)
     case 209:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 son_cfg_transfer_ext_ies_o::ext_c son_cfg_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
@@ -17745,7 +17444,7 @@ son_cfg_transfer_ext_ies_o::ext_c son_cfg_transfer_ext_ies_o::get_ext(const uint
       ret.set(ext_c::types::synchronisation_info);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -17757,9 +17456,9 @@ presence_e son_cfg_transfer_ext_ies_o::get_presence(const uint32_t& id)
     case 209:
       return presence_e::conditional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -17903,13 +17602,13 @@ SRSASN_CODE son_cfg_transfer_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string son_cfg_transfer_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"X2TNLConfigurationInfo", "SynchronisationInformation"};
+  static const char* options[] = {"X2TNLConfigurationInfo", "SynchronisationInformation"};
   return convert_enum_idx(options, 2, value, "son_cfg_transfer_ext_ies_o::ext_c::types");
 }
 uint8_t son_cfg_transfer_ext_ies_o::ext_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {2};
-  return convert_enum_idx(options, 1, value, "son_cfg_transfer_ext_ies_o::ext_c::types");
+  static const uint8_t options[] = {2};
+  return map_enum_number(options, 1, value, "son_cfg_transfer_ext_ies_o::ext_c::types");
 }
 
 // SONInformation ::= CHOICE
@@ -18053,7 +17752,7 @@ SRSASN_CODE son_info_c::unpack(cbit_ref& bref)
 
 std::string son_info_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"sONInformationRequest", "sONInformationReply", "sONInformation-Extension"};
+  static const char* options[] = {"sONInformationRequest", "sONInformationReply", "sONInformation-Extension"};
   return convert_enum_idx(options, 3, value, "son_info_c::types");
 }
 
@@ -18137,7 +17836,7 @@ void targetenb_id_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<son_cfg_transfer_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<son_cfg_transfer_ext_ies_o>;
 
 son_cfg_transfer_ext_ies_container::son_cfg_transfer_ext_ies_container() :
   x2_tnl_cfg_info(152, crit_e::ignore),
@@ -18182,7 +17881,7 @@ SRSASN_CODE son_cfg_transfer_ext_ies_container::unpack(cbit_ref& bref)
         synchronisation_info.ext     = c.ext_value.synchronisation_info();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -18251,49 +17950,36 @@ void son_cfg_transfer_s::to_json(json_writer& j) const
 // ENBConfigurationTransferIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enb_cfg_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {129};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {129};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool enb_cfg_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {129};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 129 == id;
 }
 crit_e enb_cfg_transfer_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 129:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 129) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 enb_cfg_transfer_ies_o::value_c enb_cfg_transfer_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 129:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 129) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e enb_cfg_transfer_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 129:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 129) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -18319,11 +18005,11 @@ SRSASN_CODE enb_cfg_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string enb_cfg_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SONConfigurationTransfer"};
+  static const char* options[] = {"SONConfigurationTransfer"};
   return convert_enum_idx(options, 1, value, "enb_cfg_transfer_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<enb_cfg_transfer_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<enb_cfg_transfer_ies_o>;
 
 enb_cfg_transfer_ies_container::enb_cfg_transfer_ies_container() : son_cfg_transfer_ect(129, crit_e::ignore) {}
 SRSASN_CODE enb_cfg_transfer_ies_container::pack(bit_ref& bref) const
@@ -18346,16 +18032,14 @@ SRSASN_CODE enb_cfg_transfer_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<enb_cfg_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 129:
-        son_cfg_transfer_ect_present = true;
-        son_cfg_transfer_ect.id      = c.id;
-        son_cfg_transfer_ect.crit    = c.crit;
-        son_cfg_transfer_ect.value   = c.value.son_cfg_transfer_ect();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 129) {
+      son_cfg_transfer_ect_present = true;
+      son_cfg_transfer_ect.id      = c.id;
+      son_cfg_transfer_ect.crit    = c.crit;
+      son_cfg_transfer_ect.value   = c.value.son_cfg_transfer_ect();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -18397,56 +18081,43 @@ void enb_cfg_transfer_s::to_json(json_writer& j) const
 // RAT-Type ::= ENUMERATED
 std::string rat_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"nbiot"};
+  static const char* options[] = {"nbiot"};
   return convert_enum_idx(options, 1, value, "rat_type_e");
 }
 
 // SupportedTAs-Item-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t supported_tas_item_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {232};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {232};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool supported_tas_item_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {232};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 232 == id;
 }
 crit_e supported_tas_item_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 232:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 232) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 supported_tas_item_ext_ies_o::ext_c supported_tas_item_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 232:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 232) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e supported_tas_item_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 232:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 232) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -18471,11 +18142,11 @@ SRSASN_CODE supported_tas_item_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string supported_tas_item_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"RAT-Type"};
+  static const char* options[] = {"RAT-Type"};
   return convert_enum_idx(options, 1, value, "supported_tas_item_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<supported_tas_item_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<supported_tas_item_ext_ies_o>;
 
 supported_tas_item_ext_ies_container::supported_tas_item_ext_ies_container() : rat_type(232, crit_e::reject) {}
 SRSASN_CODE supported_tas_item_ext_ies_container::pack(bit_ref& bref) const
@@ -18498,16 +18169,14 @@ SRSASN_CODE supported_tas_item_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<supported_tas_item_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 232:
-        rat_type_present = true;
-        rat_type.id      = c.id;
-        rat_type.crit    = c.crit;
-        rat_type.ext     = c.ext_value.rat_type();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 232) {
+      rat_type_present = true;
+      rat_type.id      = c.id;
+      rat_type.crit    = c.crit;
+      rat_type.ext     = c.ext_value.rat_type();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -18555,8 +18224,8 @@ void supported_tas_item_s::to_json(json_writer& j) const
   j.start_obj();
   j.write_str("tAC", tac.to_string());
   j.start_array("broadcastPLMNs");
-  for (uint32_t i1 = 0; i1 < broadcast_plmns.size(); ++i1) {
-    j.write_str(broadcast_plmns[i1].to_string());
+  for (const auto& e1 : broadcast_plmns) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   if (ie_exts_present) {
@@ -18569,38 +18238,38 @@ void supported_tas_item_s::to_json(json_writer& j) const
 // NB-IoT-DefaultPagingDRX ::= ENUMERATED
 std::string nb_io_t_default_paging_drx_opts::to_string() const
 {
-  static constexpr const char* options[] = {"v128", "v256", "v512", "v1024"};
+  static const char* options[] = {"v128", "v256", "v512", "v1024"};
   return convert_enum_idx(options, 4, value, "nb_io_t_default_paging_drx_e");
 }
 uint16_t nb_io_t_default_paging_drx_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {128, 256, 512, 1024};
-  return convert_enum_idx(options, 4, value, "nb_io_t_default_paging_drx_e");
+  static const uint16_t options[] = {128, 256, 512, 1024};
+  return map_enum_number(options, 4, value, "nb_io_t_default_paging_drx_e");
 }
 
 // PagingDRX ::= ENUMERATED
 std::string paging_drx_opts::to_string() const
 {
-  static constexpr const char* options[] = {"v32", "v64", "v128", "v256"};
+  static const char* options[] = {"v32", "v64", "v128", "v256"};
   return convert_enum_idx(options, 4, value, "paging_drx_e");
 }
 uint16_t paging_drx_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {32, 64, 128, 256};
-  return convert_enum_idx(options, 4, value, "paging_drx_e");
+  static const uint16_t options[] = {32, 64, 128, 256};
+  return map_enum_number(options, 4, value, "paging_drx_e");
 }
 
 // ENBConfigurationUpdateIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enb_cfg_upd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {60, 64, 128, 137, 234};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {60, 64, 128, 137, 234};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool enb_cfg_upd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {60, 64, 128, 137, 234};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {60, 64, 128, 137, 234};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -18620,9 +18289,9 @@ crit_e enb_cfg_upd_ies_o::get_crit(const uint32_t& id)
     case 234:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 enb_cfg_upd_ies_o::value_c enb_cfg_upd_ies_o::get_value(const uint32_t& id)
 {
@@ -18644,7 +18313,7 @@ enb_cfg_upd_ies_o::value_c enb_cfg_upd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::nb_io_t_default_paging_drx);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -18662,9 +18331,9 @@ presence_e enb_cfg_upd_ies_o::get_presence(const uint32_t& id)
     case 234:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -18822,15 +18491,15 @@ void enb_cfg_upd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::supported_tas:
       j.start_array("SupportedTAs");
-      for (uint32_t i1 = 0; i1 < c.get<supported_tas_l>().size(); ++i1) {
-        c.get<supported_tas_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<supported_tas_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::csg_id_list:
       j.start_array("CSG-IdList");
-      for (uint32_t i1 = 0; i1 < c.get<csg_id_list_l>().size(); ++i1) {
-        c.get<csg_id_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<csg_id_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -18898,12 +18567,12 @@ SRSASN_CODE enb_cfg_upd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string enb_cfg_upd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "PrintableString", "SupportedTAs", "CSG-IdList", "PagingDRX", "NB-IoT-DefaultPagingDRX"};
   return convert_enum_idx(options, 5, value, "enb_cfg_upd_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<enb_cfg_upd_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<enb_cfg_upd_ies_o>;
 
 enb_cfg_upd_ies_container::enb_cfg_upd_ies_container() :
   enbname(60, crit_e::ignore),
@@ -18981,7 +18650,7 @@ SRSASN_CODE enb_cfg_upd_ies_container::unpack(cbit_ref& bref)
         nb_io_t_default_paging_drx.value   = c.value.nb_io_t_default_paging_drx();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -19040,49 +18709,36 @@ void enb_cfg_upd_s::to_json(json_writer& j) const
 // ENBConfigurationUpdateAcknowledgeIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enb_cfg_upd_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {58};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {58};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool enb_cfg_upd_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {58};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 58 == id;
 }
 crit_e enb_cfg_upd_ack_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 58:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 58) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 enb_cfg_upd_ack_ies_o::value_c enb_cfg_upd_ack_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 58:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 58) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e enb_cfg_upd_ack_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 58:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 58) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -19108,11 +18764,11 @@ SRSASN_CODE enb_cfg_upd_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string enb_cfg_upd_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"CriticalityDiagnostics"};
+  static const char* options[] = {"CriticalityDiagnostics"};
   return convert_enum_idx(options, 1, value, "enb_cfg_upd_ack_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<enb_cfg_upd_ack_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<enb_cfg_upd_ack_ies_o>;
 
 enb_cfg_upd_ack_ies_container::enb_cfg_upd_ack_ies_container() : crit_diagnostics(58, crit_e::ignore) {}
 SRSASN_CODE enb_cfg_upd_ack_ies_container::pack(bit_ref& bref) const
@@ -19135,16 +18791,14 @@ SRSASN_CODE enb_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<enb_cfg_upd_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 58:
-        crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 58) {
+      crit_diagnostics_present = true;
+      crit_diagnostics.id      = c.id;
+      crit_diagnostics.crit    = c.crit;
+      crit_diagnostics.value   = c.value.crit_diagnostics();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -19186,26 +18840,26 @@ void enb_cfg_upd_ack_s::to_json(json_writer& j) const
 // TimeToWait ::= ENUMERATED
 std::string time_to_wait_opts::to_string() const
 {
-  static constexpr const char* options[] = {"v1s", "v2s", "v5s", "v10s", "v20s", "v60s"};
+  static const char* options[] = {"v1s", "v2s", "v5s", "v10s", "v20s", "v60s"};
   return convert_enum_idx(options, 6, value, "time_to_wait_e");
 }
 uint8_t time_to_wait_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1, 2, 5, 10, 20, 60};
-  return convert_enum_idx(options, 6, value, "time_to_wait_e");
+  static const uint8_t options[] = {1, 2, 5, 10, 20, 60};
+  return map_enum_number(options, 6, value, "time_to_wait_e");
 }
 
 // ENBConfigurationUpdateFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enb_cfg_upd_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {2, 65, 58};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {2, 65, 58};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool enb_cfg_upd_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {2, 65, 58};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {2, 65, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -19221,9 +18875,9 @@ crit_e enb_cfg_upd_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 enb_cfg_upd_fail_ies_o::value_c enb_cfg_upd_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -19239,7 +18893,7 @@ enb_cfg_upd_fail_ies_o::value_c enb_cfg_upd_fail_ies_o::get_value(const uint32_t
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -19253,9 +18907,9 @@ presence_e enb_cfg_upd_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -19426,11 +19080,11 @@ SRSASN_CODE enb_cfg_upd_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string enb_cfg_upd_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
+  static const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "enb_cfg_upd_fail_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<enb_cfg_upd_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<enb_cfg_upd_fail_ies_o>;
 
 enb_cfg_upd_fail_ies_container::enb_cfg_upd_fail_ies_container() :
   cause(2, crit_e::ignore),
@@ -19485,12 +19139,13 @@ SRSASN_CODE enb_cfg_upd_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -19825,7 +19480,7 @@ SRSASN_CODE rim_routing_address_c::unpack(cbit_ref& bref)
 
 std::string rim_routing_address_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"gERAN-Cell-ID", "targetRNC-ID", "eHRPD-Sector-ID"};
+  static const char* options[] = {"gERAN-Cell-ID", "targetRNC-ID", "eHRPD-Sector-ID"};
   return convert_enum_idx(options, 3, value, "rim_routing_address_c::types");
 }
 
@@ -19905,56 +19560,43 @@ SRSASN_CODE inter_sys_info_transfer_type_c::unpack(cbit_ref& bref)
 
 std::string inter_sys_info_transfer_type_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"rIMTransfer"};
+  static const char* options[] = {"rIMTransfer"};
   return convert_enum_idx(options, 1, value, "inter_sys_info_transfer_type_c::types");
 }
 
 // ENBDirectInformationTransferIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enb_direct_info_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {121};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {121};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool enb_direct_info_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {121};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 121 == id;
 }
 crit_e enb_direct_info_transfer_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 121:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 121) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 enb_direct_info_transfer_ies_o::value_c enb_direct_info_transfer_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 121:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 121) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e enb_direct_info_transfer_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 121:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 121) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -19980,11 +19622,11 @@ SRSASN_CODE enb_direct_info_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string enb_direct_info_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Inter-SystemInformationTransferType"};
+  static const char* options[] = {"Inter-SystemInformationTransferType"};
   return convert_enum_idx(options, 1, value, "enb_direct_info_transfer_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<enb_direct_info_transfer_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<enb_direct_info_transfer_ies_o>;
 
 enb_direct_info_transfer_ies_container::enb_direct_info_transfer_ies_container() :
   inter_sys_info_transfer_type_edt(121, crit_e::reject)
@@ -20009,20 +19651,19 @@ SRSASN_CODE enb_direct_info_transfer_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<enb_direct_info_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 121:
-        nof_mandatory_ies--;
-        inter_sys_info_transfer_type_edt.id    = c.id;
-        inter_sys_info_transfer_type_edt.crit  = c.crit;
-        inter_sys_info_transfer_type_edt.value = c.value.inter_sys_info_transfer_type_edt();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 121) {
+      nof_mandatory_ies--;
+      inter_sys_info_transfer_type_edt.id    = c.id;
+      inter_sys_info_transfer_type_edt.crit  = c.crit;
+      inter_sys_info_transfer_type_edt.value = c.value.inter_sys_info_transfer_type_edt();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -20061,14 +19702,14 @@ void enb_direct_info_transfer_s::to_json(json_writer& j) const
 // ENBStatusTransferIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t enb_status_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 90};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 90};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool enb_status_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 90};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 90};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -20084,9 +19725,9 @@ crit_e enb_status_transfer_ies_o::get_crit(const uint32_t& id)
     case 90:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 enb_status_transfer_ies_o::value_c enb_status_transfer_ies_o::get_value(const uint32_t& id)
 {
@@ -20102,7 +19743,7 @@ enb_status_transfer_ies_o::value_c enb_status_transfer_ies_o::get_value(const ui
       ret.set(value_c::types::enb_status_transfer_transparent_container);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -20116,9 +19757,9 @@ presence_e enb_status_transfer_ies_o::get_presence(const uint32_t& id)
     case 90:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -20286,12 +19927,12 @@ SRSASN_CODE enb_status_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string enb_status_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "ENB-StatusTransfer-TransparentContainer"};
   return convert_enum_idx(options, 3, value, "enb_status_transfer_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<enb_status_transfer_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<enb_status_transfer_ies_o>;
 
 enb_status_transfer_ies_container::enb_status_transfer_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -20340,12 +19981,13 @@ SRSASN_CODE enb_status_transfer_ies_container::unpack(cbit_ref& bref)
         enb_status_transfer_transparent_container.value = c.value.enb_status_transfer_transparent_container();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -20414,14 +20056,14 @@ void eutran_resp_s::to_json(json_writer& j) const
 // ErrorIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t error_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 2, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool error_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -20439,9 +20081,9 @@ crit_e error_ind_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 error_ind_ies_o::value_c error_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -20460,7 +20102,7 @@ error_ind_ies_o::value_c error_ind_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -20476,9 +20118,9 @@ presence_e error_ind_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -20675,12 +20317,12 @@ SRSASN_CODE error_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string error_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "error_ind_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<error_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<error_ind_ies_o>;
 
 error_ind_ies_container::error_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -20747,7 +20389,7 @@ SRSASN_CODE error_ind_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -20802,13 +20444,13 @@ void error_ind_s::to_json(json_writer& j) const
 // NumberOfMeasurementReportingLevels ::= ENUMERATED
 std::string nof_meas_report_levels_opts::to_string() const
 {
-  static constexpr const char* options[] = {"rl2", "rl3", "rl4", "rl5", "rl10"};
+  static const char* options[] = {"rl2", "rl3", "rl4", "rl5", "rl10"};
   return convert_enum_idx(options, 5, value, "nof_meas_report_levels_e");
 }
 uint8_t nof_meas_report_levels_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {2, 3, 4, 5, 10};
-  return convert_enum_idx(options, 5, value, "nof_meas_report_levels_e");
+  static const uint8_t options[] = {2, 3, 4, 5, 10};
+  return map_enum_number(options, 5, value, "nof_meas_report_levels_e");
 }
 
 // EventTriggeredCellLoadReportingRequest ::= SEQUENCE
@@ -20836,7 +20478,7 @@ void event_triggered_cell_load_report_request_s::to_json(json_writer& j) const
 // OverloadFlag ::= ENUMERATED
 std::string overload_flag_opts::to_string() const
 {
-  static constexpr const char* options[] = {"overload"};
+  static const char* options[] = {"overload"};
   return convert_enum_idx(options, 1, value, "overload_flag_e");
 }
 
@@ -20879,7 +20521,7 @@ void event_triggered_cell_load_report_resp_s::to_json(json_writer& j) const
 // SourceOfUEActivityBehaviourInformation ::= ENUMERATED
 std::string source_of_ue_activity_behaviour_info_opts::to_string() const
 {
-  static constexpr const char* options[] = {"subscription-information", "statistics"};
+  static const char* options[] = {"subscription-information", "statistics"};
   return convert_enum_idx(options, 2, value, "source_of_ue_activity_behaviour_info_e");
 }
 
@@ -20952,13 +20594,13 @@ void expected_ue_activity_behaviour_s::to_json(json_writer& j) const
 // ExpectedHOInterval ::= ENUMERATED
 std::string expected_ho_interv_opts::to_string() const
 {
-  static constexpr const char* options[] = {"sec15", "sec30", "sec60", "sec90", "sec120", "sec180", "long-time"};
+  static const char* options[] = {"sec15", "sec30", "sec60", "sec90", "sec120", "sec180", "long-time"};
   return convert_enum_idx(options, 7, value, "expected_ho_interv_e");
 }
 uint8_t expected_ho_interv_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {15, 30, 60, 90, 120, 180};
-  return convert_enum_idx(options, 6, value, "expected_ho_interv_e");
+  static const uint8_t options[] = {15, 30, 60, 90, 120, 180};
+  return map_enum_number(options, 6, value, "expected_ho_interv_e");
 }
 
 // ExpectedUEBehaviour ::= SEQUENCE
@@ -21080,21 +20722,21 @@ SRSASN_CODE fail_event_report_c::unpack(cbit_ref& bref)
 
 std::string fail_event_report_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"tooEarlyInterRATHOReportFromEUTRAN"};
+  static const char* options[] = {"tooEarlyInterRATHOReportFromEUTRAN"};
   return convert_enum_idx(options, 1, value, "fail_event_report_c::types");
 }
 
 // HoReportType ::= ENUMERATED
 std::string ho_report_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"unnecessaryhotoanotherrat", "earlyirathandover"};
+  static const char* options[] = {"unnecessaryhotoanotherrat", "earlyirathandover"};
   return convert_enum_idx(options, 2, value, "ho_report_type_e");
 }
 
 // HoType ::= ENUMERATED
 std::string ho_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ltetoutran", "ltetogeran"};
+  static const char* options[] = {"ltetoutran", "ltetogeran"};
   return convert_enum_idx(options, 2, value, "ho_type_e");
 }
 
@@ -21147,15 +20789,15 @@ void ho_report_s::to_json(json_writer& j) const
   j.write_fieldname("hoTargetID");
   ho_target_id.to_json(j);
   j.start_array("candidateCellList");
-  for (uint32_t i1 = 0; i1 < candidate_cell_list.size(); ++i1) {
-    candidate_cell_list[i1].to_json(j);
+  for (const auto& e1 : candidate_cell_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ext) {
     if (candidate_pci_list.is_present()) {
       j.start_array("candidatePCIList");
-      for (uint32_t i1 = 0; i1 < candidate_pci_list->size(); ++i1) {
-        ((*candidate_pci_list)[i1]).to_json(j);
+      for (const auto& e1 : *candidate_pci_list) {
+        e1.to_json(j);
       }
       j.end_array();
     }
@@ -21166,14 +20808,14 @@ void ho_report_s::to_json(json_writer& j) const
 // HandoverCancelIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_cancel_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 2};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ho_cancel_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -21189,9 +20831,9 @@ crit_e ho_cancel_ies_o::get_crit(const uint32_t& id)
     case 2:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_cancel_ies_o::value_c ho_cancel_ies_o::get_value(const uint32_t& id)
 {
@@ -21207,7 +20849,7 @@ ho_cancel_ies_o::value_c ho_cancel_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::cause);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -21221,9 +20863,9 @@ presence_e ho_cancel_ies_o::get_presence(const uint32_t& id)
     case 2:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -21388,11 +21030,11 @@ SRSASN_CODE ho_cancel_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_cancel_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause"};
   return convert_enum_idx(options, 3, value, "ho_cancel_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_cancel_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_cancel_ies_o>;
 
 ho_cancel_ies_container::ho_cancel_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -21441,12 +21083,13 @@ SRSASN_CODE ho_cancel_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -21489,14 +21132,14 @@ void ho_cancel_s::to_json(json_writer& j) const
 // HandoverCancelAcknowledgeIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_cancel_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 58};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 58};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ho_cancel_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 58};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -21512,9 +21155,9 @@ crit_e ho_cancel_ack_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_cancel_ack_ies_o::value_c ho_cancel_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -21530,7 +21173,7 @@ ho_cancel_ack_ies_o::value_c ho_cancel_ack_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -21544,9 +21187,9 @@ presence_e ho_cancel_ack_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -21711,12 +21354,11 @@ SRSASN_CODE ho_cancel_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_cancel_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "ho_cancel_ack_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_cancel_ack_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_cancel_ack_ies_o>;
 
 ho_cancel_ack_ies_container::ho_cancel_ack_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -21768,12 +21410,13 @@ SRSASN_CODE ho_cancel_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -21818,21 +21461,21 @@ void ho_cancel_ack_s::to_json(json_writer& j) const
 // HandoverType ::= ENUMERATED
 std::string handov_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"intralte", "ltetoutran", "ltetogeran", "utrantolte", "gerantolte"};
+  static const char* options[] = {"intralte", "ltetoutran", "ltetogeran", "utrantolte", "gerantolte"};
   return convert_enum_idx(options, 5, value, "handov_type_e");
 }
 
 // HandoverCommandIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_cmd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 1, 135, 12, 13, 123, 139, 58};
-  return convert_enum_idx(options, 9, idx, "id");
+  static const uint32_t options[] = {0, 8, 1, 135, 12, 13, 123, 139, 58};
+  return map_enum_number(options, 9, idx, "id");
 }
 bool ho_cmd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 1, 135, 12, 13, 123, 139, 58};
-  for (uint32_t i = 0; i < 9; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 1, 135, 12, 13, 123, 139, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -21860,9 +21503,9 @@ crit_e ho_cmd_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_cmd_ies_o::value_c ho_cmd_ies_o::get_value(const uint32_t& id)
 {
@@ -21896,7 +21539,7 @@ ho_cmd_ies_o::value_c ho_cmd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -21922,9 +21565,9 @@ presence_e ho_cmd_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -22179,8 +21822,8 @@ void ho_cmd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_to_release_list_ho_cmd:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -22276,19 +21919,19 @@ SRSASN_CODE ho_cmd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_cmd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "HandoverType",
-                                            "OCTET STRING",
-                                            "",
-                                            "E-RABList",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "HandoverType",
+                                  "OCTET STRING",
+                                  "",
+                                  "E-RABList",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 9, value, "ho_cmd_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_cmd_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_cmd_ies_o>;
 
 ho_cmd_ies_container::ho_cmd_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -22401,12 +22044,13 @@ SRSASN_CODE ho_cmd_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -22471,14 +22115,14 @@ void ho_cmd_s::to_json(json_writer& j) const
 // HandoverFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 2, 58};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 2, 58};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ho_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 2, 58};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 2, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -22494,9 +22138,9 @@ crit_e ho_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_fail_ies_o::value_c ho_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -22512,7 +22156,7 @@ ho_fail_ies_o::value_c ho_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -22526,9 +22170,9 @@ presence_e ho_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -22698,16 +22342,16 @@ SRSASN_CODE ho_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "Cause", "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "ho_fail_ies_o::value_c::types");
 }
 uint8_t ho_fail_ies_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {0};
-  return convert_enum_idx(options, 1, value, "ho_fail_ies_o::value_c::types");
+  static const uint8_t options[] = {0};
+  return map_enum_number(options, 1, value, "ho_fail_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_fail_ies_o>;
 
 ho_fail_ies_container::ho_fail_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -22759,12 +22403,13 @@ SRSASN_CODE ho_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -22809,14 +22454,14 @@ void ho_fail_s::to_json(json_writer& j) const
 // HandoverNotifyIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_notify_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 100, 67, 176, 186};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {0, 8, 100, 67, 176, 186};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool ho_notify_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 100, 67, 176, 186};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 100, 67, 176, 186};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -22838,9 +22483,9 @@ crit_e ho_notify_ies_o::get_crit(const uint32_t& id)
     case 186:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_notify_ies_o::value_c ho_notify_ies_o::get_value(const uint32_t& id)
 {
@@ -22865,7 +22510,7 @@ ho_notify_ies_o::value_c ho_notify_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::lhn_id);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -22885,9 +22530,9 @@ presence_e ho_notify_ies_o::get_presence(const uint32_t& id)
     case 186:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -23147,12 +22792,12 @@ SRSASN_CODE ho_notify_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_notify_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "EUTRAN-CGI", "TAI", "TunnelInformation", "OCTET STRING"};
   return convert_enum_idx(options, 6, value, "ho_notify_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_notify_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_notify_ies_o>;
 
 ho_notify_ies_container::ho_notify_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -23231,12 +22876,13 @@ SRSASN_CODE ho_notify_ies_container::unpack(cbit_ref& bref)
         lhn_id.value   = c.value.lhn_id();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -23289,14 +22935,14 @@ void ho_notify_s::to_json(json_writer& j) const
 // HandoverPreparationFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_prep_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 2, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ho_prep_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -23314,9 +22960,9 @@ crit_e ho_prep_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_prep_fail_ies_o::value_c ho_prep_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -23335,7 +22981,7 @@ ho_prep_fail_ies_o::value_c ho_prep_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -23351,9 +22997,9 @@ presence_e ho_prep_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -23550,12 +23196,12 @@ SRSASN_CODE ho_prep_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_prep_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "ho_prep_fail_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_prep_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_prep_fail_ies_o>;
 
 ho_prep_fail_ies_container::ho_prep_fail_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -23615,12 +23261,13 @@ SRSASN_CODE ho_prep_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -23714,94 +23361,93 @@ void mbsfn_result_to_log_info_s::to_json(json_writer& j) const
 // Links-to-log ::= ENUMERATED
 std::string links_to_log_opts::to_string() const
 {
-  static constexpr const char* options[] = {"uplink", "downlink", "both-uplink-and-downlink"};
+  static const char* options[] = {"uplink", "downlink", "both-uplink-and-downlink"};
   return convert_enum_idx(options, 3, value, "links_to_log_e");
 }
 
 // LoggingDuration ::= ENUMERATED
 std::string logging_dur_opts::to_string() const
 {
-  static constexpr const char* options[] = {"m10", "m20", "m40", "m60", "m90", "m120"};
+  static const char* options[] = {"m10", "m20", "m40", "m60", "m90", "m120"};
   return convert_enum_idx(options, 6, value, "logging_dur_e");
 }
 uint8_t logging_dur_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {10, 20, 40, 60, 90, 120};
-  return convert_enum_idx(options, 6, value, "logging_dur_e");
+  static const uint8_t options[] = {10, 20, 40, 60, 90, 120};
+  return map_enum_number(options, 6, value, "logging_dur_e");
 }
 
 // LoggingInterval ::= ENUMERATED
 std::string logging_interv_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "ms128", "ms256", "ms512", "ms1024", "ms2048", "ms3072", "ms4096", "ms6144"};
+  static const char* options[] = {"ms128", "ms256", "ms512", "ms1024", "ms2048", "ms3072", "ms4096", "ms6144"};
   return convert_enum_idx(options, 8, value, "logging_interv_e");
 }
 uint16_t logging_interv_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {128, 256, 512, 1024, 2048, 3072, 4096, 6144};
-  return convert_enum_idx(options, 8, value, "logging_interv_e");
+  static const uint16_t options[] = {128, 256, 512, 1024, 2048, 3072, 4096, 6144};
+  return map_enum_number(options, 8, value, "logging_interv_e");
 }
 
 // M3period ::= ENUMERATED
 std::string m3period_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ms100", "ms1000", "ms10000"};
+  static const char* options[] = {"ms100", "ms1000", "ms10000"};
   return convert_enum_idx(options, 3, value, "m3period_e");
 }
 uint16_t m3period_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {100, 1000, 10000};
-  return convert_enum_idx(options, 3, value, "m3period_e");
+  static const uint16_t options[] = {100, 1000, 10000};
+  return map_enum_number(options, 3, value, "m3period_e");
 }
 
 // M4period ::= ENUMERATED
 std::string m4period_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ms1024", "ms2048", "ms5120", "ms10240", "min1"};
+  static const char* options[] = {"ms1024", "ms2048", "ms5120", "ms10240", "min1"};
   return convert_enum_idx(options, 5, value, "m4period_e");
 }
 uint16_t m4period_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {1024, 2048, 5120, 10240, 1};
-  return convert_enum_idx(options, 5, value, "m4period_e");
+  static const uint16_t options[] = {1024, 2048, 5120, 10240, 1};
+  return map_enum_number(options, 5, value, "m4period_e");
 }
 
 // M5period ::= ENUMERATED
 std::string m5period_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ms1024", "ms2048", "ms5120", "ms10240", "min1"};
+  static const char* options[] = {"ms1024", "ms2048", "ms5120", "ms10240", "min1"};
   return convert_enum_idx(options, 5, value, "m5period_e");
 }
 uint16_t m5period_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {1024, 2048, 5120, 10240, 1};
-  return convert_enum_idx(options, 5, value, "m5period_e");
+  static const uint16_t options[] = {1024, 2048, 5120, 10240, 1};
+  return map_enum_number(options, 5, value, "m5period_e");
 }
 
 // M6delay-threshold ::= ENUMERATED
 std::string m6delay_thres_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "ms30", "ms40", "ms50", "ms60", "ms70", "ms80", "ms90", "ms100", "ms150", "ms300", "ms500", "ms750"};
   return convert_enum_idx(options, 12, value, "m6delay_thres_e");
 }
 uint16_t m6delay_thres_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {30, 40, 50, 60, 70, 80, 90, 100, 150, 300, 500, 750};
-  return convert_enum_idx(options, 12, value, "m6delay_thres_e");
+  static const uint16_t options[] = {30, 40, 50, 60, 70, 80, 90, 100, 150, 300, 500, 750};
+  return map_enum_number(options, 12, value, "m6delay_thres_e");
 }
 
 // M6report-Interval ::= ENUMERATED
 std::string m6report_interv_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ms1024", "ms2048", "ms5120", "ms10240"};
+  static const char* options[] = {"ms1024", "ms2048", "ms5120", "ms10240"};
   return convert_enum_idx(options, 4, value, "m6report_interv_e");
 }
 uint16_t m6report_interv_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {1024, 2048, 5120, 10240};
-  return convert_enum_idx(options, 4, value, "m6report_interv_e");
+  static const uint16_t options[] = {1024, 2048, 5120, 10240};
+  return map_enum_number(options, 4, value, "m6report_interv_e");
 }
 
 // LoggedMBSFNMDT ::= SEQUENCE
@@ -23846,8 +23492,8 @@ void logged_mbsfnmdt_s::to_json(json_writer& j) const
   j.write_str("loggingDuration", logging_dur.to_string());
   if (mbsfn_result_to_log_present) {
     j.start_array("mBSFN-ResultToLog");
-    for (uint32_t i1 = 0; i1 < mbsfn_result_to_log.size(); ++i1) {
-      mbsfn_result_to_log[i1].to_json(j);
+    for (const auto& e1 : mbsfn_result_to_log) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -24157,57 +23803,57 @@ SRSASN_CODE meas_thres_a2_c::unpack(cbit_ref& bref)
 
 std::string meas_thres_a2_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"threshold-RSRP", "threshold-RSRQ"};
+  static const char* options[] = {"threshold-RSRP", "threshold-RSRQ"};
   return convert_enum_idx(options, 2, value, "meas_thres_a2_c::types");
 }
 
 // ReportAmountMDT ::= ENUMERATED
 std::string report_amount_mdt_opts::to_string() const
 {
-  static constexpr const char* options[] = {"r1", "r2", "r4", "r8", "r16", "r32", "r64", "rinfinity"};
+  static const char* options[] = {"r1", "r2", "r4", "r8", "r16", "r32", "r64", "rinfinity"};
   return convert_enum_idx(options, 8, value, "report_amount_mdt_e");
 }
 int8_t report_amount_mdt_opts::to_number() const
 {
-  static constexpr int8_t options[] = {1, 2, 4, 8, 16, 32, 64, -1};
-  return convert_enum_idx(options, 8, value, "report_amount_mdt_e");
+  static const int8_t options[] = {1, 2, 4, 8, 16, 32, 64, -1};
+  return map_enum_number(options, 8, value, "report_amount_mdt_e");
 }
 
 // ReportIntervalMDT ::= ENUMERATED
 std::string report_interv_mdt_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ms120",
-                                            "ms240",
-                                            "ms480",
-                                            "ms640",
-                                            "ms1024",
-                                            "ms2048",
-                                            "ms5120",
-                                            "ms10240",
-                                            "min1",
-                                            "min6",
-                                            "min12",
-                                            "min30",
-                                            "min60"};
+  static const char* options[] = {"ms120",
+                                  "ms240",
+                                  "ms480",
+                                  "ms640",
+                                  "ms1024",
+                                  "ms2048",
+                                  "ms5120",
+                                  "ms10240",
+                                  "min1",
+                                  "min6",
+                                  "min12",
+                                  "min30",
+                                  "min60"};
   return convert_enum_idx(options, 13, value, "report_interv_mdt_e");
 }
 uint16_t report_interv_mdt_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {120, 240, 480, 640, 1024, 2048, 5120, 10240, 1, 6, 12, 30, 60};
-  return convert_enum_idx(options, 13, value, "report_interv_mdt_e");
+  static const uint16_t options[] = {120, 240, 480, 640, 1024, 2048, 5120, 10240, 1, 6, 12, 30, 60};
+  return map_enum_number(options, 13, value, "report_interv_mdt_e");
 }
 
 // ImmediateMDT-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t immediate_mdt_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {171, 172, 173, 174, 220, 221};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {171, 172, 173, 174, 220, 221};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool immediate_mdt_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {171, 172, 173, 174, 220, 221};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {171, 172, 173, 174, 220, 221};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -24229,9 +23875,9 @@ crit_e immediate_mdt_ext_ies_o::get_crit(const uint32_t& id)
     case 221:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 immediate_mdt_ext_ies_o::ext_c immediate_mdt_ext_ies_o::get_ext(const uint32_t& id)
 {
@@ -24256,7 +23902,7 @@ immediate_mdt_ext_ies_o::ext_c immediate_mdt_ext_ies_o::get_ext(const uint32_t& 
       ret.set(ext_c::types::m7_cfg);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -24276,9 +23922,9 @@ presence_e immediate_mdt_ext_ies_o::get_presence(const uint32_t& id)
     case 221:
       return presence_e::conditional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -24548,7 +24194,7 @@ SRSASN_CODE immediate_mdt_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string immediate_mdt_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "M3Configuration", "M4Configuration", "M5Configuration", "BIT STRING", "M6Configuration", "M7Configuration"};
   return convert_enum_idx(options, 6, value, "immediate_mdt_ext_ies_o::ext_c::types");
 }
@@ -24613,7 +24259,7 @@ void m1_periodic_report_s::to_json(json_writer& j) const
 // M1ReportingTrigger ::= ENUMERATED
 std::string m1_report_trigger_opts::to_string() const
 {
-  static constexpr const char* options[] = {"periodic", "a2eventtriggered", "a2eventtriggered-periodic"};
+  static const char* options[] = {"periodic", "a2eventtriggered", "a2eventtriggered-periodic"};
   return convert_enum_idx(options, 3, value, "m1_report_trigger_e");
 }
 
@@ -24657,49 +24303,36 @@ void m1_thres_event_a2_s::to_json(json_writer& j) const
 // MDTMode-ExtensionIE ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t mdt_mode_ext_ie_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {197};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {197};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool mdt_mode_ext_ie_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {197};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 197 == id;
 }
 crit_e mdt_mode_ext_ie_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 197:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 197) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 mdt_mode_ext_ie_o::value_c mdt_mode_ext_ie_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 197:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 197) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e mdt_mode_ext_ie_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 197:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 197) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -24725,11 +24358,11 @@ SRSASN_CODE mdt_mode_ext_ie_o::value_c::unpack(cbit_ref& bref)
 
 std::string mdt_mode_ext_ie_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"LoggedMBSFNMDT"};
+  static const char* options[] = {"LoggedMBSFNMDT"};
   return convert_enum_idx(options, 1, value, "mdt_mode_ext_ie_o::value_c::types");
 }
 
-template struct protocol_ext_field_s<immediate_mdt_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<immediate_mdt_ext_ies_o>;
 
 immediate_mdt_ext_ies_container::immediate_mdt_ext_ies_container() :
   m3_cfg(171, crit_e::ignore),
@@ -24818,7 +24451,7 @@ SRSASN_CODE immediate_mdt_ext_ies_container::unpack(cbit_ref& bref)
         m7_cfg.ext     = c.ext_value.m7_cfg();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -24957,12 +24590,12 @@ void logged_mdt_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_single_container_s<mdt_mode_ext_ie_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<mdt_mode_ext_ie_o>;
 
 // MDT-Activation ::= ENUMERATED
 std::string mdt_activation_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "immediate-MDT-only", "immediate-MDT-and-Trace", "logged-MDT-only", "logged-MBSFN-MDT"};
   return convert_enum_idx(options, 4, value, "mdt_activation_e");
 }
@@ -24970,49 +24603,36 @@ std::string mdt_activation_opts::to_string() const
 // MDT-Configuration-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t mdt_cfg_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {178};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {178};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool mdt_cfg_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {178};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 178 == id;
 }
 crit_e mdt_cfg_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 178:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 178) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 mdt_cfg_ext_ies_o::ext_c mdt_cfg_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 178:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 178) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e mdt_cfg_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 178:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 178) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -25020,8 +24640,8 @@ void mdt_cfg_ext_ies_o::ext_c::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("MDTPLMNList");
-  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-    j.write_str(c[i1].to_string());
+  for (const auto& e1 : c) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   j.end_obj();
@@ -25041,7 +24661,7 @@ SRSASN_CODE mdt_cfg_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string mdt_cfg_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"MDTPLMNList"};
+  static const char* options[] = {"MDTPLMNList"};
   return convert_enum_idx(options, 1, value, "mdt_cfg_ext_ies_o::ext_c::types");
 }
 
@@ -25191,11 +24811,11 @@ SRSASN_CODE mdt_mode_c::unpack(cbit_ref& bref)
 
 std::string mdt_mode_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"immediateMDT", "loggedMDT", "mDTMode-Extension"};
+  static const char* options[] = {"immediateMDT", "loggedMDT", "mDTMode-Extension"};
   return convert_enum_idx(options, 3, value, "mdt_mode_c::types");
 }
 
-template struct protocol_ext_field_s<mdt_cfg_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<mdt_cfg_ext_ies_o>;
 
 mdt_cfg_ext_ies_container::mdt_cfg_ext_ies_container() : sig_based_mdtplmn_list(178, crit_e::ignore) {}
 SRSASN_CODE mdt_cfg_ext_ies_container::pack(bit_ref& bref) const
@@ -25218,16 +24838,14 @@ SRSASN_CODE mdt_cfg_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<mdt_cfg_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 178:
-        sig_based_mdtplmn_list_present = true;
-        sig_based_mdtplmn_list.id      = c.id;
-        sig_based_mdtplmn_list.crit    = c.crit;
-        sig_based_mdtplmn_list.ext     = c.ext_value.sig_based_mdtplmn_list();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 178) {
+      sig_based_mdtplmn_list_present = true;
+      sig_based_mdtplmn_list.id      = c.id;
+      sig_based_mdtplmn_list.crit    = c.crit;
+      sig_based_mdtplmn_list.ext     = c.ext_value.sig_based_mdtplmn_list();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -25290,70 +24908,57 @@ void mdt_cfg_s::to_json(json_writer& j) const
 // ProSeUEtoNetworkRelaying ::= ENUMERATED
 std::string pro_se_ueto_network_relaying_opts::to_string() const
 {
-  static constexpr const char* options[] = {"authorized", "not-authorized"};
+  static const char* options[] = {"authorized", "not-authorized"};
   return convert_enum_idx(options, 2, value, "pro_se_ueto_network_relaying_e");
 }
 
 // EventType ::= ENUMERATED
 std::string event_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"direct", "change-of-serve-cell", "stop-change-of-serve-cell"};
+  static const char* options[] = {"direct", "change-of-serve-cell", "stop-change-of-serve-cell"};
   return convert_enum_idx(options, 3, value, "event_type_e");
 }
 
 // PedestrianUE ::= ENUMERATED
 std::string pedestrian_ue_opts::to_string() const
 {
-  static constexpr const char* options[] = {"authorized", "not-authorized"};
+  static const char* options[] = {"authorized", "not-authorized"};
   return convert_enum_idx(options, 2, value, "pedestrian_ue_e");
 }
 
 // ProSeAuthorized-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t pro_se_authorized_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {216};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {216};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool pro_se_authorized_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {216};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 216 == id;
 }
 crit_e pro_se_authorized_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 216:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 216) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 pro_se_authorized_ext_ies_o::ext_c pro_se_authorized_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 216:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 216) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e pro_se_authorized_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 216:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 216) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -25378,82 +24983,69 @@ SRSASN_CODE pro_se_authorized_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string pro_se_authorized_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ProSeUEtoNetworkRelaying"};
+  static const char* options[] = {"ProSeUEtoNetworkRelaying"};
   return convert_enum_idx(options, 1, value, "pro_se_authorized_ext_ies_o::ext_c::types");
 }
 uint8_t pro_se_authorized_ext_ies_o::ext_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {2};
-  return convert_enum_idx(options, 1, value, "pro_se_authorized_ext_ies_o::ext_c::types");
+  static const uint8_t options[] = {2};
+  return map_enum_number(options, 1, value, "pro_se_authorized_ext_ies_o::ext_c::types");
 }
 
 // ProSeDirectCommunication ::= ENUMERATED
 std::string pro_se_direct_communication_opts::to_string() const
 {
-  static constexpr const char* options[] = {"authorized", "not-authorized"};
+  static const char* options[] = {"authorized", "not-authorized"};
   return convert_enum_idx(options, 2, value, "pro_se_direct_communication_e");
 }
 
 // ProSeDirectDiscovery ::= ENUMERATED
 std::string pro_se_direct_discovery_opts::to_string() const
 {
-  static constexpr const char* options[] = {"authorized", "not-authorized"};
+  static const char* options[] = {"authorized", "not-authorized"};
   return convert_enum_idx(options, 2, value, "pro_se_direct_discovery_e");
 }
 
 // ReportArea ::= ENUMERATED
 std::string report_area_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ecgi"};
+  static const char* options[] = {"ecgi"};
   return convert_enum_idx(options, 1, value, "report_area_e");
 }
 
 // TraceActivation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t trace_activation_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {162};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {162};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool trace_activation_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {162};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 162 == id;
 }
 crit_e trace_activation_ext_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 162:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 162) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 trace_activation_ext_ies_o::ext_c trace_activation_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
-  switch (id) {
-    case 162:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 162) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e trace_activation_ext_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 162:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 162) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -25479,37 +25071,37 @@ SRSASN_CODE trace_activation_ext_ies_o::ext_c::unpack(cbit_ref& bref)
 
 std::string trace_activation_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"MDT-Configuration"};
+  static const char* options[] = {"MDT-Configuration"};
   return convert_enum_idx(options, 1, value, "trace_activation_ext_ies_o::ext_c::types");
 }
 
 // TraceDepth ::= ENUMERATED
 std::string trace_depth_opts::to_string() const
 {
-  static constexpr const char* options[] = {"minimum",
-                                            "medium",
-                                            "maximum",
-                                            "minimumWithoutVendorSpecificExtension",
-                                            "mediumWithoutVendorSpecificExtension",
-                                            "maximumWithoutVendorSpecificExtension"};
+  static const char* options[] = {"minimum",
+                                  "medium",
+                                  "maximum",
+                                  "minimumWithoutVendorSpecificExtension",
+                                  "mediumWithoutVendorSpecificExtension",
+                                  "maximumWithoutVendorSpecificExtension"};
   return convert_enum_idx(options, 6, value, "trace_depth_e");
 }
 
 // VehicleUE ::= ENUMERATED
 std::string vehicle_ue_opts::to_string() const
 {
-  static constexpr const char* options[] = {"authorized", "not-authorized"};
+  static const char* options[] = {"authorized", "not-authorized"};
   return convert_enum_idx(options, 2, value, "vehicle_ue_e");
 }
 
 // ManagementBasedMDTAllowed ::= ENUMERATED
 std::string management_based_mdt_allowed_opts::to_string() const
 {
-  static constexpr const char* options[] = {"allowed"};
+  static const char* options[] = {"allowed"};
   return convert_enum_idx(options, 1, value, "management_based_mdt_allowed_e");
 }
 
-template struct protocol_ext_field_s<pro_se_authorized_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<pro_se_authorized_ext_ies_o>;
 
 pro_se_authorized_ext_ies_container::pro_se_authorized_ext_ies_container() :
   pro_se_ueto_network_relaying(216, crit_e::ignore)
@@ -25535,16 +25127,14 @@ SRSASN_CODE pro_se_authorized_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<pro_se_authorized_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 216:
-        pro_se_ueto_network_relaying_present = true;
-        pro_se_ueto_network_relaying.id      = c.id;
-        pro_se_ueto_network_relaying.crit    = c.crit;
-        pro_se_ueto_network_relaying.ext     = c.ext_value.pro_se_ueto_network_relaying();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 216) {
+      pro_se_ueto_network_relaying_present = true;
+      pro_se_ueto_network_relaying.id      = c.id;
+      pro_se_ueto_network_relaying.crit    = c.crit;
+      pro_se_ueto_network_relaying.ext     = c.ext_value.pro_se_ueto_network_relaying();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -25693,7 +25283,7 @@ void security_context_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ext_field_s<trace_activation_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<trace_activation_ext_ies_o>;
 
 trace_activation_ext_ies_container::trace_activation_ext_ies_container() : mdt_cfg(162, crit_e::ignore) {}
 SRSASN_CODE trace_activation_ext_ies_container::pack(bit_ref& bref) const
@@ -25716,16 +25306,14 @@ SRSASN_CODE trace_activation_ext_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ext_field_s<trace_activation_ext_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 162:
-        mdt_cfg_present = true;
-        mdt_cfg.id      = c.id;
-        mdt_cfg.crit    = c.crit;
-        mdt_cfg.ext     = c.ext_value.mdt_cfg();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 162) {
+      mdt_cfg_present = true;
+      mdt_cfg.id      = c.id;
+      mdt_cfg.crit    = c.crit;
+      mdt_cfg.ext     = c.ext_value.mdt_cfg();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -25866,7 +25454,7 @@ void ue_sidelink_aggregate_maximum_bitrate_s::to_json(json_writer& j) const
 // UEUserPlaneCIoTSupportIndicator ::= ENUMERATED
 std::string ueuser_plane_cio_tsupport_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"supported"};
+  static const char* options[] = {"supported"};
   return convert_enum_idx(options, 1, value, "ueuser_plane_cio_tsupport_ind_e");
 }
 
@@ -25928,16 +25516,16 @@ void v2xservices_authorized_s::to_json(json_writer& j) const
 // HandoverRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0,   1,  2,   66,  53,  104, 107, 41,  25,  98,  124, 40,  136, 127,
-                                               146, 75, 158, 165, 177, 192, 196, 195, 241, 240, 248, 251, 271, 283};
-  return convert_enum_idx(options, 28, idx, "id");
+  static const uint32_t options[] = {0,   1,  2,   66,  53,  104, 107, 41,  25,  98,  124, 40,  136, 127,
+                                     146, 75, 158, 165, 177, 192, 196, 195, 241, 240, 248, 251, 271, 283};
+  return map_enum_number(options, 28, idx, "id");
 }
 bool ho_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0,   1,  2,   66,  53,  104, 107, 41,  25,  98,  124, 40,  136, 127,
-                                               146, 75, 158, 165, 177, 192, 196, 195, 241, 240, 248, 251, 271, 283};
-  for (uint32_t i = 0; i < 28; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0,   1,  2,   66,  53,  104, 107, 41,  25,  98,  124, 40,  136, 127,
+                                     146, 75, 158, 165, 177, 192, 196, 195, 241, 240, 248, 251, 271, 283};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -26003,9 +25591,9 @@ crit_e ho_request_ies_o::get_crit(const uint32_t& id)
     case 283:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_request_ies_o::value_c ho_request_ies_o::get_value(const uint32_t& id)
 {
@@ -26096,7 +25684,7 @@ ho_request_ies_o::value_c ho_request_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::pending_data_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -26160,9 +25748,9 @@ presence_e ho_request_ies_o::get_presence(const uint32_t& id)
     case 283:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -26854,8 +26442,8 @@ void ho_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::management_based_mdtplmn_list:
       j.start_array("MDTPLMNList");
-      for (uint32_t i1 = 0; i1 < c.get<mdtplmn_list_l>().size(); ++i1) {
-        j.write_str(c.get<mdtplmn_list_l>()[i1].to_string());
+      for (const auto& e1 : c.get<mdtplmn_list_l>()) {
+        j.write_str(e1.to_string());
       }
       j.end_array();
       break;
@@ -27086,38 +26674,38 @@ SRSASN_CODE ho_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "HandoverType",
-                                            "Cause",
-                                            "UEAggregateMaximumBitrate",
-                                            "",
-                                            "OCTET STRING",
-                                            "UESecurityCapabilities",
-                                            "HandoverRestrictionList",
-                                            "TraceActivation",
-                                            "RequestType",
-                                            "SRVCCOperationPossible",
-                                            "SecurityContext",
-                                            "OCTET STRING",
-                                            "BIT STRING",
-                                            "CSGMembershipStatus",
-                                            "GUMMEI",
-                                            "INTEGER (0..4294967295)",
-                                            "ManagementBasedMDTAllowed",
-                                            "MDTPLMNList",
-                                            "BIT STRING",
-                                            "ExpectedUEBehaviour",
-                                            "ProSeAuthorized",
-                                            "UEUserPlaneCIoTSupportIndicator",
-                                            "V2XServicesAuthorized",
-                                            "UESidelinkAggregateMaximumBitrate",
-                                            "EnhancedCoverageRestricted",
-                                            "CE-ModeBRestricted",
-                                            "PendingDataIndication"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "HandoverType",
+                                  "Cause",
+                                  "UEAggregateMaximumBitrate",
+                                  "",
+                                  "OCTET STRING",
+                                  "UESecurityCapabilities",
+                                  "HandoverRestrictionList",
+                                  "TraceActivation",
+                                  "RequestType",
+                                  "SRVCCOperationPossible",
+                                  "SecurityContext",
+                                  "OCTET STRING",
+                                  "BIT STRING",
+                                  "CSGMembershipStatus",
+                                  "GUMMEI",
+                                  "INTEGER (0..4294967295)",
+                                  "ManagementBasedMDTAllowed",
+                                  "MDTPLMNList",
+                                  "BIT STRING",
+                                  "ExpectedUEBehaviour",
+                                  "ProSeAuthorized",
+                                  "UEUserPlaneCIoTSupportIndicator",
+                                  "V2XServicesAuthorized",
+                                  "UESidelinkAggregateMaximumBitrate",
+                                  "EnhancedCoverageRestricted",
+                                  "CE-ModeBRestricted",
+                                  "PendingDataIndication"};
   return convert_enum_idx(options, 28, value, "ho_request_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_request_ies_o>;
 
 ho_request_ies_container::ho_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -27426,12 +27014,13 @@ SRSASN_CODE ho_request_ies_container::unpack(cbit_ref& bref)
         pending_data_ind.value   = c.value.pending_data_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -27564,21 +27153,21 @@ void ho_request_s::to_json(json_writer& j) const
 // CE-mode-B-SupportIndicator ::= ENUMERATED
 std::string ce_mode_b_support_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"supported"};
+  static const char* options[] = {"supported"};
   return convert_enum_idx(options, 1, value, "ce_mode_b_support_ind_e");
 }
 
 // HandoverRequestAcknowledgeIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_request_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 18, 19, 123, 127, 58, 145, 242};
-  return convert_enum_idx(options, 9, idx, "id");
+  static const uint32_t options[] = {0, 8, 18, 19, 123, 127, 58, 145, 242};
+  return map_enum_number(options, 9, idx, "id");
 }
 bool ho_request_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 18, 19, 123, 127, 58, 145, 242};
-  for (uint32_t i = 0; i < 9; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 18, 19, 123, 127, 58, 145, 242};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -27606,9 +27195,9 @@ crit_e ho_request_ack_ies_o::get_crit(const uint32_t& id)
     case 242:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_request_ack_ies_o::value_c ho_request_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -27642,7 +27231,7 @@ ho_request_ack_ies_o::value_c ho_request_ack_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::ce_mode_b_support_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -27668,9 +27257,9 @@ presence_e ho_request_ack_ies_o::get_presence(const uint32_t& id)
     case 242:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -28016,19 +27605,19 @@ SRSASN_CODE ho_request_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_request_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "",
-                                            "",
-                                            "OCTET STRING",
-                                            "BIT STRING",
-                                            "CriticalityDiagnostics",
-                                            "CellAccessMode",
-                                            "CE-mode-B-SupportIndicator"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "",
+                                  "",
+                                  "OCTET STRING",
+                                  "BIT STRING",
+                                  "CriticalityDiagnostics",
+                                  "CellAccessMode",
+                                  "CE-mode-B-SupportIndicator"};
   return convert_enum_idx(options, 9, value, "ho_request_ack_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_request_ack_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_request_ack_ies_o>;
 
 ho_request_ack_ies_container::ho_request_ack_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -28140,12 +27729,13 @@ SRSASN_CODE ho_request_ack_ies_container::unpack(cbit_ref& bref)
         ce_mode_b_support_ind.value   = c.value.ce_mode_b_support_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -28210,21 +27800,21 @@ void ho_request_ack_s::to_json(json_writer& j) const
 // Direct-Forwarding-Path-Availability ::= ENUMERATED
 std::string direct_forwarding_path_availability_opts::to_string() const
 {
-  static constexpr const char* options[] = {"directPathAvailable"};
+  static const char* options[] = {"directPathAvailable"};
   return convert_enum_idx(options, 1, value, "direct_forwarding_path_availability_e");
 }
 
 // PS-ServiceNotAvailable ::= ENUMERATED
 std::string ps_service_not_available_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ps-service-not-available"};
+  static const char* options[] = {"ps-service-not-available"};
   return convert_enum_idx(options, 1, value, "ps_service_not_available_e");
 }
 
 // SRVCCHOIndication ::= ENUMERATED
 std::string srvccho_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"pSandCS", "cSonly"};
+  static const char* options[] = {"pSandCS", "cSonly"};
   return convert_enum_idx(options, 2, value, "srvccho_ind_e");
 }
 
@@ -28372,21 +27962,21 @@ SRSASN_CODE target_id_c::unpack(cbit_ref& bref)
 
 std::string target_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"targeteNB-ID", "targetRNC-ID", "cGI"};
+  static const char* options[] = {"targeteNB-ID", "targetRNC-ID", "cGI"};
   return convert_enum_idx(options, 3, value, "target_id_c::types");
 }
 
 // HandoverRequiredIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ho_required_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 1, 2, 4, 79, 125, 104, 138, 132, 133, 127, 145, 150};
-  return convert_enum_idx(options, 14, idx, "id");
+  static const uint32_t options[] = {0, 8, 1, 2, 4, 79, 125, 104, 138, 132, 133, 127, 145, 150};
+  return map_enum_number(options, 14, idx, "id");
 }
 bool ho_required_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 1, 2, 4, 79, 125, 104, 138, 132, 133, 127, 145, 150};
-  for (uint32_t i = 0; i < 14; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 1, 2, 4, 79, 125, 104, 138, 132, 133, 127, 145, 150};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -28424,9 +28014,9 @@ crit_e ho_required_ies_o::get_crit(const uint32_t& id)
     case 150:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ho_required_ies_o::value_c ho_required_ies_o::get_value(const uint32_t& id)
 {
@@ -28475,7 +28065,7 @@ ho_required_ies_o::value_c ho_required_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::ps_service_not_available);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -28511,9 +28101,9 @@ presence_e ho_required_ies_o::get_presence(const uint32_t& id)
     case 150:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -29000,24 +28590,24 @@ SRSASN_CODE ho_required_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ho_required_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "HandoverType",
-                                            "Cause",
-                                            "TargetID",
-                                            "Direct-Forwarding-Path-Availability",
-                                            "SRVCCHOIndication",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "BIT STRING",
-                                            "CellAccessMode",
-                                            "PS-ServiceNotAvailable"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "HandoverType",
+                                  "Cause",
+                                  "TargetID",
+                                  "Direct-Forwarding-Path-Availability",
+                                  "SRVCCHOIndication",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "BIT STRING",
+                                  "CellAccessMode",
+                                  "PS-ServiceNotAvailable"};
   return convert_enum_idx(options, 14, value, "ho_required_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<ho_required_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ho_required_ies_o>;
 
 ho_required_ies_container::ho_required_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -29179,12 +28769,13 @@ SRSASN_CODE ho_required_ies_container::unpack(cbit_ref& bref)
         ps_service_not_available.value   = c.value.ps_service_not_available();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -29384,7 +28975,7 @@ SRSASN_CODE mme_paging_target_c::unpack(cbit_ref& bref)
 
 std::string mme_paging_target_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"global-ENB-ID", "tAI"};
+  static const char* options[] = {"global-ENB-ID", "tAI"};
   return convert_enum_idx(options, 2, value, "mme_paging_target_c::types");
 }
 
@@ -29428,49 +29019,36 @@ void recommended_enb_item_s::to_json(json_writer& j) const
 // RecommendedENBItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t recommended_enb_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {215};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {215};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool recommended_enb_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {215};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 215 == id;
 }
 crit_e recommended_enb_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 215:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 215) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 recommended_enb_item_ies_o::value_c recommended_enb_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 215:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 215) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e recommended_enb_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 215:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 215) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -29496,11 +29074,11 @@ SRSASN_CODE recommended_enb_item_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string recommended_enb_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"RecommendedENBItem"};
+  static const char* options[] = {"RecommendedENBItem"};
   return convert_enum_idx(options, 1, value, "recommended_enb_item_ies_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<recommended_enb_item_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<recommended_enb_item_ies_o>;
 
 // RecommendedENBsForPaging ::= SEQUENCE
 SRSASN_CODE recommended_enbs_for_paging_s::pack(bit_ref& bref) const
@@ -29531,8 +29109,8 @@ void recommended_enbs_for_paging_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("recommendedENBList");
-  for (uint32_t i1 = 0; i1 < recommended_enb_list.size(); ++i1) {
-    recommended_enb_list[i1].to_json(j);
+  for (const auto& e1 : recommended_enb_list) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
@@ -29586,14 +29164,14 @@ void info_on_recommended_cells_and_enbs_for_paging_s::to_json(json_writer& j) co
 // InitialContextSetupFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t init_context_setup_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 2, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool init_context_setup_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -29611,9 +29189,9 @@ crit_e init_context_setup_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 init_context_setup_fail_ies_o::value_c init_context_setup_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -29632,7 +29210,7 @@ init_context_setup_fail_ies_o::value_c init_context_setup_fail_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29648,9 +29226,9 @@ presence_e init_context_setup_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -29848,12 +29426,12 @@ SRSASN_CODE init_context_setup_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string init_context_setup_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "init_context_setup_fail_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<init_context_setup_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<init_context_setup_fail_ies_o>;
 
 init_context_setup_fail_ies_container::init_context_setup_fail_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -29913,12 +29491,13 @@ SRSASN_CODE init_context_setup_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -29965,30 +29544,30 @@ void init_context_setup_fail_s::to_json(json_writer& j) const
 // AdditionalCSFallbackIndicator ::= ENUMERATED
 std::string add_cs_fallback_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"no-restriction", "restriction"};
+  static const char* options[] = {"no-restriction", "restriction"};
   return convert_enum_idx(options, 2, value, "add_cs_fallback_ind_e");
 }
 
 // CSFallbackIndicator ::= ENUMERATED
 std::string cs_fallback_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cs-fallback-required", "cs-fallback-high-priority"};
+  static const char* options[] = {"cs-fallback-required", "cs-fallback-high-priority"};
   return convert_enum_idx(options, 2, value, "cs_fallback_ind_e");
 }
 
 // InitialContextSetupRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t init_context_setup_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0,  8,   66,  24,  107, 73,  25,  41,  74,  106, 108, 124, 146, 159,
-                                               75, 158, 165, 177, 187, 192, 196, 195, 241, 240, 248, 251, 271, 283};
-  return convert_enum_idx(options, 28, idx, "id");
+  static const uint32_t options[] = {0,  8,   66,  24,  107, 73,  25,  41,  74,  106, 108, 124, 146, 159,
+                                     75, 158, 165, 177, 187, 192, 196, 195, 241, 240, 248, 251, 271, 283};
+  return map_enum_number(options, 28, idx, "id");
 }
 bool init_context_setup_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0,  8,   66,  24,  107, 73,  25,  41,  74,  106, 108, 124, 146, 159,
-                                               75, 158, 165, 177, 187, 192, 196, 195, 241, 240, 248, 251, 271, 283};
-  for (uint32_t i = 0; i < 28; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0,  8,   66,  24,  107, 73,  25,  41,  74,  106, 108, 124, 146, 159,
+                                     75, 158, 165, 177, 187, 192, 196, 195, 241, 240, 248, 251, 271, 283};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -30054,9 +29633,9 @@ crit_e init_context_setup_request_ies_o::get_crit(const uint32_t& id)
     case 283:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 init_context_setup_request_ies_o::value_c init_context_setup_request_ies_o::get_value(const uint32_t& id)
 {
@@ -30147,7 +29726,7 @@ init_context_setup_request_ies_o::value_c init_context_setup_request_ies_o::get_
       ret.set(value_c::types::pending_data_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -30211,9 +29790,9 @@ presence_e init_context_setup_request_ies_o::get_presence(const uint32_t& id)
     case 283:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -30844,8 +30423,8 @@ void init_context_setup_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_to_be_setup_list_ctxt_su_req:
       j.start_array("E-RABToBeSetupListCtxtSUReq");
-      for (uint32_t i1 = 0; i1 < c.get<erab_to_be_setup_list_ctxt_su_req_l>().size(); ++i1) {
-        c.get<erab_to_be_setup_list_ctxt_su_req_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_to_be_setup_list_ctxt_su_req_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -30895,8 +30474,8 @@ void init_context_setup_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::management_based_mdtplmn_list:
       j.start_array("MDTPLMNList");
-      for (uint32_t i1 = 0; i1 < c.get<mdtplmn_list_l>().size(); ++i1) {
-        j.write_str(c.get<mdtplmn_list_l>()[i1].to_string());
+      for (const auto& e1 : c.get<mdtplmn_list_l>()) {
+        j.write_str(e1.to_string());
       }
       j.end_array();
       break;
@@ -31130,38 +30709,38 @@ SRSASN_CODE init_context_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string init_context_setup_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "UEAggregateMaximumBitrate",
-                                            "E-RABToBeSetupListCtxtSUReq",
-                                            "UESecurityCapabilities",
-                                            "BIT STRING",
-                                            "TraceActivation",
-                                            "HandoverRestrictionList",
-                                            "OCTET STRING",
-                                            "INTEGER (1..256)",
-                                            "CSFallbackIndicator",
-                                            "SRVCCOperationPossible",
-                                            "CSGMembershipStatus",
-                                            "LAI",
-                                            "GUMMEI",
-                                            "INTEGER (0..4294967295)",
-                                            "ManagementBasedMDTAllowed",
-                                            "MDTPLMNList",
-                                            "AdditionalCSFallbackIndicator",
-                                            "BIT STRING",
-                                            "ExpectedUEBehaviour",
-                                            "ProSeAuthorized",
-                                            "UEUserPlaneCIoTSupportIndicator",
-                                            "V2XServicesAuthorized",
-                                            "UESidelinkAggregateMaximumBitrate",
-                                            "EnhancedCoverageRestricted",
-                                            "CE-ModeBRestricted",
-                                            "PendingDataIndication"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "UEAggregateMaximumBitrate",
+                                  "E-RABToBeSetupListCtxtSUReq",
+                                  "UESecurityCapabilities",
+                                  "BIT STRING",
+                                  "TraceActivation",
+                                  "HandoverRestrictionList",
+                                  "OCTET STRING",
+                                  "INTEGER (1..256)",
+                                  "CSFallbackIndicator",
+                                  "SRVCCOperationPossible",
+                                  "CSGMembershipStatus",
+                                  "LAI",
+                                  "GUMMEI",
+                                  "INTEGER (0..4294967295)",
+                                  "ManagementBasedMDTAllowed",
+                                  "MDTPLMNList",
+                                  "AdditionalCSFallbackIndicator",
+                                  "BIT STRING",
+                                  "ExpectedUEBehaviour",
+                                  "ProSeAuthorized",
+                                  "UEUserPlaneCIoTSupportIndicator",
+                                  "V2XServicesAuthorized",
+                                  "UESidelinkAggregateMaximumBitrate",
+                                  "EnhancedCoverageRestricted",
+                                  "CE-ModeBRestricted",
+                                  "PendingDataIndication"};
   return convert_enum_idx(options, 28, value, "init_context_setup_request_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<init_context_setup_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<init_context_setup_request_ies_o>;
 
 init_context_setup_request_ies_container::init_context_setup_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -31476,12 +31055,13 @@ SRSASN_CODE init_context_setup_request_ies_container::unpack(cbit_ref& bref)
         pending_data_ind.value   = c.value.pending_data_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -31618,14 +31198,14 @@ void init_context_setup_request_s::to_json(json_writer& j) const
 // InitialContextSetupResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t init_context_setup_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 51, 48, 58};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {0, 8, 51, 48, 58};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool init_context_setup_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 51, 48, 58};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 51, 48, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -31645,9 +31225,9 @@ crit_e init_context_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 init_context_setup_resp_ies_o::value_c init_context_setup_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -31669,7 +31249,7 @@ init_context_setup_resp_ies_o::value_c init_context_setup_resp_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -31687,9 +31267,9 @@ presence_e init_context_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -31851,15 +31431,15 @@ void init_context_setup_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_setup_list_ctxt_su_res:
       j.start_array("E-RABSetupListCtxtSURes");
-      for (uint32_t i1 = 0; i1 < c.get<erab_setup_list_ctxt_su_res_l>().size(); ++i1) {
-        c.get<erab_setup_list_ctxt_su_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_setup_list_ctxt_su_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::erab_failed_to_setup_list_ctxt_su_res:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -31925,15 +31505,15 @@ SRSASN_CODE init_context_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string init_context_setup_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "E-RABSetupListCtxtSURes",
-                                            "E-RABList",
-                                            "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "E-RABSetupListCtxtSURes",
+                                  "E-RABList",
+                                  "CriticalityDiagnostics"};
   return convert_enum_idx(options, 5, value, "init_context_setup_resp_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<init_context_setup_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<init_context_setup_resp_ies_o>;
 
 init_context_setup_resp_ies_container::init_context_setup_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -32004,12 +31584,13 @@ SRSASN_CODE init_context_setup_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -32060,51 +31641,51 @@ void init_context_setup_resp_s::to_json(json_writer& j) const
 // Coverage-Level ::= ENUMERATED
 std::string coverage_level_opts::to_string() const
 {
-  static constexpr const char* options[] = {"extendedcoverage"};
+  static const char* options[] = {"extendedcoverage"};
   return convert_enum_idx(options, 1, value, "coverage_level_e");
 }
 
 // GUMMEIType ::= ENUMERATED
 std::string gummei_type_opts::to_string() const
 {
-  static constexpr const char* options[] = {"native", "mapped"};
+  static const char* options[] = {"native", "mapped"};
   return convert_enum_idx(options, 2, value, "gummei_type_e");
 }
 
 // RRC-Establishment-Cause ::= ENUMERATED
 std::string rrc_establishment_cause_opts::to_string() const
 {
-  static constexpr const char* options[] = {"emergency",
-                                            "highPriorityAccess",
-                                            "mt-Access",
-                                            "mo-Signalling",
-                                            "mo-Data",
-                                            "delay-TolerantAccess",
-                                            "mo-VoiceCall",
-                                            "mo-ExceptionData"};
+  static const char* options[] = {"emergency",
+                                  "highPriorityAccess",
+                                  "mt-Access",
+                                  "mo-Signalling",
+                                  "mo-Data",
+                                  "delay-TolerantAccess",
+                                  "mo-VoiceCall",
+                                  "mo-ExceptionData"};
   return convert_enum_idx(options, 8, value, "rrc_establishment_cause_e");
 }
 
 // RelayNode-Indicator ::= ENUMERATED
 std::string relay_node_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "relay_node_ind_e");
 }
 
 // InitialUEMessage-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t init_ue_msg_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {8,   26,  67,  100, 134, 96,  127, 75,  145, 155,
-                                               160, 170, 176, 184, 186, 223, 230, 242, 246, 250};
-  return convert_enum_idx(options, 20, idx, "id");
+  static const uint32_t options[] = {8,   26,  67,  100, 134, 96,  127, 75,  145, 155,
+                                     160, 170, 176, 184, 186, 223, 230, 242, 246, 250};
+  return map_enum_number(options, 20, idx, "id");
 }
 bool init_ue_msg_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {8,   26,  67,  100, 134, 96,  127, 75,  145, 155,
-                                               160, 170, 176, 184, 186, 223, 230, 242, 246, 250};
-  for (uint32_t i = 0; i < 20; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {8,   26,  67,  100, 134, 96,  127, 75,  145, 155,
+                                     160, 170, 176, 184, 186, 223, 230, 242, 246, 250};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -32154,9 +31735,9 @@ crit_e init_ue_msg_ies_o::get_crit(const uint32_t& id)
     case 250:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 init_ue_msg_ies_o::value_c init_ue_msg_ies_o::get_value(const uint32_t& id)
 {
@@ -32223,7 +31804,7 @@ init_ue_msg_ies_o::value_c init_ue_msg_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::coverage_level);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -32271,9 +31852,9 @@ presence_e init_ue_msg_ies_o::get_presence(const uint32_t& id)
     case 250:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -32941,30 +32522,30 @@ SRSASN_CODE init_ue_msg_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string init_ue_msg_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..16777215)",
-                                            "OCTET STRING",
-                                            "TAI",
-                                            "EUTRAN-CGI",
-                                            "RRC-Establishment-Cause",
-                                            "S-TMSI",
-                                            "BIT STRING",
-                                            "GUMMEI",
-                                            "CellAccessMode",
-                                            "BIT STRING",
-                                            "RelayNode-Indicator",
-                                            "GUMMEIType",
-                                            "TunnelInformation",
-                                            "BIT STRING",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "INTEGER (0..255)",
-                                            "CE-mode-B-SupportIndicator",
-                                            "INTEGER (0..65535)",
-                                            "Coverage-Level"};
+  static const char* options[] = {"INTEGER (0..16777215)",
+                                  "OCTET STRING",
+                                  "TAI",
+                                  "EUTRAN-CGI",
+                                  "RRC-Establishment-Cause",
+                                  "S-TMSI",
+                                  "BIT STRING",
+                                  "GUMMEI",
+                                  "CellAccessMode",
+                                  "BIT STRING",
+                                  "RelayNode-Indicator",
+                                  "GUMMEIType",
+                                  "TunnelInformation",
+                                  "BIT STRING",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "INTEGER (0..255)",
+                                  "CE-mode-B-SupportIndicator",
+                                  "INTEGER (0..65535)",
+                                  "Coverage-Level"};
   return convert_enum_idx(options, 20, value, "init_ue_msg_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<init_ue_msg_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<init_ue_msg_ies_o>;
 
 init_ue_msg_ies_container::init_ue_msg_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
@@ -33194,12 +32775,13 @@ SRSASN_CODE init_ue_msg_ies_container::unpack(cbit_ref& bref)
         coverage_level.value   = c.value.coverage_level();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -33406,49 +32988,36 @@ void tai_item_s::to_json(json_writer& j) const
 // UE-associatedLogicalS1-ConnectionItemRes ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_associated_lc_s1_conn_item_res_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {91};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {91};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool ue_associated_lc_s1_conn_item_res_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {91};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 91 == id;
 }
 crit_e ue_associated_lc_s1_conn_item_res_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 91:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 91) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 ue_associated_lc_s1_conn_item_res_o::value_c ue_associated_lc_s1_conn_item_res_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 91:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 91) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e ue_associated_lc_s1_conn_item_res_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 91:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 91) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -33474,45 +33043,45 @@ SRSASN_CODE ue_associated_lc_s1_conn_item_res_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_associated_lc_s1_conn_item_res_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UE-associatedLogicalS1-ConnectionItem"};
+  static const char* options[] = {"UE-associatedLogicalS1-ConnectionItem"};
   return convert_enum_idx(options, 1, value, "ue_associated_lc_s1_conn_item_res_o::value_c::types");
 }
 uint8_t ue_associated_lc_s1_conn_item_res_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1};
-  return convert_enum_idx(options, 1, value, "ue_associated_lc_s1_conn_item_res_o::value_c::types");
+  static const uint8_t options[] = {1};
+  return map_enum_number(options, 1, value, "ue_associated_lc_s1_conn_item_res_o::value_c::types");
 }
 
 // NB-IoT-Paging-eDRX-Cycle ::= ENUMERATED
 std::string nb_io_t_paging_e_drx_cycle_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "hf2", "hf4", "hf6", "hf8", "hf10", "hf12", "hf14", "hf16", "hf32", "hf64", "hf128", "hf256", "hf512", "hf1024"};
   return convert_enum_idx(options, 14, value, "nb_io_t_paging_e_drx_cycle_e");
 }
 uint16_t nb_io_t_paging_e_drx_cycle_opts::to_number() const
 {
-  static constexpr uint16_t options[] = {2, 4, 6, 8, 10, 12, 14, 16, 32, 64, 128, 256, 512, 1024};
-  return convert_enum_idx(options, 14, value, "nb_io_t_paging_e_drx_cycle_e");
+  static const uint16_t options[] = {2, 4, 6, 8, 10, 12, 14, 16, 32, 64, 128, 256, 512, 1024};
+  return map_enum_number(options, 14, value, "nb_io_t_paging_e_drx_cycle_e");
 }
 
 // NB-IoT-PagingTimeWindow ::= ENUMERATED
 std::string nb_io_t_paging_time_win_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12", "s13", "s14", "s15", "s16"};
   return convert_enum_idx(options, 16, value, "nb_io_t_paging_time_win_e");
 }
 uint8_t nb_io_t_paging_time_win_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
-  return convert_enum_idx(options, 16, value, "nb_io_t_paging_time_win_e");
+  static const uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+  return map_enum_number(options, 16, value, "nb_io_t_paging_time_win_e");
 }
 
 // OverloadAction ::= ENUMERATED
 std::string overload_action_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "reject-non-emergency-mo-dt",
       "reject-rrc-cr-signalling",
       "permit-emergency-sessions-and-mobile-terminated-services-only",
@@ -33526,39 +33095,38 @@ std::string overload_action_opts::to_string() const
 // Paging-eDRX-Cycle ::= ENUMERATED
 std::string paging_e_drx_cycle_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "hfhalf", "hf1", "hf2", "hf4", "hf6", "hf8", "hf10", "hf12", "hf14", "hf16", "hf32", "hf64", "hf128", "hf256"};
   return convert_enum_idx(options, 14, value, "paging_e_drx_cycle_e");
 }
 float paging_e_drx_cycle_opts::to_number() const
 {
-  static constexpr float options[] = {0.5, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 32.0, 64.0, 128.0, 256.0};
-  return convert_enum_idx(options, 14, value, "paging_e_drx_cycle_e");
+  static const float options[] = {0.5, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 32.0, 64.0, 128.0, 256.0};
+  return map_enum_number(options, 14, value, "paging_e_drx_cycle_e");
 }
 std::string paging_e_drx_cycle_opts::to_number_string() const
 {
-  static constexpr const char* options[] = {
-      "0.5", "1", "2", "4", "6", "8", "10", "12", "14", "16", "32", "64", "128", "256"};
+  static const char* options[] = {"0.5", "1", "2", "4", "6", "8", "10", "12", "14", "16", "32", "64", "128", "256"};
   return convert_enum_idx(options, 14, value, "paging_e_drx_cycle_e");
 }
 
 // PagingTimeWindow ::= ENUMERATED
 std::string paging_time_win_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "s12", "s13", "s14", "s15", "s16"};
   return convert_enum_idx(options, 16, value, "paging_time_win_e");
 }
 uint8_t paging_time_win_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
-  return convert_enum_idx(options, 16, value, "paging_time_win_e");
+  static const uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+  return map_enum_number(options, 16, value, "paging_time_win_e");
 }
 
 // ResetAll ::= ENUMERATED
 std::string reset_all_opts::to_string() const
 {
-  static constexpr const char* options[] = {"reset-all"};
+  static const char* options[] = {"reset-all"};
   return convert_enum_idx(options, 1, value, "reset_all_e");
 }
 
@@ -33634,18 +33202,18 @@ void served_gummeis_item_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("servedPLMNs");
-  for (uint32_t i1 = 0; i1 < served_plmns.size(); ++i1) {
-    j.write_str(served_plmns[i1].to_string());
+  for (const auto& e1 : served_plmns) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   j.start_array("servedGroupIDs");
-  for (uint32_t i1 = 0; i1 < served_group_ids.size(); ++i1) {
-    j.write_str(served_group_ids[i1].to_string());
+  for (const auto& e1 : served_group_ids) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   j.start_array("servedMMECs");
-  for (uint32_t i1 = 0; i1 < served_mmecs.size(); ++i1) {
-    j.write_str(served_mmecs[i1].to_string());
+  for (const auto& e1 : served_mmecs) {
+    j.write_str(e1.to_string());
   }
   j.end_array();
   if (ie_exts_present) {
@@ -33658,49 +33226,36 @@ void served_gummeis_item_s::to_json(json_writer& j) const
 // TAIItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t tai_item_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {47};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {47};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool tai_item_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {47};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 47 == id;
 }
 crit_e tai_item_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 47:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 47) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 tai_item_ies_o::value_c tai_item_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 47:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 47) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e tai_item_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 47:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 47) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -33726,7 +33281,7 @@ SRSASN_CODE tai_item_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string tai_item_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"TAIItem"};
+  static const char* options[] = {"TAIItem"};
   return convert_enum_idx(options, 1, value, "tai_item_ies_o::value_c::types");
 }
 
@@ -33772,49 +33327,36 @@ void ue_s1ap_id_pair_s::to_json(json_writer& j) const
 // UE-associatedLogicalS1-ConnectionItemResAck ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_associated_lc_s1_conn_item_res_ack_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {91};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {91};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool ue_associated_lc_s1_conn_item_res_ack_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {91};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 91 == id;
 }
 crit_e ue_associated_lc_s1_conn_item_res_ack_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 91:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 91) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 ue_associated_lc_s1_conn_item_res_ack_o::value_c ue_associated_lc_s1_conn_item_res_ack_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 91:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 91) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e ue_associated_lc_s1_conn_item_res_ack_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 91:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 91) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -33840,56 +33382,56 @@ SRSASN_CODE ue_associated_lc_s1_conn_item_res_ack_o::value_c::unpack(cbit_ref& b
 
 std::string ue_associated_lc_s1_conn_item_res_ack_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UE-associatedLogicalS1-ConnectionItem"};
+  static const char* options[] = {"UE-associatedLogicalS1-ConnectionItem"};
   return convert_enum_idx(options, 1, value, "ue_associated_lc_s1_conn_item_res_ack_o::value_c::types");
 }
 uint8_t ue_associated_lc_s1_conn_item_res_ack_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1};
-  return convert_enum_idx(options, 1, value, "ue_associated_lc_s1_conn_item_res_ack_o::value_c::types");
+  static const uint8_t options[] = {1};
+  return map_enum_number(options, 1, value, "ue_associated_lc_s1_conn_item_res_ack_o::value_c::types");
 }
 
-template struct protocol_ie_single_container_s<ue_associated_lc_s1_conn_item_res_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<ue_associated_lc_s1_conn_item_res_o>;
 
 // CNDomain ::= ENUMERATED
 std::string cn_domain_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ps", "cs"};
+  static const char* options[] = {"ps", "cs"};
   return convert_enum_idx(options, 2, value, "cn_domain_e");
 }
 
 // Cdma2000HORequiredIndication ::= ENUMERATED
 std::string cdma2000_ho_required_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "cdma2000_ho_required_ind_e");
 }
 
 // ConcurrentWarningMessageIndicator ::= ENUMERATED
 std::string concurrent_warning_msg_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "concurrent_warning_msg_ind_e");
 }
 
 // GWContextReleaseIndication ::= ENUMERATED
 std::string gw_context_release_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "gw_context_release_ind_e");
 }
 
 // KillAllWarningMessages ::= ENUMERATED
 std::string kill_all_warning_msgs_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "kill_all_warning_msgs_e");
 }
 
 // MMERelaySupportIndicator ::= ENUMERATED
 std::string mme_relay_support_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"true"};
+  static const char* options[] = {"true"};
   return convert_enum_idx(options, 1, value, "mme_relay_support_ind_e");
 }
 
@@ -33967,7 +33509,7 @@ SRSASN_CODE overload_resp_c::unpack(cbit_ref& bref)
 
 std::string overload_resp_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"overloadAction"};
+  static const char* options[] = {"overloadAction"};
   return convert_enum_idx(options, 1, value, "overload_resp_c::types");
 }
 
@@ -34021,14 +33563,14 @@ void paging_e_drx_info_s::to_json(json_writer& j) const
 // PagingPriority ::= ENUMERATED
 std::string paging_prio_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "priolevel1", "priolevel2", "priolevel3", "priolevel4", "priolevel5", "priolevel6", "priolevel7", "priolevel8"};
   return convert_enum_idx(options, 8, value, "paging_prio_e");
 }
 uint8_t paging_prio_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8};
-  return convert_enum_idx(options, 8, value, "paging_prio_e");
+  static const uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8};
+  return map_enum_number(options, 8, value, "paging_prio_e");
 }
 
 // ResetType ::= CHOICE
@@ -34104,8 +33646,8 @@ void reset_type_c::to_json(json_writer& j) const
       break;
     case types::part_of_s1_interface:
       j.start_array("partOfS1-Interface");
-      for (uint32_t i1 = 0; i1 < c.get<ue_associated_lc_s1_conn_list_res_l>().size(); ++i1) {
-        c.get<ue_associated_lc_s1_conn_list_res_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<ue_associated_lc_s1_conn_list_res_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -34151,23 +33693,23 @@ SRSASN_CODE reset_type_c::unpack(cbit_ref& bref)
 
 std::string reset_type_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"s1-Interface", "partOfS1-Interface"};
+  static const char* options[] = {"s1-Interface", "partOfS1-Interface"};
   return convert_enum_idx(options, 2, value, "reset_type_c::types");
 }
 
 // SRVCCOperationNotPossible ::= ENUMERATED
 std::string srvcc_operation_not_possible_opts::to_string() const
 {
-  static constexpr const char* options[] = {"notPossible"};
+  static const char* options[] = {"notPossible"};
   return convert_enum_idx(options, 1, value, "srvcc_operation_not_possible_e");
 }
 
-template struct protocol_ie_single_container_s<tai_item_ies_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<tai_item_ies_o>;
 
 // UE-RetentionInformation ::= ENUMERATED
 std::string ue_retention_info_opts::to_string() const
 {
-  static constexpr const char* options[] = {"ues-retained"};
+  static const char* options[] = {"ues-retained"};
   return convert_enum_idx(options, 1, value, "ue_retention_info_e");
 }
 
@@ -34288,11 +33830,11 @@ SRSASN_CODE ue_s1ap_ids_c::unpack(cbit_ref& bref)
 
 std::string ue_s1ap_ids_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"uE-S1AP-ID-pair", "mME-UE-S1AP-ID"};
+  static const char* options[] = {"uE-S1AP-ID-pair", "mME-UE-S1AP-ID"};
   return convert_enum_idx(options, 2, value, "ue_s1ap_ids_c::types");
 }
 
-template struct protocol_ie_single_container_s<ue_associated_lc_s1_conn_item_res_ack_o>;
+template struct asn1::s1ap::protocol_ie_single_container_s<ue_associated_lc_s1_conn_item_res_ack_o>;
 
 // UEPagingID ::= CHOICE
 void ue_paging_id_c::destroy_()
@@ -34415,14 +33957,14 @@ SRSASN_CODE ue_paging_id_c::unpack(cbit_ref& bref)
 
 std::string ue_paging_id_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"s-TMSI", "iMSI"};
+  static const char* options[] = {"s-TMSI", "iMSI"};
   return convert_enum_idx(options, 2, value, "ue_paging_id_c::types");
 }
 
 // VoiceSupportMatchIndicator ::= ENUMERATED
 std::string voice_support_match_ind_opts::to_string() const
 {
-  static constexpr const char* options[] = {"supported", "not-supported"};
+  static const char* options[] = {"supported", "not-supported"};
   return convert_enum_idx(options, 2, value, "voice_support_match_ind_e");
 }
 
@@ -34512,22 +34054,22 @@ void warning_area_list_c::to_json(json_writer& j) const
   switch (type_) {
     case types::cell_id_list:
       j.start_array("cellIDList");
-      for (uint32_t i1 = 0; i1 < c.get<ecgi_list_l>().size(); ++i1) {
-        c.get<ecgi_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<ecgi_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::tracking_area_listfor_warning:
       j.start_array("trackingAreaListforWarning");
-      for (uint32_t i1 = 0; i1 < c.get<tai_listfor_warning_l>().size(); ++i1) {
-        c.get<tai_listfor_warning_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_listfor_warning_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_list:
       j.start_array("emergencyAreaIDList");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_list_l>().size(); ++i1) {
-        j.write_str(c.get<emergency_area_id_list_l>()[i1].to_string());
+      for (const auto& e1 : c.get<emergency_area_id_list_l>()) {
+        j.write_str(e1.to_string());
       }
       j.end_array();
       break;
@@ -34579,21 +34121,21 @@ SRSASN_CODE warning_area_list_c::unpack(cbit_ref& bref)
 
 std::string warning_area_list_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellIDList", "trackingAreaListforWarning", "emergencyAreaIDList"};
+  static const char* options[] = {"cellIDList", "trackingAreaListforWarning", "emergencyAreaIDList"};
   return convert_enum_idx(options, 3, value, "warning_area_list_c::types");
 }
 
 // KillRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t kill_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {111, 112, 113, 191};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {111, 112, 113, 191};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool kill_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {111, 112, 113, 191};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {111, 112, 113, 191};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -34611,9 +34153,9 @@ crit_e kill_request_ies_o::get_crit(const uint32_t& id)
     case 191:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 kill_request_ies_o::value_c kill_request_ies_o::get_value(const uint32_t& id)
 {
@@ -34632,7 +34174,7 @@ kill_request_ies_o::value_c kill_request_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::kill_all_warning_msgs);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34648,9 +34190,9 @@ presence_e kill_request_ies_o::get_presence(const uint32_t& id)
     case 191:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -34850,21 +34392,21 @@ SRSASN_CODE kill_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string kill_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"BIT STRING", "BIT STRING", "WarningAreaList", "KillAllWarningMessages"};
+  static const char* options[] = {"BIT STRING", "BIT STRING", "WarningAreaList", "KillAllWarningMessages"};
   return convert_enum_idx(options, 4, value, "kill_request_ies_o::value_c::types");
 }
 
 // KillResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t kill_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {111, 112, 141, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {111, 112, 141, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool kill_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {111, 112, 141, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {111, 112, 141, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -34882,9 +34424,9 @@ crit_e kill_resp_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 kill_resp_ies_o::value_c kill_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -34903,7 +34445,7 @@ kill_resp_ies_o::value_c kill_resp_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34919,9 +34461,9 @@ presence_e kill_resp_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -35126,22 +34668,21 @@ SRSASN_CODE kill_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string kill_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "BIT STRING", "BIT STRING", "BroadcastCancelledAreaList", "CriticalityDiagnostics"};
+  static const char* options[] = {"BIT STRING", "BIT STRING", "BroadcastCancelledAreaList", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "kill_resp_ies_o::value_c::types");
 }
 
 // LocationReportIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t location_report_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 100, 67, 98};
-  return convert_enum_idx(options, 5, idx, "id");
+  static const uint32_t options[] = {0, 8, 100, 67, 98};
+  return map_enum_number(options, 5, idx, "id");
 }
 bool location_report_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 100, 67, 98};
-  for (uint32_t i = 0; i < 5; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 100, 67, 98};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -35161,9 +34702,9 @@ crit_e location_report_ies_o::get_crit(const uint32_t& id)
     case 98:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 location_report_ies_o::value_c location_report_ies_o::get_value(const uint32_t& id)
 {
@@ -35185,7 +34726,7 @@ location_report_ies_o::value_c location_report_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::request_type);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35203,9 +34744,9 @@ presence_e location_report_ies_o::get_presence(const uint32_t& id)
     case 98:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -35434,7 +34975,7 @@ SRSASN_CODE location_report_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string location_report_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "EUTRAN-CGI", "TAI", "RequestType"};
   return convert_enum_idx(options, 5, value, "location_report_ies_o::value_c::types");
 }
@@ -35442,14 +34983,14 @@ std::string location_report_ies_o::value_c::types_opts::to_string() const
 // LocationReportingControlIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t location_report_ctrl_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 98};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 98};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool location_report_ctrl_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 98};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 98};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -35465,9 +35006,9 @@ crit_e location_report_ctrl_ies_o::get_crit(const uint32_t& id)
     case 98:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 location_report_ctrl_ies_o::value_c location_report_ctrl_ies_o::get_value(const uint32_t& id)
 {
@@ -35483,7 +35024,7 @@ location_report_ctrl_ies_o::value_c location_report_ctrl_ies_o::get_value(const 
       ret.set(value_c::types::request_type);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35497,9 +35038,9 @@ presence_e location_report_ctrl_ies_o::get_presence(const uint32_t& id)
     case 98:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -35665,21 +35206,21 @@ SRSASN_CODE location_report_ctrl_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string location_report_ctrl_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "RequestType"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "RequestType"};
   return convert_enum_idx(options, 3, value, "location_report_ctrl_ies_o::value_c::types");
 }
 
 // LocationReportingFailureIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t location_report_fail_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 2};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool location_report_fail_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -35695,9 +35236,9 @@ crit_e location_report_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 2:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 location_report_fail_ind_ies_o::value_c location_report_fail_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -35713,7 +35254,7 @@ location_report_fail_ind_ies_o::value_c location_report_fail_ind_ies_o::get_valu
       ret.set(value_c::types::cause);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35727,9 +35268,9 @@ presence_e location_report_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 2:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -35895,21 +35436,21 @@ SRSASN_CODE location_report_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string location_report_fail_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause"};
   return convert_enum_idx(options, 3, value, "location_report_fail_ind_ies_o::value_c::types");
 }
 
 // MMECPRelocationIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t mmecp_relocation_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {0, 8};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool mmecp_relocation_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -35923,9 +35464,9 @@ crit_e mmecp_relocation_ind_ies_o::get_crit(const uint32_t& id)
     case 8:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 mmecp_relocation_ind_ies_o::value_c mmecp_relocation_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -35938,7 +35479,7 @@ mmecp_relocation_ind_ies_o::value_c mmecp_relocation_ind_ies_o::get_value(const 
       ret.set(value_c::types::enb_ue_s1ap_id);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35950,9 +35491,9 @@ presence_e mmecp_relocation_ind_ies_o::get_presence(const uint32_t& id)
     case 8:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36070,56 +35611,43 @@ SRSASN_CODE mmecp_relocation_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string mmecp_relocation_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)"};
   return convert_enum_idx(options, 2, value, "mmecp_relocation_ind_ies_o::value_c::types");
 }
 
 // MMEConfigurationTransferIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t mme_cfg_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {130};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {130};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool mme_cfg_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {130};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 130 == id;
 }
 crit_e mme_cfg_transfer_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 130:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 130) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 mme_cfg_transfer_ies_o::value_c mme_cfg_transfer_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 130:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 130) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e mme_cfg_transfer_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 130:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 130) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36145,56 +35673,43 @@ SRSASN_CODE mme_cfg_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string mme_cfg_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"SONConfigurationTransfer"};
+  static const char* options[] = {"SONConfigurationTransfer"};
   return convert_enum_idx(options, 1, value, "mme_cfg_transfer_ies_o::value_c::types");
 }
 
 // MMEConfigurationUpdateAcknowledgeIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t mme_cfg_upd_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {58};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {58};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool mme_cfg_upd_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {58};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 58 == id;
 }
 crit_e mme_cfg_upd_ack_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 58:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 58) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 mme_cfg_upd_ack_ies_o::value_c mme_cfg_upd_ack_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 58:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 58) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e mme_cfg_upd_ack_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 58:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 58) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36220,21 +35735,21 @@ SRSASN_CODE mme_cfg_upd_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string mme_cfg_upd_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"CriticalityDiagnostics"};
+  static const char* options[] = {"CriticalityDiagnostics"};
   return convert_enum_idx(options, 1, value, "mme_cfg_upd_ack_ies_o::value_c::types");
 }
 
 // MMEConfigurationUpdateFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t mme_cfg_upd_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {2, 65, 58};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {2, 65, 58};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool mme_cfg_upd_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {2, 65, 58};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {2, 65, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -36250,9 +35765,9 @@ crit_e mme_cfg_upd_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 mme_cfg_upd_fail_ies_o::value_c mme_cfg_upd_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -36268,7 +35783,7 @@ mme_cfg_upd_fail_ies_o::value_c mme_cfg_upd_fail_ies_o::get_value(const uint32_t
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36282,9 +35797,9 @@ presence_e mme_cfg_upd_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36455,21 +35970,21 @@ SRSASN_CODE mme_cfg_upd_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string mme_cfg_upd_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
+  static const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "mme_cfg_upd_fail_ies_o::value_c::types");
 }
 
 // MMEConfigurationUpdateIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t mme_cfg_upd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {61, 105, 87, 247};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {61, 105, 87, 247};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool mme_cfg_upd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {61, 105, 87, 247};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {61, 105, 87, 247};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -36487,9 +36002,9 @@ crit_e mme_cfg_upd_ies_o::get_crit(const uint32_t& id)
     case 247:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 mme_cfg_upd_ies_o::value_c mme_cfg_upd_ies_o::get_value(const uint32_t& id)
 {
@@ -36508,7 +36023,7 @@ mme_cfg_upd_ies_o::value_c mme_cfg_upd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::served_dcns);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36524,9 +36039,9 @@ presence_e mme_cfg_upd_ies_o::get_presence(const uint32_t& id)
     case 247:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36666,8 +36181,8 @@ void mme_cfg_upd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::served_gummeis:
       j.start_array("ServedGUMMEIs");
-      for (uint32_t i1 = 0; i1 < c.get<served_gummeis_l>().size(); ++i1) {
-        c.get<served_gummeis_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<served_gummeis_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -36676,8 +36191,8 @@ void mme_cfg_upd_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::served_dcns:
       j.start_array("ServedDCNs");
-      for (uint32_t i1 = 0; i1 < c.get<served_dcns_l>().size(); ++i1) {
-        c.get<served_dcns_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<served_dcns_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -36733,66 +36248,51 @@ SRSASN_CODE mme_cfg_upd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string mme_cfg_upd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PrintableString", "ServedGUMMEIs", "INTEGER (0..255)", "ServedDCNs"};
+  static const char* options[] = {"PrintableString", "ServedGUMMEIs", "INTEGER (0..255)", "ServedDCNs"};
   return convert_enum_idx(options, 4, value, "mme_cfg_upd_ies_o::value_c::types");
 }
 uint8_t mme_cfg_upd_ies_o::value_c::types_opts::to_number() const
 {
-  switch (value) {
-    case relative_mme_capacity:
-      return 0;
-    default:
-      invalid_enum_number(value, "mme_cfg_upd_ies_o::value_c::types");
+  if (value == relative_mme_capacity) {
+    return 0;
   }
+  invalid_enum_number(value, "mme_cfg_upd_ies_o::value_c::types");
   return 0;
 }
 
 // MMEDirectInformationTransferIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t mme_direct_info_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {122};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {122};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool mme_direct_info_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {122};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 122 == id;
 }
 crit_e mme_direct_info_transfer_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 122:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 122) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 mme_direct_info_transfer_ies_o::value_c mme_direct_info_transfer_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 122:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 122) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e mme_direct_info_transfer_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 122:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 122) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -36818,21 +36318,21 @@ SRSASN_CODE mme_direct_info_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string mme_direct_info_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Inter-SystemInformationTransferType"};
+  static const char* options[] = {"Inter-SystemInformationTransferType"};
   return convert_enum_idx(options, 1, value, "mme_direct_info_transfer_ies_o::value_c::types");
 }
 
 // MMEStatusTransferIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t mme_status_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 90};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 90};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool mme_status_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 90};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 90};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -36848,9 +36348,9 @@ crit_e mme_status_transfer_ies_o::get_crit(const uint32_t& id)
     case 90:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 mme_status_transfer_ies_o::value_c mme_status_transfer_ies_o::get_value(const uint32_t& id)
 {
@@ -36866,7 +36366,7 @@ mme_status_transfer_ies_o::value_c mme_status_transfer_ies_o::get_value(const ui
       ret.set(value_c::types::enb_status_transfer_transparent_container);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36880,9 +36380,9 @@ presence_e mme_status_transfer_ies_o::get_presence(const uint32_t& id)
     case 90:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37050,7 +36550,7 @@ SRSASN_CODE mme_status_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string mme_status_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "ENB-StatusTransfer-TransparentContainer"};
   return convert_enum_idx(options, 3, value, "mme_status_transfer_ies_o::value_c::types");
 }
@@ -37058,14 +36558,14 @@ std::string mme_status_transfer_ies_o::value_c::types_opts::to_string() const
 // NASDeliveryIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t nas_delivery_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {0, 8};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool nas_delivery_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -37079,9 +36579,9 @@ crit_e nas_delivery_ind_ies_o::get_crit(const uint32_t& id)
     case 8:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 nas_delivery_ind_ies_o::value_c nas_delivery_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -37094,7 +36594,7 @@ nas_delivery_ind_ies_o::value_c nas_delivery_ind_ies_o::get_value(const uint32_t
       ret.set(value_c::types::enb_ue_s1ap_id);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37106,9 +36606,9 @@ presence_e nas_delivery_ind_ies_o::get_presence(const uint32_t& id)
     case 8:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37226,21 +36726,21 @@ SRSASN_CODE nas_delivery_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string nas_delivery_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)"};
   return convert_enum_idx(options, 2, value, "nas_delivery_ind_ies_o::value_c::types");
 }
 
 // NASNonDeliveryIndication-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t nas_non_delivery_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 26, 2};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 26, 2};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool nas_non_delivery_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 26, 2};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 26, 2};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -37258,9 +36758,9 @@ crit_e nas_non_delivery_ind_ies_o::get_crit(const uint32_t& id)
     case 2:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 nas_non_delivery_ind_ies_o::value_c nas_non_delivery_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -37279,7 +36779,7 @@ nas_non_delivery_ind_ies_o::value_c nas_non_delivery_ind_ies_o::get_value(const 
       ret.set(value_c::types::cause);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37295,9 +36795,9 @@ presence_e nas_non_delivery_ind_ies_o::get_presence(const uint32_t& id)
     case 2:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37494,22 +36994,21 @@ SRSASN_CODE nas_non_delivery_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string nas_non_delivery_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING", "Cause"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING", "Cause"};
   return convert_enum_idx(options, 4, value, "nas_non_delivery_ind_ies_o::value_c::types");
 }
 
 // OverloadStartIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t overload_start_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {101, 154, 161};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {101, 154, 161};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool overload_start_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {101, 154, 161};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {101, 154, 161};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -37525,9 +37024,9 @@ crit_e overload_start_ies_o::get_crit(const uint32_t& id)
     case 161:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 overload_start_ies_o::value_c overload_start_ies_o::get_value(const uint32_t& id)
 {
@@ -37543,7 +37042,7 @@ overload_start_ies_o::value_c overload_start_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::traffic_load_reduction_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37557,9 +37056,9 @@ presence_e overload_start_ies_o::get_presence(const uint32_t& id)
     case 161:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37678,8 +37177,8 @@ void overload_start_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::gummei_list:
       j.start_array("GUMMEIList");
-      for (uint32_t i1 = 0; i1 < c.get<gummei_list_l>().size(); ++i1) {
-        c.get<gummei_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<gummei_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -37732,66 +37231,51 @@ SRSASN_CODE overload_start_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string overload_start_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"OverloadResponse", "GUMMEIList", "INTEGER (1..99)"};
+  static const char* options[] = {"OverloadResponse", "GUMMEIList", "INTEGER (1..99)"};
   return convert_enum_idx(options, 3, value, "overload_start_ies_o::value_c::types");
 }
 uint8_t overload_start_ies_o::value_c::types_opts::to_number() const
 {
-  switch (value) {
-    case traffic_load_reduction_ind:
-      return 1;
-    default:
-      invalid_enum_number(value, "overload_start_ies_o::value_c::types");
+  if (value == traffic_load_reduction_ind) {
+    return 1;
   }
+  invalid_enum_number(value, "overload_start_ies_o::value_c::types");
   return 0;
 }
 
 // OverloadStopIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t overload_stop_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {154};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {154};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool overload_stop_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {154};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 154 == id;
 }
 crit_e overload_stop_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 154:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 154) {
+    return crit_e::ignore;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 overload_stop_ies_o::value_c overload_stop_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 154:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 154) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e overload_stop_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 154:
-      return presence_e::optional;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 154) {
+    return presence_e::optional;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37799,8 +37283,8 @@ void overload_stop_ies_o::value_c::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("GUMMEIList");
-  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-    c[i1].to_json(j);
+  for (const auto& e1 : c) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -37820,21 +37304,21 @@ SRSASN_CODE overload_stop_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string overload_stop_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"GUMMEIList"};
+  static const char* options[] = {"GUMMEIList"};
   return convert_enum_idx(options, 1, value, "overload_stop_ies_o::value_c::types");
 }
 
 // PWSFailureIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t pws_fail_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {222, 59};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {222, 59};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool pws_fail_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {222, 59};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {222, 59};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -37848,9 +37332,9 @@ crit_e pws_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 59:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pws_fail_ind_ies_o::value_c pws_fail_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -37863,7 +37347,7 @@ pws_fail_ind_ies_o::value_c pws_fail_ind_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::global_enb_id);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37875,9 +37359,9 @@ presence_e pws_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 59:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -37974,8 +37458,8 @@ void pws_fail_ind_ies_o::value_c::to_json(json_writer& j) const
   switch (type_) {
     case types::pw_sfailed_ecgi_list:
       j.start_array("PWSfailedECGIList");
-      for (uint32_t i1 = 0; i1 < c.get<pw_sfailed_ecgi_list_l>().size(); ++i1) {
-        c.get<pw_sfailed_ecgi_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<pw_sfailed_ecgi_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -38023,21 +37507,21 @@ SRSASN_CODE pws_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pws_fail_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PWSfailedECGIList", "Global-ENB-ID"};
+  static const char* options[] = {"PWSfailedECGIList", "Global-ENB-ID"};
   return convert_enum_idx(options, 2, value, "pws_fail_ind_ies_o::value_c::types");
 }
 
 // PWSRestartIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t pws_restart_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {182, 59, 188, 190};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {182, 59, 188, 190};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool pws_restart_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {182, 59, 188, 190};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {182, 59, 188, 190};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -38055,9 +37539,9 @@ crit_e pws_restart_ind_ies_o::get_crit(const uint32_t& id)
     case 190:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 pws_restart_ind_ies_o::value_c pws_restart_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -38076,7 +37560,7 @@ pws_restart_ind_ies_o::value_c pws_restart_ind_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::emergency_area_id_list_for_restart);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -38092,9 +37576,9 @@ presence_e pws_restart_ind_ies_o::get_presence(const uint32_t& id)
     case 190:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -38235,8 +37719,8 @@ void pws_restart_ind_ies_o::value_c::to_json(json_writer& j) const
   switch (type_) {
     case types::ecgi_list_for_restart:
       j.start_array("ECGIListForRestart");
-      for (uint32_t i1 = 0; i1 < c.get<ecgi_list_for_restart_l>().size(); ++i1) {
-        c.get<ecgi_list_for_restart_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<ecgi_list_for_restart_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -38246,15 +37730,15 @@ void pws_restart_ind_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::tai_list_for_restart:
       j.start_array("TAIListForRestart");
-      for (uint32_t i1 = 0; i1 < c.get<tai_list_for_restart_l>().size(); ++i1) {
-        c.get<tai_list_for_restart_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_list_for_restart_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::emergency_area_id_list_for_restart:
       j.start_array("EmergencyAreaIDListForRestart");
-      for (uint32_t i1 = 0; i1 < c.get<emergency_area_id_list_for_restart_l>().size(); ++i1) {
-        j.write_str(c.get<emergency_area_id_list_for_restart_l>()[i1].to_string());
+      for (const auto& e1 : c.get<emergency_area_id_list_for_restart_l>()) {
+        j.write_str(e1.to_string());
       }
       j.end_array();
       break;
@@ -38310,7 +37794,7 @@ SRSASN_CODE pws_restart_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string pws_restart_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "ECGIListForRestart", "Global-ENB-ID", "TAIListForRestart", "EmergencyAreaIDListForRestart"};
   return convert_enum_idx(options, 4, value, "pws_restart_ind_ies_o::value_c::types");
 }
@@ -38318,14 +37802,14 @@ std::string pws_restart_ind_ies_o::value_c::types_opts::to_string() const
 // PagingIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t paging_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {80, 43, 44, 109, 46, 128, 151, 198, 211, 227, 231, 239, 244, 251, 271};
-  return convert_enum_idx(options, 15, idx, "id");
+  static const uint32_t options[] = {80, 43, 44, 109, 46, 128, 151, 198, 211, 227, 231, 239, 244, 251, 271};
+  return map_enum_number(options, 15, idx, "id");
 }
 bool paging_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {80, 43, 44, 109, 46, 128, 151, 198, 211, 227, 231, 239, 244, 251, 271};
-  for (uint32_t i = 0; i < 15; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {80, 43, 44, 109, 46, 128, 151, 198, 211, 227, 231, 239, 244, 251, 271};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -38365,9 +37849,9 @@ crit_e paging_ies_o::get_crit(const uint32_t& id)
     case 271:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 paging_ies_o::value_c paging_ies_o::get_value(const uint32_t& id)
 {
@@ -38419,7 +37903,7 @@ paging_ies_o::value_c paging_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::ce_mode_brestricted);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -38457,9 +37941,9 @@ presence_e paging_ies_o::get_presence(const uint32_t& id)
     case 271:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -38835,15 +38319,15 @@ void paging_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::tai_list:
       j.start_array("TAIList");
-      for (uint32_t i1 = 0; i1 < c.get<tai_list_l>().size(); ++i1) {
-        c.get<tai_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<tai_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
     case types::csg_id_list:
       j.start_array("CSG-IdList");
-      for (uint32_t i1 = 0; i1 < c.get<csg_id_list_l>().size(); ++i1) {
-        c.get<csg_id_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<csg_id_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -38995,35 +38479,35 @@ SRSASN_CODE paging_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string paging_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"BIT STRING",
-                                            "UEPagingID",
-                                            "PagingDRX",
-                                            "CNDomain",
-                                            "TAIList",
-                                            "CSG-IdList",
-                                            "PagingPriority",
-                                            "OCTET STRING",
-                                            "AssistanceDataForPaging",
-                                            "Paging-eDRXInformation",
-                                            "BIT STRING",
-                                            "NB-IoT-Paging-eDRXInformation",
-                                            "BIT STRING",
-                                            "EnhancedCoverageRestricted",
-                                            "CE-ModeBRestricted"};
+  static const char* options[] = {"BIT STRING",
+                                  "UEPagingID",
+                                  "PagingDRX",
+                                  "CNDomain",
+                                  "TAIList",
+                                  "CSG-IdList",
+                                  "PagingPriority",
+                                  "OCTET STRING",
+                                  "AssistanceDataForPaging",
+                                  "Paging-eDRXInformation",
+                                  "BIT STRING",
+                                  "NB-IoT-Paging-eDRXInformation",
+                                  "BIT STRING",
+                                  "EnhancedCoverageRestricted",
+                                  "CE-ModeBRestricted"};
   return convert_enum_idx(options, 15, value, "paging_ies_o::value_c::types");
 }
 
 // PathSwitchRequestAcknowledgeIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t path_switch_request_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 66, 95, 33, 40, 58, 158, 146, 195, 241, 240, 248, 251, 271, 283};
-  return convert_enum_idx(options, 16, idx, "id");
+  static const uint32_t options[] = {0, 8, 66, 95, 33, 40, 58, 158, 146, 195, 241, 240, 248, 251, 271, 283};
+  return map_enum_number(options, 16, idx, "id");
 }
 bool path_switch_request_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 66, 95, 33, 40, 58, 158, 146, 195, 241, 240, 248, 251, 271, 283};
-  for (uint32_t i = 0; i < 16; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 66, 95, 33, 40, 58, 158, 146, 195, 241, 240, 248, 251, 271, 283};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -39065,9 +38549,9 @@ crit_e path_switch_request_ack_ies_o::get_crit(const uint32_t& id)
     case 283:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 path_switch_request_ack_ies_o::value_c path_switch_request_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -39122,7 +38606,7 @@ path_switch_request_ack_ies_o::value_c path_switch_request_ack_ies_o::get_value(
       ret.set(value_c::types::pending_data_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39162,9 +38646,9 @@ presence_e path_switch_request_ack_ies_o::get_presence(const uint32_t& id)
     case 283:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -39554,8 +39038,8 @@ void path_switch_request_ack_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::erab_to_be_released_list:
       j.start_array("E-RABList");
-      for (uint32_t i1 = 0; i1 < c.get<erab_list_l>().size(); ++i1) {
-        c.get<erab_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<erab_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -39721,36 +39205,36 @@ SRSASN_CODE path_switch_request_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string path_switch_request_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "UEAggregateMaximumBitrate",
-                                            "",
-                                            "E-RABList",
-                                            "SecurityContext",
-                                            "CriticalityDiagnostics",
-                                            "INTEGER (0..4294967295)",
-                                            "CSGMembershipStatus",
-                                            "ProSeAuthorized",
-                                            "UEUserPlaneCIoTSupportIndicator",
-                                            "V2XServicesAuthorized",
-                                            "UESidelinkAggregateMaximumBitrate",
-                                            "EnhancedCoverageRestricted",
-                                            "CE-ModeBRestricted",
-                                            "PendingDataIndication"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "UEAggregateMaximumBitrate",
+                                  "",
+                                  "E-RABList",
+                                  "SecurityContext",
+                                  "CriticalityDiagnostics",
+                                  "INTEGER (0..4294967295)",
+                                  "CSGMembershipStatus",
+                                  "ProSeAuthorized",
+                                  "UEUserPlaneCIoTSupportIndicator",
+                                  "V2XServicesAuthorized",
+                                  "UESidelinkAggregateMaximumBitrate",
+                                  "EnhancedCoverageRestricted",
+                                  "CE-ModeBRestricted",
+                                  "PendingDataIndication"};
   return convert_enum_idx(options, 16, value, "path_switch_request_ack_ies_o::value_c::types");
 }
 
 // PathSwitchRequestFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t path_switch_request_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 2, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool path_switch_request_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -39768,9 +39252,9 @@ crit_e path_switch_request_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 path_switch_request_fail_ies_o::value_c path_switch_request_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -39789,7 +39273,7 @@ path_switch_request_fail_ies_o::value_c path_switch_request_fail_ies_o::get_valu
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39805,9 +39289,9 @@ presence_e path_switch_request_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -40005,7 +39489,7 @@ SRSASN_CODE path_switch_request_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string path_switch_request_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "path_switch_request_fail_ies_o::value_c::types");
 }
@@ -40013,14 +39497,14 @@ std::string path_switch_request_fail_ies_o::value_c::types_opts::to_string() con
 // PathSwitchRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t path_switch_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {8, 22, 88, 100, 67, 107, 127, 145, 157, 146, 176, 186, 245};
-  return convert_enum_idx(options, 13, idx, "id");
+  static const uint32_t options[] = {8, 22, 88, 100, 67, 107, 127, 145, 157, 146, 176, 186, 245};
+  return map_enum_number(options, 13, idx, "id");
 }
 bool path_switch_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {8, 22, 88, 100, 67, 107, 127, 145, 157, 146, 176, 186, 245};
-  for (uint32_t i = 0; i < 13; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {8, 22, 88, 100, 67, 107, 127, 145, 157, 146, 176, 186, 245};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -40056,9 +39540,9 @@ crit_e path_switch_request_ies_o::get_crit(const uint32_t& id)
     case 245:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 path_switch_request_ies_o::value_c path_switch_request_ies_o::get_value(const uint32_t& id)
 {
@@ -40104,7 +39588,7 @@ path_switch_request_ies_o::value_c path_switch_request_ies_o::get_value(const ui
       ret.set(value_c::types::rrc_resume_cause);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40138,9 +39622,9 @@ presence_e path_switch_request_ies_o::get_presence(const uint32_t& id)
     case 245:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -40609,19 +40093,19 @@ SRSASN_CODE path_switch_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string path_switch_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..16777215)",
-                                            "",
-                                            "INTEGER (0..4294967295)",
-                                            "EUTRAN-CGI",
-                                            "TAI",
-                                            "UESecurityCapabilities",
-                                            "BIT STRING",
-                                            "CellAccessMode",
-                                            "GUMMEI",
-                                            "CSGMembershipStatus",
-                                            "TunnelInformation",
-                                            "OCTET STRING",
-                                            "RRC-Establishment-Cause"};
+  static const char* options[] = {"INTEGER (0..16777215)",
+                                  "",
+                                  "INTEGER (0..4294967295)",
+                                  "EUTRAN-CGI",
+                                  "TAI",
+                                  "UESecurityCapabilities",
+                                  "BIT STRING",
+                                  "CellAccessMode",
+                                  "GUMMEI",
+                                  "CSGMembershipStatus",
+                                  "TunnelInformation",
+                                  "OCTET STRING",
+                                  "RRC-Establishment-Cause"};
   return convert_enum_idx(options, 13, value, "path_switch_request_ies_o::value_c::types");
 }
 
@@ -40644,21 +40128,21 @@ SRSASN_CODE s1ap_private_ies_empty_o::value_c::unpack(cbit_ref& bref)
 
 std::string s1ap_private_ies_empty_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {};
+  static const char* options[] = {};
   return convert_enum_idx(options, 0, value, "s1ap_private_ies_empty_o::value_c::types");
 }
 
 // RerouteNASRequest-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t reroute_nas_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {8, 0, 225, 223, 224, 230};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {8, 0, 225, 223, 224, 230};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool reroute_nas_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {8, 0, 225, 223, 224, 230};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {8, 0, 225, 223, 224, 230};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -40680,9 +40164,9 @@ crit_e reroute_nas_request_ies_o::get_crit(const uint32_t& id)
     case 230:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 reroute_nas_request_ies_o::value_c reroute_nas_request_ies_o::get_value(const uint32_t& id)
 {
@@ -40707,7 +40191,7 @@ reroute_nas_request_ies_o::value_c reroute_nas_request_ies_o::get_value(const ui
       ret.set(value_c::types::ue_usage_type);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40727,9 +40211,9 @@ presence_e reroute_nas_request_ies_o::get_presence(const uint32_t& id)
     case 230:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -40984,26 +40468,26 @@ SRSASN_CODE reroute_nas_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string reroute_nas_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..16777215)",
-                                            "INTEGER (0..4294967295)",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "Additional-GUTI",
-                                            "INTEGER (0..255)"};
+  static const char* options[] = {"INTEGER (0..16777215)",
+                                  "INTEGER (0..4294967295)",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "Additional-GUTI",
+                                  "INTEGER (0..255)"};
   return convert_enum_idx(options, 6, value, "reroute_nas_request_ies_o::value_c::types");
 }
 
 // ResetAcknowledgeIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t reset_ack_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {93, 58};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {93, 58};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool reset_ack_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {93, 58};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {93, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41017,9 +40501,9 @@ crit_e reset_ack_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 reset_ack_ies_o::value_c reset_ack_ies_o::get_value(const uint32_t& id)
 {
@@ -41032,7 +40516,7 @@ reset_ack_ies_o::value_c reset_ack_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41044,9 +40528,9 @@ presence_e reset_ack_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41143,8 +40627,8 @@ void reset_ack_ies_o::value_c::to_json(json_writer& j) const
   switch (type_) {
     case types::ue_associated_lc_s1_conn_list_res_ack:
       j.start_array("UE-associatedLogicalS1-ConnectionListResAck");
-      for (uint32_t i1 = 0; i1 < c.get<ue_associated_lc_s1_conn_list_res_ack_l>().size(); ++i1) {
-        c.get<ue_associated_lc_s1_conn_list_res_ack_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<ue_associated_lc_s1_conn_list_res_ack_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -41192,26 +40676,26 @@ SRSASN_CODE reset_ack_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string reset_ack_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UE-associatedLogicalS1-ConnectionListResAck", "CriticalityDiagnostics"};
+  static const char* options[] = {"UE-associatedLogicalS1-ConnectionListResAck", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 2, value, "reset_ack_ies_o::value_c::types");
 }
 uint8_t reset_ack_ies_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1};
-  return convert_enum_idx(options, 1, value, "reset_ack_ies_o::value_c::types");
+  static const uint8_t options[] = {1};
+  return map_enum_number(options, 1, value, "reset_ack_ies_o::value_c::types");
 }
 
 // ResetIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t reset_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {2, 92};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {2, 92};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool reset_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {2, 92};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {2, 92};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41225,9 +40709,9 @@ crit_e reset_ies_o::get_crit(const uint32_t& id)
     case 92:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 reset_ies_o::value_c reset_ies_o::get_value(const uint32_t& id)
 {
@@ -41240,7 +40724,7 @@ reset_ies_o::value_c reset_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::reset_type);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41252,9 +40736,9 @@ presence_e reset_ies_o::get_presence(const uint32_t& id)
     case 92:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41397,56 +40881,43 @@ SRSASN_CODE reset_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string reset_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Cause", "ResetType"};
+  static const char* options[] = {"Cause", "ResetType"};
   return convert_enum_idx(options, 2, value, "reset_ies_o::value_c::types");
 }
 
 // RetrieveUEInformationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t retrieve_ue_info_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {96};
-  return convert_enum_idx(options, 1, idx, "id");
+  static const uint32_t options[] = {96};
+  return map_enum_number(options, 1, idx, "id");
 }
 bool retrieve_ue_info_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {96};
-  for (uint32_t i = 0; i < 1; ++i) {
-    if (options[i] == id) {
-      return true;
-    }
-  }
-  return false;
+  return 96 == id;
 }
 crit_e retrieve_ue_info_ies_o::get_crit(const uint32_t& id)
 {
-  switch (id) {
-    case 96:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 96) {
+    return crit_e::reject;
   }
-  return crit_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 retrieve_ue_info_ies_o::value_c retrieve_ue_info_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
-  switch (id) {
-    case 96:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id != 96) {
+    logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
 presence_e retrieve_ue_info_ies_o::get_presence(const uint32_t& id)
 {
-  switch (id) {
-    case 96:
-      return presence_e::mandatory;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+  if (id == 96) {
+    return presence_e::mandatory;
   }
-  return presence_e();
+  logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41472,21 +40943,21 @@ SRSASN_CODE retrieve_ue_info_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string retrieve_ue_info_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"S-TMSI"};
+  static const char* options[] = {"S-TMSI"};
   return convert_enum_idx(options, 1, value, "retrieve_ue_info_ies_o::value_c::types");
 }
 
 // S1SetupFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t s1_setup_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {2, 65, 58};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {2, 65, 58};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool s1_setup_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {2, 65, 58};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {2, 65, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41502,9 +40973,9 @@ crit_e s1_setup_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 s1_setup_fail_ies_o::value_c s1_setup_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -41520,7 +40991,7 @@ s1_setup_fail_ies_o::value_c s1_setup_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41534,9 +41005,9 @@ presence_e s1_setup_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -41706,21 +41177,21 @@ SRSASN_CODE s1_setup_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string s1_setup_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
+  static const char* options[] = {"Cause", "TimeToWait", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "s1_setup_fail_ies_o::value_c::types");
 }
 
 // S1SetupRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t s1_setup_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {59, 60, 64, 137, 128, 228, 234};
-  return convert_enum_idx(options, 7, idx, "id");
+  static const uint32_t options[] = {59, 60, 64, 137, 128, 228, 234};
+  return map_enum_number(options, 7, idx, "id");
 }
 bool s1_setup_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {59, 60, 64, 137, 128, 228, 234};
-  for (uint32_t i = 0; i < 7; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {59, 60, 64, 137, 128, 228, 234};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -41744,9 +41215,9 @@ crit_e s1_setup_request_ies_o::get_crit(const uint32_t& id)
     case 234:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 s1_setup_request_ies_o::value_c s1_setup_request_ies_o::get_value(const uint32_t& id)
 {
@@ -41774,7 +41245,7 @@ s1_setup_request_ies_o::value_c s1_setup_request_ies_o::get_value(const uint32_t
       ret.set(value_c::types::nb_io_t_default_paging_drx);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41796,9 +41267,9 @@ presence_e s1_setup_request_ies_o::get_presence(const uint32_t& id)
     case 234:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -42001,8 +41472,8 @@ void s1_setup_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::supported_tas:
       j.start_array("SupportedTAs");
-      for (uint32_t i1 = 0; i1 < c.get<supported_tas_l>().size(); ++i1) {
-        c.get<supported_tas_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<supported_tas_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -42011,8 +41482,8 @@ void s1_setup_request_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::csg_id_list:
       j.start_array("CSG-IdList");
-      for (uint32_t i1 = 0; i1 < c.get<csg_id_list_l>().size(); ++i1) {
-        c.get<csg_id_list_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<csg_id_list_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -42092,27 +41563,27 @@ SRSASN_CODE s1_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string s1_setup_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"Global-ENB-ID",
-                                            "PrintableString",
-                                            "SupportedTAs",
-                                            "PagingDRX",
-                                            "CSG-IdList",
-                                            "UE-RetentionInformation",
-                                            "NB-IoT-DefaultPagingDRX"};
+  static const char* options[] = {"Global-ENB-ID",
+                                  "PrintableString",
+                                  "SupportedTAs",
+                                  "PagingDRX",
+                                  "CSG-IdList",
+                                  "UE-RetentionInformation",
+                                  "NB-IoT-DefaultPagingDRX"};
   return convert_enum_idx(options, 7, value, "s1_setup_request_ies_o::value_c::types");
 }
 
 // S1SetupResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t s1_setup_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {61, 105, 87, 163, 58, 228, 247};
-  return convert_enum_idx(options, 7, idx, "id");
+  static const uint32_t options[] = {61, 105, 87, 163, 58, 228, 247};
+  return map_enum_number(options, 7, idx, "id");
 }
 bool s1_setup_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {61, 105, 87, 163, 58, 228, 247};
-  for (uint32_t i = 0; i < 7; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {61, 105, 87, 163, 58, 228, 247};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -42136,9 +41607,9 @@ crit_e s1_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 247:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 s1_setup_resp_ies_o::value_c s1_setup_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -42166,7 +41637,7 @@ s1_setup_resp_ies_o::value_c s1_setup_resp_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::served_dcns);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -42188,9 +41659,9 @@ presence_e s1_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 247:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -42388,8 +41859,8 @@ void s1_setup_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::served_gummeis:
       j.start_array("ServedGUMMEIs");
-      for (uint32_t i1 = 0; i1 < c.get<served_gummeis_l>().size(); ++i1) {
-        c.get<served_gummeis_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<served_gummeis_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -42408,8 +41879,8 @@ void s1_setup_resp_ies_o::value_c::to_json(json_writer& j) const
       break;
     case types::served_dcns:
       j.start_array("ServedDCNs");
-      for (uint32_t i1 = 0; i1 < c.get<served_dcns_l>().size(); ++i1) {
-        c.get<served_dcns_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<served_dcns_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -42483,37 +41954,35 @@ SRSASN_CODE s1_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string s1_setup_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"PrintableString",
-                                            "ServedGUMMEIs",
-                                            "INTEGER (0..255)",
-                                            "MMERelaySupportIndicator",
-                                            "CriticalityDiagnostics",
-                                            "UE-RetentionInformation",
-                                            "ServedDCNs"};
+  static const char* options[] = {"PrintableString",
+                                  "ServedGUMMEIs",
+                                  "INTEGER (0..255)",
+                                  "MMERelaySupportIndicator",
+                                  "CriticalityDiagnostics",
+                                  "UE-RetentionInformation",
+                                  "ServedDCNs"};
   return convert_enum_idx(options, 7, value, "s1_setup_resp_ies_o::value_c::types");
 }
 uint8_t s1_setup_resp_ies_o::value_c::types_opts::to_number() const
 {
-  switch (value) {
-    case relative_mme_capacity:
-      return 0;
-    default:
-      invalid_enum_number(value, "s1_setup_resp_ies_o::value_c::types");
+  if (value == relative_mme_capacity) {
+    return 0;
   }
+  invalid_enum_number(value, "s1_setup_resp_ies_o::value_c::types");
   return 0;
 }
 
 // TraceFailureIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t trace_fail_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 86, 2};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 86, 2};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool trace_fail_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 86, 2};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 86, 2};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -42531,9 +42000,9 @@ crit_e trace_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 2:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 trace_fail_ind_ies_o::value_c trace_fail_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -42552,7 +42021,7 @@ trace_fail_ind_ies_o::value_c trace_fail_ind_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::cause);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -42568,9 +42037,9 @@ presence_e trace_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 2:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -42766,22 +42235,21 @@ SRSASN_CODE trace_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string trace_fail_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING", "Cause"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING", "Cause"};
   return convert_enum_idx(options, 4, value, "trace_fail_ind_ies_o::value_c::types");
 }
 
 // TraceStartIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t trace_start_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 25};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 25};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool trace_start_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 25};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 25};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -42797,9 +42265,9 @@ crit_e trace_start_ies_o::get_crit(const uint32_t& id)
     case 25:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 trace_start_ies_o::value_c trace_start_ies_o::get_value(const uint32_t& id)
 {
@@ -42815,7 +42283,7 @@ trace_start_ies_o::value_c trace_start_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::trace_activation);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -42829,9 +42297,9 @@ presence_e trace_start_ies_o::get_presence(const uint32_t& id)
     case 25:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -42996,21 +42464,21 @@ SRSASN_CODE trace_start_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string trace_start_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "TraceActivation"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "TraceActivation"};
   return convert_enum_idx(options, 3, value, "trace_start_ies_o::value_c::types");
 }
 
 // UECapabilityInfoIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_cap_info_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 74, 198};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 74, 198};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_cap_info_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 74, 198};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 74, 198};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -43028,9 +42496,9 @@ crit_e ue_cap_info_ind_ies_o::get_crit(const uint32_t& id)
     case 198:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_cap_info_ind_ies_o::value_c ue_cap_info_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -43049,7 +42517,7 @@ ue_cap_info_ind_ies_o::value_c ue_cap_info_ind_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::ue_radio_cap_for_paging);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -43065,9 +42533,9 @@ presence_e ue_cap_info_ind_ies_o::get_presence(const uint32_t& id)
     case 198:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -43262,22 +42730,21 @@ SRSASN_CODE ue_cap_info_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_cap_info_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING", "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING", "OCTET STRING"};
   return convert_enum_idx(options, 4, value, "ue_cap_info_ind_ies_o::value_c::types");
 }
 
 // UEContextModificationConfirmIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_mod_confirm_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 146, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 146, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_mod_confirm_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 146, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 146, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -43295,9 +42762,9 @@ crit_e ue_context_mod_confirm_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_mod_confirm_ies_o::value_c ue_context_mod_confirm_ies_o::get_value(const uint32_t& id)
 {
@@ -43316,7 +42783,7 @@ ue_context_mod_confirm_ies_o::value_c ue_context_mod_confirm_ies_o::get_value(co
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -43332,9 +42799,9 @@ presence_e ue_context_mod_confirm_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -43527,7 +42994,7 @@ SRSASN_CODE ue_context_mod_confirm_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_mod_confirm_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "CSGMembershipStatus", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "ue_context_mod_confirm_ies_o::value_c::types");
 }
@@ -43535,14 +43002,14 @@ std::string ue_context_mod_confirm_ies_o::value_c::types_opts::to_string() const
 // UEContextModificationFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_mod_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 2, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_mod_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -43560,9 +43027,9 @@ crit_e ue_context_mod_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_mod_fail_ies_o::value_c ue_context_mod_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -43581,7 +43048,7 @@ ue_context_mod_fail_ies_o::value_c ue_context_mod_fail_ies_o::get_value(const ui
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -43597,9 +43064,9 @@ presence_e ue_context_mod_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -43797,7 +43264,7 @@ SRSASN_CODE ue_context_mod_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_mod_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "ue_context_mod_fail_ies_o::value_c::types");
 }
@@ -43805,14 +43272,14 @@ std::string ue_context_mod_fail_ies_o::value_c::types_opts::to_string() const
 // UEContextModificationIndicationIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_mod_ind_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 226};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 226};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ue_context_mod_ind_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 226};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 226};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -43828,9 +43295,9 @@ crit_e ue_context_mod_ind_ies_o::get_crit(const uint32_t& id)
     case 226:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_mod_ind_ies_o::value_c ue_context_mod_ind_ies_o::get_value(const uint32_t& id)
 {
@@ -43846,7 +43313,7 @@ ue_context_mod_ind_ies_o::value_c ue_context_mod_ind_ies_o::get_value(const uint
       ret.set(value_c::types::csg_membership_info);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -43860,9 +43327,9 @@ presence_e ue_context_mod_ind_ies_o::get_presence(const uint32_t& id)
     case 226:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -44028,21 +43495,21 @@ SRSASN_CODE ue_context_mod_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_mod_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "CSGMembershipInfo"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "CSGMembershipInfo"};
   return convert_enum_idx(options, 3, value, "ue_context_mod_ind_ies_o::value_c::types");
 }
 
 // UEContextModificationRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_mod_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 73, 106, 66, 108, 107, 146, 159, 187, 195, 124, 243, 240, 248};
-  return convert_enum_idx(options, 15, idx, "id");
+  static const uint32_t options[] = {0, 8, 73, 106, 66, 108, 107, 146, 159, 187, 195, 124, 243, 240, 248};
+  return map_enum_number(options, 15, idx, "id");
 }
 bool ue_context_mod_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 73, 106, 66, 108, 107, 146, 159, 187, 195, 124, 243, 240, 248};
-  for (uint32_t i = 0; i < 15; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 73, 106, 66, 108, 107, 146, 159, 187, 195, 124, 243, 240, 248};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -44082,9 +43549,9 @@ crit_e ue_context_mod_request_ies_o::get_crit(const uint32_t& id)
     case 248:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_mod_request_ies_o::value_c ue_context_mod_request_ies_o::get_value(const uint32_t& id)
 {
@@ -44136,7 +43603,7 @@ ue_context_mod_request_ies_o::value_c ue_context_mod_request_ies_o::get_value(co
       ret.set(value_c::types::ue_sidelink_aggregate_maximum_bitrate);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -44174,9 +43641,9 @@ presence_e ue_context_mod_request_ies_o::get_presence(const uint32_t& id)
     case 248:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -44696,35 +44163,35 @@ SRSASN_CODE ue_context_mod_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_mod_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "BIT STRING",
-                                            "INTEGER (1..256)",
-                                            "UEAggregateMaximumBitrate",
-                                            "CSFallbackIndicator",
-                                            "UESecurityCapabilities",
-                                            "CSGMembershipStatus",
-                                            "LAI",
-                                            "AdditionalCSFallbackIndicator",
-                                            "ProSeAuthorized",
-                                            "SRVCCOperationPossible",
-                                            "SRVCCOperationNotPossible",
-                                            "V2XServicesAuthorized",
-                                            "UESidelinkAggregateMaximumBitrate"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "BIT STRING",
+                                  "INTEGER (1..256)",
+                                  "UEAggregateMaximumBitrate",
+                                  "CSFallbackIndicator",
+                                  "UESecurityCapabilities",
+                                  "CSGMembershipStatus",
+                                  "LAI",
+                                  "AdditionalCSFallbackIndicator",
+                                  "ProSeAuthorized",
+                                  "SRVCCOperationPossible",
+                                  "SRVCCOperationNotPossible",
+                                  "V2XServicesAuthorized",
+                                  "UESidelinkAggregateMaximumBitrate"};
   return convert_enum_idx(options, 15, value, "ue_context_mod_request_ies_o::value_c::types");
 }
 
 // UEContextModificationResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_mod_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 58};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 58};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ue_context_mod_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 58};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -44740,9 +44207,9 @@ crit_e ue_context_mod_resp_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_mod_resp_ies_o::value_c ue_context_mod_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -44758,7 +44225,7 @@ ue_context_mod_resp_ies_o::value_c ue_context_mod_resp_ies_o::get_value(const ui
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -44772,9 +44239,9 @@ presence_e ue_context_mod_resp_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -44940,22 +44407,21 @@ SRSASN_CODE ue_context_mod_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_mod_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "CriticalityDiagnostics"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 3, value, "ue_context_mod_resp_ies_o::value_c::types");
 }
 
 // UEContextReleaseCommand-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_release_cmd_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {99, 2};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {99, 2};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool ue_context_release_cmd_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {99, 2};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {99, 2};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -44969,9 +44435,9 @@ crit_e ue_context_release_cmd_ies_o::get_crit(const uint32_t& id)
     case 2:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_release_cmd_ies_o::value_c ue_context_release_cmd_ies_o::get_value(const uint32_t& id)
 {
@@ -44984,7 +44450,7 @@ ue_context_release_cmd_ies_o::value_c ue_context_release_cmd_ies_o::get_value(co
       ret.set(value_c::types::cause);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -44996,9 +44462,9 @@ presence_e ue_context_release_cmd_ies_o::get_presence(const uint32_t& id)
     case 2:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -45142,26 +44608,26 @@ SRSASN_CODE ue_context_release_cmd_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_release_cmd_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"UE-S1AP-IDs", "Cause"};
+  static const char* options[] = {"UE-S1AP-IDs", "Cause"};
   return convert_enum_idx(options, 2, value, "ue_context_release_cmd_ies_o::value_c::types");
 }
 uint8_t ue_context_release_cmd_ies_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {1};
-  return convert_enum_idx(options, 1, value, "ue_context_release_cmd_ies_o::value_c::types");
+  static const uint8_t options[] = {1};
+  return map_enum_number(options, 1, value, "ue_context_release_cmd_ies_o::value_c::types");
 }
 
 // UEContextReleaseComplete-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_release_complete_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 58, 189, 213, 212};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {0, 8, 58, 189, 213, 212};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool ue_context_release_complete_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 58, 189, 213, 212};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 58, 189, 213, 212};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -45183,9 +44649,9 @@ crit_e ue_context_release_complete_ies_o::get_crit(const uint32_t& id)
     case 212:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_release_complete_ies_o::value_c ue_context_release_complete_ies_o::get_value(const uint32_t& id)
 {
@@ -45210,7 +44676,7 @@ ue_context_release_complete_ies_o::value_c ue_context_release_complete_ies_o::ge
       ret.set(value_c::types::cell_id_and_ce_level_for_ce_capable_ues);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -45230,9 +44696,9 @@ presence_e ue_context_release_complete_ies_o::get_presence(const uint32_t& id)
     case 212:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -45498,26 +44964,26 @@ SRSASN_CODE ue_context_release_complete_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_release_complete_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "CriticalityDiagnostics",
-                                            "UserLocationInformation",
-                                            "InformationOnRecommendedCellsAndENBsForPaging",
-                                            "CellIdentifierAndCELevelForCECapableUEs"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "CriticalityDiagnostics",
+                                  "UserLocationInformation",
+                                  "InformationOnRecommendedCellsAndENBsForPaging",
+                                  "CellIdentifierAndCELevelForCECapableUEs"};
   return convert_enum_idx(options, 6, value, "ue_context_release_complete_ies_o::value_c::types");
 }
 
 // UEContextReleaseRequest-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_release_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 164};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 2, 164};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_release_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 164};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2, 164};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -45535,9 +45001,9 @@ crit_e ue_context_release_request_ies_o::get_crit(const uint32_t& id)
     case 164:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_release_request_ies_o::value_c ue_context_release_request_ies_o::get_value(const uint32_t& id)
 {
@@ -45556,7 +45022,7 @@ ue_context_release_request_ies_o::value_c ue_context_release_request_ies_o::get_
       ret.set(value_c::types::gw_context_release_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -45572,9 +45038,9 @@ presence_e ue_context_release_request_ies_o::get_presence(const uint32_t& id)
     case 164:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -45767,7 +45233,7 @@ SRSASN_CODE ue_context_release_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_release_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause", "GWContextReleaseIndication"};
   return convert_enum_idx(options, 4, value, "ue_context_release_request_ies_o::value_c::types");
 }
@@ -45775,14 +45241,14 @@ std::string ue_context_release_request_ies_o::value_c::types_opts::to_string() c
 // UEContextResumeFailureIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_resume_fail_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 2, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_resume_fail_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 2, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 2, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -45800,9 +45266,9 @@ crit_e ue_context_resume_fail_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_resume_fail_ies_o::value_c ue_context_resume_fail_ies_o::get_value(const uint32_t& id)
 {
@@ -45821,7 +45287,7 @@ ue_context_resume_fail_ies_o::value_c ue_context_resume_fail_ies_o::get_value(co
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -45837,9 +45303,9 @@ presence_e ue_context_resume_fail_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -46037,7 +45503,7 @@ SRSASN_CODE ue_context_resume_fail_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_resume_fail_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "Cause", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "ue_context_resume_fail_ies_o::value_c::types");
 }
@@ -46045,14 +45511,14 @@ std::string ue_context_resume_fail_ies_o::value_c::types_opts::to_string() const
 // UEContextResumeRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_resume_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 235, 245};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 235, 245};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_resume_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 235, 245};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 235, 245};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -46070,9 +45536,9 @@ crit_e ue_context_resume_request_ies_o::get_crit(const uint32_t& id)
     case 245:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_resume_request_ies_o::value_c ue_context_resume_request_ies_o::get_value(const uint32_t& id)
 {
@@ -46091,7 +45557,7 @@ ue_context_resume_request_ies_o::value_c ue_context_resume_request_ies_o::get_va
       ret.set(value_c::types::rrc_resume_cause);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -46107,9 +45573,9 @@ presence_e ue_context_resume_request_ies_o::get_presence(const uint32_t& id)
     case 245:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -46304,22 +45770,21 @@ SRSASN_CODE ue_context_resume_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_resume_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "", "RRC-Establishment-Cause"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "", "RRC-Establishment-Cause"};
   return convert_enum_idx(options, 4, value, "ue_context_resume_request_ies_o::value_c::types");
 }
 
 // UEContextResumeResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_resume_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 237, 58, 40, 283};
-  return convert_enum_idx(options, 6, idx, "id");
+  static const uint32_t options[] = {0, 8, 237, 58, 40, 283};
+  return map_enum_number(options, 6, idx, "id");
 }
 bool ue_context_resume_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 237, 58, 40, 283};
-  for (uint32_t i = 0; i < 6; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 237, 58, 40, 283};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -46341,9 +45806,9 @@ crit_e ue_context_resume_resp_ies_o::get_crit(const uint32_t& id)
     case 283:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_resume_resp_ies_o::value_c ue_context_resume_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -46368,7 +45833,7 @@ ue_context_resume_resp_ies_o::value_c ue_context_resume_resp_ies_o::get_value(co
       ret.set(value_c::types::pending_data_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -46388,9 +45853,9 @@ presence_e ue_context_resume_resp_ies_o::get_presence(const uint32_t& id)
     case 283:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -46649,26 +46114,26 @@ SRSASN_CODE ue_context_resume_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_resume_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "",
-                                            "CriticalityDiagnostics",
-                                            "SecurityContext",
-                                            "PendingDataIndication"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "",
+                                  "CriticalityDiagnostics",
+                                  "SecurityContext",
+                                  "PendingDataIndication"};
   return convert_enum_idx(options, 6, value, "ue_context_resume_resp_ies_o::value_c::types");
 }
 
 // UEContextSuspendRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_suspend_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 213, 212};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 213, 212};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_suspend_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 213, 212};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 213, 212};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -46686,9 +46151,9 @@ crit_e ue_context_suspend_request_ies_o::get_crit(const uint32_t& id)
     case 212:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_suspend_request_ies_o::value_c ue_context_suspend_request_ies_o::get_value(const uint32_t& id)
 {
@@ -46707,7 +46172,7 @@ ue_context_suspend_request_ies_o::value_c ue_context_suspend_request_ies_o::get_
       ret.set(value_c::types::cell_id_and_ce_level_for_ce_capable_ues);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -46723,9 +46188,9 @@ presence_e ue_context_suspend_request_ies_o::get_presence(const uint32_t& id)
     case 212:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -46927,24 +46392,24 @@ SRSASN_CODE ue_context_suspend_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_suspend_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "InformationOnRecommendedCellsAndENBsForPaging",
-                                            "CellIdentifierAndCELevelForCECapableUEs"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "InformationOnRecommendedCellsAndENBsForPaging",
+                                  "CellIdentifierAndCELevelForCECapableUEs"};
   return convert_enum_idx(options, 4, value, "ue_context_suspend_request_ies_o::value_c::types");
 }
 
 // UEContextSuspendResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_context_suspend_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 58, 40};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 58, 40};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_context_suspend_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 58, 40};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 58, 40};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -46962,9 +46427,9 @@ crit_e ue_context_suspend_resp_ies_o::get_crit(const uint32_t& id)
     case 40:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_context_suspend_resp_ies_o::value_c ue_context_suspend_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -46983,7 +46448,7 @@ ue_context_suspend_resp_ies_o::value_c ue_context_suspend_resp_ies_o::get_value(
       ret.set(value_c::types::security_context);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -46999,9 +46464,9 @@ presence_e ue_context_suspend_resp_ies_o::get_presence(const uint32_t& id)
     case 40:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -47199,7 +46664,7 @@ SRSASN_CODE ue_context_suspend_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_suspend_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "CriticalityDiagnostics", "SecurityContext"};
   return convert_enum_idx(options, 4, value, "ue_context_suspend_resp_ies_o::value_c::types");
 }
@@ -47207,14 +46672,14 @@ std::string ue_context_suspend_resp_ies_o::value_c::types_opts::to_string() cons
 // UEInformationTransferIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_info_transfer_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {96, 252, 74, 283};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {96, 252, 74, 283};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_info_transfer_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {96, 252, 74, 283};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {96, 252, 74, 283};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -47232,9 +46697,9 @@ crit_e ue_info_transfer_ies_o::get_crit(const uint32_t& id)
     case 283:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_info_transfer_ies_o::value_c ue_info_transfer_ies_o::get_value(const uint32_t& id)
 {
@@ -47253,7 +46718,7 @@ ue_info_transfer_ies_o::value_c ue_info_transfer_ies_o::get_value(const uint32_t
       ret.set(value_c::types::pending_data_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -47269,9 +46734,9 @@ presence_e ue_info_transfer_ies_o::get_presence(const uint32_t& id)
     case 283:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -47473,22 +46938,21 @@ SRSASN_CODE ue_info_transfer_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_info_transfer_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "S-TMSI", "E-RABLevelQoSParameters", "OCTET STRING", "PendingDataIndication"};
+  static const char* options[] = {"S-TMSI", "E-RABLevelQoSParameters", "OCTET STRING", "PendingDataIndication"};
   return convert_enum_idx(options, 4, value, "ue_info_transfer_ies_o::value_c::types");
 }
 
 // UERadioCapabilityMatchRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_radio_cap_match_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 74};
-  return convert_enum_idx(options, 3, idx, "id");
+  static const uint32_t options[] = {0, 8, 74};
+  return map_enum_number(options, 3, idx, "id");
 }
 bool ue_radio_cap_match_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 74};
-  for (uint32_t i = 0; i < 3; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 74};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -47504,9 +46968,9 @@ crit_e ue_radio_cap_match_request_ies_o::get_crit(const uint32_t& id)
     case 74:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_radio_cap_match_request_ies_o::value_c ue_radio_cap_match_request_ies_o::get_value(const uint32_t& id)
 {
@@ -47522,7 +46986,7 @@ ue_radio_cap_match_request_ies_o::value_c ue_radio_cap_match_request_ies_o::get_
       ret.set(value_c::types::ue_radio_cap);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -47536,9 +47000,9 @@ presence_e ue_radio_cap_match_request_ies_o::get_presence(const uint32_t& id)
     case 74:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -47703,21 +47167,21 @@ SRSASN_CODE ue_radio_cap_match_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_radio_cap_match_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "OCTET STRING"};
   return convert_enum_idx(options, 3, value, "ue_radio_cap_match_request_ies_o::value_c::types");
 }
 
 // UERadioCapabilityMatchResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ue_radio_cap_match_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 169, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 169, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ue_radio_cap_match_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 169, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 169, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -47735,9 +47199,9 @@ crit_e ue_radio_cap_match_resp_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ue_radio_cap_match_resp_ies_o::value_c ue_radio_cap_match_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -47756,7 +47220,7 @@ ue_radio_cap_match_resp_ies_o::value_c ue_radio_cap_match_resp_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -47772,9 +47236,9 @@ presence_e ue_radio_cap_match_resp_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -47967,7 +47431,7 @@ SRSASN_CODE ue_radio_cap_match_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_radio_cap_match_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "VoiceSupportMatchIndicator", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "ue_radio_cap_match_resp_ies_o::value_c::types");
 }
@@ -47975,14 +47439,14 @@ std::string ue_radio_cap_match_resp_ies_o::value_c::types_opts::to_string() cons
 // UplinkNASTransport-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ul_nas_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 26, 100, 67, 155, 184, 186};
-  return convert_enum_idx(options, 8, idx, "id");
+  static const uint32_t options[] = {0, 8, 26, 100, 67, 155, 184, 186};
+  return map_enum_number(options, 8, idx, "id");
 }
 bool ul_nas_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 26, 100, 67, 155, 184, 186};
-  for (uint32_t i = 0; i < 8; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 26, 100, 67, 155, 184, 186};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -48008,9 +47472,9 @@ crit_e ul_nas_transport_ies_o::get_crit(const uint32_t& id)
     case 186:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_nas_transport_ies_o::value_c ul_nas_transport_ies_o::get_value(const uint32_t& id)
 {
@@ -48041,7 +47505,7 @@ ul_nas_transport_ies_o::value_c ul_nas_transport_ies_o::get_value(const uint32_t
       ret.set(value_c::types::lhn_id);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -48065,9 +47529,9 @@ presence_e ul_nas_transport_ies_o::get_presence(const uint32_t& id)
     case 186:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -48389,28 +47853,28 @@ SRSASN_CODE ul_nas_transport_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ul_nas_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "OCTET STRING",
-                                            "EUTRAN-CGI",
-                                            "TAI",
-                                            "BIT STRING",
-                                            "BIT STRING",
-                                            "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "OCTET STRING",
+                                  "EUTRAN-CGI",
+                                  "TAI",
+                                  "BIT STRING",
+                                  "BIT STRING",
+                                  "OCTET STRING"};
   return convert_enum_idx(options, 8, value, "ul_nas_transport_ies_o::value_c::types");
 }
 
 // UplinkNonUEAssociatedLPPaTransport-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ul_non_ueassociated_lp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {148, 147};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {148, 147};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool ul_non_ueassociated_lp_pa_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {148, 147};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {148, 147};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -48424,9 +47888,9 @@ crit_e ul_non_ueassociated_lp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 147:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_non_ueassociated_lp_pa_transport_ies_o::value_c
 ul_non_ueassociated_lp_pa_transport_ies_o::get_value(const uint32_t& id)
@@ -48440,7 +47904,7 @@ ul_non_ueassociated_lp_pa_transport_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::lp_pa_pdu);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -48452,9 +47916,9 @@ presence_e ul_non_ueassociated_lp_pa_transport_ies_o::get_presence(const uint32_
     case 147:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -48593,26 +48057,26 @@ SRSASN_CODE ul_non_ueassociated_lp_pa_transport_ies_o::value_c::unpack(cbit_ref&
 
 std::string ul_non_ueassociated_lp_pa_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..255)", "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..255)", "OCTET STRING"};
   return convert_enum_idx(options, 2, value, "ul_non_ueassociated_lp_pa_transport_ies_o::value_c::types");
 }
 uint8_t ul_non_ueassociated_lp_pa_transport_ies_o::value_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {0};
-  return convert_enum_idx(options, 1, value, "ul_non_ueassociated_lp_pa_transport_ies_o::value_c::types");
+  static const uint8_t options[] = {0};
+  return map_enum_number(options, 1, value, "ul_non_ueassociated_lp_pa_transport_ies_o::value_c::types");
 }
 
 // UplinkS1cdma2000tunnellingIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ul_s1cdma2000tunnelling_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 71, 72, 84, 102, 97, 70, 140};
-  return convert_enum_idx(options, 9, idx, "id");
+  static const uint32_t options[] = {0, 8, 71, 72, 84, 102, 97, 70, 140};
+  return map_enum_number(options, 9, idx, "id");
 }
 bool ul_s1cdma2000tunnelling_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 71, 72, 84, 102, 97, 70, 140};
-  for (uint32_t i = 0; i < 9; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 71, 72, 84, 102, 97, 70, 140};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -48640,9 +48104,9 @@ crit_e ul_s1cdma2000tunnelling_ies_o::get_crit(const uint32_t& id)
     case 140:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_s1cdma2000tunnelling_ies_o::value_c ul_s1cdma2000tunnelling_ies_o::get_value(const uint32_t& id)
 {
@@ -48676,7 +48140,7 @@ ul_s1cdma2000tunnelling_ies_o::value_c ul_s1cdma2000tunnelling_ies_o::get_value(
       ret.set(value_c::types::eutran_round_trip_delay_estimation_info);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -48702,9 +48166,9 @@ presence_e ul_s1cdma2000tunnelling_ies_o::get_presence(const uint32_t& id)
     case 140:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -49044,29 +48508,29 @@ SRSASN_CODE ul_s1cdma2000tunnelling_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ul_s1cdma2000tunnelling_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..4294967295)",
-                                            "INTEGER (0..16777215)",
-                                            "Cdma2000RATType",
-                                            "OCTET STRING",
-                                            "Cdma2000HORequiredIndication",
-                                            "Cdma2000OneXSRVCCInfo",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "INTEGER (0..2047)"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "Cdma2000RATType",
+                                  "OCTET STRING",
+                                  "Cdma2000HORequiredIndication",
+                                  "Cdma2000OneXSRVCCInfo",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "INTEGER (0..2047)"};
   return convert_enum_idx(options, 9, value, "ul_s1cdma2000tunnelling_ies_o::value_c::types");
 }
 
 // UplinkUEAssociatedLPPaTransport-IEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t ul_ueassociated_lp_pa_transport_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {0, 8, 148, 147};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {0, 8, 148, 147};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool ul_ueassociated_lp_pa_transport_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {0, 8, 148, 147};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {0, 8, 148, 147};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -49084,9 +48548,9 @@ crit_e ul_ueassociated_lp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 147:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 ul_ueassociated_lp_pa_transport_ies_o::value_c ul_ueassociated_lp_pa_transport_ies_o::get_value(const uint32_t& id)
 {
@@ -49105,7 +48569,7 @@ ul_ueassociated_lp_pa_transport_ies_o::value_c ul_ueassociated_lp_pa_transport_i
       ret.set(value_c::types::lp_pa_pdu);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -49121,9 +48585,9 @@ presence_e ul_ueassociated_lp_pa_transport_ies_o::get_presence(const uint32_t& i
     case 147:
       return presence_e::mandatory;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -49315,7 +48779,7 @@ SRSASN_CODE ul_ueassociated_lp_pa_transport_ies_o::value_c::unpack(cbit_ref& bre
 
 std::string ul_ueassociated_lp_pa_transport_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "INTEGER (0..255)", "OCTET STRING"};
   return convert_enum_idx(options, 4, value, "ul_ueassociated_lp_pa_transport_ies_o::value_c::types");
 }
@@ -49323,14 +48787,14 @@ std::string ul_ueassociated_lp_pa_transport_ies_o::value_c::types_opts::to_strin
 // WriteReplaceWarningRequestIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t write_replace_warning_request_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {111, 112, 113, 114, 144, 115, 116, 117, 118, 119, 142};
-  return convert_enum_idx(options, 11, idx, "id");
+  static const uint32_t options[] = {111, 112, 113, 114, 144, 115, 116, 117, 118, 119, 142};
+  return map_enum_number(options, 11, idx, "id");
 }
 bool write_replace_warning_request_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {111, 112, 113, 114, 144, 115, 116, 117, 118, 119, 142};
-  for (uint32_t i = 0; i < 11; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {111, 112, 113, 114, 144, 115, 116, 117, 118, 119, 142};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -49362,9 +48826,9 @@ crit_e write_replace_warning_request_ies_o::get_crit(const uint32_t& id)
     case 142:
       return crit_e::reject;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 write_replace_warning_request_ies_o::value_c write_replace_warning_request_ies_o::get_value(const uint32_t& id)
 {
@@ -49404,7 +48868,7 @@ write_replace_warning_request_ies_o::value_c write_replace_warning_request_ies_o
       ret.set(value_c::types::concurrent_warning_msg_ind);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -49434,9 +48898,9 @@ presence_e write_replace_warning_request_ies_o::get_presence(const uint32_t& id)
     case 142:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -49842,31 +49306,31 @@ SRSASN_CODE write_replace_warning_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string write_replace_warning_request_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"BIT STRING",
-                                            "BIT STRING",
-                                            "WarningAreaList",
-                                            "INTEGER (0..4095)",
-                                            "INTEGER (4096..131071)",
-                                            "INTEGER (0..65535)",
-                                            "OCTET STRING",
-                                            "OCTET STRING",
-                                            "BIT STRING",
-                                            "OCTET STRING",
-                                            "ConcurrentWarningMessageIndicator"};
+  static const char* options[] = {"BIT STRING",
+                                  "BIT STRING",
+                                  "WarningAreaList",
+                                  "INTEGER (0..4095)",
+                                  "INTEGER (4096..131071)",
+                                  "INTEGER (0..65535)",
+                                  "OCTET STRING",
+                                  "OCTET STRING",
+                                  "BIT STRING",
+                                  "OCTET STRING",
+                                  "ConcurrentWarningMessageIndicator"};
   return convert_enum_idx(options, 11, value, "write_replace_warning_request_ies_o::value_c::types");
 }
 
 // WriteReplaceWarningResponseIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t write_replace_warning_resp_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {111, 112, 120, 58};
-  return convert_enum_idx(options, 4, idx, "id");
+  static const uint32_t options[] = {111, 112, 120, 58};
+  return map_enum_number(options, 4, idx, "id");
 }
 bool write_replace_warning_resp_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {111, 112, 120, 58};
-  for (uint32_t i = 0; i < 4; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {111, 112, 120, 58};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -49884,9 +49348,9 @@ crit_e write_replace_warning_resp_ies_o::get_crit(const uint32_t& id)
     case 58:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 write_replace_warning_resp_ies_o::value_c write_replace_warning_resp_ies_o::get_value(const uint32_t& id)
 {
@@ -49905,7 +49369,7 @@ write_replace_warning_resp_ies_o::value_c write_replace_warning_resp_ies_o::get_
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -49921,9 +49385,9 @@ presence_e write_replace_warning_resp_ies_o::get_presence(const uint32_t& id)
     case 58:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Value ::= OPEN TYPE
@@ -50129,12 +49593,11 @@ SRSASN_CODE write_replace_warning_resp_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string write_replace_warning_resp_ies_o::value_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {
-      "BIT STRING", "BIT STRING", "BroadcastCompletedAreaList", "CriticalityDiagnostics"};
+  static const char* options[] = {"BIT STRING", "BIT STRING", "BroadcastCompletedAreaList", "CriticalityDiagnostics"};
   return convert_enum_idx(options, 4, value, "write_replace_warning_resp_ies_o::value_c::types");
 }
 
-template struct protocol_ie_field_s<kill_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<kill_request_ies_o>;
 
 kill_request_ies_container::kill_request_ies_container() :
   msg_id(111, crit_e::reject),
@@ -50197,12 +49660,13 @@ SRSASN_CODE kill_request_ies_container::unpack(cbit_ref& bref)
         kill_all_warning_msgs.value   = c.value.kill_all_warning_msgs();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -50248,7 +49712,7 @@ void kill_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<kill_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<kill_resp_ies_o>;
 
 kill_resp_ies_container::kill_resp_ies_container() :
   msg_id(111, crit_e::reject),
@@ -50311,12 +49775,13 @@ SRSASN_CODE kill_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -50362,7 +49827,7 @@ void kill_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<location_report_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<location_report_ies_o>;
 
 location_report_ies_container::location_report_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -50427,12 +49892,13 @@ SRSASN_CODE location_report_ies_container::unpack(cbit_ref& bref)
         request_type.value = c.value.request_type();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -50476,7 +49942,7 @@ void location_report_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<location_report_ctrl_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<location_report_ctrl_ies_o>;
 
 location_report_ctrl_ies_container::location_report_ctrl_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -50525,12 +49991,13 @@ SRSASN_CODE location_report_ctrl_ies_container::unpack(cbit_ref& bref)
         request_type.value = c.value.request_type();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -50570,7 +50037,7 @@ void location_report_ctrl_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<location_report_fail_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<location_report_fail_ind_ies_o>;
 
 location_report_fail_ind_ies_container::location_report_fail_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -50619,12 +50086,13 @@ SRSASN_CODE location_report_fail_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -50664,7 +50132,7 @@ void location_report_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<mmecp_relocation_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<mmecp_relocation_ind_ies_o>;
 
 mmecp_relocation_ind_ies_container::mmecp_relocation_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -50705,12 +50173,13 @@ SRSASN_CODE mmecp_relocation_ind_ies_container::unpack(cbit_ref& bref)
         enb_ue_s1ap_id.value = c.value.enb_ue_s1ap_id();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -50748,7 +50217,7 @@ void mmecp_relocation_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<mme_cfg_transfer_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<mme_cfg_transfer_ies_o>;
 
 mme_cfg_transfer_ies_container::mme_cfg_transfer_ies_container() : son_cfg_transfer_mct(130, crit_e::ignore) {}
 SRSASN_CODE mme_cfg_transfer_ies_container::pack(bit_ref& bref) const
@@ -50771,16 +50240,14 @@ SRSASN_CODE mme_cfg_transfer_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<mme_cfg_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 130:
-        son_cfg_transfer_mct_present = true;
-        son_cfg_transfer_mct.id      = c.id;
-        son_cfg_transfer_mct.crit    = c.crit;
-        son_cfg_transfer_mct.value   = c.value.son_cfg_transfer_mct();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 130) {
+      son_cfg_transfer_mct_present = true;
+      son_cfg_transfer_mct.id      = c.id;
+      son_cfg_transfer_mct.crit    = c.crit;
+      son_cfg_transfer_mct.value   = c.value.son_cfg_transfer_mct();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -50819,7 +50286,7 @@ void mme_cfg_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<mme_cfg_upd_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<mme_cfg_upd_ies_o>;
 
 mme_cfg_upd_ies_container::mme_cfg_upd_ies_container() :
   mm_ename(61, crit_e::ignore),
@@ -50886,7 +50353,7 @@ SRSASN_CODE mme_cfg_upd_ies_container::unpack(cbit_ref& bref)
         served_dcns.value   = c.value.served_dcns();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -50938,7 +50405,7 @@ void mme_cfg_upd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<mme_cfg_upd_ack_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<mme_cfg_upd_ack_ies_o>;
 
 mme_cfg_upd_ack_ies_container::mme_cfg_upd_ack_ies_container() : crit_diagnostics(58, crit_e::ignore) {}
 SRSASN_CODE mme_cfg_upd_ack_ies_container::pack(bit_ref& bref) const
@@ -50961,16 +50428,14 @@ SRSASN_CODE mme_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<mme_cfg_upd_ack_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 58:
-        crit_diagnostics_present = true;
-        crit_diagnostics.id      = c.id;
-        crit_diagnostics.crit    = c.crit;
-        crit_diagnostics.value   = c.value.crit_diagnostics();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 58) {
+      crit_diagnostics_present = true;
+      crit_diagnostics.id      = c.id;
+      crit_diagnostics.crit    = c.crit;
+      crit_diagnostics.value   = c.value.crit_diagnostics();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -51009,7 +50474,7 @@ void mme_cfg_upd_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<mme_cfg_upd_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<mme_cfg_upd_fail_ies_o>;
 
 mme_cfg_upd_fail_ies_container::mme_cfg_upd_fail_ies_container() :
   cause(2, crit_e::ignore),
@@ -51064,12 +50529,13 @@ SRSASN_CODE mme_cfg_upd_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -51113,7 +50579,7 @@ void mme_cfg_upd_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<mme_direct_info_transfer_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<mme_direct_info_transfer_ies_o>;
 
 mme_direct_info_transfer_ies_container::mme_direct_info_transfer_ies_container() :
   inter_sys_info_transfer_type_mdt(122, crit_e::reject)
@@ -51138,20 +50604,19 @@ SRSASN_CODE mme_direct_info_transfer_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<mme_direct_info_transfer_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 122:
-        nof_mandatory_ies--;
-        inter_sys_info_transfer_type_mdt.id    = c.id;
-        inter_sys_info_transfer_type_mdt.crit  = c.crit;
-        inter_sys_info_transfer_type_mdt.value = c.value.inter_sys_info_transfer_type_mdt();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 122) {
+      nof_mandatory_ies--;
+      inter_sys_info_transfer_type_mdt.id    = c.id;
+      inter_sys_info_transfer_type_mdt.crit  = c.crit;
+      inter_sys_info_transfer_type_mdt.value = c.value.inter_sys_info_transfer_type_mdt();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -51187,7 +50652,7 @@ void mme_direct_info_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<mme_status_transfer_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<mme_status_transfer_ies_o>;
 
 mme_status_transfer_ies_container::mme_status_transfer_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -51236,12 +50701,13 @@ SRSASN_CODE mme_status_transfer_ies_container::unpack(cbit_ref& bref)
         enb_status_transfer_transparent_container.value = c.value.enb_status_transfer_transparent_container();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -51281,7 +50747,7 @@ void mme_status_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<nas_delivery_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<nas_delivery_ind_ies_o>;
 
 nas_delivery_ind_ies_container::nas_delivery_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -51322,12 +50788,13 @@ SRSASN_CODE nas_delivery_ind_ies_container::unpack(cbit_ref& bref)
         enb_ue_s1ap_id.value = c.value.enb_ue_s1ap_id();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -51365,7 +50832,7 @@ void nas_delivery_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<nas_non_delivery_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<nas_non_delivery_ind_ies_o>;
 
 nas_non_delivery_ind_ies_container::nas_non_delivery_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -51422,12 +50889,13 @@ SRSASN_CODE nas_non_delivery_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -51469,7 +50937,7 @@ void nas_non_delivery_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<overload_start_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<overload_start_ies_o>;
 
 overload_start_ies_container::overload_start_ies_container() :
   overload_resp(101, crit_e::reject),
@@ -51524,12 +50992,13 @@ SRSASN_CODE overload_start_ies_container::unpack(cbit_ref& bref)
         traffic_load_reduction_ind.value   = c.value.traffic_load_reduction_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -51573,7 +51042,7 @@ void overload_start_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<overload_stop_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<overload_stop_ies_o>;
 
 overload_stop_ies_container::overload_stop_ies_container() : gummei_list(154, crit_e::ignore) {}
 SRSASN_CODE overload_stop_ies_container::pack(bit_ref& bref) const
@@ -51596,16 +51065,14 @@ SRSASN_CODE overload_stop_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<overload_stop_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 154:
-        gummei_list_present = true;
-        gummei_list.id      = c.id;
-        gummei_list.crit    = c.crit;
-        gummei_list.value   = c.value.gummei_list();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 154) {
+      gummei_list_present = true;
+      gummei_list.id      = c.id;
+      gummei_list.crit    = c.crit;
+      gummei_list.value   = c.value.gummei_list();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
 
@@ -51644,7 +51111,7 @@ void overload_stop_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pws_fail_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<pws_fail_ind_ies_o>;
 
 pws_fail_ind_ies_container::pws_fail_ind_ies_container() :
   pw_sfailed_ecgi_list(222, crit_e::reject),
@@ -51685,12 +51152,13 @@ SRSASN_CODE pws_fail_ind_ies_container::unpack(cbit_ref& bref)
         global_enb_id.value = c.value.global_enb_id();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -51728,7 +51196,7 @@ void pws_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<pws_restart_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<pws_restart_ind_ies_o>;
 
 pws_restart_ind_ies_container::pws_restart_ind_ies_container() :
   ecgi_list_for_restart(182, crit_e::reject),
@@ -51788,12 +51256,13 @@ SRSASN_CODE pws_restart_ind_ies_container::unpack(cbit_ref& bref)
         emergency_area_id_list_for_restart.value   = c.value.emergency_area_id_list_for_restart();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -51837,7 +51306,7 @@ void pws_restart_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<paging_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<paging_ies_o>;
 
 paging_ies_container::paging_ies_container() :
   ue_id_idx_value(80, crit_e::ignore),
@@ -52015,12 +51484,13 @@ SRSASN_CODE paging_ies_container::unpack(cbit_ref& bref)
         ce_mode_brestricted.value   = c.value.ce_mode_brestricted();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -52106,7 +51576,7 @@ void paging_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<path_switch_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<path_switch_request_ies_o>;
 
 path_switch_request_ies_container::path_switch_request_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
@@ -52256,12 +51726,13 @@ SRSASN_CODE path_switch_request_ies_container::unpack(cbit_ref& bref)
         rrc_resume_cause.value   = c.value.rrc_resume_cause();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -52335,7 +51806,7 @@ void path_switch_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<path_switch_request_ack_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<path_switch_request_ack_ies_o>;
 
 path_switch_request_ack_ies_container::path_switch_request_ack_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -52527,12 +51998,13 @@ SRSASN_CODE path_switch_request_ack_ies_container::unpack(cbit_ref& bref)
         pending_data_ind.value   = c.value.pending_data_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -52624,7 +52096,7 @@ void path_switch_request_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<path_switch_request_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<path_switch_request_fail_ies_o>;
 
 path_switch_request_fail_ies_container::path_switch_request_fail_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -52684,12 +52156,13 @@ SRSASN_CODE path_switch_request_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -52825,7 +52298,7 @@ void private_msg_s::to_json(json_writer& j) const
   j.end_array();
 }
 
-template struct protocol_ie_field_s<reroute_nas_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<reroute_nas_request_ies_o>;
 
 reroute_nas_request_ies_container::reroute_nas_request_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
@@ -52907,12 +52380,13 @@ SRSASN_CODE reroute_nas_request_ies_container::unpack(cbit_ref& bref)
         ue_usage_type.value   = c.value.ue_usage_type();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -52964,7 +52438,7 @@ void reroute_nas_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<reset_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<reset_ies_o>;
 
 reset_ies_container::reset_ies_container() : cause(2, crit_e::ignore), reset_type(92, crit_e::reject) {}
 SRSASN_CODE reset_ies_container::pack(bit_ref& bref) const
@@ -53001,12 +52475,13 @@ SRSASN_CODE reset_ies_container::unpack(cbit_ref& bref)
         reset_type.value = c.value.reset_type();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -53044,7 +52519,7 @@ void reset_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<reset_ack_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<reset_ack_ies_o>;
 
 reset_ack_ies_container::reset_ack_ies_container() :
   ue_associated_lc_s1_conn_list_res_ack(93, crit_e::ignore),
@@ -53089,7 +52564,7 @@ SRSASN_CODE reset_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -53133,7 +52608,7 @@ void reset_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<retrieve_ue_info_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<retrieve_ue_info_ies_o>;
 
 retrieve_ue_info_ies_container::retrieve_ue_info_ies_container() : s_tmsi(96, crit_e::reject) {}
 SRSASN_CODE retrieve_ue_info_ies_container::pack(bit_ref& bref) const
@@ -53155,20 +52630,19 @@ SRSASN_CODE retrieve_ue_info_ies_container::unpack(cbit_ref& bref)
   for (; nof_ies > 0; --nof_ies) {
     protocol_ie_field_s<retrieve_ue_info_ies_o> c;
     HANDLE_CODE(c.unpack(bref));
-    switch (c.id) {
-      case 96:
-        nof_mandatory_ies--;
-        s_tmsi.id    = c.id;
-        s_tmsi.crit  = c.crit;
-        s_tmsi.value = c.value.s_tmsi();
-        break;
-      default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
-        return SRSASN_ERROR_DECODE_FAIL;
+    if (c.id == 96) {
+      nof_mandatory_ies--;
+      s_tmsi.id    = c.id;
+      s_tmsi.crit  = c.crit;
+      s_tmsi.value = c.value.s_tmsi();
+    } else {
+      logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -53204,7 +52678,7 @@ void retrieve_ue_info_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<s1_setup_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<s1_setup_fail_ies_o>;
 
 s1_setup_fail_ies_container::s1_setup_fail_ies_container() :
   cause(2, crit_e::ignore),
@@ -53259,12 +52733,13 @@ SRSASN_CODE s1_setup_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -53308,7 +52783,7 @@ void s1_setup_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<s1_setup_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<s1_setup_request_ies_o>;
 
 s1_setup_request_ies_container::s1_setup_request_ies_container() :
   global_enb_id(59, crit_e::reject),
@@ -53401,12 +52876,13 @@ SRSASN_CODE s1_setup_request_ies_container::unpack(cbit_ref& bref)
         nb_io_t_default_paging_drx.value   = c.value.nb_io_t_default_paging_drx();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -53462,7 +52938,7 @@ void s1_setup_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<s1_setup_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<s1_setup_resp_ies_o>;
 
 s1_setup_resp_ies_container::s1_setup_resp_ies_container() :
   mm_ename(61, crit_e::ignore),
@@ -53558,12 +53034,13 @@ SRSASN_CODE s1_setup_resp_ies_container::unpack(cbit_ref& bref)
         served_dcns.value   = c.value.served_dcns();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -53621,7 +53098,7 @@ void s1_setup_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<trace_fail_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<trace_fail_ind_ies_o>;
 
 trace_fail_ind_ies_container::trace_fail_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -53678,12 +53155,13 @@ SRSASN_CODE trace_fail_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -53725,7 +53203,7 @@ void trace_fail_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<trace_start_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<trace_start_ies_o>;
 
 trace_start_ies_container::trace_start_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -53774,12 +53252,13 @@ SRSASN_CODE trace_start_ies_container::unpack(cbit_ref& bref)
         trace_activation.value = c.value.trace_activation();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -53819,7 +53298,7 @@ void trace_start_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_cap_info_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_cap_info_ind_ies_o>;
 
 ue_cap_info_ind_ies_container::ue_cap_info_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -53879,12 +53358,13 @@ SRSASN_CODE ue_cap_info_ind_ies_container::unpack(cbit_ref& bref)
         ue_radio_cap_for_paging.value   = c.value.ue_radio_cap_for_paging();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -53928,7 +53408,7 @@ void ue_cap_info_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_mod_confirm_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_mod_confirm_ies_o>;
 
 ue_context_mod_confirm_ies_container::ue_context_mod_confirm_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -53991,12 +53471,13 @@ SRSASN_CODE ue_context_mod_confirm_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -54042,7 +53523,7 @@ void ue_context_mod_confirm_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_mod_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_mod_fail_ies_o>;
 
 ue_context_mod_fail_ies_container::ue_context_mod_fail_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -54102,12 +53583,13 @@ SRSASN_CODE ue_context_mod_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -54151,7 +53633,7 @@ void ue_context_mod_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_mod_ind_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_mod_ind_ies_o>;
 
 ue_context_mod_ind_ies_container::ue_context_mod_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -54203,12 +53685,13 @@ SRSASN_CODE ue_context_mod_ind_ies_container::unpack(cbit_ref& bref)
         csg_membership_info.value   = c.value.csg_membership_info();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -54250,7 +53733,7 @@ void ue_context_mod_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_mod_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_mod_request_ies_o>;
 
 ue_context_mod_request_ies_container::ue_context_mod_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -54434,12 +53917,13 @@ SRSASN_CODE ue_context_mod_request_ies_container::unpack(cbit_ref& bref)
         ue_sidelink_aggregate_maximum_bitrate.value   = c.value.ue_sidelink_aggregate_maximum_bitrate();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -54529,7 +54013,7 @@ void ue_context_mod_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_mod_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_mod_resp_ies_o>;
 
 ue_context_mod_resp_ies_container::ue_context_mod_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -54581,12 +54065,13 @@ SRSASN_CODE ue_context_mod_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -54628,7 +54113,7 @@ void ue_context_mod_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_release_cmd_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
 
 ue_context_release_cmd_ies_container::ue_context_release_cmd_ies_container() :
   ue_s1ap_ids(99, crit_e::reject),
@@ -54669,12 +54154,13 @@ SRSASN_CODE ue_context_release_cmd_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -54712,7 +54198,7 @@ void ue_context_release_cmd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_release_complete_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_release_complete_ies_o>;
 
 ue_context_release_complete_ies_container::ue_context_release_complete_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -54797,12 +54283,13 @@ SRSASN_CODE ue_context_release_complete_ies_container::unpack(cbit_ref& bref)
         cell_id_and_ce_level_for_ce_capable_ues.value   = c.value.cell_id_and_ce_level_for_ce_capable_ues();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -54856,7 +54343,7 @@ void ue_context_release_complete_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_release_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_release_request_ies_o>;
 
 ue_context_release_request_ies_container::ue_context_release_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -54916,12 +54403,13 @@ SRSASN_CODE ue_context_release_request_ies_container::unpack(cbit_ref& bref)
         gw_context_release_ind.value   = c.value.gw_context_release_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -54965,7 +54453,7 @@ void ue_context_release_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_resume_fail_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_resume_fail_ies_o>;
 
 ue_context_resume_fail_ies_container::ue_context_resume_fail_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -55025,12 +54513,13 @@ SRSASN_CODE ue_context_resume_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -55074,7 +54563,7 @@ void ue_context_resume_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_resume_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_resume_request_ies_o>;
 
 ue_context_resume_request_ies_container::ue_context_resume_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -55137,12 +54626,13 @@ SRSASN_CODE ue_context_resume_request_ies_container::unpack(cbit_ref& bref)
         rrc_resume_cause.value   = c.value.rrc_resume_cause();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -55188,7 +54678,7 @@ void ue_context_resume_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_resume_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_resume_resp_ies_o>;
 
 ue_context_resume_resp_ies_container::ue_context_resume_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -55273,12 +54763,13 @@ SRSASN_CODE ue_context_resume_resp_ies_container::unpack(cbit_ref& bref)
         pending_data_ind.value   = c.value.pending_data_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -55332,7 +54823,7 @@ void ue_context_resume_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_suspend_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_suspend_request_ies_o>;
 
 ue_context_suspend_request_ies_container::ue_context_suspend_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -55395,12 +54886,13 @@ SRSASN_CODE ue_context_suspend_request_ies_container::unpack(cbit_ref& bref)
         cell_id_and_ce_level_for_ce_capable_ues.value   = c.value.cell_id_and_ce_level_for_ce_capable_ues();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -55446,7 +54938,7 @@ void ue_context_suspend_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_context_suspend_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_context_suspend_resp_ies_o>;
 
 ue_context_suspend_resp_ies_container::ue_context_suspend_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -55509,12 +55001,13 @@ SRSASN_CODE ue_context_suspend_resp_ies_container::unpack(cbit_ref& bref)
         security_context.value   = c.value.security_context();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -55560,7 +55053,7 @@ void ue_context_suspend_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_info_transfer_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_info_transfer_ies_o>;
 
 ue_info_transfer_ies_container::ue_info_transfer_ies_container() :
   s_tmsi(96, crit_e::reject),
@@ -55626,12 +55119,13 @@ SRSASN_CODE ue_info_transfer_ies_container::unpack(cbit_ref& bref)
         pending_data_ind.value   = c.value.pending_data_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -55679,7 +55173,7 @@ void ue_info_transfer_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_radio_cap_match_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_radio_cap_match_request_ies_o>;
 
 ue_radio_cap_match_request_ies_container::ue_radio_cap_match_request_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -55731,12 +55225,13 @@ SRSASN_CODE ue_radio_cap_match_request_ies_container::unpack(cbit_ref& bref)
         ue_radio_cap.value   = c.value.ue_radio_cap();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -55778,7 +55273,7 @@ void ue_radio_cap_match_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ue_radio_cap_match_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ue_radio_cap_match_resp_ies_o>;
 
 ue_radio_cap_match_resp_ies_container::ue_radio_cap_match_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
@@ -55838,12 +55333,13 @@ SRSASN_CODE ue_radio_cap_match_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -55887,7 +55383,7 @@ void ue_radio_cap_match_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_nas_transport_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ul_nas_transport_ies_o>;
 
 ul_nas_transport_ies_container::ul_nas_transport_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -55985,12 +55481,13 @@ SRSASN_CODE ul_nas_transport_ies_container::unpack(cbit_ref& bref)
         lhn_id.value   = c.value.lhn_id();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -56046,7 +55543,7 @@ void ul_nas_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_non_ueassociated_lp_pa_transport_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ul_non_ueassociated_lp_pa_transport_ies_o>;
 
 ul_non_ueassociated_lp_pa_transport_ies_container::ul_non_ueassociated_lp_pa_transport_ies_container() :
   routing_id(148, crit_e::reject),
@@ -56087,12 +55584,13 @@ SRSASN_CODE ul_non_ueassociated_lp_pa_transport_ies_container::unpack(cbit_ref& 
         lp_pa_pdu.value = c.value.lp_pa_pdu();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -56130,7 +55628,7 @@ void ul_non_ueassociated_lp_pa_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_s1cdma2000tunnelling_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ul_s1cdma2000tunnelling_ies_o>;
 
 ul_s1cdma2000tunnelling_ies_container::ul_s1cdma2000tunnelling_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -56239,12 +55737,13 @@ SRSASN_CODE ul_s1cdma2000tunnelling_ies_container::unpack(cbit_ref& bref)
         eutran_round_trip_delay_estimation_info.value   = c.value.eutran_round_trip_delay_estimation_info();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -56304,7 +55803,7 @@ void ul_s1cdma2000tunnelling_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<ul_ueassociated_lp_pa_transport_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<ul_ueassociated_lp_pa_transport_ies_o>;
 
 ul_ueassociated_lp_pa_transport_ies_container::ul_ueassociated_lp_pa_transport_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
@@ -56361,12 +55860,13 @@ SRSASN_CODE ul_ueassociated_lp_pa_transport_ies_container::unpack(cbit_ref& bref
         lp_pa_pdu.value = c.value.lp_pa_pdu();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -56408,7 +55908,7 @@ void ul_ueassociated_lp_pa_transport_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<write_replace_warning_request_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<write_replace_warning_request_ies_o>;
 
 write_replace_warning_request_ies_container::write_replace_warning_request_ies_container() :
   msg_id(111, crit_e::reject),
@@ -56542,12 +56042,13 @@ SRSASN_CODE write_replace_warning_request_ies_container::unpack(cbit_ref& bref)
         concurrent_warning_msg_ind.value   = c.value.concurrent_warning_msg_ind();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -56617,7 +56118,7 @@ void write_replace_warning_request_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct protocol_ie_field_s<write_replace_warning_resp_ies_o>;
+template struct asn1::s1ap::protocol_ie_field_s<write_replace_warning_resp_ies_o>;
 
 write_replace_warning_resp_ies_container::write_replace_warning_resp_ies_container() :
   msg_id(111, crit_e::reject),
@@ -56680,12 +56181,13 @@ SRSASN_CODE write_replace_warning_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    s1ap_log_print(LOG_LEVEL_ERROR, "Mandatory fields are missing\n");
+    logmap::get("ASN1::S1AP")->error("Mandatory fields are missing\n");
+
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -56731,3313 +56233,21 @@ void write_replace_warning_resp_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-// S1AP-ELEMENTARY-PROCEDURES-CLASS-1 ::= OBJECT SET OF S1AP-ELEMENTARY-PROCEDURE
-uint16_t s1ap_elem_procs_class_minus1_o::idx_to_proc_code(uint32_t idx)
-{
-  static constexpr const uint16_t options[] = {0, 1, 3, 5, 6, 7, 9, 4, 43, 14, 17, 21, 23, 29, 30, 36};
-  return convert_enum_idx(options, 16, idx, "proc_code");
-}
-bool s1ap_elem_procs_class_minus1_o::is_proc_code_valid(const uint16_t& proc_code)
-{
-  static constexpr const uint16_t options[] = {0, 1, 3, 5, 6, 7, 9, 4, 43, 14, 17, 21, 23, 29, 30, 36};
-  for (uint32_t i = 0; i < 16; ++i) {
-    if (options[i] == proc_code) {
-      return true;
-    }
-  }
-  return false;
-}
-s1ap_elem_procs_class_minus1_o::init_msg_c s1ap_elem_procs_class_minus1_o::get_init_msg(const uint16_t& proc_code)
-{
-  init_msg_c ret{};
-  switch (proc_code) {
-    case 0:
-      ret.set(init_msg_c::types::ho_required);
-      break;
-    case 1:
-      ret.set(init_msg_c::types::ho_request);
-      break;
-    case 3:
-      ret.set(init_msg_c::types::path_switch_request);
-      break;
-    case 5:
-      ret.set(init_msg_c::types::erab_setup_request);
-      break;
-    case 6:
-      ret.set(init_msg_c::types::erab_modify_request);
-      break;
-    case 7:
-      ret.set(init_msg_c::types::erab_release_cmd);
-      break;
-    case 9:
-      ret.set(init_msg_c::types::init_context_setup_request);
-      break;
-    case 4:
-      ret.set(init_msg_c::types::ho_cancel);
-      break;
-    case 43:
-      ret.set(init_msg_c::types::kill_request);
-      break;
-    case 14:
-      ret.set(init_msg_c::types::reset);
-      break;
-    case 17:
-      ret.set(init_msg_c::types::s1_setup_request);
-      break;
-    case 21:
-      ret.set(init_msg_c::types::ue_context_mod_request);
-      break;
-    case 23:
-      ret.set(init_msg_c::types::ue_context_release_cmd);
-      break;
-    case 29:
-      ret.set(init_msg_c::types::enb_cfg_upd);
-      break;
-    case 30:
-      ret.set(init_msg_c::types::mme_cfg_upd);
-      break;
-    case 36:
-      ret.set(init_msg_c::types::write_replace_warning_request);
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-s1ap_elem_procs_class_minus1_o::successful_outcome_c
-s1ap_elem_procs_class_minus1_o::get_successful_outcome(const uint16_t& proc_code)
-{
-  successful_outcome_c ret{};
-  switch (proc_code) {
-    case 0:
-      ret.set(successful_outcome_c::types::ho_required);
-      break;
-    case 1:
-      ret.set(successful_outcome_c::types::ho_request);
-      break;
-    case 3:
-      ret.set(successful_outcome_c::types::path_switch_request);
-      break;
-    case 5:
-      ret.set(successful_outcome_c::types::erab_setup_request);
-      break;
-    case 6:
-      ret.set(successful_outcome_c::types::erab_modify_request);
-      break;
-    case 7:
-      ret.set(successful_outcome_c::types::erab_release_cmd);
-      break;
-    case 9:
-      ret.set(successful_outcome_c::types::init_context_setup_request);
-      break;
-    case 4:
-      ret.set(successful_outcome_c::types::ho_cancel);
-      break;
-    case 43:
-      ret.set(successful_outcome_c::types::kill_request);
-      break;
-    case 14:
-      ret.set(successful_outcome_c::types::reset);
-      break;
-    case 17:
-      ret.set(successful_outcome_c::types::s1_setup_request);
-      break;
-    case 21:
-      ret.set(successful_outcome_c::types::ue_context_mod_request);
-      break;
-    case 23:
-      ret.set(successful_outcome_c::types::ue_context_release_cmd);
-      break;
-    case 29:
-      ret.set(successful_outcome_c::types::enb_cfg_upd);
-      break;
-    case 30:
-      ret.set(successful_outcome_c::types::mme_cfg_upd);
-      break;
-    case 36:
-      ret.set(successful_outcome_c::types::write_replace_warning_request);
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c
-s1ap_elem_procs_class_minus1_o::get_unsuccessful_outcome(const uint16_t& proc_code)
-{
-  unsuccessful_outcome_c ret{};
-  switch (proc_code) {
-    case 0:
-      ret.set(unsuccessful_outcome_c::types::ho_required);
-      break;
-    case 1:
-      ret.set(unsuccessful_outcome_c::types::ho_request);
-      break;
-    case 3:
-      ret.set(unsuccessful_outcome_c::types::path_switch_request);
-      break;
-    case 5:
-      break;
-    case 6:
-      break;
-    case 7:
-      break;
-    case 9:
-      ret.set(unsuccessful_outcome_c::types::init_context_setup_request);
-      break;
-    case 4:
-      break;
-    case 43:
-      break;
-    case 14:
-      break;
-    case 17:
-      ret.set(unsuccessful_outcome_c::types::s1_setup_request);
-      break;
-    case 21:
-      ret.set(unsuccessful_outcome_c::types::ue_context_mod_request);
-      break;
-    case 23:
-      break;
-    case 29:
-      ret.set(unsuccessful_outcome_c::types::enb_cfg_upd);
-      break;
-    case 30:
-      ret.set(unsuccessful_outcome_c::types::mme_cfg_upd);
-      break;
-    case 36:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-crit_e s1ap_elem_procs_class_minus1_o::get_crit(const uint16_t& proc_code)
-{
-  switch (proc_code) {
-    case 0:
-      return crit_e::reject;
-    case 1:
-      return crit_e::reject;
-    case 3:
-      return crit_e::reject;
-    case 5:
-      return crit_e::reject;
-    case 6:
-      return crit_e::reject;
-    case 7:
-      return crit_e::reject;
-    case 9:
-      return crit_e::reject;
-    case 4:
-      return crit_e::reject;
-    case 43:
-      return crit_e::reject;
-    case 14:
-      return crit_e::reject;
-    case 17:
-      return crit_e::reject;
-    case 21:
-      return crit_e::reject;
-    case 23:
-      return crit_e::reject;
-    case 29:
-      return crit_e::reject;
-    case 30:
-      return crit_e::reject;
-    case 36:
-      return crit_e::reject;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return crit_e();
-}
-
-// InitiatingMessage ::= OPEN TYPE
-ho_required_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ho_required()
-{
-  assert_choice_type("HandoverRequired", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_required_s>();
-}
-ho_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ho_request()
-{
-  assert_choice_type("HandoverRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_request_s>();
-}
-path_switch_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::path_switch_request()
-{
-  assert_choice_type("PathSwitchRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<path_switch_request_s>();
-}
-erab_setup_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::erab_setup_request()
-{
-  assert_choice_type("E-RABSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<erab_setup_request_s>();
-}
-erab_modify_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::erab_modify_request()
-{
-  assert_choice_type("E-RABModifyRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<erab_modify_request_s>();
-}
-erab_release_cmd_s& s1ap_elem_procs_class_minus1_o::init_msg_c::erab_release_cmd()
-{
-  assert_choice_type("E-RABReleaseCommand", type_.to_string(), "InitiatingMessage");
-  return c.get<erab_release_cmd_s>();
-}
-init_context_setup_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::init_context_setup_request()
-{
-  assert_choice_type("InitialContextSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<init_context_setup_request_s>();
-}
-ho_cancel_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ho_cancel()
-{
-  assert_choice_type("HandoverCancel", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_cancel_s>();
-}
-kill_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::kill_request()
-{
-  assert_choice_type("KillRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<kill_request_s>();
-}
-reset_s& s1ap_elem_procs_class_minus1_o::init_msg_c::reset()
-{
-  assert_choice_type("Reset", type_.to_string(), "InitiatingMessage");
-  return c.get<reset_s>();
-}
-s1_setup_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::s1_setup_request()
-{
-  assert_choice_type("S1SetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<s1_setup_request_s>();
-}
-ue_context_mod_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ue_context_mod_request()
-{
-  assert_choice_type("UEContextModificationRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_mod_request_s>();
-}
-ue_context_release_cmd_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ue_context_release_cmd()
-{
-  assert_choice_type("UEContextReleaseCommand", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_release_cmd_s>();
-}
-enb_cfg_upd_s& s1ap_elem_procs_class_minus1_o::init_msg_c::enb_cfg_upd()
-{
-  assert_choice_type("ENBConfigurationUpdate", type_.to_string(), "InitiatingMessage");
-  return c.get<enb_cfg_upd_s>();
-}
-mme_cfg_upd_s& s1ap_elem_procs_class_minus1_o::init_msg_c::mme_cfg_upd()
-{
-  assert_choice_type("MMEConfigurationUpdate", type_.to_string(), "InitiatingMessage");
-  return c.get<mme_cfg_upd_s>();
-}
-write_replace_warning_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::write_replace_warning_request()
-{
-  assert_choice_type("WriteReplaceWarningRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<write_replace_warning_request_s>();
-}
-const ho_required_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ho_required() const
-{
-  assert_choice_type("HandoverRequired", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_required_s>();
-}
-const ho_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ho_request() const
-{
-  assert_choice_type("HandoverRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_request_s>();
-}
-const path_switch_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::path_switch_request() const
-{
-  assert_choice_type("PathSwitchRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<path_switch_request_s>();
-}
-const erab_setup_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::erab_setup_request() const
-{
-  assert_choice_type("E-RABSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<erab_setup_request_s>();
-}
-const erab_modify_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::erab_modify_request() const
-{
-  assert_choice_type("E-RABModifyRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<erab_modify_request_s>();
-}
-const erab_release_cmd_s& s1ap_elem_procs_class_minus1_o::init_msg_c::erab_release_cmd() const
-{
-  assert_choice_type("E-RABReleaseCommand", type_.to_string(), "InitiatingMessage");
-  return c.get<erab_release_cmd_s>();
-}
-const init_context_setup_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::init_context_setup_request() const
-{
-  assert_choice_type("InitialContextSetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<init_context_setup_request_s>();
-}
-const ho_cancel_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ho_cancel() const
-{
-  assert_choice_type("HandoverCancel", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_cancel_s>();
-}
-const kill_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::kill_request() const
-{
-  assert_choice_type("KillRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<kill_request_s>();
-}
-const reset_s& s1ap_elem_procs_class_minus1_o::init_msg_c::reset() const
-{
-  assert_choice_type("Reset", type_.to_string(), "InitiatingMessage");
-  return c.get<reset_s>();
-}
-const s1_setup_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::s1_setup_request() const
-{
-  assert_choice_type("S1SetupRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<s1_setup_request_s>();
-}
-const ue_context_mod_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ue_context_mod_request() const
-{
-  assert_choice_type("UEContextModificationRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_mod_request_s>();
-}
-const ue_context_release_cmd_s& s1ap_elem_procs_class_minus1_o::init_msg_c::ue_context_release_cmd() const
-{
-  assert_choice_type("UEContextReleaseCommand", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_release_cmd_s>();
-}
-const enb_cfg_upd_s& s1ap_elem_procs_class_minus1_o::init_msg_c::enb_cfg_upd() const
-{
-  assert_choice_type("ENBConfigurationUpdate", type_.to_string(), "InitiatingMessage");
-  return c.get<enb_cfg_upd_s>();
-}
-const mme_cfg_upd_s& s1ap_elem_procs_class_minus1_o::init_msg_c::mme_cfg_upd() const
-{
-  assert_choice_type("MMEConfigurationUpdate", type_.to_string(), "InitiatingMessage");
-  return c.get<mme_cfg_upd_s>();
-}
-const write_replace_warning_request_s& s1ap_elem_procs_class_minus1_o::init_msg_c::write_replace_warning_request() const
-{
-  assert_choice_type("WriteReplaceWarningRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<write_replace_warning_request_s>();
-}
-void s1ap_elem_procs_class_minus1_o::init_msg_c::destroy_()
-{
-  switch (type_) {
-    case types::ho_required:
-      c.destroy<ho_required_s>();
-      break;
-    case types::ho_request:
-      c.destroy<ho_request_s>();
-      break;
-    case types::path_switch_request:
-      c.destroy<path_switch_request_s>();
-      break;
-    case types::erab_setup_request:
-      c.destroy<erab_setup_request_s>();
-      break;
-    case types::erab_modify_request:
-      c.destroy<erab_modify_request_s>();
-      break;
-    case types::erab_release_cmd:
-      c.destroy<erab_release_cmd_s>();
-      break;
-    case types::init_context_setup_request:
-      c.destroy<init_context_setup_request_s>();
-      break;
-    case types::ho_cancel:
-      c.destroy<ho_cancel_s>();
-      break;
-    case types::kill_request:
-      c.destroy<kill_request_s>();
-      break;
-    case types::reset:
-      c.destroy<reset_s>();
-      break;
-    case types::s1_setup_request:
-      c.destroy<s1_setup_request_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.destroy<ue_context_mod_request_s>();
-      break;
-    case types::ue_context_release_cmd:
-      c.destroy<ue_context_release_cmd_s>();
-      break;
-    case types::enb_cfg_upd:
-      c.destroy<enb_cfg_upd_s>();
-      break;
-    case types::mme_cfg_upd:
-      c.destroy<mme_cfg_upd_s>();
-      break;
-    case types::write_replace_warning_request:
-      c.destroy<write_replace_warning_request_s>();
-      break;
-    default:
-      break;
-  }
-}
-void s1ap_elem_procs_class_minus1_o::init_msg_c::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-  switch (type_) {
-    case types::ho_required:
-      c.init<ho_required_s>();
-      break;
-    case types::ho_request:
-      c.init<ho_request_s>();
-      break;
-    case types::path_switch_request:
-      c.init<path_switch_request_s>();
-      break;
-    case types::erab_setup_request:
-      c.init<erab_setup_request_s>();
-      break;
-    case types::erab_modify_request:
-      c.init<erab_modify_request_s>();
-      break;
-    case types::erab_release_cmd:
-      c.init<erab_release_cmd_s>();
-      break;
-    case types::init_context_setup_request:
-      c.init<init_context_setup_request_s>();
-      break;
-    case types::ho_cancel:
-      c.init<ho_cancel_s>();
-      break;
-    case types::kill_request:
-      c.init<kill_request_s>();
-      break;
-    case types::reset:
-      c.init<reset_s>();
-      break;
-    case types::s1_setup_request:
-      c.init<s1_setup_request_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.init<ue_context_mod_request_s>();
-      break;
-    case types::ue_context_release_cmd:
-      c.init<ue_context_release_cmd_s>();
-      break;
-    case types::enb_cfg_upd:
-      c.init<enb_cfg_upd_s>();
-      break;
-    case types::mme_cfg_upd:
-      c.init<mme_cfg_upd_s>();
-      break;
-    case types::write_replace_warning_request:
-      c.init<write_replace_warning_request_s>();
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::init_msg_c");
-  }
-}
-s1ap_elem_procs_class_minus1_o::init_msg_c::init_msg_c(const s1ap_elem_procs_class_minus1_o::init_msg_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::ho_required:
-      c.init(other.c.get<ho_required_s>());
-      break;
-    case types::ho_request:
-      c.init(other.c.get<ho_request_s>());
-      break;
-    case types::path_switch_request:
-      c.init(other.c.get<path_switch_request_s>());
-      break;
-    case types::erab_setup_request:
-      c.init(other.c.get<erab_setup_request_s>());
-      break;
-    case types::erab_modify_request:
-      c.init(other.c.get<erab_modify_request_s>());
-      break;
-    case types::erab_release_cmd:
-      c.init(other.c.get<erab_release_cmd_s>());
-      break;
-    case types::init_context_setup_request:
-      c.init(other.c.get<init_context_setup_request_s>());
-      break;
-    case types::ho_cancel:
-      c.init(other.c.get<ho_cancel_s>());
-      break;
-    case types::kill_request:
-      c.init(other.c.get<kill_request_s>());
-      break;
-    case types::reset:
-      c.init(other.c.get<reset_s>());
-      break;
-    case types::s1_setup_request:
-      c.init(other.c.get<s1_setup_request_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.init(other.c.get<ue_context_mod_request_s>());
-      break;
-    case types::ue_context_release_cmd:
-      c.init(other.c.get<ue_context_release_cmd_s>());
-      break;
-    case types::enb_cfg_upd:
-      c.init(other.c.get<enb_cfg_upd_s>());
-      break;
-    case types::mme_cfg_upd:
-      c.init(other.c.get<mme_cfg_upd_s>());
-      break;
-    case types::write_replace_warning_request:
-      c.init(other.c.get<write_replace_warning_request_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::init_msg_c");
-  }
-}
-s1ap_elem_procs_class_minus1_o::init_msg_c& s1ap_elem_procs_class_minus1_o::init_msg_c::
-                                            operator=(const s1ap_elem_procs_class_minus1_o::init_msg_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::ho_required:
-      c.set(other.c.get<ho_required_s>());
-      break;
-    case types::ho_request:
-      c.set(other.c.get<ho_request_s>());
-      break;
-    case types::path_switch_request:
-      c.set(other.c.get<path_switch_request_s>());
-      break;
-    case types::erab_setup_request:
-      c.set(other.c.get<erab_setup_request_s>());
-      break;
-    case types::erab_modify_request:
-      c.set(other.c.get<erab_modify_request_s>());
-      break;
-    case types::erab_release_cmd:
-      c.set(other.c.get<erab_release_cmd_s>());
-      break;
-    case types::init_context_setup_request:
-      c.set(other.c.get<init_context_setup_request_s>());
-      break;
-    case types::ho_cancel:
-      c.set(other.c.get<ho_cancel_s>());
-      break;
-    case types::kill_request:
-      c.set(other.c.get<kill_request_s>());
-      break;
-    case types::reset:
-      c.set(other.c.get<reset_s>());
-      break;
-    case types::s1_setup_request:
-      c.set(other.c.get<s1_setup_request_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.set(other.c.get<ue_context_mod_request_s>());
-      break;
-    case types::ue_context_release_cmd:
-      c.set(other.c.get<ue_context_release_cmd_s>());
-      break;
-    case types::enb_cfg_upd:
-      c.set(other.c.get<enb_cfg_upd_s>());
-      break;
-    case types::mme_cfg_upd:
-      c.set(other.c.get<mme_cfg_upd_s>());
-      break;
-    case types::write_replace_warning_request:
-      c.set(other.c.get<write_replace_warning_request_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::init_msg_c");
-  }
-
-  return *this;
-}
-void s1ap_elem_procs_class_minus1_o::init_msg_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::ho_required:
-      j.write_fieldname("HandoverRequired");
-      c.get<ho_required_s>().to_json(j);
-      break;
-    case types::ho_request:
-      j.write_fieldname("HandoverRequest");
-      c.get<ho_request_s>().to_json(j);
-      break;
-    case types::path_switch_request:
-      j.write_fieldname("PathSwitchRequest");
-      c.get<path_switch_request_s>().to_json(j);
-      break;
-    case types::erab_setup_request:
-      j.write_fieldname("E-RABSetupRequest");
-      c.get<erab_setup_request_s>().to_json(j);
-      break;
-    case types::erab_modify_request:
-      j.write_fieldname("E-RABModifyRequest");
-      c.get<erab_modify_request_s>().to_json(j);
-      break;
-    case types::erab_release_cmd:
-      j.write_fieldname("E-RABReleaseCommand");
-      c.get<erab_release_cmd_s>().to_json(j);
-      break;
-    case types::init_context_setup_request:
-      j.write_fieldname("InitialContextSetupRequest");
-      c.get<init_context_setup_request_s>().to_json(j);
-      break;
-    case types::ho_cancel:
-      j.write_fieldname("HandoverCancel");
-      c.get<ho_cancel_s>().to_json(j);
-      break;
-    case types::kill_request:
-      j.write_fieldname("KillRequest");
-      c.get<kill_request_s>().to_json(j);
-      break;
-    case types::reset:
-      j.write_fieldname("Reset");
-      c.get<reset_s>().to_json(j);
-      break;
-    case types::s1_setup_request:
-      j.write_fieldname("S1SetupRequest");
-      c.get<s1_setup_request_s>().to_json(j);
-      break;
-    case types::ue_context_mod_request:
-      j.write_fieldname("UEContextModificationRequest");
-      c.get<ue_context_mod_request_s>().to_json(j);
-      break;
-    case types::ue_context_release_cmd:
-      j.write_fieldname("UEContextReleaseCommand");
-      c.get<ue_context_release_cmd_s>().to_json(j);
-      break;
-    case types::enb_cfg_upd:
-      j.write_fieldname("ENBConfigurationUpdate");
-      c.get<enb_cfg_upd_s>().to_json(j);
-      break;
-    case types::mme_cfg_upd:
-      j.write_fieldname("MMEConfigurationUpdate");
-      c.get<mme_cfg_upd_s>().to_json(j);
-      break;
-    case types::write_replace_warning_request:
-      j.write_fieldname("WriteReplaceWarningRequest");
-      c.get<write_replace_warning_request_s>().to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::init_msg_c");
-  }
-  j.end_obj();
-}
-SRSASN_CODE s1ap_elem_procs_class_minus1_o::init_msg_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_required_s>().pack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_request_s>().pack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_s>().pack(bref));
-      break;
-    case types::erab_setup_request:
-      HANDLE_CODE(c.get<erab_setup_request_s>().pack(bref));
-      break;
-    case types::erab_modify_request:
-      HANDLE_CODE(c.get<erab_modify_request_s>().pack(bref));
-      break;
-    case types::erab_release_cmd:
-      HANDLE_CODE(c.get<erab_release_cmd_s>().pack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_request_s>().pack(bref));
-      break;
-    case types::ho_cancel:
-      HANDLE_CODE(c.get<ho_cancel_s>().pack(bref));
-      break;
-    case types::kill_request:
-      HANDLE_CODE(c.get<kill_request_s>().pack(bref));
-      break;
-    case types::reset:
-      HANDLE_CODE(c.get<reset_s>().pack(bref));
-      break;
-    case types::s1_setup_request:
-      HANDLE_CODE(c.get<s1_setup_request_s>().pack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_request_s>().pack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      HANDLE_CODE(c.get<ue_context_release_cmd_s>().pack(bref));
-      break;
-    case types::enb_cfg_upd:
-      HANDLE_CODE(c.get<enb_cfg_upd_s>().pack(bref));
-      break;
-    case types::mme_cfg_upd:
-      HANDLE_CODE(c.get<mme_cfg_upd_s>().pack(bref));
-      break;
-    case types::write_replace_warning_request:
-      HANDLE_CODE(c.get<write_replace_warning_request_s>().pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1ap_elem_procs_class_minus1_o::init_msg_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_required_s>().unpack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_request_s>().unpack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_s>().unpack(bref));
-      break;
-    case types::erab_setup_request:
-      HANDLE_CODE(c.get<erab_setup_request_s>().unpack(bref));
-      break;
-    case types::erab_modify_request:
-      HANDLE_CODE(c.get<erab_modify_request_s>().unpack(bref));
-      break;
-    case types::erab_release_cmd:
-      HANDLE_CODE(c.get<erab_release_cmd_s>().unpack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_request_s>().unpack(bref));
-      break;
-    case types::ho_cancel:
-      HANDLE_CODE(c.get<ho_cancel_s>().unpack(bref));
-      break;
-    case types::kill_request:
-      HANDLE_CODE(c.get<kill_request_s>().unpack(bref));
-      break;
-    case types::reset:
-      HANDLE_CODE(c.get<reset_s>().unpack(bref));
-      break;
-    case types::s1_setup_request:
-      HANDLE_CODE(c.get<s1_setup_request_s>().unpack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_request_s>().unpack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      HANDLE_CODE(c.get<ue_context_release_cmd_s>().unpack(bref));
-      break;
-    case types::enb_cfg_upd:
-      HANDLE_CODE(c.get<enb_cfg_upd_s>().unpack(bref));
-      break;
-    case types::mme_cfg_upd:
-      HANDLE_CODE(c.get<mme_cfg_upd_s>().unpack(bref));
-      break;
-    case types::write_replace_warning_request:
-      HANDLE_CODE(c.get<write_replace_warning_request_s>().unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string s1ap_elem_procs_class_minus1_o::init_msg_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"HandoverRequired",
-                                            "HandoverRequest",
-                                            "PathSwitchRequest",
-                                            "E-RABSetupRequest",
-                                            "E-RABModifyRequest",
-                                            "E-RABReleaseCommand",
-                                            "InitialContextSetupRequest",
-                                            "HandoverCancel",
-                                            "KillRequest",
-                                            "Reset",
-                                            "S1SetupRequest",
-                                            "UEContextModificationRequest",
-                                            "UEContextReleaseCommand",
-                                            "ENBConfigurationUpdate",
-                                            "MMEConfigurationUpdate",
-                                            "WriteReplaceWarningRequest"};
-  return convert_enum_idx(options, 16, value, "s1ap_elem_procs_class_minus1_o::init_msg_c::types");
-}
-uint8_t s1ap_elem_procs_class_minus1_o::init_msg_c::types_opts::to_number() const
-{
-  switch (value) {
-    case s1_setup_request:
-      return 1;
-    default:
-      invalid_enum_number(value, "s1ap_elem_procs_class_minus1_o::init_msg_c::types");
-  }
-  return 0;
-}
-
-// SuccessfulOutcome ::= OPEN TYPE
-ho_cmd_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ho_required()
-{
-  assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_cmd_s>();
-}
-ho_request_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ho_request()
-{
-  assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_request_ack_s>();
-}
-path_switch_request_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::path_switch_request()
-{
-  assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<path_switch_request_ack_s>();
-}
-erab_setup_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::erab_setup_request()
-{
-  assert_choice_type("E-RABSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<erab_setup_resp_s>();
-}
-erab_modify_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::erab_modify_request()
-{
-  assert_choice_type("E-RABModifyResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<erab_modify_resp_s>();
-}
-erab_release_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::erab_release_cmd()
-{
-  assert_choice_type("E-RABReleaseResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<erab_release_resp_s>();
-}
-init_context_setup_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::init_context_setup_request()
-{
-  assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<init_context_setup_resp_s>();
-}
-ho_cancel_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ho_cancel()
-{
-  assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_cancel_ack_s>();
-}
-kill_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::kill_request()
-{
-  assert_choice_type("KillResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<kill_resp_s>();
-}
-reset_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::reset()
-{
-  assert_choice_type("ResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<reset_ack_s>();
-}
-s1_setup_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::s1_setup_request()
-{
-  assert_choice_type("S1SetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<s1_setup_resp_s>();
-}
-ue_context_mod_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ue_context_mod_request()
-{
-  assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_context_mod_resp_s>();
-}
-ue_context_release_complete_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ue_context_release_cmd()
-{
-  assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_context_release_complete_s>();
-}
-enb_cfg_upd_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::enb_cfg_upd()
-{
-  assert_choice_type("ENBConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<enb_cfg_upd_ack_s>();
-}
-mme_cfg_upd_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::mme_cfg_upd()
-{
-  assert_choice_type("MMEConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<mme_cfg_upd_ack_s>();
-}
-write_replace_warning_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::write_replace_warning_request()
-{
-  assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<write_replace_warning_resp_s>();
-}
-const ho_cmd_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ho_required() const
-{
-  assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_cmd_s>();
-}
-const ho_request_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ho_request() const
-{
-  assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_request_ack_s>();
-}
-const path_switch_request_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::path_switch_request() const
-{
-  assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<path_switch_request_ack_s>();
-}
-const erab_setup_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::erab_setup_request() const
-{
-  assert_choice_type("E-RABSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<erab_setup_resp_s>();
-}
-const erab_modify_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::erab_modify_request() const
-{
-  assert_choice_type("E-RABModifyResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<erab_modify_resp_s>();
-}
-const erab_release_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::erab_release_cmd() const
-{
-  assert_choice_type("E-RABReleaseResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<erab_release_resp_s>();
-}
-const init_context_setup_resp_s&
-s1ap_elem_procs_class_minus1_o::successful_outcome_c::init_context_setup_request() const
-{
-  assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<init_context_setup_resp_s>();
-}
-const ho_cancel_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ho_cancel() const
-{
-  assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ho_cancel_ack_s>();
-}
-const kill_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::kill_request() const
-{
-  assert_choice_type("KillResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<kill_resp_s>();
-}
-const reset_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::reset() const
-{
-  assert_choice_type("ResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<reset_ack_s>();
-}
-const s1_setup_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::s1_setup_request() const
-{
-  assert_choice_type("S1SetupResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<s1_setup_resp_s>();
-}
-const ue_context_mod_resp_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::ue_context_mod_request() const
-{
-  assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_context_mod_resp_s>();
-}
-const ue_context_release_complete_s&
-s1ap_elem_procs_class_minus1_o::successful_outcome_c::ue_context_release_cmd() const
-{
-  assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
-  return c.get<ue_context_release_complete_s>();
-}
-const enb_cfg_upd_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::enb_cfg_upd() const
-{
-  assert_choice_type("ENBConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<enb_cfg_upd_ack_s>();
-}
-const mme_cfg_upd_ack_s& s1ap_elem_procs_class_minus1_o::successful_outcome_c::mme_cfg_upd() const
-{
-  assert_choice_type("MMEConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
-  return c.get<mme_cfg_upd_ack_s>();
-}
-const write_replace_warning_resp_s&
-s1ap_elem_procs_class_minus1_o::successful_outcome_c::write_replace_warning_request() const
-{
-  assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
-  return c.get<write_replace_warning_resp_s>();
-}
-void s1ap_elem_procs_class_minus1_o::successful_outcome_c::destroy_()
-{
-  switch (type_) {
-    case types::ho_required:
-      c.destroy<ho_cmd_s>();
-      break;
-    case types::ho_request:
-      c.destroy<ho_request_ack_s>();
-      break;
-    case types::path_switch_request:
-      c.destroy<path_switch_request_ack_s>();
-      break;
-    case types::erab_setup_request:
-      c.destroy<erab_setup_resp_s>();
-      break;
-    case types::erab_modify_request:
-      c.destroy<erab_modify_resp_s>();
-      break;
-    case types::erab_release_cmd:
-      c.destroy<erab_release_resp_s>();
-      break;
-    case types::init_context_setup_request:
-      c.destroy<init_context_setup_resp_s>();
-      break;
-    case types::ho_cancel:
-      c.destroy<ho_cancel_ack_s>();
-      break;
-    case types::kill_request:
-      c.destroy<kill_resp_s>();
-      break;
-    case types::reset:
-      c.destroy<reset_ack_s>();
-      break;
-    case types::s1_setup_request:
-      c.destroy<s1_setup_resp_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.destroy<ue_context_mod_resp_s>();
-      break;
-    case types::ue_context_release_cmd:
-      c.destroy<ue_context_release_complete_s>();
-      break;
-    case types::enb_cfg_upd:
-      c.destroy<enb_cfg_upd_ack_s>();
-      break;
-    case types::mme_cfg_upd:
-      c.destroy<mme_cfg_upd_ack_s>();
-      break;
-    case types::write_replace_warning_request:
-      c.destroy<write_replace_warning_resp_s>();
-      break;
-    default:
-      break;
-  }
-}
-void s1ap_elem_procs_class_minus1_o::successful_outcome_c::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-  switch (type_) {
-    case types::ho_required:
-      c.init<ho_cmd_s>();
-      break;
-    case types::ho_request:
-      c.init<ho_request_ack_s>();
-      break;
-    case types::path_switch_request:
-      c.init<path_switch_request_ack_s>();
-      break;
-    case types::erab_setup_request:
-      c.init<erab_setup_resp_s>();
-      break;
-    case types::erab_modify_request:
-      c.init<erab_modify_resp_s>();
-      break;
-    case types::erab_release_cmd:
-      c.init<erab_release_resp_s>();
-      break;
-    case types::init_context_setup_request:
-      c.init<init_context_setup_resp_s>();
-      break;
-    case types::ho_cancel:
-      c.init<ho_cancel_ack_s>();
-      break;
-    case types::kill_request:
-      c.init<kill_resp_s>();
-      break;
-    case types::reset:
-      c.init<reset_ack_s>();
-      break;
-    case types::s1_setup_request:
-      c.init<s1_setup_resp_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.init<ue_context_mod_resp_s>();
-      break;
-    case types::ue_context_release_cmd:
-      c.init<ue_context_release_complete_s>();
-      break;
-    case types::enb_cfg_upd:
-      c.init<enb_cfg_upd_ack_s>();
-      break;
-    case types::mme_cfg_upd:
-      c.init<mme_cfg_upd_ack_s>();
-      break;
-    case types::write_replace_warning_request:
-      c.init<write_replace_warning_resp_s>();
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::successful_outcome_c");
-  }
-}
-s1ap_elem_procs_class_minus1_o::successful_outcome_c::successful_outcome_c(
-    const s1ap_elem_procs_class_minus1_o::successful_outcome_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::ho_required:
-      c.init(other.c.get<ho_cmd_s>());
-      break;
-    case types::ho_request:
-      c.init(other.c.get<ho_request_ack_s>());
-      break;
-    case types::path_switch_request:
-      c.init(other.c.get<path_switch_request_ack_s>());
-      break;
-    case types::erab_setup_request:
-      c.init(other.c.get<erab_setup_resp_s>());
-      break;
-    case types::erab_modify_request:
-      c.init(other.c.get<erab_modify_resp_s>());
-      break;
-    case types::erab_release_cmd:
-      c.init(other.c.get<erab_release_resp_s>());
-      break;
-    case types::init_context_setup_request:
-      c.init(other.c.get<init_context_setup_resp_s>());
-      break;
-    case types::ho_cancel:
-      c.init(other.c.get<ho_cancel_ack_s>());
-      break;
-    case types::kill_request:
-      c.init(other.c.get<kill_resp_s>());
-      break;
-    case types::reset:
-      c.init(other.c.get<reset_ack_s>());
-      break;
-    case types::s1_setup_request:
-      c.init(other.c.get<s1_setup_resp_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.init(other.c.get<ue_context_mod_resp_s>());
-      break;
-    case types::ue_context_release_cmd:
-      c.init(other.c.get<ue_context_release_complete_s>());
-      break;
-    case types::enb_cfg_upd:
-      c.init(other.c.get<enb_cfg_upd_ack_s>());
-      break;
-    case types::mme_cfg_upd:
-      c.init(other.c.get<mme_cfg_upd_ack_s>());
-      break;
-    case types::write_replace_warning_request:
-      c.init(other.c.get<write_replace_warning_resp_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::successful_outcome_c");
-  }
-}
-s1ap_elem_procs_class_minus1_o::successful_outcome_c& s1ap_elem_procs_class_minus1_o::successful_outcome_c::
-                                                      operator=(const s1ap_elem_procs_class_minus1_o::successful_outcome_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::ho_required:
-      c.set(other.c.get<ho_cmd_s>());
-      break;
-    case types::ho_request:
-      c.set(other.c.get<ho_request_ack_s>());
-      break;
-    case types::path_switch_request:
-      c.set(other.c.get<path_switch_request_ack_s>());
-      break;
-    case types::erab_setup_request:
-      c.set(other.c.get<erab_setup_resp_s>());
-      break;
-    case types::erab_modify_request:
-      c.set(other.c.get<erab_modify_resp_s>());
-      break;
-    case types::erab_release_cmd:
-      c.set(other.c.get<erab_release_resp_s>());
-      break;
-    case types::init_context_setup_request:
-      c.set(other.c.get<init_context_setup_resp_s>());
-      break;
-    case types::ho_cancel:
-      c.set(other.c.get<ho_cancel_ack_s>());
-      break;
-    case types::kill_request:
-      c.set(other.c.get<kill_resp_s>());
-      break;
-    case types::reset:
-      c.set(other.c.get<reset_ack_s>());
-      break;
-    case types::s1_setup_request:
-      c.set(other.c.get<s1_setup_resp_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.set(other.c.get<ue_context_mod_resp_s>());
-      break;
-    case types::ue_context_release_cmd:
-      c.set(other.c.get<ue_context_release_complete_s>());
-      break;
-    case types::enb_cfg_upd:
-      c.set(other.c.get<enb_cfg_upd_ack_s>());
-      break;
-    case types::mme_cfg_upd:
-      c.set(other.c.get<mme_cfg_upd_ack_s>());
-      break;
-    case types::write_replace_warning_request:
-      c.set(other.c.get<write_replace_warning_resp_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::successful_outcome_c");
-  }
-
-  return *this;
-}
-void s1ap_elem_procs_class_minus1_o::successful_outcome_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::ho_required:
-      j.write_fieldname("HandoverCommand");
-      c.get<ho_cmd_s>().to_json(j);
-      break;
-    case types::ho_request:
-      j.write_fieldname("HandoverRequestAcknowledge");
-      c.get<ho_request_ack_s>().to_json(j);
-      break;
-    case types::path_switch_request:
-      j.write_fieldname("PathSwitchRequestAcknowledge");
-      c.get<path_switch_request_ack_s>().to_json(j);
-      break;
-    case types::erab_setup_request:
-      j.write_fieldname("E-RABSetupResponse");
-      c.get<erab_setup_resp_s>().to_json(j);
-      break;
-    case types::erab_modify_request:
-      j.write_fieldname("E-RABModifyResponse");
-      c.get<erab_modify_resp_s>().to_json(j);
-      break;
-    case types::erab_release_cmd:
-      j.write_fieldname("E-RABReleaseResponse");
-      c.get<erab_release_resp_s>().to_json(j);
-      break;
-    case types::init_context_setup_request:
-      j.write_fieldname("InitialContextSetupResponse");
-      c.get<init_context_setup_resp_s>().to_json(j);
-      break;
-    case types::ho_cancel:
-      j.write_fieldname("HandoverCancelAcknowledge");
-      c.get<ho_cancel_ack_s>().to_json(j);
-      break;
-    case types::kill_request:
-      j.write_fieldname("KillResponse");
-      c.get<kill_resp_s>().to_json(j);
-      break;
-    case types::reset:
-      j.write_fieldname("ResetAcknowledge");
-      c.get<reset_ack_s>().to_json(j);
-      break;
-    case types::s1_setup_request:
-      j.write_fieldname("S1SetupResponse");
-      c.get<s1_setup_resp_s>().to_json(j);
-      break;
-    case types::ue_context_mod_request:
-      j.write_fieldname("UEContextModificationResponse");
-      c.get<ue_context_mod_resp_s>().to_json(j);
-      break;
-    case types::ue_context_release_cmd:
-      j.write_fieldname("UEContextReleaseComplete");
-      c.get<ue_context_release_complete_s>().to_json(j);
-      break;
-    case types::enb_cfg_upd:
-      j.write_fieldname("ENBConfigurationUpdateAcknowledge");
-      c.get<enb_cfg_upd_ack_s>().to_json(j);
-      break;
-    case types::mme_cfg_upd:
-      j.write_fieldname("MMEConfigurationUpdateAcknowledge");
-      c.get<mme_cfg_upd_ack_s>().to_json(j);
-      break;
-    case types::write_replace_warning_request:
-      j.write_fieldname("WriteReplaceWarningResponse");
-      c.get<write_replace_warning_resp_s>().to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::successful_outcome_c");
-  }
-  j.end_obj();
-}
-SRSASN_CODE s1ap_elem_procs_class_minus1_o::successful_outcome_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_cmd_s>().pack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_request_ack_s>().pack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_ack_s>().pack(bref));
-      break;
-    case types::erab_setup_request:
-      HANDLE_CODE(c.get<erab_setup_resp_s>().pack(bref));
-      break;
-    case types::erab_modify_request:
-      HANDLE_CODE(c.get<erab_modify_resp_s>().pack(bref));
-      break;
-    case types::erab_release_cmd:
-      HANDLE_CODE(c.get<erab_release_resp_s>().pack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_resp_s>().pack(bref));
-      break;
-    case types::ho_cancel:
-      HANDLE_CODE(c.get<ho_cancel_ack_s>().pack(bref));
-      break;
-    case types::kill_request:
-      HANDLE_CODE(c.get<kill_resp_s>().pack(bref));
-      break;
-    case types::reset:
-      HANDLE_CODE(c.get<reset_ack_s>().pack(bref));
-      break;
-    case types::s1_setup_request:
-      HANDLE_CODE(c.get<s1_setup_resp_s>().pack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_resp_s>().pack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      HANDLE_CODE(c.get<ue_context_release_complete_s>().pack(bref));
-      break;
-    case types::enb_cfg_upd:
-      HANDLE_CODE(c.get<enb_cfg_upd_ack_s>().pack(bref));
-      break;
-    case types::mme_cfg_upd:
-      HANDLE_CODE(c.get<mme_cfg_upd_ack_s>().pack(bref));
-      break;
-    case types::write_replace_warning_request:
-      HANDLE_CODE(c.get<write_replace_warning_resp_s>().pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::successful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1ap_elem_procs_class_minus1_o::successful_outcome_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_cmd_s>().unpack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_request_ack_s>().unpack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_ack_s>().unpack(bref));
-      break;
-    case types::erab_setup_request:
-      HANDLE_CODE(c.get<erab_setup_resp_s>().unpack(bref));
-      break;
-    case types::erab_modify_request:
-      HANDLE_CODE(c.get<erab_modify_resp_s>().unpack(bref));
-      break;
-    case types::erab_release_cmd:
-      HANDLE_CODE(c.get<erab_release_resp_s>().unpack(bref));
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_resp_s>().unpack(bref));
-      break;
-    case types::ho_cancel:
-      HANDLE_CODE(c.get<ho_cancel_ack_s>().unpack(bref));
-      break;
-    case types::kill_request:
-      HANDLE_CODE(c.get<kill_resp_s>().unpack(bref));
-      break;
-    case types::reset:
-      HANDLE_CODE(c.get<reset_ack_s>().unpack(bref));
-      break;
-    case types::s1_setup_request:
-      HANDLE_CODE(c.get<s1_setup_resp_s>().unpack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_resp_s>().unpack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      HANDLE_CODE(c.get<ue_context_release_complete_s>().unpack(bref));
-      break;
-    case types::enb_cfg_upd:
-      HANDLE_CODE(c.get<enb_cfg_upd_ack_s>().unpack(bref));
-      break;
-    case types::mme_cfg_upd:
-      HANDLE_CODE(c.get<mme_cfg_upd_ack_s>().unpack(bref));
-      break;
-    case types::write_replace_warning_request:
-      HANDLE_CODE(c.get<write_replace_warning_resp_s>().unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::successful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string s1ap_elem_procs_class_minus1_o::successful_outcome_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"HandoverCommand",
-                                            "HandoverRequestAcknowledge",
-                                            "PathSwitchRequestAcknowledge",
-                                            "E-RABSetupResponse",
-                                            "E-RABModifyResponse",
-                                            "E-RABReleaseResponse",
-                                            "InitialContextSetupResponse",
-                                            "HandoverCancelAcknowledge",
-                                            "KillResponse",
-                                            "ResetAcknowledge",
-                                            "S1SetupResponse",
-                                            "UEContextModificationResponse",
-                                            "UEContextReleaseComplete",
-                                            "ENBConfigurationUpdateAcknowledge",
-                                            "MMEConfigurationUpdateAcknowledge",
-                                            "WriteReplaceWarningResponse"};
-  return convert_enum_idx(options, 16, value, "s1ap_elem_procs_class_minus1_o::successful_outcome_c::types");
-}
-uint8_t s1ap_elem_procs_class_minus1_o::successful_outcome_c::types_opts::to_number() const
-{
-  switch (value) {
-    case s1_setup_request:
-      return 1;
-    default:
-      invalid_enum_number(value, "s1ap_elem_procs_class_minus1_o::successful_outcome_c::types");
-  }
-  return 0;
-}
-
-// UnsuccessfulOutcome ::= OPEN TYPE
-ho_prep_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ho_required()
-{
-  assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ho_prep_fail_s>();
-}
-ho_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ho_request()
-{
-  assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ho_fail_s>();
-}
-path_switch_request_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::path_switch_request()
-{
-  assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<path_switch_request_fail_s>();
-}
-init_context_setup_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::init_context_setup_request()
-{
-  assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<init_context_setup_fail_s>();
-}
-s1_setup_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::s1_setup_request()
-{
-  assert_choice_type("S1SetupFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<s1_setup_fail_s>();
-}
-ue_context_mod_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ue_context_mod_request()
-{
-  assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ue_context_mod_fail_s>();
-}
-enb_cfg_upd_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::enb_cfg_upd()
-{
-  assert_choice_type("ENBConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<enb_cfg_upd_fail_s>();
-}
-mme_cfg_upd_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::mme_cfg_upd()
-{
-  assert_choice_type("MMEConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<mme_cfg_upd_fail_s>();
-}
-const ho_prep_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ho_required() const
-{
-  assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ho_prep_fail_s>();
-}
-const ho_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ho_request() const
-{
-  assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ho_fail_s>();
-}
-const path_switch_request_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::path_switch_request() const
-{
-  assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<path_switch_request_fail_s>();
-}
-const init_context_setup_fail_s&
-s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::init_context_setup_request() const
-{
-  assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<init_context_setup_fail_s>();
-}
-const s1_setup_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::s1_setup_request() const
-{
-  assert_choice_type("S1SetupFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<s1_setup_fail_s>();
-}
-const ue_context_mod_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::ue_context_mod_request() const
-{
-  assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<ue_context_mod_fail_s>();
-}
-const enb_cfg_upd_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::enb_cfg_upd() const
-{
-  assert_choice_type("ENBConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<enb_cfg_upd_fail_s>();
-}
-const mme_cfg_upd_fail_s& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::mme_cfg_upd() const
-{
-  assert_choice_type("MMEConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
-  return c.get<mme_cfg_upd_fail_s>();
-}
-void s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::destroy_()
-{
-  switch (type_) {
-    case types::ho_required:
-      c.destroy<ho_prep_fail_s>();
-      break;
-    case types::ho_request:
-      c.destroy<ho_fail_s>();
-      break;
-    case types::path_switch_request:
-      c.destroy<path_switch_request_fail_s>();
-      break;
-    case types::init_context_setup_request:
-      c.destroy<init_context_setup_fail_s>();
-      break;
-    case types::s1_setup_request:
-      c.destroy<s1_setup_fail_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.destroy<ue_context_mod_fail_s>();
-      break;
-    case types::enb_cfg_upd:
-      c.destroy<enb_cfg_upd_fail_s>();
-      break;
-    case types::mme_cfg_upd:
-      c.destroy<mme_cfg_upd_fail_s>();
-      break;
-    default:
-      break;
-  }
-}
-void s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-  switch (type_) {
-    case types::ho_required:
-      c.init<ho_prep_fail_s>();
-      break;
-    case types::ho_request:
-      c.init<ho_fail_s>();
-      break;
-    case types::path_switch_request:
-      c.init<path_switch_request_fail_s>();
-      break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
-      c.init<init_context_setup_fail_s>();
-      break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
-      c.init<s1_setup_fail_s>();
-      break;
-    case types::ue_context_mod_request:
-      c.init<ue_context_mod_fail_s>();
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
-      c.init<enb_cfg_upd_fail_s>();
-      break;
-    case types::mme_cfg_upd:
-      c.init<mme_cfg_upd_fail_s>();
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-  }
-}
-s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::unsuccessful_outcome_c(
-    const s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::ho_required:
-      c.init(other.c.get<ho_prep_fail_s>());
-      break;
-    case types::ho_request:
-      c.init(other.c.get<ho_fail_s>());
-      break;
-    case types::path_switch_request:
-      c.init(other.c.get<path_switch_request_fail_s>());
-      break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
-      c.init(other.c.get<init_context_setup_fail_s>());
-      break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
-      c.init(other.c.get<s1_setup_fail_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.init(other.c.get<ue_context_mod_fail_s>());
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
-      c.init(other.c.get<enb_cfg_upd_fail_s>());
-      break;
-    case types::mme_cfg_upd:
-      c.init(other.c.get<mme_cfg_upd_fail_s>());
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-  }
-}
-s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c& s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::
-                                                        operator=(const s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::ho_required:
-      c.set(other.c.get<ho_prep_fail_s>());
-      break;
-    case types::ho_request:
-      c.set(other.c.get<ho_fail_s>());
-      break;
-    case types::path_switch_request:
-      c.set(other.c.get<path_switch_request_fail_s>());
-      break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
-      c.set(other.c.get<init_context_setup_fail_s>());
-      break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
-      c.set(other.c.get<s1_setup_fail_s>());
-      break;
-    case types::ue_context_mod_request:
-      c.set(other.c.get<ue_context_mod_fail_s>());
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
-      c.set(other.c.get<enb_cfg_upd_fail_s>());
-      break;
-    case types::mme_cfg_upd:
-      c.set(other.c.get<mme_cfg_upd_fail_s>());
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-  }
-
-  return *this;
-}
-void s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::ho_required:
-      j.write_fieldname("HandoverPreparationFailure");
-      c.get<ho_prep_fail_s>().to_json(j);
-      break;
-    case types::ho_request:
-      j.write_fieldname("HandoverFailure");
-      c.get<ho_fail_s>().to_json(j);
-      break;
-    case types::path_switch_request:
-      j.write_fieldname("PathSwitchRequestFailure");
-      c.get<path_switch_request_fail_s>().to_json(j);
-      break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
-      j.write_fieldname("InitialContextSetupFailure");
-      c.get<init_context_setup_fail_s>().to_json(j);
-      break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
-      j.write_fieldname("S1SetupFailure");
-      c.get<s1_setup_fail_s>().to_json(j);
-      break;
-    case types::ue_context_mod_request:
-      j.write_fieldname("UEContextModificationFailure");
-      c.get<ue_context_mod_fail_s>().to_json(j);
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
-      j.write_fieldname("ENBConfigurationUpdateFailure");
-      c.get<enb_cfg_upd_fail_s>().to_json(j);
-      break;
-    case types::mme_cfg_upd:
-      j.write_fieldname("MMEConfigurationUpdateFailure");
-      c.get<mme_cfg_upd_fail_s>().to_json(j);
-      break;
-    case types::write_replace_warning_request:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-  }
-  j.end_obj();
-}
-SRSASN_CODE s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_prep_fail_s>().pack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_fail_s>().pack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_fail_s>().pack(bref));
-      break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_fail_s>().pack(bref));
-      break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
-      HANDLE_CODE(c.get<s1_setup_fail_s>().pack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_fail_s>().pack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
-      HANDLE_CODE(c.get<enb_cfg_upd_fail_s>().pack(bref));
-      break;
-    case types::mme_cfg_upd:
-      HANDLE_CODE(c.get<mme_cfg_upd_fail_s>().pack(bref));
-      break;
-    case types::write_replace_warning_request:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::ho_required:
-      HANDLE_CODE(c.get<ho_prep_fail_s>().unpack(bref));
-      break;
-    case types::ho_request:
-      HANDLE_CODE(c.get<ho_fail_s>().unpack(bref));
-      break;
-    case types::path_switch_request:
-      HANDLE_CODE(c.get<path_switch_request_fail_s>().unpack(bref));
-      break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
-      HANDLE_CODE(c.get<init_context_setup_fail_s>().unpack(bref));
-      break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
-      HANDLE_CODE(c.get<s1_setup_fail_s>().unpack(bref));
-      break;
-    case types::ue_context_mod_request:
-      HANDLE_CODE(c.get<ue_context_mod_fail_s>().unpack(bref));
-      break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
-      HANDLE_CODE(c.get<enb_cfg_upd_fail_s>().unpack(bref));
-      break;
-    case types::mme_cfg_upd:
-      HANDLE_CODE(c.get<mme_cfg_upd_fail_s>().unpack(bref));
-      break;
-    case types::write_replace_warning_request:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"HandoverPreparationFailure",
-                                            "HandoverFailure",
-                                            "PathSwitchRequestFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "InitialContextSetupFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "S1SetupFailure",
-                                            "UEContextModificationFailure",
-                                            "NULL",
-                                            "ENBConfigurationUpdateFailure",
-                                            "MMEConfigurationUpdateFailure",
-                                            "NULL"};
-  return convert_enum_idx(options, 16, value, "s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::types");
-}
-uint8_t s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::types_opts::to_number() const
-{
-  switch (value) {
-    case s1_setup_request:
-      return 1;
-    default:
-      invalid_enum_number(value, "s1ap_elem_procs_class_minus1_o::unsuccessful_outcome_c::types");
-  }
-  return 0;
-}
-
-// S1AP-ELEMENTARY-PROCEDURES-CLASS-2 ::= OBJECT SET OF S1AP-ELEMENTARY-PROCEDURE
-uint16_t s1ap_elem_procs_class_minus2_o::idx_to_proc_code(uint32_t idx)
-{
-  static constexpr const uint16_t options[] = {2,  8,  10, 11, 12, 13, 15, 16, 18, 19, 20, 22, 24, 25,
-                                               26, 27, 28, 42, 31, 32, 33, 34, 35, 37, 38, 40, 41, 39};
-  return convert_enum_idx(options, 28, idx, "proc_code");
-}
-bool s1ap_elem_procs_class_minus2_o::is_proc_code_valid(const uint16_t& proc_code)
-{
-  static constexpr const uint16_t options[] = {2,  8,  10, 11, 12, 13, 15, 16, 18, 19, 20, 22, 24, 25,
-                                               26, 27, 28, 42, 31, 32, 33, 34, 35, 37, 38, 40, 41, 39};
-  for (uint32_t i = 0; i < 28; ++i) {
-    if (options[i] == proc_code) {
-      return true;
-    }
-  }
-  return false;
-}
-s1ap_elem_procs_class_minus2_o::init_msg_c s1ap_elem_procs_class_minus2_o::get_init_msg(const uint16_t& proc_code)
-{
-  init_msg_c ret{};
-  switch (proc_code) {
-    case 2:
-      ret.set(init_msg_c::types::ho_notify);
-      break;
-    case 8:
-      ret.set(init_msg_c::types::erab_release_ind);
-      break;
-    case 10:
-      ret.set(init_msg_c::types::paging);
-      break;
-    case 11:
-      ret.set(init_msg_c::types::dl_nas_transport);
-      break;
-    case 12:
-      ret.set(init_msg_c::types::init_ue_msg);
-      break;
-    case 13:
-      ret.set(init_msg_c::types::ul_nas_transport);
-      break;
-    case 15:
-      ret.set(init_msg_c::types::error_ind);
-      break;
-    case 16:
-      ret.set(init_msg_c::types::nas_non_delivery_ind);
-      break;
-    case 18:
-      ret.set(init_msg_c::types::ue_context_release_request);
-      break;
-    case 19:
-      ret.set(init_msg_c::types::dl_s1cdma2000tunnelling);
-      break;
-    case 20:
-      ret.set(init_msg_c::types::ul_s1cdma2000tunnelling);
-      break;
-    case 22:
-      ret.set(init_msg_c::types::ue_cap_info_ind);
-      break;
-    case 24:
-      ret.set(init_msg_c::types::enb_status_transfer);
-      break;
-    case 25:
-      ret.set(init_msg_c::types::mme_status_transfer);
-      break;
-    case 26:
-      ret.set(init_msg_c::types::deactiv_trace);
-      break;
-    case 27:
-      ret.set(init_msg_c::types::trace_start);
-      break;
-    case 28:
-      ret.set(init_msg_c::types::trace_fail_ind);
-      break;
-    case 42:
-      ret.set(init_msg_c::types::cell_traffic_trace);
-      break;
-    case 31:
-      ret.set(init_msg_c::types::location_report_ctrl);
-      break;
-    case 32:
-      ret.set(init_msg_c::types::location_report_fail_ind);
-      break;
-    case 33:
-      ret.set(init_msg_c::types::location_report);
-      break;
-    case 34:
-      ret.set(init_msg_c::types::overload_start);
-      break;
-    case 35:
-      ret.set(init_msg_c::types::overload_stop);
-      break;
-    case 37:
-      ret.set(init_msg_c::types::enb_direct_info_transfer);
-      break;
-    case 38:
-      ret.set(init_msg_c::types::mme_direct_info_transfer);
-      break;
-    case 40:
-      ret.set(init_msg_c::types::enb_cfg_transfer);
-      break;
-    case 41:
-      ret.set(init_msg_c::types::mme_cfg_transfer);
-      break;
-    case 39:
-      ret.set(init_msg_c::types::private_msg);
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-s1ap_elem_procs_class_minus2_o::successful_outcome_c
-s1ap_elem_procs_class_minus2_o::get_successful_outcome(const uint16_t& proc_code)
-{
-  successful_outcome_c ret{};
-  switch (proc_code) {
-    case 2:
-      break;
-    case 8:
-      break;
-    case 10:
-      break;
-    case 11:
-      break;
-    case 12:
-      break;
-    case 13:
-      break;
-    case 15:
-      break;
-    case 16:
-      break;
-    case 18:
-      break;
-    case 19:
-      break;
-    case 20:
-      break;
-    case 22:
-      break;
-    case 24:
-      break;
-    case 25:
-      break;
-    case 26:
-      break;
-    case 27:
-      break;
-    case 28:
-      break;
-    case 42:
-      break;
-    case 31:
-      break;
-    case 32:
-      break;
-    case 33:
-      break;
-    case 34:
-      break;
-    case 35:
-      break;
-    case 37:
-      break;
-    case 38:
-      break;
-    case 40:
-      break;
-    case 41:
-      break;
-    case 39:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-s1ap_elem_procs_class_minus2_o::unsuccessful_outcome_c
-s1ap_elem_procs_class_minus2_o::get_unsuccessful_outcome(const uint16_t& proc_code)
-{
-  unsuccessful_outcome_c ret{};
-  switch (proc_code) {
-    case 2:
-      break;
-    case 8:
-      break;
-    case 10:
-      break;
-    case 11:
-      break;
-    case 12:
-      break;
-    case 13:
-      break;
-    case 15:
-      break;
-    case 16:
-      break;
-    case 18:
-      break;
-    case 19:
-      break;
-    case 20:
-      break;
-    case 22:
-      break;
-    case 24:
-      break;
-    case 25:
-      break;
-    case 26:
-      break;
-    case 27:
-      break;
-    case 28:
-      break;
-    case 42:
-      break;
-    case 31:
-      break;
-    case 32:
-      break;
-    case 33:
-      break;
-    case 34:
-      break;
-    case 35:
-      break;
-    case 37:
-      break;
-    case 38:
-      break;
-    case 40:
-      break;
-    case 41:
-      break;
-    case 39:
-      break;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return ret;
-}
-crit_e s1ap_elem_procs_class_minus2_o::get_crit(const uint16_t& proc_code)
-{
-  switch (proc_code) {
-    case 2:
-      return crit_e::ignore;
-    case 8:
-      return crit_e::ignore;
-    case 10:
-      return crit_e::ignore;
-    case 11:
-      return crit_e::ignore;
-    case 12:
-      return crit_e::ignore;
-    case 13:
-      return crit_e::ignore;
-    case 15:
-      return crit_e::ignore;
-    case 16:
-      return crit_e::ignore;
-    case 18:
-      return crit_e::ignore;
-    case 19:
-      return crit_e::ignore;
-    case 20:
-      return crit_e::ignore;
-    case 22:
-      return crit_e::ignore;
-    case 24:
-      return crit_e::ignore;
-    case 25:
-      return crit_e::ignore;
-    case 26:
-      return crit_e::ignore;
-    case 27:
-      return crit_e::ignore;
-    case 28:
-      return crit_e::ignore;
-    case 42:
-      return crit_e::ignore;
-    case 31:
-      return crit_e::ignore;
-    case 32:
-      return crit_e::ignore;
-    case 33:
-      return crit_e::ignore;
-    case 34:
-      return crit_e::ignore;
-    case 35:
-      return crit_e::reject;
-    case 37:
-      return crit_e::ignore;
-    case 38:
-      return crit_e::ignore;
-    case 40:
-      return crit_e::ignore;
-    case 41:
-      return crit_e::ignore;
-    case 39:
-      return crit_e::ignore;
-    default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
-  }
-  return crit_e();
-}
-
-// InitiatingMessage ::= OPEN TYPE
-ho_notify_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ho_notify()
-{
-  assert_choice_type("HandoverNotify", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_notify_s>();
-}
-erab_release_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::erab_release_ind()
-{
-  assert_choice_type("E-RABReleaseIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<erab_release_ind_s>();
-}
-paging_s& s1ap_elem_procs_class_minus2_o::init_msg_c::paging()
-{
-  assert_choice_type("Paging", type_.to_string(), "InitiatingMessage");
-  return c.get<paging_s>();
-}
-dl_nas_transport_s& s1ap_elem_procs_class_minus2_o::init_msg_c::dl_nas_transport()
-{
-  assert_choice_type("DownlinkNASTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_nas_transport_s>();
-}
-init_ue_msg_s& s1ap_elem_procs_class_minus2_o::init_msg_c::init_ue_msg()
-{
-  assert_choice_type("InitialUEMessage", type_.to_string(), "InitiatingMessage");
-  return c.get<init_ue_msg_s>();
-}
-ul_nas_transport_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ul_nas_transport()
-{
-  assert_choice_type("UplinkNASTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_nas_transport_s>();
-}
-error_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::error_ind()
-{
-  assert_choice_type("ErrorIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<error_ind_s>();
-}
-nas_non_delivery_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::nas_non_delivery_ind()
-{
-  assert_choice_type("NASNonDeliveryIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<nas_non_delivery_ind_s>();
-}
-ue_context_release_request_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ue_context_release_request()
-{
-  assert_choice_type("UEContextReleaseRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_release_request_s>();
-}
-dl_s1cdma2000tunnelling_s& s1ap_elem_procs_class_minus2_o::init_msg_c::dl_s1cdma2000tunnelling()
-{
-  assert_choice_type("DownlinkS1cdma2000tunnelling", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_s1cdma2000tunnelling_s>();
-}
-ul_s1cdma2000tunnelling_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ul_s1cdma2000tunnelling()
-{
-  assert_choice_type("UplinkS1cdma2000tunnelling", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_s1cdma2000tunnelling_s>();
-}
-ue_cap_info_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ue_cap_info_ind()
-{
-  assert_choice_type("UECapabilityInfoIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_cap_info_ind_s>();
-}
-enb_status_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::enb_status_transfer()
-{
-  assert_choice_type("ENBStatusTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<enb_status_transfer_s>();
-}
-mme_status_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::mme_status_transfer()
-{
-  assert_choice_type("MMEStatusTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<mme_status_transfer_s>();
-}
-deactiv_trace_s& s1ap_elem_procs_class_minus2_o::init_msg_c::deactiv_trace()
-{
-  assert_choice_type("DeactivateTrace", type_.to_string(), "InitiatingMessage");
-  return c.get<deactiv_trace_s>();
-}
-trace_start_s& s1ap_elem_procs_class_minus2_o::init_msg_c::trace_start()
-{
-  assert_choice_type("TraceStart", type_.to_string(), "InitiatingMessage");
-  return c.get<trace_start_s>();
-}
-trace_fail_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::trace_fail_ind()
-{
-  assert_choice_type("TraceFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<trace_fail_ind_s>();
-}
-cell_traffic_trace_s& s1ap_elem_procs_class_minus2_o::init_msg_c::cell_traffic_trace()
-{
-  assert_choice_type("CellTrafficTrace", type_.to_string(), "InitiatingMessage");
-  return c.get<cell_traffic_trace_s>();
-}
-location_report_ctrl_s& s1ap_elem_procs_class_minus2_o::init_msg_c::location_report_ctrl()
-{
-  assert_choice_type("LocationReportingControl", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_ctrl_s>();
-}
-location_report_fail_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::location_report_fail_ind()
-{
-  assert_choice_type("LocationReportingFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_fail_ind_s>();
-}
-location_report_s& s1ap_elem_procs_class_minus2_o::init_msg_c::location_report()
-{
-  assert_choice_type("LocationReport", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_s>();
-}
-overload_start_s& s1ap_elem_procs_class_minus2_o::init_msg_c::overload_start()
-{
-  assert_choice_type("OverloadStart", type_.to_string(), "InitiatingMessage");
-  return c.get<overload_start_s>();
-}
-overload_stop_s& s1ap_elem_procs_class_minus2_o::init_msg_c::overload_stop()
-{
-  assert_choice_type("OverloadStop", type_.to_string(), "InitiatingMessage");
-  return c.get<overload_stop_s>();
-}
-enb_direct_info_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::enb_direct_info_transfer()
-{
-  assert_choice_type("ENBDirectInformationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<enb_direct_info_transfer_s>();
-}
-mme_direct_info_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::mme_direct_info_transfer()
-{
-  assert_choice_type("MMEDirectInformationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<mme_direct_info_transfer_s>();
-}
-enb_cfg_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::enb_cfg_transfer()
-{
-  assert_choice_type("ENBConfigurationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<enb_cfg_transfer_s>();
-}
-mme_cfg_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::mme_cfg_transfer()
-{
-  assert_choice_type("MMEConfigurationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<mme_cfg_transfer_s>();
-}
-private_msg_s& s1ap_elem_procs_class_minus2_o::init_msg_c::private_msg()
-{
-  assert_choice_type("PrivateMessage", type_.to_string(), "InitiatingMessage");
-  return c.get<private_msg_s>();
-}
-const ho_notify_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ho_notify() const
-{
-  assert_choice_type("HandoverNotify", type_.to_string(), "InitiatingMessage");
-  return c.get<ho_notify_s>();
-}
-const erab_release_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::erab_release_ind() const
-{
-  assert_choice_type("E-RABReleaseIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<erab_release_ind_s>();
-}
-const paging_s& s1ap_elem_procs_class_minus2_o::init_msg_c::paging() const
-{
-  assert_choice_type("Paging", type_.to_string(), "InitiatingMessage");
-  return c.get<paging_s>();
-}
-const dl_nas_transport_s& s1ap_elem_procs_class_minus2_o::init_msg_c::dl_nas_transport() const
-{
-  assert_choice_type("DownlinkNASTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_nas_transport_s>();
-}
-const init_ue_msg_s& s1ap_elem_procs_class_minus2_o::init_msg_c::init_ue_msg() const
-{
-  assert_choice_type("InitialUEMessage", type_.to_string(), "InitiatingMessage");
-  return c.get<init_ue_msg_s>();
-}
-const ul_nas_transport_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ul_nas_transport() const
-{
-  assert_choice_type("UplinkNASTransport", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_nas_transport_s>();
-}
-const error_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::error_ind() const
-{
-  assert_choice_type("ErrorIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<error_ind_s>();
-}
-const nas_non_delivery_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::nas_non_delivery_ind() const
-{
-  assert_choice_type("NASNonDeliveryIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<nas_non_delivery_ind_s>();
-}
-const ue_context_release_request_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ue_context_release_request() const
-{
-  assert_choice_type("UEContextReleaseRequest", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_context_release_request_s>();
-}
-const dl_s1cdma2000tunnelling_s& s1ap_elem_procs_class_minus2_o::init_msg_c::dl_s1cdma2000tunnelling() const
-{
-  assert_choice_type("DownlinkS1cdma2000tunnelling", type_.to_string(), "InitiatingMessage");
-  return c.get<dl_s1cdma2000tunnelling_s>();
-}
-const ul_s1cdma2000tunnelling_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ul_s1cdma2000tunnelling() const
-{
-  assert_choice_type("UplinkS1cdma2000tunnelling", type_.to_string(), "InitiatingMessage");
-  return c.get<ul_s1cdma2000tunnelling_s>();
-}
-const ue_cap_info_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::ue_cap_info_ind() const
-{
-  assert_choice_type("UECapabilityInfoIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<ue_cap_info_ind_s>();
-}
-const enb_status_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::enb_status_transfer() const
-{
-  assert_choice_type("ENBStatusTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<enb_status_transfer_s>();
-}
-const mme_status_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::mme_status_transfer() const
-{
-  assert_choice_type("MMEStatusTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<mme_status_transfer_s>();
-}
-const deactiv_trace_s& s1ap_elem_procs_class_minus2_o::init_msg_c::deactiv_trace() const
-{
-  assert_choice_type("DeactivateTrace", type_.to_string(), "InitiatingMessage");
-  return c.get<deactiv_trace_s>();
-}
-const trace_start_s& s1ap_elem_procs_class_minus2_o::init_msg_c::trace_start() const
-{
-  assert_choice_type("TraceStart", type_.to_string(), "InitiatingMessage");
-  return c.get<trace_start_s>();
-}
-const trace_fail_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::trace_fail_ind() const
-{
-  assert_choice_type("TraceFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<trace_fail_ind_s>();
-}
-const cell_traffic_trace_s& s1ap_elem_procs_class_minus2_o::init_msg_c::cell_traffic_trace() const
-{
-  assert_choice_type("CellTrafficTrace", type_.to_string(), "InitiatingMessage");
-  return c.get<cell_traffic_trace_s>();
-}
-const location_report_ctrl_s& s1ap_elem_procs_class_minus2_o::init_msg_c::location_report_ctrl() const
-{
-  assert_choice_type("LocationReportingControl", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_ctrl_s>();
-}
-const location_report_fail_ind_s& s1ap_elem_procs_class_minus2_o::init_msg_c::location_report_fail_ind() const
-{
-  assert_choice_type("LocationReportingFailureIndication", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_fail_ind_s>();
-}
-const location_report_s& s1ap_elem_procs_class_minus2_o::init_msg_c::location_report() const
-{
-  assert_choice_type("LocationReport", type_.to_string(), "InitiatingMessage");
-  return c.get<location_report_s>();
-}
-const overload_start_s& s1ap_elem_procs_class_minus2_o::init_msg_c::overload_start() const
-{
-  assert_choice_type("OverloadStart", type_.to_string(), "InitiatingMessage");
-  return c.get<overload_start_s>();
-}
-const overload_stop_s& s1ap_elem_procs_class_minus2_o::init_msg_c::overload_stop() const
-{
-  assert_choice_type("OverloadStop", type_.to_string(), "InitiatingMessage");
-  return c.get<overload_stop_s>();
-}
-const enb_direct_info_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::enb_direct_info_transfer() const
-{
-  assert_choice_type("ENBDirectInformationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<enb_direct_info_transfer_s>();
-}
-const mme_direct_info_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::mme_direct_info_transfer() const
-{
-  assert_choice_type("MMEDirectInformationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<mme_direct_info_transfer_s>();
-}
-const enb_cfg_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::enb_cfg_transfer() const
-{
-  assert_choice_type("ENBConfigurationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<enb_cfg_transfer_s>();
-}
-const mme_cfg_transfer_s& s1ap_elem_procs_class_minus2_o::init_msg_c::mme_cfg_transfer() const
-{
-  assert_choice_type("MMEConfigurationTransfer", type_.to_string(), "InitiatingMessage");
-  return c.get<mme_cfg_transfer_s>();
-}
-const private_msg_s& s1ap_elem_procs_class_minus2_o::init_msg_c::private_msg() const
-{
-  assert_choice_type("PrivateMessage", type_.to_string(), "InitiatingMessage");
-  return c.get<private_msg_s>();
-}
-void s1ap_elem_procs_class_minus2_o::init_msg_c::destroy_()
-{
-  switch (type_) {
-    case types::ho_notify:
-      c.destroy<ho_notify_s>();
-      break;
-    case types::erab_release_ind:
-      c.destroy<erab_release_ind_s>();
-      break;
-    case types::paging:
-      c.destroy<paging_s>();
-      break;
-    case types::dl_nas_transport:
-      c.destroy<dl_nas_transport_s>();
-      break;
-    case types::init_ue_msg:
-      c.destroy<init_ue_msg_s>();
-      break;
-    case types::ul_nas_transport:
-      c.destroy<ul_nas_transport_s>();
-      break;
-    case types::error_ind:
-      c.destroy<error_ind_s>();
-      break;
-    case types::nas_non_delivery_ind:
-      c.destroy<nas_non_delivery_ind_s>();
-      break;
-    case types::ue_context_release_request:
-      c.destroy<ue_context_release_request_s>();
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      c.destroy<dl_s1cdma2000tunnelling_s>();
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      c.destroy<ul_s1cdma2000tunnelling_s>();
-      break;
-    case types::ue_cap_info_ind:
-      c.destroy<ue_cap_info_ind_s>();
-      break;
-    case types::enb_status_transfer:
-      c.destroy<enb_status_transfer_s>();
-      break;
-    case types::mme_status_transfer:
-      c.destroy<mme_status_transfer_s>();
-      break;
-    case types::deactiv_trace:
-      c.destroy<deactiv_trace_s>();
-      break;
-    case types::trace_start:
-      c.destroy<trace_start_s>();
-      break;
-    case types::trace_fail_ind:
-      c.destroy<trace_fail_ind_s>();
-      break;
-    case types::cell_traffic_trace:
-      c.destroy<cell_traffic_trace_s>();
-      break;
-    case types::location_report_ctrl:
-      c.destroy<location_report_ctrl_s>();
-      break;
-    case types::location_report_fail_ind:
-      c.destroy<location_report_fail_ind_s>();
-      break;
-    case types::location_report:
-      c.destroy<location_report_s>();
-      break;
-    case types::overload_start:
-      c.destroy<overload_start_s>();
-      break;
-    case types::overload_stop:
-      c.destroy<overload_stop_s>();
-      break;
-    case types::enb_direct_info_transfer:
-      c.destroy<enb_direct_info_transfer_s>();
-      break;
-    case types::mme_direct_info_transfer:
-      c.destroy<mme_direct_info_transfer_s>();
-      break;
-    case types::enb_cfg_transfer:
-      c.destroy<enb_cfg_transfer_s>();
-      break;
-    case types::mme_cfg_transfer:
-      c.destroy<mme_cfg_transfer_s>();
-      break;
-    case types::private_msg:
-      c.destroy<private_msg_s>();
-      break;
-    default:
-      break;
-  }
-}
-void s1ap_elem_procs_class_minus2_o::init_msg_c::set(types::options e)
-{
-  destroy_();
-  type_ = e;
-  switch (type_) {
-    case types::ho_notify:
-      c.init<ho_notify_s>();
-      break;
-    case types::erab_release_ind:
-      c.init<erab_release_ind_s>();
-      break;
-    case types::paging:
-      c.init<paging_s>();
-      break;
-    case types::dl_nas_transport:
-      c.init<dl_nas_transport_s>();
-      break;
-    case types::init_ue_msg:
-      c.init<init_ue_msg_s>();
-      break;
-    case types::ul_nas_transport:
-      c.init<ul_nas_transport_s>();
-      break;
-    case types::error_ind:
-      c.init<error_ind_s>();
-      break;
-    case types::nas_non_delivery_ind:
-      c.init<nas_non_delivery_ind_s>();
-      break;
-    case types::ue_context_release_request:
-      c.init<ue_context_release_request_s>();
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      c.init<dl_s1cdma2000tunnelling_s>();
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      c.init<ul_s1cdma2000tunnelling_s>();
-      break;
-    case types::ue_cap_info_ind:
-      c.init<ue_cap_info_ind_s>();
-      break;
-    case types::enb_status_transfer:
-      c.init<enb_status_transfer_s>();
-      break;
-    case types::mme_status_transfer:
-      c.init<mme_status_transfer_s>();
-      break;
-    case types::deactiv_trace:
-      c.init<deactiv_trace_s>();
-      break;
-    case types::trace_start:
-      c.init<trace_start_s>();
-      break;
-    case types::trace_fail_ind:
-      c.init<trace_fail_ind_s>();
-      break;
-    case types::cell_traffic_trace:
-      c.init<cell_traffic_trace_s>();
-      break;
-    case types::location_report_ctrl:
-      c.init<location_report_ctrl_s>();
-      break;
-    case types::location_report_fail_ind:
-      c.init<location_report_fail_ind_s>();
-      break;
-    case types::location_report:
-      c.init<location_report_s>();
-      break;
-    case types::overload_start:
-      c.init<overload_start_s>();
-      break;
-    case types::overload_stop:
-      c.init<overload_stop_s>();
-      break;
-    case types::enb_direct_info_transfer:
-      c.init<enb_direct_info_transfer_s>();
-      break;
-    case types::mme_direct_info_transfer:
-      c.init<mme_direct_info_transfer_s>();
-      break;
-    case types::enb_cfg_transfer:
-      c.init<enb_cfg_transfer_s>();
-      break;
-    case types::mme_cfg_transfer:
-      c.init<mme_cfg_transfer_s>();
-      break;
-    case types::private_msg:
-      c.init<private_msg_s>();
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus2_o::init_msg_c");
-  }
-}
-s1ap_elem_procs_class_minus2_o::init_msg_c::init_msg_c(const s1ap_elem_procs_class_minus2_o::init_msg_c& other)
-{
-  type_ = other.type();
-  switch (type_) {
-    case types::ho_notify:
-      c.init(other.c.get<ho_notify_s>());
-      break;
-    case types::erab_release_ind:
-      c.init(other.c.get<erab_release_ind_s>());
-      break;
-    case types::paging:
-      c.init(other.c.get<paging_s>());
-      break;
-    case types::dl_nas_transport:
-      c.init(other.c.get<dl_nas_transport_s>());
-      break;
-    case types::init_ue_msg:
-      c.init(other.c.get<init_ue_msg_s>());
-      break;
-    case types::ul_nas_transport:
-      c.init(other.c.get<ul_nas_transport_s>());
-      break;
-    case types::error_ind:
-      c.init(other.c.get<error_ind_s>());
-      break;
-    case types::nas_non_delivery_ind:
-      c.init(other.c.get<nas_non_delivery_ind_s>());
-      break;
-    case types::ue_context_release_request:
-      c.init(other.c.get<ue_context_release_request_s>());
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      c.init(other.c.get<dl_s1cdma2000tunnelling_s>());
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      c.init(other.c.get<ul_s1cdma2000tunnelling_s>());
-      break;
-    case types::ue_cap_info_ind:
-      c.init(other.c.get<ue_cap_info_ind_s>());
-      break;
-    case types::enb_status_transfer:
-      c.init(other.c.get<enb_status_transfer_s>());
-      break;
-    case types::mme_status_transfer:
-      c.init(other.c.get<mme_status_transfer_s>());
-      break;
-    case types::deactiv_trace:
-      c.init(other.c.get<deactiv_trace_s>());
-      break;
-    case types::trace_start:
-      c.init(other.c.get<trace_start_s>());
-      break;
-    case types::trace_fail_ind:
-      c.init(other.c.get<trace_fail_ind_s>());
-      break;
-    case types::cell_traffic_trace:
-      c.init(other.c.get<cell_traffic_trace_s>());
-      break;
-    case types::location_report_ctrl:
-      c.init(other.c.get<location_report_ctrl_s>());
-      break;
-    case types::location_report_fail_ind:
-      c.init(other.c.get<location_report_fail_ind_s>());
-      break;
-    case types::location_report:
-      c.init(other.c.get<location_report_s>());
-      break;
-    case types::overload_start:
-      c.init(other.c.get<overload_start_s>());
-      break;
-    case types::overload_stop:
-      c.init(other.c.get<overload_stop_s>());
-      break;
-    case types::enb_direct_info_transfer:
-      c.init(other.c.get<enb_direct_info_transfer_s>());
-      break;
-    case types::mme_direct_info_transfer:
-      c.init(other.c.get<mme_direct_info_transfer_s>());
-      break;
-    case types::enb_cfg_transfer:
-      c.init(other.c.get<enb_cfg_transfer_s>());
-      break;
-    case types::mme_cfg_transfer:
-      c.init(other.c.get<mme_cfg_transfer_s>());
-      break;
-    case types::private_msg:
-      c.init(other.c.get<private_msg_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus2_o::init_msg_c");
-  }
-}
-s1ap_elem_procs_class_minus2_o::init_msg_c& s1ap_elem_procs_class_minus2_o::init_msg_c::
-                                            operator=(const s1ap_elem_procs_class_minus2_o::init_msg_c& other)
-{
-  if (this == &other) {
-    return *this;
-  }
-  set(other.type());
-  switch (type_) {
-    case types::ho_notify:
-      c.set(other.c.get<ho_notify_s>());
-      break;
-    case types::erab_release_ind:
-      c.set(other.c.get<erab_release_ind_s>());
-      break;
-    case types::paging:
-      c.set(other.c.get<paging_s>());
-      break;
-    case types::dl_nas_transport:
-      c.set(other.c.get<dl_nas_transport_s>());
-      break;
-    case types::init_ue_msg:
-      c.set(other.c.get<init_ue_msg_s>());
-      break;
-    case types::ul_nas_transport:
-      c.set(other.c.get<ul_nas_transport_s>());
-      break;
-    case types::error_ind:
-      c.set(other.c.get<error_ind_s>());
-      break;
-    case types::nas_non_delivery_ind:
-      c.set(other.c.get<nas_non_delivery_ind_s>());
-      break;
-    case types::ue_context_release_request:
-      c.set(other.c.get<ue_context_release_request_s>());
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      c.set(other.c.get<dl_s1cdma2000tunnelling_s>());
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      c.set(other.c.get<ul_s1cdma2000tunnelling_s>());
-      break;
-    case types::ue_cap_info_ind:
-      c.set(other.c.get<ue_cap_info_ind_s>());
-      break;
-    case types::enb_status_transfer:
-      c.set(other.c.get<enb_status_transfer_s>());
-      break;
-    case types::mme_status_transfer:
-      c.set(other.c.get<mme_status_transfer_s>());
-      break;
-    case types::deactiv_trace:
-      c.set(other.c.get<deactiv_trace_s>());
-      break;
-    case types::trace_start:
-      c.set(other.c.get<trace_start_s>());
-      break;
-    case types::trace_fail_ind:
-      c.set(other.c.get<trace_fail_ind_s>());
-      break;
-    case types::cell_traffic_trace:
-      c.set(other.c.get<cell_traffic_trace_s>());
-      break;
-    case types::location_report_ctrl:
-      c.set(other.c.get<location_report_ctrl_s>());
-      break;
-    case types::location_report_fail_ind:
-      c.set(other.c.get<location_report_fail_ind_s>());
-      break;
-    case types::location_report:
-      c.set(other.c.get<location_report_s>());
-      break;
-    case types::overload_start:
-      c.set(other.c.get<overload_start_s>());
-      break;
-    case types::overload_stop:
-      c.set(other.c.get<overload_stop_s>());
-      break;
-    case types::enb_direct_info_transfer:
-      c.set(other.c.get<enb_direct_info_transfer_s>());
-      break;
-    case types::mme_direct_info_transfer:
-      c.set(other.c.get<mme_direct_info_transfer_s>());
-      break;
-    case types::enb_cfg_transfer:
-      c.set(other.c.get<enb_cfg_transfer_s>());
-      break;
-    case types::mme_cfg_transfer:
-      c.set(other.c.get<mme_cfg_transfer_s>());
-      break;
-    case types::private_msg:
-      c.set(other.c.get<private_msg_s>());
-      break;
-    case types::nulltype:
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus2_o::init_msg_c");
-  }
-
-  return *this;
-}
-void s1ap_elem_procs_class_minus2_o::init_msg_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  switch (type_) {
-    case types::ho_notify:
-      j.write_fieldname("HandoverNotify");
-      c.get<ho_notify_s>().to_json(j);
-      break;
-    case types::erab_release_ind:
-      j.write_fieldname("E-RABReleaseIndication");
-      c.get<erab_release_ind_s>().to_json(j);
-      break;
-    case types::paging:
-      j.write_fieldname("Paging");
-      c.get<paging_s>().to_json(j);
-      break;
-    case types::dl_nas_transport:
-      j.write_fieldname("DownlinkNASTransport");
-      c.get<dl_nas_transport_s>().to_json(j);
-      break;
-    case types::init_ue_msg:
-      j.write_fieldname("InitialUEMessage");
-      c.get<init_ue_msg_s>().to_json(j);
-      break;
-    case types::ul_nas_transport:
-      j.write_fieldname("UplinkNASTransport");
-      c.get<ul_nas_transport_s>().to_json(j);
-      break;
-    case types::error_ind:
-      j.write_fieldname("ErrorIndication");
-      c.get<error_ind_s>().to_json(j);
-      break;
-    case types::nas_non_delivery_ind:
-      j.write_fieldname("NASNonDeliveryIndication");
-      c.get<nas_non_delivery_ind_s>().to_json(j);
-      break;
-    case types::ue_context_release_request:
-      j.write_fieldname("UEContextReleaseRequest");
-      c.get<ue_context_release_request_s>().to_json(j);
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      j.write_fieldname("DownlinkS1cdma2000tunnelling");
-      c.get<dl_s1cdma2000tunnelling_s>().to_json(j);
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      j.write_fieldname("UplinkS1cdma2000tunnelling");
-      c.get<ul_s1cdma2000tunnelling_s>().to_json(j);
-      break;
-    case types::ue_cap_info_ind:
-      j.write_fieldname("UECapabilityInfoIndication");
-      c.get<ue_cap_info_ind_s>().to_json(j);
-      break;
-    case types::enb_status_transfer:
-      j.write_fieldname("ENBStatusTransfer");
-      c.get<enb_status_transfer_s>().to_json(j);
-      break;
-    case types::mme_status_transfer:
-      j.write_fieldname("MMEStatusTransfer");
-      c.get<mme_status_transfer_s>().to_json(j);
-      break;
-    case types::deactiv_trace:
-      j.write_fieldname("DeactivateTrace");
-      c.get<deactiv_trace_s>().to_json(j);
-      break;
-    case types::trace_start:
-      j.write_fieldname("TraceStart");
-      c.get<trace_start_s>().to_json(j);
-      break;
-    case types::trace_fail_ind:
-      j.write_fieldname("TraceFailureIndication");
-      c.get<trace_fail_ind_s>().to_json(j);
-      break;
-    case types::cell_traffic_trace:
-      j.write_fieldname("CellTrafficTrace");
-      c.get<cell_traffic_trace_s>().to_json(j);
-      break;
-    case types::location_report_ctrl:
-      j.write_fieldname("LocationReportingControl");
-      c.get<location_report_ctrl_s>().to_json(j);
-      break;
-    case types::location_report_fail_ind:
-      j.write_fieldname("LocationReportingFailureIndication");
-      c.get<location_report_fail_ind_s>().to_json(j);
-      break;
-    case types::location_report:
-      j.write_fieldname("LocationReport");
-      c.get<location_report_s>().to_json(j);
-      break;
-    case types::overload_start:
-      j.write_fieldname("OverloadStart");
-      c.get<overload_start_s>().to_json(j);
-      break;
-    case types::overload_stop:
-      j.write_fieldname("OverloadStop");
-      c.get<overload_stop_s>().to_json(j);
-      break;
-    case types::enb_direct_info_transfer:
-      j.write_fieldname("ENBDirectInformationTransfer");
-      c.get<enb_direct_info_transfer_s>().to_json(j);
-      break;
-    case types::mme_direct_info_transfer:
-      j.write_fieldname("MMEDirectInformationTransfer");
-      c.get<mme_direct_info_transfer_s>().to_json(j);
-      break;
-    case types::enb_cfg_transfer:
-      j.write_fieldname("ENBConfigurationTransfer");
-      c.get<enb_cfg_transfer_s>().to_json(j);
-      break;
-    case types::mme_cfg_transfer:
-      j.write_fieldname("MMEConfigurationTransfer");
-      c.get<mme_cfg_transfer_s>().to_json(j);
-      break;
-    case types::private_msg:
-      j.write_fieldname("PrivateMessage");
-      c.get<private_msg_s>().to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus2_o::init_msg_c");
-  }
-  j.end_obj();
-}
-SRSASN_CODE s1ap_elem_procs_class_minus2_o::init_msg_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::ho_notify:
-      HANDLE_CODE(c.get<ho_notify_s>().pack(bref));
-      break;
-    case types::erab_release_ind:
-      HANDLE_CODE(c.get<erab_release_ind_s>().pack(bref));
-      break;
-    case types::paging:
-      HANDLE_CODE(c.get<paging_s>().pack(bref));
-      break;
-    case types::dl_nas_transport:
-      HANDLE_CODE(c.get<dl_nas_transport_s>().pack(bref));
-      break;
-    case types::init_ue_msg:
-      HANDLE_CODE(c.get<init_ue_msg_s>().pack(bref));
-      break;
-    case types::ul_nas_transport:
-      HANDLE_CODE(c.get<ul_nas_transport_s>().pack(bref));
-      break;
-    case types::error_ind:
-      HANDLE_CODE(c.get<error_ind_s>().pack(bref));
-      break;
-    case types::nas_non_delivery_ind:
-      HANDLE_CODE(c.get<nas_non_delivery_ind_s>().pack(bref));
-      break;
-    case types::ue_context_release_request:
-      HANDLE_CODE(c.get<ue_context_release_request_s>().pack(bref));
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      HANDLE_CODE(c.get<dl_s1cdma2000tunnelling_s>().pack(bref));
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      HANDLE_CODE(c.get<ul_s1cdma2000tunnelling_s>().pack(bref));
-      break;
-    case types::ue_cap_info_ind:
-      HANDLE_CODE(c.get<ue_cap_info_ind_s>().pack(bref));
-      break;
-    case types::enb_status_transfer:
-      HANDLE_CODE(c.get<enb_status_transfer_s>().pack(bref));
-      break;
-    case types::mme_status_transfer:
-      HANDLE_CODE(c.get<mme_status_transfer_s>().pack(bref));
-      break;
-    case types::deactiv_trace:
-      HANDLE_CODE(c.get<deactiv_trace_s>().pack(bref));
-      break;
-    case types::trace_start:
-      HANDLE_CODE(c.get<trace_start_s>().pack(bref));
-      break;
-    case types::trace_fail_ind:
-      HANDLE_CODE(c.get<trace_fail_ind_s>().pack(bref));
-      break;
-    case types::cell_traffic_trace:
-      HANDLE_CODE(c.get<cell_traffic_trace_s>().pack(bref));
-      break;
-    case types::location_report_ctrl:
-      HANDLE_CODE(c.get<location_report_ctrl_s>().pack(bref));
-      break;
-    case types::location_report_fail_ind:
-      HANDLE_CODE(c.get<location_report_fail_ind_s>().pack(bref));
-      break;
-    case types::location_report:
-      HANDLE_CODE(c.get<location_report_s>().pack(bref));
-      break;
-    case types::overload_start:
-      HANDLE_CODE(c.get<overload_start_s>().pack(bref));
-      break;
-    case types::overload_stop:
-      HANDLE_CODE(c.get<overload_stop_s>().pack(bref));
-      break;
-    case types::enb_direct_info_transfer:
-      HANDLE_CODE(c.get<enb_direct_info_transfer_s>().pack(bref));
-      break;
-    case types::mme_direct_info_transfer:
-      HANDLE_CODE(c.get<mme_direct_info_transfer_s>().pack(bref));
-      break;
-    case types::enb_cfg_transfer:
-      HANDLE_CODE(c.get<enb_cfg_transfer_s>().pack(bref));
-      break;
-    case types::mme_cfg_transfer:
-      HANDLE_CODE(c.get<mme_cfg_transfer_s>().pack(bref));
-      break;
-    case types::private_msg:
-      HANDLE_CODE(c.get<private_msg_s>().pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus2_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1ap_elem_procs_class_minus2_o::init_msg_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  switch (type_) {
-    case types::ho_notify:
-      HANDLE_CODE(c.get<ho_notify_s>().unpack(bref));
-      break;
-    case types::erab_release_ind:
-      HANDLE_CODE(c.get<erab_release_ind_s>().unpack(bref));
-      break;
-    case types::paging:
-      HANDLE_CODE(c.get<paging_s>().unpack(bref));
-      break;
-    case types::dl_nas_transport:
-      HANDLE_CODE(c.get<dl_nas_transport_s>().unpack(bref));
-      break;
-    case types::init_ue_msg:
-      HANDLE_CODE(c.get<init_ue_msg_s>().unpack(bref));
-      break;
-    case types::ul_nas_transport:
-      HANDLE_CODE(c.get<ul_nas_transport_s>().unpack(bref));
-      break;
-    case types::error_ind:
-      HANDLE_CODE(c.get<error_ind_s>().unpack(bref));
-      break;
-    case types::nas_non_delivery_ind:
-      HANDLE_CODE(c.get<nas_non_delivery_ind_s>().unpack(bref));
-      break;
-    case types::ue_context_release_request:
-      HANDLE_CODE(c.get<ue_context_release_request_s>().unpack(bref));
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      HANDLE_CODE(c.get<dl_s1cdma2000tunnelling_s>().unpack(bref));
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      HANDLE_CODE(c.get<ul_s1cdma2000tunnelling_s>().unpack(bref));
-      break;
-    case types::ue_cap_info_ind:
-      HANDLE_CODE(c.get<ue_cap_info_ind_s>().unpack(bref));
-      break;
-    case types::enb_status_transfer:
-      HANDLE_CODE(c.get<enb_status_transfer_s>().unpack(bref));
-      break;
-    case types::mme_status_transfer:
-      HANDLE_CODE(c.get<mme_status_transfer_s>().unpack(bref));
-      break;
-    case types::deactiv_trace:
-      HANDLE_CODE(c.get<deactiv_trace_s>().unpack(bref));
-      break;
-    case types::trace_start:
-      HANDLE_CODE(c.get<trace_start_s>().unpack(bref));
-      break;
-    case types::trace_fail_ind:
-      HANDLE_CODE(c.get<trace_fail_ind_s>().unpack(bref));
-      break;
-    case types::cell_traffic_trace:
-      HANDLE_CODE(c.get<cell_traffic_trace_s>().unpack(bref));
-      break;
-    case types::location_report_ctrl:
-      HANDLE_CODE(c.get<location_report_ctrl_s>().unpack(bref));
-      break;
-    case types::location_report_fail_ind:
-      HANDLE_CODE(c.get<location_report_fail_ind_s>().unpack(bref));
-      break;
-    case types::location_report:
-      HANDLE_CODE(c.get<location_report_s>().unpack(bref));
-      break;
-    case types::overload_start:
-      HANDLE_CODE(c.get<overload_start_s>().unpack(bref));
-      break;
-    case types::overload_stop:
-      HANDLE_CODE(c.get<overload_stop_s>().unpack(bref));
-      break;
-    case types::enb_direct_info_transfer:
-      HANDLE_CODE(c.get<enb_direct_info_transfer_s>().unpack(bref));
-      break;
-    case types::mme_direct_info_transfer:
-      HANDLE_CODE(c.get<mme_direct_info_transfer_s>().unpack(bref));
-      break;
-    case types::enb_cfg_transfer:
-      HANDLE_CODE(c.get<enb_cfg_transfer_s>().unpack(bref));
-      break;
-    case types::mme_cfg_transfer:
-      HANDLE_CODE(c.get<mme_cfg_transfer_s>().unpack(bref));
-      break;
-    case types::private_msg:
-      HANDLE_CODE(c.get<private_msg_s>().unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "s1ap_elem_procs_class_minus2_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-
-std::string s1ap_elem_procs_class_minus2_o::init_msg_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {"HandoverNotify",
-                                            "E-RABReleaseIndication",
-                                            "Paging",
-                                            "DownlinkNASTransport",
-                                            "InitialUEMessage",
-                                            "UplinkNASTransport",
-                                            "ErrorIndication",
-                                            "NASNonDeliveryIndication",
-                                            "UEContextReleaseRequest",
-                                            "DownlinkS1cdma2000tunnelling",
-                                            "UplinkS1cdma2000tunnelling",
-                                            "UECapabilityInfoIndication",
-                                            "ENBStatusTransfer",
-                                            "MMEStatusTransfer",
-                                            "DeactivateTrace",
-                                            "TraceStart",
-                                            "TraceFailureIndication",
-                                            "CellTrafficTrace",
-                                            "LocationReportingControl",
-                                            "LocationReportingFailureIndication",
-                                            "LocationReport",
-                                            "OverloadStart",
-                                            "OverloadStop",
-                                            "ENBDirectInformationTransfer",
-                                            "MMEDirectInformationTransfer",
-                                            "ENBConfigurationTransfer",
-                                            "MMEConfigurationTransfer",
-                                            "PrivateMessage"};
-  return convert_enum_idx(options, 28, value, "s1ap_elem_procs_class_minus2_o::init_msg_c::types");
-}
-
-// SuccessfulOutcome ::= OPEN TYPE
-void s1ap_elem_procs_class_minus2_o::successful_outcome_c::set(types::options e)
-{
-  type_ = e;
-}
-void s1ap_elem_procs_class_minus2_o::successful_outcome_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.end_obj();
-}
-SRSASN_CODE s1ap_elem_procs_class_minus2_o::successful_outcome_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1ap_elem_procs_class_minus2_o::successful_outcome_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-
-std::string s1ap_elem_procs_class_minus2_o::successful_outcome_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {
-      "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL",
-      "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL"};
-  return convert_enum_idx(options, 28, value, "s1ap_elem_procs_class_minus2_o::successful_outcome_c::types");
-}
-
-// UnsuccessfulOutcome ::= OPEN TYPE
-void s1ap_elem_procs_class_minus2_o::unsuccessful_outcome_c::set(types::options e)
-{
-  type_ = e;
-}
-void s1ap_elem_procs_class_minus2_o::unsuccessful_outcome_c::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.end_obj();
-}
-SRSASN_CODE s1ap_elem_procs_class_minus2_o::unsuccessful_outcome_c::pack(bit_ref& bref) const
-{
-  varlength_field_pack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE s1ap_elem_procs_class_minus2_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
-{
-  varlength_field_unpack_guard varlen_scope(bref, true);
-  return SRSASN_SUCCESS;
-}
-
-std::string s1ap_elem_procs_class_minus2_o::unsuccessful_outcome_c::types_opts::to_string() const
-{
-  static constexpr const char* options[] = {
-      "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL",
-      "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL", "NULL"};
-  return convert_enum_idx(options, 28, value, "s1ap_elem_procs_class_minus2_o::unsuccessful_outcome_c::types");
-}
-
 // S1AP-ELEMENTARY-PROCEDURES ::= OBJECT SET OF S1AP-ELEMENTARY-PROCEDURE
 uint16_t s1ap_elem_procs_o::idx_to_proc_code(uint32_t idx)
 {
-  static constexpr const uint16_t options[] = {0,  1,  3,  5,  6,  7,  9,  4,  43, 14, 17, 21, 23, 29, 30,
-                                               36, 2,  8,  10, 11, 12, 13, 15, 16, 18, 19, 20, 22, 24, 25,
-                                               26, 27, 28, 42, 31, 32, 33, 34, 35, 37, 38, 40, 41, 39};
-  return convert_enum_idx(options, 44, idx, "proc_code");
+  static const uint16_t options[] = {0,  1,  3,  5,  6,  7,  9,  4,  43, 14, 17, 21, 23, 29, 30,
+                                     36, 2,  8,  10, 11, 12, 13, 15, 16, 18, 19, 20, 22, 24, 25,
+                                     26, 27, 28, 42, 31, 32, 33, 34, 35, 37, 38, 40, 41, 39};
+  return map_enum_number(options, 44, idx, "proc_code");
 }
 bool s1ap_elem_procs_o::is_proc_code_valid(const uint16_t& proc_code)
 {
-  static constexpr const uint16_t options[] = {0,  1,  3,  5,  6,  7,  9,  4,  43, 14, 17, 21, 23, 29, 30,
-                                               36, 2,  8,  10, 11, 12, 13, 15, 16, 18, 19, 20, 22, 24, 25,
-                                               26, 27, 28, 42, 31, 32, 33, 34, 35, 37, 38, 40, 41, 39};
-  for (uint32_t i = 0; i < 44; ++i) {
-    if (options[i] == proc_code) {
+  static const uint16_t options[] = {0,  1,  3,  5,  6,  7,  9,  4,  43, 14, 17, 21, 23, 29, 30,
+                                     36, 2,  8,  10, 11, 12, 13, 15, 16, 18, 19, 20, 22, 24, 25,
+                                     26, 27, 28, 42, 31, 32, 33, 34, 35, 37, 38, 40, 41, 39};
+  for (const auto& o : options) {
+    if (o == proc_code) {
       return true;
     }
   }
@@ -60180,7 +56390,7 @@ s1ap_elem_procs_o::init_msg_c s1ap_elem_procs_o::get_init_msg(const uint16_t& pr
       ret.set(init_msg_c::types::private_msg);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
+      logmap::get("ASN1::S1AP")->error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -60189,111 +56399,55 @@ s1ap_elem_procs_o::successful_outcome_c s1ap_elem_procs_o::get_successful_outcom
   successful_outcome_c ret{};
   switch (proc_code) {
     case 0:
-      ret.set(successful_outcome_c::types::ho_required);
+      ret.set(successful_outcome_c::types::ho_cmd);
       break;
     case 1:
-      ret.set(successful_outcome_c::types::ho_request);
+      ret.set(successful_outcome_c::types::ho_request_ack);
       break;
     case 3:
-      ret.set(successful_outcome_c::types::path_switch_request);
+      ret.set(successful_outcome_c::types::path_switch_request_ack);
       break;
     case 5:
-      ret.set(successful_outcome_c::types::erab_setup_request);
+      ret.set(successful_outcome_c::types::erab_setup_resp);
       break;
     case 6:
-      ret.set(successful_outcome_c::types::erab_modify_request);
+      ret.set(successful_outcome_c::types::erab_modify_resp);
       break;
     case 7:
-      ret.set(successful_outcome_c::types::erab_release_cmd);
+      ret.set(successful_outcome_c::types::erab_release_resp);
       break;
     case 9:
-      ret.set(successful_outcome_c::types::init_context_setup_request);
+      ret.set(successful_outcome_c::types::init_context_setup_resp);
       break;
     case 4:
-      ret.set(successful_outcome_c::types::ho_cancel);
+      ret.set(successful_outcome_c::types::ho_cancel_ack);
       break;
     case 43:
-      ret.set(successful_outcome_c::types::kill_request);
+      ret.set(successful_outcome_c::types::kill_resp);
       break;
     case 14:
-      ret.set(successful_outcome_c::types::reset);
+      ret.set(successful_outcome_c::types::reset_ack);
       break;
     case 17:
-      ret.set(successful_outcome_c::types::s1_setup_request);
+      ret.set(successful_outcome_c::types::s1_setup_resp);
       break;
     case 21:
-      ret.set(successful_outcome_c::types::ue_context_mod_request);
+      ret.set(successful_outcome_c::types::ue_context_mod_resp);
       break;
     case 23:
-      ret.set(successful_outcome_c::types::ue_context_release_cmd);
+      ret.set(successful_outcome_c::types::ue_context_release_complete);
       break;
     case 29:
-      ret.set(successful_outcome_c::types::enb_cfg_upd);
+      ret.set(successful_outcome_c::types::enb_cfg_upd_ack);
       break;
     case 30:
-      ret.set(successful_outcome_c::types::mme_cfg_upd);
+      ret.set(successful_outcome_c::types::mme_cfg_upd_ack);
       break;
     case 36:
-      ret.set(successful_outcome_c::types::write_replace_warning_request);
-      break;
-    case 2:
-      break;
-    case 8:
-      break;
-    case 10:
-      break;
-    case 11:
-      break;
-    case 12:
-      break;
-    case 13:
-      break;
-    case 15:
-      break;
-    case 16:
-      break;
-    case 18:
-      break;
-    case 19:
-      break;
-    case 20:
-      break;
-    case 22:
-      break;
-    case 24:
-      break;
-    case 25:
-      break;
-    case 26:
-      break;
-    case 27:
-      break;
-    case 28:
-      break;
-    case 42:
-      break;
-    case 31:
-      break;
-    case 32:
-      break;
-    case 33:
-      break;
-    case 34:
-      break;
-    case 35:
-      break;
-    case 37:
-      break;
-    case 38:
-      break;
-    case 40:
-      break;
-    case 41:
-      break;
-    case 39:
+      ret.set(successful_outcome_c::types::write_replace_warning_resp);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
+      logmap::get("ASN1::S1AP")->error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -60302,103 +56456,31 @@ s1ap_elem_procs_o::unsuccessful_outcome_c s1ap_elem_procs_o::get_unsuccessful_ou
   unsuccessful_outcome_c ret{};
   switch (proc_code) {
     case 0:
-      ret.set(unsuccessful_outcome_c::types::ho_required);
+      ret.set(unsuccessful_outcome_c::types::ho_prep_fail);
       break;
     case 1:
-      ret.set(unsuccessful_outcome_c::types::ho_request);
+      ret.set(unsuccessful_outcome_c::types::ho_fail);
       break;
     case 3:
-      ret.set(unsuccessful_outcome_c::types::path_switch_request);
-      break;
-    case 5:
-      break;
-    case 6:
-      break;
-    case 7:
+      ret.set(unsuccessful_outcome_c::types::path_switch_request_fail);
       break;
     case 9:
-      ret.set(unsuccessful_outcome_c::types::init_context_setup_request);
-      break;
-    case 4:
-      break;
-    case 43:
-      break;
-    case 14:
+      ret.set(unsuccessful_outcome_c::types::init_context_setup_fail);
       break;
     case 17:
-      ret.set(unsuccessful_outcome_c::types::s1_setup_request);
+      ret.set(unsuccessful_outcome_c::types::s1_setup_fail);
       break;
     case 21:
-      ret.set(unsuccessful_outcome_c::types::ue_context_mod_request);
-      break;
-    case 23:
+      ret.set(unsuccessful_outcome_c::types::ue_context_mod_fail);
       break;
     case 29:
-      ret.set(unsuccessful_outcome_c::types::enb_cfg_upd);
+      ret.set(unsuccessful_outcome_c::types::enb_cfg_upd_fail);
       break;
     case 30:
-      ret.set(unsuccessful_outcome_c::types::mme_cfg_upd);
-      break;
-    case 36:
-      break;
-    case 2:
-      break;
-    case 8:
-      break;
-    case 10:
-      break;
-    case 11:
-      break;
-    case 12:
-      break;
-    case 13:
-      break;
-    case 15:
-      break;
-    case 16:
-      break;
-    case 18:
-      break;
-    case 19:
-      break;
-    case 20:
-      break;
-    case 22:
-      break;
-    case 24:
-      break;
-    case 25:
-      break;
-    case 26:
-      break;
-    case 27:
-      break;
-    case 28:
-      break;
-    case 42:
-      break;
-    case 31:
-      break;
-    case 32:
-      break;
-    case 33:
-      break;
-    case 34:
-      break;
-    case 35:
-      break;
-    case 37:
-      break;
-    case 38:
-      break;
-    case 40:
-      break;
-    case 41:
-      break;
-    case 39:
+      ret.set(unsuccessful_outcome_c::types::mme_cfg_upd_fail);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
+      logmap::get("ASN1::S1AP")->error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -60494,9 +56576,9 @@ crit_e s1ap_elem_procs_o::get_crit(const uint16_t& proc_code)
     case 39:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The proc_code=%d is not recognized", proc_code);
+      logmap::get("ASN1::S1AP")->error("The proc_code=%d is not recognized", proc_code);
   }
-  return crit_e();
+  return {};
 }
 
 // InitiatingMessage ::= OPEN TYPE
@@ -61983,210 +58065,210 @@ SRSASN_CODE s1ap_elem_procs_o::init_msg_c::unpack(cbit_ref& bref)
 
 std::string s1ap_elem_procs_o::init_msg_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"HandoverRequired",
-                                            "HandoverRequest",
-                                            "PathSwitchRequest",
-                                            "E-RABSetupRequest",
-                                            "E-RABModifyRequest",
-                                            "E-RABReleaseCommand",
-                                            "InitialContextSetupRequest",
-                                            "HandoverCancel",
-                                            "KillRequest",
-                                            "Reset",
-                                            "S1SetupRequest",
-                                            "UEContextModificationRequest",
-                                            "UEContextReleaseCommand",
-                                            "ENBConfigurationUpdate",
-                                            "MMEConfigurationUpdate",
-                                            "WriteReplaceWarningRequest",
-                                            "HandoverNotify",
-                                            "E-RABReleaseIndication",
-                                            "Paging",
-                                            "DownlinkNASTransport",
-                                            "InitialUEMessage",
-                                            "UplinkNASTransport",
-                                            "ErrorIndication",
-                                            "NASNonDeliveryIndication",
-                                            "UEContextReleaseRequest",
-                                            "DownlinkS1cdma2000tunnelling",
-                                            "UplinkS1cdma2000tunnelling",
-                                            "UECapabilityInfoIndication",
-                                            "ENBStatusTransfer",
-                                            "MMEStatusTransfer",
-                                            "DeactivateTrace",
-                                            "TraceStart",
-                                            "TraceFailureIndication",
-                                            "CellTrafficTrace",
-                                            "LocationReportingControl",
-                                            "LocationReportingFailureIndication",
-                                            "LocationReport",
-                                            "OverloadStart",
-                                            "OverloadStop",
-                                            "ENBDirectInformationTransfer",
-                                            "MMEDirectInformationTransfer",
-                                            "ENBConfigurationTransfer",
-                                            "MMEConfigurationTransfer",
-                                            "PrivateMessage"};
+  static const char* options[] = {"HandoverRequired",
+                                  "HandoverRequest",
+                                  "PathSwitchRequest",
+                                  "E-RABSetupRequest",
+                                  "E-RABModifyRequest",
+                                  "E-RABReleaseCommand",
+                                  "InitialContextSetupRequest",
+                                  "HandoverCancel",
+                                  "KillRequest",
+                                  "Reset",
+                                  "S1SetupRequest",
+                                  "UEContextModificationRequest",
+                                  "UEContextReleaseCommand",
+                                  "ENBConfigurationUpdate",
+                                  "MMEConfigurationUpdate",
+                                  "WriteReplaceWarningRequest",
+                                  "HandoverNotify",
+                                  "E-RABReleaseIndication",
+                                  "Paging",
+                                  "DownlinkNASTransport",
+                                  "InitialUEMessage",
+                                  "UplinkNASTransport",
+                                  "ErrorIndication",
+                                  "NASNonDeliveryIndication",
+                                  "UEContextReleaseRequest",
+                                  "DownlinkS1cdma2000tunnelling",
+                                  "UplinkS1cdma2000tunnelling",
+                                  "UECapabilityInfoIndication",
+                                  "ENBStatusTransfer",
+                                  "MMEStatusTransfer",
+                                  "DeactivateTrace",
+                                  "TraceStart",
+                                  "TraceFailureIndication",
+                                  "CellTrafficTrace",
+                                  "LocationReportingControl",
+                                  "LocationReportingFailureIndication",
+                                  "LocationReport",
+                                  "OverloadStart",
+                                  "OverloadStop",
+                                  "ENBDirectInformationTransfer",
+                                  "MMEDirectInformationTransfer",
+                                  "ENBConfigurationTransfer",
+                                  "MMEConfigurationTransfer",
+                                  "PrivateMessage"};
   return convert_enum_idx(options, 44, value, "s1ap_elem_procs_o::init_msg_c::types");
 }
 
 // SuccessfulOutcome ::= OPEN TYPE
-ho_cmd_s& s1ap_elem_procs_o::successful_outcome_c::ho_required()
+ho_cmd_s& s1ap_elem_procs_o::successful_outcome_c::ho_cmd()
 {
   assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_cmd_s>();
 }
-ho_request_ack_s& s1ap_elem_procs_o::successful_outcome_c::ho_request()
+ho_request_ack_s& s1ap_elem_procs_o::successful_outcome_c::ho_request_ack()
 {
   assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_request_ack_s>();
 }
-path_switch_request_ack_s& s1ap_elem_procs_o::successful_outcome_c::path_switch_request()
+path_switch_request_ack_s& s1ap_elem_procs_o::successful_outcome_c::path_switch_request_ack()
 {
   assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<path_switch_request_ack_s>();
 }
-erab_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_setup_request()
+erab_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_setup_resp()
 {
   assert_choice_type("E-RABSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<erab_setup_resp_s>();
 }
-erab_modify_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_modify_request()
+erab_modify_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_modify_resp()
 {
   assert_choice_type("E-RABModifyResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<erab_modify_resp_s>();
 }
-erab_release_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_release_cmd()
+erab_release_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_release_resp()
 {
   assert_choice_type("E-RABReleaseResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<erab_release_resp_s>();
 }
-init_context_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::init_context_setup_request()
+init_context_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::init_context_setup_resp()
 {
   assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<init_context_setup_resp_s>();
 }
-ho_cancel_ack_s& s1ap_elem_procs_o::successful_outcome_c::ho_cancel()
+ho_cancel_ack_s& s1ap_elem_procs_o::successful_outcome_c::ho_cancel_ack()
 {
   assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_cancel_ack_s>();
 }
-kill_resp_s& s1ap_elem_procs_o::successful_outcome_c::kill_request()
+kill_resp_s& s1ap_elem_procs_o::successful_outcome_c::kill_resp()
 {
   assert_choice_type("KillResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<kill_resp_s>();
 }
-reset_ack_s& s1ap_elem_procs_o::successful_outcome_c::reset()
+reset_ack_s& s1ap_elem_procs_o::successful_outcome_c::reset_ack()
 {
   assert_choice_type("ResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<reset_ack_s>();
 }
-s1_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::s1_setup_request()
+s1_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::s1_setup_resp()
 {
   assert_choice_type("S1SetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<s1_setup_resp_s>();
 }
-ue_context_mod_resp_s& s1ap_elem_procs_o::successful_outcome_c::ue_context_mod_request()
+ue_context_mod_resp_s& s1ap_elem_procs_o::successful_outcome_c::ue_context_mod_resp()
 {
   assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_context_mod_resp_s>();
 }
-ue_context_release_complete_s& s1ap_elem_procs_o::successful_outcome_c::ue_context_release_cmd()
+ue_context_release_complete_s& s1ap_elem_procs_o::successful_outcome_c::ue_context_release_complete()
 {
   assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_context_release_complete_s>();
 }
-enb_cfg_upd_ack_s& s1ap_elem_procs_o::successful_outcome_c::enb_cfg_upd()
+enb_cfg_upd_ack_s& s1ap_elem_procs_o::successful_outcome_c::enb_cfg_upd_ack()
 {
   assert_choice_type("ENBConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<enb_cfg_upd_ack_s>();
 }
-mme_cfg_upd_ack_s& s1ap_elem_procs_o::successful_outcome_c::mme_cfg_upd()
+mme_cfg_upd_ack_s& s1ap_elem_procs_o::successful_outcome_c::mme_cfg_upd_ack()
 {
   assert_choice_type("MMEConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<mme_cfg_upd_ack_s>();
 }
-write_replace_warning_resp_s& s1ap_elem_procs_o::successful_outcome_c::write_replace_warning_request()
+write_replace_warning_resp_s& s1ap_elem_procs_o::successful_outcome_c::write_replace_warning_resp()
 {
   assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<write_replace_warning_resp_s>();
 }
-const ho_cmd_s& s1ap_elem_procs_o::successful_outcome_c::ho_required() const
+const ho_cmd_s& s1ap_elem_procs_o::successful_outcome_c::ho_cmd() const
 {
   assert_choice_type("HandoverCommand", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_cmd_s>();
 }
-const ho_request_ack_s& s1ap_elem_procs_o::successful_outcome_c::ho_request() const
+const ho_request_ack_s& s1ap_elem_procs_o::successful_outcome_c::ho_request_ack() const
 {
   assert_choice_type("HandoverRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_request_ack_s>();
 }
-const path_switch_request_ack_s& s1ap_elem_procs_o::successful_outcome_c::path_switch_request() const
+const path_switch_request_ack_s& s1ap_elem_procs_o::successful_outcome_c::path_switch_request_ack() const
 {
   assert_choice_type("PathSwitchRequestAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<path_switch_request_ack_s>();
 }
-const erab_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_setup_request() const
+const erab_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_setup_resp() const
 {
   assert_choice_type("E-RABSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<erab_setup_resp_s>();
 }
-const erab_modify_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_modify_request() const
+const erab_modify_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_modify_resp() const
 {
   assert_choice_type("E-RABModifyResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<erab_modify_resp_s>();
 }
-const erab_release_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_release_cmd() const
+const erab_release_resp_s& s1ap_elem_procs_o::successful_outcome_c::erab_release_resp() const
 {
   assert_choice_type("E-RABReleaseResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<erab_release_resp_s>();
 }
-const init_context_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::init_context_setup_request() const
+const init_context_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::init_context_setup_resp() const
 {
   assert_choice_type("InitialContextSetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<init_context_setup_resp_s>();
 }
-const ho_cancel_ack_s& s1ap_elem_procs_o::successful_outcome_c::ho_cancel() const
+const ho_cancel_ack_s& s1ap_elem_procs_o::successful_outcome_c::ho_cancel_ack() const
 {
   assert_choice_type("HandoverCancelAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<ho_cancel_ack_s>();
 }
-const kill_resp_s& s1ap_elem_procs_o::successful_outcome_c::kill_request() const
+const kill_resp_s& s1ap_elem_procs_o::successful_outcome_c::kill_resp() const
 {
   assert_choice_type("KillResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<kill_resp_s>();
 }
-const reset_ack_s& s1ap_elem_procs_o::successful_outcome_c::reset() const
+const reset_ack_s& s1ap_elem_procs_o::successful_outcome_c::reset_ack() const
 {
   assert_choice_type("ResetAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<reset_ack_s>();
 }
-const s1_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::s1_setup_request() const
+const s1_setup_resp_s& s1ap_elem_procs_o::successful_outcome_c::s1_setup_resp() const
 {
   assert_choice_type("S1SetupResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<s1_setup_resp_s>();
 }
-const ue_context_mod_resp_s& s1ap_elem_procs_o::successful_outcome_c::ue_context_mod_request() const
+const ue_context_mod_resp_s& s1ap_elem_procs_o::successful_outcome_c::ue_context_mod_resp() const
 {
   assert_choice_type("UEContextModificationResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_context_mod_resp_s>();
 }
-const ue_context_release_complete_s& s1ap_elem_procs_o::successful_outcome_c::ue_context_release_cmd() const
+const ue_context_release_complete_s& s1ap_elem_procs_o::successful_outcome_c::ue_context_release_complete() const
 {
   assert_choice_type("UEContextReleaseComplete", type_.to_string(), "SuccessfulOutcome");
   return c.get<ue_context_release_complete_s>();
 }
-const enb_cfg_upd_ack_s& s1ap_elem_procs_o::successful_outcome_c::enb_cfg_upd() const
+const enb_cfg_upd_ack_s& s1ap_elem_procs_o::successful_outcome_c::enb_cfg_upd_ack() const
 {
   assert_choice_type("ENBConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<enb_cfg_upd_ack_s>();
 }
-const mme_cfg_upd_ack_s& s1ap_elem_procs_o::successful_outcome_c::mme_cfg_upd() const
+const mme_cfg_upd_ack_s& s1ap_elem_procs_o::successful_outcome_c::mme_cfg_upd_ack() const
 {
   assert_choice_type("MMEConfigurationUpdateAcknowledge", type_.to_string(), "SuccessfulOutcome");
   return c.get<mme_cfg_upd_ack_s>();
 }
-const write_replace_warning_resp_s& s1ap_elem_procs_o::successful_outcome_c::write_replace_warning_request() const
+const write_replace_warning_resp_s& s1ap_elem_procs_o::successful_outcome_c::write_replace_warning_resp() const
 {
   assert_choice_type("WriteReplaceWarningResponse", type_.to_string(), "SuccessfulOutcome");
   return c.get<write_replace_warning_resp_s>();
@@ -62194,52 +58276,52 @@ const write_replace_warning_resp_s& s1ap_elem_procs_o::successful_outcome_c::wri
 void s1ap_elem_procs_o::successful_outcome_c::destroy_()
 {
   switch (type_) {
-    case types::ho_required:
+    case types::ho_cmd:
       c.destroy<ho_cmd_s>();
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       c.destroy<ho_request_ack_s>();
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       c.destroy<path_switch_request_ack_s>();
       break;
-    case types::erab_setup_request:
+    case types::erab_setup_resp:
       c.destroy<erab_setup_resp_s>();
       break;
-    case types::erab_modify_request:
+    case types::erab_modify_resp:
       c.destroy<erab_modify_resp_s>();
       break;
-    case types::erab_release_cmd:
+    case types::erab_release_resp:
       c.destroy<erab_release_resp_s>();
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       c.destroy<init_context_setup_resp_s>();
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       c.destroy<ho_cancel_ack_s>();
       break;
-    case types::kill_request:
+    case types::kill_resp:
       c.destroy<kill_resp_s>();
       break;
-    case types::reset:
+    case types::reset_ack:
       c.destroy<reset_ack_s>();
       break;
-    case types::s1_setup_request:
+    case types::s1_setup_resp:
       c.destroy<s1_setup_resp_s>();
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       c.destroy<ue_context_mod_resp_s>();
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       c.destroy<ue_context_release_complete_s>();
       break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_ack:
       c.destroy<enb_cfg_upd_ack_s>();
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_ack:
       c.destroy<mme_cfg_upd_ack_s>();
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       c.destroy<write_replace_warning_resp_s>();
       break;
     default:
@@ -62251,109 +58333,53 @@ void s1ap_elem_procs_o::successful_outcome_c::set(types::options e)
   destroy_();
   type_ = e;
   switch (type_) {
-    case types::ho_required:
+    case types::ho_cmd:
       c.init<ho_cmd_s>();
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       c.init<ho_request_ack_s>();
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       c.init<path_switch_request_ack_s>();
       break;
-    case types::erab_setup_request:
+    case types::erab_setup_resp:
       c.init<erab_setup_resp_s>();
       break;
-    case types::erab_modify_request:
+    case types::erab_modify_resp:
       c.init<erab_modify_resp_s>();
       break;
-    case types::erab_release_cmd:
+    case types::erab_release_resp:
       c.init<erab_release_resp_s>();
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       c.init<init_context_setup_resp_s>();
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       c.init<ho_cancel_ack_s>();
       break;
-    case types::kill_request:
+    case types::kill_resp:
       c.init<kill_resp_s>();
       break;
-    case types::reset:
+    case types::reset_ack:
       c.init<reset_ack_s>();
       break;
-    case types::s1_setup_request:
+    case types::s1_setup_resp:
       c.init<s1_setup_resp_s>();
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       c.init<ue_context_mod_resp_s>();
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       c.init<ue_context_release_complete_s>();
       break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_ack:
       c.init<enb_cfg_upd_ack_s>();
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_ack:
       c.init<mme_cfg_upd_ack_s>();
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       c.init<write_replace_warning_resp_s>();
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     case types::nulltype:
       break;
@@ -62365,109 +58391,53 @@ s1ap_elem_procs_o::successful_outcome_c::successful_outcome_c(const s1ap_elem_pr
 {
   type_ = other.type();
   switch (type_) {
-    case types::ho_required:
+    case types::ho_cmd:
       c.init(other.c.get<ho_cmd_s>());
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       c.init(other.c.get<ho_request_ack_s>());
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       c.init(other.c.get<path_switch_request_ack_s>());
       break;
-    case types::erab_setup_request:
+    case types::erab_setup_resp:
       c.init(other.c.get<erab_setup_resp_s>());
       break;
-    case types::erab_modify_request:
+    case types::erab_modify_resp:
       c.init(other.c.get<erab_modify_resp_s>());
       break;
-    case types::erab_release_cmd:
+    case types::erab_release_resp:
       c.init(other.c.get<erab_release_resp_s>());
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       c.init(other.c.get<init_context_setup_resp_s>());
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       c.init(other.c.get<ho_cancel_ack_s>());
       break;
-    case types::kill_request:
+    case types::kill_resp:
       c.init(other.c.get<kill_resp_s>());
       break;
-    case types::reset:
+    case types::reset_ack:
       c.init(other.c.get<reset_ack_s>());
       break;
-    case types::s1_setup_request:
+    case types::s1_setup_resp:
       c.init(other.c.get<s1_setup_resp_s>());
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       c.init(other.c.get<ue_context_mod_resp_s>());
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       c.init(other.c.get<ue_context_release_complete_s>());
       break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_ack:
       c.init(other.c.get<enb_cfg_upd_ack_s>());
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_ack:
       c.init(other.c.get<mme_cfg_upd_ack_s>());
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       c.init(other.c.get<write_replace_warning_resp_s>());
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     case types::nulltype:
       break;
@@ -62483,109 +58453,53 @@ s1ap_elem_procs_o::successful_outcome_c& s1ap_elem_procs_o::successful_outcome_c
   }
   set(other.type());
   switch (type_) {
-    case types::ho_required:
+    case types::ho_cmd:
       c.set(other.c.get<ho_cmd_s>());
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       c.set(other.c.get<ho_request_ack_s>());
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       c.set(other.c.get<path_switch_request_ack_s>());
       break;
-    case types::erab_setup_request:
+    case types::erab_setup_resp:
       c.set(other.c.get<erab_setup_resp_s>());
       break;
-    case types::erab_modify_request:
+    case types::erab_modify_resp:
       c.set(other.c.get<erab_modify_resp_s>());
       break;
-    case types::erab_release_cmd:
+    case types::erab_release_resp:
       c.set(other.c.get<erab_release_resp_s>());
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       c.set(other.c.get<init_context_setup_resp_s>());
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       c.set(other.c.get<ho_cancel_ack_s>());
       break;
-    case types::kill_request:
+    case types::kill_resp:
       c.set(other.c.get<kill_resp_s>());
       break;
-    case types::reset:
+    case types::reset_ack:
       c.set(other.c.get<reset_ack_s>());
       break;
-    case types::s1_setup_request:
+    case types::s1_setup_resp:
       c.set(other.c.get<s1_setup_resp_s>());
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       c.set(other.c.get<ue_context_mod_resp_s>());
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       c.set(other.c.get<ue_context_release_complete_s>());
       break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_ack:
       c.set(other.c.get<enb_cfg_upd_ack_s>());
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_ack:
       c.set(other.c.get<mme_cfg_upd_ack_s>());
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       c.set(other.c.get<write_replace_warning_resp_s>());
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     case types::nulltype:
       break;
@@ -62599,125 +58513,69 @@ void s1ap_elem_procs_o::successful_outcome_c::to_json(json_writer& j) const
 {
   j.start_obj();
   switch (type_) {
-    case types::ho_required:
+    case types::ho_cmd:
       j.write_fieldname("HandoverCommand");
       c.get<ho_cmd_s>().to_json(j);
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       j.write_fieldname("HandoverRequestAcknowledge");
       c.get<ho_request_ack_s>().to_json(j);
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       j.write_fieldname("PathSwitchRequestAcknowledge");
       c.get<path_switch_request_ack_s>().to_json(j);
       break;
-    case types::erab_setup_request:
+    case types::erab_setup_resp:
       j.write_fieldname("E-RABSetupResponse");
       c.get<erab_setup_resp_s>().to_json(j);
       break;
-    case types::erab_modify_request:
+    case types::erab_modify_resp:
       j.write_fieldname("E-RABModifyResponse");
       c.get<erab_modify_resp_s>().to_json(j);
       break;
-    case types::erab_release_cmd:
+    case types::erab_release_resp:
       j.write_fieldname("E-RABReleaseResponse");
       c.get<erab_release_resp_s>().to_json(j);
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       j.write_fieldname("InitialContextSetupResponse");
       c.get<init_context_setup_resp_s>().to_json(j);
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       j.write_fieldname("HandoverCancelAcknowledge");
       c.get<ho_cancel_ack_s>().to_json(j);
       break;
-    case types::kill_request:
+    case types::kill_resp:
       j.write_fieldname("KillResponse");
       c.get<kill_resp_s>().to_json(j);
       break;
-    case types::reset:
+    case types::reset_ack:
       j.write_fieldname("ResetAcknowledge");
       c.get<reset_ack_s>().to_json(j);
       break;
-    case types::s1_setup_request:
+    case types::s1_setup_resp:
       j.write_fieldname("S1SetupResponse");
       c.get<s1_setup_resp_s>().to_json(j);
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       j.write_fieldname("UEContextModificationResponse");
       c.get<ue_context_mod_resp_s>().to_json(j);
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       j.write_fieldname("UEContextReleaseComplete");
       c.get<ue_context_release_complete_s>().to_json(j);
       break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_ack:
       j.write_fieldname("ENBConfigurationUpdateAcknowledge");
       c.get<enb_cfg_upd_ack_s>().to_json(j);
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_ack:
       j.write_fieldname("MMEConfigurationUpdateAcknowledge");
       c.get<mme_cfg_upd_ack_s>().to_json(j);
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       j.write_fieldname("WriteReplaceWarningResponse");
       c.get<write_replace_warning_resp_s>().to_json(j);
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     default:
       log_invalid_choice_id(type_, "s1ap_elem_procs_o::successful_outcome_c");
@@ -62728,109 +58586,53 @@ SRSASN_CODE s1ap_elem_procs_o::successful_outcome_c::pack(bit_ref& bref) const
 {
   varlength_field_pack_guard varlen_scope(bref, true);
   switch (type_) {
-    case types::ho_required:
+    case types::ho_cmd:
       HANDLE_CODE(c.get<ho_cmd_s>().pack(bref));
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       HANDLE_CODE(c.get<ho_request_ack_s>().pack(bref));
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       HANDLE_CODE(c.get<path_switch_request_ack_s>().pack(bref));
       break;
-    case types::erab_setup_request:
+    case types::erab_setup_resp:
       HANDLE_CODE(c.get<erab_setup_resp_s>().pack(bref));
       break;
-    case types::erab_modify_request:
+    case types::erab_modify_resp:
       HANDLE_CODE(c.get<erab_modify_resp_s>().pack(bref));
       break;
-    case types::erab_release_cmd:
+    case types::erab_release_resp:
       HANDLE_CODE(c.get<erab_release_resp_s>().pack(bref));
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       HANDLE_CODE(c.get<init_context_setup_resp_s>().pack(bref));
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       HANDLE_CODE(c.get<ho_cancel_ack_s>().pack(bref));
       break;
-    case types::kill_request:
+    case types::kill_resp:
       HANDLE_CODE(c.get<kill_resp_s>().pack(bref));
       break;
-    case types::reset:
+    case types::reset_ack:
       HANDLE_CODE(c.get<reset_ack_s>().pack(bref));
       break;
-    case types::s1_setup_request:
+    case types::s1_setup_resp:
       HANDLE_CODE(c.get<s1_setup_resp_s>().pack(bref));
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       HANDLE_CODE(c.get<ue_context_mod_resp_s>().pack(bref));
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       HANDLE_CODE(c.get<ue_context_release_complete_s>().pack(bref));
       break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_ack:
       HANDLE_CODE(c.get<enb_cfg_upd_ack_s>().pack(bref));
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_ack:
       HANDLE_CODE(c.get<mme_cfg_upd_ack_s>().pack(bref));
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       HANDLE_CODE(c.get<write_replace_warning_resp_s>().pack(bref));
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     default:
       log_invalid_choice_id(type_, "s1ap_elem_procs_o::successful_outcome_c");
@@ -62842,109 +58644,53 @@ SRSASN_CODE s1ap_elem_procs_o::successful_outcome_c::unpack(cbit_ref& bref)
 {
   varlength_field_unpack_guard varlen_scope(bref, true);
   switch (type_) {
-    case types::ho_required:
+    case types::ho_cmd:
       HANDLE_CODE(c.get<ho_cmd_s>().unpack(bref));
       break;
-    case types::ho_request:
+    case types::ho_request_ack:
       HANDLE_CODE(c.get<ho_request_ack_s>().unpack(bref));
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_ack:
       HANDLE_CODE(c.get<path_switch_request_ack_s>().unpack(bref));
       break;
-    case types::erab_setup_request:
+    case types::erab_setup_resp:
       HANDLE_CODE(c.get<erab_setup_resp_s>().unpack(bref));
       break;
-    case types::erab_modify_request:
+    case types::erab_modify_resp:
       HANDLE_CODE(c.get<erab_modify_resp_s>().unpack(bref));
       break;
-    case types::erab_release_cmd:
+    case types::erab_release_resp:
       HANDLE_CODE(c.get<erab_release_resp_s>().unpack(bref));
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_resp:
       HANDLE_CODE(c.get<init_context_setup_resp_s>().unpack(bref));
       break;
-    case types::ho_cancel:
+    case types::ho_cancel_ack:
       HANDLE_CODE(c.get<ho_cancel_ack_s>().unpack(bref));
       break;
-    case types::kill_request:
+    case types::kill_resp:
       HANDLE_CODE(c.get<kill_resp_s>().unpack(bref));
       break;
-    case types::reset:
+    case types::reset_ack:
       HANDLE_CODE(c.get<reset_ack_s>().unpack(bref));
       break;
-    case types::s1_setup_request:
+    case types::s1_setup_resp:
       HANDLE_CODE(c.get<s1_setup_resp_s>().unpack(bref));
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_resp:
       HANDLE_CODE(c.get<ue_context_mod_resp_s>().unpack(bref));
       break;
-    case types::ue_context_release_cmd:
+    case types::ue_context_release_complete:
       HANDLE_CODE(c.get<ue_context_release_complete_s>().unpack(bref));
       break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_ack:
       HANDLE_CODE(c.get<enb_cfg_upd_ack_s>().unpack(bref));
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_ack:
       HANDLE_CODE(c.get<mme_cfg_upd_ack_s>().unpack(bref));
       break;
-    case types::write_replace_warning_request:
+    case types::write_replace_warning_resp:
       HANDLE_CODE(c.get<write_replace_warning_resp_s>().unpack(bref));
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     default:
       log_invalid_choice_id(type_, "s1ap_elem_procs_o::successful_outcome_c");
@@ -62955,140 +58701,110 @@ SRSASN_CODE s1ap_elem_procs_o::successful_outcome_c::unpack(cbit_ref& bref)
 
 std::string s1ap_elem_procs_o::successful_outcome_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"HandoverCommand",
-                                            "HandoverRequestAcknowledge",
-                                            "PathSwitchRequestAcknowledge",
-                                            "E-RABSetupResponse",
-                                            "E-RABModifyResponse",
-                                            "E-RABReleaseResponse",
-                                            "InitialContextSetupResponse",
-                                            "HandoverCancelAcknowledge",
-                                            "KillResponse",
-                                            "ResetAcknowledge",
-                                            "S1SetupResponse",
-                                            "UEContextModificationResponse",
-                                            "UEContextReleaseComplete",
-                                            "ENBConfigurationUpdateAcknowledge",
-                                            "MMEConfigurationUpdateAcknowledge",
-                                            "WriteReplaceWarningResponse",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL"};
-  return convert_enum_idx(options, 44, value, "s1ap_elem_procs_o::successful_outcome_c::types");
+  static const char* options[] = {"HandoverCommand",
+                                  "HandoverRequestAcknowledge",
+                                  "PathSwitchRequestAcknowledge",
+                                  "E-RABSetupResponse",
+                                  "E-RABModifyResponse",
+                                  "E-RABReleaseResponse",
+                                  "InitialContextSetupResponse",
+                                  "HandoverCancelAcknowledge",
+                                  "KillResponse",
+                                  "ResetAcknowledge",
+                                  "S1SetupResponse",
+                                  "UEContextModificationResponse",
+                                  "UEContextReleaseComplete",
+                                  "ENBConfigurationUpdateAcknowledge",
+                                  "MMEConfigurationUpdateAcknowledge",
+                                  "WriteReplaceWarningResponse"};
+  return convert_enum_idx(options, 16, value, "s1ap_elem_procs_o::successful_outcome_c::types");
 }
 uint8_t s1ap_elem_procs_o::successful_outcome_c::types_opts::to_number() const
 {
-  switch (value) {
-    case s1_setup_request:
-      return 1;
-    default:
-      invalid_enum_number(value, "s1ap_elem_procs_o::successful_outcome_c::types");
+  if (value == s1_setup_resp) {
+    return 1;
   }
+  invalid_enum_number(value, "s1ap_elem_procs_o::successful_outcome_c::types");
   return 0;
 }
 
 // UnsuccessfulOutcome ::= OPEN TYPE
-ho_prep_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ho_required()
+ho_prep_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ho_prep_fail()
 {
   assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ho_prep_fail_s>();
 }
-ho_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ho_request()
+ho_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ho_fail()
 {
   assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ho_fail_s>();
 }
-path_switch_request_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::path_switch_request()
+path_switch_request_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::path_switch_request_fail()
 {
   assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<path_switch_request_fail_s>();
 }
-init_context_setup_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_request()
+init_context_setup_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_fail()
 {
   assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<init_context_setup_fail_s>();
 }
-s1_setup_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::s1_setup_request()
+s1_setup_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::s1_setup_fail()
 {
   assert_choice_type("S1SetupFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<s1_setup_fail_s>();
 }
-ue_context_mod_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_request()
+ue_context_mod_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_fail()
 {
   assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ue_context_mod_fail_s>();
 }
-enb_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::enb_cfg_upd()
+enb_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::enb_cfg_upd_fail()
 {
   assert_choice_type("ENBConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<enb_cfg_upd_fail_s>();
 }
-mme_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::mme_cfg_upd()
+mme_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::mme_cfg_upd_fail()
 {
   assert_choice_type("MMEConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<mme_cfg_upd_fail_s>();
 }
-const ho_prep_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ho_required() const
+const ho_prep_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ho_prep_fail() const
 {
   assert_choice_type("HandoverPreparationFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ho_prep_fail_s>();
 }
-const ho_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ho_request() const
+const ho_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ho_fail() const
 {
   assert_choice_type("HandoverFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ho_fail_s>();
 }
-const path_switch_request_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::path_switch_request() const
+const path_switch_request_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::path_switch_request_fail() const
 {
   assert_choice_type("PathSwitchRequestFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<path_switch_request_fail_s>();
 }
-const init_context_setup_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_request() const
+const init_context_setup_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::init_context_setup_fail() const
 {
   assert_choice_type("InitialContextSetupFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<init_context_setup_fail_s>();
 }
-const s1_setup_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::s1_setup_request() const
+const s1_setup_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::s1_setup_fail() const
 {
   assert_choice_type("S1SetupFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<s1_setup_fail_s>();
 }
-const ue_context_mod_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_request() const
+const ue_context_mod_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::ue_context_mod_fail() const
 {
   assert_choice_type("UEContextModificationFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<ue_context_mod_fail_s>();
 }
-const enb_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::enb_cfg_upd() const
+const enb_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::enb_cfg_upd_fail() const
 {
   assert_choice_type("ENBConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<enb_cfg_upd_fail_s>();
 }
-const mme_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::mme_cfg_upd() const
+const mme_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::mme_cfg_upd_fail() const
 {
   assert_choice_type("MMEConfigurationUpdateFailure", type_.to_string(), "UnsuccessfulOutcome");
   return c.get<mme_cfg_upd_fail_s>();
@@ -63096,28 +58812,28 @@ const mme_cfg_upd_fail_s& s1ap_elem_procs_o::unsuccessful_outcome_c::mme_cfg_upd
 void s1ap_elem_procs_o::unsuccessful_outcome_c::destroy_()
 {
   switch (type_) {
-    case types::ho_required:
+    case types::ho_prep_fail:
       c.destroy<ho_prep_fail_s>();
       break;
-    case types::ho_request:
+    case types::ho_fail:
       c.destroy<ho_fail_s>();
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       c.destroy<path_switch_request_fail_s>();
       break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       c.destroy<init_context_setup_fail_s>();
       break;
-    case types::s1_setup_request:
+    case types::s1_setup_fail:
       c.destroy<s1_setup_fail_s>();
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       c.destroy<ue_context_mod_fail_s>();
       break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_fail:
       c.destroy<enb_cfg_upd_fail_s>();
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_fail:
       c.destroy<mme_cfg_upd_fail_s>();
       break;
     default:
@@ -63129,101 +58845,29 @@ void s1ap_elem_procs_o::unsuccessful_outcome_c::set(types::options e)
   destroy_();
   type_ = e;
   switch (type_) {
-    case types::ho_required:
+    case types::ho_prep_fail:
       c.init<ho_prep_fail_s>();
       break;
-    case types::ho_request:
+    case types::ho_fail:
       c.init<ho_fail_s>();
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       c.init<path_switch_request_fail_s>();
       break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       c.init<init_context_setup_fail_s>();
       break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
+    case types::s1_setup_fail:
       c.init<s1_setup_fail_s>();
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       c.init<ue_context_mod_fail_s>();
       break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_fail:
       c.init<enb_cfg_upd_fail_s>();
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_fail:
       c.init<mme_cfg_upd_fail_s>();
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     case types::nulltype:
       break;
@@ -63236,101 +58880,29 @@ s1ap_elem_procs_o::unsuccessful_outcome_c::unsuccessful_outcome_c(
 {
   type_ = other.type();
   switch (type_) {
-    case types::ho_required:
+    case types::ho_prep_fail:
       c.init(other.c.get<ho_prep_fail_s>());
       break;
-    case types::ho_request:
+    case types::ho_fail:
       c.init(other.c.get<ho_fail_s>());
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       c.init(other.c.get<path_switch_request_fail_s>());
       break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       c.init(other.c.get<init_context_setup_fail_s>());
       break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
+    case types::s1_setup_fail:
       c.init(other.c.get<s1_setup_fail_s>());
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       c.init(other.c.get<ue_context_mod_fail_s>());
       break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_fail:
       c.init(other.c.get<enb_cfg_upd_fail_s>());
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_fail:
       c.init(other.c.get<mme_cfg_upd_fail_s>());
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     case types::nulltype:
       break;
@@ -63346,101 +58918,29 @@ s1ap_elem_procs_o::unsuccessful_outcome_c& s1ap_elem_procs_o::unsuccessful_outco
   }
   set(other.type());
   switch (type_) {
-    case types::ho_required:
+    case types::ho_prep_fail:
       c.set(other.c.get<ho_prep_fail_s>());
       break;
-    case types::ho_request:
+    case types::ho_fail:
       c.set(other.c.get<ho_fail_s>());
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       c.set(other.c.get<path_switch_request_fail_s>());
       break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       c.set(other.c.get<init_context_setup_fail_s>());
       break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
+    case types::s1_setup_fail:
       c.set(other.c.get<s1_setup_fail_s>());
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       c.set(other.c.get<ue_context_mod_fail_s>());
       break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_fail:
       c.set(other.c.get<enb_cfg_upd_fail_s>());
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_fail:
       c.set(other.c.get<mme_cfg_upd_fail_s>());
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     case types::nulltype:
       break;
@@ -63454,109 +58954,37 @@ void s1ap_elem_procs_o::unsuccessful_outcome_c::to_json(json_writer& j) const
 {
   j.start_obj();
   switch (type_) {
-    case types::ho_required:
+    case types::ho_prep_fail:
       j.write_fieldname("HandoverPreparationFailure");
       c.get<ho_prep_fail_s>().to_json(j);
       break;
-    case types::ho_request:
+    case types::ho_fail:
       j.write_fieldname("HandoverFailure");
       c.get<ho_fail_s>().to_json(j);
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       j.write_fieldname("PathSwitchRequestFailure");
       c.get<path_switch_request_fail_s>().to_json(j);
       break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       j.write_fieldname("InitialContextSetupFailure");
       c.get<init_context_setup_fail_s>().to_json(j);
       break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
+    case types::s1_setup_fail:
       j.write_fieldname("S1SetupFailure");
       c.get<s1_setup_fail_s>().to_json(j);
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       j.write_fieldname("UEContextModificationFailure");
       c.get<ue_context_mod_fail_s>().to_json(j);
       break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_fail:
       j.write_fieldname("ENBConfigurationUpdateFailure");
       c.get<enb_cfg_upd_fail_s>().to_json(j);
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_fail:
       j.write_fieldname("MMEConfigurationUpdateFailure");
       c.get<mme_cfg_upd_fail_s>().to_json(j);
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     default:
       log_invalid_choice_id(type_, "s1ap_elem_procs_o::unsuccessful_outcome_c");
@@ -63567,101 +58995,29 @@ SRSASN_CODE s1ap_elem_procs_o::unsuccessful_outcome_c::pack(bit_ref& bref) const
 {
   varlength_field_pack_guard varlen_scope(bref, true);
   switch (type_) {
-    case types::ho_required:
+    case types::ho_prep_fail:
       HANDLE_CODE(c.get<ho_prep_fail_s>().pack(bref));
       break;
-    case types::ho_request:
+    case types::ho_fail:
       HANDLE_CODE(c.get<ho_fail_s>().pack(bref));
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       HANDLE_CODE(c.get<path_switch_request_fail_s>().pack(bref));
       break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       HANDLE_CODE(c.get<init_context_setup_fail_s>().pack(bref));
       break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
+    case types::s1_setup_fail:
       HANDLE_CODE(c.get<s1_setup_fail_s>().pack(bref));
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       HANDLE_CODE(c.get<ue_context_mod_fail_s>().pack(bref));
       break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_fail:
       HANDLE_CODE(c.get<enb_cfg_upd_fail_s>().pack(bref));
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_fail:
       HANDLE_CODE(c.get<mme_cfg_upd_fail_s>().pack(bref));
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     default:
       log_invalid_choice_id(type_, "s1ap_elem_procs_o::unsuccessful_outcome_c");
@@ -63673,101 +59029,29 @@ SRSASN_CODE s1ap_elem_procs_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
 {
   varlength_field_unpack_guard varlen_scope(bref, true);
   switch (type_) {
-    case types::ho_required:
+    case types::ho_prep_fail:
       HANDLE_CODE(c.get<ho_prep_fail_s>().unpack(bref));
       break;
-    case types::ho_request:
+    case types::ho_fail:
       HANDLE_CODE(c.get<ho_fail_s>().unpack(bref));
       break;
-    case types::path_switch_request:
+    case types::path_switch_request_fail:
       HANDLE_CODE(c.get<path_switch_request_fail_s>().unpack(bref));
       break;
-    case types::erab_setup_request:
-      break;
-    case types::erab_modify_request:
-      break;
-    case types::erab_release_cmd:
-      break;
-    case types::init_context_setup_request:
+    case types::init_context_setup_fail:
       HANDLE_CODE(c.get<init_context_setup_fail_s>().unpack(bref));
       break;
-    case types::ho_cancel:
-      break;
-    case types::kill_request:
-      break;
-    case types::reset:
-      break;
-    case types::s1_setup_request:
+    case types::s1_setup_fail:
       HANDLE_CODE(c.get<s1_setup_fail_s>().unpack(bref));
       break;
-    case types::ue_context_mod_request:
+    case types::ue_context_mod_fail:
       HANDLE_CODE(c.get<ue_context_mod_fail_s>().unpack(bref));
       break;
-    case types::ue_context_release_cmd:
-      break;
-    case types::enb_cfg_upd:
+    case types::enb_cfg_upd_fail:
       HANDLE_CODE(c.get<enb_cfg_upd_fail_s>().unpack(bref));
       break;
-    case types::mme_cfg_upd:
+    case types::mme_cfg_upd_fail:
       HANDLE_CODE(c.get<mme_cfg_upd_fail_s>().unpack(bref));
-      break;
-    case types::write_replace_warning_request:
-      break;
-    case types::ho_notify:
-      break;
-    case types::erab_release_ind:
-      break;
-    case types::paging:
-      break;
-    case types::dl_nas_transport:
-      break;
-    case types::init_ue_msg:
-      break;
-    case types::ul_nas_transport:
-      break;
-    case types::error_ind:
-      break;
-    case types::nas_non_delivery_ind:
-      break;
-    case types::ue_context_release_request:
-      break;
-    case types::dl_s1cdma2000tunnelling:
-      break;
-    case types::ul_s1cdma2000tunnelling:
-      break;
-    case types::ue_cap_info_ind:
-      break;
-    case types::enb_status_transfer:
-      break;
-    case types::mme_status_transfer:
-      break;
-    case types::deactiv_trace:
-      break;
-    case types::trace_start:
-      break;
-    case types::trace_fail_ind:
-      break;
-    case types::cell_traffic_trace:
-      break;
-    case types::location_report_ctrl:
-      break;
-    case types::location_report_fail_ind:
-      break;
-    case types::location_report:
-      break;
-    case types::overload_start:
-      break;
-    case types::overload_stop:
-      break;
-    case types::enb_direct_info_transfer:
-      break;
-    case types::mme_direct_info_transfer:
-      break;
-    case types::enb_cfg_transfer:
-      break;
-    case types::mme_cfg_transfer:
-      break;
-    case types::private_msg:
       break;
     default:
       log_invalid_choice_id(type_, "s1ap_elem_procs_o::unsuccessful_outcome_c");
@@ -63778,60 +59062,22 @@ SRSASN_CODE s1ap_elem_procs_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
 
 std::string s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"HandoverPreparationFailure",
-                                            "HandoverFailure",
-                                            "PathSwitchRequestFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "InitialContextSetupFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "S1SetupFailure",
-                                            "UEContextModificationFailure",
-                                            "NULL",
-                                            "ENBConfigurationUpdateFailure",
-                                            "MMEConfigurationUpdateFailure",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL",
-                                            "NULL"};
-  return convert_enum_idx(options, 44, value, "s1ap_elem_procs_o::unsuccessful_outcome_c::types");
+  static const char* options[] = {"HandoverPreparationFailure",
+                                  "HandoverFailure",
+                                  "PathSwitchRequestFailure",
+                                  "InitialContextSetupFailure",
+                                  "S1SetupFailure",
+                                  "UEContextModificationFailure",
+                                  "ENBConfigurationUpdateFailure",
+                                  "MMEConfigurationUpdateFailure"};
+  return convert_enum_idx(options, 8, value, "s1ap_elem_procs_o::unsuccessful_outcome_c::types");
 }
 uint8_t s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::to_number() const
 {
-  switch (value) {
-    case s1_setup_request:
-      return 1;
-    default:
-      invalid_enum_number(value, "s1ap_elem_procs_o::unsuccessful_outcome_c::types");
+  if (value == s1_setup_fail) {
+    return 1;
   }
+  invalid_enum_number(value, "s1ap_elem_procs_o::unsuccessful_outcome_c::types");
   return 0;
 }
 
@@ -63871,20 +59117,20 @@ bool init_msg_s::load_info_obj(const uint16_t& proc_code_)
   proc_code = proc_code_;
   crit      = s1ap_elem_procs_o::get_crit(proc_code);
   value     = s1ap_elem_procs_o::get_init_msg(proc_code);
-  return true;
+  return value.type().value != s1ap_elem_procs_o::init_msg_c::types_opts::nulltype;
 }
 
 // LastVisitedEUTRANCellInformation-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t last_visited_eutran_cell_info_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {167, 168};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {167, 168};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool last_visited_eutran_cell_info_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {167, 168};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {167, 168};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -63898,9 +59144,9 @@ crit_e last_visited_eutran_cell_info_ext_ies_o::get_crit(const uint32_t& id)
     case 168:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 last_visited_eutran_cell_info_ext_ies_o::ext_c last_visited_eutran_cell_info_ext_ies_o::get_ext(const uint32_t& id)
 {
@@ -63913,7 +59159,7 @@ last_visited_eutran_cell_info_ext_ies_o::ext_c last_visited_eutran_cell_info_ext
       ret.set(ext_c::types::ho_cause);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -63925,9 +59171,9 @@ presence_e last_visited_eutran_cell_info_ext_ies_o::get_presence(const uint32_t&
     case 168:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -64066,16 +59312,16 @@ SRSASN_CODE last_visited_eutran_cell_info_ext_ies_o::ext_c::unpack(cbit_ref& bre
 
 std::string last_visited_eutran_cell_info_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"INTEGER (0..40950)", "Cause"};
+  static const char* options[] = {"INTEGER (0..40950)", "Cause"};
   return convert_enum_idx(options, 2, value, "last_visited_eutran_cell_info_ext_ies_o::ext_c::types");
 }
 uint8_t last_visited_eutran_cell_info_ext_ies_o::ext_c::types_opts::to_number() const
 {
-  static constexpr uint8_t options[] = {0};
-  return convert_enum_idx(options, 1, value, "last_visited_eutran_cell_info_ext_ies_o::ext_c::types");
+  static const uint8_t options[] = {0};
+  return map_enum_number(options, 1, value, "last_visited_eutran_cell_info_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<last_visited_eutran_cell_info_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<last_visited_eutran_cell_info_ext_ies_o>;
 
 last_visited_eutran_cell_info_ext_ies_container::last_visited_eutran_cell_info_ext_ies_container() :
   time_ue_stayed_in_cell_enhanced_granularity(167, crit_e::ignore),
@@ -64120,7 +59366,7 @@ SRSASN_CODE last_visited_eutran_cell_info_ext_ies_container::unpack(cbit_ref& br
         ho_cause.ext     = c.ext_value.ho_cause();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -64209,7 +59455,7 @@ SRSASN_CODE last_visited_geran_cell_info_c::unpack(cbit_ref& bref)
 
 std::string last_visited_geran_cell_info_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"undefined"};
+  static const char* options[] = {"undefined"};
   return convert_enum_idx(options, 1, value, "last_visited_geran_cell_info_c::types");
 }
 
@@ -64356,7 +59602,7 @@ SRSASN_CODE last_visited_cell_item_c::unpack(cbit_ref& bref)
 
 std::string last_visited_cell_item_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"e-UTRAN-Cell", "uTRAN-Cell", "gERAN-Cell"};
+  static const char* options[] = {"e-UTRAN-Cell", "uTRAN-Cell", "gERAN-Cell"};
   return convert_enum_idx(options, 3, value, "last_visited_cell_item_c::types");
 }
 
@@ -64379,8 +59625,8 @@ void multi_cell_load_report_request_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.start_array("requestedCellList");
-  for (uint32_t i1 = 0; i1 < requested_cell_list.size(); ++i1) {
-    requested_cell_list[i1].to_json(j);
+  for (const auto& e1 : requested_cell_list) {
+    e1.to_json(j);
   }
   j.end_array();
   j.end_obj();
@@ -64553,7 +59799,7 @@ SRSASN_CODE multi_cell_load_report_resp_item_c::unpack(cbit_ref& bref)
 
 std::string multi_cell_load_report_resp_item_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"eUTRANResponse", "uTRANResponse", "gERANResponse", "eHRPD"};
+  static const char* options[] = {"eUTRANResponse", "uTRANResponse", "gERANResponse", "eHRPD"};
   return convert_enum_idx(options, 4, value, "multi_cell_load_report_resp_item_c::types");
 }
 
@@ -64616,7 +59862,7 @@ bool successful_outcome_s::load_info_obj(const uint16_t& proc_code_)
   proc_code = proc_code_;
   crit      = s1ap_elem_procs_o::get_crit(proc_code);
   value     = s1ap_elem_procs_o::get_successful_outcome(proc_code);
-  return true;
+  return value.type().value != s1ap_elem_procs_o::successful_outcome_c::types_opts::nulltype;
 }
 
 // UnsuccessfulOutcome ::= SEQUENCE{{S1AP-ELEMENTARY-PROCEDURE}}
@@ -64655,7 +59901,7 @@ bool unsuccessful_outcome_s::load_info_obj(const uint16_t& proc_code_)
   proc_code = proc_code_;
   crit      = s1ap_elem_procs_o::get_crit(proc_code);
   value     = s1ap_elem_procs_o::get_unsuccessful_outcome(proc_code);
-  return true;
+  return value.type().value != s1ap_elem_procs_o::unsuccessful_outcome_c::types_opts::nulltype;
 }
 
 // S1AP-PDU ::= CHOICE
@@ -64802,14 +60048,14 @@ SRSASN_CODE s1ap_pdu_c::unpack(cbit_ref& bref)
 
 std::string s1ap_pdu_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"initiatingMessage", "successfulOutcome", "unsuccessfulOutcome"};
+  static const char* options[] = {"initiatingMessage", "successfulOutcome", "unsuccessfulOutcome"};
   return convert_enum_idx(options, 3, value, "s1ap_pdu_c::types");
 }
 
 // CellActivationCause ::= ENUMERATED
 std::string cell_activation_cause_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "application-container-syntax-error", "inconsistent-reporting-cell-identifier", "unspecified"};
   return convert_enum_idx(options, 3, value, "cell_activation_cause_e");
 }
@@ -64817,7 +60063,7 @@ std::string cell_activation_cause_opts::to_string() const
 // CellLoadReportingCause ::= ENUMERATED
 std::string cell_load_report_cause_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "application-container-syntax-error", "inconsistent-reporting-cell-identifier", "unspecified"};
   return convert_enum_idx(options, 3, value, "cell_load_report_cause_e");
 }
@@ -64825,7 +60071,7 @@ std::string cell_load_report_cause_opts::to_string() const
 // CellStateIndicationCause ::= ENUMERATED
 std::string cell_state_ind_cause_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "application-container-syntax-error", "inconsistent-reporting-cell-identifier", "unspecified"};
   return convert_enum_idx(options, 3, value, "cell_state_ind_cause_e");
 }
@@ -64833,7 +60079,7 @@ std::string cell_state_ind_cause_opts::to_string() const
 // FailureEventReportingCause ::= ENUMERATED
 std::string fail_event_report_cause_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "application-container-syntax-error", "inconsistent-reporting-cell-identifier", "unspecified"};
   return convert_enum_idx(options, 3, value, "fail_event_report_cause_e");
 }
@@ -64841,7 +60087,7 @@ std::string fail_event_report_cause_opts::to_string() const
 // HOReportingCause ::= ENUMERATED
 std::string ho_report_cause_opts::to_string() const
 {
-  static constexpr const char* options[] = {
+  static const char* options[] = {
       "application-container-syntax-error", "inconsistent-reporting-cell-identifier", "unspecified"};
   return convert_enum_idx(options, 3, value, "ho_report_cause_e");
 }
@@ -65029,13 +60275,13 @@ SRSASN_CODE so_ntransfer_cause_c::unpack(cbit_ref& bref)
 
 std::string so_ntransfer_cause_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellLoadReporting",
-                                            "multiCellLoadReporting",
-                                            "eventTriggeredCellLoadReporting",
-                                            "hOReporting",
-                                            "eutranCellActivation",
-                                            "energySavingsIndication",
-                                            "failureEventReporting"};
+  static const char* options[] = {"cellLoadReporting",
+                                  "multiCellLoadReporting",
+                                  "eventTriggeredCellLoadReporting",
+                                  "hOReporting",
+                                  "eutranCellActivation",
+                                  "energySavingsIndication",
+                                  "failureEventReporting"};
   return convert_enum_idx(options, 7, value, "so_ntransfer_cause_c::types");
 }
 
@@ -65274,13 +60520,13 @@ SRSASN_CODE so_ntransfer_request_container_c::unpack(cbit_ref& bref)
 
 std::string so_ntransfer_request_container_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellLoadReporting",
-                                            "multiCellLoadReporting",
-                                            "eventTriggeredCellLoadReporting",
-                                            "hOReporting",
-                                            "eutranCellActivation",
-                                            "energySavingsIndication",
-                                            "failureEventReporting"};
+  static const char* options[] = {"cellLoadReporting",
+                                  "multiCellLoadReporting",
+                                  "eventTriggeredCellLoadReporting",
+                                  "hOReporting",
+                                  "eutranCellActivation",
+                                  "energySavingsIndication",
+                                  "failureEventReporting"};
   return convert_enum_idx(options, 7, value, "so_ntransfer_request_container_c::types");
 }
 
@@ -65404,8 +60650,8 @@ void so_ntransfer_resp_container_c::to_json(json_writer& j) const
       break;
     case types::multi_cell_load_report:
       j.start_array("multiCellLoadReporting");
-      for (uint32_t i1 = 0; i1 < c.get<multi_cell_load_report_resp_l>().size(); ++i1) {
-        c.get<multi_cell_load_report_resp_l>()[i1].to_json(j);
+      for (const auto& e1 : c.get<multi_cell_load_report_resp_l>()) {
+        e1.to_json(j);
       }
       j.end_array();
       break;
@@ -65495,27 +60741,27 @@ SRSASN_CODE so_ntransfer_resp_container_c::unpack(cbit_ref& bref)
 
 std::string so_ntransfer_resp_container_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"cellLoadReporting",
-                                            "multiCellLoadReporting",
-                                            "eventTriggeredCellLoadReporting",
-                                            "hOReporting",
-                                            "eutranCellActivation",
-                                            "energySavingsIndication",
-                                            "failureEventReporting"};
+  static const char* options[] = {"cellLoadReporting",
+                                  "multiCellLoadReporting",
+                                  "eventTriggeredCellLoadReporting",
+                                  "hOReporting",
+                                  "eutranCellActivation",
+                                  "energySavingsIndication",
+                                  "failureEventReporting"};
   return convert_enum_idx(options, 7, value, "so_ntransfer_resp_container_c::types");
 }
 
 // SourceeNB-ToTargeteNB-TransparentContainer-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 uint32_t sourceenb_to_targetenb_transparent_container_ext_ies_o::idx_to_id(uint32_t idx)
 {
-  static constexpr const uint32_t options[] = {175, 194};
-  return convert_enum_idx(options, 2, idx, "id");
+  static const uint32_t options[] = {175, 194};
+  return map_enum_number(options, 2, idx, "id");
 }
 bool sourceenb_to_targetenb_transparent_container_ext_ies_o::is_id_valid(const uint32_t& id)
 {
-  static constexpr const uint32_t options[] = {175, 194};
-  for (uint32_t i = 0; i < 2; ++i) {
-    if (options[i] == id) {
+  static const uint32_t options[] = {175, 194};
+  for (const auto& o : options) {
+    if (o == id) {
       return true;
     }
   }
@@ -65529,9 +60775,9 @@ crit_e sourceenb_to_targetenb_transparent_container_ext_ies_o::get_crit(const ui
     case 194:
       return crit_e::ignore;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return crit_e();
+  return {};
 }
 sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c
 sourceenb_to_targetenb_transparent_container_ext_ies_o::get_ext(const uint32_t& id)
@@ -65545,7 +60791,7 @@ sourceenb_to_targetenb_transparent_container_ext_ies_o::get_ext(const uint32_t& 
       ret.set(ext_c::types::ue_history_info_from_the_ue);
       break;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -65557,9 +60803,9 @@ presence_e sourceenb_to_targetenb_transparent_container_ext_ies_o::get_presence(
     case 194:
       return presence_e::optional;
     default:
-      s1ap_log_print(LOG_LEVEL_ERROR, "The id=%d is not recognized", id);
+      logmap::get("ASN1::S1AP")->error("The id=%d is not recognized", id);
   }
-  return presence_e();
+  return {};
 }
 
 // Extension ::= OPEN TYPE
@@ -65704,11 +60950,11 @@ SRSASN_CODE sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c::unpac
 
 std::string sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c::types_opts::to_string() const
 {
-  static constexpr const char* options[] = {"BIT STRING", "OCTET STRING"};
+  static const char* options[] = {"BIT STRING", "OCTET STRING"};
   return convert_enum_idx(options, 2, value, "sourceenb_to_targetenb_transparent_container_ext_ies_o::ext_c::types");
 }
 
-template struct protocol_ext_field_s<sourceenb_to_targetenb_transparent_container_ext_ies_o>;
+template struct asn1::s1ap::protocol_ext_field_s<sourceenb_to_targetenb_transparent_container_ext_ies_o>;
 
 sourceenb_to_targetenb_transparent_container_ext_ies_container::
     sourceenb_to_targetenb_transparent_container_ext_ies_container() :
@@ -65754,7 +61000,7 @@ SRSASN_CODE sourceenb_to_targetenb_transparent_container_ext_ies_container::unpa
         ue_history_info_from_the_ue.ext     = c.ext_value.ue_history_info_from_the_ue();
         break;
       default:
-        s1ap_log_print(LOG_LEVEL_ERROR, "Unpacked object ID=%d is not recognized\n", c.id);
+        logmap::get("ASN1::S1AP")->error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -65826,8 +61072,8 @@ void sourceenb_to_targetenb_transparent_container_s::to_json(json_writer& j) con
   j.write_str("rRC-Container", rrc_container.to_string());
   if (erab_info_list_present) {
     j.start_array("e-RABInformationList");
-    for (uint32_t i1 = 0; i1 < erab_info_list.size(); ++i1) {
-      erab_info_list[i1].to_json(j);
+    for (const auto& e1 : erab_info_list) {
+      e1.to_json(j);
     }
     j.end_array();
   }
@@ -65837,8 +61083,8 @@ void sourceenb_to_targetenb_transparent_container_s::to_json(json_writer& j) con
     j.write_int("subscriberProfileIDforRFP", subscriber_profile_idfor_rfp);
   }
   j.start_array("uE-HistoryInformation");
-  for (uint32_t i1 = 0; i1 < ue_history_info.size(); ++i1) {
-    ue_history_info[i1].to_json(j);
+  for (const auto& e1 : ue_history_info) {
+    e1.to_json(j);
   }
   j.end_array();
   if (ie_exts_present) {
