@@ -572,7 +572,7 @@ public:
       tti_dl_info_t& tti_dl_ack   = tti_dl_info_ack_queue.front();
 
       // Calculate ACK TTI
-      tti_dl_sched.tti = TTI_ADD(tti_dl_sched.tti, FDD_HARQ_DELAY_MS);
+      tti_dl_sched.tti = TTI_ADD(tti_dl_sched.tti, TX_DELAY);
 
       // Assert that ACKs have been received
       TESTASSERT(tti_dl_sched.tti == tti_dl_ack.tti);
@@ -919,8 +919,8 @@ public:
     TESTASSERT(work_ul(pdsch_ack, uci_data) == SRSLTE_SUCCESS);
 
     // Increment TTI
-    sf_dl_cfg.tti = (sf_dl_cfg.tti + 1) % 10240;
-    sf_ul_cfg.tti = (sf_ul_cfg.tti + 1) % 10240;
+    sf_dl_cfg.tti = TTI_ADD(sf_dl_cfg.tti, 1);
+    sf_ul_cfg.tti = TTI_ADD(sf_ul_cfg.tti, 1);
 
     return SRSLTE_SUCCESS;
   }

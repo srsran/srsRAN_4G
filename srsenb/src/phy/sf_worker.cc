@@ -121,7 +121,7 @@ cf_t* sf_worker::get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx)
 void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestamp_t tx_time_)
 {
   tti_rx    = tti_;
-  tti_tx_dl = TTI_TX(tti_rx);
+  tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_MS);
   tti_tx_ul = TTI_RX_ACK(tti_rx);
 
   t_tx_dl = TTIMOD(tti_tx_dl);
