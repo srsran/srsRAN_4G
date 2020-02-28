@@ -67,10 +67,6 @@ void nas::plmn_search_proc::then(const srslte::proc_state_t& result)
 {
   ProcInfo("Completed with %s\n", result.is_success() ? "success" : "failure");
 
-  // start T3411
-  nas_ptr->nas_log->debug("Starting T3411\n");
-  nas_ptr->t3411.run();
-
   if (result.is_error()) {
     nas_ptr->enter_emm_deregistered();
   }
