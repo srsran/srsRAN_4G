@@ -103,7 +103,7 @@ private:
   CALLBACK(get_info);
 
 public:
-  explicit dummy_radio(uint32_t nof_channels, std::string log_level) : log_h("RADIO")
+  explicit dummy_radio(uint32_t nof_channels, const std::string& log_level) : log_h("RADIO")
   {
     log_h.set_level(log_level);
 
@@ -324,7 +324,7 @@ private:
 
 public:
   explicit dummy_stack(srsenb::phy_cfg_t&     phy_cfg_,
-                       std::string            log_level,
+                       const std::string&     log_level,
                        uint16_t               rnti_,
                        std::vector<uint32_t>& active_cell_list_) :
     log_h("STACK"),
@@ -655,14 +655,14 @@ public:
     sf_len = static_cast<uint32_t>(SRSLTE_SF_LEN_PRB(cell_list[0].cell.nof_prb));
     rnti   = rnti_;
 
-    log_h.set_level(log_level);
+    log_h.set_level(std::move(log_level));
 
     // Initialise one buffer per eNb
-    for (auto& cell : cell_list) {
+    for (uint32_t i = 0; i < cell_list.size(); i++) {
       // Allocate buffers
       cf_t* buffer = srslte_vec_cf_malloc(sf_len);
       if (not buffer) {
-        ERROR("Allocatin UE DL buffer\n");
+        ERROR("Allocating UE DL buffer\n");
       }
       buffers.push_back(buffer);
 
@@ -841,7 +841,6 @@ public:
 
     for (uint32_t i = 0; i < phy_rrc_cfg.size(); i++) {
       srslte_dci_ul_t    dci_ul[SRSLTE_MAX_DCI_MSG] = {};
-      uint32_t           cc_idx                     = phy_rrc_cfg[i].cc_idx;
       srslte::phy_cfg_t& dedicated                  = phy_rrc_cfg[i].phy_cfg;
 
       srslte_ue_ul_cfg_t ue_ul_cfg          = {};
@@ -1022,8 +1021,7 @@ public:
     dedicated.dl_cfg.cqi_report.periodic_mode       = SRSLTE_CQI_MODE_20;
 
     // Configure UE PHY
-    bool     activation[SRSLTE_MAX_CARRIERS] = {}; ///< Activation/Deactivation vector
-    uint32_t pcell_idx                       = 0;
+    bool activation[SRSLTE_MAX_CARRIERS] = {}; ///< Activation/Deactivation vector
     phy_rrc_cfg.resize(args.ue_cell_list.size());
     for (uint32_t i = 0; i < args.ue_cell_list.size(); i++) {
       phy_rrc_cfg[i].cc_idx     = args.ue_cell_list[i];      ///< First element is PCell
