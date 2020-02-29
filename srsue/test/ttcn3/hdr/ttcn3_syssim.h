@@ -705,11 +705,11 @@ public:
 
   void process_pdu(uint8_t* buff, uint32_t len, pdu_queue::channel_t channel) {}
 
-  void set_cell_config(const timing_info_t timing,
-                       const std::string   cell_name,
-                       const uint32_t      earfcn,
-                       const srslte_cell_t cell,
-                       const float         power)
+  void set_cell_config(const ttcn3_helpers::timing_info_t timing,
+                       const std::string                  cell_name,
+                       const uint32_t                     earfcn,
+                       const srslte_cell_t                cell,
+                       const float                        power)
   {
     if (timing.now) {
       set_cell_config_impl(cell_name, earfcn, cell, power);
@@ -754,7 +754,7 @@ public:
     return false;
   }
 
-  void set_cell_attenuation(const timing_info_t timing, const std::string cell_name, const float value)
+  void set_cell_attenuation(const ttcn3_helpers::timing_info_t timing, const std::string cell_name, const float value)
   {
     if (timing.now) {
       set_cell_attenuation_impl(cell_name, value);
@@ -818,7 +818,7 @@ public:
     }
   }
 
-  void add_ccch_pdu(const timing_info_t timing, unique_byte_buffer_t pdu)
+  void add_ccch_pdu(const ttcn3_helpers::timing_info_t timing, unique_byte_buffer_t pdu)
   {
     if (timing.now) {
       // Add to SRB0 Tx queue
@@ -830,7 +830,8 @@ public:
     }
   }
 
-  void add_dcch_pdu(const timing_info_t timing, uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag)
+  void
+  add_dcch_pdu(const ttcn3_helpers::timing_info_t timing, uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag)
   {
     if (timing.now) {
       add_dcch_pdu_impl(lcid, std::move(pdu), follow_on_flag);
@@ -865,7 +866,7 @@ public:
 
   void step_timer() { timers.step_all(); }
 
-  void add_srb(const timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config)
+  void add_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config)
   {
     if (timing.now) {
       add_srb_impl(lcid, pdcp_config);
@@ -897,7 +898,7 @@ public:
     rlc.reestablish(lcid);
   }
 
-  void del_srb(const timing_info_t timing, const uint32_t lcid)
+  void del_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid)
   {
     if (timing.now) {
       del_srb_impl(lcid);
@@ -993,7 +994,7 @@ public:
 
   bool rb_is_um(uint32_t lcid) { return false; }
 
-  void set_as_security(const timing_info_t                       timing,
+  void set_as_security(const ttcn3_helpers::timing_info_t        timing,
                        const uint32_t                            lcid,
                        std::array<uint8_t, 32>                   k_rrc_enc_,
                        std::array<uint8_t, 32>                   k_rrc_int_,
@@ -1040,7 +1041,7 @@ public:
     integ_algo          = integ_algo_;
   }
 
-  void release_as_security(const timing_info_t timing)
+  void release_as_security(const ttcn3_helpers::timing_info_t timing)
   {
     if (timing.now) {
       release_as_security_impl();
@@ -1066,6 +1067,24 @@ public:
         return;
       }
     }
+  }
+
+  ttcn3_helpers::pdcp_count_map_t get_pdcp_count()
+  {
+    // prepare response to SS
+    std::vector<ttcn3_helpers::pdcp_count_t> bearers;
+    for (uint32_t i = 0; i < rb_id_vec.size(); i++) {
+      if (pdcp.is_lcid_enabled(i)) {
+        ttcn3_helpers::pdcp_count_t bearer;
+        uint16_t                    tmp; // not handling HFN
+        pdcp.get_bearer_status(i, &bearer.dl_value, &tmp, &bearer.ul_value, &tmp);
+        bearer.rb_is_srb = i <= 2;
+        bearer.rb_id     = i;
+        log.info("PDCP count lcid=%d, dl=%d, ul=%d\n", bearer.rb_id, bearer.dl_value, bearer.ul_value);
+        bearers.push_back(bearer);
+      }
+    }
+    return bearers;
   }
 
 private:

@@ -387,16 +387,7 @@ private:
     const Value& get = pdcp_count["Get"];
     assert(get.HasMember("AllRBs"));
 
-    // prepare response to SS
-    std::vector<ttcn3_helpers::pdcp_count_t> bearers;
-    ttcn3_helpers::pdcp_count_t              srb1;
-    srb1.rb_is_srb = true;
-    srb1.rb_id     = 1;
-    srb1.dl_value  = 0;
-    srb1.ul_value  = 1;
-    bearers.push_back(srb1);
-
-    std::string resp = ttcn3_helpers::get_pdcp_count_response(cell_id.GetString(), bearers);
+    std::string resp = ttcn3_helpers::get_pdcp_count_response(cell_id.GetString(), syssim->get_pdcp_count());
 
     log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
     send((const uint8_t*)resp.c_str(), resp.length());

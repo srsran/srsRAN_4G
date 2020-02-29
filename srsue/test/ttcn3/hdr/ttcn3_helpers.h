@@ -29,7 +29,6 @@
 
 #include "rapidjson/document.h"     // rapidjson's DOM-style API
 #include "rapidjson/prettywriter.h" // for stringify JSON
-#include "ttcn3_interfaces.h"
 #include <algorithm>
 #include <assert.h>
 #include <bitset>
@@ -44,11 +43,17 @@ class ttcn3_helpers
 {
 public:
   typedef struct {
+    bool     now; ///< If set to false, the TTI field contains a valid TTI
+    uint32_t tti;
+  } timing_info_t;
+
+  typedef struct {
     bool     rb_is_srb;
     uint8_t  rb_id;
-    uint32_t ul_value;
-    uint32_t dl_value;
+    uint16_t ul_value;
+    uint16_t dl_value;
   } pdcp_count_t;
+  typedef std::vector<ttcn3_helpers::pdcp_count_t> pdcp_count_map_t;
 
   static std::string get_ctrl_cnf(const std::string protocol_, const std::string version_, const std::string addr_)
   {
@@ -66,7 +71,6 @@ public:
     conn_id.AddMember("Protocol", protocol, resp.GetAllocator());
 
     // Version
-
     Value ipAddr(kObjectType);
     Value version(version_.c_str(), resp.GetAllocator());
     Value addr(addr_.c_str(), resp.GetAllocator());
