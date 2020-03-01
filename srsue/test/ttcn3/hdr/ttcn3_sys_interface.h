@@ -456,22 +456,44 @@ private:
       std::array<uint8_t, 32> k_up_enc          = get_key_from_string(up_enc_key_string);
       log->debug_hex(k_up_enc.data(), k_up_enc.size(), "K_UP_enc");
 
-      // get LCID
-      uint32_t lcid = 0;
+      // parse ActTimeList
+      ttcn3_helpers::pdcp_count_map_t bearers;
       if (as_sec["StartRestart"]["Ciphering"].HasMember("ActTimeList")) {
         const Value& act_time_list = as_sec["StartRestart"]["Ciphering"]["ActTimeList"];
         if (act_time_list.IsArray()) {
           for (Value::ConstValueIterator itr = act_time_list.Begin(); itr != act_time_list.End(); ++itr) {
+            ttcn3_helpers::pdcp_count_t bearer = {};
+
+            // obtain LCID and type
             if (itr->HasMember("RadioBearerId") && (*itr)["RadioBearerId"].HasMember("Srb")) {
-              lcid = (*itr)["RadioBearerId"]["Srb"].GetInt();
+              bearer.rb_is_srb = true;
+              bearer.rb_id     = (*itr)["RadioBearerId"]["Srb"].GetInt();
+            } else if (itr->HasMember("RadioBearerId") && (*itr)["RadioBearerId"].HasMember("Drb")) {
+              bearer.rb_is_srb = false;
+              bearer.rb_id     = (*itr)["RadioBearerId"]["Drb"].GetInt();
             }
+
+            // obtain UL count
+            if (itr->HasMember("UL")) {
+              bearer.ul_value       = (*itr)["UL"]["SQN"]["Value"].GetInt();
+              bearer.ul_value_valid = true;
+            }
+
+            // obtain DL count
+            if (itr->HasMember("DL")) {
+              bearer.dl_value       = (*itr)["DL"]["SQN"]["Value"].GetInt();
+              bearer.dl_value_valid = true;
+            }
+
+            // append to list
+            bearers.push_back(bearer);
           }
         }
       }
 
       // configure SS to use AS security
       syssim->set_as_security(
-          ttcn3_helpers::get_timing_info(document), lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+          ttcn3_helpers::get_timing_info(document), k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo, bearers);
     } else if (as_sec.HasMember("Release")) {
       // release all security configs
       syssim->release_as_security(ttcn3_helpers::get_timing_info(document));

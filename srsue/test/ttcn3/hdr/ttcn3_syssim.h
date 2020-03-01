@@ -209,6 +209,12 @@ public:
       }
     }
 
+    // trying to apply pending PDCP config
+    if (not pending_bearer_config.empty()) {
+      log.debug("Trying to apply pending PDCP config\n");
+      pending_bearer_config = try_set_pdcp_security(pending_bearer_config);
+    }
+
     // process events, if any
     while (not event_queue.empty()) {
       ss_events_t ev = event_queue.wait_pop();
@@ -364,8 +370,8 @@ public:
     rlc.reset();
     pdcp.reset();
     cells.clear();
-    pcell_idx           = -1;
-    as_security_enabled = false;
+    pcell_idx = -1;
+    pending_bearer_config.clear();
   }
 
   // Called from UT before starting testcase
@@ -881,14 +887,6 @@ public:
     log.info("Adding SRB%d\n", lcid);
     pdcp.add_bearer(lcid, pdcp_config);
     rlc.add_bearer(lcid, srslte::rlc_config_t::srb_config(lcid));
-
-    // Enable security for SRB2
-    if (lcid == 2) {
-      log.info("Enabling AS security for LCID=%d\n", lcid);
-      pdcp.config_security(lcid, k_rrc_enc.data(), k_rrc_int.data(), k_up_enc.data(), cipher_algo, integ_algo);
-      pdcp.enable_encryption(lcid);
-      pdcp.enable_integrity(lcid);
-    }
   }
 
   void reestablish_bearer(uint32_t lcid)
@@ -995,50 +993,103 @@ public:
   bool rb_is_um(uint32_t lcid) { return false; }
 
   void set_as_security(const ttcn3_helpers::timing_info_t        timing,
-                       const uint32_t                            lcid,
                        std::array<uint8_t, 32>                   k_rrc_enc_,
                        std::array<uint8_t, 32>                   k_rrc_int_,
                        std::array<uint8_t, 32>                   k_up_enc_,
                        const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                       const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
+                       const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
+                       const ttcn3_helpers::pdcp_count_map_t     bearers_)
   {
     if (timing.now) {
-      set_as_security_impl(lcid, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_);
+      set_as_security_impl(k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
     } else {
-      log.debug("Scheduling AS security configuration of lcid=%d for TTI=%d\n", lcid, timing.tti);
-      tti_actions[timing.tti].push_back([this, lcid, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_]() {
-        set_as_security_impl(lcid, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_);
-      });
+      log.debug("Scheduling AS security configuration for TTI=%d\n", timing.tti);
+      tti_actions[timing.tti].push_back(
+          [this, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_]() {
+            set_as_security_impl(k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
+          });
     }
   }
 
-  void set_as_security_impl(const uint32_t                            lcid,
-                            std::array<uint8_t, 32>                   k_rrc_enc_,
+  void set_as_security_impl(std::array<uint8_t, 32>                   k_rrc_enc_,
                             std::array<uint8_t, 32>                   k_rrc_int_,
                             std::array<uint8_t, 32>                   k_up_enc_,
                             const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                            const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
+                            const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_,
+                            const ttcn3_helpers::pdcp_count_map_t     bearers)
   {
-    log.info("Setting AS security for LCID=%d\n", lcid);
-    pdcp.config_security(lcid, k_rrc_enc_.data(), k_rrc_int_.data(), k_up_enc_.data(), cipher_algo_, integ_algo_);
-    pdcp.enable_integrity(lcid);
-    pdcp.enable_encryption(lcid);
+    // store security config for later use (i.e. new bearer added)
+    k_rrc_enc   = k_rrc_enc_;
+    k_rrc_int   = k_rrc_int_;
+    k_up_enc    = k_up_enc_;
+    cipher_algo = cipher_algo_;
+    integ_algo  = integ_algo_;
 
-    // if SRB2 is established, also apply security config
-    uint32_t srb2_lcid = 2;
-    if (pdcp.is_lcid_enabled(2)) {
-      log.info("Updating AS security for LCID=%d\n", srb2_lcid);
-      pdcp.config_security(
-          srb2_lcid, k_rrc_enc_.data(), k_rrc_int_.data(), k_up_enc_.data(), cipher_algo_, integ_algo_);
+    // try to apply security config on bearers
+    pending_bearer_config = try_set_pdcp_security(bearers);
+  }
+
+  /**
+   * Try to configure PDCP security on the list of provided bearers.
+   *
+   * The function iterates over the map of bearers and tries to set/update
+   * the security settings, if and only if, the current DL/UL counter match
+   * with the requested values in the bearer map.
+   *
+   * The function returns a map of bearers for which it could not update the
+   * configuration.
+   *
+   * @param bearers for which PDCP configuration should be updated
+   * @return list of bearers for which update could not be carried out (fully)
+   */
+  ttcn3_helpers::pdcp_count_map_t try_set_pdcp_security(ttcn3_helpers::pdcp_count_map_t bearers)
+  {
+    ttcn3_helpers::pdcp_count_map_t update_needed_list;
+
+    for (auto& lcid : bearers) {
+      uint16_t dl_sn = 0, ul_sn = 0, tmp = 0;
+      pdcp.get_bearer_status(lcid.rb_id, &dl_sn, &tmp, &ul_sn, &tmp);
+
+      if (lcid.dl_value_valid) {
+        // make sure the current DL SN value match
+        if (lcid.dl_value == dl_sn) {
+          log.info("Setting AS security for LCID=%d in DL direction\n", lcid.rb_id);
+          pdcp.config_security(
+              lcid.rb_id, k_rrc_enc.data(), k_rrc_int.data(), k_up_enc.data(), cipher_algo, integ_algo);
+          pdcp.enable_integrity(lcid.rb_id, DIRECTION_TX);
+          pdcp.enable_encryption(lcid.rb_id, DIRECTION_TX);
+          lcid.dl_value_valid = false;
+        } else {
+          log.info("Delaying AS security configuration of lcid=%d. DL: %d != %d\n", lcid.rb_id, lcid.dl_value, dl_sn);
+        }
+      } else {
+        log.debug("Downlink AS Security already applied for lcid=%d\n", lcid.rb_id);
+      }
+
+      if (lcid.ul_value_valid) {
+        // Check UL count
+        if (lcid.ul_value == ul_sn) {
+          log.info("Setting AS security for LCID=%d in UL direction\n", lcid.rb_id);
+          pdcp.config_security(
+              lcid.rb_id, k_rrc_enc.data(), k_rrc_int.data(), k_up_enc.data(), cipher_algo, integ_algo);
+          pdcp.enable_integrity(lcid.rb_id, DIRECTION_RX);
+          pdcp.enable_encryption(lcid.rb_id, DIRECTION_RX);
+          lcid.ul_value_valid = false;
+        } else {
+          log.info("Delaying AS security configuration of lcid=%d. UL: %d != %d\n", lcid.rb_id, lcid.ul_value, ul_sn);
+        }
+      } else {
+        log.debug("Uplink AS Security already applied for lcid=%d\n", lcid.rb_id);
+      }
+
+      // re-consider if at least one direction needs reconfiguration
+      if (lcid.dl_value_valid || lcid.ul_value_valid) {
+        log.debug("Adding LCID=%d for later configuration (size=%zd)\n", lcid.rb_id, update_needed_list.size());
+        update_needed_list.push_back(lcid);
+      }
     }
 
-    // store security config for later use (i.e. new bearer added)
-    as_security_enabled = true;
-    k_rrc_enc           = k_rrc_enc_;
-    k_rrc_int           = k_rrc_int_;
-    k_up_enc            = k_up_enc_;
-    cipher_algo         = cipher_algo_;
-    integ_algo          = integ_algo_;
+    return update_needed_list;
   }
 
   void release_as_security(const ttcn3_helpers::timing_info_t timing)
@@ -1054,7 +1105,7 @@ public:
   void release_as_security_impl()
   {
     log.info("Releasing AS security\n");
-    as_security_enabled = false;
+    pending_bearer_config.clear();
   }
 
   void select_cell(srslte_cell_t phy_cell)
@@ -1080,7 +1131,7 @@ public:
         pdcp.get_bearer_status(i, &bearer.dl_value, &tmp, &bearer.ul_value, &tmp);
         bearer.rb_is_srb = i <= 2;
         bearer.rb_id     = i;
-        log.info("PDCP count lcid=%d, dl=%d, ul=%d\n", bearer.rb_id, bearer.dl_value, bearer.ul_value);
+        log.debug("PDCP count lcid=%d, dl=%d, ul=%d\n", bearer.rb_id, bearer.dl_value, bearer.ul_value);
         bearers.push_back(bearer);
       }
     }
@@ -1175,7 +1226,7 @@ private:
   std::map<uint32_t, bool> bearer_follow_on_map; ///< Indicates if for a given LCID the follow_on_flag is set or not
 
   // security config
-  bool                                as_security_enabled = false;
+  ttcn3_helpers::pdcp_count_map_t     pending_bearer_config; ///< List of bearers with pending security configuration
   std::array<uint8_t, 32>             k_rrc_enc;
   std::array<uint8_t, 32>             k_rrc_int;
   std::array<uint8_t, 32>             k_up_enc;

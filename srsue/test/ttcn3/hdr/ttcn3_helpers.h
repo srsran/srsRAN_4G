@@ -48,9 +48,11 @@ public:
   } timing_info_t;
 
   typedef struct {
-    bool     rb_is_srb;
     uint8_t  rb_id;
+    bool     rb_is_srb;
+    bool     ul_value_valid;
     uint16_t ul_value;
+    bool     dl_value_valid;
     uint16_t dl_value;
   } pdcp_count_t;
   typedef std::vector<ttcn3_helpers::pdcp_count_t> pdcp_count_map_t;
