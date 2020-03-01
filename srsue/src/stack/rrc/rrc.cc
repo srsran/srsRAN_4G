@@ -1968,9 +1968,9 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
 
       // Configure PDCP for security
       pdcp->config_security(lcid, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
-      pdcp->enable_integrity(lcid);
+      pdcp->enable_integrity(lcid, DIRECTION_TXRX);
       send_security_mode_complete();
-      pdcp->enable_encryption(lcid);
+      pdcp->enable_encryption(lcid, DIRECTION_TXRX);
       break;
     case dl_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg:
       transaction_id = c1->rrc_conn_recfg().rrc_transaction_id;
@@ -2660,8 +2660,8 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
   pdcp->add_bearer(srb_cnfg->srb_id, make_srb_pdcp_config_t(srb_cnfg->srb_id, true));
   if (RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
-    pdcp->enable_integrity(srb_cnfg->srb_id);
-    pdcp->enable_encryption(srb_cnfg->srb_id);
+    pdcp->enable_integrity(srb_cnfg->srb_id, DIRECTION_TXRX);
+    pdcp->enable_encryption(srb_cnfg->srb_id, DIRECTION_TXRX);
   }
 
   // Setup RLC

@@ -103,8 +103,8 @@ public:
     pdcp.init(0, cfg);
     pdcp.config_security(
         sec_cfg.k_enc_rrc, sec_cfg.k_int_rrc, sec_cfg.k_enc_up, sec_cfg.k_int_up, sec_cfg.enc_algo, sec_cfg.int_algo);
-    pdcp.enable_integrity();
-    pdcp.enable_encryption();
+    pdcp.enable_integrity(srslte::DIRECTION_TXRX);
+    pdcp.enable_encryption(srslte::DIRECTION_TXRX);
   }
 
   void set_pdcp_initial_state(pdcp_initial_state init_state)

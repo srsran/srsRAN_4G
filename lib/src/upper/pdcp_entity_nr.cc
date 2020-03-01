@@ -44,8 +44,8 @@ void pdcp_entity_nr::init(uint32_t lcid_, pdcp_config_t cfg_)
   lcid          = lcid_;
   cfg           = cfg_;
   active        = true;
-  do_integrity  = false;
-  do_encryption = false;
+  integrity_direction  = DIRECTION_NONE;
+  encryption_direction = DIRECTION_NONE;
 
   window_size = 1 << (cfg.sn_len - 1);
 
@@ -88,10 +88,10 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   // Log SDU
   log->info_hex(sdu->msg,
                 sdu->N_bytes,
-                "TX %s SDU, do_integrity = %s, do_encryption = %s",
+                "TX %s SDU, integrity=%s, encryption=%s",
                 rrc->get_rb_name(lcid).c_str(),
-                (do_integrity) ? "true" : "false",
-                (do_encryption) ? "true" : "false");
+                srslte_direction_text[integrity_direction],
+                srslte_direction_text[encryption_direction]);
 
   // Check for COUNT overflow
   if (tx_overflow) {
@@ -146,11 +146,11 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // Log PDU
   log->info_hex(pdu->msg,
                 pdu->N_bytes,
-                "RX %s PDU (%d B), do_integrity = %s, do_encryption = %s",
+                "RX %s PDU (%d B), integrity=%s, encryption=%s",
                 rrc->get_rb_name(lcid).c_str(),
                 pdu->N_bytes,
-                (do_integrity) ? "true" : "false",
-                (do_encryption) ? "true" : "false");
+                srslte_direction_text[integrity_direction],
+                srslte_direction_text[encryption_direction]);
 
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {

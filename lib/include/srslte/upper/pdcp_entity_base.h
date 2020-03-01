@@ -24,10 +24,11 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
+#include "srslte/common/interfaces_common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/timers.h"
 #include <mutex>
 
 namespace srslte {
@@ -51,6 +52,10 @@ typedef enum {
 } pdcp_d_c_t;
 static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PDU"};
 
+// Specifies in which direction security (integrity and ciphering) are enabled for PDCP
+typedef enum { DIRECTION_NONE = 0, DIRECTION_TX, DIRECTION_RX, DIRECTION_TXRX, DIRECTION_N_ITEMS } srslte_direction_t;
+static const char srslte_direction_text[DIRECTION_N_ITEMS][6] = {"none", "tx", "rx", "tx/rx"};
+
 /****************************************************************************
  * PDCP Entity interface
  * Common interface for LTE and NR PDCP entities
@@ -68,8 +73,29 @@ public:
   bool is_drb() { return cfg.rb_type == PDCP_RB_IS_DRB; }
 
   // RRC interface
-  void enable_integrity() { do_integrity = true; }
-  void enable_encryption() { do_encryption = true; }
+  void enable_integrity(srslte_direction_t direction = DIRECTION_TXRX)
+  {
+    // if either DL or UL is already enabled, both are enabled
+    if (integrity_direction == DIRECTION_TX && direction == DIRECTION_RX) {
+      integrity_direction = DIRECTION_TXRX;
+    } else if (integrity_direction == DIRECTION_RX && direction == DIRECTION_TX) {
+      integrity_direction = DIRECTION_TXRX;
+    } else {
+      integrity_direction = direction;
+    }
+  }
+
+  void enable_encryption(srslte_direction_t direction = DIRECTION_TXRX)
+  {
+    // if either DL or UL is already enabled, both are enabled
+    if (encryption_direction == DIRECTION_TX && direction == DIRECTION_RX) {
+      encryption_direction = DIRECTION_TXRX;
+    } else if (encryption_direction == DIRECTION_RX && direction == DIRECTION_TX) {
+      encryption_direction = DIRECTION_TXRX;
+    } else {
+      encryption_direction = direction;
+    }
+  }
 
   void config_security(uint8_t*                    k_rrc_enc_,
                        uint8_t*                    k_rrc_int_,
@@ -95,8 +121,8 @@ protected:
 
   bool     active        = false;
   uint32_t lcid          = 0;
-  bool     do_integrity  = false;
-  bool     do_encryption = false;
+  srslte_direction_t integrity_direction  = DIRECTION_NONE;
+  srslte_direction_t encryption_direction = DIRECTION_NONE;
 
   pdcp_config_t cfg = {1,
                        PDCP_RB_IS_DRB,

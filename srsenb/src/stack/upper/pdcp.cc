@@ -127,14 +127,14 @@ void pdcp::config_security(uint16_t                            rnti,
 void pdcp::enable_integrity(uint16_t rnti, uint32_t lcid)
 {
   pthread_rwlock_rdlock(&rwlock);
-  users[rnti].pdcp->enable_integrity(lcid);
+  users[rnti].pdcp->enable_integrity(lcid, srslte::DIRECTION_TXRX);
   pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::enable_encryption(uint16_t rnti, uint32_t lcid)
 {
   pthread_rwlock_rdlock(&rwlock);
-  users[rnti].pdcp->enable_encryption(lcid);
+  users[rnti].pdcp->enable_encryption(lcid, srslte::DIRECTION_TXRX);
   pthread_rwlock_unlock(&rwlock);
 }
 

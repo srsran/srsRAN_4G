@@ -45,8 +45,8 @@ void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
   active        = true;
   tx_count      = 0;
   rx_count      = 0;
-  do_integrity  = false;
-  do_encryption = false;
+  integrity_direction  = DIRECTION_NONE;
+  encryption_direction = DIRECTION_NONE;
 
   if (is_srb()) {
     reordering_window = 0;
@@ -101,11 +101,11 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   log->info_hex(sdu->msg,
                 sdu->N_bytes,
-                "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
+                "TX %s SDU, SN=%d, integrity=%s, encryption=%s",
                 rrc->get_rb_name(lcid).c_str(),
                 tx_count,
-                (do_integrity) ? "true" : "false",
-                (do_encryption) ? "true" : "false");
+                srslte_direction_text[integrity_direction],
+                srslte_direction_text[encryption_direction]);
 
   {
     std::unique_lock<std::mutex> lock(mutex);
@@ -113,7 +113,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     write_data_header(sdu, tx_count);
 
     uint8_t mac[4] = {};
-    if (do_integrity) {
+    if (integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX) {
       integrity_generate(sdu->msg, sdu->N_bytes, tx_count, mac);
     }
 
@@ -122,7 +122,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
       append_mac(sdu, mac);
     }
 
-    if (do_encryption) {
+    if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
       cipher_encrypt(
           &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
       log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
@@ -138,11 +138,11 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 {
   log->info_hex(pdu->msg,
                 pdu->N_bytes,
-                "RX %s PDU (%d B), do_integrity = %s, do_encryption = %s",
+                "RX %s PDU (%d B), integrity=%s, encryption=%s",
                 rrc->get_rb_name(lcid).c_str(),
                 pdu->N_bytes,
-                (do_integrity) ? "true" : "false",
-                (do_encryption) ? "true" : "false");
+                srslte_direction_text[integrity_direction],
+                srslte_direction_text[encryption_direction]);
 
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
@@ -185,7 +185,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   }
 
   // Perform decription
-  if (do_encryption) {
+  if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
     cipher_decrypt(&pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, count, &pdu->msg[cfg.hdr_len_bytes]);
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
@@ -195,7 +195,7 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   extract_mac(pdu, mac);
 
   // Perfrom integrity checks
-  if (do_integrity) {
+  if (integrity_direction == DIRECTION_RX || integrity_direction == DIRECTION_TXRX) {
     if (not integrity_verify(pdu->msg, pdu->N_bytes, count, mac)) {
       log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
       return; // Discard
@@ -233,7 +233,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
   }
 
   uint32_t count = (rx_hfn << cfg.sn_len) | sn;
-  if (do_encryption) {
+  if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
     cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
     log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
@@ -245,9 +245,8 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
   }
 
   // Pass to upper layers
-  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
   gw->write_pdu(lcid, std::move(pdu));
-  return;
 }
 
 // DRBs mapped on RLC AM, without re-ordering (5.1.2.1.2)
@@ -260,7 +259,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
   int32_t sn_diff_last_submit     = sn - last_submitted_pdcp_rx_sn;
   int32_t sn_diff_next_pdcp_rx_sn = sn - next_pdcp_rx_sn;
 
-  log->debug("RX HFN: %d, SN: %d, Last_Submitted_PDCP_RX_SN: %d, Next_PDCP_RX_SN %d\n",
+  log->debug("RX HFN: %d, SN=%d, Last_Submitted_PDCP_RX_SN=%d, Next_PDCP_RX_SN=%d\n",
              rx_hfn,
              sn,
              last_submitted_pdcp_rx_sn,
@@ -306,7 +305,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
   last_submitted_pdcp_rx_sn = sn;
 
   // Pass to upper layers
-  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
   gw->write_pdu(lcid, std::move(pdu));
   return;
 }

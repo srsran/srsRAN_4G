@@ -229,20 +229,20 @@ void pdcp::config_security_all(uint8_t*                    k_rrc_enc,
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::enable_integrity(uint32_t lcid)
+void pdcp::enable_integrity(uint32_t lcid, srslte_direction_t direction)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    pdcp_array.at(lcid)->enable_integrity();
+    pdcp_array.at(lcid)->enable_integrity(direction);
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::enable_encryption(uint32_t lcid)
+void pdcp::enable_encryption(uint32_t lcid, srslte_direction_t direction)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    pdcp_array.at(lcid)->enable_encryption();
+    pdcp_array.at(lcid)->enable_encryption(direction);
   }
   pthread_rwlock_unlock(&rwlock);
 }

@@ -29,6 +29,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include <map>
 
 namespace srslte {

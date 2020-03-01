@@ -22,6 +22,7 @@
 #include "srslte/upper/pdcp_entity_base.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/common/security.h"
+#include <inttypes.h>
 
 namespace srslte {
 
