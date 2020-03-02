@@ -125,12 +125,13 @@ public:
   void mac_buffer_state(uint32_t ce_code);
   void ul_recv_len(uint32_t lcid, uint32_t len);
   void set_dl_ant_info(const sched_interface::ant_info_ded_t& dedicated);
-  void set_ul_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code);
-  void set_dl_ri(uint32_t tti, uint32_t cc_idx, uint32_t ri);
-  void set_dl_pmi(uint32_t tti, uint32_t cc_idx, uint32_t ri);
-  void set_dl_cqi(uint32_t tti, uint32_t cc_idx, uint32_t cqi);
-  int  set_ack_info(uint32_t tti, uint32_t cc_idx, uint32_t tb_idx, bool ack);
-  void set_ul_crc(uint32_t tti, uint32_t cc_idx, bool crc_res);
+
+  void set_ul_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code);
+  void set_dl_ri(uint32_t tti, uint32_t enb_cc_idx, uint32_t ri);
+  void set_dl_pmi(uint32_t tti, uint32_t enb_cc_idx, uint32_t ri);
+  void set_dl_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi);
+  int  set_ack_info(uint32_t tti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack);
+  void set_ul_crc(uint32_t tti, uint32_t enb_cc_idx, bool crc_res);
 
   /*******************************************************
    * Custom functions

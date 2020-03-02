@@ -202,6 +202,7 @@ protected:
   struct ack_info_t {
     uint16_t             rnti;
     uint32_t             tti;
+    uint32_t             enb_cc_idx;
     uint32_t             ue_cc_idx;
     bool                 ack        = false;
     uint32_t             retx_delay = 0;
@@ -211,6 +212,7 @@ protected:
     uint16_t             rnti;
     uint32_t             tti_ack, tti_tx_ul;
     uint32_t             ue_cc_idx;
+    uint32_t             enb_cc_idx;
     bool                 ack = false;
     srsenb::ul_harq_proc ul_harq;
   };

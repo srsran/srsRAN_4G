@@ -80,7 +80,11 @@ sim_sched_args generate_default_sim_args(uint32_t nof_prb, uint32_t nof_ccs)
   return sim_args;
 }
 
-int run_sim1()
+struct test_scell_activation_params {
+  uint32_t pcell_idx = 0;
+};
+
+int test_scell_activation(test_scell_activation_params params)
 {
   /* Simulation Configuration Arguments */
   uint32_t nof_prb   = 25;
@@ -103,20 +107,24 @@ int run_sim1()
   float          ul_sr_exps[]   = {1, 4}; // log rand
   float          dl_data_exps[] = {1, 4}; // log rand
   float          P_ul_sr = randf() * 0.5, P_dl = randf() * 0.5;
-  const uint16_t rnti1     = 70;
-  uint32_t       pcell_idx = 0;
+  const uint16_t rnti1 = 70;
 
   /* Setup Simulation */
   uint32_t prach_tti = 1, msg4_tot_delay = 10; // TODO: check correct value
   uint32_t msg4_size = 20;                     // TODO: Check
   uint32_t duration  = 1000;
+  // Generate Cell order
+  std::vector<uint32_t> cc_idxs(nof_ccs);
+  std::iota(cc_idxs.begin(), cc_idxs.end(), 0);
+  std::shuffle(cc_idxs.begin(), cc_idxs.end(), get_rand_gen());
+  std::iter_swap(cc_idxs.begin(), std::find(cc_idxs.begin(), cc_idxs.end(), params.pcell_idx));
 
   /* Simulation */
 
   // Event PRACH: PRACH takes place for "rnti1", and carrier "pcell_idx"
   generator.step_until(prach_tti);
   tti_ev::user_cfg_ev* user                     = generator.add_new_default_user(duration);
-  user->ue_cfg->supported_cc_list[0].enb_cc_idx = pcell_idx;
+  user->ue_cfg->supported_cc_list[0].enb_cc_idx = cc_idxs[0];
   user->rnti                                    = rnti1;
   tester.test_next_ttis(generator.tti_events);
   TESTASSERT(tester.ue_tester->user_exists(rnti1));
@@ -151,45 +159,54 @@ int run_sim1()
   user->ue_cfg->supported_cc_list.resize(nof_ccs);
   for (uint32_t i = 0; i < user->ue_cfg->supported_cc_list.size(); ++i) {
     user->ue_cfg->supported_cc_list[i].active     = true;
-    user->ue_cfg->supported_cc_list[i].enb_cc_idx = i;
+    user->ue_cfg->supported_cc_list[i].enb_cc_idx = cc_idxs[i];
   }
   tester.test_next_ttis(generator.tti_events);
 
-  // When a DL newtx takes place, it should also encode the CE
+  // TEST: When a DL newtx takes place, it should also encode the CE
   for (uint32_t i = 0; i < 100; ++i) {
-    TESTASSERT(tester.tti_info.dl_sched_result[pcell_idx].nof_data_elems > 0);
-    if (tester.tti_info.dl_sched_result[pcell_idx].data[0].nof_pdu_elems[0] > 0) {
+    TESTASSERT(tester.tti_info.dl_sched_result[params.pcell_idx].nof_data_elems > 0);
+    if (tester.tti_info.dl_sched_result[params.pcell_idx].data[0].nof_pdu_elems[0] > 0) {
       // it is a new DL tx
-      TESTASSERT(tester.tti_info.dl_sched_result[pcell_idx].data[0].pdu[0][0].lcid ==
+      TESTASSERT(tester.tti_info.dl_sched_result[params.pcell_idx].data[0].pdu[0][0].lcid ==
                  srslte::sch_subh::cetype::SCELL_ACTIVATION);
       break;
     }
     generator.step_tti();
     tester.test_next_ttis(generator.tti_events);
   }
+
+  // Event: Wait for UE to receive and ack CE. Send cqi==0, which should not activate the SCell
+  uint32_t cqi = 0;
   for (uint32_t i = 0; i < TX_DELAY; ++i) {
+    tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, 1, cqi);
     generator.step_tti();
   }
   tester.test_next_ttis(generator.tti_events);
-  // The UE has now received the CE
+  // The UE should now have received the CE
 
   // Event: Generate a bit more data, it should *not* go through SCells until we send a CQI
+  tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, 1, cqi);
   generate_data(5, P_dl, P_ul_sr);
   tester.test_next_ttis(generator.tti_events);
-  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[0] > 0);
-  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[1] == 0);
-  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[0] > 0);
-  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[1] == 0);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[params.pcell_idx] > 0);
+  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[params.pcell_idx] > 0);
+  for (uint32_t i = 1; i < cc_idxs.size(); ++i) {
+    TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[cc_idxs[i]] == 0);
+    TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[cc_idxs[i]] == 0);
+  }
 
   // Event: Scheduler receives dl_cqi for SCell. Data should go through SCells
-  const uint32_t cqi = 14;
-  tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, 1, cqi);
+  cqi = 14;
+  for (uint32_t i = 1; i < cc_idxs.size(); ++i) {
+    tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, cc_idxs[i], cqi);
+  }
   generate_data(10, 1.0, 1.0);
   tester.test_next_ttis(generator.tti_events);
-  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[0] > 0);
-  TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[1] > 0);
-  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[0] > 0);
-  TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[1] > 0);
+  for (const auto& c : cc_idxs) {
+    TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[c] > 0);
+    TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[c] > 0);
+  }
 
   log_global->info("[TESTER] Sim1 finished successfully\n");
   return SRSLTE_SUCCESS;
@@ -202,10 +219,17 @@ int main()
 
   srslte::logmap::get_instance()->set_default_log_level(srslte::LOG_LEVEL_INFO);
   printf("[TESTER] This is the chosen seed: %u\n", seed);
-  uint32_t N_runs = 1;
+  uint32_t N_runs = 5;
   for (uint32_t n = 0; n < N_runs; ++n) {
     printf("Sim run number: %u\n", n + 1);
-    TESTASSERT(run_sim1() == SRSLTE_SUCCESS);
+
+    test_scell_activation_params p = {};
+    p.pcell_idx                    = 0;
+    TESTASSERT(test_scell_activation(p) == SRSLTE_SUCCESS);
+
+    p           = {};
+    p.pcell_idx = 1;
+    TESTASSERT(test_scell_activation(p) == SRSLTE_SUCCESS);
   }
 
   return 0;

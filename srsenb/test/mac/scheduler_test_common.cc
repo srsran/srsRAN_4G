@@ -695,7 +695,7 @@ int common_sched_tester::process_ack_txs()
       if (dl_ack.dl_harq.is_empty(tb)) {
         continue;
       }
-      ret |= dl_ack_info(tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.ue_cc_idx, tb, dl_ack.ack) > 0;
+      ret |= dl_ack_info(tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.enb_cc_idx, tb, dl_ack.ack) > 0;
     }
     CONDERROR(not ret, "The dl harq proc that was ACKed does not exist\n");
 
@@ -722,7 +722,7 @@ int common_sched_tester::process_ack_txs()
     CONDERROR(h->is_empty(0), "The acked UL harq is not active\n");
     CONDERROR(hack.is_empty(0), "The acked UL harq was not active\n");
 
-    ul_crc_info(tti_info.tti_params.tti_rx, ul_ack.rnti, ul_ack.ue_cc_idx, ul_ack.ack);
+    ul_crc_info(tti_info.tti_params.tti_rx, ul_ack.rnti, ul_ack.enb_cc_idx, ul_ack.ack);
 
     CONDERROR(!h->get_pending_data(), "UL harq lost its pending data\n");
     CONDERROR(!h->has_pending_ack(), "ACK/NACKed UL harq should have a pending ACK\n");
@@ -751,11 +751,12 @@ int common_sched_tester::schedule_acks()
     // schedule future acks
     for (uint32_t i = 0; i < tti_info.dl_sched_result[ccidx].nof_data_elems; ++i) {
       ack_info_t ack_data;
-      ack_data.rnti      = tti_info.dl_sched_result[ccidx].data[i].dci.rnti;
-      ack_data.tti       = FDD_HARQ_DELAY_MS + tti_info.tti_params.tti_tx_dl;
-      ack_data.ue_cc_idx = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
+      ack_data.rnti       = tti_info.dl_sched_result[ccidx].data[i].dci.rnti;
+      ack_data.tti        = FDD_HARQ_DELAY_MS + tti_info.tti_params.tti_tx_dl;
+      ack_data.enb_cc_idx = ccidx;
+      ack_data.ue_cc_idx  = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
       const srsenb::dl_harq_proc* dl_h =
-          ue_db[ack_data.rnti].get_dl_harq(tti_info.dl_sched_result[ccidx].data[i].dci.pid, ccidx);
+          ue_db[ack_data.rnti].get_dl_harq(tti_info.dl_sched_result[ccidx].data[i].dci.pid, ack_data.ue_cc_idx);
       ack_data.dl_harq = *dl_h;
       if (ack_data.dl_harq.nof_retx(0) == 0) {
         ack_data.ack = randf() > sim_args0.P_retx;
@@ -785,11 +786,12 @@ int common_sched_tester::schedule_acks()
     for (uint32_t i = 0; i < tti_info.ul_sched_result[ccidx].nof_dci_elems; ++i) {
       const auto&   pusch = tti_info.ul_sched_result[ccidx].pusch[i];
       ul_ack_info_t ack_data;
-      ack_data.rnti      = pusch.dci.rnti;
-      ack_data.ul_harq   = *ue_db[ack_data.rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, ccidx);
-      ack_data.tti_tx_ul = tti_info.tti_params.tti_tx_ul;
-      ack_data.tti_ack   = tti_info.tti_params.tti_tx_ul + FDD_HARQ_DELAY_MS;
-      ack_data.ue_cc_idx = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
+      ack_data.rnti       = pusch.dci.rnti;
+      ack_data.enb_cc_idx = ccidx;
+      ack_data.ue_cc_idx  = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
+      ack_data.ul_harq    = *ue_db[ack_data.rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, ack_data.ue_cc_idx);
+      ack_data.tti_tx_ul  = tti_info.tti_params.tti_tx_ul;
+      ack_data.tti_ack    = tti_info.tti_params.tti_tx_ul + FDD_HARQ_DELAY_MS;
       if (ack_data.ul_harq.nof_retx(0) == 0) {
         ack_data.ack = randf() > sim_args0.P_retx;
       } else {

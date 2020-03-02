@@ -292,32 +292,33 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
   return ue_db_access(rnti, [ce_code](sched_ue& ue) { ue.mac_buffer_state(ce_code); });
 }
 
-int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack)
+int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int ret = -1;
-  ue_db_access(rnti,
-               [tti, cc_idx, tb_idx, ack, &ret](sched_ue& ue) { ret = ue.set_ack_info(tti, cc_idx, tb_idx, ack); });
+  ue_db_access(rnti, [tti, enb_cc_idx, tb_idx, ack, &ret](sched_ue& ue) {
+    ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack);
+  });
   return ret;
 }
 
-int sched::ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, bool crc)
+int sched::ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc)
 {
-  return ue_db_access(rnti, [tti, cc_idx, crc](sched_ue& ue) { ue.set_ul_crc(tti, cc_idx, crc); });
+  return ue_db_access(rnti, [tti, enb_cc_idx, crc](sched_ue& ue) { ue.set_ul_crc(tti, enb_cc_idx, crc); });
 }
 
-int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value)
+int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value)
 {
-  return ue_db_access(rnti, [tti, cc_idx, ri_value](sched_ue& ue) { ue.set_dl_ri(tti, cc_idx, ri_value); });
+  return ue_db_access(rnti, [tti, enb_cc_idx, ri_value](sched_ue& ue) { ue.set_dl_ri(tti, enb_cc_idx, ri_value); });
 }
 
-int sched::dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value)
+int sched::dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value)
 {
-  return ue_db_access(rnti, [tti, cc_idx, pmi_value](sched_ue& ue) { ue.set_dl_pmi(tti, cc_idx, pmi_value); });
+  return ue_db_access(rnti, [tti, enb_cc_idx, pmi_value](sched_ue& ue) { ue.set_dl_pmi(tti, enb_cc_idx, pmi_value); });
 }
 
-int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value)
+int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value)
 {
-  return ue_db_access(rnti, [tti, cc_idx, cqi_value](sched_ue& ue) { ue.set_dl_cqi(tti, cc_idx, cqi_value); });
+  return ue_db_access(rnti, [tti, enb_cc_idx, cqi_value](sched_ue& ue) { ue.set_dl_cqi(tti, enb_cc_idx, cqi_value); });
 }
 
 int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
@@ -325,10 +326,10 @@ int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
   return carrier_schedulers[enb_cc_idx]->dl_rach_info(rar_info);
 }
 
-int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code)
+int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code)
 {
-  return ue_db_access(rnti,
-                      [tti, cc_idx, cqi, ul_ch_code](sched_ue& ue) { ue.set_ul_cqi(tti, cc_idx, cqi, ul_ch_code); });
+  return ue_db_access(
+      rnti, [tti, enb_cc_idx, cqi, ul_ch_code](sched_ue& ue) { ue.set_ul_cqi(tti, enb_cc_idx, cqi, ul_ch_code); });
 }
 
 int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)

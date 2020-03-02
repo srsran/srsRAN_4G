@@ -144,21 +144,20 @@ public:
   int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) final;
   int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code) final;
 
-  int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) final;
-  int dl_rach_info(uint32_t cc_idx, dl_sched_rar_info_t rar_info) final;
-  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) final;
-  int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) final;
-  int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) final;
-
-  int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, bool crc) final;
+  int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) final;
+  int dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info) final;
+  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value) final;
+  int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value) final;
+  int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value) final;
+  int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc) final;
   int ul_sr_info(uint32_t tti, uint16_t rnti) override;
   int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true) final;
   int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len) final;
   int ul_phr(uint16_t rnti, int phr) final;
-  int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code) final;
+  int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code) final;
 
-  int dl_sched(uint32_t tti, uint32_t cc_idx, dl_sched_res_t& sched_result) final;
-  int ul_sched(uint32_t tti, uint32_t cc_idx, ul_sched_res_t& sched_result) final;
+  int dl_sched(uint32_t tti, uint32_t enb_cc_idx, dl_sched_res_t& sched_result) final;
+  int ul_sched(uint32_t tti, uint32_t enb_cc_idx, ul_sched_res_t& sched_result) final;
 
   /* Custom functions
    */
