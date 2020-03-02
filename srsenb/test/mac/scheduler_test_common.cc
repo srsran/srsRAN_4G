@@ -842,33 +842,40 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       bearer_ue_cfg(ue_ev.rnti, 0, ue_ev.bearer_cfg.get());
     }
 
+    auto* user = ue_tester->get_user_state(ue_ev.rnti);
+
+    if (user != nullptr and not user->msg4_tic.is_valid() and user->msg3_tic.is_valid() and user->msg3_tic <= tic) {
+      // Msg3 has been received but Msg4 has not been yet transmitted
+      uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
+      if (pending_dl_new_data == 0) {
+        uint32_t lcid = 0; // Use SRB0 to schedule Msg4
+        dl_rlc_buffer_state(ue_ev.rnti, lcid, 50, 0);
+      } else {
+        // Let SRB0 Msg4 get fully transmitted
+      }
+    }
+
     // push UL SRs and DL packets
     if (ue_ev.buffer_ev != nullptr) {
-      auto* user = ue_tester->get_user_state(ue_ev.rnti);
       CONDERROR(user == nullptr, "TESTER ERROR: Trying to schedule data for user that does not exist\n");
-
-      if (ue_ev.buffer_ev->dl_data > 0) {
-        // If Msg3 has already been received
-        if (user->msg3_tic.is_valid() and user->msg3_tic <= tic) {
-          // If Msg4 not yet sent, allocate data in SRB0 buffer
-          uint32_t lcid                = (user->msg4_tic.is_valid()) ? 2 : 0;
-          uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
-          if (lcid == 2 and not user->drb_cfg_flag) {
-            // If RRCSetup finished
-            if (pending_dl_new_data == 0) {
-              // setup lcid==2 bearer
-              sched::ue_bearer_cfg_t cfg = {};
-              cfg.direction              = ue_bearer_cfg_t::BOTH;
-              ue_tester->bearer_cfg(ue_ev.rnti, 2, cfg);
-              bearer_ue_cfg(ue_ev.rnti, 2, &cfg);
-            } else {
-              // Let SRB0 get emptied
-              continue;
-            }
+      if (ue_ev.buffer_ev->dl_data > 0 and user->msg4_tic.is_valid()) {
+        // If Msg4 has already been tx and there DL data to transmit
+        uint32_t lcid                = 2;
+        uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
+        if (user->drb_cfg_flag or pending_dl_new_data == 0) {
+          // If RRCSetup finished
+          if (not user->drb_cfg_flag) {
+            // setup lcid==2 bearer
+            sched::ue_bearer_cfg_t cfg = {};
+            cfg.direction              = ue_bearer_cfg_t::BOTH;
+            ue_tester->bearer_cfg(ue_ev.rnti, 2, cfg);
+            bearer_ue_cfg(ue_ev.rnti, 2, &cfg);
           }
-          // Update DL buffer
+          // DRB is set. Update DL buffer
           uint32_t tot_dl_data = pending_dl_new_data + ue_ev.buffer_ev->dl_data; // TODO: derive pending based on rx
           dl_rlc_buffer_state(ue_ev.rnti, lcid, tot_dl_data, 0);                 // TODO: Check retx_queue
+        } else {
+          // Let SRB0 get emptied
         }
       }
 

@@ -299,8 +299,8 @@ alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, 
 
   // Allocate DCI in PDCCH
   if (not pdcch_alloc.alloc_dci(alloc_type, aggr_lvl, user)) {
-    if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
-      if (user != nullptr) {
+    if (user != nullptr) {
+      if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
         log_h->debug("No space in PDCCH for rnti=0x%x DL tx. Current PDCCH allocation: %s\n",
                      user->get_rnti(),
                      pdcch_alloc.result_to_string(true).c_str());
@@ -845,12 +845,6 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                      ul_alloc.alloc.RB_start + ul_alloc.alloc.L,
                      user->get_pending_ul_new_data(get_tti_tx_ul()));
       continue;
-    }
-
-    // Allocation was successful
-    if (ul_alloc.type == ul_alloc_t::NEWTX) {
-      // Un-trigger SR
-      user->unset_sr();
     }
 
     // Print Resulting UL Allocation

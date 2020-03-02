@@ -182,25 +182,24 @@ public:
   class carrier_sched;
 
 protected:
+  // Helper methods
+  template <typename Func>
+  int ue_db_access(uint16_t rnti, Func);
+
+  // args
   srslte::log_ref                  log_h;
   rrc_interface_mac*               rrc       = nullptr;
   sched_args_t                     sched_cfg = {};
   std::vector<sched_cell_params_t> sched_cell_params;
-
-  // Helper methods
-  template <typename Func>
-  int ue_db_access(uint16_t rnti, Func);
 
   std::map<uint16_t, sched_ue> ue_db;
 
   // independent schedulers for each carrier
   std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;
 
-  std::array<uint32_t, 10> pdsch_re    = {};
-  uint32_t                 current_tti = 0;
-  std::mutex               sched_mutex;
-
-  bool configured = false;
+  uint32_t   last_tti = 0;
+  std::mutex sched_mutex;
+  bool       configured = false;
 };
 
 } // namespace srsenb

@@ -86,8 +86,10 @@ struct test_scell_activation_params {
 
 int test_scell_activation(test_scell_activation_params params)
 {
+  std::array<uint32_t, 6> prb_list = {6, 15, 25, 50, 75, 100};
+
   /* Simulation Configuration Arguments */
-  uint32_t nof_prb   = 25;
+  uint32_t nof_prb   = prb_list[std::uniform_int_distribution<uint32_t>{0, 5}(get_rand_gen())];
   uint32_t nof_ccs   = 2;
   uint32_t start_tti = 0; // rand_int(0, 10240);
 
@@ -165,12 +167,14 @@ int test_scell_activation(test_scell_activation_params params)
 
   // TEST: When a DL newtx takes place, it should also encode the CE
   for (uint32_t i = 0; i < 100; ++i) {
-    TESTASSERT(tester.tti_info.dl_sched_result[params.pcell_idx].nof_data_elems > 0);
-    if (tester.tti_info.dl_sched_result[params.pcell_idx].data[0].nof_pdu_elems[0] > 0) {
-      // it is a new DL tx
-      TESTASSERT(tester.tti_info.dl_sched_result[params.pcell_idx].data[0].pdu[0][0].lcid ==
-                 srslte::sch_subh::cetype::SCELL_ACTIVATION);
-      break;
+    if (tester.tti_info.dl_sched_result[params.pcell_idx].nof_data_elems > 0) {
+      // DL data was allocated
+      if (tester.tti_info.dl_sched_result[params.pcell_idx].data[0].nof_pdu_elems[0] > 0) {
+        // it is a new DL tx
+        TESTASSERT(tester.tti_info.dl_sched_result[params.pcell_idx].data[0].pdu[0][0].lcid ==
+                   srslte::sch_subh::cetype::SCELL_ACTIVATION);
+        break;
+      }
     }
     generator.step_tti();
     tester.test_next_ttis(generator.tti_events);
@@ -217,9 +221,9 @@ int main()
   // Setup rand seed
   set_randseed(seed);
 
-  srslte::logmap::get_instance()->set_default_log_level(srslte::LOG_LEVEL_INFO);
+  srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
   printf("[TESTER] This is the chosen seed: %u\n", seed);
-  uint32_t N_runs = 5;
+  uint32_t N_runs = 20;
   for (uint32_t n = 0; n < N_runs; ++n) {
     printf("Sim run number: %u\n", n + 1);
 

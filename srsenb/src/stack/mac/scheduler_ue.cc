@@ -642,6 +642,8 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     }
     h->new_tx(tti, mcs, tbs, alloc, nof_retx);
 
+    // Un-trigger SR
+    unset_sr();
   } else {
     // retx
     h->new_retx(0, tti, &mcs, nullptr, alloc);

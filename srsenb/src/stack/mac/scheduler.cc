@@ -240,8 +240,8 @@ void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd)
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
-  // TODO: Check if correct use of current_tti
-  ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(current_tti, enabled); });
+  // TODO: Check if correct use of last_tti
+  ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti, enabled); });
 }
 
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
@@ -256,7 +256,7 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
-  // TODO: Check if correct use of current_tti
+  // TODO: Check if correct use of last_tti
   uint32_t ret = 0;
   ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); });
   return ret;
@@ -264,9 +264,9 @@ uint32_t sched::get_dl_buffer(uint16_t rnti)
 
 uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
-  // TODO: Check if correct use of current_tti
+  // TODO: Check if correct use of last_tti
   uint32_t ret = 0;
-  ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(current_tti); });
+  ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti); });
   return ret;
 }
 
@@ -380,7 +380,7 @@ int sched::dl_sched(uint32_t tti, uint32_t cc_idx, sched_interface::dl_sched_res
 
   std::lock_guard<std::mutex> lock(sched_mutex);
   uint32_t                    tti_rx = sched_utils::tti_subtract(tti, TX_DELAY);
-  current_tti                        = sched_utils::max_tti(current_tti, tti_rx);
+  last_tti                           = sched_utils::max_tti(last_tti, tti_rx);
 
   if (cc_idx < carrier_schedulers.size()) {
     // Compute scheduling Result for tti_rx
