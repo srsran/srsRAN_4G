@@ -872,11 +872,13 @@ const char* srslte_ack_nack_feedback_mode_string(srslte_ack_nack_feedback_mode_t
 
 srslte_ack_nack_feedback_mode_t srslte_string_ack_nack_feedback_mode(const char* str)
 {
+#define MAX_STR_LEN (8)
   int  i       = 0;
-  char str2[8] = {};
+  char str2[MAX_STR_LEN] = {};
 
   // Copy string in local buffer
-  strncpy(str2, str, sizeof(str2));
+  strncpy(str2, str, MAX_STR_LEN - 1);
+  str2[MAX_STR_LEN - 1] = '\0';
 
   // Convert to lower case
   while (str2[i] |= ' ', str2[++i])
