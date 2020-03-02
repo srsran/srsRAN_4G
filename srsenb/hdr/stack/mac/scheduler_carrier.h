@@ -70,9 +70,6 @@ private:
 
   std::unique_ptr<bc_sched> bc_sched_ptr;
   std::unique_ptr<ra_sched> ra_sched_ptr;
-
-  // protects access to bc/ra schedulers and harqs
-  std::mutex carrier_mutex;
 };
 
 //! Broadcast (SIB + paging) scheduler

@@ -29,7 +29,6 @@
 
 #include "scheduler_harq.h"
 #include <deque>
-#include <mutex>
 
 namespace srsenb {
 
@@ -99,8 +98,6 @@ private:
 
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
  * higher layers and mac threads.
- *
- * 1 mutex is created for every user and only access to same user variables are mutexed
  */
 class sched_ue
 {
@@ -263,8 +260,6 @@ private:
   srslte::log_ref                         log_h;
   const std::vector<sched_cell_params_t>* cell_params_list = nullptr;
   const sched_cell_params_t*              main_cc_params   = nullptr;
-
-  std::mutex mutex;
 
   /* Buffer states */
   bool                                             sr      = false;

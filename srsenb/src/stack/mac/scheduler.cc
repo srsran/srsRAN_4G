@@ -127,20 +127,14 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
  * Initialization and sched configuration functions
  *
  *******************************************************/
-sched::sched()
-{
-  pthread_rwlock_init(&rwlock, nullptr);
-}
 
-sched::~sched()
-{
-  pthread_rwlock_destroy(&rwlock);
-}
+sched::sched() : log_h(srslte::logmap::get("MAC")) {}
+
+sched::~sched() {}
 
 void sched::init(rrc_interface_mac* rrc_)
 {
-  log_h = srslte::logmap::get("MAC");
-  rrc   = rrc_;
+  rrc = rrc_;
 
   // Initialize first carrier scheduler
   carrier_schedulers.emplace_back(new carrier_sched{rrc, &ue_db, 0});
@@ -150,18 +144,18 @@ void sched::init(rrc_interface_mac* rrc_)
 
 int sched::reset()
 {
+  std::lock_guard<std::mutex> lock(sched_mutex);
   configured = false;
   for (std::unique_ptr<carrier_sched>& c : carrier_schedulers) {
     c->reset();
   }
-  pthread_rwlock_wrlock(&rwlock);
   ue_db.clear();
-  pthread_rwlock_unlock(&rwlock);
   return 0;
 }
 
 void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
 {
+  std::lock_guard<std::mutex> lock(sched_mutex);
   if (sched_cfg_ != nullptr) {
     sched_cfg = *sched_cfg_;
   }
@@ -169,6 +163,7 @@ void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
 
 int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
 {
+  std::lock_guard<std::mutex> lock(sched_mutex);
   // Setup derived config params
   sched_cell_params.resize(cell_cfg.size());
   for (uint32_t cc_idx = 0; cc_idx < cell_cfg.size(); ++cc_idx) {
@@ -202,34 +197,29 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
 
 int sched::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg)
 {
+  std::lock_guard<std::mutex> lock(sched_mutex);
   // Add or config user
-  pthread_rwlock_rdlock(&rwlock);
   auto it = ue_db.find(rnti);
   if (it == ue_db.end()) {
-    pthread_rwlock_unlock(&rwlock);
     // create new user
-    pthread_rwlock_wrlock(&rwlock);
     ue_db[rnti].init(rnti, sched_cell_params);
     it = ue_db.find(rnti);
-    pthread_rwlock_rdlock(&rwlock);
   }
   it->second.set_cfg(ue_cfg);
-  pthread_rwlock_unlock(&rwlock);
 
   return 0;
 }
 
 int sched::ue_rem(uint16_t rnti)
 {
-  int ret = 0;
-  pthread_rwlock_wrlock(&rwlock);
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  int                         ret = 0;
   if (ue_db.count(rnti) > 0) {
     ue_db.erase(rnti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
@@ -240,13 +230,12 @@ bool sched::ue_exists(uint16_t rnti)
 
 void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd)
 {
-  pthread_rwlock_rdlock(&rwlock);
+  std::lock_guard<std::mutex> lock(sched_mutex);
   if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_needs_ta_cmd(nof_ta_cmd);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
@@ -323,6 +312,7 @@ int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_
 
 int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
 {
+  std::lock_guard<std::mutex> lock(sched_mutex);
   return carrier_schedulers[enb_cc_idx]->dl_rach_info(rar_info);
 }
 
@@ -354,6 +344,7 @@ int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 
 void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 {
+  std::lock_guard<std::mutex> lock(sched_mutex);
   carrier_schedulers[0]->set_dl_tti_mask(tti_mask, nof_sfs);
 }
 
@@ -387,14 +378,13 @@ int sched::dl_sched(uint32_t tti, uint32_t cc_idx, sched_interface::dl_sched_res
     return 0;
   }
 
-  uint32_t tti_rx = sched_utils::tti_subtract(tti, TX_DELAY);
-  current_tti     = sched_utils::max_tti(current_tti, tti_rx);
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  uint32_t                    tti_rx = sched_utils::tti_subtract(tti, TX_DELAY);
+  current_tti                        = sched_utils::max_tti(current_tti, tti_rx);
 
   if (cc_idx < carrier_schedulers.size()) {
     // Compute scheduling Result for tti_rx
-    pthread_rwlock_rdlock(&rwlock);
     sf_sched* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
-    pthread_rwlock_unlock(&rwlock);
 
     // copy result
     sched_result = tti_sched->dl_sched_result;
@@ -410,13 +400,12 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
     return 0;
   }
 
+  std::lock_guard<std::mutex> lock(sched_mutex);
   // Compute scheduling Result for tti_rx
   uint32_t tti_rx = sched_utils::tti_subtract(tti, 2 * FDD_HARQ_DELAY_MS);
 
   if (cc_idx < carrier_schedulers.size()) {
-    pthread_rwlock_rdlock(&rwlock);
     sf_sched* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
-    pthread_rwlock_unlock(&rwlock);
 
     // copy result
     sched_result = tti_sched->ul_sched_result;
@@ -459,16 +448,15 @@ void sched::generate_cce_location(srslte_regs_t*   regs_,
 template <typename Func>
 int sched::ue_db_access(uint16_t rnti, Func f)
 {
-  int ret = 0;
-  pthread_rwlock_rdlock(&rwlock);
-  auto it = ue_db.find(rnti);
+  int                         ret = 0;
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  auto                        it = ue_db.find(rnti);
   if (it != ue_db.end()) {
     f(it->second);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
   }
-  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 

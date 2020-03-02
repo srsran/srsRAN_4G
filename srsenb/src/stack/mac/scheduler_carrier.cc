@@ -297,7 +297,6 @@ sched::carrier_sched::carrier_sched(rrc_interface_mac*            rrc_,
 
 void sched::carrier_sched::reset()
 {
-  std::lock_guard<std::mutex> lock(carrier_mutex);
   ra_sched_ptr.reset();
   bc_sched_ptr.reset();
 }
@@ -306,8 +305,6 @@ void sched::carrier_sched::carrier_cfg(const sched_cell_params_t& cell_params_)
 {
   // carrier_sched is now fully set
   cc_cfg = &cell_params_;
-
-  std::lock_guard<std::mutex> lock(carrier_mutex);
 
   // init Broadcast/RA schedulers
   bc_sched_ptr.reset(new bc_sched{*cc_cfg, rrc});
@@ -348,9 +345,6 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     uint32_t start_cfi = cc_cfg->sched_cfg->nof_ctrl_symbols;
     bool     dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
     tti_sched->new_tti(tti_rx, start_cfi);
-
-    // Protects access to pending_rar[], pending_msg3[], ra_sched, bc_sched, rlc buffers
-    std::lock_guard<std::mutex> lock(carrier_mutex);
 
     /* Schedule PHICH */
     generate_phich(tti_sched);
@@ -474,7 +468,6 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
 
 int sched::carrier_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 {
-  std::lock_guard<std::mutex> lock(carrier_mutex);
   return ra_sched_ptr->dl_rach_info(rar_info);
 }
 

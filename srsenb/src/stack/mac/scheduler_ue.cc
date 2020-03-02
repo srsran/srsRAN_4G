@@ -74,7 +74,6 @@ sched_ue::sched_ue() : log_h(srslte::logmap::get("MAC "))
 void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell_list_params_)
 {
   {
-    std::lock_guard<std::mutex> lock(mutex);
     rnti             = rnti_;
     cell_params_list = &cell_list_params_;
   }
@@ -84,8 +83,6 @@ void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell
 void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
   {
-    std::unique_lock<std::mutex> lock(mutex);
-
     // for the first configured cc, set it as primary cc
     if (cfg.supported_cc_list.empty()) {
       uint32_t primary_cc_idx = 0;
@@ -137,7 +134,6 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 void sched_ue::reset()
 {
   {
-    std::lock_guard<std::mutex> lock(mutex);
     cfg                          = {};
     sr                           = false;
     next_tpc_pusch               = 1;
@@ -164,14 +160,12 @@ void sched_ue::reset()
 
 void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   cfg.ue_bearers[lc_id] = *cfg_;
   set_bearer_cfg_unlocked(lc_id, *cfg_);
 }
 
 void sched_ue::rem_bearer(uint32_t lc_id)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   cfg.ue_bearers[lc_id] = sched_interface::ue_bearer_cfg_t{};
   set_bearer_cfg_unlocked(lc_id, sched_interface::ue_bearer_cfg_t{});
 }
@@ -186,7 +180,6 @@ void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
 
 void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (lc_id < sched_interface::MAX_LC) {
     if (set_value) {
       lch[lc_id].bsr = bsr;
@@ -204,7 +197,6 @@ void sched_ue::ul_phr(int phr)
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (lc_id < sched_interface::MAX_LC) {
     lch[lc_id].buf_retx = retx_queue;
     lch[lc_id].buf_tx   = tx_queue;
@@ -214,7 +206,6 @@ void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_q
 
 void sched_ue::mac_buffer_state(uint32_t ce_code)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   buf_mac++;
 }
 
@@ -249,9 +240,8 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
 
 int sched_ue::set_ack_info(uint32_t tti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  int                         ret = -1;
-  auto                        p   = get_cell_index(enb_cc_idx);
+  int  ret = -1;
+  auto p   = get_cell_index(enb_cc_idx);
   if (p.first) {
     ret = carriers[p.second].set_ack_info(tti, tb_idx, ack);
   } else {
@@ -262,8 +252,6 @@ int sched_ue::set_ack_info(uint32_t tti, uint32_t enb_cc_idx, uint32_t tb_idx, b
 
 void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
   // Remove PDCP header??
   if (len > 4) {
     len -= 4;
@@ -282,8 +270,7 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
 
 void sched_ue::set_ul_crc(uint32_t tti, uint32_t enb_cc_idx, bool crc_res)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  auto                        p = get_cell_index(enb_cc_idx);
+  auto p = get_cell_index(enb_cc_idx);
   if (p.first) {
     get_ul_harq(tti, p.second)->set_ack(0, crc_res);
   } else {
@@ -293,8 +280,7 @@ void sched_ue::set_ul_crc(uint32_t tti, uint32_t enb_cc_idx, bool crc_res)
 
 void sched_ue::set_dl_ri(uint32_t tti, uint32_t enb_cc_idx, uint32_t ri)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  auto                        p = get_cell_index(enb_cc_idx);
+  auto p = get_cell_index(enb_cc_idx);
   if (p.first) {
     carriers[p.second].dl_ri     = ri;
     carriers[p.second].dl_ri_tti = tti;
@@ -305,8 +291,7 @@ void sched_ue::set_dl_ri(uint32_t tti, uint32_t enb_cc_idx, uint32_t ri)
 
 void sched_ue::set_dl_pmi(uint32_t tti, uint32_t enb_cc_idx, uint32_t pmi)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  auto                        p = get_cell_index(enb_cc_idx);
+  auto p = get_cell_index(enb_cc_idx);
   if (p.first) {
     carriers[p.second].dl_pmi     = pmi;
     carriers[p.second].dl_pmi_tti = tti;
@@ -317,8 +302,7 @@ void sched_ue::set_dl_pmi(uint32_t tti, uint32_t enb_cc_idx, uint32_t pmi)
 
 void sched_ue::set_dl_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  auto                        p = get_cell_index(enb_cc_idx);
+  auto p = get_cell_index(enb_cc_idx);
   if (p.second != std::numeric_limits<uint32_t>::max()) {
     carriers[p.second].dl_cqi     = cqi;
     carriers[p.second].dl_cqi_tti = tti;
@@ -330,8 +314,7 @@ void sched_ue::set_dl_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi)
 
 void sched_ue::set_ul_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  auto                        p = get_cell_index(enb_cc_idx);
+  auto p = get_cell_index(enb_cc_idx);
   if (p.first) {
     carriers[p.second].ul_cqi     = cqi;
     carriers[p.second].ul_cqi_tti = tti;
@@ -342,7 +325,6 @@ void sched_ue::set_ul_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi, uint3
 
 void sched_ue::tpc_inc()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (power_headroom > 0) {
     next_tpc_pusch = 3;
     next_tpc_pucch = 3;
@@ -352,7 +334,6 @@ void sched_ue::tpc_inc()
 
 void sched_ue::tpc_dec()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   next_tpc_pusch = 0;
   next_tpc_pucch = 0;
   log_h->info("SCHED: Set TCP=%d for rnti=0x%x\n", next_tpc_pucch, rnti);
@@ -400,8 +381,6 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
                                uint32_t                          cfi,
                                const rbgmask_t&                  user_mask)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
   srslte_dci_dl_t* dci = &data->dci;
 
   int mcs = 0;
@@ -497,8 +476,7 @@ int sched_ue::generate_format2a(dl_harq_proc*                     h,
                                 uint32_t                          cfi,
                                 const rbgmask_t&                  user_mask)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-  int                         ret = generate_format2a_unlocked(h, data, tti, cc_idx, cfi, user_mask);
+  int ret = generate_format2a_unlocked(h, data, tti, cc_idx, cfi, user_mask);
   return ret;
 }
 
@@ -612,9 +590,6 @@ int sched_ue::generate_format2(dl_harq_proc*                     h,
                                uint32_t                          cfi,
                                const rbgmask_t&                  user_mask)
 {
-
-  std::lock_guard<std::mutex> lock(mutex);
-
   /* Call Format 2a (common) */
   int ret = generate_format2a_unlocked(h, data, tti, cc_idx, cfi, user_mask);
 
@@ -637,8 +612,6 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
                                srslte_dci_location_t             dci_pos,
                                int                               explicit_mcs)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
   ul_harq_proc*    h   = get_ul_harq(tti, cc_idx);
   srslte_dci_ul_t* dci = &data->dci;
 
@@ -734,7 +707,6 @@ bool sched_ue::is_first_dl_tx()
 
 bool sched_ue::needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_be_sent)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   return needs_cqi_unlocked(tti, cc_idx, will_be_sent);
 }
 
@@ -766,7 +738,6 @@ bool sched_ue::is_conres_ce_pending() const
 
 uint32_t sched_ue::get_pending_dl_new_data()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   return get_pending_dl_new_data_unlocked();
 }
 
@@ -775,7 +746,6 @@ uint32_t sched_ue::get_pending_dl_new_data()
 /// \return number of bytes to be allocated
 uint32_t sched_ue::get_pending_dl_new_data_total()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   return get_pending_dl_new_data_total_unlocked();
 }
 
@@ -808,13 +778,11 @@ uint32_t sched_ue::get_pending_dl_new_data_unlocked()
 
 uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   return get_pending_ul_new_data_unlocked(tti);
 }
 
 uint32_t sched_ue::get_pending_ul_old_data(uint32_t cc_idx)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   return get_pending_ul_old_data_unlocked(cc_idx);
 }
 
@@ -865,8 +833,6 @@ uint32_t sched_ue::get_pending_ul_old_data_unlocked(uint32_t cc_idx)
 
 uint32_t sched_ue::get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint32_t nof_ctrl_symbols)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
   int      mcs    = 0;
   uint32_t nof_re = 0;
   int      tbs    = 0;
@@ -893,7 +859,6 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint
 
 uint32_t sched_ue::get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   return carriers[cc_idx].get_required_prb_ul(req_bytes);
 }
 
@@ -926,7 +891,6 @@ void sched_ue::reset_pending_pids(uint32_t tti_rx, uint32_t cc_idx)
 /* Gets HARQ process with oldest pending retx */
 dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].is_active()) {
     return carriers[ue_cc_idx].get_pending_dl_harq(tti_tx_dl);
   }
@@ -935,7 +899,6 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_i
 
 dl_harq_proc* sched_ue::get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].is_active()) {
     return carriers[ue_cc_idx].get_empty_dl_harq(tti_tx_dl);
   }

@@ -121,7 +121,7 @@ public:
    ************************************************************/
 
   sched();
-  ~sched();
+  ~sched() override;
 
   void init(rrc_interface_mac* rrc);
   int  cell_cfg(const std::vector<cell_cfg_t>& cell_cfg) override;
@@ -187,8 +187,6 @@ protected:
   sched_args_t                     sched_cfg = {};
   std::vector<sched_cell_params_t> sched_cell_params;
 
-  pthread_rwlock_t rwlock;
-
   // Helper methods
   template <typename Func>
   int ue_db_access(uint16_t rnti, Func);
@@ -200,6 +198,7 @@ protected:
 
   std::array<uint32_t, 10> pdsch_re    = {};
   uint32_t                 current_tti = 0;
+  std::mutex               sched_mutex;
 
   bool configured = false;
 };
