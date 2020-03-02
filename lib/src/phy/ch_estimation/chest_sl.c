@@ -151,6 +151,7 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
         }
       } else {
         for (int i = 0; i < q->nof_dmrs_symbols; i++) {
+          // All DMRS symbols have the same cyclic shift
           q->n_CS[i] = cyclic_shift;
         }
       }
@@ -158,7 +159,7 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
     case SRSLTE_SIDELINK_PSSCH:
       if (tm <= SRSLTE_SIDELINK_TM2) {
         for (int i = 0; i < q->nof_dmrs_symbols; i++) {
-          q->n_CS[i] = (int)(N_x_id / 2) % 8;
+          q->n_CS[i] = ((int)floor(N_x_id / 2)) % 8;
         }
       } else {
         // TODO: both equation are the same here but spec says N_id_X for Mode3+4
@@ -180,22 +181,20 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
   }
 
   // Group Hopping
-  uint32_t f_gh; // Group Hopping Flag
-  uint32_t f_ss;
+  uint32_t f_gh = 0; // Group Hopping Flag
+  uint32_t f_ss = 0;
   uint32_t u[SRSLTE_SL_MAX_DMRS_SYMB]; // Sequence Group Number
 
   // 36.211, Section 10.1.4.1.3
   // Base Sequence Number - always 0 for sidelink
   switch (ch) {
     case SRSLTE_SIDELINK_PSBCH:
-      f_gh = 0;
       f_ss = (N_sl_id / 16) % SRSLTE_SL_N_RU_SEQ;
       for (int ns = 0; ns < q->nof_dmrs_symbols; ns++) {
         u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
       }
       break;
     case SRSLTE_SIDELINK_PSCCH:
-      f_gh = 0;
       if (tm <= SRSLTE_SIDELINK_TM2) {
         f_ss = 0;
       } else {
@@ -228,8 +227,6 @@ int srslte_chest_sl_gen_dmrs(srslte_chest_sl_t*   q,
       }
       break;
     case SRSLTE_SIDELINK_PSDCH:
-      f_gh = 0;
-      f_ss = 0;
       for (int ns = 0; ns < q->nof_dmrs_symbols; ns++) {
         u[ns] = (f_gh + f_ss) % SRSLTE_SL_N_RU_SEQ;
       }
