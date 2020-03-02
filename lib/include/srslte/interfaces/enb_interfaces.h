@@ -145,6 +145,16 @@ public:
   virtual int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db) = 0;
 
   /**
+   * PHY callback for giving MAC the Time Aligment information in microseconds of a given RNTI during a TTI processing
+   *
+   * @param tti The measurement was made
+   * @param rnti The UE identifier in the eNb
+   * @param ta_us The actual time alignment in microseconds
+   * @return SRSLTE_SUCCESS if no error occurs, SRSLTE_ERROR* if an error occurs
+   */
+  virtual int ta_info(uint32_t tti, uint16_t rnti, float ta_us) = 0;
+
+  /**
    * PHY callback for giving MAC the HARQ DL ACK/NACK feedback information for a given RNTI, TTI, eNb cell/carrier and
    * Transport block.
    *

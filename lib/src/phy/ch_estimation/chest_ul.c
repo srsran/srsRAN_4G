@@ -293,7 +293,7 @@ int srslte_chest_ul_estimate_pusch(srslte_chest_ul_t*     q,
   }
 
   int nrefs_sym = nof_prb * SRSLTE_NRE;
-  int nrefs_sf  = nrefs_sym * 2;
+  int nrefs_sf  = nrefs_sym * SRSLTE_NOF_SLOTS_PER_SF;
 
   /* Get references from the input signal */
   srslte_refsignal_dmrs_pusch_get(&q->dmrs_signal, cfg, input, q->pilot_recv_signal);
@@ -301,6 +301,21 @@ int srslte_chest_ul_estimate_pusch(srslte_chest_ul_t*     q,
   /* Use the known DMRS signal to compute Least-squares estimates */
   srslte_vec_prod_conj_ccc(
       q->pilot_recv_signal, q->dmrs_pregen.r[cfg->grant.n_dmrs][sf->tti % 10][nof_prb], q->pilot_estimates, nrefs_sf);
+
+  // Calculate time alignment error
+  float ta_err = 0.0f;
+  if (cfg->meas_ta_en) {
+    for (int i = 0; i < SRSLTE_NOF_SLOTS_PER_SF; i++) {
+      ta_err += srslte_vec_estimate_frequency(&q->pilot_estimates[i * nrefs_sym], nrefs_sym) / SRSLTE_NOF_SLOTS_PER_SF;
+    }
+  }
+
+  // Average and store time aligment error
+  if (isnormal(ta_err)) {
+    res->ta_us = roundf(ta_err / 15e-3 * 10) / 10;
+  } else {
+    res->ta_us = 0.0f;
+  }
 
   if (cfg->grant.n_prb[0] != cfg->grant.n_prb[1]) {
     printf("ERROR: intra-subframe frequency hopping not supported in the estimator!!\n");

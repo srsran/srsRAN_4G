@@ -25,6 +25,7 @@
 #include <srslte/config.h>
 #include <srslte/phy/phch/ra.h>
 #include <srslte/phy/utils/debug.h>
+#include <srslte/phy/utils/vector.h>
 
 /** @struct srslte_evm_buffer_t
  * This structure carries the necessary temporary data required for calculating the EVM.

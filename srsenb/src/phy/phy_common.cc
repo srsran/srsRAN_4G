@@ -85,8 +85,8 @@ bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
     q.resize(cell_list.size());
   }
 
-  // Set UE PHY data-base stack
-  ue_db.init(stack, cell_list);
+  // Set UE PHY data-base stack and configuration
+  ue_db.init(stack, params, cell_list);
 
   reset();
   return true;

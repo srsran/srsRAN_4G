@@ -92,6 +92,11 @@ private:
   stack_interface_phy_lte* stack = nullptr;
 
   /**
+   * PHY arguments pointer, used for loading the common UE parameters when a new configuration is set
+   */
+  const phy_args_t* phy_args = {};
+
+  /**
    * Cell list
    */
   const phy_cell_cfg_list_t* cell_cfg_list = nullptr;
@@ -116,7 +121,7 @@ private:
    *
    * @param rnti identifier of the UE (requires assertion prior to call)
    */
-  inline void _set_config_rnti(uint16_t rnti);
+  inline void _set_common_config_rnti(uint16_t rnti);
 
   /**
    * Gets the SCell index for a given RNTI and a eNb cell/carrier. It returns the SCell index (0 if PCell) if the cc_idx
@@ -134,11 +139,7 @@ public:
    * @param stack_ptr points to the stack (read/write)
    * @param cell_cfg_list_ points to the cell configuration list (read only)
    */
-  void init(stack_interface_phy_lte* stack_ptr, const phy_cell_cfg_list_t& cell_cfg_list_)
-  {
-    stack         = stack_ptr;
-    cell_cfg_list = &cell_cfg_list_;
-  }
+  void init(stack_interface_phy_lte* stack_ptr, const phy_args_t& phy_args_, const phy_cell_cfg_list_t& cell_cfg_list_);
 
   /**
    * Adds or modifies a user in the UE database setting. This function requires the physical layer configuration coming

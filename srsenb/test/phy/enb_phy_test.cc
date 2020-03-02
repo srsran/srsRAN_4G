@@ -281,6 +281,7 @@ private:
   CALLBACK(pmi_info);
   CALLBACK(cqi_info);
   CALLBACK(snr_info);
+  CALLBACK(ta_info);
   CALLBACK(ack_info);
   CALLBACK(crc_info);
   CALLBACK(get_dl_sched);
@@ -403,6 +404,12 @@ public:
   int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr_db) override
   {
     notify_snr_info();
+    return 0;
+  }
+  int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override
+  {
+    log_h.info("Received TA INFO tti=%d; rnti=x%x; ta=%.1f us\n", tti, rnti, ta_us);
+    notify_ta_info();
     return 0;
   }
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) override

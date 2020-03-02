@@ -120,7 +120,8 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
     ERROR("Error initiating ENB UL\n");
     return;
   }
-  if (srslte_enb_ul_set_cell(&enb_ul, cell, &phy->ul_cfg_com.dmrs)) {
+
+  if (srslte_enb_ul_set_cell(&enb_ul, cell, &phy->dmrs_pusch_cfg)) {
     ERROR("Error initiating ENB UL\n");
     return;
   }
@@ -132,7 +133,7 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
   add_rnti(SRSLTE_PRNTI, false, false);
 
   /* Setup RA-RNTI in PHY */
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < SRSLTE_CRNTI_START; i++) {
     add_rnti(1 + i, false, false);
   }
 
@@ -348,6 +349,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
       // Notify MAC of RL status
       if (snr_db >= PUSCH_RL_SNR_DB_TH) {
+        // Notify MAC UL channel quality
         phy->stack->snr_info(ul_sf.tti, rnti, cc_idx, snr_db);
 
         if (grants[i].dci.tb.rv == 0) {
@@ -356,6 +358,12 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
             phy->stack->rl_failure(rnti);
           } else {
             phy->stack->rl_ok(rnti);
+
+            // Notify MAC of Time Alignment only if it enabled and valid measurement, ignore value otherwise
+            if (ul_cfg.pusch.meas_ta_en and not std::isnan(enb_ul.chest_res.ta_us) and
+                not std::isinf(enb_ul.chest_res.ta_us)) {
+              phy->stack->ta_info(ul_sf.tti, rnti, enb_ul.chest_res.ta_us);
+            }
           }
         }
       }
@@ -372,8 +380,8 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
         // Logging
         char str[512];
-        srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, str, 512);
-        Info("PUSCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, snr_db);
+        srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, &enb_ul.chest_res, str, 512);
+        Info("PUSCH: cc=%d, %s\n", cc_idx, str);
       }
     }
   }

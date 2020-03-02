@@ -37,6 +37,7 @@
 #include "srslte/phy/mimo/layermap.h"
 #include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/modem/evm.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/dci.h"
 #include "srslte/phy/phch/pusch_cfg.h"
@@ -72,12 +73,15 @@ typedef struct SRSLTE_API {
   void* g;
 
   /* tx & rx objects */
-  srslte_modem_table_t mod[4];
+  srslte_modem_table_t mod[SRSLTE_MOD_NITEMS];
   srslte_sch_t         ul_sch;
 
   // This is to generate the scrambling seq for multiple CRNTIs
   srslte_pusch_user_t** users;
   srslte_sequence_t     tmp_seq;
+
+  // EVM buffer
+  srslte_evm_buffer_t* evm_buffer;
 
 } srslte_pusch_t;
 
@@ -91,6 +95,7 @@ typedef struct SRSLTE_API {
   srslte_uci_value_t uci;
   bool               crc;
   float              avg_iterations_block;
+  float              evm;
 } srslte_pusch_res_t;
 
 SRSLTE_API int srslte_pusch_init_ue(srslte_pusch_t* q, uint32_t max_prb);
@@ -131,6 +136,10 @@ SRSLTE_API uint32_t srslte_pusch_tx_info(srslte_pusch_cfg_t* cfg,
                                          char*               str,
                                          uint32_t            str_len);
 
-SRSLTE_API uint32_t srslte_pusch_rx_info(srslte_pusch_cfg_t* cfg, srslte_pusch_res_t* res, char* str, uint32_t str_len);
+SRSLTE_API uint32_t srslte_pusch_rx_info(srslte_pusch_cfg_t*    cfg,
+                                         srslte_pusch_res_t*    res,
+                                         srslte_chest_ul_res_t* chest_res,
+                                         char*                  str,
+                                         uint32_t               str_len);
 
 #endif // SRSLTE_PUSCH_H

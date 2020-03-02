@@ -198,11 +198,13 @@ void channel::set_srate(uint32_t srate)
       if (delay[i]) {
         srslte_channel_delay_update_srate(delay[i], srate);
       }
-      current_srate = srate;
     }
 
     if (hst) {
       srslte_channel_hst_update_srate(hst, srate);
     }
+
+    // Update sampling rate
+    current_srate = srate;
   }
 }

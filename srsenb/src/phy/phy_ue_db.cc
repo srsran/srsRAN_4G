@@ -23,6 +23,15 @@
 
 using namespace srsenb;
 
+void phy_ue_db::init(stack_interface_phy_lte*   stack_ptr,
+                     const phy_args_t&          phy_args_,
+                     const phy_cell_cfg_list_t& cell_cfg_list_)
+{
+  stack         = stack_ptr;
+  phy_args      = &phy_args_;
+  cell_cfg_list = &cell_cfg_list_;
+}
+
 inline void phy_ue_db::_add_rnti(uint16_t rnti)
 {
   // Private function not mutexed
@@ -42,7 +51,7 @@ inline void phy_ue_db::_add_rnti(uint16_t rnti)
   ue.scell_info[0].phy_cfg.set_defaults();
 
   // Set constant configuration fields
-  _set_config_rnti(rnti);
+  _set_common_config_rnti(rnti);
 
   // PCell shall be active by default
   ue.scell_info[0].state = scell_state_active;
@@ -79,7 +88,7 @@ inline void phy_ue_db::_clear_tti_pending_rnti(uint32_t tti, uint16_t rnti)
   pdsch_ack.simul_cqi_ack          = ue.scell_info[0].phy_cfg.ul_cfg.pucch.simul_cqi_ack;
 }
 
-inline void phy_ue_db::_set_config_rnti(uint16_t rnti)
+inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti)
 {
   // Private function not mutexed, no need to assert RNTI or TTI
 
@@ -91,6 +100,9 @@ inline void phy_ue_db::_set_config_rnti(uint16_t rnti)
     scell_info.phy_cfg.dl_cfg.pdsch.rnti                          = rnti;
     scell_info.phy_cfg.ul_cfg.pucch.rnti                          = rnti;
     scell_info.phy_cfg.ul_cfg.pusch.rnti                          = rnti;
+    scell_info.phy_cfg.ul_cfg.pusch.meas_time_en                  = true;
+    scell_info.phy_cfg.ul_cfg.pusch.meas_ta_en                    = phy_args->pusch_meas_ta;
+    scell_info.phy_cfg.ul_cfg.pusch.meas_evm_en                   = phy_args->pusch_meas_evm;
     scell_info.phy_cfg.ul_cfg.pucch.threshold_format1             = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
     scell_info.phy_cfg.ul_cfg.pucch.threshold_data_valid_format1a = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1A;
     scell_info.phy_cfg.ul_cfg.pucch.threshold_data_valid_format2  = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT2;
@@ -148,7 +160,7 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
       scell_info.phy_cfg = phy_rrc_dedicated.phy_cfg;
 
       // Set constant configuration fields
-      _set_config_rnti(rnti);
+      _set_common_config_rnti(rnti);
 
       // Set SCell state, all deactivated by default except PCell
       scell_info.state = scell_idx == 0 ? scell_state_active : scell_state_deactivated;

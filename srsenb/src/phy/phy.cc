@@ -59,7 +59,7 @@ phy::~phy()
   stop();
 }
 
-void phy::parse_config(const phy_cfg_t& cfg)
+void phy::parse_common_config(const phy_cfg_t& cfg)
 {
   // PRACH configuration
   prach_cfg.config_idx     = cfg.prach_cnfg.prach_cfg_info.prach_cfg_idx;
@@ -69,36 +69,10 @@ void phy::parse_config(const phy_cfg_t& cfg)
   prach_cfg.freq_offset    = cfg.prach_cnfg.prach_cfg_info.prach_freq_offset;
 
   // DMRS
-  workers_common.ul_cfg_com.dmrs.cyclic_shift        = cfg.pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
-  workers_common.ul_cfg_com.dmrs.delta_ss            = cfg.pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
-  workers_common.ul_cfg_com.dmrs.group_hopping_en    = cfg.pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
-  workers_common.ul_cfg_com.dmrs.sequence_hopping_en = cfg.pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
-
-  // Hopping
-  workers_common.ul_cfg_com.hopping.hop_mode =
-      cfg.pusch_cnfg.pusch_cfg_basic.hop_mode ==
-              asn1::rrc::pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
-          ? srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTRA_SF
-          : srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTER_SF;
-
-  workers_common.ul_cfg_com.hopping.n_sb             = cfg.pusch_cnfg.pusch_cfg_basic.n_sb;
-  workers_common.ul_cfg_com.hopping.hopping_offset   = cfg.pusch_cnfg.pusch_cfg_basic.pusch_hop_offset;
-  workers_common.ul_cfg_com.pusch.max_nof_iterations = workers_common.params.pusch_max_its;
-  workers_common.ul_cfg_com.pusch.csi_enable         = false;
-  workers_common.ul_cfg_com.pusch.meas_time_en       = true;
-
-  // PUCCH
-  workers_common.ul_cfg_com.pucch.delta_pucch_shift = cfg.pucch_cnfg.delta_pucch_shift.to_number();
-  workers_common.ul_cfg_com.pucch.N_cs              = cfg.pucch_cnfg.ncs_an;
-  workers_common.ul_cfg_com.pucch.n_rb_2            = cfg.pucch_cnfg.nrb_cqi;
-  workers_common.ul_cfg_com.pucch.N_pucch_1         = cfg.pucch_cnfg.n1_pucch_an;
-  workers_common.ul_cfg_com.pucch.threshold_format1 = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
-
-  // PDSCH configuration
-  workers_common.dl_cfg_com.tm                 = SRSLTE_TM1;
-  workers_common.dl_cfg_com.pdsch.rs_power     = cfg.pdsch_cnfg.ref_sig_pwr;
-  workers_common.dl_cfg_com.pdsch.p_b          = cfg.pdsch_cnfg.p_b;
-  workers_common.dl_cfg_com.pdsch.meas_time_en = true;
+  workers_common.dmrs_pusch_cfg.cyclic_shift        = cfg.pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
+  workers_common.dmrs_pusch_cfg.delta_ss            = cfg.pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
+  workers_common.dmrs_pusch_cfg.group_hopping_en    = cfg.pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
+  workers_common.dmrs_pusch_cfg.sequence_hopping_en = cfg.pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
 }
 
 int phy::init(const phy_args_t&            args,
@@ -139,7 +113,7 @@ int phy::init(const phy_args_t&            args,
 
   workers_common.init(cfg.phy_cell_cfg, radio, stack_);
 
-  parse_config(cfg);
+  parse_common_config(cfg);
 
   // Add workers to workers pool and start threads
   for (uint32_t i = 0; i < nof_workers; i++) {

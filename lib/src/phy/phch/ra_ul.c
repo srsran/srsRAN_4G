@@ -319,7 +319,7 @@ int srslte_ra_ul_dci_to_grant(srslte_cell_t*              cell,
   }
 }
 
-uint32_t srslte_ra_ul_info(srslte_pusch_grant_t* grant, char* info_str, uint32_t len)
+uint32_t srslte_ra_ul_info(const srslte_pusch_grant_t* grant, char* info_str, uint32_t len)
 {
   return srslte_print_check(info_str,
                             len,

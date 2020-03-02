@@ -94,7 +94,7 @@ private:
 
   srslte_prach_cfg_t prach_cfg = {};
 
-  void parse_config(const phy_cfg_t& cfg);
+  void parse_common_config(const phy_cfg_t& cfg);
 };
 
 } // namespace srsenb

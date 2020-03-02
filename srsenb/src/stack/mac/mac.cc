@@ -398,6 +398,12 @@ int mac::snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr)
   return ret;
 }
 
+int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)
+{
+  log_h->info("TA: tti=%d, rnti=0x%04x, ta_us=%.1f\n", tti, rnti, ta_us);
+  return SRSLTE_SUCCESS;
+}
+
 int mac::sr_detected(uint32_t tti, uint16_t rnti)
 {
   log_h->step(tti);

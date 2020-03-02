@@ -49,19 +49,15 @@ typedef struct {
   cf_t symbol[2];
 } qam16_packed_t;
 
-typedef struct {
-  cf_t symbol[256];
-} qam256_packed_t;
-
 typedef struct SRSLTE_API {
   cf_t*    symbol_table;   // bit-to-symbol mapping
   uint32_t nsymbols;       // number of modulation symbols
   uint32_t nbits_x_symbol; // number of bits per symbol
 
-  bool             byte_tables_init;
-  bpsk_packed_t*   symbol_table_bpsk;
-  qpsk_packed_t*   symbol_table_qpsk;
-  qam16_packed_t*  symbol_table_16qam;
+  bool            byte_tables_init;
+  bpsk_packed_t*  symbol_table_bpsk;
+  qpsk_packed_t*  symbol_table_qpsk;
+  qam16_packed_t* symbol_table_16qam;
 } srslte_modem_table_t;
 
 SRSLTE_API void srslte_modem_table_init(srslte_modem_table_t* q);

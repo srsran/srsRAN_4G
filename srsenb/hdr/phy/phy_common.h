@@ -128,11 +128,8 @@ public:
     return c;
   };
 
-  // Physical Uplink Config common
-  srslte_ul_cfg_t ul_cfg_com = {};
-
-  // Physical Downlink Config common
-  srslte_dl_cfg_t dl_cfg_com = {};
+  // Common Physical Uplink DMRS configuration
+  srslte_refsignal_dmrs_pusch_cfg_t dmrs_pusch_cfg = {};
 
   srslte::radio_interface_phy* radio      = nullptr;
   stack_interface_phy_lte*     stack      = nullptr;
