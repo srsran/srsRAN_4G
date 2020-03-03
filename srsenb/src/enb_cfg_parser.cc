@@ -812,19 +812,54 @@ int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_)
   // Parse config files
   srslte_cell_t cell_common_cfg = {};
 
-  if (enb_conf_sections::parse_cell_cfg(args_, &cell_common_cfg) != SRSLTE_SUCCESS) {
+  try {
+    if (enb_conf_sections::parse_cell_cfg(args_, &cell_common_cfg) != SRSLTE_SUCCESS) {
+      fprintf(stderr, "Error parsing Cell configuration\n");
+      return SRSLTE_ERROR;
+    }
+  } catch (const SettingTypeException& stex) {
+    fprintf(stderr, "Error parsing Cell configuration: %s\n", stex.getPath());
+    return SRSLTE_ERROR;
+  } catch (const ConfigException& cex) {
     fprintf(stderr, "Error parsing Cell configuration\n");
     return SRSLTE_ERROR;
   }
-  if (sib_sections::parse_sibs(args_, rrc_cfg_, phy_cfg_) != SRSLTE_SUCCESS) {
-    fprintf(stderr, "Error parsing SIB configuration\n");
+
+  try {
+    if (sib_sections::parse_sibs(args_, rrc_cfg_, phy_cfg_) != SRSLTE_SUCCESS) {
+      fprintf(stderr, "Error parsing SIB configuration\n");
+      return SRSLTE_ERROR;
+    }
+  } catch (const SettingTypeException& stex) {
+    fprintf(stderr, "Error parsing SIB configuration: %s\n", stex.getPath());
+    return SRSLTE_ERROR;
+  } catch (const ConfigException& cex) {
+    fprintf(stderr, "Error parsing SIB configurationn\n");
     return SRSLTE_ERROR;
   }
-  if (rr_sections::parse_rr(args_, rrc_cfg_) != SRSLTE_SUCCESS) {
+
+  try {
+    if (rr_sections::parse_rr(args_, rrc_cfg_) != SRSLTE_SUCCESS) {
+      fprintf(stderr, "Error parsing Radio Resources configuration\n");
+      return SRSLTE_ERROR;
+    }
+  } catch (const SettingTypeException& stex) {
+    fprintf(stderr, "Error parsing Radio Resources configuration: %s\n", stex.getPath());
+    return SRSLTE_ERROR;
+  } catch (const ConfigException& cex) {
     fprintf(stderr, "Error parsing Radio Resources configuration\n");
     return SRSLTE_ERROR;
   }
-  if (drb_sections::parse_drb(args_, rrc_cfg_) != SRSLTE_SUCCESS) {
+
+  try {
+    if (drb_sections::parse_drb(args_, rrc_cfg_) != SRSLTE_SUCCESS) {
+      fprintf(stderr, "Error parsing DRB configuration\n");
+      return SRSLTE_ERROR;
+    }
+  } catch (const SettingTypeException& stex) {
+    fprintf(stderr, "\"Error parsing DRB configuration: %s\n", stex.getPath());
+    return SRSLTE_ERROR;
+  } catch (const ConfigException& cex) {
     fprintf(stderr, "Error parsing DRB configuration\n");
     return SRSLTE_ERROR;
   }
