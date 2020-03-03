@@ -36,9 +36,9 @@ int test_generic()
 
   // test logger handler
   {
-    srslte::scoped_log<srslte::nullsink_log> null_log("ASN1::RRC");
+    srslte::scoped_log<srslte::nullsink_log> null_log("ASN1");
     null_log->set_level(srslte::LOG_LEVEL_INFO);
-    srslte::logmap::get("ASN1::RRC")->info("This is a console test to see if the RRC logger is working fine\n");
+    asn1::log_info("This is a console test to see if the RRC logger is working fine\n");
     TESTASSERT(null_log->last_log_msg == "This is a console test to see if the RRC logger is working fine\n");
     TESTASSERT(null_log->last_log_level == srslte::LOG_LEVEL_INFO);
     // go back to original logger

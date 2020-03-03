@@ -148,13 +148,13 @@ SRSASN_CODE bit_ref::pack(uint32_t val, uint32_t n_bits)
     val              = val & mask;
     uint8_t keepmask = ((uint8_t)-1) - (uint8_t)((1u << (8u - offset)) - 1u);
     if ((uint32_t)(8 - offset) > n_bits) {
-      uint8_t bit = (uint8_t)(val << (8u - offset - n_bits));
-      *ptr        = ((*ptr) & keepmask) + bit;
+      auto bit = static_cast<uint8_t>(val << (8u - offset - n_bits));
+      *ptr     = ((*ptr) & keepmask) + bit;
       offset += n_bits;
       n_bits = 0;
     } else {
-      uint8_t bit = (uint8_t)(val >> (n_bits - 8u + offset));
-      *ptr        = (*ptr & keepmask) + bit;
+      auto bit = static_cast<uint8_t>(val >> (n_bits - 8u + offset));
+      *ptr     = (*ptr & keepmask) + bit;
       n_bits -= (8 - offset);
       offset = 0;
       ptr++;
@@ -182,7 +182,7 @@ SRSASN_CODE unpack_bits(T& val, Ptr& ptr, uint8_t& offset, const uint8_t* max_pt
       offset += n_bits;
       n_bits = 0;
     } else {
-      uint8_t mask = (uint8_t)((1u << (8u - offset)) - 1u);
+      auto mask = static_cast<uint8_t>((1u << (8u - offset)) - 1u);
       val += ((uint32_t)((*ptr) & mask)) << (n_bits - 8 + offset);
       n_bits -= 8 - offset;
       offset = 0;
@@ -321,7 +321,7 @@ SRSASN_CODE bit_ref::align_bytes_zero()
     log_error("Buffer size limit was achieved\n");
     return SRSASN_ERROR_ENCODE_FAIL;
   }
-  uint8_t mask = (uint8_t)(256u - (1u << (8u - offset)));
+  auto mask = static_cast<uint8_t>(256u - (1u << (8u - offset)));
   *ptr &= mask;
   offset = 0;
   ptr++;
@@ -336,7 +336,7 @@ SRSASN_CODE pack_unsupported_ext_flag(bit_ref& bref, bool ext)
 {
   HANDLE_CODE(bref.pack(ext, 1));
   if (ext) {
-    log_error("asn1 error: ASN extensions not currently supported\n");
+    log_error("ASN extensions not currently supported\n");
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   return SRSASN_SUCCESS;
@@ -346,7 +346,7 @@ SRSASN_CODE unpack_unsupported_ext_flag(bool& ext, bit_ref& bref)
 {
   SRSASN_CODE ret = bref.unpack(ext, 1);
   if (ext) {
-    log_error("asn1 error: ASN extensions not currently supported\n");
+    log_error("ASN extensions not currently supported\n");
     return SRSASN_ERROR_DECODE_FAIL;
   }
   return ret;
@@ -959,7 +959,7 @@ void number_to_octstring(uint8_t* ptr, uint64_t number, uint32_t nbytes)
     return;
   }
   for (uint32_t i = 0; i < nbytes; ++i) {
-    ptr[nbytes - 1 - i] = (number >> (uint64_t)(i * 8u)) & 0xFF;
+    ptr[nbytes - 1 - i] = (number >> (uint64_t)(i * 8u)) & 0xFFu;
   }
 }
 
@@ -1184,7 +1184,7 @@ void from_number(uint8_t* ptr, uint64_t number, uint32_t nbits)
   }
   uint32_t offset = nbits % 8; // clean up any extra set bit
   if (offset > 0) {
-    ptr[nof_bytes - 1] &= (uint8_t)((1 << offset) - 1);
+    ptr[nof_bytes - 1] &= (uint8_t)((1u << offset) - 1u);
   }
 }
 
@@ -1234,7 +1234,7 @@ namespace asn_string_utils {
 size_t get_nof_bits_per_char(size_t lb, size_t ub, bool aligned)
 {
   size_t N = ub - lb + 1;
-  size_t b = (size_t)ceilf(log2(N)); // B
+  auto   b = (size_t)ceilf(log2(N)); // B
   if (aligned) {
     b = (size_t)pow(2, ceilf(log2(b))); // B2
   }
@@ -1277,8 +1277,8 @@ pack(bit_ref& bref, const std::string& s, size_t lb, size_t ub, size_t alb, size
   if (octet_aligned) {
     bref.align_bytes_zero();
   }
-  for (uint32_t i = 0; i < s.size(); ++i) {
-    HANDLE_CODE(bref.pack(s[i], b));
+  for (char c : s) {
+    HANDLE_CODE(bref.pack(c, b));
   }
   return SRSASN_SUCCESS;
 }
@@ -1308,8 +1308,8 @@ SRSASN_CODE unpack(std::string& s, cbit_ref& bref, size_t lb, size_t ub, size_t 
   if (octet_aligned) {
     bref.align_bytes();
   }
-  for (uint32_t i = 0; i < s.size(); ++i) {
-    HANDLE_CODE(bref.unpack(s[i], b));
+  for (char& c : s) {
+    HANDLE_CODE(bref.unpack(c, b));
   }
   return SRSASN_SUCCESS;
 }
@@ -1460,7 +1460,7 @@ void json_writer::write_fieldname(const std::string& fieldname)
   } else if (sep == NEWLINE) {
     ss << "\n" << ident;
   }
-  if (fieldname.size() > 0) {
+  if (not fieldname.empty()) {
     ss << "\"" << fieldname << "\": ";
   }
   sep = NONE;

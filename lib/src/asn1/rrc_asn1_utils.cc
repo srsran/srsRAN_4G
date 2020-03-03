@@ -152,7 +152,7 @@ srslte::rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_t
   if (asn1_type.srb_id <= 2) {
     return rlc_config_t::srb_config(asn1_type.srb_id);
   } else {
-    srslte::logmap::get("ASN1::RRC")->error("SRB %d does not support default initialization type\n", asn1_type.srb_id);
+    asn1::log_error("SRB %d does not support default initialization type\n", asn1_type.srb_id);
     return rlc_config_t();
   }
 }
@@ -351,7 +351,7 @@ srsenb::sched_interface::ant_info_ded_t make_ant_info_ded(const asn1::rrc::ant_i
         ant_ded.codebook_subset_restrict = asn1code.n4_tx_ant_tm6().to_number();
         break;
       default:
-        srslte::logmap::get("ASN1::RRC")->error("Failed to convert antenna codebook type to number\n");
+        asn1::log_error("Failed to convert antenna codebook type to number\n");
     }
   }
   ant_ded.ue_tx_ant_sel = srsenb::sched_interface::ant_info_ded_t::ue_tx_ant_sel_t::release;
