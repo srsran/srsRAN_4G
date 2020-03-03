@@ -157,6 +157,7 @@ void txrx::run_thread()
       tx_worker_cnt = (tx_worker_cnt + 1) % nof_workers;
 
       // Trigger phy worker execution
+      worker_com->semaphore.push(worker);
       workers_pool->start_worker(worker);
 
       // Trigger prach worker execution

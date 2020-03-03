@@ -237,7 +237,7 @@ void sf_worker::work_imp()
   }
 
   Debug("Sending to radio\n");
-  phy->worker_end(tx_worker_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)), tx_time);
+  phy->worker_end(this, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)), tx_time);
 
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);

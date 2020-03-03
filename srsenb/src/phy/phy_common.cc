@@ -46,21 +46,10 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-phy_common::phy_common(uint32_t max_workers_) : tx_sem(max_workers_), cell_list(), ue_db()
+phy_common::phy_common(uint32_t max_workers_) : cell_list(), ue_db()
 {
   params.max_prach_offset_us = 20;
   max_workers                = max_workers_;
-
-  for (uint32_t i = 0; i < max_workers; i++) {
-    sem_init(&tx_sem[i], 0, 0); // All semaphores start blocked
-  }
-}
-
-phy_common::~phy_common()
-{
-  for (uint32_t i = 0; i < max_workers; i++) {
-    sem_destroy(&tx_sem[i]);
-  }
 }
 
 void phy_common::set_nof_workers(uint32_t nof_workers_)
@@ -107,8 +96,6 @@ bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
     q.resize(cell_list.size());
   }
 
-  is_first_tx = true;
-
   // Set UE PHY data-base stack
   ue_db.init(stack, cell_list);
 
@@ -118,9 +105,7 @@ bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
 
 void phy_common::stop()
 {
-  for (uint32_t i = 0; i < max_workers; i++) {
-    sem_post(&tx_sem[i]);
-  }
+  semaphore.wait_all();
 }
 
 /* The transmission of UL subframes must be in sequence. The correct sequence is guaranteed by a chain of N semaphores,
@@ -130,35 +115,27 @@ void phy_common::stop()
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(uint32_t           tti,
+void phy_common::worker_end(void*              tx_sem_id,
                             cf_t*              buffer[SRSLTE_MAX_PORTS],
                             uint32_t           nof_samples,
                             srslte_timestamp_t tx_time)
 {
-
-  // This variable is not protected but it is very unlikely that 2 threads arrive here simultaneously since at the
-  // beginning there is no workload and threads are separated by 1 ms
-  if (is_first_tx) {
-    is_first_tx = false;
-    // Allow my own transmission if I'm the first to transmit
-    sem_post(&tx_sem[tti % nof_workers]);
-  }
-
   // Wait for the green light to transmit in the current TTI
-  sem_wait(&tx_sem[tti % nof_workers]);
+  semaphore.wait(tx_sem_id);
 
+  // Run DL channel emulator if created
   if (dl_channel) {
     dl_channel->run(buffer, buffer, nof_samples, tx_time);
   }
 
-  // always transmit on single radio
+  // Always transmit on single radio
   radio->tx(0, buffer, nof_samples, tx_time);
-
-  // Allow next TTI to transmit
-  sem_post(&tx_sem[(tti + 1) % nof_workers]);
 
   // Trigger MAC clock
   stack->tti_clock();
+
+  // Allow next TTI to transmit
+  semaphore.release();
 }
 
 void phy_common::set_mch_period_stop(uint32_t stop)

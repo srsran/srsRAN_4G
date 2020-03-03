@@ -35,7 +35,7 @@
 #include "srslte/phy/channel/channel.h"
 #include "srslte/radio/radio.h"
 #include <map>
-#include <semaphore.h>
+#include <srslte/common/tti_sempahore.h>
 #include <string.h>
 
 namespace srsenb {
@@ -44,7 +44,6 @@ class phy_common
 {
 public:
   explicit phy_common(uint32_t nof_workers);
-  ~phy_common();
 
   void set_nof_workers(uint32_t nof_workers);
 
@@ -53,8 +52,20 @@ public:
   void reset();
   void stop();
 
-  void
-  worker_end(uint32_t tx_mutex_cnt, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
+  /**
+   * TTI transmission semaphore, used for ensuring that PHY workers transmit following start order
+   */
+  srslte::tti_semaphore<void*> semaphore;
+
+  /**
+   * Performs common end worker transmission tasks such as transmission and stack TTI execution
+   *
+   * @param tx_sem_id Semaphore identifier, the worker thread pointer is used
+   * @param buffer baseband IQ sample buffer
+   * @param nof_samples number of samples to transmit
+   * @param tx_time timestamp to transmit samples
+   */
+  void worker_end(void* tx_sem_id, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
   phy_args_t params = {};
@@ -146,8 +157,6 @@ public:
 
 private:
   phy_cell_cfg_list_t cell_list;
-  std::vector<sem_t>  tx_sem;
-  bool                is_first_tx = false;
 
   uint32_t nof_workers = 0;
   uint32_t max_workers = 0;
