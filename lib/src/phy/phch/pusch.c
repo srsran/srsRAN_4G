@@ -43,8 +43,6 @@
 
 #define ACK_SNR_TH -1.0
 
-const static srslte_mod_t modulations[4] = {SRSLTE_MOD_BPSK, SRSLTE_MOD_QPSK, SRSLTE_MOD_16QAM, SRSLTE_MOD_64QAM};
-
 /* Allocate/deallocate PUSCH RBs to the resource grid
  */
 static int pusch_cp(srslte_pusch_t*       q,
@@ -110,7 +108,6 @@ static int pusch_get(srslte_pusch_t* q, srslte_pusch_grant_t* grant, cf_t* input
 static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  int i;
 
   if (q != NULL) {
 
@@ -120,8 +117,8 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
 
     INFO("Init PUSCH: %d PRBs\n", max_prb);
 
-    for (i = 0; i < SRSLTE_MOD_NITEMS; i++) {
-      if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
+    for (srslte_mod_t i = 0; i < SRSLTE_MOD_NITEMS; i++) {
+      if (srslte_modem_table_lte(&q->mod[i], i)) {
         goto clean;
       }
       srslte_modem_table_bytes(&q->mod[i]);
