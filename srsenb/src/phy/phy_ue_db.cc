@@ -337,7 +337,7 @@ void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t cc_idx, const srslte_dci_
   // Set TB info
   for (uint32_t i = 0; i < srslte_dci_format_max_tb(dci.format); i++) {
     if (SRSLTE_DCI_IS_TB_EN(dci.tb[i])) {
-      pdsch_ack_m.value[i] = true;
+      pdsch_ack_m.value[i] = 1;
       pdsch_ack_m.k++;
     }
   }
