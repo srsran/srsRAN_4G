@@ -66,7 +66,6 @@ bool txrx::init(srslte::radio_interface_phy* radio_h_,
   running       = true;
 
   nof_workers = workers_pool->get_nof_workers();
-  worker_com->set_nof_workers(nof_workers);
 
   // Instantiate UL channel emulator
   if (worker_com->params.ul_channel_args.enable) {

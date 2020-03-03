@@ -27,14 +27,13 @@
 #include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
+#include "srslte/config.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/radio/radio.h"
 
 namespace srsenb {
 
-typedef _Complex float cf_t;
-
-class txrx : public srslte::thread
+class txrx final : public srslte::thread
 {
 public:
   txrx();
@@ -47,7 +46,7 @@ public:
   void stop();
 
 private:
-  void run_thread() final;
+  void run_thread() override;
 
   srslte::radio_interface_phy* radio_h      = nullptr;
   srslte::log*                 log_h        = nullptr;

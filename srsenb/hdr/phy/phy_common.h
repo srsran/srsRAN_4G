@@ -43,9 +43,7 @@ namespace srsenb {
 class phy_common
 {
 public:
-  explicit phy_common(uint32_t nof_workers);
-
-  void set_nof_workers(uint32_t nof_workers);
+  phy_common() = default;
 
   bool
        init(const phy_cell_cfg_list_t& cell_list_, srslte::radio_interface_phy* radio_handler, stack_interface_phy_lte* mac);
@@ -157,9 +155,6 @@ public:
 
 private:
   phy_cell_cfg_list_t cell_list;
-
-  uint32_t nof_workers = 0;
-  uint32_t max_workers = 0;
 
   bool                                     have_mtch_stop   = false;
   pthread_mutex_t                          mtch_mutex       = {};

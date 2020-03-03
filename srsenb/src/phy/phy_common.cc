@@ -46,17 +46,6 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-phy_common::phy_common(uint32_t max_workers_) : cell_list(), ue_db()
-{
-  params.max_prach_offset_us = 20;
-  max_workers                = max_workers_;
-}
-
-void phy_common::set_nof_workers(uint32_t nof_workers_)
-{
-  nof_workers = nof_workers_;
-}
-
 void phy_common::reset()
 {
   for (auto& q : dl_grants) {

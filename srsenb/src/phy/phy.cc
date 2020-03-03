@@ -50,11 +50,7 @@ using namespace asn1::rrc;
 namespace srsenb {
 
 phy::phy(srslte::logger* logger_) :
-  logger(logger_),
-  workers_pool(MAX_WORKERS),
-  workers(MAX_WORKERS),
-  workers_common(MAX_WORKERS),
-  nof_workers(0)
+  logger(logger_), workers_pool(MAX_WORKERS), workers(MAX_WORKERS), workers_common(), nof_workers(0)
 {
 }
 
