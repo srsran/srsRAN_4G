@@ -133,8 +133,8 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
   add_rnti(SRSLTE_PRNTI, false, false);
 
   /* Setup RA-RNTI in PHY */
-  for (int i = 0; i < SRSLTE_CRNTI_START; i++) {
-    add_rnti(1 + i, false, false);
+  for (int i = SRSLTE_RARNTI_START; i <= SRSLTE_RARNTI_END; i++) {
+    add_rnti(i, false, false);
   }
 
   if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, nof_prb)) {
