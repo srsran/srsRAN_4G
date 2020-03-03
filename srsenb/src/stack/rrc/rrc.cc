@@ -736,7 +736,6 @@ void rrc::process_release_complete(uint16_t rnti)
   }
 }
 
-///< user mutex lock must be hold by calling function
 void rrc::rem_user(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
