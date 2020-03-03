@@ -29,6 +29,7 @@ add_library(srslte_asn1 STATIC
 
 # ASN1 utils
 add_library(asn1_utils STATIC asn1_utils.cc)
+target_link_libraries(asn1_utils srslte_common)
 
 add_library(rrc_asn1 STATIC
         rrc_asn1.cc
