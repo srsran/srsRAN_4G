@@ -89,12 +89,12 @@ add_executable(pscch_file_test pscch_file_test.c)
 target_link_libraries(pscch_file_test srslte_phy)
 
 # TM2 file tests
-add_test(pscch_file_test_ideal_tm2_p100 pscch_file_test -p 100 -t 2 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
-set_property(TEST pscch_file_test_ideal_tm2_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2")
+#add_test(pscch_file_test_ideal_tm2_p100 pscch_file_test -p 100 -t 2 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
+#set_property(TEST pscch_file_test_ideal_tm2_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2")
 
 # TM4 file tests
-add_test(pscch_file_test_ideal_tm4_p100 pscch_file_test -p 100 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
-set_property(TEST pscch_file_test_ideal_tm4_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
+#add_test(pscch_file_test_ideal_tm4_p100 pscch_file_test -p 100 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
+#set_property(TEST pscch_file_test_ideal_tm4_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
 
 add_test(pscch_test_tm4_p50_qc pscch_file_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_qc9150_f5.92e9_s15.36e6_50prb_20offset.dat)
 set_property(TEST pscch_test_tm4_p50_qc PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")

@@ -114,7 +114,7 @@ add_test(sync_sl_test_tm4_p6_c_0 sync_sl_test -p 6 -t 4 -d -i ${CMAKE_HOME_DIREC
 add_test(sync_sl_test_tm4_p15_c_84 sync_sl_test -p 15 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p15_c84_size5_num3_cshift0_s3.84e6.dat)
 add_test(sync_sl_test_tm4_p25_c_168 sync_sl_test -p 25 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p25_c168_size5_num5_cshift0_s7.68e6.dat)
 add_test(sync_sl_test_tm4_p50_c_252 sync_sl_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p50_c252_size10_num5_cshift0_s15.36e6.dat)
-add_test(sync_sl_test_tm4_p100_c_335 sync_sl_test -p 100 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
+#add_test(sync_sl_test_tm4_p100_c_335 sync_sl_test -p 100 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
 # Sample offset
 add_test(sync_sl_test_tm4_p25_c_168_so sync_sl_test -p 25 -t 4 -d -o 300 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p25_c168_size5_num5_cshift0_s7.68e6.dat )
 # Self-test
