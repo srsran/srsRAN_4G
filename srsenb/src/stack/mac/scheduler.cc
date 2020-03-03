@@ -207,20 +207,19 @@ int sched::ue_cfg(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg)
   }
   it->second.set_cfg(ue_cfg);
 
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 int sched::ue_rem(uint16_t rnti)
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
-  int                         ret = 0;
   if (ue_db.count(rnti) > 0) {
     ue_db.erase(rnti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
-    ret = -1;
+    return SRSLTE_ERROR;
   }
-  return ret;
+  return SRSLTE_SUCCESS;
 }
 
 bool sched::ue_exists(uint16_t rnti)
@@ -448,16 +447,15 @@ void sched::generate_cce_location(srslte_regs_t*   regs_,
 template <typename Func>
 int sched::ue_db_access(uint16_t rnti, Func f)
 {
-  int                         ret = 0;
   std::lock_guard<std::mutex> lock(sched_mutex);
   auto                        it = ue_db.find(rnti);
   if (it != ue_db.end()) {
     f(it->second);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
-    ret = -1;
+    return SRSLTE_ERROR;
   }
-  return ret;
+  return SRSLTE_SUCCESS;
 }
 
 } // namespace srsenb
