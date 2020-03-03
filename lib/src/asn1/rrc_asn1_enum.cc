@@ -24,7 +24,6 @@
 
 using namespace asn1;
 using namespace asn1::rrc;
-using srslte::logmap;
 
 /*******************************************************************************
  *                              Logging Utilities
@@ -32,8 +31,7 @@ using srslte::logmap;
 
 static void invalid_enum_number(int value, const char* name)
 {
-  logmap::get("ASN1::RRC")
-      ->error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
+  asn1::log_error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
 }
 
 /*******************************************************************************

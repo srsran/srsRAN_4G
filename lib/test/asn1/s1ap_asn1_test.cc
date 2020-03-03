@@ -125,7 +125,7 @@ int test_proc_id_consistency()
   TESTASSERT(is_same_type<ho_fail_s>(unsuc.value.ho_fail()));
   // e-RABSetup (No Unsuccessful Outcome)
   {
-    srslte::scoped_log<srslte::nullsink_log> sink("ASN1::S1AP");
+    srslte::scoped_log<srslte::nullsink_log> sink("ASN1");
     TESTASSERT(not unsuc.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP));
     TESTASSERT(sink->error_counter == 1);
   }

@@ -24,7 +24,6 @@
 
 using namespace asn1;
 using namespace asn1::rrc_nr;
-using srslte::logmap;
 
 /*******************************************************************************
  *                              Logging Utilities
@@ -32,7 +31,7 @@ using srslte::logmap;
 
 void asn1::rrc_nr::log_invalid_access_choice_id(uint32_t val, uint32_t choice_id)
 {
-  logmap::get("ASN1::RRC_NR")->error("The access choice id is invalid (%d!=%d)\n", val, choice_id);
+  asn1::log_error("The access choice id is invalid (%d!=%d)\n", val, choice_id);
 }
 
 void asn1::rrc_nr::assert_choice_type(uint32_t val, uint32_t choice_id)
@@ -47,11 +46,10 @@ void asn1::rrc_nr::assert_choice_type(const std::string& access_type,
                                       const std::string& choice_type)
 {
   if (access_type != current_type) {
-    logmap::get("ASN1::RRC_NR")
-        ->error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
-                choice_type.c_str(),
-                access_type.c_str(),
-                current_type.c_str());
+    asn1::log_error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
+                    choice_type.c_str(),
+                    access_type.c_str(),
+                    current_type.c_str());
   }
 }
 
@@ -60,9 +58,9 @@ asn1::rrc_nr::convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t
 {
   if (enum_val >= nof_types) {
     if (enum_val == nof_types) {
-      logmap::get("ASN1::RRC_NR")->error("The enum of type %s was not initialized.\n", enum_type);
+      asn1::log_error("The enum of type %s was not initialized.\n", enum_type);
     } else {
-      logmap::get("ASN1::RRC_NR")->error("The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+      asn1::log_error("The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
     }
     return "";
   }
@@ -74,10 +72,9 @@ ItemType asn1::rrc_nr::map_enum_number(ItemType* array, uint32_t nof_types, uint
 {
   if (enum_val >= nof_types) {
     if (enum_val == nof_types) {
-      logmap::get("ASN1::RRC_NR")->error("The enum of type %s is not initialized.\n", enum_type);
+      asn1::log_error("The enum of type %s is not initialized.\n", enum_type);
     } else {
-      logmap::get("ASN1::RRC_NR")
-          ->error("The enum value=%d of type %s cannot be converted to a number.\n", enum_val, enum_type);
+      asn1::log_error("The enum value=%d of type %s cannot be converted to a number.\n", enum_val, enum_type);
     }
     return 0;
   }
@@ -123,18 +120,17 @@ template const float    asn1::rrc_nr::map_enum_number<const float>(const float* 
 void rrc_nr_asn1_warn_assert(bool cond, const char* filename, int lineno)
 {
   if (cond) {
-    logmap::get("ASN1::RRC_NR")->warning("Assertion in [%s][%d] failed.\n", filename, lineno);
+    asn1::log_warning("Assertion in [%s][%d] failed.\n", filename, lineno);
   }
 }
 static void log_invalid_choice_id(uint32_t val, const char* choice_type)
 {
-  logmap::get("ASN1::RRC_NR")->error("Invalid choice id=%d for choice type %s\n", val, choice_type);
+  asn1::log_error("Invalid choice id=%d for choice type %s\n", val, choice_type);
 }
 
 static void invalid_enum_number(int value, const char* name)
 {
-  logmap::get("ASN1::RRC_NR")
-      ->error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
+  asn1::log_error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
 }
 
 /*******************************************************************************

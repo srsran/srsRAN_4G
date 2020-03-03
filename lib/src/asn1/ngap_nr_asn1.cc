@@ -24,7 +24,6 @@
 
 using namespace asn1;
 using namespace asn1::ngap_nr;
-using srslte::logmap;
 
 /*******************************************************************************
  *                              Logging Utilities
@@ -32,7 +31,7 @@ using srslte::logmap;
 
 void asn1::ngap_nr::log_invalid_access_choice_id(uint32_t val, uint32_t choice_id)
 {
-  logmap::get("ASN1::NGAP_NR")->error("The access choice id is invalid (%d!=%d)\n", val, choice_id);
+  asn1::log_error("The access choice id is invalid (%d!=%d)\n", val, choice_id);
 }
 
 void asn1::ngap_nr::assert_choice_type(uint32_t val, uint32_t choice_id)
@@ -47,11 +46,10 @@ void asn1::ngap_nr::assert_choice_type(const std::string& access_type,
                                        const std::string& choice_type)
 {
   if (access_type != current_type) {
-    logmap::get("ASN1::NGAP_NR")
-        ->error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
-                choice_type.c_str(),
-                access_type.c_str(),
-                current_type.c_str());
+    asn1::log_error("Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
+                    choice_type.c_str(),
+                    access_type.c_str(),
+                    current_type.c_str());
   }
 }
 
@@ -60,9 +58,9 @@ asn1::ngap_nr::convert_enum_idx(const char* array[], uint32_t nof_types, uint32_
 {
   if (enum_val >= nof_types) {
     if (enum_val == nof_types) {
-      logmap::get("ASN1::NGAP_NR")->error("The enum of type %s was not initialized.\n", enum_type);
+      asn1::log_error("The enum of type %s was not initialized.\n", enum_type);
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+      asn1::log_error("The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
     }
     return "";
   }
@@ -74,10 +72,9 @@ ItemType asn1::ngap_nr::map_enum_number(ItemType* array, uint32_t nof_types, uin
 {
   if (enum_val >= nof_types) {
     if (enum_val == nof_types) {
-      logmap::get("ASN1::NGAP_NR")->error("The enum of type %s is not initialized.\n", enum_type);
+      asn1::log_error("The enum of type %s is not initialized.\n", enum_type);
     } else {
-      logmap::get("ASN1::NGAP_NR")
-          ->error("The enum value=%d of type %s cannot be converted to a number.\n", enum_val, enum_type);
+      asn1::log_error("The enum value=%d of type %s cannot be converted to a number.\n", enum_val, enum_type);
     }
     return 0;
   }
@@ -123,18 +120,17 @@ template const float    asn1::ngap_nr::map_enum_number<const float>(const float*
 void ngap_nr_asn1_warn_assert(bool cond, const char* filename, int lineno)
 {
   if (cond) {
-    logmap::get("ASN1::NGAP_NR")->warning("Assertion in [%s][%d] failed.\n", filename, lineno);
+    asn1::log_warning("Assertion in [%s][%d] failed.\n", filename, lineno);
   }
 }
 static void log_invalid_choice_id(uint32_t val, const char* choice_type)
 {
-  logmap::get("ASN1::NGAP_NR")->error("Invalid choice id=%d for choice type %s\n", val, choice_type);
+  asn1::log_error("Invalid choice id=%d for choice type %s\n", val, choice_type);
 }
 
 static void invalid_enum_number(int value, const char* name)
 {
-  logmap::get("ASN1::NGAP_NR")
-      ->error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
+  asn1::log_error("The provided enum value=%d of type %s cannot be translated into a number\n", value, name);
 }
 
 /*******************************************************************************
@@ -198,12 +194,12 @@ bool protocol_ie_field_s<ies_set_paramT_>::load_info_obj(const uint32_t& id_)
 
 uint32_t ngap_protocol_ies_empty_o::idx_to_id(uint32_t idx)
 {
-  logmap::get("ASN1::NGAP_NR")->error("object set is empty\n");
+  asn1::log_error("object set is empty\n");
   return 0;
 }
 bool ngap_protocol_ies_empty_o::is_id_valid(const uint32_t& id)
 {
-  logmap::get("ASN1::NGAP_NR")->error("object set is empty\n");
+  asn1::log_error("object set is empty\n");
   return false;
 }
 crit_e ngap_protocol_ies_empty_o::get_crit(const uint32_t& id)
@@ -326,12 +322,12 @@ bool protocol_ie_single_container_s<ies_set_paramT_>::load_info_obj(const uint32
 
 uint32_t ngap_protocol_ext_empty_o::idx_to_id(uint32_t idx)
 {
-  logmap::get("ASN1::NGAP_NR")->error("object set is empty\n");
+  asn1::log_error("object set is empty\n");
   return 0;
 }
 bool ngap_protocol_ext_empty_o::is_id_valid(const uint32_t& id)
 {
-  logmap::get("ASN1::NGAP_NR")->error("object set is empty\n");
+  asn1::log_error("object set is empty\n");
   return false;
 }
 crit_e ngap_protocol_ext_empty_o::get_crit(const uint32_t& id)
@@ -998,7 +994,7 @@ crit_e amf_cfg_upd_ies_o::get_crit(const uint32_t& id)
     case 8:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -1028,7 +1024,7 @@ amf_cfg_upd_ies_o::value_c amf_cfg_upd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::amf_tnlassoc_to_upd_list);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -1050,7 +1046,7 @@ presence_e amf_cfg_upd_ies_o::get_presence(const uint32_t& id)
     case 8:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -1357,7 +1353,7 @@ SRSASN_CODE amf_cfg_upd_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "amf_cfg_upd_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -1518,7 +1514,7 @@ SRSASN_CODE amf_cfg_upd_ies_container::unpack(cbit_ref& bref)
         amf_tnlassoc_to_upd_list.value   = c.value.amf_tnlassoc_to_upd_list();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -2072,7 +2068,7 @@ crit_e amf_cfg_upd_ack_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -2090,7 +2086,7 @@ amf_cfg_upd_ack_ies_o::value_c amf_cfg_upd_ack_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -2104,7 +2100,7 @@ presence_e amf_cfg_upd_ack_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -2280,7 +2276,7 @@ SRSASN_CODE amf_cfg_upd_ack_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "amf_cfg_upd_ack_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -2347,7 +2343,7 @@ SRSASN_CODE amf_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -2433,7 +2429,7 @@ crit_e amf_cfg_upd_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -2451,7 +2447,7 @@ amf_cfg_upd_fail_ies_o::value_c amf_cfg_upd_fail_ies_o::get_value(const uint32_t
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -2465,7 +2461,7 @@ presence_e amf_cfg_upd_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -2631,7 +2627,7 @@ SRSASN_CODE amf_cfg_upd_fail_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "amf_cfg_upd_fail_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -2697,12 +2693,12 @@ SRSASN_CODE amf_cfg_upd_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -3735,14 +3731,14 @@ crit_e amf_status_ind_ies_o::get_crit(const uint32_t& id)
   if (id == 120) {
     return crit_e::reject;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 amf_status_ind_ies_o::value_c amf_status_ind_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
   if (id != 120) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -3751,7 +3747,7 @@ presence_e amf_status_ind_ies_o::get_presence(const uint32_t& id)
   if (id == 120) {
     return presence_e::mandatory;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -3813,12 +3809,12 @@ SRSASN_CODE amf_status_ind_ies_container::unpack(cbit_ref& bref)
       unavailable_guami_list.crit  = c.crit;
       unavailable_guami_list.value = c.value.unavailable_guami_list();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -6607,7 +6603,7 @@ crit_e cell_traffic_trace_ies_o::get_crit(const uint32_t& id)
     case 109:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -6631,7 +6627,7 @@ cell_traffic_trace_ies_o::value_c cell_traffic_trace_ies_o::get_value(const uint
       ret.set(value_c::types::trace_collection_entity_ip_address);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -6649,7 +6645,7 @@ presence_e cell_traffic_trace_ies_o::get_presence(const uint32_t& id)
     case 109:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -6873,7 +6869,7 @@ SRSASN_CODE cell_traffic_trace_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "cell_traffic_trace_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -6950,12 +6946,12 @@ SRSASN_CODE cell_traffic_trace_ies_container::unpack(cbit_ref& bref)
         trace_collection_entity_ip_address.value = c.value.trace_collection_entity_ip_address();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -8181,7 +8177,7 @@ crit_e deactiv_trace_ies_o::get_crit(const uint32_t& id)
     case 44:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -8199,7 +8195,7 @@ deactiv_trace_ies_o::value_c deactiv_trace_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::ngran_trace_id);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -8213,7 +8209,7 @@ presence_e deactiv_trace_ies_o::get_presence(const uint32_t& id)
     case 44:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -8372,7 +8368,7 @@ SRSASN_CODE deactiv_trace_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "deactiv_trace_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -8432,12 +8428,12 @@ SRSASN_CODE deactiv_trace_ies_container::unpack(cbit_ref& bref)
         ngran_trace_id.value = c.value.ngran_trace_id();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -8641,14 +8637,14 @@ crit_e mob_restrict_list_ext_ies_o::get_crit(const uint32_t& id)
   if (id == 150) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 mob_restrict_list_ext_ies_o::ext_c mob_restrict_list_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 150) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -8657,7 +8653,7 @@ presence_e mob_restrict_list_ext_ies_o::get_presence(const uint32_t& id)
   if (id == 150) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -8716,7 +8712,7 @@ SRSASN_CODE mob_restrict_list_ext_ies_container::unpack(cbit_ref& bref)
       last_eutran_plmn_id.crit    = c.crit;
       last_eutran_plmn_id.ext     = c.ext_value.last_eutran_plmn_id();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -8908,7 +8904,7 @@ crit_e dl_nas_transport_ies_o::get_crit(const uint32_t& id)
     case 0:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -8944,7 +8940,7 @@ dl_nas_transport_ies_o::value_c dl_nas_transport_ies_o::get_value(const uint32_t
       ret.set(value_c::types::allowed_nssai);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -8970,7 +8966,7 @@ presence_e dl_nas_transport_ies_o::get_presence(const uint32_t& id)
     case 0:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -9314,7 +9310,7 @@ SRSASN_CODE dl_nas_transport_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "dl_nas_transport_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -9448,12 +9444,12 @@ SRSASN_CODE dl_nas_transport_ies_container::unpack(cbit_ref& bref)
         allowed_nssai.value   = c.value.allowed_nssai();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -9542,7 +9538,7 @@ crit_e dl_non_ueassociated_nrp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 46:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -9558,7 +9554,7 @@ dl_non_ueassociated_nrp_pa_transport_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::nrp_pa_pdu);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -9570,7 +9566,7 @@ presence_e dl_non_ueassociated_nrp_pa_transport_ies_o::get_presence(const uint32
     case 46:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -9708,7 +9704,7 @@ SRSASN_CODE dl_non_ueassociated_nrp_pa_transport_ies_o::value_c::unpack(cbit_ref
       break;
     default:
       log_invalid_choice_id(type_, "dl_non_ueassociated_nrp_pa_transport_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -9760,12 +9756,12 @@ SRSASN_CODE dl_non_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref&
         nrp_pa_pdu.value = c.value.nrp_pa_pdu();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -10276,7 +10272,7 @@ crit_e dl_ran_cfg_transfer_ies_o::get_crit(const uint32_t& id)
     case 157:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -10291,7 +10287,7 @@ dl_ran_cfg_transfer_ies_o::value_c dl_ran_cfg_transfer_ies_o::get_value(const ui
       ret.set(value_c::types::endc_son_cfg_transfer_dl);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -10303,7 +10299,7 @@ presence_e dl_ran_cfg_transfer_ies_o::get_presence(const uint32_t& id)
     case 157:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -10441,7 +10437,7 @@ SRSASN_CODE dl_ran_cfg_transfer_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "dl_ran_cfg_transfer_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -10497,7 +10493,7 @@ SRSASN_CODE dl_ran_cfg_transfer_ies_container::unpack(cbit_ref& bref)
         endc_son_cfg_transfer_dl.value   = c.value.endc_son_cfg_transfer_dl();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -10607,7 +10603,7 @@ crit_e dl_ran_status_transfer_ies_o::get_crit(const uint32_t& id)
     case 84:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -10625,7 +10621,7 @@ dl_ran_status_transfer_ies_o::value_c dl_ran_status_transfer_ies_o::get_value(co
       ret.set(value_c::types::ran_status_transfer_transparent_container);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -10639,7 +10635,7 @@ presence_e dl_ran_status_transfer_ies_o::get_presence(const uint32_t& id)
     case 84:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -10802,7 +10798,7 @@ SRSASN_CODE dl_ran_status_transfer_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "dl_ran_status_transfer_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -10863,12 +10859,12 @@ SRSASN_CODE dl_ran_status_transfer_ies_container::unpack(cbit_ref& bref)
         ran_status_transfer_transparent_container.value = c.value.ran_status_transfer_transparent_container();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -10937,7 +10933,7 @@ crit_e dl_ueassociated_nrp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 46:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -10958,7 +10954,7 @@ dl_ueassociated_nrp_pa_transport_ies_o::value_c dl_ueassociated_nrp_pa_transport
       ret.set(value_c::types::nrp_pa_pdu);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -10974,7 +10970,7 @@ presence_e dl_ueassociated_nrp_pa_transport_ies_o::get_presence(const uint32_t& 
     case 46:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -11165,7 +11161,7 @@ SRSASN_CODE dl_ueassociated_nrp_pa_transport_ies_o::value_c::unpack(cbit_ref& br
       break;
     default:
       log_invalid_choice_id(type_, "dl_ueassociated_nrp_pa_transport_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -11234,12 +11230,12 @@ SRSASN_CODE dl_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref& bre
         nrp_pa_pdu.value = c.value.nrp_pa_pdu();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -11602,7 +11598,7 @@ crit_e error_ind_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -11623,7 +11619,7 @@ error_ind_ies_o::value_c error_ind_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -11639,7 +11635,7 @@ presence_e error_ind_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -11831,7 +11827,7 @@ SRSASN_CODE error_ind_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "error_ind_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -11910,7 +11906,7 @@ SRSASN_CODE error_ind_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -12115,7 +12111,7 @@ crit_e ho_cancel_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -12133,7 +12129,7 @@ ho_cancel_ies_o::value_c ho_cancel_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::cause);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -12147,7 +12143,7 @@ presence_e ho_cancel_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -12307,7 +12303,7 @@ SRSASN_CODE ho_cancel_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_cancel_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -12367,12 +12363,12 @@ SRSASN_CODE ho_cancel_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -12439,7 +12435,7 @@ crit_e ho_cancel_ack_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -12457,7 +12453,7 @@ ho_cancel_ack_ies_o::value_c ho_cancel_ack_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -12471,7 +12467,7 @@ presence_e ho_cancel_ack_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -12631,7 +12627,7 @@ SRSASN_CODE ho_cancel_ack_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_cancel_ack_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -12694,12 +12690,12 @@ SRSASN_CODE ho_cancel_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -12874,14 +12870,14 @@ crit_e ho_cmd_transfer_ext_ies_o::get_crit(const uint32_t& id)
   if (id == 152) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 ho_cmd_transfer_ext_ies_o::ext_c ho_cmd_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 152) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -12890,7 +12886,7 @@ presence_e ho_cmd_transfer_ext_ies_o::get_presence(const uint32_t& id)
   if (id == 152) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -12956,7 +12952,7 @@ SRSASN_CODE ho_cmd_transfer_ext_ies_container::unpack(cbit_ref& bref)
       add_dl_forwarding_uptnl_info.crit    = c.crit;
       add_dl_forwarding_uptnl_info.ext     = c.ext_value.add_dl_forwarding_uptnl_info();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -13206,7 +13202,7 @@ crit_e ho_cmd_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -13239,7 +13235,7 @@ ho_cmd_ies_o::value_c ho_cmd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -13263,7 +13259,7 @@ presence_e ho_cmd_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -13582,7 +13578,7 @@ SRSASN_CODE ho_cmd_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_cmd_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -13698,12 +13694,12 @@ SRSASN_CODE ho_cmd_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -13786,7 +13782,7 @@ crit_e ho_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -13804,7 +13800,7 @@ ho_fail_ies_o::value_c ho_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -13818,7 +13814,7 @@ presence_e ho_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -13983,7 +13979,7 @@ SRSASN_CODE ho_fail_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_fail_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -14051,12 +14047,12 @@ SRSASN_CODE ho_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -14447,7 +14443,7 @@ crit_e ho_notify_ies_o::get_crit(const uint32_t& id)
     case 121:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -14465,7 +14461,7 @@ ho_notify_ies_o::value_c ho_notify_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -14479,7 +14475,7 @@ presence_e ho_notify_ies_o::get_presence(const uint32_t& id)
     case 121:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -14639,7 +14635,7 @@ SRSASN_CODE ho_notify_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_notify_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -14699,12 +14695,12 @@ SRSASN_CODE ho_notify_ies_container::unpack(cbit_ref& bref)
         user_location_info.value = c.value.user_location_info();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -14773,7 +14769,7 @@ crit_e ho_prep_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -14794,7 +14790,7 @@ ho_prep_fail_ies_o::value_c ho_prep_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -14810,7 +14806,7 @@ presence_e ho_prep_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -15002,7 +14998,7 @@ SRSASN_CODE ho_prep_fail_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_prep_fail_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -15074,12 +15070,12 @@ SRSASN_CODE ho_prep_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -15522,14 +15518,14 @@ crit_e security_ind_ext_ies_o::get_crit(const uint32_t& id)
   if (id == 151) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 security_ind_ext_ies_o::ext_c security_ind_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 151) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -15538,7 +15534,7 @@ presence_e security_ind_ext_ies_o::get_presence(const uint32_t& id)
   if (id == 151) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -15694,7 +15690,7 @@ SRSASN_CODE security_ind_ext_ies_container::unpack(cbit_ref& bref)
       maximum_integrity_protected_data_rate_dl.crit    = c.crit;
       maximum_integrity_protected_data_rate_dl.ext     = c.ext_value.maximum_integrity_protected_data_rate_dl();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -15797,7 +15793,7 @@ crit_e pdu_session_res_setup_request_transfer_ies_o::get_crit(const uint32_t& id
     case 136:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -15831,7 +15827,7 @@ pdu_session_res_setup_request_transfer_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::qos_flow_setup_request_list);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -15855,7 +15851,7 @@ presence_e pdu_session_res_setup_request_transfer_ies_o::get_presence(const uint
     case 136:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -16183,7 +16179,7 @@ SRSASN_CODE pdu_session_res_setup_request_transfer_ies_o::value_c::unpack(cbit_r
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_setup_request_transfer_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -16313,12 +16309,12 @@ SRSASN_CODE pdu_session_res_setup_request_transfer_ies_container::unpack(cbit_re
         qos_flow_setup_request_list.value = c.value.qos_flow_setup_request_list();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -16727,7 +16723,7 @@ crit_e ho_request_ies_o::get_crit(const uint32_t& id)
     case 146:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -16793,7 +16789,7 @@ ho_request_ies_o::value_c ho_request_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::redirection_voice_fallback);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -16839,7 +16835,7 @@ presence_e ho_request_ies_o::get_presence(const uint32_t& id)
     case 146:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -17500,7 +17496,7 @@ SRSASN_CODE ho_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -17745,12 +17741,12 @@ SRSASN_CODE ho_request_ies_container::unpack(cbit_ref& bref)
         redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -17910,14 +17906,14 @@ crit_e ho_request_ack_transfer_ext_ies_o::get_crit(const uint32_t& id)
   if (id == 153) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 ho_request_ack_transfer_ext_ies_o::ext_c ho_request_ack_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 153) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -17926,7 +17922,7 @@ presence_e ho_request_ack_transfer_ext_ies_o::get_presence(const uint32_t& id)
   if (id == 153) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -18031,7 +18027,7 @@ SRSASN_CODE ho_request_ack_transfer_ext_ies_container::unpack(cbit_ref& bref)
       add_dluptnl_info_for_ho_list.crit    = c.crit;
       add_dluptnl_info_for_ho_list.ext     = c.ext_value.add_dluptnl_info_for_ho_list();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -18305,7 +18301,7 @@ crit_e ho_request_ack_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -18332,7 +18328,7 @@ ho_request_ack_ies_o::value_c ho_request_ack_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -18352,7 +18348,7 @@ presence_e ho_request_ack_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -18615,7 +18611,7 @@ SRSASN_CODE ho_request_ack_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_request_ack_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -18710,12 +18706,12 @@ SRSASN_CODE ho_request_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -19081,7 +19077,7 @@ crit_e ho_required_ies_o::get_crit(const uint32_t& id)
     case 101:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -19114,7 +19110,7 @@ ho_required_ies_o::value_c ho_required_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::source_to_target_transparent_container);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -19138,7 +19134,7 @@ presence_e ho_required_ies_o::get_presence(const uint32_t& id)
     case 101:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -19450,7 +19446,7 @@ SRSASN_CODE ho_required_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ho_required_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -19560,12 +19556,12 @@ SRSASN_CODE ho_required_ies_container::unpack(cbit_ref& bref)
         source_to_target_transparent_container.value = c.value.source_to_target_transparent_container();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -19854,7 +19850,7 @@ crit_e init_context_setup_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -19878,7 +19874,7 @@ init_context_setup_fail_ies_o::value_c init_context_setup_fail_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -19896,7 +19892,7 @@ presence_e init_context_setup_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -20126,7 +20122,7 @@ SRSASN_CODE init_context_setup_fail_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "init_context_setup_fail_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -20212,12 +20208,12 @@ SRSASN_CODE init_context_setup_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -20437,7 +20433,7 @@ crit_e init_context_setup_request_ies_o::get_crit(const uint32_t& id)
     case 146:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -20506,7 +20502,7 @@ init_context_setup_request_ies_o::value_c init_context_setup_request_ies_o::get_
       ret.set(value_c::types::redirection_voice_fallback);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -20554,7 +20550,7 @@ presence_e init_context_setup_request_ies_o::get_presence(const uint32_t& id)
     case 146:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -21248,7 +21244,7 @@ SRSASN_CODE init_context_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "init_context_setup_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -21505,12 +21501,12 @@ SRSASN_CODE init_context_setup_request_ies_container::unpack(cbit_ref& bref)
         redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -21800,7 +21796,7 @@ crit_e init_context_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -21824,7 +21820,7 @@ init_context_setup_resp_ies_o::value_c init_context_setup_resp_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -21842,7 +21838,7 @@ presence_e init_context_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -22076,7 +22072,7 @@ SRSASN_CODE init_context_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "init_context_setup_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -22165,12 +22161,12 @@ SRSASN_CODE init_context_setup_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -22281,7 +22277,7 @@ crit_e init_ue_msg_ies_o::get_crit(const uint32_t& id)
     case 0:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -22314,7 +22310,7 @@ init_ue_msg_ies_o::value_c init_ue_msg_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::allowed_nssai);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -22338,7 +22334,7 @@ presence_e init_ue_msg_ies_o::get_presence(const uint32_t& id)
     case 0:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -22654,7 +22650,7 @@ SRSASN_CODE init_ue_msg_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "init_ue_msg_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -22778,12 +22774,12 @@ SRSASN_CODE init_ue_msg_ies_container::unpack(cbit_ref& bref)
         allowed_nssai.value   = c.value.allowed_nssai();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -23219,7 +23215,7 @@ crit_e pdu_session_res_release_resp_transfer_ext_ies_o::get_crit(const uint32_t&
   if (id == 144) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 pdu_session_res_release_resp_transfer_ext_ies_o::ext_c
@@ -23227,7 +23223,7 @@ pdu_session_res_release_resp_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 144) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -23236,7 +23232,7 @@ presence_e pdu_session_res_release_resp_transfer_ext_ies_o::get_presence(const u
   if (id == 144) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -23455,7 +23451,7 @@ crit_e pdu_session_res_modify_ind_transfer_ext_ies_o::get_crit(const uint32_t& i
     case 156:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -23471,7 +23467,7 @@ pdu_session_res_modify_ind_transfer_ext_ies_o::get_ext(const uint32_t& id)
       ret.set(ext_c::types::security_result);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -23483,7 +23479,7 @@ presence_e pdu_session_res_modify_ind_transfer_ext_ies_o::get_presence(const uin
     case 156:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -23623,7 +23619,7 @@ SRSASN_CODE pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c::unpack(cbit_re
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_modify_ind_transfer_ext_ies_o::ext_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -23666,7 +23662,7 @@ crit_e pdu_session_res_modify_request_transfer_ies_o::get_crit(const uint32_t& i
     case 126:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -23694,7 +23690,7 @@ pdu_session_res_modify_request_transfer_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::add_ul_ngu_up_tnl_info);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -23714,7 +23710,7 @@ presence_e pdu_session_res_modify_request_transfer_ies_o::get_presence(const uin
     case 126:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -23996,7 +23992,7 @@ SRSASN_CODE pdu_session_res_modify_request_transfer_ies_o::value_c::unpack(cbit_
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_modify_request_transfer_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -24035,7 +24031,7 @@ crit_e pdu_session_res_modify_resp_transfer_ext_ies_o::get_crit(const uint32_t& 
   if (id == 154) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 pdu_session_res_modify_resp_transfer_ext_ies_o::ext_c
@@ -24043,7 +24039,7 @@ pdu_session_res_modify_resp_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 154) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -24052,7 +24048,7 @@ presence_e pdu_session_res_modify_resp_transfer_ext_ies_o::get_presence(const ui
   if (id == 154) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -24101,7 +24097,7 @@ crit_e pdu_session_res_notify_released_transfer_ext_ies_o::get_crit(const uint32
   if (id == 144) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 pdu_session_res_notify_released_transfer_ext_ies_o::ext_c
@@ -24109,7 +24105,7 @@ pdu_session_res_notify_released_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 144) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -24118,7 +24114,7 @@ presence_e pdu_session_res_notify_released_transfer_ext_ies_o::get_presence(cons
   if (id == 144) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -24164,14 +24160,14 @@ crit_e pdu_session_res_notify_transfer_ext_ies_o::get_crit(const uint32_t& id)
   if (id == 144) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 pdu_session_res_notify_transfer_ext_ies_o::ext_c pdu_session_res_notify_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 144) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -24180,7 +24176,7 @@ presence_e pdu_session_res_notify_transfer_ext_ies_o::get_presence(const uint32_
   if (id == 144) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -24243,7 +24239,7 @@ SRSASN_CODE pdu_session_res_release_resp_transfer_ext_ies_container::unpack(cbit
       secondary_ratusage_info.crit    = c.crit;
       secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -24308,7 +24304,7 @@ crit_e path_switch_request_ack_transfer_ext_ies_o::get_crit(const uint32_t& id)
   if (id == 154) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 path_switch_request_ack_transfer_ext_ies_o::ext_c
@@ -24316,7 +24312,7 @@ path_switch_request_ack_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 154) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -24325,7 +24321,7 @@ presence_e path_switch_request_ack_transfer_ext_ies_o::get_presence(const uint32
   if (id == 154) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -24374,14 +24370,14 @@ crit_e path_switch_request_transfer_ext_ies_o::get_crit(const uint32_t& id)
   if (id == 155) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 path_switch_request_transfer_ext_ies_o::ext_c path_switch_request_transfer_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 155) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -24390,7 +24386,7 @@ presence_e path_switch_request_transfer_ext_ies_o::get_presence(const uint32_t& 
   if (id == 155) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -24638,7 +24634,7 @@ crit_e pdu_session_res_item_cxt_rel_cpl_ext_ies_o::get_crit(const uint32_t& id)
   if (id == 145) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 pdu_session_res_item_cxt_rel_cpl_ext_ies_o::ext_c
@@ -24646,7 +24642,7 @@ pdu_session_res_item_cxt_rel_cpl_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 145) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -24655,7 +24651,7 @@ presence_e pdu_session_res_item_cxt_rel_cpl_ext_ies_o::get_presence(const uint32
   if (id == 145) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -24804,7 +24800,7 @@ SRSASN_CODE pdu_session_res_modify_ind_transfer_ext_ies_container::unpack(cbit_r
         security_result.ext     = c.ext_value.security_result();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -24929,7 +24925,7 @@ crit_e pdu_session_res_modify_item_mod_req_ext_ies_o::get_crit(const uint32_t& i
   if (id == 148) {
     return crit_e::reject;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 pdu_session_res_modify_item_mod_req_ext_ies_o::ext_c
@@ -24937,7 +24933,7 @@ pdu_session_res_modify_item_mod_req_ext_ies_o::get_ext(const uint32_t& id)
 {
   ext_c ret{};
   if (id != 148) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -24946,7 +24942,7 @@ presence_e pdu_session_res_modify_item_mod_req_ext_ies_o::get_presence(const uin
   if (id == 148) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -25066,7 +25062,7 @@ SRSASN_CODE pdu_session_res_modify_request_transfer_ies_container::unpack(cbit_r
         add_ul_ngu_up_tnl_info.value   = c.value.add_ul_ngu_up_tnl_info();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -25158,7 +25154,7 @@ SRSASN_CODE pdu_session_res_modify_resp_transfer_ext_ies_container::unpack(cbit_
       add_ngu_up_tnl_info.crit    = c.crit;
       add_ngu_up_tnl_info.ext     = c.ext_value.add_ngu_up_tnl_info();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -25359,7 +25355,7 @@ SRSASN_CODE pdu_session_res_notify_released_transfer_ext_ies_container::unpack(c
       secondary_ratusage_info.crit    = c.crit;
       secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -25445,7 +25441,7 @@ SRSASN_CODE pdu_session_res_notify_transfer_ext_ies_container::unpack(cbit_ref& 
       secondary_ratusage_info.crit    = c.crit;
       secondary_ratusage_info.ext     = c.ext_value.secondary_ratusage_info();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -25594,7 +25590,7 @@ SRSASN_CODE path_switch_request_ack_transfer_ext_ies_container::unpack(cbit_ref&
       add_ngu_up_tnl_info.crit    = c.crit;
       add_ngu_up_tnl_info.ext     = c.ext_value.add_ngu_up_tnl_info();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -25737,7 +25733,7 @@ SRSASN_CODE path_switch_request_transfer_ext_ies_container::unpack(cbit_ref& bre
       add_dl_qos_flow_per_tnl_info.crit    = c.crit;
       add_dl_qos_flow_per_tnl_info.ext     = c.ext_value.add_dl_qos_flow_per_tnl_info();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -26312,7 +26308,7 @@ SRSASN_CODE pdu_session_res_item_cxt_rel_cpl_ext_ies_container::unpack(cbit_ref&
       pdu_session_res_release_resp_transfer.crit    = c.crit;
       pdu_session_res_release_resp_transfer.ext     = c.ext_value.pdu_session_res_release_resp_transfer();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -26511,7 +26507,7 @@ SRSASN_CODE pdu_session_res_modify_item_mod_req_ext_ies_container::unpack(cbit_r
       s_nssai.crit    = c.crit;
       s_nssai.ext     = c.ext_value.s_nssai();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -28136,7 +28132,7 @@ crit_e location_report_ies_o::get_crit(const uint32_t& id)
     case 149:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -28163,7 +28159,7 @@ location_report_ies_o::value_c location_report_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::ps_cell_info);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -28183,7 +28179,7 @@ presence_e location_report_ies_o::get_presence(const uint32_t& id)
     case 149:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -28443,7 +28439,7 @@ SRSASN_CODE location_report_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "location_report_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -28485,7 +28481,7 @@ crit_e location_report_ctrl_ies_o::get_crit(const uint32_t& id)
     case 33:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -28503,7 +28499,7 @@ location_report_ctrl_ies_o::value_c location_report_ctrl_ies_o::get_value(const 
       ret.set(value_c::types::location_report_request_type);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -28517,7 +28513,7 @@ presence_e location_report_ctrl_ies_o::get_presence(const uint32_t& id)
     case 33:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -28678,7 +28674,7 @@ SRSASN_CODE location_report_ctrl_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "location_report_ctrl_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -28716,7 +28712,7 @@ crit_e location_report_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -28734,7 +28730,7 @@ location_report_fail_ind_ies_o::value_c location_report_fail_ind_ies_o::get_valu
       ret.set(value_c::types::cause);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -28748,7 +28744,7 @@ presence_e location_report_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -28909,7 +28905,7 @@ SRSASN_CODE location_report_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "location_report_fail_ind_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -28948,7 +28944,7 @@ crit_e nas_non_delivery_ind_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -28969,7 +28965,7 @@ nas_non_delivery_ind_ies_o::value_c nas_non_delivery_ind_ies_o::get_value(const 
       ret.set(value_c::types::cause);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -28985,7 +28981,7 @@ presence_e nas_non_delivery_ind_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -29177,7 +29173,7 @@ SRSASN_CODE nas_non_delivery_ind_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "nas_non_delivery_ind_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -29212,7 +29208,7 @@ crit_e ng_reset_ack_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -29227,7 +29223,7 @@ ng_reset_ack_ies_o::value_c ng_reset_ack_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29239,7 +29235,7 @@ presence_e ng_reset_ack_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -29380,7 +29376,7 @@ SRSASN_CODE ng_reset_ack_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ng_reset_ack_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -29415,7 +29411,7 @@ crit_e ng_reset_ies_o::get_crit(const uint32_t& id)
     case 88:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -29430,7 +29426,7 @@ ng_reset_ies_o::value_c ng_reset_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::reset_type);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29442,7 +29438,7 @@ presence_e ng_reset_ies_o::get_presence(const uint32_t& id)
     case 88:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -29580,7 +29576,7 @@ SRSASN_CODE ng_reset_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ng_reset_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -29617,7 +29613,7 @@ crit_e ng_setup_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -29635,7 +29631,7 @@ ng_setup_fail_ies_o::value_c ng_setup_fail_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29649,7 +29645,7 @@ presence_e ng_setup_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -29814,7 +29810,7 @@ SRSASN_CODE ng_setup_fail_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ng_setup_fail_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -29855,7 +29851,7 @@ crit_e ng_setup_request_ies_o::get_crit(const uint32_t& id)
     case 147:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -29879,7 +29875,7 @@ ng_setup_request_ies_o::value_c ng_setup_request_ies_o::get_value(const uint32_t
       ret.set(value_c::types::ue_retention_info);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -29897,7 +29893,7 @@ presence_e ng_setup_request_ies_o::get_presence(const uint32_t& id)
     case 147:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -30124,7 +30120,7 @@ SRSASN_CODE ng_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ng_setup_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -30168,7 +30164,7 @@ crit_e ng_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 147:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -30195,7 +30191,7 @@ ng_setup_resp_ies_o::value_c ng_setup_resp_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::ue_retention_info);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -30215,7 +30211,7 @@ presence_e ng_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 147:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -30476,7 +30472,7 @@ SRSASN_CODE ng_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ng_setup_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -30526,7 +30522,7 @@ crit_e overload_start_ies_o::get_crit(const uint32_t& id)
     case 49:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -30544,7 +30540,7 @@ overload_start_ies_o::value_c overload_start_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::overload_start_nssai_list);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -30558,7 +30554,7 @@ presence_e overload_start_ies_o::get_presence(const uint32_t& id)
     case 49:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -30726,7 +30722,7 @@ SRSASN_CODE overload_start_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "overload_start_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -30775,7 +30771,7 @@ crit_e pdu_session_res_modify_confirm_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -30799,7 +30795,7 @@ pdu_session_res_modify_confirm_ies_o::value_c pdu_session_res_modify_confirm_ies
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -30817,7 +30813,7 @@ presence_e pdu_session_res_modify_confirm_ies_o::get_presence(const uint32_t& id
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -31052,7 +31048,7 @@ SRSASN_CODE pdu_session_res_modify_confirm_ies_o::value_c::unpack(cbit_ref& bref
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_modify_confirm_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -31093,7 +31089,7 @@ crit_e pdu_session_res_modify_ind_ies_o::get_crit(const uint32_t& id)
     case 63:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -31111,7 +31107,7 @@ pdu_session_res_modify_ind_ies_o::value_c pdu_session_res_modify_ind_ies_o::get_
       ret.set(value_c::types::pdu_session_res_modify_list_mod_ind);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -31125,7 +31121,7 @@ presence_e pdu_session_res_modify_ind_ies_o::get_presence(const uint32_t& id)
     case 63:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -31290,7 +31286,7 @@ SRSASN_CODE pdu_session_res_modify_ind_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_modify_ind_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -31330,7 +31326,7 @@ crit_e pdu_session_res_modify_request_ies_o::get_crit(const uint32_t& id)
     case 64:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -31351,7 +31347,7 @@ pdu_session_res_modify_request_ies_o::value_c pdu_session_res_modify_request_ies
       ret.set(value_c::types::pdu_session_res_modify_list_mod_req);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -31367,7 +31363,7 @@ presence_e pdu_session_res_modify_request_ies_o::get_presence(const uint32_t& id
     case 64:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -31560,7 +31556,7 @@ SRSASN_CODE pdu_session_res_modify_request_ies_o::value_c::unpack(cbit_ref& bref
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_modify_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -31606,7 +31602,7 @@ crit_e pdu_session_res_modify_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -31633,7 +31629,7 @@ pdu_session_res_modify_resp_ies_o::value_c pdu_session_res_modify_resp_ies_o::ge
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -31653,7 +31649,7 @@ presence_e pdu_session_res_modify_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -31919,7 +31915,7 @@ SRSASN_CODE pdu_session_res_modify_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_modify_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -31965,7 +31961,7 @@ crit_e pdu_session_res_notify_ies_o::get_crit(const uint32_t& id)
     case 121:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -31989,7 +31985,7 @@ pdu_session_res_notify_ies_o::value_c pdu_session_res_notify_ies_o::get_value(co
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -32007,7 +32003,7 @@ presence_e pdu_session_res_notify_ies_o::get_presence(const uint32_t& id)
     case 121:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -32239,7 +32235,7 @@ SRSASN_CODE pdu_session_res_notify_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_notify_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -32284,7 +32280,7 @@ crit_e pdu_session_res_release_cmd_ies_o::get_crit(const uint32_t& id)
     case 79:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -32308,7 +32304,7 @@ pdu_session_res_release_cmd_ies_o::value_c pdu_session_res_release_cmd_ies_o::ge
       ret.set(value_c::types::pdu_session_res_to_release_list_rel_cmd);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -32326,7 +32322,7 @@ presence_e pdu_session_res_release_cmd_ies_o::get_presence(const uint32_t& id)
     case 79:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -32550,7 +32546,7 @@ SRSASN_CODE pdu_session_res_release_cmd_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_release_cmd_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -32595,7 +32591,7 @@ crit_e pdu_session_res_release_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -32619,7 +32615,7 @@ pdu_session_res_release_resp_ies_o::value_c pdu_session_res_release_resp_ies_o::
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -32637,7 +32633,7 @@ presence_e pdu_session_res_release_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -32867,7 +32863,7 @@ SRSASN_CODE pdu_session_res_release_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_release_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -32914,7 +32910,7 @@ crit_e pdu_session_res_setup_request_ies_o::get_crit(const uint32_t& id)
     case 110:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -32941,7 +32937,7 @@ pdu_session_res_setup_request_ies_o::value_c pdu_session_res_setup_request_ies_o
       ret.set(value_c::types::ue_aggregate_maximum_bit_rate);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -32961,7 +32957,7 @@ presence_e pdu_session_res_setup_request_ies_o::get_presence(const uint32_t& id)
     case 110:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -33217,7 +33213,7 @@ SRSASN_CODE pdu_session_res_setup_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_setup_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -33263,7 +33259,7 @@ crit_e pdu_session_res_setup_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -33287,7 +33283,7 @@ pdu_session_res_setup_resp_ies_o::value_c pdu_session_res_setup_resp_ies_o::get_
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -33305,7 +33301,7 @@ presence_e pdu_session_res_setup_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -33539,7 +33535,7 @@ SRSASN_CODE pdu_session_res_setup_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pdu_session_res_setup_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -33582,7 +33578,7 @@ crit_e pws_cancel_request_ies_o::get_crit(const uint32_t& id)
     case 14:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -33603,7 +33599,7 @@ pws_cancel_request_ies_o::value_c pws_cancel_request_ies_o::get_value(const uint
       ret.set(value_c::types::cancel_all_warning_msgs);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -33619,7 +33615,7 @@ presence_e pws_cancel_request_ies_o::get_presence(const uint32_t& id)
     case 14:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -33815,7 +33811,7 @@ SRSASN_CODE pws_cancel_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pws_cancel_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -33854,7 +33850,7 @@ crit_e pws_cancel_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -33875,7 +33871,7 @@ pws_cancel_resp_ies_o::value_c pws_cancel_resp_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -33891,7 +33887,7 @@ presence_e pws_cancel_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -34091,7 +34087,7 @@ SRSASN_CODE pws_cancel_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pws_cancel_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -34126,7 +34122,7 @@ crit_e pws_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 27:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -34141,7 +34137,7 @@ pws_fail_ind_ies_o::value_c pws_fail_ind_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::global_ran_node_id);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34153,7 +34149,7 @@ presence_e pws_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 27:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -34291,7 +34287,7 @@ SRSASN_CODE pws_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pws_fail_ind_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -34330,7 +34326,7 @@ crit_e pws_restart_ind_ies_o::get_crit(const uint32_t& id)
     case 23:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -34351,7 +34347,7 @@ pws_restart_ind_ies_o::value_c pws_restart_ind_ies_o::get_value(const uint32_t& 
       ret.set(value_c::types::emergency_area_id_list_for_restart);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34367,7 +34363,7 @@ presence_e pws_restart_ind_ies_o::get_presence(const uint32_t& id)
     case 23:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -34575,7 +34571,7 @@ SRSASN_CODE pws_restart_ind_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "pws_restart_ind_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -34621,7 +34617,7 @@ crit_e paging_ies_o::get_crit(const uint32_t& id)
     case 11:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -34651,7 +34647,7 @@ paging_ies_o::value_c paging_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::assist_data_for_paging);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -34673,7 +34669,7 @@ presence_e paging_ies_o::get_presence(const uint32_t& id)
     case 11:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -34959,7 +34955,7 @@ SRSASN_CODE paging_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "paging_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -35020,7 +35016,7 @@ crit_e path_switch_request_ack_ies_o::get_crit(const uint32_t& id)
     case 146:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -35065,7 +35061,7 @@ path_switch_request_ack_ies_o::value_c path_switch_request_ack_ies_o::get_value(
       ret.set(value_c::types::redirection_voice_fallback);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35097,7 +35093,7 @@ presence_e path_switch_request_ack_ies_o::get_presence(const uint32_t& id)
     case 146:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -35543,7 +35539,7 @@ SRSASN_CODE path_switch_request_ack_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "path_switch_request_ack_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -35593,7 +35589,7 @@ crit_e path_switch_request_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -35614,7 +35610,7 @@ path_switch_request_fail_ies_o::value_c path_switch_request_fail_ies_o::get_valu
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35630,7 +35626,7 @@ presence_e path_switch_request_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -35828,7 +35824,7 @@ SRSASN_CODE path_switch_request_fail_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "path_switch_request_fail_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -35874,7 +35870,7 @@ crit_e path_switch_request_ies_o::get_crit(const uint32_t& id)
     case 57:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -35901,7 +35897,7 @@ path_switch_request_ies_o::value_c path_switch_request_ies_o::get_value(const ui
       ret.set(value_c::types::pdu_session_res_failed_to_setup_list_ps_req);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -35921,7 +35917,7 @@ presence_e path_switch_request_ies_o::get_presence(const uint32_t& id)
     case 57:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -36187,7 +36183,7 @@ SRSASN_CODE path_switch_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "path_switch_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -36241,14 +36237,14 @@ crit_e ran_cfg_upd_ack_ies_o::get_crit(const uint32_t& id)
   if (id == 19) {
     return crit_e::ignore;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 ran_cfg_upd_ack_ies_o::value_c ran_cfg_upd_ack_ies_o::get_value(const uint32_t& id)
 {
   value_c ret{};
   if (id != 19) {
-    logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+    asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36257,7 +36253,7 @@ presence_e ran_cfg_upd_ack_ies_o::get_presence(const uint32_t& id)
   if (id == 19) {
     return presence_e::optional;
   }
-  logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+  asn1::log_error("The id=%d is not recognized", id);
   return {};
 }
 
@@ -36314,7 +36310,7 @@ crit_e ran_cfg_upd_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -36332,7 +36328,7 @@ ran_cfg_upd_fail_ies_o::value_c ran_cfg_upd_fail_ies_o::get_value(const uint32_t
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36346,7 +36342,7 @@ presence_e ran_cfg_upd_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -36512,7 +36508,7 @@ SRSASN_CODE ran_cfg_upd_fail_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ran_cfg_upd_fail_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -36551,7 +36547,7 @@ crit_e ran_cfg_upd_ies_o::get_crit(const uint32_t& id)
     case 27:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -36572,7 +36568,7 @@ ran_cfg_upd_ies_o::value_c ran_cfg_upd_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::global_ran_node_id);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36588,7 +36584,7 @@ presence_e ran_cfg_upd_ies_o::get_presence(const uint32_t& id)
     case 27:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -36787,7 +36783,7 @@ SRSASN_CODE ran_cfg_upd_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ran_cfg_upd_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -36826,7 +36822,7 @@ crit_e rrc_inactive_transition_report_ies_o::get_crit(const uint32_t& id)
     case 121:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -36847,7 +36843,7 @@ rrc_inactive_transition_report_ies_o::value_c rrc_inactive_transition_report_ies
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -36863,7 +36859,7 @@ presence_e rrc_inactive_transition_report_ies_o::get_presence(const uint32_t& id
     case 121:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -37051,7 +37047,7 @@ SRSASN_CODE rrc_inactive_transition_report_ies_o::value_c::unpack(cbit_ref& bref
       break;
     default:
       log_invalid_choice_id(type_, "rrc_inactive_transition_report_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -37093,7 +37089,7 @@ crit_e reroute_nas_request_ies_o::get_crit(const uint32_t& id)
     case 0:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -37117,7 +37113,7 @@ reroute_nas_request_ies_o::value_c reroute_nas_request_ies_o::get_value(const ui
       ret.set(value_c::types::allowed_nssai);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37135,7 +37131,7 @@ presence_e reroute_nas_request_ies_o::get_presence(const uint32_t& id)
     case 0:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -37361,7 +37357,7 @@ SRSASN_CODE reroute_nas_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "reroute_nas_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -37401,7 +37397,7 @@ crit_e secondary_rat_data_usage_report_ies_o::get_crit(const uint32_t& id)
     case 143:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -37422,7 +37418,7 @@ secondary_rat_data_usage_report_ies_o::value_c secondary_rat_data_usage_report_i
       ret.set(value_c::types::ho_flag);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37438,7 +37434,7 @@ presence_e secondary_rat_data_usage_report_ies_o::get_presence(const uint32_t& i
     case 143:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -37631,7 +37627,7 @@ SRSASN_CODE secondary_rat_data_usage_report_ies_o::value_c::unpack(cbit_ref& bre
       break;
     default:
       log_invalid_choice_id(type_, "secondary_rat_data_usage_report_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -37673,7 +37669,7 @@ crit_e trace_fail_ind_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -37694,7 +37690,7 @@ trace_fail_ind_ies_o::value_c trace_fail_ind_ies_o::get_value(const uint32_t& id
       ret.set(value_c::types::cause);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37710,7 +37706,7 @@ presence_e trace_fail_ind_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -37901,7 +37897,7 @@ SRSASN_CODE trace_fail_ind_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "trace_fail_ind_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -37938,7 +37934,7 @@ crit_e trace_start_ies_o::get_crit(const uint32_t& id)
     case 108:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -37956,7 +37952,7 @@ trace_start_ies_o::value_c trace_start_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::trace_activation);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -37970,7 +37966,7 @@ presence_e trace_start_ies_o::get_presence(const uint32_t& id)
     case 108:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -38130,7 +38126,7 @@ SRSASN_CODE trace_start_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "trace_start_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -38169,7 +38165,7 @@ crit_e ue_context_mod_fail_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -38190,7 +38186,7 @@ ue_context_mod_fail_ies_o::value_c ue_context_mod_fail_ies_o::get_value(const ui
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -38206,7 +38202,7 @@ presence_e ue_context_mod_fail_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -38399,7 +38395,7 @@ SRSASN_CODE ue_context_mod_fail_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_context_mod_fail_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -38453,7 +38449,7 @@ crit_e ue_context_mod_request_ies_o::get_crit(const uint32_t& id)
     case 91:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -38495,7 +38491,7 @@ ue_context_mod_request_ies_o::value_c ue_context_mod_request_ies_o::get_value(co
       ret.set(value_c::types::rrc_inactive_transition_report_request);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -38525,7 +38521,7 @@ presence_e ue_context_mod_request_ies_o::get_presence(const uint32_t& id)
     case 91:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -38923,7 +38919,7 @@ SRSASN_CODE ue_context_mod_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_context_mod_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -38974,7 +38970,7 @@ crit_e ue_context_mod_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -38998,7 +38994,7 @@ ue_context_mod_resp_ies_o::value_c ue_context_mod_resp_ies_o::get_value(const ui
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39016,7 +39012,7 @@ presence_e ue_context_mod_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -39236,7 +39232,7 @@ SRSASN_CODE ue_context_mod_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_context_mod_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -39275,7 +39271,7 @@ crit_e ue_context_release_cmd_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -39290,7 +39286,7 @@ ue_context_release_cmd_ies_o::value_c ue_context_release_cmd_ies_o::get_value(co
       ret.set(value_c::types::cause);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39302,7 +39298,7 @@ presence_e ue_context_release_cmd_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -39441,7 +39437,7 @@ SRSASN_CODE ue_context_release_cmd_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_context_release_cmd_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -39484,7 +39480,7 @@ crit_e ue_context_release_complete_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -39511,7 +39507,7 @@ ue_context_release_complete_ies_o::value_c ue_context_release_complete_ies_o::ge
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39531,7 +39527,7 @@ presence_e ue_context_release_complete_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -39794,7 +39790,7 @@ SRSASN_CODE ue_context_release_complete_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_context_release_complete_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -39838,7 +39834,7 @@ crit_e ue_context_release_request_ies_o::get_crit(const uint32_t& id)
     case 15:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -39859,7 +39855,7 @@ ue_context_release_request_ies_o::value_c ue_context_release_request_ies_o::get_
       ret.set(value_c::types::cause);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -39875,7 +39871,7 @@ presence_e ue_context_release_request_ies_o::get_presence(const uint32_t& id)
     case 15:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -40072,7 +40068,7 @@ SRSASN_CODE ue_context_release_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_context_release_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -40110,7 +40106,7 @@ crit_e ue_radio_cap_check_request_ies_o::get_crit(const uint32_t& id)
     case 117:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -40128,7 +40124,7 @@ ue_radio_cap_check_request_ies_o::value_c ue_radio_cap_check_request_ies_o::get_
       ret.set(value_c::types::ue_radio_cap);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40142,7 +40138,7 @@ presence_e ue_radio_cap_check_request_ies_o::get_presence(const uint32_t& id)
     case 117:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -40302,7 +40298,7 @@ SRSASN_CODE ue_radio_cap_check_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_radio_cap_check_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -40341,7 +40337,7 @@ crit_e ue_radio_cap_check_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -40362,7 +40358,7 @@ ue_radio_cap_check_resp_ies_o::value_c ue_radio_cap_check_resp_ies_o::get_value(
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40378,7 +40374,7 @@ presence_e ue_radio_cap_check_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -40566,7 +40562,7 @@ SRSASN_CODE ue_radio_cap_check_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_radio_cap_check_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -40606,7 +40602,7 @@ crit_e ue_radio_cap_info_ind_ies_o::get_crit(const uint32_t& id)
     case 118:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -40627,7 +40623,7 @@ ue_radio_cap_info_ind_ies_o::value_c ue_radio_cap_info_ind_ies_o::get_value(cons
       ret.set(value_c::types::ue_radio_cap_for_paging);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40643,7 +40639,7 @@ presence_e ue_radio_cap_info_ind_ies_o::get_presence(const uint32_t& id)
     case 118:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -40835,7 +40831,7 @@ SRSASN_CODE ue_radio_cap_info_ind_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ue_radio_cap_info_ind_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -40871,7 +40867,7 @@ crit_e uetnla_binding_release_request_ies_o::get_crit(const uint32_t& id)
     case 85:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -40886,7 +40882,7 @@ uetnla_binding_release_request_ies_o::value_c uetnla_binding_release_request_ies
       ret.set(value_c::types::ran_ue_ngap_id);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -40898,7 +40894,7 @@ presence_e uetnla_binding_release_request_ies_o::get_presence(const uint32_t& id
     case 85:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41011,7 +41007,7 @@ SRSASN_CODE uetnla_binding_release_request_ies_o::value_c::unpack(cbit_ref& bref
       break;
     default:
       log_invalid_choice_id(type_, "uetnla_binding_release_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -41050,7 +41046,7 @@ crit_e ul_nas_transport_ies_o::get_crit(const uint32_t& id)
     case 121:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41071,7 +41067,7 @@ ul_nas_transport_ies_o::value_c ul_nas_transport_ies_o::get_value(const uint32_t
       ret.set(value_c::types::user_location_info);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41087,7 +41083,7 @@ presence_e ul_nas_transport_ies_o::get_presence(const uint32_t& id)
     case 121:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41279,7 +41275,7 @@ SRSASN_CODE ul_nas_transport_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ul_nas_transport_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -41315,7 +41311,7 @@ crit_e ul_non_ueassociated_nrp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 46:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41331,7 +41327,7 @@ ul_non_ueassociated_nrp_pa_transport_ies_o::get_value(const uint32_t& id)
       ret.set(value_c::types::nrp_pa_pdu);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41343,7 +41339,7 @@ presence_e ul_non_ueassociated_nrp_pa_transport_ies_o::get_presence(const uint32
     case 46:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41481,7 +41477,7 @@ SRSASN_CODE ul_non_ueassociated_nrp_pa_transport_ies_o::value_c::unpack(cbit_ref
       break;
     default:
       log_invalid_choice_id(type_, "ul_non_ueassociated_nrp_pa_transport_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -41516,7 +41512,7 @@ crit_e ul_ran_cfg_transfer_ies_o::get_crit(const uint32_t& id)
     case 158:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41531,7 +41527,7 @@ ul_ran_cfg_transfer_ies_o::value_c ul_ran_cfg_transfer_ies_o::get_value(const ui
       ret.set(value_c::types::endc_son_cfg_transfer_ul);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41543,7 +41539,7 @@ presence_e ul_ran_cfg_transfer_ies_o::get_presence(const uint32_t& id)
     case 158:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41681,7 +41677,7 @@ SRSASN_CODE ul_ran_cfg_transfer_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ul_ran_cfg_transfer_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -41718,7 +41714,7 @@ crit_e ul_ran_status_transfer_ies_o::get_crit(const uint32_t& id)
     case 84:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41736,7 +41732,7 @@ ul_ran_status_transfer_ies_o::value_c ul_ran_status_transfer_ies_o::get_value(co
       ret.set(value_c::types::ran_status_transfer_transparent_container);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41750,7 +41746,7 @@ presence_e ul_ran_status_transfer_ies_o::get_presence(const uint32_t& id)
     case 84:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41913,7 +41909,7 @@ SRSASN_CODE ul_ran_status_transfer_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ul_ran_status_transfer_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -41953,7 +41949,7 @@ crit_e ul_ueassociated_nrp_pa_transport_ies_o::get_crit(const uint32_t& id)
     case 46:
       return crit_e::reject;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -41974,7 +41970,7 @@ ul_ueassociated_nrp_pa_transport_ies_o::value_c ul_ueassociated_nrp_pa_transport
       ret.set(value_c::types::nrp_pa_pdu);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -41990,7 +41986,7 @@ presence_e ul_ueassociated_nrp_pa_transport_ies_o::get_presence(const uint32_t& 
     case 46:
       return presence_e::mandatory;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -42181,7 +42177,7 @@ SRSASN_CODE ul_ueassociated_nrp_pa_transport_ies_o::value_c::unpack(cbit_ref& br
       break;
     default:
       log_invalid_choice_id(type_, "ul_ueassociated_nrp_pa_transport_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -42235,7 +42231,7 @@ crit_e write_replace_warning_request_ies_o::get_crit(const uint32_t& id)
     case 141:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -42277,7 +42273,7 @@ write_replace_warning_request_ies_o::value_c write_replace_warning_request_ies_o
       ret.set(value_c::types::warning_area_coordinates);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -42307,7 +42303,7 @@ presence_e write_replace_warning_request_ies_o::get_presence(const uint32_t& id)
     case 141:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -42712,7 +42708,7 @@ SRSASN_CODE write_replace_warning_request_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "write_replace_warning_request_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -42761,7 +42757,7 @@ crit_e write_replace_warning_resp_ies_o::get_crit(const uint32_t& id)
     case 19:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -42782,7 +42778,7 @@ write_replace_warning_resp_ies_o::value_c write_replace_warning_resp_ies_o::get_
       ret.set(value_c::types::crit_diagnostics);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return ret;
 }
@@ -42798,7 +42794,7 @@ presence_e write_replace_warning_resp_ies_o::get_presence(const uint32_t& id)
     case 19:
       return presence_e::optional;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The id=%d is not recognized", id);
+      asn1::log_error("The id=%d is not recognized", id);
   }
   return {};
 }
@@ -42999,7 +42995,7 @@ SRSASN_CODE write_replace_warning_resp_ies_o::value_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "write_replace_warning_resp_ies_o::value_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -43089,12 +43085,12 @@ SRSASN_CODE location_report_ies_container::unpack(cbit_ref& bref)
         ps_cell_info.value   = c.value.ps_cell_info();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -43194,12 +43190,12 @@ SRSASN_CODE location_report_ctrl_ies_container::unpack(cbit_ref& bref)
         location_report_request_type.value = c.value.location_report_request_type();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -43289,12 +43285,12 @@ SRSASN_CODE location_report_fail_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -43392,12 +43388,12 @@ SRSASN_CODE nas_non_delivery_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -43477,12 +43473,12 @@ SRSASN_CODE ng_reset_ies_container::unpack(cbit_ref& bref)
         reset_type.value = c.value.reset_type();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -43566,7 +43562,7 @@ SRSASN_CODE ng_reset_ack_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -43665,12 +43661,12 @@ SRSASN_CODE ng_setup_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -43786,12 +43782,12 @@ SRSASN_CODE ng_setup_request_ies_container::unpack(cbit_ref& bref)
         ue_retention_info.value   = c.value.ue_retention_info();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -43919,12 +43915,12 @@ SRSASN_CODE ng_setup_resp_ies_container::unpack(cbit_ref& bref)
         ue_retention_info.value   = c.value.ue_retention_info();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -44031,7 +44027,7 @@ SRSASN_CODE overload_start_ies_container::unpack(cbit_ref& bref)
         overload_start_nssai_list.value   = c.value.overload_start_nssai_list();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -44195,12 +44191,12 @@ SRSASN_CODE pdu_session_res_modify_confirm_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -44298,12 +44294,12 @@ SRSASN_CODE pdu_session_res_modify_ind_ies_container::unpack(cbit_ref& bref)
         pdu_session_res_modify_list_mod_ind.value = c.value.pdu_session_res_modify_list_mod_ind();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -44404,12 +44400,12 @@ SRSASN_CODE pdu_session_res_modify_request_ies_container::unpack(cbit_ref& bref)
         pdu_session_res_modify_list_mod_req.value = c.value.pdu_session_res_modify_list_mod_req();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -44539,12 +44535,12 @@ SRSASN_CODE pdu_session_res_modify_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -44673,12 +44669,12 @@ SRSASN_CODE pdu_session_res_notify_ies_container::unpack(cbit_ref& bref)
         user_location_info.value   = c.value.user_location_info();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -44800,12 +44796,12 @@ SRSASN_CODE pdu_session_res_release_cmd_ies_container::unpack(cbit_ref& bref)
         pdu_session_res_to_release_list_rel_cmd.value = c.value.pdu_session_res_to_release_list_rel_cmd();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -44925,12 +44921,12 @@ SRSASN_CODE pdu_session_res_release_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -45061,12 +45057,12 @@ SRSASN_CODE pdu_session_res_setup_request_ies_container::unpack(cbit_ref& bref)
         ue_aggregate_maximum_bit_rate.value   = c.value.ue_aggregate_maximum_bit_rate();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -45193,12 +45189,12 @@ SRSASN_CODE pdu_session_res_setup_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -45312,12 +45308,12 @@ SRSASN_CODE pws_cancel_request_ies_container::unpack(cbit_ref& bref)
         cancel_all_warning_msgs.value   = c.value.cancel_all_warning_msgs();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -45427,12 +45423,12 @@ SRSASN_CODE pws_cancel_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -45520,12 +45516,12 @@ SRSASN_CODE pws_fail_ind_ies_container::unpack(cbit_ref& bref)
         global_ran_node_id.value = c.value.global_ran_node_id();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -45624,12 +45620,12 @@ SRSASN_CODE pws_restart_ind_ies_container::unpack(cbit_ref& bref)
         emergency_area_id_list_for_restart.value   = c.value.emergency_area_id_list_for_restart();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -45770,12 +45766,12 @@ SRSASN_CODE paging_ies_container::unpack(cbit_ref& bref)
         assist_data_for_paging.value   = c.value.assist_data_for_paging();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -45910,12 +45906,12 @@ SRSASN_CODE path_switch_request_ies_container::unpack(cbit_ref& bref)
         pdu_session_res_failed_to_setup_list_ps_req.value   = c.value.pdu_session_res_failed_to_setup_list_ps_req();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -46106,12 +46102,12 @@ SRSASN_CODE path_switch_request_ack_ies_container::unpack(cbit_ref& bref)
         redirection_voice_fallback.value   = c.value.redirection_voice_fallback();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -46244,12 +46240,12 @@ SRSASN_CODE path_switch_request_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -46453,7 +46449,7 @@ SRSASN_CODE ran_cfg_upd_ies_container::unpack(cbit_ref& bref)
         global_ran_node_id.value   = c.value.global_ran_node_id();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -46534,7 +46530,7 @@ SRSASN_CODE ran_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
       crit_diagnostics.crit    = c.crit;
       crit_diagnostics.value   = c.value.crit_diagnostics();
     } else {
-      logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
       return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -46629,12 +46625,12 @@ SRSASN_CODE ran_cfg_upd_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -46736,12 +46732,12 @@ SRSASN_CODE rrc_inactive_transition_report_ies_container::unpack(cbit_ref& bref)
         user_location_info.value = c.value.user_location_info();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -46855,12 +46851,12 @@ SRSASN_CODE reroute_nas_request_ies_container::unpack(cbit_ref& bref)
         allowed_nssai.value   = c.value.allowed_nssai();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -46969,12 +46965,12 @@ SRSASN_CODE secondary_rat_data_usage_report_ies_container::unpack(cbit_ref& bref
         ho_flag.value   = c.value.ho_flag();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -47076,12 +47072,12 @@ SRSASN_CODE trace_fail_ind_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -47173,12 +47169,12 @@ SRSASN_CODE trace_start_ies_container::unpack(cbit_ref& bref)
         trace_activation.value = c.value.trace_activation();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -47279,12 +47275,12 @@ SRSASN_CODE ue_context_mod_fail_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -47469,12 +47465,12 @@ SRSASN_CODE ue_context_mod_request_ies_container::unpack(cbit_ref& bref)
         rrc_inactive_transition_report_request.value   = c.value.rrc_inactive_transition_report_request();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -47623,12 +47619,12 @@ SRSASN_CODE ue_context_mod_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -47720,12 +47716,12 @@ SRSASN_CODE ue_context_release_cmd_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -47850,12 +47846,12 @@ SRSASN_CODE ue_context_release_complete_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -47970,12 +47966,12 @@ SRSASN_CODE ue_context_release_request_ies_container::unpack(cbit_ref& bref)
         cause.value = c.value.cause();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -48072,12 +48068,12 @@ SRSASN_CODE ue_radio_cap_check_request_ies_container::unpack(cbit_ref& bref)
         ue_radio_cap.value   = c.value.ue_radio_cap();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -48180,12 +48176,12 @@ SRSASN_CODE ue_radio_cap_check_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -48290,12 +48286,12 @@ SRSASN_CODE ue_radio_cap_info_ind_ies_container::unpack(cbit_ref& bref)
         ue_radio_cap_for_paging.value   = c.value.ue_radio_cap_for_paging();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -48381,12 +48377,12 @@ SRSASN_CODE uetnla_binding_release_request_ies_container::unpack(cbit_ref& bref)
         ran_ue_ngap_id.value = c.value.ran_ue_ngap_id();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -48482,12 +48478,12 @@ SRSASN_CODE ul_nas_transport_ies_container::unpack(cbit_ref& bref)
         user_location_info.value = c.value.user_location_info();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -48571,12 +48567,12 @@ SRSASN_CODE ul_non_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref&
         nrp_pa_pdu.value = c.value.nrp_pa_pdu();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -48660,7 +48656,7 @@ SRSASN_CODE ul_ran_cfg_transfer_ies_container::unpack(cbit_ref& bref)
         endc_son_cfg_transfer_ul.value   = c.value.endc_son_cfg_transfer_ul();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
@@ -48753,12 +48749,12 @@ SRSASN_CODE ul_ran_status_transfer_ies_container::unpack(cbit_ref& bref)
         ran_status_transfer_transparent_container.value = c.value.ran_status_transfer_transparent_container();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -48856,12 +48852,12 @@ SRSASN_CODE ul_ueassociated_nrp_pa_transport_ies_container::unpack(cbit_ref& bre
         nrp_pa_pdu.value = c.value.nrp_pa_pdu();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -49038,12 +49034,12 @@ SRSASN_CODE write_replace_warning_request_ies_container::unpack(cbit_ref& bref)
         warning_area_coordinates.value   = c.value.warning_area_coordinates();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -49177,12 +49173,12 @@ SRSASN_CODE write_replace_warning_resp_ies_container::unpack(cbit_ref& bref)
         crit_diagnostics.value   = c.value.crit_diagnostics();
         break;
       default:
-        logmap::get("ASN1::NGAP_NR")->error("Unpacked object ID=%d is not recognized\n", c.id);
+        asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
         return SRSASN_ERROR_DECODE_FAIL;
     }
   }
   if (nof_mandatory_ies > 0) {
-    logmap::get("ASN1::NGAP_NR")->error("Mandatory fields are missing\n");
+    asn1::log_error("Mandatory fields are missing\n");
 
     return SRSASN_ERROR_DECODE_FAIL;
   }
@@ -49413,7 +49409,7 @@ ngap_elem_procs_o::init_msg_c ngap_elem_procs_o::get_init_msg(const uint16_t& pr
       ret.set(init_msg_c::types::ul_ueassociated_nrp_pa_transport);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The proc_code=%d is not recognized", proc_code);
+      asn1::log_error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -49476,7 +49472,7 @@ ngap_elem_procs_o::successful_outcome_c ngap_elem_procs_o::get_successful_outcom
       ret.set(successful_outcome_c::types::write_replace_warning_resp);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The proc_code=%d is not recognized", proc_code);
+      asn1::log_error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -49509,7 +49505,7 @@ ngap_elem_procs_o::unsuccessful_outcome_c ngap_elem_procs_o::get_unsuccessful_ou
       ret.set(unsuccessful_outcome_c::types::ue_context_mod_fail);
       break;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The proc_code=%d is not recognized", proc_code);
+      asn1::log_error("The proc_code=%d is not recognized", proc_code);
   }
   return ret;
 }
@@ -49623,7 +49619,7 @@ crit_e ngap_elem_procs_o::get_crit(const uint16_t& proc_code)
     case 50:
       return crit_e::ignore;
     default:
-      logmap::get("ASN1::NGAP_NR")->error("The proc_code=%d is not recognized", proc_code);
+      asn1::log_error("The proc_code=%d is not recognized", proc_code);
   }
   return {};
 }
@@ -51395,7 +51391,7 @@ SRSASN_CODE ngap_elem_procs_o::init_msg_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::init_msg_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -52104,7 +52100,7 @@ SRSASN_CODE ngap_elem_procs_o::successful_outcome_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::successful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }
@@ -52459,7 +52455,7 @@ SRSASN_CODE ngap_elem_procs_o::unsuccessful_outcome_c::unpack(cbit_ref& bref)
       break;
     default:
       log_invalid_choice_id(type_, "ngap_elem_procs_o::unsuccessful_outcome_c");
-      return SRSASN_ERROR_ENCODE_FAIL;
+      return SRSASN_ERROR_DECODE_FAIL;
   }
   return SRSASN_SUCCESS;
 }

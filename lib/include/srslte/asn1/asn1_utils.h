@@ -22,7 +22,6 @@
 #ifndef SRSASN_COMMON_UTILS_H
 #define SRSASN_COMMON_UTILS_H
 
-#include "srslte/common/logmap.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -45,6 +44,15 @@ constexpr Integer ceil_frac(Integer n, Integer d)
 {
   return (n + (d - 1)) / d;
 }
+
+/************************
+        logging
+************************/
+
+void log_error(const char* format, ...);
+void log_warning(const char* format, ...);
+void log_info(const char* format, ...);
+void log_debug(const char* format, ...);
 
 /************************
      error handling
@@ -237,7 +245,7 @@ public:
   void push_back(const T& elem)
   {
     if (current_size >= MAX_N) {
-      srslte::logmap::get("ASN1")->error("Maximum size %d achieved for bounded_array.\n", MAX_N);
+      log_error("Maximum size %d achieved for bounded_array.\n", MAX_N);
     }
     data_[current_size++] = elem;
   }
@@ -600,8 +608,7 @@ public:
   fixed_octstring<N, aligned>& from_string(const std::string& hexstr)
   {
     if (hexstr.size() != 2 * N) {
-      srslte::logmap::get("ASN1")->error(
-          "The provided hex string size is not valid (%zd!=2*%zd).\n", hexstr.size(), (size_t)N);
+      log_error("The provided hex string size is not valid (%zd!=2*%zd).\n", hexstr.size(), (size_t)N);
     } else {
       string_to_octstring(&octets_[0], hexstr);
     }
@@ -770,8 +777,7 @@ public:
   this_type&  from_string(const std::string& s)
   {
     if (s.size() < lb or s.size() > ub) {
-      srslte::logmap::get("ASN1")->error(
-          "The provided string size=%zd is not withing the bounds [%d, %d]\n", s.size(), lb, ub);
+      log_error("The provided string size=%zd is not withing the bounds [%d, %d]\n", s.size(), lb, ub);
     } else {
       resize(s.size());
       for (uint32_t i = 0; i < s.size(); ++i) {
@@ -1260,17 +1266,17 @@ int test_pack_unpack_consistency(const Msg& msg)
 
   // unpack and last pack done for the same number of bits
   if (bref3.distance() != bref2.distance()) {
-    srslte::logmap::get("ASN1")->error("[%s][%d] .\n", __FILE__, __LINE__);
+    log_error("[%s][%d] .\n", __FILE__, __LINE__);
     return -1;
   }
 
   // ensure packed messages are the same
   if (bref3.distance() != bref.distance()) {
-    srslte::logmap::get("ASN1")->error("[%s][%d] .\n", __FILE__, __LINE__);
+    log_error("[%s][%d] .\n", __FILE__, __LINE__);
     return -1;
   }
   if (memcmp(buf, buf2, bref.distance_bytes()) != 0) {
-    srslte::logmap::get("ASN1")->error("[%s][%d] .\n", __FILE__, __LINE__);
+    log_error("[%s][%d] .\n", __FILE__, __LINE__);
     return -1;
   }
   return SRSASN_SUCCESS;
