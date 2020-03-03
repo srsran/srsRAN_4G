@@ -1260,7 +1260,7 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), s1ap_log(s1ap_ptr_->s1ap_lo
   ctxt.enb_ue_s1ap_id = s1ap_ptr->next_enb_ue_s1ap_id++;
   gettimeofday(&ctxt.init_timestamp, nullptr);
 
-  stream_id = s1ap_ptr->next_ue_stream_id++;
+  stream_id = s1ap_ptr->next_ue_stream_id;
 
   // initialize timers
   ts1_reloc_prep = s1ap_ptr->timers->get_unique_timer();
