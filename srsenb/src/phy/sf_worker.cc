@@ -192,7 +192,6 @@ void sf_worker::work_imp()
   }
 
   // Get DL scheduling for the TX TTI from MAC
-
   if (sf_type == SRSLTE_SF_NORM) {
     if (stack->get_dl_sched(tti_tx_dl, dl_grants[t_tx_dl]) < 0) {
       Error("Getting DL scheduling from MAC\n");

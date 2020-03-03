@@ -129,7 +129,7 @@ public:
   stack_interface_phy_lte*     stack      = nullptr;
   srslte::channel_ptr          dl_channel = nullptr;
 
-  // Common objects for schedulign grants
+  // Common objects for scheduling grants
   stack_interface_phy_lte::ul_sched_list_t ul_grants[TTIMOD_SZ] = {};
   stack_interface_phy_lte::dl_sched_list_t dl_grants[TTIMOD_SZ] = {};
 
