@@ -92,7 +92,6 @@ void txrx::run_thread()
   uint32_t           sf_len                   = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
 
   float samp_rate = srslte_sampling_freq_hz(worker_com->get_nof_prb(0));
-  log_h->console("Setting Sampling frequency %.2f MHz\n", samp_rate / 1000000.0f);
 
   // Configure radio
   radio_h->set_rx_srate(0, samp_rate);
@@ -104,10 +103,14 @@ void txrx::run_thread()
     float    rx_freq_hz = worker_com->get_ul_freq_hz(cc_idx);
     uint32_t rf_port    = worker_com->get_rf_port(cc_idx);
     for (uint32_t i = 0; i < worker_com->get_nof_ports(cc_idx); i++) {
-      log_h->console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz\n", tx_freq_hz / 1e6f, rx_freq_hz / 1e6f);
       radio_h->set_tx_freq(0, rf_port + i, tx_freq_hz);
       radio_h->set_rx_freq(0, rf_port + i, rx_freq_hz);
     }
+    log_h->console("RF%d: samp_rate=%.2f MHz, DL=%.1f Mhz, UL=%.1f MHz\n",
+                   cc_idx,
+                   samp_rate / 1e6f,
+                   tx_freq_hz / 1e6f,
+                   rx_freq_hz / 1e6f);
   }
 
   // Set channel emulator sampling rate
@@ -143,7 +146,7 @@ void txrx::run_thread()
       srslte_timestamp_copy(&tx_time, &rx_time);
       srslte_timestamp_add(&tx_time, 0, FDD_HARQ_DELAY_MS * 1e-3);
 
-      Debug("Settting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d\n",
+      Debug("Setting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d\n",
             tti,
             tx_worker_cnt,
             tx_time.full_secs,

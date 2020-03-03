@@ -271,6 +271,7 @@ int test_mobility_class(mobility_test_params test_params)
   cell2.pci             = 2;
   cell2.eci             = 0x19C02;
   cfg.meas_cfg.meas_cells.push_back(cell2);
+  cfg.meas_cfg_present = true;
 
   srsenb::rrc                       rrc;
   mac_dummy                         mac;
