@@ -958,7 +958,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                             ip_addr,
                             nullptr,
                             err_str)) {
-        nas_log->error("Failed to set gateway address - %s\n", err_str);
+        nas_log->error("%s - %s\n", gw_setup_failure_str.c_str(), err_str);
+        nas_log->console("%s\n", gw_setup_failure_str.c_str());
       }
     } else if (LIBLTE_MME_PDN_TYPE_IPV6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
       memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
@@ -989,7 +990,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                             0,
                             ipv6_if_id,
                             err_str)) {
-        nas_log->error("Failed to set gateway address - %s\n", err_str);
+        nas_log->error("%s - %s\n", gw_setup_failure_str.c_str(), err_str);
+        nas_log->console("%s\n", gw_setup_failure_str.c_str());
       }
     } else if (LIBLTE_MME_PDN_TYPE_IPV4V6 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
       memcpy(ipv6_if_id, act_def_eps_bearer_context_req.pdn_addr.addr, 8);
@@ -1038,7 +1040,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
                             ip_addr,
                             ipv6_if_id,
                             err_str)) {
-        nas_log->error("Failed to set gateway address - %s\n", err_str);
+        nas_log->error("%s - %s\n", gw_setup_failure_str.c_str(), err_str);
+        nas_log->console("%s\n", gw_setup_failure_str.c_str());
       }
     } else {
       nas_log->error("PDN type not IPv4, IPv6 nor IPv4v6\n");

@@ -306,6 +306,8 @@ private:
   srslte::proc_manager_list_t      callbacks;
   srslte::proc_t<plmn_search_proc> plmn_searcher;
   srslte::proc_t<rrc_connect_proc> rrc_connector;
+
+  const std::string gw_setup_failure_str = "Failed to setup/configure GW interface";
 };
 
 } // namespace srsue
