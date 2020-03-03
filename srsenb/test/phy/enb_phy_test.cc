@@ -103,7 +103,7 @@ private:
   CALLBACK(get_info);
 
 public:
-  explicit dummy_radio(uint32_t nof_channels, const std::string& log_level) : log_h("RADIO")
+  explicit dummy_radio(uint32_t nof_channels, uint32_t nof_prb, const std::string& log_level) : log_h("RADIO")
   {
     log_h.set_level(log_level);
 
@@ -114,7 +114,7 @@ public:
         ERROR("Allocating ring buffer\n");
       }
 
-      if (srslte_ringbuffer_init(rb, SRSLTE_SF_LEN_MAX * (uint32_t)sizeof(cf_t))) {
+      if (srslte_ringbuffer_init(rb, SRSLTE_SF_LEN_PRB(nof_prb) * SRSLTE_NOF_SF_X_FRAME * (uint32_t)sizeof(cf_t))) {
         ERROR("Initiating ring buffer\n");
       }
 
@@ -128,7 +128,7 @@ public:
         ERROR("Allocating ring buffer\n");
       }
 
-      if (srslte_ringbuffer_init(rb, SRSLTE_SF_LEN_MAX * (uint32_t)sizeof(cf_t))) {
+      if (srslte_ringbuffer_init(rb, SRSLTE_SF_LEN_PRB(nof_prb) * SRSLTE_NOF_SF_X_FRAME * (uint32_t)sizeof(cf_t))) {
         ERROR("Initiating ring buffer\n");
       }
 
@@ -261,8 +261,9 @@ typedef std::unique_ptr<dummy_radio> unique_dummy_radio_t;
 class dummy_stack : public srsenb::stack_interface_phy_lte
 {
 private:
-  static constexpr float prob_dl_grant = 0.50f;
-  static constexpr float prob_ul_grant = 0.10f;
+  static constexpr float    prob_dl_grant = 0.50f;
+  static constexpr float    prob_ul_grant = 0.10f;
+  static constexpr uint32_t cfi           = 2;
 
   srsenb::phy_cfg_t       phy_cfg;
   std::mutex              mutex;
@@ -323,6 +324,10 @@ private:
   std::queue<tti_cqi_info_t> tti_cqi_info_queue;
   std::vector<uint32_t>      active_cell_list;
 
+  uint32_t              nof_locations[SRSLTE_NOF_SF_X_FRAME]                    = {};
+  srslte_dci_location_t dci_locations[SRSLTE_NOF_SF_X_FRAME][MAX_CANDIDATES_UE] = {};
+  uint32_t              ul_riv                                                  = 0;
+
 public:
   explicit dummy_stack(srsenb::phy_cfg_t&     phy_cfg_,
                        const std::string&     log_level,
@@ -341,6 +346,33 @@ public:
         srslte_softbuffer_rx_init(&sb, SRSLTE_MAX_PRB);
       }
     }
+
+    srslte_pdcch_t pdcch = {};
+    srslte_regs_t  regs  = {};
+    srslte_regs_init(&regs, phy_cfg.phy_cell_cfg[0].cell);
+    srslte_pdcch_init_enb(&pdcch, phy_cfg.phy_cell_cfg[0].cell.nof_prb);
+    srslte_pdcch_set_cell(&pdcch, &regs, phy_cfg.phy_cell_cfg[0].cell);
+    for (uint32_t i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
+      srslte_dl_sf_cfg_t sf_cfg_dl;
+      ZERO_OBJECT(sf_cfg_dl);
+      sf_cfg_dl.tti     = i;
+      sf_cfg_dl.cfi     = cfi;
+      sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
+
+      nof_locations[i] = srslte_pdcch_ue_locations(&pdcch, &sf_cfg_dl, dci_locations[i], MAX_CANDIDATES_UE, ue_rnti);
+    }
+    srslte_pdcch_free(&pdcch);
+    srslte_regs_free(&regs);
+
+    // Find a valid UL DCI RIV
+    uint32_t L_prb = phy_cfg.phy_cell_cfg[0].cell.nof_prb - 2;
+    do {
+      if (srslte_dft_precoding_valid_prb(L_prb)) {
+        ul_riv = srslte_ra_type2_to_riv(L_prb, 1, phy_cfg.phy_cell_cfg[0].cell.nof_prb);
+      } else {
+        L_prb--;
+      }
+    } while (ul_riv == 0);
 
     data = srslte_vec_u8_malloc(150000);
     memset(data, 0, 150000);
@@ -448,23 +480,34 @@ public:
     // Wait for UE
     tti_sync.wait();
 
-    /// Make sure it works in the smallest PRB size
-    dl_sched_res[0].cfi = 2;
+    /// Make sure it writes the first cell always
+    dl_sched_res[0].cfi = cfi;
 
     // Iterate for each carrier
     for (uint32_t& cc_idx : active_cell_list) {
       auto& dl_sched = dl_sched_res[cc_idx];
 
       // Required
-      dl_sched.cfi = 2;
+      dl_sched.cfi = cfi;
 
       // Random decision on whether transmit or not
-      if (ue_rnti and srslte_random_bool(random_gen, prob_dl_grant)) {
+      bool sched = srslte_random_bool(random_gen, prob_dl_grant);
+
+      // RNTI needs to be valid
+      sched &= (ue_rnti != 0);
+
+      // Number of locations needs to be more than 2
+      sched &= (nof_locations[tti % SRSLTE_NOF_SF_X_FRAME] > 1);
+
+      // Schedule grant
+      if (sched) {
+        uint32_t              location_idx = tti % nof_locations[tti % SRSLTE_NOF_SF_X_FRAME];
+        srslte_dci_location_t location     = dci_locations[tti % SRSLTE_NOF_SF_X_FRAME][location_idx];
+
         dl_sched.nof_grants                           = 1;
         dl_sched.pdsch[0].softbuffer_tx[0]            = &softbuffer_tx;
         dl_sched.pdsch[0].softbuffer_tx[1]            = &softbuffer_tx;
-        dl_sched.pdsch[0].dci.location.ncce           = 0;
-        dl_sched.pdsch[0].dci.location.L              = 1;
+        dl_sched.pdsch[0].dci.location                = location;
         dl_sched.pdsch[0].dci.type0_alloc.rbg_bitmask = 0xffffffff;
         dl_sched.pdsch[0].dci.rnti                    = ue_rnti;
         dl_sched.pdsch[0].dci.alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
@@ -520,19 +563,21 @@ public:
 
       // Random decision on whether transmit or not (Do not give grants for TTI when SR shall be transmitted)
       if (scell_idx < active_cell_list.size() and srslte_random_bool(random_gen, prob_ul_grant) and (tti % 20 != 0)) {
-        uint32_t nof_prb                          = phy_cfg.phy_cell_cfg[cc_idx].cell.nof_prb;
+        uint32_t              tti_pdcch    = TTI_SUB(tti, TX_DELAY);
+        uint32_t              location_idx = (tti_pdcch + 1) % nof_locations[tti_pdcch % SRSLTE_NOF_SF_X_FRAME];
+        srslte_dci_location_t location     = dci_locations[tti_pdcch % SRSLTE_NOF_SF_X_FRAME][location_idx];
+
         ul_sched.nof_grants                       = 1;
         ul_sched.pusch[0]                         = {};
         ul_sched.pusch[0].dci.rnti                = ue_rnti;
         ul_sched.pusch[0].dci.format              = SRSLTE_DCI_FORMAT0;
-        ul_sched.pusch[0].dci.location.ncce       = 1;
-        ul_sched.pusch[0].dci.location.L          = 1;
-        ul_sched.pusch[0].dci.type2_alloc.riv     = srslte_ra_type2_to_riv(nof_prb - 2, 1, nof_prb);
+        ul_sched.pusch[0].dci.location            = location;
+        ul_sched.pusch[0].dci.type2_alloc.riv     = ul_riv;
         ul_sched.pusch[0].dci.type2_alloc.n_prb1a = srslte_ra_type2_t::SRSLTE_RA_TYPE2_NPRB1A_2;
         ul_sched.pusch[0].dci.type2_alloc.n_gap   = srslte_ra_type2_t::SRSLTE_RA_TYPE2_NG1;
         ul_sched.pusch[0].dci.type2_alloc.mode    = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
         ul_sched.pusch[0].dci.freq_hop_fl         = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
-        ul_sched.pusch[0].dci.tb.mcs_idx          = 20;
+        ul_sched.pusch[0].dci.tb.mcs_idx          = 24;
         ul_sched.pusch[0].dci.tb.rv               = 0;
         ul_sched.pusch[0].dci.tb.ndi              = false;
         ul_sched.pusch[0].dci.tb.cw_idx           = 0;
@@ -741,7 +786,7 @@ public:
     // Push HARQ delay to radio
     for (uint32_t i = 0; i < TX_DELAY; i++) {
       radio->write_rx(buffers, sf_len);
-      sf_ul_cfg.tti = (sf_ul_cfg.tti + 1) % 10240; // Advance UL TTI too
+      sf_ul_cfg.tti = TTI_ADD(sf_ul_cfg.tti, 1); // Advance UL TTI too
     }
     for (uint32_t i = 0; i < FDD_HARQ_DELAY_MS; i++) {
       radio->write_rx(buffers, sf_len);
@@ -946,7 +991,8 @@ public:
     uint32_t              duration      = 10240;
     uint32_t              nof_enb_cells = 1;
     srslte_cell_t         cell          = {};
-    std::vector<uint32_t> ue_cell_list  = {0}; ///< First indicates PCell
+    std::string           ue_cell_list_str = "0"; ///< First indicates PCell
+    std::vector<uint32_t> ue_cell_list     = {0};
     std::string           ack_mode      = "normal";
     std::string           log_level     = "none";
 
@@ -1047,7 +1093,7 @@ public:
     }
 
     /// Create Radio instance
-    radio = unique_dummy_radio_t(new dummy_radio(args.nof_enb_cells, args.log_level));
+    radio = unique_dummy_radio_t(new dummy_radio(args.nof_enb_cells, args.cell.nof_prb, args.log_level));
 
     /// Create Dummy Stack isntance
     stack = unique_dummy_stack_t(new dummy_stack(phy_cfg, args.log_level, args.rnti, args.ue_cell_list));
@@ -1103,7 +1149,7 @@ int parse_args(int argc, char** argv, phy_test_bench::args_t& args)
       ("rnti",           bpo::value<uint16_t>(&args.rnti),                                               "UE RNTI, used for random seed")
       ("log_level",           bpo::value<std::string>(&args.log_level),                                  "General logging level")
       ("nof_enb_cells",  bpo::value<uint32_t>(&args.nof_enb_cells),                                      "Cell Number of PRB")
-      ("ue_cell_list",   bpo::value<std::vector<uint32_t> >(&args.ue_cell_list),                         "UE active cell list, the first is used as PCell")
+      ("ue_cell_list",   bpo::value<std::string>(&args.ue_cell_list_str),                                 "UE active cell list, the first is used as PCell")
       ("ack_mode",       bpo::value<std::string>(&args.ack_mode),                                        "HARQ ACK/NACK mode: normal, pucch3, cs")
       ("cell.nof_prb",   bpo::value<uint32_t>(&args.cell.nof_prb)->default_value(args.cell.nof_prb),     "eNb Cell/Carrier bandwidth")
       ("cell.nof_ports", bpo::value<uint32_t>(&args.cell.nof_ports)->default_value(args.cell.nof_ports), "eNb Cell/Carrier number of ports")
@@ -1121,6 +1167,20 @@ int parse_args(int argc, char** argv, phy_test_bench::args_t& args)
     ret = SRSLTE_ERROR;
   }
 
+  // populate UE Active cell list
+  if (not args.ue_cell_list_str.empty()) {
+    args.ue_cell_list.clear();
+    std::stringstream ss(args.ue_cell_list_str);
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      auto pci = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
+      args.ue_cell_list.push_back(pci);
+    }
+  } else {
+    return SRSLTE_ERROR;
+  }
+
   // help option was given or error - print usage and exit
   if (vm.count("help") || ret) {
     std::cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << std::endl << std::endl;
@@ -1136,7 +1196,7 @@ int main(int argc, char** argv)
   phy_test_bench::args_t test_args;
 
   // Parse arguments
-  parse_args(argc, argv, test_args);
+  TESTASSERT(parse_args(argc, argv, test_args) == SRSLTE_SUCCESS);
 
   // Create Test Bench
   unique_phy_test_bench test_bench = unique_phy_test_bench(new phy_test_bench(test_args));
