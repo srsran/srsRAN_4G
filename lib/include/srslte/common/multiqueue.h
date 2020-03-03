@@ -58,6 +58,24 @@ class multiqueue_handler
   };
 
 public:
+  class queue_handler
+  {
+  public:
+    queue_handler() = default;
+    queue_handler(multiqueue_handler<myobj>* parent_, int id) : parent(parent_), queue_id(id) {}
+    template <typename FwdRef>
+    void push(FwdRef&& value)
+    {
+      parent->push(queue_id, std::forward<FwdRef>(value));
+    }
+    bool                   try_push(const myobj& value) { return parent->try_push(queue_id, value); }
+    std::pair<bool, myobj> try_push(myobj&& value) { return parent->try_push(queue_id, std::move(value)); }
+
+  private:
+    multiqueue_handler<myobj>* parent   = nullptr;
+    int                        queue_id = -1;
+  };
+
   explicit multiqueue_handler(uint32_t capacity_ = std::numeric_limits<uint32_t>::max()) : capacity(capacity_) {}
   ~multiqueue_handler() { reset(); }
 
@@ -214,6 +232,8 @@ public:
     return is_queue_active_(qidx);
   }
 
+  queue_handler get_queue_handler() { return {this, add_queue()}; }
+
 private:
   bool is_queue_active_(int qidx) const { return running and queues[qidx].active; }
 
@@ -257,7 +277,7 @@ private:
   std::unique_ptr<base_task> task_ptr;
 };
 
-using multiqueue_task_handler = multiqueue_handler<move_task_t>;
+using task_multiqueue = multiqueue_handler<move_task_t>;
 
 } // namespace srslte
 

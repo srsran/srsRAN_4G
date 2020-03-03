@@ -238,9 +238,14 @@ void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
   rx_sockets->add_socket_pdu_handler(fd, gtpu_m1u_handler);
 }
 
-void enb_stack_lte::process_pdus()
+srslte::timer_handler::unique_timer enb_stack_lte::get_unique_timer()
 {
-  pending_tasks.push(mac_queue_id, [this]() { mac.process_pdus(); });
+  return timers.get_unique_timer();
+}
+
+srslte::task_multiqueue::queue_handler enb_stack_lte::get_task_queue()
+{
+  return pending_tasks.get_queue_handler();
 }
 
 } // namespace srsenb

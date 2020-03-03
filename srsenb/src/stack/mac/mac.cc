@@ -70,6 +70,8 @@ bool mac::init(const mac_args_t&        args_,
     args = args_;
     cell = *cell_;
 
+    stack_task_queue = stack->get_task_queue();
+
     scheduler.init(rrc);
 
     // Set default scheduler configuration
@@ -323,7 +325,7 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_byt
     if (crc) {
       Info("Pushing PDU rnti=%d, tti=%d, nof_bytes=%d\n", rnti, tti, nof_bytes);
       ue_db[rnti]->push_pdu(tti, nof_bytes);
-      stack->process_pdus();
+      stack_task_queue.push([this]() { process_pdus(); });
     } else {
       ue_db[rnti]->deallocate_pdu(tti);
     }
@@ -410,7 +412,7 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
   return ret;
 }
 
-int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
+void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
   log_h->step(tti);
   uint16_t rnti;
@@ -426,50 +428,53 @@ int mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx,
     }
 
     // Set PCAP if available
-    if (pcap) {
+    if (pcap != nullptr) {
       ue_db[rnti]->start_pcap(pcap);
+    }
+
+    // Increase RNTI counter
+    last_rnti++;
+    if (last_rnti >= 60000) {
+      last_rnti = 70;
     }
   }
 
-  // Generate RAR data
-  sched_interface::dl_sched_rar_info_t rar_info = {};
-  rar_info.preamble_idx                         = preamble_idx;
-  rar_info.ta_cmd                               = time_adv;
-  rar_info.temp_crnti                           = rnti;
-  rar_info.msg3_size                            = 7;
-  rar_info.prach_tti                            = tti;
+  stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv]() {
+    // Generate RAR data
+    sched_interface::dl_sched_rar_info_t rar_info = {};
+    rar_info.preamble_idx                         = preamble_idx;
+    rar_info.ta_cmd                               = time_adv;
+    rar_info.temp_crnti                           = rnti;
+    rar_info.msg3_size                            = 7;
+    rar_info.prach_tti                            = tti;
 
-  // Add new user to the scheduler so that it can RX/TX SRB0
-  sched_interface::ue_cfg_t ue_cfg = {};
-  ue_cfg.supported_cc_list.emplace_back();
-  ue_cfg.supported_cc_list.back().active     = true;
-  ue_cfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
-  ue_cfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  ue_cfg.dl_cfg.tm                           = SRSLTE_TM1;
-  if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
-    Error("Registering new user rnti=0x%x to SCHED\n", rnti);
-    return -1;
-  }
+    // Add new user to the scheduler so that it can RX/TX SRB0
+    sched_interface::ue_cfg_t ue_cfg = {};
+    ue_cfg.supported_cc_list.emplace_back();
+    ue_cfg.supported_cc_list.back().active     = true;
+    ue_cfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
+    ue_cfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    ue_cfg.dl_cfg.tm                           = SRSLTE_TM1;
+    if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
+      Error("Registering new user rnti=0x%x to SCHED\n", rnti);
+      return;
+    }
 
-  // Register new user in RRC
-  rrc_h->add_user(rnti, ue_cfg);
+    // Register new user in RRC
+    rrc_h->add_user(rnti, ue_cfg);
 
-  // Add temporal rnti to the PHY
-  if (phy_h->add_rnti(rnti, enb_cc_idx, true)) {
-    Error("Registering temporal-rnti=0x%x to PHY\n", rnti);
-  }
+    // Add temporal rnti to the PHY
+    if (phy_h->add_rnti(rnti, enb_cc_idx, true) != SRSLTE_SUCCESS) {
+      Error("Registering temporal-rnti=0x%x to PHY\n", rnti);
+      return;
+    }
 
-  // Trigger scheduler RACH
-  scheduler.dl_rach_info(enb_cc_idx, rar_info);
+    // Trigger scheduler RACH
+    scheduler.dl_rach_info(enb_cc_idx, rar_info);
 
-  log_h->info("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
-  log_h->console("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
-  // Increase RNTI counter
-  last_rnti++;
-  if (last_rnti >= 60000) {
-    last_rnti = 70;
-  }
-  return 0;
+    log_h->info("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
+    log_h->console("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
+  });
 }
 
 int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)

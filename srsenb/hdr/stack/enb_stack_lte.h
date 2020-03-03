@@ -62,10 +62,10 @@ public:
   bool        get_metrics(stack_metrics_t* metrics) final;
 
   /* PHY-MAC interface */
-  int sr_detected(uint32_t tti, uint16_t rnti) final { return mac.sr_detected(tti, rnti); }
-  int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final
+  int  sr_detected(uint32_t tti, uint16_t rnti) final { return mac.sr_detected(tti, rnti); }
+  void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final
   {
-    return mac.rach_detected(tti, primary_cc_idx, preamble_idx, time_adv);
+    mac.rach_detected(tti, primary_cc_idx, preamble_idx, time_adv);
   }
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) final
   {
@@ -113,7 +113,8 @@ public:
   void add_gtpu_m1u_socket_handler(int fd) override;
 
   /* Stack-MAC interface */
-  void process_pdus() override;
+  srslte::timer_handler::unique_timer    get_unique_timer() final;
+  srslte::task_multiqueue::queue_handler get_task_queue() final;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
@@ -158,8 +159,8 @@ private:
   phy_interface_stack_lte* phy = nullptr;
 
   // state
-  bool                            started = false;
-  srslte::multiqueue_task_handler pending_tasks;
+  bool                    started = false;
+  srslte::task_multiqueue pending_tasks;
   int enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1, gtpu_queue_id = -1, mac_queue_id = -1;
 };
 

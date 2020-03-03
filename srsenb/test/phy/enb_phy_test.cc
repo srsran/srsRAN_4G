@@ -372,10 +372,9 @@ public:
 
     return SRSLTE_SUCCESS;
   }
-  int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) override
+  void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) override
   {
     notify_rach_detected();
-    return 0;
   }
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) override
   {

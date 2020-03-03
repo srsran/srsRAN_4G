@@ -53,8 +53,8 @@ public:
   void start_pcap(srslte::mac_pcap* pcap_);
 
   /******** Interface from PHY (PHY -> MAC) ****************/
-  int sr_detected(uint32_t tti, uint16_t rnti) final;
-  int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final;
+  int  sr_detected(uint32_t tti, uint16_t rnti) final;
+  void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final;
 
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) override;
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) override;
@@ -93,7 +93,7 @@ public:
 
   bool process_pdus();
 
-  void     get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
+  void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   void
   write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override;
 
@@ -115,6 +115,9 @@ private:
 
   srslte_cell_t cell = {};
   mac_args_t    args = {};
+
+  // derived from args
+  srslte::task_multiqueue::queue_handler stack_task_queue;
 
   bool started = false;
 
@@ -139,23 +142,23 @@ private:
   std::vector<srslte::rar_pdu> rar_pdu_msg;
   srslte::byte_buffer_t        rar_payload[sched_interface::MAX_RAR_LIST];
 
-  const static int NOF_BCCH_DLSCH_MSG = sched_interface::MAX_SIBS;
+  const static int NOF_BCCH_DLSCH_MSG                                       = sched_interface::MAX_SIBS;
   uint8_t          bcch_dlsch_payload[sched_interface::MAX_SIB_PAYLOAD_LEN] = {};
 
-  const static int       pcch_payload_buffer_len = 1024;
+  const static int       pcch_payload_buffer_len                      = 1024;
   uint8_t                pcch_payload_buffer[pcch_payload_buffer_len] = {};
   srslte_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG]       = {};
   srslte_softbuffer_tx_t pcch_softbuffer_tx                           = {};
   srslte_softbuffer_tx_t rar_softbuffer_tx                            = {};
 
-  const static int           mcch_payload_len = 3000; // TODO FIND OUT MAX LENGTH
+  const static int           mcch_payload_len                      = 3000; // TODO FIND OUT MAX LENGTH
   int                        current_mcch_length                   = 0;
   uint8_t                    mcch_payload_buffer[mcch_payload_len] = {};
   asn1::rrc::mcch_msg_s      mcch;
   asn1::rrc::sib_type2_s     sib2;
   asn1::rrc::sib_type13_r9_s sib13;
 
-  const static int mtch_payload_len = 10000;
+  const static int mtch_payload_len                      = 10000;
   uint8_t          mtch_payload_buffer[mtch_payload_len] = {};
 
   // pointer to MAC PCAP object

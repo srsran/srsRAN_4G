@@ -26,6 +26,7 @@
 #include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
+#include "srslte/common/multiqueue.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -98,8 +99,8 @@ public:
    */
   typedef std::vector<ul_sched_t> ul_sched_list_t;
 
-  virtual int sr_detected(uint32_t tti, uint16_t rnti)                                                       = 0;
-  virtual int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) = 0;
+  virtual int  sr_detected(uint32_t tti, uint16_t rnti)                                                       = 0;
+  virtual void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) = 0;
 
   /**
    * PHY callback for giving MAC the Rank Indicator information of a given RNTI for an eNb cell/carrier.
@@ -476,6 +477,13 @@ typedef struct {
   int                           link_failure_nof_err;
 } mac_args_t;
 
+class enb_task_interface_lte
+{
+public:
+  virtual srslte::timer_handler::unique_timer    get_unique_timer() = 0;
+  virtual srslte::task_multiqueue::queue_handler get_task_queue()   = 0;
+};
+
 class stack_interface_s1ap_lte
 {
 public:
@@ -491,10 +499,8 @@ public:
 };
 
 // STACK interface for MAC
-class stack_interface_mac_lte
+class stack_interface_mac_lte : public enb_task_interface_lte
 {
-public:
-  virtual void process_pdus() = 0;
 };
 
 } // namespace srsenb
