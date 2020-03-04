@@ -257,8 +257,20 @@ uint32_t srslte_pdcch_ue_locations_ncce_L(uint32_t               nof_cce,
       for (i = 0; i < nof_candidates[l]; i++) {
         if (nof_cce >= L) {
           ncce = L * ((Yk + i) % (nof_cce / L));
-          // Check if candidate fits in c vector and in CCE region
-          if (k < max_candidates && ncce + L <= nof_cce) {
+
+          // Check candidate fits in array
+          bool valid = (k < max_candidates);
+
+          // Check candidate fits in CCE region
+          valid &= (ncce + L <= nof_cce);
+
+          // Check candidate is not repeated in the list
+          for (uint32_t j = 0; j < k && valid; j++) {
+            valid &= (c[j].L != l || c[j].ncce != ncce);
+          }
+
+          // Append candidate
+          if (valid) {
             c[k].L    = l;
             c[k].ncce = ncce;
 
