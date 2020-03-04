@@ -48,7 +48,7 @@ static inline float get_beta_harq_offset(uint32_t idx)
   if (idx < 15) {
     ret = beta_harq_offset[idx];
   } else {
-    ERROR("Invalid inputs\n");
+    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 0, 14);
   }
 
   return ret;
@@ -64,7 +64,7 @@ static inline float get_beta_ri_offset(uint32_t idx)
   if (idx < 13) {
     ret = beta_ri_offset[idx];
   } else {
-    ERROR("Invalid inputs\n");
+    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 0, 12);
   }
 
   return ret;
@@ -80,7 +80,7 @@ static inline float get_beta_cqi_offset(uint32_t idx)
   if (idx > 1 && idx < 16) {
     ret = beta_cqi_offset[idx];
   } else {
-    ERROR("Invalid inputs\n");
+    ERROR("Invalid input %d (min: %d, max: %d)\n", idx, 2, 15);
   }
 
   return ret;

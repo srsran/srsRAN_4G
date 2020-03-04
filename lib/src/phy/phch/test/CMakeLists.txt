@@ -375,7 +375,7 @@ if (TEST_EXTENSION STREQUAL Paranoid)
   set(pusch_max_mcs 28)
   set(pusch_step_mcs 1)
 
-  set(pusch_acks -1 0 1)
+  set(pusch_acks 0 1 2 4 5 10)
 
   set(pusch_cqi none wideband)
 
@@ -386,7 +386,7 @@ else (TEST_EXTENSION STREQUAL Paranoid)
   set(pusch_max_mcs 28)
   set(pusch_step_mcs 10)
 
-  set(pusch_acks -1 0)
+  set(pusch_acks 0 1 2 10)
 
   set(pusch_cqi none wideband)
 
@@ -409,12 +409,12 @@ foreach (cell_n_prb 6 15 25 50 75 100)
           set(pusch_test_args ${pusch_test_args} -n ${cell_n_prb})
           set(pusch_test_args ${pusch_test_args} -L ${n_prb})
 
-          if (NOT (${ack} EQUAL -1))
+          if (NOT (${ack} EQUAL 0))
             set(pusch_test_args ${pusch_test_args} -p uci_ack ${ack})
             if (mcs EQUAL 28)
               set(mcs 27)
             endif (mcs EQUAL 28)
-          endif (NOT (${ack} EQUAL -1))
+          endif (NOT (${ack} EQUAL 0))
 
           if (NOT (${cqi} STREQUAL none))
             set(pusch_test_args ${pusch_test_args} -p cqi ${cqi})

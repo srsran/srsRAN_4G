@@ -25,6 +25,7 @@
 #include "srslte/phy/phch/cqi.h"
 
 #define SRSLTE_UCI_MAX_ACK_BITS 10
+#define SRSLTE_UCI_MAX_ACK_SR_BITS (SRSLTE_UCI_MAX_ACK_BITS + 1)
 #define SRSLTE_UCI_MAX_M 9
 
 typedef struct SRSLTE_API {

@@ -640,7 +640,7 @@ static int decode_signal_format3(srslte_pucch_t*     q,
 
     srslte_scrambling_s_offset(seq, q->llr, 0, SRSLTE_PUCCH3_NOF_BITS);
 
-    return (int)srslte_uci_decode_ack_sr_pucch3(q->llr, bits);
+    return (int)srslte_uci_decode_m_basis_bits(q->llr, SRSLTE_PUCCH3_NOF_BITS, bits, SRSLTE_UCI_MAX_ACK_SR_BITS);
   } else {
     ERROR("Error modulating PUCCH3 bits: rnti not set\n");
     return SRSLTE_ERROR;
@@ -700,10 +700,7 @@ static int encode_bits(srslte_pucch_cfg_t*   cfg,
       temp[k] = (uint8_t)(uci_data->scheduling_request ? 1 : 0);
       k++;
     }
-    srslte_uci_encode_ack_sr_pucch3(temp, k, pucch_bits);
-    for (k = 32; k < SRSLTE_PUCCH3_NOF_BITS; k++) {
-      pucch_bits[k] = pucch_bits[k % 32];
-    }
+    srslte_uci_encode_m_basis_bits(temp, k, pucch_bits, SRSLTE_PUCCH3_NOF_BITS);
   }
   return SRSLTE_SUCCESS;
 }

@@ -41,6 +41,7 @@
 #define SRSLTE_UCI_MAX_CQI_LEN_PUCCH 13
 #define SRSLTE_UCI_CQI_CODED_PUCCH_B 20
 #define SRSLTE_UCI_STR_MAX_CHAR 32
+#define SRSLTE_UCI_M_BASIS_SEQ_LEN 32
 
 typedef struct SRSLTE_API {
   srslte_crc_t     crc;
@@ -73,10 +74,30 @@ SRSLTE_API int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
                                                int16_t                 b_bits[SRSLTE_CQI_MAX_BITS], // aligned for simd
                                                uint8_t*                cqi_data,
                                                uint32_t                cqi_len);
+/**
+ * Encodes Uplink Control Information using M-basis code block channel coding.
+ *
+ * @param input points to the bit to encode, one word per bit
+ * @param input_len number of bits to encode, the maximum number of bits is 11
+ * @param output points to the encoded data, one word per bit
+ * @param output_len number of bits of encoded bits
+ */
+SRSLTE_API void
+srslte_uci_encode_m_basis_bits(const uint8_t* input, uint32_t input_len, uint8_t* output, uint32_t output_len);
 
-SRSLTE_API void srslte_uci_encode_ack_sr_pucch3(uint8_t* data, uint32_t nof_bits, uint8_t output[32]);
-
-SRSLTE_API int16_t srslte_uci_decode_ack_sr_pucch3(const int16_t llr[48], uint8_t* data);
+/**
+ * Decodes Uplink Control Information using M-basis code block channel coding.
+ *
+ * @param llr points soft-bits
+ * @param nof_llr number of soft-bits, requires a minimum of 32 soft-bits
+ * @param data points to receice data, one word per bit
+ * @param data_len number of bits to decode, the maximum number of bits is 11
+ * @return maximum correlation value
+ */
+SRSLTE_API int32_t srslte_uci_decode_m_basis_bits(const int16_t* llr,
+                                                  uint32_t       nof_llr,
+                                                  uint8_t*       data,
+                                                  uint32_t       data_len);
 
 SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t* q);
 
@@ -124,7 +145,7 @@ SRSLTE_API int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
                                         uint32_t            H_prime_total,
                                         uint32_t            O_cqi,
                                         srslte_uci_bit_t*   ack_ri_bits,
-                                        uint8_t             data[2],
+                                        uint8_t             data[SRSLTE_UCI_MAX_ACK_SR_BITS],
                                         uint32_t            nof_bits,
                                         bool                is_ri);
 

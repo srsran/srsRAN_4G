@@ -39,7 +39,7 @@
 #include "srslte/phy/utils/vector.h"
 
 /* Table 5.2.2.6.4-1: Basis sequence for (32, O) code */
-static uint8_t M_basis_seq[32][11] = {
+static uint8_t M_basis_seq[SRSLTE_UCI_M_BASIS_SEQ_LEN][SRSLTE_UCI_MAX_ACK_SR_BITS] = {
     {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1}, {1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},
     {1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1}, {1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1}, {1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1},
     {1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1}, {1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1}, {1, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1},
@@ -52,13 +52,30 @@ static uint8_t M_basis_seq[32][11] = {
     {1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0}, {1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0}, {1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0},
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
-static const uint16_t M_basis_seq_b[32] = {
-    0b11000000001, 0b11100000011, 0b10010010111, 0b10110000101, 0b11110001001, 0b11001011101, 0b10101010111,
-    0b10011001101, 0b11011001011, 0b10111010011, 0b10100111011, 0b11100110101, 0b10010101111, 0b11010101011,
-    0b10001101001, 0b11001111011, 0b11101110010, 0b10011100100, 0b11011111000, 0b10000110000, 0b10100010001,
-    0b11010000011, 0b10001001101, 0b11101000111, 0b11111011110, 0b11000111001, 0b10110100110, 0b11110101110,
-    0b10101110100, 0b10111111100, 0b11111111111, 0b10000000000,
-};
+
+static inline bool encode_M_basis_seq_u16(uint16_t w, uint32_t bit_idx)
+{
+  /// Table 5.2.2.6.4-1: Basis sequence for (32, O) code compressed in uint16_t types
+  const uint16_t M_basis_seq_b[SRSLTE_UCI_M_BASIS_SEQ_LEN] = {
+      0b10000000011, 0b11000000111, 0b11101001001, 0b10100001101, 0b10010001111, 0b10111010011, 0b11101010101,
+      0b10110011001, 0b11010011011, 0b11001011101, 0b11011100101, 0b10101100111, 0b11110101001, 0b11010101011,
+      0b10010110001, 0b11011110011, 0b01001110111, 0b00100111001, 0b00011111011, 0b00001100001, 0b10001000101,
+      0b11000001011, 0b10110010001, 0b11100010111, 0b01111011111, 0b10011100011, 0b01100101101, 0b01110101111,
+      0b00101110101, 0b00111111101, 0b11111111111, 0b00000000001,
+  };
+
+  // Apply mask
+  uint16_t d = (uint16_t)w & M_basis_seq_b[bit_idx % SRSLTE_UCI_M_BASIS_SEQ_LEN];
+
+  // Compute parity
+  d ^= (uint16_t)(d >> 8U);
+  d ^= (uint16_t)(d >> 4U);
+  d &= 0xf;
+  d = (0x6996U >> d) & 1U;
+
+  // Return false if 0, otherwise it returns true
+  return (d != 0);
+}
 
 static uint8_t M_basis_seq_pucch[20][13] = {
     {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0}, {1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0},
@@ -174,50 +191,85 @@ int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
   }
 }
 
-void encode_cqi_pusch_block(const uint8_t* data, uint32_t nof_bits, uint8_t output[32])
+void srslte_uci_encode_m_basis_bits(const uint8_t* input, uint32_t input_len, uint8_t* output, uint32_t output_len)
 {
-  for (int i = 0; i < 32; i++) {
-    output[i] = 0;
-    for (int n = 0; n < nof_bits; n++) {
-      output[i] = (output[i] + data[n] * M_basis_seq[i][n]) % 2;
-    }
+  // Limit number of input bits
+  input_len = SRSLTE_MIN(input_len, SRSLTE_UCI_MAX_ACK_SR_BITS);
+
+  // Pack input bits
+  uint16_t w = 0;
+  for (uint32_t i = 0; i < input_len; i++) {
+    w |= (input[i] & 1U) << i;
+  }
+
+  // Encode bits
+  for (uint32_t i = 0; i < SRSLTE_MIN(output_len, SRSLTE_UCI_M_BASIS_SEQ_LEN); i++) {
+    output[i] = encode_M_basis_seq_u16(w, i);
+  }
+
+  // Avoid repeating operation by copying repeated sequence
+  for (uint32_t i = SRSLTE_UCI_M_BASIS_SEQ_LEN; i < output_len; i++) {
+    output[i] = output[i % SRSLTE_UCI_M_BASIS_SEQ_LEN];
   }
 }
 
-void srslte_uci_encode_ack_sr_pucch3(uint8_t* data, uint32_t nof_bits, uint8_t output[32])
+int32_t srslte_uci_decode_m_basis_bits(const int16_t* llr, uint32_t nof_llr, uint8_t* data, uint32_t data_len)
 {
-  encode_cqi_pusch_block(data, nof_bits, output);
-}
+  int32_t  max_corr = 0; ///< Stores maximum correlation
+  uint16_t max_data = 0; ///< Stores the word for maximum correlation
 
-int16_t srslte_uci_decode_ack_sr_pucch3(const int16_t llr[48], uint8_t* data)
-{
-  int16_t max_corr = 0;
-  int16_t max_data = 0;
+  // Return invalid inputs if data is not provided
+  if (!llr || !data) {
+    ERROR("Invalid inputs\n");
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 
-  // Brute force all sequences backwards
-  for (int16_t guess = 2047; guess >= 0; guess--) {
-    int16_t corr = 0;
+  // Return invalid inputs if not enough LLR are provided
+  if (nof_llr < SRSLTE_UCI_M_BASIS_SEQ_LEN) {
+    ERROR("Not enough LLR bits are provided %d. Required %d;\n", nof_llr, SRSLTE_UCI_M_BASIS_SEQ_LEN);
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
 
-    for (uint8_t i = 0; i < 48; i++) {
-      uint16_t d = (uint16_t)guess & M_basis_seq_b[i % 32];
-      d ^= (uint16_t)(d >> 8U);
-      d ^= (uint16_t)(d >> 4U);
-      d &= 0xf;
-      d = (0x6996U >> d) & 1U;
+  // Limit data to maximum
+  data_len = SRSLTE_MIN(data_len, SRSLTE_UCI_MAX_ACK_SR_BITS);
 
-      corr += (d ? 1 : -1) * llr[i];
+  // Brute force all possible sequences
+  uint16_t max_guess = (1 << data_len); ///< Maximum guess bit combination
+  for (uint16_t guess = 0; guess < max_guess; guess++) {
+    int32_t corr = 0;
+
+    /// Compute correlation for the number of LLR
+    bool early_termination = false;
+    for (uint8_t i = 0; i < nof_llr && !early_termination; i++) {
+      // Encode guess word
+      bool d = encode_M_basis_seq_u16(guess, i);
+
+      // Correlate
+      corr += (int32_t)(d ? llr[i] : -llr[i]);
+
+      // Limit correlation to half range
+      corr = SRSLTE_MIN(corr, INT32_MAX / 2);
+
+      /// Early terminates if at least SRSLTE_UCI_M_BASIS_SEQ_LEN/4 LLR processed and negative correlation
+      early_termination |= (i > SRSLTE_UCI_M_BASIS_SEQ_LEN / 4) && (corr < 0);
+
+      /// Early terminates if the correlation overflows
+      early_termination |= (corr < -INT32_MAX / 2);
     }
 
+    // Take decision
     if (corr > max_corr) {
       max_corr = corr;
       max_data = guess;
     }
   }
 
-  for (int8_t i = 0; i < 11; i++) {
-    data[i] = (uint8_t)(max_data >> (10U - i)) & 1U;
+  // Unpack
+  for (uint32_t i = 0; i < data_len; i++) {
+    data[i] = (uint8_t)(max_data >> i) & 1U;
   }
 
+  // Return correlation
   return max_corr;
 }
 
@@ -232,7 +284,7 @@ void cqi_pusch_pregen(srslte_uci_cqi_pusch_t* q)
     for (uint32_t w = 0; w < nwords; w++) {
       uint8_t* ptr = word;
       srslte_bit_unpack(w, &ptr, i + 1);
-      encode_cqi_pusch_block(word, i + 1, &q->cqi_table[i][32 * w]);
+      srslte_uci_encode_m_basis_bits(word, i + 1, &q->cqi_table[i][32 * w], SRSLTE_UCI_M_BASIS_SEQ_LEN);
       for (int j = 0; j < 32; j++) {
         q->cqi_table_s[i][32 * w + j] = 2 * q->cqi_table[i][32 * w + j] - 1;
       }
@@ -604,8 +656,8 @@ encode_ack_long(uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_prime, sr
 {
   uint32_t Q_ack = Q_m * Q_prime;
 
-  if (O_ack > 10) {
-    ERROR("Error encoding long ACK bits: O_ack can't be higher than 10\n");
+  if (O_ack > SRSLTE_UCI_MAX_ACK_BITS) {
+    ERROR("Error encoding long ACK bits: O_ack can't be higher than %d\n", SRSLTE_UCI_MAX_ACK_BITS);
     return 0;
   }
 
@@ -620,35 +672,34 @@ encode_ack_long(uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_prime, sr
   return Q_ack;
 }
 
-/* Decode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212
- */
-static int32_t decode_ri_ack_1bit(int16_t* q_bits, uint8_t* c_seq, srslte_uci_bit_t* pos)
+static void decode_ri_ack_1bit(const int16_t* q_bits, const uint8_t* c_seq, uint8_t data[1])
 {
-  uint32_t p0 = pos[0].position;
-  uint32_t p1 = pos[1].position;
-
   // Unscramble p1
-  q_bits[p1] = c_seq[p1] ? -q_bits[p1] : q_bits[p1];
+  int16_t q1 = c_seq[1] ? -q_bits[1] : q_bits[1];
 
   // Scramble with correct position
-  int16_t q0 = q_bits[p0];
-  int16_t q1 = c_seq[p0] ? -q_bits[p1] : q_bits[p1];
+  int16_t q0 = q_bits[0];
+  q1         = c_seq[0] ? -q1 : q1;
 
-  return (q0 + q1);
+  if (data) {
+    data[0] = ((q0 + q1) > 0) ? 1 : 0;
+  }
 }
 
-static void decode_ri_ack_2bits(int16_t* q_bits, uint8_t* c_seq, srslte_uci_bit_t* pos, uint32_t Qm, int32_t data[3])
+static bool decode_ri_ack_2bits(const int16_t* llr, uint32_t Qm, uint8_t data[2])
 {
-  uint32_t p0 = pos[Qm * 0 + 0].position;
-  uint32_t p1 = pos[Qm * 0 + 1].position;
-  uint32_t p2 = pos[Qm * 1 + 0].position;
-  uint32_t p3 = pos[Qm * 1 + 1].position;
-  uint32_t p4 = pos[Qm * 2 + 0].position;
-  uint32_t p5 = pos[Qm * 2 + 1].position;
+  uint32_t p0 = Qm * 0 + 0;
+  uint32_t p1 = Qm * 0 + 1;
+  uint32_t p2 = Qm * 1 + 0;
+  uint32_t p3 = Qm * 1 + 1;
+  uint32_t p4 = Qm * 2 + 0;
+  uint32_t p5 = Qm * 2 + 1;
 
-  data[0] += q_bits[p0] + q_bits[p3];
-  data[1] += q_bits[p1] + q_bits[p4];
-  data[2] += q_bits[p2] + q_bits[p5];
+  data[0] = ((llr[p0] + llr[p3]) > 0) ? 1 : 0;
+  data[1] = ((llr[p1] + llr[p4]) > 0) ? 1 : 0;
+
+  // Return parity check
+  return ((llr[p2] + llr[p5]) > 0) == ((data[0] ^ data[1]) == 1);
 }
 
 // Table 5.2.2.6-A
@@ -750,36 +801,55 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
                              uint32_t            H_prime_total,
                              uint32_t            O_cqi,
                              srslte_uci_bit_t*   ack_ri_bits,
-                             uint8_t             data[2],
+                             uint8_t             data[SRSLTE_UCI_MAX_ACK_SR_BITS],
                              uint32_t            nof_bits,
                              bool                is_ri)
 {
-  int32_t sum[3] = {0, 0, 0};
-
   if (beta < 0) {
-    ERROR("Error beta is reserved\n");
-    return -1;
+    ERROR("Error beta (%f) is reserved\n", beta);
+    return SRSLTE_ERROR;
   }
 
   uint32_t Qprime = Q_prime_ri_ack(cfg, nof_bits, O_cqi, beta);
   uint32_t Qm     = srslte_mod_bits_x_symbol(cfg->grant.tb.mod);
 
+  int16_t  llr_acc[32] = {}; ///< LLR accumulator
+  uint32_t nof_acc =
+      (nof_bits == 1) ? Qm : (nof_bits == 2) ? Qm * 3 : SRSLTE_UCI_M_BASIS_SEQ_LEN; ///< Number of required LLR
+  uint32_t count_acc = 0;                                                           ///< LLR counter
+
   for (uint32_t i = 0; i < Qprime; i++) {
     if (is_ri) {
-      uci_ulsch_interleave_ri_gen(i, Qm, H_prime_total, cfg->grant.nof_symb, &ack_ri_bits[Qm * i]);
+      uci_ulsch_interleave_ri_gen(i, Qm, H_prime_total, cfg->grant.nof_symb, &ack_ri_bits[count_acc]);
     } else {
-      uci_ulsch_interleave_ack_gen(i, Qm, H_prime_total, cfg->grant.nof_symb, &ack_ri_bits[Qm * i]);
+      uci_ulsch_interleave_ack_gen(i, Qm, H_prime_total, cfg->grant.nof_symb, &ack_ri_bits[count_acc]);
     }
-    if (nof_bits == 2 && (i % 3 == 0) && i > 0) {
-      decode_ri_ack_2bits(q_bits, &c_seq[0], &ack_ri_bits[Qm * (i - 3)], Qm, sum);
-    } else if (nof_bits == 1) {
-      sum[0] += (int32_t)decode_ri_ack_1bit(q_bits, c_seq, &ack_ri_bits[Qm * i]);
+
+    /// Extract and accumulate LLR
+    for (uint32_t j = 0; j < Qm; j++, count_acc++) {
+      // Calculate circular LLR index
+      uint32_t acc_idx = count_acc % nof_acc;
+
+      // Accumulate LLR
+      llr_acc[acc_idx] += q_bits[ack_ri_bits[count_acc].position];
+
+      /// Limit accumulator boundaries
+      llr_acc[acc_idx] = SRSLTE_MIN(llr_acc[acc_idx], INT16_MAX / 2);
+      llr_acc[acc_idx] = SRSLTE_MAX(llr_acc[acc_idx], -INT16_MAX / 2);
     }
   }
 
-  data[0] = (uint8_t)(sum[0] > 0);
-  if (nof_bits == 2) {
-    data[1] = (uint8_t)(sum[1] > 0);
+  /// Decode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212
+  switch (nof_bits) {
+    case 1:
+      decode_ri_ack_1bit(llr_acc, c_seq, data);
+      break;
+    case 2:
+      decode_ri_ack_2bits(llr_acc, Qm, data);
+      break;
+    default:
+      // For more than 2 bits...
+      srslte_uci_decode_m_basis_bits(llr_acc, SRSLTE_UCI_M_BASIS_SEQ_LEN, data, nof_bits);
   }
 
   return (int)Qprime;
