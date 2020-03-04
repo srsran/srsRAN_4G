@@ -37,7 +37,7 @@ namespace srsue {
 class dl_harq_entity
 {
 public:
-  dl_harq_entity();
+  dl_harq_entity(uint8_t cc_idx_);
 
   bool init(srslte::log*                         log_h,
             mac_interface_rrc::ue_rnti_t*        rntis,
@@ -120,15 +120,16 @@ private:
 
   std::vector<dl_harq_process>         proc;
   dl_harq_process                      bcch_proc;
-  demux*                               demux_unit;
-  srslte::log*                         log_h;
-  srslte::mac_pcap*                    pcap;
-  mac_interface_rrc::ue_rnti_t*        rntis;
-  uint16_t                             last_temporal_crnti;
-  int                                  si_window_start;
+  demux*                               demux_unit          = nullptr;
+  srslte::log*                         log_h               = nullptr;
+  srslte::mac_pcap*                    pcap                = nullptr;
+  mac_interface_rrc::ue_rnti_t*        rntis               = nullptr;
+  uint16_t                             last_temporal_crnti = 0;
+  int                                  si_window_start     = 0;
 
-  float    average_retx;
-  uint64_t nof_pkts;
+  float    average_retx = 0.0;
+  uint64_t nof_pkts     = 0;
+  uint8_t  cc_idx       = 0;
 };
 
 typedef std::unique_ptr<dl_harq_entity> dl_harq_entity_ptr;

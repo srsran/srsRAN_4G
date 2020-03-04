@@ -33,16 +33,7 @@
 
 namespace srsue {
 
-ul_harq_entity::ul_harq_entity() : proc(SRSLTE_MAX_HARQ_PROC)
-{
-  pcap         = NULL;
-  mux_unit     = NULL;
-  ra_procedure = NULL;
-  log_h        = NULL;
-  rntis        = NULL;
-  average_retx = 0;
-  nof_pkts     = 0;
-}
+ul_harq_entity::ul_harq_entity(const uint8_t cc_idx_) : proc(SRSLTE_MAX_HARQ_PROC), cc_idx(cc_idx_) {}
 
 bool ul_harq_entity::init(srslte::log*                         log_h_,
                           mac_interface_rrc_common::ue_rnti_t* rntis_,

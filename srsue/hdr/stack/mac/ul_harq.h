@@ -43,7 +43,7 @@ namespace srsue {
 class ul_harq_entity
 {
 public:
-  ul_harq_entity();
+  ul_harq_entity(const uint8_t cc_idx_);
 
   bool init(srslte::log* log_h_, mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* ra_proc_h_, mux* mux_unit_);
 
@@ -108,16 +108,18 @@ private:
 
   std::vector<ul_harq_process> proc;
 
-  mux*              mux_unit;
-  srslte::mac_pcap* pcap;
-  srslte::log*      log_h;
+  mux*              mux_unit = nullptr;
+  srslte::mac_pcap* pcap     = nullptr;
+  srslte::log*      log_h    = nullptr;
 
-  mac_interface_rrc_common::ue_rnti_t* rntis;
-  srslte::ul_harq_cfg_t                harq_cfg;
+  mac_interface_rrc_common::ue_rnti_t* rntis    = nullptr;
+  srslte::ul_harq_cfg_t                harq_cfg = {};
 
-  float    average_retx;
-  uint64_t nof_pkts;
-  ra_proc* ra_procedure;
+  float    average_retx = 0.0;
+  uint64_t nof_pkts     = 0;
+  ra_proc* ra_procedure = nullptr;
+
+  uint8_t cc_idx = 0;
 };
 
 typedef std::unique_ptr<ul_harq_entity> ul_harq_entity_ptr;

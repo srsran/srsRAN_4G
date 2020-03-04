@@ -40,8 +40,8 @@ namespace srsue {
 mac::mac(srslte::log* log_) : mch_msg(10, log_), mux_unit(log_), demux_unit(log_), pcap(nullptr), log_h(log_)
 {
   // Create PCell HARQ entities
-  auto ul = ul_harq_entity_ptr(new ul_harq_entity());
-  auto dl = dl_harq_entity_ptr(new dl_harq_entity());
+  auto ul = ul_harq_entity_ptr(new ul_harq_entity(PCELL_CC_IDX));
+  auto dl = dl_harq_entity_ptr(new dl_harq_entity(PCELL_CC_IDX));
 
   ul_harq.clear();
   dl_harq.clear();
@@ -130,13 +130,13 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
   if (cc_idx < SRSLTE_MAX_CARRIERS) {
     // Create as many HARQ entities as carriers required
     while (ul_harq.size() < cc_idx + 1) {
-      auto ul = ul_harq_entity_ptr(new ul_harq_entity());
+      auto ul = ul_harq_entity_ptr(new ul_harq_entity(cc_idx));
       ul->init(log_h, &uernti, &ra_procedure, &mux_unit);
       ul->set_config(ul_harq_cfg);
       ul_harq.push_back(std::move(ul));
     }
     while (dl_harq.size() < cc_idx + 1) {
-      auto dl = dl_harq_entity_ptr(new dl_harq_entity());
+      auto dl = dl_harq_entity_ptr(new dl_harq_entity(cc_idx));
       dl->init(log_h, &uernti, &demux_unit);
 
       if (pcap) {
