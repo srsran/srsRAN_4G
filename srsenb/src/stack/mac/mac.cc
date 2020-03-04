@@ -485,113 +485,120 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
 
   log_h->step(tti);
 
-  // Run scheduler with current info
-  sched_interface::dl_sched_res_t sched_result = {};
-  if (scheduler.dl_sched(tti, 0, sched_result) < 0) {
-    Error("Running scheduler\n");
-    return SRSLTE_ERROR;
-  }
+  for (uint32_t enb_cc_idx = 0; enb_cc_idx <= cell_config.size(); enb_cc_idx++) {
+    // Run scheduler with current info
+    sched_interface::dl_sched_res_t sched_result = {};
+    if (scheduler.dl_sched(tti, enb_cc_idx, sched_result) < 0) {
+      Error("Running scheduler\n");
+      return SRSLTE_ERROR;
+    }
 
-  int         n            = 0;
-  dl_sched_t* dl_sched_res = &dl_sched_res_list[0];
+    int         n            = 0;
+    dl_sched_t* dl_sched_res = &dl_sched_res_list[enb_cc_idx];
 
-  {
-    srslte::rwlock_read_guard lock(rwlock);
+    {
+      srslte::rwlock_read_guard lock(rwlock);
 
-    // Copy data grants
-    for (uint32_t i = 0; i < sched_result.nof_data_elems; i++) {
+      // Copy data grants
+      for (uint32_t i = 0; i < sched_result.nof_data_elems; i++) {
 
-      // Get UE
-      uint16_t rnti = sched_result.data[i].dci.rnti;
+        // Get UE
+        uint16_t rnti = sched_result.data[i].dci.rnti;
 
-      if (ue_db.count(rnti)) {
-        // Copy dci info
-        dl_sched_res->pdsch[n].dci = sched_result.data[i].dci;
+        if (ue_db.count(rnti)) {
+          // Copy dci info
+          dl_sched_res->pdsch[n].dci = sched_result.data[i].dci;
 
-        for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-          dl_sched_res->pdsch[n].softbuffer_tx[tb] = ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.pid, tb);
+          for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+            dl_sched_res->pdsch[n].softbuffer_tx[tb] = ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.pid, tb);
 
-          if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
-            /* Get PDU if it's a new transmission */
-            dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(sched_result.data[i].dci.pid,
-                                                                        tb,
-                                                                        sched_result.data[i].pdu[tb],
-                                                                        sched_result.data[i].nof_pdu_elems[tb],
-                                                                        sched_result.data[i].tbs[tb]);
+            if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
+              /* Get PDU if it's a new transmission */
+              dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(sched_result.data[i].dci.pid,
+                                                                          tb,
+                                                                          sched_result.data[i].pdu[tb],
+                                                                          sched_result.data[i].nof_pdu_elems[tb],
+                                                                          sched_result.data[i].tbs[tb]);
 
-            if (!dl_sched_res->pdsch[n].data[tb]) {
-              Error("Error! PDU was not generated (rnti=0x%04x, tb=%d)\n", rnti, tb);
+              if (!dl_sched_res->pdsch[n].data[tb]) {
+                Error("Error! PDU was not generated (rnti=0x%04x, tb=%d)\n", rnti, tb);
+              }
+
+              if (pcap) {
+                pcap->write_dl_crnti(
+                    dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti, enb_cc_idx);
+              }
+
+            } else {
+              /* TB not enabled OR no data to send: set pointers to NULL  */
+              dl_sched_res->pdsch[n].data[tb] = nullptr;
             }
-
-            if (pcap) {
-              pcap->write_dl_crnti(dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti, 0);
-            }
-
-          } else {
-            /* TB not enabled OR no data to send: set pointers to NULL  */
-            dl_sched_res->pdsch[n].data[tb] = nullptr;
           }
+          n++;
+        } else {
+          Warning("Invalid DL scheduling result. User 0x%x does not exist\n", rnti);
         }
-        n++;
-      } else {
-        Warning("Invalid DL scheduling result. User 0x%x does not exist\n", rnti);
       }
+
+      // No more uses of shared ue_db beyond here
     }
 
-    // No more uses of shared ue_db beyond here
-  }
+    // Copy RAR grants
+    for (uint32_t i = 0; i < sched_result.nof_rar_elems; i++) {
+      // Copy dci info
+      dl_sched_res->pdsch[n].dci = sched_result.rar[i].dci;
 
-  // Copy RAR grants
-  for (uint32_t i = 0; i < sched_result.nof_rar_elems; i++) {
-    // Copy dci info
-    dl_sched_res->pdsch[n].dci = sched_result.rar[i].dci;
+      // Set softbuffer (there are no retx in RAR but a softbuffer is required)
+      dl_sched_res->pdsch[n].softbuffer_tx[0] = &rar_softbuffer_tx;
 
-    // Set softbuffer (there are no retx in RAR but a softbuffer is required)
-    dl_sched_res->pdsch[n].softbuffer_tx[0] = &rar_softbuffer_tx;
+      // Assemble PDU
+      dl_sched_res->pdsch[n].data[0] =
+          assemble_rar(sched_result.rar[i].msg3_grant, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs, tti);
 
-    // Assemble PDU
-    dl_sched_res->pdsch[n].data[0] =
-        assemble_rar(sched_result.rar[i].msg3_grant, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs, tti);
+      if (pcap) {
+        pcap->write_dl_ranti(dl_sched_res->pdsch[n].data[0],
+                             sched_result.rar[i].tbs,
+                             dl_sched_res->pdsch[n].dci.rnti,
+                             true,
+                             tti,
+                             enb_cc_idx);
+      }
 
-    if (pcap) {
-      pcap->write_dl_ranti(
-          dl_sched_res->pdsch[n].data[0], sched_result.rar[i].tbs, dl_sched_res->pdsch[n].dci.rnti, true, tti, 0);
+      n++;
     }
 
-    n++;
-  }
+    // Copy SI and Paging grants
+    for (uint32_t i = 0; i < sched_result.nof_bc_elems; i++) {
+      // Copy dci info
+      dl_sched_res->pdsch[n].dci = sched_result.bc[i].dci;
 
-  // Copy SI and Paging grants
-  for (uint32_t i = 0; i < sched_result.nof_bc_elems; i++) {
-    // Copy dci info
-    dl_sched_res->pdsch[n].dci = sched_result.bc[i].dci;
-
-    // Set softbuffer
-    if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
-      dl_sched_res->pdsch[n].softbuffer_tx[0] = &bcch_softbuffer_tx[sched_result.bc[i].index];
-      dl_sched_res->pdsch[n].data[0]          = assemble_si(sched_result.bc[i].index);
+      // Set softbuffer
+      if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
+        dl_sched_res->pdsch[n].softbuffer_tx[0] = &bcch_softbuffer_tx[sched_result.bc[i].index];
+        dl_sched_res->pdsch[n].data[0]          = assemble_si(sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
-      if (pcap) {
-        pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, 0);
-      }
+        if (pcap) {
+          pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, enb_cc_idx);
+        }
 #endif
-    } else {
-      dl_sched_res->pdsch[n].softbuffer_tx[0] = &pcch_softbuffer_tx;
-      dl_sched_res->pdsch[n].data[0]          = pcch_payload_buffer;
-      rlc_h->read_pdu_pcch(pcch_payload_buffer, pcch_payload_buffer_len);
+      } else {
+        dl_sched_res->pdsch[n].softbuffer_tx[0] = &pcch_softbuffer_tx;
+        dl_sched_res->pdsch[n].data[0]          = pcch_payload_buffer;
+        rlc_h->read_pdu_pcch(pcch_payload_buffer, pcch_payload_buffer_len);
 
-      if (pcap) {
-        pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, 0);
+        if (pcap) {
+          pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, enb_cc_idx);
+        }
       }
+
+      n++;
     }
 
-    n++;
+    dl_sched_res->nof_grants = n;
+
+    // Number of CCH symbols
+    dl_sched_res->cfi = sched_result.cfi;
   }
-
-  dl_sched_res->nof_grants = n;
-
-  // Number of CCH symbols
-  dl_sched_res->cfi = sched_result.cfi;
 
   return SRSLTE_SUCCESS;
 }
