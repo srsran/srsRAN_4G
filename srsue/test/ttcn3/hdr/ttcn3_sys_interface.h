@@ -286,7 +286,21 @@ private:
       if (id.HasMember("Srb")) {
         const Value& config = (*itr)["Config"];
         if (config.HasMember("AddOrReconfigure")) {
-          uint32_t lcid = id["Srb"].GetInt();
+          uint32_t     lcid = id["Srb"].GetInt();
+          const Value& aor  = config["AddOrReconfigure"];
+          if (aor.HasMember("Mac") && aor["Mac"].HasMember("TestMode") && aor["Mac"]["TestMode"].HasMember("Info") &&
+              aor["Mac"]["TestMode"]["Info"].HasMember("DiffLogChId")) {
+            uint32_t     force_lcid = 0;
+            const Value& dlcid      = aor["Mac"]["TestMode"]["Info"]["DiffLogChId"];
+            assert(dlcid.HasMember("LogChId"));
+            force_lcid = dlcid["LogChId"].GetInt();
+            log->info("TestMode: lcid overridden: %d\n", force_lcid);
+            syssim->set_forced_lcid(force_lcid);
+          } else {
+            // Unset override function to use different lcid
+            log->info("TestMode: lcid reset\n");
+            syssim->set_forced_lcid(-1);
+          }
           if (lcid > 0) {
             pdcp_config_t pdcp_cfg = {.bearer_id     = static_cast<uint8_t>(lcid),
                                       .rb_type       = PDCP_RB_IS_SRB,

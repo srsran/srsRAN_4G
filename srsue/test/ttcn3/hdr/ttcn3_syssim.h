@@ -139,6 +139,8 @@ public:
     return SRSLTE_SUCCESS;
   }
 
+  void set_forced_lcid(int lcid) { force_lcid = lcid; }
+
   int add_port_handler()
   {
     // UT port
@@ -313,6 +315,8 @@ public:
               msg3_tti = -1;
             }
 
+            bool has_single_sdu = false;
+
             // allocate SDUs
             while (buf_state > 0) { // there is pending SDU to allocate
               if (mac_msg_dl.new_subh()) {
@@ -324,13 +328,27 @@ public:
 
                 // update buffer state
                 buf_state = rlc.get_buffer_state(lcid);
+
+                if (mac_msg_dl.nof_subh() == 1) {
+                  has_single_sdu = true;
+                } else {
+                  has_single_sdu = false;
+                }
               }
             }
 
             // Assemble entire MAC PDU
             uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(&log);
-
             if (mac_pdu_ptr != nullptr) {
+              if (force_lcid != -1 && lcid == 0) {
+                if (has_single_sdu) {
+                  log.info("Patched lcid in mac header to: %d\n", force_lcid);
+                  mac_pdu_ptr[0] = (mac_pdu_ptr[0] & 0xe0) | (force_lcid & 0x1f);
+                } else if (mac_msg_dl.nof_subh() > 1) {
+                  log.warning(
+                      "Not patching lcid to %d in mac header (nof_subh == %d)\n", force_lcid, mac_msg_dl.nof_subh());
+                }
+              }
               log.info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU (%d B):\n", mac_msg_dl.get_pdu_len());
 
               // Prepare MAC grant for CCCH
@@ -1188,6 +1206,7 @@ private:
   uint32_t              prach_preamble_index = 0;
   uint16_t              dl_rnti              = 0;
   uint16_t              crnti                = TTCN3_CRNTI;
+  int                   force_lcid           = -1;
   srslte::timer_handler timers;
   bool                  last_dl_ndi[2 * FDD_HARQ_DELAY_MS] = {};
   bool                  last_ul_ndi[2 * FDD_HARQ_DELAY_MS] = {};

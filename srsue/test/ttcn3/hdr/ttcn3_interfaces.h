@@ -68,8 +68,9 @@ public:
                                                           const ttcn3_helpers::pdcp_count_map_t     bearers)        = 0;
   virtual void                            release_as_security(const ttcn3_helpers::timing_info_t timing)        = 0;
 
-  virtual ttcn3_helpers::pdcp_count_map_t get_pdcp_count() = 0;
-  virtual uint32_t                        get_tti()        = 0;
+  virtual ttcn3_helpers::pdcp_count_map_t get_pdcp_count()          = 0;
+  virtual uint32_t                        get_tti()                 = 0;
+  virtual void                            set_forced_lcid(int lcid) = 0;
 };
 
 class ss_srb_interface
