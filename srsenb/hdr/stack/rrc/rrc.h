@@ -301,7 +301,7 @@ public:
     uint8_t  mmec     = 0;
 
     // state
-    sched_interface::ue_cfg_t current_sched_ue_cfg;
+    sched_interface::ue_cfg_t current_sched_ue_cfg = {};
     uint32_t                  rlf_cnt        = 0;
     uint8_t                   transaction_id = 0;
     rrc_state_t               state          = RRC_STATE_IDLE;

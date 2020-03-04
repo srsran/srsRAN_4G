@@ -102,10 +102,10 @@ public:
   };
 
   struct ue_bearer_cfg_t {
-    int priority;
-    int bsd;
-    int pbr;
-    int group;
+    int priority = 0;
+    int bsd = 0;
+    int pbr = 0;
+    int group = 0;
     enum { IDLE = 0, UL, DL, BOTH } direction = IDLE;
   };
 

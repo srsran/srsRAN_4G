@@ -1262,7 +1262,7 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
     // Finally, add SRB2 and DRB1 to the scheduler
-    srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
+    srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg = {};
     bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
     bearer_cfg.group     = 0;
     parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
