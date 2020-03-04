@@ -38,10 +38,8 @@ bc_sched::bc_sched(const sched_cell_params_t& cfg_, srsenb::rrc_interface_mac* r
 
 void bc_sched::dl_sched(sf_sched* tti_sched)
 {
-  current_sf_idx = tti_sched->get_sf_idx();
-  current_sfn    = tti_sched->get_sfn();
-  current_tti    = tti_sched->get_tti_tx_dl();
-  bc_aggr_level  = 2;
+  current_tti   = tti_sched->get_tti_tx_dl();
+  bc_aggr_level = 2;
 
   /* Activate/deactivate SI windows */
   update_si_windows(tti_sched);
@@ -56,7 +54,9 @@ void bc_sched::dl_sched(sf_sched* tti_sched)
 
 void bc_sched::update_si_windows(sf_sched* tti_sched)
 {
-  uint32_t tti_tx_dl = tti_sched->get_tti_tx_dl();
+  uint32_t tti_tx_dl      = tti_sched->get_tti_tx_dl();
+  uint32_t current_sf_idx = tti_sched->get_tti_params().sf_idx;
+  uint32_t current_sfn    = tti_sched->get_tti_params().sfn;
 
   for (uint32_t i = 0; i < pending_sibs.size(); ++i) {
     // There is SIB data
@@ -94,6 +94,9 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
 
 void bc_sched::alloc_sibs(sf_sched* tti_sched)
 {
+  uint32_t current_sf_idx = tti_sched->get_tti_params().sf_idx;
+  uint32_t current_sfn    = tti_sched->get_tti_params().sfn;
+
   for (uint32_t i = 0; i < pending_sibs.size(); i++) {
     if (cc_cfg->cfg.sibs[i].len > 0 and pending_sibs[i].is_in_window and pending_sibs[i].n_tx < 4) {
       uint32_t nof_tx = (i > 0) ? SRSLTE_MIN(srslte::ceil_div(cc_cfg->cfg.si_window_ms, 10), 4) : 4;
@@ -371,7 +374,7 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     }
 
     /* Select the winner DCI allocation combination */
-    tti_sched->generate_dcis();
+    tti_sched->generate_sched_results();
 
     /* Enqueue Msg3s derived from allocated RARs */
     if (dl_active) {
@@ -430,7 +433,7 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
   if (cc_cfg->nof_prb() == 6) {
     uint32_t tti_rx_ack = TTI_RX_ACK(tti_result->get_tti_rx());
     if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_rx_ack, -1)) {
-      tti_result->get_dl_mask().fill(0, tti_result->get_dl_mask().size());
+      tti_result->reserve_dl_rbgs(0, cc_cfg->nof_rbgs);
     }
   }
 
@@ -440,12 +443,11 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
 
 int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
 {
-  uint32_t   tti_tx_ul = tti_sched->get_tti_tx_ul();
-  prbmask_t& ul_mask   = tti_sched->get_ul_mask();
+  uint32_t tti_tx_ul = tti_sched->get_tti_tx_ul();
 
   /* reserve PRBs for PRACH */
   if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_tx_ul, -1)) {
-    ul_mask = prach_mask;
+    tti_sched->reserve_ul_prbs(prach_mask, false);
     log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", prach_mask.to_hex().c_str());
   }
 
@@ -453,12 +455,7 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   ra_sched_ptr->ul_sched(tti_sched);
 
   /* reserve PRBs for PUCCH */
-  if (cc_cfg->nof_prb() != 6 and (ul_mask & pucch_mask).any()) {
-    log_h->error("There was a collision with the PUCCH. current mask=0x%s, pucch_mask=0x%s\n",
-                 ul_mask.to_hex().c_str(),
-                 pucch_mask.to_hex().c_str());
-  }
-  ul_mask |= pucch_mask;
+  tti_sched->reserve_ul_prbs(pucch_mask, true);
 
   /* Call scheduler for UL data */
   ul_metric->sched_users(*ue_db, tti_sched);

@@ -98,7 +98,6 @@ private:
   std::array<sched_sib_t, sched_interface::MAX_SIBS> pending_sibs;
 
   // TTI specific
-  uint32_t current_sfn = 0, current_sf_idx = 0;
   uint32_t current_tti   = 0;
   uint32_t bc_aggr_level = 2;
 };

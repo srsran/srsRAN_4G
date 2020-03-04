@@ -70,7 +70,6 @@ void pdcch_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
 {
   tti_params   = &tti_params_;
   current_cfix = start_cfi - 1;
-  reset();
 }
 
 const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const
@@ -208,6 +207,7 @@ void pdcch_grid_t::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_
       vec->clear();
     }
     if (tot_mask != nullptr) {
+      tot_mask->resize(nof_cces());
       tot_mask->reset();
     }
     return;
@@ -265,7 +265,7 @@ std::string pdcch_grid_t::result_to_string(bool verbose) const
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void sf_grid_t::init(const sched_cell_params_t& cell_params_, uint32_t enb_cc_idx_)
+void sf_grid_t::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg    = &cell_params_;
   log_h     = srslte::logmap::get("MAC ");
@@ -274,6 +274,7 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_, uint32_t enb_cc_id
   rar_n_rbg = srslte::ceil_div(3, cc_cfg->P);
 
   pdcch_alloc.init(*cc_cfg);
+  reset();
 }
 
 void sf_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
@@ -282,11 +283,16 @@ void sf_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
 
   // internal state
   avail_rbg = nof_rbgs;
-  dl_mask.reset();
   dl_mask.resize(nof_rbgs);
-  ul_mask.reset();
   ul_mask.resize(cc_cfg->nof_prb());
   pdcch_alloc.new_tti(*tti_params, start_cfi);
+}
+
+void sf_grid_t::reset()
+{
+  dl_mask.reset();
+  ul_mask.reset();
+  pdcch_alloc.reset();
 }
 
 //! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
@@ -381,6 +387,25 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_
   return alloc_outcome_t::SUCCESS;
 }
 
+bool sf_grid_t::reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg)
+{
+  dl_mask.fill(start_rbg, end_rbg);
+  return true;
+}
+
+bool sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
+{
+  bool ret = true;
+  if (strict and (ul_mask & prbmask).any()) {
+    log_h->error("There was a collision in UL channel. current mask=0x%s, new alloc mask=0x%s\n",
+                 ul_mask.to_hex().c_str(),
+                 prbmask.to_hex().c_str());
+    ret = false;
+  }
+  ul_mask |= prbmask;
+  return ret;
+}
+
 /*******************************************************
  *          TTI resource Scheduling Methods
  *******************************************************/
@@ -389,8 +414,9 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
 {
   cc_cfg = &cell_params_;
   log_h  = srslte::logmap::get("MAC ");
-  tti_alloc.init(*cc_cfg, 0);
+  tti_alloc.init(*cc_cfg);
   max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - (uint32_t)cc_cfg->cfg.nrb_pucch);
+  reset();
 }
 
 void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
@@ -399,16 +425,8 @@ void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
   tti_alloc.new_tti(tti_params, start_cfi);
 
   // reset sf result
-  pdcch_mask.reset();
-  pdcch_mask.resize(tti_alloc.get_pdcch_grid().nof_cces());
   dl_sched_result = {};
   ul_sched_result = {};
-
-  // reset internal state
-  bc_allocs.clear();
-  rar_allocs.clear();
-  data_allocs.clear();
-  ul_data_allocs.clear();
 
   // setup first prb to be used for msg3 alloc
   last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
@@ -416,6 +434,17 @@ void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
   if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc, -1)) {
     last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
   }
+}
+
+void sf_sched::reset()
+{
+  // reset internal state
+  bc_allocs.clear();
+  rar_allocs.clear();
+  data_allocs.clear();
+  ul_data_allocs.clear();
+
+  tti_alloc.reset();
 }
 
 bool sf_sched::is_dl_alloc(sched_ue* user) const
@@ -630,6 +659,11 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t
   return alloc_ul(user, alloc, alloc_type);
 }
 
+const std::tuple<pdcch_mask_t, rbgmask_t, prbmask_t> sf_sched::last_sched_result_masks() const
+{
+  return {last_pdcch_mask, last_dl_mask, last_ul_mask};
+}
+
 void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
 {
   for (const auto& bc_alloc : bc_allocs) {
@@ -769,13 +803,13 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
     int tbs = 0;
     switch (dci_format) {
       case SRSLTE_DCI_FORMAT1:
-        tbs = user->generate_format1(h, data, get_tti_tx_dl(), cell_index, get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format1(h, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
         break;
       case SRSLTE_DCI_FORMAT2:
-        tbs = user->generate_format2(h, data, get_tti_tx_dl(), cell_index, get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format2(h, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
         break;
       case SRSLTE_DCI_FORMAT2A:
-        tbs = user->generate_format2a(h, data, get_tti_tx_dl(), cell_index, get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format2a(h, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
         break;
       default:
         Error("DCI format (%d) not implemented\n", dci_format);
@@ -874,12 +908,12 @@ alloc_outcome_t sf_sched::alloc_msg3(const pending_msg3_t& msg3)
   return alloc_outcome_t::SUCCESS;
 }
 
-void sf_sched::generate_dcis()
+void sf_sched::generate_sched_results()
 {
   /* Pick one of the possible DCI masks */
   pdcch_grid_t::alloc_result_t dci_result;
   //  tti_alloc.get_pdcch_grid().result_to_string();
-  tti_alloc.get_pdcch_grid().get_allocs(&dci_result, &pdcch_mask);
+  tti_alloc.get_pdcch_grid().get_allocs(&dci_result, &last_pdcch_mask);
 
   /* Register final CFI */
   dl_sched_result.cfi = tti_alloc.get_pdcch_grid().get_cfi();
@@ -892,6 +926,13 @@ void sf_sched::generate_dcis()
   set_dl_data_sched_result(dci_result);
 
   set_ul_sched_result(dci_result);
+
+  /* Store last results */
+  last_dl_mask = tti_alloc.get_dl_mask();
+  last_ul_mask = tti_alloc.get_ul_mask();
+
+  /* Reset all resources */
+  reset();
 }
 
 uint32_t sf_sched::get_nof_ctrl_symbols() const

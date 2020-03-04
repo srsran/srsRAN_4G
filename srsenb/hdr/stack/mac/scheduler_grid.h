@@ -69,6 +69,7 @@ public:
 
   void init(const sched_cell_params_t& cell_params_);
   void new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
+  void reset();
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
   bool set_cfi(uint32_t cfi);
 
@@ -84,7 +85,6 @@ private:
   const static uint32_t nof_cfis = 3;
   using tree_node_t = std::pair<int, alloc_t>; ///< First represents the parent node idx, and second the alloc tree node
 
-  void                   reset();
   const sched_dci_cce_t* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const;
   void                   update_alloc_tree(int                    node_idx,
                                            uint32_t               aggr_idx,
@@ -104,7 +104,7 @@ private:
   size_t                   nof_dci_allocs = 0;
 };
 
-//! manages a full TTI grid resources, namely CCE and DL/UL RB allocations
+//! manages a subframe grid resources, namely CCE and DL/UL RB allocations
 class sf_grid_t
 {
 public:
@@ -113,16 +113,17 @@ public:
     rbg_range_t     rbg_range;
   };
 
-  void            init(const sched_cell_params_t& cell_params_, uint32_t enb_cc_idx_);
+  void            init(const sched_cell_params_t& cell_params_);
   void            new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
+  void            reset();
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
+  bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
   alloc_outcome_t alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, bool needs_pdcch);
+  bool            reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
 
   // getters
-  rbgmask_t&          get_dl_mask() { return dl_mask; }
   const rbgmask_t&    get_dl_mask() const { return dl_mask; }
-  prbmask_t&          get_ul_mask() { return ul_mask; }
   const prbmask_t&    get_ul_mask() const { return ul_mask; }
   uint32_t            get_cfi() const { return pdcch_alloc.get_cfi(); }
   const pdcch_grid_t& get_pdcch_grid() const { return pdcch_alloc; }
@@ -168,8 +169,8 @@ public:
   virtual bool             is_ul_alloc(sched_ue* user) const                             = 0;
 };
 
-/** Description: Stores the RAR, broadcast, paging, DL data, UL data allocations for the given TTI
- *               Converts the stored allocations' metadata to the scheduler UL/DL result
+/** Description: Stores the RAR, broadcast, paging, DL data, UL data allocations for the given subframe
+ *               Converts the stored allocations' metadata to the scheduler DL/UL result
  *               Handles the generation of DCI formats
  */
 class sf_sched : public dl_sf_sched_itf, public ul_sf_sched_itf
@@ -219,32 +220,36 @@ public:
     uint32_t mcs   = 0;
   };
   struct pending_rar_t {
-    uint16_t                             ra_rnti    = 0;
-    uint32_t                             prach_tti  = 0;
-    uint32_t                             nof_grants = 0;
-    sched_interface::dl_sched_rar_info_t msg3_grant[sched_interface::MAX_RAR_LIST];
+    uint16_t                             ra_rnti                                   = 0;
+    uint32_t                             prach_tti                                 = 0;
+    uint32_t                             nof_grants                                = 0;
+    sched_interface::dl_sched_rar_info_t msg3_grant[sched_interface::MAX_RAR_LIST] = {};
   };
   typedef std::pair<alloc_outcome_t, const ctrl_alloc_t> ctrl_code_t;
 
   // TTI scheduler result
-  pdcch_mask_t                    pdcch_mask;
   sched_interface::dl_sched_res_t dl_sched_result;
   sched_interface::ul_sched_res_t ul_sched_result;
 
+  // Control/Configuration Methods
   void init(const sched_cell_params_t& cell_params_);
   void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
+  void reset();
 
-  // DL alloc
+  // DL alloc methods
   alloc_outcome_t                      alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
   alloc_outcome_t                      alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
   std::pair<alloc_outcome_t, uint32_t> alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant);
+  bool reserve_dl_rbgs(uint32_t rbg_start, uint32_t rbg_end) { return tti_alloc.reserve_dl_rbgs(rbg_start, rbg_end); }
 
-  // UL alloc
+  // UL alloc methods
   alloc_outcome_t alloc_msg3(const pending_msg3_t& msg3);
   alloc_outcome_t
-  alloc_ul(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, sf_sched::ul_alloc_t::type_t alloc_type, uint32_t mcs = 0);
+       alloc_ul(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, sf_sched::ul_alloc_t::type_t alloc_type, uint32_t mcs = 0);
+  bool reserve_ul_prbs(const prbmask_t& ulmask, bool strict) { return tti_alloc.reserve_ul_prbs(ulmask, strict); }
 
-  void generate_dcis();
+  // compute DCIs and generate dl_sched_result/ul_sched_result for a given TTI
+  void generate_sched_results();
 
   // dl_tti_sched itf
   alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
@@ -257,17 +262,12 @@ public:
   uint32_t         get_tti_tx_ul() const final { return tti_params.tti_tx_ul; }
 
   // getters
-  const pdcch_mask_t&               get_pdcch_mask() const { return pdcch_mask; }
-  rbgmask_t&                        get_dl_mask() { return tti_alloc.get_dl_mask(); }
-  prbmask_t&                        get_ul_mask() { return tti_alloc.get_ul_mask(); }
-  const std::vector<ul_alloc_t>&    get_ul_allocs() const { return ul_data_allocs; }
-  uint32_t                          get_cfi() const { return tti_alloc.get_cfi(); }
   uint32_t                          get_tti_rx() const { return tti_params.tti_rx; }
-  uint32_t                          get_sfn() const { return tti_params.sfn; }
-  uint32_t                          get_sf_idx() const { return tti_params.sf_idx; }
   const tti_params_t&               get_tti_params() const { return tti_params; }
   std::deque<pending_msg3_t>&       get_pending_msg3() { return pending_msg3s; }
   const std::deque<pending_msg3_t>& get_pending_msg3() const { return pending_msg3s; }
+
+  const std::tuple<pdcch_mask_t, rbgmask_t, prbmask_t> last_sched_result_masks() const;
 
 private:
   bool        is_dl_alloc(sched_ue* user) const final;
@@ -297,6 +297,11 @@ private:
   std::vector<ul_alloc_t>    ul_data_allocs;
   std::deque<pending_msg3_t> pending_msg3s;
   uint32_t                   last_msg3_prb = 0, max_msg3_prb = 0;
+
+  // Store last decisions
+  rbgmask_t    last_dl_mask;
+  prbmask_t    last_ul_mask;
+  pdcch_mask_t last_pdcch_mask;
 };
 
 } // namespace srsenb

@@ -252,9 +252,10 @@ int sched_tester::test_pdcch_collisions()
                  tti_info.dl_sched_result[CARRIER_IDX], tti_info.ul_sched_result[CARRIER_IDX]) == SRSLTE_SUCCESS);
 
   /* verify if sched_result "used_cce" coincide with sched "used_cce" */
-  auto* tti_alloc = carrier_schedulers[0]->get_sf_sched_ptr(tti_info.tti_params.tti_rx);
-  if (used_cce != tti_alloc->get_pdcch_mask()) {
-    std::string mask_str = tti_alloc->get_pdcch_mask().to_string();
+  auto*                tti_alloc = carrier_schedulers[0]->get_sf_sched_ptr(tti_info.tti_params.tti_rx);
+  srsenb::pdcch_mask_t mask      = std::get<0>(tti_alloc->last_sched_result_masks());
+  if (used_cce != mask) {
+    std::string mask_str = mask.to_string();
     TESTERROR("The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), used_cce.to_string().c_str());
   }
 
@@ -375,15 +376,17 @@ int sched_tester::test_harqs()
 
 int sched_tester::test_sch_collisions()
 {
-  const srsenb::sf_sched* tti_sched = carrier_schedulers[0]->get_sf_sched_ptr(tti_info.tti_params.tti_rx);
-  srsenb::prbmask_t       ul_allocs(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
+  const srsenb::sf_sched* tti_sched = carrier_schedulers[CARRIER_IDX]->get_sf_sched_ptr(tti_info.tti_params.tti_rx);
+  const auto&             combined_sched_result = tti_sched->last_sched_result_masks();
+
+  srsenb::prbmask_t ul_allocs(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
 
   /* TEST: any collision in PUCCH and PUSCH */
   TESTASSERT(output_tester[CARRIER_IDX].test_pusch_collisions(
                  tti_info.tti_params, tti_info.ul_sched_result[CARRIER_IDX], ul_allocs) == SRSLTE_SUCCESS);
 
   /* TEST: check whether cumulative UL PRB masks coincide */
-  if (ul_allocs != tti_sched->get_ul_mask()) {
+  if (ul_allocs != std::get<2>(combined_sched_result)) {
     TESTERROR("The UL PRB mask and the scheduler result UL mask are not consistent\n");
   }
 
@@ -413,14 +416,10 @@ int sched_tester::test_sch_collisions()
   }
 
   // TEST: check if resulting DL mask is equal to scheduler internal DL mask
-  if (rbgmask != carrier_schedulers[0]->get_sf_sched_ptr(tti_info.tti_params.tti_rx)->get_dl_mask()) {
-    TESTERROR("The UL PRB mask and the scheduler result UL mask are not consistent (%s!=%s)\n",
+  if (rbgmask != std::get<1>(combined_sched_result)) {
+    TESTERROR("The DL PRB mask and the scheduler result DL mask are not consistent (%s!=%s)\n",
               rbgmask.to_string().c_str(),
-              carrier_schedulers[CARRIER_IDX]
-                  ->get_sf_sched_ptr(tti_info.tti_params.tti_rx)
-                  ->get_dl_mask()
-                  .to_string()
-                  .c_str());
+              std::get<1>(combined_sched_result).to_string().c_str());
   }
   return SRSLTE_SUCCESS;
 }
