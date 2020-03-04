@@ -44,7 +44,6 @@ public:
   const sf_sched* get_sf_sched_ptr(uint32_t tti_rx) const { return &sf_scheds[tti_rx % sf_scheds.size()]; }
 
 private:
-  void generate_phich(sf_sched* tti_sched);
   //! Compute DL scheduler result for given TTI
   void alloc_dl_users(sf_sched* tti_result);
   //! Compute UL scheduler result for given TTI

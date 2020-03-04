@@ -62,8 +62,8 @@
  *   - DL adaptive retx/new tx <=> PDCCH alloc
  *******************************************************/
 
-// uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
-uint32_t const seed = 2452071795;
+uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
+// uint32_t const seed = 2452071795;
 // uint32_t const seed = 1581009287; // prb==25
 bool check_old_pids = false;
 
@@ -253,7 +253,7 @@ int sched_tester::test_pdcch_collisions()
 
   /* verify if sched_result "used_cce" coincide with sched "used_cce" */
   auto*                tti_alloc = carrier_schedulers[0]->get_sf_sched_ptr(tti_info.tti_params.tti_rx);
-  srsenb::pdcch_mask_t mask      = std::get<0>(tti_alloc->last_sched_result_masks());
+  srsenb::pdcch_mask_t mask      = tti_alloc->last_sched_result().pdcch_mask;
   if (used_cce != mask) {
     std::string mask_str = mask.to_string();
     TESTERROR("The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), used_cce.to_string().c_str());
@@ -377,7 +377,6 @@ int sched_tester::test_harqs()
 int sched_tester::test_sch_collisions()
 {
   const srsenb::sf_sched* tti_sched = carrier_schedulers[CARRIER_IDX]->get_sf_sched_ptr(tti_info.tti_params.tti_rx);
-  const auto&             combined_sched_result = tti_sched->last_sched_result_masks();
 
   srsenb::prbmask_t ul_allocs(sched_cell_params[CARRIER_IDX].cfg.cell.nof_prb);
 
@@ -386,7 +385,7 @@ int sched_tester::test_sch_collisions()
                  tti_info.tti_params, tti_info.ul_sched_result[CARRIER_IDX], ul_allocs) == SRSLTE_SUCCESS);
 
   /* TEST: check whether cumulative UL PRB masks coincide */
-  if (ul_allocs != std::get<2>(combined_sched_result)) {
+  if (ul_allocs != tti_sched->last_sched_result().ul_mask) {
     TESTERROR("The UL PRB mask and the scheduler result UL mask are not consistent\n");
   }
 
@@ -416,10 +415,10 @@ int sched_tester::test_sch_collisions()
   }
 
   // TEST: check if resulting DL mask is equal to scheduler internal DL mask
-  if (rbgmask != std::get<1>(combined_sched_result)) {
+  if (rbgmask != tti_sched->last_sched_result().dl_mask) {
     TESTERROR("The DL PRB mask and the scheduler result DL mask are not consistent (%s!=%s)\n",
               rbgmask.to_string().c_str(),
-              std::get<1>(combined_sched_result).to_string().c_str());
+              tti_sched->last_sched_result().dl_mask.to_string().c_str());
   }
   return SRSLTE_SUCCESS;
 }

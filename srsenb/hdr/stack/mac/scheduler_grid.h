@@ -176,6 +176,13 @@ public:
 class sf_sched : public dl_sf_sched_itf, public ul_sf_sched_itf
 {
 public:
+  struct sf_sched_result {
+    sched_interface::dl_sched_res_t dl_sched_result;
+    sched_interface::ul_sched_res_t ul_sched_result;
+    rbgmask_t                       dl_mask;    ///< Accumulation of all DL RBG allocations
+    prbmask_t                       ul_mask;    ///< Accumulation of all UL PRB allocations
+    pdcch_mask_t                    pdcch_mask; ///< Accumulation of all CCE allocations
+  };
   struct ctrl_alloc_t {
     size_t       dci_idx;
     rbg_range_t  rbg_range;
@@ -227,11 +234,8 @@ public:
   };
   typedef std::pair<alloc_outcome_t, const ctrl_alloc_t> ctrl_code_t;
 
-  // TTI scheduler result
-  sched_interface::dl_sched_res_t dl_sched_result;
-  sched_interface::ul_sched_res_t ul_sched_result;
-
   // Control/Configuration Methods
+  sf_sched();
   void init(const sched_cell_params_t& cell_params_);
   void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
   void reset();
@@ -243,10 +247,11 @@ public:
   bool reserve_dl_rbgs(uint32_t rbg_start, uint32_t rbg_end) { return tti_alloc.reserve_dl_rbgs(rbg_start, rbg_end); }
 
   // UL alloc methods
-  alloc_outcome_t alloc_msg3(const pending_msg3_t& msg3);
+  alloc_outcome_t alloc_msg3(sched_ue* user, const pending_msg3_t& msg3);
   alloc_outcome_t
        alloc_ul(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, sf_sched::ul_alloc_t::type_t alloc_type, uint32_t mcs = 0);
   bool reserve_ul_prbs(const prbmask_t& ulmask, bool strict) { return tti_alloc.reserve_ul_prbs(ulmask, strict); }
+  bool alloc_phich(sched_ue* user);
 
   // compute DCIs and generate dl_sched_result/ul_sched_result for a given TTI
   void generate_sched_results();
@@ -262,12 +267,10 @@ public:
   uint32_t         get_tti_tx_ul() const final { return tti_params.tti_tx_ul; }
 
   // getters
-  uint32_t                          get_tti_rx() const { return tti_params.tti_rx; }
-  const tti_params_t&               get_tti_params() const { return tti_params; }
-  std::deque<pending_msg3_t>&       get_pending_msg3() { return pending_msg3s; }
-  const std::deque<pending_msg3_t>& get_pending_msg3() const { return pending_msg3s; }
+  uint32_t            get_tti_rx() const { return tti_params.tti_rx; }
+  const tti_params_t& get_tti_params() const { return tti_params; }
 
-  const std::tuple<pdcch_mask_t, rbgmask_t, prbmask_t> last_sched_result_masks() const;
+  const sf_sched_result& last_sched_result() const { return *last_sf_result; }
 
 private:
   bool        is_dl_alloc(sched_ue* user) const final;
@@ -289,19 +292,22 @@ private:
   srslte::log_ref            log_h;
 
   // internal state
-  tti_params_t               tti_params{10241};
-  sf_grid_t                  tti_alloc;
-  std::vector<bc_alloc_t>    bc_allocs;
-  std::vector<rar_alloc_t>   rar_allocs;
-  std::vector<dl_alloc_t>    data_allocs;
-  std::vector<ul_alloc_t>    ul_data_allocs;
-  std::deque<pending_msg3_t> pending_msg3s;
-  uint32_t                   last_msg3_prb = 0, max_msg3_prb = 0;
+  sf_grid_t                      tti_alloc;
+  std::vector<bc_alloc_t>        bc_allocs;
+  std::vector<rar_alloc_t>       rar_allocs;
+  std::vector<dl_alloc_t>        data_allocs;
+  std::vector<ul_alloc_t>        ul_data_allocs;
+  uint32_t                       last_msg3_prb = 0, max_msg3_prb = 0;
+  std::array<sf_sched_result, 2> sched_result_resources = {};
 
-  // Store last decisions
-  rbgmask_t    last_dl_mask;
-  prbmask_t    last_ul_mask;
-  pdcch_mask_t last_pdcch_mask;
+  // Next TTI state
+  tti_params_t                     tti_params{10241};
+  sf_sched_result*                 current_sf_result = nullptr;
+  sched_interface::dl_sched_res_t* dl_sched_result   = nullptr;
+  sched_interface::ul_sched_res_t* ul_sched_result   = nullptr;
+
+  // Last subframe scheduler result
+  sf_sched_result* last_sf_result = nullptr;
 };
 
 } // namespace srsenb

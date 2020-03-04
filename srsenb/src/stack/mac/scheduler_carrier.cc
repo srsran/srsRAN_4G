@@ -198,31 +198,6 @@ void ra_sched::dl_sched(srsenb::sf_sched* tti_sched)
   }
 }
 
-// Schedules Msg3
-void ra_sched::ul_sched(sf_sched* tti_sched)
-{
-  /* schedule pending Msg3s */
-  while (not tti_sched->get_pending_msg3().empty()) {
-    sf_sched::pending_msg3_t& msg3 = tti_sched->get_pending_msg3().front();
-
-    // Verify if user still exists
-    auto user_it = ue_db->find(msg3.rnti);
-    if (user_it == ue_db->end()) {
-      log_h->warning("SCHED: Msg3 allocated for user rnti=0x%x that no longer exists\n", msg3.rnti);
-      tti_sched->get_pending_msg3().pop_front();
-      continue;
-    }
-
-    // Allocate RBGs and HARQ for pending Msg3
-    ul_harq_proc::ul_alloc_t msg3_alloc = {msg3.n_prb, msg3.L};
-    if (not tti_sched->alloc_ul(&user_it->second, msg3_alloc, sf_sched::ul_alloc_t::MSG3, msg3.mcs)) {
-      log_h->warning("SCHED: Could not allocate msg3 within (%d,%d)\n", msg3.n_prb, msg3.n_prb + msg3.L);
-    }
-
-    tti_sched->get_pending_msg3().pop_front();
-  }
-}
-
 int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 {
   log_h->info("SCHED: New PRACH tti=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d\n",
@@ -273,7 +248,7 @@ void ra_sched::sched_msg3(sf_sched* sf_msg3_sched, const sched_interface::dl_sch
       msg3.mcs  = grant.grant.trunc_mcs;
       msg3.rnti = grant.data.temp_crnti;
 
-      if (not sf_msg3_sched->alloc_msg3(msg3)) {
+      if (not sf_msg3_sched->alloc_msg3(&(*ue_db)[msg3.rnti], msg3)) {
         log_h->error(
             "SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n", msg3.rnti, sf_msg3_sched->get_tti_tx_ul());
       } else {
@@ -350,7 +325,9 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     tti_sched->new_tti(tti_rx, start_cfi);
 
     /* Schedule PHICH */
-    generate_phich(tti_sched);
+    for (auto& ue_pair : *ue_db) {
+      tti_sched->alloc_phich(&ue_pair.second);
+    }
 
     /* Schedule DL control data */
     if (dl_active) {
@@ -379,7 +356,7 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     /* Enqueue Msg3s derived from allocated RARs */
     if (dl_active) {
       sf_sched* sf_msg3_sched = get_sf_sched(tti_rx + MSG3_DELAY_MS);
-      ra_sched_ptr->sched_msg3(sf_msg3_sched, tti_sched->dl_sched_result);
+      ra_sched_ptr->sched_msg3(sf_msg3_sched, tti_sched->last_sched_result().dl_sched_result);
     }
 
     /* clean-up blocked pids */
@@ -389,38 +366,6 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
   }
 
   return tti_sched;
-}
-
-void sched::carrier_sched::generate_phich(sf_sched* tti_sched)
-{
-  // Allocate user PHICHs
-  uint32_t nof_phich_elems = 0;
-  for (auto& ue_pair : *ue_db) {
-    sched_ue& user = ue_pair.second;
-    uint16_t  rnti = ue_pair.first;
-    auto      p    = user.get_cell_index(enb_cc_idx);
-    if (not p.first) {
-      // user does not support this carrier
-      continue;
-    }
-    uint32_t cell_index = p.second;
-
-    //    user.has_pucch = false; // TODO: What is this for?
-
-    ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_rx(), cell_index);
-
-    /* Indicate PHICH acknowledgment if needed */
-    if (h->has_pending_ack()) {
-      tti_sched->ul_sched_result.phich[nof_phich_elems].phich =
-          h->get_pending_ack() ? ul_sched_phich_t::ACK : ul_sched_phich_t::NACK;
-      tti_sched->ul_sched_result.phich[nof_phich_elems].rnti = rnti;
-      log_h->info("SCHED: Allocated PHICH for rnti=0x%x, value=%s\n",
-                  rnti,
-                  tti_sched->ul_sched_result.phich[nof_phich_elems].phich == ul_sched_phich_t::ACK ? "ACK" : "NACK");
-      nof_phich_elems++;
-    }
-  }
-  tti_sched->ul_sched_result.nof_phich_elems = nof_phich_elems;
 }
 
 void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
@@ -450,9 +395,6 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
     tti_sched->reserve_ul_prbs(prach_mask, false);
     log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", prach_mask.to_hex().c_str());
   }
-
-  /* Allocate Msg3 if there's a pending RAR */
-  ra_sched_ptr->ul_sched(tti_sched);
 
   /* reserve PRBs for PUCCH */
   tti_sched->reserve_ul_prbs(pucch_mask, true);
