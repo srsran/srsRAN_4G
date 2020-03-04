@@ -359,6 +359,8 @@ private:
 
   float dl_freq = -1;
   float ul_freq = -1;
+
+  const uint8_t SYNC_CC_IDX = 0; ///< From the sync POV, the CC idx is always the first
 };
 
 } // namespace srsue

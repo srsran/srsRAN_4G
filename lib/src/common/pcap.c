@@ -102,6 +102,10 @@ int LTE_PCAP_MAC_WritePDU(FILE* fd, MAC_Context_Info_t* context, const unsigned 
   context_header[offset++] = MAC_LTE_CRC_STATUS_TAG;
   context_header[offset++] = context->crcStatusOK;
 
+  /* CC index */
+  context_header[offset++] = MAC_LTE_CARRIER_ID_TAG;
+  context_header[offset++] = context->cc_idx;
+
   /* NB-IoT mode tag */
   context_header[offset++] = MAC_LTE_NB_MODE_TAG;
   context_header[offset++] = context->nbiotMode;

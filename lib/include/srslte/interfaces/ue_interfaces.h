@@ -399,7 +399,7 @@ public:
   virtual void tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]) = 0;
 
   /* Indicate successful decoding of BCH TB through PBCH */
-  virtual void bch_decoded_ok(uint8_t* payload, uint32_t len) = 0;
+  virtual void bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len) = 0;
 
   /* Indicate successful decoding of MCH TB through PMCH */
   virtual void mch_decoded(uint32_t len, bool crc) = 0;

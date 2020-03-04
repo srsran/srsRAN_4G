@@ -189,7 +189,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   mac_msg_ul.parse_packet(pdu);
 
   if (pcap) {
-    pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti);
+    pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti, UL_CC_IDX);
   }
 
   pdus.deallocate(pdu);

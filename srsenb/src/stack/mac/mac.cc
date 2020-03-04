@@ -524,7 +524,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
             }
 
             if (pcap) {
-              pcap->write_dl_crnti(dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti);
+              pcap->write_dl_crnti(dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti, 0);
             }
 
           } else {
@@ -555,7 +555,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
 
     if (pcap) {
       pcap->write_dl_ranti(
-          dl_sched_res->pdsch[n].data[0], sched_result.rar[i].tbs, dl_sched_res->pdsch[n].dci.rnti, true, tti);
+          dl_sched_res->pdsch[n].data[0], sched_result.rar[i].tbs, dl_sched_res->pdsch[n].dci.rnti, true, tti, 0);
     }
 
     n++;
@@ -572,7 +572,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
       dl_sched_res->pdsch[n].data[0]          = assemble_si(sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
       if (pcap) {
-        pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti);
+        pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, 0);
       }
 #endif
     } else {
@@ -581,7 +581,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
       rlc_h->read_pdu_pcch(pcch_payload_buffer, pcch_payload_buffer_len);
 
       if (pcap) {
-        pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti);
+        pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, 0);
       }
     }
 

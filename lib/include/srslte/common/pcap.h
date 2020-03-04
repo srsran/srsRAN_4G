@@ -75,6 +75,7 @@ typedef struct pcaprec_hdr_s {
 #define MAC_LTE_PREDFINED_DATA_TAG 0x05
 #define MAC_LTE_RETX_TAG 0x06
 #define MAC_LTE_CRC_STATUS_TAG 0x07
+#define MAC_LTE_CARRIER_ID_TAG 0x0A
 #define MAC_LTE_NB_MODE_TAG 0x0F
 
 /* Context information for every MAC PDU that will be logged */
@@ -86,6 +87,7 @@ typedef struct MAC_Context_Info_t {
   unsigned short ueid;
   unsigned char  isRetx;
   unsigned char  crcStatusOK;
+  unsigned char  cc_idx;
 
   unsigned short sysFrameNumber;
   unsigned short subFrameNumber;

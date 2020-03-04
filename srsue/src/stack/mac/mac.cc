@@ -357,13 +357,13 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
   return SRSLTE_INVALID_RNTI;
 }
 
-void mac::bch_decoded_ok(uint8_t* payload, uint32_t len)
+void mac::bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len)
 {
   // Send MIB to RLC
   rlc_h->write_pdu_bcch_bch(payload, len);
 
   if (pcap) {
-    pcap->write_dl_bch(payload, len, true, phy_h->get_current_tti());
+    pcap->write_dl_bch(payload, len, true, phy_h->get_current_tti(), cc_idx);
   }
 }
 
@@ -389,7 +389,7 @@ void mac::mch_decoded(uint32_t len, bool crc)
     demux_unit.push_pdu_mch(mch_payload_buffer, len);
     stack_h->process_pdus();
     if (pcap) {
-      pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti());
+      pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti(), 0);
     }
     metrics[0].rx_brate += len * 8;
   } else {
@@ -402,14 +402,14 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
 {
   if (SRSLTE_RNTI_ISRAR(grant.rnti)) {
     if (ack[0]) {
-      ra_procedure.tb_decoded_ok(grant.tti);
+      ra_procedure.tb_decoded_ok(cc_idx, grant.tti);
     }
   } else if (grant.rnti == SRSLTE_PRNTI) {
     // Send PCH payload to RLC
     rlc_h->write_pdu_pcch(pch_payload_buffer, grant.tb[0].tbs);
 
     if (pcap) {
-      pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti);
+      pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti, cc_idx);
     }
   } else {
 

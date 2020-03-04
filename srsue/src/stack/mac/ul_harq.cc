@@ -276,7 +276,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       } else {
         rnti = harq_entity->rntis->crnti;
       }
-      harq_entity->pcap->write_ul_crnti(pdu_ptr, grant.tb.tbs, rnti, get_nof_retx(), grant.tti_tx);
+      harq_entity->pcap->write_ul_crnti(pdu_ptr, grant.tb.tbs, rnti, get_nof_retx(), grant.tti_tx, harq_entity->cc_idx);
     }
   } else if (has_grant()) {
     // Non-Adaptive Re-Tx

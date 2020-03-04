@@ -99,7 +99,7 @@ public:
     mac.tb_decoded(cc_idx, grant, ack);
   }
 
-  void bch_decoded_ok(uint8_t* payload, uint32_t len) { mac.bch_decoded_ok(payload, len); }
+  void bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len) { mac.bch_decoded_ok(cc_idx, payload, len); }
 
   void mch_decoded(uint32_t len, bool crc) { mac.mch_decoded(len, crc); }
 

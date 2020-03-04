@@ -386,7 +386,7 @@ void sync::run_thread()
     return;
   }
   for (uint32_t i = 0; i < nof_rf_channels; i++) {
-    dummy_buffer[i] = (cf_t*)srslte_vec_cf_malloc(3 * SRSLTE_SF_LEN_PRB(100));
+    dummy_buffer[i] = srslte_vec_cf_malloc(3 * SRSLTE_SF_LEN_PRB(100));
   }
 
   uint32_t prach_nof_sf = 0;
@@ -413,7 +413,7 @@ void sync::run_thread()
          */
         cell_search_ret = search_p.run(&cell, mib);
         if (cell_search_ret == search::CELL_FOUND) {
-          stack->bch_decoded_ok(mib.data(), mib.size() / 8);
+          stack->bch_decoded_ok(SYNC_CC_IDX, mib.data(), mib.size() / 8);
         }
         phy_state.state_exit();
         break;

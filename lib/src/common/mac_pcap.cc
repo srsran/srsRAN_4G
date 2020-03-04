@@ -63,56 +63,72 @@ void mac_pcap::pack_and_write(uint8_t* pdu,
                               uint32_t pdu_len_bytes,
                               uint32_t reTX,
                               bool     crc_ok,
+                              uint8_t  cc_idx,
                               uint32_t tti,
                               uint16_t crnti,
                               uint8_t  direction,
                               uint8_t  rnti_type)
 {
   if (enable_write) {
-    MAC_Context_Info_t context = {
-        FDD_RADIO,
-        direction,
-        rnti_type,
-        crnti,                /* RNTI */
-        (uint16_t)ue_id,      /* UEId */
-        (uint8_t)reTX,        /* Retx */
-        crc_ok,               /* CRC Stsatus (i.e. OK) */
-        (uint16_t)(tti / 10), /* Sysframe number */
-        (uint16_t)(tti % 10)  /* Subframe number */
-    };
+    MAC_Context_Info_t context = {};
+    context.radioType          = FDD_RADIO;
+    context.direction          = direction;
+    context.rntiType           = rnti_type;
+    context.rnti               = crnti;
+    context.ueid               = (uint16_t)ue_id;
+    context.isRetx             = (uint8_t)reTX;
+    context.crcStatusOK        = crc_ok;
+    context.cc_idx             = cc_idx;
+    context.sysFrameNumber     = (uint16_t)(tti / 10);
+    context.subFrameNumber     = (uint16_t)(tti % 10);
     if (pdu) {
       LTE_PCAP_MAC_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
     }
   }
 }
 
-void mac_pcap::write_dl_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, bool crc_ok, uint32_t tti)
+void mac_pcap::write_dl_crnti(uint8_t* pdu,
+                              uint32_t pdu_len_bytes,
+                              uint16_t rnti,
+                              bool     crc_ok,
+                              uint32_t tti,
+                              uint8_t  cc_idx)
 {
-  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, tti, rnti, DIRECTION_DOWNLINK, C_RNTI);
+  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, rnti, DIRECTION_DOWNLINK, C_RNTI);
 }
-void mac_pcap::write_dl_ranti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, bool crc_ok, uint32_t tti)
+void mac_pcap::write_dl_ranti(uint8_t* pdu,
+                              uint32_t pdu_len_bytes,
+                              uint16_t rnti,
+                              bool     crc_ok,
+                              uint32_t tti,
+                              uint8_t  cc_idx)
 {
-  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, tti, rnti, DIRECTION_DOWNLINK, RA_RNTI);
+  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, rnti, DIRECTION_DOWNLINK, RA_RNTI);
 }
-void mac_pcap::write_ul_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint32_t reTX, uint32_t tti)
+void mac_pcap::write_ul_crnti(uint8_t* pdu,
+                              uint32_t pdu_len_bytes,
+                              uint16_t rnti,
+                              uint32_t reTX,
+                              uint32_t tti,
+                              uint8_t  cc_idx)
 {
-  pack_and_write(pdu, pdu_len_bytes, reTX, true, tti, rnti, DIRECTION_UPLINK, C_RNTI);
+  pack_and_write(pdu, pdu_len_bytes, reTX, true, cc_idx, tti, rnti, DIRECTION_UPLINK, C_RNTI);
 }
-void mac_pcap::write_dl_bch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)
+void mac_pcap::write_dl_bch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, tti, 0, DIRECTION_DOWNLINK, NO_RNTI);
+  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, 0, DIRECTION_DOWNLINK, NO_RNTI);
 }
-void mac_pcap::write_dl_pch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)
+void mac_pcap::write_dl_pch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_PRNTI, DIRECTION_DOWNLINK, P_RNTI);
+  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, SRSLTE_PRNTI, DIRECTION_DOWNLINK, P_RNTI);
 }
-void mac_pcap::write_dl_mch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)
+void mac_pcap::write_dl_mch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_MRNTI, DIRECTION_DOWNLINK, M_RNTI);
+  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, SRSLTE_MRNTI, DIRECTION_DOWNLINK, M_RNTI);
 }
-void mac_pcap::write_dl_sirnti(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)
+void mac_pcap::write_dl_sirnti(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
-  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, tti, SRSLTE_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
+  pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, SRSLTE_SIRNTI, DIRECTION_DOWNLINK, SI_RNTI);
 }
 
 void mac_pcap::write_ul_rrc_pdu(const uint8_t* input, const int32_t input_len)
@@ -185,6 +201,6 @@ void mac_pcap::write_ul_rrc_pdu(const uint8_t* input, const int32_t input_len)
   memcpy(pdu_ptr, &pad, 1);
   pdu_ptr += 1;
 
-  write_ul_crnti(pdu, pdu_ptr - pdu, 14931, true, 0);
+  write_ul_crnti(pdu, pdu_ptr - pdu, 14931, true, 0, 0);
 }
 } // namespace srslte

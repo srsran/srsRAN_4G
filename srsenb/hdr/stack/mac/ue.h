@@ -143,6 +143,8 @@ private:
 
   // Mutexes
   pthread_mutex_t mutex;
+
+  const uint8_t UL_CC_IDX = 0; ///< Passed to write CC index in PCAP (TODO: use actual CC idx)
 };
 
 } // namespace srsenb

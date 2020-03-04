@@ -65,7 +65,7 @@ public:
   void     new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, tb_action_dl_t* action);
   void     new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action);
   void     tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]);
-  void     bch_decoded_ok(uint8_t* payload, uint32_t len);
+  void     bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len);
   uint16_t get_dl_sched_rnti(uint32_t tti);
   uint16_t get_ul_sched_rnti(uint32_t tti);
 
