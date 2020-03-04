@@ -177,6 +177,7 @@ class sf_sched : public dl_sf_sched_itf, public ul_sf_sched_itf
 {
 public:
   struct sf_sched_result {
+    tti_params_t                    tti_params{10241};
     sched_interface::dl_sched_res_t dl_sched_result;
     sched_interface::ul_sched_res_t ul_sched_result;
     rbgmask_t                       dl_mask;    ///< Accumulation of all DL RBG allocations
@@ -238,7 +239,7 @@ public:
   sf_sched();
   void init(const sched_cell_params_t& cell_params_);
   void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
-  void reset();
+  void finish_tti();
 
   // DL alloc methods
   alloc_outcome_t                      alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
@@ -258,17 +259,17 @@ public:
 
   // dl_tti_sched itf
   alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
-  uint32_t         get_tti_tx_dl() const final { return tti_params.tti_tx_dl; }
+  uint32_t         get_tti_tx_dl() const final { return tti_params->tti_tx_dl; }
   uint32_t         get_nof_ctrl_symbols() const final;
   const rbgmask_t& get_dl_mask() const final { return tti_alloc.get_dl_mask(); }
   // ul_tti_sched itf
   alloc_outcome_t  alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc) final;
   const prbmask_t& get_ul_mask() const final { return tti_alloc.get_ul_mask(); }
-  uint32_t         get_tti_tx_ul() const final { return tti_params.tti_tx_ul; }
+  uint32_t         get_tti_tx_ul() const final { return tti_params->tti_tx_ul; }
 
   // getters
-  uint32_t            get_tti_rx() const { return tti_params.tti_rx; }
-  const tti_params_t& get_tti_params() const { return tti_params; }
+  uint32_t            get_tti_rx() const { return tti_params->tti_rx; }
+  const tti_params_t& get_tti_params() const { return *tti_params; }
 
   const sf_sched_result& last_sched_result() const { return *last_sf_result; }
 
@@ -301,10 +302,10 @@ private:
   std::array<sf_sched_result, 2> sched_result_resources = {};
 
   // Next TTI state
-  tti_params_t                     tti_params{10241};
   sf_sched_result*                 current_sf_result = nullptr;
   sched_interface::dl_sched_res_t* dl_sched_result   = nullptr;
   sched_interface::ul_sched_res_t* ul_sched_result   = nullptr;
+  tti_params_t*                    tti_params        = nullptr;
 
   // Last subframe scheduler result
   sf_sched_result* last_sf_result = nullptr;

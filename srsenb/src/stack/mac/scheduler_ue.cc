@@ -951,7 +951,7 @@ void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)
   }
   uint32_t ue_cc_idx = p.second;
 
-  /* Clean-up all the UL Harqs with maxretx == 0 */
+  /* Reset pending ACKs and clean-up all the UL Harqs with maxretx == 0 */
   get_ul_harq(tti_params.tti_tx_ul, ue_cc_idx)->reset_pending_data();
 
   /* reset PIDs with pending data or blocked */

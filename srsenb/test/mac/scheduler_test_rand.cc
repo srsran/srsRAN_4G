@@ -188,6 +188,9 @@ void sched_tester::before_sched()
 
 int sched_tester::process_results()
 {
+  const auto* sf_sched = carrier_schedulers[CARRIER_IDX]->get_sf_sched_ptr(tti_info.tti_params.tti_rx);
+  TESTASSERT(tti_info.tti_params.tti_rx == sf_sched->last_sched_result().tti_params.tti_rx);
+
   test_pdcch_collisions();
   TESTASSERT(ue_tester->test_all(0, tti_info.dl_sched_result[CARRIER_IDX], tti_info.ul_sched_result[CARRIER_IDX]) ==
              SRSLTE_SUCCESS);

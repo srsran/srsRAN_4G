@@ -414,11 +414,12 @@ bool sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
 
 sf_sched::sf_sched() :
   current_sf_result(&sched_result_resources[0]),
-  dl_sched_result(&sched_result_resources[0].dl_sched_result),
-  ul_sched_result(&sched_result_resources[0].ul_sched_result),
   last_sf_result(&sched_result_resources[1]),
   log_h(srslte::logmap::get("MAC "))
 {
+  dl_sched_result = &current_sf_result->dl_sched_result;
+  ul_sched_result = &current_sf_result->ul_sched_result;
+  tti_params      = &current_sf_result->tti_params;
 }
 
 void sf_sched::init(const sched_cell_params_t& cell_params_)
@@ -426,26 +427,28 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
   cc_cfg = &cell_params_;
   tti_alloc.init(*cc_cfg);
   max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - (uint32_t)cc_cfg->cfg.nrb_pucch);
-  reset();
 }
 
 void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
 {
-  tti_params = tti_params_t{tti_rx_};
-  tti_alloc.new_tti(tti_params, start_cfi);
+  if (tti_params->tti_rx != tti_rx_) {
+    if (tti_params->tti_rx < 10240) {
+      log_h->warning("expected TTI for the given sf_sched does not match current_tti\n");
+    }
+    *tti_params = tti_params_t{tti_rx_};
+  }
+  tti_alloc.new_tti(*tti_params, start_cfi);
+
+  // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
+  last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
+  uint32_t tti_msg3_alloc = TTI_ADD(tti_params->tti_tx_ul, MSG3_DELAY_MS);
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc, -1)) {
+    last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
+  }
 }
 
-void sf_sched::reset()
+void sf_sched::finish_tti()
 {
-  /* Store last results */
-  std::swap(current_sf_result, last_sf_result);
-  last_sf_result->dl_mask = tti_alloc.get_dl_mask();
-  last_sf_result->ul_mask = tti_alloc.get_ul_mask();
-  dl_sched_result         = &current_sf_result->dl_sched_result;
-  ul_sched_result         = &current_sf_result->ul_sched_result;
-  *dl_sched_result        = {};
-  *ul_sched_result        = {};
-
   // reset internal state
   bc_allocs.clear();
   rar_allocs.clear();
@@ -453,12 +456,14 @@ void sf_sched::reset()
   ul_data_allocs.clear();
   tti_alloc.reset();
 
-  // setup first prb to be used for msg3 alloc
-  last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
-  uint32_t tti_msg3_alloc = TTI_ADD(tti_params.tti_tx_ul, MSG3_DELAY_MS);
-  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc, -1)) {
-    last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
-  }
+  // set new current_sf_result
+  current_sf_result = &sched_result_resources[(last_sf_result == &sched_result_resources[0]) ? 1 : 0];
+  dl_sched_result   = &current_sf_result->dl_sched_result;
+  ul_sched_result   = &current_sf_result->ul_sched_result;
+  tti_params        = &current_sf_result->tti_params;
+  *dl_sched_result  = {};
+  *ul_sched_result  = {};
+  *tti_params       = tti_params_t{last_sf_result->tti_params.tti_rx + TTIMOD_SZ};
 }
 
 bool sf_sched::is_dl_alloc(sched_ue* user) const
@@ -685,7 +690,7 @@ bool sf_sched::alloc_phich(sched_ue* user)
   }
   uint32_t cell_index = p.second;
 
-  ul_harq_proc* h = user->get_ul_harq(tti_params.tti_rx, cell_index);
+  ul_harq_proc* h = user->get_ul_harq(tti_params->tti_tx_ul, cell_index);
 
   /* Indicate PHICH acknowledgment if needed */
   if (h->has_pending_ack()) {
@@ -969,8 +974,10 @@ void sf_sched::generate_sched_results()
 
   set_ul_sched_result(dci_result);
 
-  /* Reset all resources */
-  reset();
+  /* Store sf_sched results for this TTI */
+  last_sf_result          = current_sf_result;
+  last_sf_result->dl_mask = tti_alloc.get_dl_mask();
+  last_sf_result->ul_mask = tti_alloc.get_ul_mask();
 }
 
 uint32_t sf_sched::get_nof_ctrl_symbols() const

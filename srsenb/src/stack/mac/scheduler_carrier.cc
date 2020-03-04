@@ -319,7 +319,7 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
   sf_sched* tti_sched = get_sf_sched(tti_rx);
 
   // if it is the first time tti is run, reset vars
-  if (tti_rx != tti_sched->get_tti_rx()) {
+  if (tti_rx != tti_sched->last_sched_result().tti_params.tti_rx) {
     uint32_t start_cfi = cc_cfg->sched_cfg->nof_ctrl_symbols;
     bool     dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
     tti_sched->new_tti(tti_rx, start_cfi);
@@ -350,7 +350,7 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
       alloc_ul_users(tti_sched);
     }
 
-    /* Select the winner DCI allocation combination */
+    /* Select the winner DCI allocation combination, store all the scheduling results */
     tti_sched->generate_sched_results();
 
     /* Enqueue Msg3s derived from allocated RARs */
@@ -359,10 +359,13 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
       ra_sched_ptr->sched_msg3(sf_msg3_sched, tti_sched->last_sched_result().dl_sched_result);
     }
 
-    /* clean-up blocked pids */
+    /* Reset ue harq pending ack state, clean-up blocked pids */
     for (auto& user : *ue_db) {
       user.second.finish_tti(tti_sched->get_tti_params(), enb_cc_idx);
     }
+
+    /* Reset sf_sched tti state */
+    tti_sched->finish_tti();
   }
 
   return tti_sched;
