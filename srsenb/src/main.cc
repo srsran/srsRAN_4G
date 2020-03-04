@@ -32,6 +32,7 @@
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_csv.h"
@@ -429,31 +430,45 @@ int main(int argc, char* argv[])
   srslte::metrics_hub<enb_metrics_t> metricshub;
   metrics_stdout                     metrics_screen;
 
-  enb* enb = enb::get_instance();
-
-  srslte_debug_handle_crash(argc, argv);
-
   cout << "---  Software Radio Systems LTE eNodeB  ---" << endl << endl;
 
+  srslte_debug_handle_crash(argc, argv);
   parse_args(&args, argc, argv);
-  if (enb->init(args)) {
+
+  srslte::logger_stdout logger_stdout;
+  srslte::logger_file   logger_file;
+
+  // Set logger
+  srslte::logger* logger = nullptr;
+  if (args.log.filename == "stdout") {
+    logger = &logger_stdout;
+  } else {
+    logger_file.init(args.log.filename, args.log.file_max_size);
+    logger = &logger_file;
+  }
+  srslte::logmap::set_default_logger(logger);
+
+  // Create eNB
+  unique_ptr<srsenb::enb> enb{new srsenb::enb};
+  if (enb->init(args, logger) != SRSLTE_SUCCESS) {
     enb->stop();
     return SRSLTE_ERROR;
   }
 
-  metricshub.init(enb, args.general.metrics_period_secs);
+  // Set metrics
+  metricshub.init(enb.get(), args.general.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
-  metrics_screen.set_handle(enb);
+  metrics_screen.set_handle(enb.get());
 
   srsenb::metrics_csv metrics_file(args.general.metrics_csv_filename);
   if (args.general.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
-    metrics_file.set_handle(enb);
+    metrics_file.set_handle(enb.get());
   }
 
   // create input thread
   pthread_t input;
-  pthread_create(&input, NULL, &input_loop, &metrics_screen);
+  pthread_create(&input, nullptr, &input_loop, &metrics_screen);
 
   bool signals_pregenerated = false;
   if (running) {
@@ -476,7 +491,6 @@ int main(int argc, char* argv[])
   pthread_join(input, NULL);
   metricshub.stop();
   enb->stop();
-  enb->cleanup();
   cout << "---  exiting  ---" << endl;
 
   return SRSLTE_SUCCESS;

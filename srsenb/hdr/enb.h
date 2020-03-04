@@ -115,11 +115,11 @@ struct all_args_t {
 class enb : public enb_metrics_interface
 {
 public:
-  static enb* get_instance(void);
+  enb();
 
-  static void cleanup(void);
+  virtual ~enb();
 
-  int init(const all_args_t& args_);
+  int init(const all_args_t& args_, srslte::logger* logger_);
 
   void stop();
 
@@ -135,13 +135,7 @@ public:
   bool get_metrics(enb_metrics_t* m);
 
 private:
-  static enb* instance;
-
   const static int ENB_POOL_SIZE = 1024 * 10;
-
-  enb();
-
-  virtual ~enb();
 
   int parse_args(const all_args_t& args_);
 

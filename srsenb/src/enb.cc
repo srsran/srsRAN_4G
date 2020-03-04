@@ -28,39 +28,23 @@
 
 namespace srsenb {
 
-enb*            enb::instance      = nullptr;
-pthread_mutex_t enb_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-enb* enb::get_instance()
-{
-  pthread_mutex_lock(&enb_instance_mutex);
-  if (nullptr == instance) {
-    instance = new enb();
-  }
-  pthread_mutex_unlock(&enb_instance_mutex);
-  return (instance);
-}
-void enb::cleanup()
-{
-  pthread_mutex_lock(&enb_instance_mutex);
-  if (nullptr != instance) {
-    delete instance;
-    instance = nullptr;
-  }
-  srslte::byte_buffer_pool::cleanup(); // pool has to be cleaned after enb is deleted
-  pthread_mutex_unlock(&enb_instance_mutex);
-}
-
 enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE))
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;
 }
 
-enb::~enb() {}
-
-int enb::init(const all_args_t& args_)
+enb::~enb()
 {
+  // pool has to be cleaned after enb is deleted
+  stack.reset();
+  srslte::byte_buffer_pool::cleanup(); 
+}
+
+int enb::init(const all_args_t& args_, srslte::logger* logger_)
+{
+  logger = logger_;
+
   // Init UE log
   log.init("ENB  ", logger);
   log.set_level(srslte::LOG_LEVEL_INFO);
@@ -70,16 +54,6 @@ int enb::init(const all_args_t& args_)
   if (parse_args(args_)) {
     log.console("Error processing arguments.\n");
     return SRSLTE_ERROR;
-  }
-
-  // set logger
-  if (args.log.filename == "stdout") {
-    logger = &logger_stdout;
-  } else {
-    logger_file.init(args.log.filename, args.log.file_max_size);
-    logger_file.log_char("\n\n");
-    logger_file.log_char(get_build_string().c_str());
-    logger = &logger_file;
   }
 
   pool_log.init("POOL", logger);
