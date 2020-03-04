@@ -33,21 +33,25 @@ class sched::carrier_sched
 {
 public:
   explicit carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t enb_cc_idx_);
-  void      reset();
-  void      carrier_cfg(const sched_cell_params_t& sched_params_);
-  void      set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
-  sf_sched* generate_tti_result(uint32_t tti_rx);
-  int       dl_rach_info(dl_sched_rar_info_t rar_info);
+  void                   reset();
+  void                   carrier_cfg(const sched_cell_params_t& sched_params_);
+  void                   set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
+  const sf_sched_result& generate_tti_result(uint32_t tti_rx);
+  int                    dl_rach_info(dl_sched_rar_info_t rar_info);
 
   // getters
   const ra_sched* get_ra_sched() const { return ra_sched_ptr.get(); }
-  const sf_sched* get_sf_sched_ptr(uint32_t tti_rx) const { return &sf_scheds[tti_rx % sf_scheds.size()]; }
+  //! Get a subframe result for a given tti
+  const sf_sched_result& get_sf_result(uint32_t tti_rx) const;
 
 private:
   //! Compute DL scheduler result for given TTI
   void alloc_dl_users(sf_sched* tti_result);
   //! Compute UL scheduler result for given TTI
   int alloc_ul_users(sf_sched* tti_sched);
+  //! Get sf_sched for a given TTI
+  sf_sched*        get_sf_sched(uint32_t tti_rx);
+  sf_sched_result* get_next_sf_result(uint32_t tti_rx);
 
   // args
   const sched_cell_params_t*    cc_cfg = nullptr;
@@ -63,9 +67,10 @@ private:
   prbmask_t pucch_mask;
 
   // TTI result storage and management
-  std::array<sf_sched, TTIMOD_SZ> sf_scheds;
-  sf_sched*                       get_sf_sched(uint32_t tti_rx) { return &sf_scheds[tti_rx % sf_scheds.size()]; }
-  std::vector<uint8_t>            sf_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
+  std::array<sf_sched, TTIMOD_SZ>            sf_scheds;
+  std::array<sf_sched_result, TTIMOD_SZ * 2> sf_sched_results;
+
+  std::vector<uint8_t> sf_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
 
   std::unique_ptr<bc_sched> bc_sched_ptr;
   std::unique_ptr<ra_sched> ra_sched_ptr;

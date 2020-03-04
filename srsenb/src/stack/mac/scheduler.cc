@@ -383,10 +383,10 @@ int sched::dl_sched(uint32_t tti, uint32_t cc_idx, sched_interface::dl_sched_res
 
   if (cc_idx < carrier_schedulers.size()) {
     // Compute scheduling Result for tti_rx
-    sf_sched* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    const sf_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
 
     // copy result
-    sched_result = tti_sched->last_sched_result().dl_sched_result;
+    sched_result = tti_sched.dl_sched_result;
   }
 
   return 0;
@@ -404,10 +404,10 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
   uint32_t tti_rx = sched_utils::tti_subtract(tti, 2 * FDD_HARQ_DELAY_MS);
 
   if (cc_idx < carrier_schedulers.size()) {
-    sf_sched* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    const sf_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
 
     // copy result
-    sched_result = tti_sched->last_sched_result().ul_sched_result;
+    sched_result = tti_sched.ul_sched_result;
   }
 
   return SRSLTE_SUCCESS;

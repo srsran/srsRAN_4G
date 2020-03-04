@@ -248,7 +248,8 @@ void ra_sched::sched_msg3(sf_sched* sf_msg3_sched, const sched_interface::dl_sch
       msg3.mcs  = grant.grant.trunc_mcs;
       msg3.rnti = grant.data.temp_crnti;
 
-      if (not sf_msg3_sched->alloc_msg3(&(*ue_db)[msg3.rnti], msg3)) {
+      auto it = ue_db->find(msg3.rnti);
+      if (it == ue_db->end() or not sf_msg3_sched->alloc_msg3(&it->second, msg3)) {
         log_h->error(
             "SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n", msg3.rnti, sf_msg3_sched->get_tti_tx_ul());
       } else {
@@ -314,19 +315,20 @@ void sched::carrier_sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
   sf_dl_mask.assign(tti_mask, tti_mask + nof_sfs);
 }
 
-sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
+const sf_sched_result& sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
 {
-  sf_sched* tti_sched = get_sf_sched(tti_rx);
+  sf_sched_result* sf_result = get_next_sf_result(tti_rx);
 
   // if it is the first time tti is run, reset vars
-  if (tti_rx != tti_sched->last_sched_result().tti_params.tti_rx) {
-    uint32_t start_cfi = cc_cfg->sched_cfg->nof_ctrl_symbols;
-    bool     dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
-    tti_sched->new_tti(tti_rx, start_cfi);
+  if (tti_rx != sf_result->tti_params.tti_rx) {
+    sf_sched* tti_sched = get_sf_sched(tti_rx);
+    *sf_result          = {};
+
+    bool dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
 
     /* Schedule PHICH */
     for (auto& ue_pair : *ue_db) {
-      tti_sched->alloc_phich(&ue_pair.second);
+      tti_sched->alloc_phich(&ue_pair.second, &sf_result->ul_sched_result);
     }
 
     /* Schedule DL control data */
@@ -351,24 +353,21 @@ sf_sched* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     }
 
     /* Select the winner DCI allocation combination, store all the scheduling results */
-    tti_sched->generate_sched_results();
+    tti_sched->generate_sched_results(sf_result);
 
     /* Enqueue Msg3s derived from allocated RARs */
     if (dl_active) {
       sf_sched* sf_msg3_sched = get_sf_sched(tti_rx + MSG3_DELAY_MS);
-      ra_sched_ptr->sched_msg3(sf_msg3_sched, tti_sched->last_sched_result().dl_sched_result);
+      ra_sched_ptr->sched_msg3(sf_msg3_sched, sf_result->dl_sched_result);
     }
 
     /* Reset ue harq pending ack state, clean-up blocked pids */
     for (auto& user : *ue_db) {
-      user.second.finish_tti(tti_sched->get_tti_params(), enb_cc_idx);
+      user.second.finish_tti(sf_result->tti_params, enb_cc_idx);
     }
-
-    /* Reset sf_sched tti state */
-    tti_sched->finish_tti();
   }
 
-  return tti_sched;
+  return *sf_result;
 }
 
 void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
@@ -406,6 +405,26 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   ul_metric->sched_users(*ue_db, tti_sched);
 
   return SRSLTE_SUCCESS;
+}
+
+sf_sched* sched::carrier_sched::get_sf_sched(uint32_t tti_rx)
+{
+  sf_sched* ret = &sf_scheds[tti_rx % sf_scheds.size()];
+  if (ret->get_tti_rx() != tti_rx) {
+    // start new TTI. Bind the struct where the result is going to be stored
+    ret->new_tti(tti_rx, cc_cfg->sched_cfg->nof_ctrl_symbols);
+  }
+  return ret;
+}
+
+sf_sched_result* sched::carrier_sched::get_next_sf_result(uint32_t tti_rx)
+{
+  return &sf_sched_results[tti_rx % sf_sched_results.size()];
+}
+
+const sf_sched_result& sched::carrier_sched::get_sf_result(uint32_t tti_rx) const
+{
+  return sf_sched_results[tti_rx % sf_sched_results.size()];
 }
 
 int sched::carrier_sched::dl_rach_info(dl_sched_rar_info_t rar_info)

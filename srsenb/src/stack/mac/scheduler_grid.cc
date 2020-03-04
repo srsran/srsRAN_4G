@@ -64,21 +64,17 @@ void pdcch_grid_t::init(const sched_cell_params_t& cell_params_)
   cc_cfg       = &cell_params_;
   log_h        = srslte::logmap::get("MAC ");
   current_cfix = cc_cfg->sched_cfg->nof_ctrl_symbols - 1;
-  reset();
 }
 
 void pdcch_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
 {
   tti_params = &tti_params_;
-  set_cfi(start_cfi);
-}
 
-void pdcch_grid_t::reset()
-{
   prev_start = 0;
   prev_end   = 0;
   dci_alloc_tree.clear();
   nof_dci_allocs = 0;
+  set_cfi(start_cfi);
 }
 
 const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const
@@ -278,23 +274,18 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_)
   ul_mask.resize(cc_cfg->nof_prb());
 
   pdcch_alloc.init(*cc_cfg);
-  reset();
 }
 
 void sf_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
 {
   tti_params = &tti_params_;
 
-  // internal state
-  pdcch_alloc.new_tti(*tti_params, start_cfi);
-}
-
-void sf_grid_t::reset()
-{
   dl_mask.reset();
   ul_mask.reset();
-  pdcch_alloc.reset();
   avail_rbg = nof_rbgs;
+
+  // internal state
+  pdcch_alloc.new_tti(*tti_params, start_cfi);
 }
 
 //! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
@@ -412,15 +403,7 @@ bool sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-sf_sched::sf_sched() :
-  current_sf_result(&sched_result_resources[0]),
-  last_sf_result(&sched_result_resources[1]),
-  log_h(srslte::logmap::get("MAC "))
-{
-  dl_sched_result = &current_sf_result->dl_sched_result;
-  ul_sched_result = &current_sf_result->ul_sched_result;
-  tti_params      = &current_sf_result->tti_params;
-}
+sf_sched::sf_sched() : log_h(srslte::logmap::get("MAC ")) {}
 
 void sf_sched::init(const sched_cell_params_t& cell_params_)
 {
@@ -431,39 +414,21 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
 
 void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
 {
-  if (tti_params->tti_rx != tti_rx_) {
-    if (tti_params->tti_rx < 10240) {
-      log_h->warning("expected TTI for the given sf_sched does not match current_tti\n");
-    }
-    *tti_params = tti_params_t{tti_rx_};
-  }
-  tti_alloc.new_tti(*tti_params, start_cfi);
-
-  // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
-  last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
-  uint32_t tti_msg3_alloc = TTI_ADD(tti_params->tti_tx_ul, MSG3_DELAY_MS);
-  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc, -1)) {
-    last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
-  }
-}
-
-void sf_sched::finish_tti()
-{
   // reset internal state
   bc_allocs.clear();
   rar_allocs.clear();
   data_allocs.clear();
   ul_data_allocs.clear();
-  tti_alloc.reset();
 
-  // set new current_sf_result
-  current_sf_result = &sched_result_resources[(last_sf_result == &sched_result_resources[0]) ? 1 : 0];
-  dl_sched_result   = &current_sf_result->dl_sched_result;
-  ul_sched_result   = &current_sf_result->ul_sched_result;
-  tti_params        = &current_sf_result->tti_params;
-  *dl_sched_result  = {};
-  *ul_sched_result  = {};
-  *tti_params       = tti_params_t{last_sf_result->tti_params.tti_rx + TTIMOD_SZ};
+  tti_params = tti_params_t{tti_rx_};
+  tti_alloc.new_tti(tti_params, start_cfi);
+
+  // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
+  last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
+  uint32_t tti_msg3_alloc = TTI_ADD(tti_params.tti_tx_ul, MSG3_DELAY_MS);
+  if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_msg3_alloc, -1)) {
+    last_msg3_prb = std::max(last_msg3_prb, cc_cfg->cfg.prach_freq_offset + 6);
+  }
 }
 
 bool sf_sched::is_dl_alloc(sched_ue* user) const
@@ -678,10 +643,10 @@ alloc_outcome_t sf_sched::alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t
   return alloc_ul(user, alloc, alloc_type);
 }
 
-bool sf_sched::alloc_phich(sched_ue* user)
+bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result)
 {
   using phich_t    = sched_interface::ul_sched_phich_t;
-  auto& phich_list = ul_sched_result->phich[ul_sched_result->nof_phich_elems];
+  auto& phich_list = ul_sf_result->phich[ul_sf_result->nof_phich_elems];
 
   auto p = user->get_cell_index(cc_cfg->enb_cc_idx);
   if (not p.first) {
@@ -690,7 +655,7 @@ bool sf_sched::alloc_phich(sched_ue* user)
   }
   uint32_t cell_index = p.second;
 
-  ul_harq_proc* h = user->get_ul_harq(tti_params->tti_tx_ul, cell_index);
+  ul_harq_proc* h = user->get_ul_harq(tti_params.tti_tx_ul, cell_index);
 
   /* Indicate PHICH acknowledgment if needed */
   if (h->has_pending_ack()) {
@@ -700,16 +665,17 @@ bool sf_sched::alloc_phich(sched_ue* user)
                 user->get_rnti(),
                 phich_list.phich == phich_t::ACK ? "ACK" : "NACK");
 
-    ul_sched_result->nof_phich_elems++;
+    ul_sf_result->nof_phich_elems++;
     return true;
   }
   return false;
 }
 
-void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
+void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
+                                   sched_interface::dl_sched_res_t*    dl_result)
 {
   for (const auto& bc_alloc : bc_allocs) {
-    sched_interface::dl_sched_bc_t* bc = &dl_sched_result->bc[dl_sched_result->nof_bc_elems];
+    sched_interface::dl_sched_bc_t* bc = &dl_result->bc[dl_result->nof_bc_elems];
 
     // assign NCCE/L
     bc->dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
@@ -771,14 +737,15 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                   bc->dci.tb[0].mcs_idx);
     }
 
-    dl_sched_result->nof_bc_elems++;
+    dl_result->nof_bc_elems++;
   }
 }
 
-void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
+void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
+                                    sched_interface::dl_sched_res_t*    dl_result)
 {
   for (const auto& rar_alloc : rar_allocs) {
-    sched_interface::dl_sched_rar_t* rar = &dl_sched_result->rar[dl_sched_result->nof_rar_elems];
+    sched_interface::dl_sched_rar_t* rar = &dl_result->rar[dl_result->nof_rar_elems];
 
     // Assign NCCE/L
     rar->dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
@@ -822,14 +789,15 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
                   msg3_grant.grant.trunc_mcs);
     }
 
-    dl_sched_result->nof_rar_elems++;
+    dl_result->nof_rar_elems++;
   }
 }
 
-void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
+void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
+                                        sched_interface::dl_sched_res_t*    dl_result)
 {
   for (const auto& data_alloc : data_allocs) {
-    sched_interface::dl_sched_data_t* data = &dl_sched_result->data[dl_sched_result->nof_data_elems];
+    sched_interface::dl_sched_data_t* data = &dl_result->data[dl_result->nof_data_elems];
 
     // Assign NCCE/L
     data->dci.location = dci_result[data_alloc.dci_idx]->dci_pos;
@@ -882,15 +850,16 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
                 data_before,
                 user->get_pending_dl_new_data());
 
-    dl_sched_result->nof_data_elems++;
+    dl_result->nof_data_elems++;
   }
 }
 
-void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result)
+void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
+                                   sched_interface::ul_sched_res_t*    ul_result)
 {
   /* Set UL data DCI locs and format */
   for (const auto& ul_alloc : ul_data_allocs) {
-    sched_interface::ul_sched_data_t* pusch = &ul_sched_result->pusch[ul_sched_result->nof_dci_elems];
+    sched_interface::ul_sched_data_t* pusch = &ul_result->pusch[ul_result->nof_dci_elems];
 
     sched_ue* user       = ul_alloc.user_ptr;
     uint32_t  cell_index = user->get_cell_index(cc_cfg->enb_cc_idx).second;
@@ -940,7 +909,7 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
                 pending_data_before,
                 user->get_pending_ul_old_data(cell_index));
 
-    ul_sched_result->nof_dci_elems++;
+    ul_result->nof_dci_elems++;
   }
 }
 
@@ -955,29 +924,29 @@ alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const pending_msg3_t& msg3)
   return ret;
 }
 
-void sf_sched::generate_sched_results()
+void sf_sched::generate_sched_results(sf_sched_result* sf_result)
 {
   /* Pick one of the possible DCI masks */
   pdcch_grid_t::alloc_result_t dci_result;
   //  tti_alloc.get_pdcch_grid().result_to_string();
-  tti_alloc.get_pdcch_grid().get_allocs(&dci_result, &current_sf_result->pdcch_mask);
+  tti_alloc.get_pdcch_grid().get_allocs(&dci_result, &sf_result->pdcch_mask);
 
   /* Register final CFI */
-  dl_sched_result->cfi = tti_alloc.get_pdcch_grid().get_cfi();
+  sf_result->dl_sched_result.cfi = tti_alloc.get_pdcch_grid().get_cfi();
 
   /* Generate DCI formats and fill sched_result structs */
-  set_bc_sched_result(dci_result);
+  set_bc_sched_result(dci_result, &sf_result->dl_sched_result);
 
-  set_rar_sched_result(dci_result);
+  set_rar_sched_result(dci_result, &sf_result->dl_sched_result);
 
-  set_dl_data_sched_result(dci_result);
+  set_dl_data_sched_result(dci_result, &sf_result->dl_sched_result);
 
-  set_ul_sched_result(dci_result);
+  set_ul_sched_result(dci_result, &sf_result->ul_sched_result);
 
-  /* Store sf_sched results for this TTI */
-  last_sf_result          = current_sf_result;
-  last_sf_result->dl_mask = tti_alloc.get_dl_mask();
-  last_sf_result->ul_mask = tti_alloc.get_ul_mask();
+  /* Store remaining sf_sched results for this TTI */
+  sf_result->dl_mask    = tti_alloc.get_dl_mask();
+  sf_result->ul_mask    = tti_alloc.get_ul_mask();
+  sf_result->tti_params = tti_params;
 }
 
 uint32_t sf_sched::get_nof_ctrl_symbols() const
