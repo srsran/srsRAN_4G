@@ -359,7 +359,17 @@ public:
       sf_cfg_dl.cfi     = cfi;
       sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
 
-      nof_locations[i] = srslte_pdcch_ue_locations(&pdcch, &sf_cfg_dl, dci_locations[i], MAX_CANDIDATES_UE, ue_rnti);
+      uint32_t              _nof_locations                    = {};
+      srslte_dci_location_t _dci_locations[MAX_CANDIDATES_UE] = {};
+      _nof_locations = srslte_pdcch_ue_locations(&pdcch, &sf_cfg_dl, _dci_locations, MAX_CANDIDATES_UE, ue_rnti);
+
+      // Take L == 0 aggregation levels
+      for (uint32_t j = 0; j < _nof_locations && nof_locations[i] < MAX_CANDIDATES_UE; j++) {
+        if (_dci_locations[j].L == 0) {
+          dci_locations[i][nof_locations[i]] = _dci_locations[j];
+          nof_locations[i]++;
+        }
+      }
     }
     srslte_pdcch_free(&pdcch);
     srslte_regs_free(&regs);
@@ -561,8 +571,22 @@ public:
         }
       }
 
-      // Random decision on whether transmit or not (Do not give grants for TTI when SR shall be transmitted)
-      if (scell_idx < active_cell_list.size() and srslte_random_bool(random_gen, prob_ul_grant) and (tti % 20 != 0)) {
+      // Random decision on whether transmit or not
+      bool sched = srslte_random_bool(random_gen, prob_ul_grant);
+
+      sched &= (scell_idx < active_cell_list.size());
+
+      // RNTI needs to be valid
+      sched &= (ue_rnti != 0);
+
+      // Number of locations needs to be more than 2
+      sched &= (nof_locations[tti % SRSLTE_NOF_SF_X_FRAME] > 1);
+
+      // Avoid giving grants when SR is expected
+      sched &= (tti % 20 != 0);
+
+      // Schedule grant
+      if (sched) {
         uint32_t              tti_pdcch    = TTI_SUB(tti, TX_DELAY);
         uint32_t              location_idx = (tti_pdcch + 1) % nof_locations[tti_pdcch % SRSLTE_NOF_SF_X_FRAME];
         srslte_dci_location_t location     = dci_locations[tti_pdcch % SRSLTE_NOF_SF_X_FRAME][location_idx];
