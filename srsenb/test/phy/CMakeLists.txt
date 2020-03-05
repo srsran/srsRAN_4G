@@ -37,7 +37,7 @@ target_link_libraries(enb_phy_test
 #  - 128 Frames
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - maximum bandwidth 100
-add_test(enb_phy_test_1cell enb_phy_test --duration=128 --cell.nof_prb=100 )
+#add_test(enb_phy_test_1cell enb_phy_test --duration=128 --cell.nof_prb=100 )
 
 # Two carrier aggregation using PUCCH3
 #  - 128 frames
