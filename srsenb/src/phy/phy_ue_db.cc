@@ -464,7 +464,7 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
 
     // Rank indicator (TM3 and TM4)
     if (uci_cfg.cqi.ri_len) {
-      stack->ri_info(tti, cqi_cc_idx, rnti, uci_value.ri);
+      stack->ri_info(tti, rnti, cqi_cc_idx, uci_value.ri);
       cqi_scell_info.last_ri = uci_value.ri;
     }
 
