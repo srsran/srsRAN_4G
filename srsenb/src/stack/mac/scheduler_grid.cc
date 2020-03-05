@@ -826,7 +826,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
     }
 
     if (tbs <= 0) {
-      log_h->warning("SCHED: sched_cell_params[CARRIER_IDX].cfg %s rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d\n",
+      log_h->warning("SCHED: DL %s failed rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d\n",
                      is_newtx ? "tx" : "retx",
                      user->get_rnti(),
                      h->get_id(),
