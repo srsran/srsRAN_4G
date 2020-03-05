@@ -166,7 +166,9 @@ static uint32_t ra_re_x_prb(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, u
  * This function only writes grant->prb_idx and grant->nof_prb.
  */
 /** Compute PRB allocation for Downlink as defined in 7.1.6 of 36.213 */
-int srslte_ra_dl_grant_to_grant_prb_allocation(srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant, uint32_t nof_prb)
+int srslte_ra_dl_grant_to_grant_prb_allocation(const srslte_dci_dl_t* dci,
+                                               srslte_pdsch_grant_t*  grant,
+                                               uint32_t               nof_prb)
 {
   int      i, j;
   uint32_t bitmask;
@@ -373,7 +375,7 @@ int srslte_dl_fill_ra_mcs(srslte_ra_tb_t* tb, int last_tbs, uint32_t nprb, bool 
 
 /* Modulation order and transport block size determination 7.1.7 in 36.213
  * */
-static int dl_dci_compute_tb(bool pdsch_use_tbs_index_alt, srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
+static int dl_dci_compute_tb(bool pdsch_use_tbs_index_alt, const srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
 {
   uint32_t n_prb = 0;
   int      tbs   = -1;
@@ -469,7 +471,7 @@ void srslte_ra_dl_compute_nof_re(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* 
 
 /* Determine MIMO type based on number of cell ports and receive antennas, transport blocks and pinfo */
 static int
-config_mimo_type(const srslte_cell_t* cell, srslte_tm_t tm, srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
+config_mimo_type(const srslte_cell_t* cell, srslte_tm_t tm, const srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
 {
   grant->tx_scheme  = SRSLTE_TXSCHEME_PORT0;
   bool valid_config = true;
@@ -526,7 +528,7 @@ config_mimo_type(const srslte_cell_t* cell, srslte_tm_t tm, srslte_dci_dl_t* dci
 }
 
 /* Translates Precoding Information (pinfo) to Precoding matrix Index (pmi) as 3GPP 36.212 Table 5.3.3.1.5-4 */
-static int config_mimo_pmi(const srslte_cell_t* cell, srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
+static int config_mimo_pmi(const srslte_cell_t* cell, const srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
 {
   uint32_t nof_tb = grant->nof_tb;
   if (grant->tx_scheme == SRSLTE_TXSCHEME_SPATIALMUX) {
@@ -557,7 +559,7 @@ static int config_mimo_pmi(const srslte_cell_t* cell, srslte_dci_dl_t* dci, srsl
 }
 
 /* Determine number of MIMO layers */
-static int config_mimo_layers(const srslte_cell_t* cell, srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
+static int config_mimo_layers(const srslte_cell_t* cell, const srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
 {
   uint32_t nof_tb = grant->nof_tb;
   switch (grant->tx_scheme) {
@@ -600,7 +602,8 @@ static int config_mimo_layers(const srslte_cell_t* cell, srslte_dci_dl_t* dci, s
   return 0;
 }
 
-static int config_mimo(const srslte_cell_t* cell, srslte_tm_t tm, srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
+static int
+config_mimo(const srslte_cell_t* cell, srslte_tm_t tm, const srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
 {
 
   if (config_mimo_type(cell, tm, dci, grant)) {
@@ -627,12 +630,12 @@ static int config_mimo(const srslte_cell_t* cell, srslte_tm_t tm, srslte_dci_dl_
  **********/
 
 /** Compute the DL grant parameters  */
-int srslte_ra_dl_dci_to_grant(const srslte_cell_t*  cell,
-                              srslte_dl_sf_cfg_t*   sf,
-                              srslte_tm_t           tm,
-                              bool                  pdsch_use_tbs_index_alt,
-                              srslte_dci_dl_t*      dci,
-                              srslte_pdsch_grant_t* grant)
+int srslte_ra_dl_dci_to_grant(const srslte_cell_t*   cell,
+                              srslte_dl_sf_cfg_t*    sf,
+                              srslte_tm_t            tm,
+                              bool                   pdsch_use_tbs_index_alt,
+                              const srslte_dci_dl_t* dci,
+                              srslte_pdsch_grant_t*  grant)
 {
   bzero(grant, sizeof(srslte_pdsch_grant_t));
 
