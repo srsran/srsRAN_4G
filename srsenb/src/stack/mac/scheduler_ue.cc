@@ -349,9 +349,10 @@ void sched_ue::tpc_dec()
  * Allocate space for multiple MAC SDUs (i.e. RLC PDUs) and corresponding MAC SDU subheaders
  * @param data struct where the rlc pdu allocations are stored
  * @param total_tbs available TB size for allocations for a single UE
+ * @param tbidx index of TB
  * @return allocated bytes, which is always equal or lower than total_tbs
  */
-uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs)
+uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t tbidx)
 {
   // TS 36.321 sec 7.1.2 - MAC PDU subheader is 2 bytes if L<=128 and 3 otherwise
   auto      compute_subheader_size    = [](uint32_t sdu_size) { return sdu_size > 128 ? 3 : 2; };
@@ -361,12 +362,12 @@ uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uin
   // if we do not have enough bytes to fit MAC subheader and RLC header, skip MAC SDU allocation
   while (rem_tbs >= min_mac_sdu_size) {
     uint32_t max_sdu_bytes   = rem_tbs - compute_subheader_size(rem_tbs - 2);
-    uint32_t alloc_sdu_bytes = alloc_rlc_pdu(&data->pdu[0][data->nof_pdu_elems[0]], max_sdu_bytes);
+    uint32_t alloc_sdu_bytes = alloc_rlc_pdu(&data->pdu[tbidx][data->nof_pdu_elems[tbidx]], max_sdu_bytes);
     if (alloc_sdu_bytes == 0) {
       break;
     }
     rem_tbs -= (alloc_sdu_bytes + compute_subheader_size(alloc_sdu_bytes)); // account for MAC sub-header
-    data->nof_pdu_elems[0]++;
+    data->nof_pdu_elems[tbidx]++;
   }
 
   return total_tbs - rem_tbs;
@@ -443,7 +444,7 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
     }
 
     // Allocate MAC SDU and respective subheaders
-    allocate_mac_sdus(data, rem_tbs);
+    allocate_mac_sdus(data, rem_tbs, 0);
 
     Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
   } else {
@@ -550,7 +551,7 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
 
       h->new_tx(user_mask, tb, tti, mcs, tbs, data->dci.location.ncce);
 
-      allocate_mac_sdus(data, tbs);
+      allocate_mac_sdus(data, tbs, tb);
 
       Debug("SCHED: Alloc format2/2a new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
     }
