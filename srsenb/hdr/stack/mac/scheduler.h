@@ -50,38 +50,6 @@ inline bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
 
 } // namespace sched_utils
 
-//! structs to bundle together all the sched arguments, and share them with all the sched sub-components
-class sched_cell_params_t
-{
-  struct regs_deleter {
-    void operator()(srslte_regs_t* p)
-    {
-      if (p != nullptr) {
-        srslte_regs_free(p);
-        delete p;
-      }
-    }
-  };
-
-public:
-  bool set_cfg(uint32_t                             enb_cc_idx_,
-               const sched_interface::cell_cfg_t&   cfg_,
-               const sched_interface::sched_args_t& sched_args);
-  // convenience getters
-  uint32_t prb_to_rbg(uint32_t nof_prbs) const { return (nof_prbs + (P - 1)) / P; }
-  uint32_t nof_prb() const { return cfg.cell.nof_prb; }
-
-  uint32_t                                       enb_cc_idx = 0;
-  sched_interface::cell_cfg_t                    cfg        = {};
-  const sched_interface::sched_args_t*           sched_cfg  = nullptr;
-  std::unique_ptr<srslte_regs_t, regs_deleter>   regs;
-  std::array<sched_dci_cce_t, 3>                 common_locations = {};
-  std::array<std::array<sched_dci_cce_t, 10>, 3> rar_locations    = {};
-  std::array<uint32_t, 3>                        nof_cce_table    = {}; ///< map cfix -> nof cces in PDCCH
-  uint32_t                                       P                = 0;
-  uint32_t                                       nof_rbgs         = 0;
-};
-
 /* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
  * Rest of operations are thread-safe
  *
@@ -165,19 +133,6 @@ public:
   void            tpc_inc(uint16_t rnti);
   void            tpc_dec(uint16_t rnti);
   const ue_cfg_t* get_ue_cfg(uint16_t rnti) final;
-
-  // Static Methods
-  static uint32_t get_rvidx(uint32_t retx_idx)
-  {
-    const static int rv_idx[4] = {0, 2, 3, 1};
-    return rv_idx[retx_idx % 4];
-  }
-  static void     generate_cce_location(srslte_regs_t*   regs,
-                                        sched_dci_cce_t* location,
-                                        uint32_t         cfi,
-                                        uint32_t         sf_idx = 0,
-                                        uint16_t         rnti   = 0);
-  static uint32_t aggr_level(uint32_t aggr_idx) { return 1u << aggr_idx; }
 
   class carrier_sched;
 

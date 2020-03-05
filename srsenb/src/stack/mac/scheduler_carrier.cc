@@ -55,8 +55,8 @@ void bc_sched::dl_sched(sf_sched* tti_sched)
 void bc_sched::update_si_windows(sf_sched* tti_sched)
 {
   uint32_t tti_tx_dl      = tti_sched->get_tti_tx_dl();
-  uint32_t current_sf_idx = tti_sched->get_tti_params().sf_idx;
-  uint32_t current_sfn    = tti_sched->get_tti_params().sfn;
+  uint32_t current_sf_idx = tti_sched->get_tti_params().sf_idx_tx_dl;
+  uint32_t current_sfn    = tti_sched->get_tti_params().sfn_tx_dl;
 
   for (uint32_t i = 0; i < pending_sibs.size(); ++i) {
     // There is SIB data
@@ -94,8 +94,8 @@ void bc_sched::update_si_windows(sf_sched* tti_sched)
 
 void bc_sched::alloc_sibs(sf_sched* tti_sched)
 {
-  uint32_t current_sf_idx = tti_sched->get_tti_params().sf_idx;
-  uint32_t current_sfn    = tti_sched->get_tti_params().sfn;
+  uint32_t current_sf_idx = tti_sched->get_tti_params().sf_idx_tx_dl;
+  uint32_t current_sfn    = tti_sched->get_tti_params().sfn_tx_dl;
 
   for (uint32_t i = 0; i < pending_sibs.size(); i++) {
     if (cc_cfg->cfg.sibs[i].len > 0 and pending_sibs[i].is_in_window and pending_sibs[i].n_tx < 4) {

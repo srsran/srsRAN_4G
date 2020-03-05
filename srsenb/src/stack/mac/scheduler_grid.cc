@@ -48,10 +48,10 @@ const char* alloc_outcome_t::to_string() const
 
 tti_params_t::tti_params_t(uint32_t tti_rx_) :
   tti_rx(tti_rx_),
-  sf_idx(TTI_ADD(tti_rx, TX_DELAY) % 10),
+  sf_idx_tx_dl(TTI_ADD(tti_rx, TX_DELAY) % 10),
   tti_tx_dl(TTI_ADD(tti_rx, TX_DELAY)),
   tti_tx_ul(TTI_ADD(tti_rx, (TX_DELAY + FDD_HARQ_DELAY_MS))),
-  sfn(TTI_ADD(tti_rx, TX_DELAY) / 10)
+  sfn_tx_dl(TTI_ADD(tti_rx, TX_DELAY) / 10)
 {
 }
 
@@ -85,11 +85,11 @@ const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, 
     case alloc_type_t::DL_PCCH:
       return &cc_cfg->common_locations[current_cfix];
     case alloc_type_t::DL_RAR:
-      return &cc_cfg->rar_locations[current_cfix][tti_params->sf_idx];
+      return &cc_cfg->rar_locations[current_cfix][tti_params->sf_idx_tx_dl];
     case alloc_type_t::DL_DATA:
-      return user->get_locations(cc_cfg->enb_cc_idx, current_cfix + 1, tti_params->sf_idx);
+      return user->get_locations(cc_cfg->enb_cc_idx, current_cfix + 1, tti_params->sf_idx_tx_dl);
     case alloc_type_t::UL_DATA:
-      return user->get_locations(cc_cfg->enb_cc_idx, current_cfix + 1, tti_params->sf_idx);
+      return user->get_locations(cc_cfg->enb_cc_idx, current_cfix + 1, tti_params->sf_idx_tx_dl);
     default:
       break;
   }
@@ -482,7 +482,7 @@ sf_sched::ctrl_code_t sf_sched::alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_by
 alloc_outcome_t sf_sched::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
 {
   uint32_t    sib_len = cc_cfg->cfg.sibs[sib_idx].len;
-  uint32_t    rv      = sched::get_rvidx(sib_ntx);
+  uint32_t    rv      = sched_utils::get_rvidx(sib_ntx);
   ctrl_code_t ret     = alloc_dl_ctrl(aggr_lvl, sib_len, SRSLTE_SIRNTI);
   if (not ret.first) {
     Warning("SCHED: Could not allocate SIB=%d, L=%d, len=%d, cause=%s\n",

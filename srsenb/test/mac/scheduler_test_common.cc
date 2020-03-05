@@ -167,8 +167,8 @@ int output_sched_tester::test_pdsch_collisions(const tti_params_t&              
 int output_sched_tester::test_sib_scheduling(const tti_params_t&                    tti_params,
                                              const sched_interface::dl_sched_res_t& dl_result) const
 {
-  uint32_t sfn          = tti_params.sfn;
-  uint32_t sf_idx       = tti_params.sf_idx;
+  uint32_t sfn          = tti_params.sfn_tx_dl;
+  uint32_t sf_idx       = tti_params.sf_idx_tx_dl;
   bool     sib1_present = ((sfn % 2) == 0) and sf_idx == 5;
 
   using bc_elem     = const sched_interface::dl_sched_bc_t;

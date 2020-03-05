@@ -42,18 +42,7 @@ struct alloc_outcome_t {
   alloc_outcome_t(result_enum e) : result(e) {}
               operator result_enum() { return result; }
               operator bool() { return result == SUCCESS; }
-  const char* to_string() const;
-};
-
-//! Params relative to a single TTI
-struct tti_params_t {
-  uint32_t tti_rx;
-  uint32_t tti_tx_dl;
-  uint32_t tti_tx_ul;
-  uint32_t sf_idx;
-  uint32_t sfn;
-  explicit tti_params_t(uint32_t tti_rx_);
-  uint32_t tti_rx_ack_dl() const { return tti_tx_ul; }
+              const char* to_string() const;
 };
 
 //! Result of a Subframe sched computation

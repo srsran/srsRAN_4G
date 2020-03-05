@@ -22,8 +22,8 @@
 #ifndef SRSENB_SCHEDULER_UE_H
 #define SRSENB_SCHEDULER_UE_H
 
+#include "scheduler_common.h"
 #include "srslte/common/log.h"
-#include "srslte/interfaces/sched_interface.h"
 #include <map>
 #include <vector>
 
@@ -31,14 +31,6 @@
 #include <deque>
 
 namespace srsenb {
-
-class sched_cell_params_t;
-struct tti_params_t;
-
-struct sched_dci_cce_t {
-  uint32_t cce_start[4][6];
-  uint32_t nof_loc[4];
-};
 
 struct sched_ue_carrier {
   const static int SCHED_MAX_HARQ_PROC = TX_DELAY + FDD_HARQ_DELAY_MS;

@@ -464,7 +464,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
     dci->rnti          = rnti;
     dci->pid           = h->get_id();
     dci->tb[0].mcs_idx = (uint32_t)mcs;
-    dci->tb[0].rv      = sched::get_rvidx(h->nof_retx(0));
+    dci->tb[0].rv      = sched_utils::get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
 
     dci->tpc_pucch = (uint8_t)next_tpc_pucch;
@@ -572,7 +572,7 @@ int sched_ue::generate_format2a_unlocked(uint32_t                          pid,
     /* Fill DCI TB dedicated fields */
     if (tbs > 0 && tb_en[tb]) {
       dci->tb[tb].mcs_idx = (uint32_t)mcs;
-      dci->tb[tb].rv      = sched::get_rvidx(h->nof_retx(tb));
+      dci->tb[tb].rv      = sched_utils::get_rvidx(h->nof_retx(tb));
       if (!SRSLTE_DCI_IS_TB_EN(dci->tb[tb])) {
         dci->tb[tb].rv = 2;
       }
@@ -670,7 +670,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     dci->rnti            = rnti;
     dci->format          = SRSLTE_DCI_FORMAT0;
     dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.L, alloc.RB_start, cell.nof_prb);
-    dci->tb.rv           = sched::get_rvidx(h->nof_retx(0));
+    dci->tb.rv           = sched_utils::get_rvidx(h->nof_retx(0));
     if (!is_newtx && h->is_adaptive_retx()) {
       dci->tb.mcs_idx = 28 + dci->tb.rv;
     } else {
@@ -1100,7 +1100,7 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
   // Generate allowed CCE locations
   for (int cfi = 0; cfi < 3; cfi++) {
     for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
-      sched::generate_cce_location(cell_params->regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
+      sched_utils::generate_cce_location(cell_params->regs.get(), &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
     }
   }
 

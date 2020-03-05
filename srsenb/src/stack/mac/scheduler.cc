@@ -89,7 +89,7 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
 
   // Compute Common locations for DCI for each CFI
   for (uint32_t cfi = 0; cfi < 3; cfi++) {
-    sched::generate_cce_location(regs.get(), &common_locations[cfi], cfi + 1);
+    sched_utils::generate_cce_location(regs.get(), &common_locations[cfi], cfi + 1);
   }
   if (common_locations[sched_cfg->nof_ctrl_symbols - 1].nof_loc[2] == 0) {
     Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
@@ -102,7 +102,7 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   // Compute UE locations for RA-RNTI
   for (uint32_t cfi = 0; cfi < 3; cfi++) {
     for (uint32_t sf_idx = 0; sf_idx < 10; sf_idx++) {
-      sched::generate_cce_location(regs.get(), &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
+      sched_utils::generate_cce_location(regs.get(), &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
     }
   }
 
@@ -415,15 +415,15 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
 
 /*******************************************************
  *
- * Helper functions
+ * Helper functions and common data types
  *
  *******************************************************/
 
-void sched::generate_cce_location(srslte_regs_t*   regs_,
-                                  sched_dci_cce_t* location,
-                                  uint32_t         cfi,
-                                  uint32_t         sf_idx,
-                                  uint16_t         rnti)
+void sched_utils::generate_cce_location(srslte_regs_t*   regs_,
+                                        sched_dci_cce_t* location,
+                                        uint32_t         cfi,
+                                        uint32_t         sf_idx,
+                                        uint16_t         rnti)
 {
   *location = {};
 

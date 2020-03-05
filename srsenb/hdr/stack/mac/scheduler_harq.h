@@ -29,9 +29,6 @@
 
 namespace srsenb {
 
-// MASK used for CCE allocations
-typedef srslte::bounded_bitset<sched_interface::max_cce, true> pdcch_mask_t;
-
 // Range of RBGs
 class prb_range_t;
 struct rbg_range_t {
@@ -93,8 +90,6 @@ protected:
   srslte::log_ref log_h;
 };
 
-typedef srslte::bounded_bitset<25, true> rbgmask_t;
-
 class dl_harq_proc : public harq_proc
 {
 public:
@@ -146,8 +141,6 @@ private:
   bool       is_adaptive;
   ack_t      pending_ack;
 };
-
-typedef srslte::bounded_bitset<100, true> prbmask_t;
 
 class harq_entity
 {
