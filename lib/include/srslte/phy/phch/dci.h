@@ -215,10 +215,10 @@ SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_cell_t*      cell,
                                            srslte_dci_msg_t*   msg,
                                            srslte_dci_dl_t*    dci);
 
-SRSLTE_API uint32_t srslte_dci_format_sizeof(srslte_cell_t*      cell,
-                                             srslte_dl_sf_cfg_t* sf,
-                                             srslte_dci_cfg_t*   cfg,
-                                             srslte_dci_format_t format);
+SRSLTE_API uint32_t srslte_dci_format_sizeof(const srslte_cell_t* cell,
+                                             srslte_dl_sf_cfg_t*  sf,
+                                             srslte_dci_cfg_t*    cfg,
+                                             srslte_dci_format_t  format);
 
 SRSLTE_API void srslte_dci_dl_fprint(FILE* f, srslte_dci_dl_t* dci, uint32_t nof_prb);
 

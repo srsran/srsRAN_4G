@@ -342,9 +342,8 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_typ
 alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
-  uint32_t            nof_bits =
-      srslte_dci_format_sizeof(const_cast<srslte_cell_t*>(&cc_cfg->cfg.cell), nullptr, nullptr, dci_format);
-  uint32_t aggr_level = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
+  uint32_t            nof_bits   = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, dci_format);
+  uint32_t            aggr_level = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
   return alloc_dl(aggr_level, alloc_type_t::DL_DATA, user_mask, user);
 }
 
@@ -362,8 +361,7 @@ alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_
 
   // Generate PDCCH except for RAR and non-adaptive retx
   if (needs_pdcch) {
-    uint32_t nof_bits =
-        srslte_dci_format_sizeof(const_cast<srslte_cell_t*>(&cc_cfg->cfg.cell), nullptr, nullptr, SRSLTE_DCI_FORMAT0);
+    uint32_t nof_bits = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0);
     uint32_t aggr_idx = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
       if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {

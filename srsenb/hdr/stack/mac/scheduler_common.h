@@ -91,13 +91,13 @@ using prbmask_t = srslte::bounded_bitset<100, true>;
 
 namespace sched_utils {
 
-uint32_t aggr_level(uint32_t aggr_idx)
+inline uint32_t aggr_level(uint32_t aggr_idx)
 {
   return 1u << aggr_idx;
 }
 
 //! Obtain rvidx from nof retxs. This value is stored in DCI
-uint32_t get_rvidx(uint32_t retx_idx)
+inline uint32_t get_rvidx(uint32_t retx_idx)
 {
   const static uint32_t rv_idx[4] = {0, 2, 3, 1};
   return rv_idx[retx_idx % 4];

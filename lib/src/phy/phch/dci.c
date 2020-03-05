@@ -111,7 +111,7 @@ static bool is_ambiguous_size(uint32_t size)
 /**********************************
  *  PAYLOAD sizeof functions
  * ********************************/
-static uint32_t dci_format0_sizeof_(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format0_sizeof_(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   uint32_t n = 0;
 
@@ -156,7 +156,7 @@ static uint32_t dci_format0_sizeof_(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf,
   return n;
 }
 
-static uint32_t dci_format1A_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format1A_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   uint32_t n = 0;
 
@@ -202,7 +202,7 @@ static uint32_t dci_format1A_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf,
   return n;
 }
 
-static uint32_t dci_format0_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format0_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   uint32_t n = dci_format0_sizeof_(cell, sf, cfg);
   while (n < dci_format1A_sizeof(cell, sf, cfg)) {
@@ -211,7 +211,7 @@ static uint32_t dci_format0_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, 
   return n;
 }
 
-static uint32_t dci_format1_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format1_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
 
   uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 5 + HARQ_PID_LEN + 1 + 2 + 2 +
@@ -225,7 +225,7 @@ static uint32_t dci_format1_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, 
   return n;
 }
 
-static uint32_t dci_format1C_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format1C_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   uint32_t n_vrb_dl_gap1 = srslte_ra_type2_n_vrb_dl(cell->nof_prb, true);
   uint32_t n_step        = srslte_ra_type2_n_rb_step(cell->nof_prb);
@@ -246,7 +246,7 @@ static uint32_t tpmi_bits(uint32_t nof_ports)
   }
 }
 
-static uint32_t dci_format1B_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format1B_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   uint32_t n = 0;
 
@@ -292,7 +292,7 @@ static uint32_t dci_format1B_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf,
   return n;
 }
 
-static uint32_t dci_format1D_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format1D_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   // same size as format1B
   return dci_format1B_sizeof(cell, sf, cfg);
@@ -308,7 +308,7 @@ static uint32_t precoding_bits_f2(uint32_t nof_ports)
   }
 }
 
-static uint32_t dci_format2_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format2_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 2 + HARQ_PID_LEN + 1 +
                2 * (5 + 1 + 2) + precoding_bits_f2(cell->nof_ports) + (cfg->cif_enabled ? 3 : 0) + (IS_TDD ? 2 : 0);
@@ -331,7 +331,7 @@ static uint32_t precoding_bits_f2a(uint32_t nof_ports)
   }
 }
 
-static uint32_t dci_format2A_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format2A_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 2 + HARQ_PID_LEN + 1 +
                2 * (5 + 1 + 2) + precoding_bits_f2a(cell->nof_ports) + (cfg->cif_enabled ? 3 : 0) + (IS_TDD ? 2 : 0);
@@ -344,7 +344,7 @@ static uint32_t dci_format2A_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf,
   return n;
 }
 
-static uint32_t dci_format2B_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+static uint32_t dci_format2B_sizeof(const srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
   uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 2 + HARQ_PID_LEN + 1 +
                2 * (5 + 1 + 2) + (cfg->cif_enabled ? 3 : 0) + (IS_TDD ? 2 : 0);
@@ -357,8 +357,10 @@ static uint32_t dci_format2B_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf,
   return n;
 }
 
-uint32_t
-srslte_dci_format_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_format_t format)
+uint32_t srslte_dci_format_sizeof(const srslte_cell_t* cell,
+                                  srslte_dl_sf_cfg_t*  sf,
+                                  srslte_dci_cfg_t*    cfg,
+                                  srslte_dci_format_t  format)
 {
   srslte_dl_sf_cfg_t _sf;
   if (sf == NULL) {

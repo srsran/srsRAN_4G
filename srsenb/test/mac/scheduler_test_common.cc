@@ -303,14 +303,12 @@ int srsenb::extract_dl_prbmask(const srslte_cell_t&               cell,
                                srslte::bounded_bitset<100, true>* alloc_mask)
 {
   srslte_pdsch_grant_t grant;
-  srslte_dl_sf_cfg_t   dl_sf    = {};
-  srslte_dci_dl_t*     dci_dyn  = const_cast<srslte_dci_dl_t*>(&dci); // TODO
-  srslte_cell_t*       cell_dyn = const_cast<srslte_cell_t*>(&cell);
+  srslte_dl_sf_cfg_t   dl_sf = {};
 
   alloc_mask->resize(cell.nof_prb);
   alloc_mask->reset();
 
-  CONDERROR(srslte_ra_dl_dci_to_grant(cell_dyn, &dl_sf, SRSLTE_TM1, false, dci_dyn, &grant) == SRSLTE_ERROR,
+  CONDERROR(srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, false, &dci, &grant) == SRSLTE_ERROR,
             "Failed to decode PDSCH grant\n");
   for (uint32_t j = 0; j < alloc_mask->size(); ++j) {
     if (grant.prb_idx[0][j]) {
