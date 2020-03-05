@@ -401,7 +401,7 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
 
   std::lock_guard<std::mutex> lock(sched_mutex);
   // Compute scheduling Result for tti_rx
-  uint32_t tti_rx = sched_utils::tti_subtract(tti, 2 * FDD_HARQ_DELAY_MS);
+  uint32_t tti_rx = sched_utils::tti_subtract(tti, TX_DELAY + FDD_HARQ_DELAY_MS);
 
   if (cc_idx < carrier_schedulers.size()) {
     const sf_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);

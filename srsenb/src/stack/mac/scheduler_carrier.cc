@@ -378,7 +378,7 @@ void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
 
   // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
   if (cc_cfg->nof_prb() == 6) {
-    uint32_t tti_rx_ack = TTI_RX_ACK(tti_result->get_tti_rx());
+    uint32_t tti_rx_ack = tti_result->get_tti_params().tti_rx_ack_dl();
     if (srslte_prach_tti_opportunity_config_fdd(cc_cfg->cfg.prach_config, tti_rx_ack, -1)) {
       tti_result->reserve_dl_rbgs(0, cc_cfg->nof_rbgs);
     }

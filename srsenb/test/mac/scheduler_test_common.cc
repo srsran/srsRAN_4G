@@ -137,7 +137,7 @@ int output_sched_tester::test_pdsch_collisions(const tti_params_t&              
 
   // forbid Data in DL if it conflicts with PRACH for PRB==6
   if (cell_params.cfg.cell.nof_prb == 6) {
-    uint32_t tti_rx_ack = TTI_RX_ACK(tti_params.tti_rx);
+    uint32_t tti_rx_ack = tti_params.tti_rx_ack_dl();
     if (srslte_prach_tti_opportunity_config_fdd(cell_params.cfg.prach_config, tti_rx_ack, -1)) {
       dl_allocs.fill(0, dl_allocs.size());
     }

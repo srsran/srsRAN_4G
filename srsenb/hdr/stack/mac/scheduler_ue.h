@@ -41,7 +41,7 @@ struct sched_dci_cce_t {
 };
 
 struct sched_ue_carrier {
-  const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
+  const static int SCHED_MAX_HARQ_PROC = TX_DELAY + FDD_HARQ_DELAY_MS;
 
   sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
                    const sched_cell_params_t&       cell_cfg_,

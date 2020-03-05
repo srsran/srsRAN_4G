@@ -53,6 +53,7 @@ struct tti_params_t {
   uint32_t sf_idx;
   uint32_t sfn;
   explicit tti_params_t(uint32_t tti_rx_);
+  uint32_t tti_rx_ack_dl() const { return tti_tx_ul; }
 };
 
 //! Result of a Subframe sched computation
