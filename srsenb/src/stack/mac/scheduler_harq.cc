@@ -303,4 +303,49 @@ uint32_t ul_harq_proc::get_pending_data() const
   return (uint32_t)pending_data;
 }
 
+/********************
+ *   Harq Entity
+ *******************/
+
+dl_harq_proc* dl_harq_entity::get_empty_harq(uint32_t tti_tx_dl)
+{
+  if (not is_async) {
+    dl_harq_proc* h = &(*this)[tti_tx_dl % size()];
+    return h->is_empty() ? h : nullptr;
+  }
+
+  auto it = std::find_if(begin(), end(), [](dl_harq_proc& h) { return h.is_empty(); });
+  return it != end() ? &(*it) : nullptr;
+}
+
+dl_harq_proc* dl_harq_entity::get_pending_harq(uint32_t tti_tx_dl)
+{
+  if (not is_async) {
+    dl_harq_proc* h = &(*this)[tti_tx_dl % size()];
+    return (h->has_pending_retx(0, tti_tx_dl) or h->has_pending_retx(1, tti_tx_dl)) ? h : nullptr;
+  }
+  return get_oldest_harq(tti_tx_dl);
+}
+
+/**
+ * Get the oldest DL Harq Proc that has pending retxs
+ * @param tti_tx_dl assumed to always be equal or ahead in time in comparison to current harqs
+ * @return pointer to found dl_harq
+ */
+dl_harq_proc* dl_harq_entity::get_oldest_harq(uint32_t tti_tx_dl)
+{
+  int      oldest_idx = -1;
+  uint32_t oldest_tti = 0;
+  for (const dl_harq_proc& h : *this) {
+    if (h.has_pending_retx(0, tti_tx_dl) or h.has_pending_retx(1, tti_tx_dl)) {
+      uint32_t x = srslte_tti_interval(tti_tx_dl, h.get_tti());
+      if (x > oldest_tti) {
+        oldest_idx = h.get_id();
+        oldest_tti = x;
+      }
+    }
+  }
+  return (oldest_idx >= 0) ? &(*this)[oldest_idx] : nullptr;
+}
+
 } // namespace srsenb

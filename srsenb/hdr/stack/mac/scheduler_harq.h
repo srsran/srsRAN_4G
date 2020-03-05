@@ -149,6 +149,40 @@ private:
 
 typedef srslte::bounded_bitset<100, true> prbmask_t;
 
+class dl_harq_entity : private std::vector<dl_harq_proc>
+{
+  using base_t = std::vector<dl_harq_proc>;
+
+public:
+  static const bool is_async = ASYNC_DL_SCHED;
+
+  using base_t::const_iterator;
+  using base_t::iterator;
+  using base_t::operator[];
+  using base_t::begin;
+  using base_t::data;
+  using base_t::end;
+  using base_t::size;
+
+  explicit dl_harq_entity(size_t nof_harqs) : base_t(nof_harqs) {}
+
+  /**
+   * Get the DL harq proc based on tti_tx_dl
+   * @param tti_tx_dl assumed to always be equal or ahead in time in comparison to current harqs
+   * @return pointer to found dl_harq
+   */
+  dl_harq_proc* get_pending_harq(uint32_t tti_tx_dl);
+  /**
+   * Get empty DL Harq
+   * @param tti_tx_dl only used in case of sync dl sched
+   * @return pointer to found dl_harq
+   */
+  dl_harq_proc* get_empty_harq(uint32_t tti_tx_dl);
+
+private:
+  dl_harq_proc* get_oldest_harq(uint32_t tti_tx_dl);
+};
+
 } // namespace srsenb
 
 #endif // SRSENB_SCHEDULER_HARQ_H
