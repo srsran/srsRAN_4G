@@ -51,10 +51,12 @@ namespace bpo = boost::program_options;
  *  Local static variables
  ***********************************************************************/
 
-static int             sigcnt         = 0;
-static bool            running        = true;
-static bool            do_metrics     = false;
-static metrics_stdout* metrics_screen = nullptr;
+#define UE_STOP_TIMEOUT_S (3)
+
+static srslte::logger_file logger_file;
+static bool                running        = true;
+static bool                do_metrics     = false;
+static metrics_stdout*     metrics_screen = nullptr;
 
 /**********************************************************************
  *  Program arguments processing
@@ -513,13 +515,19 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   return SRSLTE_SUCCESS;
 }
 
-static void sig_int_handler(int)
+static void sig_handler(int signal)
 {
-  sigcnt++;
-  running = false;
-  cout << "Stopping srsUE... Press Ctrl+C " << (10 - sigcnt) << " more times to force stop" << endl;
-  if (sigcnt >= 10) {
-    exit(-1);
+  switch (signal) {
+    case SIGALRM:
+      fprintf(stderr, "Couldn't stop after %ds. Forcing exit.\n", UE_STOP_TIMEOUT_S);
+      logger_file.stop();
+      exit(-1);
+    default:
+      // all other registered signal try to stop UE gracefully
+      running = false;
+      cout << "Stopping srsUE ..." << endl;
+      alarm(UE_STOP_TIMEOUT_S);
+      break;
   }
 }
 
@@ -546,7 +554,8 @@ static void* input_loop(void*)
         simulate_rlf = true;
         cout << "Sending Radio Link Failure" << endl;
       } else if (key == "q") {
-        running = false;
+        // let the signal handler do the job
+        raise(SIGTERM);
       }
     }
   }
@@ -555,9 +564,10 @@ static void* input_loop(void*)
 
 int main(int argc, char* argv[])
 {
-  signal(SIGINT, sig_int_handler);
-  signal(SIGTERM, sig_int_handler);
-  signal(SIGHUP, sig_int_handler);
+  signal(SIGINT, sig_handler);
+  signal(SIGTERM, sig_handler);
+  signal(SIGHUP, sig_handler);
+  signal(SIGALRM, sig_handler);
   srslte_debug_handle_crash(argc, argv);
 
   all_args_t args = {};
@@ -567,7 +577,6 @@ int main(int argc, char* argv[])
   }
 
   srslte::logger_stdout logger_stdout;
-  srslte::logger_file   logger_file;
 
   // Setup logging
   srslte::logger* logger = nullptr;
