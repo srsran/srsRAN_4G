@@ -333,6 +333,7 @@ void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t cc_idx, const srslte_dci_
   pdsch_ack_m.resource.v_dai_dl      = 0;      ///< Ignore for FDD
   pdsch_ack_m.resource.n_cce         = dci.location.ncce;
   pdsch_ack_m.resource.tpc_for_pucch = dci.tpc_pucch;
+  pdsch_ack_m.resource.grant_cc_idx  = scell_idx;
 
   // Set TB info
   for (uint32_t i = 0; i < srslte_dci_format_max_tb(dci.format); i++) {
