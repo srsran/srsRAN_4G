@@ -36,7 +36,6 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/phy/utils/debug.h"
-#include "srslte/radio/radio.h"
 
 #include "scheduler_test_common.h"
 #include "scheduler_test_utils.h"
@@ -176,8 +175,8 @@ void sched_tester::before_sched()
     tti_data.total_ues.has_ul_newtx |= d.has_ul_newtx;
 
     for (uint32_t i = 0; i < 2 * FDD_HARQ_DELAY_MS; ++i) {
-      const srsenb::dl_harq_proc* h      = user->get_dl_harq(i, CARRIER_IDX);
-      tti_data.ue_data[rnti].dl_harqs[i] = *h;
+      const srsenb::dl_harq_proc& h      = user->get_dl_harq(i, CARRIER_IDX);
+      tti_data.ue_data[rnti].dl_harqs[i] = h;
     }
     // NOTE: ACK might have just cleared the harq for tti_info.tti_params.tti_tx_ul
     tti_data.ue_data[rnti].ul_harq = *user->get_ul_harq(tti_info.tti_params.tti_tx_ul, CARRIER_IDX);
@@ -284,24 +283,23 @@ int sched_tester::test_harqs()
     const auto&                 data = tti_info.dl_sched_result[CARRIER_IDX].data[i];
     uint32_t                    h_id = data.dci.pid;
     uint16_t                    rnti = data.dci.rnti;
-    const srsenb::dl_harq_proc* h    = ue_db[rnti].get_dl_harq(h_id, CARRIER_IDX);
-    CONDERROR(h == nullptr, "scheduled DL harq pid=%d does not exist\n", h_id);
-    CONDERROR(h->is_empty(), "Cannot schedule an empty harq proc\n");
-    CONDERROR(h->get_tti() != tti_info.tti_params.tti_tx_dl,
+    const srsenb::dl_harq_proc& h    = ue_db[rnti].get_dl_harq(h_id, CARRIER_IDX);
+    CONDERROR(h.is_empty(), "Cannot schedule an empty harq proc\n");
+    CONDERROR(h.get_tti() != tti_info.tti_params.tti_tx_dl,
               "The scheduled DL harq pid=%d does not a valid tti=%u\n",
               h_id,
               tti_info.tti_params.tti_tx_dl);
-    CONDERROR(h->get_n_cce() != data.dci.location.ncce, "Harq DCI location does not match with result\n");
+    CONDERROR(h.get_n_cce() != data.dci.location.ncce, "Harq DCI location does not match with result\n");
     if (tti_data.ue_data[rnti].dl_harqs[h_id].has_pending_retx(0, tti_info.tti_params.tti_tx_dl)) { // retx
-      CONDERROR(tti_data.ue_data[rnti].dl_harqs[h_id].nof_retx(0) + 1 != h->nof_retx(0),
+      CONDERROR(tti_data.ue_data[rnti].dl_harqs[h_id].nof_retx(0) + 1 != h.nof_retx(0),
                 "A dl harq of user rnti=0x%x was likely overwritten.\n",
                 rnti);
-      CONDERROR(h->nof_retx(0) >= sim_args0.ue_cfg.maxharq_tx,
+      CONDERROR(h.nof_retx(0) >= sim_args0.ue_cfg.maxharq_tx,
                 "The number of retx=%d exceeded its max=%d\n",
-                h->nof_retx(0),
+                h.nof_retx(0),
                 sim_args0.ue_cfg.maxharq_tx);
     } else { // newtx
-      CONDERROR(h->nof_retx(0) != 0, "A new harq was scheduled but with invalid number of retxs\n");
+      CONDERROR(h.nof_retx(0) != 0, "A new harq was scheduled but with invalid number of retxs\n");
     }
   }
 
@@ -362,11 +360,11 @@ int sched_tester::test_harqs()
   if (check_old_pids) {
     for (auto& user : ue_db) {
       for (int i = 0; i < 2 * FDD_HARQ_DELAY_MS; i++) {
-        if (not(user.second.get_dl_harq(i, CARRIER_IDX)->is_empty(0) and user.second.get_dl_harq(1, CARRIER_IDX))) {
-          if (srslte_tti_interval(tti_info.tti_params.tti_tx_dl, user.second.get_dl_harq(i, CARRIER_IDX)->get_tti()) >
+        if (not user.second.get_dl_harq(i, CARRIER_IDX).is_empty(0)) {
+          if (srslte_tti_interval(tti_info.tti_params.tti_tx_dl, user.second.get_dl_harq(i, CARRIER_IDX).get_tti()) >
               49) {
             TESTERROR(
-                "The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i, CARRIER_IDX)->get_id(), user.first);
+                "The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i, CARRIER_IDX).get_id(), user.first);
           }
         }
       }

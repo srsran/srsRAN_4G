@@ -150,9 +150,9 @@ void harq_proc::new_retx_common(uint32_t tb_idx, uint32_t tti_, int* mcs, int* t
 void harq_proc::reset_pending_data_common()
 {
   // reuse harqs with no retxs
-  if (max_retx == 0 and !is_empty()) {
-    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; ++tb) {
-      active[tb] = false;
+  if (max_retx == 0 and not is_empty()) {
+    for (bool& tb : active) {
+      tb = false;
     }
   }
 }
@@ -220,10 +220,9 @@ rbgmask_t dl_harq_proc::get_rbgmask() const
   return rbgmask;
 }
 
-bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t current_tti) const
+bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t tti_tx_dl) const
 {
-  uint32_t tti_diff = srslte_tti_interval(current_tti, tti);
-  // NOTE: tti may be ahead of current_tti due to thread flip
+  uint32_t tti_diff = srslte_tti_interval(tti_tx_dl, tti);
   return (tti_diff < (10240 / 2)) and (tti_diff >= SRSLTE_FDD_NOF_HARQ) and has_pending_retx_common(tb_idx);
 }
 
@@ -307,24 +306,105 @@ uint32_t ul_harq_proc::get_pending_data() const
  *   Harq Entity
  *******************/
 
-dl_harq_proc* dl_harq_entity::get_empty_harq(uint32_t tti_tx_dl)
+harq_entity::harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs) :
+  dl_harqs(nof_dl_harqs),
+  ul_harqs(nof_ul_harqs),
+  log_h(srslte::logmap::get("MAC "))
+{
+  for (uint32_t i = 0; i < dl_harqs.size(); ++i) {
+    dl_harqs[i].init(i);
+  }
+  for (uint32_t i = 0; i < ul_harqs.size(); ++i) {
+    ul_harqs[i].init(i);
+  }
+}
+
+void harq_entity::reset()
+{
+  for (auto& h : dl_harqs) {
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      h.reset(tb);
+    }
+  }
+  for (auto& h : ul_harqs) {
+    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+      h.reset(tb);
+    }
+  }
+}
+
+void harq_entity::set_cfg(uint32_t max_retx)
+{
+  for (auto& h : dl_harqs) {
+    h.set_cfg(max_retx);
+  }
+  for (auto& h : ul_harqs) {
+    h.set_cfg(max_retx);
+  }
+}
+
+dl_harq_proc* harq_entity::get_empty_dl_harq(uint32_t tti_tx_dl)
 {
   if (not is_async) {
-    dl_harq_proc* h = &(*this)[tti_tx_dl % size()];
+    dl_harq_proc* h = &dl_harqs[tti_tx_dl % nof_dl_harqs()];
     return h->is_empty() ? h : nullptr;
   }
 
-  auto it = std::find_if(begin(), end(), [](dl_harq_proc& h) { return h.is_empty(); });
-  return it != end() ? &(*it) : nullptr;
+  auto it = std::find_if(dl_harqs.begin(), dl_harqs.end(), [](dl_harq_proc& h) { return h.is_empty(); });
+  return it != dl_harqs.end() ? &(*it) : nullptr;
 }
 
-dl_harq_proc* dl_harq_entity::get_pending_harq(uint32_t tti_tx_dl)
+dl_harq_proc* harq_entity::get_pending_dl_harq(uint32_t tti_tx_dl)
 {
   if (not is_async) {
-    dl_harq_proc* h = &(*this)[tti_tx_dl % size()];
+    dl_harq_proc* h = &dl_harqs[tti_tx_dl % nof_dl_harqs()];
     return (h->has_pending_retx(0, tti_tx_dl) or h->has_pending_retx(1, tti_tx_dl)) ? h : nullptr;
   }
-  return get_oldest_harq(tti_tx_dl);
+  return get_oldest_dl_harq(tti_tx_dl);
+}
+
+std::pair<uint32_t, int> harq_entity::set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack)
+{
+  for (auto& h : dl_harqs) {
+    if (TTI_TX(h.get_tti()) == tti_rx) {
+      h.set_ack(tb_idx, ack);
+      return {h.get_id(), h.get_tbs(tb_idx)};
+    }
+  }
+  return {dl_harqs.size(), -1};
+}
+
+ul_harq_proc* harq_entity::get_ul_harq(uint32_t tti_tx_ul)
+{
+  return &ul_harqs[tti_tx_ul % ul_harqs.size()];
+}
+
+void harq_entity::reset_pending_data(uint32_t tti_rx)
+{
+  uint32_t tti_tx_ul = TTI_RX_ACK(tti_rx);
+  uint32_t tti_tx_dl = TTI_TX(tti_rx);
+
+  // Reset ACK state of UL Harq
+  get_ul_harq(tti_tx_ul)->reset_pending_data();
+
+  // Reset any DL harq which has 0 retxs
+  for (auto& h : dl_harqs) {
+    h.reset_pending_data();
+  }
+
+  // delete old DL harq procs
+  for (auto& h : dl_harqs) {
+    if (not h.is_empty()) {
+      uint32_t tti_diff = srslte_tti_interval(tti_tx_dl, h.get_tti());
+      if (tti_diff > 100 and tti_diff < 10240 / 2) {
+        srslte::logmap::get("MAC")->info(
+            "SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n", h.get_id(), h.get_tti(), tti_tx_dl);
+        for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+          h.reset(tb);
+        }
+      }
+    }
+  }
 }
 
 /**
@@ -332,11 +412,11 @@ dl_harq_proc* dl_harq_entity::get_pending_harq(uint32_t tti_tx_dl)
  * @param tti_tx_dl assumed to always be equal or ahead in time in comparison to current harqs
  * @return pointer to found dl_harq
  */
-dl_harq_proc* dl_harq_entity::get_oldest_harq(uint32_t tti_tx_dl)
+dl_harq_proc* harq_entity::get_oldest_dl_harq(uint32_t tti_tx_dl)
 {
   int      oldest_idx = -1;
   uint32_t oldest_tti = 0;
-  for (const dl_harq_proc& h : *this) {
+  for (const dl_harq_proc& h : dl_harqs) {
     if (h.has_pending_retx(0, tti_tx_dl) or h.has_pending_retx(1, tti_tx_dl)) {
       uint32_t x = srslte_tti_interval(tti_tx_dl, h.get_tti());
       if (x > oldest_tti) {
@@ -345,7 +425,7 @@ dl_harq_proc* dl_harq_entity::get_oldest_harq(uint32_t tti_tx_dl)
       }
     }
   }
-  return (oldest_idx >= 0) ? &(*this)[oldest_idx] : nullptr;
+  return (oldest_idx >= 0) ? &dl_harqs[oldest_idx] : nullptr;
 }
 
 } // namespace srsenb

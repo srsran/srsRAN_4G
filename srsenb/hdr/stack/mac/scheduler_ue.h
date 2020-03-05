@@ -50,14 +50,6 @@ struct sched_ue_carrier {
   void reset();
   void set_cfg(const sched_interface::ue_cfg_t& cfg); ///< reconfigure ue carrier
 
-  // Harq access
-  void          reset_old_pending_pids(uint32_t tti_rx);
-  dl_harq_proc* get_pending_dl_harq(uint32_t tti_tx_dl);
-  dl_harq_proc* get_empty_dl_harq(uint32_t tti_tx_dl);
-  int           set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack);
-  ul_harq_proc* get_ul_harq(uint32_t tti);
-  uint32_t      get_pending_ul_old_data();
-
   uint32_t                   get_aggr_level(uint32_t nof_bits);
   int                        alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
   int                        alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
@@ -67,8 +59,7 @@ struct sched_ue_carrier {
   bool                       is_active() const { return active; }
   void                       update_cell_activity();
 
-  std::array<dl_harq_proc, SCHED_MAX_HARQ_PROC> dl_harq = {};
-  std::array<ul_harq_proc, SCHED_MAX_HARQ_PROC> ul_harq = {};
+  harq_entity harq_ent;
 
   uint32_t dl_ri      = 0;
   uint32_t dl_ri_tti  = 0;
@@ -121,7 +112,6 @@ public:
   void ul_phr(int phr);
   void mac_buffer_state(uint32_t ce_code);
   void ul_recv_len(uint32_t lcid, uint32_t len);
-  void set_dl_ant_info(const sched_interface::ant_info_ded_t& dedicated);
 
   void set_ul_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code);
   void set_dl_ri(uint32_t tti, uint32_t enb_cc_idx, uint32_t ri);
@@ -137,8 +127,7 @@ public:
   void tpc_inc();
   void tpc_dec();
 
-  dl_harq_proc*                    find_dl_harq(uint32_t tti_rx, uint32_t cc_idx);
-  dl_harq_proc*                    get_dl_harq(uint32_t idx, uint32_t cc_idx);
+  const dl_harq_proc&              get_dl_harq(uint32_t idx, uint32_t cc_idx) const;
   uint16_t                         get_rnti() const { return rnti; }
   std::pair<bool, uint32_t>        get_cell_index(uint32_t enb_cc_idx) const;
   const sched_interface::ue_cfg_t& get_ue_cfg() const { return cfg; }
@@ -155,7 +144,6 @@ public:
   uint32_t get_pending_ul_old_data(uint32_t cc_idx);
   uint32_t get_pending_dl_new_data_total();
 
-  void          reset_pending_pids(uint32_t tti_rx, uint32_t cc_idx);
   dl_harq_proc* get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx);
   dl_harq_proc* get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx);
   ul_harq_proc* get_ul_harq(uint32_t tti, uint32_t cc_idx);
@@ -175,19 +163,19 @@ public:
 
   void set_needs_ta_cmd(uint32_t nof_ta_cmd);
 
-  int generate_format1(dl_harq_proc*                     h,
+  int generate_format1(uint32_t                          pid,
                        sched_interface::dl_sched_data_t* data,
                        uint32_t                          tti,
                        uint32_t                          cc_idx,
                        uint32_t                          cfi,
                        const rbgmask_t&                  user_mask);
-  int generate_format2a(dl_harq_proc*                     h,
+  int generate_format2a(uint32_t                          pid,
                         sched_interface::dl_sched_data_t* data,
                         uint32_t                          tti,
                         uint32_t                          cc_idx,
                         uint32_t                          cfi,
                         const rbgmask_t&                  user_mask);
-  int generate_format2(dl_harq_proc*                     h,
+  int generate_format2(uint32_t                          pid,
                        sched_interface::dl_sched_data_t* data,
                        uint32_t                          tti,
                        uint32_t                          cc_idx,
@@ -245,7 +233,7 @@ private:
 
   bool needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_send = false);
 
-  int generate_format2a_unlocked(dl_harq_proc*                     h,
+  int generate_format2a_unlocked(uint32_t                          pid,
                                  sched_interface::dl_sched_data_t* data,
                                  uint32_t                          tti,
                                  uint32_t                          cc_idx,
@@ -280,8 +268,7 @@ private:
 
   bool phy_config_dedicated_enabled = false;
 
-  sched_interface::ant_info_ded_t dl_ant_info;
-  std::vector<sched_ue_carrier>   carriers; ///< map of UE CellIndex to carrier configuration
+  std::vector<sched_ue_carrier> carriers; ///< map of UE CellIndex to carrier configuration
 
   // Control Element Command queue
   struct ce_cmd {

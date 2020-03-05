@@ -661,9 +661,9 @@ bool sf_sched::alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_s
   if (h->has_pending_ack()) {
     phich_list.phich = h->get_pending_ack() ? phich_t::ACK : phich_t::NACK;
     phich_list.rnti  = user->get_rnti();
-    log_h->info("SCHED: Allocated PHICH for rnti=0x%x, value=%s\n",
-                user->get_rnti(),
-                phich_list.phich == phich_t::ACK ? "ACK" : "NACK");
+    log_h->debug("SCHED: Allocated PHICH for rnti=0x%x, value=%s\n",
+                 user->get_rnti(),
+                 phich_list.phich == phich_t::ACK ? "ACK" : "NACK");
 
     ul_sf_result->nof_phich_elems++;
     return true;
@@ -805,21 +805,24 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
     // Generate DCI Format1/2/2A
     sched_ue*           user        = data_alloc.user_ptr;
     uint32_t            cell_index  = user->get_cell_index(cc_cfg->enb_cc_idx).second;
-    dl_harq_proc*       h           = user->get_dl_harq(data_alloc.pid, cell_index);
     uint32_t            data_before = user->get_pending_dl_new_data();
     srslte_dci_format_t dci_format  = user->get_dci_format();
-    bool                is_newtx    = h->is_empty();
+    const dl_harq_proc& dl_harq     = user->get_dl_harq(data_alloc.pid, cell_index);
+    bool                is_newtx    = dl_harq.is_empty();
 
     int tbs = 0;
     switch (dci_format) {
       case SRSLTE_DCI_FORMAT1:
-        tbs = user->generate_format1(h, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format1(
+            data_alloc.pid, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
         break;
       case SRSLTE_DCI_FORMAT2:
-        tbs = user->generate_format2(h, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format2(
+            data_alloc.pid, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
         break;
       case SRSLTE_DCI_FORMAT2A:
-        tbs = user->generate_format2a(h, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format2a(
+            data_alloc.pid, data, get_tti_tx_dl(), cell_index, tti_alloc.get_cfi(), data_alloc.user_mask);
         break;
       default:
         Error("DCI format (%d) not implemented\n", dci_format);
@@ -829,7 +832,7 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
       log_h->warning("SCHED: DL %s failed rnti=0x%x, pid=%d, mask=%s, tbs=%d, buffer=%d\n",
                      is_newtx ? "tx" : "retx",
                      user->get_rnti(),
-                     h->get_id(),
+                     data_alloc.pid,
                      data_alloc.user_mask.to_hex().c_str(),
                      tbs,
                      user->get_pending_dl_new_data());
@@ -841,11 +844,11 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
                 !is_newtx ? "retx" : "tx",
                 user->get_rnti(),
                 cc_cfg->enb_cc_idx,
-                h->get_id(),
+                data_alloc.pid,
                 data_alloc.user_mask.to_hex().c_str(),
                 data->dci.location.L,
                 data->dci.location.ncce,
-                h->nof_retx(0) + h->nof_retx(1),
+                dl_harq.nof_retx(0) + dl_harq.nof_retx(1),
                 tbs,
                 data_before,
                 user->get_pending_dl_new_data());

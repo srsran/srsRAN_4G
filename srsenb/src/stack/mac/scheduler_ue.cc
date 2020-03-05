@@ -238,12 +238,18 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
   return false;
 }
 
-int sched_ue::set_ack_info(uint32_t tti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
+int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int  ret = -1;
   auto p   = get_cell_index(enb_cc_idx);
   if (p.first) {
-    ret = carriers[p.second].set_ack_info(tti, tb_idx, ack);
+    std::pair<uint32_t, int> p2 = carriers[p.second].harq_ent.set_ack_info(tti_rx, tb_idx, ack);
+    ret                         = p2.second;
+    if (ret > 0) {
+      Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, p2.first, tb_idx, tti_rx);
+    } else {
+      Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti_rx);
+    }
   } else {
     log_h->warning("Received DL ACK for invalid cell index %d\n", enb_cc_idx);
   }
@@ -376,13 +382,14 @@ uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uin
 
 // Generates a Format1 dci
 // > return 0 if allocation is invalid
-int sched_ue::generate_format1(dl_harq_proc*                     h,
+int sched_ue::generate_format1(uint32_t                          pid,
                                sched_interface::dl_sched_data_t* data,
                                uint32_t                          tti_tx_dl,
                                uint32_t                          cc_idx,
                                uint32_t                          cfi,
                                const rbgmask_t&                  user_mask)
 {
+  dl_harq_proc*    h   = &carriers[cc_idx].harq_ent.dl_harq_procs()[pid];
   srslte_dci_dl_t* dci = &data->dci;
 
   int mcs = 0;
@@ -471,26 +478,27 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
 }
 
 // Generates a Format2a dci
-int sched_ue::generate_format2a(dl_harq_proc*                     h,
+int sched_ue::generate_format2a(uint32_t                          pid,
                                 sched_interface::dl_sched_data_t* data,
                                 uint32_t                          tti,
                                 uint32_t                          cc_idx,
                                 uint32_t                          cfi,
                                 const rbgmask_t&                  user_mask)
 {
-  int ret = generate_format2a_unlocked(h, data, tti, cc_idx, cfi, user_mask);
+  int ret = generate_format2a_unlocked(pid, data, tti, cc_idx, cfi, user_mask);
   return ret;
 }
 
 // Generates a Format2a dci
-int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
+int sched_ue::generate_format2a_unlocked(uint32_t                          pid,
                                          sched_interface::dl_sched_data_t* data,
                                          uint32_t                          tti,
                                          uint32_t                          cc_idx,
                                          uint32_t                          cfi,
                                          const rbgmask_t&                  user_mask)
 {
-  bool tb_en[SRSLTE_MAX_TB] = {false};
+  dl_harq_proc* h                    = &carriers[cc_idx].harq_ent.dl_harq_procs()[pid];
+  bool          tb_en[SRSLTE_MAX_TB] = {false};
 
   srslte_dci_dl_t* dci = &data->dci;
 
@@ -589,7 +597,7 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
 }
 
 // Generates a Format2 dci
-int sched_ue::generate_format2(dl_harq_proc*                     h,
+int sched_ue::generate_format2(uint32_t                          pid,
                                sched_interface::dl_sched_data_t* data,
                                uint32_t                          tti,
                                uint32_t                          cc_idx,
@@ -597,7 +605,7 @@ int sched_ue::generate_format2(dl_harq_proc*                     h,
                                const rbgmask_t&                  user_mask)
 {
   /* Call Format 2a (common) */
-  int ret = generate_format2a_unlocked(h, data, tti, cc_idx, cfi, user_mask);
+  int ret = generate_format2a_unlocked(pid, data, tti, cc_idx, cfi, user_mask);
 
   /* Compute precoding information */
   data->dci.format = SRSLTE_DCI_FORMAT2;
@@ -704,7 +712,7 @@ uint32_t sched_ue::get_max_retx()
 bool sched_ue::is_first_dl_tx()
 {
   for (const sched_ue_carrier& c : carriers) {
-    for (auto& h : c.dl_harq) {
+    for (const auto& h : c.harq_ent.dl_harq_procs()) {
       if (h.nof_tx(0) > 0) {
         return false;
       }
@@ -836,7 +844,11 @@ uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
 // Private lock-free implementation
 uint32_t sched_ue::get_pending_ul_old_data_unlocked(uint32_t cc_idx)
 {
-  return carriers[cc_idx].get_pending_ul_old_data();
+  uint32_t pending_data = 0;
+  for (auto& h : carriers[cc_idx].harq_ent.ul_harq_procs()) {
+    pending_data += h.get_pending_data();
+  }
+  return pending_data;
 }
 
 uint32_t sched_ue::get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint32_t nof_ctrl_symbols)
@@ -891,16 +903,11 @@ bool sched_ue::is_sr_triggered()
   return sr;
 }
 
-void sched_ue::reset_pending_pids(uint32_t tti_rx, uint32_t cc_idx)
-{
-  carriers[cc_idx].reset_old_pending_pids(tti_rx);
-}
-
 /* Gets HARQ process with oldest pending retx */
 dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx)
 {
   if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].is_active()) {
-    return carriers[ue_cc_idx].get_pending_dl_harq(tti_tx_dl);
+    return carriers[ue_cc_idx].harq_ent.get_pending_dl_harq(tti_tx_dl);
   }
   return nullptr;
 }
@@ -908,7 +915,7 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_i
 dl_harq_proc* sched_ue::get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx)
 {
   if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].is_active()) {
-    return carriers[ue_cc_idx].get_empty_dl_harq(tti_tx_dl);
+    return carriers[ue_cc_idx].harq_ent.get_empty_dl_harq(tti_tx_dl);
   }
   return nullptr;
 }
@@ -916,24 +923,14 @@ dl_harq_proc* sched_ue::get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t ue_cc_idx
 ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti_tx_ul, uint32_t ue_cc_idx)
 {
   if (ue_cc_idx < carriers.size() and carriers[ue_cc_idx].is_active()) {
-    return carriers[ue_cc_idx].get_ul_harq(tti_tx_ul);
+    return carriers[ue_cc_idx].harq_ent.get_ul_harq(tti_tx_ul);
   }
   return nullptr;
 }
 
-dl_harq_proc* sched_ue::find_dl_harq(uint32_t tti_rx, uint32_t ue_cc_idx)
+const dl_harq_proc& sched_ue::get_dl_harq(uint32_t idx, uint32_t ue_cc_idx) const
 {
-  for (auto& h : carriers[ue_cc_idx].dl_harq) {
-    if (h.get_tti() == tti_rx) {
-      return &h;
-    }
-  }
-  return nullptr;
-}
-
-dl_harq_proc* sched_ue::get_dl_harq(uint32_t idx, uint32_t ue_cc_idx)
-{
-  return &carriers[ue_cc_idx].dl_harq[idx];
+  return carriers[ue_cc_idx].harq_ent.dl_harq_procs()[idx];
 }
 
 std::pair<bool, uint32_t> sched_ue::get_cell_index(uint32_t enb_cc_idx) const
@@ -957,11 +954,8 @@ void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)
   }
   uint32_t ue_cc_idx = p.second;
 
-  /* Reset pending ACKs and clean-up all the UL Harqs with maxretx == 0 */
-  get_ul_harq(tti_params.tti_tx_ul, ue_cc_idx)->reset_pending_data();
-
   /* reset PIDs with pending data or blocked */
-  reset_pending_pids(tti_params.tti_rx, ue_cc_idx);
+  carriers[ue_cc_idx].harq_ent.reset_pending_data(tti_params.tti_rx);
 }
 
 srslte_dci_format_t sched_ue::get_dci_format()
@@ -1088,16 +1082,11 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
   cell_params(&cell_cfg_),
   rnti(rnti_),
   log_h(srslte::logmap::get("MAC ")),
-  ue_cc_idx(ue_cc_idx_)
+  ue_cc_idx(ue_cc_idx_),
+  harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC)
 {
   // only PCell starts active. Remaining ones wait for valid CQI
   active = ue_cc_idx == 0;
-
-  // Init HARQ processes
-  for (uint32_t i = 0; i < dl_harq.size(); ++i) {
-    dl_harq[i].init(i);
-    ul_harq[i].init(i);
-  }
 
   // set max mcs
   max_mcs_ul     = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
@@ -1128,12 +1117,7 @@ void sched_ue_carrier::reset()
   dl_cqi_tti = 0;
   ul_cqi     = 1;
   ul_cqi_tti = 0;
-  for (uint32_t i = 0; i < dl_harq.size(); ++i) {
-    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-      dl_harq[i].reset(tb);
-      ul_harq[i].reset(tb);
-    }
-  }
+  harq_ent.reset();
 }
 
 void sched_ue_carrier::set_cfg(const sched_interface::ue_cfg_t& cfg_)
@@ -1144,95 +1128,7 @@ void sched_ue_carrier::set_cfg(const sched_interface::ue_cfg_t& cfg_)
   }
   cfg = &cfg_;
   // Config HARQ processes
-  for (uint32_t i = 0; i < dl_harq.size(); ++i) {
-    dl_harq[i].set_cfg(cfg->maxharq_tx);
-    ul_harq[i].set_cfg(cfg->maxharq_tx);
-  }
-}
-
-void sched_ue_carrier::reset_old_pending_pids(uint32_t tti_rx)
-{
-  uint32_t tti_tx_dl = TTI_TX(tti_rx), tti_tx_ul = TTI_RX_ACK(tti_rx);
-
-  // UL Harqs
-  get_ul_harq(tti_tx_ul)->reset_pending_data();
-
-  // DL harqs
-  for (auto& h : dl_harq) {
-    h.reset_pending_data();
-    if (not h.is_empty()) {
-      uint32_t tti_diff = srslte_tti_interval(tti_tx_dl, h.get_tti());
-      if (tti_diff > 50 and tti_diff < 10240 / 2) {
-        log_h->info("SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n", h.get_id(), h.get_tti(), tti_tx_dl);
-        for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-          h.reset(tb);
-        }
-      }
-    }
-  }
-}
-
-dl_harq_proc* sched_ue_carrier::get_pending_dl_harq(uint32_t tti_tx_dl)
-{
-  if (not ASYNC_DL_SCHED) {
-    dl_harq_proc* h = &dl_harq[tti_tx_dl % SCHED_MAX_HARQ_PROC];
-    return h->is_empty() ? nullptr : h;
-  }
-
-  int      oldest_idx = -1;
-  uint32_t oldest_tti = 0;
-  for (auto& h : dl_harq) {
-    if (h.has_pending_retx(0, tti_tx_dl) or h.has_pending_retx(1, tti_tx_dl)) {
-      uint32_t x = srslte_tti_interval(tti_tx_dl, h.get_tti());
-      if (x > oldest_tti) {
-        oldest_idx = h.get_id();
-        oldest_tti = x;
-      }
-    }
-  }
-  dl_harq_proc* h = nullptr;
-  if (oldest_idx >= 0) {
-    h = &dl_harq[oldest_idx];
-  }
-  return h;
-}
-
-dl_harq_proc* sched_ue_carrier::get_empty_dl_harq(uint32_t tti_tx_dl)
-{
-  if (not ASYNC_DL_SCHED) {
-    dl_harq_proc* h = &dl_harq[tti_tx_dl % SCHED_MAX_HARQ_PROC];
-    return h->is_empty() ? nullptr : h;
-  }
-
-  auto it = std::find_if(dl_harq.begin(), dl_harq.end(), [](dl_harq_proc& h) { return h.is_empty(); });
-  return it != dl_harq.end() ? &(*it) : nullptr;
-}
-
-int sched_ue_carrier::set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack)
-{
-  for (auto& h : dl_harq) {
-    if (TTI_TX(h.get_tti()) == tti_rx) {
-      Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, h.get_id(), tb_idx, tti_rx);
-      h.set_ack(tb_idx, ack);
-      return h.get_tbs(tb_idx);
-    }
-  }
-  Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti_rx);
-  return -1;
-}
-
-ul_harq_proc* sched_ue_carrier::get_ul_harq(uint32_t tti)
-{
-  return &ul_harq[tti % SCHED_MAX_HARQ_PROC];
-}
-
-uint32_t sched_ue_carrier::get_pending_ul_old_data()
-{
-  uint32_t pending_data = 0;
-  for (auto& h : ul_harq) {
-    pending_data += h.get_pending_data();
-  }
-  return pending_data;
+  harq_ent.set_cfg(cfg->maxharq_tx);
 }
 
 /* Find lowest DCI aggregation level supported by the UE spectral efficiency */

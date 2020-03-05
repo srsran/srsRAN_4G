@@ -149,38 +149,56 @@ private:
 
 typedef srslte::bounded_bitset<100, true> prbmask_t;
 
-class dl_harq_entity : private std::vector<dl_harq_proc>
+class harq_entity
 {
-  using base_t = std::vector<dl_harq_proc>;
-
 public:
   static const bool is_async = ASYNC_DL_SCHED;
 
-  using base_t::const_iterator;
-  using base_t::iterator;
-  using base_t::operator[];
-  using base_t::begin;
-  using base_t::data;
-  using base_t::end;
-  using base_t::size;
+  harq_entity(size_t nof_dl_harqs, size_t nof_ul_harqs);
+  void reset();
+  void set_cfg(uint32_t max_retx);
 
-  explicit dl_harq_entity(size_t nof_harqs) : base_t(nof_harqs) {}
+  size_t                           nof_dl_harqs() const { return dl_harqs.size(); }
+  size_t                           nof_ul_harqs() const { return ul_harqs.size(); }
+  std::vector<dl_harq_proc>&       dl_harq_procs() { return dl_harqs; }
+  const std::vector<dl_harq_proc>& dl_harq_procs() const { return dl_harqs; }
+  std::vector<ul_harq_proc>&       ul_harq_procs() { return ul_harqs; }
 
   /**
    * Get the DL harq proc based on tti_tx_dl
    * @param tti_tx_dl assumed to always be equal or ahead in time in comparison to current harqs
    * @return pointer to found dl_harq
    */
-  dl_harq_proc* get_pending_harq(uint32_t tti_tx_dl);
+  dl_harq_proc* get_pending_dl_harq(uint32_t tti_tx_dl);
   /**
    * Get empty DL Harq
    * @param tti_tx_dl only used in case of sync dl sched
    * @return pointer to found dl_harq
    */
-  dl_harq_proc* get_empty_harq(uint32_t tti_tx_dl);
+  dl_harq_proc* get_empty_dl_harq(uint32_t tti_tx_dl);
+
+  /**
+   * Set ACK state for DL Harq Proc
+   * @param tti_rx tti the DL ACK was received
+   * @param tb_idx TB index for the given ACK
+   * @param ack true for ACK and false for NACK
+   * @return pair with pid and size of TB of the DL harq that was ACKed
+   */
+  std::pair<uint32_t, int> set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack);
+
+  //! Get UL Harq for a given tti_tx_ul
+  ul_harq_proc* get_ul_harq(uint32_t tti_tx_ul);
+
+  //! Resets pending harq ACKs and cleans UL Harqs with maxretx == 0
+  void reset_pending_data(uint32_t tti_rx);
 
 private:
-  dl_harq_proc* get_oldest_harq(uint32_t tti_tx_dl);
+  dl_harq_proc* get_oldest_dl_harq(uint32_t tti_tx_dl);
+
+  srslte::log_ref log_h;
+
+  std::vector<dl_harq_proc> dl_harqs;
+  std::vector<ul_harq_proc> ul_harqs;
 };
 
 } // namespace srsenb

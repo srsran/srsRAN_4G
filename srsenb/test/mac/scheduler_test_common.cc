@@ -686,7 +686,7 @@ int common_sched_tester::process_ack_txs()
     }
     const ack_info_t& dl_ack = ack_it.second;
 
-    srsenb::dl_harq_proc*       h    = ue_db[dl_ack.rnti].get_dl_harq(ack_it.second.dl_harq.get_id(), dl_ack.ue_cc_idx);
+    const srsenb::dl_harq_proc& h    = ue_db[dl_ack.rnti].get_dl_harq(ack_it.second.dl_harq.get_id(), dl_ack.ue_cc_idx);
     const srsenb::dl_harq_proc& hack = dl_ack.dl_harq;
     CONDERROR(hack.is_empty(), "The acked DL harq was not active\n");
 
@@ -700,12 +700,12 @@ int common_sched_tester::process_ack_txs()
     CONDERROR(not ret, "The dl harq proc that was ACKed does not exist\n");
 
     if (dl_ack.ack) {
-      CONDERROR(!h->is_empty(), "ACKed dl harq was not emptied\n");
-      CONDERROR(h->has_pending_retx(0, tti_info.tti_params.tti_tx_dl), "ACKed dl harq still has pending retx\n");
+      CONDERROR(!h.is_empty(), "ACKed dl harq was not emptied\n");
+      CONDERROR(h.has_pending_retx(0, tti_info.tti_params.tti_tx_dl), "ACKed dl harq still has pending retx\n");
       tester_log->info(
           "DL ACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.dl_harq.get_id());
     } else {
-      CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "NACKed DL harq got emptied\n");
+      CONDERROR(h.is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "NACKed DL harq got emptied\n");
     }
   }
 
@@ -755,9 +755,9 @@ int common_sched_tester::schedule_acks()
       ack_data.tti        = FDD_HARQ_DELAY_MS + tti_info.tti_params.tti_tx_dl;
       ack_data.enb_cc_idx = ccidx;
       ack_data.ue_cc_idx  = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
-      const srsenb::dl_harq_proc* dl_h =
+      const srsenb::dl_harq_proc& dl_h =
           ue_db[ack_data.rnti].get_dl_harq(tti_info.dl_sched_result[ccidx].data[i].dci.pid, ack_data.ue_cc_idx);
-      ack_data.dl_harq = *dl_h;
+      ack_data.dl_harq = dl_h;
       if (ack_data.dl_harq.nof_retx(0) == 0) {
         ack_data.ack = randf() > sim_args0.P_retx;
       } else { // always ack after three retxs
