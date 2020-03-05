@@ -19,7 +19,6 @@
  *
  */
 
-#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,52 +26,54 @@
 
 #include "srslte/phy/ch_estimation/chest_sl.h"
 #include "srslte/phy/channel/ch_awgn.h"
-#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/io/filesource.h"
 #include "srslte/phy/phch/pscch.h"
 #include "srslte/phy/phch/sci.h"
-#include "srslte/phy/sync/cfo.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
 char*            input_file_name;
 srslte_cell_sl_t cell                   = {.nof_prb = 6, .N_sl_id = 0, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
 bool             use_standard_lte_rates = false;
-uint32_t         size_sub_channel       = 10;
-uint32_t         num_sub_channel        = 5;
 uint32_t         file_offset            = 0;
 
-uint32_t          sf_n_samples;
-uint32_t          sf_n_re;
-cf_t*             sf_buffer;
-cf_t*             equalized_sf_buffer;
-cf_t*             input_buffer;
-srslte_sci_t      sci;
-srslte_pscch_t    pscch;
-srslte_chest_sl_t pscch_chest;
-srslte_ofdm_t     fft;
+uint32_t                       sf_n_samples;
+uint32_t                       sf_n_re;
+cf_t*                          sf_buffer;
+cf_t*                          equalized_sf_buffer;
+cf_t*                          input_buffer;
+srslte_sci_t                   sci;
+srslte_pscch_t                 pscch;
+srslte_chest_sl_t              pscch_chest;
+srslte_ofdm_t                  fft;
+srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
+uint32_t                       size_sub_channel = 10;
+uint32_t                       num_sub_channel  = 5;
+
+srslte_chest_sl_cfg_t pscch_chest_sl_cfg;
 
 srslte_filesource_t fsrc;
 
 void usage(char* prog)
 {
-  printf("Usage: %s [deioptxzn]\n", prog);
+  printf("Usage: %s [deinopstv]\n", prog);
   printf("\t-i input_file_name\n");
   printf("\t-o File offset samples [Default %d]\n", file_offset);
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
+  printf("\t-s size_sub_channel [Default for 50 prbs %d]\n", size_sub_channel);
+  printf("\t-n num_sub_channel [Default for 50 prbs %d]\n", num_sub_channel);
   printf("\t-e Extended CP [Default normal]\n");
-  printf("\t-d use_standard_lte_rates [Default %i]\n", use_standard_lte_rates);
   printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell.tm + 1));
-  printf("\t-z Size of sub-channels [Default %i]\n", size_sub_channel);
-  printf("\t-n Number of sub-channels [Default %i]\n", num_sub_channel);
+  printf("\t-d use_standard_lte_rates [Default %i]\n", use_standard_lte_rates);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "deioptznv")) != -1) {
+  while ((opt = getopt(argc, argv, "deinopstv")) != -1) {
     switch (opt) {
       case 'd':
         use_standard_lte_rates = true;
@@ -85,6 +86,12 @@ void parse_args(int argc, char** argv)
         break;
       case 'i':
         input_file_name = argv[optind];
+        break;
+      case 's':
+        size_sub_channel = (int32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        num_sub_channel = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
         cell.nof_prb = (int32_t)strtol(argv[optind], NULL, 10);
@@ -109,11 +116,6 @@ void parse_args(int argc, char** argv)
             break;
         }
         break;
-      case 'z':
-        size_sub_channel = (int32_t)strtol(argv[optind], NULL, 10);
-        break;
-      case 'n':
-        num_sub_channel = (int32_t)strtol(argv[optind], NULL, 10);
       case 'v':
         srslte_verbose++;
         break;
@@ -122,13 +124,24 @@ void parse_args(int argc, char** argv)
         exit(-1);
     }
   }
+  if (cell.cp == SRSLTE_CP_EXT && cell.tm >= SRSLTE_SIDELINK_TM3) {
+    ERROR("Selected TM does not support extended CP");
+    usage(argv[0]);
+    exit(-1);
+  }
 }
 
 int base_init()
 {
   sf_n_samples = srslte_symbol_sz(cell.nof_prb) * 15;
+  sf_n_re = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
 
-  sf_n_re = SRSLTE_CP_NSYMB(cell.cp) * SRSLTE_NRE * 2 * cell.nof_prb;
+  if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
+    ERROR("Error initializing sl_comm_resource_pool\n");
+    return SRSLTE_ERROR;
+  }
+  sl_comm_resource_pool.num_sub_channel  = num_sub_channel;
+  sl_comm_resource_pool.size_sub_channel = size_sub_channel;
 
   sf_buffer = srslte_vec_cf_malloc(sf_n_re);
   if (!sf_buffer) {
@@ -148,7 +161,7 @@ int base_init()
     return SRSLTE_ERROR;
   }
 
-  srslte_sci_init(&sci, cell.nof_prb, cell.tm, size_sub_channel, num_sub_channel);
+  srslte_sci_init(&sci, cell, sl_comm_resource_pool);
 
   if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
     ERROR("Error in PSCCH init\n");
@@ -160,7 +173,7 @@ int base_init()
     return SRSLTE_ERROR;
   }
 
-  if (srslte_chest_sl_init_pscch_dmrs(&pscch_chest) != SRSLTE_SUCCESS) {
+  if (srslte_chest_sl_init(&pscch_chest, SRSLTE_SIDELINK_PSCCH, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
     ERROR("Error in PSCCH DMRS init\n");
     return SRSLTE_ERROR;
   }
@@ -220,7 +233,7 @@ int main(int argc, char** argv)
   }
 
   uint32_t num_decoded_sci                 = 0;
-  char     sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = "";
+  char     sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = {};
 
   int max_num_subframes = 128;
   int num_subframes     = 0;
@@ -247,59 +260,62 @@ int main(int argc, char** argv)
     srslte_ofdm_rx_sf(&fft);
 
     if (cell.tm == SRSLTE_SIDELINK_TM1 || cell.tm == SRSLTE_SIDELINK_TM2) {
-      uint32_t prb_num      = (uint32_t)ceil(cell.nof_prb / 2);
-      uint32_t prb_start    = 0;
-      uint32_t prb_end      = cell.nof_prb - 1;
-      uint32_t cyclic_shift = 0;
 
-      srslte_chest_sl_gen_pscch_dmrs(&pscch_chest, cyclic_shift, cell.tm);
-
-      for (uint32_t pscch_prb_idx = prb_start; pscch_prb_idx <= prb_end; pscch_prb_idx++) {
-        if (pscch_prb_idx == (prb_start + prb_num)) {
-          pscch_prb_idx = (prb_end + 1) - prb_num;
-        }
+      for (uint32_t pscch_prb_start_idx = sl_comm_resource_pool.prb_start;
+           pscch_prb_start_idx <= sl_comm_resource_pool.prb_end;
+           pscch_prb_start_idx++) {
 
         // PSCCH Channel estimation
-        srslte_chest_sl_pscch_ls_estimate_equalize(
-            &pscch_chest, sf_buffer, pscch_prb_idx, equalized_sf_buffer, cell.nof_prb, cell.tm, cell.cp);
+        pscch_chest_sl_cfg.prb_start_idx = pscch_prb_start_idx;
+        srslte_chest_sl_set_cfg(&pscch_chest, pscch_chest_sl_cfg);
+        srslte_chest_sl_ls_estimate_equalize(&pscch_chest, sf_buffer, equalized_sf_buffer);
 
-        if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_idx) == SRSLTE_SUCCESS) {
-          if (srslte_sci_format0_unpack(&sci, sci_rx) != SRSLTE_SUCCESS) {
-            printf("Error unpacking sci format 0\n");
-            return SRSLTE_ERROR;
-          }
+        if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_start_idx) == SRSLTE_SUCCESS) {
+          if (srslte_sci_format0_unpack(&sci, sci_rx) == SRSLTE_SUCCESS) {
 
-          srslte_sci_info(sci_msg, &sci);
-          fprintf(stdout, "%s", sci_msg);
-
-          num_decoded_sci++;
-        }
-      }
-    } else if (cell.tm == SRSLTE_SIDELINK_TM3 || cell.tm == SRSLTE_SIDELINK_TM4) {
-      for (int i = 0; i < num_sub_channel; i++) {
-        uint32_t pscch_prb_idx = size_sub_channel * i;
-
-        for (uint32_t cyclic_shift = 0; cyclic_shift <= 9; cyclic_shift += 3) {
-          // PSCCH Channel estimation
-          srslte_chest_sl_gen_pscch_dmrs(&pscch_chest, cyclic_shift, cell.tm);
-          srslte_chest_sl_pscch_ls_estimate_equalize(
-              &pscch_chest, sf_buffer, pscch_prb_idx, equalized_sf_buffer, cell.nof_prb, cell.tm, cell.cp);
-
-          if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_idx) == SRSLTE_SUCCESS) {
-            if (srslte_sci_format1_unpack(&sci, sci_rx) != SRSLTE_SUCCESS) {
-              printf("Error unpacking sci format 1\n");
-              return SRSLTE_ERROR;
-            }
-
-            srslte_sci_info(sci_msg, &sci);
+            srslte_sci_info(&sci, sci_msg, sizeof(sci_msg));
             fprintf(stdout, "%s", sci_msg);
 
             num_decoded_sci++;
           }
+        }
+
+        if ((sl_comm_resource_pool.prb_num * 2) <=
+            (sl_comm_resource_pool.prb_end - sl_comm_resource_pool.prb_start + 1)) {
+          if ((pscch_prb_start_idx + 1) == (sl_comm_resource_pool.prb_start + sl_comm_resource_pool.prb_num)) {
+            pscch_prb_start_idx = sl_comm_resource_pool.prb_end - sl_comm_resource_pool.prb_num;
+          }
+        }
+      }
+    } else if (cell.tm == SRSLTE_SIDELINK_TM3 || cell.tm == SRSLTE_SIDELINK_TM4) {
+      for (int i = 0; i < sl_comm_resource_pool.num_sub_channel; i++) {
+        uint32_t pscch_prb_start_idx = sl_comm_resource_pool.size_sub_channel * i;
+
+        for (uint32_t cyclic_shift = 0; cyclic_shift <= 9; cyclic_shift += 3) {
+
+          // PSCCH Channel estimation
+          pscch_chest_sl_cfg.cyclic_shift  = cyclic_shift;
+          pscch_chest_sl_cfg.prb_start_idx = pscch_prb_start_idx;
+          srslte_chest_sl_set_cfg(&pscch_chest, pscch_chest_sl_cfg);
+          srslte_chest_sl_ls_estimate_equalize(&pscch_chest, sf_buffer, equalized_sf_buffer);
+
+          if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_start_idx) == SRSLTE_SUCCESS) {
+            if (srslte_sci_format1_unpack(&sci, sci_rx) == SRSLTE_SUCCESS) {
+
+              srslte_sci_info(&sci, sci_msg, sizeof(sci_msg));
+              fprintf(stdout, "%s", sci_msg);
+
+              num_decoded_sci++;
+            }
+          }
           if (SRSLTE_VERBOSE_ISDEBUG()) {
             char filename[64];
-            snprintf(
-                filename, 64, "pscch_rx_syms_sf%d_shift%d_prbidx%d.bin", num_subframes, cyclic_shift, pscch_prb_idx);
+            snprintf(filename,
+                     64,
+                     "pscch_rx_syms_sf%d_shift%d_prbidx%d.bin",
+                     num_subframes,
+                     cyclic_shift,
+                     pscch_prb_start_idx);
             printf("Saving PSCCH symbols (%d) to %s\n", pscch.E / SRSLTE_PSCCH_QM, filename);
             srslte_vec_save_file(filename, pscch.mod_symbols, pscch.E / SRSLTE_PSCCH_QM * sizeof(cf_t));
           }

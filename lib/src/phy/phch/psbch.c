@@ -323,7 +323,7 @@ int srslte_psbch_put(srslte_psbch_t* q, cf_t* symbols, cf_t* sf_buffer)
 
   // Mapping to physical resources
   for (uint32_t i = 0; i < SRSLTE_CP_NORM_SF_NSYMB; i++) {
-    if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i)) {
+    if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i, q->cp)) {
       memcpy(&sf_buffer[k + i * q->nof_prb * SRSLTE_NRE],
              &symbols[sample_pos],
              sizeof(cf_t) * (SRSLTE_NRE * SRSLTE_PSBCH_NOF_PRB));
@@ -341,7 +341,7 @@ int srslte_psbch_get(srslte_psbch_t* q, cf_t* sf_buffer, cf_t* symbols)
 
   // Get PSBCH REs
   for (uint32_t i = 0; i < SRSLTE_CP_NORM_SF_NSYMB; i++) {
-    if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i)) {
+    if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i, q->cp)) {
       memcpy(&symbols[sample_pos],
              &sf_buffer[k + i * q->nof_prb * SRSLTE_NRE],
              sizeof(cf_t) * (SRSLTE_NRE * SRSLTE_PSBCH_NOF_PRB));

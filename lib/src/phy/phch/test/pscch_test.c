@@ -19,8 +19,6 @@
  *
  */
 
-#include <math.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -31,11 +29,9 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-srslte_cell_sl_t cell             = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
-uint32_t         size_sub_channel = 10;
-uint32_t         num_sub_channel  = 5;
+srslte_cell_sl_t cell = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
 
-uint32_t prb_idx = 0;
+uint32_t prb_start_idx = 0;
 
 void usage(char* prog)
 {
@@ -85,6 +81,11 @@ void parse_args(int argc, char** argv)
         exit(-1);
     }
   }
+  if (cell.cp == SRSLTE_CP_EXT && cell.tm >= SRSLTE_SIDELINK_TM3) {
+    ERROR("Selected TM does not support extended CP");
+    usage(argv[0]);
+    exit(-1);
+  }
 }
 
 int main(int argc, char** argv)
@@ -93,14 +94,21 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  char sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = "";
+  srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
+  if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
+    ERROR("Error initializing sl_comm_resource_pool\n");
+    return SRSLTE_ERROR;
+  }
+
+  char sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = {};
 
   uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
   cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
   // SCI
   srslte_sci_t sci;
-  srslte_sci_init(&sci, cell.nof_prb, cell.tm, size_sub_channel, num_sub_channel);
+  srslte_sci_init(&sci, cell, sl_comm_resource_pool);
+  sci.mcs_idx = 2;
 
   // PSCCH
   srslte_pscch_t pscch;
@@ -132,13 +140,13 @@ int main(int argc, char** argv)
   srslte_vec_fprint_hex(stdout, sci_tx, sci.sci_len);
 
   // Put SCI into PSCCH
-  srslte_pscch_encode(&pscch, sci_tx, sf_buffer, prb_idx);
+  srslte_pscch_encode(&pscch, sci_tx, sf_buffer, prb_start_idx);
 
   // Prepare Rx buffer
   uint8_t sci_rx[SRSLTE_SCI_MAX_LEN] = {};
 
   // Decode PSCCH
-  if (srslte_pscch_decode(&pscch, sf_buffer, sci_rx, prb_idx) == SRSLTE_SUCCESS) {
+  if (srslte_pscch_decode(&pscch, sf_buffer, sci_rx, prb_start_idx) == SRSLTE_SUCCESS) {
     printf("Rx payload: ");
     srslte_vec_fprint_hex(stdout, sci_rx, sci.sci_len);
 
@@ -155,7 +163,7 @@ int main(int argc, char** argv)
       }
     }
 
-    srslte_sci_info(sci_msg, &sci);
+    srslte_sci_info(&sci, sci_msg, sizeof(sci_msg));
     fprintf(stdout, "%s", sci_msg);
     if (sci.riv == riv_txed) {
       ret = SRSLTE_SUCCESS;

@@ -90,10 +90,10 @@ typedef struct SRSLTE_API {
 
 SRSLTE_API int  srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb);
 SRSLTE_API int  srslte_pscch_set_cell(srslte_pscch_t* q, srslte_cell_sl_t cell);
-SRSLTE_API int  srslte_pscch_encode(srslte_pscch_t* q, uint8_t* sci, cf_t* sf_buffer, uint32_t prb_idx);
-SRSLTE_API int  srslte_pscch_decode(srslte_pscch_t* q, cf_t* equalized_sf_syms, uint8_t* sci, uint32_t prb_idx);
-SRSLTE_API int  srslte_pscch_put(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx);
-SRSLTE_API int  srslte_pscch_get(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx);
+SRSLTE_API int  srslte_pscch_encode(srslte_pscch_t* q, uint8_t* sci, cf_t* sf_buffer, uint32_t prb_start_idx);
+SRSLTE_API int  srslte_pscch_decode(srslte_pscch_t* q, cf_t* equalized_sf_syms, uint8_t* sci, uint32_t prb_start_idx);
+SRSLTE_API int  srslte_pscch_put(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_start_idx);
+SRSLTE_API int  srslte_pscch_get(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_start_idx);
 SRSLTE_API void srslte_pscch_free(srslte_pscch_t* q);
 
 #endif // SRSLTE_PSCCH_H

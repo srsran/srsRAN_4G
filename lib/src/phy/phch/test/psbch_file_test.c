@@ -24,25 +24,23 @@
 #include <strings.h>
 #include <unistd.h>
 
-#include <srslte/phy/ch_estimation/chest_sl.h>
-#include <srslte/phy/dft/ofdm.h>
-#include <srslte/phy/io/filesource.h>
-#include <srslte/phy/phch/mib_sl.h>
-#include <srslte/phy/phch/psbch.h>
-#include <srslte/phy/sync/cfo.h>
-#include <srslte/phy/utils/debug.h>
-#include <srslte/phy/utils/vector.h>
+#include "srslte/phy/ch_estimation/chest_sl.h"
+#include "srslte/phy/dft/ofdm.h"
+#include "srslte/phy/io/filesource.h"
+#include "srslte/phy/phch/mib_sl.h"
+#include "srslte/phy/phch/psbch.h"
+#include "srslte/phy/sync/cfo.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
-char*          input_file_name;
-int32_t        N_sl_id                = 168;
-uint32_t       offset                 = 0;
-float          frequency_offset       = 0.0;
-float          snr                    = 100.0;
-srslte_cp_t    cp                     = SRSLTE_CP_NORM;
-uint32_t       nof_prb                = 6;
-bool           use_standard_lte_rates = false;
-bool           do_equalization        = true;
-srslte_sl_tm_t tm                     = SRSLTE_SIDELINK_TM2;
+srslte_cell_sl_t cell = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
+
+char*    input_file_name;
+uint32_t offset                 = 0;
+float    frequency_offset       = 0.0;
+float    snr                    = 100.0;
+bool     use_standard_lte_rates = false;
+bool     do_equalization        = true;
 
 srslte_filesource_t fsrc;
 
@@ -50,12 +48,12 @@ void usage(char* prog)
 {
   printf("Usage: %s [cdeipt]\n", prog);
   printf("\t-i input_file_name\n");
-  printf("\t-p nof_prb [Default %d]\n", nof_prb);
+  printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e extended CP [Default normal]\n");
   printf("\t-d use_standard_lte_rates [Default %i]\n", use_standard_lte_rates);
   printf("\t-s skip equalization [Default no]\n");
-  printf("\t-c N_sl_id [Default %d]\n", N_sl_id);
-  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (tm + 1));
+  printf("\t-c N_sl_id [Default %d]\n", cell.N_sl_id);
+  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell.tm + 1));
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
@@ -65,7 +63,7 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "cdeisptv")) != -1) {
     switch (opt) {
       case 'c':
-        N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
+        cell.N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
         use_standard_lte_rates = true;
@@ -74,27 +72,27 @@ void parse_args(int argc, char** argv)
         do_equalization = false;
         break;
       case 'e':
-        cp = SRSLTE_CP_EXT;
+        cell.cp = SRSLTE_CP_EXT;
         break;
       case 'i':
         input_file_name = argv[optind];
         break;
       case 'p':
-        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
         switch (strtol(argv[optind], NULL, 10)) {
           case 1:
-            tm = SRSLTE_SIDELINK_TM1;
+            cell.tm = SRSLTE_SIDELINK_TM1;
             break;
           case 2:
-            tm = SRSLTE_SIDELINK_TM2;
+            cell.tm = SRSLTE_SIDELINK_TM2;
             break;
           case 3:
-            tm = SRSLTE_SIDELINK_TM3;
+            cell.tm = SRSLTE_SIDELINK_TM3;
             break;
           case 4:
-            tm = SRSLTE_SIDELINK_TM4;
+            cell.tm = SRSLTE_SIDELINK_TM4;
             break;
           default:
             usage(argv[0]);
@@ -118,13 +116,13 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
   srslte_use_standard_symbol_size(use_standard_lte_rates);
 
-  int32_t symbol_sz = srslte_symbol_sz(nof_prb);
+  int32_t symbol_sz = srslte_symbol_sz(cell.nof_prb);
   printf("Symbol SZ: %i\n", symbol_sz);
 
-  uint32_t sf_n_samples = srslte_symbol_sz(nof_prb) * 15;
+  uint32_t sf_n_samples = srslte_symbol_sz(cell.nof_prb) * 15;
   printf("sf_n_samples: %i\n", sf_n_samples);
 
-  uint32_t sf_n_re             = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE * 2 * nof_prb;
+  uint32_t sf_n_re             = SRSLTE_CP_NSYMB(cell.cp) * SRSLTE_NRE * 2 * cell.nof_prb;
   cf_t*    sf_buffer           = srslte_vec_cf_malloc(sf_n_re);
   cf_t*    equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
@@ -133,7 +131,7 @@ int main(int argc, char** argv)
 
   // TX
   srslte_ofdm_t ifft;
-  if (srslte_ofdm_tx_init(&ifft, cp, sf_buffer, output_buffer, nof_prb)) {
+  if (srslte_ofdm_tx_init(&ifft, cell.cp, sf_buffer, output_buffer, cell.nof_prb)) {
     ERROR("Error creating IFFT object\n");
     return SRSLTE_ERROR;
   }
@@ -142,7 +140,7 @@ int main(int argc, char** argv)
 
   // RX
   srslte_ofdm_t fft;
-  if (srslte_ofdm_rx_init(&fft, cp, input_buffer, sf_buffer, nof_prb)) {
+  if (srslte_ofdm_rx_init(&fft, cell.cp, input_buffer, sf_buffer, cell.nof_prb)) {
     fprintf(stderr, "Error creating FFT object\n");
     return SRSLTE_ERROR;
   }
@@ -151,15 +149,16 @@ int main(int argc, char** argv)
 
   // PSBCH
   srslte_psbch_t psbch;
-  if (srslte_psbch_init(&psbch, nof_prb, N_sl_id, tm, SRSLTE_CP_NORM) != SRSLTE_SUCCESS) {
+  if (srslte_psbch_init(&psbch, cell.nof_prb, cell.N_sl_id, cell.tm, SRSLTE_CP_NORM) != SRSLTE_SUCCESS) {
     ERROR("Error in psbch init\n");
     return SRSLTE_ERROR;
   }
 
   // PSCBH DMRS
-  srslte_chest_sl_t psbch_chest;
-  if (srslte_chest_sl_init_psbch_dmrs(&psbch_chest) != SRSLTE_SUCCESS) {
-    ERROR("Error in psbch dmrs init\n");
+  srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
+  srslte_chest_sl_t              psbch_chest;
+  if (srslte_chest_sl_init(&psbch_chest, SRSLTE_SIDELINK_PSBCH, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
+    ERROR("Error in chest PSBCH init\n");
     return SRSLTE_ERROR;
   }
 
@@ -177,8 +176,7 @@ int main(int argc, char** argv)
 
   // Equalize
   if (do_equalization) {
-    srslte_chest_sl_gen_psbch_dmrs(&psbch_chest, tm, N_sl_id);
-    srslte_chest_sl_psbch_ls_estimate_equalize(&psbch_chest, sf_buffer, equalized_sf_buffer, nof_prb, tm, cp);
+    srslte_chest_sl_ls_estimate_equalize(&psbch_chest, sf_buffer, equalized_sf_buffer);
   } else {
     // just copy symbols
     memcpy(equalized_sf_buffer, sf_buffer, sizeof(cf_t) * sf_n_re);
@@ -194,12 +192,12 @@ int main(int argc, char** argv)
 
     // Unpack and print MIB-SL
     srslte_mib_sl_t mib_sl;
-    srslte_mib_sl_init(&mib_sl, tm);
+    srslte_mib_sl_init(&mib_sl, cell.tm);
     srslte_mib_sl_unpack(&mib_sl, mib_sl_rx);
     srslte_mib_sl_printf(stdout, &mib_sl);
 
     // check decoded bandwidth matches user configured value
-    if (srslte_mib_sl_bandwith_to_prb[mib_sl.sl_bandwidth_r12] == nof_prb) {
+    if (srslte_mib_sl_bandwith_to_prb[mib_sl.sl_bandwidth_r12] == cell.nof_prb) {
       ret = SRSLTE_SUCCESS;
     }
   }

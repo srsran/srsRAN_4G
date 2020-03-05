@@ -33,7 +33,6 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-#include "ul_rs_tables.h"
 
 // n_dmrs_2 table 5.5.2.1.1-1 from 36.211
 uint32_t n_dmrs_2[8] = {0, 6, 3, 4, 2, 8, 10, 9};
@@ -233,7 +232,7 @@ static void arg_r_uv_2prb(float* arg, uint32_t u)
   }
 }
 
-static uint32_t get_q(uint32_t u, uint32_t v, uint32_t N_sz)
+uint32_t srslte_refsignal_get_q(uint32_t u, uint32_t v, uint32_t N_sz)
 {
   float q;
   float q_hat;
@@ -253,7 +252,7 @@ static void arg_r_uv_mprb(float* arg, uint32_t M_sc, uint32_t u, uint32_t v)
 
   uint32_t N_sz = largest_prime_lower_than(M_sc);
   if (N_sz > 0) {
-    float q    = get_q(u, v, N_sz);
+    float q    = srslte_refsignal_get_q(u, v, N_sz);
     float n_sz = (float)N_sz;
     for (uint32_t i = 0; i < M_sc; i++) {
       float m = (float)(i % N_sz);

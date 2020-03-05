@@ -20,14 +20,11 @@
  */
 
 #include <strings.h>
+
 #include "srslte/phy/phch/sci.h"
 #include "srslte/phy/utils/bit.h"
 
-int srslte_sci_init(srslte_sci_t*  q,
-                    uint32_t       nof_prb,
-                    srslte_sl_tm_t tm,
-                    uint32_t       size_sub_channel,
-                    uint32_t       num_sub_channel)
+int srslte_sci_init(srslte_sci_t* q, srslte_cell_sl_t cell, srslte_sl_comm_resource_pool_t sl_comm_resource_pool)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q != NULL) {
@@ -35,18 +32,18 @@ int srslte_sci_init(srslte_sci_t*  q,
 
     bzero(q, sizeof(srslte_sci_t));
 
-    q->nof_prb = nof_prb;
-    q->tm      = tm;
+    q->nof_prb = cell.nof_prb;
+    q->tm      = cell.tm;
 
-    if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
-      q->format = SRSLTE_SCI_FORMAT0;
-      q->sci_len = srslte_sci_format0_sizeof(nof_prb);
+    if (cell.tm == SRSLTE_SIDELINK_TM1 || cell.tm == SRSLTE_SIDELINK_TM2) {
+      q->format  = SRSLTE_SCI_FORMAT0;
+      q->sci_len = srslte_sci_format0_sizeof(cell.nof_prb);
 
-    } else if (tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) {
-      q->format = SRSLTE_SCI_FORMAT1;
+    } else if (cell.tm == SRSLTE_SIDELINK_TM3 || cell.tm == SRSLTE_SIDELINK_TM4) {
+      q->format           = SRSLTE_SCI_FORMAT1;
       q->sci_len          = SRSLTE_SCI_TM34_LEN;
-      q->size_sub_channel = size_sub_channel;
-      q->num_sub_channel  = num_sub_channel;
+      q->size_sub_channel = sl_comm_resource_pool.size_sub_channel;
+      q->num_sub_channel  = sl_comm_resource_pool.num_sub_channel;
 
     } else {
       return SRSLTE_ERROR;
@@ -105,6 +102,17 @@ int srslte_sci_format0_unpack(srslte_sci_t* q, uint8_t* input)
     return SRSLTE_ERROR;
   }
 
+  // Sanity check: avoid SCIs with all 0s
+  uint32_t i = 0;
+  for (; i < q->sci_len; i++) {
+    if (input[i] != 0) {
+      break;
+    }
+  }
+  if (i == q->sci_len) {
+    return SRSLTE_ERROR;
+  }
+
   q->freq_hopping_flag = (bool)srslte_bit_pack(&input, 1);
   if (q->freq_hopping_flag) {
     printf("Frequency Hopping in Sidelink is not supported\n");
@@ -117,6 +125,11 @@ int srslte_sci_format0_unpack(srslte_sci_t* q, uint8_t* input)
   q->timing_advance = srslte_bit_pack(&input, 11);
   q->N_sa_id        = srslte_bit_pack(&input, 8);
 
+  // Sanity check
+  if (q->mcs_idx >= 29) {
+    return SRSLTE_ERROR;
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -127,6 +140,17 @@ int srslte_sci_format1_unpack(srslte_sci_t* q, uint8_t* input)
     return SRSLTE_ERROR;
   }
 
+  // Sanity check: avoid SCIs with all 0s
+  uint32_t i = 0;
+  for (; i < q->sci_len; i++) {
+    if (input[i] != 0) {
+      break;
+    }
+  }
+  if (i == q->sci_len) {
+    return SRSLTE_ERROR;
+  }
+
   q->priority        = srslte_bit_pack(&input, 3);
   q->resource_reserv = srslte_bit_pack(&input, 4);
   q->riv      = srslte_bit_pack(&input, (uint32_t)ceil(log2(((q->num_sub_channel) * (q->num_sub_channel + 1) / 2))));
@@ -134,12 +158,18 @@ int srslte_sci_format1_unpack(srslte_sci_t* q, uint8_t* input)
   q->mcs_idx  = srslte_bit_pack(&input, 5);
   q->retransmission = srslte_bit_pack(&input, 1);
 
+  // Sanity check
+  if (q->mcs_idx >= 29) {
+    return SRSLTE_ERROR;
+  }
+
   return SRSLTE_SUCCESS;
 }
 
-void srslte_sci_info(char* str, srslte_sci_t* q)
+void srslte_sci_info(const srslte_sci_t* q, char* str, uint32_t len)
 {
-  uint32_t n = snprintf(str, 20, "SCI%i: riv=%i, mcs=%i", q->format, q->riv, q->mcs_idx);
+  uint32_t n = 0;
+  n          = srslte_print_check(str, len, n, "SCI%i: riv=%i, mcs=%i", q->format, q->riv, q->mcs_idx);
 
   if (q->format == SRSLTE_SCI_FORMAT0) {
     n = srslte_print_check(str,
@@ -167,30 +197,4 @@ void srslte_sci_free(srslte_sci_t* q)
   if (q != NULL) {
     bzero(q, sizeof(srslte_sci_t));
   }
-}
-
-uint32_t srslte_sci_format0_sizeof(uint32_t nof_prb)
-{
-  // 3GPP TS 36.212 5.4.3.1
-  uint32_t n = 0;
-
-  // Frequency hopping flag – 1 bit
-  n += 1;
-
-  // Resource block assignment and hopping resource allocation
-  n += (uint32_t)ceil(log((nof_prb * (nof_prb + 1)) / 2.0) / log(2));
-
-  // Time resource pattern – 7 bits
-  n += 7;
-
-  // Modulation and coding scheme – 5 bit
-  n += 5;
-
-  // Timing advance indication – 11 bits
-  n += 11;
-
-  // Group destination ID – 8 bits
-  n += 8;
-
-  return n;
 }

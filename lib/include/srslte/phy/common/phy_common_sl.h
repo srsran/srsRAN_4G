@@ -30,7 +30,11 @@
 #ifndef SRSLTE_PHY_COMMON_SL_H
 #define SRSLTE_PHY_COMMON_SL_H
 
-#include "phy_common.h"
+/**
+ *  \brief Common parameters and lookup functions for Sidelink PHY
+ */
+
+#include "srslte/phy/common/phy_common.h"
 
 typedef enum SRSLTE_API {
   SRSLTE_SIDELINK_TM1 = 0,
@@ -53,12 +57,29 @@ typedef struct SRSLTE_API {
   srslte_cp_t    cp;
 } srslte_cell_sl_t;
 
+// SL-CommResourcePool: 3GPP TS 36.331 version 15.6.0 Release 15 Section 6.3.8
+typedef struct SRSLTE_API {
+  uint32_t period_length;
+
+  uint32_t prb_num;
+  uint32_t prb_start;
+  uint32_t prb_end;
+
+  uint32_t size_sub_channel;      // sizeSubchannel-r14
+  uint32_t num_sub_channel;       // numSubchannel-r14
+  uint32_t start_prb_sub_channel; // startRB-Subchannel-r14 offset
+  bool     adjacency_pscch_pssch; // adjacencyPSCCH-PSSCH-r14
+} srslte_sl_comm_resource_pool_t;
+
 typedef enum SRSLTE_API {
   SRSLTE_SIDELINK_DATA_SYMBOL = 0,
   SRSLTE_SIDELINK_SYNC_SYMBOL,
   SRSLTE_SIDELINK_DMRS_SYMBOL,
   SRSLTE_SIDELINK_GUARD_SYMBOL
 } srslte_sl_symbol_t;
+
+#define SRSLTE_SL_DUPLEX_MODE_FDD (1)
+#define SRSLTE_SL_DUPLEX_MODE_TDD (2)
 
 #define SRSLTE_PSBCH_NOF_PRB (6)
 #define SRSLTE_PSCCH_TM34_NOF_PRB (2)
@@ -78,6 +99,10 @@ typedef enum SRSLTE_API {
 #define SRSLTE_PSBCH_TM34_NUM_DMRS_SYMBOLS (3) ///< PSBCH has 3 DMRS symbols in TM3 and TM4
 #define SRSLTE_PSBCH_TM34_NUM_SYNC_SYMBOLS (4) ///< Two symbols PSSS and two SSSS
 
+#define SRSLTE_SCI_CRC_LEN (16)
+#define SRSLTE_SCI_MAX_LEN (45)
+#define SRSLTE_SCI_TM34_LEN (32)
+
 #define SRSLTE_PSCCH_QM 2
 #define SRSLTE_PSCCH_TM12_NOF_PRB (1)
 #define SRSLTE_PSCCH_TM34_NOF_PRB (2)
@@ -93,14 +118,32 @@ typedef enum SRSLTE_API {
 #define SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS (10)
 #define SRSLTE_PSCCH_TM34_NUM_DMRS_SYMBOLS (4)
 
+#define SRSLTE_PSSCH_CRC_LEN 24
+#define SRSLTE_MAX_CODEWORD_LEN 168000   // 12 subcarriers * 100 PRB * 14 symbols * 10 bits, assuming 1024QAM
+#define SRSLTE_SL_SCH_MAX_TB_LEN 1000000 // Must be checked in 3GPP
+
+#define SRSLTE_PSSCH_TM12_NUM_DATA_SYMBOLS (12) // PSSCH is in 12 OFDM symbols (but only 11 are tx'ed)
+#define SRSLTE_PSSCH_TM12_NUM_DMRS_SYMBOLS (2)  // PSSCH has 2 DMRS symbols in TM1 and TM2
+
+#define SRSLTE_PSSCH_TM12_NUM_DATA_SYMBOLS_CP_EXT                                                                      \
+  (10) // PSSCH is in 10 OFDM symbols for extended cyclic prefix (but only 9 are tx'ed)
+#define SRSLTE_PSSCH_TM12_NUM_DMRS_SYMBOLS_CP_EXT                                                                      \
+  (2) // PSSCH has 2 DMRS symbols for extended cyclic prefix in TM1 and TM2
+
+#define SRSLTE_PSSCH_TM34_NUM_DATA_SYMBOLS (10) // PSSCH is in 10 OFDM symbols (but only 9 are tx'ed)
+#define SRSLTE_PSSCH_TM34_NUM_DMRS_SYMBOLS (4)  // PSSCH has 4 DMRS symbols in TM3 and TM4
+
+SRSLTE_API int srslte_sl_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME * 2], uint32_t N_x_id);
 #define SRSLTE_PSCCH_MAX_NUM_DATA_SYMBOLS (SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS)
 
-SRSLTE_API int srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp);
-
-SRSLTE_API bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i);
-
+SRSLTE_API int  srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp);
+SRSLTE_API bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
 SRSLTE_API bool srslte_pscch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
+SRSLTE_API bool srslte_pssch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
 
 SRSLTE_API uint32_t srslte_sci_format0_sizeof(uint32_t nof_prb);
+
+SRSLTE_API int srslte_sl_comm_resource_pool_get_default_config(srslte_sl_comm_resource_pool_t* q,
+                                                               srslte_cell_sl_t                cell);
 
 #endif // SRSLTE_PHY_COMMON_SL_H

@@ -35,6 +35,8 @@
 #include "srslte/phy/phch/pucch_cfg.h"
 #include "srslte/phy/phch/pusch_cfg.h"
 
+#include "srslte/phy/ch_estimation/ul_rs_tables.h"
+
 #define SRSLTE_NOF_GROUPS_U 30
 #define SRSLTE_NOF_SEQUENCES_U 2
 #define SRSLTE_NOF_DELTA_SS 30
@@ -190,5 +192,7 @@ SRSLTE_API uint32_t srslte_refsignal_srs_rb_start_cs(uint32_t bw_cfg, uint32_t n
 SRSLTE_API uint32_t srslte_refsignal_srs_rb_L_cs(uint32_t bw_cfg, uint32_t nof_prb);
 
 SRSLTE_API uint32_t srslte_refsignal_srs_M_sc(srslte_refsignal_ul_t* q, srslte_refsignal_srs_cfg_t* cfg);
+
+SRSLTE_API uint32_t srslte_refsignal_get_q(uint32_t u, uint32_t v, uint32_t N_sz);
 
 #endif // SRSLTE_REFSIGNAL_UL_H

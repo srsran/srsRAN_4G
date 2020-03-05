@@ -19,31 +19,26 @@
  *
  */
 
-#include "srslte/phy/common/phy_common.h"
-#include <srslte/phy/ch_estimation/chest_sl.h>
-#include <srslte/phy/utils/debug.h>
-#include <srslte/phy/utils/vector.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
 
-uint32_t       nof_prb        = 25;
-uint32_t       N_sl_id        = 1;
-srslte_cp_t    cp             = SRSLTE_CP_NORM;
-srslte_sl_tm_t tm             = SRSLTE_SIDELINK_TM4;
-bool           run_psbch_test = true;
+#include "srslte/phy/ch_estimation/chest_sl.h"
+#include "srslte/phy/common/phy_common_sl.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+
+srslte_cell_sl_t cell           = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
+bool             run_psbch_test = true;
 
 void usage(char* prog)
 {
   printf("Usage: %s [recov]\n", prog);
-
-  printf("\t-p nof_prb [Default %d]\n", nof_prb);
+  printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e extended cyclic prefix [Default normal]\n");
-
-  printf("\t-c N_sl_id [Default %d]\n", N_sl_id);
-  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (tm + 1));
-
+  printf("\t-c N_sl_id [Default %d]\n", cell.N_sl_id);
+  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell.tm + 1));
   printf("\t-v increase verbosity\n");
 }
 
@@ -53,27 +48,27 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "pecotv")) != -1) {
     switch (opt) {
       case 'p':
-        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
-        cp = SRSLTE_CP_EXT;
+        cell.cp = SRSLTE_CP_EXT;
         break;
       case 'c':
-        N_sl_id = (uint32_t)strtol(argv[optind], NULL, 10);
+        cell.N_sl_id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
         switch (strtol(argv[optind], NULL, 10)) {
           case 1:
-            tm = SRSLTE_SIDELINK_TM1;
+            cell.tm = SRSLTE_SIDELINK_TM1;
             break;
           case 2:
-            tm = SRSLTE_SIDELINK_TM2;
+            cell.tm = SRSLTE_SIDELINK_TM2;
             break;
           case 3:
-            tm = SRSLTE_SIDELINK_TM3;
+            cell.tm = SRSLTE_SIDELINK_TM3;
             break;
           case 4:
-            tm = SRSLTE_SIDELINK_TM4;
+            cell.tm = SRSLTE_SIDELINK_TM4;
             break;
           default:
             usage(argv[0]);
@@ -88,37 +83,44 @@ void parse_args(int argc, char** argv)
         exit(-1);
     }
   }
+  if (cell.cp == SRSLTE_CP_EXT && cell.tm >= SRSLTE_SIDELINK_TM3) {
+    ERROR("Selected TM does not support extended CP");
+    usage(argv[0]);
+    exit(-1);
+  }
 }
 
 int main(int argc, char** argv)
 {
   parse_args(argc, argv);
 
-  int   sf_n_re   = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE * nof_prb * 2;
+  int   sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
   cf_t* sf_buffer = srslte_vec_cf_malloc(sf_n_re);
-  srslte_vec_cf_zero(sf_buffer, sf_n_re);
+  bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
 
   // Variables init Rx
-  cf_t* sf_buffer_rx = srslte_vec_cf_malloc(sf_n_re);
-  srslte_vec_cf_zero(sf_buffer_rx, sf_n_re);
+  cf_t* equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  bzero(equalized_sf_buffer, sizeof(cf_t) * sf_n_re);
 
   cf_t* dmrs_received[SRSLTE_SL_MAX_DMRS_SYMB] = {NULL};
   for (int i = 0; i < SRSLTE_SL_MAX_DMRS_SYMB; i++) {
-    dmrs_received[i] = srslte_vec_cf_malloc(SRSLTE_NRE * nof_prb);
+    dmrs_received[i] = srslte_vec_cf_malloc(SRSLTE_NRE * cell.nof_prb);
   }
+
+  srslte_sl_comm_resource_pool_t sl_comm_resource_pool = {};
 
   // Variables init Tx
   srslte_chest_sl_t q = {};
 
   if (run_psbch_test) {
+
     // Tx
-    srslte_chest_sl_init_psbch_dmrs(&q);
-    srslte_chest_sl_gen_psbch_dmrs(&q, tm, N_sl_id);
-    srslte_chest_sl_put_psbch_dmrs(&q, sf_buffer, tm, nof_prb, cp);
+    srslte_chest_sl_init(&q, SRSLTE_SIDELINK_PSBCH, cell, sl_comm_resource_pool);
+    srslte_chest_sl_put_dmrs(&q, sf_buffer);
 
     // Rx
-    srslte_chest_sl_psbch_ls_estimate_equalize(&q, sf_buffer, sf_buffer_rx, nof_prb, tm, cp);
-    srslte_chest_sl_get_psbch_dmrs(&q, sf_buffer_rx, dmrs_received, tm, nof_prb, cp);
+    srslte_chest_sl_ls_estimate_equalize(&q, sf_buffer, equalized_sf_buffer);
+    srslte_chest_sl_get_dmrs(&q, equalized_sf_buffer, dmrs_received);
 
     // Test
     // TODO: add proper test
@@ -139,11 +141,9 @@ int main(int argc, char** argv)
   if (sf_buffer) {
     free(sf_buffer);
   }
-
-  if (sf_buffer_rx) {
-    free(sf_buffer_rx);
+  if (equalized_sf_buffer) {
+    free(equalized_sf_buffer);
   }
-
   for (int i = 0; i < SRSLTE_SL_MAX_DMRS_SYMB; i++) {
     if (dmrs_received[i]) {
       free(dmrs_received[i]);

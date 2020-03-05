@@ -94,16 +94,13 @@ typedef struct SRSLTE_API {
 
 } srslte_sci_t;
 
-SRSLTE_API int  srslte_sci_init(srslte_sci_t*  q,
-                                uint32_t       nof_prb,
-                                srslte_sl_tm_t tm,
-                                uint32_t       size_sub_channel,
-                                uint32_t       num_sub_channel);
+SRSLTE_API int
+                srslte_sci_init(srslte_sci_t* q, srslte_cell_sl_t cell, srslte_sl_comm_resource_pool_t sl_comm_resource_pool);
 SRSLTE_API int  srslte_sci_format0_pack(srslte_sci_t* q, uint8_t* output);
 SRSLTE_API int  srslte_sci_format1_pack(srslte_sci_t* q, uint8_t* output);
 SRSLTE_API int  srslte_sci_format0_unpack(srslte_sci_t* q, uint8_t* input);
 SRSLTE_API int  srslte_sci_format1_unpack(srslte_sci_t* q, uint8_t* input);
-SRSLTE_API void srslte_sci_info(char* str, srslte_sci_t* q);
+SRSLTE_API void srslte_sci_info(const srslte_sci_t* sci, char* str, uint32_t len);
 SRSLTE_API void srslte_sci_free(srslte_sci_t* q);
 
 #endif // SRSLTE_SCI_H

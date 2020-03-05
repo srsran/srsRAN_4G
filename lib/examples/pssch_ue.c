@@ -19,15 +19,6 @@
  *
  */
 
-#include "srslte/phy/ch_estimation/chest_sl.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/dft/ofdm.h"
-#include "srslte/phy/phch/pscch.h"
-#include "srslte/phy/phch/sci.h"
-#include "srslte/phy/rf/rf.h"
-#include "srslte/phy/ue/ue_sync.h"
-#include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/vector.h"
 #include <semaphore.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -37,21 +28,29 @@
 #include <strings.h>
 #include <unistd.h>
 
+#include "srslte/phy/ch_estimation/chest_sl.h"
+#include "srslte/phy/common/phy_common_sl.h"
+#include "srslte/phy/dft/ofdm.h"
+#include "srslte/phy/phch/pscch.h"
+#include "srslte/phy/phch/sci.h"
+#include "srslte/phy/rf/rf.h"
+#include "srslte/phy/ue/ue_sync.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+
 uint32_t         nof_ports    = 1;
 static bool      keep_running = true;
 char*            output_file_name;
 static char      rf_devname[64] = "";
 static char      rf_args[64]    = "auto";
-float            rf_gain = 40.0, rf_freq = -1.0;
-int              nof_rx_antennas  = 1;
-srslte_cell_sl_t sl_cell          = {.nof_prb = 50, .tm = SRSLTE_SIDELINK_TM4, .cp = SRSLTE_CP_NORM, .N_sl_id = 168};
-uint32_t         size_sub_channel = 10;
-uint32_t         num_sub_channel  = 5;
-uint32_t         prb_idx          = 20;
-bool             use_standard_lte_rates = false;
-bool             disable_plots          = false;
+float            rf_gain = 60.0, rf_freq = -1.0;
+int              nof_rx_antennas = 1;
+srslte_cell_sl_t cell_sl         = {.nof_prb = 50, .tm = SRSLTE_SIDELINK_TM4, .cp = SRSLTE_CP_NORM, .N_sl_id = 0};
 
-srslte_pscch_t pscch; ///< Defined global for plotting thread
+bool use_standard_lte_rates = false;
+bool disable_plots          = false;
+
+srslte_pscch_t pscch; // Defined global for plotting thread
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
@@ -77,9 +76,8 @@ void usage(char* prog)
   printf("\t-d RF devicename [Default %s]\n", rf_devname);
   printf("\t-g RF Gain [Default %.2f dB]\n", rf_gain);
   printf("\t-A nof_rx_antennas [Default %d]\n", nof_rx_antennas);
-  printf("\t-c N_sl_id [Default %d]\n", sl_cell.N_sl_id);
-  printf("\t-p nof_prb [Default %d]\n", sl_cell.nof_prb);
-  printf("\t-x prb_idx [Default %i]\n", prb_idx);
+  printf("\t-c N_sl_id [Default %d]\n", cell_sl.N_sl_id);
+  printf("\t-p nof_prb [Default %d]\n", cell_sl.nof_prb);
   printf("\t-r use_standard_lte_rates [Default %i]\n", use_standard_lte_rates);
 #ifdef ENABLE_GUI
   printf("\t-w disable plots [Default enabled]\n");
@@ -97,23 +95,23 @@ void parse_args(int argc, char** argv)
         rf_args[63] = '\0';
         break;
       case 'c':
-        sl_cell.N_sl_id = atoi(argv[optind]);
+        cell_sl.N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
         strncpy(rf_devname, argv[optind], 63);
         rf_devname[63] = '\0';
         break;
       case 'g':
-        rf_gain = atof(argv[optind]);
+        rf_gain = strtof(argv[optind], NULL);
         break;
       case 'p':
-        sl_cell.nof_prb = atoi(argv[optind]);
+        cell_sl.nof_prb = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'f':
-        rf_freq = atof(argv[optind]);
+        rf_freq = strtof(argv[optind], NULL);
         break;
       case 'A':
-        nof_rx_antennas = atoi(argv[optind]);
+        nof_rx_antennas = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;
@@ -123,9 +121,6 @@ void parse_args(int argc, char** argv)
         break;
       case 'r':
         use_standard_lte_rates = true;
-        break;
-      case 'x':
-        prb_idx = atoi(argv[optind]);
         break;
       default:
         usage(argv[0]);
@@ -160,6 +155,12 @@ int main(int argc, char** argv)
 
   srslte_use_standard_symbol_size(use_standard_lte_rates);
 
+  srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
+  if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell_sl) != SRSLTE_SUCCESS) {
+    ERROR("Error initializing sl_comm_resource_pool\n");
+    return SRSLTE_ERROR;
+  }
+
   printf("Opening RF device...\n");
   srslte_rf_t rf;
   if (srslte_rf_open_multi(&rf, rf_args, nof_rx_antennas)) {
@@ -169,7 +170,7 @@ int main(int argc, char** argv)
 
   printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq) / 1000000);
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
-  int srate = srslte_sampling_freq_hz(sl_cell.nof_prb);
+  int srate = srslte_sampling_freq_hz(cell_sl.nof_prb);
 
   if (srate != -1) {
     printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
@@ -179,12 +180,12 @@ int main(int argc, char** argv)
       exit(-1);
     }
   } else {
-    ERROR("Invalid number of PRB %d\n", sl_cell.nof_prb);
+    ERROR("Invalid number of PRB %d\n", cell_sl.nof_prb);
     exit(-1);
   }
 
   // allocate Rx buffers for 1ms worth of samples
-  uint32_t sf_len = SRSLTE_SF_LEN_PRB(sl_cell.nof_prb);
+  uint32_t sf_len = SRSLTE_SF_LEN_PRB(cell_sl.nof_prb);
   printf("Using a SF len of %d samples\n", sf_len);
 
   cf_t* rx_buffer[SRSLTE_MAX_PORTS] = {NULL}; //< For radio to receive samples
@@ -203,21 +204,23 @@ int main(int argc, char** argv)
     }
   }
 
-  uint32_t sf_n_re             = SRSLTE_CP_NSYMB(SRSLTE_CP_NORM) * SRSLTE_NRE * 2 * sl_cell.nof_prb;
-  cf_t*    equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  uint32_t sf_n_re             = SRSLTE_CP_NSYMB(SRSLTE_CP_NORM) * SRSLTE_NRE * 2 * cell_sl.nof_prb;
+  cf_t*    equalized_sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
 
   // RX
   srslte_ofdm_t fft;
-  if (srslte_ofdm_rx_init(&fft, sl_cell.cp, rx_buffer[0], sf_buffer[0], sl_cell.nof_prb)) {
+  if (srslte_ofdm_rx_init(&fft, cell_sl.cp, rx_buffer[0], sf_buffer[0], cell_sl.nof_prb)) {
     fprintf(stderr, "Error creating FFT object\n");
     return SRSLTE_ERROR;
   }
   srslte_ofdm_set_normalize(&fft, true);
   srslte_ofdm_set_freq_shift(&fft, -0.5);
 
-  // PSCCH Channel estimation
-  srslte_chest_sl_t pscch_chest;
-  srslte_chest_sl_init_pscch_dmrs(&pscch_chest);
+  // SCI
+  srslte_sci_t sci;
+  srslte_sci_init(&sci, cell_sl, sl_comm_resource_pool);
+  uint8_t sci_rx[SRSLTE_SCI_MAX_LEN]           = {};
+  char    sci_msg[SRSLTE_SCI_MSG_MAX_LEN]      = {};
 
   // init PSCCH object
   if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
@@ -225,13 +228,18 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  if (srslte_pscch_set_cell(&pscch, sl_cell) != SRSLTE_SUCCESS) {
+  if (srslte_pscch_set_cell(&pscch, cell_sl) != SRSLTE_SUCCESS) {
     ERROR("Error in PSCCH set cell\n");
     return SRSLTE_ERROR;
   }
 
-  srslte_sci_t sci;
-  srslte_sci_init(&sci, sl_cell.nof_prb, sl_cell.tm, size_sub_channel, num_sub_channel);
+  // PSCCH Channel estimation
+  srslte_chest_sl_cfg_t pscch_chest_sl_cfg;
+  srslte_chest_sl_t     pscch_chest;
+  if (srslte_chest_sl_init(&pscch_chest, SRSLTE_SIDELINK_PSCCH, cell_sl, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
+    ERROR("Error in chest PSCCH init\n");
+    return SRSLTE_ERROR;
+  }
 
   srslte_ue_sync_t sync;
   if (srslte_ue_sync_init_multi_decim_mode(
@@ -241,7 +249,7 @@ int main(int argc, char** argv)
   }
 
   srslte_cell_t cell = {};
-  cell.nof_prb       = sl_cell.nof_prb;
+  cell.nof_prb       = cell_sl.nof_prb;
   if (srslte_ue_sync_set_cell(&sync, cell)) {
     ERROR("Error initiating ue_sync\n");
     exit(-1);
@@ -262,6 +270,9 @@ int main(int argc, char** argv)
 
   uint32_t num_decoded_sci = 0;
   uint32_t subframe_count  = 0;
+
+  uint32_t pscch_prb_start_idx = 0;
+
   while (keep_running) {
     // receive subframe
     int ret = srslte_ue_sync_zerocopy(&sync, rx_buffer, sf_len);
@@ -283,41 +294,40 @@ int main(int argc, char** argv)
     // do FFT
     srslte_ofdm_rx_sf(&fft);
 
-    for (int i = 0; i < num_sub_channel; i++) {
-      uint32_t pscch_prb_idx = size_sub_channel * i;
+    for (int sub_channel_idx = 0; sub_channel_idx < sl_comm_resource_pool.num_sub_channel; sub_channel_idx++) {
+      pscch_prb_start_idx = sub_channel_idx * sl_comm_resource_pool.size_sub_channel;
 
       for (uint32_t cyclic_shift = 0; cyclic_shift <= 9; cyclic_shift += 3) {
 
-        uint8_t sci_rx[SRSLTE_SCI_MAX_LEN]      = {};
-        char    sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = {};
-
         // PSCCH Channel estimation
-        srslte_chest_sl_gen_pscch_dmrs(&pscch_chest, cyclic_shift, sl_cell.tm);
-        srslte_chest_sl_pscch_ls_estimate_equalize(
-            &pscch_chest, sf_buffer[0], pscch_prb_idx, equalized_sf_buffer, sl_cell.nof_prb, sl_cell.tm, sl_cell.cp);
+        pscch_chest_sl_cfg.cyclic_shift  = cyclic_shift;
+        pscch_chest_sl_cfg.prb_start_idx = pscch_prb_start_idx;
+        srslte_chest_sl_set_cfg(&pscch_chest, pscch_chest_sl_cfg);
+        srslte_chest_sl_ls_estimate_equalize(&pscch_chest, sf_buffer[0], equalized_sf_buffer);
 
-        if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_idx) == SRSLTE_SUCCESS) {
-          if (srslte_sci_format1_unpack(&sci, sci_rx) != SRSLTE_SUCCESS) {
-            printf("Error unpacking sci format 1\n");
-            return SRSLTE_ERROR;
-          }
+        if (srslte_pscch_decode(&pscch, equalized_sf_buffer, sci_rx, pscch_prb_start_idx) == SRSLTE_SUCCESS) {
+          if (srslte_sci_format1_unpack(&sci, sci_rx) == SRSLTE_SUCCESS) {
+            srslte_sci_info(&sci, sci_msg, sizeof(sci_msg));
+            fprintf(stdout, "%s", sci_msg);
 
-          srslte_sci_info(sci_msg, &sci);
-          fprintf(stdout, "%s", sci_msg);
+            num_decoded_sci++;
 
-          num_decoded_sci++;
-
-          // plot PSCCH
+            // plot PSCCH
 #ifdef ENABLE_GUI
-          if (!disable_plots) {
-            sem_post(&plot_sem);
-          }
+            if (!disable_plots) {
+              sem_post(&plot_sem);
+            }
 #endif
+          }
         }
         if (SRSLTE_VERBOSE_ISDEBUG()) {
           char filename[64];
-          snprintf(
-              filename, 64, "pscch_rx_syms_sf%d_shift%d_prbidx%d.bin", subframe_count, cyclic_shift, pscch_prb_idx);
+          snprintf(filename,
+                   64,
+                   "pscch_rx_syms_sf%d_shift%d_prbidx%d.bin",
+                   subframe_count,
+                   cyclic_shift,
+                   pscch_prb_start_idx);
           printf("Saving PSCCH symbols (%d) to %s\n", pscch.E / SRSLTE_PSCCH_QM, filename);
           srslte_vec_save_file(filename, pscch.mod_symbols, pscch.E / SRSLTE_PSCCH_QM * sizeof(cf_t));
         }

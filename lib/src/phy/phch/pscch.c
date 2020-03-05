@@ -22,14 +22,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 #include "srslte/phy/fec/rm_conv.h"
 #include "srslte/phy/modem/demod_soft.h"
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/pscch.h"
 #include "srslte/phy/phch/sch.h"
-#include "srslte/phy/phch/sci.h"
 #include "srslte/phy/scrambling/scrambling.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
@@ -82,7 +80,7 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
     srslte_viterbi_init(
         &q->dec, SRSLTE_VITERBI_37, q->encoder.poly, SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN, q->encoder.tail_biting);
 
-    ///< Max E value for memory allocation
+    // Max E value for memory allocation
     uint32_t E_max = SRSLTE_NRE * SRSLTE_PSCCH_MAX_NUM_DATA_SYMBOLS * SRSLTE_PSCCH_MAX_NOF_PRB * SRSLTE_PSCCH_QM;
     q->e           = srslte_vec_u8_malloc(E_max);
     if (!q->e) {
@@ -196,7 +194,7 @@ int srslte_pscch_set_cell(srslte_pscch_t* q, srslte_cell_sl_t cell)
   return ret;
 }
 
-int srslte_pscch_encode(srslte_pscch_t* q, uint8_t* sci, cf_t* sf_buffer, uint32_t prb_idx)
+int srslte_pscch_encode(srslte_pscch_t* q, uint8_t* sci, cf_t* sf_buffer, uint32_t prb_start_idx)
 {
   memcpy(q->c, sci, sizeof(uint8_t) * q->sci_len);
 
@@ -238,7 +236,7 @@ int srslte_pscch_encode(srslte_pscch_t* q, uint8_t* sci, cf_t* sf_buffer, uint32
   // Void: Single antenna port
   // 3GPP TS 36.211 version 15.6.0 Release 15 Sec. 9.4.5
 
-  if (srslte_pscch_put(q, sf_buffer, prb_idx) != q->nof_tx_re) {
+  if (srslte_pscch_put(q, sf_buffer, prb_start_idx) != q->nof_tx_re) {
     printf("Error during PSCCH RE mapping\n");
     return SRSLTE_ERROR;
   }
@@ -246,9 +244,9 @@ int srslte_pscch_encode(srslte_pscch_t* q, uint8_t* sci, cf_t* sf_buffer, uint32
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pscch_decode(srslte_pscch_t* q, cf_t* equalized_sf_syms, uint8_t* sci, uint32_t prb_idx)
+int srslte_pscch_decode(srslte_pscch_t* q, cf_t* equalized_sf_syms, uint8_t* sci, uint32_t prb_start_idx)
 {
-  if (srslte_pscch_get(q, equalized_sf_syms, prb_idx) != q->nof_tx_re) {
+  if (srslte_pscch_get(q, equalized_sf_syms, prb_start_idx) != q->nof_tx_re) {
     printf("Error during PSCCH RE extraction\n");
     return SRSLTE_ERROR;
   }
@@ -297,10 +295,10 @@ int srslte_pscch_decode(srslte_pscch_t* q, cf_t* equalized_sf_syms, uint8_t* sci
   return SRSLTE_SUCCESS;
 }
 
-int srslte_pscch_put(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx)
+int srslte_pscch_put(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_start_idx)
 {
   int sample_pos = 0;
-  int k          = prb_idx * SRSLTE_NRE;
+  int k          = prb_start_idx * SRSLTE_NRE;
   for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); ++i) {
     if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->cell.tm, i, q->cell.cp)) {
       memcpy(&sf_buffer[k + i * q->cell.nof_prb * SRSLTE_NRE],
@@ -312,10 +310,10 @@ int srslte_pscch_put(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx)
   return sample_pos;
 }
 
-int srslte_pscch_get(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_idx)
+int srslte_pscch_get(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_start_idx)
 {
   int sample_pos = 0;
-  int k          = prb_idx * SRSLTE_NRE;
+  int k          = prb_start_idx * SRSLTE_NRE;
   for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); ++i) {
     if (srslte_pscch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->cell.tm, i, q->cell.cp)) {
       memcpy(&q->scfdma_symbols[sample_pos],
