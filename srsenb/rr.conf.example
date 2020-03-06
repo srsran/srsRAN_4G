@@ -59,7 +59,7 @@ cell_list =
     pci = 1;
     // root_seq_idx = 204;
     dl_earfcn = 3400;
-    ul_earfcn = 21400;
+    //ul_earfcn = 21400;
     ho_active = false;
 
     // CA cells
