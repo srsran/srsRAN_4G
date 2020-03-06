@@ -32,7 +32,7 @@ typedef struct {
   bool (*srslte_rf_has_rssi)(void* h);
   float (*srslte_rf_get_rssi)(void* h);
   void (*srslte_rf_suppress_stdout)(void* h);
-  void (*srslte_rf_register_error_handler)(void* h, srslte_rf_error_handler_t error_handler);
+  void (*srslte_rf_register_error_handler)(void* h, srslte_rf_error_handler_t error_handler, void* arg);
   int (*srslte_rf_open)(char* args, void** h);
   int (*srslte_rf_open_multi)(char* args, void** h, uint32_t nof_channels);
   int (*srslte_rf_close)(void* h);
@@ -69,7 +69,7 @@ typedef struct {
                               bool   is_start_of_burst,
                               bool   is_end_of_burst);
   int (*srslte_rf_send_timed_multi)(void*  h,
-                                    void*  data[4],
+                                    void** data,
                                     int    nsamples,
                                     time_t secs,
                                     double frac_secs,

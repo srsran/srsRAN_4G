@@ -35,9 +35,9 @@
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
+#include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
-#include "srsue/hdr/phy/scell/async_scell_recv.h"
 
 #include <srsue/hdr/phy/scell/intra_measure.h>
 
@@ -48,7 +48,7 @@ typedef _Complex float cf_t;
 class sync : public srslte::thread, public chest_feedback_itf
 {
 public:
-  sync() : thread("SYNC"){};
+  sync() : thread("SYNC"), sf_buffer(sync_nof_rx_subframes){};
   ~sync();
 
   void init(srslte::radio_interface_phy* radio_,
@@ -58,7 +58,6 @@ public:
             phy_common*                  _worker_com,
             srslte::log*                 _log_h,
             srslte::log*                 _log_phy_lib_h,
-            scell::async_recv_vector*    scell_sync_,
             uint32_t                     prio,
             int                          sync_cpu_affinity = -1);
   void stop();
@@ -90,7 +89,7 @@ public:
 
   // Other functions
   void set_rx_gain(float gain);
-  int  radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time);
+  int  radio_recv_fnc(srslte::rf_buffer_t&, uint32_t nsamples, srslte_timestamp_t* rx_time);
 
 private:
   // Class to run cell search
@@ -100,19 +99,19 @@ private:
     typedef enum { CELL_NOT_FOUND, CELL_FOUND, ERROR, TIMEOUT } ret_code;
 
     ~search();
-    void     init(cf_t* buffer[SRSLTE_MAX_PORTS], srslte::log* log_h, uint32_t nof_rx_antennas, sync* parent);
+    void     init(srslte::rf_buffer_t& buffer_, srslte::log* log_h, uint32_t nof_rx_channels, sync* parent);
     void     reset();
     float    get_last_cfo();
     void     set_agc_enable(bool enable);
     ret_code run(srslte_cell_t* cell, std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload);
 
   private:
-    sync*                  p                        = nullptr;
-    srslte::log*           log_h                    = nullptr;
-    cf_t*                  buffer[SRSLTE_MAX_PORTS] = {};
-    srslte_ue_cellsearch_t cs                       = {};
-    srslte_ue_mib_sync_t   ue_mib_sync              = {};
-    int                    force_N_id_2             = 0;
+    sync*                  p            = nullptr;
+    srslte::log*           log_h        = nullptr;
+    srslte::rf_buffer_t    buffer       = {};
+    srslte_ue_cellsearch_t cs           = {};
+    srslte_ue_mib_sync_t   ue_mib_sync  = {};
+    int                    force_N_id_2 = 0;
   };
 
   // Class to synchronize system frame number
@@ -122,11 +121,11 @@ private:
     typedef enum { IDLE, SFN_FOUND, SFX0_FOUND, SFN_NOFOUND, ERROR } ret_code;
     sfn_sync() = default;
     ~sfn_sync();
-    void     init(srslte_ue_sync_t* ue_sync,
-                  cf_t*             buffer[SRSLTE_MAX_PORTS],
-                  uint32_t          buffer_max_samples_,
-                  srslte::log*      log_h,
-                  uint32_t          nof_subframes = SFN_SYNC_NOF_SUBFRAMES);
+    void     init(srslte_ue_sync_t*    ue_sync,
+                  srslte::rf_buffer_t& buffer,
+                  uint32_t             buffer_max_samples_,
+                  srslte::log*         log_h,
+                  uint32_t             nof_subframes = SFN_SYNC_NOF_SUBFRAMES);
     void     reset();
     bool     set_cell(srslte_cell_t cell);
     ret_code run_subframe(srslte_cell_t*                               cell,
@@ -135,20 +134,20 @@ private:
                           bool                                         sfidx_only = false);
     ret_code decode_mib(srslte_cell_t*                               cell,
                         uint32_t*                                    tti_cnt,
-                        cf_t*                                        ext_buffer[SRSLTE_MAX_PORTS],
+                        srslte::rf_buffer_t*                         ext_buffer,
                         std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
                         bool                                         sfidx_only = false);
 
   private:
     const static int SFN_SYNC_NOF_SUBFRAMES = 100;
 
-    uint32_t          cnt                      = 0;
-    uint32_t          timeout                  = 0;
-    srslte::log*      log_h                    = nullptr;
-    srslte_ue_sync_t* ue_sync                  = nullptr;
-    cf_t*             buffer[SRSLTE_MAX_PORTS] = {};
-    uint32_t          buffer_max_samples       = 0;
-    srslte_ue_mib_t   ue_mib                   = {};
+    uint32_t            cnt                = 0;
+    uint32_t            timeout            = 0;
+    srslte::log*        log_h              = nullptr;
+    srslte_ue_sync_t*   ue_sync            = nullptr;
+    srslte::rf_buffer_t mib_buffer         = {};
+    uint32_t            buffer_max_samples = 0;
+    srslte_ue_mib_t     ue_mib             = {};
   };
 
   /* TODO: Intra-freq measurements can be improved by capturing 200 ms length signal and run cell search +
@@ -176,9 +175,9 @@ private:
   sfn_sync                                            sfn_p;
   std::vector<std::unique_ptr<scell::intra_measure> > intra_freq_meas;
 
-  uint32_t current_sflen                        = 0;
-  int      next_offset                          = 0;  // Sample offset triggered by Time aligment commands
-  int      next_radio_offset[SRSLTE_MAX_RADIOS] = {}; // Sample offset triggered by SFO compensation
+  uint32_t current_sflen     = 0;
+  int      next_offset       = 0; // Sample offset triggered by Time aligment commands
+  int      next_radio_offset = 0; // Sample offset triggered by SFO compensation
 
   // Pointers to other classes
   stack_interface_phy_lte*     stack            = nullptr;
@@ -188,14 +187,14 @@ private:
   srslte::radio_interface_phy* radio_h          = nullptr;
   phy_common*                  worker_com       = nullptr;
   prach*                       prach_buffer     = nullptr;
-  scell::async_recv_vector*    scell_sync       = nullptr;
   srslte::channel_ptr          channel_emulator = nullptr;
 
   // Object for synchronization of the primary cell
   srslte_ue_sync_t ue_sync = {};
 
   // Buffer for primary and secondary cell samples
-  cf_t* sf_buffer[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS] = {};
+  const static uint32_t sync_nof_rx_subframes = 5;
+  srslte::rf_buffer_t   sf_buffer             = {};
 
   // Sync metrics
   sync_metrics_t metrics = {};
@@ -349,10 +348,10 @@ private:
   uint32_t                                    tti               = 0;
   srslte_timestamp_t                          tti_ts            = {};
   srslte_timestamp_t                          radio_ts          = {};
-  std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib;
+  std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib               = {};
 
-  uint32_t nof_workers = 0;
-
+  uint32_t nof_workers             = 0;
+  uint32_t nof_rf_channels         = 0;
   float    ul_dl_factor            = NAN;
   int      current_earfcn          = 0;
   uint32_t cellsearch_earfcn_index = 0;

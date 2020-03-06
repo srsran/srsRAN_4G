@@ -61,7 +61,7 @@ SRSLTE_API srslte_rf_info_t* rf_zmq_get_info(void* h);
 
 SRSLTE_API void rf_zmq_suppress_stdout(void* h);
 
-SRSLTE_API void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t error_handler);
+SRSLTE_API void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t error_handler, void* arg);
 
 SRSLTE_API double rf_zmq_set_rx_freq(void* h, uint32_t ch, double freq);
 

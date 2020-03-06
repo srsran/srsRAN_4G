@@ -31,8 +31,8 @@
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <iostream>
-#include <string>
 #include <memory>
+#include <string>
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_csv.h"
@@ -94,9 +94,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("rf.ul_freq",        bpo::value<float>(&args->rf.ul_freq)->default_value(-1),        "Uplink Frequency (if positive overrides EARFCN)")
 
     ("rf.device_name",       bpo::value<string>(&args->rf.device_name)->default_value("auto"),       "Front-end device name")
-    ("rf.device_args",       bpo::value<string>(&args->rf.device_args[0])->default_value("auto"),       "Front-end device arguments")
+    ("rf.device_args",       bpo::value<string>(&args->rf.device_args)->default_value("auto"),       "Front-end device arguments")
     ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"), "Transmission time advance")
-    ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"),    "Transmission time advance")
 
     ("pcap.enable",       bpo::value<bool>(&args->stack.pcap.enable)->default_value(false),         "Enable MAC packet captures for wireshark")
     ("pcap.filename",     bpo::value<string>(&args->stack.pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")

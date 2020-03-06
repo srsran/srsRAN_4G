@@ -84,32 +84,27 @@ void txrx::stop()
 
 void txrx::run_thread()
 {
-  sf_worker*         worker                                                                = nullptr;
-  cf_t*              buffer[worker_com->get_nof_carriers() * worker_com->get_nof_ports(0)] = {};
-  srslte_timestamp_t rx_time                                                               = {};
-  srslte_timestamp_t tx_time                                                               = {};
-  uint32_t           sf_len = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
+  sf_worker*          worker  = nullptr;
+  srslte::rf_buffer_t buffer  = {};
+  srslte_timestamp_t  rx_time = {};
+  srslte_timestamp_t  tx_time = {};
+  uint32_t            sf_len  = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
 
   float samp_rate = srslte_sampling_freq_hz(worker_com->get_nof_prb(0));
 
   // Configure radio
-  radio_h->set_rx_srate(0, samp_rate);
-  radio_h->set_tx_srate(0, samp_rate);
+  radio_h->set_rx_srate(samp_rate);
+  radio_h->set_tx_srate(samp_rate);
 
   // Set Tx/Rx frequencies
   for (uint32_t cc_idx = 0; cc_idx < worker_com->get_nof_carriers(); cc_idx++) {
     float    tx_freq_hz = worker_com->get_dl_freq_hz(cc_idx);
     float    rx_freq_hz = worker_com->get_ul_freq_hz(cc_idx);
     uint32_t rf_port    = worker_com->get_rf_port(cc_idx);
-    for (uint32_t i = 0; i < worker_com->get_nof_ports(cc_idx); i++) {
-      radio_h->set_tx_freq(0, rf_port + i, tx_freq_hz);
-      radio_h->set_rx_freq(0, rf_port + i, rx_freq_hz);
-    }
-    log_h->console("RF%d: samp_rate=%.2f MHz, DL=%.1f Mhz, UL=%.1f MHz\n",
-                   cc_idx,
-                   samp_rate / 1e6f,
-                   tx_freq_hz / 1e6f,
-                   rx_freq_hz / 1e6f);
+    log_h->console(
+        "Setting frequency: DL=%.1f Mhz, UL=%.1f MHz for cc_idx=%d\n", tx_freq_hz / 1e6f, rx_freq_hz / 1e6f, cc_idx);
+    radio_h->set_tx_freq(rf_port, tx_freq_hz);
+    radio_h->set_rx_freq(rf_port, rx_freq_hz);
   }
 
   // Set channel emulator sampling rate
@@ -131,14 +126,15 @@ void txrx::run_thread()
       for (uint32_t cc = 0; cc < worker_com->get_nof_carriers(); cc++) {
         uint32_t rf_port = worker_com->get_rf_port(cc);
         for (uint32_t p = 0; p < worker_com->get_nof_ports(cc); p++) {
-          buffer[rf_port + p] = worker->get_buffer_rx(cc, p);
+          // WARNING: The number of ports for all cells must be the same
+          buffer.set(rf_port, p, worker_com->get_nof_ports(0), worker->get_buffer_rx(cc, p));
         }
       }
 
-      radio_h->rx_now(0, buffer, sf_len, &rx_time);
+      radio_h->rx_now(buffer, sf_len, &rx_time);
 
       if (ul_channel) {
-        ul_channel->run(buffer, buffer, sf_len, rx_time);
+        ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), sf_len, rx_time);
       }
 
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
@@ -161,7 +157,7 @@ void txrx::run_thread()
 
       // Trigger prach worker execution
       for (uint32_t cc = 0; cc < worker_com->get_nof_carriers(); cc++) {
-        prach->new_tti(cc, tti, buffer[worker_com->get_rf_port(cc) * worker_com->get_nof_ports(cc)]);
+        prach->new_tti(cc, tti, buffer.get(worker_com->get_rf_port(cc), 0, worker_com->get_nof_ports(0)));
       }
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here

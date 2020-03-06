@@ -40,16 +40,18 @@ typedef struct {
   srslte_rf_info_t    info;
 } rf_blade_handler_t;
 
-static srslte_rf_error_handler_t blade_error_handler = NULL;
+static srslte_rf_error_handler_t blade_error_handler     = NULL;
+static void*                     blade_error_handler_arg = NULL;
 
 void rf_blade_suppress_stdout(UNUSED void* h)
 {
   bladerf_log_set_verbosity(BLADERF_LOG_LEVEL_SILENT);
 }
 
-void rf_blade_register_error_handler(UNUSED void* ptr, srslte_rf_error_handler_t new_handler)
+void rf_blade_register_error_handler(UNUSED void* ptr, srslte_rf_error_handler_t new_handler, void* arg)
 {
-  blade_error_handler = new_handler;
+  blade_error_handler     = new_handler;
+  blade_error_handler_arg = arg;
 }
 
 const unsigned int num_buffers       = 256;
@@ -436,7 +438,7 @@ int rf_blade_recv_with_time(void*       h,
       srslte_rf_error_t error;
       error.opt  = meta.actual_count;
       error.type = SRSLTE_RF_ERROR_OVERFLOW;
-      blade_error_handler(error);
+      blade_error_handler(blade_error_handler_arg, error);
     } else {
       /*ERROR("Overrun detected in scheduled RX. "
             "%u valid samples were read.\n\n", meta.actual_count);*/
@@ -509,7 +511,7 @@ int rf_blade_send_timed(void*       h,
   if (status == BLADERF_ERR_TIME_PAST) {
     if (blade_error_handler) {
       error.type = SRSLTE_RF_ERROR_LATE;
-      blade_error_handler(error);
+      blade_error_handler(blade_error_handler_arg, error);
     } else {
       ERROR("TX failed: %s\n", bladerf_strerror(status));
     }
@@ -519,7 +521,7 @@ int rf_blade_send_timed(void*       h,
   } else if (meta.status == BLADERF_META_STATUS_UNDERRUN) {
     if (blade_error_handler) {
       error.type = SRSLTE_RF_ERROR_UNDERFLOW;
-      blade_error_handler(error);
+      blade_error_handler(blade_error_handler_arg, error);
     } else {
       ERROR("TX warning: underflow detected.\n");
     }

@@ -166,9 +166,9 @@ void srslte_rf_suppress_stdout(srslte_rf_t* rf)
   ((rf_dev_t*)rf->dev)->srslte_rf_suppress_stdout(rf->handler);
 }
 
-void srslte_rf_register_error_handler(srslte_rf_t* rf, srslte_rf_error_handler_t error_handler)
+void srslte_rf_register_error_handler(srslte_rf_t* rf, srslte_rf_error_handler_t error_handler, void* arg)
 {
-  ((rf_dev_t*)rf->dev)->srslte_rf_register_error_handler(rf->handler, error_handler);
+  ((rf_dev_t*)rf->dev)->srslte_rf_register_error_handler(rf->handler, error_handler, arg);
 }
 
 int srslte_rf_open(srslte_rf_t* h, char* args)
@@ -306,7 +306,7 @@ int srslte_rf_send_timed3(srslte_rf_t* rf,
 }
 
 int srslte_rf_send_timed_multi(srslte_rf_t* rf,
-                               void*        data[4],
+                               void**       data,
                                int          nsamples,
                                time_t       secs,
                                double       frac_secs,
@@ -321,7 +321,7 @@ int srslte_rf_send_timed_multi(srslte_rf_t* rf,
 }
 
 int srslte_rf_send_multi(srslte_rf_t* rf,
-                         void*        data[4],
+                         void**       data,
                          int          nsamples,
                          bool         blocking,
                          bool         is_start_of_burst,

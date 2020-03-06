@@ -77,33 +77,33 @@ void phy::srslte_phy_logger(phy_logger_level_t log_level, char* str)
   }
 }
 
-void phy::set_default_args(phy_args_t* args)
+void phy::set_default_args(phy_args_t& args_)
 {
-  args->nof_rx_ant           = 1;
-  args->ul_pwr_ctrl_en       = false;
-  args->prach_gain           = -1;
-  args->cqi_max              = -1;
-  args->cqi_fixed            = -1;
-  args->snr_ema_coeff        = 0.1;
-  args->snr_estim_alg        = "refs";
-  args->pdsch_max_its        = 4;
-  args->nof_phy_threads      = DEFAULT_WORKERS;
-  args->equalizer_mode       = "mmse";
-  args->cfo_integer_enabled  = false;
-  args->cfo_correct_tol_hz   = 50;
-  args->sss_algorithm        = "full";
-  args->estimator_fil_auto   = false;
-  args->estimator_fil_stddev = 1.0f;
-  args->estimator_fil_order  = 4;
+  args_.nof_rx_ant           = 1;
+  args_.ul_pwr_ctrl_en       = false;
+  args_.prach_gain           = -1;
+  args_.cqi_max              = -1;
+  args_.cqi_fixed            = -1;
+  args_.snr_ema_coeff        = 0.1;
+  args_.snr_estim_alg        = "refs";
+  args_.pdsch_max_its        = 4;
+  args_.nof_phy_threads      = DEFAULT_WORKERS;
+  args_.equalizer_mode       = "mmse";
+  args_.cfo_integer_enabled  = false;
+  args_.cfo_correct_tol_hz   = 50;
+  args_.sss_algorithm        = "full";
+  args_.estimator_fil_auto   = false;
+  args_.estimator_fil_stddev = 1.0f;
+  args_.estimator_fil_order  = 4;
 }
 
-bool phy::check_args(const phy_args_t& args)
+bool phy::check_args(const phy_args_t& args_)
 {
-  if (args.nof_phy_threads > MAX_WORKERS) {
+  if (args_.nof_phy_threads > MAX_WORKERS) {
     log_h->console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
     return false;
   }
-  if (args.snr_ema_coeff > 1.0) {
+  if (args_.snr_ema_coeff > 1.0) {
     log_h->console("Error in PHY args: snr_ema_coeff must be 0<=w<=1\n");
     return false;
   }
@@ -193,13 +193,6 @@ void phy::run_thread()
     workers.push_back(std::move(w));
   }
 
-  // Load Asynchronous SCell objects
-  for (int i = 0; i < (int)args.nof_radios - 1; i++) {
-    auto t = scell::async_recv_ptr(new scell::async_scell_recv());
-    t->init(radio, &common, log_h);
-    scell_sync.push_back(std::move(t));
-  }
-
   // Warning this must be initialized after all workers have been added to the pool
   sfsync.init(radio,
               stack,
@@ -208,7 +201,6 @@ void phy::run_thread()
               &common,
               log_h,
               log_phy_lib_h,
-              &scell_sync,
               SF_RECV_THREAD_PRIO,
               args.sync_cpu_affinity);
 
@@ -238,10 +230,6 @@ void phy::stop()
   std::unique_lock<std::mutex> lock(config_mutex);
   if (is_configured) {
     sfsync.stop();
-    for (uint32_t i = 0; i < args.nof_radios - 1; i++) {
-      scell_sync.at(i)->stop();
-    }
-
     workers_pool.stop();
     prach_buffer.stop();
 
@@ -342,7 +330,7 @@ bool phy::cell_is_camping()
 
 float phy::get_phr()
 {
-  float phr = radio->get_max_tx_power() - common.cur_pusch_power;
+  float phr = radio->get_info()->max_tx_gain - common.cur_pusch_power;
   return phr;
 }
 
@@ -445,8 +433,6 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
 
   // Component carrier index zero should be reserved for PCell
   if (cc_idx < args.nof_carriers) {
-    carrier_map_t* m = &args.carrier_map[cc_idx];
-
     // Send configuration to workers
     for (uint32_t i = 0; i < nof_workers; i++) {
       if (cell_info) {
@@ -463,19 +449,12 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
     if (cc_idx == 0) {
       prach_cfg = config_.prach_cfg;
     } else if (cell_info) {
-      // If SCell does not share synchronism with PCell ...
-      if (m->radio_idx > 0) {
-        scell_sync.at(m->radio_idx - 1)->set_scell_cell(cc_idx, cell_info, earfcn);
-      } else {
-        // Change frequency only if the earfcn was modified
-        if (common.scell_cfg[cc_idx].earfcn != earfcn) {
-          float dl_freq = srslte_band_fd(earfcn) * 1e6f;
-          float ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6f;
-          for (uint32_t p = 0; p < common.args->nof_rx_ant; p++) {
-            radio->set_rx_freq(m->radio_idx, m->channel_idx + p, dl_freq);
-            radio->set_tx_freq(m->radio_idx, m->channel_idx + p, ul_freq);
-          }
-        }
+      // Change frequency only if the earfcn was modified
+      if (common.scell_cfg[cc_idx].earfcn != earfcn) {
+        float dl_freq = srslte_band_fd(earfcn) * 1e6f;
+        float ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6f;
+        radio->set_rx_freq(cc_idx, dl_freq);
+        radio->set_tx_freq(cc_idx, ul_freq);
       }
 
       // Store SCell earfcn and pci

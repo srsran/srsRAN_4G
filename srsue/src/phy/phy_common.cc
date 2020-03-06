@@ -42,8 +42,7 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-static cf_t  zeros[50000]                  = {};
-static cf_t* zeros_multi[SRSLTE_MAX_PORTS] = {zeros, zeros, zeros, zeros};
+static srslte::rf_buffer_t zeros_multi(1);
 
 phy_common::phy_common()
 {
@@ -73,8 +72,7 @@ void phy_common::init(phy_args_t*                  _args,
 
   // Instantiate UL channel emulator
   if (args->ul_channel_args.enable) {
-    ul_channel =
-        srslte::channel_ptr(new srslte::channel(args->ul_channel_args, args->nof_rf_channels * args->nof_rx_ant));
+    ul_channel = srslte::channel_ptr(new srslte::channel(args->ul_channel_args, args->nof_carriers * args->nof_rx_ant));
   }
 }
 
@@ -525,45 +523,41 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(void*              tx_sem_id,
-                            bool               tx_enable,
-                            cf_t*              buffer[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS],
-                            uint32_t           nof_samples[SRSLTE_MAX_RADIOS],
-                            srslte_timestamp_t tx_time[SRSLTE_MAX_RADIOS])
+void phy_common::worker_end(void*                tx_sem_id,
+                            bool                 tx_enable,
+                            srslte::rf_buffer_t& buffer,
+                            uint32_t             nof_samples,
+                            srslte_timestamp_t   tx_time)
 {
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
 
   // For each radio, transmit
-  for (uint32_t i = 0; i < args->nof_radios; i++) {
-    if (tx_enable && !srslte_timestamp_iszero(&tx_time[i])) {
+  if (tx_enable && !srslte_timestamp_iszero(&tx_time)) {
 
-      if (ul_channel) {
-        ul_channel->run(buffer[i], buffer[i], nof_samples[i], tx_time[i]);
-      }
+    if (ul_channel) {
+      ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), nof_samples, tx_time);
+    }
 
-      radio_h->tx(i, buffer[i], nof_samples[i], tx_time[i]);
-    } else {
-      if (radio_h->is_continuous_tx()) {
-        if (is_pending_tx_end) {
-          radio_h->tx_end();
-          is_pending_tx_end = false;
-        } else {
-          if (!radio_h->get_is_start_of_burst(i)) {
-
-            if (ul_channel && !srslte_timestamp_iszero(&tx_time[i])) {
-              bzero(zeros_multi[0], sizeof(cf_t) * nof_samples[i]);
-              ul_channel->run(zeros_multi, zeros_multi, nof_samples[i], tx_time[i]);
-            }
-
-            radio_h->tx(i, zeros_multi, nof_samples[i], tx_time[i]);
-          }
-        }
+    radio_h->tx(buffer, nof_samples, tx_time);
+  } else {
+    if (radio_h->is_continuous_tx()) {
+      if (is_pending_tx_end) {
+        radio_h->tx_end();
+        is_pending_tx_end = false;
       } else {
-        if (i == 0) {
-          radio_h->tx_end();
+        if (!radio_h->get_is_start_of_burst()) {
+
+          if (ul_channel && !srslte_timestamp_iszero(&tx_time)) {
+            srslte_vec_cf_zero(zeros_multi.get(0), nof_samples);
+            ul_channel->run(zeros_multi.to_cf_t(), zeros_multi.to_cf_t(), nof_samples, tx_time);
+          }
+
+          radio_h->tx(zeros_multi, nof_samples, tx_time);
         }
       }
+    } else {
+      radio_h->tx_end();
     }
   }
 
@@ -622,9 +616,9 @@ void phy_common::set_ul_metrics(const ul_metrics_t m, uint32_t cc_idx)
   }
 }
 
-void phy_common::get_ul_metrics(ul_metrics_t m[SRSLTE_MAX_RADIOS])
+void phy_common::get_ul_metrics(ul_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
-  memcpy(m, ul_metrics, sizeof(ul_metrics_t) * SRSLTE_MAX_RADIOS);
+  memcpy(m, ul_metrics, sizeof(ul_metrics_t) * SRSLTE_MAX_CARRIERS);
   ul_metrics_read = true;
 }
 

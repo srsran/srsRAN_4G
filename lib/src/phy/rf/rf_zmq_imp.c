@@ -42,21 +42,21 @@ typedef struct {
   uint32_t base_srate;
   uint32_t decim_factor; // decimation factor between base_srate used on transport on radio's rate
   double   rx_gain;
-  uint32_t tx_freq_mhz[SRSLTE_MAX_PORTS];
-  uint32_t rx_freq_mhz[SRSLTE_MAX_PORTS];
+  uint32_t tx_freq_mhz[SRSLTE_MAX_CHANNELS];
+  uint32_t rx_freq_mhz[SRSLTE_MAX_CHANNELS];
   bool     tx_used;
 
   // Server
   void*       context;
-  rf_zmq_tx_t transmitter[SRSLTE_MAX_PORTS];
-  rf_zmq_rx_t receiver[SRSLTE_MAX_PORTS];
+  rf_zmq_tx_t transmitter[SRSLTE_MAX_CHANNELS];
+  rf_zmq_rx_t receiver[SRSLTE_MAX_CHANNELS];
 
   char rx_port[PARAM_LEN];
   char tx_port[PARAM_LEN];
   char id[PARAM_LEN_SHORT];
 
   // Various sample buffers
-  cf_t* buffer_decimation[SRSLTE_MAX_PORTS];
+  cf_t* buffer_decimation[SRSLTE_MAX_CHANNELS];
   cf_t* buffer_tx;
 
   // Rx timestamp
@@ -154,7 +154,7 @@ void rf_zmq_suppress_stdout(void* h)
   // do nothing
 }
 
-void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t new_handler)
+void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t new_handler, void* arg)
 {
   // do nothing
 }
@@ -211,7 +211,7 @@ static inline int parse_double(const char* args, const char* config_arg, double*
 int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 {
   int ret = SRSLTE_ERROR;
-  if (h) {
+  if (h && nof_channels < SRSLTE_MAX_CHANNELS) {
     *h = NULL;
 
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)malloc(sizeof(rf_zmq_handler_t));
@@ -724,7 +724,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
 
     // Map ports to data buffers according to the selected frequencies
     pthread_mutex_lock(&handler->rx_config_mutex);
-    cf_t* buffers[SRSLTE_MAX_PORTS] = {}; // Buffer pointers, NULL if unmatched
+    cf_t* buffers[SRSLTE_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
     for (uint32_t i = 0; i < handler->nof_channels; i++) {
       bool mapped = false;
 
@@ -798,7 +798,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
 
     // copy from rx buffer as many samples as requested into provided buffer
     bool    completed               = false;
-    int32_t count[SRSLTE_MAX_PORTS] = {};
+    int32_t count[SRSLTE_MAX_CHANNELS] = {};
     while (!completed) {
       uint32_t completed_count = 0;
 
@@ -933,7 +933,7 @@ int rf_zmq_send_timed_multi(void*  h,
 
     // Map ports to data buffers according to the selected frequencies
     pthread_mutex_lock(&handler->tx_config_mutex);
-    cf_t* buffers[SRSLTE_MAX_PORTS] = {}; // Buffer pointers, NULL if unmatched
+    cf_t* buffers[SRSLTE_MAX_CHANNELS] = {}; // Buffer pointers, NULL if unmatched
     for (uint32_t i = 0; i < handler->nof_channels; i++) {
       bool mapped = false;
 

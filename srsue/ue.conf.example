@@ -13,9 +13,8 @@
 # Optional parameters: 
 # dl_freq:            Override DL frequency corresponding to dl_earfcn
 # ul_freq:            Override UL frequency corresponding to dl_earfcn
-# nof_radios:         Number of available RF devices
-# nof_rf_channels:    Number of RF channels per radio
-# nof_rx_ant:         Number of RX antennas per channel
+# nof_carriers:       Number of carriers
+# nof_antennas:       Number of antennas per carrier (all carriers have the same number of antennas)
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
@@ -25,8 +24,6 @@
 # time_adv_nsamples:  Transmission time advance (in number of samples) to compensate for RF delay
 #                     from antenna to timestamp insertion. 
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
-# burst_preamble_us:  Preamble length to transmit before start of burst. 
-#                     Default "auto". B210 USRP: 400 us, bladeRF: 0 us.
 # continuous_tx:      Transmit samples continuously to the radio or on bursts (auto/yes/no).
 #                     Default is auto (yes for UHD, no for rest)
 #####################################################################
@@ -36,8 +33,8 @@ freq_offset = 0
 tx_gain = 80
 #rx_gain = 40
 
-#nof_radios = 1
-#nof_rx_ant = 1
+#nof_carriers = 1
+#nof_antennas = 1
 
 # For best performance in 2x2 MIMO and >= 15 MHz use the following device_args settings:
 #     USRP B210: num_recv_frames=64,num_send_frames=64
@@ -47,7 +44,6 @@ tx_gain = 80
 
 #device_args = auto
 #time_adv_nsamples = auto
-#burst_preamble_us = auto
 #continuous_tx     = auto
 
 

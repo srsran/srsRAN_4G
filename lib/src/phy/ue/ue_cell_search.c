@@ -60,7 +60,7 @@ int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t* q,
       goto clean_exit;
     }
 
-    for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
+    for (int p = 0; p < SRSLTE_MAX_CHANNELS; p++) {
       q->sf_buffer[p] = NULL;
     }
     q->sf_buffer[0]    = srslte_vec_cf_malloc(CELL_SEARCH_BUFFER_MAX_SAMPLES);
@@ -95,15 +95,16 @@ clean_exit:
   return ret;
 }
 
-int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t* q,
-                                    uint32_t                max_frames,
-                                    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
-                                    uint32_t nof_rx_antennas,
-                                    void*    stream_handler)
+int srslte_ue_cellsearch_init_multi(
+    srslte_ue_cellsearch_t* q,
+    uint32_t                max_frames,
+    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_CHANNELS], uint32_t, srslte_timestamp_t*),
+    uint32_t nof_rx_antennas,
+    void*    stream_handler)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q != NULL && nof_rx_antennas > 0) {
+  if (q != NULL && nof_rx_antennas < SRSLTE_MAX_CHANNELS) {
     ret = SRSLTE_ERROR;
     srslte_cell_t cell;
 

@@ -59,6 +59,7 @@ typedef struct {
   size_t           num_tx_channels;
 
   srslte_rf_error_handler_t soapy_error_handler;
+  void*                     soapy_error_handler_arg;
 
   bool      async_thread_running;
   pthread_t async_thread;
@@ -79,7 +80,7 @@ static void log_overflow(rf_soapy_handler_t* h)
     srslte_rf_error_t error;
     bzero(&error, sizeof(srslte_rf_error_t));
     error.type = SRSLTE_RF_ERROR_OVERFLOW;
-    h->soapy_error_handler(error);
+    h->soapy_error_handler(h->soapy_error_handler_arg, error);
   } else {
     h->num_overflows++;
   }
@@ -92,7 +93,7 @@ static void log_late(rf_soapy_handler_t* h, bool is_rx)
     bzero(&error, sizeof(srslte_rf_error_t));
     error.opt  = is_rx ? 1 : 0;
     error.type = SRSLTE_RF_ERROR_LATE;
-    h->soapy_error_handler(error);
+    h->soapy_error_handler(h->soapy_error_handler_arg, error);
   } else {
     h->num_lates++;
   }
@@ -104,7 +105,7 @@ static void log_underflow(rf_soapy_handler_t* h)
     srslte_rf_error_t error;
     bzero(&error, sizeof(srslte_rf_error_t));
     error.type = SRSLTE_RF_ERROR_UNDERFLOW;
-    h->soapy_error_handler(error);
+    h->soapy_error_handler(h->soapy_error_handler_arg, error);
   } else {
     h->num_underflows++;
   }
@@ -175,10 +176,11 @@ void rf_soapy_suppress_stdout(void* h)
   // not supported
 }
 
-void rf_soapy_register_error_handler(void* h, srslte_rf_error_handler_t new_handler)
+void rf_soapy_register_error_handler(void* h, srslte_rf_error_handler_t new_handler, void* arg)
 {
-  rf_soapy_handler_t* handler  = (rf_soapy_handler_t*)h;
-  handler->soapy_error_handler = new_handler;
+  rf_soapy_handler_t* handler      = (rf_soapy_handler_t*)h;
+  handler->soapy_error_handler     = new_handler;
+  handler->soapy_error_handler_arg = arg;
 }
 
 const char* rf_soapy_devname(void* h)

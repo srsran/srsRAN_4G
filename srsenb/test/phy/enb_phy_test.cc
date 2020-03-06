@@ -181,8 +181,7 @@ public:
     }
   }
 
-  bool
-  tx(const uint32_t& radio_idx, cf_t** buffer, const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) override
+  bool tx(srslte::rf_buffer_interface& buffer, const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) override
   {
     int err = SRSLTE_SUCCESS;
 
@@ -193,7 +192,7 @@ public:
 
     // Write ring buffer
     for (uint32_t i = 0; i < ringbuffers_tx.size() and err >= SRSLTE_SUCCESS; i++) {
-      err = srslte_ringbuffer_write(ringbuffers_tx[i], buffer[i], nbytes);
+      err = srslte_ringbuffer_write(ringbuffers_tx[i], buffer.get(i), nbytes);
     }
 
     // Notify call
@@ -203,8 +202,7 @@ public:
     return err >= SRSLTE_SUCCESS;
   }
   void tx_end() override {}
-  bool
-  rx_now(const uint32_t& radio_idx, cf_t** buffer, const uint32_t& nof_samples, srslte_timestamp_t* rxd_time) override
+  bool rx_now(srslte::rf_buffer_interface& buffer, const uint32_t& nof_samples, srslte_timestamp_t* rxd_time) override
   {
     int err = SRSLTE_SUCCESS;
 
@@ -216,7 +214,7 @@ public:
     // Write ring buffer
     for (uint32_t i = 0; i < ringbuffers_rx.size() and err >= SRSLTE_SUCCESS; i++) {
       do {
-        err = srslte_ringbuffer_read_timed(ringbuffers_rx[i], buffer[i], nbytes, 1000);
+        err = srslte_ringbuffer_read_timed(ringbuffers_rx[i], buffer.get(i), nbytes, 1000);
       } while (err < SRSLTE_SUCCESS and running);
     }
 
@@ -236,24 +234,20 @@ public:
     // Return True if err >= SRSLTE_SUCCESS
     return err >= SRSLTE_SUCCESS;
   }
-  void              set_tx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) override {}
-  void              set_rx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) override {}
+  void              set_tx_freq(const uint32_t& channel_idx, const double& freq) override {}
+  void              set_rx_freq(const uint32_t& channel_idx, const double& freq) override {}
   void              set_rx_gain_th(const float& gain) override {}
-  void              set_rx_gain(const uint32_t& radio_idx, const float& gain) override {}
-  void              set_tx_srate(const uint32_t& radio_idx, const double& srate) override {}
-  void              set_rx_srate(const uint32_t& radio_idx, const double& srate) override { rx_srate = srate; }
-  float             get_rx_gain(const uint32_t& radio_idx) override { return 0; }
+  void              set_rx_gain(const float& gain) override {}
+  void              set_tx_srate(const double& srate) override {}
+  void              set_rx_srate(const double& srate) override { rx_srate = srate; }
+  void              set_tx_gain(const float& gain) override {}
+  float             get_rx_gain() override { return 0; }
   double            get_freq_offset() override { return 0; }
-  double            get_tx_freq(const uint32_t& radio_idx) override { return 0; }
-  double            get_rx_freq(const uint32_t& radio_idx) override { return 0; }
-  float             get_max_tx_power() override { return 0; }
-  float             get_tx_gain_offset() override { return 0; }
-  float             get_rx_gain_offset() override { return 0; }
   bool              is_continuous_tx() override { return false; }
-  bool              get_is_start_of_burst(const uint32_t& radio_idx) override { return false; }
+  bool              get_is_start_of_burst() override { return false; }
   bool              is_init() override { return false; }
   void              reset() override {}
-  srslte_rf_info_t* get_info(const uint32_t& radio_idx) override { return nullptr; }
+  srslte_rf_info_t* get_info() override { return nullptr; }
 };
 
 typedef std::unique_ptr<dummy_radio> unique_dummy_radio_t;
@@ -725,9 +719,7 @@ public:
            std::string                                                    log_level,
            uint16_t                                                       rnti_,
            const srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t& phy_rrc_cfg_) :
-    radio(_radio),
-    log_h("UE PHY", nullptr, true),
-    phy_rrc_cfg(phy_rrc_cfg_)
+    radio(_radio), log_h("UE PHY", nullptr, true), phy_rrc_cfg(phy_rrc_cfg_)
   {
     // Calculate subframe length
     sf_len = static_cast<uint32_t>(SRSLTE_SF_LEN_PRB(cell_list[0].cell.nof_prb));

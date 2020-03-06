@@ -18,7 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(radio)
 add_subdirectory(phy)
 add_subdirectory(stack)
 
@@ -36,8 +35,7 @@ endif (RPATH)
 add_library(enb_cfg_parser parser.cc enb_cfg_parser.cc)
 
 add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc)
-target_link_libraries(srsenb  srsenb_radio
-                              srsenb_phy
+target_link_libraries(srsenb  srsenb_phy
                               srsenb_stack
                               srsenb_upper
                               srsenb_mac

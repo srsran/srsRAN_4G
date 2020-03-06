@@ -21,7 +21,7 @@
 
 #include "srsue/hdr/ue.h"
 #include "srslte/build_info.h"
-#include "srslte/radio/radio_multi.h"
+#include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
@@ -86,7 +86,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<radio_multi> lte_radio = std::unique_ptr<radio_multi>(new radio_multi(logger));
+    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
     if (!lte_radio) {
       log.console("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
@@ -158,27 +158,20 @@ int ue::parse_args(const all_args_t& args_)
     }
   }
 
-  // replicate some RF parameter to make them available to PHY
-  args.phy.nof_rx_ant = args.rf.nof_rx_ant;
-  args.phy.agc_enable = args.rf.rx_gain < 0.0f;
-
-  // Calculate number of carriers available in all radios
-  args.phy.nof_radios      = args.rf.nof_radios;
-  args.phy.nof_rf_channels = args.rf.nof_rf_channels;
-  args.phy.nof_carriers    = args.rf.nof_radios * args.rf.nof_rf_channels;
-
-  if (args.phy.nof_carriers > SRSLTE_MAX_CARRIERS) {
-    log.error("Too many carriers (%d > %d)\n", args.phy.nof_carriers, SRSLTE_MAX_CARRIERS);
+  if (args.rf.nof_antennas > SRSLTE_MAX_PORTS) {
+    fprintf(stderr, "Maximum number of antennas exceeded (%d > %d)\n", args.rf.nof_antennas, SRSLTE_MAX_PORTS);
     return SRSLTE_ERROR;
   }
 
-  // Generate RF-Channel to Carrier map
-  for (uint32_t i = 0; i < args.phy.nof_carriers; i++) {
-    carrier_map_t* m = &args.phy.carrier_map[i];
-    m->radio_idx     = i / args.rf.nof_rf_channels;
-    m->channel_idx   = (i % args.rf.nof_rf_channels) * args.rf.nof_rx_ant;
-    log.debug("Mapping carrier %d to channel %d in radio %d\n", i, m->channel_idx, m->radio_idx);
+  if (args.rf.nof_carriers > SRSLTE_MAX_CARRIERS) {
+    fprintf(stderr, "Maximum number of carriers exceeded (%d > %d)\n", args.rf.nof_carriers, SRSLTE_MAX_CARRIERS);
+    return SRSLTE_ERROR;
   }
+
+  // replicate some RF parameter to make them available to PHY
+  args.phy.nof_carriers = args.rf.nof_carriers;
+  args.phy.nof_rx_ant   = args.rf.nof_antennas;
+  args.phy.agc_enable   = args.rf.rx_gain < 0.0f;
 
   // populate EARFCN list
   if (!args.phy.dl_earfcn.empty()) {
@@ -203,7 +196,7 @@ int ue::parse_args(const all_args_t& args_)
   args.stack.rrc.ue_category = (uint32_t)strtoul(args.stack.rrc.ue_category_str.c_str(), nullptr, 10);
 
   // Consider Carrier Aggregation support if more than one
-  args.stack.rrc.support_ca = (args.rf.nof_rf_channels * args.rf.nof_radios) > 1;
+  args.stack.rrc.support_ca = (args.rf.nof_carriers > 1);
 
   return SRSLTE_SUCCESS;
 }

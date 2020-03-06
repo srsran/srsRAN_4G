@@ -21,8 +21,11 @@
 
 #include <string.h>
 
+#include "radio_metrics.h"
+#include "srslte/common/interfaces_common.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/trace.h"
+#include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/srslte.h"
 
@@ -31,146 +34,202 @@
 
 namespace srslte {
 
-/* Interface to the RF frontend.
+/**
+ * Implemenation of the rf_buffer_interface for the current radio implementation which uses flat arrays.
+ * @see rf_buffer_interface
+ * @see radio
+ *
  */
-class radio
+class rf_buffer_t : public rf_buffer_interface
 {
 public:
-  radio() : tr_local_time(1024 * 10), tr_usrp_time(1024 * 10), tr_tx_time(1024 * 10), tr_is_eob(1024 * 10), zeros(NULL)
+  /**
+   * Creates an object and allocates memory for nof_subframes_ assuming the
+   * largest system bandwidth
+   * @param nof_subframes_ Number of subframes to allocate
+   */
+  rf_buffer_t(uint32_t nof_subframes_)
   {
-    bzero(&rf_device, sizeof(srslte_rf_t));
-    bzero(&end_of_burst_time, sizeof(srslte_timestamp_t));
-    zeros = (cf_t*)srslte_vec_malloc(burst_preamble_max_samples * sizeof(cf_t));
-    bzero(zeros, burst_preamble_max_samples * sizeof(cf_t));
-
-    log_h = NULL;
-
-    burst_preamble_sec          = 0;
-    is_start_of_burst           = false;
-    burst_preamble_samples      = 0;
-    burst_preamble_time_rounded = 0;
-
-    cur_tx_srate       = 0;
-    tx_adv_sec         = 0;
-    tx_adv_nsamples    = 0;
-    tx_adv_auto        = false;
-    tx_adv_negative    = false;
-    tx_freq            = 0;
-    rx_freq            = 0;
-    freq_offset        = 0;
-    trace_enabled      = false;
-    tti                = 0;
-    agc_enabled        = false;
-    radio_is_streaming = false;
-    is_initialized     = false;
-    continuous_tx      = false;
-  };
-
-  ~radio()
-  {
-    if (zeros) {
-      free(zeros);
-      zeros = NULL;
+    if (nof_subframes_ > 0) {
+      // Allocate buffers for an integer number of subframes
+      for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+        sample_buffer[i] = srslte_vec_cf_malloc(nof_subframes_ * SRSLTE_SF_LEN_MAX);
+        srslte_vec_cf_zero(sample_buffer[i], SRSLTE_SF_LEN_MAX);
+      }
+      allocated     = true;
+      nof_subframes = nof_subframes_;
     }
   }
+  /**
+   * Creates an object and sets the buffers to the flat array pointed by data. Note that data must
+   * contain up to SRSLTE_MAX_CHANNELS pointers
+   * @param data Flat array to use as initializer for the internal buffer pointers
+   */
+  rf_buffer_t(cf_t* data[SRSLTE_MAX_CHANNELS])
+  {
+    for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+      sample_buffer[i] = data[i];
+    }
+  }
+  /**
+   * Creates an object from a single array pointer. The rest of the channel pointers will be left to NULL
+   * @param data Flat array to use as initializer for the internal buffer pointers
+   */
+  rf_buffer_t(cf_t* data) { sample_buffer[0] = data; }
+  /**
+   * Default constructor leaves the internal pointers to NULL
+   */
+  rf_buffer_t() {}
 
-  bool init(log_filter* _log_h, const char* args = NULL, char* devname = NULL, uint32_t nof_channels = 1);
+  /**
+   * The destructor will deallocate memory only if it was allocated passing nof_subframes > 0
+   */
+  ~rf_buffer_t()
+  {
+    if (allocated) {
+      free_all();
+    }
+  }
+  /**
+   * Overrides the = operator such that the lvalue internal buffers point to the pointers inside rvalue.
+   * If memory has already been allocated in the lvalue object, it will free it before pointing the
+   * buffers to the lvalue.
+   * After this operator, when the lvalue is destroyed no memory will be freed.
+   * @param other rvalue
+   * @return lvalue
+   */
+  rf_buffer_t& operator=(const rf_buffer_t& other)
+  {
+    if (this == &other) {
+      return *this;
+    }
+    if (this->allocated) {
+      free_all();
+      this->allocated = false;
+    }
+    for (int i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+      this->sample_buffer[i] = other.sample_buffer[i];
+    }
+    return *this;
+  }
+  cf_t* get(uint32_t channel_idx) const override { return sample_buffer.at(channel_idx); }
+  void  set(uint32_t channel_idx, cf_t* ptr) override { sample_buffer.at(channel_idx) = ptr; }
+  cf_t* get(uint32_t cc_idx, uint32_t port_idx, uint32_t nof_antennas) const override
+  {
+    return sample_buffer.at(cc_idx * nof_antennas + port_idx);
+  }
+  void set(uint32_t cc_idx, uint32_t port_idx, uint32_t nof_antennas, cf_t* ptr) override
+  {
+    sample_buffer.at(cc_idx * nof_antennas + port_idx) = ptr;
+  }
+  void**   to_void() override { return (void**)sample_buffer.data(); }
+  cf_t**   to_cf_t() override { return sample_buffer.data(); }
+  uint32_t size() override { return nof_subframes * SRSLTE_SF_LEN_MAX; }
+
+private:
+  std::array<cf_t*, SRSLTE_MAX_CHANNELS> sample_buffer = {};
+  bool                                   allocated     = false;
+  uint32_t                               nof_subframes = 0;
+  void                                   free_all()
+  {
+    for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+      if (sample_buffer[i]) {
+        free(sample_buffer[i]);
+      }
+    }
+  }
+};
+
+/**
+ * Implementation of the radio interface for the PHY
+ *
+ * It uses the rf C library object to access the underlying radio. This implementation uses a flat array to
+ * transmit/receive samples for all RF channels. The N carriers and P antennas are mapped into M=NP RF channels (M <=
+ * SRSLTE_MAX_CHANNELS). Note that all carriers must have the same number of antennas.
+ *
+ * The underlying radio receives and transmits M RF channels synchronously from possibly multiple radios using the same
+ * rf driver object. In the current implementation, the mapping between N carriers and P antennas is sequentially, eg:
+ * [carrier_0_port_0, carrier_0_port_1, carrier_1_port_0, carrier_1_port_1, ..., carrier_N_port_N]
+ */
+class radio : public radio_interface_phy
+{
+public:
+  radio(srslte::log_filter* log_h);
+  radio(srslte::logger* logger_h);
+  virtual ~radio();
+
+  int  init(const rf_args_t& args_, phy_interface_radio* phy_);
   void stop();
-  void reset();
-  bool start_agc(bool tx_gain_same_rx = false);
 
-  void set_burst_preamble(double preamble_us);
-  void set_tx_adv(int nsamples);
-  void set_tx_adv_neg(bool tx_adv_is_neg);
+  // ==== PHY interface ===
 
-  bool is_continuous_tx();
-  void set_continuous_tx(bool enable);
+  // trx functions
+  void tx_end() override;
+  bool tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) override;
+  bool rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, srslte_timestamp_t* rxd_time) override;
 
-  void get_time(srslte_timestamp_t* now);
-  int  synch_wait();
-  void synch_issue();
-  bool tx_single(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
-  bool tx(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
-  void tx_end();
-  bool get_is_start_of_burst();
-  bool rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time);
-  bool rx_at(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
+  // setter
+  void set_tx_freq(const uint32_t& carrier_idx, const double& freq) override;
+  void set_rx_freq(const uint32_t& carrier_idx, const double& freq) override;
 
-  void set_tx_gain(float gain);
-  void set_rx_gain(float gain);
-  void set_tx_rx_gain_offset(float offset);
-  void set_rx_gain_th(float gain);
+  void set_tx_gain(const float& gain) override;
+  void set_rx_gain_th(const float& gain) override;
+  void set_rx_gain(const float& gain) override;
+  void set_tx_srate(const double& srate) override;
+  void set_rx_srate(const double& srate) override;
 
-  void set_freq_offset(double freq);
-  void set_tx_freq(uint32_t chan, double freq);
-  void set_rx_freq(uint32_t chan, double freq);
+  // getter
+  double            get_freq_offset() override;
+  float             get_rx_gain() override;
+  bool              is_continuous_tx() override;
+  bool              get_is_start_of_burst() override;
+  bool              is_init() override;
+  void              reset() override;
+  srslte_rf_info_t* get_info() override;
 
-  double get_freq_offset();
-  double get_tx_freq();
-  double get_rx_freq();
-
-  void set_tx_srate(double srate);
-  void set_rx_srate(double srate);
-
-  float             get_tx_gain();
-  float             get_rx_gain();
-  srslte_rf_info_t* get_info();
-
-  float get_max_tx_power();
-  float set_tx_power(float power);
+  // Other functions
+  bool  get_metrics(rf_metrics_t* metrics);
   float get_rssi();
   bool  has_rssi();
+  void  get_time(srslte_timestamp_t* now);
 
-  bool is_first_of_burst();
+  void        handle_rf_msg(srslte_rf_error_t error);
+  static void rf_msg_callback(void* arg, srslte_rf_error_t error);
 
-  bool is_init();
+private:
+  srslte_rf_t          rf_device  = {};
+  srslte_rf_info_t     rf_info    = {};
+  rf_metrics_t         rf_metrics = {};
+  log_filter           log_local  = {};
+  log_filter*          log_h      = nullptr;
+  srslte::logger*      logger     = nullptr;
+  phy_interface_radio* phy        = nullptr;
+  cf_t*                zeros      = nullptr;
 
-  void register_error_handler(srslte_rf_error_handler_t h);
-
-protected:
-  srslte_rf_t rf_device;
-  log_filter* log_h;
-
-  const static uint32_t burst_preamble_max_samples = 13824;
-  double                burst_preamble_sec; // Start of burst preamble time (off->on RF transition time)
-  srslte_timestamp_t    end_of_burst_time;
-  bool                  is_start_of_burst;
-  uint32_t              burst_preamble_samples;
-  double                burst_preamble_time_rounded; // preamble time rounded to sample time
-  cf_t*                 zeros;
-  double                cur_tx_srate;
-
-  double tx_adv_sec;      // Transmission time advance to compensate for antenna->timestamp delay
-  int    tx_adv_nsamples; // Transmision time advance in number of samples
+  srslte_timestamp_t end_of_burst_time  = {};
+  bool               is_start_of_burst  = 0;
+  uint32_t           tx_adv_nsamples    = 0;
+  double             tx_adv_sec         = 0.0f; // Transmission time advance to compensate for antenna->timestamp delay
+  bool               tx_adv_auto        = false;
+  bool               tx_adv_negative    = false;
+  bool               is_initialized     = false;
+  bool               radio_is_streaming = false;
+  bool               continuous_tx      = false;
+  double             freq_offset        = 0.0f;
+  double             cur_tx_srate       = 0.0f;
+  uint32_t           nof_antennas       = 0;
+  uint32_t           nof_channels       = 0;
 
   // Define default values for known radios
-  bool                    tx_adv_auto;
-  bool                    tx_adv_negative;
-  constexpr static double uhd_default_burst_preamble_sec = 600 * 1e-6;
-  constexpr static double uhd_default_tx_adv_samples     = 98;
-  constexpr static double uhd_default_tx_adv_offset_sec  = 4 * 1e-6;
+  constexpr static double uhd_default_tx_adv_samples    = 98;
+  constexpr static double uhd_default_tx_adv_offset_sec = 4 * 1e-6;
 
-  constexpr static double blade_default_burst_preamble_sec = 0.0;
   constexpr static double blade_default_tx_adv_samples     = 27;
   constexpr static double blade_default_tx_adv_offset_sec  = 1e-6;
 
-  double tx_freq, rx_freq, freq_offset;
-
-  trace<uint32_t> tr_local_time;
-  trace<uint32_t> tr_usrp_time;
-  trace<uint32_t> tr_tx_time;
-  trace<uint32_t> tr_is_eob;
-  bool            trace_enabled;
-  uint32_t        tti;
-  bool            agc_enabled;
-
-  bool continuous_tx;
-  bool is_initialized;
-  bool radio_is_streaming;
-
-  uint32_t saved_nof_channels;
-  char     saved_args[128];
-  char     saved_devname[128];
+  bool start_agc(bool tx_gain_same_rx = false);
+  void set_tx_adv(int nsamples);
+  void set_tx_adv_neg(bool tx_adv_is_neg);
 };
 
 } // namespace srslte

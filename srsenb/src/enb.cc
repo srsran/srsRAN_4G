@@ -20,7 +20,6 @@
  */
 
 #include "srsenb/hdr/enb.h"
-#include "srsenb/hdr/radio/enb_radio_multi.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srslte/build_info.h"
@@ -38,7 +37,7 @@ enb::~enb()
 {
   // pool has to be cleaned after enb is deleted
   stack.reset();
-  srslte::byte_buffer_pool::cleanup(); 
+  srslte::byte_buffer_pool::cleanup();
 }
 
 int enb::init(const all_args_t& args_, srslte::logger* logger_)
@@ -67,7 +66,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     return SRSLTE_ERROR;
   }
 
-  std::unique_ptr<enb_radio_multi> lte_radio = std::unique_ptr<enb_radio_multi>(new enb_radio_multi(logger));
+  std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
   if (!lte_radio) {
     log.console("Error creating radio multi instance.\n");
     return SRSLTE_ERROR;

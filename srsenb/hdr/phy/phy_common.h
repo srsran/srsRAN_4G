@@ -29,9 +29,9 @@
 #include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
-#include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/radio/radio.h"
 #include <map>
@@ -63,7 +63,7 @@ public:
    * @param nof_samples number of samples to transmit
    * @param tx_time timestamp to transmit samples
    */
-  void worker_end(void* tx_sem_id, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
+  void worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
   phy_args_t params = {};

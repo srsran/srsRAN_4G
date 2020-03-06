@@ -500,10 +500,15 @@ int main(int argc, char** argv)
     radio_log->set_level(radio_log_level);
 
     // Create radio
-    radio = std::unique_ptr<srslte::radio>(new srslte::radio());
+    radio = std::unique_ptr<srslte::radio>(new srslte::radio(radio_log.get()));
 
     // Init radio
-    radio->init(radio_log.get(), (char*)radio_device_args.c_str(), (char*)radio_device_name.c_str(), 1);
+    srslte::rf_args_t radio_args = {};
+    radio_args.device_args       = radio_device_args;
+    radio_args.device_name       = radio_device_name;
+    radio_args.nof_carriers      = 1;
+    radio_args.nof_antennas      = 1;
+    radio->init(radio_args, NULL);
 
     // Set sampling rate
     radio->set_rx_srate(srslte_sampling_freq_hz(cell_base.nof_prb));
@@ -561,7 +566,8 @@ int main(int argc, char** argv)
 
     if (radio) {
       // Receive radio
-      radio->rx_now(&baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb), &ts);
+      srslte::rf_buffer_t radio_buffer(baseband_buffer);
+      radio->rx_now(radio_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb), &ts);
     } else {
       // Run eNb simulator
       bool put_pdsch = serving_cell_pdsch_enable;

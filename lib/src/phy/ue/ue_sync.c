@@ -46,7 +46,7 @@
 #define DUMMY_BUFFER_NUM_SAMPLES (15 * 2048 / 2)
 static cf_t  dummy_buffer0[DUMMY_BUFFER_NUM_SAMPLES];
 static cf_t  dummy_buffer1[DUMMY_BUFFER_NUM_SAMPLES];
-static cf_t* dummy_offset_buffer[SRSLTE_MAX_PORTS] = {dummy_buffer0, dummy_buffer1, dummy_buffer1, dummy_buffer1};
+static cf_t* dummy_offset_buffer[SRSLTE_MAX_CHANNELS] = {dummy_buffer0, dummy_buffer1, dummy_buffer1, dummy_buffer1};
 
 int srslte_ue_sync_init_file(srslte_ue_sync_t* q, uint32_t nof_prb, char* file_name, int offset_time, float offset_freq)
 {
@@ -156,7 +156,7 @@ int srslte_ue_sync_start_agc(srslte_ue_sync_t* q,
   return n;
 }
 
-int recv_callback_multi_to_single(void* h, cf_t* x[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
+int recv_callback_multi_to_single(void* h, cf_t* x[SRSLTE_MAX_CHANNELS], uint32_t nsamples, srslte_timestamp_t* t)
 {
   srslte_ue_sync_t* q = (srslte_ue_sync_t*)h;
   return q->recv_callback_single(q->stream_single, (void*)x[0], nsamples, t);
@@ -177,7 +177,7 @@ int srslte_ue_sync_init(srslte_ue_sync_t* q,
 int srslte_ue_sync_init_multi(srslte_ue_sync_t* q,
                               uint32_t          max_prb,
                               bool              search_cell,
-                              int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+                              int(recv_callback)(void*, cf_t* [SRSLTE_MAX_CHANNELS], uint32_t, srslte_timestamp_t*),
                               uint32_t nof_rx_antennas,
                               void*    stream_handler)
 
@@ -185,13 +185,14 @@ int srslte_ue_sync_init_multi(srslte_ue_sync_t* q,
   return srslte_ue_sync_init_multi_decim(q, max_prb, search_cell, recv_callback, nof_rx_antennas, stream_handler, 1);
 }
 
-int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t* q,
-                                    uint32_t          max_prb,
-                                    bool              search_cell,
-                                    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
-                                    uint32_t nof_rx_antennas,
-                                    void*    stream_handler,
-                                    int      decimate)
+int srslte_ue_sync_init_multi_decim(
+    srslte_ue_sync_t* q,
+    uint32_t          max_prb,
+    bool              search_cell,
+    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_CHANNELS], uint32_t, srslte_timestamp_t*),
+    uint32_t nof_rx_antennas,
+    void*    stream_handler,
+    int      decimate)
 {
   return srslte_ue_sync_init_multi_decim_mode(
       q, max_prb, search_cell, recv_callback, nof_rx_antennas, stream_handler, 1, SYNC_MODE_PSS);
@@ -201,7 +202,7 @@ int srslte_ue_sync_init_multi_decim_mode(
     srslte_ue_sync_t* q,
     uint32_t          max_prb,
     bool              search_cell,
-    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_CHANNELS], uint32_t, srslte_timestamp_t*),
     uint32_t              nof_rx_antennas,
     void*                 stream_handler,
     int                   decimate,
@@ -209,7 +210,7 @@ int srslte_ue_sync_init_multi_decim_mode(
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q != NULL && stream_handler != NULL && nof_rx_antennas <= SRSLTE_MAX_PORTS && recv_callback != NULL) {
+  if (q != NULL && stream_handler != NULL && nof_rx_antennas <= SRSLTE_MAX_CHANNELS && recv_callback != NULL) {
     ret = SRSLTE_ERROR;
     // int decimate = q->decimate;
     bzero(q, sizeof(srslte_ue_sync_t));
@@ -559,7 +560,7 @@ void srslte_ue_sync_set_agc_period(srslte_ue_sync_t* q, uint32_t period)
   q->agc_period = period;
 }
 
-static int find_peak_ok(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+static int find_peak_ok(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_CHANNELS])
 {
 
   if (srslte_sync_sss_detected(&q->sfind)) {
@@ -700,7 +701,7 @@ static int track_peak_no(srslte_ue_sync_t* q)
   }
 }
 
-static int receive_samples(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS], const uint32_t max_num_samples)
+static int receive_samples(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_CHANNELS], const uint32_t max_num_samples)
 {
   ///< A negative time offset means there are samples in our buffer for the next subframe bc we are sampling too fast
   if (q->next_rf_sample_offset < 0) {
@@ -714,7 +715,7 @@ static int receive_samples(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PO
   }
 
   ///< Get N subframes from the USRP getting more samples and keeping the previous samples, if any
-  cf_t* ptr[SRSLTE_MAX_PORTS] = {NULL};
+  cf_t* ptr[SRSLTE_MAX_CHANNELS] = {NULL};
   for (int i = 0; i < q->nof_rx_antennas; i++) {
     ptr[i] = &input_buffer[i][q->next_rf_sample_offset];
   }
@@ -729,7 +730,9 @@ static int receive_samples(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PO
 }
 
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
-int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS], const uint32_t max_num_samples)
+int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q,
+                            cf_t*             input_buffer[SRSLTE_MAX_CHANNELS],
+                            const uint32_t    max_num_samples)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -830,7 +833,7 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
   return ret;
 }
 
-int srslte_ue_sync_run_find_pss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+int srslte_ue_sync_run_find_pss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_CHANNELS])
 {
   int ret = SRSLTE_ERROR;
   int n   = srslte_sync_find(&q->sfind, input_buffer[0], 0, &q->peak_idx);
@@ -867,7 +870,7 @@ int srslte_ue_sync_run_find_pss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRS
   return ret;
 };
 
-int srslte_ue_sync_run_track_pss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+int srslte_ue_sync_run_track_pss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_CHANNELS])
 {
   int      ret       = SRSLTE_ERROR;
   uint32_t track_idx = 0;
@@ -930,7 +933,7 @@ int srslte_ue_sync_run_track_pss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SR
 }
 
 int srslte_ue_sync_run_find_gnss_mode(srslte_ue_sync_t* q,
-                                      cf_t*             input_buffer[SRSLTE_MAX_PORTS],
+                                      cf_t*             input_buffer[SRSLTE_MAX_CHANNELS],
                                       const uint32_t    max_num_samples)
 {
   INFO("Calibration samples received start at %ld + %f\n", q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
@@ -988,7 +991,7 @@ int srslte_ue_sync_run_find_gnss_mode(srslte_ue_sync_t* q,
 }
 
 ///< The track function in GNSS mode only needs to increment the system frame number
-int srslte_ue_sync_run_track_gnss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+int srslte_ue_sync_run_track_gnss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_CHANNELS])
 {
   INFO("SYNC TRACK: sfn=%d, sf_idx=%d, next_state=%d\n", q->frame_number, q->sf_idx, q->state);
 

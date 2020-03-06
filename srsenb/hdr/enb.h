@@ -35,7 +35,7 @@
 #include "phy/phy.h"
 #include "srsenb/hdr/stack/rrc/rrc.h"
 
-#include "srslte/radio/radio_base.h"
+#include "srslte/radio/radio.h"
 
 #include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
@@ -141,7 +141,7 @@ private:
 
   // eNB components
   std::unique_ptr<enb_stack_base>     stack = nullptr;
-  std::unique_ptr<srslte::radio_base> radio = nullptr;
+  std::unique_ptr<srslte::radio>      radio = nullptr;
   std::unique_ptr<enb_phy_base>       phy   = nullptr;
 
   srslte::logger_stdout logger_stdout;

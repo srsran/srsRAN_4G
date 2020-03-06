@@ -25,11 +25,19 @@
 
 using namespace srslte;
 
-channel::channel(const channel::args_t& channel_args, uint32_t _nof_ports)
+channel::channel(const channel::args_t& channel_args, uint32_t _nof_channels)
 {
   int      ret         = SRSLTE_SUCCESS;
   uint32_t srate_max   = (uint32_t)srslte_symbol_sz(SRSLTE_MAX_PRB) * 15000;
   uint32_t buffer_size = (uint32_t)SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB) * 5; // be safe, 5 Subframes
+
+  if (_nof_channels > SRSLTE_MAX_CHANNELS) {
+    fprintf(stderr,
+            "Error creating channel object: maximum number of channels exceeded (%d > %d)\n",
+            _nof_channels,
+            SRSLTE_MAX_CHANNELS);
+    return;
+  }
 
   // Copy args
   args = channel_args;
@@ -41,8 +49,8 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_ports)
     ret = SRSLTE_ERROR;
   }
 
-  nof_ports = _nof_ports;
-  for (uint32_t i = 0; i < nof_ports; i++) {
+  nof_channels = _nof_channels;
+  for (uint32_t i = 0; i < nof_channels; i++) {
     // Create fading channel
     if (channel_args.fading_enable && !channel_args.fading_model.empty() && channel_args.fading_model != "none" &&
         ret == SRSLTE_SUCCESS) {
@@ -103,7 +111,7 @@ channel::~channel()
     free(rlf);
   }
 
-  for (uint32_t i = 0; i < nof_ports; i++) {
+  for (uint32_t i = 0; i < nof_channels; i++) {
     if (fading[i]) {
       srslte_channel_fading_free(fading[i]);
       free(fading[i]);
@@ -121,12 +129,15 @@ void channel::set_logger(log_filter* _log_h)
   log_h = _log_h;
 }
 
-void channel::run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint32_t len, const srslte_timestamp_t& t)
+void channel::run(cf_t*                     in[SRSLTE_MAX_CHANNELS],
+                  cf_t*                     out[SRSLTE_MAX_CHANNELS],
+                  uint32_t                  len,
+                  const srslte_timestamp_t& t)
 {
   // check input pointers
   if (in != nullptr && out != nullptr) {
     if (current_srate) {
-      for (uint32_t i = 0; i < nof_ports; i++) {
+      for (uint32_t i = 0; i < nof_channels; i++) {
         // Check buffers are not null
         if (in[i] != nullptr && out[i] != nullptr) {
           // Copy input buffer
@@ -175,7 +186,7 @@ void channel::run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint3
       }
 
     } else {
-      for (uint32_t i = 0; i < nof_ports; i++) {
+      for (uint32_t i = 0; i < nof_channels; i++) {
         // Check buffers are not null
         if (in[i] != nullptr && out[i] != nullptr && in[i] != out[i]) {
           memcpy(out[i], in[i], sizeof(cf_t) * len);
@@ -188,7 +199,7 @@ void channel::run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint3
 void channel::set_srate(uint32_t srate)
 {
   if (current_srate != srate) {
-    for (uint32_t i = 0; i < nof_ports; i++) {
+    for (uint32_t i = 0; i < nof_channels; i++) {
       if (fading[i]) {
         srslte_channel_fading_free(fading[i]);
 

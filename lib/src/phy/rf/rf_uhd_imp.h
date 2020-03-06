@@ -63,7 +63,7 @@ SRSLTE_API srslte_rf_info_t* rf_uhd_get_info(void* h);
 
 SRSLTE_API void rf_uhd_suppress_stdout(void* h);
 
-SRSLTE_API void rf_uhd_register_error_handler(void* h, srslte_rf_error_handler_t error_handler);
+SRSLTE_API void rf_uhd_register_error_handler(void* h, srslte_rf_error_handler_t error_handler, void* arg);
 
 SRSLTE_API double rf_uhd_set_rx_freq(void* h, uint32_t ch, double freq);
 
@@ -94,7 +94,7 @@ SRSLTE_API int rf_uhd_send_timed(void*  h,
                                  bool   is_end_of_burst);
 
 SRSLTE_API int rf_uhd_send_timed_multi(void*  h,
-                                       void*  data[SRSLTE_MAX_PORTS],
+                                       void** data,
                                        int    nsamples,
                                        time_t secs,
                                        double frac_secs,

@@ -33,7 +33,7 @@
 
 #define MIB_BUFFER_MAX_SAMPLES (3 * SRSLTE_SF_LEN_PRB(SRSLTE_UE_MIB_NOF_PRB))
 
-int srslte_ue_mib_init(srslte_ue_mib_t* q, cf_t* in_buffer[SRSLTE_MAX_PORTS], uint32_t max_prb)
+int srslte_ue_mib_init(srslte_ue_mib_t* q, cf_t* in_buffer, uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -47,13 +47,13 @@ int srslte_ue_mib_init(srslte_ue_mib_t* q, cf_t* in_buffer[SRSLTE_MAX_PORTS], ui
       goto clean_exit;
     }
 
-    q->sf_symbols[0] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
-    if (!q->sf_symbols[0]) {
+    q->sf_symbols = srslte_vec_cf_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
+    if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit;
     }
 
-    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, in_buffer[0], q->sf_symbols[0], max_prb)) {
+    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, in_buffer, q->sf_symbols, max_prb)) {
       ERROR("Error initializing FFT\n");
       goto clean_exit;
     }
@@ -79,8 +79,8 @@ clean_exit:
 
 void srslte_ue_mib_free(srslte_ue_mib_t* q)
 {
-  if (q->sf_symbols[0]) {
-    free(q->sf_symbols[0]);
+  if (q->sf_symbols) {
+    free(q->sf_symbols);
   }
   srslte_sync_free(&q->sfind);
   srslte_chest_dl_res_free(&q->chest_res);
@@ -140,8 +140,12 @@ int srslte_ue_mib_decode(srslte_ue_mib_t* q,
   srslte_dl_sf_cfg_t sf_cfg;
   ZERO_OBJECT(sf_cfg);
 
+  // Current MIB decoder implementation uses a single antenna
+  cf_t* sf_buffer[SRSLTE_MAX_PORTS] = {};
+  sf_buffer[0]                      = q->sf_symbols;
+
   /* Get channel estimates of sf idx #0 for each port */
-  ret = srslte_chest_dl_estimate(&q->chest, &sf_cfg, q->sf_symbols, &q->chest_res);
+  ret = srslte_chest_dl_estimate(&q->chest, &sf_cfg, sf_buffer, &q->chest_res);
   if (ret < 0) {
     return SRSLTE_ERROR;
   }
@@ -152,7 +156,7 @@ int srslte_ue_mib_decode(srslte_ue_mib_t* q,
   }
 
   /* Decode PBCH */
-  ret = srslte_pbch_decode(&q->pbch, &q->chest_res, q->sf_symbols, bch_payload, nof_tx_ports, sfn_offset);
+  ret = srslte_pbch_decode(&q->pbch, &q->chest_res, sf_buffer, bch_payload, nof_tx_ports, sfn_offset);
   if (ret < 0) {
     ERROR("Error decoding PBCH (%d)\n", ret);
   } else if (ret == 1) {
@@ -169,21 +173,23 @@ int srslte_ue_mib_decode(srslte_ue_mib_t* q,
 }
 
 int srslte_ue_mib_sync_init_multi(srslte_ue_mib_sync_t* q,
-                                  int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
-                                  uint32_t nof_rx_antennas,
+                                  int(recv_callback)(void*, cf_t* [SRSLTE_MAX_CHANNELS], uint32_t, srslte_timestamp_t*),
+                                  uint32_t nof_rx_channels,
                                   void*    stream_handler)
 {
-  for (int i = 0; i < nof_rx_antennas; i++) {
+  for (int i = 0; i < nof_rx_channels; i++) {
     q->sf_buffer[i] = srslte_vec_cf_malloc(MIB_BUFFER_MAX_SAMPLES);
   }
-  q->nof_rx_antennas = nof_rx_antennas;
+  q->nof_rx_channels = nof_rx_channels;
 
-  if (srslte_ue_mib_init(&q->ue_mib, q->sf_buffer, SRSLTE_UE_MIB_NOF_PRB)) {
+  // Use 1st RF channel only to receive MIB
+  if (srslte_ue_mib_init(&q->ue_mib, q->sf_buffer[0], SRSLTE_UE_MIB_NOF_PRB)) {
     ERROR("Error initiating ue_mib\n");
     return SRSLTE_ERROR;
   }
+  // Configure ue_sync to receive all channels
   if (srslte_ue_sync_init_multi(
-          &q->ue_sync, SRSLTE_UE_MIB_NOF_PRB, false, recv_callback, nof_rx_antennas, stream_handler)) {
+          &q->ue_sync, SRSLTE_UE_MIB_NOF_PRB, false, recv_callback, nof_rx_channels, stream_handler)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     srslte_ue_mib_free(&q->ue_mib);
     return SRSLTE_ERROR;
@@ -213,7 +219,7 @@ int srslte_ue_mib_sync_set_cell(srslte_ue_mib_sync_t* q, srslte_cell_t cell)
 
 void srslte_ue_mib_sync_free(srslte_ue_mib_sync_t* q)
 {
-  for (int i = 0; i < q->nof_rx_antennas; i++) {
+  for (int i = 0; i < q->nof_rx_channels; i++) {
     if (q->sf_buffer[i]) {
       free(q->sf_buffer[i]);
     }

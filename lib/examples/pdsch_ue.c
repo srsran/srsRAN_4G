@@ -569,7 +569,7 @@ int main(int argc, char** argv)
     sf_buffer[i] = srslte_vec_cf_malloc(max_num_samples);
   }
   srslte_ue_mib_t ue_mib;
-  if (srslte_ue_mib_init(&ue_mib, sf_buffer, cell.nof_prb)) {
+  if (srslte_ue_mib_init(&ue_mib, sf_buffer[0], cell.nof_prb)) {
     ERROR("Error initaiting UE MIB decoder\n");
     exit(-1);
   }

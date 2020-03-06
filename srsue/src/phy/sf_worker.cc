@@ -138,10 +138,10 @@ void sf_worker::set_tti(uint32_t tti_)
   }
 }
 
-void sf_worker::set_tx_time(uint32_t radio_idx, srslte_timestamp_t tx_time_, int next_offset_)
+void sf_worker::set_tx_time(srslte_timestamp_t tx_time_, int next_offset_)
 {
-  next_offset[radio_idx] = next_offset_;
-  tx_time[radio_idx]     = tx_time_;
+  next_offset = next_offset_;
+  tx_time     = tx_time_;
 }
 
 void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)
@@ -199,8 +199,9 @@ void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 void sf_worker::work_imp()
 {
   std::lock_guard<std::mutex> lock(mutex);
+  srslte::rf_buffer_t         tx_signal_ptr = {};
   if (!cell_initiated) {
-    phy->worker_end(this, false, nullptr, nullptr, tx_time);
+    phy->worker_end(this, false, tx_signal_ptr, 0, tx_time);
   }
 
   /***** Downlink Processing *******/
@@ -227,12 +228,8 @@ void sf_worker::work_imp()
 
   /***** Uplink Generation + Transmission *******/
 
-  bool     tx_signal_ready                                    = false;
-  cf_t*    tx_signal_ptr[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS] = {};
-  uint32_t nof_samples[SRSLTE_MAX_RADIOS]                     = {};
-  for (uint32_t i = 0; i < phy->args->nof_radios; i++) {
-    nof_samples[i] = SRSLTE_SF_LEN_PRB(cell.nof_prb);
-  }
+  bool     tx_signal_ready = false;
+  uint32_t nof_samples     = SRSLTE_SF_LEN_PRB(cell.nof_prb);
 
   /* If TTI+4 is an uplink subframe (TODO: Support short PRACH and SRS in UpPts special subframes) */
   if ((srslte_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSLTE_TDD_SF_U) || cell.frame_type == SRSLTE_FDD) {
@@ -247,15 +244,12 @@ void sf_worker::work_imp()
       for (int carrier_idx = phy->args->nof_carriers - 1; carrier_idx >= 0; carrier_idx--) {
         tx_signal_ready = cc_workers[carrier_idx]->work_ul(&uci_data);
 
-        // Get carrier mapping
-        carrier_map_t* m = &phy->args->carrier_map[carrier_idx];
-
         // Set signal pointer based on offset
         cf_t* b = cc_workers[carrier_idx]->get_tx_buffer(0);
-        if (next_offset[m->radio_idx] > 0) {
-          tx_signal_ptr[m->radio_idx][m->channel_idx] = b;
+        if (next_offset > 0) {
+          tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, b);
         } else {
-          tx_signal_ptr[m->radio_idx][m->channel_idx] = &b[-next_offset[m->radio_idx]];
+          tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, &b[-next_offset]);
         }
       }
     }
@@ -263,13 +257,11 @@ void sf_worker::work_imp()
 
   // Set PRACH buffer signal pointer
   if (prach_ptr) {
-    tx_signal_ready     = true;
-    tx_signal_ptr[0][0] = prach_ptr;
-    prach_ptr           = nullptr;
+    tx_signal_ready = true;
+    tx_signal_ptr.set(0, prach_ptr);
+    prach_ptr = nullptr;
   } else {
-    for (uint32_t i = 0; i < phy->args->nof_radios; i++) {
-      nof_samples[i] += next_offset[i];
-    }
+    nof_samples += next_offset;
   }
 
   // Call worker_end to transmit the signal
@@ -317,7 +309,7 @@ void sf_worker::update_measurements()
     }
 
     if (!rssi_read_cnt) {
-      phy->rx_gain_offset = phy->get_radio()->get_rx_gain(0) + phy->args->rx_gain_offset;
+      phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
     }
     rssi_read_cnt++;
     if (rssi_read_cnt == 1000) {

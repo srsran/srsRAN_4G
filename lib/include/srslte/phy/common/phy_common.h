@@ -53,9 +53,9 @@ extern "C" {
 #define SRSLTE_NOF_NID_2 (3)
 #define SRSLTE_NUM_PCI (SRSLTE_NOF_NID_1 * SRSLTE_NOF_NID_2)
 
-#define SRSLTE_MAX_RADIOS 3   // Maximum number of supported RF devices
 #define SRSLTE_MAX_CARRIERS 5 // Maximum number of supported simultaneous carriers
 #define SRSLTE_MAX_PORTS 4
+#define SRSLTE_MAX_CHANNELS (SRSLTE_MAX_CARRIERS * SRSLTE_MAX_PORTS)
 #define SRSLTE_MAX_LAYERS 4
 #define SRSLTE_MAX_CODEWORDS 2
 #define SRSLTE_MAX_TB SRSLTE_MAX_CODEWORDS

@@ -42,9 +42,11 @@
 
 namespace srsue {
 
-static int radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time)
+static int
+radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_CHANNELS], uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
-  return ((sync*)obj)->radio_recv_fnc(data, nsamples, rx_time);
+  srslte::rf_buffer_t x(data);
+  return ((sync*)obj)->radio_recv_fnc(x, nsamples, rx_time);
 }
 
 static SRSLTE_AGC_CALLBACK(callback_set_rx_gain)
@@ -59,7 +61,6 @@ void sync::init(srslte::radio_interface_phy* _radio,
                 phy_common*                  _worker_com,
                 srslte::log*                 _log_h,
                 srslte::log*                 _log_phy_lib_h,
-                scell::async_recv_vector*    scell_sync_,
                 uint32_t                     prio,
                 int                          sync_cpu_affinity)
 {
@@ -67,16 +68,14 @@ void sync::init(srslte::radio_interface_phy* _radio,
   log_h         = _log_h;
   log_phy_lib_h = _log_phy_lib_h;
   stack         = _stack;
-  scell_sync    = scell_sync_;
   workers_pool  = _workers_pool;
   worker_com    = _worker_com;
   prach_buffer  = _prach_buffer;
 
-  uint32_t nof_rf_channels = worker_com->args->nof_rf_channels * worker_com->args->nof_rx_ant;
-  for (uint32_t r = 0; r < worker_com->args->nof_radios; r++) {
-    for (uint32_t p = 0; p < nof_rf_channels; p++) {
-      sf_buffer[r][p] = srslte_vec_cf_malloc(SF_BUFFER_MAX_SAMPLES);
-    }
+  nof_rf_channels = worker_com->args->nof_carriers * worker_com->args->nof_rx_ant;
+  if (nof_rf_channels == 0 || nof_rf_channels > SRSLTE_MAX_CHANNELS) {
+    Error("SYNC:  Invalid number of RF channels (%d)\n", nof_rf_channels);
+    return;
   }
 
   if (srslte_ue_sync_init_multi(&ue_sync, SRSLTE_MAX_PRB, false, radio_recv_callback, nof_rf_channels, this)) {
@@ -92,10 +91,10 @@ void sync::init(srslte::radio_interface_phy* _radio,
   worker_com->set_nof_workers(nof_workers);
 
   // Initialize cell searcher
-  search_p.init(sf_buffer[0], log_h, nof_rf_channels, this);
+  search_p.init(sf_buffer, log_h, nof_rf_channels, this);
 
   // Initialize SFN synchronizer, it uses only pcell buffer
-  sfn_p.init(&ue_sync, sf_buffer[0], SF_BUFFER_MAX_SAMPLES, log_h);
+  sfn_p.init(&ue_sync, sf_buffer, sf_buffer.size(), log_h);
 
   // Start intra-frequency measurement
   for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
@@ -110,13 +109,6 @@ void sync::init(srslte::radio_interface_phy* _radio,
   // Enable AGC for primary cell receiver
   set_agc_enable(worker_com->args->agc_enable);
 
-  // Enable AGC for secondary asynchronous receiver
-  if (scell_sync) {
-    for (auto& q : *scell_sync) {
-      q->set_agc_enable(worker_com->args->agc_enable);
-    }
-  }
-
   // Start main thread
   if (sync_cpu_affinity < 0) {
     start(prio);
@@ -127,13 +119,6 @@ void sync::init(srslte::radio_interface_phy* _radio,
 
 sync::~sync()
 {
-  for (uint32_t r = 0; r < SRSLTE_MAX_RADIOS; r++) {
-    for (uint32_t p = 0; p < SRSLTE_MAX_PORTS; p++) {
-      if (sf_buffer[r][p]) {
-        free(sf_buffer[r][p]);
-      }
-    }
-  }
   srslte_ue_sync_free(&ue_sync);
 }
 
@@ -155,9 +140,9 @@ void sync::reset()
   out_of_sync_cnt       = 0;
   time_adv_sec          = 0;
   next_offset           = 0;
+  next_radio_offset     = 0;
+  current_earfcn        = -1;
   srate_mode            = SRATE_NONE;
-  ZERO_OBJECT(next_radio_offset);
-  current_earfcn = -1;
   sfn_p.reset();
   search_p.reset();
 }
@@ -215,8 +200,8 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
 
   if (srate_mode != SRATE_FIND) {
     srate_mode = SRATE_FIND;
-    radio_h->set_rx_srate(0, 1.92e6);
-    radio_h->set_tx_srate(0, 1.92e6);
+    radio_h->set_rx_srate(1.92e6);
+    radio_h->set_tx_srate(1.92e6);
     Info("SYNC:  Setting Cell Search sampling rate\n");
   }
 
@@ -372,22 +357,14 @@ bool sync::cell_is_camping()
 
 void sync::run_thread()
 {
-  sf_worker*    worker                                      = nullptr;
-  cf_t*         buffer[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS] = {};
-  srslte_cell_t temp_cell                                   = {};
+  sf_worker*    worker    = nullptr;
+  srslte_cell_t temp_cell = {};
 
   bool is_end_of_burst        = false;
   bool force_camping_sfn_sync = false;
 
-  cf_t*    dummy_buffer[SRSLTE_MAX_PORTS];
-  uint32_t nof_rf_channels = worker_com->args->nof_rf_channels * worker_com->args->nof_rx_ant;
-  if (nof_rf_channels > SRSLTE_MAX_PORTS) {
-    fprintf(stderr, "Fatal error: nof_rf_channels x nof_rx_ant must be lower than %d\n", SRSLTE_MAX_PORTS);
-    return;
-  }
-  for (uint32_t i = 0; i < nof_rf_channels; i++) {
-    dummy_buffer[i] = srslte_vec_cf_malloc(3 * SRSLTE_SF_LEN_PRB(100));
-  }
+  srslte::rf_buffer_t dummy_buffer(sync_nof_rx_subframes);
+  srslte::rf_buffer_t sync_buffer = {};
 
   uint32_t prach_nof_sf = 0;
   uint32_t prach_sf_cnt = 0;
@@ -448,17 +425,15 @@ void sync::run_thread()
 
         worker = (sf_worker*)workers_pool->wait_worker(tti);
         if (worker) {
-          // For each carrier...
+          // Map carrier/antenna buffers to worker buffers
           for (uint32_t c = 0; c < worker_com->args->nof_carriers; c++) {
-            // get carrier mapping
-            carrier_map_t* m = &worker_com->args->carrier_map[c];
             for (uint32_t i = 0; i < worker_com->args->nof_rx_ant; i++) {
-              buffer[m->radio_idx][m->channel_idx + i] = worker->get_buffer(c, i);
+              sync_buffer.set(c, i, worker_com->args->nof_rx_ant, worker->get_buffer(c, i));
             }
           }
 
           // Primary Cell (PCell) Synchronization
-          switch (srslte_ue_sync_zerocopy(&ue_sync, buffer[0], worker->get_buffer_len())) {
+          switch (srslte_ue_sync_zerocopy(&ue_sync, sync_buffer.to_cf_t(), worker->get_buffer_len())) {
             case 1:
 
               // Check tti is synched with ue_sync
@@ -474,7 +449,7 @@ void sync::run_thread()
               if (force_camping_sfn_sync) {
                 uint32_t _tti                = 0;
                 temp_cell                    = cell;
-                sync::sfn_sync::ret_code ret = sfn_p.decode_mib(&temp_cell, &_tti, buffer[0], mib);
+                sync::sfn_sync::ret_code ret = sfn_p.decode_mib(&temp_cell, &_tti, &sf_buffer, mib);
                 if (ret == sfn_sync::SFN_FOUND) {
                   // Force tti
                   tti = _tti;
@@ -493,30 +468,11 @@ void sync::run_thread()
 
               Debug("SYNC:  Worker %d synchronized\n", worker->get_id());
 
-              // Read Asynchronous SCell, for each asynch active object
-              for (uint32_t i = 0; i < worker_com->args->nof_radios - 1; i++) {
-                srslte_timestamp_t tx_time;
-                srslte_timestamp_init(&tx_time, 0, 0);
-
-                // Request TTI aligment
-                if (scell_sync->at(i)->tti_align(tti)) {
-                  scell_sync->at(i)->read_sf(buffer[i + 1], &tx_time, &next_radio_offset[i + 1]);
-                  srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3 - time_adv_sec);
-                } else {
-                  // Failed, keep default Timestamp
-                  // Error("SCell asynchronous failed to synchronise (%d)\n", i);
-                }
-
-                worker->set_tx_time(i + 1, tx_time, next_radio_offset[i + 1] + next_offset);
-              }
-
               metrics.sfo   = srslte_ue_sync_get_sfo(&ue_sync);
               metrics.cfo   = srslte_ue_sync_get_cfo(&ue_sync);
               metrics.ta_us = time_adv_sec * 1e6f;
               for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
-                if (worker_com->args->carrier_map[i].radio_idx == 0) {
-                  worker_com->set_sync_metrics(i, metrics);
-                }
+                worker_com->set_sync_metrics(i, metrics);
               }
 
               // Check if we need to TX a PRACH
@@ -538,24 +494,11 @@ void sync::run_thread()
 
               // Set CFO for all Carriers
               for (uint32_t cc = 0; cc < worker_com->args->nof_carriers; cc++) {
-                float cfo;
-
-                // Get radio index for the given carrier
-                uint32_t radio_idx = worker_com->args->carrier_map[cc].radio_idx;
-
-                if (radio_idx == 0) {
-                  // Use local CFO
-                  cfo = get_tx_cfo();
-                } else {
-                  // Request CFO in the asynchronous receiver
-                  cfo = scell_sync->at(radio_idx - 1)->get_tx_cfo();
-                }
-
-                worker->set_cfo(cc, cfo);
+                worker->set_cfo(cc, get_tx_cfo());
               }
 
               worker->set_tti(tti);
-              worker->set_tx_time(0, tx_time, next_radio_offset[0] + next_offset);
+              worker->set_tx_time(tx_time, next_radio_offset + next_offset);
               next_offset = 0;
               ZERO_OBJECT(next_radio_offset);
 
@@ -669,12 +612,6 @@ void sync::run_thread()
     // Increase TTI counter
     tti = (tti + 1) % 10240;
   }
-
-  for (uint32_t p = 0; p < nof_rf_channels; p++) {
-    if (dummy_buffer[p]) {
-      free(dummy_buffer[p]);
-    }
-  }
 }
 
 /***************
@@ -728,10 +665,10 @@ void sync::set_agc_enable(bool enable)
 {
   if (enable) {
     if (running && radio_h) {
-      srslte_rf_info_t* rf_info = radio_h->get_info(0);
+      srslte_rf_info_t* rf_info = radio_h->get_info();
       if (rf_info) {
         srslte_ue_sync_start_agc(
-            &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain(0));
+            &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain());
         search_p.set_agc_enable(true);
       } else {
         ERROR("Error: Radio does not provide RF information\n");
@@ -887,13 +824,11 @@ bool sync::set_frequency()
                    set_dl_freq / 1e6,
                    set_ul_freq / 1e6);
 
-    carrier_map_t* m = &worker_com->args->carrier_map[0];
-    for (uint32_t i = 0; i < worker_com->args->nof_rx_ant; i++) {
-      radio_h->set_rx_freq(m->radio_idx, m->channel_idx + i, set_dl_freq);
-      radio_h->set_tx_freq(m->radio_idx, m->channel_idx + i, set_ul_freq);
-    }
+    // Logical channel is 0
+    radio_h->set_rx_freq(0, set_dl_freq);
+    radio_h->set_tx_freq(0, set_ul_freq);
 
-    ul_dl_factor = (float)(radio_h->get_tx_freq(m->radio_idx) / radio_h->get_rx_freq(m->radio_idx));
+    ul_dl_factor = (float)(set_ul_freq / set_dl_freq);
 
     srslte_ue_sync_reset(&ue_sync);
 
@@ -918,8 +853,8 @@ void sync::set_sampling_rate()
     Info("SYNC:  Setting sampling rate %.2f MHz\n", current_srate / 1000000);
 
     srate_mode = SRATE_CAMP;
-    radio_h->set_rx_srate(0, current_srate);
-    radio_h->set_tx_srate(0, current_srate);
+    radio_h->set_rx_srate(current_srate);
+    radio_h->set_tx_srate(current_srate);
   } else {
     Error("Error setting sampling rate for cell with %d PRBs\n", cell.nof_prb);
   }
@@ -940,7 +875,7 @@ void sync::get_current_cell(srslte_cell_t* cell_, uint32_t* earfcn_)
   }
 }
 
-int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time)
+int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
   srslte_timestamp_t ts = {};
 
@@ -950,7 +885,7 @@ int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte
   }
 
   // Receive
-  if (radio_h->rx_now(0, data, nsamples, rx_time)) {
+  if (radio_h->rx_now(data, nsamples, rx_time)) {
     // Detect Radio Timestamp reset
     if (srslte_timestamp_compare(rx_time, &radio_ts) < 0) {
       srslte_timestamp_init(&radio_ts, 0, 0.0);
@@ -968,14 +903,14 @@ int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte
 
     if (channel_emulator && rx_time) {
       channel_emulator->set_srate((uint32_t)current_srate);
-      channel_emulator->run(data, data, nsamples, *rx_time);
+      channel_emulator->run(data.to_cf_t(), data.to_cf_t(), nsamples, *rx_time);
     }
 
     int offset = nsamples - current_sflen;
     if (abs(offset) < 10 && offset != 0) {
-      next_radio_offset[0] = offset;
+      next_radio_offset = offset;
     } else if (nsamples < 10) {
-      next_radio_offset[0] = nsamples;
+      next_radio_offset = nsamples;
     }
 
     log_h->debug("SYNC:  received %d samples from radio\n", nsamples);
@@ -1000,21 +935,19 @@ sync::search::~search()
   srslte_ue_cellsearch_free(&cs);
 }
 
-void sync::search::init(cf_t* buffer_[SRSLTE_MAX_PORTS], srslte::log* log_h_, uint32_t nof_rx_antennas, sync* parent)
+void sync::search::init(srslte::rf_buffer_t& buffer_, srslte::log* log_h_, uint32_t nof_rx_channels, sync* parent)
 {
   log_h = log_h_;
   p     = parent;
 
-  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    buffer[i] = buffer_[i];
-  }
+  buffer = buffer_;
 
-  if (srslte_ue_cellsearch_init_multi(&cs, 8, radio_recv_callback, nof_rx_antennas, parent)) {
+  if (srslte_ue_cellsearch_init_multi(&cs, 8, radio_recv_callback, nof_rx_channels, parent)) {
     Error("SYNC:  Initiating UE cell search\n");
   }
   srslte_ue_cellsearch_set_nof_valid_frames(&cs, 4);
 
-  if (srslte_ue_mib_sync_init_multi(&ue_mib_sync, radio_recv_callback, nof_rx_antennas, parent)) {
+  if (srslte_ue_mib_sync_init_multi(&ue_mib_sync, radio_recv_callback, nof_rx_channels, parent)) {
     Error("SYNC:  Initiating UE MIB synchronization\n");
   }
 
@@ -1037,12 +970,12 @@ float sync::search::get_last_cfo()
 void sync::search::set_agc_enable(bool enable)
 {
   if (enable) {
-    srslte_rf_info_t* rf_info = p->radio_h->get_info(0);
+    srslte_rf_info_t* rf_info = p->radio_h->get_info();
     srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync,
                              callback_set_rx_gain,
                              rf_info->min_rx_gain,
                              rf_info->max_rx_gain,
-                             p->radio_h->get_rx_gain(0));
+                             p->radio_h->get_rx_gain());
   } else {
     ERROR("Error stop AGC not implemented\n");
   }
@@ -1154,22 +1087,21 @@ sync::sfn_sync::~sfn_sync()
   srslte_ue_mib_free(&ue_mib);
 }
 
-void sync::sfn_sync::init(srslte_ue_sync_t* ue_sync_,
-                          cf_t*             buffer_[SRSLTE_MAX_PORTS],
-                          uint32_t          buffer_max_samples_,
-                          srslte::log*      log_h_,
-                          uint32_t          nof_subframes)
+void sync::sfn_sync::init(srslte_ue_sync_t*    ue_sync_,
+                          srslte::rf_buffer_t& buffer,
+                          uint32_t             buffer_max_samples_,
+                          srslte::log*         log_h_,
+                          uint32_t             nof_subframes)
 {
   log_h   = log_h_;
   ue_sync = ue_sync_;
   timeout = nof_subframes;
 
-  for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
-    buffer[p] = buffer_[p];
-  }
+  mib_buffer         = buffer;
   buffer_max_samples = buffer_max_samples_;
 
-  if (srslte_ue_mib_init(&ue_mib, buffer, SRSLTE_MAX_PRB)) {
+  // MIB decoder uses a single receiver antenna in logical channel 0
+  if (srslte_ue_mib_init(&ue_mib, buffer.get(0), SRSLTE_MAX_PRB)) {
     Error("SYNC:  Initiating UE MIB decoder\n");
   }
 }
@@ -1195,14 +1127,14 @@ sync::sfn_sync::ret_code sync::sfn_sync::run_subframe(srslte_cell_t*            
                                                       std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
                                                       bool                                         sfidx_only)
 {
-  int ret = srslte_ue_sync_zerocopy(ue_sync, buffer, buffer_max_samples);
+  int ret = srslte_ue_sync_zerocopy(ue_sync, mib_buffer.to_cf_t(), buffer_max_samples);
   if (ret < 0) {
     Error("SYNC:  Error calling ue_sync_get_buffer.\n");
     return ERROR;
   }
 
   if (ret == 1) {
-    sync::sfn_sync::ret_code ret2 = decode_mib(cell_, tti_cnt, NULL, bch_payload, sfidx_only);
+    sync::sfn_sync::ret_code ret2 = decode_mib(cell_, tti_cnt, nullptr, bch_payload, sfidx_only);
     if (ret2 != SFN_NOFOUND) {
       return ret2;
     }
@@ -1219,15 +1151,15 @@ sync::sfn_sync::ret_code sync::sfn_sync::run_subframe(srslte_cell_t*            
   return IDLE;
 }
 
-sync::sfn_sync::ret_code sync::sfn_sync::decode_mib(srslte_cell_t* cell_,
-                                                    uint32_t*      tti_cnt,
-                                                    cf_t*          ext_buffer[SRSLTE_MAX_PORTS],
+sync::sfn_sync::ret_code sync::sfn_sync::decode_mib(srslte_cell_t*                               cell_,
+                                                    uint32_t*                                    tti_cnt,
+                                                    srslte::rf_buffer_t*                         ext_buffer,
                                                     std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
                                                     bool                                         sfidx_only)
 {
-  // If external buffer provided not equal to internal buffer, copy data
-  if ((ext_buffer != NULL) && (ext_buffer != buffer)) {
-    memcpy(buffer[0], ext_buffer[0], sizeof(cf_t) * ue_sync->sf_len);
+  // If external buffer provided not equal to internal buffer, copy samples from channel/port 0
+  if (ext_buffer != nullptr) {
+    memcpy(mib_buffer.get(0), ext_buffer->get(0), sizeof(cf_t) * ue_sync->sf_len);
   }
 
   if (srslte_ue_sync_get_sfidx(ue_sync) == 0) {

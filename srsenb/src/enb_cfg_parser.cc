@@ -998,9 +998,8 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   }
 
   // Patch certain args that are not exposed yet
-  args_->rf.nof_radios      = 1;
-  args_->rf.nof_rf_channels = rrc_cfg_->cell_list.size();
-  args_->rf.nof_rx_ant      = args_->enb.nof_ports;
+  args_->rf.nof_carriers = rrc_cfg_->cell_list.size();
+  args_->rf.nof_antennas = args_->enb.nof_ports;
 
   return SRSLTE_SUCCESS;
 }

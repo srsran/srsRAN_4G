@@ -37,6 +37,8 @@ extern "C" {
 
 using namespace srslte;
 
+#define SRSLTE_MAX_RADIOS 3
+
 static char radios_args[SRSLTE_MAX_RADIOS][64] = {"auto", "auto", "auto"};
 
 log_filter  log_h;
@@ -254,6 +256,8 @@ int main(int argc, char** argv)
   bzero(&ts_rx, sizeof(ts_rx));
   bzero(&ts_tx, sizeof(ts_tx));
 
+  rf_buffer_t rf_buffers[SRSLTE_MAX_RADIOS] = {};
+
   float    delay_idx[SRSLTE_MAX_RADIOS] = {0};
   uint32_t delay_count                  = 0;
 
@@ -267,7 +271,7 @@ int main(int argc, char** argv)
   /* Instanciate and allocate memory */
   printf("Instantiating objects and allocating memory...\n");
   for (uint32_t r = 0; r < nof_radios; r++) {
-    radio_h[r] = new radio();
+    radio_h[r] = new radio(&log_h);
     if (!radio_h[r]) {
       fprintf(stderr, "Error: Calling radio constructor\n");
       goto clean_exit;
@@ -298,7 +302,13 @@ int main(int argc, char** argv)
   /* Initialise instances */
   printf("Initialising instances...\n");
   for (uint32_t r = 0; r < nof_radios; r++) {
-    if (!radio_h[r]->init(&log_h, radios_args[r], NULL, nof_ports)) {
+    rf_args_t radio_args    = {};
+    radio_args.nof_antennas = nof_ports;
+    radio_args.nof_carriers = 1;
+    radio_args.device_args  = radios_args[r];
+    radio_args.rx_gain      = agc_enable ? -1 : rf_gain;
+
+    if (!radio_h[r]->init(radio_args, NULL)) {
       fprintf(stderr, "Error: Calling radio_multi constructor\n");
       goto clean_exit;
     }
@@ -307,13 +317,10 @@ int main(int argc, char** argv)
 
     // enable and init agc
     if (agc_enable) {
-      radio_h[r]->start_agc();
       if (srslte_agc_init_uhd(&agc[r], SRSLTE_AGC_MODE_PEAK_AMPLITUDE, 0, set_gain_callback, radio_h[r])) {
         fprintf(stderr, "Error: Initiating AGC %d\n", r);
         goto clean_exit;
       }
-    } else {
-      radio_h[r]->set_rx_gain(rf_gain);
     }
 
     // Set Rx/Tx sampling rate
@@ -355,13 +362,19 @@ int main(int argc, char** argv)
   /* Receive */
   printf("Start capturing %d frames of %d samples...\n", nof_frames, frame_size);
 
+  for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
+    for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
+      rf_buffers[i].set(j, buffers[i][j]);
+    }
+  }
+
   for (uint32_t i = 0; i < nof_frames; i++) {
     int gap    = 0;
     frame_size = SRSLTE_MIN(frame_size, nof_samples);
 
     // receive each radio
     for (uint32_t r = 0; r < nof_radios; r++) {
-      radio_h[r]->rx_now(buffers[r], frame_size, &ts_rx[r]);
+      radio_h[r]->rx_now(rf_buffers[r], frame_size, &ts_rx[r]);
     }
 
     // run agc
@@ -376,7 +389,7 @@ int main(int argc, char** argv)
       for (uint32_t r = 0; r < nof_radios; r++) {
         srslte_timestamp_copy(&ts_tx, &ts_rx[r]);
         srslte_timestamp_add(&ts_tx, 0, 0.004);
-        radio_h[r]->tx_single(buffers[r][0], frame_size, ts_tx);
+        radio_h[r]->tx(rf_buffers[r], frame_size, ts_tx);
       }
     }
 

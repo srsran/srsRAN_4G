@@ -26,7 +26,7 @@
 #include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/log.h"
 #include "srslte/common/tti_sempahore.h"
-#include "srslte/interfaces/common_interfaces.h"
+#include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
@@ -133,11 +133,8 @@ public:
                           srslte_pdsch_ack_resource_t resource);
   bool get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srslte_pdsch_ack_cc_t* ack);
 
-  void worker_end(void*              h,
-                  bool               tx_enable,
-                  cf_t*              buffer[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS],
-                  uint32_t           nof_samples[SRSLTE_MAX_RADIOS],
-                  srslte_timestamp_t tx_time[SRSLTE_MAX_RADIOS]);
+  void
+  worker_end(void* h, bool tx_enable, srslte::rf_buffer_t& buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   void set_cell(const srslte_cell_t& c);
   void set_nof_workers(uint32_t nof_workers);

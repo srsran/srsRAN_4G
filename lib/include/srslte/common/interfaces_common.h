@@ -46,14 +46,11 @@ typedef struct {
   float       tx_max_power;
   float       tx_gain_offset;
   float       rx_gain_offset;
-  uint32_t    nof_radios;
-  uint32_t    nof_rf_channels; // Number of RF channels per radio
-  uint32_t    nof_rx_ant;      // Number of RF channels for MIMO
-  uint32_t    nof_tx_ports;    // Number of Tx ports for MIMO
+  uint32_t    nof_carriers; // Number of RF channels
+  uint32_t    nof_antennas; // Number of antennas per RF channel
   std::string device_name;
-  std::string device_args[SRSLTE_MAX_RADIOS];
+  std::string device_args;
   std::string time_adv_nsamples;
-  std::string burst_preamble;
   std::string continuous_tx;
 } rf_args_t;
 

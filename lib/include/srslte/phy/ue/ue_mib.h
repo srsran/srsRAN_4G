@@ -58,7 +58,7 @@
 typedef struct SRSLTE_API {
   srslte_sync_t sfind;
 
-  cf_t* sf_symbols[SRSLTE_MAX_PORTS];
+  cf_t* sf_symbols;
 
   srslte_ofdm_t fft;
   srslte_pbch_t pbch;
@@ -73,9 +73,7 @@ typedef struct SRSLTE_API {
   uint32_t frame_cnt; 
 } srslte_ue_mib_t;
 
-SRSLTE_API int srslte_ue_mib_init(srslte_ue_mib_t *q, 
-                                  cf_t *in_buffer[SRSLTE_MAX_PORTS],
-                                  uint32_t max_prb);
+SRSLTE_API int srslte_ue_mib_init(srslte_ue_mib_t* q, cf_t* in_buffer, uint32_t max_prb);
 
 SRSLTE_API void srslte_ue_mib_free(srslte_ue_mib_t *q);
 
@@ -97,15 +95,16 @@ SRSLTE_API int srslte_ue_mib_decode(srslte_ue_mib_t * q,
 */
 typedef struct {
   srslte_ue_mib_t ue_mib; 
-  srslte_ue_sync_t ue_sync; 
-  cf_t *sf_buffer[SRSLTE_MAX_PORTS];
-  uint32_t nof_rx_antennas;
+  srslte_ue_sync_t ue_sync;
+  cf_t*            sf_buffer[SRSLTE_MAX_CHANNELS];
+  uint32_t         nof_rx_channels;
 } srslte_ue_mib_sync_t;
 
-SRSLTE_API int srslte_ue_mib_sync_init_multi(srslte_ue_mib_sync_t *q,
-                                             int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t *),
-                                             uint32_t nof_rx_antennas,
-                                             void *stream_handler);
+SRSLTE_API int
+srslte_ue_mib_sync_init_multi(srslte_ue_mib_sync_t* q,
+                              int(recv_callback)(void*, cf_t* [SRSLTE_MAX_CHANNELS], uint32_t, srslte_timestamp_t*),
+                              uint32_t nof_rx_channels,
+                              void*    stream_handler);
 
 SRSLTE_API void srslte_ue_mib_sync_free(srslte_ue_mib_sync_t *q);
 

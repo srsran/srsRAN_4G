@@ -163,7 +163,6 @@ uint32_t sf_worker::get_nof_rnti()
 void sf_worker::work_imp()
 {
   std::lock_guard<std::mutex> lock(work_mutex);
-  cf_t*                       signal_buffer_tx[SRSLTE_MAX_PORTS * SRSLTE_MAX_CARRIERS];
 
   srslte_ul_sf_cfg_t ul_sf = {};
   srslte_dl_sf_cfg_t dl_sf = {};
@@ -230,14 +229,15 @@ void sf_worker::work_imp()
   }
 
   // Get Transmission buffers
-  for (uint32_t cc = 0, i = 0; cc < phy->get_nof_carriers(); cc++) {
-    for (uint32_t ant = 0; ant < phy->get_nof_ports(cc); ant++, i++) {
-      signal_buffer_tx[i] = cc_workers[cc]->get_buffer_tx(ant);
+  srslte::rf_buffer_t tx_buffer = {};
+  for (uint32_t cc = 0; cc < phy->get_nof_carriers(); cc++) {
+    for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
+      tx_buffer.set(cc, ant, phy->get_nof_ports(0), cc_workers[cc]->get_buffer_tx(ant));
     }
   }
 
   Debug("Sending to radio\n");
-  phy->worker_end(this, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)), tx_time);
+  phy->worker_end(this, tx_buffer, SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)), tx_time);
 
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);

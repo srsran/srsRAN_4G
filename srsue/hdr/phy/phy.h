@@ -25,11 +25,10 @@
 #include "phy_common.h"
 #include "phy_metrics.h"
 #include "prach.h"
-#include "scell/async_scell_recv.h"
 #include "sf_worker.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/trace.h"
-#include "srslte/interfaces/common_interfaces.h"
+#include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
@@ -149,7 +148,6 @@ private:
   std::vector<std::unique_ptr<sf_worker> > workers;
   phy_common                               common;
   sync                                     sfsync;
-  scell::async_recv_vector                 scell_sync;
   prach                                    prach_buffer;
 
   srslte_prach_cfg_t  prach_cfg  = {};
@@ -161,7 +159,7 @@ private:
   /* Current time advance */
   uint32_t n_ta = 0;
 
-  void set_default_args(phy_args_t* args);
+  static void set_default_args(phy_args_t& args);
   bool check_args(const phy_args_t& args);
 };
 

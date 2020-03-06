@@ -469,11 +469,6 @@ public:
  */
 
 typedef struct {
-  uint32_t radio_idx;
-  uint32_t channel_idx;
-} carrier_map_t;
-
-typedef struct {
   std::string            type = "lte";
   srslte::phy_log_args_t log;
 
@@ -492,10 +487,7 @@ typedef struct {
   int sync_cpu_affinity = -1;
 
   uint32_t      nof_carriers                     = 1;
-  uint32_t      nof_radios                       = 1;
   uint32_t      nof_rx_ant                       = 1;
-  uint32_t      nof_rf_channels                  = 1;
-  carrier_map_t carrier_map[SRSLTE_MAX_CARRIERS] = {};
   std::string   equalizer_mode                   = "mmse";
   int           cqi_max                          = 15;
   int           cqi_fixed                        = -1;
