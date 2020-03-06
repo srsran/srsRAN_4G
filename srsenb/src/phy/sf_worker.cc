@@ -141,7 +141,7 @@ int sf_worker::add_rnti(uint16_t rnti, uint32_t cc_idx, bool is_pcell, bool is_t
   int ret = SRSLTE_ERROR;
 
   if (cc_idx < cc_workers.size()) {
-    cc_workers[cc_idx]->add_rnti(rnti, true, is_temporal);
+    cc_workers[cc_idx]->add_rnti(rnti, is_pcell, is_temporal);
     ret = SRSLTE_SUCCESS;
   }
 

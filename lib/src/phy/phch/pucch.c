@@ -356,7 +356,7 @@ static uint32_t get_N_sf(srslte_pucch_format_t format, uint32_t slot_idx, bool s
     case SRSLTE_PUCCH_FORMAT_2:
     case SRSLTE_PUCCH_FORMAT_2A:
     case SRSLTE_PUCCH_FORMAT_2B:
-      return 5;
+      return SRSLTE_PUCCH2_N_SF;
     case SRSLTE_PUCCH_FORMAT_3:
       if (!slot_idx) {
         return 5;
@@ -474,8 +474,9 @@ static int encode_signal_format12(srslte_pucch_t*     q,
       return SRSLTE_ERROR;
     }
   } else {
-    for (int i = 0; i < SRSLTE_PUCCH_MAX_BITS / 2; i++) {
-      q->d[i] = 1.0;
+    // Set all ones
+    for (uint32_t i = 0; i < SRSLTE_PUCCH_MAX_BITS / 2; i++) {
+      q->d[i] = 1.0f;
     }
   }
   uint32_t N_sf_0 = get_N_sf(cfg->format, 0, sf->shortened);
@@ -774,19 +775,25 @@ static bool decode_signal(srslte_pucch_t*     q,
     case SRSLTE_PUCCH_FORMAT_2:
     case SRSLTE_PUCCH_FORMAT_2A:
     case SRSLTE_PUCCH_FORMAT_2B:
-      seq = get_user_sequence(q, cfg->rnti, sf->tti % 10);
+      seq = get_user_sequence(q, cfg->rnti, sf->tti % SRSLTE_NOF_SF_X_FRAME);
       if (seq) {
         encode_signal_format12(q, sf, cfg, NULL, ref, true);
         srslte_vec_prod_conj_ccc(q->z, ref, q->z_tmp, SRSLTE_PUCCH_MAX_SYMBOLS);
-        for (int i = 0; i < SRSLTE_PUCCH2_NOF_BITS / 2; i++) {
-          q->z[i] = 0;
-          for (int j = 0; j < SRSLTE_NRE; j++) {
-            q->z[i] += q->z_tmp[i * SRSLTE_NRE + j] / SRSLTE_NRE;
-          }
+        for (int i = 0; i < (SRSLTE_PUCCH2_N_SF * SRSLTE_NOF_SLOTS_PER_SF); i++) {
+          q->z[i] = srslte_vec_acc_cc(&q->z_tmp[i * SRSLTE_NRE], SRSLTE_NRE) / SRSLTE_NRE;
         }
         srslte_demod_soft_demodulate_s(SRSLTE_MOD_QPSK, q->z, llr_pucch2, SRSLTE_PUCCH2_NOF_BITS / 2);
         srslte_scrambling_s_offset(seq, llr_pucch2, 0, SRSLTE_PUCCH2_NOF_BITS);
-        corr     = (float)srslte_uci_decode_cqi_pucch(&q->cqi, llr_pucch2, pucch_bits, nof_uci_bits) / 2000;
+
+        // Calculate the LLR RMS for normalising
+        float llr_pow = srslte_vec_avg_power_sf(llr_pucch2, SRSLTE_PUCCH2_NOF_BITS);
+
+        if (isnormal(llr_pow)) {
+          float llr_rms = sqrtf(llr_pow) * SRSLTE_PUCCH2_NOF_BITS;
+          corr = ((float)srslte_uci_decode_cqi_pucch(&q->cqi, llr_pucch2, pucch_bits, nof_uci_bits)) / (llr_rms);
+        } else {
+          corr = 0;
+        }
         detected = true;
       } else {
         ERROR("Decoding PUCCH2: could not generate sequence\n");
@@ -905,6 +912,19 @@ int srslte_pucch_decode(srslte_pucch_t*        q,
     // Equalization
     srslte_predecoding_single(q->z_tmp, q->ce, q->z, NULL, nof_re, 1.0f, channel->noise_estimate);
 
+    // DMRS Detection
+    cf_t  _dmrs_corr = srslte_vec_acc_cc(q->ce, nof_re) / nof_re;
+    float _rms       = __real__(conjf(_dmrs_corr) * _dmrs_corr);
+    float _pow       = srslte_vec_avg_power_cf(q->ce, nof_re);
+    float _r         = _rms / _pow;
+
+    // Return not detected if the ratio is 0, NAN, +/- Infinity or below 0.1
+    if (!isnormal(_r) || _r < 0.1f) {
+      data->detected    = false;
+      data->correlation = NAN;
+      return SRSLTE_SUCCESS;
+    }
+
     // Perform ML-decoding
     bool pucch_found = decode_signal(q, sf, cfg, pucch_bits, nof_re, nof_uci_bits, &data->correlation);
 
@@ -922,8 +942,9 @@ int srslte_pucch_decode(srslte_pucch_t*        q,
       case SRSLTE_PUCCH_FORMAT_2:
       case SRSLTE_PUCCH_FORMAT_2A:
       case SRSLTE_PUCCH_FORMAT_2B:
-        data->uci_data.ack.valid    = data->correlation > cfg->threshold_data_valid_format2;
-        data->uci_data.cqi.data_crc = data->correlation > cfg->threshold_data_valid_format2;
+        data->detected              = data->correlation > cfg->threshold_data_valid_format2;
+        data->uci_data.ack.valid    = data->detected;
+        data->uci_data.cqi.data_crc = data->detected;
         break;
       case SRSLTE_PUCCH_FORMAT_1:
       case SRSLTE_PUCCH_FORMAT_3:

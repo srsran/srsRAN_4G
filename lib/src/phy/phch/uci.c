@@ -620,7 +620,7 @@ static uint32_t Q_prime_ri_ack(srslte_pusch_cfg_t* cfg, uint32_t O, uint32_t O_c
   return Q_prime;
 }
 
-static uint32_t encode_ri_ack(uint8_t data[2], uint32_t O_ack, uint8_t Qm, srslte_uci_bit_t* q_encoded_bits)
+static uint32_t encode_ri_ack(const uint8_t data[2], uint32_t O_ack, uint8_t Qm, srslte_uci_bit_t* q_encoded_bits)
 {
   uint32_t i = 0;
 
@@ -652,7 +652,7 @@ static uint32_t encode_ri_ack(uint8_t data[2], uint32_t O_ack, uint8_t Qm, srslt
 }
 
 static uint32_t
-encode_ack_long(uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_prime, srslte_uci_bit_t* q_encoded_bits)
+encode_ack_long(const uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_prime, srslte_uci_bit_t* q_encoded_bits)
 {
   uint32_t Q_ack = Q_m * Q_prime;
 
@@ -674,15 +674,8 @@ encode_ack_long(uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_prime, sr
 
 static void decode_ri_ack_1bit(const int16_t* q_bits, const uint8_t* c_seq, uint8_t data[1])
 {
-  // Unscramble p1
-  int16_t q1 = c_seq[1] ? -q_bits[1] : q_bits[1];
-
-  // Scramble with correct position
-  int16_t q0 = q_bits[0];
-  q1         = c_seq[0] ? -q1 : q1;
-
   if (data) {
-    data[0] = ((q0 + q1) > 0) ? 1 : 0;
+    data[0] = ((q_bits[0] + q_bits[1]) > 0) ? 1 : 0;
   }
 }
 
@@ -829,9 +822,19 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
     for (uint32_t j = 0; j < Qm; j++, count_acc++) {
       // Calculate circular LLR index
       uint32_t acc_idx = count_acc % nof_acc;
+      uint32_t pos     = ack_ri_bits[count_acc].position;
+
+      int16_t q = q_bits[pos];
+
+      // Remove scrambling of repeated bits
+      if (nof_bits == 1) {
+        if (acc_idx == 1 && pos > 0) {
+          q = (c_seq[pos] == c_seq[pos - 1]) ? +q : -q;
+        }
+      }
 
       // Accumulate LLR
-      llr_acc[acc_idx] += q_bits[ack_ri_bits[count_acc].position];
+      llr_acc[acc_idx] += q;
 
       /// Limit accumulator boundaries
       llr_acc[acc_idx] = SRSLTE_MIN(llr_acc[acc_idx], INT16_MAX / 2);
