@@ -89,7 +89,7 @@ The library currently supports the Ettus Universal Hardware Driver (UHD) and the
 We have tested the following hardware: 
  * USRP B210
  * USRP B205mini
- * USRP X300
+ * USRP X300 (recommended UHD version: 3.9.7)
  * limeSDR
  * bladeRF
 
