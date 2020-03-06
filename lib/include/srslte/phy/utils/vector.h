@@ -174,6 +174,7 @@ SRSLTE_API void srslte_vec_conj_cc(const cf_t* x, cf_t* y, const uint32_t len);
 
 /* average vector power */
 SRSLTE_API float srslte_vec_avg_power_cf(const cf_t* x, const uint32_t len);
+SRSLTE_API float srslte_vec_avg_power_sf(const int16_t* x, const uint32_t len);
 
 /* Correlation between complex vectors x and y */
 SRSLTE_API float srslte_vec_corr_ccc(const cf_t* x, cf_t* y, const uint32_t len);

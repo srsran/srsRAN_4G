@@ -459,6 +459,28 @@ float srslte_vec_avg_power_cf(const cf_t* x, const uint32_t len)
   return crealf(srslte_vec_dot_prod_conj_ccc(x, x, len)) / len;
 }
 
+float srslte_vec_avg_power_sf(const int16_t* x, const uint32_t len)
+{
+  // Accumulator
+  float acc = 0.0f;
+
+  for (uint32_t i = 0; i < len; i++) {
+    // Read value and typecast to float
+    float t = (float)x[i];
+
+    // Square value
+    acc += t * t;
+  }
+
+  // Do average
+  if (len) {
+    acc /= len;
+  }
+
+  // Return accumulated value
+  return acc;
+}
+
 // Correlation assumes zero-mean x and y
 float srslte_vec_corr_ccc(const cf_t* x, cf_t* y, const uint32_t len)
 {
