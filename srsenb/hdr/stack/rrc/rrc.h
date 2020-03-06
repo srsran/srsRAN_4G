@@ -146,9 +146,9 @@ public:
   void upd_user(uint16_t new_rnti, uint16_t old_rnti) override;
   void set_activity_user(uint16_t rnti) override;
   bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;
+  uint8_t* read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index) override;
 
   // rrc_interface_rlc
-  void read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, uint8_t* payload) override;
   void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size) override;
   void max_retx_attempted(uint16_t rnti) override;
 

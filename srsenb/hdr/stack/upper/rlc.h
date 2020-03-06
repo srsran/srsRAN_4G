@@ -64,7 +64,6 @@ public:
 
   // rlc_interface_mac
   int  read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
-  void read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, uint8_t* payload);
   void write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
   void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size);
 

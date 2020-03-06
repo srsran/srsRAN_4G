@@ -126,11 +126,12 @@ void rrc::get_metrics(rrc_metrics_t& m)
   to the queue and process later
 *******************************************************************************/
 
-void rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, uint8_t* payload)
+uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index)
 {
   if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < sib_buffer.size()) {
-    memcpy(payload, sib_buffer.at(cc_idx).at(sib_index)->msg, sib_buffer.at(cc_idx).at(sib_index)->N_bytes);
+    return sib_buffer.at(cc_idx).at(sib_index)->msg;
   }
+  return nullptr;
 }
 
 void rrc::rl_failure(uint16_t rnti)

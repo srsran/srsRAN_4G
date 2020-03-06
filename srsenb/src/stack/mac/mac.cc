@@ -739,10 +739,14 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
   }
 }
 
-uint8_t* mac::assemble_si(const uint8_t cc_idx, const uint32_t index)
+uint8_t* mac::assemble_si(const uint8_t cc_idx, const uint32_t sib_index)
 {
-  rlc_h->read_pdu_bcch_dlsch(cc_idx, index, bcch_dlsch_payload);
-  return bcch_dlsch_payload;
+  uint8_t* sib_payload = rrc_h->read_pdu_bcch_dlsch(cc_idx, sib_index);
+  if (sib_payload == nullptr) {
+    // return MAC managed dummy buffer in this case
+    sib_payload = bcch_dlsch_payload;
+  }
+  return sib_payload;
 }
 
 int mac::get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res_list)
