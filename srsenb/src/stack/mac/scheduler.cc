@@ -413,6 +413,21 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
   return SRSLTE_SUCCESS;
 }
 
+// Common way to access ue_db elements in a read locking way
+template <typename Func>
+int sched::ue_db_access(uint16_t rnti, Func f)
+{
+  std::lock_guard<std::mutex> lock(sched_mutex);
+  auto                        it = ue_db.find(rnti);
+  if (it != ue_db.end()) {
+    f(it->second);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+    return SRSLTE_ERROR;
+  }
+  return SRSLTE_SUCCESS;
+}
+
 /*******************************************************
  *
  * Helper functions and common data types
@@ -441,21 +456,6 @@ void sched_utils::generate_cce_location(srslte_regs_t*   regs_,
     location->cce_start[l][location->nof_loc[l]] = loc[i].ncce;
     location->nof_loc[l]++;
   }
-}
-
-// Common way to access ue_db elements in a read locking way
-template <typename Func>
-int sched::ue_db_access(uint16_t rnti, Func f)
-{
-  std::lock_guard<std::mutex> lock(sched_mutex);
-  auto                        it = ue_db.find(rnti);
-  if (it != ue_db.end()) {
-    f(it->second);
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-    return SRSLTE_ERROR;
-  }
-  return SRSLTE_SUCCESS;
 }
 
 } // namespace srsenb

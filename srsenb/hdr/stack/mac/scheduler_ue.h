@@ -214,8 +214,16 @@ private:
   int      alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs);
   uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t tbidx);
 
+  std::pair<int, int> compute_mcs_and_tbs(uint32_t               ue_cc_idx,
+                                          uint32_t               tti_tx_dl,
+                                          uint32_t               nof_alloc_prbs,
+                                          uint32_t               cfi,
+                                          const srslte_dci_dl_t& dci);
+
   static bool bearer_is_ul(ue_bearer_t* lch);
   static bool bearer_is_dl(const ue_bearer_t* lch);
+
+  std::pair<uint32_t, uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
 
   uint32_t get_pending_dl_new_data_unlocked();
   uint32_t get_pending_ul_old_data_unlocked(uint32_t cc_idx);
