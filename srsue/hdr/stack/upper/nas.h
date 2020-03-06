@@ -159,6 +159,8 @@ private:
   bool integrity_check(srslte::byte_buffer_t* pdu);
   void cipher_encrypt(srslte::byte_buffer_t* pdu);
   void cipher_decrypt(srslte::byte_buffer_t* pdu);
+  int  apply_security_config(srslte::unique_byte_buffer_t& pdu);
+
   void set_k_enb_count(uint32_t count);
 
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT* caps);
@@ -183,8 +185,8 @@ private:
   void parse_modify_eps_bearer_context_request(srslte::unique_byte_buffer_t pdu);
 
   // Packet generators
-  void gen_attach_request(srslte::byte_buffer_t* msg);
-  void gen_service_request(srslte::byte_buffer_t* msg);
+  void gen_attach_request(srslte::unique_byte_buffer_t& msg);
+  void gen_service_request(srslte::unique_byte_buffer_t& msg);
 
   // Senders
   void send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps_bearer_id);

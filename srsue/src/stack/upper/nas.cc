@@ -149,9 +149,9 @@ proc_outcome_t nas::rrc_connect_proc::init(srslte::establishment_cause_t cause_,
     }
 
     if (nas_ptr->state == EMM_STATE_REGISTERED) {
-      nas_ptr->gen_service_request(pdu.get());
+      nas_ptr->gen_service_request(pdu);
     } else {
-      nas_ptr->gen_attach_request(pdu.get());
+      nas_ptr->gen_attach_request(pdu);
     }
   }
 
@@ -856,6 +856,33 @@ bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT* caps)
   return true;
 }
 
+/**
+ * Applies the current security config on a packed NAS PDU
+ *
+ * The PDU is ciphered and integrity protected if NAS security is configured
+ * and the current security context is valid. The function also performs
+ * a length check.
+ *
+ * @param pdu The NAS PDU already packed inside a byte_buffer
+ * @return True if successfull, false otherwise
+ */
+int nas::apply_security_config(srslte::unique_byte_buffer_t& pdu)
+{
+  if (have_ctxt) {
+    if (pdu->N_bytes > 5) {
+      cipher_encrypt(pdu.get());
+      integrity_generate(
+          &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+    } else {
+      nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+      return SRSLTE_ERROR;
+    }
+  } else {
+    nas_log->debug("Not applying security for PDU. No context configured.\n");
+  }
+  return SRSLTE_SUCCESS;
+}
+
 /*******************************************************************************
  * Parsers
  ******************************************************************************/
@@ -1311,9 +1338,12 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
   if (pcap != nullptr) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
-  cipher_encrypt(pdu.get());
-  integrity_generate(
-      &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+
+  if (apply_security_config(pdu)) {
+    nas_log->error("Error applying NAS security.\n");
+    return;
+  }
+
   nas_log->info("Sending Security Mode Complete nas_current_ctxt.tx_count=%d, RB=%s\n",
                 ctxt.tx_count,
                 rrc->get_rb_name(lcid).c_str());
@@ -1346,7 +1376,7 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // Send attach request after receiving service reject
   pdu->clear();
-  gen_attach_request(pdu.get());
+  gen_attach_request(pdu);
   rrc->write_sdu(std::move(pdu));
 }
 
@@ -1548,7 +1578,7 @@ void nas::parse_emm_status(uint32_t lcid, unique_byte_buffer_t pdu)
  * Senders
  ******************************************************************************/
 
-void nas::gen_attach_request(byte_buffer_t* msg)
+void nas::gen_attach_request(srslte::unique_byte_buffer_t& msg)
 {
   if (msg == nullptr) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in gen_attach_request().\n");
@@ -1609,14 +1639,11 @@ void nas::gen_attach_request(byte_buffer_t* msg)
                   ctxt.guti.mme_group_id,
                   ctxt.guti.mme_code);
     liblte_mme_pack_attach_request_msg(
-        &attach_req, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)msg);
+        &attach_req, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)msg.get());
 
-    // Add MAC
-    if (msg->N_bytes > 5) {
-      integrity_generate(
-          &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &msg->msg[5], msg->N_bytes - 5, &msg->msg[1]);
-    } else {
-      nas_log->error("Invalid PDU size %d\n", msg->N_bytes);
+    if (apply_security_config(msg)) {
+      nas_log->error("Error applying NAS security.\n");
+      return;
     }
   } else {
     attach_req.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
@@ -1624,7 +1651,7 @@ void nas::gen_attach_request(byte_buffer_t* msg)
     attach_req.nas_ksi.nas_ksi          = 0;
     usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
     nas_log->info("Requesting IMSI attach (IMSI=%s)\n", usim->get_imsi_str().c_str());
-    liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT*)msg);
+    liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT*)msg.get());
   }
 
   if (pcap != nullptr) {
@@ -1643,7 +1670,7 @@ void nas::gen_attach_request(byte_buffer_t* msg)
   }
 }
 
-void nas::gen_service_request(byte_buffer_t* msg)
+void nas::gen_service_request(srslte::unique_byte_buffer_t& msg)
 {
   if (msg == nullptr) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in gen_service_request().\n");
@@ -1772,16 +1799,9 @@ void nas::send_detach_request(bool switch_off)
       pcap->write_nas(pdu->msg, pdu->N_bytes);
     }
 
-    // Add MAC
-    if (pdu->N_bytes > 5) {
-      if (rrc->is_connected()) {
-        cipher_encrypt(pdu.get());
-      }
-      integrity_generate(
-          &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
-      ctxt.tx_count++;
-    } else {
-      nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+    if (apply_security_config(pdu)) {
+      nas_log->error("Error applying NAS security.\n");
+      return;
     }
   } else {
     detach_request.eps_mobile_id.type_of_id = LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI;
@@ -1812,6 +1832,8 @@ void nas::send_detach_request(bool switch_off)
     }
     callbacks.add_proc(rrc_connector);
   }
+
+  ctxt.tx_count++;
 }
 
 void nas::send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps_bearer_id)
@@ -1836,9 +1858,10 @@ void nas::send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  cipher_encrypt(pdu.get());
-  integrity_generate(
-      &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+  if (apply_security_config(pdu)) {
+    nas_log->error("Error applying NAS security.\n");
+    return;
+  }
 
   // Instruct RRC to enable capabilities
   rrc->enable_capabilities();
@@ -1867,13 +1890,9 @@ void nas::send_detach_accept()
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  // Encrypt and add MAC
-  if (pdu->N_bytes > 5) {
-    cipher_encrypt(pdu.get());
-    integrity_generate(
-        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
-  } else {
-    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+  if (apply_security_config(pdu)) {
+    nas_log->error("Error applying NAS security.\n");
+    return;
   }
 
   nas_log->info("Sending detach accept\n");
@@ -1902,14 +1921,16 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len,
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && pdu->N_bytes > 5) {
-    cipher_encrypt(pdu.get());
-    integrity_generate(
-        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED) {
+    if (apply_security_config(pdu)) {
+      nas_log->error("Error applying NAS security.\n");
+      return;
+    }
   }
 
   nas_log->info("Sending Authentication Response\n");
   rrc->write_sdu(std::move(pdu));
+  ctxt.tx_count++;
 }
 
 void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param)
@@ -1971,10 +1992,11 @@ void nas::send_identity_response(const uint8 id_type, const uint8_t sec_hdr_type
   liblte_mme_pack_identity_response_msg(&id_resp, sec_hdr_type, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
   // add security if needed
-  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && pdu->N_bytes > 5) {
-    cipher_encrypt(pdu.get());
-    integrity_generate(
-        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED) {
+    if (apply_security_config(pdu)) {
+      nas_log->error("Error applying NAS security.\n");
+      return;
+    }
   }
 
   if (pcap != nullptr) {
@@ -2126,12 +2148,8 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  cipher_encrypt(pdu.get());
-  if (pdu->N_bytes > 5) {
-    integrity_generate(
-        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
-  } else {
-    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+  if (apply_security_config(pdu)) {
+    nas_log->error("Error applying NAS security.\n");
     return;
   }
 
@@ -2165,12 +2183,8 @@ void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  cipher_encrypt(pdu.get());
-  if (pdu->N_bytes > 5) {
-    integrity_generate(
-        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
-  } else {
-    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+  if (apply_security_config(pdu)) {
+    nas_log->error("Error applying NAS security.\n");
     return;
   }
 
@@ -2205,12 +2219,8 @@ void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transact
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  cipher_encrypt(pdu.get());
-  if (pdu->N_bytes > 5) {
-    integrity_generate(
-        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
-  } else {
-    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+  if (apply_security_config(pdu)) {
+    nas_log->error("Error applying NAS security.\n");
     return;
   }
 
@@ -2245,12 +2255,8 @@ void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  cipher_encrypt(pdu.get());
-  if (pdu->N_bytes > 5) {
-    integrity_generate(
-        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
-  } else {
-    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+  if (apply_security_config(pdu)) {
+    nas_log->error("Error applying NAS security.\n");
     return;
   }
 
@@ -2276,6 +2282,11 @@ void nas::send_activate_test_mode_complete(const uint8_t sec_hdr_type)
 
   if (pcap != nullptr) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  if (apply_security_config(pdu)) {
+    nas_log->error("Error applying NAS security.\n");
+    return;
   }
 
   nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending Activate test mode complete\n");
