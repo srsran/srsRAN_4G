@@ -28,6 +28,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/logmap.h"
+#include "srslte/common/s1ap_pcap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
 
@@ -85,7 +86,8 @@ public:
 
   // Stack interface
   bool
-  handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+       handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
+  void start_pcap(srslte::s1ap_pcap* pcap_);
 
 private:
   static const int MME_PORT        = 36412;
@@ -113,6 +115,9 @@ private:
   // Protocol IEs sent with every UL S1AP message
   asn1::s1ap::tai_s        tai;
   asn1::s1ap::eutran_cgi_s eutran_cgi;
+
+  // PCAP
+  srslte::s1ap_pcap *pcap;
 
   asn1::s1ap::s1_setup_resp_s s1setupresponse;
 

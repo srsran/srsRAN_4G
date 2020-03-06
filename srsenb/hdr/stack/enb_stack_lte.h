@@ -136,13 +136,14 @@ private:
   srslte::timer_handler                           timers;
   std::unique_ptr<srslte::rx_multisocket_handler> rx_sockets;
 
-  srsenb::mac      mac;
-  srslte::mac_pcap mac_pcap;
-  srsenb::rlc      rlc;
-  srsenb::pdcp     pdcp;
-  srsenb::rrc      rrc;
-  srsenb::gtpu     gtpu;
-  srsenb::s1ap     s1ap;
+  srsenb::mac       mac;
+  srslte::mac_pcap  mac_pcap;
+  srsenb::rlc       rlc;
+  srsenb::pdcp      pdcp;
+  srsenb::rrc       rrc;
+  srsenb::gtpu      gtpu;
+  srsenb::s1ap      s1ap;
+  srslte::s1ap_pcap s1ap_pcap;
 
   srslte::logger*           logger = nullptr;
   srslte::byte_buffer_pool* pool   = nullptr;

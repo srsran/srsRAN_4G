@@ -90,11 +90,9 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("rf.device_args",       bpo::value<string>(&args->rf.device_args)->default_value("auto"),       "Front-end device arguments")
     ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"), "Transmission time advance")
 
-    ("pcap.enable",       bpo::value<bool>(&args->stack.pcap.enable)->default_value(false),         "Enable MAC packet captures for wireshark")
-    ("pcap.filename",     bpo::value<string>(&args->stack.pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
-
     ("gui.enable",        bpo::value<bool>(&args->gui.enable)->default_value(false),          "Enable GUI plots")
 
+    /* Log section */
     ("log.rf_level",     bpo::value<string>(&args->rf.log_level),         "RF log level")
     ("log.phy_level",     bpo::value<string>(&args->phy.log.phy_level),   "PHY log level")
     ("log.phy_hex_limit", bpo::value<int>(&args->phy.log.phy_hex_limit),  "PHY log hex dump limit")
@@ -118,6 +116,12 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("log.filename",      bpo::value<string>(&args->log.filename)->default_value("/tmp/ue.log"),"Log filename")
     ("log.file_max_size", bpo::value<int>(&args->log.file_max_size)->default_value(-1), "Maximum file size (in kilobytes). When passed, multiple files are created. Default -1 (single file)")
 
+    /* PCAP */
+    ("pcap.mac_enable",    bpo::value<bool>(&args->stack.mac_pcap.enable)->default_value(false),         "Enable MAC packet captures for wireshark")
+    ("pcap.mac_filename",  bpo::value<string>(&args->stack.mac_pcap.filename)->default_value("enb_mac.pcap"), "MAC layer capture filename")
+    ("pcap.s1ap_enable",   bpo::value<bool>(&args->stack.s1ap_pcap.enable)->default_value(false),         "Enable S1AP packet captures for wireshark")
+    ("pcap.s1ap_filename", bpo::value<string>(&args->stack.s1ap_pcap.filename)->default_value("enb_s1ap.pcap"), "S1AP layer capture filename")
+   
     /* MCS section */
     ("scheduler.pdsch_mcs", bpo::value<int>(&args->stack.mac.sched.pdsch_mcs)->default_value(-1), "Optional fixed PDSCH MCS (ignores reported CQIs if specified)")
     ("scheduler.pdsch_max_mcs", bpo::value<int>(&args->stack.mac.sched.pdsch_max_mcs)->default_value(-1), "Optional PDSCH MCS limit")

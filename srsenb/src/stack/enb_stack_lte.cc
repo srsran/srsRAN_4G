@@ -97,9 +97,13 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   stack_log.set_hex_limit(128);
 
   // Set up pcap and trace
-  if (args.pcap.enable) {
-    mac_pcap.open(args.pcap.filename.c_str());
+  if (args.mac_pcap.enable) {
+    mac_pcap.open(args.mac_pcap.filename.c_str());
     mac.start_pcap(&mac_pcap);
+  }
+  if (args.s1ap_pcap.enable) {
+    s1ap_pcap.open(args.s1ap_pcap.filename.c_str());
+    s1ap.start_pcap(&s1ap_pcap);
   }
 
   // Init Rx socket handler
@@ -156,8 +160,11 @@ void enb_stack_lte::stop_impl()
   pdcp.stop();
   rrc.stop();
 
-  if (args.pcap.enable) {
+  if (args.mac_pcap.enable) {
     mac_pcap.close();
+  }
+  if (args.s1ap_pcap.enable) {
+    s1ap_pcap.close();
   }
 
   // erasing the queues is the last thing, bc we need them to call stop_impl()

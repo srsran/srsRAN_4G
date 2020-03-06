@@ -505,6 +505,11 @@ bool s1ap::handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu,
 
 bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
 {
+  // Save message to PCAP
+  if (pcap != nullptr) {
+    pcap->write_s1ap(pdu->msg, pdu->N_bytes);
+  }
+
   s1ap_pdu_c     rx_pdu;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
 
@@ -1137,9 +1142,14 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
     return false;
   }
   asn1::bit_ref bref(buf->msg, buf->get_tailroom());
-
   tx_pdu.pack(bref);
   buf->N_bytes = bref.distance_bytes();
+
+  // Save message to PCAP
+  if (pcap != nullptr) {
+    pcap->write_s1ap(buf->msg, buf->N_bytes);
+  }
+
   if (rnti > 0) {
     s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s for rnti=0x%x", procedure_name, rnti);
   } else {
@@ -1216,6 +1226,10 @@ std::string s1ap::get_cause(const cause_c& c)
   return cause;
 }
 
+void s1ap::start_pcap(srslte::s1ap_pcap* pcap_)
+{
+  pcap = pcap_;
+}
 /*******************************************************************************
 /*               s1ap::ue Class
 ********************************************************************************/
