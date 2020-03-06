@@ -1094,6 +1094,7 @@ public:
     dedicated.dl_cfg.cqi_report.periodic_configured = true;
     dedicated.dl_cfg.cqi_report.pmi_idx             = 25;
     dedicated.dl_cfg.cqi_report.periodic_mode       = SRSLTE_CQI_MODE_20;
+    dedicated.ul_cfg.pusch.uci_offset.I_offset_ack  = 7;
 
     // Configure UE PHY
     bool activation[SRSLTE_MAX_CARRIERS] = {}; ///< Activation/Deactivation vector
