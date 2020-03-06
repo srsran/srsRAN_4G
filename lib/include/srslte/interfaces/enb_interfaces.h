@@ -296,8 +296,8 @@ public:
    * Segmentation happens in this function. RLC PDU is stored in payload. */
   virtual int read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) = 0;
 
-  virtual void read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload) = 0;
-  virtual void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)     = 0;
+  virtual void read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, uint8_t* payload) = 0;
+  virtual void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)                                 = 0;
 
   /* MAC calls RLC to push an RLC PDU. This function is called from an independent MAC thread.
    * PDU gets placed into the buffer and higher layer thread gets notified. */
@@ -371,10 +371,10 @@ public:
 class rrc_interface_rlc
 {
 public:
-  virtual void read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)                 = 0;
-  virtual void read_pdu_pcch(uint8_t* payload, uint32_t payload_size)                    = 0;
-  virtual void max_retx_attempted(uint16_t rnti)                                         = 0;
-  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
+  virtual void read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, uint8_t* payload) = 0;
+  virtual void read_pdu_pcch(uint8_t* payload, uint32_t payload_size)                                = 0;
+  virtual void max_retx_attempted(uint16_t rnti)                                                     = 0;
+  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)             = 0;
 };
 
 // RRC interface for MAC
@@ -388,6 +388,29 @@ public:
   virtual void set_activity_user(uint16_t rnti)                                      = 0;
   virtual bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len)            = 0;
 };
+
+// SCell configuration
+struct scell_cfg_t {
+  uint32_t cell_id;
+  bool     cross_carrier_sched = false;
+  uint32_t sched_cell_id;
+  bool     ul_allowed;
+};
+
+// Cell/Sector configuration
+struct cell_cfg_t {
+  uint32_t                 rf_port;
+  uint32_t                 cell_id;
+  uint16_t                 tac;
+  uint32_t                 pci;
+  uint16_t                 root_seq_idx;
+  uint32_t                 dl_earfcn;
+  float                    dl_freq_hz;
+  uint32_t                 ul_earfcn;
+  float                    ul_freq_hz;
+  std::vector<scell_cfg_t> scell_list;
+};
+typedef std::vector<cell_cfg_t> cell_list_t;
 
 // RRC interface for PDCP
 class rrc_interface_pdcp
@@ -482,6 +505,7 @@ typedef struct {
 } s1ap_args_t;
 
 typedef struct {
+  uint32_t                      nof_prb; ///< Needed to dimension MAC softbuffers for all cells
   sched_interface::sched_args_t sched;
   int                           link_failure_nof_err;
 } mac_args_t;

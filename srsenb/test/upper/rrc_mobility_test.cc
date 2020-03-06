@@ -282,7 +282,7 @@ int test_mobility_class(mobility_test_params test_params)
   gtpu_dummy                        gtpu;
   rrc_log->set_level(srslte::LOG_LEVEL_INFO);
   rrc_log->set_hex_limit(1024);
-  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, rrc_log.get());
+  rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, rrc_log.get());
 
   auto tic = [&timers, &rrc] {
     timers.step_all();

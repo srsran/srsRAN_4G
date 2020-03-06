@@ -59,10 +59,10 @@ namespace srsenb {
 *******************************************************************************/
 
 struct enb_args_t {
-  uint32_t dl_earfcn;
-  uint32_t ul_earfcn;
+  std::string enb_id;
+  uint32_t dl_earfcn; // By default the EARFCN from rr.conf's cell list are used but this value can be used for single
+                      // cell eNB
   uint32_t n_prb;
-  uint32_t pci;
   uint32_t nof_ports;
   uint32_t transmission_mode;
   float    p_a;

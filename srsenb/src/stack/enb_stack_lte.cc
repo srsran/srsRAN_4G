@@ -106,10 +106,10 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", &stack_log));
 
   // Init all layers
-  mac.init(args.mac, &rrc_cfg.cell, phy, &rlc, &rrc, this, &mac_log);
+  mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, this, &mac_log);
   rlc.init(&pdcp, &rrc, &mac, &timers, &rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
-  rrc.init(&rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
+  rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
   s1ap.init(args.s1ap, &rrc, &timers, this);
   gtpu.init(args.s1ap.gtp_bind_addr,
             args.s1ap.mme_addr,

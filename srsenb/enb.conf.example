@@ -6,8 +6,6 @@
 # eNB configuration
 #
 # enb_id:         20-bit eNB identifier.
-# cell_id:        8-bit cell identifier.
-# tac:            16-bit Tracking Area Code.
 # mcc:            Mobile Country Code
 # mnc:            Mobile Network Code
 # mme_addr:       IP address of MME for S1 connnection
@@ -20,9 +18,6 @@
 #####################################################################
 [enb]
 enb_id = 0x19B
-cell_id = 0x01
-phy_cell_id = 1
-tac = 0x0007
 mcc = 001
 mnc = 01
 mme_addr = 127.0.1.100
@@ -48,7 +43,7 @@ drb_config = drb.conf
 #####################################################################
 # RF configuration
 #
-# dl_earfcn: EARFCN code for DL
+# dl_earfcn: EARFCN code for DL (only valid if a single cell is configured in rr.conf)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
 #
@@ -64,7 +59,7 @@ drb_config = drb.conf
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
 #####################################################################
 [rf]
-dl_earfcn = 3400
+#dl_earfcn = 3400
 tx_gain = 80
 rx_gain = 40
 

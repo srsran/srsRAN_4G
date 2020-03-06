@@ -370,6 +370,17 @@ int parse_default_field(T&            obj,
   return ret;
 }
 
+//! Parse required field and return error if field isn't specified
+template <typename T, typename Parser = DefaultFieldParser<T> >
+int parse_required_field(T& obj, Setting& root, const char* field_name, const Parser& field_parser = {})
+{
+  if (not root.exists(field_name)) {
+    fprintf(stderr, "PARSER ERROR: Field \"%s\" doesn't exist.\n", field_name);
+    return -1;
+  }
+  return field_parser(obj, root[field_name]);
+}
+
 template <typename T>
 int parse_bounded_number(T& number, Setting& fieldroot, T num_min, T num_max)
 {

@@ -43,7 +43,7 @@ rrc::rrc()
 
 rrc::~rrc() {}
 
-void rrc::init(rrc_cfg_t*             cfg_,
+void rrc::init(const rrc_cfg_t&       cfg_,
                phy_interface_rrc_lte* phy_,
                mac_interface_rrc*     mac_,
                rlc_interface_rrc*     rlc_,
@@ -64,10 +64,10 @@ void rrc::init(rrc_cfg_t*             cfg_,
 
   pool = srslte::byte_buffer_pool::get_instance();
 
-  cfg = *cfg_;
+  cfg = cfg_;
 
   if (cfg.sibs[12].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib13_v920 &&
-      cfg_->enable_mbsfn) {
+      cfg.enable_mbsfn) {
     configure_mbsfn_sibs(&cfg.sibs[1].sib2(), &cfg.sibs[12].sib13_v920());
   }
 
@@ -126,10 +126,10 @@ void rrc::get_metrics(rrc_metrics_t& m)
   to the queue and process later
 *******************************************************************************/
 
-void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
+void rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, uint8_t* payload)
 {
-  if (sib_index < ASN1_RRC_MAX_SIB) {
-    memcpy(payload, sib_buffer[sib_index]->msg, sib_buffer[sib_index]->N_bytes);
+  if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < sib_buffer.size()) {
+    memcpy(payload, sib_buffer.at(cc_idx).at(sib_index)->msg, sib_buffer.at(cc_idx).at(sib_index)->N_bytes);
   }
 }
 
@@ -776,7 +776,7 @@ void rrc::config_mac()
 
     // set sib/prach cfg
     for (uint32_t i = 0; i < nof_si_messages; i++) {
-      item.sibs[i].len = sib_buffer[i]->N_bytes;
+      item.sibs[i].len = sib_buffer.at(ccidx).at(i)->N_bytes;
       if (i == 0) {
         item.sibs[i].period_rf = 8; // SIB1 is always 8 rf
       } else {
@@ -794,7 +794,7 @@ void rrc::config_mac()
     item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
     rrc_log->info("Allocating %d PRBs for PUCCH\n", item.nrb_pucch);
 
-    // Copy Cell configuration
+    // Copy base cell configuration
     item.cell = cfg.cell;
 
     // copy secondary cell list info
@@ -821,58 +821,90 @@ void rrc::config_mac()
   mac->cell_cfg(sched_cfg);
 }
 
+/* This methods packs the SIBs for each component carrier and stores them
+ * inside the sib_buffer, a vector of SIBs for each CC.
+ *
+ * Before packing the message, it patches the cell specific params of
+ * the SIB, including the cellId and the PRACH config index.
+ *
+ * @return The number of SIBs messages per CC
+ */
 uint32_t rrc::generate_sibs()
 {
   // nof_messages includes SIB2 by default, plus all configured SIBs
   uint32_t           nof_messages = 1 + cfg.sib1.sched_info_list.size();
   sched_info_list_l& sched_info   = cfg.sib1.sched_info_list;
 
-  // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
-  // all SIBs in a SI message msg[i] share the same periodicity
-  asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
+  // generate SIBs for each CC
+  for (uint8_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
+    // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
+    // all SIBs in a SI message msg[i] share the same periodicity
+    asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
 
-  // Copy SIB1 to first SI message
-  msg[0].msg.set_c1().set_sib_type1() = cfg.sib1;
+    // Copy SIB1 to first SI message
+    msg[0].msg.set_c1().set_sib_type1() = cfg.sib1;
 
-  // Copy rest of SIBs
-  for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages - 1; sched_info_elem++) {
-    uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
+    // Update cellId
+    sib_type1_s::cell_access_related_info_s_* cell_access = &msg[0].msg.c1().sib_type1().cell_access_related_info;
+    cell_access->cell_id.from_number((cfg.enb_id << 8u) + cfg.cell_list.at(cc_idx).cell_id);
+    cell_access->tac.from_number(cfg.cell_list.at(cc_idx).tac);
 
-    msg[msg_index].msg.set_c1().set_sys_info().crit_exts.set_sys_info_r8();
-    sys_info_r8_ies_s::sib_type_and_info_l_& sib_list =
-        msg[msg_index].msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info;
+    // Update DL EARFCN
+    msg[0].msg.c1().sib_type1().freq_band_ind = (uint8_t)srslte_band_get_band(cfg.cell_list.at(cc_idx).dl_earfcn);
 
-    // SIB2 always in second SI message
-    if (msg_index == 1) {
-      sib_list.push_back(cfg.sibs[1]);
-      // Save SIB2
-      sib2 = cfg.sibs[1].sib2();
+    // Copy rest of SIBs
+    for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages - 1; sched_info_elem++) {
+      uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
+
+      msg[msg_index].msg.set_c1().set_sys_info().crit_exts.set_sys_info_r8();
+      sys_info_r8_ies_s::sib_type_and_info_l_& sib_list =
+          msg[msg_index].msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info;
+
+      // SIB2 always in second SI message
+      if (msg_index == 1) {
+        // update PRACH root seq index for this cell
+        cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx = cfg.cell_list.at(cc_idx).root_seq_idx;
+
+        // update carrier freq
+        if (cfg.sibs[1].sib2().freq_info.ul_carrier_freq_present) {
+          cfg.sibs[1].sib2().freq_info.ul_carrier_freq = cfg.cell_list.at(cc_idx).ul_earfcn;
+        }
+
+        sib_list.push_back(cfg.sibs[1]);
+
+        // Save SIB2
+        sib2 = cfg.sibs[1].sib2();
+      }
+
+      // Add other SIBs to this message, if any
+      for (auto& mapping_enum : sched_info[sched_info_elem].sib_map_info) {
+        sib_list.push_back(cfg.sibs[(int)mapping_enum + 2]);
+      }
     }
 
-    // Add other SIBs to this message, if any
-    for (auto& mapping_enum : sched_info[sched_info_elem].sib_map_info) {
-      sib_list.push_back(cfg.sibs[(int)mapping_enum + 2]);
+    // Pack payload for all messages
+    for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
+      srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
+      asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
+      asn1::bit_ref                bref0 = bref;
+      if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+        rrc_log->error("Failed to pack SIB message %d\n", msg_index);
+      }
+      sib->N_bytes = static_cast<uint32_t>((bref.distance(bref0) - 1) / 8 + 1);
+      sib_buffer[cc_idx].push_back(std::move(sib));
+
+      // Log SIBs in JSON format
+      std::string log_msg("CC" + std::to_string(cc_idx) + " SIB payload");
+      log_rrc_message(log_msg,
+                      Tx,
+                      sib_buffer.at(cc_idx).at(msg_index).get(),
+                      msg[msg_index],
+                      msg[msg_index].msg.c1().type().to_string());
     }
-  }
 
-  // Pack payload for all messages
-  for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-    srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
-    asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
-    asn1::bit_ref                bref0 = bref;
-    if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-      rrc_log->error("Failed to pack SIB message %d\n", msg_index);
+    if (cfg.sibs[6].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib7) {
+      sib7 = cfg.sibs[6].sib7();
     }
-    sib->N_bytes = static_cast<uint32_t>((bref.distance(bref0) - 1) / 8 + 1);
-    sib_buffer.push_back(std::move(sib));
-
-    // Log SIBs in JSON format
-    log_rrc_message(
-        "SIB payload", Tx, sib_buffer[msg_index].get(), msg[msg_index], msg[msg_index].msg.c1().type().to_string());
-  }
-
-  if (cfg.sibs[6].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib7) {
-    sib7 = cfg.sibs[6].sib7();
   }
 
   return nof_messages;

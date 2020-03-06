@@ -47,7 +47,7 @@ namespace enb_conf_sections {
 
 int parse_cell_cfg(all_args_t* args_, srslte_cell_t* cell);
 int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_);
-int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, srslte_cell_t* cell_cfg_);
+int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, const srslte_cell_t& cell_cfg_);
 
 } // namespace enb_conf_sections
 

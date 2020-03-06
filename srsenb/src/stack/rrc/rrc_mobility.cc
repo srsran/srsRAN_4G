@@ -861,15 +861,16 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   hoprep_r8.as_cfg.source_sib_type1 = rrc_enb->cfg.sib1;
   hoprep_r8.as_cfg.source_sib_type2 = rrc_enb->sib2;
   asn1::number_to_enum(hoprep_r8.as_cfg.ant_info_common.ant_ports_count, rrc_enb->cfg.cell.nof_ports);
-  hoprep_r8.as_cfg.source_dl_carrier_freq = rrc_enb->cfg.dl_earfcn;
+  hoprep_r8.as_cfg.source_dl_carrier_freq =
+      rrc_enb->cfg.cell_list.at(0).dl_earfcn; // TODO: use actual DL EARFCN of source cell
   // - fill as_context
   hoprep_r8.as_context_present               = true;
   hoprep_r8.as_context.reest_info_present    = true;
-  hoprep_r8.as_context.reest_info.source_pci = rrc_enb->cfg.pci;
+  hoprep_r8.as_context.reest_info.source_pci = rrc_enb->cfg.cell_list.at(0).pci; // TODO: use actual PCI of source cell
   hoprep_r8.as_context.reest_info.target_cell_short_mac_i.from_number(
       rrc_details::compute_mac_i(rrc_ue->rnti,
                                  rrc_enb->cfg.sib1.cell_access_related_info.cell_id.to_number(),
-                                 rrc_enb->cfg.pci,
+                                 rrc_enb->cfg.cell_list.at(0).pci, // TODO: use actual PCI of source cell
                                  rrc_ue->integ_algo,
                                  rrc_ue->k_rrc_int));
 

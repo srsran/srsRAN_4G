@@ -42,7 +42,7 @@ public:
   mac();
   ~mac();
   bool init(const mac_args_t&        args_,
-            srslte_cell_t*           cell,
+            const cell_list_t&       cells_,
             phy_interface_stack_lte* phy,
             rlc_interface_mac*       rlc,
             rrc_interface_mac*       rrc,
@@ -114,7 +114,7 @@ private:
   stack_interface_mac_lte* stack = nullptr;
   srslte::log*             log_h = nullptr;
 
-  srslte_cell_t cell = {};
+  cell_list_t   cells = {};
   mac_args_t    args = {};
 
   // derived from args
@@ -137,7 +137,7 @@ private:
                         int                                    rar_idx,
                         uint32_t                               pdu_len,
                         uint32_t                               tti);
-  uint8_t* assemble_si(uint32_t index);
+  uint8_t* assemble_si(const uint8_t cc_idx, const uint32_t index);
 
   const static int             rar_payload_len = 128;
   std::vector<srslte::rar_pdu> rar_pdu_msg;

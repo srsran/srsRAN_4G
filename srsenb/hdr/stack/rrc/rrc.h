@@ -74,13 +74,6 @@ struct meas_cell_cfg_t {
   float    q_offset;
 };
 
-struct scell_cfg_t {
-  uint32_t cell_id;
-  bool     cross_carrier_sched = false;
-  uint32_t sched_cell_id;
-  bool     ul_allowed;
-};
-
 // neigh measurement Cell info
 struct rrc_meas_cfg_t {
   std::vector<meas_cell_cfg_t>               meas_cells;
@@ -92,23 +85,10 @@ struct rrc_meas_cfg_t {
   // TODO: Add multiple meas configs
 };
 
-// Cell/Sector configuration
-struct cell_cfg_t {
-  uint32_t                 rf_port;
-  uint32_t                 cell_id;
-  uint16_t                 tac;
-  uint32_t                 pci;
-  uint16_t                 root_seq_idx;
-  uint32_t                 dl_earfcn;
-  float                    dl_freq_hz;
-  uint32_t                 ul_earfcn;
-  float                    ul_freq_hz;
-  std::vector<scell_cfg_t> scell_list;
-};
-
 #define MAX_NOF_QCI 10
 
 struct rrc_cfg_t {
+  uint32_t                   enb_id; ///< Required to pack SIB1
   asn1::rrc::sib_type1_s     sib1;
   asn1::rrc::sib_info_item_c sibs[ASN1_RRC_MAX_SIB];
   asn1::rrc::mac_main_cfg_s  mac_cnfg;
@@ -119,16 +99,14 @@ struct rrc_cfg_t {
   rrc_cfg_sr_t                        sr_cfg;
   rrc_cfg_cqi_t                       cqi_cfg;
   rrc_cfg_qci_t                       qci_cfg[MAX_NOF_QCI];
-  srslte_cell_t                       cell;
   bool                                enable_mbsfn;
   uint32_t                            inactivity_timeout_ms;
   srslte::CIPHERING_ALGORITHM_ID_ENUM eea_preference_list[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS];
   srslte::INTEGRITY_ALGORITHM_ID_ENUM eia_preference_list[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS];
   bool                                meas_cfg_present = false;
   rrc_meas_cfg_t                      meas_cfg;
-  std::vector<cell_cfg_t>             cell_list;
-  uint32_t                            pci;       // TODO: add this to srslte_cell_t?
-  uint32_t                            dl_earfcn; // TODO: add this to srslte_cell_t?
+  srslte_cell_t                       cell;
+  cell_list_t                         cell_list;
 };
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
@@ -148,7 +126,7 @@ public:
   rrc();
   ~rrc();
 
-  void init(rrc_cfg_t*             cfg,
+  void init(const rrc_cfg_t&       cfg_,
             phy_interface_rrc_lte* phy,
             mac_interface_rrc*     mac,
             rlc_interface_rrc*     rlc,
@@ -170,7 +148,7 @@ public:
   bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;
 
   // rrc_interface_rlc
-  void read_pdu_bcch_dlsch(uint32_t sib_idx, uint8_t* payload) override;
+  void read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, uint8_t* payload) override;
   void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size) override;
   void max_retx_attempted(uint16_t rnti) override;
 
@@ -390,7 +368,7 @@ private:
   std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
   std::map<uint32_t, asn1::s1ap::ue_paging_id_c> pending_paging;
 
-  std::vector<srslte::unique_byte_buffer_t> sib_buffer;
+  std::map<uint8_t, std::vector<srslte::unique_byte_buffer_t> > sib_buffer; ///< Packed SIBs for each CC
 
   void     process_release_complete(uint16_t rnti);
   void     process_rl_failure(uint16_t rnti);

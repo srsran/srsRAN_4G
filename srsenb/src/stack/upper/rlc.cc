@@ -193,10 +193,10 @@ void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
+void rlc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index, uint8_t* payload)
 {
   // RLC is transparent for BCCH
-  rrc->read_pdu_bcch_dlsch(sib_index, payload);
+  rrc->read_pdu_bcch_dlsch(cc_idx, sib_index, payload);
 }
 
 void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)

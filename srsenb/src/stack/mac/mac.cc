@@ -51,7 +51,7 @@ mac::~mac()
 }
 
 bool mac::init(const mac_args_t&        args_,
-               srslte_cell_t*           cell_,
+               const cell_list_t&       cells_,
                phy_interface_stack_lte* phy,
                rlc_interface_mac*       rlc,
                rrc_interface_mac*       rrc,
@@ -60,7 +60,7 @@ bool mac::init(const mac_args_t&        args_,
 {
   started = false;
 
-  if (cell_ && phy && rlc && log_h_) {
+  if (phy && rlc && log_h_) {
     phy_h = phy;
     rlc_h = rlc;
     rrc_h = rrc;
@@ -68,7 +68,7 @@ bool mac::init(const mac_args_t&        args_,
     log_h = log_h_;
 
     args = args_;
-    cell = *cell_;
+    cells = cells_;
 
     stack_task_queue = stack->get_task_queue();
 
@@ -79,13 +79,13 @@ bool mac::init(const mac_args_t&        args_,
 
     // Init softbuffer for SI messages
     for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
-      srslte_softbuffer_tx_init(&bcch_softbuffer_tx[i], cell.nof_prb);
+      srslte_softbuffer_tx_init(&bcch_softbuffer_tx[i], args.nof_prb);
     }
     // Init softbuffer for PCCH
-    srslte_softbuffer_tx_init(&pcch_softbuffer_tx, cell.nof_prb);
+    srslte_softbuffer_tx_init(&pcch_softbuffer_tx, args.nof_prb);
 
     // Init softbuffer for RAR
-    srslte_softbuffer_tx_init(&rar_softbuffer_tx, cell.nof_prb);
+    srslte_softbuffer_tx_init(&rar_softbuffer_tx, args.nof_prb);
 
     reset();
 
@@ -430,7 +430,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
 
     // Create new UE
     if (ue_db.count(rnti) == 0) {
-      ue_db[rnti] = new ue(rnti, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h, SRSLTE_FDD_NOF_HARQ);
+      ue_db[rnti] = new ue(rnti, args.nof_prb, &scheduler, rrc_h, rlc_h, log_h, SRSLTE_FDD_NOF_HARQ);
     }
 
     // Set PCAP if available
@@ -581,7 +581,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
       // Set softbuffer
       if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
         dl_sched_res->pdsch[n].softbuffer_tx[0] = &bcch_softbuffer_tx[sched_result.bc[i].index];
-        dl_sched_res->pdsch[n].data[0]          = assemble_si(sched_result.bc[i].index);
+        dl_sched_res->pdsch[n].data[0]          = assemble_si(enb_cc_idx, sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
         if (pcap) {
           pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, enb_cc_idx);
@@ -739,9 +739,9 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
   }
 }
 
-uint8_t* mac::assemble_si(uint32_t index)
+uint8_t* mac::assemble_si(const uint8_t cc_idx, const uint32_t index)
 {
-  rlc_h->read_pdu_bcch_dlsch(index, bcch_dlsch_payload);
+  rlc_h->read_pdu_bcch_dlsch(cc_idx, index, bcch_dlsch_payload);
   return bcch_dlsch_payload;
 }
 
@@ -833,7 +833,7 @@ void mac::write_mcch(sib_type2_s* sib2_, sib_type13_r9_s* sib13_, mcch_msg_s* mc
   mcch.pack(bref);
   current_mcch_length = bref.distance_bytes(&mcch_payload_buffer[1]);
   current_mcch_length = current_mcch_length + rlc_header_len;
-  ue_db[SRSLTE_MRNTI] = new ue(SRSLTE_MRNTI, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
+  ue_db[SRSLTE_MRNTI] = new ue(SRSLTE_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
 
   rrc_h->add_user(SRSLTE_MRNTI, {});
 }

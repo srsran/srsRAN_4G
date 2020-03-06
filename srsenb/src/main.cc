@@ -49,9 +49,6 @@ string config_file;
 
 void parse_args(all_args_t* args, int argc, char* argv[])
 {
-  string enb_id;
-  string cell_id;
-  string tac;
   string mcc;
   string mnc;
 
@@ -67,16 +64,13 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   bpo::options_description common("Configuration options");
   common.add_options()
 
-    ("enb.enb_id",        bpo::value<string>(&enb_id)->default_value("0x0"),                       "eNodeB ID")
+    ("enb.enb_id",        bpo::value<string>(&args->enb.enb_id)->default_value("0x0"),                       "eNodeB ID")
     ("enb.name",          bpo::value<string>(&args->stack.s1ap.enb_name)->default_value("srsenb01"), "eNodeB Name")
-    ("enb.cell_id",       bpo::value<string>(&cell_id)->default_value("0x0"),                      "Cell ID")
-    ("enb.tac",           bpo::value<string>(&tac)->default_value("0x0"),                          "Tracking Area Code")
     ("enb.mcc",           bpo::value<string>(&mcc)->default_value("001"),                          "Mobile Country Code")
     ("enb.mnc",           bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
     ("enb.mme_addr",      bpo::value<string>(&args->stack.s1ap.mme_addr)->default_value("127.0.0.1"),"IP address of MME for S1 connection")
     ("enb.gtp_bind_addr", bpo::value<string>(&args->stack.s1ap.gtp_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for GTP connection")
     ("enb.s1c_bind_addr", bpo::value<string>(&args->stack.s1ap.s1c_bind_addr)->default_value("192.168.3.1"), "Local IP address to bind for S1AP connection")
-    ("enb.phy_cell_id",   bpo::value<uint32_t>(&args->enb.pci)->default_value(0),                  "Physical Cell Identity (PCI)")
     ("enb.n_prb",         bpo::value<uint32_t>(&args->enb.n_prb)->default_value(25),               "Number of PRB")
     ("enb.nof_ports",     bpo::value<uint32_t>(&args->enb.nof_ports)->default_value(1),            "Number of ports")
     ("enb.tm",            bpo::value<uint32_t>(&args->enb.transmission_mode)->default_value(1),    "Transmission mode (1-8)")
@@ -86,8 +80,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("enb_files.rr_config",  bpo::value<string>(&args->enb_files.rr_config)->default_value("rr.conf"),   "RR configuration files")
     ("enb_files.drb_config", bpo::value<string>(&args->enb_files.drb_config)->default_value("drb.conf"), "DRB configuration files")
 
-    ("rf.dl_earfcn",      bpo::value<uint32_t>(&args->enb.dl_earfcn)->default_value(3400), "Downlink EARFCN")
-    ("rf.ul_earfcn",      bpo::value<uint32_t>(&args->enb.ul_earfcn)->default_value(0),    "Uplink EARFCN (Default based on Downlink EARFCN)")
+    ("rf.dl_earfcn",      bpo::value<uint32_t>(&args->enb.dl_earfcn)->default_value(0), "Force Downlink EARFCN for single cell")
     ("rf.rx_gain",        bpo::value<float>(&args->rf.rx_gain)->default_value(50),        "Front-end receiver gain")
     ("rf.tx_gain",        bpo::value<float>(&args->rf.tx_gain)->default_value(70),        "Front-end transmitter gain")
     ("rf.dl_freq",        bpo::value<float>(&args->rf.dl_freq)->default_value(-1),        "Downlink Frequency (if positive overrides EARFCN)")
@@ -252,25 +245,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
-  // Convert hex strings
-  {
-    std::stringstream sstr;
-    sstr << std::hex << vm["enb.enb_id"].as<std::string>();
-    sstr >> args->stack.s1ap.enb_id;
-  }
-  {
-    std::stringstream sstr;
-    sstr << std::hex << vm["enb.cell_id"].as<std::string>();
-    uint16_t tmp; // Need intermediate uint16_t as uint8_t is treated as char
-    sstr >> tmp;
-    args->stack.s1ap.cell_id = tmp;
-  }
-  {
-    std::stringstream sstr;
-    sstr << std::hex << vm["enb.tac"].as<std::string>();
-    sstr >> args->stack.s1ap.tac;
-  }
-
   // Convert MCC/MNC strings
   if (!srslte::string_to_mcc(mcc, &args->stack.s1ap.mcc)) {
     cout << "Error parsing enb.mcc:" << mcc << " - must be a 3-digit string." << endl;
@@ -279,24 +253,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
 
-  // Convert UL/DL EARFCN to frequency if needed
-  if (args->rf.dl_freq < 0) {
-    args->rf.dl_freq = 1e6 * srslte_band_fd(args->enb.dl_earfcn);
-    if (args->rf.dl_freq < 0) {
-      fprintf(stderr, "Error getting DL frequency for EARFCN=%d\n", args->enb.dl_earfcn);
-      exit(1);
-    }
-  }
-  if (args->rf.ul_freq < 0) {
-    if (args->enb.ul_earfcn == 0) {
-      args->enb.ul_earfcn = srslte_band_ul_earfcn(args->enb.dl_earfcn);
-    }
-    args->rf.ul_freq = 1e6 * srslte_band_fu(args->enb.ul_earfcn);
-    if (args->rf.ul_freq < 0) {
-      fprintf(stderr, "Error getting UL frequency for EARFCN=%d\n", args->enb.dl_earfcn);
-      exit(1);
-    }
-  }
   if (args->stack.embms.enable) {
     if (args->stack.mac.sched.nof_ctrl_symbols == 3) {
       fprintf(stderr,
