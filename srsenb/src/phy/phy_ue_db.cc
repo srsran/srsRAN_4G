@@ -106,6 +106,7 @@ inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti)
     scell_info.phy_cfg.ul_cfg.pucch.threshold_format1             = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
     scell_info.phy_cfg.ul_cfg.pucch.threshold_data_valid_format1a = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1A;
     scell_info.phy_cfg.ul_cfg.pucch.threshold_data_valid_format2  = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT2;
+    scell_info.phy_cfg.ul_cfg.pucch.threshold_dmrs_detection      = SRSLTE_PUCCH_DEFAULT_THRESHOLD_DMRS;
   }
 }
 

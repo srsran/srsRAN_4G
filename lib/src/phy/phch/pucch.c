@@ -918,8 +918,8 @@ int srslte_pucch_decode(srslte_pucch_t*        q,
     float _pow       = srslte_vec_avg_power_cf(q->ce, nof_re);
     float _r         = _rms / _pow;
 
-    // Return not detected if the ratio is 0, NAN, +/- Infinity or below 0.1
-    if (!isnormal(_r) || _r < 0.1f) {
+    // Return not detected if the ratio is 0, NAN, +/- Infinity or below threshold
+    if (!isnormal(_r) || _r < cfg->threshold_dmrs_detection) {
       data->detected    = false;
       data->correlation = NAN;
       return SRSLTE_SUCCESS;
