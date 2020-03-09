@@ -434,11 +434,21 @@ int sched::ue_db_access(uint16_t rnti, Func f)
  *
  *******************************************************/
 
-void sched_utils::generate_cce_location(srslte_regs_t*   regs_,
-                                        sched_dci_cce_t* location,
-                                        uint32_t         cfi,
-                                        uint32_t         sf_idx,
-                                        uint16_t         rnti)
+void sched_cell_params_t::regs_deleter::operator()(srslte_regs_t* p)
+{
+  if (p != nullptr) {
+    srslte_regs_free(p);
+    delete p;
+  }
+}
+
+namespace sched_utils {
+
+void generate_cce_location(srslte_regs_t*   regs_,
+                           sched_dci_cce_t* location,
+                           uint32_t         cfi,
+                           uint32_t         sf_idx,
+                           uint16_t         rnti)
 {
   *location = {};
 
@@ -457,5 +467,7 @@ void sched_utils::generate_cce_location(srslte_regs_t*   regs_,
     location->nof_loc[l]++;
   }
 }
+
+} // namespace sched_utils
 
 } // namespace srsenb

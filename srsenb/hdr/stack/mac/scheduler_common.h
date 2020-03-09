@@ -48,13 +48,7 @@ struct tti_params_t {
 class sched_cell_params_t
 {
   struct regs_deleter {
-    void operator()(srslte_regs_t* p)
-    {
-      if (p != nullptr) {
-        srslte_regs_free(p);
-        delete p;
-      }
-    }
+    void operator()(srslte_regs_t* p);
   };
 
 public:
