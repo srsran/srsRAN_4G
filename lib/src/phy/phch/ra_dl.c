@@ -669,7 +669,7 @@ int srslte_ra_dl_dci_to_grant(const srslte_cell_t*   cell,
   return config_mimo(cell, tm, dci, grant);
 }
 
-uint32_t srslte_ra_dl_approx_nof_re(srslte_cell_t* cell, uint32_t nof_prb, uint32_t nof_ctrl_symbols)
+uint32_t srslte_ra_dl_approx_nof_re(const srslte_cell_t* cell, uint32_t nof_prb, uint32_t nof_ctrl_symbols)
 {
   uint32_t nof_refs = 0;
   uint32_t nof_symb = 2 * SRSLTE_CP_NSYMB(cell->cp) - nof_ctrl_symbols;

@@ -399,7 +399,7 @@ int sched::carrier_sched::alloc_ul_users(sf_sched* tti_sched)
   }
 
   /* reserve PRBs for PUCCH */
-  tti_sched->reserve_ul_prbs(pucch_mask, true);
+  tti_sched->reserve_ul_prbs(pucch_mask, cc_cfg->nof_prb() != 6);
 
   /* Call scheduler for UL data */
   ul_metric->sched_users(*ue_db, tti_sched);

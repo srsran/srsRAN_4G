@@ -35,7 +35,7 @@ public:
   void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched) final;
 
 private:
-  bool          find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask);
+  bool          find_allocation(uint32_t min_nof_rbg, uint32_t max_nof_rbg, rbgmask_t* rbgmask);
   dl_harq_proc* allocate_user(sched_ue* user);
 
   const sched_cell_params_t* cc_cfg = nullptr;

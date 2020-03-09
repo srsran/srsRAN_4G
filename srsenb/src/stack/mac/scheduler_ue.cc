@@ -57,7 +57,7 @@ uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool is_ul)
 //! TS 36.321 sec 7.1.2 - MAC PDU subheader is 2 bytes if L<=128 and 3 otherwise
 uint32_t get_mac_subheader_sdu_size(uint32_t sdu_bytes)
 {
-  return sdu_bytes > 128 ? 3 : 2;
+  return sdu_bytes == 0 ? 0 : (sdu_bytes > 128 ? 3 : 2);
 }
 
 } // namespace sched_utils
@@ -432,10 +432,10 @@ int sched_ue::generate_format1(uint32_t                          pid,
   if (h->is_empty(0)) {
 
     // Get total available data to transmit (includes MAC header)
-    uint32_t req_bytes = get_pending_dl_new_data_total_unlocked();
+    uint32_t req_bytes = get_pending_dl_new_data_total();
     uint32_t nof_prb   = format1_count_prb(user_mask, cc_idx);
 
-    auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci, true);
+    auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
     mcs      = ret.first;
     tbs      = ret.second;
 
@@ -499,11 +499,10 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
                                                   uint32_t               tti_tx_dl,
                                                   uint32_t               nof_alloc_prbs,
                                                   uint32_t               cfi,
-                                                  const srslte_dci_dl_t& dci,
-                                                  bool                   is_dci_format1)
+                                                  const srslte_dci_dl_t& dci)
 {
   int                           mcs = 0, tbs_bytes = 0;
-  std::pair<uint32_t, uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx, is_dci_format1);
+  std::pair<uint32_t, uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx);
 
   // Calculate exact number of RE for this PRB allocation
   srslte_pdsch_grant_t grant = {};
@@ -516,9 +515,6 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
   // Compute MCS+TBS
   mcs = carriers[ue_cc_idx].fixed_mcs_dl;
   // Use a higher MCS for the Msg4 to fit in the 6 PRB case
-  if (is_conres_ce_pending() and carriers[ue_cc_idx].get_cell_cfg()->nof_prb() == 6) {
-    mcs = std::max(mcs, MCS_FIRST_DL);
-  }
   if (mcs < 0) {
     // Dynamic MCS
     tbs_bytes = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.second, &mcs);
@@ -527,7 +523,8 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
     tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)mcs, nof_alloc_prbs, false);
   }
 
-  // If the number of prbs is not sufficient to fit MAC subheader and RLC header, increase the mcs
+  // If the number of prbs is not sufficient to fit minimum required bytes, increase the mcs
+  // NOTE: this may happen during ConRes CE tx when DL-CQI is still not available
   while (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.first and mcs < 28) {
     mcs++;
     tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)mcs, nof_alloc_prbs, false);
@@ -579,7 +576,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
   }
 
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-    uint32_t req_bytes = get_pending_dl_new_data_total_unlocked();
+    uint32_t req_bytes = get_pending_dl_new_data_total();
     int      mcs       = 0;
     int      tbs       = 0;
 
@@ -590,7 +587,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
 
     } else if (tb_en[tb] && req_bytes > 0 && no_retx) {
 
-      auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci, false);
+      auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
       mcs      = ret.first;
       tbs      = ret.second;
 
@@ -795,11 +792,6 @@ uint32_t sched_ue::get_pending_dl_new_data()
 /// \return number of bytes to be allocated
 uint32_t sched_ue::get_pending_dl_new_data_total()
 {
-  return get_pending_dl_new_data_total_unlocked();
-}
-
-uint32_t sched_ue::get_pending_dl_new_data_total_unlocked()
-{
   uint32_t req_bytes = get_pending_dl_new_data_unlocked();
   if (is_conres_ce_pending()) {
     req_bytes += conres_ce_size; // Account for ConRes
@@ -808,6 +800,19 @@ uint32_t sched_ue::get_pending_dl_new_data_total_unlocked()
     req_bytes += (req_bytes < 128) ? 2 : 3; // consider the header
   }
   return req_bytes;
+}
+
+std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols)
+{
+  std::pair<uint32_t, uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx);
+  if (req_bytes.first == 0 and req_bytes.second == 0) {
+    return {0, 0};
+  }
+  uint32_t pending_prbs    = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.first, nof_ctrl_symbols);
+  uint32_t min_pending_rbg = (*cell_params_list)[cfg.supported_cc_list[ue_cc_idx].enb_cc_idx].prb_to_rbg(pending_prbs);
+  pending_prbs             = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.second, nof_ctrl_symbols);
+  uint32_t max_pending_rbg = (*cell_params_list)[cfg.supported_cc_list[ue_cc_idx].enb_cc_idx].prb_to_rbg(pending_prbs);
+  return {min_pending_rbg, max_pending_rbg};
 }
 
 /**
@@ -825,13 +830,18 @@ uint32_t sched_ue::get_pending_dl_new_data_total_unlocked()
  * @ue_cc_idx carrier where allocation is being made
  * @return
  */
-std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx, bool is_dci_format1)
+std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
 {
   const uint32_t ce_subheader_size = 1;
-  const uint32_t rb_subheader_size = 2;
-  const uint32_t min_alloc_bytes   = rb_subheader_size + 3; // 3 for RLC header
-  uint32_t       srb0_data = 0, rb_data = 0, sum_ce_data = 0;
-  uint32_t       max_data = 0, min_data = 0;
+  const uint32_t min_alloc_bytes   = 5; // 2 for subheader, and 3 for RLC header
+
+  auto compute_sdu_total_bytes = [&min_alloc_bytes](uint32_t lcid, uint32_t buffer_bytes) {
+    if (buffer_bytes == 0) {
+      return 0u;
+    }
+    uint32_t subheader_and_sdu = buffer_bytes + sched_utils::get_mac_subheader_sdu_size(buffer_bytes);
+    return (lcid == 0) ? subheader_and_sdu : std::max(subheader_and_sdu, min_alloc_bytes);
+  };
 
   /* Set Maximum boundary */
   // Ensure there is space for ConRes and RRC Setup
@@ -840,9 +850,12 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
     log_h->error("SRB0 must always be activated for DL\n");
     return {0, 0};
   }
+  uint32_t max_data = 0, min_data = 0;
+  uint32_t srb0_data = 0, rb_data = 0, sum_ce_data = 0;
+  bool     is_dci_format1 = get_dci_format() == SRSLTE_DCI_FORMAT1;
   if (is_dci_format1 and (lch[0].buf_tx > 0 or lch[0].buf_retx > 0)) {
-    srb0_data = lch[0].buf_tx + sched_utils::get_mac_subheader_sdu_size(lch[0].buf_tx);
-    srb0_data += lch[0].buf_retx + sched_utils::get_mac_subheader_sdu_size(lch[0].buf_retx);
+    srb0_data = compute_sdu_total_bytes(0, lch[0].buf_retx);
+    srb0_data += compute_sdu_total_bytes(0, lch[0].buf_tx);
     if (conres_ce_pending) {
       sum_ce_data = conres_ce_size + 1;
     }
@@ -856,8 +869,8 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   // Add pending data in remaining RLC buffers
   for (int i = 1; i < sched_interface::MAX_LC; i++) {
     if (bearer_is_dl(&lch[i])) {
-      rb_data += std::max(lch[i].buf_retx + sched_utils::get_mac_subheader_sdu_size(lch[i].buf_retx), min_alloc_bytes);
-      rb_data += std::max(lch[i].buf_tx + sched_utils::get_mac_subheader_sdu_size(lch[i].buf_tx), min_alloc_bytes);
+      rb_data += compute_sdu_total_bytes(i, lch[i].buf_retx);
+      rb_data += compute_sdu_total_bytes(i, lch[i].buf_tx);
     }
   }
   max_data = srb0_data + sum_ce_data + rb_data;
@@ -951,32 +964,6 @@ uint32_t sched_ue::get_pending_ul_old_data_unlocked(uint32_t cc_idx)
     pending_data += h.get_pending_data();
   }
   return pending_data;
-}
-
-uint32_t sched_ue::get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint32_t nof_ctrl_symbols)
-{
-  int      mcs    = 0;
-  uint32_t nof_re = 0;
-  int      tbs    = 0;
-
-  uint32_t nbytes = 0;
-  uint32_t n;
-  int      mcs0 = (is_first_dl_tx() and cell.nof_prb == 6) ? MCS_FIRST_DL : carriers[cc_idx].fixed_mcs_dl;
-  for (n = 0; n < cell.nof_prb && nbytes < req_bytes; ++n) {
-    nof_re = srslte_ra_dl_approx_nof_re(&cell, n + 1, nof_ctrl_symbols);
-    if (mcs0 < 0) {
-      tbs = carriers[cc_idx].alloc_tbs_dl(n + 1, nof_re, 0, &mcs);
-    } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs0, false), n + 1) / 8;
-    }
-    if (tbs > 0) {
-      nbytes = tbs;
-    } else if (tbs < 0) {
-      return 0;
-    }
-  }
-
-  return n;
 }
 
 uint32_t sched_ue::get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes)
@@ -1191,6 +1178,7 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
 {
   // only PCell starts active. Remaining ones wait for valid CQI
   active = ue_cc_idx == 0;
+  dl_cqi = (ue_cc_idx == 0) ? 1 : 0;
 
   // set max mcs
   max_mcs_ul     = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
@@ -1307,6 +1295,31 @@ int sched_ue_carrier::alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t r
 int sched_ue_carrier::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
 {
   return alloc_tbs(nof_prb, nof_re, req_bytes, true, mcs);
+}
+
+uint32_t sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
+{
+  int      mcs    = 0;
+  uint32_t nof_re = 0;
+  int      tbs    = 0;
+
+  uint32_t nbytes = 0;
+  uint32_t n;
+  for (n = 0; n < cell_params->nof_prb() and nbytes < req_bytes; ++n) {
+    nof_re = srslte_ra_dl_approx_nof_re(&cell_params->cfg.cell, n + 1, nof_ctrl_symbols);
+    if (fixed_mcs_dl < 0) {
+      tbs = alloc_tbs_dl(n + 1, nof_re, 0, &mcs);
+    } else {
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl, false), n + 1) / 8;
+    }
+    if (tbs > 0) {
+      nbytes = tbs;
+    } else if (tbs < 0) {
+      return 0;
+    }
+  }
+
+  return n;
 }
 
 uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)

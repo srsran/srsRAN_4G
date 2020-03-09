@@ -51,7 +51,7 @@ void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_
     return;
   }
 
-  // give priority in a time-domain RR basis
+  // give priority in a time-domain RR basis.
   uint32_t priority_idx = tti_alloc->get_tti_tx_dl() % (uint32_t)ue_db.size();
   auto     iter         = ue_db.begin();
   std::advance(iter, priority_idx);
@@ -64,19 +64,26 @@ void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_
   }
 }
 
-bool dl_metric_rr::find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask)
+bool dl_metric_rr::find_allocation(uint32_t min_nof_rbg, uint32_t max_nof_rbg, rbgmask_t* rbgmask)
 {
-  *rbgmask = ~(tti_alloc->get_dl_mask());
+  if (tti_alloc->get_dl_mask().all()) {
+    return false;
+  }
+  // 1's for free rbgs
+  rbgmask_t localmask = ~(tti_alloc->get_dl_mask());
 
-  uint32_t i = 0;
-  for (; i < rbgmask->size() and nof_rbg > 0; ++i) {
-    if (rbgmask->test(i)) {
-      nof_rbg--;
+  uint32_t i = 0, nof_alloc = 0;
+  for (; i < localmask.size() and nof_alloc < max_nof_rbg; ++i) {
+    if (localmask.test(i)) {
+      nof_alloc++;
     }
   }
-  rbgmask->fill(i, rbgmask->size(), false);
-
-  return nof_rbg == 0;
+  if (nof_alloc < min_nof_rbg) {
+    return false;
+  }
+  localmask.fill(i, localmask.size(), false);
+  *rbgmask = localmask;
+  return true;
 }
 
 dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
@@ -92,11 +99,9 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   }
   uint32_t cell_idx = p.second;
 
-  // TODO: First do reTxs for all users. Only then do the rest.
   alloc_outcome_t code;
-  uint32_t        tti_dl    = tti_alloc->get_tti_tx_dl();
-  dl_harq_proc*   h         = user->get_pending_dl_harq(tti_dl, cell_idx);
-  uint32_t        req_bytes = user->get_pending_dl_new_data_total();
+  uint32_t        tti_dl = tti_alloc->get_tti_tx_dl();
+  dl_harq_proc*   h      = user->get_pending_dl_harq(tti_dl, cell_idx);
 
   // Schedule retx if we have space
   if (h != nullptr) {
@@ -113,7 +118,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
 
     // If previous mask does not fit, find another with exact same number of rbgs
     size_t nof_rbg = retx_mask.count();
-    if (find_allocation(nof_rbg, &retx_mask)) {
+    if (find_allocation(nof_rbg, nof_rbg, &retx_mask)) {
       code = tti_alloc->alloc_dl_user(user, retx_mask, h->get_id());
       if (code == alloc_outcome_t::SUCCESS) {
         return h;
@@ -128,12 +133,11 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   h = user->get_empty_dl_harq(tti_dl, cell_idx);
   if (h != nullptr) {
     // Allocate resources based on pending data
-    if (req_bytes > 0) {
-      uint32_t  pending_prbs = user->get_required_prb_dl(cell_idx, req_bytes, tti_alloc->get_nof_ctrl_symbols());
-      uint32_t  pending_rbg  = cc_cfg->prb_to_rbg(pending_prbs);
+    std::pair<uint32_t, uint32_t> req_rbgs = user->get_requested_dl_rbgs(cell_idx, tti_alloc->get_nof_ctrl_symbols());
+    if (req_rbgs.first > 0) {
       rbgmask_t newtx_mask(tti_alloc->get_dl_mask().size());
-      find_allocation(pending_rbg, &newtx_mask);
-      if (newtx_mask.any()) { // some empty spaces were found
+      if (find_allocation(req_rbgs.first, req_rbgs.second, &newtx_mask)) {
+        // some empty spaces were found
         code = tti_alloc->alloc_dl_user(user, newtx_mask, h->get_id());
         if (code == alloc_outcome_t::SUCCESS) {
           return h;

@@ -46,6 +46,7 @@ struct sched_ue_carrier {
   int                        alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
   int                        alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
   int                        alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
+  uint32_t                   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
   bool                       is_active() const { return active; }
@@ -128,10 +129,10 @@ public:
    * Functions used by scheduler metric objects
    *******************************************************/
 
-  uint32_t get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes);
 
-  std::pair<uint32_t, uint32_t> get_requested_dl_bytes();
+  std::pair<uint32_t, uint32_t> get_requested_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols);
+  std::pair<uint32_t, uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
   uint32_t                      get_pending_dl_new_data();
   uint32_t                      get_pending_ul_new_data(uint32_t tti);
   uint32_t                      get_pending_ul_old_data(uint32_t cc_idx);
@@ -207,18 +208,14 @@ private:
                                           uint32_t               tti_tx_dl,
                                           uint32_t               nof_alloc_prbs,
                                           uint32_t               cfi,
-                                          const srslte_dci_dl_t& dci,
-                                          bool                   is_dci_format1);
+                                          const srslte_dci_dl_t& dci);
 
   static bool bearer_is_ul(ue_bearer_t* lch);
   static bool bearer_is_dl(const ue_bearer_t* lch);
 
-  std::pair<uint32_t, uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx, bool is_dci_format1);
-
   uint32_t get_pending_dl_new_data_unlocked();
   uint32_t get_pending_ul_old_data_unlocked(uint32_t cc_idx);
   uint32_t get_pending_ul_new_data_unlocked(uint32_t tti);
-  uint32_t get_pending_dl_new_data_total_unlocked();
   bool     is_conres_ce_pending() const;
 
   bool needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_send = false);

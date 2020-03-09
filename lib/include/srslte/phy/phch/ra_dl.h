@@ -55,7 +55,7 @@ SRSLTE_API int
 srslte_ra_dl_grant_to_grant_prb_allocation(const srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant, uint32_t nof_prb);
 
 /** Functions used by the eNodeB scheduler */
-SRSLTE_API uint32_t srslte_ra_dl_approx_nof_re(srslte_cell_t* cell, uint32_t nof_prb, uint32_t nof_ctrl_symbols);
+SRSLTE_API uint32_t srslte_ra_dl_approx_nof_re(const srslte_cell_t* cell, uint32_t nof_prb, uint32_t nof_ctrl_symbols);
 
 SRSLTE_API uint32_t srslte_ra_dl_grant_nof_re(const srslte_cell_t*  cell,
                                               srslte_dl_sf_cfg_t*   sf,
