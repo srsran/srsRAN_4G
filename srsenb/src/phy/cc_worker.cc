@@ -393,12 +393,12 @@ int cc_worker::decode_pucch()
   srslte_pucch_res_t pucch_res = {};
 
   for (auto& iter : ue_db) {
-    auto  rnti    = (uint16_t)iter.first;
-    auto  phy_cfg = phy->ue_db.get_config(rnti, cc_idx);
-    auto& ul_cfg  = phy_cfg.ul_cfg;
+    auto rnti = (uint16_t)iter.first;
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
     if (SRSLTE_RNTI_ISUSER(rnti) && !ue_db[rnti]->is_grant_available && ue_db[rnti]->is_pcell()) {
+      srslte_ul_cfg_t ul_cfg = phy->ue_db.get_config(rnti, cc_idx).ul_cfg;
+
       // Check if user needs to receive PUCCH
       if (phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, ul_cfg.pucch.uci_cfg)) {
         // Decode PUCCH
@@ -519,10 +519,9 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
   // srslte_enb_dl_prepare_power_allocation(&enb_dl);
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t         rnti    = grants[i].dci.rnti;
-    auto             phy_cfg = phy->ue_db.get_config(rnti, cc_idx);
-    srslte_dl_cfg_t& dl_cfg  = phy_cfg.dl_cfg;
 
     if (rnti && ue_db.count(rnti)) {
+      srslte_dl_cfg_t dl_cfg = phy->ue_db.get_config(rnti, cc_idx).dl_cfg;
 
       // Compute DL grant
       if (srslte_ra_dl_dci_to_grant(&enb_dl.cell, &dl_sf, dl_cfg.tm, false, &grants[i].dci, &dl_cfg.pdsch.grant)) {
