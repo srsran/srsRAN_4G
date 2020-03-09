@@ -112,8 +112,8 @@ int test_scell_activation(test_scell_activation_params params)
   const uint16_t rnti1 = 70;
 
   /* Setup Simulation */
-  uint32_t prach_tti = 1, msg4_tot_delay = 10; // TODO: check correct value
-  uint32_t msg4_size = 20;                     // TODO: Check
+  uint32_t prach_tti = 1;
+  uint32_t msg4_size = 40; // TODO: Check
   uint32_t duration  = 1000;
   // Generate Cell order
   std::vector<uint32_t> cc_idxs(nof_ccs);
@@ -132,7 +132,12 @@ int test_scell_activation(test_scell_activation_params params)
   TESTASSERT(tester.ue_tester->user_exists(rnti1));
 
   // Event (TTI=prach_tti+msg4_tot_delay): First Tx (Msg4). Goes in SRB0 and contains ConRes
-  generator.step_tti(msg4_tot_delay);
+  while (not tester.ue_tester->get_user_state(rnti1)->msg3_tic.is_valid() or
+         tester.ue_tester->get_user_state(rnti1)->msg3_tic.tti_rx() > generator.tti_counter) {
+    generator.step_tti();
+    tester.test_next_ttis(generator.tti_events);
+  }
+  generator.step_tti();
   generator.add_dl_data(rnti1, msg4_size);
   tester.test_next_ttis(generator.tti_events);
 

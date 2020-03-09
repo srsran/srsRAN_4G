@@ -89,6 +89,7 @@ public:
     srsenb::sched_interface::ue_cfg_t user_cfg;
     uint32_t                          preamble_idx = 0;
     uint32_t                          msg3_riv     = 0;
+    bool is_msg3_rx(const tti_counter& tti_rx) const { return msg3_tic.is_valid() and msg3_tic <= tti_rx; }
   };
 
   explicit user_state_sched_tester(const std::vector<srsenb::sched::cell_cfg_t>& cell_params_) :
