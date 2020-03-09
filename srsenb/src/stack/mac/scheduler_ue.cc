@@ -385,6 +385,32 @@ uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uin
   return total_tbs - rem_tbs;
 }
 
+int sched_ue::generate_dl_dci_format(uint32_t                          pid,
+                                     sched_interface::dl_sched_data_t* data,
+                                     uint32_t                          tti_tx_dl,
+                                     uint32_t                          ue_cc_idx,
+                                     uint32_t                          cfi,
+                                     const rbgmask_t&                  user_mask)
+{
+  srslte_dci_format_t dci_format = get_dci_format();
+  int                 tbs        = 0;
+
+  switch (dci_format) {
+    case SRSLTE_DCI_FORMAT1:
+      tbs = generate_format1(pid, data, tti_tx_dl, ue_cc_idx, cfi, user_mask);
+      break;
+    case SRSLTE_DCI_FORMAT2:
+      tbs = generate_format2(pid, data, tti_tx_dl, ue_cc_idx, cfi, user_mask);
+      break;
+    case SRSLTE_DCI_FORMAT2A:
+      tbs = generate_format2a(pid, data, tti_tx_dl, ue_cc_idx, cfi, user_mask);
+      break;
+    default:
+      Error("DCI format (%d) not implemented\n", dci_format);
+  }
+  return tbs;
+}
+
 // Generates a Format1 dci
 // > return 0 if allocation is invalid
 int sched_ue::generate_format1(uint32_t                          pid,
@@ -409,7 +435,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
     uint32_t req_bytes = get_pending_dl_new_data_total_unlocked();
     uint32_t nof_prb   = format1_count_prb(user_mask, cc_idx);
 
-    auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
+    auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci, true);
     mcs      = ret.first;
     tbs      = ret.second;
 
@@ -438,8 +464,10 @@ int sched_ue::generate_format1(uint32_t                          pid,
     }
 
     // Allocate MAC SDU and respective subheaders
-    if (allocate_mac_sdus(data, rem_tbs, 0) > 0) {
-      // Allocate DL Harq
+    rem_tbs -= allocate_mac_sdus(data, rem_tbs, 0);
+
+    // Allocate DL Harq, if there was at least one successful allocation
+    if (rem_tbs != tbs) {
       h->new_tx(user_mask, 0, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
     }
 
@@ -467,26 +495,15 @@ int sched_ue::generate_format1(uint32_t                          pid,
   return tbs;
 }
 
-// Generates a Format2a dci
-int sched_ue::generate_format2a(uint32_t                          pid,
-                                sched_interface::dl_sched_data_t* data,
-                                uint32_t                          tti,
-                                uint32_t                          cc_idx,
-                                uint32_t                          cfi,
-                                const rbgmask_t&                  user_mask)
-{
-  int ret = generate_format2a_unlocked(pid, data, tti, cc_idx, cfi, user_mask);
-  return ret;
-}
-
 std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_idx,
                                                   uint32_t               tti_tx_dl,
                                                   uint32_t               nof_alloc_prbs,
                                                   uint32_t               cfi,
-                                                  const srslte_dci_dl_t& dci)
+                                                  const srslte_dci_dl_t& dci,
+                                                  bool                   is_dci_format1)
 {
   int                           mcs = 0, tbs_bytes = 0;
-  std::pair<uint32_t, uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx);
+  std::pair<uint32_t, uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx, is_dci_format1);
 
   // Calculate exact number of RE for this PRB allocation
   srslte_pdsch_grant_t grant = {};
@@ -520,12 +537,12 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
 }
 
 // Generates a Format2a dci
-int sched_ue::generate_format2a_unlocked(uint32_t                          pid,
-                                         sched_interface::dl_sched_data_t* data,
-                                         uint32_t                          tti_tx_dl,
-                                         uint32_t                          cc_idx,
-                                         uint32_t                          cfi,
-                                         const rbgmask_t&                  user_mask)
+int sched_ue::generate_format2a(uint32_t                          pid,
+                                sched_interface::dl_sched_data_t* data,
+                                uint32_t                          tti_tx_dl,
+                                uint32_t                          cc_idx,
+                                uint32_t                          cfi,
+                                const rbgmask_t&                  user_mask)
 {
   dl_harq_proc* h                    = &carriers[cc_idx].harq_ent.dl_harq_procs()[pid];
   bool          tb_en[SRSLTE_MAX_TB] = {false};
@@ -567,11 +584,13 @@ int sched_ue::generate_format2a_unlocked(uint32_t                          pid,
     int      tbs       = 0;
 
     if (!h->is_empty(tb)) {
+
       h->new_retx(user_mask, tb, tti_tx_dl, &mcs, &tbs, data->dci.location.ncce);
       Debug("SCHED: Alloc format2/2a previous mcs=%d, tbs=%d\n", mcs, tbs);
+
     } else if (tb_en[tb] && req_bytes > 0 && no_retx) {
 
-      auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
+      auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci, false);
       mcs      = ret.first;
       tbs      = ret.second;
 
@@ -618,7 +637,7 @@ int sched_ue::generate_format2(uint32_t                          pid,
                                const rbgmask_t&                  user_mask)
 {
   /* Call Format 2a (common) */
-  int ret = generate_format2a_unlocked(pid, data, tti, cc_idx, cfi, user_mask);
+  int ret = generate_format2a(pid, data, tti, cc_idx, cfi, user_mask);
 
   /* Compute precoding information */
   data->dci.format = SRSLTE_DCI_FORMAT2;
@@ -792,69 +811,68 @@ uint32_t sched_ue::get_pending_dl_new_data_total_unlocked()
 }
 
 /**
- * Returns the range of possible MAC PDU sizes.
+ * Returns the range (min,max) of possible MAC PDU sizes.
  * - the lower boundary value is set based on the following conditions:
- *   - if there is data in SRB0 and ue_cc_idx == PCell, the min value is the sum of:
- *     - SRB0 RLC data (Msg4) including MAC subheader
+ *   - if there is data in SRB0, the min value is the sum of:
+ *     - SRB0 RLC data (Msg4) including MAC subheader and payload (no segmentation)
  *     - ConRes CE + MAC subheader (7 bytes)
- *   - elif there is data in other RBs, the min value is the sum of:
+ *   - elif there is data in other RBs, the min value is either:
+ *     - first pending CE (subheader+CE payload) in queue, if it exists and we are in PCell. Or,
  *     - one subheader (2B) + one RLC header (<=3B) to allow one MAC PDU alloc
- *     - first pending CE (subheader+CE payload) in queue
  * - the upper boundary is set as a sum of:
  *   - total data in all SRBs and DRBs including the MAC subheaders
  *   - All CEs (ConRes and others) including respective MAC subheaders
  * @ue_cc_idx carrier where allocation is being made
  * @return
  */
-std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx)
+std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_idx, bool is_dci_format1)
 {
-  const uint32_t min_alloc_bytes = 5; // 2 bytes for MAC subheader and 3 for RLC header
-  uint32_t       srb0_data = 0, rb_data = 0, sum_ce_data = 0, min_ce_data = 0;
+  const uint32_t ce_subheader_size = 1;
+  const uint32_t rb_subheader_size = 2;
+  const uint32_t min_alloc_bytes   = rb_subheader_size + 3; // 3 for RLC header
+  uint32_t       srb0_data = 0, rb_data = 0, sum_ce_data = 0;
   uint32_t       max_data = 0, min_data = 0;
 
+  /* Set Maximum boundary */
   // Ensure there is space for ConRes and RRC Setup
   // SRB0 is a special case due to being RLC TM (no segmentation possible)
   if (not bearer_is_dl(&lch[0])) {
     log_h->error("SRB0 must always be activated for DL\n");
     return {0, 0};
   }
-  if (ue_cc_idx == 0 and (lch[0].buf_tx > 0 or lch[0].buf_retx > 0)) {
+  if (is_dci_format1 and (lch[0].buf_tx > 0 or lch[0].buf_retx > 0)) {
     srb0_data = lch[0].buf_tx + sched_utils::get_mac_subheader_sdu_size(lch[0].buf_tx);
     srb0_data += lch[0].buf_retx + sched_utils::get_mac_subheader_sdu_size(lch[0].buf_retx);
     if (conres_ce_pending) {
-      min_ce_data = conres_ce_size + 1; // CE + 1B for subheader
-      sum_ce_data = min_ce_data;
+      sum_ce_data = conres_ce_size + 1;
     }
   }
-
+  // Add pending CEs
+  if (is_dci_format1 and ue_cc_idx == 0) {
+    for (const auto& ce : pending_ces) {
+      sum_ce_data += ce.get_req_bytes(cfg);
+    }
+  }
   // Add pending data in remaining RLC buffers
-  // Account for MAC subheader and RLC header
   for (int i = 1; i < sched_interface::MAX_LC; i++) {
     if (bearer_is_dl(&lch[i])) {
       rb_data += std::max(lch[i].buf_retx + sched_utils::get_mac_subheader_sdu_size(lch[i].buf_retx), min_alloc_bytes);
       rb_data += std::max(lch[i].buf_tx + sched_utils::get_mac_subheader_sdu_size(lch[i].buf_tx), min_alloc_bytes);
     }
   }
-
-  // If it is PCell, and there is data to tx
-  if (ue_cc_idx == 0 and rb_data > 0) {
-    for (const auto& ce : pending_ces) {
-      sum_ce_data += ce.get_req_bytes(cfg);
-      if (min_ce_data == 0) {
-        min_ce_data = ce.get_req_bytes(cfg);
-      }
-    }
-  }
-
   max_data = srb0_data + sum_ce_data + rb_data;
-  min_data = srb0_data + min_ce_data;
-  // Set minimum boundary
-  if (not srb0_data and max_data > 0) {
-    min_data = min_alloc_bytes;
-    if (ue_cc_idx == 0) {
-      for (const auto& ce : pending_ces) {
-        min_data += ce.get_req_bytes(cfg);
-      }
+
+  /* Set Minimum boundary */
+  if (srb0_data > 0) {
+    min_data = srb0_data;
+    if (conres_ce_pending) {
+      min_data += conres_ce_size + ce_subheader_size;
+    }
+  } else {
+    if (sum_ce_data > 0) {
+      min_data = pending_ces.front().get_req_bytes(cfg);
+    } else if (rb_data > 0) {
+      min_data = min_alloc_bytes;
     }
   }
 

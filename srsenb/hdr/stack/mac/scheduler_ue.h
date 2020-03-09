@@ -131,10 +131,11 @@ public:
   uint32_t get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes);
 
-  uint32_t get_pending_dl_new_data();
-  uint32_t get_pending_ul_new_data(uint32_t tti);
-  uint32_t get_pending_ul_old_data(uint32_t cc_idx);
-  uint32_t get_pending_dl_new_data_total();
+  std::pair<uint32_t, uint32_t> get_requested_dl_bytes();
+  uint32_t                      get_pending_dl_new_data();
+  uint32_t                      get_pending_ul_new_data(uint32_t tti);
+  uint32_t                      get_pending_ul_old_data(uint32_t cc_idx);
+  uint32_t                      get_pending_dl_new_data_total();
 
   dl_harq_proc* get_pending_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx);
   dl_harq_proc* get_empty_dl_harq(uint32_t tti_tx_dl, uint32_t cc_idx);
@@ -155,24 +156,12 @@ public:
 
   void set_needs_ta_cmd(uint32_t nof_ta_cmd);
 
-  int generate_format1(uint32_t                          pid,
-                       sched_interface::dl_sched_data_t* data,
-                       uint32_t                          tti,
-                       uint32_t                          cc_idx,
-                       uint32_t                          cfi,
-                       const rbgmask_t&                  user_mask);
-  int generate_format2a(uint32_t                          pid,
-                        sched_interface::dl_sched_data_t* data,
-                        uint32_t                          tti,
-                        uint32_t                          cc_idx,
-                        uint32_t                          cfi,
-                        const rbgmask_t&                  user_mask);
-  int generate_format2(uint32_t                          pid,
-                       sched_interface::dl_sched_data_t* data,
-                       uint32_t                          tti,
-                       uint32_t                          cc_idx,
-                       uint32_t                          cfi,
-                       const rbgmask_t&                  user_mask);
+  int generate_dl_dci_format(uint32_t                          pid,
+                             sched_interface::dl_sched_data_t* data,
+                             uint32_t                          tti,
+                             uint32_t                          ue_cc_idx,
+                             uint32_t                          cfi,
+                             const rbgmask_t&                  user_mask);
   int generate_format0(sched_interface::ul_sched_data_t* data,
                        uint32_t                          tti,
                        uint32_t                          cc_idx,
@@ -218,12 +207,13 @@ private:
                                           uint32_t               tti_tx_dl,
                                           uint32_t               nof_alloc_prbs,
                                           uint32_t               cfi,
-                                          const srslte_dci_dl_t& dci);
+                                          const srslte_dci_dl_t& dci,
+                                          bool                   is_dci_format1);
 
   static bool bearer_is_ul(ue_bearer_t* lch);
   static bool bearer_is_dl(const ue_bearer_t* lch);
 
-  std::pair<uint32_t, uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
+  std::pair<uint32_t, uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx, bool is_dci_format1);
 
   uint32_t get_pending_dl_new_data_unlocked();
   uint32_t get_pending_ul_old_data_unlocked(uint32_t cc_idx);
@@ -233,12 +223,24 @@ private:
 
   bool needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_send = false);
 
-  int generate_format2a_unlocked(uint32_t                          pid,
-                                 sched_interface::dl_sched_data_t* data,
-                                 uint32_t                          tti,
-                                 uint32_t                          cc_idx,
-                                 uint32_t                          cfi,
-                                 const rbgmask_t&                  user_mask);
+  int generate_format1(uint32_t                          pid,
+                       sched_interface::dl_sched_data_t* data,
+                       uint32_t                          tti,
+                       uint32_t                          cc_idx,
+                       uint32_t                          cfi,
+                       const rbgmask_t&                  user_mask);
+  int generate_format2a(uint32_t                          pid,
+                        sched_interface::dl_sched_data_t* data,
+                        uint32_t                          tti,
+                        uint32_t                          cc_idx,
+                        uint32_t                          cfi,
+                        const rbgmask_t&                  user_mask);
+  int generate_format2(uint32_t                          pid,
+                       sched_interface::dl_sched_data_t* data,
+                       uint32_t                          tti,
+                       uint32_t                          cc_idx,
+                       uint32_t                          cfi,
+                       const rbgmask_t&                  user_mask);
 
   bool is_first_dl_tx();
 
