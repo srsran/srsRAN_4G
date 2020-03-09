@@ -78,7 +78,7 @@ proc_outcome_t rrc::cell_search_proc::step_si_acquire()
 
 proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_lte::phy_cell_t& new_cell)
 {
-  Info("Cell found in this frequency. Setting new serving cell...\n");
+  Info("Cell found in this frequency. Setting new serving cell EARFCN=%d PCI=%d ...\n", new_cell.earfcn, new_cell.pci);
 
   // Create a cell with NaN RSRP. Will be updated by new_phy_meas() during SIB search.
   if (not rrc_ptr->add_neighbour_cell(unique_cell_t(new cell_t(new_cell)))) {
@@ -497,7 +497,6 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
       discard_serving = false;
       Info("Selected cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
 
-      /* BLOCKING CALL */
       state = search_state_t::cell_selection;
       rrc_ptr->stack->start_cell_select(&rrc_ptr->serving_cell->phy_cell);
       return proc_outcome_t::yield;

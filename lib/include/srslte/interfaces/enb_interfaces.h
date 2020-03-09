@@ -247,7 +247,7 @@ public:
 
   typedef struct {
     bool              configured = false; ///< Indicates whether PHY shall consider configuring this cell/carrier
-    uint32_t          cc_idx     = 0;     ///< eNb Cell index
+    uint32_t          enb_cc_idx = 0;     ///< eNb Cell index
     srslte::phy_cfg_t phy_cfg    = {};    ///< Dedicated physical layer configuration
   } phy_rrc_dedicated_t;
 

@@ -42,19 +42,19 @@ inline void phy_ue_db::_add_rnti(uint16_t rnti)
   }
 
   // Create new UE by accesing it
-  ue_db[rnti].scell_info[0] = {};
+  ue_db[rnti].cell_info[0] = {};
 
   // Get UE
   common_ue& ue = ue_db[rnti];
 
   // Load default values to PCell
-  ue.scell_info[0].phy_cfg.set_defaults();
+  ue.cell_info[0].phy_cfg.set_defaults();
 
   // Set constant configuration fields
   _set_common_config_rnti(rnti);
 
-  // PCell shall be active by default
-  ue.scell_info[0].state = scell_state_active;
+  // Configure as PCell
+  ue.cell_info[0].state = cell_state_primary;
 
   // Iterate all pending ACK
   for (uint32_t tti = 0; tti < TTIMOD_SZ; tti++) {
@@ -75,17 +75,17 @@ inline void phy_ue_db::_clear_tti_pending_rnti(uint32_t tti, uint16_t rnti)
   pdsch_ack = {};
 
   uint32_t nof_active_cc = 0;
-  for (auto& scell_info : ue.scell_info) {
-    if (scell_info.state == scell_state_active) {
+  for (auto& cell_info : ue.cell_info) {
+    if (cell_info.state == cell_state_primary or cell_info.state == cell_state_secondary_active) {
       nof_active_cc++;
     }
   }
 
   // Copy essentials
-  pdsch_ack.transmission_mode      = ue.scell_info[0].phy_cfg.dl_cfg.tm;
+  pdsch_ack.transmission_mode      = ue.cell_info[0].phy_cfg.dl_cfg.tm;
   pdsch_ack.nof_cc                 = nof_active_cc;
-  pdsch_ack.ack_nack_feedback_mode = ue.scell_info[0].phy_cfg.ul_cfg.pucch.ack_nack_feedback_mode;
-  pdsch_ack.simul_cqi_ack          = ue.scell_info[0].phy_cfg.ul_cfg.pucch.simul_cqi_ack;
+  pdsch_ack.ack_nack_feedback_mode = ue.cell_info[0].phy_cfg.ul_cfg.pucch.ack_nack_feedback_mode;
+  pdsch_ack.simul_cqi_ack          = ue.cell_info[0].phy_cfg.ul_cfg.pucch.simul_cqi_ack;
 }
 
 inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti)
@@ -96,7 +96,7 @@ inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti)
   common_ue& ue = ue_db[rnti];
 
   // Iterate all cells/carriers
-  for (auto& scell_info : ue.scell_info) {
+  for (auto& scell_info : ue.cell_info) {
     scell_info.phy_cfg.dl_cfg.pdsch.rnti                          = rnti;
     scell_info.phy_cfg.ul_cfg.pucch.rnti                          = rnti;
     scell_info.phy_cfg.ul_cfg.pusch.rnti                          = rnti;
@@ -110,19 +110,19 @@ inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti)
   }
 }
 
-inline uint32_t phy_ue_db::_get_scell_idx(uint16_t rnti, uint32_t cc_idx) const
+inline uint32_t phy_ue_db::_get_cell_idx(uint16_t rnti, uint32_t cc_idx) const
 {
-  uint32_t         scell_idx = 0;
+  uint32_t         cell_idx  = 0;
   const common_ue& ue        = ue_db.at(rnti);
 
-  for (scell_idx = 0; scell_idx < SRSLTE_MAX_CARRIERS; scell_idx++) {
-    const scell_info_t& scell_info = ue.scell_info[scell_idx];
-    if (scell_info.cc_idx == cc_idx && scell_info.state != scell_state_deactivated) {
-      return scell_idx;
+  for (cell_idx = 0; cell_idx < SRSLTE_MAX_CARRIERS; cell_idx++) {
+    const cell_info_t& scell_info = ue.cell_info[cell_idx];
+    if (scell_info.enb_cc_idx == cc_idx && scell_info.state != cell_state_secondary_inactive) {
+      return cell_idx;
     }
   }
 
-  return scell_idx;
+  return cell_idx;
 }
 
 void phy_ue_db::clear_tti_pending_ack(uint32_t tti)
@@ -148,33 +148,34 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
   // Get UE by reference
   common_ue& ue = ue_db[rnti];
 
-  // Iterate PHY RRC configuration for each cell/carrier
-  for (uint32_t scell_idx = 0; scell_idx < phy_rrc_dedicated_list.size() && scell_idx < SRSLTE_MAX_CARRIERS;
-       scell_idx++) {
-    auto& phy_rrc_dedicated = phy_rrc_dedicated_list[scell_idx];
+  // Iterate PHY RRC configuration for each UE cell/carrier
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < phy_rrc_dedicated_list.size() && ue_cc_idx < SRSLTE_MAX_CARRIERS;
+       ue_cc_idx++) {
+    auto& phy_rrc_dedicated = phy_rrc_dedicated_list[ue_cc_idx];
     // Configured, add/modify entry in the scell_info map
-    auto& scell_info = ue.scell_info[scell_idx];
+    auto& cell_info = ue.cell_info[ue_cc_idx];
 
-    if (phy_rrc_dedicated.configured) {
-      // Set SCell information
-      scell_info.cc_idx  = phy_rrc_dedicated.cc_idx;
-      scell_info.phy_cfg = phy_rrc_dedicated.phy_cfg;
+    if (phy_rrc_dedicated.configured or cell_info.state == cell_state_primary) {
+      // Set cell information
+      cell_info.enb_cc_idx = phy_rrc_dedicated.enb_cc_idx;
+      cell_info.phy_cfg    = phy_rrc_dedicated.phy_cfg;
 
       // Set constant configuration fields
       _set_common_config_rnti(rnti);
 
-      // Set SCell state, all deactivated by default except PCell
-      scell_info.state = scell_idx == 0 ? scell_state_active : scell_state_deactivated;
+      // Set Cell state, all inactive by default except PCell
+      if (cell_info.state != cell_state_primary) {
+        cell_info.state = cell_state_secondary_inactive;
+      }
     } else {
-      // Cell without configuration shall be default except if it PCell
-      scell_info.state = scell_idx == 0 ? scell_state_active : scell_state_default;
+      // Cell without configuration (except PCell)
+      cell_info.state = cell_state_none;
     }
   }
 
-  // Iterate the rest of SCells
-  for (uint32_t scell_idx = phy_rrc_dedicated_list.size(); scell_idx < SRSLTE_MAX_CARRIERS; scell_idx++) {
-    // Set state of these to default
-    ue.scell_info[scell_idx].state = scell_state_default;
+  // Make sure remaining cells are set to none
+  for (uint32_t cell_idx = phy_rrc_dedicated_list.size(); cell_idx < SRSLTE_MAX_CARRIERS; cell_idx++) {
+    ue.cell_info[cell_idx].state = cell_state_none;
   }
 }
 
@@ -207,15 +208,15 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
     UE_DB_ASSERT_RNTI(RNTI, RET);                                                                                      \
                                                                                                                        \
     /* Check Component Carrier is part of UE SCell map*/                                                               \
-    if (_get_scell_idx(RNTI, CC_IDX) == SRSLTE_MAX_CARRIERS) {                                                         \
+    if (_get_cell_idx(RNTI, CC_IDX) == SRSLTE_MAX_CARRIERS) {                                                          \
       ERROR("Trying to access cell/carrier index %d in RNTI x%x. It does not exist.\n", CC_IDX, RNTI);                 \
       return RET;                                                                                                      \
     }                                                                                                                  \
                                                                                                                        \
     /* Check SCell index is in range */                                                                                \
-    const uint32_t scell_idx = _get_scell_idx(RNTI, CC_IDX);                                                           \
-    if (scell_idx == SRSLTE_MAX_CARRIERS) {                                                                            \
-      ERROR("Corrupted SCell index %d for RNTI x%x and cell/carrier index %d\n", scell_idx, RNTI, CC_IDX);             \
+    const uint32_t cell_idx = _get_cell_idx(RNTI, CC_IDX);                                                             \
+    if (cell_idx == SRSLTE_MAX_CARRIERS) {                                                                             \
+      ERROR("Corrupted Cell index %d for RNTI x%x and cell/carrier index %d\n", cell_idx, RNTI, CC_IDX);               \
       return RET;                                                                                                      \
     }                                                                                                                  \
   } while (false)
@@ -225,9 +226,9 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
     /* Assert RNTI exists and eNb cell/carrier is configured */                                                        \
     UE_DB_ASSERT_CELL(RNTI, CC_IDX, RET);                                                                              \
                                                                                                                        \
-    /* Check SCell is active */                                                                                        \
-    auto& scell_info = ue_db.at(RNTI).scell_info[_get_scell_idx(RNTI, CC_IDX)];                                        \
-    if (scell_info.state != scell_state_active) {                                                                      \
+    /* Check Cell is active */                                                                                         \
+    auto& cell_info = ue_db.at(RNTI).cell_info[_get_cell_idx(RNTI, CC_IDX)];                                           \
+    if (cell_info.state != cell_state_primary and cell_info.state != cell_state_secondary_active) {                    \
       return RET;                                                                                                      \
     }                                                                                                                  \
   } while (false)
@@ -238,32 +239,32 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
     UE_DB_ASSERT_CELL(RNTI, CC_IDX, RET);                                                                              \
                                                                                                                        \
     /* CC_IDX is the RNTI PCell */                                                                                     \
-    if (_get_scell_idx(RNTI, CC_IDX) != 0) {                                                                           \
+    if (_get_cell_idx(RNTI, CC_IDX) != 0) {                                                                            \
       return RET;                                                                                                      \
     }                                                                                                                  \
   } while (false)
 
-#define UE_DB_ASSERT_SCELL(RNTI, SCELL_IDX, RET)                                                                       \
+#define UE_DB_ASSERT_SCELL(RNTI, CELL_IDX, RET)                                                                        \
   do {                                                                                                                 \
     /* Assert RNTI exists and eNb cell/carrier is configured */                                                        \
     UE_DB_ASSERT_RNTI(RNTI, RET);                                                                                      \
                                                                                                                        \
     /* Check SCell index is in range */                                                                                \
-    if (SCELL_IDX >= SRSLTE_MAX_CARRIERS) {                                                                            \
-      ERROR("Out-of-bounds SCell index %d for RNTI x%x.\n", SCELL_IDX, RNTI);                                          \
+    if (CELL_IDX >= SRSLTE_MAX_CARRIERS) {                                                                             \
+      ERROR("Out-of-bounds SCell index %d for RNTI x%x.\n", CELL_IDX, RNTI);                                           \
       return RET;                                                                                                      \
     }                                                                                                                  \
   } while (false)
 
-#define UE_DB_ASSERT_ACTIVE_SCELL(RNTI, SCELL_IDX, RET)                                                                \
+#define UE_DB_ASSERT_ACTIVE_SCELL(RNTI, CELL_IDX, RET)                                                                 \
   do {                                                                                                                 \
     /* Assert RNTI exists and eNb cell/carrier is configured */                                                        \
-    UE_DB_ASSERT_SCELL(RNTI, SCELL_IDX, RET);                                                                          \
+    UE_DB_ASSERT_SCELL(RNTI, CELL_IDX, RET);                                                                           \
                                                                                                                        \
     /* Check SCell is active, ignore PCell state */                                                                    \
-    auto& scell_info = ue_db.at(RNTI).scell_info[SCELL_IDX];                                                           \
-    if (SCELL_IDX != 0 && scell_info.state != scell_state_active) {                                                    \
-      ERROR("Failed to assert active SCell %d for RNTI x%x", SCELL_IDX, RNTI);                                         \
+    auto& cell_info = ue_db.at(RNTI).cell_info[CELL_IDX];                                                              \
+    if (CELL_IDX != 0 && cell_info.state != cell_state_secondary_active) {                                             \
+      ERROR("Failed to assert active SCell %d for RNTI x%x", CELL_IDX, RNTI);                                          \
       return RET;                                                                                                      \
     }                                                                                                                  \
   } while (false)
@@ -282,21 +283,21 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
     }                                                                                                                  \
   } while (false)
 
-void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t scell_idx, bool activate)
+void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t cell_idx, bool activate)
 {
   // Assert RNTI and SCell are valid
-  UE_DB_ASSERT_SCELL(rnti, scell_idx, /* void */);
+  UE_DB_ASSERT_SCELL(rnti, cell_idx, /* void */);
 
-  auto& scell_info = ue_db[rnti].scell_info[scell_idx];
+  auto& cell_info = ue_db[rnti].cell_info[cell_idx];
 
   // If scell is default only complain
-  if (activate and scell_info.state == scell_state_default) {
-    ERROR("RNTI x%x SCell %d has received an activation MAC command but it was not configured\n", rnti, scell_idx);
+  if (activate and cell_info.state == cell_state_none) {
+    ERROR("RNTI x%x SCell %d has received an activation MAC command but it was not configured\n", rnti, cell_idx);
     return;
   }
 
   // Set scell state
-  scell_info.state = (activate) ? scell_state_active : scell_state_deactivated;
+  cell_info.state = (activate) ? cell_state_secondary_active : cell_state_secondary_inactive;
 }
 
 srslte::phy_cfg_t phy_ue_db::get_config(uint16_t rnti, uint32_t cc_idx) const
@@ -311,7 +312,7 @@ srslte::phy_cfg_t phy_ue_db::get_config(uint16_t rnti, uint32_t cc_idx) const
 
   UE_DB_ASSERT_ACTIVE_CELL(rnti, cc_idx, default_cfg);
 
-  return ue_db.at(rnti).scell_info[_get_scell_idx(rnti, cc_idx)].phy_cfg;
+  return ue_db.at(rnti).cell_info[_get_cell_idx(rnti, cc_idx)].phy_cfg;
 }
 
 void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t cc_idx, const srslte_dci_dl_t& dci)
@@ -322,7 +323,7 @@ void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t cc_idx, const srslte_dci_
   UE_DB_ASSERT_ACTIVE_CELL(dci.rnti, cc_idx, /* void */);
 
   common_ue& ue        = ue_db[dci.rnti];
-  uint32_t   scell_idx = _get_scell_idx(dci.rnti, cc_idx);
+  uint32_t   scell_idx = _get_cell_idx(dci.rnti, cc_idx);
 
   srslte_pdsch_ack_cc_t& pdsch_ack_cc = ue.pdsch_ack[TTIMOD(tti)].cc[scell_idx];
   pdsch_ack_cc.M                      = 1; ///< Hardcoded for FDD
@@ -363,7 +364,7 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   UE_DB_ASSERT_CELL_LIST_CFG(false);
 
   const auto& ue           = ue_db.at(rnti);
-  const auto& pcell_cfg    = ue.scell_info[0].phy_cfg;
+  const auto& pcell_cfg    = ue.cell_info[0].phy_cfg;
   bool        uci_required = false;
 
   // Check if SR opportunity (will only be used in PUCCH)
@@ -372,18 +373,18 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
 
   // Get pending CQI reports for this TTI, stops at first CC reporting
   bool periodic_cqi_required = false;
-  for (uint32_t scell_idx = 0; scell_idx < SRSLTE_MAX_CARRIERS and not periodic_cqi_required; scell_idx++) {
-    const scell_info_t&    scell_info = ue.scell_info[scell_idx];
-    const srslte_dl_cfg_t& dl_cfg     = scell_info.phy_cfg.dl_cfg;
+  for (uint32_t cell_idx = 0; cell_idx < SRSLTE_MAX_CARRIERS and not periodic_cqi_required; cell_idx++) {
+    const cell_info_t&     cell_info = ue.cell_info[cell_idx];
+    const srslte_dl_cfg_t& dl_cfg    = cell_info.phy_cfg.dl_cfg;
 
-    if (scell_info.state == scell_state_active) {
-      const srslte_cell_t& cell = cell_cfg_list->at(scell_info.cc_idx).cell;
+    if (cell_info.state == cell_state_primary or cell_info.state == cell_state_secondary_active) {
+      const srslte_cell_t& cell = cell_cfg_list->at(cell_info.enb_cc_idx).cell;
 
       // Check if CQI report is required
-      periodic_cqi_required = srslte_enb_dl_gen_cqi_periodic(&cell, &dl_cfg, tti, scell_info.last_ri, &uci_cfg.cqi);
+      periodic_cqi_required = srslte_enb_dl_gen_cqi_periodic(&cell, &dl_cfg, tti, cell_info.last_ri, &uci_cfg.cqi);
 
       // Save SCell index for using it after
-      uci_cfg.cqi.scell_index = scell_idx;
+      uci_cfg.cqi.scell_index = cell_idx;
     }
   }
   uci_required |= periodic_cqi_required;
@@ -391,8 +392,8 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   // If no periodic CQI report required, check aperiodic reporting
   if ((not periodic_cqi_required) and aperiodic_cqi_request) {
     // Aperiodic only supported for PCell
-    const scell_info_t&    pcell_info = ue.scell_info[0];
-    const srslte_cell_t&   cell       = cell_cfg_list->at(pcell_info.cc_idx).cell;
+    const cell_info_t&     pcell_info = ue.cell_info[0];
+    const srslte_cell_t&   cell       = cell_cfg_list->at(pcell_info.enb_cc_idx).cell;
     const srslte_dl_cfg_t& dl_cfg     = pcell_info.phy_cfg.dl_cfg;
 
     uci_required = srslte_enb_dl_gen_cqi_aperiodic(&cell, &dl_cfg, pcell_info.last_ri, &uci_cfg.cqi);
@@ -401,7 +402,7 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   // Get pending ACKs from PDSCH
   srslte_dl_sf_cfg_t dl_sf_cfg = {};
   dl_sf_cfg.tti                = tti;
-  const srslte_cell_t& cell    = cell_cfg_list->at(ue.scell_info[0].cc_idx).cell;
+  const srslte_cell_t& cell    = cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell;
   srslte_enb_dl_gen_ack(&cell, &dl_sf_cfg, &ue.pdsch_ack[TTIMOD(tti)], &uci_cfg);
   uci_required |= (srslte_uci_cfg_total_ack(&uci_cfg) > 0);
 
@@ -433,7 +434,7 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
 
   // Get ACK info
   srslte_pdsch_ack_t& pdsch_ack = ue.pdsch_ack[TTIMOD(tti)];
-  srslte_enb_dl_get_ack(&cell_cfg_list->at(ue.scell_info[0].cc_idx).cell, &uci_value, &pdsch_ack);
+  srslte_enb_dl_get_ack(&cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell, &uci_value, &pdsch_ack);
 
   // Iterate over the ACK information
   for (uint32_t scell_idx = 0; scell_idx < SRSLTE_MAX_CARRIERS; scell_idx++) {
@@ -441,7 +442,7 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
     for (uint32_t m = 0; m < pdsch_ack_cc.M; m++) {
       if (pdsch_ack_cc.m[m].present) {
         for (uint32_t tb = 0; tb < pdsch_ack_cc.m[m].k; tb++) {
-          stack->ack_info(tti, rnti, ue.scell_info[scell_idx].cc_idx, tb, pdsch_ack_cc.m[m].value[tb] == 1);
+          stack->ack_info(tti, rnti, ue.cell_info[scell_idx].enb_cc_idx, tb, pdsch_ack_cc.m[m].value[tb] == 1);
         }
       }
     }
@@ -451,8 +452,8 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
   UE_DB_ASSERT_ACTIVE_SCELL(rnti, uci_cfg.cqi.scell_index, /* void */);
 
   // Get CQI carrier index
-  auto&    cqi_scell_info = ue_db.at(rnti).scell_info[uci_cfg.cqi.scell_index];
-  uint32_t cqi_cc_idx     = cqi_scell_info.cc_idx;
+  auto&    cqi_scell_info = ue_db.at(rnti).cell_info[uci_cfg.cqi.scell_index];
+  uint32_t cqi_cc_idx     = cqi_scell_info.enb_cc_idx;
 
   // Notify CQI only if CRC is valid
   if (uci_value.cqi.data_crc) {
@@ -509,7 +510,7 @@ void phy_ue_db::set_last_ul_tb(uint16_t rnti, uint32_t cc_idx, uint32_t pid, srs
   UE_DB_ASSERT_ACTIVE_CELL(rnti, cc_idx, /* void */);
 
   // Save resource allocation
-  ue_db.at(rnti).scell_info[_get_scell_idx(rnti, cc_idx)].last_tb[pid % SRSLTE_FDD_NOF_HARQ] = tb;
+  ue_db.at(rnti).cell_info[_get_cell_idx(rnti, cc_idx)].last_tb[pid % SRSLTE_FDD_NOF_HARQ] = tb;
 }
 
 srslte_ra_tb_t phy_ue_db::get_last_ul_tb(uint16_t rnti, uint32_t cc_idx, uint32_t pid) const
@@ -520,5 +521,5 @@ srslte_ra_tb_t phy_ue_db::get_last_ul_tb(uint16_t rnti, uint32_t cc_idx, uint32_
   UE_DB_ASSERT_ACTIVE_CELL(rnti, cc_idx, {});
 
   // Returns the latest stored UL transmission grant
-  return ue_db.at(rnti).scell_info[_get_scell_idx(rnti, cc_idx)].last_tb[pid % SRSLTE_FDD_NOF_HARQ];
+  return ue_db.at(rnti).cell_info[_get_cell_idx(rnti, cc_idx)].last_tb[pid % SRSLTE_FDD_NOF_HARQ];
 }

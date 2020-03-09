@@ -1666,7 +1666,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   parent->pdcp->add_bearer(rnti, 1, srslte::make_srb_pdcp_config_t(1, false));
 
   // Configure PHY layer
-  apply_setup_phy_config(*phy_cfg); // It assumes SCell has not been set before
+  apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
   parent->mac->phy_config_enabled(rnti, false);
 
   rr_cfg->drb_to_add_mod_list_present = false;
@@ -2199,22 +2199,22 @@ void rrc::ue::apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& confi
   set_phy_cfg_t_common_srs(&current_phy_cfg, config.srs_ul_cfg_common);
   set_phy_cfg_t_common_pwr_ctrl(&current_phy_cfg, config.ul_pwr_ctrl_common);
 
+  // Set PCell index
+  phy_rrc_dedicated_list[0].configured = true;
+  phy_rrc_dedicated_list[0].enb_cc_idx = current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx;
+
   // Send configuration to physical layer
   if (parent->phy != nullptr) {
     parent->phy->set_config_dedicated(rnti, phy_rrc_dedicated_list);
   }
 }
 
-void rrc::ue::apply_setup_phy_config(const asn1::rrc::phys_cfg_ded_s& phys_cfg_ded)
+void rrc::ue::apply_setup_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& phys_cfg_ded)
 {
   // Return if no cell is supported
   if (phy_rrc_dedicated_list.empty()) {
     return;
   }
-
-  // Set PCell index
-  phy_rrc_dedicated_list[0].configured = true;
-  phy_rrc_dedicated_list[0].cc_idx     = current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx;
 
   // Load PCell dedicated configuration
   srslte::set_phy_cfg_t_dedicated_cfg(&phy_rrc_dedicated_list[0].phy_cfg, phys_cfg_ded);
@@ -2271,7 +2271,7 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
 
               // Set eNb Cell/Carrier index
               phy_rrc_dedicated.configured = true;
-              phy_rrc_dedicated.cc_idx     = current_sched_ue_cfg.supported_cc_list[scell_idx].enb_cc_idx;
+              phy_rrc_dedicated.enb_cc_idx = current_sched_ue_cfg.supported_cc_list[scell_idx].enb_cc_idx;
 
               // Set SCell configuration
               srslte::set_phy_cfg_t_scell_config(&phy_rrc_dedicated.phy_cfg, scell_config);

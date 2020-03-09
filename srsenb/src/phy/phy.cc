@@ -157,7 +157,7 @@ int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
   if (SRSLTE_RNTI_ISUSER(rnti)) {
     // Create default PHY configuration with the desired PCell index
     phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list(1);
-    phy_rrc_dedicated_list[0].cc_idx = pcell_index;
+    phy_rrc_dedicated_list[0].enb_cc_idx = pcell_index;
 
     workers_common.ue_db.addmod_rnti(rnti, phy_rrc_dedicated_list);
   }
@@ -239,7 +239,7 @@ void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& de
     if (scell_idx != 0 && config.configured) {
       // Add RNTI to workers
       for (uint32_t w = 0; w < nof_workers; w++) {
-        workers[w].add_rnti(rnti, config.cc_idx, false, false);
+        workers[w].add_rnti(rnti, config.enb_cc_idx, false, false);
       }
     }
   }

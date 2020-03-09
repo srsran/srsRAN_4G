@@ -741,7 +741,7 @@ public:
     }
 
     for (auto& q : phy_rrc_cfg) {
-      uint32_t cc_idx = q.cc_idx;
+      uint32_t cc_idx = q.enb_cc_idx;
 
       // Allocate UE DL
       auto* ue_dl = (srslte_ue_dl_t*)srslte_vec_malloc(sizeof(srslte_ue_dl_t));
@@ -842,7 +842,7 @@ public:
 
     // Get grants DL/UL, we do not care about Decoding PDSCH
     for (uint32_t i = 0; i < phy_rrc_cfg.size(); i++) {
-      uint32_t           cc_idx    = phy_rrc_cfg[i].cc_idx;
+      uint32_t           cc_idx    = phy_rrc_cfg[i].enb_cc_idx;
       srslte::phy_cfg_t& dedicated = phy_rrc_cfg[i].phy_cfg;
 
       /// Set UCI configuration from PCell only
@@ -1100,7 +1100,7 @@ public:
     bool activation[SRSLTE_MAX_CARRIERS] = {}; ///< Activation/Deactivation vector
     phy_rrc_cfg.resize(args.ue_cell_list.size());
     for (uint32_t i = 0; i < args.ue_cell_list.size(); i++) {
-      phy_rrc_cfg[i].cc_idx     = args.ue_cell_list[i];      ///< First element is PCell
+      phy_rrc_cfg[i].enb_cc_idx = args.ue_cell_list[i];      ///< First element is PCell
       phy_rrc_cfg[i].configured = true;                      ///< All configured by default
       phy_rrc_cfg[i].phy_cfg    = dedicated;                 ///< Load the same in all by default
       phy_rrc_cfg[i].phy_cfg.dl_cfg.cqi_report.pmi_idx += i; ///< CQI report depend on SCell index

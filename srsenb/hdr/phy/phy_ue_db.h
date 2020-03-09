@@ -52,28 +52,29 @@ private:
    *       +-----------------------------------------------------------------------------+
    */
   typedef enum {
-    scell_state_default = 0, ///< Default values, not configured, not active
-    scell_state_deactivated, ///< Configured from RRC but not activated
-    scell_state_active       ///< PCell or activated from MAC
-  } scell_state_t;
+    cell_state_none = 0,           ///< Uninitialized
+    cell_state_primary,            ///< PCell
+    cell_state_secondary_inactive, ///< Configured from RRC but not activated
+    cell_state_secondary_active    ///< Configured and activated from MAC
+  } cell_state_t;
 
   /**
-   * SCell information for the UE database
+   * Cell information for the UE database
    */
   typedef struct {
-    scell_state_t     state                         = scell_state_default; ///< Configuration state
-    uint32_t          cc_idx                        = 0;                   ///< Corresponding eNb cell/carrier index
-    uint8_t           last_ri                       = 0;                   ///< Last reported rank indicator
-    srslte_ra_tb_t    last_tb[SRSLTE_MAX_HARQ_PROC] = {};                  ///< Stores last PUSCH Resource allocation
-    srslte::phy_cfg_t phy_cfg; ///< Configuration, it has a default constructor
-  } scell_info_t;
+    cell_state_t      state                         = cell_state_none; ///< Configuration state
+    uint32_t          enb_cc_idx                    = 0;               ///< Corresponding eNb cell/carrier index
+    uint8_t           last_ri                       = 0;               ///< Last reported rank indicator
+    srslte_ra_tb_t    last_tb[SRSLTE_MAX_HARQ_PROC] = {};              ///< Stores last PUSCH Resource allocation
+    srslte::phy_cfg_t phy_cfg;                                         ///< Configuration, it has a default constructor
+  } cell_info_t;
 
   /**
    * UE object stored in the PHY common database
    */
   struct common_ue {
-    srslte_pdsch_ack_t pdsch_ack[TTIMOD_SZ] = {};       ///< Pending acknowledgements for this SCell
-    scell_info_t       scell_info[SRSLTE_MAX_CARRIERS]; ///< SCell information, indexed by scell_idx
+    srslte_pdsch_ack_t pdsch_ack[TTIMOD_SZ] = {};      ///< Pending acknowledgements for this Cell
+    cell_info_t        cell_info[SRSLTE_MAX_CARRIERS]; ///< Cell information, indexed by cell_idx
   };
 
   /**
@@ -131,7 +132,7 @@ private:
    * @param cc_idx the eNb cell/carrier index to look for in the RNTI.
    * @return the SCell index as described above.
    */
-  inline uint32_t _get_scell_idx(uint16_t rnti, uint32_t cc_idx) const;
+  inline uint32_t _get_cell_idx(uint16_t rnti, uint32_t cc_idx) const;
 
 public:
   /**

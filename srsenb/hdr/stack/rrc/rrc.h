@@ -89,6 +89,7 @@ struct rrc_meas_cfg_t {
 
 struct rrc_cfg_t {
   uint32_t                   enb_id; ///< Required to pack SIB1
+  // Per eNB SIBs
   asn1::rrc::sib_type1_s     sib1;
   asn1::rrc::sib_info_item_c sibs[ASN1_RRC_MAX_SIB];
   asn1::rrc::mac_main_cfg_s  mac_cnfg;
@@ -340,7 +341,7 @@ public:
      *
      * @param phys_cfg_ded ASN1 Physical layer configuration dedicated
      */
-    void apply_setup_phy_config(const asn1::rrc::phys_cfg_ded_s& phys_cfg_ded);
+    void apply_setup_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& phys_cfg_ded);
 
     /**
      * Reconfigures the PCell and SCell physical layer dedicated configuration of the UE. This method shall be called
