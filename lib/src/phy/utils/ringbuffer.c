@@ -30,7 +30,7 @@ int srslte_ringbuffer_init(srslte_ringbuffer_t* q, int capacity)
 {
   q->buffer = srslte_vec_malloc(capacity);
   if (!q->buffer) {
-    return -1;
+    return SRSLTE_ERROR;
   }
   q->active   = true;
   q->capacity = capacity;
@@ -39,7 +39,7 @@ int srslte_ringbuffer_init(srslte_ringbuffer_t* q, int capacity)
   pthread_cond_init(&q->read_cvar, NULL);
   srslte_ringbuffer_reset(q);
 
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 void srslte_ringbuffer_free(srslte_ringbuffer_t* q)
@@ -77,12 +77,12 @@ int srslte_ringbuffer_resize(srslte_ringbuffer_t* q, int capacity)
   srslte_ringbuffer_reset(q);
   q->buffer = srslte_vec_malloc(capacity);
   if (!q->buffer) {
-    return -1;
+    return SRSLTE_ERROR;
   }
   q->active   = true;
   q->capacity = capacity;
 
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 int srslte_ringbuffer_status(srslte_ringbuffer_t* q)
@@ -247,7 +247,7 @@ int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, f
   }
   if (!q->active) {
     pthread_mutex_unlock(&q->mutex);
-    return 0;
+    return SRSLTE_ERROR;
   }
 
   int16_t* src = (int16_t*)&q->buffer[q->rpm];
