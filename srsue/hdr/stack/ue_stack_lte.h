@@ -153,8 +153,10 @@ private:
   srslte::rlc                rlc;
   srslte::pdcp               pdcp;
   srsue::rrc                 rrc;
-  srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
+
+  // NAS implementation (built-in or external)
+  std::unique_ptr<srsue::nas_base> nas;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;

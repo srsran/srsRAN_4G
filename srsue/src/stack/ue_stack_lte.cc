@@ -37,7 +37,6 @@ ue_stack_lte::ue_stack_lte() :
   mac(&mac_log),
   rrc(&rrc_log),
   pdcp(&timers, &pdcp_log),
-  nas(&nas_log, &timers),
   thread("STACK"),
   pending_tasks(1024),
   background_tasks(2)
@@ -115,6 +114,11 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   asn1::srsasn_log_register_handler(&asn1_log);
   asn1::rrc::rrc_log_register_handler(&rrc_log);
 
+  // Should we use the built-in NAS implementation
+  // or provide an external interface (RRCTL)?
+  std::unique_ptr<srsue::nas> nas_impl(new srsue::nas(&nas_log, &timers, args.nas));
+  nas = std::move(nas_impl);
+
   // Set up pcap
   if (args.pcap.enable) {
     mac_pcap.open(args.pcap.filename.c_str());
@@ -122,7 +126,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   }
   if (args.pcap.nas_enable) {
     nas_pcap.open(args.pcap.nas_filename.c_str());
-    nas.start_pcap(&nas_pcap);
+    nas->start_pcap(&nas_pcap);
   }
 
   // Init USIM first to allow early exit in case reader couldn't be found
@@ -135,8 +139,8 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   mac.init(phy, &rlc, &rrc, &timers, this);
   rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
-  nas.init(usim.get(), &rrc, gw, args.nas);
-  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &timers, this, args.rrc);
+  nas->init(usim.get(), &rrc, gw);
+  rrc.init(phy, &mac, &rlc, &pdcp, nas.get(), usim.get(), gw, &timers, this, args.rrc);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -157,7 +161,7 @@ void ue_stack_lte::stop_impl()
   running = false;
 
   usim->stop();
-  nas.stop();
+  nas->stop();
   rrc.stop();
 
   rlc.stop();
@@ -176,7 +180,7 @@ bool ue_stack_lte::switch_on()
 {
   if (running) {
     pending_tasks.try_push(ue_queue_id,
-                           [this]() { nas.start_attach_request(nullptr, srslte::establishment_cause_t::mo_data); });
+                           [this]() { nas->start_attach_request(nullptr, srslte::establishment_cause_t::mo_data); });
     return true;
   }
   return false;
@@ -185,7 +189,7 @@ bool ue_stack_lte::switch_on()
 bool ue_stack_lte::switch_off()
 {
   // generate detach request with switch-off flag
-  nas.detach_request(true);
+  nas->detach_request(true);
 
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
   const uint32_t RB_ID_SRB1 = 1;
@@ -212,14 +216,14 @@ bool ue_stack_lte::enable_data()
 bool ue_stack_lte::disable_data()
 {
   // generate detach request
-  return nas.detach_request(false);
+  return nas->detach_request(false);
 }
 
 bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 {
   mac.get_metrics(metrics->mac);
   rlc.get_metrics(metrics->rlc);
-  nas.get_metrics(&metrics->nas);
+  nas->get_metrics(&metrics->nas);
   rrc.get_metrics(metrics->rrc);
   return (metrics->nas.state == EMM_STATE_REGISTERED && metrics->rrc.state == RRC_STATE_CONNECTED);
 }
@@ -285,7 +289,7 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
 {
   mac.run_tti(tti);
   rrc.run_tti(tti);
-  nas.run_tti(tti);
+  nas->run_tti(tti);
   timers.step_all();
 }
 

@@ -227,11 +227,11 @@ int security_command_test()
   usim.init(&args);
 
   {
-    srsue::nas nas(&nas_log, &timers);
     nas_args_t cfg;
     cfg.eia = "1,2,3";
     cfg.eea = "0,1,2,3";
-    nas.init(&usim, &rrc_dummy, &gw, cfg);
+    srsue::nas nas(&nas_log, &timers, cfg);
+    nas.init(&usim, &rrc_dummy, &gw);
     rrc_dummy.init(&nas);
 
     // push auth request PDU to NAS to generate security context
@@ -298,11 +298,11 @@ int mme_attach_request_test()
     nas_args_t nas_cfg;
     nas_cfg.force_imsi_attach = true;
     nas_cfg.apn_name          = "test123";
-    srsue::nas  nas(&nas_log, &timers);
+    srsue::nas  nas(&nas_log, &timers, nas_cfg);
     srsue::gw   gw;
     stack_dummy stack(&pdcp_dummy, &nas);
 
-    nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
+    nas.init(&usim, &rrc_dummy, &gw);
     rrc_dummy.init(&nas);
 
     gw_args_t gw_args;
@@ -381,13 +381,13 @@ int esm_info_request_test()
   pool = byte_buffer_pool::get_instance();
 
   {
-    srsue::nas nas(&nas_log, &timers);
     nas_args_t cfg;
     cfg.apn_name          = "srslte";
     cfg.apn_user          = "srsuser";
     cfg.apn_pass          = "srspass";
     cfg.force_imsi_attach = true;
-    nas.init(&usim, &rrc_dummy, &gw, cfg);
+    srsue::nas nas(&nas_log, &timers, cfg);
+    nas.init(&usim, &rrc_dummy, &gw);
 
     // push ESM info request PDU to NAS to generate response
     unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
@@ -436,10 +436,10 @@ int dedicated_eps_bearer_test()
 
   srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
-  srsue::nas nas(&nas_log, &timers);
   nas_args_t cfg        = {};
   cfg.force_imsi_attach = true; // make sure we get a fresh security context
-  nas.init(&usim, &rrc_dummy, &gw, cfg);
+  srsue::nas nas(&nas_log, &timers, cfg);
+  nas.init(&usim, &rrc_dummy, &gw);
 
   // push dedicated EPS bearer PDU to NAS
   unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
