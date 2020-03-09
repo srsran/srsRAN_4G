@@ -101,8 +101,8 @@ rx_gain = 40
 #
 #####################################################################
 [pcap]
-mac_enable = false
-mac_filename = /tmp/enb_mac.pcap
+enable = false
+filename = /tmp/enb.pcap
 s1ap_enable = false
 s1ap_filename = /tmp/enb_s1ap.pcap
 
