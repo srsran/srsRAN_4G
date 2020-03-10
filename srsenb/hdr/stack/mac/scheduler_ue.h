@@ -46,7 +46,7 @@ struct sched_ue_carrier {
   int                        alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
   int                        alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
   int                        alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
-  uint32_t                   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
+  int                        get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
   bool                       is_active() const { return active; }

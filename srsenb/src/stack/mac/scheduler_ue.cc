@@ -821,19 +821,20 @@ std::pair<uint32_t, uint32_t> sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx,
   if (req_bytes.first == 0 and req_bytes.second == 0) {
     return {0, 0};
   }
-  uint32_t pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.first, nof_ctrl_symbols);
-  if (pending_prbs > carriers[ue_cc_idx].get_cell_cfg()->nof_prb()) {
+  const auto* cellparams   = carriers[ue_cc_idx].get_cell_cfg();
+  int         pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.first, nof_ctrl_symbols);
+  if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
     log_h->error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
                  "Consider increasing initial CQI value.\n",
                  carriers[ue_cc_idx].dl_cqi,
                  req_bytes.first);
-    return {pending_prbs, pending_prbs};
+    return {cellparams->nof_prb(), cellparams->nof_prb()};
   }
-  uint32_t min_pending_rbg = (*cell_params_list)[cfg.supported_cc_list[ue_cc_idx].enb_cc_idx].prb_to_rbg(pending_prbs);
+  uint32_t min_pending_rbg = cellparams->prb_to_rbg(pending_prbs);
   pending_prbs             = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.second, nof_ctrl_symbols);
-  pending_prbs             = std::min(pending_prbs, carriers[ue_cc_idx].get_cell_cfg()->nof_prb());
-  uint32_t max_pending_rbg = (*cell_params_list)[cfg.supported_cc_list[ue_cc_idx].enb_cc_idx].prb_to_rbg(pending_prbs);
+  pending_prbs             = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
+  uint32_t max_pending_rbg = cellparams->prb_to_rbg(pending_prbs);
   return {min_pending_rbg, max_pending_rbg};
 }
 
@@ -1311,7 +1312,7 @@ int sched_ue_carrier::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t r
   return alloc_tbs(nof_prb, nof_re, req_bytes, true, mcs);
 }
 
-uint32_t sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
+int sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
 {
   int      mcs    = 0;
   uint32_t nof_re = 0;
@@ -1333,7 +1334,7 @@ uint32_t sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_
     }
   }
 
-  return (nbytes >= req_bytes) ? n : std::numeric_limits<uint32_t>::max();
+  return (nbytes >= req_bytes) ? n : -1;
 }
 
 uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
