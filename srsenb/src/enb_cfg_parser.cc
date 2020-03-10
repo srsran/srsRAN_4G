@@ -701,7 +701,7 @@ static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& root)
 
 static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
 {
-  auto cell_id_parser  = [](uint32_t& cell_id, Setting& root) { return parse_bounded_number(cell_id, root, 0u, 255u); };
+  auto cell_id_parser = [](uint32_t& cell_id, Setting& root) { return parse_bounded_number(cell_id, root, 0u, 255u); };
 
   rrc_cfg->cell_list.resize(root.getLength());
   for (uint32_t n = 0; n < rrc_cfg->cell_list.size(); ++n) {
@@ -717,6 +717,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     cell_cfg.ul_earfcn = cellroot["ul_earfcn"]; // will be derived from DL EARFCN If not set
     parse_default_field(
         cell_cfg.root_seq_idx, cellroot, "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
+    parse_default_field(cell_cfg.initial_dl_cqi, cellroot, "initial_dl_cqi", 5u);
 
     if (cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&rrc_cfg->meas_cfg, cellroot["meas_cell_list"]));
@@ -770,7 +771,7 @@ int parse_cell_cfg(all_args_t* args_, srslte_cell_t* cell)
   cell->nof_prb    = args_->enb.n_prb;
   // PCI not configured yet
 
-  phich_cfg_s phichcfg;
+  phich_cfg_s     phichcfg;
   parser::section phy_cnfg("phy_cnfg");
   parser::section phich_cnfg("phich_cnfg");
   phy_cnfg.add_subsection(&phich_cnfg);

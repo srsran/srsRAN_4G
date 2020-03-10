@@ -88,6 +88,7 @@ public:
 
     uint32_t nrb_cqi;
     uint32_t ncs_an;
+    uint32_t initial_dl_cqi;
 
     uint32_t srs_subframe_config;
     uint32_t srs_subframe_offset;

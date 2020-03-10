@@ -791,6 +791,7 @@ void rrc::config_mac()
         cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number();
     item.prach_freq_offset = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
     item.maxharq_msg3tx    = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
+    item.initial_dl_cqi    = cfg.cell_list[ccidx].initial_dl_cqi;
 
     item.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
     rrc_log->info("Allocating %d PRBs for PUCCH\n", item.nrb_pucch);
@@ -1296,8 +1297,8 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
 
     // Finally, add SRB2 and DRB1 to the scheduler
     srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg = {};
-    bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    bearer_cfg.group     = 0;
+    bearer_cfg.direction                                = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    bearer_cfg.group                                    = 0;
     parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
     bearer_cfg.group = last_rrc_conn_recfg.crit_exts.c1()
                            .rrc_conn_recfg_r8()

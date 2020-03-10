@@ -44,7 +44,6 @@ namespace srsenb {
 
 namespace sched_utils {
 
-const uint32_t initial_dl_cqi = 5;
 const uint32_t conres_ce_size = 6;
 
 //! Obtains TB size *in bytes* for a given MCS and N_{PRB}
@@ -1193,7 +1192,7 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
   // only PCell starts active. Remaining ones wait for valid CQI
   active    = ue_cc_idx == 0;
   dl_cqi_rx = false;
-  dl_cqi    = (ue_cc_idx == 0) ? sched_utils::initial_dl_cqi : 0;
+  dl_cqi    = (ue_cc_idx == 0) ? cell_params->cfg.initial_dl_cqi : 0;
 
   // set max mcs
   max_mcs_ul     = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
