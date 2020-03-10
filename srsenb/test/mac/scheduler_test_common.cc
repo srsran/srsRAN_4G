@@ -552,7 +552,20 @@ int user_state_sched_tester::test_scell_activation(uint32_t                     
         CONDERROR(dl_result.data[i].dci.rnti == rnti, "Allocated user in inactive carrier\n");
       }
       for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
-        CONDERROR(ul_result.pusch[i].dci.rnti == rnti, "Allocated user in inactive carrier\n");
+        CONDERROR(ul_result.pusch[i].needs_pdcch and ul_result.pusch[i].dci.rnti == rnti,
+                  "Allocated user in inactive carrier\n");
+      }
+    } else {
+      uint32_t ue_cc_idx = std::distance(userinfo.user_cfg.supported_cc_list.begin(), it);
+      for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+        if (dl_result.data[i].dci.rnti == rnti) {
+          CONDERROR(dl_result.data[i].dci.ue_cc_idx != ue_cc_idx, "User cell index was incorrectly set\n");
+        }
+      }
+      for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+        if (ul_result.pusch[i].needs_pdcch and ul_result.pusch[i].dci.rnti == rnti) {
+          CONDERROR(ul_result.pusch[i].dci.ue_cc_idx != ue_cc_idx, "The user cell index was incorrectly set\n");
+        }
       }
     }
   }

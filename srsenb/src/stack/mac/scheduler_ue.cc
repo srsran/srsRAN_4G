@@ -463,6 +463,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
   if (tbs > 0) {
     dci->rnti          = rnti;
     dci->pid           = h->get_id();
+    dci->ue_cc_idx     = cc_idx;
     dci->tb[0].mcs_idx = (uint32_t)mcs;
     dci->tb[0].rv      = sched_utils::get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
@@ -588,6 +589,7 @@ int sched_ue::generate_format2a_unlocked(uint32_t                          pid,
   /* Fill common fields */
   dci->format    = SRSLTE_DCI_FORMAT2A;
   dci->rnti      = rnti;
+  dci->ue_cc_idx = cc_idx;
   dci->pid       = h->get_id();
   dci->tpc_pucch = (uint8_t)next_tpc_pucch;
   next_tpc_pucch = 1;
@@ -669,6 +671,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
   if (tbs > 0) {
     dci->rnti            = rnti;
     dci->format          = SRSLTE_DCI_FORMAT0;
+    dci->ue_cc_idx       = cc_idx;
     dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.L, alloc.RB_start, cell.nof_prb);
     dci->tb.rv           = sched_utils::get_rvidx(h->nof_retx(0));
     if (!is_newtx && h->is_adaptive_retx()) {

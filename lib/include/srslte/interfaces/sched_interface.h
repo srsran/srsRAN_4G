@@ -163,14 +163,14 @@ public:
     uint32_t        current_sf_allocation_num;
   } dl_pdu_mch_t;
 
-  typedef struct {
+  struct dl_sched_data_t {
     srslte_dci_dl_t dci;
     uint32_t        tbs[SRSLTE_MAX_TB];
     bool            mac_ce_ta;
     bool            mac_ce_rnti;
     uint32_t        nof_pdu_elems[SRSLTE_MAX_TB];
     dl_sched_pdu_t  pdu[SRSLTE_MAX_TB][MAX_RLC_PDU_LIST];
-  } dl_sched_data_t;
+  };
 
   typedef struct {
     bool            needs_pdcch;
