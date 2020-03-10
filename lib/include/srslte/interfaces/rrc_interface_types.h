@@ -548,6 +548,7 @@ struct phy_cfg_t {
     ul_cfg.power_ctrl.p_srs_offset     = 7;
 
     ul_cfg.srs.dedicated_enabled = false;
+    ul_cfg.srs.configured        = false;
 
     ul_cfg.pucch.sr_configured = false;
   }
