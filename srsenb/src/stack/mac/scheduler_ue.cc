@@ -44,7 +44,8 @@ namespace srsenb {
 
 namespace sched_utils {
 
-constexpr uint32_t conres_ce_size = 6;
+const uint32_t initial_dl_cqi = 5;
+const uint32_t conres_ce_size = 6;
 
 //! Obtains TB size *in bytes* for a given MCS and N_{PRB}
 uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool is_ul)
@@ -329,9 +330,7 @@ void sched_ue::set_dl_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi)
 {
   auto p = get_cell_index(enb_cc_idx);
   if (p.second != std::numeric_limits<uint32_t>::max()) {
-    carriers[p.second].dl_cqi     = cqi;
-    carriers[p.second].dl_cqi_tti = tti;
-    carriers[p.second].update_cell_activity();
+    carriers[p.second].set_dl_cqi(tti, cqi);
   } else {
     log_h->warning("Received DL CQI for invalid cell index %d\n", enb_cc_idx);
   }
@@ -534,14 +533,13 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
   uint32_t nof_re = srslte_ra_dl_grant_nof_re(&carriers[ue_cc_idx].get_cell_cfg()->cfg.cell, &dl_sf, &grant);
 
   // Compute MCS+TBS
-  mcs = carriers[ue_cc_idx].fixed_mcs_dl;
   // Use a higher MCS for the Msg4 to fit in the 6 PRB case
-  if (mcs < 0) {
+  if (carriers[ue_cc_idx].fixed_mcs_dl < 0 or not carriers[ue_cc_idx].dl_cqi_rx) {
     // Dynamic MCS
     tbs_bytes = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.second, &mcs);
   } else {
     // Fixed MCS
-    tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)mcs, nof_alloc_prbs, false);
+    tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)carriers[ue_cc_idx].fixed_mcs_dl, nof_alloc_prbs, false);
   }
 
   // If the number of prbs is not sufficient to fit minimum required bytes, increase the mcs
@@ -818,15 +816,24 @@ uint32_t sched_ue::get_pending_dl_new_data_total()
   return req_bytes;
 }
 
-std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols)
+std::pair<uint32_t, uint32_t> sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols)
 {
   std::pair<uint32_t, uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx);
   if (req_bytes.first == 0 and req_bytes.second == 0) {
     return {0, 0};
   }
-  uint32_t pending_prbs    = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.first, nof_ctrl_symbols);
+  uint32_t pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.first, nof_ctrl_symbols);
+  if (pending_prbs > carriers[ue_cc_idx].get_cell_cfg()->nof_prb()) {
+    // Cannot fit allocation in given PRBs
+    log_h->error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
+                 "Consider increasing initial CQI value.\n",
+                 carriers[ue_cc_idx].dl_cqi,
+                 req_bytes.first);
+    return {pending_prbs, pending_prbs};
+  }
   uint32_t min_pending_rbg = (*cell_params_list)[cfg.supported_cc_list[ue_cc_idx].enb_cc_idx].prb_to_rbg(pending_prbs);
   pending_prbs             = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.second, nof_ctrl_symbols);
+  pending_prbs             = std::min(pending_prbs, carriers[ue_cc_idx].get_cell_cfg()->nof_prb());
   uint32_t max_pending_rbg = (*cell_params_list)[cfg.supported_cc_list[ue_cc_idx].enb_cc_idx].prb_to_rbg(pending_prbs);
   return {min_pending_rbg, max_pending_rbg};
 }
@@ -873,7 +880,7 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
     srb0_data = compute_sdu_total_bytes(0, lch[0].buf_retx);
     srb0_data += compute_sdu_total_bytes(0, lch[0].buf_tx);
     if (conres_ce_pending) {
-      sum_ce_data = sched_utils::conres_ce_size + 1;
+      sum_ce_data = sched_utils::conres_ce_size + ce_subheader_size;
     }
   }
   // Add pending CEs
@@ -1184,8 +1191,9 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
   harq_ent(SCHED_MAX_HARQ_PROC, SCHED_MAX_HARQ_PROC)
 {
   // only PCell starts active. Remaining ones wait for valid CQI
-  active = ue_cc_idx == 0;
-  dl_cqi = (ue_cc_idx == 0) ? 1 : 0;
+  active    = ue_cc_idx == 0;
+  dl_cqi_rx = false;
+  dl_cqi    = (ue_cc_idx == 0) ? sched_utils::initial_dl_cqi : 0;
 
   // set max mcs
   max_mcs_ul     = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
@@ -1314,7 +1322,7 @@ uint32_t sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_
   uint32_t n;
   for (n = 0; n < cell_params->nof_prb() and nbytes < req_bytes; ++n) {
     nof_re = srslte_ra_dl_approx_nof_re(&cell_params->cfg.cell, n + 1, nof_ctrl_symbols);
-    if (fixed_mcs_dl < 0) {
+    if (fixed_mcs_dl < 0 or not dl_cqi_rx) {
       tbs = alloc_tbs_dl(n + 1, nof_re, 0, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl, false), n + 1) / 8;
@@ -1326,7 +1334,7 @@ uint32_t sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_
     }
   }
 
-  return n;
+  return (nbytes >= req_bytes) ? n : std::numeric_limits<uint32_t>::max();
 }
 
 uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
@@ -1360,10 +1368,13 @@ uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
   return n;
 }
 
-void sched_ue_carrier::update_cell_activity()
+void sched_ue_carrier::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
 {
+  dl_cqi     = dl_cqi_;
+  dl_cqi_tti = tti_tx_dl;
+  dl_cqi_rx  = dl_cqi_rx or dl_cqi > 0;
   if (ue_cc_idx > 0 and active != cfg->supported_cc_list[ue_cc_idx].active) {
-    if (dl_cqi > 0) {
+    if (dl_cqi_rx) {
       active = cfg->supported_cc_list[ue_cc_idx].active;
       log_h->info("SCell index=%d is now %s\n", ue_cc_idx, active ? "active" : "inactive");
     }

@@ -142,21 +142,21 @@ int test_scell_activation(test_scell_activation_params params)
   tester.test_next_ttis(generator.tti_events);
 
   // Event (20 TTIs): Data back and forth
-  auto generate_data = [&](uint32_t nof_ttis, float prob_dl, float prob_ul) {
+  auto generate_data = [&](uint32_t nof_ttis, float prob_dl, float prob_ul, float rand_exp) {
     for (uint32_t i = 0; i < nof_ttis; ++i) {
       generator.step_tti();
       bool ul_flag = randf() < prob_ul, dl_flag = randf() < prob_dl;
       if (dl_flag) {
-        float exp = dl_data_exps[0] + randf() * (dl_data_exps[1] - dl_data_exps[0]);
+        float exp = dl_data_exps[0] + rand_exp * (dl_data_exps[1] - dl_data_exps[0]);
         generator.add_dl_data(rnti1, pow(10, exp));
       }
       if (ul_flag) {
-        float exp = ul_sr_exps[0] + randf() * (ul_sr_exps[1] - ul_sr_exps[0]);
+        float exp = ul_sr_exps[0] + rand_exp * (ul_sr_exps[1] - ul_sr_exps[0]);
         generator.add_ul_data(rnti1, pow(10, exp));
       }
     }
   };
-  generate_data(20, P_dl, P_ul_sr);
+  generate_data(20, P_dl, P_ul_sr, randf());
   tester.test_next_ttis(generator.tti_events);
 
   // Event: Reconf Complete. Activate SCells. Check if CE correctly transmitted
@@ -196,7 +196,7 @@ int test_scell_activation(test_scell_activation_params params)
 
   // Event: Generate a bit more data, it should *not* go through SCells until we send a CQI
   tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, 1, cqi);
-  generate_data(5, P_dl, P_ul_sr);
+  generate_data(5, P_dl, P_ul_sr, randf());
   tester.test_next_ttis(generator.tti_events);
   TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[params.pcell_idx] > 0);
   TESTASSERT(tester.sched_stats->users[rnti1].tot_ul_sched_data[params.pcell_idx] > 0);
@@ -210,7 +210,7 @@ int test_scell_activation(test_scell_activation_params params)
   for (uint32_t i = 1; i < cc_idxs.size(); ++i) {
     tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, cc_idxs[i], cqi);
   }
-  generate_data(10, 1.0, 1.0);
+  generate_data(10, 1.0, 1.0, 1.0);
   tester.test_next_ttis(generator.tti_events);
   for (const auto& c : cc_idxs) {
     TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[c] > 0);

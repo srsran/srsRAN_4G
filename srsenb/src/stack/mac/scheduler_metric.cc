@@ -133,7 +133,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   h = user->get_empty_dl_harq(tti_dl, cell_idx);
   if (h != nullptr) {
     // Allocate resources based on pending data
-    std::pair<uint32_t, uint32_t> req_rbgs = user->get_requested_dl_rbgs(cell_idx, tti_alloc->get_nof_ctrl_symbols());
+    std::pair<uint32_t, uint32_t> req_rbgs = user->get_required_dl_rbgs(cell_idx, tti_alloc->get_nof_ctrl_symbols());
     if (req_rbgs.first > 0) {
       rbgmask_t newtx_mask(tti_alloc->get_dl_mask().size());
       if (find_allocation(req_rbgs.first, req_rbgs.second, &newtx_mask)) {

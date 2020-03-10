@@ -50,7 +50,7 @@ struct sched_ue_carrier {
   uint32_t                   get_required_prb_ul(uint32_t req_bytes);
   const sched_cell_params_t* get_cell_cfg() const { return cell_params; }
   bool                       is_active() const { return active; }
-  void                       update_cell_activity();
+  void                       set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi);
 
   harq_entity harq_ent;
 
@@ -62,6 +62,7 @@ struct sched_ue_carrier {
   uint32_t dl_cqi_tti = 0;
   uint32_t ul_cqi     = 1;
   uint32_t ul_cqi_tti = 0;
+  bool     dl_cqi_rx  = false;
 
   int      max_mcs_dl = 28, max_mcs_ul = 28;
   uint32_t max_aggr_level = 3;
@@ -131,7 +132,7 @@ public:
 
   uint32_t get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes);
 
-  std::pair<uint32_t, uint32_t> get_requested_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols);
+  std::pair<uint32_t, uint32_t> get_required_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols);
   std::pair<uint32_t, uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
   uint32_t                      get_pending_dl_new_data();
   uint32_t                      get_pending_ul_new_data(uint32_t tti);
