@@ -395,7 +395,7 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
         CONDERROR(ul_result.pusch[i].needs_pdcch and not userinfo.msg3_tic.is_valid() and
                       userinfo.msg3_tic.tti_rx() > tic.tti_rx(),
                   "No UL newtxs allocs allowed before Msg3 Rx\n");
-        tti_counter msg3_tic = userinfo.rar_tic + FDD_HARQ_DELAY_MS + MSG3_DELAY_MS;
+        tti_counter msg3_tic = userinfo.rar_tic + FDD_HARQ_DELAY_DL_MS + MSG3_DELAY_MS;
         CONDERROR(msg3_tic > tic.tic_tx_ul(), "No UL allocs allowed before Msg3 alloc\n");
       }
     }
@@ -404,7 +404,7 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
     for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
       if (dl_result.data[i].dci.rnti == rnti) {
         CONDERROR(not userinfo.msg3_tic.is_valid(), "No DL data alloc allowed before Msg3 alloc\n");
-        CONDERROR(tic + FDD_HARQ_DELAY_MS < userinfo.msg3_tic, "Msg4 cannot be tx without Msg3 being acked\n");
+        CONDERROR(tic + FDD_HARQ_DELAY_DL_MS < userinfo.msg3_tic, "Msg4 cannot be tx without Msg3 being acked\n");
       }
     }
 
@@ -438,7 +438,7 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
 
     /* TEST: Check Msg3 */
     if (userinfo.rar_tic.is_valid()) {
-      tti_counter expected_msg3_tti = userinfo.rar_tic + FDD_HARQ_DELAY_MS + MSG3_DELAY_MS;
+      tti_counter expected_msg3_tti = userinfo.rar_tic + FDD_HARQ_DELAY_DL_MS + MSG3_DELAY_MS;
       if (expected_msg3_tti == tic.tic_tx_ul()) {
         for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
           if (ul_result.pusch[i].dci.rnti == rnti) {
@@ -750,7 +750,7 @@ int common_sched_tester::schedule_acks()
     for (uint32_t i = 0; i < tti_info.dl_sched_result[ccidx].nof_data_elems; ++i) {
       ack_info_t ack_data;
       ack_data.rnti       = tti_info.dl_sched_result[ccidx].data[i].dci.rnti;
-      ack_data.tti        = FDD_HARQ_DELAY_MS + tti_info.tti_params.tti_tx_dl;
+      ack_data.tti        = FDD_HARQ_DELAY_DL_MS + tti_info.tti_params.tti_tx_dl;
       ack_data.enb_cc_idx = ccidx;
       ack_data.ue_cc_idx  = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
       const srsenb::dl_harq_proc& dl_h =
@@ -767,7 +767,7 @@ int common_sched_tester::schedule_acks()
       while (it != to_ack.end() and it->first < ack_data.tti) {
         if (it->second.rnti == ack_data.rnti and it->second.dl_harq.get_id() == ack_data.dl_harq.get_id() and
             it->second.ue_cc_idx == ack_data.ue_cc_idx) {
-          CONDERROR(it->second.tti + 2 * FDD_HARQ_DELAY_MS > ack_data.tti,
+          CONDERROR(it->second.tti + TX_DELAY_DL + FDD_HARQ_DELAY_DL_MS > ack_data.tti,
                     "The retx dl harq id=%d was transmitted too soon\n",
                     ack_data.dl_harq.get_id());
           auto toerase_it = it++;

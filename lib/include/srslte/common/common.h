@@ -43,6 +43,7 @@
 #define SRSLTE_N_MCH_LCIDS 32
 
 #define TX_DELAY 4
+#define TX_DELAY_DL 4
 #define MSG3_DELAY_MS 2 // Delay added to TX_DELAY
 
 #define TTI_SUB(a, b) ((((a) + 10240) - (b)) % 10240)
@@ -52,6 +53,7 @@
 
 // Use only in FDD mode!!
 #define FDD_HARQ_DELAY_MS 4
+#define FDD_HARQ_DELAY_DL_MS 4
 #define TTI_RX(tti) (TTI_SUB(tti, FDD_HARQ_DELAY_MS))
 #define TTI_RX_ACK(tti) (TTI_ADD(tti, FDD_HARQ_DELAY_MS + TX_DELAY))
 
