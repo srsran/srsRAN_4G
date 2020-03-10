@@ -442,6 +442,27 @@ void sched_cell_params_t::regs_deleter::operator()(srslte_regs_t* p)
   }
 }
 
+rbg_range_t rbg_range_t::prbs_to_rbgs(const prb_range_t& prbs, uint32_t P)
+{
+  return rbg_range_t{srslte::ceil_div(prbs.prb_min, P), srslte::ceil_div(prbs.prb_min, P)};
+}
+
+prb_range_t prb_range_t::rbgs_to_prbs(const rbg_range_t& rbgs, uint32_t P)
+{
+  return prb_range_t{rbgs.rbg_min * P, rbgs.rbg_max * P};
+}
+
+prb_range_t prb_range_t::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs)
+{
+  prb_range_t p;
+  if (nof_vrbs < 0) {
+    nof_vrbs = nof_prbs;
+  }
+  srslte_ra_type2_from_riv(riv, &p.prb_max, &p.prb_min, nof_prbs, (uint32_t)nof_vrbs);
+  p.prb_max += p.prb_min;
+  return p;
+}
+
 namespace sched_utils {
 
 void generate_cce_location(srslte_regs_t*   regs_,
@@ -466,27 +487,6 @@ void generate_cce_location(srslte_regs_t*   regs_,
     location->cce_start[l][location->nof_loc[l]] = loc[i].ncce;
     location->nof_loc[l]++;
   }
-}
-
-rbg_range_t rbg_range_t::prbs_to_rbgs(const prb_range_t& prbs, uint32_t P)
-{
-  return rbg_range_t{srslte::ceil_div(prbs.prb_min, P), srslte::ceil_div(prbs.prb_min, P)};
-}
-
-prb_range_t prb_range_t::rbgs_to_prbs(const rbg_range_t& rbgs, uint32_t P)
-{
-  return prb_range_t{rbgs.rbg_min * P, rbgs.rbg_max * P};
-}
-
-prb_range_t prb_range_t::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs)
-{
-  prb_range_t p;
-  if (nof_vrbs < 0) {
-    nof_vrbs = nof_prbs;
-  }
-  srslte_ra_type2_from_riv(riv, &p.prb_max, &p.prb_min, nof_prbs, (uint32_t)nof_vrbs);
-  p.prb_max += p.prb_min;
-  return p;
 }
 
 } // namespace sched_utils
