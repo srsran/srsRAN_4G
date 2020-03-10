@@ -847,7 +847,13 @@ bool phy_common::is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 void phy_common::enable_scell(uint32_t cc_idx, bool enable)
 {
   if (cc_idx < SRSLTE_MAX_CARRIERS) {
-    scell_cfg[cc_idx].enabled = enable;
+    if (scell_cfg[cc_idx].configured) {
+      scell_cfg[cc_idx].enabled = enable;
+    } else {
+      Error("Leaving SCell %s. cc_idx=%d has not been configured.\n",
+            scell_cfg[cc_idx].enabled ? "enabled" : "disabled",
+            cc_idx);
+    }
   }
 }
 
