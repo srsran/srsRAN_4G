@@ -129,10 +129,69 @@ private:
    * is found among the configured cells/carriers. Otherwise, it returns SRSLTE_MAX_CARRIERS.
    *
    * @param rnti identifier of the UE (requires assertion prior to call)
-   * @param cc_idx the eNb cell/carrier index to look for in the RNTI.
+   * @param enb_cc_idx the eNb cell/carrier index to look for in the RNTI.
    * @return the SCell index as described above.
    */
-  inline uint32_t _get_cell_idx(uint16_t rnti, uint32_t cc_idx) const;
+  inline uint32_t _get_ue_cc_idx(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Checks if a given RNTI exists in the database
+   * @param rnti provides UE identifier
+   * @return SRSLTE_SUCCESS if the indicated RNTI exists, otherwise it returns SRSLTE_ERROR
+   */
+  inline int _assert_rnti(uint16_t rnti) const;
+
+  /**
+   * Checks if an RNTI is configured to use an specified eNb cell/carrier as PCell or SCell
+   * @param rnti provides UE identifier
+   * @param enb_cc_idx provides eNb cell/carrier
+   * @return SRSLTE_SUCCESS if the indicated RNTI exists, otherwise it returns SRSLTE_ERROR
+   */
+  inline int _assert_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Checks if an RNTI uses a given eNb cell/carrier as PCell
+   * @param rnti provides UE identifier
+   * @param enb_cc_idx provides eNb cell/carrier index
+   * @return SRSLTE_SUCCESS if the indicated eNb cell/carrier of the RNTI is a PCell, otherwise it returns SRSLTE_ERROR
+   */
+  inline int _assert_enb_pcell(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Checks if an RNTI is configured to use an specified UE cell/carrier as PCell or SCell
+   * @param rnti provides UE identifier
+   * @param ue_cc_idx UE cell/carrier index that is asserted
+   * @return SRSLTE_SUCCESS if the indicated cell/carrier index is valid, otherwise it returns SRSLTE_ERROR
+   */
+  inline int _assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx);
+
+  /**
+   * Checks if an RNTI is configured to use an specified UE cell/carrier as PCell or SCell and it is active
+   * @param rnti provides UE identifier
+   * @param ue_cc_idx UE cell/carrier index that is asserted
+   * @return SRSLTE_SUCCESS if the indicated cell/carrier is active, otherwise it returns SRSLTE_ERROR
+   */
+  inline int _assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx);
+
+  /**
+   * Checks if an RNTI is configured to use an specified eNb cell/carrier as PCell or SCell and it is active
+   * @param rnti provides UE identifier
+   * @param enb_cc_idx UE cell/carrier index that is asserted
+   * @return SRSLTE_SUCCESS if the indicated eNb cell/carrier is active, otherwise it returns SRSLTE_ERROR
+   */
+  inline int _assert_active_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Internal eNb stack assertion
+   * @return SRSLTE_SUCCESS if available, otherwise it returns SRSLTE_ERROR
+   */
+  inline int _assert_stack() const;
+
+  /**
+   * Internal eNb Cell list assertion
+   * @return SRSLTE_SUCCESS if available, otherwise it returns SRSLTE_ERROR
+   */
+  inline int _assert_cell_list_cfg() const;
 
 public:
   /**
@@ -166,7 +225,7 @@ public:
    * @param scell_idx
    * @param activate
    */
-  void activate_deactivate_scell(uint16_t rnti, uint32_t scell_idx, bool activate);
+  void activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate);
 
   /**
    * Get the current physical layer configuration for an RNTI and an eNb cell/carrier
@@ -174,7 +233,7 @@ public:
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
    */
-  srslte::phy_cfg_t get_config(uint16_t rnti, uint32_t cc_idx) const;
+  srslte::phy_cfg_t get_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
    * Removes all the pending ACKs of all the RNTIs for a given TTI
@@ -191,7 +250,7 @@ public:
    * @param dci carries the Transport Block and required scheduling information
    *
    */
-  void set_ack_pending(uint32_t tti, uint32_t cc_idx, const srslte_dci_dl_t& dci);
+  void set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_dci_dl_t& dci);
 
   /**
    * Fills the Uplink Control Information (UCI) configuration and returns true/false idicating if UCI bits are required.
@@ -203,7 +262,7 @@ public:
    * @return true if UCI decoding is required and false otherwise
    */
   bool fill_uci_cfg(uint32_t          tti,
-                    uint32_t          cc_idx,
+                    uint32_t          enb_cc_idx,
                     uint16_t          rnti,
                     bool              aperiodic_cqi_request,
                     srslte_uci_cfg_t& uci_cfg) const;
@@ -217,7 +276,7 @@ public:
    */
   void send_uci_data(uint32_t                  tti,
                      uint16_t                  rnti,
-                     uint32_t                  cc_idx,
+                     uint32_t                  enb_cc_idx,
                      const srslte_uci_cfg_t&   uci_cfg,
                      const srslte_uci_value_t& uci_value);
 
@@ -230,7 +289,7 @@ public:
    * @param pid HARQ process identifier
    * @param tb the Resource Allocation for the PUSCH transport block
    */
-  void set_last_ul_tb(uint16_t rnti, uint32_t cc_idx, uint32_t pid, srslte_ra_tb_t tb);
+  void set_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid, srslte_ra_tb_t tb);
 
   /**
    * Get the latest UL Transport Block resource allocation for a given RNTI, eNb cell/carrier and UL HARQ process
@@ -242,7 +301,7 @@ public:
    * @param pid HARQ process identifier
    * @return the Resource Allocation for the PUSCH transport block
    */
-  srslte_ra_tb_t get_last_ul_tb(uint16_t rnti, uint32_t cc_idx, uint32_t pid) const;
+  srslte_ra_tb_t get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid) const;
 };
 
 } // namespace srsenb
