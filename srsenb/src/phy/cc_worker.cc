@@ -393,7 +393,7 @@ int cc_worker::decode_pucch()
   srslte_pucch_res_t pucch_res = {};
 
   for (auto& iter : ue_db) {
-    auto rnti = (uint16_t)iter.first;
+    uint16_t rnti = iter.first;
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
     if (SRSLTE_RNTI_ISUSER(rnti) && !ue_db[rnti]->is_grant_available && ue_db[rnti]->is_pcell()) {
