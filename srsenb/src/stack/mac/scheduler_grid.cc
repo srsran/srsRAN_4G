@@ -1000,7 +1000,7 @@ int sf_sched::generate_format1a(uint32_t         rb_start,
   dci->tb[0].rv         = rv;
   dci->format           = SRSLTE_DCI_FORMAT1A;
   dci->rnti             = rnti;
-  dci->ue_cc_idx        = -1;
+  dci->ue_cc_idx        = std::numeric_limits<uint32_t>::max();
 
   return tbs;
 }

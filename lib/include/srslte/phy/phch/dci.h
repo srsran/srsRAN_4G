@@ -82,7 +82,7 @@ typedef struct SRSLTE_API {
   uint16_t              rnti;
   srslte_dci_format_t   format;
   srslte_dci_location_t location;
-  int                   ue_cc_idx;
+  uint32_t              ue_cc_idx;
 
   // Resource Allocation
   srslte_ra_type_t alloc_type;
@@ -133,7 +133,7 @@ typedef struct SRSLTE_API {
   uint16_t              rnti;
   srslte_dci_format_t   format;
   srslte_dci_location_t location;
-  int                   ue_cc_idx;
+  uint32_t              ue_cc_idx;
 
   srslte_ra_type2_t type2_alloc;
   /* 36.213 Table 8.4-2: SRSLTE_RA_PUSCH_HOP_HALF is 0 for < 10 Mhz and 10 for > 10 Mhz.
