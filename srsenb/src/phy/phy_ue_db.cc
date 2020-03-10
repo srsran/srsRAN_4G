@@ -323,6 +323,12 @@ srslte::phy_cfg_t phy_ue_db::get_config(uint16_t rnti, uint32_t enb_cc_idx) cons
   default_cfg.ul_cfg.pusch.rnti = rnti;
   default_cfg.ul_cfg.pucch.rnti = rnti;
 
+  // Use default configuration for non-user C-RNTI
+  if (not SRSLTE_RNTI_ISUSER(rnti)) {
+    return default_cfg;
+  }
+
+  // Make sure the C-RNTI exists and the cell is active for the user
   if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
     return default_cfg;
   }
