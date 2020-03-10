@@ -132,7 +132,7 @@ public:
 
   uint32_t get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes);
 
-  std::pair<uint32_t, uint32_t> get_required_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols);
+  rbg_range_t                   get_required_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols);
   std::pair<uint32_t, uint32_t> get_requested_dl_bytes(uint32_t ue_cc_idx);
   uint32_t                      get_pending_dl_new_data();
   uint32_t                      get_pending_ul_new_data(uint32_t tti);

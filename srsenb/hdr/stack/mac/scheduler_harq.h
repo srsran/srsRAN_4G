@@ -29,28 +29,6 @@
 
 namespace srsenb {
 
-// Range of RBGs
-class prb_range_t;
-struct rbg_range_t {
-  uint32_t rbg_start = 0, rbg_end = 0;
-  rbg_range_t() = default;
-  rbg_range_t(uint32_t s, uint32_t e) : rbg_start(s), rbg_end(e) {}
-  rbg_range_t(const prb_range_t& rbgs, uint32_t P);
-  uint32_t length() const { return rbg_end - rbg_start; }
-};
-
-// Range of PRBs
-class prb_range_t
-{
-public:
-  uint32_t prb_start = 0, prb_end = 0;
-  prb_range_t() = default;
-  prb_range_t(uint32_t s, uint32_t e) : prb_start(s), prb_end(e) {}
-  prb_range_t(const rbg_range_t& rbgs, uint32_t P);
-  uint32_t           length() { return prb_end - prb_start; }
-  static prb_range_t riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
-};
-
 class harq_proc
 {
 public:

@@ -815,7 +815,7 @@ uint32_t sched_ue::get_pending_dl_new_data_total()
   return req_bytes;
 }
 
-std::pair<uint32_t, uint32_t> sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols)
+rbg_range_t sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols)
 {
   std::pair<uint32_t, uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx);
   if (req_bytes.first == 0 and req_bytes.second == 0) {

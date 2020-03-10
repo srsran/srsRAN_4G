@@ -32,24 +32,6 @@
 
 namespace srsenb {
 
-rbg_range_t::rbg_range_t(const prb_range_t& rbgs, uint32_t P) :
-  rbg_range_t(srslte::ceil_div(rbgs.prb_start, P), srslte::ceil_div(rbgs.prb_end, P))
-{
-}
-
-prb_range_t::prb_range_t(const rbg_range_t& rbgs, uint32_t P) : prb_range_t(rbgs.rbg_start * P, rbgs.rbg_end * P) {}
-
-prb_range_t prb_range_t::riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs)
-{
-  prb_range_t p;
-  if (nof_vrbs < 0) {
-    nof_vrbs = nof_prbs;
-  }
-  srslte_ra_type2_from_riv(riv, &p.prb_end, &p.prb_start, nof_prbs, (uint32_t)nof_vrbs);
-  p.prb_end += p.prb_start;
-  return p;
-}
-
 /******************************************************
  *
  * These classes manage the HARQ Processes.

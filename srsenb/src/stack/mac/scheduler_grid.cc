@@ -319,8 +319,8 @@ alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, 
 sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type)
 {
   rbg_range_t range;
-  range.rbg_start = nof_rbgs - avail_rbg;
-  range.rbg_end   = range.rbg_start + ((alloc_type == alloc_type_t::DL_RAR) ? rar_n_rbg : si_n_rbg);
+  range.rbg_min = nof_rbgs - avail_rbg;
+  range.rbg_max = range.rbg_min + ((alloc_type == alloc_type_t::DL_RAR) ? rar_n_rbg : si_n_rbg);
 
   if (alloc_type != alloc_type_t::DL_RAR and alloc_type != alloc_type_t::DL_BC and
       alloc_type != alloc_type_t::DL_PCCH) {
@@ -328,13 +328,13 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_typ
     return {alloc_outcome_t::ERROR, range};
   }
   // Setup range starting from left
-  if (range.rbg_end > nof_rbgs) {
+  if (range.rbg_max > nof_rbgs) {
     return {alloc_outcome_t::RB_COLLISION, range};
   }
 
   // allocate DCI and RBGs
   rbgmask_t new_mask(dl_mask.size());
-  new_mask.fill(range.rbg_start, range.rbg_end);
+  new_mask.fill(range.rbg_min, range.rbg_max);
   return {alloc_dl(aggr_lvl, alloc_type, new_mask), range};
 }
 
@@ -679,17 +679,17 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     bc->dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_range_t prb_range = prb_range_t(bc_alloc.rbg_range, cc_cfg->P);
+    prb_range_t prb_range = prb_range_t::rbgs_to_prbs(bc_alloc.rbg_range, cc_cfg->P);
     int         tbs       = generate_format1a(
-        prb_range.prb_start, prb_range.length(), bc_alloc.req_bytes, bc_alloc.rv, bc_alloc.rnti, &bc->dci);
+        prb_range.prb_min, prb_range.nof_prbs(), bc_alloc.req_bytes, bc_alloc.rv, bc_alloc.rnti, &bc->dci);
 
     // Setup BC/Paging processes
     if (bc_alloc.alloc_type == alloc_type_t::DL_BC) {
       if (tbs <= (int)bc_alloc.req_bytes) {
         log_h->warning("SCHED: Error SIB%d, rbgs=(%d,%d), dci=(%d,%d), len=%d\n",
                        bc_alloc.sib_idx + 1,
-                       bc_alloc.rbg_range.rbg_start,
-                       bc_alloc.rbg_range.rbg_end,
+                       bc_alloc.rbg_range.rbg_min,
+                       bc_alloc.rbg_range.rbg_max,
                        bc->dci.location.L,
                        bc->dci.location.ncce,
                        bc_alloc.req_bytes);
@@ -703,8 +703,8 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
 
       log_h->debug("SCHED: SIB%d, rbgs=(%d,%d), dci=(%d,%d), rv=%d, len=%d, period=%d, mcs=%d\n",
                    bc_alloc.sib_idx + 1,
-                   bc_alloc.rbg_range.rbg_start,
-                   bc_alloc.rbg_range.rbg_end,
+                   bc_alloc.rbg_range.rbg_min,
+                   bc_alloc.rbg_range.rbg_max,
                    bc->dci.location.L,
                    bc->dci.location.ncce,
                    bc_alloc.rv,
@@ -715,8 +715,8 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
       // Paging
       if (tbs <= 0) {
         log_h->warning("SCHED: Error Paging, rbgs=(%d,%d), dci=(%d,%d)\n",
-                       bc_alloc.rbg_range.rbg_start,
-                       bc_alloc.rbg_range.rbg_end,
+                       bc_alloc.rbg_range.rbg_min,
+                       bc_alloc.rbg_range.rbg_max,
                        bc->dci.location.L,
                        bc->dci.location.ncce);
         continue;
@@ -727,8 +727,8 @@ void sf_sched::set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
       bc->tbs  = (uint32_t)tbs;
 
       log_h->info("SCHED: PCH, rbgs=(%d,%d), dci=(%d,%d), tbs=%d, mcs=%d\n",
-                  bc_alloc.rbg_range.rbg_start,
-                  bc_alloc.rbg_range.rbg_end,
+                  bc_alloc.rbg_range.rbg_min,
+                  bc_alloc.rbg_range.rbg_max,
                   bc->dci.location.L,
                   bc->dci.location.ncce,
                   tbs,
@@ -749,9 +749,9 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
     rar->dci.location = dci_result[rar_alloc.alloc_data.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_range_t prb_range = prb_range_t(rar_alloc.alloc_data.rbg_range, cc_cfg->P);
-    int         tbs       = generate_format1a(prb_range.prb_start,
-                                prb_range.length(),
+    prb_range_t prb_range = prb_range_t::rbgs_to_prbs(rar_alloc.alloc_data.rbg_range, cc_cfg->P);
+    int         tbs       = generate_format1a(prb_range.prb_min,
+                                prb_range.nof_prbs(),
                                 rar_alloc.alloc_data.req_bytes,
                                 0,
                                 rar_alloc.alloc_data.rnti,
@@ -759,8 +759,8 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
     if (tbs <= 0) {
       log_h->warning("SCHED: Error RAR, ra_rnti_idx=%d, rbgs=(%d,%d), dci=(%d,%d)\n",
                      rar_alloc.alloc_data.rnti,
-                     rar_alloc.alloc_data.rbg_range.rbg_start,
-                     rar_alloc.alloc_data.rbg_range.rbg_end,
+                     rar_alloc.alloc_data.rbg_range.rbg_min,
+                     rar_alloc.alloc_data.rbg_range.rbg_max,
                      rar->dci.location.L,
                      rar->dci.location.ncce);
       continue;
@@ -779,8 +779,8 @@ void sf_sched::set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_resu
                   "rar_grant_mcs=%d\n",
                   expected_rnti,
                   rar_alloc.alloc_data.rnti,
-                  rar_alloc.alloc_data.rbg_range.rbg_start,
-                  rar_alloc.alloc_data.rbg_range.rbg_end,
+                  rar_alloc.alloc_data.rbg_range.rbg_min,
+                  rar_alloc.alloc_data.rbg_range.rbg_max,
                   rar->dci.location.L,
                   rar->dci.location.ncce,
                   msg3_grant.grant.rba,
