@@ -279,7 +279,11 @@ uint32_t rlc::get_buffer_state(uint32_t lcid)
 
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    ret = rlc_array.at(lcid)->get_buffer_state();
+    if (rlc_array.at(lcid)->is_suspended()) {
+      ret = 0;
+    } else {
+      ret = rlc_array.at(lcid)->get_buffer_state();
+    }
   }
   pthread_rwlock_unlock(&rwlock);
 
