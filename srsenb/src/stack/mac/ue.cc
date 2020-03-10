@@ -35,7 +35,7 @@
 namespace srsenb {
 
 ue::ue(uint16_t           rnti_,
-       uint32_t           nof_prb,
+       uint32_t           nof_prb_,
        sched_interface*   sched_,
        rrc_interface_mac* rrc_,
        rlc_interface_mac* rlc_,
@@ -43,6 +43,7 @@ ue::ue(uint16_t           rnti_,
        uint32_t           nof_rx_harq_proc_,
        uint32_t           nof_tx_harq_proc_) :
   rnti(rnti_),
+  nof_prb(nof_prb_),
   sched(sched_),
   rrc(rrc_),
   rlc(rlc_),
@@ -54,24 +55,10 @@ ue::ue(uint16_t           rnti_,
   nof_rx_harq_proc(nof_rx_harq_proc_),
   nof_tx_harq_proc(nof_tx_harq_proc_)
 {
-  bzero(&metrics, sizeof(mac_metrics_t));
-  bzero(&mutex, sizeof(pthread_mutex_t));
-  pthread_mutex_init(&mutex, NULL);
-
   pdus.init(this, log_h);
 
-  softbuffer_tx.reserve(nof_tx_harq_proc);
-  softbuffer_rx.reserve(nof_rx_harq_proc);
-  pending_buffers.reserve(nof_rx_harq_proc);
-
-  for (int i = 0; i < nof_rx_harq_proc; i++) {
-    srslte_softbuffer_rx_init(&softbuffer_rx[i], nof_prb);
-    pending_buffers[i] = nullptr;
-  }
-  for (int i = 0; i < nof_tx_harq_proc; i++) {
-    srslte_softbuffer_tx_init(&softbuffer_tx[i], nof_prb);
-  }
-  // don't need to reset because just initiated the buffers
+  // Allocate buffer for PCell
+  allocate_cc_buffers();
 
   // Set LCID group for SRB0 and SRB1
   set_lcg(0, 0);
@@ -80,26 +67,71 @@ ue::ue(uint16_t           rnti_,
 
 ue::~ue()
 {
-  for (int i = 0; i < nof_rx_harq_proc; i++) {
-    srslte_softbuffer_rx_free(&softbuffer_rx[i]);
+  // Free up all softbuffers for all CCs
+  for (auto cc : softbuffer_rx) {
+    for (auto buffer : cc) {
+      srslte_softbuffer_rx_free(&buffer);
+    }
   }
-  for (int i = 0; i < nof_tx_harq_proc; i++) {
-    srslte_softbuffer_tx_free(&softbuffer_tx[i]);
+
+  for (auto cc : softbuffer_tx) {
+    for (auto buffer : cc) {
+      srslte_softbuffer_tx_free(&buffer);
+    }
   }
-  pthread_mutex_destroy(&mutex);
 }
 
 void ue::reset()
 {
-  bzero(&metrics, sizeof(mac_metrics_t));
-
+  metrics      = {};
   nof_failures = 0;
-  for (int i = 0; i < nof_rx_harq_proc; i++) {
-    srslte_softbuffer_rx_reset(&softbuffer_rx[i]);
+
+  for (auto cc : softbuffer_rx) {
+    for (auto buffer : cc) {
+      srslte_softbuffer_rx_reset(&buffer);
+    }
   }
-  for (int i = 0; i < nof_tx_harq_proc; i++) {
-    srslte_softbuffer_tx_reset(&softbuffer_tx[i]);
+
+  for (auto cc : softbuffer_tx) {
+    for (auto buffer : cc) {
+      srslte_softbuffer_tx_reset(&buffer);
+    }
   }
+}
+
+/**
+ * Allocate and initialize softbuffers for Tx and Rx and
+ * append to current list of CC buffers. It uses the configured
+ * number of HARQ processes and cell width.
+ *
+ * @param num_cc Number of carriers to add buffers for (default 1)
+ * @return number of carriers
+ */
+uint32_t ue::allocate_cc_buffers(const uint32_t num_cc)
+{
+  for (uint32_t i = 0; i < num_cc; ++i) {
+    // create and init Rx buffers for Pcell
+    softbuffer_rx.emplace_back();
+    softbuffer_rx.back().resize(nof_rx_harq_proc);
+    for (auto& buffer : softbuffer_rx.back()) {
+      srslte_softbuffer_rx_init(&buffer, nof_prb);
+    }
+
+    pending_buffers.emplace_back();
+    pending_buffers.back().resize(nof_rx_harq_proc);
+    for (auto& buffer : pending_buffers.back()) {
+      buffer = nullptr;
+    }
+
+    // Create and init Tx buffers for Pcell
+    softbuffer_tx.emplace_back();
+    softbuffer_tx.back().resize(nof_tx_harq_proc);
+    for (auto& buffer : softbuffer_tx.back()) {
+      srslte_softbuffer_tx_init(&buffer, nof_prb);
+    }
+    // don't need to reset because just initiated the buffers
+  }
+  return softbuffer_tx.size();
 }
 
 void ue::start_pcap(srslte::mac_pcap* pcap_)
@@ -127,23 +159,23 @@ void ue::set_lcg(uint32_t lcid, uint32_t lcg)
   lc_groups[lcg].push_back(lcid);
 }
 
-srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
+srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t cc_idx, const uint32_t tti)
 {
-  return &softbuffer_rx[tti % nof_rx_harq_proc];
+  return &softbuffer_rx.at(cc_idx).at(tti % nof_rx_harq_proc);
 }
 
-srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx)
+srslte_softbuffer_tx_t* ue::get_tx_softbuffer(const uint32_t cc_idx, const uint32_t harq_process, const uint32_t tb_idx)
 {
-  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc];
+  return &softbuffer_tx.at(cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 
-uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
+uint8_t* ue::request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const uint32_t len)
 {
-  uint8_t* ret = NULL;
+  uint8_t* ret = nullptr;
   if (len > 0) {
-    if (!pending_buffers[tti % nof_rx_harq_proc]) {
+    if (!pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
       ret                                     = pdus.request(len);
-      pending_buffers[tti % nof_rx_harq_proc] = ret;
+      pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = ret;
     } else {
       log_h->console("Error requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
       log_h->error("Requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
@@ -282,23 +314,24 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   Debug("MAC PDU processed\n");
 }
 
-void ue::deallocate_pdu(uint32_t tti)
+void ue::deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti)
 {
-  if (pending_buffers[tti % nof_rx_harq_proc]) {
-    pdus.deallocate(pending_buffers[tti % nof_rx_harq_proc]);
-    pending_buffers[tti % nof_rx_harq_proc] = NULL;
+  if (pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
+    pdus.deallocate(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc));
+    pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
   } else {
-    log_h->console("Error deallocating buffer for pid=%d. Not requested\n", tti % nof_rx_harq_proc);
+    log_h->console(
+        "Error deallocating buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
   }
 }
 
-void ue::push_pdu(uint32_t tti, uint32_t len)
+void ue::push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len)
 {
-  if (pending_buffers[tti % nof_rx_harq_proc]) {
-    pdus.push(pending_buffers[tti % nof_rx_harq_proc], len);
-    pending_buffers[tti % nof_rx_harq_proc] = NULL;
+  if (pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
+    pdus.push(pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc), len);
+    pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = nullptr;
   } else {
-    log_h->console("Error pushing buffer for pid=%d. Not requested\n", tti % nof_rx_harq_proc);
+    log_h->console("Error pushing buffer for ue_cc_idx=%d, pid=%d. Not requested\n", ue_cc_idx, tti % nof_rx_harq_proc);
   }
 }
 
@@ -435,6 +468,8 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
           }
           if (pdu->get()->set_scell_activation_cmd(active_cc_list)) {
             Info("CE:    Added SCell Activation CE.\n");
+            // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
+            allocate_cc_buffers(active_cc_list.size() - 1);
           } else {
             Error("CE:    Setting SCell Activation CE\n");
           }
@@ -457,8 +492,8 @@ uint8_t* ue::generate_pdu(uint32_t                        harq_pid,
                           uint32_t                        nof_pdu_elems,
                           uint32_t                        grant_size)
 {
-  uint8_t* ret = NULL;
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
+  uint8_t*                    ret = nullptr;
   if (rlc) {
     tx_payload_buffer[harq_pid][tb_idx].clear();
     mac_msg_dl.init_tx(&tx_payload_buffer[harq_pid][tb_idx], grant_size, false);
@@ -469,14 +504,10 @@ uint8_t* ue::generate_pdu(uint32_t                        harq_pid,
         allocate_ce(&mac_msg_dl, pdu[i].lcid);
       }
     }
-
     ret = mac_msg_dl.write_packet(log_h);
-
   } else {
     std::cout << "Error ue not configured (must call config() first" << std::endl;
   }
-
-  pthread_mutex_unlock(&mutex);
   return ret;
 }
 
@@ -485,8 +516,8 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
                               uint32_t                      nof_pdu_elems,
                               uint32_t                      grant_size)
 {
-  uint8_t* ret = NULL;
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
+  uint8_t*                    ret = nullptr;
   tx_payload_buffer[harq_pid][0].clear();
   mch_mac_msg_dl.init_tx(&tx_payload_buffer[harq_pid][0], grant_size);
 
@@ -504,7 +535,6 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
   }
 
   ret = mch_mac_msg_dl.write_packet(log_h);
-  pthread_mutex_unlock(&mutex);
   return ret;
 }
 
@@ -519,7 +549,7 @@ void ue::metrics_read(mac_metrics_t* metrics_)
 
   phr_counter    = 0;
   dl_cqi_counter = 0;
-  bzero(&metrics, sizeof(mac_metrics_t));
+  metrics        = {};
 }
 
 void ue::metrics_phr(float phr)

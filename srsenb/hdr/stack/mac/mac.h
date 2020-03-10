@@ -54,15 +54,15 @@ public:
 
   /******** Interface from PHY (PHY -> MAC) ****************/
   int  sr_detected(uint32_t tti, uint16_t rnti) final;
-  void rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final;
+  void rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final;
 
-  int ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) override;
-  int pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) override;
-  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) override;
-  int snr_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, float snr) override;
+  int ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value) override;
+  int pmi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t pmi_value) override;
+  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value) override;
+  int snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr) override;
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override;
-  int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) override;
-  int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) override;
+  int ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) override;
+  int crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) override;
 
   int  get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) override;
   int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res) override;

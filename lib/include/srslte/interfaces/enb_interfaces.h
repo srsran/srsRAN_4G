@@ -382,7 +382,7 @@ public:
   virtual bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len)            = 0;
 
   ///< Provide packed SIB to MAC (buffer is managed by RRC)
-  virtual uint8_t* read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index) = 0;
+  virtual uint8_t* read_pdu_bcch_dlsch(const uint8_t enb_cc_idx, const uint32_t sib_index) = 0;
 };
 
 // SCell configuration

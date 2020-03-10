@@ -70,14 +70,14 @@ public:
   uint8_t*
   generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
 
-  srslte_softbuffer_tx_t* get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx);
-  srslte_softbuffer_rx_t* get_rx_softbuffer(uint32_t tti);
+  srslte_softbuffer_tx_t* get_tx_softbuffer(const uint32_t cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
+  srslte_softbuffer_rx_t* get_rx_softbuffer(const uint32_t cc_idx, const uint32_t tti);
 
   bool     process_pdus();
-  uint8_t* request_buffer(uint32_t tti, uint32_t len);
+  uint8_t* request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const uint32_t len);
   void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel);
-  void     push_pdu(uint32_t tti, uint32_t len);
-  void     deallocate_pdu(uint32_t tti);
+  void     push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len);
+  void     deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti);
 
   uint32_t rl_failure();
   void     rl_failure_reset();
@@ -96,6 +96,8 @@ public:
   int  read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes);
 
 private:
+  uint32_t allocate_cc_buffers(const uint32_t num_cc = 1); ///< Add and initialize softbuffers for CC
+
   void allocate_sdu(srslte::sch_pdu* pdu, uint32_t lcid, uint32_t sdu_len);
   bool process_ce(srslte::sch_subh* subh);
   void allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid);
@@ -106,28 +108,32 @@ private:
   uint32_t      dl_cqi_counter = 0;
   uint32_t      dl_ri_counter  = 0;
   uint32_t      dl_pmi_counter = 0;
-  mac_metrics_t metrics;
+  mac_metrics_t metrics        = {};
 
-  srslte::mac_pcap* pcap = nullptr;
+  srslte::mac_pcap* pcap             = nullptr;
+  uint64_t          conres_id        = 0;
+  uint16_t          rnti             = 0;
+  uint32_t          nof_prb          = 0;
+  uint32_t          last_tti         = 0;
+  uint32_t          nof_failures     = 0;
+  int               nof_rx_harq_proc = 0;
+  int               nof_tx_harq_proc = 0;
 
-  uint64_t conres_id = 0;
+  typedef std::vector<srslte_softbuffer_tx_t>
+                                       cc_softbuffer_tx_list_t; ///< List of Tx softbuffers for all HARQ processes of one carrier
+  std::vector<cc_softbuffer_tx_list_t> softbuffer_tx;           ///< List of softbuffer lists for Tx
 
-  uint16_t rnti = 0;
+  typedef std::vector<srslte_softbuffer_rx_t>
+                                       cc_softbuffer_rx_list_t; ///< List of Rx softbuffers for all HARQ processes of one carrier
+  std::vector<cc_softbuffer_rx_list_t> softbuffer_rx;           ///< List of softbuffer lists for Rx
 
-  uint32_t last_tti = 0;
-
-  uint32_t nof_failures = 0;
-
-  srslte::block_queue<uint32_t> pending_ta_commands;
-
-  int                                 nof_rx_harq_proc = 0;
-  int                                 nof_tx_harq_proc = 0;
-  std::vector<srslte_softbuffer_tx_t> softbuffer_tx;
-  std::vector<srslte_softbuffer_rx_t> softbuffer_rx;
-  std::vector<uint8_t*>               pending_buffers;
+  typedef std::vector<uint8_t*> cc_buffer_ptr_t; ///< List of buffer pointers for RX HARQ processes of one carrier
+  std::vector<cc_buffer_ptr_t>  pending_buffers; ///< List of buffer pointer list for Rx
 
   // For DL there are two buffers, one for each Transport block
   srslte::byte_buffer_t tx_payload_buffer[SRSLTE_FDD_NOF_HARQ][SRSLTE_MAX_TB];
+
+  srslte::block_queue<uint32_t> pending_ta_commands;
 
   // For UL there are multiple buffers per PID and are managed by pdu_queue
   srslte::pdu_queue pdus;
@@ -142,7 +148,7 @@ private:
   bool conres_id_available = false;
 
   // Mutexes
-  pthread_mutex_t mutex;
+  std::mutex mutex;
 
   const uint8_t UL_CC_IDX = 0; ///< Passed to write CC index in PCAP (TODO: use actual CC idx)
 };
