@@ -94,9 +94,11 @@ public:
    */
   void wait_all()
   {
+    std::unique_lock<std::mutex> lock(mutex);
+
     // Wait until the FIFO is empty
     while (not fifo.empty()) {
-      wait(fifo.front());
+      cvar.wait(lock);
     }
   }
 };
