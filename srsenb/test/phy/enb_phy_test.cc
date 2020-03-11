@@ -1091,7 +1091,7 @@ public:
     dedicated.ul_cfg.pusch.uci_offset.I_offset_ack  = 7;
 
     // Configure UE PHY
-    bool activation[SRSLTE_MAX_CARRIERS] = {}; ///< Activation/Deactivation vector
+    std::array<bool, SRSLTE_MAX_CARRIERS> activation = {}; ///< Activation/Deactivation vector
     phy_rrc_cfg.resize(args.ue_cell_list.size());
     for (uint32_t i = 0; i < args.ue_cell_list.size(); i++) {
       phy_rrc_cfg[i].enb_cc_idx = args.ue_cell_list[i];      ///< First element is PCell

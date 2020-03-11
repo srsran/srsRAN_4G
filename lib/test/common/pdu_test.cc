@@ -26,6 +26,7 @@
 #include "srslte/common/pdu.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include <bitset>
 #include <iostream>
 #include <map>
 #include <random>
@@ -556,6 +557,8 @@ int mac_sch_pdu_pack_test8()
   uint8_t tv[pdu_size] = {0b00011011, (uint8_t)cc_mask.to_ulong()};
   // ensure reserved bit
   tv[1] &= ~(0x1u);
+  // limit to max carriers
+  tv[1] &= ((1u << (uint32_t)SRSLTE_MAX_CARRIERS) - 1u);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -567,7 +570,11 @@ int mac_sch_pdu_pack_test8()
 
   // Try SCell activation CE
   TESTASSERT(pdu.new_subh());
-  TESTASSERT(pdu.get()->set_scell_activation_cmd(cc_mask));
+  std::array<bool, SRSLTE_MAX_CARRIERS> cc_activ_list = {};
+  for (uint8_t i = 1; i < SRSLTE_MAX_CARRIERS; ++i) {
+    cc_activ_list[i] = cc_mask.test(i);
+  }
+  TESTASSERT(pdu.get()->set_scell_activation_cmd(cc_activ_list));
 
   // write PDU
   pdu.write_packet(log_h.get());

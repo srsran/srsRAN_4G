@@ -357,11 +357,19 @@ void sched::tpc_dec(uint16_t rnti)
   ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); });
 }
 
-const sched::ue_cfg_t* sched::get_ue_cfg(uint16_t rnti)
+std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
 {
-  const ue_cfg_t* cfg = nullptr;
-  ue_db_access(rnti, [&cfg](sched_ue& ue) { cfg = &ue.get_ue_cfg(); });
-  return cfg;
+  std::array<int, SRSLTE_MAX_CARRIERS> ret{};
+  ret.fill(-1); // -1 for inactive carriers
+  ue_db_access(rnti, [this, &ret](sched_ue& ue) {
+    for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
+      auto p = ue.get_cell_index(enb_cc_idx);
+      if (p.second < SRSLTE_MAX_CARRIERS) {
+        ret[enb_cc_idx] = p.second;
+      }
+    }
+  });
+  return ret;
 }
 
 /*******************************************************

@@ -628,16 +628,18 @@ bool sch_subh::set_ta_cmd(uint8_t ta_cmd)
   }
 }
 
-bool sch_subh::set_scell_activation_cmd(std::bitset<8> active_cc_idxs)
+bool sch_subh::set_scell_activation_cmd(const std::array<bool, SRSLTE_MAX_CARRIERS>& active_scell_idxs)
 {
   const uint32_t nof_octets = 1;
   if (not((sch_pdu*)parent)->has_space_ce(nof_octets)) {
     return false;
   }
   // first bit is reserved
-  active_cc_idxs.set(0, false);
-  w_payload_ce[0] = (uint8_t)(active_cc_idxs.to_ulong() & 0xffu);
-  lcid            = SCELL_ACTIVATION;
+  w_payload_ce[0] = 0;
+  for (uint8_t i = 1; i < SRSLTE_MAX_CARRIERS; ++i) {
+    w_payload_ce[0] |= (static_cast<uint8_t>(active_scell_idxs[i]) << i);
+  }
+  lcid = SCELL_ACTIVATION;
   ((sch_pdu*)parent)->update_space_ce(nof_octets);
   nof_bytes = nof_octets;
   return true;

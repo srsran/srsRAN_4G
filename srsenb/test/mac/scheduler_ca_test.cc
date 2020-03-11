@@ -162,13 +162,17 @@ int test_scell_activation(test_scell_activation_params params)
   // Event: Reconf Complete. Activate SCells. Check if CE correctly transmitted
   generator.step_tti();
   user          = generator.user_reconf(rnti1);
-  *user->ue_cfg = *tester.get_ue_cfg(rnti1); // use current cfg as starting point, and add more supported ccs
+  *user->ue_cfg = *tester.get_current_ue_cfg(rnti1); // use current cfg as starting point, and add more supported ccs
   user->ue_cfg->supported_cc_list.resize(nof_ccs);
   for (uint32_t i = 0; i < user->ue_cfg->supported_cc_list.size(); ++i) {
     user->ue_cfg->supported_cc_list[i].active     = true;
     user->ue_cfg->supported_cc_list[i].enb_cc_idx = cc_idxs[i];
   }
   tester.test_next_ttis(generator.tti_events);
+  auto activ_list = tester.get_enb_ue_cc_map(rnti1);
+  for (uint32_t i = 0; i < cc_idxs.size(); ++i) {
+    TESTASSERT(activ_list[i] >= 0);
+  }
 
   // TEST: When a DL newtx takes place, it should also encode the CE
   for (uint32_t i = 0; i < 100; ++i) {

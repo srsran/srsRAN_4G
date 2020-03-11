@@ -615,6 +615,15 @@ sched_result_stats::user_stats* sched_result_stats::get_user(uint16_t rnti)
  * Common Sched Tester
  **********************/
 
+const sched::ue_cfg_t* common_sched_tester::get_current_ue_cfg(uint16_t rnti) const
+{
+  auto it = ue_db.find(rnti);
+  if (it == ue_db.end()) {
+    return nullptr;
+  }
+  return &it->second.get_ue_cfg();
+}
+
 int common_sched_tester::sim_cfg(sim_sched_args args)
 {
   sim_args0 = std::move(args);

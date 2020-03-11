@@ -174,7 +174,7 @@ uint8_t* ue::request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const 
   uint8_t* ret = nullptr;
   if (len > 0) {
     if (!pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc)) {
-      ret                                     = pdus.request(len);
+      ret                                                      = pdus.request(len);
       pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = ret;
     } else {
       log_h->console("Error requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
@@ -460,19 +460,23 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
       break;
     case srslte::sch_subh::SCELL_ACTIVATION:
       if (pdu->new_subh()) {
-        const sched_interface::ue_cfg_t* sched_cfg = sched->get_ue_cfg(rnti);
-        if (sched_cfg->supported_cc_list.size() <= 8) {
-          std::bitset<8> active_cc_list;
-          for (uint32_t i = 0; i < sched_cfg->supported_cc_list.size(); ++i) {
-            active_cc_list.set(i, sched_cfg->supported_cc_list[i].active);
+        std::array<int, SRSLTE_MAX_CARRIERS>  enb_ue_cc_map     = sched->get_enb_ue_cc_map(rnti);
+        std::array<bool, SRSLTE_MAX_CARRIERS> active_scell_list = {};
+        size_t                                enb_cc_idx        = 0;
+        for (; enb_cc_idx < enb_ue_cc_map.size(); ++enb_cc_idx) {
+          if (enb_ue_cc_map[enb_cc_idx] >= 8) {
+            break;
           }
-          if (pdu->get()->set_scell_activation_cmd(active_cc_list)) {
-            Info("CE:    Added SCell Activation CE.\n");
-            // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
-            allocate_cc_buffers(active_cc_list.size() - 1);
-          } else {
-            Error("CE:    Setting SCell Activation CE\n");
+          if (enb_ue_cc_map[enb_cc_idx] <= 0) {
+            // inactive or PCell
+            continue;
           }
+          active_scell_list[enb_ue_cc_map[enb_cc_idx]] = true;
+        }
+        if (enb_cc_idx == enb_ue_cc_map.size() and pdu->get()->set_scell_activation_cmd(active_scell_list)) {
+          Info("CE:    Added SCell Activation CE.\n");
+          // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
+          allocate_cc_buffers(active_scell_list.size() - 1);
         } else {
           Error("CE:    Setting SCell Activation CE\n");
         }

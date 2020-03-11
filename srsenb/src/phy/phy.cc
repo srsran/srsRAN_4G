@@ -183,7 +183,7 @@ void phy::set_mch_period_stop(uint32_t stop)
   workers_common.set_mch_period_stop(stop);
 }
 
-void phy::set_activation_deactivation_scell(uint16_t rnti, bool activation[SRSLTE_MAX_CARRIERS])
+void phy::set_activation_deactivation_scell(uint16_t rnti, const std::array<bool, SRSLTE_MAX_CARRIERS>& activation)
 {
   // Iterate all elements except 0 that is reserved for primary cell
   for (uint32_t scell_idx = 1; scell_idx < SRSLTE_MAX_CARRIERS; scell_idx++) {

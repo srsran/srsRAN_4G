@@ -175,6 +175,8 @@ public:
 
   ~common_sched_tester() override = default;
 
+  const ue_cfg_t* get_current_ue_cfg(uint16_t rnti) const;
+
   int          sim_cfg(sim_sched_args args);
   virtual int  add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_);
   virtual void rem_user(uint16_t rnti);

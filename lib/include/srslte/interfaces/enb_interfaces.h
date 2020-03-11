@@ -225,7 +225,8 @@ public:
    * @param rnti identifier of the user
    * @param activation vector with the activate/deactivate.
    */
-  virtual void set_activation_deactivation_scell(uint16_t rnti, bool activation[SRSLTE_MAX_CARRIERS]) = 0;
+  virtual void set_activation_deactivation_scell(uint16_t                                     rnti,
+                                                 const std::array<bool, SRSLTE_MAX_CARRIERS>& activation) = 0;
 };
 
 /* Interface RRC -> PHY */

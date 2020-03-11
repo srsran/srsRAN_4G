@@ -103,10 +103,10 @@ public:
   };
 
   struct ue_bearer_cfg_t {
-    int priority = 0;
-    int bsd = 0;
-    int pbr = 0;
-    int group = 0;
+    int priority                              = 0;
+    int bsd                                   = 0;
+    int pbr                                   = 0;
+    int group                                 = 0;
     enum { IDLE = 0, UL, DL, BOTH } direction = IDLE;
   };
 
@@ -276,8 +276,8 @@ public:
   virtual int ul_sched(uint32_t tti, uint32_t enb_cc_idx, ul_sched_res_t& sched_result) = 0;
 
   /* Custom */
-  virtual void            set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) = 0;
-  virtual const ue_cfg_t* get_ue_cfg(uint16_t rnti)                            = 0;
+  virtual void                                 set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) = 0;
+  virtual std::array<int, SRSLTE_MAX_CARRIERS> get_enb_ue_cc_map(uint16_t rnti)                     = 0;
 };
 
 } // namespace srsenb

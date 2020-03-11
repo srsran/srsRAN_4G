@@ -67,7 +67,7 @@ bool mac::init(const mac_args_t&        args_,
     stack = stack_;
     log_h = log_h_;
 
-    args = args_;
+    args  = args_;
     cells = cells_;
 
     stack_task_queue = stack->get_task_queue();
@@ -323,7 +323,12 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof
     ue_db[rnti]->set_tti(tti);
     ue_db[rnti]->metrics_rx(crc, nof_bytes);
 
-    uint32_t ue_cc_idx = 0; // FIXME: mapping between eNB->UE CC idx
+    std::array<int, SRSLTE_MAX_CARRIERS> enb_ue_cc_map = scheduler.get_enb_ue_cc_map(rnti);
+    if (enb_ue_cc_map[enb_cc_idx] < 0) {
+      Error("User rnti=0x%x is not activated for carrier %d\n", rnti, enb_cc_idx);
+      return ret;
+    }
+    uint32_t ue_cc_idx = enb_ue_cc_map[enb_cc_idx];
 
     // push the pdu through the queue if received correctly
     if (crc) {
@@ -528,7 +533,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
           dl_sched_res->pdsch[n].dci = sched_result.data[i].dci;
 
           for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-            dl_sched_res->pdsch[n].softbuffer_tx[tb] = ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.ue_cc_idx, sched_result.data[i].dci.pid, tb);
+            dl_sched_res->pdsch[n].softbuffer_tx[tb] =
+                ue_db[rnti]->get_tx_softbuffer(sched_result.data[i].dci.ue_cc_idx, sched_result.data[i].dci.pid, tb);
 
             if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
               /* Get PDU if it's a new transmission */
@@ -784,7 +790,7 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res_list)
 
       // Copy DCI grants
       phy_ul_sched_res->nof_grants = 0;
-      int n                    = 0;
+      int n                        = 0;
       for (uint32_t i = 0; i < sched_result.nof_dci_elems; i++) {
 
         if (sched_result.pusch[i].tbs > 0) {

@@ -54,7 +54,8 @@ public:
   int  add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal) override;
   void rem_rnti(uint16_t rnti) final;
   void set_mch_period_stop(uint32_t stop) final;
-  void set_activation_deactivation_scell(uint16_t rnti, bool activation[SRSLTE_MAX_CARRIERS]) override;
+  void set_activation_deactivation_scell(uint16_t                                     rnti,
+                                         const std::array<bool, SRSLTE_MAX_CARRIERS>& activation) override;
 
   /*RRC-PHY interface*/
   void
