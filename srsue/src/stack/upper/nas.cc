@@ -613,6 +613,10 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
     case LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE:
       parse_activate_test_mode(lcid, std::move(pdu), sec_hdr_type);
       break;
+    // TODO: Handle deactivate test mode and ue close/open
+    case LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE:
+    case LIBLTE_MME_MSG_TYPE_CLOSE_UE_TEST_LOOP:
+    case LIBLTE_MME_MSG_TYPE_OPEN_UE_TEST_LOOP:
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
       return;
