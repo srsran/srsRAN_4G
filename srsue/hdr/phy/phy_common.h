@@ -219,7 +219,7 @@ private:
     uint32_t        grant_cc_idx;
     srslte_dci_dl_t dl_dci;
   } pending_dl_grant_t;
-  pending_dl_grant_t pending_dl_grant[FDD_HARQ_DELAY_MS][SRSLTE_MAX_CARRIERS] = {};
+  pending_dl_grant_t pending_dl_grant[FDD_HARQ_DELAY_UL_MS][SRSLTE_MAX_CARRIERS] = {};
 
   srslte_cell_t cell = {};
 

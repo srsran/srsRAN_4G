@@ -33,7 +33,7 @@
 namespace srsenb {
 
 struct sched_ue_carrier {
-  const static int SCHED_MAX_HARQ_PROC = TX_DELAY_DL + FDD_HARQ_DELAY_DL_MS;
+  const static int SCHED_MAX_HARQ_PROC = FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
 
   sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
                    const sched_cell_params_t&       cell_cfg_,

@@ -187,7 +187,7 @@ int test_scell_activation(test_scell_activation_params params)
 
   // Event: Wait for UE to receive and ack CE. Send cqi==0, which should not activate the SCell
   uint32_t cqi = 0;
-  for (uint32_t i = 0; i < TX_DELAY_DL; ++i) {
+  for (uint32_t i = 0; i < FDD_HARQ_DELAY_UL_MS; ++i) {
     tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, 1, cqi);
     generator.step_tti();
   }

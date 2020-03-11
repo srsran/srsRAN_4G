@@ -259,7 +259,7 @@ uint32_t phy_common::ul_pidof(uint32_t tti, srslte_tdd_config_t* tdd_config)
 
 // Computes SF->TTI at which PHICH will be received according to 9.1.2 of 36.213
 #define tti_phich(sf)                                                                                                  \
-  (sf->tti + (cell.frame_type == SRSLTE_FDD ? FDD_HARQ_DELAY_MS : k_phich[sf->tdd_config.sf_config][sf->tti % 10]))
+  (sf->tti + (cell.frame_type == SRSLTE_FDD ? FDD_HARQ_DELAY_UL_MS : k_phich[sf->tdd_config.sf_config][sf->tti % 10]))
 
 // Here SF->TTI is when PUSCH is transmitted
 void phy_common::set_ul_pending_ack(srslte_ul_sf_cfg_t*  sf,
@@ -319,14 +319,14 @@ bool phy_common::is_any_ul_pending_ack()
 // Computes SF->TTI at which PUSCH will be transmitted according to Section 8 of 36.213
 #define tti_pusch_hi(sf)                                                                                               \
   (sf->tti +                                                                                                           \
-   (cell.frame_type == SRSLTE_FDD ? FDD_HARQ_DELAY_MS                                                                  \
+   (cell.frame_type == SRSLTE_FDD ? FDD_HARQ_DELAY_UL_MS                                                               \
                                   : I_phich ? 7 : k_pusch[sf->tdd_config.sf_config][sf->tti % 10]) +                   \
-   (TX_DELAY - FDD_HARQ_DELAY_MS))
+   (FDD_HARQ_DELAY_DL_MS - FDD_HARQ_DELAY_UL_MS))
 #define tti_pusch_gr(sf)                                                                                               \
   (sf->tti +                                                                                                           \
-   (cell.frame_type == SRSLTE_FDD ? FDD_HARQ_DELAY_MS                                                                  \
+   (cell.frame_type == SRSLTE_FDD ? FDD_HARQ_DELAY_UL_MS                                                               \
                                   : dci->ul_idx == 1 ? 7 : k_pusch[sf->tdd_config.sf_config][sf->tti % 10]) +          \
-   (TX_DELAY - FDD_HARQ_DELAY_MS))
+   (FDD_HARQ_DELAY_DL_MS - FDD_HARQ_DELAY_UL_MS))
 
 // SF->TTI is at which Format0 dci is received
 void phy_common::set_ul_pending_grant(srslte_dl_sf_cfg_t* sf, uint32_t cc_idx, srslte_dci_ul_t* dci)
@@ -427,10 +427,10 @@ void phy_common::set_dl_pending_grant(uint32_t               tti,
                                       const srslte_dci_dl_t* dl_dci)
 {
   std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
-  if (!pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable) {
-    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].dl_dci       = *dl_dci;
-    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].grant_cc_idx = grant_cc_idx;
-    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable       = true;
+  if (!pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].enable) {
+    pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].dl_dci       = *dl_dci;
+    pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].grant_cc_idx = grant_cc_idx;
+    pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].enable       = true;
   } else {
     Warning("set_dl_pending_grant: cc=%d already exists\n", cc_idx);
   }
@@ -439,16 +439,16 @@ void phy_common::set_dl_pending_grant(uint32_t               tti,
 bool phy_common::get_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t* grant_cc_idx, srslte_dci_dl_t* dl_dci)
 {
   std::lock_guard<std::mutex> lock(pending_dl_grant_mutex);
-  if (pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable) {
+  if (pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].enable) {
     // Read grant
     if (dl_dci) {
-      *dl_dci = pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].dl_dci;
+      *dl_dci = pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].dl_dci;
     }
     if (grant_cc_idx) {
-      *grant_cc_idx = pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].grant_cc_idx;
+      *grant_cc_idx = pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].grant_cc_idx;
     }
     // Reset read flag
-    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable = false;
+    pending_dl_grant[tti % FDD_HARQ_DELAY_UL_MS][cc_idx].enable = false;
     return true;
   } else {
     return false;
@@ -493,8 +493,8 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
   for (uint32_t i = 0; i < M; i++) {
 
     uint32_t k =
-        (cell.frame_type == SRSLTE_FDD) ? FDD_HARQ_DELAY_MS : das_table[sf->tdd_config.sf_config][sf->tti % 10].K[i];
-    uint32_t pdsch_tti = TTI_SUB(sf->tti, k + (TX_DELAY - FDD_HARQ_DELAY_MS));
+        (cell.frame_type == SRSLTE_FDD) ? FDD_HARQ_DELAY_UL_MS : das_table[sf->tdd_config.sf_config][sf->tti % 10].K[i];
+    uint32_t pdsch_tti = TTI_SUB(sf->tti, k + (FDD_HARQ_DELAY_DL_MS - FDD_HARQ_DELAY_UL_MS));
     if (pending_dl_ack[TTIMOD(pdsch_tti)][cc_idx].enable) {
       ack->m[i].present  = true;
       ack->m[i].k        = k;

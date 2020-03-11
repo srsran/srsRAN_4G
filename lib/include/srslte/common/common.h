@@ -42,27 +42,24 @@
 
 #define SRSLTE_N_MCH_LCIDS 32
 
-#define TX_DELAY 4
-#define TX_DELAY_DL 4
-#define MSG3_DELAY_MS 2 // Delay added to TX_DELAY
+#define FDD_HARQ_DELAY_DL_MS 4
+#define FDD_HARQ_DELAY_UL_MS 4
+#define MSG3_DELAY_MS 2 // Delay added to FDD_HARQ_DELAY_DL_MS
 
 #define TTI_SUB(a, b) ((((a) + 10240) - (b)) % 10240)
 #define TTI_ADD(a, b) (((a) + (b)) % 10240)
 
-#define TTI_TX(tti) TTI_ADD(tti, TX_DELAY)
+#define TTI_TX(tti) TTI_ADD(tti, FDD_HARQ_DELAY_DL_MS)
 
-// Use only in FDD mode!!
-#define FDD_HARQ_DELAY_MS 4
-#define FDD_HARQ_DELAY_DL_MS 4
-#define TTI_RX(tti) (TTI_SUB(tti, FDD_HARQ_DELAY_MS))
-#define TTI_RX_ACK(tti) (TTI_ADD(tti, FDD_HARQ_DELAY_MS + TX_DELAY))
+#define TTI_RX(tti) (TTI_SUB(tti, FDD_HARQ_DELAY_UL_MS))
+#define TTI_RX_ACK(tti) (TTI_ADD(tti, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS))
 
 #define TTIMOD_SZ 20
 #define TTIMOD(tti) (tti % TTIMOD_SZ)
 
 #define PHICH_MAX_SF 6 // Maximum PHICH in a subframe (1 in FDD, > 1 in TDD, see table 9.1.2-1 36.213)
 
-#define ASYNC_DL_SCHED (FDD_HARQ_DELAY_MS <= 4)
+#define ASYNC_DL_SCHED (FDD_HARQ_DELAY_UL_MS <= 4)
 
 // Cat 4 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 v15.4.0 Table 4.1.1 for Category 11 with 2 layers and 256QAM

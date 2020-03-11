@@ -176,7 +176,7 @@ cf_t* cc_worker::get_buffer_tx(uint32_t antenna_idx)
 void cc_worker::set_tti(uint32_t tti_)
 {
   tti_rx    = tti_;
-  tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_MS);
+  tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS);
   tti_tx_ul = TTI_RX_ACK(tti_rx);
 }
 

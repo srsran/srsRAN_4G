@@ -667,7 +667,7 @@ public:
     return is_bsr;
   }
 
-  uint32_t get_pid(const uint32_t tti_) { return tti_ % (2 * FDD_HARQ_DELAY_MS); }
+  uint32_t get_pid(const uint32_t tti_) { return tti_ % SRSLTE_FDD_NOF_HARQ; }
 
   bool get_ndi_for_new_ul_tx(const uint32_t tti_)
   {
@@ -1207,8 +1207,8 @@ private:
   uint16_t              crnti                = TTCN3_CRNTI;
   int                   force_lcid           = -1;
   srslte::timer_handler timers;
-  bool                  last_dl_ndi[2 * FDD_HARQ_DELAY_MS] = {};
-  bool                  last_ul_ndi[2 * FDD_HARQ_DELAY_MS] = {};
+  bool                  last_dl_ndi[SRSLTE_FDD_NOF_HARQ] = {};
+  bool                  last_ul_ndi[SRSLTE_FDD_NOF_HARQ] = {};
 
   // For events/actions that need to be carried out in a specific TTI
   typedef std::vector<move_task_t>              task_list_t;

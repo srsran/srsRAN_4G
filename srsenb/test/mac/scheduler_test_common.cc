@@ -780,7 +780,7 @@ int common_sched_tester::schedule_acks()
       while (it != to_ack.end() and it->first < ack_data.tti) {
         if (it->second.rnti == ack_data.rnti and it->second.dl_harq.get_id() == ack_data.dl_harq.get_id() and
             it->second.ue_cc_idx == ack_data.ue_cc_idx) {
-          CONDERROR(it->second.tti + TX_DELAY_DL + FDD_HARQ_DELAY_DL_MS > ack_data.tti,
+          CONDERROR(it->second.tti + FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS > ack_data.tti,
                     "The retx dl harq id=%d was transmitted too soon\n",
                     ack_data.dl_harq.get_id());
           auto toerase_it = it++;
@@ -802,7 +802,7 @@ int common_sched_tester::schedule_acks()
       ack_data.ue_cc_idx  = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
       ack_data.ul_harq    = *ue_db[ack_data.rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, ack_data.ue_cc_idx);
       ack_data.tti_tx_ul  = tti_info.tti_params.tti_tx_ul;
-      ack_data.tti_ack    = tti_info.tti_params.tti_tx_ul + FDD_HARQ_DELAY_MS;
+      ack_data.tti_ack    = tti_info.tti_params.tti_tx_ul + FDD_HARQ_DELAY_UL_MS;
       if (ack_data.ul_harq.nof_retx(0) == 0) {
         ack_data.ack = randf() > sim_args0.P_retx;
       } else {

@@ -577,7 +577,7 @@ public:
 
       // Schedule grant
       if (sched) {
-        uint32_t              tti_pdcch    = TTI_SUB(tti, TX_DELAY);
+        uint32_t              tti_pdcch    = TTI_SUB(tti, FDD_HARQ_DELAY_DL_MS);
         uint32_t              location_idx = (tti_pdcch + 1) % nof_locations[tti_pdcch % SRSLTE_NOF_SF_X_FRAME];
         srslte_dci_location_t location     = dci_locations[tti_pdcch % SRSLTE_NOF_SF_X_FRAME][location_idx];
 
@@ -636,7 +636,7 @@ public:
       tti_dl_info_t& tti_dl_ack   = tti_dl_info_ack_queue.front();
 
       // Calculate ACK TTI
-      tti_dl_sched.tti = TTI_ADD(tti_dl_sched.tti, TX_DELAY);
+      tti_dl_sched.tti = TTI_ADD(tti_dl_sched.tti, FDD_HARQ_DELAY_DL_MS);
 
       // Assert that ACKs have been received
       TESTASSERT(tti_dl_sched.tti == tti_dl_ack.tti);
@@ -795,11 +795,11 @@ public:
     }
 
     // Push HARQ delay to radio
-    for (uint32_t i = 0; i < TX_DELAY; i++) {
+    for (uint32_t i = 0; i < FDD_HARQ_DELAY_DL_MS; i++) {
       radio->write_rx(buffers, sf_len);
       sf_ul_cfg.tti = TTI_ADD(sf_ul_cfg.tti, 1); // Advance UL TTI too
     }
-    for (uint32_t i = 0; i < FDD_HARQ_DELAY_MS; i++) {
+    for (uint32_t i = 0; i < FDD_HARQ_DELAY_UL_MS; i++) {
       radio->write_rx(buffers, sf_len);
     }
   }

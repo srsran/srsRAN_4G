@@ -160,7 +160,7 @@ typedef enum { SRSLTE_SF_NORM = 0, SRSLTE_SF_MBSFN } srslte_sf_t;
        ? (SRSLTE_CP_LEN_EXT(symbol_sz) - SRSLTE_CP_LEN_NORM(0, symbol_sz))                                             \
        : (2 * SRSLTE_CP_LEN_EXT(symbol_sz) - SRSLTE_CP_LEN_NORM(0, symbol_sz) - SRSLTE_CP_LEN_NORM(1, symbol_sz)))
 
-#define SRSLTE_FDD_NOF_HARQ (TX_DELAY + FDD_HARQ_DELAY_MS)
+#define SRSLTE_FDD_NOF_HARQ (FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS)
 #define SRSLTE_MAX_HARQ_PROC 15
 
 #define SRSLTE_NOF_LTE_BANDS 58

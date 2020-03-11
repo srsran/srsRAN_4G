@@ -118,7 +118,7 @@ int main(int argc, char** argv)
   int ret = SRSLTE_SUCCESS;
 
   // Simulation Constants
-  const uint32_t  nof_workers        = FDD_HARQ_DELAY_MS;
+  const uint32_t  nof_workers        = FDD_HARQ_DELAY_UL_MS;
   const uint32_t  nof_tti            = 10240;
   const float     enable_probability = 0.9f;
   srslte_random_t random_gen         = srslte_random_init(1234);

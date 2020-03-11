@@ -40,7 +40,7 @@ namespace sched_utils {
 
 uint32_t tti_subtract(uint32_t tti1, uint32_t tti2)
 {
-  return (tti1 + 10240 - tti2) % 10240;
+  return TTI_SUB(tti1, tti2);
 }
 
 uint32_t max_tti(uint32_t tti1, uint32_t tti2)
@@ -378,7 +378,7 @@ int sched::dl_sched(uint32_t tti, uint32_t cc_idx, sched_interface::dl_sched_res
   }
 
   std::lock_guard<std::mutex> lock(sched_mutex);
-  uint32_t                    tti_rx = sched_utils::tti_subtract(tti, TX_DELAY_DL);
+  uint32_t                    tti_rx = sched_utils::tti_subtract(tti, FDD_HARQ_DELAY_UL_MS);
   last_tti                           = sched_utils::max_tti(last_tti, tti_rx);
 
   if (cc_idx < carrier_schedulers.size()) {
@@ -401,7 +401,7 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
 
   std::lock_guard<std::mutex> lock(sched_mutex);
   // Compute scheduling Result for tti_rx
-  uint32_t tti_rx = sched_utils::tti_subtract(tti, TX_DELAY_DL + FDD_HARQ_DELAY_DL_MS);
+  uint32_t tti_rx = sched_utils::tti_subtract(tti, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
 
   if (cc_idx < carrier_schedulers.size()) {
     const sf_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);

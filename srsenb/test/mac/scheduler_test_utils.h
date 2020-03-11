@@ -33,8 +33,8 @@ struct tti_counter {
   tti_counter() = default;
   void         set_start_tti(uint32_t tti_) { counter = tti_; }
   uint32_t     tti_rx() const { return counter % 10240u; }
-  tti_counter  tic_tx_dl() const { return tti_counter{counter + TX_DELAY_DL}; }
-  tti_counter  tic_tx_ul() const { return tti_counter{counter + TX_DELAY_DL + FDD_HARQ_DELAY_DL_MS}; }
+  tti_counter  tic_tx_dl() const { return tti_counter{counter + FDD_HARQ_DELAY_UL_MS}; }
+  tti_counter  tic_tx_ul() const { return tti_counter{counter + FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS}; }
   bool         operator==(const tti_counter& other) const { return counter == other.counter; }
   bool         operator!=(const tti_counter& other) const { return counter != other.counter; }
   bool         operator<(const tti_counter& other) const { return counter < other.counter; }

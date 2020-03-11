@@ -205,7 +205,7 @@ rbgmask_t dl_harq_proc::get_rbgmask() const
 bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t tti_tx_dl) const
 {
   uint32_t tti_diff = srslte_tti_interval(tti_tx_dl, tti);
-  return (tti_diff < (10240 / 2)) and (tti_diff >= TX_DELAY_DL + FDD_HARQ_DELAY_DL_MS) and
+  return (tti_diff < (10240 / 2)) and (tti_diff >= FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS) and
          has_pending_retx_common(tb_idx);
 }
 
@@ -364,8 +364,8 @@ ul_harq_proc* harq_entity::get_ul_harq(uint32_t tti_tx_ul)
 
 void harq_entity::reset_pending_data(uint32_t tti_rx)
 {
-  uint32_t tti_tx_ul = TTI_ADD(tti_rx, (TX_DELAY_DL + FDD_HARQ_DELAY_DL_MS));
-  uint32_t tti_tx_dl = TTI_ADD(tti_rx, TX_DELAY_DL);
+  uint32_t tti_tx_ul = TTI_ADD(tti_rx, (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS));
+  uint32_t tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS);
 
   // Reset ACK state of UL Harq
   get_ul_harq(tti_tx_ul)->reset_pending_data();

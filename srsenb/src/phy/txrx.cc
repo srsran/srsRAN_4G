@@ -139,7 +139,7 @@ void txrx::run_thread()
 
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);
-      srslte_timestamp_add(&tx_time, 0, FDD_HARQ_DELAY_MS * 1e-3);
+      srslte_timestamp_add(&tx_time, 0, FDD_HARQ_DELAY_UL_MS * 1e-3);
 
       Debug("Setting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d\n",
             tti,

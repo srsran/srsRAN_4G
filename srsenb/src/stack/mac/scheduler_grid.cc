@@ -48,10 +48,10 @@ const char* alloc_outcome_t::to_string() const
 
 tti_params_t::tti_params_t(uint32_t tti_rx_) :
   tti_rx(tti_rx_),
-  sf_idx_tx_dl(TTI_ADD(tti_rx, TX_DELAY_DL) % 10),
-  tti_tx_dl(TTI_ADD(tti_rx, TX_DELAY_DL)),
-  tti_tx_ul(TTI_ADD(tti_rx, (TX_DELAY_DL + FDD_HARQ_DELAY_DL_MS))),
-  sfn_tx_dl(TTI_ADD(tti_rx, TX_DELAY_DL) / 10)
+  sf_idx_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS) % 10),
+  tti_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS)),
+  tti_tx_ul(TTI_ADD(tti_rx, (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS))),
+  sfn_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS) / 10)
 {
 }
 
