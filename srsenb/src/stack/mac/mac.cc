@@ -203,13 +203,13 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
 
   // Add RNTI to the PHY (pregenerate signals) now instead of after PRACH
   if (not ue_ptr->is_phy_added) {
-    ue_ptr->is_phy_added = true;
-    Info("Registering rnti=0x%x to PHY...\n", rnti);
-    // Register new user in PHY
-    if (phy_h->add_rnti(rnti, 0, false) == SRSLTE_ERROR) {
-      Error("Registering new ue rnti=0x%x to PHY\n", rnti);
+    Info("Registering RNTI=0x%X to PHY...\n", rnti);
+    // Register new user in PHY with first CC index
+    if (phy_h->add_rnti(rnti, cfg->supported_cc_list.front().enb_cc_idx, false) == SRSLTE_ERROR) {
+      Error("Registering new UE RNTI=0x%X to PHY\n", rnti);
     }
-    Info("Done registering rnti=0x%x to PHY...\n", rnti);
+    Info("Done registering RNTI=0x%X to PHY...\n", rnti);
+    ue_ptr->is_phy_added = true;
   }
 
   // Update Scheduler configuration
