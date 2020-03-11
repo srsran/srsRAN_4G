@@ -332,14 +332,15 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof
 
     // push the pdu through the queue if received correctly
     if (crc) {
-      Info("Pushing PDU rnti=%d, tti=%d, nof_bytes=%d\n", rnti, tti, nof_bytes);
+      Info("Pushing PDU rnti=0x%x, tti=%d, nof_bytes=%d\n", rnti, tti, nof_bytes);
       ue_db[rnti]->push_pdu(ue_cc_idx, tti, nof_bytes);
       stack_task_queue.push([this]() { process_pdus(); });
     } else {
       ue_db[rnti]->deallocate_pdu(ue_cc_idx, tti);
     }
 
-    ret = scheduler.ul_crc_info(tti, rnti, ue_cc_idx, crc);
+    // Scheduler uses eNB's CC mapping
+    ret = scheduler.ul_crc_info(tti, rnti, enb_cc_idx, crc);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
   }

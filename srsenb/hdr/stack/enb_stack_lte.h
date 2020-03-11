@@ -84,13 +84,13 @@ public:
     return mac.snr_info(tti, rnti, cc_idx, snr_db);
   }
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override { return mac.ta_info(tti, rnti, ta_us); }
-  int ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) final
+  int ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) final
   {
-    return mac.ack_info(tti, rnti, cc_idx, tb_idx, ack);
+    return mac.ack_info(tti, rnti, enb_cc_idx, tb_idx, ack);
   }
-  int crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t nof_bytes, bool crc_res) final
+  int crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc_res) final
   {
-    return mac.crc_info(tti, rnti, cc_idx, nof_bytes, crc_res);
+    return mac.crc_info(tti, rnti, enb_cc_idx, nof_bytes, crc_res);
   }
   int get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res) final { return mac.get_dl_sched(tti, dl_sched_res); }
   int get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) final

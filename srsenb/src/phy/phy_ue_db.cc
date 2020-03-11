@@ -128,7 +128,7 @@ inline uint32_t phy_ue_db::_get_ue_cc_idx(uint16_t rnti, uint32_t enb_cc_idx) co
 inline int phy_ue_db::_assert_rnti(uint16_t rnti) const
 {
   if (not ue_db.count(rnti)) {
-    ERROR("Trying to access RNTI x%x, it does not exist.\n", rnti);
+    ERROR("Trying to access RNTI 0x%X, it does not exist.\n", rnti);
     return SRSLTE_ERROR;
   }
 
@@ -144,7 +144,7 @@ inline int phy_ue_db::_assert_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) const
 
   // Check Component Carrier is part of UE SCell map
   if (_get_ue_cc_idx(rnti, enb_cc_idx) == SRSLTE_MAX_CARRIERS) {
-    ERROR("Trying to access cell/carrier index %d in RNTI x%x. It does not exist.\n", enb_cc_idx, rnti);
+    ERROR("Trying to access cell/carrier index %d in RNTI 0x%X. It does not exist.\n", enb_cc_idx, rnti);
     return SRSLTE_ERROR;
   }
 
@@ -174,7 +174,7 @@ inline int phy_ue_db::_assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx)
 
   // Check SCell is active, ignore PCell state
   if (ue_cc_idx == SRSLTE_MAX_CARRIERS) {
-    ERROR("Out-of-bounds UE cell/carrier %d for RNTI x%x.\n", ue_cc_idx, rnti);
+    ERROR("Out-of-bounds UE cell/carrier %d for RNTI 0x%X.\n", ue_cc_idx, rnti);
     return SRSLTE_ERROR;
   }
 
@@ -190,7 +190,7 @@ inline int phy_ue_db::_assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx)
   // Return error if not PCell or not Active SCell
   auto& cell_info = ue_db.at(rnti).cell_info[ue_cc_idx];
   if (cell_info.state != cell_state_primary and cell_info.state != cell_state_secondary_active) {
-    ERROR("Failed to assert active UE cell/carrier %d for RNTI x%x", ue_cc_idx, rnti);
+    ERROR("Failed to assert active UE cell/carrier %d for RNTI 0x%X", ue_cc_idx, rnti);
     return SRSLTE_ERROR;
   }
 
@@ -206,7 +206,7 @@ inline int phy_ue_db::_assert_active_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) 
   // Check SCell is active, ignore PCell state
   auto& cell_info = ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)];
   if (cell_info.state != cell_state_primary and cell_info.state != cell_state_secondary_active) {
-    ERROR("Failed to assert active eNb cell/carrier %d for RNTI x%x", enb_cc_idx, rnti);
+    ERROR("Failed to assert active eNb cell/carrier %d for RNTI 0x%X", enb_cc_idx, rnti);
     return SRSLTE_ERROR;
   }
 
@@ -305,7 +305,7 @@ void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, boo
 
   // If scell is default only complain
   if (activate and cell_info.state == cell_state_none) {
-    ERROR("RNTI x%x SCell %d has received an activation MAC command but it was not configured\n", rnti, ue_cc_idx);
+    ERROR("RNTI 0x%X SCell %d has received an activation MAC command but it was not configured\n", rnti, ue_cc_idx);
     return;
   }
 
