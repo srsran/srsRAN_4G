@@ -38,6 +38,15 @@ public:
   std::string eea;
 };
 
+class nas_ext_args_t
+{
+public:
+  nas_ext_args_t() : enable(false) {}
+
+  bool        enable;
+  std::string sock_path;
+};
+
 // EMM states (3GPP 24.302 v10.0.0)
 typedef enum {
   EMM_STATE_NULL = 0,
