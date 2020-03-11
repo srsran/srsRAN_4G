@@ -95,13 +95,25 @@ private:
     assert(ipAddr[ip_version.c_str()].HasMember("Addr"));
     const Value& addr = ipAddr[ip_version.c_str()]["Addr"];
 
-    // Todo: Handle command
+    string resp = "";
+    // TODO: Handle command
+    if (ctrl.HasMember("Req")) {
+      const Value& req = ctrl["Req"];
+
+      // Don't send a ctrl cnf for UDP or ICMP Close
+      if (!(req.HasMember("UDP") && req["UDP"].HasMember("Close") && req["UDP"]["Close"].GetBool()) &&
+          !(req.HasMember("ICMP") && req["ICMP"].HasMember("Close") && req["ICMP"]["Close"].GetBool())) {
+        resp = ttcn3_helpers::get_ctrl_cnf(protocol.GetString(), ip_version, addr.GetString());
+      }
+    } else {
+      assert(false);
+    }
 
     // Send response
-    string resp = ttcn3_helpers::get_ctrl_cnf(protocol.GetString(), ip_version, addr.GetString());
-
-    log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
-    send((const uint8_t*)resp.c_str(), resp.length());
+    if (resp.length() > 0) {
+      log->info("Sending %s to tester (%zd B)\n", resp.c_str(), resp.length());
+      send((const uint8_t*)resp.c_str(), resp.length());
+    }
   }
 };
 
