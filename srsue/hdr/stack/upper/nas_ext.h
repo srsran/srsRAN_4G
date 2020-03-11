@@ -35,6 +35,7 @@
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/nas_common.h"
 #include "srsue/hdr/stack/upper/nas_ext.h"
+#include "srsue/hdr/stack/upper/nas_extif.h"
 #include "srsue/hdr/stack/upper/nas_metrics.h"
 
 using srslte::byte_buffer_t;
@@ -76,6 +77,9 @@ public:
 
 private:
   nas_ext_args_t cfg = {};
+
+  // Interface to an external NAS entity
+  std::unique_ptr<nas_extif_base> iface;
 };
 
 } // namespace srsue

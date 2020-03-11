@@ -32,6 +32,7 @@
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/nas_common.h"
 #include "srsue/hdr/stack/upper/nas_ext.h"
+#include "srsue/hdr/stack/upper/nas_extif_unix.h"
 #include "srsue/hdr/stack/upper/nas_metrics.h"
 
 using namespace srslte;
@@ -44,8 +45,12 @@ void nas_ext::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interf
   rrc  = rrc_;
   gw   = gw_;
 
-  // TODO: parse the configuration
-  // TODO: init the UNIX domain socket
+  auto rx_cb = [this](const srslte::byte_buffer_t& pdu) {
+    // TODO: parse received payload
+  };
+
+  std::unique_ptr<nas_extif_unix> iface_(new nas_extif_unix(nas_log, rx_cb, cfg.sock_path));
+  iface = std::move(iface_);
 }
 
 void nas_ext::get_metrics(nas_metrics_t* m)
@@ -57,7 +62,9 @@ void nas_ext::get_metrics(nas_metrics_t* m)
 
 void nas_ext::stop()
 {
-  // TODO: close the UNIX domain socket connection
+  // Close the UNIX domain socket connection
+  iface->close();
+  iface.release();
 }
 
 /*******************************************************************************
