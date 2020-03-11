@@ -167,7 +167,16 @@ void sf_worker::work_imp()
   srslte_ul_sf_cfg_t ul_sf = {};
   srslte_dl_sf_cfg_t dl_sf = {};
 
+  // Get Transmission buffers
+  srslte::rf_buffer_t tx_buffer = {};
+  for (uint32_t cc = 0; cc < phy->get_nof_carriers(); cc++) {
+    for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
+      tx_buffer.set(cc, ant, phy->get_nof_ports(0), cc_workers[cc]->get_buffer_tx(ant));
+    }
+  }
+
   if (!running) {
+    phy->worker_end(this, tx_buffer, 0, tx_time);
     return;
   }
 
@@ -194,12 +203,14 @@ void sf_worker::work_imp()
   if (sf_type == SRSLTE_SF_NORM) {
     if (stack->get_dl_sched(tti_tx_dl, dl_grants[t_tx_dl]) < 0) {
       Error("Getting DL scheduling from MAC\n");
+      phy->worker_end(this, tx_buffer, 0, tx_time);
       return;
     }
   } else {
     dl_grants[t_tx_dl][0].cfi = mbsfn_cfg.non_mbsfn_region_length;
     if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, dl_grants[t_tx_dl])) {
       Error("Getting MCH packets from MAC\n");
+      phy->worker_end(this, tx_buffer, 0, tx_time);
       return;
     }
   }
@@ -211,6 +222,7 @@ void sf_worker::work_imp()
   // Get UL scheduling for the TX TTI from MAC
   if (stack->get_ul_sched(tti_tx_ul, ul_grants[t_tx_ul]) < 0) {
     Error("Getting UL scheduling from MAC\n");
+    phy->worker_end(this, tx_buffer, 0, tx_time);
     return;
   }
 
@@ -226,14 +238,6 @@ void sf_worker::work_imp()
   // Process DL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
     cc_workers[cc]->work_dl(dl_sf, phy->dl_grants[t_tx_dl][cc], phy->ul_grants[t_tx_ul][cc], &mbsfn_cfg);
-  }
-
-  // Get Transmission buffers
-  srslte::rf_buffer_t tx_buffer = {};
-  for (uint32_t cc = 0; cc < phy->get_nof_carriers(); cc++) {
-    for (uint32_t ant = 0; ant < phy->get_nof_ports(0); ant++) {
-      tx_buffer.set(cc, ant, phy->get_nof_ports(0), cc_workers[cc]->get_buffer_tx(ant));
-    }
   }
 
   Debug("Sending to radio\n");
