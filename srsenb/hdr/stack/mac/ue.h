@@ -38,14 +38,15 @@ namespace srsenb {
 class ue : public srslte::read_pdu_interface, public srslte::pdu_queue::process_callback
 {
 public:
-  ue(uint16_t           rnti,
-     uint32_t           nof_prb,
-     sched_interface*   sched,
-     rrc_interface_mac* rrc_,
-     rlc_interface_mac* rlc,
-     srslte::log*       log_,
-     uint32_t           nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
-     uint32_t           nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB);
+  ue(uint16_t                 rnti,
+     uint32_t                 nof_prb,
+     sched_interface*         sched,
+     rrc_interface_mac*       rrc_,
+     rlc_interface_mac*       rlc,
+     phy_interface_stack_lte* phy_,
+     srslte::log*             log_,
+     uint32_t                 nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
+     uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB);
   virtual ~ue();
 
   void reset();
@@ -140,10 +141,11 @@ private:
   srslte::sch_pdu   mac_msg_dl, mac_msg_ul;
   srslte::mch_pdu   mch_mac_msg_dl;
 
-  rlc_interface_mac* rlc   = nullptr;
-  rrc_interface_mac* rrc   = nullptr;
-  srslte::log*       log_h = nullptr;
-  sched_interface*   sched = nullptr;
+  rlc_interface_mac*       rlc   = nullptr;
+  rrc_interface_mac*       rrc   = nullptr;
+  phy_interface_stack_lte* phy   = nullptr;
+  srslte::log*             log_h = nullptr;
+  sched_interface*         sched = nullptr;
 
   bool conres_id_available = false;
 

@@ -34,19 +34,21 @@
 
 namespace srsenb {
 
-ue::ue(uint16_t           rnti_,
-       uint32_t           nof_prb_,
-       sched_interface*   sched_,
-       rrc_interface_mac* rrc_,
-       rlc_interface_mac* rlc_,
-       srslte::log*       log_,
-       uint32_t           nof_rx_harq_proc_,
-       uint32_t           nof_tx_harq_proc_) :
+ue::ue(uint16_t                 rnti_,
+       uint32_t                 nof_prb_,
+       sched_interface*         sched_,
+       rrc_interface_mac*       rrc_,
+       rlc_interface_mac*       rlc_,
+       phy_interface_stack_lte* phy_,
+       srslte::log*             log_,
+       uint32_t                 nof_rx_harq_proc_,
+       uint32_t                 nof_tx_harq_proc_) :
   rnti(rnti_),
   nof_prb(nof_prb_),
   sched(sched_),
   rrc(rrc_),
   rlc(rlc_),
+  phy(phy_),
   log_h(log_),
   mac_msg_dl(20, log_),
   mch_mac_msg_dl(10, log_),
@@ -474,6 +476,7 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
           active_scell_list[enb_ue_cc_map[enb_cc_idx]] = true;
         }
         if (enb_cc_idx == enb_ue_cc_map.size() and pdu->get()->set_scell_activation_cmd(active_scell_list)) {
+          phy->set_activation_deactivation_scell(rnti, active_scell_list);
           Info("CE:    Added SCell Activation CE.\n");
           // Allocate and initialize Rx/Tx softbuffers for new carriers (exclude PCell)
           allocate_cc_buffers(active_scell_list.size() - 1);
