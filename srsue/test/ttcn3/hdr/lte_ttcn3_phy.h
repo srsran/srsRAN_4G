@@ -93,7 +93,7 @@ public:
 
   // phy_interface_mac_lte
   void         configure_prach_params();
-  void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm);
+  void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec);
   prach_info_t prach_get_info();
   void         sr_send();
   int          sr_last_tx_tti();

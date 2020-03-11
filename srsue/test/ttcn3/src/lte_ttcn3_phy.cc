@@ -194,7 +194,7 @@ void lte_ttcn3_phy::configure_prach_params()
   log.debug("%s not implemented.\n", __FUNCTION__);
 };
 
-void lte_ttcn3_phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
+void lte_ttcn3_phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec)
 {
   log.info("Sending PRACH with preamble %d on PCID=%d\n", preamble_idx, pcell.info.id);
   prach_tti_tx = current_tti;

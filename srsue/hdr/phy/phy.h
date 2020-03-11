@@ -85,7 +85,7 @@ public:
   void configure_prach_params() final;
 
   /* Transmits PRACH in the next opportunity */
-  void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) final;
+  void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec) final;
   prach_info_t prach_get_info() final;
 
   /* Indicates the transmission of a SR signal in the next opportunity */
@@ -158,6 +158,7 @@ private:
 
   /* Current time advance */
   uint32_t n_ta = 0;
+  uint32_t n_ta_base = 0;
 
   static void set_default_args(phy_args_t& args);
   bool check_args(const phy_args_t& args);

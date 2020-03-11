@@ -501,7 +501,7 @@ int main(int argc, char** argv)
 
   // 3. Transmit PRACH
   phy_test->get_phy_interface_mac()->configure_prach_params();
-  phy_test->get_phy_interface_mac()->prach_send(0, -1, 0.0f);
+  phy_test->get_phy_interface_mac()->prach_send(0, -1, 0.0f, 0.0f);
   TESTASSERT(phy_test->get_radio()->wait_tx(default_timeout, false));
 
   // 4. Configure RNTI with PUCCH and check transmission

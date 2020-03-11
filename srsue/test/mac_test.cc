@@ -123,7 +123,7 @@ public:
   // phy_interface_mac_lte
   void configure_prach_params(){};
 
-  void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
+  void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec)
   {
     prach_delay_cnt   = 0;
     last_preamble_idx = preamble_idx;

@@ -544,8 +544,8 @@ public:
   /* Configure PRACH using parameters written by RRC */
   virtual void configure_prach_params() = 0;
 
-  virtual void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;
-  virtual prach_info_t prach_get_info()                                                                = 0;
+  virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec) = 0;
+  virtual prach_info_t prach_get_info()                                                                           = 0;
 
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send()        = 0;
