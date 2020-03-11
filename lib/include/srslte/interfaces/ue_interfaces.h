@@ -38,9 +38,9 @@
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/interfaces/rrc_interface_types.h"
-#include "srslte/upper/pdcp_config.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
+#include "srslte/upper/pdcp_config.h"
 #include "srslte/upper/pdcp_entity_base.h"
 
 namespace srsue {
@@ -220,8 +220,8 @@ public:
   virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)                            = 0;
   virtual void add_bearer(uint32_t lcid, srslte::pdcp_config_t cnfg)                                                = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                                    = 0;
-  virtual void config_security(uint32_t lcid, srslte::as_security_config_t sec_cfg)                                    = 0;
-  virtual void config_security_all(srslte::as_security_config_t sec_cfg)                                               = 0;
+  virtual void config_security(uint32_t lcid, srslte::as_security_config_t sec_cfg)                                 = 0;
+  virtual void config_security_all(srslte::as_security_config_t sec_cfg)                                            = 0;
   virtual void enable_integrity(uint32_t lcid, srslte::srslte_direction_t direction)                                = 0;
   virtual void enable_encryption(uint32_t                   lcid,
                                  srslte::srslte_direction_t direction = srslte::srslte_direction_t::DIRECTION_TXRX) = 0;
@@ -463,40 +463,40 @@ typedef struct {
   int worker_cpu_mask   = -1;
   int sync_cpu_affinity = -1;
 
-  uint32_t      nof_carriers                     = 1;
-  uint32_t      nof_rx_ant                       = 1;
-  std::string   equalizer_mode                   = "mmse";
-  int           cqi_max                          = 15;
-  int           cqi_fixed                        = -1;
-  float         snr_ema_coeff                    = 0.1f;
-  std::string   snr_estim_alg                    = "refs";
-  bool          agc_enable                       = true;
-  bool          correct_sync_error               = false;
-  bool          cfo_is_doppler                   = false;
-  bool          cfo_integer_enabled              = false;
-  float         cfo_correct_tol_hz               = 1.0f;
-  float         cfo_pss_ema                      = DEFAULT_CFO_EMA_TRACK;
-  float         cfo_loop_bw_pss                  = DEFAULT_CFO_BW_PSS;
-  float         cfo_loop_bw_ref                  = DEFAULT_CFO_BW_REF;
-  float         cfo_loop_ref_min                 = DEFAULT_CFO_REF_MIN;
-  float         cfo_loop_pss_tol                 = DEFAULT_CFO_PSS_MIN;
-  float         sfo_ema                          = DEFAULT_SFO_EMA_COEFF;
-  uint32_t      sfo_correct_period               = DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD;
-  uint32_t      cfo_loop_pss_conv                = DEFAULT_PSS_STABLE_TIMEOUT;
-  uint32_t      cfo_ref_mask                     = 1023;
-  bool          interpolate_subframe_enabled     = false;
-  bool          estimator_fil_auto               = false;
-  float         estimator_fil_stddev             = 1.0f;
-  uint32_t      estimator_fil_order              = 4;
-  float         snr_to_cqi_offset                = 0.0f;
-  std::string   sss_algorithm                    = "full";
-  float         rx_gain_offset                   = 62;
-  bool          pdsch_csi_enabled                = true;
-  bool          pdsch_8bit_decoder               = false;
-  uint32_t      intra_freq_meas_len_ms           = 20;
-  uint32_t      intra_freq_meas_period_ms        = 200;
-  bool          pregenerate_signals              = false;
-  float         force_ul_amplitude               = 0.0f;
+  uint32_t    nof_carriers                 = 1;
+  uint32_t    nof_rx_ant                   = 1;
+  std::string equalizer_mode               = "mmse";
+  int         cqi_max                      = 15;
+  int         cqi_fixed                    = -1;
+  float       snr_ema_coeff                = 0.1f;
+  std::string snr_estim_alg                = "refs";
+  bool        agc_enable                   = true;
+  bool        correct_sync_error           = false;
+  bool        cfo_is_doppler               = false;
+  bool        cfo_integer_enabled          = false;
+  float       cfo_correct_tol_hz           = 1.0f;
+  float       cfo_pss_ema                  = DEFAULT_CFO_EMA_TRACK;
+  float       cfo_loop_bw_pss              = DEFAULT_CFO_BW_PSS;
+  float       cfo_loop_bw_ref              = DEFAULT_CFO_BW_REF;
+  float       cfo_loop_ref_min             = DEFAULT_CFO_REF_MIN;
+  float       cfo_loop_pss_tol             = DEFAULT_CFO_PSS_MIN;
+  float       sfo_ema                      = DEFAULT_SFO_EMA_COEFF;
+  uint32_t    sfo_correct_period           = DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD;
+  uint32_t    cfo_loop_pss_conv            = DEFAULT_PSS_STABLE_TIMEOUT;
+  uint32_t    cfo_ref_mask                 = 1023;
+  bool        interpolate_subframe_enabled = false;
+  bool        estimator_fil_auto           = false;
+  float       estimator_fil_stddev         = 1.0f;
+  uint32_t    estimator_fil_order          = 4;
+  float       snr_to_cqi_offset            = 0.0f;
+  std::string sss_algorithm                = "full";
+  float       rx_gain_offset               = 62;
+  bool        pdsch_csi_enabled            = true;
+  bool        pdsch_8bit_decoder           = false;
+  uint32_t    intra_freq_meas_len_ms       = 20;
+  uint32_t    intra_freq_meas_period_ms    = 200;
+  bool        pregenerate_signals          = false;
+  float       force_ul_amplitude           = 0.0f;
 
   float    in_sync_rsrp_dbm_th    = -130.0f;
   float    in_sync_snr_db_th      = 1.0f;
@@ -544,8 +544,9 @@ public:
   /* Configure PRACH using parameters written by RRC */
   virtual void configure_prach_params() = 0;
 
-  virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec) = 0;
-  virtual prach_info_t prach_get_info()                                                                           = 0;
+  virtual void
+                       prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec = 0.0f) = 0;
+  virtual prach_info_t prach_get_info() = 0;
 
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send()        = 0;

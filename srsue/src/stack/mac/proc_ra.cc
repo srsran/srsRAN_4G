@@ -274,7 +274,6 @@ void ra_proc::initialization()
   // Instruct phy to configure PRACH
   state = WAITING_PHY_CONFIG;
   stack->start_prach_configuration();
-
 }
 
 /* Resource selection as defined in 5.1.2 */
@@ -343,7 +342,7 @@ void ra_proc::preamble_transmission()
   received_target_power_dbm = rach_cfg.iniReceivedTargetPower + delta_preamble_db +
                               (preambleTransmissionCounter - 1) * rach_cfg.powerRampingStep;
 
-  phy_h->prach_send(sel_preamble, sel_maskIndex - 1, received_target_power_dbm, 0.0f);
+  phy_h->prach_send(sel_preamble, sel_maskIndex - 1, received_target_power_dbm);
   rntis->rar_rnti        = 0;
   ra_tti                 = 0;
   rar_received           = false;
@@ -623,11 +622,11 @@ void ra_proc::update_rar_window(int& rar_window_start, int& rar_window_length)
 {
   if (state != RESPONSE_RECEPTION) {
     // reset RAR window params to default values to disable RAR search
-    rar_window_start = -1;
+    rar_window_start  = -1;
     rar_window_length = -1;
   } else {
     rar_window_length = rach_cfg.responseWindowSize;
-    rar_window_start = rar_window_st;
+    rar_window_start  = rar_window_st;
   }
   rDebug("rar_window_start=%d, rar_window_length=%d\n", rar_window_start, rar_window_length);
 }
