@@ -26,7 +26,6 @@
 #include <srsenb/hdr/phy/phy.h>
 #include <srslte/common/test_common.h>
 #include <srslte/common/threads.h>
-#include <srslte/common/tti_sync_cv.h>
 #include <srslte/interfaces/enb_interfaces.h>
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/phch/pusch_cfg.h>
@@ -263,7 +262,6 @@ private:
   std::mutex                  mutex;
   std::condition_variable     cvar;
   srslte::log_filter          log_h;
-  srslte::tti_sync_cv         tti_sync;
   srslte_softbuffer_tx_t      softbuffer_tx                                           = {};
   srslte_softbuffer_rx_t      softbuffer_rx[SRSLTE_MAX_CARRIERS][SRSLTE_FDD_NOF_HARQ] = {};
   uint8_t*                    data                                                    = nullptr;
@@ -481,9 +479,6 @@ public:
     // Notify test engine
     notify_get_dl_sched();
 
-    // Wait for UE
-    tti_sync.wait();
-
     /// Make sure it writes the first cell always
     dl_sched_res[0].cfi = cfi;
 
@@ -631,7 +626,6 @@ public:
   void tti_clock() override
   {
     notify_tti_clock();
-    tti_sync.increase();
   }
   int run_tti()
   {
@@ -1224,7 +1218,7 @@ int main(int argc, char** argv)
   unique_phy_test_bench test_bench = unique_phy_test_bench(new phy_test_bench(test_args));
 
   // Run Simulation
-  for (uint32_t i = 0; i < test_args.duration + 1; i++) {
+  for (uint32_t i = 0; i < test_args.duration; i++) {
     TESTASSERT(test_bench->run_tti() >= SRSLTE_SUCCESS);
   }
 
