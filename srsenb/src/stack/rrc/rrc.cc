@@ -1832,103 +1832,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   phy_cfg->pdsch_cfg_ded_present = true;
   phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
 
-  // Add SCells. Note: For now the UE supports all carriers
-  if (parent->cfg.cell_list.size() > 1) {
-    conn_reconf->non_crit_ext_present                                                     = true;
-    conn_reconf->non_crit_ext.non_crit_ext_present                                        = true;
-    conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
-    conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
-    auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
-    list.resize(parent->cfg.cell_list.size() - 1);
-    uint32_t ue_cc_idx = 1;
-    for (uint32_t enb_cc_idx = 0; enb_cc_idx < parent->cfg.cell_list.size(); ++enb_cc_idx) {
-      if (current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx == enb_cc_idx) {
-        continue;
-      }
-      const auto&            cell_cfg = parent->cfg.cell_list[enb_cc_idx];
-      scell_to_add_mod_r10_s cell;
-      cell.scell_idx_r10                        = ue_cc_idx;
-      cell.cell_identif_r10_present             = true;
-      cell.cell_identif_r10.pci_r10             = cell_cfg.pci;
-      cell.cell_identif_r10.dl_carrier_freq_r10 = cell_cfg.dl_earfcn;
-      cell.rr_cfg_common_scell_r10_present      = true;
-      asn1::number_to_enum(cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.dl_bw_r10, parent->cfg.cell.nof_prb);
-      cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.value =
-          ant_info_common_s::ant_ports_count_opts::an1;
-      cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.phich_cfg_r10.phich_dur.value = phich_cfg_s::phich_dur_opts::normal;
-      cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.phich_cfg_r10.phich_res.value = phich_cfg_s::phich_res_opts::one;
-      cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.ref_sig_pwr = -5;
-      cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.p_b         = 1;
-      cell.rr_cfg_common_scell_r10.ul_cfg_r10_present                              = true;
-      auto& ul_cfg                                               = cell.rr_cfg_common_scell_r10.ul_cfg_r10;
-      ul_cfg.ul_freq_info_r10.add_spec_emission_scell_r10        = 1;
-      ul_cfg.p_max_r10_present                                   = true;
-      ul_cfg.p_max_r10                                           = 10;
-      ul_cfg.ul_pwr_ctrl_common_scell_r10.p0_nominal_pusch_r10   = -67;
-      ul_cfg.ul_pwr_ctrl_common_scell_r10.alpha_r10.value        = alpha_r12_opts::al07;
-      ul_cfg.srs_ul_cfg_common_r10.set_setup().srs_bw_cfg.value  = srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_opts::bw7;
-      ul_cfg.srs_ul_cfg_common_r10.setup().srs_sf_cfg.value      = srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_opts::sc3;
-      ul_cfg.srs_ul_cfg_common_r10.setup().ack_nack_srs_simul_tx = true;
-      ul_cfg.ul_cp_len_r10.value                                 = ul_cp_len_opts::len1;
-      ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.n_sb           = 1;
-      ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.hop_mode.value =
-          pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_opts::inter_sub_frame;
-      ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.pusch_hop_offset            = 2;
-      ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.enable64_qam                = false;
-      ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.group_hop_enabled         = false;
-      ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.group_assign_pusch        = 0;
-      ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.seq_hop_enabled           = false;
-      ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.cyclic_shift              = 0;
-      cell.rr_cfg_ded_scell_r10_present                                       = true;
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10_present                = true;
-      cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10_present = true;
-      auto& nonul_cfg_ded                          = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10;
-      nonul_cfg_ded.ant_info_r10_present           = true;
-      nonul_cfg_ded.ant_info_r10.tx_mode_r10.value = ant_info_ded_r10_s::tx_mode_r10_opts::tm1;
-      nonul_cfg_ded.ant_info_r10.ue_tx_ant_sel.set(setup_opts::release);
-      nonul_cfg_ded.cross_carrier_sched_cfg_r10_present                                            = true;
-      nonul_cfg_ded.cross_carrier_sched_cfg_r10.sched_cell_info_r10.set_own_r10().cif_presence_r10 = false;
-      nonul_cfg_ded.pdsch_cfg_ded_r10_present                                                      = true;
-      nonul_cfg_ded.pdsch_cfg_ded_r10.p_a.value         = pdsch_cfg_ded_s::p_a_opts::db3;
-      auto& ul_cfg_ded                                  = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10;
-      ul_cfg_ded.ant_info_ul_r10_present                = true;
-      ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10_present = true;
-      ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10.value   = ant_info_ul_r10_s::tx_mode_ul_r10_opts::tm1;
-      ul_cfg_ded.pusch_cfg_ded_scell_r10_present        = true;
-      ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10_present      = true;
-      ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.p0_ue_pusch_r10 = 0;
-      ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.delta_mcs_enabled_r10.value =
-          ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_opts::en0;
-      ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.accumulation_enabled_r10   = true;
-      ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10_present = true;
-      ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10         = 3;
-      ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.pathloss_ref_linking_r10.value =
-          ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_opts::scell;
-      ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
-      ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
-      ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
-      auto& cqi_setup                 = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
-      cqi_setup.cqi_pucch_res_idx_r10 = 0;
-      cqi_setup.cqi_pmi_cfg_idx       = 168;
-      cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
-      cqi_setup.simul_ack_nack_and_cqi                       = false;
-      ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
-      auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
-      srs_setup.srs_bw.value                                 = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
-      srs_setup.srs_hop_bw.value                             = srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::hbw0;
-      srs_setup.freq_domain_position                         = 0;
-      srs_setup.dur                                          = true;
-      srs_setup.srs_cfg_idx                                  = 167;
-      srs_setup.tx_comb                                      = 0;
-      srs_setup.cyclic_shift.value                           = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
-      ul_cfg_ded.srs_ul_cfg_ded_v1020_present                = true;
-      ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10.value = srs_ant_port_opts::an1;
-      ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
-      ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
-      list.push_back(cell);
-      ue_cc_idx++;
-    }
-  }
+  // Add SCells
+  fill_scell_to_addmod_list(conn_reconf);
 
   apply_reconf_phy_config(*conn_reconf);
   current_sched_ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
@@ -2003,6 +1908,123 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+}
+
+//! Method to fill SCellToAddModList for SCell info
+void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
+{
+  if (parent->cfg.cell_list.size() > 1) {
+    conn_reconf->non_crit_ext_present                                                     = true;
+    conn_reconf->non_crit_ext.non_crit_ext_present                                        = true;
+    conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
+    conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
+    auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
+
+    // Add all SCells configured for the current PCell
+    uint32_t scell_idx = 1; // SCell start with 1, zero reserved for PCell
+    for (auto& scell : parent->cfg.cell_list.at(current_sched_ue_cfg.supported_cc_list.front().enb_cc_idx).scell_list) {
+      // get corresponding eNB cell for this scell
+      const auto& enb_cell =
+          std::find_if(parent->cfg.cell_list.begin(),
+                       parent->cfg.cell_list.end(),
+                       [scell](const cell_cfg_t& enb_cell_) { return (enb_cell_.cell_id == scell.cell_id); });
+      if (enb_cell != parent->cfg.cell_list.end()) {
+        scell_to_add_mod_r10_s cell;
+        cell.scell_idx_r10                        = scell_idx;
+        cell.cell_identif_r10_present             = true;
+        cell.cell_identif_r10.pci_r10             = enb_cell->pci;
+        cell.cell_identif_r10.dl_carrier_freq_r10 = enb_cell->dl_earfcn;
+        cell.rr_cfg_common_scell_r10_present      = true;
+        asn1::number_to_enum(cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.dl_bw_r10, parent->cfg.cell.nof_prb);
+        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.value =
+            ant_info_common_s::ant_ports_count_opts::an1;
+        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.phich_cfg_r10.phich_dur.value = phich_cfg_s::phich_dur_opts::normal;
+        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.phich_cfg_r10.phich_res.value = phich_cfg_s::phich_res_opts::one;
+        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.ref_sig_pwr = -5;
+        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.p_b         = 1;
+        cell.rr_cfg_common_scell_r10.ul_cfg_r10_present                              = true;
+        auto& ul_cfg                                              = cell.rr_cfg_common_scell_r10.ul_cfg_r10;
+        ul_cfg.ul_freq_info_r10.add_spec_emission_scell_r10       = 1;
+        ul_cfg.p_max_r10_present                                  = true;
+        ul_cfg.p_max_r10                                          = 10;
+        ul_cfg.ul_pwr_ctrl_common_scell_r10.p0_nominal_pusch_r10  = -67;
+        ul_cfg.ul_pwr_ctrl_common_scell_r10.alpha_r10.value       = alpha_r12_opts::al07;
+        ul_cfg.srs_ul_cfg_common_r10.set_setup().srs_bw_cfg.value = srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_opts::bw7;
+        ul_cfg.srs_ul_cfg_common_r10.setup().srs_sf_cfg.value     = srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_opts::sc3;
+        ul_cfg.srs_ul_cfg_common_r10.setup().ack_nack_srs_simul_tx = true;
+        ul_cfg.ul_cp_len_r10.value                                 = ul_cp_len_opts::len1;
+        ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.n_sb           = 1;
+        ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.hop_mode.value =
+            pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_opts::inter_sub_frame;
+        ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.pusch_hop_offset            = 2;
+        ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.enable64_qam                = false;
+        ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.group_hop_enabled         = false;
+        ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.group_assign_pusch        = 0;
+        ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.seq_hop_enabled           = false;
+        ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.cyclic_shift              = 0;
+        cell.rr_cfg_ded_scell_r10_present                                       = true;
+        cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10_present                = true;
+        cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10_present = true;
+        auto& nonul_cfg_ded                          = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10;
+        nonul_cfg_ded.ant_info_r10_present           = true;
+        nonul_cfg_ded.ant_info_r10.tx_mode_r10.value = ant_info_ded_r10_s::tx_mode_r10_opts::tm1;
+        nonul_cfg_ded.ant_info_r10.ue_tx_ant_sel.set(setup_opts::release);
+        nonul_cfg_ded.cross_carrier_sched_cfg_r10_present                                            = true;
+        nonul_cfg_ded.cross_carrier_sched_cfg_r10.sched_cell_info_r10.set_own_r10().cif_presence_r10 = false;
+        nonul_cfg_ded.pdsch_cfg_ded_r10_present                                                      = true;
+        nonul_cfg_ded.pdsch_cfg_ded_r10.p_a.value         = pdsch_cfg_ded_s::p_a_opts::db3;
+        auto& ul_cfg_ded                                  = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10;
+        ul_cfg_ded.ant_info_ul_r10_present                = true;
+        ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10_present = true;
+        ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10.value   = ant_info_ul_r10_s::tx_mode_ul_r10_opts::tm1;
+        ul_cfg_ded.pusch_cfg_ded_scell_r10_present        = true;
+        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10_present      = true;
+        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.p0_ue_pusch_r10 = 0;
+        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.delta_mcs_enabled_r10.value =
+            ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_opts::en0;
+        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.accumulation_enabled_r10   = true;
+        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10_present = true;
+        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10         = 3;
+        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.pathloss_ref_linking_r10.value =
+            ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_opts::scell;
+        ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
+        ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
+        ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
+        auto& cqi_setup                 = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
+        cqi_setup.cqi_pucch_res_idx_r10 = 0;
+        cqi_setup.cqi_pmi_cfg_idx       = 168;
+        cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
+        cqi_setup.simul_ack_nack_and_cqi                       = false;
+        ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
+        auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
+        srs_setup.srs_bw.value                                 = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
+        srs_setup.srs_hop_bw.value                             = srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::hbw0;
+        srs_setup.freq_domain_position                         = 0;
+        srs_setup.dur                                          = true;
+        srs_setup.srs_cfg_idx                                  = 167;
+        srs_setup.tx_comb                                      = 0;
+        srs_setup.cyclic_shift.value                           = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
+        ul_cfg_ded.srs_ul_cfg_ded_v1020_present                = true;
+        ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10.value = srs_ant_port_opts::an1;
+        ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
+        ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
+        list.push_back(cell);
+
+        // Create new PHY configuration structure for this SCell
+        phy_interface_rrc_lte::phy_rrc_dedicated_t scell_phy_rrc_ded = {};
+        srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, cell);
+        scell_phy_rrc_ded.configured = true;
+
+        // Get corresponding eNB CC index
+        scell_phy_rrc_ded.enb_cc_idx = std::distance(parent->cfg.cell_list.begin(), enb_cell);
+
+        // Append to PHY RRC config dedicated which will be applied further down
+        phy_rrc_dedicated_list.push_back(scell_phy_rrc_ded);
+
+        scell_idx++;
+      }
+    }
+  }
 }
 
 void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
@@ -2347,50 +2369,7 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
 
         // Handle Add/Modify SCell list
         if (reconfig_r1020.scell_to_add_mod_list_r10_present) {
-          for (const auto& scell_config : reconfig_r1020.scell_to_add_mod_list_r10) {
-            // UE SCell index
-            uint32_t scell_idx = scell_config.scell_idx_r10;
-
-            // Check that the SCell index is correct.
-            if (scell_idx == 0) {
-              // SCell index is reserved for PCell
-              parent->rrc_log->error("SCell index (%d) is reserved for PCell\n", scell_idx);
-
-            } else if (scell_idx < current_sched_ue_cfg.supported_cc_list.size()) {
-              // Get PHY configuration structure, create entry automatically
-              auto& phy_rrc_dedicated = phy_rrc_dedicated_list[scell_idx];
-
-              // Set eNb Cell/Carrier index
-              phy_rrc_dedicated.configured = true;
-              phy_rrc_dedicated.enb_cc_idx = current_sched_ue_cfg.supported_cc_list[scell_idx].enb_cc_idx;
-
-              // Set SCell configuration
-              srslte::set_phy_cfg_t_scell_config(&phy_rrc_dedicated.phy_cfg, scell_config);
-            } else {
-              // Out of bounds, log error
-              parent->rrc_log->error("SCell index (%d) points out of the supported list (%ld)\n",
-                                     scell_idx,
-                                     current_sched_ue_cfg.supported_cc_list.size());
-            }
-          }
-        }
-
-        // Handle Remove SCell list
-        if (reconfig_r1020.scell_to_release_list_r10_present) {
-          for (auto& scell_to_release : reconfig_r1020.scell_to_release_list_r10) {
-            if (scell_to_release == 0) {
-              // SCell index is reserved for PCell
-              parent->rrc_log->error("SCell index (%d) is reserved for PCell\n", scell_to_release);
-            } else if (scell_to_release < current_sched_ue_cfg.supported_cc_list.size()) {
-              // Deactivate cell configuration
-              phy_rrc_dedicated_list[scell_to_release].configured = false;
-            } else {
-              // Out of bounds, log error
-              parent->rrc_log->error("SCell index (%d) points out of the supported list (%ld)\n",
-                                     scell_to_release,
-                                     current_sched_ue_cfg.supported_cc_list.size());
-            }
-          }
+          // This is already applied when packing the SCell list
         }
       }
     }

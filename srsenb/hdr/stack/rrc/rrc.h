@@ -318,6 +318,9 @@ public:
     bool                      nas_pending = false;
     srslte::byte_buffer_t     erab_info;
 
+    ///< Helper to fill SCell struct for RRR Connection Reconfig
+    void fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
+
     ///< UE's Physical layer dedicated configuration
     phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list = {};
 
