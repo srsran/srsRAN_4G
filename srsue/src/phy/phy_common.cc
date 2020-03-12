@@ -850,9 +850,11 @@ void phy_common::enable_scell(uint32_t cc_idx, bool enable)
     if (scell_cfg[cc_idx].configured) {
       scell_cfg[cc_idx].enabled = enable;
     } else {
-      Error("Leaving SCell %s. cc_idx=%d has not been configured.\n",
-            scell_cfg[cc_idx].enabled ? "enabled" : "disabled",
-            cc_idx);
+      if (enable) {
+        Error("Leaving SCell %s. cc_idx=%d has not been configured.\n",
+              scell_cfg[cc_idx].enabled ? "enabled" : "disabled",
+              cc_idx);
+      }
     }
   }
 }
