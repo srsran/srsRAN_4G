@@ -46,7 +46,8 @@ public:
   void stop(){};
 
 private:
-  std::string float_to_string(float f, int digits);
+  std::string float_to_string(float f, int digits, int field_width = 6);
+  std::string int_to_hex_string(int value, int field_width);
   std::string float_to_eng_string(float f, int digits);
 
   bool                   do_print;

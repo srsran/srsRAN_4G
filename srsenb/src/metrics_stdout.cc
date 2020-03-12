@@ -92,8 +92,8 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
   if (++n_reports > 10) {
     n_reports = 0;
     cout << endl;
-    cout << "------DL------------------------------UL----------------------------------" << endl;
-    cout << "rnti  cqi    ri   mcs  brate   bler   snr   phr   mcs  brate   bler    bsr" << endl;
+    cout << "------DL--------------------------------UL-------------------------------------" << endl;
+    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  snr  phr mcs brate   ok  nok  (%)    bsr" << endl;
   }
 
   for (int i = 0; i < metrics.stack.rrc.n_ues; i++) {
@@ -104,48 +104,56 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       printf("rx caution errors %d > %d\n", metrics.stack.mac[i].rx_errors, metrics.stack.mac[i].rx_pkts);
     }
 
-    cout << std::hex << metrics.stack.mac[i].rnti << " ";
-    cout << float_to_string(SRSLTE_MAX(0.1, metrics.stack.mac[i].dl_cqi), 2);
-    cout << float_to_string(metrics.stack.mac[i].dl_ri, 1);
+    cout << int_to_hex_string(metrics.stack.mac[i].rnti, 4) << " ";
+    cout << float_to_string(SRSLTE_MAX(0.1, metrics.stack.mac[i].dl_cqi), 1, 3);
+    cout << float_to_string(metrics.stack.mac[i].dl_ri, 1, 4);
     if (not isnan(metrics.phy[i].dl.mcs)) {
-      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].dl.mcs), 2);
+      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].dl.mcs), 1, 4);
     } else {
-      cout << float_to_string(0, 2);
+      cout << float_to_string(0, 2, 4);
     }
     if (metrics.stack.mac[i].tx_brate > 0) {
       cout << float_to_eng_string(SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].tx_brate / period_usec * 1e6), 2);
     } else {
-      cout << float_to_string(0, 2) << "";
+      cout << float_to_string(0, 2, 5) << "";
     }
+    cout << std::setw(5) << metrics.stack.mac[i].tx_pkts;
+    cout << std::setw(5) << metrics.stack.mac[i].tx_errors;
     if (metrics.stack.mac[i].tx_pkts > 0 && metrics.stack.mac[i].tx_errors) {
       cout << float_to_string(
-                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac[i].tx_errors / metrics.stack.mac[i].tx_pkts), 1)
+                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac[i].tx_errors / metrics.stack.mac[i].tx_pkts), 1, 4)
            << "%";
     } else {
       cout << float_to_string(0, 1) << "%";
     }
+    cout << " ";
+
     if (not isnan(metrics.phy[i].ul.sinr)) {
-      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.sinr), 2);
+      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.sinr), 2, 4);
     } else {
-      cout << float_to_string(0, 2);
+      cout << float_to_string(0, 1, 4);
     }
-    cout << float_to_string(metrics.stack.mac[i].phr, 2);
+
+    cout << float_to_string(metrics.stack.mac[i].phr, 2, 5);
     if (not isnan(metrics.phy[i].ul.mcs)) {
-      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.mcs), 2);
+      cout << float_to_string(SRSLTE_MAX(0.1, metrics.phy[i].ul.mcs), 1, 4);
     } else {
-      cout << float_to_string(0, 2);
+      cout << float_to_string(0, 1, 4);
     }
     if (metrics.stack.mac[i].rx_brate > 0) {
       cout << float_to_eng_string(SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].rx_brate / period_usec * 1e6), 2);
     } else {
       cout << float_to_string(0, 2) << "";
     }
+    cout << std::setw(5) << metrics.stack.mac[i].rx_pkts;
+    cout << std::setw(5) << metrics.stack.mac[i].rx_errors;
+
     if (metrics.stack.mac[i].rx_pkts > 0 && metrics.stack.mac[i].rx_errors > 0) {
       cout << float_to_string(
-                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac[i].rx_errors / metrics.stack.mac[i].rx_pkts), 1)
+                  SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac[i].rx_errors / metrics.stack.mac[i].rx_pkts), 1, 4)
            << "%";
     } else {
-      cout << float_to_string(0, 1) << "%";
+      cout << float_to_string(0, 1, 4) << "%";
     }
     cout << float_to_eng_string(metrics.stack.mac[i].ul_buffer, 2);
     cout << endl;
@@ -154,7 +162,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
   cout.flags(f); // For avoiding Coverity defect: Not restoring ostream format
 }
 
-std::string metrics_stdout::float_to_string(float f, int digits)
+std::string metrics_stdout::float_to_string(float f, int digits, int field_width)
 {
   std::ostringstream os;
   int                precision;
@@ -164,7 +172,14 @@ std::string metrics_stdout::float_to_string(float f, int digits)
   } else {
     precision = digits - (int)(log10f(fabs(f)) - 2 * DBL_EPSILON);
   }
-  os << std::setw(6) << std::fixed << std::setprecision(precision) << f;
+  os << std::setw(field_width) << std::fixed << std::setprecision(precision) << f;
+  return os.str();
+}
+
+std::string metrics_stdout::int_to_hex_string(int value, int field_width)
+{
+  std::ostringstream os;
+  os << std::hex << std::setw(field_width) << value;
   return os.str();
 }
 
@@ -185,7 +200,7 @@ std::string metrics_stdout::float_to_eng_string(float f, int digits)
 
   const double scaled = f * pow(1000.0, -degree);
   if (degree != 0) {
-    return float_to_string(scaled, digits) + factor;
+    return float_to_string(scaled, digits, 5) + factor;
   } else {
     return " " + float_to_string(scaled, digits) + factor;
   }
