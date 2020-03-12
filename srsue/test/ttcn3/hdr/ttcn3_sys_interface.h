@@ -121,6 +121,10 @@ private:
 
   void handle_request_cell_basic(Document& document, const uint8_t* payload, const uint16_t len)
   {
+    // That is the cellId or name that the testsuites uses to refer to a specific cell
+    const Value& cell_name = document["Common"]["CellId"];
+    assert(cell_name.IsString());
+
     if (document["Request"]["Cell"]["AddOrReconfigure"]["Basic"].HasMember("StaticCellInfo")) {
       // Extract EARFCN
       const Value& earfcn =
@@ -155,33 +159,31 @@ private:
           document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["InitialCellPower"]["MaxReferencePower"];
       assert(ref_power.IsInt());
 
-      // That is the cellId or name that the testsuites uses to refer to a specific cell
-      const Value& cell_name = document["Common"]["CellId"];
-      assert(cell_name.IsString());
-
       // Now configure cell
       syssim->set_cell_config(
           ttcn3_helpers::get_timing_info(document), cell_name.GetString(), earfcn.GetInt(), cell, ref_power.GetInt());
+    }
 
-      // Pull out SIBs and send to syssim
-      uint16_t       consumed_bytes = 0;
-      const uint8_t* payload_ptr    = payload;
-      while (consumed_bytes < len) {
-        uint16_t tb_len = ((uint16_t)payload_ptr[0] << 8) | payload_ptr[1];
-        payload_ptr += 2;
+    // Pull out SIBs and send to syssim
+    uint16_t       consumed_bytes = 0;
+    const uint8_t* payload_ptr    = payload;
+    while (consumed_bytes < len) {
+      uint16_t tb_len = ((uint16_t)payload_ptr[0] << 8) | payload_ptr[1];
+      payload_ptr += 2;
 
-        unique_byte_buffer_t sib = pool_allocate_blocking;
-        memcpy(sib->msg, payload_ptr, tb_len);
-        payload_ptr += tb_len;
-        sib->N_bytes = tb_len;
+      unique_byte_buffer_t sib = pool_allocate_blocking;
+      memcpy(sib->msg, payload_ptr, tb_len);
+      payload_ptr += tb_len;
+      sib->N_bytes = tb_len;
 
-        // Push to main component
-        log->info_hex(sib->msg, sib->N_bytes, "Received BCCH DL-SCH for %s\n", cell_name.GetString());
-        syssim->add_bcch_dlsch_pdu(cell_name.GetString(), std::move(sib));
+      // Push to main component
+      log->info_hex(sib->msg, sib->N_bytes, "Received BCCH DL-SCH for %s\n", cell_name.GetString());
+      syssim->add_bcch_dlsch_pdu(cell_name.GetString(), std::move(sib));
 
-        consumed_bytes = payload_ptr - payload;
-      }
+      consumed_bytes = payload_ptr - payload;
+    }
 
+    if (document["Request"]["Cell"]["AddOrReconfigure"]["Basic"].HasMember("StaticCellInfo")) {
       // Create response for template car_CellConfig_CNF(CellId_Type p_CellId)
       std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_name.GetString(), "Cell");
 
