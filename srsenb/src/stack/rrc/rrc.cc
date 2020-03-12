@@ -1241,7 +1241,7 @@ std::string rrc::ue::to_string(const activity_timeout_type_t& type)
 void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_r8_ies_s* msg)
 {
   // TODO: Check Short-MAC-I value
-  parent->rrc_log->error("Not Supported: ConnectionReestablishment. \n");
+  parent->rrc_log->error("Not Supported: ConnectionReestablishment.\n");
 }
 
 void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
