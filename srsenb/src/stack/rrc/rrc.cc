@@ -128,8 +128,8 @@ void rrc::get_metrics(rrc_metrics_t& m)
 
 uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index)
 {
-  if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < sib_buffer.size()) {
-    return sib_buffer.at(cc_idx).at(sib_index)->msg;
+  if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < cell_ctxt_list.size()) {
+    return cell_ctxt_list.at(cc_idx)->sib_buffer.at(sib_index)->msg;
   }
   return nullptr;
 }
@@ -719,6 +719,15 @@ void rrc::process_rl_failure(uint16_t rnti)
   }
 }
 
+///< Helper method to get cell ctxt based on id
+rrc::cell_ctxt_t* rrc::find_cell_ctxt(uint32_t cell_id)
+{
+  auto it = std::find_if(cell_ctxt_list.begin(),
+                         cell_ctxt_list.end(),
+                         [cell_id](const std::unique_ptr<cell_ctxt_t>& c) { return cell_id == c->cell_cfg.cell_id; });
+  return (it == cell_ctxt_list.end()) ? nullptr : it->get();
+}
+
 ///< User mutex must be hold by caller
 void rrc::process_release_complete(uint16_t rnti)
 {
@@ -777,7 +786,7 @@ void rrc::config_mac()
 
     // set sib/prach cfg
     for (uint32_t i = 0; i < nof_si_messages; i++) {
-      item.sibs[i].len = sib_buffer.at(ccidx).at(i)->N_bytes;
+      item.sibs[i].len = cell_ctxt_list.at(ccidx)->sib_buffer.at(i)->N_bytes;
       if (i == 0) {
         item.sibs[i].period_rf = 8; // SIB1 is always 8 rf
       } else {
@@ -837,34 +846,44 @@ uint32_t rrc::generate_sibs()
   uint32_t           nof_messages = 1 + cfg.sib1.sched_info_list.size();
   sched_info_list_l& sched_info   = cfg.sib1.sched_info_list;
 
-  // Store in RRC, the SIB cfg of each carrier
-  cc_cfg_list.resize(cfg.cell_list.size());
-
-  // generate SIBs for each CC
+  // Store in cell_ctxt_list, the SIB cfg of each carrier
   for (uint8_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
-    // Set Cell MIB
-    cc_cfg_list[cc_idx].enb_cc_idx = cc_idx;
-    cc_cfg_list[cc_idx].cell_cfg   = &cfg.cell_list[cc_idx];
-    asn1::number_to_enum(cc_cfg_list[cc_idx].mib.dl_bw, cfg.cell.nof_prb);
-    cc_cfg_list[cc_idx].mib.phich_cfg.phich_res.value = (phich_cfg_s::phich_res_opts::options)cfg.cell.phich_resources;
-    cc_cfg_list[cc_idx].mib.phich_cfg.phich_dur.value = (phich_cfg_s::phich_dur_opts::options)cfg.cell.phich_length;
+    cell_ctxt_list.push_back(std::unique_ptr<cell_ctxt_t>(new cell_ctxt_t{cc_idx, cfg.cell_list[cc_idx]}));
+    cell_ctxt_t& cell_ctxt = *cell_ctxt_list.back();
 
+    // Set Cell MIB
+    asn1::number_to_enum(cell_ctxt.mib.dl_bw, cfg.cell.nof_prb);
+    cell_ctxt.mib.phich_cfg.phich_res.value = (phich_cfg_s::phich_res_opts::options)cfg.cell.phich_resources;
+    cell_ctxt.mib.phich_cfg.phich_dur.value = (phich_cfg_s::phich_dur_opts::options)cfg.cell.phich_length;
+
+    // Set Cell SIB1
+    cell_ctxt.sib1 = cfg.sib1;
+    // Update cellId
+    sib_type1_s::cell_access_related_info_s_* cell_access = &cell_ctxt.sib1.cell_access_related_info;
+    cell_access->cell_id.from_number((cfg.enb_id << 8u) + cell_ctxt.cell_cfg.cell_id);
+    cell_access->tac.from_number(cell_ctxt.cell_cfg.tac);
+    // Update DL EARFCN
+    cell_ctxt.sib1.freq_band_ind = (uint8_t)srslte_band_get_band(cell_ctxt.cell_cfg.dl_earfcn);
+
+    // Set Cell SIB2
+    // update PRACH root seq index for this cell
+    cell_ctxt.sib2                                      = cfg.sibs[1].sib2();
+    cell_ctxt.sib2.rr_cfg_common.prach_cfg.root_seq_idx = cell_ctxt.cell_cfg.root_seq_idx;
+    // update carrier freq
+    if (cell_ctxt.sib2.freq_info.ul_carrier_freq_present) {
+      cell_ctxt.sib2.freq_info.ul_carrier_freq = cell_ctxt.cell_cfg.ul_earfcn;
+    }
+  }
+
+  // generate and pack into SIB buffers
+  for (uint8_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
+    cell_ctxt_t& cell_ctxt = *cell_ctxt_list[cc_idx];
     // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
     // all SIBs in a SI message msg[i] share the same periodicity
     asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
 
     // Copy SIB1 to first SI message
-    msg[0].msg.set_c1().set_sib_type1() = cfg.sib1;
-
-    // Update cellId
-    sib_type1_s::cell_access_related_info_s_* cell_access = &msg[0].msg.c1().sib_type1().cell_access_related_info;
-    cell_access->cell_id.from_number((cfg.enb_id << 8u) + cfg.cell_list.at(cc_idx).cell_id);
-    cell_access->tac.from_number(cfg.cell_list.at(cc_idx).tac);
-
-    // Update DL EARFCN
-    msg[0].msg.c1().sib_type1().freq_band_ind = (uint8_t)srslte_band_get_band(cfg.cell_list.at(cc_idx).dl_earfcn);
-
-    cc_cfg_list[cc_idx].sib1 = msg[0].msg.c1().sib_type1();
+    msg[0].msg.set_c1().set_sib_type1() = cell_ctxt.sib1;
 
     // Copy rest of SIBs
     for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages - 1; sched_info_elem++) {
@@ -876,18 +895,9 @@ uint32_t rrc::generate_sibs()
 
       // SIB2 always in second SI message
       if (msg_index == 1) {
-        // update PRACH root seq index for this cell
-        cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx = cfg.cell_list.at(cc_idx).root_seq_idx;
-
-        // update carrier freq
-        if (cfg.sibs[1].sib2().freq_info.ul_carrier_freq_present) {
-          cfg.sibs[1].sib2().freq_info.ul_carrier_freq = cfg.cell_list.at(cc_idx).ul_earfcn;
-        }
-
-        sib_list.push_back(cfg.sibs[1]);
-
-        // Save SIB2
-        cc_cfg_list[cc_idx].sib2 = cfg.sibs[1].sib2();
+        sib_info_item_c sibitem;
+        sibitem.set_sib2() = cell_ctxt.sib2;
+        sib_list.push_back(sibitem);
       }
 
       // Add other SIBs to this message, if any
@@ -900,18 +910,18 @@ uint32_t rrc::generate_sibs()
     for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
       srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
       asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
-      asn1::bit_ref                bref0 = bref;
       if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
         rrc_log->error("Failed to pack SIB message %d\n", msg_index);
       }
-      sib->N_bytes = static_cast<uint32_t>((bref.distance(bref0) - 1) / 8 + 1);
-      sib_buffer[cc_idx].push_back(std::move(sib));
+      sib->N_bytes = bref.distance_bytes();
+
+      cell_ctxt.sib_buffer.push_back(std::move(sib));
 
       // Log SIBs in JSON format
       std::string log_msg("CC" + std::to_string(cc_idx) + " SIB payload");
       log_rrc_message(log_msg,
                       Tx,
-                      sib_buffer.at(cc_idx).at(msg_index).get(),
+                      cell_ctxt.sib_buffer.at(msg_index).get(),
                       msg[msg_index],
                       msg[msg_index].msg.c1().type().to_string());
     }
@@ -1290,18 +1300,15 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
-  using cc_cfg_t = sched_interface::ue_cfg_t::cc_cfg_t;
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
     // Finally, add secondary carriers
     // TODO: For now the ue supports all cc
-    auto& list = current_sched_ue_cfg.supported_cc_list;
-    for (uint32_t i = 0; i < parent->cfg.cell_list.size(); ++i) {
-      auto it = std::find_if(list.begin(), list.end(), [i](const cc_cfg_t& u) { return u.enb_cc_idx == i; });
-      if (it == list.end()) {
-        list.emplace_back();
-        list.back().active     = true;
-        list.back().enb_cc_idx = i;
-      }
+    auto& list       = current_sched_ue_cfg.supported_cc_list;
+    auto& scell_list = get_ue_cc_cfg(0)->cell_cfg.scell_list;
+    for (uint32_t i = 0; i < scell_list.size(); ++i) {
+      list.emplace_back();
+      list.back().active     = true;
+      list.back().enb_cc_idx = i;
     }
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
@@ -1932,13 +1939,13 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 }
 
 //! Helper method to access Cell configuration based on UE Carrier Index
-rrc::cc_derived_cfg_t* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
+rrc::cell_ctxt_t* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 {
   if (ue_cc_idx >= current_sched_ue_cfg.supported_cc_list.size()) {
     return nullptr;
   }
   uint32_t enb_cc_idx = current_sched_ue_cfg.supported_cc_list[ue_cc_idx].enb_cc_idx;
-  return &parent->cc_cfg_list[enb_cc_idx];
+  return parent->cell_ctxt_list[enb_cc_idx].get();
 }
 
 //! Method to fill SCellToAddModList for SCell info
@@ -1955,39 +1962,35 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
   auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
 
   // Add all SCells configured for the current PCell
-  uint32_t                scell_idx = 1; // SCell start with 1, zero reserved for PCell
-  const cc_derived_cfg_t* pcell_cfg = get_ue_cc_cfg(0);
-  for (auto& scell : pcell_cfg->cell_cfg->scell_list) {
-    // get corresponding eNB cell for this scell
-    auto it = std::find_if(parent->cc_cfg_list.begin(), parent->cc_cfg_list.end(), [&scell](const cc_derived_cfg_t& c) {
-      return c.cell_cfg->cell_id == scell.cell_id;
-    });
-    if (it == parent->cc_cfg_list.end()) {
+  uint32_t           scell_idx = 1; // SCell start with 1, zero reserved for PCell
+  const cell_ctxt_t* pcell_cfg = get_ue_cc_cfg(0);
+  for (auto& scell : pcell_cfg->cell_cfg.scell_list) {
+    // get corresponding eNB cell context for this scell
+    const cell_ctxt_t* cc_cfg = parent->find_cell_ctxt(scell.cell_id);
+    if (cc_cfg == nullptr) {
       continue;
     }
-    const cc_derived_cfg_t& cc_cfg     = *it;
-    uint32_t                enb_cc_idx = cc_cfg.enb_cc_idx;
-    const sib_type1_s&      cell_sib1  = cc_cfg.sib1;
-    const sib_type2_s&      cell_sib2  = cc_cfg.sib2;
+    const sib_type1_s& cell_sib1 = cc_cfg->sib1;
+    const sib_type2_s& cell_sib2 = cc_cfg->sib2;
 
     scell_to_add_mod_r10_s cell;
     cell.scell_idx_r10                        = scell_idx;
     cell.cell_identif_r10_present             = true;
-    cell.cell_identif_r10.pci_r10             = cc_cfg.cell_cfg->pci;
-    cell.cell_identif_r10.dl_carrier_freq_r10 = cc_cfg.cell_cfg->dl_earfcn;
+    cell.cell_identif_r10.pci_r10             = cc_cfg->cell_cfg.pci;
+    cell.cell_identif_r10.dl_carrier_freq_r10 = cc_cfg->cell_cfg.dl_earfcn;
     cell.rr_cfg_common_scell_r10_present      = true;
     // RadioResourceConfigCommon
     const rr_cfg_common_sib_s& cc_cfg_sib = cell_sib2.rr_cfg_common;
     auto&                      nonul_cfg  = cell.rr_cfg_common_scell_r10.non_ul_cfg_r10;
     asn1::number_to_enum(nonul_cfg.dl_bw_r10, parent->cfg.cell.nof_prb);
     nonul_cfg.ant_info_common_r10.ant_ports_count.value = ant_info_common_s::ant_ports_count_opts::an1;
-    nonul_cfg.phich_cfg_r10                             = cc_cfg.mib.phich_cfg;
+    nonul_cfg.phich_cfg_r10                             = cc_cfg->mib.phich_cfg;
     nonul_cfg.pdsch_cfg_common_r10                      = cc_cfg_sib.pdsch_cfg_common;
     // RadioResourceConfigCommonSCell-r10::ul-Configuration-r10
     cell.rr_cfg_common_scell_r10.ul_cfg_r10_present          = true;
     auto& ul_cfg                                             = cell.rr_cfg_common_scell_r10.ul_cfg_r10;
     ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10_present      = true;
-    ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10              = cc_cfg.cell_cfg->ul_earfcn;
+    ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10              = cc_cfg->cell_cfg.ul_earfcn;
     ul_cfg.p_max_r10_present                                 = cell_sib1.p_max_present;
     ul_cfg.p_max_r10                                         = cell_sib1.p_max;
     ul_cfg.ul_freq_info_r10.add_spec_emission_scell_r10      = 1;
@@ -2030,7 +2033,7 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     cqi_setup.cqi_pucch_res_idx_r10 = 0;
     cqi_setup.cqi_pmi_cfg_idx       = cqi_idx + scell_idx; // Take next PMI idx starting from PCell
     cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
-    cqi_setup.simul_ack_nack_and_cqi                       = false;
+    cqi_setup.simul_ack_nack_and_cqi = false;
 #if SRS_ENABLED
     ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
     auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
@@ -2054,7 +2057,7 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     scell_phy_rrc_ded.configured = true;
 
     // Get corresponding eNB CC index
-    scell_phy_rrc_ded.enb_cc_idx = enb_cc_idx;
+    scell_phy_rrc_ded.enb_cc_idx = cc_cfg->enb_cc_idx;
 
     // Append to PHY RRC config dedicated which will be applied further down
     phy_rrc_dedicated_list.push_back(scell_phy_rrc_ded);
@@ -2635,5 +2638,7 @@ int rrc::ue::ri_get(uint32_t m_ri, uint16_t* ri_idx)
 
   return ret;
 }
+
+rrc::cell_ctxt_t::cell_ctxt_t(uint32_t idx, const cell_cfg_t& cell_cfg_) : enb_cc_idx(idx), cell_cfg(cell_cfg_) {}
 
 } // namespace srsenb

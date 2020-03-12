@@ -123,14 +123,6 @@ class rrc final : public rrc_interface_pdcp,
                   public rrc_interface_rlc,
                   public rrc_interface_s1ap
 {
-  struct cc_derived_cfg_t {
-    uint32_t               enb_cc_idx = 0;
-    asn1::rrc::mib_s       mib;
-    asn1::rrc::sib_type1_s sib1;
-    asn1::rrc::sib_type2_s sib2;
-    const cell_cfg_t*      cell_cfg = nullptr;
-  };
-
 public:
   rrc();
   ~rrc();
@@ -184,6 +176,18 @@ public:
                        const srslte::byte_buffer_t* pdu,
                        const T&                     msg,
                        const std::string&           msg_type);
+
+private:
+  struct cell_ctxt_t {
+    uint32_t                                  enb_cc_idx = 0;
+    asn1::rrc::mib_s                          mib;
+    asn1::rrc::sib_type1_s                    sib1;
+    asn1::rrc::sib_type2_s                    sib2;
+    const cell_cfg_t&                         cell_cfg;
+    std::vector<srslte::unique_byte_buffer_t> sib_buffer; ///< Packed SIBs for given CC
+
+    cell_ctxt_t(uint32_t idx, const cell_cfg_t& cell_cfg);
+  };
 
   class ue
   {
@@ -327,7 +331,7 @@ public:
     srslte::byte_buffer_t     erab_info;
 
     ///< Helper to access a cell cfg based on ue_cc_idx
-    cc_derived_cfg_t* get_ue_cc_cfg(uint32_t ue_cc_idx);
+    cell_ctxt_t* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
     ///< Helper to fill SCell struct for RRR Connection Reconfig
     void fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
@@ -361,7 +365,6 @@ public:
     void apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& reconfig_r8);
   }; // class ue
 
-private:
   // args
   srslte::timer_handler*    timers  = nullptr;
   srslte::byte_buffer_pool* pool    = nullptr;
@@ -374,13 +377,13 @@ private:
   srslte::log*              rrc_log = nullptr;
 
   // derived params
-  std::vector<cc_derived_cfg_t> cc_cfg_list;
+  std::vector<std::unique_ptr<cell_ctxt_t> > cell_ctxt_list;
 
   // state
   std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
   std::map<uint32_t, asn1::s1ap::ue_paging_id_c> pending_paging;
 
-  std::map<uint8_t, std::vector<srslte::unique_byte_buffer_t> > sib_buffer; ///< Packed SIBs for each CC
+  cell_ctxt_t* find_cell_ctxt(uint32_t cell_id);
 
   void     process_release_complete(uint16_t rnti);
   void     process_rl_failure(uint16_t rnti);
