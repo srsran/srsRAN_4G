@@ -53,6 +53,7 @@ struct phy_args_t {
   std::string equalizer_mode      = "mmse";
   float       estimator_fil_w     = 1.0f;
   bool        pregenerate_signals = false;
+  bool        pusch_meas_epre     = true;
   bool        pusch_meas_evm      = true;
   bool        pusch_meas_ta       = true;
 

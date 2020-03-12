@@ -96,6 +96,7 @@ typedef struct SRSLTE_API {
   bool               crc;
   float              avg_iterations_block;
   float              evm;
+  float              epre_dbfs;
 } srslte_pusch_res_t;
 
 SRSLTE_API int srslte_pusch_init_ue(srslte_pusch_t* q, uint32_t max_prb);

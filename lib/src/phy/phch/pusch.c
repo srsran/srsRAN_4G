@@ -489,6 +489,13 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
       return SRSLTE_ERROR;
     }
 
+    // Measure Energy per Resource Element
+    if (cfg->meas_epre_en) {
+      out->epre_dbfs = srslte_convert_power_to_dB(srslte_vec_avg_power_cf(q->d, n));
+    } else {
+      out->epre_dbfs = NAN;
+    }
+
     /* extract channel estimates */
     n = pusch_get(q, &cfg->grant, channel->ce, q->ce, sf->shortened);
     if (n != cfg->grant.nof_re) {
@@ -601,6 +608,11 @@ uint32_t srslte_pusch_rx_info(srslte_pusch_cfg_t*    cfg,
   len += srslte_uci_data_info(&cfg->uci_cfg, &res->uci, &str[len], str_len - len);
 
   len = srslte_print_check(str, str_len, len, ", snr=%.1f dB", chest_res->snr_db);
+
+  // Append Energy Per Resource Element
+  if (cfg->meas_epre_en) {
+    len = srslte_print_check(str, str_len, len, ", epre=%.1f dBfs", res->epre_dbfs);
+  }
 
   // Append Time Aligment information if available
   if (cfg->meas_ta_en) {

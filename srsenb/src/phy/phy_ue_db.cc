@@ -101,6 +101,7 @@ inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti)
     scell_info.phy_cfg.ul_cfg.pucch.rnti                          = rnti;
     scell_info.phy_cfg.ul_cfg.pusch.rnti                          = rnti;
     scell_info.phy_cfg.ul_cfg.pusch.meas_time_en                  = true;
+    scell_info.phy_cfg.ul_cfg.pusch.meas_epre_en                  = phy_args->pusch_meas_epre;
     scell_info.phy_cfg.ul_cfg.pusch.meas_ta_en                    = phy_args->pusch_meas_ta;
     scell_info.phy_cfg.ul_cfg.pusch.meas_evm_en                   = phy_args->pusch_meas_evm;
     scell_info.phy_cfg.ul_cfg.pucch.threshold_format1             = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;

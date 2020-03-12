@@ -78,6 +78,7 @@ typedef struct SRSLTE_API {
   bool     meas_time_en;
   uint32_t meas_time_value;
 
+  bool meas_epre_en;
   bool meas_ta_en;
   bool meas_evm_en;
 
