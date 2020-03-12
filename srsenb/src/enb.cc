@@ -45,7 +45,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   logger = logger_;
 
   // Init UE log
-  log.init("ENB  ", logger);
+  log.init("ENB ", logger);
   log.set_level(srslte::LOG_LEVEL_INFO);
   log.info("%s", get_build_string().c_str());
 
