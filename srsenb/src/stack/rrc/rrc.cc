@@ -1055,6 +1055,13 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   current_sched_ue_cfg(sched_ue_cfg),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size())
 {
+  if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
+    parent->rrc_log->warning("No PCell set. Picking eNBccIdx=0 as PCell\n");
+    current_sched_ue_cfg.supported_cc_list.resize(0);
+    current_sched_ue_cfg.supported_cc_list[0].active     = true;
+    current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
+  }
+
   activity_timer = outer_rrc->timers->get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
   mobility_handler.reset(new rrc_mobility(this));
