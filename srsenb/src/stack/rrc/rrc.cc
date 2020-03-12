@@ -1973,6 +1973,7 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
         nonul_cfg_ded.cross_carrier_sched_cfg_r10.sched_cell_info_r10.set_own_r10().cif_presence_r10 = false;
         nonul_cfg_ded.pdsch_cfg_ded_r10_present                                                      = true;
         nonul_cfg_ded.pdsch_cfg_ded_r10.p_a.value         = pdsch_cfg_ded_s::p_a_opts::db3;
+        cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10_present = true;
         auto& ul_cfg_ded                                  = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10;
         ul_cfg_ded.ant_info_ul_r10_present                = true;
         ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10_present = true;
