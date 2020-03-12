@@ -86,6 +86,12 @@ public:
   void set_primary_cell(uint32_t earfcn, srslte_cell_t cell);
 
   /**
+   * Sets receiver gain offset to convert estimated dBFs to dBm in RSRP
+   * @param rx_gain_offset Gain offset in dB
+   */
+  void set_rx_gain_offset(float rx_gain_offset_db);
+
+  /**
    * Sets the PCI list of the cells this components needs to measure and starts the FSM for measuring
    * @param pci is the list of PCIs to measure
    */

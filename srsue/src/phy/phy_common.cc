@@ -675,6 +675,13 @@ void phy_common::reset()
   ZERO_OBJECT(pending_dl_dai);
   ZERO_OBJECT(pending_ul_ack);
   ZERO_OBJECT(pending_ul_grant);
+
+  // Release mapping of secondary cells
+  if (args != nullptr && radio_h != nullptr) {
+    for (uint32_t i = 1; i < args->nof_carriers; i++) {
+      radio_h->release_freq(i);
+    }
+  }
 }
 
 /*  Convert 6-bit maps to 10-element subframe tables

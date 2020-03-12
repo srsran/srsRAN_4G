@@ -34,6 +34,11 @@ typedef struct {
   int         phy_hex_limit = -1;
 } phy_log_args_t;
 
+typedef struct {
+  float min;
+  float max;
+} rf_args_band_t;
+
 // RF/radio args
 typedef struct {
   std::string type;
@@ -52,6 +57,10 @@ typedef struct {
   std::string device_args;
   std::string time_adv_nsamples;
   std::string continuous_tx;
+
+  std::array<rf_args_band_t, SRSLTE_MAX_CARRIERS> ch_rx_bands;
+  std::array<rf_args_band_t, SRSLTE_MAX_CARRIERS> ch_tx_bands;
+
 } rf_args_t;
 
 class srslte_gw_config_t

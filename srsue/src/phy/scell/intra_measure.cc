@@ -87,6 +87,11 @@ void intra_measure::set_primary_cell(uint32_t earfcn, srslte_cell_t cell)
   serving_cell   = cell;
 }
 
+void intra_measure::set_rx_gain_offset(float rx_gain_offset_db_)
+{
+  rx_gain_offset_db = rx_gain_offset_db_;
+}
+
 void intra_measure::meas_stop()
 {
   state.set_state(internal_state::idle);

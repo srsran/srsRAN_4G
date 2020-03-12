@@ -210,6 +210,7 @@ private:
 
       return ret;
     }
+    void release_freq(const uint32_t& carrier_idx) override{};
     void tx_end() override {}
     bool rx_now(srslte::rf_buffer_interface& buffer, const uint32_t& nof_samples, srslte_timestamp_t* rxd_time) override
     {

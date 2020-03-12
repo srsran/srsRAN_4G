@@ -183,12 +183,11 @@ void sync::reset()
 
 phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte::phy_cell_t* found_cell)
 {
-  phy_interface_rrc_lte::cell_search_ret_t ret;
+  std::unique_lock<std::mutex> ul(rrc_mutex);
 
+  phy_interface_rrc_lte::cell_search_ret_t ret = {};
   ret.found     = phy_interface_rrc_lte::cell_search_ret_t::ERROR;
   ret.last_freq = phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS;
-
-  rrc_mutex.lock();
 
   // Move state to IDLE
   Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, earfcn.size());
@@ -249,7 +248,6 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
     ret.last_freq = phy_interface_rrc_lte::cell_search_ret_t::MORE_FREQS;
   }
 
-  rrc_mutex.unlock();
   return ret;
 }
 
@@ -526,8 +524,12 @@ void sync::run_thread()
               if (srslte_cell_isvalid(&cell)) {
                 for (size_t i = 0; i < intra_freq_meas.size(); i++) {
                   intra_freq_meas[i]->write(tti, worker->get_buffer(i, 0), SRSLTE_SF_LEN_PRB(cell.nof_prb));
+
+                  // Update RX gain
+                  intra_freq_meas[i]->set_rx_gain_offset(worker_com->rx_gain_offset);
                 }
               }
+
               break;
             case 0:
               Warning("SYNC:  Out-of-sync detected in PSS/SSS\n");
@@ -818,11 +820,6 @@ bool sync::set_frequency()
                 current_earfcn,
                 set_dl_freq / 1e6,
                 set_ul_freq / 1e6);
-
-    log_h->console("Searching cell in DL EARFCN=%d, f_dl=%.1f MHz, f_ul=%.1f MHz\n",
-                   current_earfcn,
-                   set_dl_freq / 1e6,
-                   set_ul_freq / 1e6);
 
     // Logical channel is 0
     radio_h->set_rx_freq(0, set_dl_freq);

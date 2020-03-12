@@ -25,6 +25,7 @@ extern "C" {
 }
 #include "srslte/common/log_filter.h"
 #include "srslte/radio/radio.h"
+#include <list>
 #include <string.h>
 #include <unistd.h>
 
@@ -76,8 +77,14 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
     return SRSLTE_ERROR;
   }
 
+  if (!config_rf_channels(args)) {
+    log_h->console("Error configuring RF channels\n");
+    return SRSLTE_ERROR;
+  }
+
   nof_channels = args.nof_antennas * args.nof_carriers;
   nof_antennas = args.nof_antennas;
+  nof_carriers = args.nof_carriers;
 
   // Init and start Radio
   char* device_args = nullptr;
@@ -211,10 +218,13 @@ bool radio::rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, srs
   time_t* full_secs = rxd_time ? &rxd_time->full_secs : NULL;
   double* frac_secs = rxd_time ? &rxd_time->frac_secs : NULL;
 
-  // Conversion from safe C++ std::array to the unsafe C interface. We must ensure that the RF driver implementation
-  // accepts up to SRSLTE_MAX_CHANNELS buffers
+  void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
+  if (!map_channels(rx_channel_mapping, buffer, radio_buffers)) {
+    log_h->error("Mapping logical channels to physical channels for transmission\n");
+    return false;
+  }
 
-  if (srslte_rf_recv_with_time_multi(&rf_device, buffer.to_void(), nof_samples, true, full_secs, frac_secs) > 0) {
+  if (srslte_rf_recv_with_time_multi(&rf_device, radio_buffers, nof_samples, true, full_secs, frac_secs) > 0) {
     ret = true;
   } else {
     ret = false;
@@ -263,11 +273,14 @@ bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const s
   srslte_timestamp_copy(&end_of_burst_time, &tx_time);
   srslte_timestamp_add(&end_of_burst_time, 0, (double)nof_samples / cur_tx_srate);
 
-  // Conversion from safe C++ std::array to the unsafe C interface. We must ensure that the RF driver implementation
-  // accepts up to SRSLTE_MAX_CHANNELS buffers
+  void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
+  if (!map_channels(rx_channel_mapping, buffer, radio_buffers)) {
+    log_h->error("Mapping logical channels to physical channels for transmission\n");
+    return false;
+  }
 
   int ret = srslte_rf_send_timed_multi(
-      &rf_device, buffer.to_void(), nof_samples, tx_time.full_secs, tx_time.frac_secs, true, is_start_of_burst, false);
+      &rf_device, radio_buffers, nof_samples, tx_time.full_secs, tx_time.frac_secs, true, is_start_of_burst, false);
   is_start_of_burst = false;
   if (ret > 0) {
     return true;
@@ -292,20 +305,40 @@ bool radio::get_is_start_of_burst()
   return is_start_of_burst;
 }
 
-void radio::set_rx_freq(const uint32_t& channel_idx, const double& freq)
+void radio::release_freq(const uint32_t& carrier_idx)
+{
+  rx_channel_mapping.release_freq(carrier_idx);
+  tx_channel_mapping.release_freq(carrier_idx);
+}
+
+void radio::set_rx_freq(const uint32_t& carrier_idx, const double& freq)
 {
   if (!is_initialized) {
     return;
   }
-  if ((channel_idx + 1) * nof_antennas <= nof_channels) {
-    for (uint32_t i = 0; i < nof_antennas; i++) {
-      srslte_rf_set_rx_freq(&rf_device, channel_idx * nof_antennas + i, freq + freq_offset);
+
+  // First release mapping
+  rx_channel_mapping.release_freq(carrier_idx);
+
+  // Map carrier index to physical channel
+  if (rx_channel_mapping.allocate_freq(carrier_idx, freq)) {
+    uint32_t physical_channel_idx = rx_channel_mapping.get_carrier_idx(carrier_idx);
+    if ((physical_channel_idx + 1) * nof_antennas <= nof_channels) {
+      for (uint32_t i = 0; i < nof_antennas; i++) {
+        log_h->info("Mapping RF channel %d to logical carrier %d on f_rx=%.1f MHz\n",
+                    physical_channel_idx * nof_antennas + i,
+                    carrier_idx,
+                    freq / 1e6);
+        srslte_rf_set_rx_freq(&rf_device, physical_channel_idx * nof_antennas + i, freq + freq_offset);
+      }
+    } else {
+      log_h->error("set_rx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
+                   physical_channel_idx,
+                   nof_antennas,
+                   nof_channels);
     }
   } else {
-    log_h->error("set_rx_freq: channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
-                 channel_idx,
-                 nof_antennas,
-                 nof_channels);
+    log_h->error("set_rx_freq: Could not allocate frequency %.1f MHz to carrier %d\n", freq / 1e6, carrier_idx);
   }
 }
 
@@ -333,20 +366,34 @@ void radio::set_rx_srate(const double& srate)
   srslte_rf_set_rx_srate(&rf_device, srate);
 }
 
-void radio::set_tx_freq(const uint32_t& channel_idx, const double& freq)
+void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)
 {
   if (!is_initialized) {
     return;
   }
-  if ((channel_idx + 1) * nof_antennas <= nof_channels) {
-    for (uint32_t i = 0; i < nof_antennas; i++) {
-      srslte_rf_set_tx_freq(&rf_device, channel_idx * nof_antennas + i, freq + freq_offset);
+
+  // First release mapping
+  tx_channel_mapping.release_freq(carrier_idx);
+
+  // Map carrier index to physical channel
+  if (tx_channel_mapping.allocate_freq(carrier_idx, freq)) {
+    uint32_t physical_channel_idx = tx_channel_mapping.get_carrier_idx(carrier_idx);
+    if ((physical_channel_idx + 1) * nof_antennas <= nof_channels) {
+      for (uint32_t i = 0; i < nof_antennas; i++) {
+        log_h->info("Mapping RF channel %d to logical carrier %d on f_tx=%.1f MHz\n",
+                    physical_channel_idx * nof_antennas + i,
+                    carrier_idx,
+                    freq / 1e6);
+        srslte_rf_set_tx_freq(&rf_device, physical_channel_idx * nof_antennas + i, freq + freq_offset);
+      }
+    } else {
+      log_h->error("set_tx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
+                   physical_channel_idx,
+                   nof_antennas,
+                   nof_channels);
     }
   } else {
-    log_h->error("set_tx_freq: channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
-                 channel_idx,
-                 nof_antennas,
-                 nof_channels);
+    log_h->error("set_tx_freq: Could not allocate frequency %.1f MHz to carrier %d\n", freq / 1e6, carrier_idx);
   }
 }
 
@@ -553,6 +600,116 @@ void radio::rf_msg_callback(void* arg, srslte_rf_error_t error)
   if (arg != nullptr) {
     h->handle_rf_msg(error);
   }
+}
+
+bool radio::map_channels(channel_mapping&           map,
+                         const rf_buffer_interface& buffer,
+                         void*                      radio_buffers[SRSLTE_MAX_CHANNELS])
+{
+  // Discard channels not allocated, need to point to valid buffer
+  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    radio_buffers[i] = zeros;
+  }
+  // Conversion from safe C++ std::array to the unsafe C interface. We must ensure that the RF driver implementation
+  // accepts up to SRSLTE_MAX_CHANNELS buffers
+  for (uint32_t i = 0; i < nof_carriers; i++) {
+    if (map.is_allocated(i)) {
+      uint32_t physical_idx = map.get_carrier_idx(i);
+      for (uint32_t j = 0; j < nof_antennas; j++) {
+        if (physical_idx * nof_antennas + j < SRSLTE_MAX_CHANNELS) {
+          radio_buffers[physical_idx * nof_antennas + j] = buffer.get(i, j, nof_antennas);
+        } else {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+bool radio::config_rf_channels(const rf_args_t& args)
+{
+  // Generate RF-Channel to Carrier map
+  std::list<channel_mapping::channel_cfg_t> dl_rf_channels = {};
+  std::list<channel_mapping::channel_cfg_t> ul_rf_channels = {};
+
+  for (uint32_t i = 0; i < args.nof_carriers; i++) {
+    channel_mapping::channel_cfg_t c = {};
+    c.carrier_idx                    = i;
+
+    // Parse DL band for this channel
+    c.band.set(args.ch_rx_bands[i].min, args.ch_rx_bands[i].max);
+    dl_rf_channels.push_back(c);
+    log_h->info("Configuring physical DL channel %d with band-pass filter (%.1f, %.1f)\n",
+                i,
+                c.band.get_low(),
+                c.band.get_high());
+
+    // Parse UL band for this channel
+    c.band.set(args.ch_tx_bands[i].min, args.ch_tx_bands[i].max);
+    ul_rf_channels.push_back(c);
+    log_h->info("Configuring physical UL channel %d with band-pass filter (%.1f, %.1f)\n",
+                i,
+                c.band.get_low(),
+                c.band.get_high());
+  }
+
+  rx_channel_mapping.set_channels(dl_rf_channels);
+  tx_channel_mapping.set_channels(ul_rf_channels);
+  return true;
+}
+
+/***
+ * Carrier mapping class
+ */
+bool radio::channel_mapping::allocate_freq(const uint32_t& logical_ch, const float& freq)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  if (allocated_channels.count(logical_ch)) {
+    ERROR("allocate_freq: Carrier logical_ch=%d already allocated to channel=%d\n",
+          logical_ch,
+          allocated_channels[logical_ch].carrier_idx);
+    return false;
+  }
+
+  // Find first available channel that supports this frequency and allocated it
+  for (auto c = available_channels.begin(); c != available_channels.end(); ++c) {
+    if (c->band.contains(freq)) {
+      allocated_channels[logical_ch] = *c;
+      available_channels.erase(c);
+      return true;
+    }
+  }
+  ERROR("allocate_freq: No channels available for frequency=%.1f\n", freq);
+  return false;
+}
+
+bool radio::channel_mapping::release_freq(const uint32_t& logical_ch)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  if (allocated_channels.count(logical_ch)) {
+    available_channels.push_back(allocated_channels[logical_ch]);
+    allocated_channels.erase(logical_ch);
+    return true;
+  }
+  return false;
+}
+
+int radio::channel_mapping::get_carrier_idx(const uint32_t& logical_ch)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  if (allocated_channels.count(logical_ch)) {
+    return allocated_channels[logical_ch].carrier_idx;
+  }
+  return -1;
+}
+
+bool radio::channel_mapping::is_allocated(const uint32_t& logical_ch)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  return allocated_channels.count(logical_ch) > 0;
 }
 
 } // namespace srslte

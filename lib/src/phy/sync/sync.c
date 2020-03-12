@@ -843,7 +843,7 @@ srslte_sync_find(srslte_sync_t* q, const cf_t* input, uint32_t find_offset, uint
           q->threshold,
           15 * (srslte_sync_get_cfo(q)));
 
-  } else if (srslte_N_id_2_isvalid(q->N_id_2)) {
+  } else if (!srslte_N_id_2_isvalid(q->N_id_2)) {
     ERROR("Must call srslte_sync_set_N_id_2() first!\n");
   }
 

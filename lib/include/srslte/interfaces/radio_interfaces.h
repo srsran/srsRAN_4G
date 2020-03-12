@@ -49,13 +49,13 @@ namespace srslte {
 class rf_buffer_interface
 {
 public:
-  virtual cf_t*    get(uint32_t channel_idx) const                                           = 0;
-  virtual void     set(uint32_t channel_idx, cf_t* ptr)                                      = 0;
-  virtual cf_t*    get(uint32_t cc_idx, uint32_t port_idx, uint32_t nof_antennas) const      = 0;
-  virtual void     set(uint32_t cc_idx, uint32_t port_idx, uint32_t nof_antennas, cf_t* ptr) = 0;
-  virtual void**   to_void()                                                                 = 0;
-  virtual cf_t**   to_cf_t()                                                                 = 0;
-  virtual uint32_t size()                                                                    = 0;
+  virtual cf_t*    get(const uint32_t& channel_idx) const                                                         = 0;
+  virtual void     set(const uint32_t& channel_idx, cf_t* ptr)                                                    = 0;
+  virtual cf_t*    get(const uint32_t& cc_idx, const uint32_t& port_idx, const uint32_t& nof_antennas) const      = 0;
+  virtual void     set(const uint32_t& cc_idx, const uint32_t& port_idx, const uint32_t& nof_antennas, cf_t* ptr) = 0;
+  virtual void**   to_void()                                                                                      = 0;
+  virtual cf_t**   to_cf_t()                                                                                      = 0;
+  virtual uint32_t size()                                                                                         = 0;
 };
 
 /**
@@ -120,6 +120,12 @@ public:
    * @param freq Frequency to set to in Hz
    */
   virtual void set_rx_freq(const uint32_t& carrier_idx, const double& freq) = 0;
+
+  /**
+   * Releases any mapping between frequency and carrier done when calling set_tx_freq() or set_rx_freq()
+   * @param carrier_idx Index of the carrier to release the mapping
+   */
+  virtual void release_freq(const uint32_t& carrier_idx) = 0;
 
   /**
    * Sets the transmit gain for all carriers and antennas

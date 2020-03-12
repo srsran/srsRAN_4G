@@ -233,6 +233,7 @@ public:
     // Return True if err >= SRSLTE_SUCCESS
     return err >= SRSLTE_SUCCESS;
   }
+  void              release_freq(const uint32_t& carrier_idx) override{};
   void              set_tx_freq(const uint32_t& channel_idx, const double& freq) override {}
   void              set_rx_freq(const uint32_t& channel_idx, const double& freq) override {}
   void              set_rx_gain_th(const float& gain) override {}

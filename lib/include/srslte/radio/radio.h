@@ -28,6 +28,7 @@
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/srslte.h"
+#include <list>
 
 #ifndef SRSLTE_RADIO_H
 #define SRSLTE_RADIO_H
@@ -112,15 +113,15 @@ public:
     }
     return *this;
   }
-  cf_t* get(uint32_t channel_idx) const override { return sample_buffer.at(channel_idx); }
-  void  set(uint32_t channel_idx, cf_t* ptr) override { sample_buffer.at(channel_idx) = ptr; }
-  cf_t* get(uint32_t cc_idx, uint32_t port_idx, uint32_t nof_antennas) const override
+  cf_t* get(const uint32_t& channel_idx) const override { return sample_buffer.at(channel_idx); }
+  void  set(const uint32_t& channel_idx, cf_t* ptr) override { sample_buffer.at(channel_idx) = ptr; }
+  cf_t* get(const uint32_t& logical_ch, const uint32_t& port_idx, const uint32_t& nof_antennas) const override
   {
-    return sample_buffer.at(cc_idx * nof_antennas + port_idx);
+    return sample_buffer.at(logical_ch * nof_antennas + port_idx);
   }
-  void set(uint32_t cc_idx, uint32_t port_idx, uint32_t nof_antennas, cf_t* ptr) override
+  void set(const uint32_t& logical_ch, const uint32_t& port_idx, const uint32_t& nof_antennas, cf_t* ptr) override
   {
-    sample_buffer.at(cc_idx * nof_antennas + port_idx) = ptr;
+    sample_buffer.at(logical_ch * nof_antennas + port_idx) = ptr;
   }
   void**   to_void() override { return (void**)sample_buffer.data(); }
   cf_t**   to_cf_t() override { return sample_buffer.data(); }
@@ -171,6 +172,7 @@ public:
   // setter
   void set_tx_freq(const uint32_t& carrier_idx, const double& freq) override;
   void set_rx_freq(const uint32_t& carrier_idx, const double& freq) override;
+  void release_freq(const uint32_t& carrier_idx) override;
 
   void set_tx_gain(const float& gain) override;
   void set_rx_gain_th(const float& gain) override;
@@ -219,6 +221,7 @@ private:
   double             cur_tx_srate       = 0.0f;
   uint32_t           nof_antennas       = 0;
   uint32_t           nof_channels       = 0;
+  uint32_t           nof_carriers       = 0;
 
   // Define default values for known radios
   constexpr static double uhd_default_tx_adv_samples    = 98;
@@ -227,9 +230,112 @@ private:
   constexpr static double blade_default_tx_adv_samples     = 27;
   constexpr static double blade_default_tx_adv_offset_sec  = 1e-6;
 
+  /**
+   * This class manages the mapping between logical and physical channels.
+   * A physical channel in this class is a carrier index in the radio class, which
+   * has multiple antenna ports all tuned to the same frequency.
+   *
+   * Every group of channels tuned associated with a carrier go through the same band-pass filter. This
+   * class then manages the allocation of frequencies to these group of channels.
+   *
+   * The same object is reused for the reception and transmission.
+   *
+   * When the UE wants to tune a logical channel to a new frequency it requests this class
+   * to provide an available channel that supports this frequency. At that point,
+   * that channel can not be used anymore until a call to release().
+   *
+   */
+  class channel_mapping
+  {
+  public:
+    /** Configures a band. A band is defined by an upper and lower frequency boundaries.
+     * If the upper and lower frequencies are not configured (default is zero), it means
+     * that they support any frequency
+     */
+    class band_cfg
+    {
+    public:
+      void set(float low_freq_, float high_freq_)
+      {
+        low_freq  = low_freq_;
+        high_freq = high_freq_;
+      }
+      bool contains(float freq)
+      {
+        if (low_freq == 0 && high_freq == 0) {
+          return true;
+        } else {
+          return freq >= low_freq && freq <= high_freq;
+        }
+      }
+      float get_low() { return low_freq; }
+      float get_high() { return high_freq; }
+
+    private:
+      float low_freq  = 0;
+      float high_freq = 0;
+    };
+
+    /** Each channel is defined by the band it supports and the physical carrier index in the radio
+     */
+    typedef struct {
+      band_cfg band;
+      uint32_t carrier_idx;
+    } channel_cfg_t;
+
+    /**
+     * Sets the channel configuration. If no channels are configured no physical channels can be allocated
+     * @param channels_
+     */
+    void set_channels(const std::list<channel_cfg_t>& channels_) { available_channels = channels_; }
+
+    /**
+     * Finds an unused physical channel that supports the provided frequency and assigns it to logical channel
+     * logical_ch
+     * @param logical_ch logical channel index
+     * @param freq Frequency (in Hz) that we want to receive/transmitt
+     * @return true if a physical channel supporting this frequency was found or false otherwise
+     */
+    bool allocate_freq(const uint32_t& logical_ch, const float& freq);
+
+    /**
+     * Releases the allocation of a logical channel allowing to be used in the next call to allocate_freq
+     * @param logical_ch logical channel index
+     * @return false if logical_ch is not allocated, true otherwise
+     */
+    bool release_freq(const uint32_t& logical_ch);
+
+    /**
+     * Obtains the carrier index configured in set_channels() in the radio to which the logical channel logical_ch has
+     * been mapped to
+     * @param logical_ch logical channel index
+     * @return <0 if logical_ch is not allocated, true otherwise
+     *
+     * @see channel_cfg_t
+     */
+    int get_carrier_idx(const uint32_t& logical_ch);
+
+    /**
+     * Checks if the channel has been allocated using allocate_freq()
+     *
+     * @param logical_ch logical channel index
+     * @return true if the channel is allocated, false otherwise
+     */
+    bool is_allocated(const uint32_t& logical_ch);
+
+  private:
+    std::list<channel_cfg_t>          available_channels = {};
+    std::map<uint32_t, channel_cfg_t> allocated_channels = {};
+    std::mutex                        mutex              = {};
+  };
+
+  channel_mapping rx_channel_mapping = {}, tx_channel_mapping = {};
+
+  bool map_channels(channel_mapping& map, const rf_buffer_interface& buffer, void* radio_buffers[SRSLTE_MAX_CHANNELS]);
   bool start_agc(bool tx_gain_same_rx = false);
   void set_tx_adv(int nsamples);
   void set_tx_adv_neg(bool tx_adv_is_neg);
+  bool config_rf_channels(const rf_args_t& args);
 };
 
 } // namespace srslte
