@@ -837,8 +837,18 @@ uint32_t rrc::generate_sibs()
   uint32_t           nof_messages = 1 + cfg.sib1.sched_info_list.size();
   sched_info_list_l& sched_info   = cfg.sib1.sched_info_list;
 
+  // Store in RRC, the SIB cfg of each carrier
+  cc_cfg_list.resize(cfg.cell_list.size());
+
   // generate SIBs for each CC
   for (uint8_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
+    // Set Cell MIB
+    cc_cfg_list[cc_idx].enb_cc_idx = cc_idx;
+    cc_cfg_list[cc_idx].cell_cfg   = &cfg.cell_list[cc_idx];
+    asn1::number_to_enum(cc_cfg_list[cc_idx].mib.dl_bw, cfg.cell.nof_prb);
+    cc_cfg_list[cc_idx].mib.phich_cfg.phich_res.value = (phich_cfg_s::phich_res_opts::options)cfg.cell.phich_resources;
+    cc_cfg_list[cc_idx].mib.phich_cfg.phich_dur.value = (phich_cfg_s::phich_dur_opts::options)cfg.cell.phich_length;
+
     // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
     // all SIBs in a SI message msg[i] share the same periodicity
     asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
@@ -853,6 +863,8 @@ uint32_t rrc::generate_sibs()
 
     // Update DL EARFCN
     msg[0].msg.c1().sib_type1().freq_band_ind = (uint8_t)srslte_band_get_band(cfg.cell_list.at(cc_idx).dl_earfcn);
+
+    cc_cfg_list[cc_idx].sib1 = msg[0].msg.c1().sib_type1();
 
     // Copy rest of SIBs
     for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages - 1; sched_info_elem++) {
@@ -875,7 +887,7 @@ uint32_t rrc::generate_sibs()
         sib_list.push_back(cfg.sibs[1]);
 
         // Save SIB2
-        sib2 = cfg.sibs[1].sib2();
+        cc_cfg_list[cc_idx].sib2 = cfg.sibs[1].sib2();
       }
 
       // Add other SIBs to this message, if any
@@ -1099,8 +1111,9 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
 
   switch (type) {
     case MSG3_RX_TIMEOUT:
-      deadline_s  = 0;
-      deadline_ms = static_cast<uint32_t>((parent->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16);
+      deadline_s = 0;
+      deadline_ms =
+          static_cast<uint32_t>((get_ue_cc_cfg(0)->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16);
       break;
     case UE_RESPONSE_RX_TIMEOUT:
       // Arbitrarily chosen value to complete each UE config step, i.e. security, bearer setup, etc.
@@ -1364,7 +1377,8 @@ void rrc::ue::set_security_key(const asn1::fixed_bitstring<256, false, true>& ke
   // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences
   select_security_algorithms();
 
-  parent->rrc_log->info("Selected security algorithms EEA: EEA%d EIA: EIA%d\n", sec_cfg.cipher_algo, sec_cfg.integ_algo);
+  parent->rrc_log->info(
+      "Selected security algorithms EEA: EEA%d EIA: EIA%d\n", sec_cfg.cipher_algo, sec_cfg.integ_algo);
 
   // Generate K_rrc_enc and K_rrc_int
   srslte::security_generate_k_rrc(
@@ -1637,17 +1651,17 @@ void rrc::ue::send_connection_setup(bool is_setup)
     current_sched_ue_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_idx;
     current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
   }
-  current_sched_ue_cfg.dl_cfg.tm               = SRSLTE_TM1;
-  current_sched_ue_cfg.pucch_cfg.I_sr          = sr_I;
-  current_sched_ue_cfg.pucch_cfg.n_pucch_sr    = sr_N_pucch;
-  current_sched_ue_cfg.pucch_cfg.sr_configured = true;
-  current_sched_ue_cfg.pucch_cfg.n_pucch       = cqi_pucch;
-  current_sched_ue_cfg.pucch_cfg.delta_pucch_shift =
-      parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
-  current_sched_ue_cfg.pucch_cfg.N_cs      = parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
-  current_sched_ue_cfg.pucch_cfg.n_rb_2    = parent->sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
-  current_sched_ue_cfg.pucch_cfg.N_pucch_1 = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
-  current_sched_ue_cfg.dl_ant_info         = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
+  current_sched_ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
+  current_sched_ue_cfg.pucch_cfg.I_sr              = sr_I;
+  current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = sr_N_pucch;
+  current_sched_ue_cfg.pucch_cfg.sr_configured     = true;
+  current_sched_ue_cfg.pucch_cfg.n_pucch           = cqi_pucch;
+  const sib_type2_s& sib2                          = get_ue_cc_cfg(0)->sib2;
+  current_sched_ue_cfg.pucch_cfg.delta_pucch_shift = sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  current_sched_ue_cfg.pucch_cfg.N_cs              = sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+  current_sched_ue_cfg.pucch_cfg.n_rb_2            = sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
+  current_sched_ue_cfg.pucch_cfg.N_pucch_1         = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+  current_sched_ue_cfg.dl_ant_info                 = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
 
   // Configure MAC
   parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
@@ -1910,123 +1924,135 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
+//! Helper method to access Cell configuration based on UE Carrier Index
+rrc::cc_derived_cfg_t* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
+{
+  if (ue_cc_idx >= current_sched_ue_cfg.supported_cc_list.size()) {
+    return nullptr;
+  }
+  uint32_t enb_cc_idx = current_sched_ue_cfg.supported_cc_list[ue_cc_idx].enb_cc_idx;
+  return &parent->cc_cfg_list[enb_cc_idx];
+}
+
 //! Method to fill SCellToAddModList for SCell info
 void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
 {
-  if (parent->cfg.cell_list.size() > 1) {
-    conn_reconf->non_crit_ext_present                                                     = true;
-    conn_reconf->non_crit_ext.non_crit_ext_present                                        = true;
-    conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
-    conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
-    auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
+  if (parent->cfg.cell_list.size() <= 1) {
+    return;
+  }
 
-    // Add all SCells configured for the current PCell
-    uint32_t scell_idx = 1; // SCell start with 1, zero reserved for PCell
-    for (auto& scell : parent->cfg.cell_list.at(current_sched_ue_cfg.supported_cc_list.front().enb_cc_idx).scell_list) {
-      // get corresponding eNB cell for this scell
-      const auto& enb_cell =
-          std::find_if(parent->cfg.cell_list.begin(),
-                       parent->cfg.cell_list.end(),
-                       [scell](const cell_cfg_t& enb_cell_) { return (enb_cell_.cell_id == scell.cell_id); });
-      if (enb_cell != parent->cfg.cell_list.end()) {
-        scell_to_add_mod_r10_s cell;
-        cell.scell_idx_r10                        = scell_idx;
-        cell.cell_identif_r10_present             = true;
-        cell.cell_identif_r10.pci_r10             = enb_cell->pci;
-        cell.cell_identif_r10.dl_carrier_freq_r10 = enb_cell->dl_earfcn;
-        cell.rr_cfg_common_scell_r10_present      = true;
-        asn1::number_to_enum(cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.dl_bw_r10, parent->cfg.cell.nof_prb);
-        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.value =
-            ant_info_common_s::ant_ports_count_opts::an1;
-        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.phich_cfg_r10.phich_dur.value = phich_cfg_s::phich_dur_opts::normal;
-        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.phich_cfg_r10.phich_res.value = phich_cfg_s::phich_res_opts::one;
-        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.ref_sig_pwr = -5;
-        cell.rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.p_b         = 1;
-        cell.rr_cfg_common_scell_r10.ul_cfg_r10_present                              = true;
-        auto& ul_cfg                                              = cell.rr_cfg_common_scell_r10.ul_cfg_r10;
-        ul_cfg.ul_freq_info_r10.add_spec_emission_scell_r10       = 1;
-        ul_cfg.p_max_r10_present                                  = true;
-        ul_cfg.p_max_r10                                          = 10;
-        ul_cfg.ul_pwr_ctrl_common_scell_r10.p0_nominal_pusch_r10  = -67;
-        ul_cfg.ul_pwr_ctrl_common_scell_r10.alpha_r10.value       = alpha_r12_opts::al07;
-        ul_cfg.srs_ul_cfg_common_r10.set_setup().srs_bw_cfg.value = srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_opts::bw7;
-        ul_cfg.srs_ul_cfg_common_r10.setup().srs_sf_cfg.value     = srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_opts::sc3;
-        ul_cfg.srs_ul_cfg_common_r10.setup().ack_nack_srs_simul_tx = true;
-        ul_cfg.ul_cp_len_r10.value                                 = ul_cp_len_opts::len1;
-        ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.n_sb           = 1;
-        ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.hop_mode.value =
-            pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_opts::inter_sub_frame;
-        ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.pusch_hop_offset            = 2;
-        ul_cfg.pusch_cfg_common_r10.pusch_cfg_basic.enable64_qam                = false;
-        ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.group_hop_enabled         = false;
-        ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.group_assign_pusch        = 0;
-        ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.seq_hop_enabled           = false;
-        ul_cfg.pusch_cfg_common_r10.ul_ref_sigs_pusch.cyclic_shift              = 0;
-        cell.rr_cfg_ded_scell_r10_present                                       = true;
-        cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10_present                = true;
-        cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10_present = true;
-        auto& nonul_cfg_ded                          = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10;
-        nonul_cfg_ded.ant_info_r10_present           = true;
-        nonul_cfg_ded.ant_info_r10.tx_mode_r10.value = ant_info_ded_r10_s::tx_mode_r10_opts::tm1;
-        nonul_cfg_ded.ant_info_r10.ue_tx_ant_sel.set(setup_opts::release);
-        nonul_cfg_ded.cross_carrier_sched_cfg_r10_present                                            = true;
-        nonul_cfg_ded.cross_carrier_sched_cfg_r10.sched_cell_info_r10.set_own_r10().cif_presence_r10 = false;
-        nonul_cfg_ded.pdsch_cfg_ded_r10_present                                                      = true;
-        nonul_cfg_ded.pdsch_cfg_ded_r10.p_a.value         = pdsch_cfg_ded_s::p_a_opts::db3;
-        cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10_present = true;
-        auto& ul_cfg_ded                                  = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10;
-        ul_cfg_ded.ant_info_ul_r10_present                = true;
-        ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10_present = true;
-        ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10.value   = ant_info_ul_r10_s::tx_mode_ul_r10_opts::tm1;
-        ul_cfg_ded.pusch_cfg_ded_scell_r10_present        = true;
-        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10_present      = true;
-        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.p0_ue_pusch_r10 = 0;
-        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.delta_mcs_enabled_r10.value =
-            ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_opts::en0;
-        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.accumulation_enabled_r10   = true;
-        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10_present = true;
-        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10         = 3;
-        ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.pathloss_ref_linking_r10.value =
-            ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_opts::scell;
-        ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
-        ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
-        ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
-        auto& cqi_setup                 = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
-        cqi_setup.cqi_pucch_res_idx_r10 = 0;
-        cqi_setup.cqi_pmi_cfg_idx       = cqi_idx + scell_idx; // Take next PMI idx starting from PCell
-        cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
-        cqi_setup.simul_ack_nack_and_cqi                       = false;
-#if SRS_ENABLED
-        ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
-        auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
-        srs_setup.srs_bw.value                                 = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
-        srs_setup.srs_hop_bw.value                             = srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::hbw0;
-        srs_setup.freq_domain_position                         = 0;
-        srs_setup.dur                                          = true;
-        srs_setup.srs_cfg_idx                                  = 167;
-        srs_setup.tx_comb                                      = 0;
-        srs_setup.cyclic_shift.value                           = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
-        ul_cfg_ded.srs_ul_cfg_ded_v1020_present                = true;
-        ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10.value = srs_ant_port_opts::an1;
-        ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
-        ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
-#endif // SRS_ENABLED
-        list.push_back(cell);
+  conn_reconf->non_crit_ext_present                                                     = true;
+  conn_reconf->non_crit_ext.non_crit_ext_present                                        = true;
+  conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
+  conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
+  auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
 
-        // Create new PHY configuration structure for this SCell
-        phy_interface_rrc_lte::phy_rrc_dedicated_t scell_phy_rrc_ded = {};
-        srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, cell);
-        scell_phy_rrc_ded.configured = true;
-
-        // Get corresponding eNB CC index
-        scell_phy_rrc_ded.enb_cc_idx = std::distance(parent->cfg.cell_list.begin(), enb_cell);
-
-        // Append to PHY RRC config dedicated which will be applied further down
-        phy_rrc_dedicated_list.push_back(scell_phy_rrc_ded);
-
-        scell_idx++;
-      }
+  // Add all SCells configured for the current PCell
+  uint32_t                scell_idx = 1; // SCell start with 1, zero reserved for PCell
+  const cc_derived_cfg_t* pcell_cfg = get_ue_cc_cfg(0);
+  for (auto& scell : pcell_cfg->cell_cfg->scell_list) {
+    // get corresponding eNB cell for this scell
+    auto it = std::find_if(parent->cc_cfg_list.begin(), parent->cc_cfg_list.end(), [&scell](const cc_derived_cfg_t& c) {
+      return c.cell_cfg->cell_id == scell.cell_id;
+    });
+    if (it == parent->cc_cfg_list.end()) {
+      continue;
     }
+    const cc_derived_cfg_t& cc_cfg     = *it;
+    uint32_t                enb_cc_idx = cc_cfg.enb_cc_idx;
+    const sib_type1_s&      cell_sib1  = cc_cfg.sib1;
+    const sib_type2_s&      cell_sib2  = cc_cfg.sib2;
+
+    scell_to_add_mod_r10_s cell;
+    cell.scell_idx_r10                        = scell_idx;
+    cell.cell_identif_r10_present             = true;
+    cell.cell_identif_r10.pci_r10             = cc_cfg.cell_cfg->pci;
+    cell.cell_identif_r10.dl_carrier_freq_r10 = cc_cfg.cell_cfg->dl_earfcn;
+    cell.rr_cfg_common_scell_r10_present      = true;
+    // RadioResourceConfigCommon
+    const rr_cfg_common_sib_s& cc_cfg_sib = cell_sib2.rr_cfg_common;
+    auto&                      nonul_cfg  = cell.rr_cfg_common_scell_r10.non_ul_cfg_r10;
+    asn1::number_to_enum(nonul_cfg.dl_bw_r10, parent->cfg.cell.nof_prb);
+    nonul_cfg.ant_info_common_r10.ant_ports_count.value = ant_info_common_s::ant_ports_count_opts::an1;
+    nonul_cfg.phich_cfg_r10                             = cc_cfg.mib.phich_cfg;
+    nonul_cfg.pdsch_cfg_common_r10                      = cc_cfg_sib.pdsch_cfg_common;
+    // RadioResourceConfigCommonSCell-r10::ul-Configuration-r10
+    cell.rr_cfg_common_scell_r10.ul_cfg_r10_present          = true;
+    auto& ul_cfg                                             = cell.rr_cfg_common_scell_r10.ul_cfg_r10;
+    ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10_present      = true;
+    ul_cfg.ul_freq_info_r10.ul_carrier_freq_r10              = cc_cfg.cell_cfg->ul_earfcn;
+    ul_cfg.p_max_r10_present                                 = cell_sib1.p_max_present;
+    ul_cfg.p_max_r10                                         = cell_sib1.p_max;
+    ul_cfg.ul_freq_info_r10.add_spec_emission_scell_r10      = 1;
+    ul_cfg.ul_pwr_ctrl_common_scell_r10.p0_nominal_pusch_r10 = cc_cfg_sib.ul_pwr_ctrl_common.p0_nominal_pusch;
+    ul_cfg.ul_pwr_ctrl_common_scell_r10.alpha_r10.value      = cc_cfg_sib.ul_pwr_ctrl_common.alpha;
+    ul_cfg.srs_ul_cfg_common_r10                             = cc_cfg_sib.srs_ul_cfg_common;
+    ul_cfg.ul_cp_len_r10.value                               = cc_cfg_sib.ul_cp_len.value;
+    ul_cfg.pusch_cfg_common_r10                              = cc_cfg_sib.pusch_cfg_common;
+    // RadioResourceConfigDedicatedSCell-r10
+    cell.rr_cfg_ded_scell_r10_present                                       = true;
+    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10_present                = true;
+    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10_present = true;
+    auto& nonul_cfg_ded                = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.non_ul_cfg_r10;
+    nonul_cfg_ded.ant_info_r10_present = true;
+    asn1::number_to_enum(nonul_cfg_ded.ant_info_r10.tx_mode_r10, parent->cfg.cell.nof_ports);
+    nonul_cfg_ded.ant_info_r10.ue_tx_ant_sel.set(setup_opts::release);
+    nonul_cfg_ded.cross_carrier_sched_cfg_r10_present                                            = true;
+    nonul_cfg_ded.cross_carrier_sched_cfg_r10.sched_cell_info_r10.set_own_r10().cif_presence_r10 = false;
+    nonul_cfg_ded.pdsch_cfg_ded_r10_present                                                      = true;
+    nonul_cfg_ded.pdsch_cfg_ded_r10.p_a.value                           = parent->cfg.pdsch_cfg.value;
+    cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10_present = true;
+    auto& ul_cfg_ded                                  = cell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10;
+    ul_cfg_ded.ant_info_ul_r10_present                = true;
+    ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10_present = true;
+    asn1::number_to_enum(ul_cfg_ded.ant_info_ul_r10.tx_mode_ul_r10, parent->cfg.cell.nof_ports);
+    ul_cfg_ded.pusch_cfg_ded_scell_r10_present           = true;
+    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10_present         = true;
+    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.p0_ue_pusch_r10 = 0;
+    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.delta_mcs_enabled_r10.value =
+        ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_opts::en0;
+    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.accumulation_enabled_r10   = true;
+    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10_present = true;
+    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.psrs_offset_ap_r10         = 3;
+    ul_cfg_ded.ul_pwr_ctrl_ded_scell_r10.pathloss_ref_linking_r10.value =
+        ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_opts::scell;
+    ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
+    ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
+    ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
+    auto& cqi_setup                 = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
+    cqi_setup.cqi_pucch_res_idx_r10 = 0;
+    cqi_setup.cqi_pmi_cfg_idx       = cqi_idx + scell_idx; // Take next PMI idx starting from PCell
+    cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
+    cqi_setup.simul_ack_nack_and_cqi                       = false;
+#if SRS_ENABLED
+    ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
+    auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
+    srs_setup.srs_bw.value                                 = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
+    srs_setup.srs_hop_bw.value                             = srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::hbw0;
+    srs_setup.freq_domain_position                         = 0;
+    srs_setup.dur                                          = true;
+    srs_setup.srs_cfg_idx                                  = 167;
+    srs_setup.tx_comb                                      = 0;
+    srs_setup.cyclic_shift.value                           = srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::cs0;
+    ul_cfg_ded.srs_ul_cfg_ded_v1020_present                = true;
+    ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10.value = srs_ant_port_opts::an1;
+    ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
+    ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
+#endif // SRS_ENABLED
+    list.push_back(cell);
+
+    // Create new PHY configuration structure for this SCell
+    phy_interface_rrc_lte::phy_rrc_dedicated_t scell_phy_rrc_ded = {};
+    srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, cell);
+    scell_phy_rrc_ded.configured = true;
+
+    // Get corresponding eNB CC index
+    scell_phy_rrc_ded.enb_cc_idx = enb_cc_idx;
+
+    // Append to PHY RRC config dedicated which will be applied further down
+    phy_rrc_dedicated_list.push_back(scell_phy_rrc_ded);
+
+    scell_idx++;
   }
 }
 
@@ -2230,7 +2256,7 @@ bool rrc::ue::select_security_algorithms()
         // “third bit” – 128-EIA3,
         if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
           sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
-          integ_algo_found = true;
+          integ_algo_found   = true;
           parent->rrc_log->info("Selected EIA3 as RRC integrity algorithm.\n");
         } else {
           parent->rrc_log->info("Failed to selected EIA3 as RRC encryption algorithm, due to unsupported algorithm\n");
@@ -2408,7 +2434,7 @@ void rrc::ue::sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr)
 int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 {
   uint32_t c                 = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
-  uint32_t delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  uint32_t delta_pucch_shift = get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
 
   uint32_t max_users = 12 * c / delta_pucch_shift;
 
@@ -2445,8 +2471,8 @@ int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 
   // Compute N_pucch_sr
   *N_pucch_sr = i_min * max_users + parent->sr_sched.nof_users[i_min][j_min];
-  if (parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
-    *N_pucch_sr += parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+  if (get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
+    *N_pucch_sr += get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
   }
 
   // Allocate user
@@ -2490,7 +2516,7 @@ void rrc::ue::cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch)
 int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
 {
   uint32_t c                 = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
-  uint32_t delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  uint32_t delta_pucch_shift = get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
 
   uint32_t max_users = 12 * c / delta_pucch_shift;
 
@@ -2542,8 +2568,8 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
 
   // Compute n_pucch_2
   *n_pucch = i_min * max_users + parent->cqi_sched.nof_users[i_min][j_min];
-  if (parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
-    *n_pucch += parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+  if (get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
+    *n_pucch += get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
   }
 
   // Allocate user

@@ -88,7 +88,7 @@ struct rrc_meas_cfg_t {
 #define MAX_NOF_QCI 10
 
 struct rrc_cfg_t {
-  uint32_t                   enb_id; ///< Required to pack SIB1
+  uint32_t enb_id; ///< Required to pack SIB1
   // Per eNB SIBs
   asn1::rrc::sib_type1_s     sib1;
   asn1::rrc::sib_info_item_c sibs[ASN1_RRC_MAX_SIB];
@@ -123,6 +123,14 @@ class rrc final : public rrc_interface_pdcp,
                   public rrc_interface_rlc,
                   public rrc_interface_s1ap
 {
+  struct cc_derived_cfg_t {
+    uint32_t               enb_cc_idx = 0;
+    asn1::rrc::mib_s       mib;
+    asn1::rrc::sib_type1_s sib1;
+    asn1::rrc::sib_type2_s sib2;
+    const cell_cfg_t*      cell_cfg = nullptr;
+  };
+
 public:
   rrc();
   ~rrc();
@@ -142,11 +150,11 @@ public:
   void tti_clock();
 
   // rrc_interface_mac
-  void rl_failure(uint16_t rnti) override;
-  void add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) override;
-  void upd_user(uint16_t new_rnti, uint16_t old_rnti) override;
-  void set_activity_user(uint16_t rnti) override;
-  bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;
+  void     rl_failure(uint16_t rnti) override;
+  void     add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) override;
+  void     upd_user(uint16_t new_rnti, uint16_t old_rnti) override;
+  void     set_activity_user(uint16_t rnti) override;
+  bool     is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;
   uint8_t* read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index) override;
 
   // rrc_interface_rlc
@@ -281,14 +289,14 @@ public:
 
     // state
     sched_interface::ue_cfg_t current_sched_ue_cfg = {};
-    uint32_t                  rlf_cnt        = 0;
-    uint8_t                   transaction_id = 0;
-    rrc_state_t               state          = RRC_STATE_IDLE;
+    uint32_t                  rlf_cnt              = 0;
+    uint8_t                   transaction_id       = 0;
+    rrc_state_t               state                = RRC_STATE_IDLE;
 
     std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
     std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
-    uint8_t k_enb[32]; // Provided by MME
+    uint8_t                      k_enb[32]; // Provided by MME
     srslte::as_security_config_t sec_cfg = {};
 
     asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
@@ -317,6 +325,9 @@ public:
     int                       get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
     bool                      nas_pending = false;
     srslte::byte_buffer_t     erab_info;
+
+    ///< Helper to access a cell cfg based on ue_cc_idx
+    cc_derived_cfg_t* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
     ///< Helper to fill SCell struct for RRR Connection Reconfig
     void fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
@@ -361,6 +372,9 @@ private:
   gtpu_interface_rrc*       gtpu    = nullptr;
   s1ap_interface_rrc*       s1ap    = nullptr;
   srslte::log*              rrc_log = nullptr;
+
+  // derived params
+  std::vector<cc_derived_cfg_t> cc_cfg_list;
 
   // state
   std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
@@ -409,7 +423,6 @@ private:
   bool                   enable_mbms     = false;
   rrc_cfg_t              cfg             = {};
   uint32_t               nof_si_messages = 0;
-  asn1::rrc::sib_type2_s sib2;
   asn1::rrc::sib_type7_s sib7;
 
   class mobility_cfg;

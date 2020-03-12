@@ -859,7 +859,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
       (asn1::rrc::phich_cfg_s::phich_res_e_::options)rrc_enb->cfg.cell.phich_resources;
   hoprep_r8.as_cfg.source_mib.sys_frame_num.from_number(0); // NOTE: The TS says this can go empty
   hoprep_r8.as_cfg.source_sib_type1 = rrc_enb->cfg.sib1;
-  hoprep_r8.as_cfg.source_sib_type2 = rrc_enb->sib2;
+  hoprep_r8.as_cfg.source_sib_type2 = rrc_ue->get_ue_cc_cfg(0)->sib2;
   asn1::number_to_enum(hoprep_r8.as_cfg.ant_info_common.ant_ports_count, rrc_enb->cfg.cell.nof_ports);
   hoprep_r8.as_cfg.source_dl_carrier_freq =
       rrc_enb->cfg.cell_list.at(0).dl_earfcn; // TODO: use actual DL EARFCN of source cell
