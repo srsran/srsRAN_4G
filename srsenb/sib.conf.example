@@ -9,8 +9,8 @@ sib1 =
     (
         {
             si_periodicity = 16;
-            si_mapping_info = []; // comma-separated array of SIB-indexes (from 3 to 13). 
-            // Leave empty or commented to just scheduler sib2
+            // comma-separated array of SIB-indexes (from 3 to 13), leave empty or commented to just scheduler sib2
+            si_mapping_info = [ 3 ];
         }
     );
     system_info_value_tag = 0;
@@ -116,3 +116,22 @@ sib2 =
     time_alignment_timer = "INFINITY"; // use "sf500", "sf750", etc.
 };
 
+sib3 =
+{
+    cell_reselection_common = {
+      q_hyst = 2; // in dB
+    },
+    cell_reselection_serving = {
+      s_non_intra_search = 3,
+      thresh_serving_low = 2,
+      cell_resel_prio = 6
+    },
+    intra_freq_reselection = {
+      q_rx_lev_min = -61,
+      p_max = 23,
+      s_intra_search = 5,
+      presence_ant_port_1 = true,
+      neigh_cell_cnfg = 1,
+      t_resel_eutra = 1
+    }
+};
