@@ -41,21 +41,23 @@ namespace srsue {
 class metrics_csv : public srslte::metrics_listener<ue_metrics_t>
 {
 public:
-  metrics_csv(std::string filename);
+  metrics_csv(std::string filename, bool append);
   ~metrics_csv();
 
   void set_metrics(const ue_metrics_t& m, const uint32_t period_usec);
   void set_ue_handle(ue_metrics_interface* ue_);
+  void set_flush_period(const uint32_t flush_period_sec);
   void stop();
 
 private:
   std::string float_to_string(float f, int digits, bool add_semicolon = true);
 
-  float                 metrics_report_period;
+  float                 metrics_report_period = 0.0f;
   std::ofstream         file;
-  ue_metrics_interface* ue;
-  uint32_t              n_reports;
+  ue_metrics_interface* ue        = nullptr;
+  uint32_t              n_reports = 0;
   pthread_mutex_t       mutex;
+  uint32_t              flush_period_sec = 0;
 };
 
 } // namespace srsue

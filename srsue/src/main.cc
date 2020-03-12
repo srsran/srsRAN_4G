@@ -397,6 +397,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
        bpo::value<string>(&args->general.metrics_csv_filename)->default_value("/tmp/ue_metrics.csv"),
        "Metrics CSV filename")
 
+    ("general.metrics_csv_append",
+           bpo::value<bool>(&args->general.metrics_csv_append)->default_value(false),
+           "Set to true to append new output to existing CSV file")
+
+    ("general.metrics_csv_flush_period_sec",
+           bpo::value<int>(&args->general.metrics_csv_flush_period_sec)->default_value(-1),
+           "Periodicity in ms to flush CSV file to disk (-1 for auto)")
+
     ("stack.have_tti_time_stats",
         bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
         "Calculate TTI execution statistics");
@@ -630,10 +638,13 @@ int main(int argc, char* argv[])
   metricshub.add_listener(metrics_screen);
   metrics_screen->set_ue_handle(&ue);
 
-  metrics_csv metrics_file(args.general.metrics_csv_filename);
+  metrics_csv metrics_file(args.general.metrics_csv_filename, args.general.metrics_csv_append);
   if (args.general.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_ue_handle(&ue);
+    if (args.general.metrics_csv_flush_period_sec > 0) {
+      metrics_file.set_flush_period((uint32_t)args.general.metrics_csv_flush_period_sec);
+    }
   }
 
   pthread_t input;

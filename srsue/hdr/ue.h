@@ -68,6 +68,8 @@ typedef struct {
 typedef struct {
   float       metrics_period_secs;
   bool        metrics_csv_enable;
+  bool        metrics_csv_append;
+  int         metrics_csv_flush_period_sec;
   std::string metrics_csv_filename;
 } general_args_t;
 
