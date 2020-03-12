@@ -1993,9 +1993,10 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
         ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
         auto& cqi_setup                 = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
         cqi_setup.cqi_pucch_res_idx_r10 = 0;
-        cqi_setup.cqi_pmi_cfg_idx       = 168;
+        cqi_setup.cqi_pmi_cfg_idx       = cqi_idx + scell_idx; // Take next PMI idx starting from PCell
         cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
         cqi_setup.simul_ack_nack_and_cqi                       = false;
+#if SRS_ENABLED
         ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
         auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
         srs_setup.srs_bw.value                                 = srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::bw0;
@@ -2009,6 +2010,7 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
         ul_cfg_ded.srs_ul_cfg_ded_v1020.srs_ant_port_r10.value = srs_ant_port_opts::an1;
         ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10_present        = true;
         ul_cfg_ded.srs_ul_cfg_ded_aperiodic_r10.set(setup_opts::release);
+#endif // SRS_ENABLED
         list.push_back(cell);
 
         // Create new PHY configuration structure for this SCell
