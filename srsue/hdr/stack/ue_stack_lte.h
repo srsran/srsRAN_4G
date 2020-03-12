@@ -37,6 +37,7 @@
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
 #include "upper/nas.h"
+#include "upper/nas_ext.h"
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"

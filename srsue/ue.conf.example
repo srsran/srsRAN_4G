@@ -165,6 +165,16 @@ imei = 353490069873319
 #eea = 0,1,2
 
 #####################################################################
+# External NAS interface configuration
+#
+# enable:               Disable the built-in NAS implementation, provide external interface
+# sock_path:            UNIX socket path of the external interface
+#####################################################################
+[extnas]
+#enable = false
+#sock_path = /tmp/ue_extnas.sock
+
+#####################################################################
 # GW configuration
 #
 # ip_devname:           Name of the tun_srsue device. Default: tun_srsue

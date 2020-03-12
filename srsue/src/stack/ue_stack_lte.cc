@@ -116,8 +116,13 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 
   // Should we use the built-in NAS implementation
   // or provide an external interface (RRCTL)?
-  std::unique_ptr<srsue::nas> nas_impl(new srsue::nas(&nas_log, &timers, args.nas));
-  nas = std::move(nas_impl);
+  if (args.nas_ext.enable) {
+    std::unique_ptr<srsue::nas_ext> nas_impl(new srsue::nas_ext(&nas_log, &timers, args.nas_ext));
+    nas = std::move(nas_impl);
+  } else {
+    std::unique_ptr<srsue::nas> nas_impl(new srsue::nas(&nas_log, &timers, args.nas));
+    nas = std::move(nas_impl);
+  }
 
   // Set up pcap
   if (args.pcap.enable) {

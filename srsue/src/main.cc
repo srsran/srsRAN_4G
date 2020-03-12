@@ -110,6 +110,9 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("nas.eia",               bpo::value<string>(&args->stack.nas.eia)->default_value("1,2,3"),  "List of integrity algorithms included in UE capabilities")
     ("nas.eea",               bpo::value<string>(&args->stack.nas.eea)->default_value("0,1,2,3"),  "List of ciphering algorithms included in UE capabilities")
 
+    ("extnas.enable", bpo::value<bool>(&args->stack.nas_ext.enable)->default_value(false), "Disable the built-in NAS implementation, provide external interface")
+    ("extnas.sock_path", bpo::value<string>(&args->stack.nas_ext.sock_path)->default_value("/tmp/ue_extnas.sock"), "UNIX socket path of the external interface")
+
     ("pcap.enable", bpo::value<bool>(&args->stack.pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
     ("pcap.filename", bpo::value<string>(&args->stack.pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
     ("pcap.nas_enable",   bpo::value<bool>(&args->stack.pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
