@@ -289,8 +289,12 @@ int test_mobility_class(mobility_test_params test_params)
     rrc.tti_clock();
   };
 
-  uint16_t rnti = 0x46;
-  rrc.add_user(rnti, {});
+  uint16_t                  rnti = 0x46;
+  sched_interface::ue_cfg_t ue_cfg;
+  ue_cfg.supported_cc_list.resize(1);
+  ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
+  ue_cfg.supported_cc_list[0].active     = true;
+  rrc.add_user(rnti, ue_cfg);
 
   rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
   // Do all the handshaking until the first RRC Connection Reconf
