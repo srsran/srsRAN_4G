@@ -388,40 +388,26 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
     uint16_t  rnti     = iter.first;
     ue_state& userinfo = iter.second;
 
-    // No UL allocations before Msg3
-    for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
-      if (ul_result.pusch[i].dci.rnti == rnti) {
-        CONDERROR(not userinfo.rar_tic.is_valid(), "No UL allocs allowed before RAR\n");
-        CONDERROR(ul_result.pusch[i].needs_pdcch and not userinfo.msg3_tic.is_valid() and
-                      userinfo.msg3_tic.tti_rx() > tic.tti_rx(),
-                  "No UL newtxs allocs allowed before Msg3 Rx\n");
-        tti_counter msg3_tic = userinfo.rar_tic + FDD_HARQ_DELAY_DL_MS + MSG3_DELAY_MS;
-        CONDERROR(msg3_tic > tic.tic_tx_ul(), "No UL allocs allowed before Msg3 alloc\n");
-      }
-    }
-
-    // No DL data allocations before Msg3 is received
-    for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
-      if (dl_result.data[i].dci.rnti == rnti) {
-        CONDERROR(not userinfo.msg3_tic.is_valid(), "No DL data alloc allowed before Msg3 alloc\n");
-        CONDERROR(tic + FDD_HARQ_DELAY_DL_MS < userinfo.msg3_tic, "Msg4 cannot be tx without Msg3 being acked\n");
-      }
-    }
-
     uint32_t primary_cc_idx = userinfo.user_cfg.supported_cc_list[0].enb_cc_idx;
     if (enb_cc_idx != primary_cc_idx) {
       // only check for RAR/Msg3 presence for a UE's PCell
       continue;
     }
 
-    // No RAR allocations outside of rar_window
+    /* TEST: RAR allocation */
     std::array<tti_counter, 2> rar_window = {
         userinfo.prach_tic + 3, userinfo.prach_tic + 3 + (int)cell_params[primary_cc_idx].prach_rar_window};
+    tti_counter tic_tx_dl        = tic.tic_tx_dl();
+    tti_counter tic_tx_ul        = tic.tic_tx_ul();
+    bool        is_in_rar_window = tic_tx_dl >= rar_window[0] and tic_tx_dl <= rar_window[1];
 
-    tti_counter tic_tx_dl = tic.tic_tx_dl();
-    CONDERROR(not userinfo.rar_tic.is_valid() and tic.tic_tx_dl() > rar_window[1],
-              "RAR not scheduled within the RAR Window\n");
-    if (tic_tx_dl <= rar_window[1] and tic_tx_dl >= rar_window[0]) {
+    if (not is_in_rar_window) {
+      CONDERROR(not userinfo.rar_tic.is_valid() and tic_tx_dl > rar_window[1],
+                "RAR not scheduled within the RAR Window\n");
+      for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
+        CONDERROR(dl_result.rar[i].dci.rnti == rnti, "No RAR allocations allowed outside of user RAR window\n");
+      }
+    } else {
       // Inside RAR window
       for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
         for (uint32_t j = 0; j < dl_result.rar[i].nof_grants; ++j) {
@@ -437,36 +423,62 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
     }
 
     /* TEST: Check Msg3 */
-    if (userinfo.rar_tic.is_valid()) {
+    if (userinfo.rar_tic.is_valid() and not userinfo.msg3_tic.is_valid()) {
+      // RAR scheduled, Msg3 not yet scheduled
       tti_counter expected_msg3_tti = userinfo.rar_tic + FDD_HARQ_DELAY_DL_MS + MSG3_DELAY_MS;
-      if (expected_msg3_tti == tic.tic_tx_ul()) {
+      CONDERROR(expected_msg3_tti < tic_tx_ul and not userinfo.msg3_tic.is_valid(), "No UL msg3 alloc was made\n");
+
+      if (expected_msg3_tti == tic_tx_ul) {
+        // Msg3 should exist
         for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
           if (ul_result.pusch[i].dci.rnti == rnti) {
             CONDERROR(userinfo.msg3_tic.is_valid(), "Only one Msg3 allowed per user\n");
             CONDERROR(ul_result.pusch[i].needs_pdcch, "Msg3 allocations do not require PDCCH\n");
             CONDERROR(userinfo.msg3_riv != ul_result.pusch[i].dci.type2_alloc.riv,
                       "The Msg3 was not allocated in the expected PRBs.\n");
-            userinfo.msg3_tic = tic.tic_tx_ul();
+            userinfo.msg3_tic = tic_tx_ul;
             msg3_count++;
           }
         }
-      } else if (expected_msg3_tti < tic.tic_tx_ul()) {
-        CONDERROR(not userinfo.msg3_tic.is_valid(), "No UL msg3 allocation was made\n");
       }
     }
 
-    // Find any Msg4 Allocation
-    for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
-      if (dl_result.data[i].dci.rnti == rnti) {
-        for (uint32_t j = 0; j < dl_result.data[i].nof_pdu_elems[0]; ++j) {
-          if (dl_result.data[i].pdu[0][j].lcid == srslte::sch_subh::CON_RES_ID) {
-            // ConRes found
-            CONDERROR(dl_result.data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
-            CONDERROR(userinfo.msg4_tic.is_valid(), "Duplicate ConRes CE for the same rnti\n");
-            userinfo.msg4_tic = tic.tic_tx_dl();
+    /* TEST: Check Msg4 */
+    if (userinfo.msg3_tic.is_valid() and not userinfo.msg4_tic.is_valid()) {
+      // Msg3 scheduled, but Msg4 not yet scheduled
+      for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+        if (dl_result.data[i].dci.rnti == rnti) {
+          CONDERROR(tic < userinfo.msg3_tic, "Msg4 cannot be scheduled without Msg3 being tx\n");
+          for (uint32_t j = 0; j < dl_result.data[i].nof_pdu_elems[0]; ++j) {
+            if (dl_result.data[i].pdu[0][j].lcid == srslte::sch_subh::CON_RES_ID) {
+              // ConRes found
+              CONDERROR(dl_result.data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
+              CONDERROR(userinfo.msg4_tic.is_valid(), "Duplicate ConRes CE for the same rnti\n");
+              userinfo.msg4_tic = tic_tx_dl;
+            }
           }
         }
-        CONDERROR(not userinfo.msg4_tic.is_valid(), "Data allocs are not allowed without first receiving ConRes\n");
+      }
+    }
+
+    /* TEST: Txs out of place */
+    if (not userinfo.msg4_tic.is_valid()) {
+      // Msg4 not yet received by user
+      for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
+        CONDERROR(dl_result.data[i].dci.rnti == rnti, "No DL data allocs allowed before Msg4 is scheduled\n");
+      }
+      if (userinfo.msg3_tic.is_valid() and userinfo.msg3_tic != tic_tx_ul) {
+        // Msg3 scheduled. No UL alloc allowed unless it is a newtx (the Msg3 itself)
+        for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+          // Needs PDCCH - filters out UL retxs
+          CONDERROR(ul_result.pusch[i].needs_pdcch and ul_result.pusch[i].dci.rnti == rnti,
+                    "No UL newtxs allowed before user received Msg4\n");
+        }
+      } else if (not userinfo.msg3_tic.is_valid()) {
+        // Not Msg3 sched TTI
+        for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
+          CONDERROR(ul_result.pusch[i].dci.rnti == rnti, "No UL newtxs allowed before user received Msg4\n");
+        }
       }
     }
   }

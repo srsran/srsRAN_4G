@@ -149,7 +149,7 @@ ra_sched::ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>
 // Schedules RAR
 // On every call to this function, we schedule the oldest RAR which is still within the window. If outside the window we
 // discard it.
-void ra_sched::dl_sched(srsenb::sf_sched* tti_sched)
+void ra_sched::dl_sched(sf_sched* tti_sched)
 {
   uint32_t tti_tx_dl = tti_sched->get_tti_tx_dl();
   rar_aggr_level     = 2;
@@ -179,22 +179,24 @@ void ra_sched::dl_sched(srsenb::sf_sched* tti_sched)
 
     // Try to schedule DCI + RBGs for RAR Grant
     std::pair<alloc_outcome_t, uint32_t> ret = tti_sched->alloc_rar(rar_aggr_level, rar);
-
-    if (ret.first == alloc_outcome_t::SUCCESS) {
-      // if all RAR grant allocations were successful
-      if (ret.second == rar.nof_grants) {
-        // Remove pending RAR
-        pending_rars.pop_front();
-      } else if (ret.second > 0) {
-        // keep the RAR grants that were not scheduled, so we can schedule in next TTI
-        std::copy(&rar.msg3_grant[ret.second], &rar.msg3_grant[rar.nof_grants], &rar.msg3_grant[0]);
-        rar.nof_grants -= ret.second;
-      }
-    } else if (ret.first == alloc_outcome_t::RB_COLLISION) {
+    if (ret.first == alloc_outcome_t::RB_COLLISION) {
       // there are not enough RBs for RAR or Msg3 allocation. We can skip this TTI
       return;
     }
-    // try to scheduler next RAR with different RA-RNTI
+    if (ret.first != alloc_outcome_t::SUCCESS) {
+      // try to scheduler next RAR with different RA-RNTI
+      continue;
+    }
+
+    uint32_t nof_rar_allocs = ret.second;
+    if (nof_rar_allocs == rar.nof_grants) {
+      // all RAR grants were allocated. Remove pending RAR
+      pending_rars.pop_front();
+    } else {
+      // keep the RAR grants that were not scheduled, so we can schedule in next TTI
+      std::copy(&rar.msg3_grant[nof_rar_allocs], &rar.msg3_grant[rar.nof_grants], &rar.msg3_grant[0]);
+      rar.nof_grants -= nof_rar_allocs;
+    }
   }
 }
 
@@ -231,32 +233,29 @@ int ra_sched::dl_rach_info(dl_sched_rar_info_t rar_info)
   return SRSLTE_SUCCESS;
 }
 
-void ra_sched::reset()
+//! Schedule Msg3 grants in UL based on allocated RARs
+void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
 {
-  pending_rars.clear();
-}
+  const std::vector<sf_sched::rar_alloc_t>& alloc_rars = sf_dl_sched->get_allocated_rars();
 
-void ra_sched::sched_msg3(sf_sched* sf_msg3_sched, const sched_interface::dl_sched_res_t& dl_sched_result)
-{
-  // Go through all scheduled RARs, and pre-allocate Msg3s in UL channel accordingly
-  for (uint32_t i = 0; i < dl_sched_result.nof_rar_elems; ++i) {
-    for (uint32_t j = 0; j < dl_sched_result.rar[i].nof_grants; ++j) {
-      auto& grant = dl_sched_result.rar[i].msg3_grant[j];
+  for (const auto& rar : alloc_rars) {
+    for (uint32_t j = 0; j < rar.rar_grant.nof_grants; ++j) {
+      const auto& msg3grant = rar.rar_grant.msg3_grant[j];
 
-      sf_sched::pending_msg3_t msg3;
-      srslte_ra_type2_from_riv(grant.grant.rba, &msg3.L, &msg3.n_prb, cc_cfg->nof_prb(), cc_cfg->nof_prb());
-      msg3.mcs  = grant.grant.trunc_mcs;
-      msg3.rnti = grant.data.temp_crnti;
-
-      auto it = ue_db->find(msg3.rnti);
-      if (it == ue_db->end() or not sf_msg3_sched->alloc_msg3(&it->second, msg3)) {
-        log_h->error(
-            "SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n", msg3.rnti, sf_msg3_sched->get_tti_tx_ul());
+      uint16_t crnti   = msg3grant.data.temp_crnti;
+      auto     user_it = ue_db->find(crnti);
+      if (user_it == ue_db->end() or not sf_msg3_sched->alloc_msg3(&user_it->second, msg3grant)) {
+        log_h->error("SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n", crnti, sf_msg3_sched->get_tti_tx_ul());
       } else {
-        log_h->debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n", msg3.rnti, sf_msg3_sched->get_tti_tx_ul());
+        log_h->debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n", crnti, sf_msg3_sched->get_tti_tx_ul());
       }
     }
   }
+}
+
+void ra_sched::reset()
+{
+  pending_rars.clear();
 }
 
 /*******************************************************
@@ -338,6 +337,10 @@ const sf_sched_result& sched::carrier_sched::generate_tti_result(uint32_t tti_rx
 
       /* Schedule RAR */
       ra_sched_ptr->dl_sched(tti_sched);
+
+      /* Schedule Msg3 */
+      sf_sched* sf_msg3_sched = get_sf_sched(tti_rx + MSG3_DELAY_MS);
+      ra_sched_ptr->ul_sched(tti_sched, sf_msg3_sched);
     }
 
     /* Prioritize PDCCH scheduling for DL and UL data in a RoundRobin fashion */
@@ -354,12 +357,6 @@ const sf_sched_result& sched::carrier_sched::generate_tti_result(uint32_t tti_rx
 
     /* Select the winner DCI allocation combination, store all the scheduling results */
     tti_sched->generate_sched_results(sf_result);
-
-    /* Enqueue Msg3s derived from allocated RARs */
-    if (dl_active) {
-      sf_sched* sf_msg3_sched = get_sf_sched(tti_rx + MSG3_DELAY_MS);
-      ra_sched_ptr->sched_msg3(sf_msg3_sched, sf_result->dl_sched_result);
-    }
 
     /* Reset ue harq pending ack state, clean-up blocked pids */
     for (auto& user : *ue_db) {

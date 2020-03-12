@@ -116,10 +116,9 @@ public:
 
   explicit ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>& ue_db_);
   void dl_sched(sf_sched* tti_sched);
-  void ul_sched(sf_sched* tti_sched);
+  void ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched);
   int  dl_rach_info(dl_sched_rar_info_t rar_info);
   void reset();
-  void sched_msg3(sf_sched* sf_msg3_sched, const sched_interface::dl_sched_res_t& dl_sched_result);
 
 private:
   // args

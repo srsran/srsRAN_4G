@@ -558,8 +558,8 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
 
       last_msg3_prb += msg3_grant_size;
     }
-
     rar_allocs.emplace_back(ret2.second, rar_grant);
+
     break;
   }
   if (ret.first != alloc_outcome_t::SUCCESS) {
@@ -898,13 +898,17 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
   }
 }
 
-alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const pending_msg3_t& msg3)
+alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const sched_interface::dl_sched_rar_grant_t& rargrant)
 {
-  // Allocate RBGs and HARQ for pending Msg3
-  ul_harq_proc::ul_alloc_t msg3_alloc = {msg3.n_prb, msg3.L};
-  alloc_outcome_t          ret        = alloc_ul(user, msg3_alloc, sf_sched::ul_alloc_t::MSG3, msg3.mcs);
+  // Derive PRBs from allocated RAR grants
+  ul_harq_proc::ul_alloc_t msg3_alloc = {};
+  srslte_ra_type2_from_riv(
+      rargrant.grant.rba, &msg3_alloc.L, &msg3_alloc.RB_start, cc_cfg->nof_prb(), cc_cfg->nof_prb());
+
+  alloc_outcome_t ret = alloc_ul(user, msg3_alloc, sf_sched::ul_alloc_t::MSG3, rargrant.grant.trunc_mcs);
   if (not ret) {
-    log_h->warning("SCHED: Could not allocate msg3 within (%d,%d)\n", msg3.n_prb, msg3.n_prb + msg3.L);
+    log_h->warning(
+        "SCHED: Could not allocate msg3 within (%d,%d)\n", msg3_alloc.RB_start, msg3_alloc.RB_start + msg3_alloc.L);
   }
   return ret;
 }

@@ -235,9 +235,10 @@ public:
   alloc_outcome_t                      alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
   std::pair<alloc_outcome_t, uint32_t> alloc_rar(uint32_t aggr_lvl, const pending_rar_t& rar_grant);
   bool reserve_dl_rbgs(uint32_t rbg_start, uint32_t rbg_end) { return tti_alloc.reserve_dl_rbgs(rbg_start, rbg_end); }
+  const std::vector<rar_alloc_t>& get_allocated_rars() const { return rar_allocs; }
 
   // UL alloc methods
-  alloc_outcome_t alloc_msg3(sched_ue* user, const pending_msg3_t& msg3);
+  alloc_outcome_t alloc_msg3(sched_ue* user, const sched_interface::dl_sched_rar_grant_t& rargrant);
   alloc_outcome_t
        alloc_ul(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, sf_sched::ul_alloc_t::type_t alloc_type, uint32_t mcs = 0);
   bool reserve_ul_prbs(const prbmask_t& ulmask, bool strict) { return tti_alloc.reserve_ul_prbs(ulmask, strict); }
