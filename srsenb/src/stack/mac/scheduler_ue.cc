@@ -152,22 +152,20 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 
 void sched_ue::reset()
 {
-  {
-    cfg                          = {};
-    sr                           = false;
-    next_tpc_pusch               = 1;
-    next_tpc_pucch               = 1;
-    buf_mac                      = 0;
-    buf_ul                       = 0;
-    phy_config_dedicated_enabled = false;
-    cqi_request_tti              = 0;
-    conres_ce_pending            = true;
-    carriers.clear();
+  cfg                          = {};
+  sr                           = false;
+  next_tpc_pusch               = 1;
+  next_tpc_pucch               = 1;
+  buf_mac                      = 0;
+  buf_ul                       = 0;
+  phy_config_dedicated_enabled = false;
+  cqi_request_tti              = 0;
+  conres_ce_pending            = true;
+  carriers.clear();
 
-    // erase all bearers
-    for (uint32_t i = 0; i < cfg.ue_bearers.size(); ++i) {
-      set_bearer_cfg_unlocked(i, {});
-    }
+  // erase all bearers
+  for (uint32_t i = 0; i < cfg.ue_bearers.size(); ++i) {
+    set_bearer_cfg_unlocked(i, {});
   }
 }
 
