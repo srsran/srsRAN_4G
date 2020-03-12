@@ -124,7 +124,7 @@ proc_outcome_t nas::plmn_search_proc::react(const plmn_search_complete_t& t)
   nas_ptr->rrc->plmn_select(nas_ptr->current_plmn);
 
   state = state_t::rrc_connect;
-  if (not nas_ptr->rrc_connector.launch(srslte::establishment_cause_t::mo_data, nullptr)) {
+  if (not nas_ptr->rrc_connector.launch(srslte::establishment_cause_t::mo_sig, nullptr)) {
     ProcError("Unable to initiate RRC connection.\n");
     return proc_outcome_t::error;
   }

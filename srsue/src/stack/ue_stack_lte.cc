@@ -180,7 +180,7 @@ bool ue_stack_lte::switch_on()
 {
   if (running) {
     pending_tasks.try_push(ue_queue_id,
-                           [this]() { nas.start_attach_request(nullptr, srslte::establishment_cause_t::mo_data); });
+                           [this]() { nas.start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig); });
 
     // schedule airplane mode on command
     if (args.sim.airplane_t_on_ms > 0) {
@@ -189,7 +189,6 @@ bool ue_stack_lte::switch_on()
         disable_data();
       });
     }
-
     return true;
   }
   return false;
