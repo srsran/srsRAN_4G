@@ -229,20 +229,13 @@ bool sched::ue_exists(uint16_t rnti)
 
 void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd)
 {
-  std::lock_guard<std::mutex> lock(sched_mutex);
-  if (ue_db.count(rnti) > 0) {
-    ue_db[rnti].set_needs_ta_cmd(nof_ta_cmd);
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-  }
+  ue_db_access(rnti, [nof_ta_cmd](sched_ue& ue) { ue.set_needs_ta_cmd(nof_ta_cmd); }, __PRETTY_FUNCTION__);
 }
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   // TODO: Check if correct use of last_tti
-  if (ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti, enabled); })) {
-    Error("Error calling phy_config_enabled, user not found\n");
-  }
+  ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(last_tti, enabled); }, __PRETTY_FUNCTION__);
 }
 
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
@@ -258,29 +251,22 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
-  uint32_t ret = 0;
-  if (ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); })) {
-    Error("Error calling get_dl_buffer, user not found\n");
-    ret = SRSLTE_ERROR;
-  }
+  uint32_t ret = SRSLTE_ERROR;
+  ue_db_access(rnti, [&ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(); }, __PRETTY_FUNCTION__);
   return ret;
 }
 
 uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
   // TODO: Check if correct use of last_tti
-  uint32_t ret = SRSLTE_SUCCESS;
-  if (ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti); })) {
-    Error("Error calling get_ul_buffer, user not found\n");
-    ret = SRSLTE_ERROR;
-  }
+  uint32_t ret = SRSLTE_ERROR;
+  ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(last_tti); }, __PRETTY_FUNCTION__);
   return ret;
 }
 
 int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  return ue_db_access(rnti,
-                      [lc_id, tx_queue, retx_queue](sched_ue& ue) { ue.dl_buffer_state(lc_id, tx_queue, retx_queue); });
+  return ue_db_access(rnti, [&](sched_ue& ue) { ue.dl_buffer_state(lc_id, tx_queue, retx_queue); });
 }
 
 int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
@@ -291,10 +277,7 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   int ret = -1;
-  if (ue_db_access(
-          rnti, [tti, enb_cc_idx, tb_idx, ack, &ret](sched_ue& ue) { ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack); })) {
-    Error("Error calling dl_ack_info, user not found\n");
-  }
+  ue_db_access(rnti, [&](sched_ue& ue) { ret = ue.set_ack_info(tti, enb_cc_idx, tb_idx, ack); }, __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -326,8 +309,7 @@ int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
 
 int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code)
 {
-  return ue_db_access(
-      rnti, [tti, enb_cc_idx, cqi, ul_ch_code](sched_ue& ue) { ue.set_ul_cqi(tti, enb_cc_idx, cqi, ul_ch_code); });
+  return ue_db_access(rnti, [&](sched_ue& ue) { ue.set_ul_cqi(tti, enb_cc_idx, cqi, ul_ch_code); });
 }
 
 int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
@@ -337,17 +319,17 @@ int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
 
 int sched::ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)
 {
-  return ue_db_access(rnti, [lcid, len](sched_ue& ue) { ue.ul_recv_len(lcid, len); });
+  return ue_db_access(rnti, [lcid, len](sched_ue& ue) { ue.ul_recv_len(lcid, len); }, __PRETTY_FUNCTION__);
 }
 
 int sched::ul_phr(uint16_t rnti, int phr)
 {
-  return ue_db_access(rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); });
+  return ue_db_access(rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); }, __PRETTY_FUNCTION__);
 }
 
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 {
-  return ue_db_access(rnti, [](sched_ue& ue) { ue.set_sr(); });
+  return ue_db_access(rnti, [](sched_ue& ue) { ue.set_sr(); }, __PRETTY_FUNCTION__);
 }
 
 void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
@@ -358,30 +340,28 @@ void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 
 void sched::tpc_inc(uint16_t rnti)
 {
-  if (ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_inc(); })) {
-    Error("Error calling tpc_inc, user not found\n");
-  }
+  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_inc(); }, __PRETTY_FUNCTION__);
 }
 
 void sched::tpc_dec(uint16_t rnti)
 {
-  if (ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); })) {
-    Error("Error calling tpc_dec, user not found\n");
-  }
+  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); }, __PRETTY_FUNCTION__);
 }
 
 std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
 {
   std::array<int, SRSLTE_MAX_CARRIERS> ret{};
   ret.fill(-1); // -1 for inactive carriers
-  ue_db_access(rnti, [this, &ret](sched_ue& ue) {
-    for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
-      auto p = ue.get_cell_index(enb_cc_idx);
-      if (p.second < SRSLTE_MAX_CARRIERS) {
-        ret[enb_cc_idx] = p.second;
-      }
-    }
-  });
+  ue_db_access(rnti,
+               [this, &ret](sched_ue& ue) {
+                 for (size_t enb_cc_idx = 0; enb_cc_idx < carrier_schedulers.size(); ++enb_cc_idx) {
+                   auto p = ue.get_cell_index(enb_cc_idx);
+                   if (p.second < SRSLTE_MAX_CARRIERS) {
+                     ret[enb_cc_idx] = p.second;
+                   }
+                 }
+               },
+               __PRETTY_FUNCTION__);
   return ret;
 }
 
@@ -436,14 +416,18 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
 
 // Common way to access ue_db elements in a read locking way
 template <typename Func>
-int sched::ue_db_access(uint16_t rnti, Func f)
+int sched::ue_db_access(uint16_t rnti, Func f, const char* func_name)
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
   auto                        it = ue_db.find(rnti);
   if (it != ue_db.end()) {
     f(it->second);
   } else {
-    Error("User rnti=0x%x not found\n", rnti);
+    if (func_name != nullptr) {
+      Error("User rnti=0x%x not found. Failed to call %s.\n", rnti, func_name);
+    } else {
+      Error("User rnti=0x%x not found.\n", rnti);
+    }
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;

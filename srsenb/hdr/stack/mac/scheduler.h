@@ -139,7 +139,7 @@ public:
 protected:
   // Helper methods
   template <typename Func>
-  int ue_db_access(uint16_t rnti, Func);
+  int ue_db_access(uint16_t rnti, Func, const char* func_name = nullptr);
 
   // args
   srslte::log_ref                  log_h;
