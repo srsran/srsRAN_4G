@@ -1250,10 +1250,9 @@ int parse_sib3(std::string filename, sib_type3_s* data)
   sib3.add_subsection(&resel_common);
 
   resel_common.add_field(make_asn1_enum_number_parser("q_hyst", &data->cell_resel_info_common.q_hyst));
-
   parser::section speed_resel("speed_state_resel_params");
+  speed_resel.set_optional(&data->cell_resel_info_common.speed_state_resel_pars_present);
   resel_common.add_subsection(&speed_resel);
-  resel_common.set_optional(&data->cell_resel_info_common.speed_state_resel_pars_present);
   sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_* resel_pars =
       &data->cell_resel_info_common.speed_state_resel_pars;
 
