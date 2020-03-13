@@ -471,8 +471,9 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
         // Msg3 scheduled. No UL alloc allowed unless it is a newtx (the Msg3 itself)
         for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
           // Needs PDCCH - filters out UL retxs
-          CONDERROR(ul_result.pusch[i].needs_pdcch and ul_result.pusch[i].dci.rnti == rnti,
-                    "No UL newtxs allowed before user received Msg4\n");
+          bool msg3_retx = ((tic_tx_ul - userinfo.msg3_tic) % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)) == 0;
+          CONDERROR(ul_result.pusch[i].dci.rnti == rnti and not msg3_retx,
+                    "No UL txs allowed except for Msg3 before user received Msg4\n");
         }
       } else if (not userinfo.msg3_tic.is_valid()) {
         // Not Msg3 sched TTI
@@ -737,6 +738,8 @@ int common_sched_tester::process_ack_txs()
       tester_log->info(
           "DL ACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.dl_harq.get_id());
     } else {
+      tester_log->info(
+          "DL NACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.dl_harq.get_id());
       CONDERROR(h.is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "NACKed DL harq got emptied\n");
     }
   }
@@ -765,6 +768,7 @@ int common_sched_tester::process_ack_txs()
       tester_log->info("UL ACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, ul_ack.rnti, hack.get_id());
     } else {
       // NACK
+      tester_log->info("UL NACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, ul_ack.rnti, hack.get_id());
       CONDERROR(!h->is_empty() and !h->has_pending_retx(), "If NACKed, UL harq has to have pending retx\n");
       CONDERROR(h->is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "Nacked UL harq did get emptied\n");
     }

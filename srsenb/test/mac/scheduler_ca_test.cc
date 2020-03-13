@@ -140,6 +140,11 @@ int test_scell_activation(test_scell_activation_params params)
   generator.step_tti();
   generator.add_dl_data(rnti1, msg4_size);
   tester.test_next_ttis(generator.tti_events);
+  while (not tester.ue_tester->get_user_state(rnti1)->msg4_tic.is_valid() or
+         tester.ue_tester->get_user_state(rnti1)->msg4_tic.tti_rx() > generator.tti_counter) {
+    generator.step_tti();
+    tester.test_next_ttis(generator.tti_events);
+  }
 
   // Event (20 TTIs): Data back and forth
   auto generate_data = [&](uint32_t nof_ttis, float prob_dl, float prob_ul, float rand_exp) {
