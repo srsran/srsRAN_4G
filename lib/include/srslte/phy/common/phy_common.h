@@ -406,9 +406,9 @@ SRSLTE_API uint8_t srslte_band_get_band(uint32_t dl_earfcn);
 
 SRSLTE_API bool srslte_band_is_tdd(uint32_t band);
 
-SRSLTE_API float srslte_band_fd(uint32_t dl_earfcn);
+SRSLTE_API double srslte_band_fd(uint32_t dl_earfcn);
 
-SRSLTE_API float srslte_band_fu(uint32_t ul_earfcn);
+SRSLTE_API double srslte_band_fu(uint32_t ul_earfcn);
 
 SRSLTE_API uint32_t srslte_band_ul_earfcn(uint32_t dl_earfcn);
 

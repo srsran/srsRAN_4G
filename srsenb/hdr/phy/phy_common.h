@@ -89,9 +89,9 @@ public:
 
     return ret;
   };
-  float get_ul_freq_hz(uint32_t cc_idx)
+  double get_ul_freq_hz(uint32_t cc_idx)
   {
-    float ret = 0.0f;
+    double ret = 0.0f;
 
     if (cc_idx < cell_list.size()) {
       ret = cell_list[cc_idx].ul_freq_hz;
@@ -99,9 +99,9 @@ public:
 
     return ret;
   };
-  float get_dl_freq_hz(uint32_t cc_idx)
+  double get_dl_freq_hz(uint32_t cc_idx)
   {
-    float ret = 0.0f;
+    double ret = 0.0;
 
     if (cc_idx < cell_list.size()) {
       ret = cell_list[cc_idx].dl_freq_hz;

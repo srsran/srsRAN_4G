@@ -402,9 +402,9 @@ struct cell_cfg_t {
   uint32_t                 pci;
   uint16_t                 root_seq_idx;
   uint32_t                 dl_earfcn;
-  float                    dl_freq_hz;
+  double                   dl_freq_hz;
   uint32_t                 ul_earfcn;
-  float                    ul_freq_hz;
+  double                   ul_freq_hz;
   uint32_t                 initial_dl_cqi;
   std::vector<scell_cfg_t> scell_list;
 };

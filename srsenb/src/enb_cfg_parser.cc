@@ -911,7 +911,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     if (cfg.dl_freq_hz > 0) {
       phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;
     } else {
-      phy_cell_cfg.dl_freq_hz = 1e6f * srslte_band_fd(cfg.dl_earfcn);
+      phy_cell_cfg.dl_freq_hz = 1e6 * srslte_band_fd(cfg.dl_earfcn);
     }
 
     if (cfg.ul_freq_hz > 0) {
@@ -920,7 +920,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       if (cfg.ul_earfcn == 0) {
         cfg.ul_earfcn = srslte_band_ul_earfcn(cfg.dl_earfcn);
       }
-      phy_cell_cfg.ul_freq_hz = 1e6f * srslte_band_fu(cfg.ul_earfcn);
+      phy_cell_cfg.ul_freq_hz = 1e6 * srslte_band_fu(cfg.ul_earfcn);
     }
     phy_cfg_->phy_cell_cfg.push_back(phy_cell_cfg);
   }

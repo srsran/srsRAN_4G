@@ -484,10 +484,10 @@ uint32_t srslte_re_x_prb(uint32_t ns, uint32_t symbol, uint32_t nof_ports, uint3
 
 struct lte_band {
   uint8_t                     band;
-  float                       fd_low_mhz;
+  double                      fd_low_mhz;
   uint32_t                    dl_earfcn_offset;
   uint32_t                    ul_earfcn_offset;
-  float                       duplex_mhz;
+  double                      duplex_mhz;
   enum band_geographical_area area;
 };
 
@@ -588,7 +588,7 @@ char* srslte_mimotype2str(srslte_tx_scheme_t mimo_type)
   }
 }
 
-float get_fd(struct lte_band* band, uint32_t dl_earfcn)
+static double get_fd(struct lte_band* band, uint32_t dl_earfcn)
 {
   if (dl_earfcn >= band->dl_earfcn_offset) {
     return band->fd_low_mhz + 0.1 * (dl_earfcn - band->dl_earfcn_offset);
@@ -597,7 +597,7 @@ float get_fd(struct lte_band* band, uint32_t dl_earfcn)
   }
 }
 
-float get_fu(struct lte_band* band, uint32_t ul_earfcn)
+static double get_fu(struct lte_band* band, uint32_t ul_earfcn)
 {
   if (ul_earfcn >= band->ul_earfcn_offset) {
     return band->fd_low_mhz - band->duplex_mhz + 0.1 * (ul_earfcn - band->ul_earfcn_offset);
@@ -632,7 +632,7 @@ uint8_t srslte_band_get_band(uint32_t dl_earfcn)
   return lte_bands[i].band;
 }
 
-float srslte_band_fd(uint32_t dl_earfcn)
+double srslte_band_fd(uint32_t dl_earfcn)
 {
   uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
@@ -645,7 +645,7 @@ float srslte_band_fd(uint32_t dl_earfcn)
   return get_fd(&lte_bands[i], dl_earfcn);
 }
 
-float srslte_band_fu(uint32_t ul_earfcn)
+double srslte_band_fu(uint32_t ul_earfcn)
 {
   uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (ul_earfcn > lte_bands[i].ul_earfcn_offset) {

@@ -454,8 +454,8 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
     } else if (cell_info) {
       // Change frequency only if the earfcn was modified
       if (common.scell_cfg[cc_idx].earfcn != earfcn) {
-        float dl_freq = srslte_band_fd(earfcn) * 1e6f;
-        float ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6f;
+        double dl_freq = srslte_band_fd(earfcn) * 1e6;
+        double ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6;
         radio->set_rx_freq(cc_idx, dl_freq);
         radio->set_tx_freq(cc_idx, ul_freq);
       }
