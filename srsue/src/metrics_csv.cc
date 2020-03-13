@@ -77,13 +77,19 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
   pthread_mutex_lock(&mutex);
   if (file.is_open() && ue != NULL) {
     if (n_reports == 0) {
-      file << "time;cc;pci;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_bler;"
+      file << "time;cc;pci;earfcn,rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
+              "bler;"
               "rf_o;rf_"
               "u;rf_l;is_attached\n";
     }
 
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
       file << (metrics_report_period * n_reports) << ";";
+
+      // CC and PCI
+      file << r << ";";
+      file << metrics.phy.info[r].pci << ";";
+      file << metrics.phy.info[r].dl_earfcn << ";";
 
       // Print PHY metrics for first CC
       file << float_to_string(metrics.phy.dl[r].rsrp, 2);
