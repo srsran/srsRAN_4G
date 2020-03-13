@@ -221,13 +221,14 @@ void gw::run_thread()
     return;
   }
 
-  const static uint32_t ATTACH_WAIT_TOUT = 40; // 4 sec
-  uint32_t              attach_wait      = 0;
+  const static uint32_t ATTACH_WAIT_TOUT = 40, SERVICE_WAIT_TOUT = 40; // 4 sec
+  uint32_t              attach_wait = 0, service_wait = 0;
 
   log.info("GW IP packet receiver thread run_enable\n");
 
   running = true;
   while (run_enable) {
+    // Read packet from TUN
     if (SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET > idx) {
       N_bytes = read(tun_fd, &pdu->msg[idx], SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET - idx);
     } else {
@@ -236,70 +237,81 @@ void gw::run_thread()
       break;
     }
     log.debug("Read %d bytes from TUN fd=%d, idx=%d\n", N_bytes, tun_fd, idx);
-    if (N_bytes > 0) {
-      struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
-      struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
-      uint16_t        pkt_len = 0;
-      pdu->N_bytes            = idx + N_bytes;
-      if (ip_pkt->version == 4 || ip_pkt->version == 6) {
-        if (ip_pkt->version == 4) {
-          pkt_len = ntohs(ip_pkt->tot_len);
-        } else if (ip_pkt->version == 6) {
-          pkt_len = ntohs(ip6_pkt->payload_len) + 40;
-        } else {
-          log.error_hex(pdu->msg, pdu->N_bytes, "Unsupported IP version. Dropping packet.\n");
-          continue;
-        }
-        log.debug("IPv%d packet total length: %d Bytes\n", ip_pkt->version, pkt_len);
-        // Check if entire packet was received
-        if (pkt_len == pdu->N_bytes) {
-          log.info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-          while (run_enable && !stack->is_lcid_enabled(default_lcid) && attach_wait < ATTACH_WAIT_TOUT) {
-            if (!attach_wait) {
-              log.info(
-                  "LCID=%d not active, requesting NAS attach (%d/%d)\n", default_lcid, attach_wait, ATTACH_WAIT_TOUT);
-              if (not stack->switch_on()) {
-                log.warning("Could not re-establish the connection\n");
-              }
-            }
-            usleep(100000);
-            attach_wait++;
-          }
-
-          attach_wait = 0;
-
-          if (!run_enable) {
-            break;
-          }
-
-          uint8_t lcid = tft_matcher.check_tft_filter_match(pdu);
-          // Send PDU directly to PDCP
-          if (stack->is_lcid_enabled(lcid)) {
-            pdu->set_timestamp();
-            ul_tput_bytes += pdu->N_bytes;
-            stack->write_sdu(lcid, std::move(pdu));
-            do {
-              pdu = srslte::allocate_unique_buffer(*pool);
-              if (!pdu) {
-                log.error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
-                usleep(100000);
-              }
-            } while (!pdu);
-            idx = 0;
-          }
-        } else {
-          idx += N_bytes;
-          log.debug(
-              "Entire packet not read from socket. Total Length %d, N_Bytes %d.\n", ip_pkt->tot_len, pdu->N_bytes);
-        }
-      } else {
-        log.error("IP Version not handled. Version %d\n", ip_pkt->version);
-      }
-    } else {
+    if (N_bytes <= 0) {
       log.error("Failed to read from TUN interface - gw receive thread exiting.\n");
       srslte::console("Failed to read from TUN interface - gw receive thread exiting.\n");
       break;
+    }
+
+    // Check if IP version makes sense and get packtet length
+    struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+    struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+    uint16_t        pkt_len = 0;
+    pdu->N_bytes            = idx + N_bytes;
+    if (ip_pkt->version == 4) {
+      pkt_len = ntohs(ip_pkt->tot_len);
+    } else if (ip_pkt->version == 6) {
+      pkt_len = ntohs(ip6_pkt->payload_len) + 40;
+    } else {
+      log.error_hex(pdu->msg, pdu->N_bytes, "Unsupported IP version. Dropping packet.\n");
+      continue;
+    }
+    log.debug("IPv%d packet total length: %d Bytes\n", ip_pkt->version, pkt_len);
+
+    // Check if entire packet was received
+    if (pkt_len == pdu->N_bytes) {
+      log.info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
+
+      // Make sure UE is attached
+      while (run_enable && !stack->is_attached() && attach_wait < ATTACH_WAIT_TOUT) {
+        if (!attach_wait) {
+          log.info("UE is not attached, waiting for NAS attach (%d/%d)\n", attach_wait, ATTACH_WAIT_TOUT);
+        }
+        usleep(100000);
+        attach_wait++;
+      }
+      attach_wait = 0;
+
+      // If we are still not attached by this stage, drop packet
+      if (run_enable && !stack->is_attached()) {
+        continue;
+      }
+
+      // Wait for service request if necessary   
+      while (run_enable && !stack->is_lcid_enabled(default_lcid) && service_wait < SERVICE_WAIT_TOUT) {
+        if (!service_wait) {
+          log.info("UE does not have service, waiting for NAS service request (%d/%d)\n", service_wait, SERVICE_WAIT_TOUT);
+          stack->start_service_request();
+        }
+        usleep(100000);
+        service_wait++;
+      }
+      service_wait = 0;
+      
+      // Quit before writing packet if necessary
+      if (!run_enable) {
+        break;
+      }
+
+      uint8_t lcid = tft_matcher.check_tft_filter_match(pdu);
+      // Send PDU directly to PDCP
+      if (stack->is_lcid_enabled(lcid)) {
+        pdu->set_timestamp();
+        ul_tput_bytes += pdu->N_bytes;
+        stack->write_sdu(lcid, std::move(pdu));
+        do {
+          pdu = srslte::allocate_unique_buffer(*pool);
+          if (!pdu) {
+            log.error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
+            usleep(100000);
+          }
+        } while (!pdu);
+        idx = 0;
+      }
+    } else {
+      idx += N_bytes;
+      log.debug("Entire packet not read from socket. Total Length %d, N_Bytes %d.\n", ip_pkt->tot_len, pdu->N_bytes);
     }
   }
   running = false;

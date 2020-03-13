@@ -68,6 +68,8 @@ public:
   int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
   bool switch_on() final;
   bool switch_off() final;
+  bool is_attached() final;
+  bool start_service_request() final;
   bool enable_data();
   bool disable_data();
   void stop() final;

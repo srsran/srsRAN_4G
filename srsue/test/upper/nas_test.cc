@@ -154,17 +154,17 @@ public:
     nas = nas_;
     start(-1);
   }
-  bool switch_on() final
+  bool switch_on()
   {
-    proc_state_t proc_result;
-    nas->start_attach_proc(&proc_result, srslte::establishment_cause_t::mo_data);
-    while (not proc_result.is_complete()) {
-      usleep(1000);
-    }
-    return proc_result.is_success();
+    return true;
   }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
+
+  bool is_attached(){return true;}
+
+  bool start_service_request(){return true;}
+
   void run_thread()
   {
     running = true;
@@ -179,6 +179,7 @@ public:
     running = false;
     wait_thread_finish();
   }
+  srslte::log_ref stack_log{"STACK"};
   pdcp_interface_gw* pdcp    = nullptr;
   srsue::nas*        nas     = nullptr;
   bool               running = false;
@@ -312,9 +313,7 @@ int mme_attach_request_test()
 
     gw.init(gw_args, g_logger, &stack);
     stack.init(&nas);
-
-    usleep(5000); // Wait for stack to initialize before stoping it.
-
+    usleep(1000); // Wait for stack to initialize before stoping it.
     // trigger test
     stack.switch_on();
     stack.stop();
@@ -330,7 +329,6 @@ int mme_attach_request_test()
     memcpy(tmp->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
     tmp->N_bytes = sizeof(attach_accept_pdu);
     nas.write_pdu(LCID, std::move(tmp));
-
     nas_metrics_t metrics;
     nas.get_metrics(&metrics);
     TESTASSERT(metrics.nof_active_eps_bearer == 1);

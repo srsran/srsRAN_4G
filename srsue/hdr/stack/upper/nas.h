@@ -38,42 +38,46 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
-class nas : public nas_interface_rrc, public nas_interface_ue, public srslte::timer_callback
+class nas : public nas_interface_rrc, public nas_interface_stack, public srslte::timer_callback
 {
 public:
   explicit nas(srslte::task_sched_handle task_sched_);
-  virtual ~nas() = default;
+  virtual ~nas();
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
   void run_tti();
 
-  void        get_metrics(nas_metrics_t* m);
-  emm_state_t get_state();
+  // Metrics getter
+  void get_metrics(nas_metrics_t* m);
 
   // RRC interface
   void     left_rrc_connected() override;
+  bool     connection_request_completed(bool outcome) override;
   bool     paging(srslte::s_tmsi_t* ue_identity) override;
   void     set_barring(srslte::barring_t barring) override;
   void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
   uint32_t get_k_enb_count() override;
-  bool     is_attached() override;
   bool     get_k_asme(uint8_t* k_asme_, uint32_t n) override;
   uint32_t get_ipv4_addr() override;
   bool     get_ipv6_addr(uint8_t* ipv6_addr) override;
+  void     plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
+                                 int                                   nof_plmns) final;
 
-  // UE interface
-  void start_attach_proc(srslte::proc_state_t* result, srslte::establishment_cause_t cause_) final;
-  bool detach_request(const bool switch_off) final;
+  // Stack interface
+  bool switch_on();
+  bool switch_off();
+  bool enable_data();
+  bool disable_data();
+  void start_service_request(srslte::establishment_cause_t cause_);
 
-  void plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
-                             int                                   nof_plmns) final;
-  bool connection_request_completed(bool outcome) final;
+  // Stack+RRC interface
+  bool is_attached() override;
 
   // timer callback
   void timer_expired(uint32_t timeout_id) override;
 
   // PCAP
-  void start_pcap(srslte::nas_pcap* pcap_);
+  void start_pcap(srslte::nas_pcap* pcap_) { pcap = pcap_; }
 
 private:
   srslte::byte_buffer_pool* pool = nullptr;
@@ -82,13 +86,13 @@ private:
   usim_interface_nas*       usim = nullptr;
   gw_interface_nas*         gw   = nullptr;
 
-  nas_args_t cfg = {};
+  bool running = false;
 
-  emm_state_t state = EMM_STATE_DEREGISTERED;
+  nas_args_t  cfg   = {};
+  emm_state_t state = {};
 
   srslte::barring_t current_barring = srslte::barring_t::none;
 
-  bool              plmn_is_selected = false;
   srslte::plmn_id_t current_plmn;
   srslte::plmn_id_t home_plmn;
 
@@ -168,8 +172,7 @@ private:
   // PCAP
   srslte::nas_pcap* pcap = nullptr;
 
-  bool running = false;
-
+  // Security
   void
        integrity_generate(uint8_t* key_128, uint32_t count, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
   bool integrity_check(srslte::byte_buffer_t* pdu);
@@ -177,11 +180,15 @@ private:
   void cipher_decrypt(srslte::byte_buffer_t* pdu);
   int  apply_security_config(srslte::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
   void reset_security_context();
-
   void set_k_enb_count(uint32_t count);
-
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT* caps);
 
+  // NAS Connection Initiation/Termination
+  void start_attach_request(srslte::establishment_cause_t cause_);
+  bool detach_request(const bool switch_off);
+
+  // PLMN Selection Helpers
+  void start_plmn_selection_proc();
   void select_plmn();
 
   // Parsers
@@ -227,7 +234,9 @@ private:
 
   // Other internal helpers
   void enter_state(emm_state_t state_);
-  void enter_emm_deregistered();
+  void enter_emm_null();
+  void enter_emm_deregistered(emm_state_t::deregistered_substate_t substate);
+  void enter_emm_deregistered_initiated();
 
   // security context persistence file
   bool read_ctxt_file(nas_sec_ctxt* ctxt);
@@ -266,60 +275,25 @@ private:
     return true;
   }
 
-  class rrc_connect_proc
+  std::vector<uint8_t> split_string(const std::string input)
   {
-  public:
-    using rrc_connect_complete_ev = srslte::proc_state_t;
-    struct connection_request_completed_t {
-      bool outcome;
-    };
-    struct attach_timeout {};
-
-    explicit rrc_connect_proc(nas* nas_ptr_);
-    srslte::proc_outcome_t init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu);
-    srslte::proc_outcome_t step();
-    void                   then(const srslte::proc_state_t& result);
-    srslte::proc_outcome_t react(connection_request_completed_t event);
-    srslte::proc_outcome_t react(attach_timeout event);
-    static const char*     name() { return "RRC Connect"; }
-
-  private:
-    static const uint32_t attach_timeout_ms = 5000;
-
-    nas*                                nas_ptr;
-    srslte::timer_handler::unique_timer timeout_timer;
-
-    enum class state_t { conn_req, wait_attach } state;
-  };
-  class plmn_search_proc
-  {
-  public:
-    struct plmn_search_complete_t {
-      rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
-      int                             nof_plmns;
-      plmn_search_complete_t(const rrc_interface_nas::found_plmn_t* plmns_, int nof_plmns_) : nof_plmns(nof_plmns_)
-      {
-        if (nof_plmns > 0) {
-          std::copy(&plmns_[0], &plmns_[nof_plmns], found_plmns);
-        }
+    std::vector<uint8_t> list;
+    std::stringstream    ss(input);
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      if (not substr.empty()) {
+        list.push_back(strtol(substr.c_str(), nullptr, 10));
       }
-    };
+    }
+    return list;
+  }
 
-    explicit plmn_search_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_) {}
-    srslte::proc_outcome_t init();
-    srslte::proc_outcome_t step();
-    void                   then(const srslte::proc_state_t& result);
-    srslte::proc_outcome_t react(const plmn_search_complete_t& t);
-    srslte::proc_outcome_t react(const rrc_connect_proc::rrc_connect_complete_ev& t);
-    static const char*     name() { return "PLMN Search"; }
+  // NAS Idle procedures
+  class plmn_search_proc; // PLMN selection proc (fwd declared)
 
-  private:
-    nas* nas_ptr;
-    enum class state_t { plmn_search, rrc_connect } state = state_t::plmn_search;
-  };
   srslte::proc_manager_list_t      callbacks;
   srslte::proc_t<plmn_search_proc> plmn_searcher;
-  srslte::proc_t<rrc_connect_proc> rrc_connector;
 
   const std::string gw_setup_failure_str = "Failed to setup/configure GW interface";
 };

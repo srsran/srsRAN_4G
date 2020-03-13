@@ -166,8 +166,7 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    ue_task_queue.try_push([this]() { nas.start_attach_proc(nullptr, srslte::establishment_cause_t::mo_sig); });
-    return true;
+    ue_task_queue.try_push([this]() { nas.switch_on(); });
   }
   return false;
 }
@@ -175,7 +174,7 @@ bool ue_stack_lte::switch_on()
 bool ue_stack_lte::switch_off()
 {
   // generate detach request with switch-off flag
-  nas.detach_request(true);
+  nas.switch_off();
 
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
   int cnt = 0, timeout_ms = 5000;
@@ -195,14 +194,22 @@ bool ue_stack_lte::enable_data()
 {
   // perform attach request
   srslte::console("Turning off airplane mode.\n");
-  return switch_on();
+  return nas.enable_data();
 }
 
 bool ue_stack_lte::disable_data()
 {
   // generate detach request
   srslte::console("Turning on airplane mode.\n");
-  return nas.detach_request(false);
+  return nas.disable_data();
+}
+
+bool ue_stack_lte::start_service_request()
+{
+  if (running) {
+    ue_task_queue.try_push([this]() { nas.start_service_request(srslte::establishment_cause_t::mo_data); });
+  }
+  return true;
 }
 
 bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
@@ -218,7 +225,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
   });
   // wait for result
   *metrics = pending_stack_metrics.wait_pop();
-  return (metrics->nas.state == EMM_STATE_REGISTERED && metrics->rrc.state == RRC_STATE_CONNECTED);
+  return (metrics->nas.state == emm_state_t::state_t::registered && metrics->rrc.state == RRC_STATE_CONNECTED);
 }
 
 void ue_stack_lte::run_thread()
@@ -249,6 +256,15 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
   if (not ret) {
     pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
   }
+}
+
+/**
+ * Check whether nas is attached
+ * @return bool wether NAS is in EMM_REGISTERED
+ */
+bool ue_stack_lte::is_attached()
+{
+  return nas.is_attached();
 }
 
 /********************

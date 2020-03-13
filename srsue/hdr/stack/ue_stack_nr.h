@@ -70,6 +70,10 @@ public:
   bool switch_off() final;
   void stop();
 
+  // GW srsue stack_interface_gw dummy interface
+  bool is_attached(){return true;};
+  bool start_service_request(){return true;};
+  
   bool get_metrics(stack_metrics_t* metrics);
   bool is_rrc_connected();
 

@@ -27,8 +27,8 @@
 namespace srsue {
 
 struct nas_metrics_t {
-  uint32_t    nof_active_eps_bearer;
-  emm_state_t state;
+  uint32_t             nof_active_eps_bearer;
+  emm_state_t::state_t state;
 };
 
 } // namespace srsue

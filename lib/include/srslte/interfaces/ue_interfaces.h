@@ -236,12 +236,14 @@ public:
   virtual bool connection_request_completed(bool outcome) = 0;
 };
 
-// NAS interface for UE
-class nas_interface_ue
+// NAS interface for the Stack
+class nas_interface_stack
 {
 public:
-  virtual void start_attach_proc(srslte::proc_state_t* proc_result, srslte::establishment_cause_t cause_) = 0;
-  virtual bool detach_request(const bool switch_off)                                                      = 0;
+  virtual bool switch_on() = 0;
+  virtual bool switch_off() = 0;
+  virtual bool enable_data() = 0;
+  virtual bool disable_data() = 0;
 };
 
 // PDCP interface for RRC
@@ -621,7 +623,8 @@ public:
 class stack_interface_gw : public pdcp_interface_gw
 {
 public:
-  virtual bool switch_on() = 0;
+  virtual bool is_attached()           = 0;
+  virtual bool start_service_request() = 0;
 };
 
 class gw_interface_stack : public gw_interface_nas, public gw_interface_rrc, public gw_interface_pdcp
