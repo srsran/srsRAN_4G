@@ -35,20 +35,23 @@ using namespace std;
 
 namespace srsue {
 
-metrics_csv::metrics_csv(std::string filename, bool append) : n_reports(0), metrics_report_period(1.0), ue(NULL)
+metrics_csv::metrics_csv(std::string filename, bool append_)
 {
   std::ios_base::openmode flags = std::ios_base::out;
-  if (append) {
-    flags |= std::ios_base::app;
+  if (append_) {
+    // check if file exists
+    ifstream f(filename.c_str());
+    if (f.good()) {
+      file_exists = true;
+      flags |= std::ios_base::app;
+    }
   }
   file.open(filename.c_str(), flags);
-  pthread_mutex_init(&mutex, NULL);
 }
 
 metrics_csv::~metrics_csv()
 {
   stop();
-  pthread_mutex_destroy(&mutex);
 }
 
 void metrics_csv::set_ue_handle(ue_metrics_interface* ue_)
@@ -63,20 +66,22 @@ void metrics_csv::set_flush_period(const uint32_t flush_period_sec_)
 
 void metrics_csv::stop()
 {
-  pthread_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
   if (file.is_open()) {
     file << "#eof\n";
     file.flush();
     file.close();
   }
-  pthread_mutex_unlock(&mutex);
 }
 
 void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period_usec)
 {
-  pthread_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> lock(mutex);
+
+  time_ms += period_usec / 1000;
+
   if (file.is_open() && ue != NULL) {
-    if (n_reports == 0) {
+    if (n_reports == 0 && !file_exists) {
       file << "time;cc;pci;earfcn,rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
               "bler;"
               "rf_o;rf_"
@@ -84,7 +89,7 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
     }
 
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-      file << (metrics_report_period * n_reports) << ";";
+      file << time_ms << ";";
 
       // CC and PCI
       file << r << ";";
@@ -134,14 +139,15 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
     n_reports++;
 
     if (flush_period_sec > 0) {
-      if ((n_reports % flush_period_sec * 1000) == 0) {
+      flush_time_ms += period_usec / 1000;
+      if (flush_time_ms / 1000 >= flush_period_sec) {
         file.flush();
+        flush_time_ms -= flush_period_sec * 1000;
       }
     }
   } else {
     std::cout << "couldn't write CSV file." << std::endl;
   }
-  pthread_mutex_unlock(&mutex);
 }
 
 std::string metrics_csv::float_to_string(float f, int digits, bool add_semicolon)

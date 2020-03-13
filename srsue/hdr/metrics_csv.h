@@ -29,6 +29,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <pthread.h>
 #include <stdint.h>
 #include <string>
@@ -52,12 +53,14 @@ public:
 private:
   std::string float_to_string(float f, int digits, bool add_semicolon = true);
 
-  float                 metrics_report_period = 0.0f;
   std::ofstream         file;
-  ue_metrics_interface* ue        = nullptr;
-  uint32_t              n_reports = 0;
-  pthread_mutex_t       mutex;
+  ue_metrics_interface* ue               = nullptr;
+  uint32_t              n_reports        = 0;
+  std::mutex            mutex            = {};
   uint32_t              flush_period_sec = 0;
+  uint32_t              flush_time_ms    = 0;
+  uint64_t              time_ms          = 0;
+  bool                  file_exists      = false;
 };
 
 } // namespace srsue
