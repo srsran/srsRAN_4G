@@ -41,7 +41,7 @@ namespace srsue {
 class metrics_csv : public srslte::metrics_listener<ue_metrics_t>
 {
 public:
-  metrics_csv(std::string filename, bool append);
+  metrics_csv(std::string filename, bool append = false);
   ~metrics_csv();
 
   void set_metrics(const ue_metrics_t& m, const uint32_t period_usec);
