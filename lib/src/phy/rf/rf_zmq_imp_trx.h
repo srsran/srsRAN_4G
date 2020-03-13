@@ -55,7 +55,7 @@ typedef struct {
   pthread_mutex_t mutex;
   cf_t*           zeros;
   void*           temp_buffer_convert;
-  uint32_t        frequency_hz_mhz;
+  uint32_t        frequency_mhz;
 } rf_zmq_tx_t;
 
 typedef struct {
