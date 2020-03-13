@@ -640,6 +640,11 @@ int srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
     ret = pucch_encode(q, sf, cfg, &data->uci) ? -1 : 1;
   } else if (srs_tx_enabled(&cfg->ul_cfg.srs, sf->tti)) {
     ret = srs_encode(q, sf->tti, cfg) ? -1 : 1;
+  } else {
+    // Set Zero output buffer if no UL transmission is required so the buffer does not keep previous transmission data
+    if (q->cell.nof_prb) {
+      srslte_vec_cf_zero(q->out_buffer, SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+    }
   }
 
   return ret;
