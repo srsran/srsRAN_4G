@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2019 Software Radio Systems Limited
+# Copyright 2013-2020 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -148,7 +148,7 @@ add_test(pcfich_test_62 pcfich_test -p 2 -n 6)
 add_test(pcfich_test_64 pcfich_test -p 4 -n 6) 
 add_test(pcfich_test_10 pcfich_test -p 1 -n 10) 
 add_test(pcfich_test_102 pcfich_test -p 2 -n 10) 
-add_test(pcfich_test_104 pcfich_test -p 4 -n 10) 
+add_test(pcfich_test_104 pcfich_test -p 4 -n 10)
 
 ########################################################################
 # PHICH TEST  
@@ -167,7 +167,7 @@ add_test(phich_test_64e phich_test -p 4 -n 6 -e -l -g 2)
  
 add_test(phich_test_10 phich_test -p 1 -n 10 -e) 
 add_test(phich_test_102 phich_test -p 2 -n 10 -g 2) 
-add_test(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2) 
+add_test(phich_test_104 phich_test -p 4 -n 10 -e -l -g 1/2)
 
 ########################################################################
 # PDCCH TEST  
@@ -341,7 +341,7 @@ add_test(pcfich_file_test pcfich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_
 add_test(phich_file_test phich_file_test -c 150 -n 50 -p 2 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.10M.dat) 
 add_test(pdcch_file_test pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat) 
 add_test(pdsch_pdcch_file_test pdsch_pdcch_file_test -c 1 -f 3 -n 6 -p 1 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.amar.dat)
-add_test(pmch_file_test pmch_file_test  -i ${CMAKE_CURRENT_SOURCE_DIR}/pmch_100prbs_MCS2_SR0.bin) 
+add_test(pmch_file_test pmch_file_test  -i ${CMAKE_CURRENT_SOURCE_DIR}/pmch_100prbs_MCS2_SR0.bin)
 
 ########################################################################
 # NPDCCH TEST

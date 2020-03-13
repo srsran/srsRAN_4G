@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2019 Software Radio Systems Limited
+# Copyright 2013-2020 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -33,7 +33,7 @@ add_test(rm_conv_test_1 rm_conv_test -t 480 -r 1920)
 add_test(rm_conv_test_2 rm_conv_test -t 1920 -r 480) 
 
 add_test(rm_turbo_test_1 rm_turbo_test -e 1920) 
-add_test(rm_turbo_test_2 rm_turbo_test -e 8192) 
+add_test(rm_turbo_test_2 rm_turbo_test -e 8192)
 
 ########################################################################
 # Turbo Coder TEST  
