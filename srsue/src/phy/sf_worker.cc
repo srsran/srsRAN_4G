@@ -242,7 +242,7 @@ void sf_worker::work_imp()
 
       // Loop through all carriers. Do in reverse order since control information from SCells is transmitted in PCell
       for (int carrier_idx = phy->args->nof_carriers - 1; carrier_idx >= 0; carrier_idx--) {
-        tx_signal_ready = cc_workers[carrier_idx]->work_ul(&uci_data);
+        tx_signal_ready |= cc_workers[carrier_idx]->work_ul(&uci_data);
 
         // Set signal pointer based on offset
         cf_t* b = cc_workers[carrier_idx]->get_tx_buffer(0);
