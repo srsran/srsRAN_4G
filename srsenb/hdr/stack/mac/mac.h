@@ -31,6 +31,7 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "ta.h"
 #include "ue.h"
 #include <vector>
 
@@ -114,8 +115,8 @@ private:
   stack_interface_mac_lte* stack = nullptr;
   srslte::log*             log_h = nullptr;
 
-  cell_list_t   cells = {};
-  mac_args_t    args = {};
+  cell_list_t cells = {};
+  mac_args_t  args  = {};
 
   // derived from args
   srslte::task_multiqueue::queue_handler stack_task_queue;

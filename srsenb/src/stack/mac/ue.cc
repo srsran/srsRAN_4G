@@ -55,7 +55,8 @@ ue::ue(uint16_t                 rnti_,
   mac_msg_ul(20, log_),
   pdus(128),
   nof_rx_harq_proc(nof_rx_harq_proc_),
-  nof_tx_harq_proc(nof_tx_harq_proc_)
+  nof_tx_harq_proc(nof_tx_harq_proc_),
+  ta_fsm(this)
 {
   pdus.init(this, log_h);
 

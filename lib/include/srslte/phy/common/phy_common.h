@@ -135,7 +135,7 @@ typedef enum { SRSLTE_SF_NORM = 0, SRSLTE_SF_MBSFN } srslte_sf_t;
 
 #define SRSLTE_TA_OFFSET (10e-6)
 
-#define SRSLTE_LTE_TS 1.0 / (15000.0 * 2048)
+#define SRSLTE_LTE_TS (1.0f / (15000.0f * 2048.0f))
 
 #define SRSLTE_SLOT_IDX_CPNORM(symbol_idx, symbol_sz)                                                                  \
   (symbol_idx == 0 ? 0                                                                                                 \

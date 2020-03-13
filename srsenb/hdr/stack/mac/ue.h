@@ -30,12 +30,13 @@
 #include "srslte/common/pdu_queue.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "ta.h"
 #include <pthread.h>
 #include <vector>
 
 namespace srsenb {
 
-class ue : public srslte::read_pdu_interface, public srslte::pdu_queue::process_callback
+class ue : public srslte::read_pdu_interface, public srslte::pdu_queue::process_callback, public mac_ta_ue_interface
 {
 public:
   ue(uint16_t                 rnti,
@@ -55,7 +56,10 @@ public:
 
   void set_tti(uint32_t tti);
 
-  uint32_t set_ta(int ta);
+  uint32_t set_ta(int ta) override;
+
+  uint32_t set_ta_us(float ta_us) { return ta_fsm.push_value(ta_us); };
+  uint32_t tick_ta_fsm() { return ta_fsm.tick(); };
 
   void     config(uint16_t           rnti,
                   uint32_t           nof_prb,
@@ -138,6 +142,7 @@ private:
   srslte::byte_buffer_t tx_payload_buffer[SRSLTE_MAX_CARRIERS][SRSLTE_FDD_NOF_HARQ][SRSLTE_MAX_TB];
 
   srslte::block_queue<uint32_t> pending_ta_commands;
+  ta                            ta_fsm;
 
   // For UL there are multiple buffers per PID and are managed by pdu_queue
   srslte::pdu_queue pdus;
