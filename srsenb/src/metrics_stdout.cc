@@ -92,8 +92,8 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
   if (++n_reports > 10) {
     n_reports = 0;
     cout << endl;
-    cout << "------DL--------------------------------UL-------------------------------------" << endl;
-    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  snr  phr mcs brate   ok  nok  (%)    bsr" << endl;
+    cout << "------DL--------------------------------UL------------------------------------" << endl;
+    cout << "rnti cqi  ri mcs brate   ok  nok  (%)  snr  phr mcs brate   ok  nok  (%)   bsr" << endl;
   }
 
   for (int i = 0; i < metrics.stack.rrc.n_ues; i++) {
@@ -113,9 +113,9 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       cout << float_to_string(0, 2, 4);
     }
     if (metrics.stack.mac[i].tx_brate > 0) {
-      cout << float_to_eng_string(SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].tx_brate / period_usec * 1e6), 2);
+      cout << float_to_eng_string(SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].tx_brate / period_usec * 1e6), 1);
     } else {
-      cout << float_to_string(0, 2, 5) << "";
+      cout << float_to_string(0, 1, 6) << "";
     }
     cout << std::setw(5) << metrics.stack.mac[i].tx_pkts;
     cout << std::setw(5) << metrics.stack.mac[i].tx_errors;
@@ -124,7 +124,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
                   SRSLTE_MAX(0.1, (float)100 * metrics.stack.mac[i].tx_errors / metrics.stack.mac[i].tx_pkts), 1, 4)
            << "%";
     } else {
-      cout << float_to_string(0, 1) << "%";
+      cout << float_to_string(0, 1, 4) << "%";
     }
     cout << " ";
 
@@ -141,9 +141,9 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       cout << float_to_string(0, 1, 4);
     }
     if (metrics.stack.mac[i].rx_brate > 0) {
-      cout << float_to_eng_string(SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].rx_brate / period_usec * 1e6), 2);
+      cout << float_to_eng_string(SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].rx_brate / period_usec * 1e6), 1);
     } else {
-      cout << float_to_string(0, 2) << "";
+      cout << float_to_string(0, 1) << "";
     }
     cout << std::setw(5) << metrics.stack.mac[i].rx_pkts;
     cout << std::setw(5) << metrics.stack.mac[i].rx_errors;
@@ -171,6 +171,9 @@ std::string metrics_stdout::float_to_string(float f, int digits, int field_width
     precision = digits - 1;
   } else {
     precision = digits - (int)(log10f(fabs(f)) - 2 * DBL_EPSILON);
+  }
+  if (precision == -1) {
+    precision = 0;
   }
   os << std::setw(field_width) << std::fixed << std::setprecision(precision) << f;
   return os.str();
@@ -202,7 +205,7 @@ std::string metrics_stdout::float_to_eng_string(float f, int digits)
   if (degree != 0) {
     return float_to_string(scaled, digits, 5) + factor;
   } else {
-    return " " + float_to_string(scaled, digits) + factor;
+    return " " + float_to_string(scaled, digits, 5 - factor.length()) + factor;
   }
 }
 
