@@ -403,7 +403,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
     ("general.metrics_csv_flush_period_sec",
            bpo::value<int>(&args->general.metrics_csv_flush_period_sec)->default_value(-1),
-           "Periodicity in ms to flush CSV file to disk (-1 for auto)")
+           "Periodicity in s to flush CSV file to disk (-1 for auto)")
 
     ("stack.have_tti_time_stats",
         bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
