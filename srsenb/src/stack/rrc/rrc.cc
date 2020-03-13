@@ -1303,13 +1303,17 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
     // Finally, add secondary carriers
     // TODO: For now the ue supports all cc
-    auto& list       = current_sched_ue_cfg.supported_cc_list;
-    auto& scell_list = get_ue_cc_cfg(0)->cell_cfg.scell_list;
-    for (uint32_t i = 0; i < scell_list.size(); ++i) {
-      list.emplace_back();
-      list.back().active     = true;
-      list.back().enb_cc_idx = i;
+    using cc_cfg_t = sched_interface::ue_cfg_t::cc_cfg_t;
+    auto& list     = current_sched_ue_cfg.supported_cc_list;
+    for (uint32_t i = 0; i < parent->cfg.cell_list.size(); ++i) {
+      auto it = std::find_if(list.begin(), list.end(), [i](const cc_cfg_t& u) { return u.enb_cc_idx == i; });
+      if (it == list.end()) {
+        list.emplace_back();
+        list.back().active     = true;
+        list.back().enb_cc_idx = i;
+      }
     }
+
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
     // Finally, add SRB2 and DRB1 to the scheduler
