@@ -30,6 +30,8 @@
 #define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
+using srslte::tti_point;
+
 namespace srsenb {
 
 /******************************************************
@@ -55,7 +57,7 @@ void harq_proc::reset(uint32_t tb_idx)
   ack_state[tb_idx] = NULL_ACK;
   active[tb_idx]    = false;
   n_rtx[tb_idx]     = 0;
-  tti               = 0;
+  tti               = tti_point{0};
   last_mcs[tb_idx]  = -1;
   last_tbs[tb_idx]  = -1;
   tx_cnt[tb_idx]    = 0;
@@ -86,9 +88,9 @@ bool harq_proc::has_pending_retx_common(uint32_t tb_idx) const
   return !is_empty(tb_idx) && ack_state[tb_idx] == NACK;
 }
 
-uint32_t harq_proc::get_tti() const
+tti_point harq_proc::get_tti() const
 {
-  return (uint32_t)tti;
+  return tti;
 }
 
 void harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
@@ -96,15 +98,18 @@ void harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
   ack_state[tb_idx] = ack_ ? ACK : NACK;
   log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
   if (!ack_ && (n_rtx[tb_idx] + 1 >= max_retx)) {
-    Warning(
-        "SCHED: discarding TB %d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", tb_idx, id, tti, max_retx);
+    Warning("SCHED: discarding TB %d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n",
+            tb_idx,
+            id,
+            tti.to_uint(),
+            max_retx);
     active[tb_idx] = false;
   } else if (ack_) {
     active[tb_idx] = false;
   }
 }
 
-void harq_proc::new_tx_common(uint32_t tb_idx, uint32_t tti_, int mcs, int tbs)
+void harq_proc::new_tx_common(uint32_t tb_idx, tti_point tti_, int mcs, int tbs)
 {
   reset(tb_idx);
   ndi[tb_idx] = !ndi[tb_idx];
@@ -116,7 +121,7 @@ void harq_proc::new_tx_common(uint32_t tb_idx, uint32_t tti_, int mcs, int tbs)
   active[tb_idx] = true;
 }
 
-void harq_proc::new_retx_common(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs)
+void harq_proc::new_retx_common(uint32_t tb_idx, tti_point tti_, int* mcs, int* tbs)
 {
   ack_state[tb_idx] = NACK;
   tti               = tti_;
@@ -172,7 +177,7 @@ void dl_harq_proc::new_tx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t t
 {
   n_cce   = n_cce_;
   rbgmask = new_mask;
-  new_tx_common(tb_idx, tti, mcs, tbs);
+  new_tx_common(tb_idx, tti_point{tti}, mcs, tbs);
 }
 
 void dl_harq_proc::new_retx(const rbgmask_t& new_mask,
@@ -184,7 +189,7 @@ void dl_harq_proc::new_retx(const rbgmask_t& new_mask,
 {
   n_cce   = n_cce_;
   rbgmask = new_mask;
-  new_retx_common(tb_idx, tti_, mcs, tbs);
+  new_retx_common(tb_idx, tti_point{tti_}, mcs, tbs);
 }
 
 void dl_harq_proc::set_ack(uint32_t tb_idx, bool ack)
@@ -204,8 +209,7 @@ rbgmask_t dl_harq_proc::get_rbgmask() const
 
 bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t tti_tx_dl) const
 {
-  uint32_t tti_diff = srslte_tti_interval(tti_tx_dl, tti);
-  return (tti_diff < (10240 / 2)) and (tti_diff >= FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS) and
+  return (tti_point{tti_tx_dl} >= tti + FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS) and
          has_pending_retx_common(tb_idx);
 }
 
@@ -243,7 +247,7 @@ void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs, ul_harq_proc::ul_allo
   max_retx    = (uint32_t)max_retx_;
   is_adaptive = false;
   allocation  = alloc;
-  new_tx_common(0, tti_, mcs, tbs);
+  new_tx_common(0, tti_point{tti_}, mcs, tbs);
   pending_data = tbs;
   pending_ack  = NULL_ACK;
 }
@@ -252,7 +256,7 @@ void ul_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, 
 {
   is_adaptive = alloc.L != allocation.L or alloc.RB_start != allocation.RB_start;
   allocation  = alloc;
-  new_retx_common(tb_idx, tti_, mcs, tbs);
+  new_retx_common(tb_idx, tti_point{tti_}, mcs, tbs);
 }
 
 void ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
@@ -349,7 +353,7 @@ dl_harq_proc* harq_entity::get_pending_dl_harq(uint32_t tti_tx_dl)
 std::pair<uint32_t, int> harq_entity::set_ack_info(uint32_t tti_rx, uint32_t tb_idx, bool ack)
 {
   for (auto& h : dl_harqs) {
-    if (TTI_ADD(h.get_tti(), FDD_HARQ_DELAY_DL_MS) == tti_rx) {
+    if (h.get_tti() + FDD_HARQ_DELAY_DL_MS == tti_point{tti_rx}) {
       h.set_ack(tb_idx, ack);
       return {h.get_id(), h.get_tbs(tb_idx)};
     }
@@ -364,11 +368,11 @@ ul_harq_proc* harq_entity::get_ul_harq(uint32_t tti_tx_ul)
 
 void harq_entity::reset_pending_data(uint32_t tti_rx)
 {
-  uint32_t tti_tx_ul = TTI_ADD(tti_rx, (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS));
-  uint32_t tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS);
+  tti_point tti_tx_ul = tti_point{tti_rx} + FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
+  tti_point tti_tx_dl = tti_point{tti_rx} + FDD_HARQ_DELAY_UL_MS;
 
   // Reset ACK state of UL Harq
-  get_ul_harq(tti_tx_ul)->reset_pending_data();
+  get_ul_harq(tti_tx_ul.to_uint())->reset_pending_data();
 
   // Reset any DL harq which has 0 retxs
   for (auto& h : dl_harqs) {
@@ -378,10 +382,11 @@ void harq_entity::reset_pending_data(uint32_t tti_rx)
   // delete old DL harq procs
   for (auto& h : dl_harqs) {
     if (not h.is_empty()) {
-      uint32_t tti_diff = srslte_tti_interval(tti_tx_dl, h.get_tti());
-      if (tti_diff > 100 and tti_diff < 10240 / 2) {
-        srslte::logmap::get("MAC")->info(
-            "SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n", h.get_id(), h.get_tti(), tti_tx_dl);
+      if (tti_tx_dl > h.get_tti() + 100) {
+        srslte::logmap::get("MAC")->info("SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n",
+                                         h.get_id(),
+                                         h.get_tti().to_uint(),
+                                         tti_tx_dl.to_uint());
         for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
           h.reset(tb);
         }
@@ -397,11 +402,12 @@ void harq_entity::reset_pending_data(uint32_t tti_rx)
  */
 dl_harq_proc* harq_entity::get_oldest_dl_harq(uint32_t tti_tx_dl)
 {
-  int      oldest_idx = -1;
-  uint32_t oldest_tti = 0;
+  tti_point t_tx_dl{tti_tx_dl};
+  int       oldest_idx = -1;
+  uint32_t  oldest_tti = 0;
   for (const dl_harq_proc& h : dl_harqs) {
     if (h.has_pending_retx(0, tti_tx_dl) or h.has_pending_retx(1, tti_tx_dl)) {
-      uint32_t x = srslte_tti_interval(tti_tx_dl, h.get_tti());
+      uint32_t x = t_tx_dl - h.get_tti();
       if (x > oldest_tti) {
         oldest_idx = h.get_id();
         oldest_tti = x;

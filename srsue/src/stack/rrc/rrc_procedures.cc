@@ -20,6 +20,7 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
+#include "srslte/common/tti_point.h"
 #include <inttypes.h> // for printing uint64_t
 
 #define Error(fmt, ...) rrc_ptr->rrc_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
@@ -30,6 +31,7 @@
 namespace srsue {
 
 using srslte::proc_outcome_t;
+using srslte::tti_point;
 
 /**************************************
  *       Cell Search Procedure
@@ -303,24 +305,28 @@ void rrc::si_acquire_proc::start_si_acquire()
   const uint32_t nof_sib_harq_retxs = 5;
 
   // Instruct MAC to decode SIB (non-blocking)
-  uint32_t tti          = rrc_ptr->mac->get_current_tti();
-  auto     ret          = compute_si_window(tti, sib_index, sched_index, period, rrc_ptr->serving_cell->sib1ptr());
-  uint32_t si_win_start = ret.first, si_win_len = ret.second;
-  rrc_ptr->mac->bcch_start_rx(si_win_start, si_win_len);
+  tti_point tti{rrc_ptr->mac->get_current_tti()};
+  auto      ret = compute_si_window(tti.to_uint(), sib_index, sched_index, period, rrc_ptr->serving_cell->sib1ptr());
+  tti_point si_win_start = tti_point{ret.first};
+  if (si_win_start < tti) {
+    Error("The SI Window start was incorrectly calculated. si_win_start=%d, tti=%d\n",
+          si_win_start.to_uint(),
+          tti.to_uint());
+    return;
+  }
+  uint32_t si_win_len = ret.second;
+  rrc_ptr->mac->bcch_start_rx(si_win_start.to_uint(), si_win_len);
 
   // start window retry timer
   uint32_t retry_period            = (sib_index == 0) ? sib1_periodicity : period * nof_sib_harq_retxs;
-  uint32_t tics_until_si_win_start = srslte_tti_interval(si_win_start, tti);
-  if (tics_until_si_win_start > 10240 / 2) {
-    Error("The SI Window start was incorrectly calculated. si_win_start=%d, tti=%d\n", si_win_start, tti);
-  }
-  uint32_t tics_until_si_retry = retry_period + tics_until_si_win_start;
+  int      tics_until_si_win_start = si_win_start - tti;
+  uint32_t tics_until_si_retry     = retry_period + tics_until_si_win_start;
   si_acq_retry_timer.set(tics_until_si_retry);
   si_acq_retry_timer.run();
 
   Info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",
        sib_index + 1,
-       si_win_start,
+       si_win_start.to_uint(),
        si_win_len,
        period,
        sched_index);

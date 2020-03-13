@@ -91,3 +91,7 @@ add_test(network_utils_test network_utils_test)
 add_executable(test_common_test test_common_test.cc)
 target_link_libraries(test_common_test srslte_common)
 add_test(test_common_test test_common_test)
+
+add_executable(tti_point_test tti_point_test.cc)
+target_link_libraries(tti_point_test srslte_common)
+add_test(tti_point_test tti_point_test)

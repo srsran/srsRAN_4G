@@ -41,6 +41,8 @@
 #include "scheduler_test_utils.h"
 #include "srslte/common/test_common.h"
 
+using srslte::tti_point;
+
 /********************************************************
  * Random Tester for Scheduler.
  * Current Checks:
@@ -285,7 +287,7 @@ int sched_tester::test_harqs()
     uint16_t                    rnti = data.dci.rnti;
     const srsenb::dl_harq_proc& h    = ue_db[rnti].get_dl_harq(h_id, CARRIER_IDX);
     CONDERROR(h.is_empty(), "Cannot schedule an empty harq proc\n");
-    CONDERROR(h.get_tti() != tti_info.tti_params.tti_tx_dl,
+    CONDERROR(h.get_tti() != tti_point{tti_info.tti_params.tti_tx_dl},
               "The scheduled DL harq pid=%d does not a valid tti=%u\n",
               h_id,
               tti_info.tti_params.tti_tx_dl);
@@ -309,7 +311,7 @@ int sched_tester::test_harqs()
     const auto&                 ue_data = tti_data.ue_data[rnti];
     const srsenb::ul_harq_proc* h       = ue_db[rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, CARRIER_IDX);
     CONDERROR(h == nullptr or h->is_empty(), "scheduled UL harq does not exist or is empty\n");
-    CONDERROR(h->get_tti() != tti_info.tti_params.tti_tx_ul,
+    CONDERROR(h->get_tti() != tti_point{tti_info.tti_params.tti_tx_ul},
               "The scheduled UL harq does not a valid tti=%u\n",
               tti_info.tti_params.tti_tx_ul);
     CONDERROR(h->has_pending_ack(), "At the end of the TTI, there shouldnt be any pending ACKs\n");
@@ -361,8 +363,7 @@ int sched_tester::test_harqs()
     for (auto& user : ue_db) {
       for (int i = 0; i < srsenb::sched_ue_carrier::SCHED_MAX_HARQ_PROC; i++) {
         if (not user.second.get_dl_harq(i, CARRIER_IDX).is_empty(0)) {
-          if (srslte_tti_interval(tti_info.tti_params.tti_tx_dl, user.second.get_dl_harq(i, CARRIER_IDX).get_tti()) >
-              49) {
+          if (tti_point{tti_info.tti_params.tti_tx_dl} > user.second.get_dl_harq(i, CARRIER_IDX).get_tti() + 49) {
             TESTERROR(
                 "The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i, CARRIER_IDX).get_id(), user.first);
           }

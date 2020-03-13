@@ -24,6 +24,7 @@
 
 #include "srslte/common/bounded_bitset.h"
 #include "srslte/common/log.h"
+#include "srslte/common/tti_point.h"
 #include "srslte/interfaces/sched_interface.h"
 #include <map>
 
@@ -39,15 +40,15 @@ public:
   bool     is_empty() const;
   bool     is_empty(uint32_t tb_idx) const;
 
-  uint32_t nof_tx(uint32_t tb_idx) const;
-  uint32_t nof_retx(uint32_t tb_idx) const;
-  uint32_t get_tti() const;
-  bool     get_ndi(uint32_t tb_idx) const;
-  uint32_t max_nof_retx() const;
+  uint32_t          nof_tx(uint32_t tb_idx) const;
+  uint32_t          nof_retx(uint32_t tb_idx) const;
+  srslte::tti_point get_tti() const;
+  bool              get_ndi(uint32_t tb_idx) const;
+  uint32_t          max_nof_retx() const;
 
 protected:
-  void new_tx_common(uint32_t tb_idx, uint32_t tti, int mcs, int tbs);
-  void new_retx_common(uint32_t tb_idx, uint32_t tti, int* mcs, int* tbs);
+  void new_tx_common(uint32_t tb_idx, srslte::tti_point tti, int mcs, int tbs);
+  void new_retx_common(uint32_t tb_idx, srslte::tti_point tti, int* mcs, int* tbs);
   bool has_pending_retx_common(uint32_t tb_idx) const;
   void set_ack_common(uint32_t tb_idx, bool ack);
   void reset_pending_data_common();
@@ -61,7 +62,7 @@ protected:
   uint32_t                        max_retx = 5;
   uint32_t                        n_rtx[SRSLTE_MAX_TB];
   uint32_t                        tx_cnt[SRSLTE_MAX_TB];
-  int                             tti;
+  srslte::tti_point               tti;
   int                             last_mcs[SRSLTE_MAX_TB];
   int                             last_tbs[SRSLTE_MAX_TB];
 
