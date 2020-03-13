@@ -228,6 +228,7 @@ nas::nas(srslte::timer_handler* timers_) :
   timers(timers_),
   t3410(timers_->get_unique_timer()),
   t3411(timers_->get_unique_timer()),
+  t3421(timers_->get_unique_timer()),
   reattach_timer(timers_->get_unique_timer())
 {
 }
@@ -281,9 +282,10 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     have_ctxt = true;
   }
 
-  // Configure T3410 and T3411
+  // Configure timers
   t3410.set(t3410_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
   t3411.set(t3411_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
+  t3421.set(t3421_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
   reattach_timer.set(reattach_timer_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
 
   running = true;
@@ -321,6 +323,11 @@ void nas::timer_expired(uint32_t timeout_id)
   } else if (timeout_id == t3411.id()) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
     start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+  } else if (timeout_id == t3421.id()) {
+    nas_log->info("Timer T3421 expired: entering EMM_STATE_DEREGISTERED\n");
+    // TODO: TS 24.301 says to resend detach request but doesn't say how often before entering EMM_STATE_DEREGISTERED
+    // In order to allow reattaching the UE, we switch into EMM_STATE_DEREGISTERED straight
+    enter_emm_deregistered();
   } else if (timeout_id == reattach_timer.id()) {
     nas_log->info("Reattach timer expired: trying to attach again\n");
     start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
@@ -1822,6 +1829,9 @@ void nas::send_detach_request(bool switch_off)
   } else {
     // we are expecting a response from the core
     state = EMM_STATE_DEREGISTERED_INITIATED;
+
+    // start T3421
+    t3421.run();
   }
 
   if (rrc->is_connected()) {

@@ -375,7 +375,16 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<uint32_t>(&args->phy.nof_out_of_sync_events)->default_value(20),
      "Number of PHY out-sync events before sending an out-sync event to RRC")
 
-    /* general options */
+    // UE simulation args
+    ("sim.airplane_t_on_ms",
+     bpo::value<int>(&args->stack.sim.airplane_t_on_ms)->default_value(-1),
+     "On-time for airplane mode (in ms)")
+
+    ("sim.airplane_t_off_ms",
+     bpo::value<int>(&args->stack.sim.airplane_t_off_ms)->default_value(-1),
+     "Off-time for airplane mode (in ms)")
+
+     /* general options */
     ("general.metrics_period_secs",
        bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0),
       "Periodicity for metrics in seconds")

@@ -336,6 +336,21 @@ enable = false
 #nof_out_of_sync_events = 20
 
 #####################################################################
+# Simulation configuration options
+#
+# The UE simulation supports turning on and off airplane mode in the UE.
+# The actions are carried periodically until the UE is stopped.
+#
+# airplane_t_on_ms:   Time to leave airplane mode turned on (in ms)
+#
+# airplane_t_off_ms:  Time to leave airplane mode turned off (in ms)
+#
+#####################################################################
+[sim]
+#airplane_t_on_ms  = -1
+#airplane_t_off_ms = -1
+
+#####################################################################
 # General configuration options
 #
 # metrics_csv_enable:   Write UE metrics to CSV file.

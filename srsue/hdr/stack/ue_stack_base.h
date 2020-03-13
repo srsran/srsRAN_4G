@@ -58,6 +58,11 @@ typedef struct {
 } stack_log_args_t;
 
 typedef struct {
+  int airplane_t_on_ms;
+  int airplane_t_off_ms;
+} ue_sim_args_t;
+
+typedef struct {
   std::string      type;
   pcap_args_t      pcap;
   stack_log_args_t log;
@@ -67,6 +72,7 @@ typedef struct {
   nas_args_t       nas;
   gw_args_t        gw;
   bool             have_tti_time_stats;
+  ue_sim_args_t    sim;
 } stack_args_t;
 
 class ue_stack_base

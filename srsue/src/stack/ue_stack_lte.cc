@@ -181,6 +181,15 @@ bool ue_stack_lte::switch_on()
   if (running) {
     pending_tasks.try_push(ue_queue_id,
                            [this]() { nas.start_attach_request(nullptr, srslte::establishment_cause_t::mo_data); });
+
+    // schedule airplane mode on command
+    if (args.sim.airplane_t_on_ms > 0) {
+      timers.defer_callback(args.sim.airplane_t_on_ms, [&]() {
+        // Enable air-plane mode
+        disable_data();
+      });
+    }
+
     return true;
   }
   return false;
@@ -210,13 +219,24 @@ bool ue_stack_lte::switch_off()
 bool ue_stack_lte::enable_data()
 {
   // perform attach request
+  log.console("Turning off airplane mode.\n");
   return switch_on();
 }
 
 bool ue_stack_lte::disable_data()
 {
   // generate detach request
-  return nas.detach_request(false);
+  log.console("Turning on airplane mode.\n");
+  int ret = nas.detach_request(false);
+
+  // schedule airplane mode off command
+  if (args.sim.airplane_t_off_ms > 0) {
+    timers.defer_callback(args.sim.airplane_t_off_ms, [&]() {
+      // Disable airplane mode again
+      enable_data();
+    });
+  }
+  return ret;
 }
 
 bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
