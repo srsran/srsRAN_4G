@@ -70,8 +70,11 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_cfg = rrc_cfg_;
 
   // setup logging for each layer
-  srslte::logmap::set_default_logger(logger);
-  mac_log.init("MAC ", logger, true);
+  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"MAC ", logger, true}});
+  srslte::log_ref mac_log = srslte::logmap::get("MAC ");
+  mac_log->set_level(args.log.mac_level);
+  mac_log->set_hex_limit(args.log.mac_hex_limit);
+
   rlc_log.init("RLC ", logger);
   pdcp_log.init("PDCP", logger);
   rrc_log.init("RRC ", logger);
@@ -80,7 +83,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   stack_log.init("STCK", logger);
 
   // Init logs
-  mac_log.set_level(args.log.mac_level);
   rlc_log.set_level(args.log.rlc_level);
   pdcp_log.set_level(args.log.pdcp_level);
   rrc_log.set_level(args.log.rrc_level);
@@ -88,7 +90,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   s1ap_log.set_level(args.log.s1ap_level);
   stack_log.set_level(LOG_LEVEL_INFO);
 
-  mac_log.set_hex_limit(args.log.mac_hex_limit);
   rlc_log.set_hex_limit(args.log.rlc_hex_limit);
   pdcp_log.set_hex_limit(args.log.pdcp_hex_limit);
   rrc_log.set_hex_limit(args.log.rrc_hex_limit);
@@ -110,7 +111,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", &stack_log));
 
   // Init all layers
-  mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, this, &mac_log);
+  mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, this, mac_log.get());
   rlc.init(&pdcp, &rrc, &mac, &timers, &rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
