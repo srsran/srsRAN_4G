@@ -393,6 +393,7 @@ int main(int argc, char* argv[])
     logger = &logger_file;
   }
   srslte::logmap::set_default_logger(logger);
+  srslte::logmap::get("COMMON")->set_level(srslte::LOG_LEVEL_INFO);
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb};

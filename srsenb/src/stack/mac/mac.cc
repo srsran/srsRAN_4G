@@ -33,6 +33,7 @@
 #include "srsenb/hdr/stack/mac/mac.h"
 #include "srslte/common/log.h"
 #include "srslte/common/rwlock_guard.h"
+#include "srslte/common/time_prof.h"
 
 //#define WRITE_SIB_PCAP
 using namespace asn1::rrc;
@@ -444,8 +445,10 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
 
 void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
+  static srslte::avg_time_prof rach_tprof("RACH", 1);
   log_h->step(tti);
   uint16_t rnti;
+  rach_tprof.start();
 
   {
     srslte::rwlock_write_guard lock(rwlock);
@@ -501,6 +504,8 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
 
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
+
+    rach_tprof.stop();
 
     log_h->info("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
     log_h->console("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);

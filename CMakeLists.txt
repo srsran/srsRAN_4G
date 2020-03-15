@@ -89,6 +89,8 @@ option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 option(USE_GLIBC_IPV6  "Use glibc's own ipv6.h"                   ON)
 option(USE_MKL         "Use MKL instead of fftw"                  OFF)
 
+option(ENABLE_TIMEPROF "Enable time profiling"                    OFF)
+
 option(FORCE_32BIT     "Add flags to force 32 bit compilation"    OFF)
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
@@ -213,6 +215,11 @@ if(ENABLE_ZEROMQ)
     link_directories(${ZEROMQ_LIBRARY_DIRS})
   endif(ZEROMQ_FOUND)
 endif(ENABLE_ZEROMQ)
+
+# TimeProf
+if(ENABLE_TIMEPROF)
+    add_definitions(-DENABLE_TIMEPROF)
+endif(ENABLE_TIMEPROF)
 
 if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ZEROMQ_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
