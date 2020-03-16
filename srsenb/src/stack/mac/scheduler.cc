@@ -88,14 +88,14 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
   }
 
   // Compute Common locations for DCI for each CFI
-  for (uint32_t cfi = 0; cfi < 3; cfi++) {
-    sched_utils::generate_cce_location(regs.get(), &common_locations[cfi], cfi + 1);
+  for (uint32_t cfix = 0; cfix < pdcch_grid_t::MAX_CFI; cfix++) {
+    sched_utils::generate_cce_location(regs.get(), &common_locations[cfix], cfix + 1);
   }
-  if (common_locations[sched_cfg->nof_ctrl_symbols - 1].nof_loc[2] == 0) {
-    Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
-          sched_cfg->nof_ctrl_symbols);
-    Console("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
-            sched_cfg->nof_ctrl_symbols);
+  if (common_locations[sched_cfg->max_nof_ctrl_symbols - 1].nof_loc[2] == 0) {
+    Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.max_nof_ctrl_symbols in conf file).\n",
+          sched_cfg->max_nof_ctrl_symbols);
+    Console("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.max_nof_ctrl_symbols in conf file).\n",
+            sched_cfg->max_nof_ctrl_symbols);
     return false;
   }
 

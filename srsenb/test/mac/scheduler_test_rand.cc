@@ -244,7 +244,7 @@ int sched_tester::assert_no_empty_allocs()
 int sched_tester::test_pdcch_collisions()
 {
   srslte::bounded_bitset<128, true> used_cce;
-  used_cce.resize(srslte_regs_pdcch_ncce(sched_cell_params[CARRIER_IDX].regs.get(), sched_cfg.nof_ctrl_symbols));
+  used_cce.resize(srslte_regs_pdcch_ncce(sched_cell_params[CARRIER_IDX].regs.get(), sched_cfg.max_nof_ctrl_symbols));
 
   /* TEST: Check if there are collisions in the PDCCH */
   TESTASSERT(output_tester[CARRIER_IDX].test_pdcch_collisions(tti_info.dl_sched_result[CARRIER_IDX],

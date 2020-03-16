@@ -52,12 +52,13 @@ public:
   } cell_cfg_sib_t;
 
   struct sched_args_t {
-    int pdsch_mcs        = -1;
-    int pdsch_max_mcs    = 28;
-    int pusch_mcs        = -1;
-    int pusch_max_mcs    = 28;
-    int nof_ctrl_symbols = 3;
-    int max_aggr_level   = 3;
+    int      pdsch_mcs            = -1;
+    int      pdsch_max_mcs        = 28;
+    int      pusch_mcs            = -1;
+    int      pusch_max_mcs        = 28;
+    uint32_t min_nof_ctrl_symbols = 1;
+    uint32_t max_nof_ctrl_symbols = 3;
+    int      max_aggr_level       = 3;
   };
 
   struct cell_cfg_t {

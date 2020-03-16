@@ -42,6 +42,8 @@ const char* alloc_outcome_t::to_string() const
       return "rb_collision";
     case ERROR:
       return "error";
+    case NOF_RB_INVALID:
+      return "invalid nof prbs";
   }
   return "unknown error";
 }
@@ -59,37 +61,51 @@ tti_params_t::tti_params_t(uint32_t tti_rx_) :
  *             PDCCH Allocation Methods
  *******************************************************/
 
-void pdcch_grid_t::init(const sched_cell_params_t& cell_params_)
+void pdcch_grid_t::alloc_tree_t::reset()
 {
-  cc_cfg       = &cell_params_;
-  log_h        = srslte::logmap::get("MAC ");
-  current_cfix = cc_cfg->sched_cfg->nof_ctrl_symbols - 1;
-}
-
-void pdcch_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
-{
-  tti_params = &tti_params_;
-
   prev_start = 0;
   prev_end   = 0;
   dci_alloc_tree.clear();
-  nof_dci_allocs = 0;
-  set_cfi(start_cfi);
 }
 
-const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const
+void pdcch_grid_t::init(const sched_cell_params_t& cell_params_)
+{
+  cc_cfg = &cell_params_;
+  log_h  = srslte::logmap::get("MAC ");
+
+  // init alloc trees
+  alloc_trees.reserve(cc_cfg->sched_cfg->max_nof_ctrl_symbols);
+  for (uint32_t i = 0; i < cc_cfg->sched_cfg->max_nof_ctrl_symbols; ++i) {
+    alloc_trees.emplace_back(cc_cfg->nof_cce_table[i]);
+  }
+}
+
+void pdcch_grid_t::new_tti(const tti_params_t& tti_params_)
+{
+  tti_params = &tti_params_;
+
+  // Reset back all CFIs
+  for (auto& t : alloc_trees) {
+    t.reset();
+  }
+  dci_record_list.clear();
+  current_cfix = cc_cfg->sched_cfg->min_nof_ctrl_symbols - 1;
+  max_user_cfi = cc_cfg->sched_cfg->max_nof_ctrl_symbols;
+}
+
+const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const
 {
   switch (alloc_type) {
     case alloc_type_t::DL_BC:
-      return &cc_cfg->common_locations[current_cfix];
+      return &cc_cfg->common_locations[cfix];
     case alloc_type_t::DL_PCCH:
-      return &cc_cfg->common_locations[current_cfix];
+      return &cc_cfg->common_locations[cfix];
     case alloc_type_t::DL_RAR:
-      return &cc_cfg->rar_locations[current_cfix][tti_params->sf_idx_tx_dl];
+      return &cc_cfg->rar_locations[cfix][tti_params->sf_idx_tx_dl];
     case alloc_type_t::DL_DATA:
-      return user->get_locations(cc_cfg->enb_cc_idx, current_cfix + 1, tti_params->sf_idx_tx_dl);
+      return user->get_locations(cc_cfg->enb_cc_idx, cfix + 1, tti_params->sf_idx_tx_dl);
     case alloc_type_t::UL_DATA:
-      return user->get_locations(cc_cfg->enb_cc_idx, current_cfix + 1, tti_params->sf_idx_tx_dl);
+      return user->get_locations(cc_cfg->enb_cc_idx, cfix + 1, tti_params->sf_idx_tx_dl);
     default:
       break;
   }
@@ -99,64 +115,85 @@ const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, 
 bool pdcch_grid_t::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user)
 {
   // TODO: Make the alloc tree update lazy
+  alloc_record_t record{.user = user, .aggr_idx = aggr_idx, .alloc_type = alloc_type};
 
-  /* Get DCI Location Table */
-  const sched_dci_cce_t* dci_locs = get_cce_loc_table(alloc_type, user);
-  if (dci_locs == nullptr) {
+  // Try to allocate user in PDCCH for given CFI. If it fails, increment CFI
+  uint32_t first_cfi = get_cfi();
+  bool     success   = alloc_dci_record(record, get_cfi() - 1);
+  while (not success and get_cfi() < max_user_cfi) {
+    set_cfi(get_cfi() + 1);
+    success = alloc_dci_record(record, get_cfi() - 1);
+  }
+  if (not success) {
+    // DCI allocation failed. go back to original CFI
+    set_cfi(first_cfi);
     return false;
   }
 
-  /* Search for potential DCI positions */
-  if (prev_end > 0) {
-    for (size_t j = prev_start; j < prev_end; ++j) {
-      update_alloc_tree((int)j, aggr_idx, user, alloc_type, dci_locs);
-    }
-  } else {
-    update_alloc_tree(-1, aggr_idx, user, alloc_type, dci_locs);
-  }
-
-  // if no pdcch space was available
-  if (dci_alloc_tree.size() == prev_end) {
-    return false;
-  }
-
-  prev_start = prev_end;
-  prev_end   = dci_alloc_tree.size();
-
-  nof_dci_allocs++;
-
+  // DCI record allocation successful
+  dci_record_list.push_back(record);
   return true;
 }
 
-void pdcch_grid_t::update_alloc_tree(int                    parent_node_idx,
-                                     uint32_t               aggr_idx,
-                                     sched_ue*              user,
-                                     alloc_type_t           alloc_type,
-                                     const sched_dci_cce_t* dci_locs)
+bool pdcch_grid_t::alloc_dci_record(const alloc_record_t& record, uint32_t cfix)
 {
+  bool  ret  = false;
+  auto& tree = alloc_trees[cfix];
+
+  // Get DCI Location Table
+  const sched_dci_cce_t* dci_locs = get_cce_loc_table(record.alloc_type, record.user, cfix);
+  if (dci_locs == nullptr or dci_locs->nof_loc[record.aggr_idx] == 0) {
+    return ret;
+  }
+
+  if (tree.prev_end > 0) {
+    for (size_t j = tree.prev_start; j < tree.prev_end; ++j) {
+      ret |= add_tree_node_leaves(tree, (int)j, record, *dci_locs, tti_params->tti_tx_dl);
+    }
+  } else {
+    ret = add_tree_node_leaves(tree, -1, record, *dci_locs, tti_params->tti_tx_dl);
+  }
+
+  if (ret) {
+    tree.prev_start = tree.prev_end;
+    tree.prev_end   = tree.dci_alloc_tree.size();
+  }
+
+  return ret;
+}
+
+//! Algorithm to compute a valid PDCCH allocation
+bool pdcch_grid_t::add_tree_node_leaves(alloc_tree_t&          tree,
+                                        int                    parent_node_idx,
+                                        const alloc_record_t&  dci_record,
+                                        const sched_dci_cce_t& dci_locs,
+                                        uint32_t               tti_tx_dl)
+{
+  bool ret = false;
+
   alloc_t alloc;
-  alloc.rnti      = (user != nullptr) ? user->get_rnti() : (uint16_t)0u;
-  alloc.dci_pos.L = aggr_idx;
+  alloc.rnti      = (dci_record.user != nullptr) ? dci_record.user->get_rnti() : (uint16_t)0u;
+  alloc.dci_pos.L = dci_record.aggr_idx;
 
   // get cumulative pdcch mask
   pdcch_mask_t cum_mask;
   if (parent_node_idx >= 0) {
-    cum_mask = dci_alloc_tree[parent_node_idx].second.total_mask;
+    cum_mask = tree.dci_alloc_tree[parent_node_idx].node.total_mask;
   } else {
-    cum_mask.resize(nof_cces());
+    cum_mask.resize(tree.nof_cces);
   }
 
-  uint32_t nof_locs = dci_locs->nof_loc[aggr_idx];
+  uint32_t nof_locs = dci_locs.nof_loc[dci_record.aggr_idx];
   for (uint32_t i = 0; i < nof_locs; ++i) {
-    uint32_t startpos = dci_locs->cce_start[aggr_idx][i];
+    uint32_t startpos = dci_locs.cce_start[dci_record.aggr_idx][i];
 
-    if (alloc_type == alloc_type_t::DL_DATA and user->pucch_sr_collision(tti_params->tti_tx_dl, startpos)) {
+    if (dci_record.alloc_type == alloc_type_t::DL_DATA and dci_record.user->pucch_sr_collision(tti_tx_dl, startpos)) {
       // will cause a collision in the PUCCH
       continue;
     }
 
-    pdcch_mask_t alloc_mask(nof_cces());
-    alloc_mask.fill(startpos, startpos + (1u << aggr_idx));
+    pdcch_mask_t alloc_mask(tree.nof_cces);
+    alloc_mask.fill(startpos, startpos + (1u << dci_record.aggr_idx));
     if ((cum_mask & alloc_mask).any()) {
       // there is collision. Try another mask
       continue;
@@ -168,38 +205,65 @@ void pdcch_grid_t::update_alloc_tree(int                    parent_node_idx,
     alloc.dci_pos.ncce = startpos;
 
     // Prune if repetition
-    uint32_t j = prev_end;
-    for (; j < dci_alloc_tree.size(); ++j) {
-      if (dci_alloc_tree[j].second.total_mask == alloc.total_mask) {
+    uint32_t j = tree.prev_end;
+    for (; j < tree.dci_alloc_tree.size(); ++j) {
+      if (tree.dci_alloc_tree[j].node.total_mask == alloc.total_mask) {
         break;
       }
     }
-    if (j < dci_alloc_tree.size()) {
+    if (j < tree.dci_alloc_tree.size()) {
       continue;
     }
 
     // Register allocation
-    dci_alloc_tree.emplace_back(parent_node_idx, alloc);
+    tree.dci_alloc_tree.emplace_back(parent_node_idx, alloc);
+    ret = true;
   }
+
+  return ret;
 }
 
 bool pdcch_grid_t::set_cfi(uint32_t cfi)
 {
-  current_cfix = cfi - 1;
-  // TODO: use this function for dynamic cfi
+  if (cfi < cc_cfg->sched_cfg->min_nof_ctrl_symbols or cfi > cc_cfg->sched_cfg->max_nof_ctrl_symbols) {
+    srslte::logmap::get("MAC")->error("Invalid CFI value. Defaulting to current CFI.\n");
+    return true;
+  }
+
+  uint32_t new_cfix = cfi - 1;
+  if (new_cfix == current_cfix) {
+    return true;
+  }
+
+  // setup new PDCCH alloc tree
+  auto& new_tree = alloc_trees[new_cfix];
+  new_tree.reset();
+
+  if (not dci_record_list.empty()) {
+    // there are already PDCCH allocations
+
+    // Rebuild Allocation Tree
+    bool ret = true;
+    for (const auto& old_record : dci_record_list) {
+      ret &= alloc_dci_record(old_record, new_cfix);
+    }
+
+    if (not ret) {
+      // Fail to rebuild allocation tree. Go back to previous CFI
+      return false;
+    }
+  }
+
+  current_cfix = new_cfix;
   // TODO: The estimation of the number of required prbs in metric depends on CFI. Analyse the consequences
   return true;
 }
 
-uint32_t pdcch_grid_t::nof_cces() const
-{
-  return cc_cfg->nof_cce_table[current_cfix];
-}
-
 void pdcch_grid_t::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_t idx) const
 {
+  auto& tree = alloc_trees[current_cfix];
   // if alloc tree is empty
-  if (prev_start == prev_end) {
+  if (tree.prev_start == tree.prev_end) {
     if (vec != nullptr) {
       vec->clear();
     }
@@ -213,32 +277,33 @@ void pdcch_grid_t::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_
   // set vector of allocations
   if (vec != nullptr) {
     vec->clear();
-    size_t i = prev_start + idx;
-    while (dci_alloc_tree[i].first >= 0) {
-      vec->push_back(&dci_alloc_tree[i].second);
-      i = (size_t)dci_alloc_tree[i].first;
+    size_t i = tree.prev_start + idx;
+    while (tree.dci_alloc_tree[i].parent_idx >= 0) {
+      vec->push_back(&tree.dci_alloc_tree[i].node);
+      i = (size_t)tree.dci_alloc_tree[i].parent_idx;
     }
-    vec->push_back(&dci_alloc_tree[i].second);
+    vec->push_back(&tree.dci_alloc_tree[i].node);
     std::reverse(vec->begin(), vec->end());
   }
 
   // set final cce mask
   if (tot_mask != nullptr) {
-    *tot_mask = dci_alloc_tree[prev_start + idx].second.total_mask;
+    *tot_mask = tree.dci_alloc_tree[tree.prev_start + idx].node.total_mask;
   }
 }
 
 std::string pdcch_grid_t::result_to_string(bool verbose) const
 {
+  auto&             tree = alloc_trees[current_cfix];
   std::stringstream ss;
-  ss << "cfi=" << get_cfi() << ", mask_size=" << nof_cces() << ", " << prev_end - prev_start
+  ss << "cfi=" << get_cfi() << ", mask_size=" << nof_cces() << ", " << tree.prev_end - tree.prev_start
      << " DCI allocation combinations:\n";
   // get all the possible combinations of DCI allocations
   uint32_t count = 0;
-  for (size_t i = prev_start; i < prev_end; ++i) {
+  for (size_t i = tree.prev_start; i < tree.prev_end; ++i) {
     alloc_result_t vec;
     pdcch_mask_t   tot_mask;
-    get_allocs(&vec, &tot_mask, i - prev_start);
+    get_allocs(&vec, &tot_mask, i - tree.prev_start);
 
     ss << "                          combination " << count << ": mask=0x" << tot_mask.to_hex().c_str();
     if (verbose) {
@@ -276,7 +341,7 @@ void sf_grid_t::init(const sched_cell_params_t& cell_params_)
   pdcch_alloc.init(*cc_cfg);
 }
 
-void sf_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
+void sf_grid_t::new_tti(const tti_params_t& tti_params_)
 {
   tti_params = &tti_params_;
 
@@ -285,11 +350,11 @@ void sf_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
   avail_rbg = nof_rbgs;
 
   // internal state
-  pdcch_alloc.new_tti(*tti_params, start_cfi);
+  pdcch_alloc.new_tti(*tti_params);
 }
 
 //! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
-alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user)
+alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_idx, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user)
 {
   // Check RBG collision
   if ((dl_mask & alloc_mask).any()) {
@@ -297,7 +362,7 @@ alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, 
   }
 
   // Allocate DCI in PDCCH
-  if (not pdcch_alloc.alloc_dci(alloc_type, aggr_lvl, user)) {
+  if (not pdcch_alloc.alloc_dci(alloc_type, aggr_idx, user)) {
     if (user != nullptr) {
       if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
         log_h->debug("No space in PDCCH for rnti=0x%x DL tx. Current PDCCH allocation: %s\n",
@@ -316,7 +381,7 @@ alloc_outcome_t sf_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, 
 }
 
 //! Allocates CCEs and RBs for control allocs. It allocates RBs in a contiguous manner.
-sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type)
+sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, alloc_type_t alloc_type)
 {
   rbg_range_t range;
   range.rbg_min = nof_rbgs - avail_rbg;
@@ -335,16 +400,37 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_typ
   // allocate DCI and RBGs
   rbgmask_t new_mask(dl_mask.size());
   new_mask.fill(range.rbg_min, range.rbg_max);
-  return {alloc_dl(aggr_lvl, alloc_type, new_mask), range};
+  return {alloc_dl(aggr_idx, alloc_type, new_mask), range};
 }
 
 //! Allocates CCEs and RBs for a user DL data alloc.
 alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
 {
+  // Check if allocation would cause segmentation
+  uint32_t    ue_cc_idx = user->get_cell_index(cc_cfg->enb_cc_idx).second;
+  rbg_range_t r         = user->get_required_dl_rbgs(ue_cc_idx, pdcch_alloc.get_cfi());
+  if (r.rbg_min > user_mask.count()) {
+    log_h->error("The number of RBGs allocated will force segmentation\n");
+    return alloc_outcome_t::NOF_RB_INVALID;
+  }
+  // Place an upper bound in CFI if necessary, to avoid segmentation
+  if (pdcch_alloc.get_cfi() < cc_cfg->sched_cfg->max_nof_ctrl_symbols) {
+    for (uint32_t cfi = cc_cfg->sched_cfg->max_nof_ctrl_symbols; cfi >= pdcch_alloc.get_cfi() + 1; --cfi) {
+      r = user->get_required_dl_rbgs(ue_cc_idx, cfi);
+      if (r.rbg_min <= user_mask.count()) {
+        break;
+      }
+      // decrease max CFI
+      pdcch_alloc.set_max_cfi(cfi);
+    }
+  }
+
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits   = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, dci_format);
-  uint32_t            aggr_level = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
-  return alloc_dl(aggr_level, alloc_type_t::DL_DATA, user_mask, user);
+  uint32_t            aggr_idx   = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
+  alloc_outcome_t     ret        = alloc_dl(aggr_idx, alloc_type_t::DL_DATA, user_mask, user);
+
+  return ret;
 }
 
 alloc_outcome_t sf_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, bool needs_pdcch)
@@ -410,7 +496,7 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
   max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - (uint32_t)cc_cfg->cfg.nrb_pucch);
 }
 
-void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
+void sf_sched::new_tti(uint32_t tti_rx_)
 {
   // reset internal state
   bc_allocs.clear();
@@ -419,7 +505,7 @@ void sf_sched::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
   ul_data_allocs.clear();
 
   tti_params = tti_params_t{tti_rx_};
-  tti_alloc.new_tti(tti_params, start_cfi);
+  tti_alloc.new_tti(tti_params);
 
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
   last_msg3_prb           = cc_cfg->cfg.nrb_pucch;

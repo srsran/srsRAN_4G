@@ -18,15 +18,28 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+add_library(scheduler_test_common STATIC scheduler_test_common.cc)
+
+# Scheduler subcomponent testing
+add_executable(sched_grid_test sched_grid_test.cc)
+target_link_libraries(sched_grid_test srsenb_mac
+        srsenb_phy
+        srslte_common
+        scheduler_test_common
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES})
+add_test(sched_grid_test sched_grid_test)
+
 # Scheduler test random
-add_executable(scheduler_test_rand scheduler_test_rand.cc scheduler_test_common.cc)
-target_link_libraries(scheduler_test_rand  srsenb_mac
-                                           srsenb_phy
-                                           srslte_common
-                                           srslte_phy
-                                           rrc_asn1
-                                           ${CMAKE_THREAD_LIBS_INIT}
-                                           ${Boost_LIBRARIES})
+add_executable(scheduler_test_rand scheduler_test_rand.cc)
+target_link_libraries(scheduler_test_rand srsenb_mac
+        srsenb_phy
+        srslte_common
+        scheduler_test_common
+        srslte_phy
+        rrc_asn1
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES})
 add_test(scheduler_test_rand scheduler_test_rand)
 
 # Scheduler test random for CA
@@ -35,6 +48,7 @@ target_link_libraries(scheduler_ca_test srsenb_mac
         srsenb_phy
         srslte_common
         srslte_phy
+        scheduler_test_common
         rrc_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})

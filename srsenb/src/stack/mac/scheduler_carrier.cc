@@ -409,7 +409,7 @@ sf_sched* sched::carrier_sched::get_sf_sched(uint32_t tti_rx)
   sf_sched* ret = &sf_scheds[tti_rx % sf_scheds.size()];
   if (ret->get_tti_rx() != tti_rx) {
     // start new TTI. Bind the struct where the result is going to be stored
-    ret->new_tti(tti_rx, cc_cfg->sched_cfg->nof_ctrl_symbols);
+    ret->new_tti(tti_rx);
   }
   return ret;
 }

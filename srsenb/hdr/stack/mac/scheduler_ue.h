@@ -125,6 +125,7 @@ public:
   uint16_t                         get_rnti() const { return rnti; }
   std::pair<bool, uint32_t>        get_cell_index(uint32_t enb_cc_idx) const;
   const sched_interface::ue_cfg_t& get_ue_cfg() const { return cfg; }
+  uint32_t                         get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits);
 
   /*******************************************************
    * Functions used by scheduler metric objects

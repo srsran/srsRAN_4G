@@ -36,13 +36,13 @@ enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
 
 //! Result of alloc attempt
 struct alloc_outcome_t {
-  enum result_enum { SUCCESS, DCI_COLLISION, RB_COLLISION, ERROR };
+  enum result_enum { SUCCESS, DCI_COLLISION, RB_COLLISION, ERROR, NOF_RB_INVALID };
   result_enum result = ERROR;
   alloc_outcome_t()  = default;
   alloc_outcome_t(result_enum e) : result(e) {}
               operator result_enum() { return result; }
               operator bool() { return result == SUCCESS; }
-              const char* to_string() const;
+  const char* to_string() const;
 };
 
 //! Result of a Subframe sched computation
@@ -59,6 +59,7 @@ struct sf_sched_result {
 class pdcch_grid_t
 {
 public:
+  const static uint32_t MAX_CFI = 3;
   struct alloc_t {
     uint16_t              rnti    = 0;
     srslte_dci_location_t dci_pos = {0, 0};
@@ -68,39 +69,61 @@ public:
   using alloc_result_t = std::vector<const alloc_t*>;
 
   void init(const sched_cell_params_t& cell_params_);
-  void new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
+  void new_tti(const tti_params_t& tti_params_);
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
   bool set_cfi(uint32_t cfi);
+  void set_max_cfi(uint32_t cfi) { max_user_cfi = cfi; }
 
   // getters
   uint32_t    get_cfi() const { return current_cfix + 1; }
   void        get_allocs(alloc_result_t* vec = nullptr, pdcch_mask_t* tot_mask = nullptr, size_t idx = 0) const;
-  uint32_t    nof_cces() const;
-  size_t      nof_allocs() const { return nof_dci_allocs; }
-  size_t      nof_alloc_combinations() const { return prev_end - prev_start; }
+  uint32_t    nof_cces() const { return cc_cfg->nof_cce_table[current_cfix]; }
+  size_t      nof_allocs() const { return dci_record_list.size(); }
+  size_t      nof_alloc_combinations() const { return get_alloc_tree().nof_leaves(); }
   std::string result_to_string(bool verbose = false) const;
 
 private:
-  const static uint32_t nof_cfis = 3;
-  using tree_node_t = std::pair<int, alloc_t>; ///< First represents the parent node idx, and second the alloc tree node
+  struct alloc_tree_t {
+    struct node_t {
+      int     parent_idx;
+      alloc_t node;
+      node_t(int i, const alloc_t& a) : parent_idx(i), node(a) {}
+    };
+    // state
+    size_t              nof_cces;
+    std::vector<node_t> dci_alloc_tree;
+    size_t              prev_start = 0, prev_end = 0;
 
-  const sched_dci_cce_t* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const;
-  void                   update_alloc_tree(int                    node_idx,
-                                           uint32_t               aggr_idx,
-                                           sched_ue*              user,
-                                           alloc_type_t           alloc_type,
-                                           const sched_dci_cce_t* dci_locs);
+    explicit alloc_tree_t(size_t nof_cces_) : nof_cces(nof_cces_) {}
+    size_t nof_leaves() const { return prev_end - prev_start; }
+    void   reset();
+  };
+  struct alloc_record_t {
+    sched_ue*    user;
+    uint32_t     aggr_idx;
+    alloc_type_t alloc_type;
+  };
+
+  const alloc_tree_t&    get_alloc_tree() const { return alloc_trees[current_cfix]; }
+  const sched_dci_cce_t* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const;
+
+  // PDCCH allocation algorithm
+  bool        alloc_dci_record(const alloc_record_t& record, uint32_t cfix);
+  static bool add_tree_node_leaves(alloc_tree_t&          tree,
+                                   int                    node_idx,
+                                   const alloc_record_t&  dci_record,
+                                   const sched_dci_cce_t& dci_locs,
+                                   uint32_t               tti_tx_dl);
 
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
   srslte::log_ref            log_h;
 
   // tti vars
-  const tti_params_t*      tti_params   = nullptr;
-  uint32_t                 current_cfix = 0;
-  size_t                   prev_start = 0, prev_end = 0;
-  std::vector<tree_node_t> dci_alloc_tree;
-  size_t                   nof_dci_allocs = 0;
+  const tti_params_t*         tti_params   = nullptr;
+  uint32_t                    current_cfix = 0, max_user_cfi = MAX_CFI;
+  std::vector<alloc_tree_t>   alloc_trees;     ///< List of PDCCH alloc trees, where index is the cfi index
+  std::vector<alloc_record_t> dci_record_list; ///< Keeps a record of all the PDCCH allocations done so far
 };
 
 //! manages a subframe grid resources, namely CCE and DL/UL RB allocations
@@ -113,7 +136,7 @@ public:
   };
 
   void            init(const sched_cell_params_t& cell_params_);
-  void            new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
+  void            new_tti(const tti_params_t& tti_params_);
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
   bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
@@ -228,7 +251,7 @@ public:
   // Control/Configuration Methods
   sf_sched();
   void init(const sched_cell_params_t& cell_params_);
-  void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
+  void new_tti(uint32_t tti_rx_);
 
   // DL alloc methods
   alloc_outcome_t                      alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);

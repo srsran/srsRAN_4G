@@ -1059,6 +1059,11 @@ std::pair<bool, uint32_t> sched_ue::get_cell_index(uint32_t enb_cc_idx) const
   return {false, std::numeric_limits<uint32_t>::max()};
 }
 
+uint32_t sched_ue::get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits)
+{
+  return carriers[ue_cc_idx].get_aggr_level(nof_bits);
+}
+
 void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)
 {
   auto p = get_cell_index(enb_cc_idx);

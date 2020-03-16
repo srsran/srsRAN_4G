@@ -129,7 +129,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("scheduler.pusch_mcs", bpo::value<int>(&args->stack.mac.sched.pusch_mcs)->default_value(-1), "Optional fixed PUSCH MCS (ignores reported CQIs if specified)")
     ("scheduler.pusch_max_mcs", bpo::value<int>(&args->stack.mac.sched.pusch_max_mcs)->default_value(-1), "Optional PUSCH MCS limit")
     ("scheduler.max_aggr_level", bpo::value<int>(&args->stack.mac.sched.max_aggr_level)->default_value(-1), "Optional maximum aggregation level index (l=log2(L)) ")
-    ("scheduler.nof_ctrl_symbols", bpo::value<int>(&args->stack.mac.sched.nof_ctrl_symbols)->default_value(3), "Number of control symbols")
+    ("scheduler.nof_ctrl_symbols", bpo::value<uint32_t>(&args->stack.mac.sched.max_nof_ctrl_symbols)->default_value(3), "Number of control symbols")
 
     /* Downlink Channel emulator section */
     ("channel.dl.enable", bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false), "Enable/Disable internal Downlink channel emulator")
@@ -259,11 +259,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   }
 
   if (args->stack.embms.enable) {
-    if (args->stack.mac.sched.nof_ctrl_symbols == 3) {
+    if (args->stack.mac.sched.max_nof_ctrl_symbols == 3) {
       fprintf(stderr,
               "nof_ctrl_symbols = %d, While using MBMS, please set number of control symbols to either 1 or 2, "
               "depending on the length of the non-mbsfn region\n",
-              args->stack.mac.sched.nof_ctrl_symbols);
+              args->stack.mac.sched.max_nof_ctrl_symbols);
       exit(1);
     }
   }
