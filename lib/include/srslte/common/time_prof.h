@@ -29,19 +29,88 @@
 
 namespace srslte {
 
-struct tprof_handler {
-  explicit tprof_handler(const char* name_) : name(name_) { log_ptr->set_level(LOG_LEVEL_INFO); }
-  virtual void process(long sample) = 0;
+template <typename Prof>
+class tprof
+{
+public:
+  using tpoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
-  std::mutex      mutex;
-  srslte::log_ref log_ptr = srslte::logmap::get("TPROF");
-  std::string     name;
+  struct measure {
+  public:
+    measure(tprof<Prof>* h_) : t1(std::chrono::high_resolution_clock::now()), h(h_) {}
+    ~measure()
+    {
+      if (deferred) {
+        stop();
+      }
+    }
+    void stop()
+    {
+      auto t2 = std::chrono::high_resolution_clock::now();
+      h->process(std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count());
+    }
+    void defer_stop() { deferred = true; }
+
+    tpoint       t1;
+    tprof<Prof>* h;
+    bool         deferred = false;
+  };
+
+  template <typename... Args>
+  explicit tprof(Args&&... args) : prof(std::forward<Args>(args)...)
+  {
+    srslte::logmap::get("TPROF")->set_level(LOG_LEVEL_INFO);
+  }
+
+  measure start() { return measure{this}; }
+
+  virtual void process(long duration) { prof.process(duration); }
+
+  Prof prof;
 };
 
-struct avg_tprof : public tprof_handler {
-  avg_tprof(const char* name_, size_t print_period_) : tprof_handler(name_), print_period(print_period_) {}
-
+template <typename Prof>
+struct mutexed_tprof : public tprof<Prof> {
+  using tprof<Prof>::tprof;
   void process(long duration) final
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    tprof<Prof>::prof.process(duration);
+  }
+  std::mutex mutex;
+};
+
+#else
+
+namespace srslte {
+
+template <typename Prof>
+struct tprof {
+  struct measure {
+  public:
+    void stop() {}
+    void defer_stop() {}
+  };
+
+  template <typename... Args>
+  explicit tprof(Args&&... args)
+  {
+  }
+
+  measure start() { return measure{}; }
+
+private:
+  void process(long duration) {}
+};
+template <typename Prof>
+using mutexed_tprof = tprof<Prof>;
+
+#endif
+
+struct avg_time_stats {
+  avg_time_stats(const char* name_, size_t print_period_) : name(name_), print_period(print_period_) {}
+
+  void process(long duration)
   {
     count++;
     avg_val = avg_val * (count - 1) / count + static_cast<double>(duration) / count;
@@ -57,60 +126,12 @@ struct avg_tprof : public tprof_handler {
     }
   }
 
-  double avg_val = 1;
-  long   count = 0, max_val = 0, min_val = std::numeric_limits<long>::max();
-  long   print_period;
+  srslte::log_ref log_ptr = srslte::logmap::get("TPROF");
+  std::string     name;
+  double          avg_val = 1;
+  long            count = 0, max_val = 0, min_val = std::numeric_limits<long>::max();
+  long            print_period;
 };
-
-struct tprof_measure {
-  using tpoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
-
-  explicit tprof_measure(tprof_handler* h_) : h(h_) {}
-
-  void start() { t1 = std::chrono::high_resolution_clock::now(); }
-
-  void stop()
-  {
-    auto                        t2 = std::chrono::high_resolution_clock::now();
-    std::lock_guard<std::mutex> lock(h->mutex);
-    h->process(std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count());
-  }
-
-private:
-  tprof_handler* h;
-  tpoint         t1;
-};
-
-struct tprof_measure_guard {
-  tprof_measure_guard(tprof_handler* h_) : tmeas(h_) { tmeas.start(); }
-  ~tprof_measure_guard() { tmeas.stop(); }
-  tprof_measure_guard(const tprof_measure_guard&) = delete;
-  tprof_measure_guard& operator=(const tprof_measure_guard&) = delete;
-
-private:
-  tprof_measure tmeas;
-};
-
-#else
-
-namespace srslte {
-
-struct tprof_handler {
-};
-
-struct avg_tprof : public tprof_handler {
-  avg_tprof(const char*, size_t) {}
-};
-
-class tprof_measure
-{
-public:
-  explicit tprof_measure(tprof_handler* h_) {}
-  void start() {}
-  void stop() {}
-};
-
-#endif
 
 } // namespace srslte
 
