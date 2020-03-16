@@ -445,10 +445,11 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
 
 void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
-  static srslte::mutexed_tprof_measure<srslte::avg_tprof> rach_tprof("RACH", 1);
+  static srslte::avg_tprof rach_tprof("RACH", 1);
   log_h->step(tti);
-  uint16_t rnti;
-  uint8_t  tprof_id = rach_tprof.start();
+  uint16_t              rnti;
+  srslte::tprof_measure tprof_meas{&rach_tprof};
+  tprof_meas.start();
 
   {
     srslte::rwlock_write_guard lock(rwlock);
@@ -472,7 +473,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     }
   }
 
-  stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv, tprof_id]() mutable {
+  stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv, tprof_meas]() mutable {
     // Generate RAR data
     sched_interface::dl_sched_rar_info_t rar_info = {};
     rar_info.preamble_idx                         = preamble_idx;
@@ -490,7 +491,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     ue_cfg.dl_cfg.tm                           = SRSLTE_TM1;
     if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
       Error("Registering new user rnti=0x%x to SCHED\n", rnti);
-      rach_tprof.stop(tprof_id);
+      tprof_meas.stop();
       return;
     }
 
@@ -500,14 +501,14 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     // Add temporal rnti to the PHY
     if (phy_h->add_rnti(rnti, enb_cc_idx, true) != SRSLTE_SUCCESS) {
       Error("Registering temporal-rnti=0x%x to PHY\n", rnti);
-      rach_tprof.stop(tprof_id);
+      tprof_meas.stop();
       return;
     }
 
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
 
-    rach_tprof.stop(tprof_id);
+    tprof_meas.stop();
 
     log_h->info("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
     log_h->console("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
