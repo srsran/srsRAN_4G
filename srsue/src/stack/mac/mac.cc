@@ -234,6 +234,11 @@ void mac::run_tti(const uint32_t tti)
 
   ra_procedure.step(tti);
   ra_procedure.update_rar_window(ra_window_start, ra_window_length);
+
+  // Count TTI for metrics
+  for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+    metrics[i].nof_tti++;
+  }
 }
 
 void mac::bcch_start_rx(int si_window_start_, int si_window_length_)

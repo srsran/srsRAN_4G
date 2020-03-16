@@ -25,15 +25,16 @@
 namespace srsue {
 
 struct mac_metrics_t {
-  int   tx_pkts;
-  int   tx_errors;
-  int   tx_brate;
-  int   rx_pkts;
-  int   rx_errors;
-  int   rx_brate;
-  int   ul_buffer;
-  float dl_retx_avg;
-  float ul_retx_avg;
+  uint32_t nof_tti;
+  int      tx_pkts;
+  int      tx_errors;
+  int      tx_brate;
+  int      rx_pkts;
+  int      rx_errors;
+  int      rx_brate;
+  int      ul_buffer;
+  float    dl_retx_avg;
+  float    ul_retx_avg;
 };
 
 } // namespace srsue

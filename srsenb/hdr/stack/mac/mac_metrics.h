@@ -28,6 +28,7 @@ namespace srsenb {
 
 struct mac_metrics_t {
   uint16_t rnti;
+  uint32_t nof_tti;
   int      tx_pkts;
   int      tx_errors;
   int      tx_brate;

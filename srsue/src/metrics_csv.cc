@@ -103,7 +103,7 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << float_to_string(metrics.phy.dl[r].mcs, 2);
       file << float_to_string(metrics.phy.dl[r].sinr, 2);
       file << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
-      file << float_to_string(metrics.stack.mac[r].rx_brate / (float)period_usec * 1e6f, 2);
+      file << float_to_string(metrics.stack.mac[r].rx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
 
       int rx_pkts   = metrics.stack.mac[r].rx_pkts;
       int rx_errors = metrics.stack.mac[r].rx_errors;
@@ -117,7 +117,7 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << float_to_string(metrics.phy.ul[r].mcs, 2);
       file << float_to_string((float)metrics.stack.mac[r].ul_buffer, 2);
 
-      file << float_to_string(metrics.stack.mac[r].tx_brate / (float)period_usec * 1e6f, 2);
+      file << float_to_string(metrics.stack.mac[r].tx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
 
       // Sum UL BLER for all CCs
       int tx_pkts   = metrics.stack.mac[r].tx_pkts;

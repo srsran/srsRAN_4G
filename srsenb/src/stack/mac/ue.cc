@@ -614,4 +614,9 @@ void ue::metrics_tx(bool crc, uint32_t tbs)
   metrics.tx_pkts++;
 }
 
+void ue::metrics_cnt()
+{
+  metrics.nof_tti++;
+}
+
 } // namespace srsenb

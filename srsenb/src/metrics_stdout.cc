@@ -113,7 +113,8 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       cout << float_to_string(0, 2, 4);
     }
     if (metrics.stack.mac[i].tx_brate > 0) {
-      cout << float_to_eng_string(SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].tx_brate / period_usec * 1e6), 1);
+      cout << float_to_eng_string(
+          SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].tx_brate / (metrics.stack.mac[i].nof_tti * 1e-3)), 1);
     } else {
       cout << float_to_string(0, 1, 6) << "";
     }
@@ -141,7 +142,8 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
       cout << float_to_string(0, 1, 4);
     }
     if (metrics.stack.mac[i].rx_brate > 0) {
-      cout << float_to_eng_string(SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].rx_brate / period_usec * 1e6), 1);
+      cout << float_to_eng_string(
+          SRSLTE_MAX(0.1, (float)metrics.stack.mac[i].rx_brate / (metrics.stack.mac[i].nof_tti * 1e-3)), 1);
     } else {
       cout << float_to_string(0, 1) << "";
     }
