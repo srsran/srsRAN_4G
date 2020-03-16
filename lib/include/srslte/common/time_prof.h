@@ -29,64 +29,123 @@
 
 namespace srslte {
 
-class time_prof
+template <typename Callable>
+class mutexed_tprof_measure
 {
+  using tpoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
 public:
-  explicit time_prof(const char* name_) : name(name_) { log_ptr->set_level(LOG_LEVEL_INFO); }
-  virtual ~time_prof() = default;
+  template <typename... Args>
+  explicit mutexed_tprof_measure(Args&&... args) : c(std::forward<Args>(args)...)
+  {
+    srslte::logmap::get("TPROF")->set_level(LOG_LEVEL_INFO);
+  }
+
+  uint8_t start()
+  {
+    auto                        t1 = std::chrono::high_resolution_clock::now();
+    std::lock_guard<std::mutex> lock(mutex);
+    auto                        ret = start_tpoints.insert(std::make_pair(next_id++, t1));
+    return ret.first->first;
+  }
+
+  void stop(uint8_t id)
+  {
+    auto                        t2 = std::chrono::high_resolution_clock::now();
+    std::lock_guard<std::mutex> lock(mutex);
+    auto&                       t1 = start_tpoints[id];
+    c.process(std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count());
+    start_tpoints.erase(id);
+  }
+
+private:
+  std::mutex                          mutex;
+  Callable                            c;
+  std::unordered_map<uint8_t, tpoint> start_tpoints;
+  uint8_t                             next_id = 0;
+};
+
+template <typename Callable>
+class tprof_measure
+{
+  using tpoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
+
+public:
+  template <typename... Args>
+  explicit tprof_measure(Args&&... args) : c(std::forward<Args>(args)...)
+  {
+    srslte::logmap::get("TPROF")->set_level(LOG_LEVEL_INFO);
+  }
 
   void start() { t1 = std::chrono::high_resolution_clock::now(); }
 
   void stop()
   {
     auto t2 = std::chrono::high_resolution_clock::now();
-    process(std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count());
+    c.process(std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count());
   }
 
-  virtual void process(long sample) = 0;
-
-  std::chrono::time_point<std::chrono::high_resolution_clock> t1;
-  std::string                                                 name;
-  srslte::log_ref                                             log_ptr = srslte::logmap::get("PROF");
+private:
+  Callable c;
+  tpoint   t1;
 };
 
-struct avg_time_prof : public time_prof {
-  avg_time_prof(const char* name_, size_t print_period_) : time_prof(name_), print_period(print_period_) {}
+struct avg_tprof {
+  avg_tprof(const char* name_, size_t print_period_) : name(name_), print_period(print_period_) {}
 
-  void process(long duration) final
+  void process(long duration)
   {
     count++;
     avg_val = avg_val * (count - 1) / count + static_cast<double>(duration) / count;
     max_val = std::max(max_val, duration);
     min_val = std::min(min_val, duration);
     if (count % print_period == 0) {
-      time_prof::log_ptr->info("%s: Mean=%0.1fusec, Max=%ldusec, Min=%ldusec, nof_samples=%ld",
-                               name.c_str(),
-                               avg_val / 1e3,
-                               max_val / 1000,
-                               min_val / 1000,
-                               count);
+      log_ptr->info("%s: Mean=%0.1fusec, Max=%ldusec, Min=%ldusec, nof_samples=%ld",
+                    name.c_str(),
+                    avg_val / 1e3,
+                    max_val / 1000,
+                    min_val / 1000,
+                    count);
     }
   }
 
-  double avg_val = 1;
-  long   count = 0, max_val = 0, min_val = std::numeric_limits<long>::max();
-  long   print_period;
+  srslte::log_ref log_ptr = srslte::logmap::get("TPROF");
+  std::string     name;
+  double          avg_val = 1;
+  long            count = 0, max_val = 0, min_val = std::numeric_limits<long>::max();
+  long            print_period;
 };
 
 #else
 
 namespace srslte {
 
-class time_prof
+template <typename Callable>
+class mutexed_tprof_measure
 {
 public:
+  template <typename... Args>
+  explicit mutexed_tprof_measure(Args&&... c)
+  {
+  }
+  uint8_t start() { return 0; }
+  void    stop(uint8_t id) {}
+};
+
+template <typename Callable>
+class tprof_measure
+{
+public:
+  template <typename... Args>
+  explicit tprof_measure(Args&&... c)
+  {
+  }
   void start() {}
   void stop() {}
 };
 
-struct avg_time_prof : public time_prof {
-  avg_time_prof(const char*, size_t) {}
+struct avg_tprof {
+  avg_tprof(const char*, size_t) {}
 };
 
 #endif

@@ -445,10 +445,10 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
 
 void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
-  static srslte::avg_time_prof rach_tprof("RACH", 1);
+  static srslte::mutexed_tprof_measure<srslte::avg_tprof> rach_tprof("RACH", 1);
   log_h->step(tti);
   uint16_t rnti;
-  rach_tprof.start();
+  uint8_t  tprof_id = rach_tprof.start();
 
   {
     srslte::rwlock_write_guard lock(rwlock);
@@ -472,7 +472,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     }
   }
 
-  stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv]() {
+  stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv, tprof_id]() mutable {
     // Generate RAR data
     sched_interface::dl_sched_rar_info_t rar_info = {};
     rar_info.preamble_idx                         = preamble_idx;
@@ -505,7 +505,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
 
-    rach_tprof.stop();
+    rach_tprof.stop(tprof_id);
 
     log_h->info("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
     log_h->console("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
