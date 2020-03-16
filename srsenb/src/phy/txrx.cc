@@ -115,7 +115,7 @@ void txrx::run_thread()
   log_h->info("Starting RX/TX thread nof_prb=%d, sf_len=%d\n", worker_com->get_nof_prb(0), sf_len);
 
   // Set TTI so that first TX is at tti=0
-  tti = TTI_SUB(0, FDD_HARQ_DELAY_DL_MS + 1);
+  tti = TTI_SUB(0, FDD_HARQ_DELAY_UL_MS + 1);
 
   // Main loop
   while (running) {

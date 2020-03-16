@@ -171,10 +171,10 @@ typedef struct SRSLTE_API {
   bool             ra_type_present;
 
   // For debugging purposes
-#ifdef SRSLTE_DCI_HEXDEBUG
+#if SRSLTE_DCI_HEXDEBUG
   uint32_t nof_bits;
   char     hex_str[SRSLTE_DCI_MAX_BITS];
-#endif
+#endif /* SRSLTE_DCI_HEXDEBUG */
 
 } srslte_dci_ul_t;
 

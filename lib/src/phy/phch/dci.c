@@ -1231,6 +1231,8 @@ int srslte_dci_msg_pack_pdsch(srslte_cell_t*      cell,
                               srslte_dci_dl_t*    dci,
                               srslte_dci_msg_t*   msg)
 {
+  int ret = SRSLTE_ERROR;
+
   msg->rnti     = dci->rnti;
   msg->location = dci->location;
   msg->format   = dci->format;
@@ -1243,19 +1245,29 @@ int srslte_dci_msg_pack_pdsch(srslte_cell_t*      cell,
 
   switch (msg->format) {
     case SRSLTE_DCI_FORMAT1:
-      return dci_format1_pack(cell, sf, cfg, dci, msg);
+      ret = dci_format1_pack(cell, sf, cfg, dci, msg);
+      break;
     case SRSLTE_DCI_FORMAT1A:
-      return dci_format1As_pack(cell, sf, cfg, dci, msg);
+      ret = dci_format1As_pack(cell, sf, cfg, dci, msg);
+      break;
     case SRSLTE_DCI_FORMAT1C:
-      return dci_format1Cs_pack(cell, sf, cfg, dci, msg);
+      ret = dci_format1Cs_pack(cell, sf, cfg, dci, msg);
+      break;
     case SRSLTE_DCI_FORMAT2:
     case SRSLTE_DCI_FORMAT2A:
     case SRSLTE_DCI_FORMAT2B:
-      return dci_format2AB_pack(cell, sf, cfg, dci, msg);
+      ret = dci_format2AB_pack(cell, sf, cfg, dci, msg);
+      break;
     default:
       ERROR("DCI pack pdsch: Invalid DCI format %s\n", srslte_dci_format_string(msg->format));
-      return SRSLTE_ERROR;
   }
+
+#if SRSLTE_DCI_HEXDEBUG
+  srslte_vec_sprint_hex(dci->hex_str, sizeof(dci->hex_str), msg->payload, msg->nof_bits);
+  dci->nof_bits = msg->nof_bits;
+#endif /* SRSLTE_DCI_HEXDEBUG */
+
+  return ret;
 }
 
 int srslte_dci_msg_unpack_pdsch(srslte_cell_t*      cell,
@@ -1350,11 +1362,11 @@ int srslte_dci_msg_unpack_pusch(srslte_cell_t*      cell,
     cfg = &_dci_cfg;
   }
 
-#ifdef SRSLTE_DCI_HEXDEBUG
+#if SRSLTE_DCI_HEXDEBUG
   dci->hex_str[0] = '\0';
   srslte_vec_sprint_hex(dci->hex_str, sizeof(dci->hex_str), msg->payload, msg->nof_bits);
   dci->nof_bits = msg->nof_bits;
-#endif
+#endif /* SRSLTE_DCI_HEXDEBUG */
 
   return dci_format0_unpack(cell, sf, cfg, msg, dci);
 }
@@ -1577,7 +1589,7 @@ uint32_t srslte_dci_dl_info(srslte_dci_dl_t* dci_dl, char* info_str, uint32_t le
 
 #if SRSLTE_DCI_HEXDEBUG
   n = srslte_print_check(info_str, len, n, ", len=%d, hex=%s", dci_dl->nof_bits, dci_dl->hex_str);
-#endif
+#endif /* SRSLTE_DCI_HEXDEBUG */
 
   if (dci_dl->cif_present) {
     n = srslte_print_check(info_str, len, n, ", cif=%d", dci_dl->cif);
