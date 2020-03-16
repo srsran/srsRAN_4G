@@ -161,14 +161,15 @@ void ue::set_lcg(uint32_t lcid, uint32_t lcg)
   lc_groups[lcg].push_back(lcid);
 }
 
-srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t cc_idx, const uint32_t tti)
+srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti)
 {
-  return &softbuffer_rx.at(cc_idx).at(tti % nof_rx_harq_proc);
+  return &softbuffer_rx.at(ue_cc_idx).at(tti % nof_rx_harq_proc);
 }
 
-srslte_softbuffer_tx_t* ue::get_tx_softbuffer(const uint32_t cc_idx, const uint32_t harq_process, const uint32_t tb_idx)
+srslte_softbuffer_tx_t*
+ue::get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx)
 {
-  return &softbuffer_tx.at(cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
+  return &softbuffer_tx.at(ue_cc_idx).at((harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc);
 }
 
 uint8_t* ue::request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const uint32_t len)
@@ -493,7 +494,8 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
   }
 }
 
-uint8_t* ue::generate_pdu(uint32_t                        harq_pid,
+uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
+                          uint32_t                        harq_pid,
                           uint32_t                        tb_idx,
                           sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                           uint32_t                        nof_pdu_elems,
@@ -502,16 +504,21 @@ uint8_t* ue::generate_pdu(uint32_t                        harq_pid,
   std::lock_guard<std::mutex> lock(mutex);
   uint8_t*                    ret = nullptr;
   if (rlc) {
-    tx_payload_buffer[harq_pid][tb_idx].clear();
-    mac_msg_dl.init_tx(&tx_payload_buffer[harq_pid][tb_idx], grant_size, false);
-    for (uint32_t i = 0; i < nof_pdu_elems; i++) {
-      if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
-        allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
-      } else {
-        allocate_ce(&mac_msg_dl, pdu[i].lcid);
+    if (ue_cc_idx < SRSLTE_MAX_CARRIERS && harq_pid < SRSLTE_FDD_NOF_HARQ && tb_idx < SRSLTE_MAX_TB) {
+      tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx].clear();
+      mac_msg_dl.init_tx(&tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx], grant_size, false);
+      for (uint32_t i = 0; i < nof_pdu_elems; i++) {
+        if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
+          allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
+        } else {
+          allocate_ce(&mac_msg_dl, pdu[i].lcid);
+        }
       }
+      ret = mac_msg_dl.write_packet(log_h);
+    } else {
+      log_h->error(
+          "Invalid parameters calling generate_pdu: cc_idx=%d, harq_pid=%d, tb_idx=%d\n", ue_cc_idx, harq_pid, tb_idx);
     }
-    ret = mac_msg_dl.write_packet(log_h);
   } else {
     std::cout << "Error ue not configured (must call config() first" << std::endl;
   }
@@ -525,8 +532,8 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
 {
   std::lock_guard<std::mutex> lock(mutex);
   uint8_t*                    ret = nullptr;
-  tx_payload_buffer[harq_pid][0].clear();
-  mch_mac_msg_dl.init_tx(&tx_payload_buffer[harq_pid][0], grant_size);
+  tx_payload_buffer[0][harq_pid][0].clear();
+  mch_mac_msg_dl.init_tx(&tx_payload_buffer[0][harq_pid][0], grant_size);
 
   for (uint32_t i = 0; i < nof_pdu_elems; i++) {
     if (sched.pdu[i].lcid == srslte::sch_subh::MCH_SCHED_INFO) {

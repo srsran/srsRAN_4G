@@ -63,7 +63,8 @@ public:
                   rrc_interface_mac* rrc_,
                   rlc_interface_mac* rlc,
                   srslte::log*       log_h);
-  uint8_t* generate_pdu(uint32_t                        harq_pid,
+  uint8_t* generate_pdu(uint32_t                        ue_cc_idx,
+                        uint32_t                        harq_pid,
                         uint32_t                        tb_idx,
                         sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
                         uint32_t                        nof_pdu_elems,
@@ -71,8 +72,9 @@ public:
   uint8_t*
   generate_mch_pdu(uint32_t harq_pid, sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems, uint32_t grant_size);
 
-  srslte_softbuffer_tx_t* get_tx_softbuffer(const uint32_t cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
-  srslte_softbuffer_rx_t* get_rx_softbuffer(const uint32_t cc_idx, const uint32_t tti);
+  srslte_softbuffer_tx_t*
+                          get_tx_softbuffer(const uint32_t ue_cc_idx, const uint32_t harq_process, const uint32_t tb_idx);
+  srslte_softbuffer_rx_t* get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti);
 
   bool     process_pdus();
   uint8_t* request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const uint32_t len);
@@ -132,7 +134,7 @@ private:
   std::vector<cc_buffer_ptr_t>  pending_buffers; ///< List of buffer pointer list for Rx
 
   // For DL there are two buffers, one for each Transport block
-  srslte::byte_buffer_t tx_payload_buffer[SRSLTE_FDD_NOF_HARQ][SRSLTE_MAX_TB];
+  srslte::byte_buffer_t tx_payload_buffer[SRSLTE_MAX_CARRIERS][SRSLTE_FDD_NOF_HARQ][SRSLTE_MAX_TB];
 
   srslte::block_queue<uint32_t> pending_ta_commands;
 

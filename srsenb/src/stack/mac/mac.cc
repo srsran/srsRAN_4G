@@ -539,7 +539,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
 
             if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
               /* Get PDU if it's a new transmission */
-              dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(sched_result.data[i].dci.pid,
+              dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(sched_result.data[i].dci.ue_cc_idx,
+                                                                          sched_result.data[i].dci.pid,
                                                                           tb,
                                                                           sched_result.data[i].pdu[tb],
                                                                           sched_result.data[i].nof_pdu_elems[tb],
