@@ -490,6 +490,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     ue_cfg.dl_cfg.tm                           = SRSLTE_TM1;
     if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
       Error("Registering new user rnti=0x%x to SCHED\n", rnti);
+      rach_tprof.stop(tprof_id);
       return;
     }
 
@@ -499,6 +500,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     // Add temporal rnti to the PHY
     if (phy_h->add_rnti(rnti, enb_cc_idx, true) != SRSLTE_SUCCESS) {
       Error("Registering temporal-rnti=0x%x to PHY\n", rnti);
+      rach_tprof.stop(tprof_id);
       return;
     }
 
