@@ -257,7 +257,7 @@ private:
     int  sr_free();
 
     int  cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch);
-    void cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch);
+    void cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
     int  cqi_free();
 
     int ri_get(uint32_t m_ri, uint16_t* ri_idx);
@@ -321,14 +321,22 @@ private:
     bool                      sr_allocated      = false;
     uint32_t                  sr_N_pucch        = 0;
     uint32_t                  sr_I              = 0;
-    uint32_t                  cqi_pucch         = 0;
-    uint32_t                  cqi_idx           = 0;
     bool                      cqi_allocated     = false;
     int                       cqi_sched_sf_idx  = 0;
     int                       cqi_sched_prb_idx = 0;
-    int                       get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
-    bool                      nas_pending = false;
+    bool                      nas_pending       = false;
     srslte::byte_buffer_t     erab_info;
+
+    const static uint32_t UE_PCELL_CC_IDX = 0;
+
+    typedef struct {
+      uint32_t idx;
+      uint32_t pucch_res;
+    } cqi_res_t;
+
+    std::map<uint32_t, cqi_res_t> cqi_res = {};
+
+    int get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
 
     ///< Helper to access a cell cfg based on ue_cc_idx
     cell_ctxt_t* get_ue_cc_cfg(uint32_t ue_cc_idx);

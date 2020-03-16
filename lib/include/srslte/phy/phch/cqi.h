@@ -55,7 +55,7 @@ typedef enum {
 typedef struct {
   bool                     periodic_configured;
   bool                     aperiodic_configured;
-  uint32_t                 pmi_idx;
+  uint16_t                 pmi_idx;
   uint32_t                 ri_idx;
   bool                     ri_idx_present;
   bool                     format_is_subband;

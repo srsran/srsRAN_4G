@@ -265,6 +265,7 @@ public:
                     uint32_t          enb_cc_idx,
                     uint16_t          rnti,
                     bool              aperiodic_cqi_request,
+                    bool              is_pusch_available,
                     srslte_uci_cfg_t& uci_cfg) const;
 
   /**

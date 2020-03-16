@@ -81,7 +81,7 @@ inline void phy_ue_db::_clear_tti_pending_rnti(uint32_t tti, uint16_t rnti)
     }
   }
 
-  // Copy essentials
+  // Copy essentials. It is assumed the PUCCH parameters are the same for all carriers
   pdsch_ack.transmission_mode      = ue.cell_info[0].phy_cfg.dl_cfg.tm;
   pdsch_ack.nof_cc                 = nof_active_cc;
   pdsch_ack.ack_nack_feedback_mode = ue.cell_info[0].phy_cfg.ul_cfg.pucch.ack_nack_feedback_mode;
@@ -373,6 +373,7 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
                              uint32_t          enb_cc_idx,
                              uint16_t          rnti,
                              bool              aperiodic_cqi_request,
+                             bool              is_pusch_available,
                              srslte_uci_cfg_t& uci_cfg) const
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -430,7 +431,9 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   srslte_dl_sf_cfg_t dl_sf_cfg = {};
   dl_sf_cfg.tti                = tti;
   const srslte_cell_t& cell    = cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell;
-  srslte_enb_dl_gen_ack(&cell, &dl_sf_cfg, &ue.pdsch_ack[TTIMOD(tti)], &uci_cfg);
+  srslte_pdsch_ack_t   ack_info = ue.pdsch_ack[TTIMOD(tti)];
+  ack_info.is_pusch_available   = is_pusch_available;
+  srslte_enb_dl_gen_ack(&cell, &dl_sf_cfg, &ack_info, &uci_cfg);
   uci_required |= (srslte_uci_cfg_total_ack(&uci_cfg) > 0);
 
   // Return whether UCI needs to be decoded

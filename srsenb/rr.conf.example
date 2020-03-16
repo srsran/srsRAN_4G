@@ -35,16 +35,16 @@ phy_cnfg =
   sched_request_cnfg =
   {
     dsr_trans_max = 64;
-    period = 20;       // in ms
-    subframe = [1];    // vector of subframe indices allowed for SR transmissions 
-    nof_prb = 2;       // number of PRBs on each extreme used for SR (total prb is twice this number)
+    period = 20;         // in ms
+    subframe = [1, 11];  // vector of subframe indices allowed for SR transmissions
+    nof_prb = 2;         // number of PRBs on each extreme used for SR (total prb is twice this number)
   };
   cqi_report_cnfg =
   { 
     mode = "periodic";
-    simultaneousAckCQI = true; 
-    period = 40; // in ms
-    subframe = [0];
+    simultaneousAckCQI = true;
+    period = 40;                 // in ms
+    subframe = [0, 10, 20, 30];  // vector of subframe indices every period where CQI resources will be allocated
     nof_prb = 2; 
     m_ri = 8; // RI period in CQI period
   };

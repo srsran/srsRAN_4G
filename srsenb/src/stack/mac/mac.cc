@@ -770,11 +770,11 @@ uint8_t* mac::assemble_si(const uint8_t enb_cc_idx, const uint32_t sib_index)
 
 int mac::get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res_list)
 {
-  log_h->step(tti);
-
   if (!started) {
     return SRSLTE_SUCCESS;
   }
+
+  log_h->step(tti);
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < cell_config.size(); enb_cc_idx++) {
     ul_sched_t* phy_ul_sched_res = &ul_sched_res_list[enb_cc_idx];

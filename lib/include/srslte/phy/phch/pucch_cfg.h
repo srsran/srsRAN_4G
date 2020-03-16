@@ -79,7 +79,7 @@ typedef struct SRSLTE_API {
 
   // PUCCH configuration generated during a call to encode/decode
   srslte_pucch_format_t format;
-  uint32_t              n_pucch;
+  uint16_t              n_pucch;
   uint8_t               pucch2_drs_bits[SRSLTE_PUCCH2_MAX_DMRS_BITS];
 
 } srslte_pucch_cfg_t;

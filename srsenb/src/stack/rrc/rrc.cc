@@ -1069,7 +1069,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
     parent->rrc_log->warning("No PCell set. Picking eNBccIdx=0 as PCell\n");
     current_sched_ue_cfg.supported_cc_list.resize(0);
     current_sched_ue_cfg.supported_cc_list[0].active     = true;
-    current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
+    current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = UE_PCELL_CC_IDX;
   }
 
   activity_timer = outer_rrc->timers->get_unique_timer();
@@ -1129,8 +1129,8 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
   switch (type) {
     case MSG3_RX_TIMEOUT:
       deadline_s = 0;
-      deadline_ms =
-          static_cast<uint32_t>((get_ue_cc_cfg(0)->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16);
+      deadline_ms = static_cast<uint32_t>(
+          (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16);
       break;
     case UE_RESPONSE_RX_TIMEOUT:
       // Arbitrarily chosen value to complete each UE config step, i.e. security, bearer setup, etc.
@@ -1642,7 +1642,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
     phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
     phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = false;
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
     if (is_setup) {
       if (cqi_allocate(parent->cfg.cqi_cfg.period,
                        &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
@@ -1651,8 +1651,9 @@ void rrc::ue::send_connection_setup(bool is_setup)
         return;
       }
     } else {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx = (uint16_t)cqi_pucch;
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx   = (uint16_t)cqi_idx;
+      cqi_get(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
+              &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
+              UE_PCELL_CC_IDX);
     }
   }
   phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
@@ -1666,15 +1667,14 @@ void rrc::ue::send_connection_setup(bool is_setup)
     current_sched_ue_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.period;
     current_sched_ue_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
   } else {
-    current_sched_ue_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_idx;
+    cqi_get(&current_sched_ue_cfg.dl_cfg.cqi_report.pmi_idx, &current_sched_ue_cfg.pucch_cfg.n_pucch, UE_PCELL_CC_IDX);
     current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
   }
   current_sched_ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
   current_sched_ue_cfg.pucch_cfg.I_sr              = sr_I;
   current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = sr_N_pucch;
   current_sched_ue_cfg.pucch_cfg.sr_configured     = true;
-  current_sched_ue_cfg.pucch_cfg.n_pucch           = cqi_pucch;
-  const sib_type2_s& sib2                          = get_ue_cc_cfg(0)->sib2;
+  const sib_type2_s& sib2                          = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2;
   current_sched_ue_cfg.pucch_cfg.delta_pucch_shift = sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
   current_sched_ue_cfg.pucch_cfg.N_cs              = sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
   current_sched_ue_cfg.pucch_cfg.n_rb_2            = sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
@@ -1785,7 +1785,8 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
     phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
     cqi_get(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-            &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx);
+            &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
+            UE_PCELL_CC_IDX);
     phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
     if (parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm3 ||
         parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
@@ -1840,7 +1841,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   } else {
     phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
     auto& cqi_rep                                       = phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-    cqi_get(&cqi_rep.cqi_pmi_cfg_idx, &cqi_rep.cqi_pucch_res_idx);
+    cqi_get(&cqi_rep.cqi_pmi_cfg_idx, &cqi_rep.cqi_pucch_res_idx, UE_PCELL_CC_IDX);
     cqi_rep.cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
     cqi_rep.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
@@ -1967,7 +1968,7 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
 
   // Add all SCells configured for the current PCell
   uint32_t           scell_idx = 1; // SCell start with 1, zero reserved for PCell
-  const cell_ctxt_t* pcell_cfg = get_ue_cc_cfg(0);
+  const cell_ctxt_t* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
   for (auto& scell : pcell_cfg->cell_cfg.scell_list) {
     // get corresponding eNB cell context for this scell
     const cell_ctxt_t* cc_cfg = parent->find_cell_ctxt(scell.cell_id);
@@ -2033,11 +2034,13 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     ul_cfg_ded.cqi_report_cfg_scell_r10_present                               = true;
     ul_cfg_ded.cqi_report_cfg_scell_r10.nom_pdsch_rs_epre_offset_r10          = 0;
     ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
+
+    // Get CQI allocation for secondary cell
     auto& cqi_setup                 = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
-    cqi_setup.cqi_pucch_res_idx_r10 = 0;
-    cqi_setup.cqi_pmi_cfg_idx       = cqi_idx + scell_idx; // Take next PMI idx starting from PCell
+    cqi_get(&cqi_setup.cqi_pmi_cfg_idx, &cqi_setup.cqi_pucch_res_idx_r10, scell_idx);
+
     cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
-    cqi_setup.simul_ack_nack_and_cqi = false;
+    cqi_setup.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
 #if SRS_ENABLED
     ul_cfg_ded.srs_ul_cfg_ded_r10_present                  = true;
     auto& srs_setup                                        = ul_cfg_ded.srs_ul_cfg_ded_r10.set_setup();
@@ -2448,7 +2451,8 @@ void rrc::ue::sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr)
 int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 {
   uint32_t c                 = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
-  uint32_t delta_pucch_shift = get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  uint32_t delta_pucch_shift =
+      get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
 
   uint32_t max_users = 12 * c / delta_pucch_shift;
 
@@ -2485,8 +2489,8 @@ int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 
   // Compute N_pucch_sr
   *N_pucch_sr = i_min * max_users + parent->sr_sched.nof_users[i_min][j_min];
-  if (get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
-    *N_pucch_sr += get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+  if (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
+    *N_pucch_sr += get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
   }
 
   // Allocate user
@@ -2521,84 +2525,93 @@ int rrc::ue::cqi_free()
   return 0;
 }
 
-void rrc::ue::cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch)
+void rrc::ue::cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 {
-  *pmi_idx = cqi_idx;
-  *n_pucch = cqi_pucch;
+  if (cqi_res.count(ue_cc_idx)) {
+    *pmi_idx = cqi_res[ue_cc_idx].idx;
+    *n_pucch = cqi_res[ue_cc_idx].pucch_res;
+  } else {
+    parent->rrc_log->error("CQI resources for ue_cc_idx=%d have not been allocated\n", ue_cc_idx);
+  }
 }
 
 int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
 {
   uint32_t c                 = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
-  uint32_t delta_pucch_shift = get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  uint32_t delta_pucch_shift =
+      get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
 
   uint32_t max_users = 12 * c / delta_pucch_shift;
 
-  // Find freq-time resources with least number of users
-  int      i_min = 0, j_min = 0;
-  uint32_t min_users = std::numeric_limits<uint32_t>::max();
-  for (uint32_t i = 0; i < parent->cfg.cqi_cfg.nof_prb; i++) {
-    for (uint32_t j = 0; j < parent->cfg.cqi_cfg.nof_subframes; j++) {
-      if (parent->cqi_sched.nof_users[i][j] < min_users) {
-        i_min     = i;
-        j_min     = j;
-        min_users = parent->cqi_sched.nof_users[i][j];
+  // Allocate all CQI resources for all carriers now
+  for (uint32_t cc_idx = 0; cc_idx < get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list.size(); cc_idx++) {
+    // Find freq-time resources with least number of users
+    int      i_min = 0, j_min = 0;
+    uint32_t min_users = std::numeric_limits<uint32_t>::max();
+    for (uint32_t i = 0; i < parent->cfg.cqi_cfg.nof_prb; i++) {
+      for (uint32_t j = 0; j < parent->cfg.cqi_cfg.nof_subframes; j++) {
+        if (parent->cqi_sched.nof_users[i][j] < min_users) {
+          i_min     = i;
+          j_min     = j;
+          min_users = parent->cqi_sched.nof_users[i][j];
+        }
       }
     }
-  }
 
-  if (parent->cqi_sched.nof_users[i_min][j_min] > max_users) {
-    parent->rrc_log->error("Not enough PUCCH resources to allocate Scheduling Request\n");
-    return -1;
-  }
+    if (parent->cqi_sched.nof_users[i_min][j_min] > max_users) {
+      parent->rrc_log->error("Not enough PUCCH resources to allocate Scheduling Request\n");
+      return -1;
+    }
 
-  // Compute I_sr
-  if (period != 2 && period != 5 && period != 10 && period != 20 && period != 40 && period != 80 && period != 160 &&
-      period != 32 && period != 64 && period != 128) {
-    parent->rrc_log->error("Invalid CQI Report period %d ms\n", period);
-    return -1;
-  }
-  if (parent->cfg.cqi_cfg.sf_mapping[j_min] < period) {
-    if (period != 32 && period != 64 && period != 128) {
-      if (period > 2) {
-        *pmi_idx = period - 3 + parent->cfg.cqi_cfg.sf_mapping[j_min];
+    // Compute I_sr
+    if (period != 2 && period != 5 && period != 10 && period != 20 && period != 40 && period != 80 && period != 160 &&
+        period != 32 && period != 64 && period != 128) {
+      parent->rrc_log->error("Invalid CQI Report period %d ms\n", period);
+      return -1;
+    }
+    if (parent->cfg.cqi_cfg.sf_mapping[j_min] < period) {
+      if (period != 32 && period != 64 && period != 128) {
+        if (period > 2) {
+          *pmi_idx = period - 3 + parent->cfg.cqi_cfg.sf_mapping[j_min];
+        } else {
+          *pmi_idx = parent->cfg.cqi_cfg.sf_mapping[j_min];
+        }
       } else {
-        *pmi_idx = parent->cfg.cqi_cfg.sf_mapping[j_min];
+        if (period == 32) {
+          *pmi_idx = 318 + parent->cfg.cqi_cfg.sf_mapping[j_min];
+        } else if (period == 64) {
+          *pmi_idx = 350 + parent->cfg.cqi_cfg.sf_mapping[j_min];
+        } else {
+          *pmi_idx = 414 + parent->cfg.cqi_cfg.sf_mapping[j_min];
+        }
       }
     } else {
-      if (period == 32) {
-        *pmi_idx = 318 + parent->cfg.cqi_cfg.sf_mapping[j_min];
-      } else if (period == 64) {
-        *pmi_idx = 350 + parent->cfg.cqi_cfg.sf_mapping[j_min];
-      } else {
-        *pmi_idx = 414 + parent->cfg.cqi_cfg.sf_mapping[j_min];
-      }
+      parent->rrc_log->error(
+          "Allocating CQI: invalid sf_idx=%d for period=%d\n", parent->cfg.cqi_cfg.sf_mapping[j_min], period);
+      return -1;
     }
-  } else {
-    parent->rrc_log->error(
-        "Allocating SR: invalid sf_idx=%d for period=%d\n", parent->cfg.cqi_cfg.sf_mapping[j_min], period);
-    return -1;
+
+    // Compute n_pucch_2
+    *n_pucch = i_min * max_users + parent->cqi_sched.nof_users[i_min][j_min];
+    if (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
+      *n_pucch += get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+    }
+    // Allocate user
+    parent->cqi_sched.nof_users[i_min][j_min]++;
+    cqi_sched_prb_idx    = i_min;
+    cqi_sched_sf_idx     = j_min;
+    cqi_allocated        = true;
+    cqi_res[cc_idx].idx       = *pmi_idx;
+    cqi_res[cc_idx].pucch_res = *n_pucch;
+
+    parent->rrc_log->info(
+        "Allocated CQI resources for cc_idx=%d, time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d\n",
+        cc_idx,
+        cqi_sched_prb_idx,
+        cqi_sched_sf_idx,
+        *n_pucch,
+        *pmi_idx);
   }
-
-  // Compute n_pucch_2
-  *n_pucch = i_min * max_users + parent->cqi_sched.nof_users[i_min][j_min];
-  if (get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
-    *n_pucch += get_ue_cc_cfg(0)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
-  }
-
-  // Allocate user
-  parent->cqi_sched.nof_users[i_min][j_min]++;
-  cqi_sched_prb_idx = i_min;
-  cqi_sched_sf_idx  = j_min;
-  cqi_allocated     = true;
-  cqi_idx           = *pmi_idx;
-  cqi_pucch         = *n_pucch;
-
-  parent->rrc_log->info("Allocated CQI resources for time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d\n",
-                        cqi_sched_prb_idx,
-                        cqi_sched_sf_idx,
-                        *n_pucch,
-                        *pmi_idx);
 
   return 0;
 }

@@ -404,7 +404,7 @@ public:
 
     notify_sr_detected();
 
-    log_h.info("Received SR tti=%d; rnti=x%x\n", tti, rnti);
+    log_h.info("Received SR tti=%d; rnti=0x%x\n", tti, rnti);
 
     return SRSLTE_SUCCESS;
   }
@@ -432,7 +432,7 @@ public:
 
     notify_cqi_info();
 
-    log_h.info("Received CQI tti=%d; rnti=x%x; cc_idx=%d; cqi=%d;\n", tti, rnti, cc_idx, cqi_value);
+    log_h.info("Received CQI tti=%d; rnti=0x%x; cc_idx=%d; cqi=%d;\n", tti, rnti, cc_idx, cqi_value);
 
     return SRSLTE_SUCCESS;
   }
@@ -443,7 +443,7 @@ public:
   }
   int ta_info(uint32_t tti, uint16_t rnti, float ta_us) override
   {
-    log_h.info("Received TA INFO tti=%d; rnti=x%x; ta=%.1f us\n", tti, rnti, ta_us);
+    log_h.info("Received TA INFO tti=%d; rnti=0x%x; ta=%.1f us\n", tti, rnti, ta_us);
     notify_ta_info();
     return 0;
   }
@@ -457,7 +457,7 @@ public:
     tti_dl_info.ack           = ack;
     tti_dl_info_ack_queue.push(tti_dl_info);
 
-    log_h.info("Received DL ACK tti=%d; rnti=x%x; cc=%d; tb=%d; ack=%d;\n", tti, rnti, cc_idx, tb_idx, ack);
+    log_h.info("Received DL ACK tti=%d; rnti=0x%x; cc=%d; tb=%d; ack=%d;\n", tti, rnti, cc_idx, tb_idx, ack);
     notify_ack_info();
     return 0;
   }
@@ -470,7 +470,7 @@ public:
     tti_ul_info.crc           = crc_res;
     tti_ul_info_ack_queue.push(tti_ul_info);
 
-    log_h.info("Received UL ACK tti=%d; rnti=x%x; cc=%d; ack=%d;\n", tti, rnti, cc_idx, crc_res);
+    log_h.info("Received UL ACK tti=%d; rnti=0x%x; cc=%d; ack=%d;\n", tti, rnti, cc_idx, crc_res);
     notify_crc_info();
 
     return 0;
@@ -592,7 +592,7 @@ public:
         ul_sched.pusch[0].dci.type2_alloc.n_gap   = srslte_ra_type2_t::SRSLTE_RA_TYPE2_NG1;
         ul_sched.pusch[0].dci.type2_alloc.mode    = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
         ul_sched.pusch[0].dci.freq_hop_fl         = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
-        ul_sched.pusch[0].dci.tb.mcs_idx          = 24;
+        ul_sched.pusch[0].dci.tb.mcs_idx          = 20; // Can't set it too high for grants with CQI and long ACK/NACK
         ul_sched.pusch[0].dci.tb.rv               = 0;
         ul_sched.pusch[0].dci.tb.ndi              = false;
         ul_sched.pusch[0].dci.tb.cw_idx           = 0;
@@ -935,6 +935,7 @@ public:
 
         ue_ul_cfg.ul_cfg.pusch.softbuffers.tx = &softbuffer_tx;
         ue_ul_cfg.grant_available             = true;
+        pdsch_ack.is_pusch_available          = true;
       }
 
       // Generate

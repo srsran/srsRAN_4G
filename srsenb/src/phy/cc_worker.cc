@@ -311,7 +311,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
       ue_db[rnti]->is_grant_available = true;
 
       // Fill UCI configuration
-      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, grants->dci.cqi_request, phy_cfg.ul_cfg.pusch.uci_cfg);
+      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, grants->dci.cqi_request, true, phy_cfg.ul_cfg.pusch.uci_cfg);
 
       // Compute UL grant
       srslte_pusch_grant_t& grant = phy_cfg.ul_cfg.pusch.grant;
@@ -400,7 +400,7 @@ int cc_worker::decode_pucch()
       srslte_ul_cfg_t ul_cfg = phy->ue_db.get_config(rnti, cc_idx).ul_cfg;
 
       // Check if user needs to receive PUCCH
-      if (phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, ul_cfg.pucch.uci_cfg)) {
+      if (phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, false, ul_cfg.pucch.uci_cfg)) {
         // Decode PUCCH
         if (srslte_enb_ul_get_pucch(&enb_ul, &ul_sf, &ul_cfg.pucch, &pucch_res)) {
           ERROR("Error getting PUCCH\n");
