@@ -27,6 +27,7 @@
 
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
+#include "srslte/common/signal_handler.h"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -340,19 +341,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   }
 }
 
-static int  sigcnt     = 0;
-static bool running    = true;
 static bool do_metrics = false;
-
-void sig_int_handler(int signo)
-{
-  sigcnt++;
-  running = false;
-  cout << "Stopping srsENB... Press Ctrl+C " << (10 - sigcnt) << " more times to force stop" << endl;
-  if (sigcnt >= 10) {
-    exit(-1);
-  }
-}
 
 void* input_loop(void* m)
 {
@@ -373,7 +362,7 @@ void* input_loop(void* m)
         }
         metrics->toggle_print(do_metrics);
       } else if ('q' == key) {
-        sig_int_handler(0);
+        raise(SIGTERM);
       }
     }
   }
@@ -382,9 +371,7 @@ void* input_loop(void* m)
 
 int main(int argc, char* argv[])
 {
-  signal(SIGINT, sig_int_handler);
-  signal(SIGTERM, sig_int_handler);
-  signal(SIGHUP, sig_int_handler);
+  srslte_register_signal_handler();
   all_args_t                         args = {};
   srslte::metrics_hub<enb_metrics_t> metricshub;
   metrics_stdout                     metrics_screen;
@@ -395,7 +382,6 @@ int main(int argc, char* argv[])
   parse_args(&args, argc, argv);
 
   srslte::logger_stdout logger_stdout;
-  srslte::logger_file   logger_file;
 
   // Set logger
   srslte::logger* logger = nullptr;

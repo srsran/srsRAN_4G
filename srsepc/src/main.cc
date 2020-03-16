@@ -26,6 +26,7 @@
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
+#include "srslte/common/signal_handler.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <signal.h>
@@ -33,13 +34,6 @@
 using namespace std;
 using namespace srsepc;
 namespace bpo = boost::program_options;
-
-bool running = true;
-
-void sig_int_handler(int signo)
-{
-  running = false;
-}
 
 typedef struct {
   std::string nas_level;
@@ -380,9 +374,7 @@ std::string get_build_string()
 
 int main(int argc, char* argv[])
 {
-  signal(SIGINT, sig_int_handler);
-  signal(SIGTERM, sig_int_handler);
-  signal(SIGHUP, sig_int_handler);
+  srslte_register_signal_handler();
 
   // print build info
   cout << endl << get_build_string() << endl;
@@ -394,7 +386,6 @@ int main(int argc, char* argv[])
   parse_args(&args, argc, argv);
 
   srslte::logger_stdout logger_stdout;
-  srslte::logger_file   logger_file;
   srslte::logger*       logger;
 
   /*Init logger*/

@@ -19,27 +19,24 @@
  *
  */
 
-#include <pthread.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include <boost/program_options.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <fstream>
-#include <iostream>
-#include <string>
-
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/metrics_hub.h"
+#include "srslte/common/signal_handler.h"
 #include "srslte/srslte.h"
 #include "srslte/version.h"
 #include "srsue/hdr/metrics_csv.h"
 #include "srsue/hdr/metrics_stdout.h"
 #include "srsue/hdr/ue.h"
+#include <boost/program_options.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <iostream>
+#include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string>
+#include <unistd.h>
 
 extern bool simulate_rlf;
 
@@ -51,10 +48,6 @@ namespace bpo = boost::program_options;
  *  Local static variables
  ***********************************************************************/
 
-#define UE_STOP_TIMEOUT_S (3)
-
-static srslte::logger_file logger_file;
-static bool                running        = true;
 static bool                do_metrics     = false;
 static metrics_stdout*     metrics_screen = nullptr;
 
@@ -550,22 +543,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   return SRSLTE_SUCCESS;
 }
 
-static void sig_handler(int signal)
-{
-  switch (signal) {
-    case SIGALRM:
-      fprintf(stderr, "Couldn't stop after %ds. Forcing exit.\n", UE_STOP_TIMEOUT_S);
-      logger_file.stop();
-      exit(-1);
-    default:
-      // all other registered signal try to stop UE gracefully
-      running = false;
-      cout << "Stopping srsUE ..." << endl;
-      alarm(UE_STOP_TIMEOUT_S);
-      break;
-  }
-}
-
 static void* input_loop(void*)
 {
   string key;
@@ -599,10 +576,7 @@ static void* input_loop(void*)
 
 int main(int argc, char* argv[])
 {
-  signal(SIGINT, sig_handler);
-  signal(SIGTERM, sig_handler);
-  signal(SIGHUP, sig_handler);
-  signal(SIGALRM, sig_handler);
+  srslte_register_signal_handler();
   srslte_debug_handle_crash(argc, argv);
 
   all_args_t args = {};
