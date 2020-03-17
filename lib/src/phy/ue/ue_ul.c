@@ -208,7 +208,9 @@ int srslte_ue_ul_dci_to_pusch_grant(srslte_ue_ul_t*       q,
                                     srslte_pusch_grant_t* grant)
 {
   if (srslte_ra_ul_dci_to_grant(&q->cell, sf, &cfg->ul_cfg.hopping, dci, grant)) {
-    ERROR("Converting DCI to UL grant\n");
+    char str[128];
+    srslte_dci_ul_info(dci, str, sizeof(str));
+    ERROR("Converting DCI to UL grant from %s\n", str);
     return SRSLTE_ERROR;
   }
 

@@ -662,6 +662,9 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
     if (srslte_ue_ul_dci_to_pusch_grant(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &dci_ul, &ue_ul_cfg.ul_cfg.pusch.grant)) {
       Error("Converting DCI message to UL dci\n");
       ul_grant_available = false;
+    } else if (ue_ul_cfg.ul_cfg.pusch.grant.tb.mod == SRSLTE_MOD_BPSK) {
+      Error("UL retransmission without valid stored grant.\n");
+      ul_grant_available = false;
     } else {
       // Save TBS info for next retx
       phy->last_ul_tb[pid][cc_idx] = ue_ul_cfg.ul_cfg.pusch.grant.tb;

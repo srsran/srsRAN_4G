@@ -432,7 +432,9 @@ static int dl_dci_compute_tb(bool pdsch_use_tbs_index_alt, const srslte_dci_dl_t
       if (grant->tb[i].enabled) {
         grant->tb[i].tbs = srslte_dl_fill_ra_mcs(&grant->tb[i], grant->last_tbs[i], n_prb, pdsch_use_tbs_index_alt);
         if (grant->tb[i].tbs < 0) {
-          ERROR("Computing TBS from MCS=%d, n_prb=%d\n", grant->tb[i].mcs_idx, n_prb);
+          char str[128];
+          srslte_dci_dl_info(dci, str, sizeof(str));
+          ERROR("Computing TBS from %s\n", str);
           return SRSLTE_ERROR;
         }
       } else {

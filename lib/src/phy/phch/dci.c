@@ -1551,7 +1551,7 @@ void srslte_dci_dl_fprint(FILE* f, srslte_dci_dl_t* dci, uint32_t nof_prb)
   }
 }
 
-static uint32_t print_multi(char* info_str, uint32_t n, uint32_t len, srslte_dci_dl_t* dci_dl, uint32_t value_id)
+static uint32_t print_multi(char* info_str, uint32_t n, uint32_t len, const srslte_dci_dl_t* dci_dl, uint32_t value_id)
 {
   uint32_t nof_tb = 1;
   if (dci_dl->format >= SRSLTE_DCI_FORMAT2) {
@@ -1576,7 +1576,7 @@ static uint32_t print_multi(char* info_str, uint32_t n, uint32_t len, srslte_dci
   return n;
 }
 
-uint32_t srslte_dci_dl_info(srslte_dci_dl_t* dci_dl, char* info_str, uint32_t len)
+uint32_t srslte_dci_dl_info(const srslte_dci_dl_t* dci_dl, char* info_str, uint32_t len)
 {
   uint32_t n = 0;
   n          = srslte_print_check(info_str,

@@ -224,7 +224,7 @@ SRSLTE_API uint32_t srslte_dci_format_sizeof(const srslte_cell_t* cell,
 
 SRSLTE_API void srslte_dci_dl_fprint(FILE* f, srslte_dci_dl_t* dci, uint32_t nof_prb);
 
-SRSLTE_API uint32_t srslte_dci_dl_info(srslte_dci_dl_t* dci_dl, char* str, uint32_t str_len);
+SRSLTE_API uint32_t srslte_dci_dl_info(const srslte_dci_dl_t* dci_dl, char* str, uint32_t str_len);
 
 SRSLTE_API uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t len);
 

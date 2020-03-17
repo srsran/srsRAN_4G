@@ -240,7 +240,7 @@ int srslte_ue_dl_set_cell(srslte_ue_dl_t* q, srslte_cell_t cell)
     }
     ret = SRSLTE_SUCCESS;
   } else {
-    ERROR("Invalid cell properties ue_dl: Id=%d, Ports=%d, PRBs=%d\n", q->cell.id, q->cell.nof_ports, q->cell.nof_prb);
+    ERROR("Invalid cell properties ue_dl: Id=%d, Ports=%d, PRBs=%d\n", cell.id, cell.nof_ports, cell.nof_prb);
   }
   return ret;
 }
