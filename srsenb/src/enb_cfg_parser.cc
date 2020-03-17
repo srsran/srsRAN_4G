@@ -937,9 +937,14 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   rrc_cfg_->enable_mbsfn          = args_->stack.embms.enable;
 
   // Check number of control symbols
+  if (args_->stack.mac.sched.min_nof_ctrl_symbols > args_->stack.mac.sched.max_nof_ctrl_symbols) {
+    ERROR("Invalid minimum number of control symbols %d. Setting it to 1.\n",
+          args_->stack.mac.sched.min_nof_ctrl_symbols);
+    args_->stack.mac.sched.min_nof_ctrl_symbols = 1;
+  }
   if (cell_cfg_.nof_prb < 50 && args_->stack.mac.sched.max_nof_ctrl_symbols != 3) {
     args_->stack.mac.sched.max_nof_ctrl_symbols = 3;
-    INFO("Setting number of control symbols to %d for %d PRB cell.\n",
+    INFO("Setting maximum number of control symbols to %d for %d PRB cell.\n",
          args_->stack.mac.sched.max_nof_ctrl_symbols,
          cell_cfg_.nof_prb);
   }
