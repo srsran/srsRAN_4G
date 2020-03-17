@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -130,7 +130,7 @@ struct avg_time_stats {
   std::string     name;
   double          avg_val = 1;
   long            count = 0, max_val = 0, min_val = std::numeric_limits<long>::max();
-  long            print_period;
+  long            print_period = 0;
 };
 
 } // namespace srslte
