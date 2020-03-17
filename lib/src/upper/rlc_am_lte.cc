@@ -354,19 +354,19 @@ void rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blockin
     tx_sdu_queue.write(std::move(sdu));
   } else {
     // non-blocking write
-    uint8_t*                              msg_ptr   = sdu->msg;
-    uint32_t                              nof_bytes = sdu->N_bytes;
-    std::pair<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
-    if (ret.first) {
+    uint8_t*                                     msg_ptr   = sdu->msg;
+    uint32_t                                     nof_bytes = sdu->N_bytes;
+    srslte::expected<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
+    if (ret) {
       log->info_hex(
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)\n", RB_NAME, nof_bytes, tx_sdu_queue.size());
     } else {
       // in case of fail, the try_write returns back the sdu
-      log->info_hex(ret.second->msg,
-                    ret.second->N_bytes,
+      log->info_hex(ret.error()->msg,
+                    ret.error()->N_bytes,
                     "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)\n",
                     RB_NAME,
-                    ret.second->N_bytes,
+                    ret.error()->N_bytes,
                     tx_sdu_queue.size());
     }
   }

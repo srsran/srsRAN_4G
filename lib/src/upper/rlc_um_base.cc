@@ -254,18 +254,18 @@ void rlc_um_base::rlc_um_base_tx::write_sdu(unique_byte_buffer_t sdu)
 void rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
 {
   if (sdu) {
-    uint8_t*                              msg_ptr   = sdu->msg;
-    uint32_t                              nof_bytes = sdu->N_bytes;
-    std::pair<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
-    if (ret.first) {
+    uint8_t*                                     msg_ptr   = sdu->msg;
+    uint32_t                                     nof_bytes = sdu->N_bytes;
+    srslte::expected<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
+    if (ret) {
       log->info_hex(
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name.c_str(), nof_bytes, tx_sdu_queue.size());
     } else {
-      log->info_hex(ret.second->msg,
-                    ret.second->N_bytes,
+      log->info_hex(ret.error()->msg,
+                    ret.error()->N_bytes,
                     "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
                     rb_name.c_str(),
-                    ret.second->N_bytes,
+                    ret.error()->N_bytes,
                     tx_sdu_queue.size());
     }
   } else {

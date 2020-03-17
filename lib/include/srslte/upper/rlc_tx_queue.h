@@ -56,7 +56,10 @@ public:
   }
   void write(unique_byte_buffer_t msg) { queue.push(std::move(msg)); }
 
-  std::pair<bool, unique_byte_buffer_t> try_write(unique_byte_buffer_t&& msg) { return queue.try_push(std::move(msg)); }
+  srslte::expected<bool, unique_byte_buffer_t> try_write(unique_byte_buffer_t&& msg)
+  {
+    return queue.try_push(std::move(msg));
+  }
 
   unique_byte_buffer_t read() { return queue.wait_pop(); }
 

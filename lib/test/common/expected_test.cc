@@ -30,7 +30,7 @@ int test_expected_trivial()
 
   exp = 5;
   TESTASSERT(exp.has_value());
-  TESTASSERT(*exp.value() == 5);
+  TESTASSERT(exp.value() == 5);
   TESTASSERT(exp);
 
   exp.set_error(srslte::default_error_t{});
@@ -40,7 +40,7 @@ int test_expected_trivial()
   int i = 2;
   exp   = i;
   TESTASSERT(exp);
-  TESTASSERT(*exp.value() == 2);
+  TESTASSERT(exp.value() == 2);
 
   exp.set_error();
   TESTASSERT(not exp);
@@ -48,12 +48,12 @@ int test_expected_trivial()
   exp = 3;
   {
     srslte::expected<int> exp2 = exp;
-    TESTASSERT(exp2 and *exp2.value() == 3);
+    TESTASSERT(exp2 and exp2.value() == 3);
     srslte::expected<int> exp3;
     exp3 = exp2;
-    TESTASSERT(exp3 and *exp3.value() == 3);
+    TESTASSERT(exp3 and exp3.value() == 3);
   }
-  TESTASSERT(exp and *exp.value() == 3);
+  TESTASSERT(exp and exp.value() == 3);
 
   exp.set_error();
   {
@@ -102,25 +102,25 @@ int test_expected_struct()
 {
   srslte::expected<C, int> exp;
   exp = C{5};
-  TESTASSERT(exp and exp.value()->val == 5);
+  TESTASSERT(exp and exp.value().val == 5);
   TESTASSERT(C::count == 1);
 
   {
     auto exp2 = exp;
-    TESTASSERT(exp2 and exp2.value()->val == 5);
+    TESTASSERT(exp2 and exp2.value().val == 5);
     TESTASSERT(C::count == 2);
   }
-  TESTASSERT(exp and exp.value()->val == 5);
+  TESTASSERT(exp and exp.value().val == 5);
   TESTASSERT(C::count == 1);
 
   {
     auto exp2 = std::move(exp);
-    TESTASSERT(exp2 and exp2.value()->val == 5);
-    TESTASSERT(exp and exp.value()->val == 0);
+    TESTASSERT(exp2 and exp2.value().val == 5);
+    TESTASSERT(exp and exp.value().val == 0);
   }
 
   exp.set_error(2);
-  TESTASSERT(not exp and *exp.error() == 2);
+  TESTASSERT(not exp and exp.error() == 2);
 
   return SRSLTE_SUCCESS;
 }
@@ -129,13 +129,13 @@ int test_unique_ptr()
 {
   srslte::expected<std::unique_ptr<C> > exp;
   TESTASSERT(exp);
-  exp.value()->reset(new C{2});
-  TESTASSERT(exp.value()->get()->val == 2);
+  exp.value().reset(new C{2});
+  TESTASSERT(exp.value()->val == 2);
 
   {
     auto exp2 = std::move(exp);
-    TESTASSERT(exp.value()->get() == nullptr);
-    TESTASSERT(exp2 and exp2.value()->get()->val == 2);
+    TESTASSERT(exp.value() == nullptr);
+    TESTASSERT(exp2 and exp2.value()->val == 2);
   }
 
   return SRSLTE_SUCCESS;

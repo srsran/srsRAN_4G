@@ -97,10 +97,10 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu, bool blocking)
                     ul_queue.size_bytes());
       ul_queue.write(std::move(sdu));
     } else {
-      uint8_t*                              msg_ptr   = sdu->msg;
-      uint32_t                              nof_bytes = sdu->N_bytes;
-      std::pair<bool, unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
-      if (ret.first) {
+      uint8_t*                                     msg_ptr   = sdu->msg;
+      uint32_t                                     nof_bytes = sdu->N_bytes;
+      srslte::expected<bool, unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
+      if (ret) {
         log->info_hex(msg_ptr,
                       nof_bytes,
                       "%s Tx SDU, queue size=%d, bytes=%d",
@@ -108,8 +108,8 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu, bool blocking)
                       ul_queue.size(),
                       ul_queue.size_bytes());
       } else {
-        log->info_hex(ret.second->msg,
-                      ret.second->N_bytes,
+        log->info_hex(ret.error()->msg,
+                      ret.error()->N_bytes,
                       "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
                       rrc->get_rb_name(lcid).c_str(),
                       ul_queue.size(),

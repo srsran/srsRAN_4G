@@ -26,8 +26,6 @@
 
 namespace srslte {
 
-enum class error : uint8_t { success, error };
-
 struct default_error_t {
 };
 
@@ -38,17 +36,17 @@ public:
   expected() : has_val(true), val(T{}) {}
   expected(T&& t) : has_val(true), val(std::forward<T>(t)) {}
   expected(E&& e) : has_val(false), unexpected(std::forward<E>(e)) {}
-  expected(const expected& other) : has_val(other.has_val)
+  expected(const expected& other)
   {
-    if (has_val) {
+    if (other.has_val) {
       construct_val(other.val);
     } else {
       construct_error(other.unexpected);
     }
   }
-  expected(expected&& other) noexcept : has_val(other.has_val)
+  expected(expected&& other) noexcept
   {
-    if (has_val) {
+    if (other.has_val) {
       construct_val(std::move(other.val));
     } else {
       construct_error(std::move(other.unexpected));
@@ -105,12 +103,16 @@ public:
       unexpected = std::forward<U>(other);
     }
   }
-           operator bool() const { return has_value(); }
-  bool     has_value() const { return has_val; }
-  T*       value() { return has_val ? &val : nullptr; }
-  const T* value() const { return has_val ? &val : nullptr; }
-  E*       error() { return has_val ? nullptr : &unexpected; }
-  const E* error() const { return has_val ? nullptr : &unexpected; }
+            operator bool() const { return has_value(); }
+  bool      has_value() const { return has_val; }
+  const T&  value() const& { return val; }
+  T&        value() & { return val; }
+  T&&       value() && { return std::move(val); }
+  const T&& value() const&& { return std::move(val); }
+  const E&  error() const& { return unexpected; }
+  E&        error() & { return unexpected; }
+  E&&       error() && { return std::move(unexpected); }
+  const E&& error() const&& { return std::move(unexpected); }
 
   void swap(expected& other) noexcept
   {
