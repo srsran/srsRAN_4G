@@ -955,22 +955,27 @@ static void gen_ack_fdd(const srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* u
   }
 
   // Second clause: When 2 CC are configured with PUCCH CS mode and SR is also requested, bundle spatial codewords
-  if (ack_info->nof_cc == SRSLTE_PUCCH_CS_MAX_CARRIERS && uci_data->value.scheduling_request == true &&
+  if (!ack_info->is_pusch_available && ack_info->nof_cc == SRSLTE_PUCCH_CS_MAX_CARRIERS &&
+      uci_data->value.scheduling_request == true &&
       ack_info->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+    uint32_t nof_ack = 0;
     for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
       if (ack_info->cc[cc_idx].m[0].present) {
         uci_data->value.ack.ack_value[cc_idx] = 1;
         for (uint32_t tb = 0; tb < nof_tb; tb++) {
           if (ack_info->cc[cc_idx].m[0].value[tb] != 2) {
             uci_data->value.ack.ack_value[cc_idx] &= ack_info->cc[cc_idx].m[0].value[tb];
+            nof_ack++;
           }
         }
       } else {
         uci_data->value.ack.ack_value[cc_idx] = 2;
       }
     }
+
+    // If no ACK is counted, set all zero, bundle otherwise
     for (uint32_t i = 0; i < SRSLTE_PUCCH_CS_MAX_CARRIERS; i++) {
-      uci_data->cfg.ack[i].nof_acks = 1;
+      uci_data->cfg.ack[i].nof_acks = (nof_ack == 0) ? 0 : 1;
     }
   } else {
     // By default, in FDD we just pass through all HARQ-ACK bits
