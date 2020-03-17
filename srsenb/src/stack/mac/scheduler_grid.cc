@@ -90,7 +90,6 @@ void pdcch_grid_t::new_tti(const tti_params_t& tti_params_)
   }
   dci_record_list.clear();
   current_cfix = cc_cfg->sched_cfg->min_nof_ctrl_symbols - 1;
-  max_user_cfi = cc_cfg->sched_cfg->max_nof_ctrl_symbols;
 }
 
 const sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user, uint32_t cfix) const
@@ -117,16 +116,18 @@ bool pdcch_grid_t::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_u
   // TODO: Make the alloc tree update lazy
   alloc_record_t record{.user = user, .aggr_idx = aggr_idx, .alloc_type = alloc_type};
 
-  // Try to allocate user in PDCCH for given CFI. If it fails, increment CFI
+  // Try to allocate user in PDCCH for given CFI. If it fails, increment CFI.
   uint32_t first_cfi = get_cfi();
-  bool     success   = alloc_dci_record(record, get_cfi() - 1);
-  while (not success and get_cfi() < max_user_cfi) {
-    set_cfi(get_cfi() + 1);
+  bool     success;
+  do {
     success = alloc_dci_record(record, get_cfi() - 1);
-  }
+  } while (not success and get_cfi() < cc_cfg->sched_cfg->max_nof_ctrl_symbols and set_cfi(get_cfi() + 1));
+
   if (not success) {
     // DCI allocation failed. go back to original CFI
-    set_cfi(first_cfi);
+    if (get_cfi() != first_cfi and not set_cfi(first_cfi)) {
+      log_h->error("SCHED: Failed to return back to original PDCCH state\n");
+    }
     return false;
   }
 
@@ -227,7 +228,7 @@ bool pdcch_grid_t::set_cfi(uint32_t cfi)
 {
   if (cfi < cc_cfg->sched_cfg->min_nof_ctrl_symbols or cfi > cc_cfg->sched_cfg->max_nof_ctrl_symbols) {
     srslte::logmap::get("MAC")->error("Invalid CFI value. Defaulting to current CFI.\n");
-    return true;
+    return false;
   }
 
   uint32_t new_cfix = cfi - 1;
@@ -408,21 +409,10 @@ alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_m
 {
   // Check if allocation would cause segmentation
   uint32_t    ue_cc_idx = user->get_cell_index(cc_cfg->enb_cc_idx).second;
-  rbg_range_t r         = user->get_required_dl_rbgs(ue_cc_idx, pdcch_alloc.get_cfi());
+  rbg_range_t r         = user->get_required_dl_rbgs(ue_cc_idx);
   if (r.rbg_min > user_mask.count()) {
     log_h->error("The number of RBGs allocated will force segmentation\n");
     return alloc_outcome_t::NOF_RB_INVALID;
-  }
-  // Place an upper bound in CFI if necessary, to avoid segmentation
-  if (pdcch_alloc.get_cfi() < cc_cfg->sched_cfg->max_nof_ctrl_symbols) {
-    for (uint32_t cfi = cc_cfg->sched_cfg->max_nof_ctrl_symbols; cfi >= pdcch_alloc.get_cfi() + 1; --cfi) {
-      r = user->get_required_dl_rbgs(ue_cc_idx, cfi);
-      if (r.rbg_min <= user_mask.count()) {
-        break;
-      }
-      // decrease max CFI
-      pdcch_alloc.set_max_cfi(cfi);
-    }
   }
 
   srslte_dci_format_t dci_format = user->get_dci_format();

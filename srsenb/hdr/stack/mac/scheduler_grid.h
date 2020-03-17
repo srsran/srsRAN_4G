@@ -72,7 +72,6 @@ public:
   void new_tti(const tti_params_t& tti_params_);
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
   bool set_cfi(uint32_t cfi);
-  void set_max_cfi(uint32_t cfi) { max_user_cfi = cfi; }
 
   // getters
   uint32_t    get_cfi() const { return current_cfix + 1; }
@@ -121,7 +120,7 @@ private:
 
   // tti vars
   const tti_params_t*         tti_params   = nullptr;
-  uint32_t                    current_cfix = 0, max_user_cfi = MAX_CFI;
+  uint32_t                    current_cfix = 0;
   std::vector<alloc_tree_t>   alloc_trees;     ///< List of PDCCH alloc trees, where index is the cfi index
   std::vector<alloc_record_t> dci_record_list; ///< Keeps a record of all the PDCCH allocations done so far
 };

@@ -813,14 +813,20 @@ uint32_t sched_ue::get_pending_dl_new_data_total()
   return req_bytes;
 }
 
-rbg_range_t sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl_symbols)
+/**
+ * Compute the range of RBGs that avoids segmentation of TM and MAC subheader data. Always computed for highest CFI
+ * @param ue_cc_idx carrier of the UE
+ * @return range of number of RBGs that a UE can allocate in a given subframe
+ */
+rbg_range_t sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx)
 {
   std::pair<uint32_t, uint32_t> req_bytes = get_requested_dl_bytes(ue_cc_idx);
   if (req_bytes.first == 0 and req_bytes.second == 0) {
     return {0, 0};
   }
-  const auto* cellparams   = carriers[ue_cc_idx].get_cell_cfg();
-  int         pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.first, nof_ctrl_symbols);
+  const auto* cellparams = carriers[ue_cc_idx].get_cell_cfg();
+  int         pending_prbs =
+      carriers[ue_cc_idx].get_required_prb_dl(req_bytes.first, cellparams->sched_cfg->max_nof_ctrl_symbols);
   if (pending_prbs < 0) {
     // Cannot fit allocation in given PRBs
     log_h->error("SCHED: DL CQI=%d does now allow fitting %d non-segmentable DL tx bytes into the cell bandwidth. "
@@ -830,8 +836,8 @@ rbg_range_t sched_ue::get_required_dl_rbgs(uint32_t ue_cc_idx, uint32_t nof_ctrl
     return {cellparams->nof_prb(), cellparams->nof_prb()};
   }
   uint32_t min_pending_rbg = cellparams->prb_to_rbg(pending_prbs);
-  pending_prbs             = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.second, nof_ctrl_symbols);
-  pending_prbs             = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
+  pending_prbs = carriers[ue_cc_idx].get_required_prb_dl(req_bytes.second, cellparams->sched_cfg->max_nof_ctrl_symbols);
+  pending_prbs = (pending_prbs < 0) ? cellparams->nof_prb() : pending_prbs;
   uint32_t max_pending_rbg = cellparams->prb_to_rbg(pending_prbs);
   return {min_pending_rbg, max_pending_rbg};
 }
