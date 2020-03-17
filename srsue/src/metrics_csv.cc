@@ -82,7 +82,7 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
 
   if (file.is_open() && ue != NULL) {
     if (n_reports == 0 && !file_exists) {
-      file << "time;cc;pci;earfcn,rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
+      file << "time;cc;pci;earfcn;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
               "bler;"
               "rf_o;rf_"
               "u;rf_l;is_attached\n";
@@ -103,7 +103,12 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << float_to_string(metrics.phy.dl[r].mcs, 2);
       file << float_to_string(metrics.phy.dl[r].sinr, 2);
       file << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
-      file << float_to_string(metrics.stack.mac[r].rx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
+
+      if (metrics.stack.mac[r].rx_brate > 0) {
+        file << float_to_string(metrics.stack.mac[r].rx_brate / metrics.stack.mac[r].nof_tti * 1e-3, 2);
+      } else {
+        file << float_to_string(0, 2);
+      }
 
       int rx_pkts   = metrics.stack.mac[r].rx_pkts;
       int rx_errors = metrics.stack.mac[r].rx_errors;
@@ -117,7 +122,11 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
       file << float_to_string(metrics.phy.ul[r].mcs, 2);
       file << float_to_string((float)metrics.stack.mac[r].ul_buffer, 2);
 
-      file << float_to_string(metrics.stack.mac[r].tx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
+      if (metrics.stack.mac[r].tx_brate > 0) {
+        file << float_to_string(metrics.stack.mac[r].tx_brate / (metrics.stack.mac[r].nof_tti * 1e-3), 2);
+      } else {
+        file << float_to_string(0, 2);
+      }
 
       // Sum UL BLER for all CCs
       int tx_pkts   = metrics.stack.mac[r].tx_pkts;

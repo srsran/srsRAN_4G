@@ -54,6 +54,8 @@ public:
     m->stack.mac[1].rx_pkts   = 100;
     m->stack.mac[1].rx_errors = 100;
 
+    m->stack.mac->nof_tti = 1;
+
     return true;
   }
 
