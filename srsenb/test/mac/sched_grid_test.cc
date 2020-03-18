@@ -136,6 +136,8 @@ int test_pdcch_one_ue()
     TESTASSERT(pdcch_result[1]->current_mask.count() == 1u << aggr_idx);
     TESTASSERT(pdcch_result[1]->total_mask == (pdcch_result[0]->current_mask | pdcch_result[1]->current_mask));
     TESTASSERT(std::count(dci_locs, dci_locs + nof_dci_locs, pdcch_result[0]->dci_pos.ncce) > 0);
+
+    srslte::logmap::get("TEST")->info("PDCCH alloc result: %s\n", pdcch.result_to_string(true).c_str());
   }
   TESTASSERT(tti_counter == nof_ttis);
 

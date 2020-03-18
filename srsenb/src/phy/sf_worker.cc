@@ -228,7 +228,6 @@ void sf_worker::work_imp()
 
   // Configure DL subframe
   dl_sf.tti              = tti_tx_dl;
-  dl_sf.cfi              = dl_grants[t_tx_dl][0].cfi;
   dl_sf.sf_type          = sf_type;
   dl_sf.non_mbsfn_region = mbsfn_cfg.non_mbsfn_region_length;
 
@@ -237,6 +236,7 @@ void sf_worker::work_imp()
 
   // Process DL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
+    dl_sf.cfi = dl_grants[t_tx_dl][cc].cfi;
     cc_workers[cc]->work_dl(dl_sf, phy->dl_grants[t_tx_dl][cc], phy->ul_grants[t_tx_ul][cc], &mbsfn_cfg);
   }
 
