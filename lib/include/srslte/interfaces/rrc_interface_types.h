@@ -83,7 +83,7 @@ struct plmn_id_t {
     }
     return SRSLTE_SUCCESS;
   }
-  std::pair<uint16_t, uint16_t> to_number()
+  std::pair<uint16_t, uint16_t> to_number() const
   {
     uint16_t mcc_num, mnc_num;
     srslte::bytes_to_mcc(&mcc[0], &mcc_num);
