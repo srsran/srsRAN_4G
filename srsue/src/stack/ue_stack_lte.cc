@@ -44,7 +44,8 @@ ue_stack_lte::ue_stack_lte() :
   nas(&timers),
   thread("STACK"),
   pending_tasks(512),
-  background_tasks(2)
+  background_tasks(2),
+  tti_tprof("proc_time", TTI_STAT_PERIOD, TTI_WARN_THRESHOLD_MS)
 {
   ue_queue_id         = pending_tasks.add_queue();
   sync_queue_id       = pending_tasks.add_queue();
@@ -53,8 +54,6 @@ ue_stack_lte::ue_stack_lte() :
   background_queue_id = pending_tasks.add_queue();
 
   background_tasks.start();
-
-  proc_time.reserve(TTI_STAT_PERIOD);
 }
 
 ue_stack_lte::~ue_stack_lte()
@@ -306,7 +305,7 @@ void ue_stack_lte::run_tti(uint32_t tti)
 
 void ue_stack_lte::run_tti_impl(uint32_t tti)
 {
-  auto start = std::chrono::steady_clock::now();
+  tti_tprof.start();
 
   // perform tasks in this TTI
   mac.run_tti(tti);
@@ -315,35 +314,12 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
   timers.step_all();
 
   if (args.have_tti_time_stats) {
-    auto end = std::chrono::steady_clock::now();
-    calc_tti_stats(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+    tti_tprof.stop();
   }
 
   // print warning if PHY pushes new TTI messages faster than we process them
   if (pending_tasks.size(sync_queue_id) > SYNC_QUEUE_WARN_THRESHOLD) {
     log.warning("Detected slow task processing (sync_queue_len=%zd).\n", pending_tasks.size(sync_queue_id));
-  }
-}
-
-void ue_stack_lte::calc_tti_stats(const uint32_t duration_us)
-{
-  log.debug("proc_time=%.2fms\n", duration_us / US_PER_MS);
-  if (duration_us > TTI_WARN_THRESHOLD_US) {
-    log.warning("Long TTI proc_time=%.2fms\n", duration_us / US_PER_MS);
-  }
-
-  proc_time.push_back(duration_us);
-  if (proc_time.size() == TTI_STAT_PERIOD) {
-    uint32_t min = 0, max = 0, sum = 0;
-    for (auto& item : proc_time) {
-      max = std::max(max, item);
-      min = std::min(min, item);
-      sum += item;
-    }
-    auto avg = sum / proc_time.size();
-    log.info("proc_time=%.2f,%.2f,%.2f (min,avg,max)\n", min / US_PER_MS, avg / US_PER_MS, max / US_PER_MS);
-
-    proc_time.clear();
   }
 }
 

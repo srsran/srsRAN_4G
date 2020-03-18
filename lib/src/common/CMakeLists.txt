@@ -41,6 +41,7 @@ set(SOURCES arch_select.cc
             thread_pool.cc
             threads.c
             tti_sync_cv.cc
+            time_prof.cc
             version.c
             zuc.cc)
 

@@ -89,7 +89,7 @@ option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 option(USE_GLIBC_IPV6  "Use glibc's own ipv6.h"                   ON)
 option(USE_MKL         "Use MKL instead of fftw"                  OFF)
 
-option(ENABLE_TIMEPROF "Enable time profiling"                    OFF)
+option(ENABLE_TIMEPROF "Enable time profiling"                    ON)
 
 option(FORCE_32BIT     "Add flags to force 32 bit compilation"    OFF)
 

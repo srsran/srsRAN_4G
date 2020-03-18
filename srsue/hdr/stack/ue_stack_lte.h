@@ -45,6 +45,7 @@
 #include "srslte/common/thread_pool.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
+#include "srslte/common/time_prof.h"
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
 
@@ -129,15 +130,14 @@ public:
 private:
   void run_thread() final;
   void run_tti_impl(uint32_t tti);
-  void           calc_tti_stats(const uint32_t duration_us);
-  const uint32_t TTI_STAT_PERIOD           = 1024;
-  const uint32_t TTI_WARN_THRESHOLD_US     = 5000;
-  const uint32_t SYNC_QUEUE_WARN_THRESHOLD = 5;
-  const float    US_PER_MS                 = 1000.0;
   void stop_impl();
 
-  bool                running;
-  srsue::stack_args_t args;
+  const uint32_t                  TTI_STAT_PERIOD = 1024;
+  const std::chrono::milliseconds TTI_WARN_THRESHOLD_MS{5};
+  const uint32_t                  SYNC_QUEUE_WARN_THRESHOLD = 5;
+
+  bool                  running;
+  srsue::stack_args_t   args;
   std::vector<uint32_t> proc_time;
 
   // timers
@@ -172,6 +172,9 @@ private:
   srslte::task_multiqueue pending_tasks;
   int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
   srslte::task_thread_pool background_tasks; ///< Thread pool used for long, low-priority tasks
+
+  // TTI stats
+  srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;
 };
 
 } // namespace srsue
