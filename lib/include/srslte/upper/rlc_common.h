@@ -23,6 +23,7 @@
 #define SRSLTE_RLC_COMMON_H
 
 #include "srslte/common/block_queue.h"
+#include "srslte/common/logmap.h"
 #include "srslte/upper/rlc_metrics.h"
 #include <stdlib.h>
 
@@ -297,7 +298,7 @@ private:
 
     // Do not block ever
     if (!rx_pdu_resume_queue.try_push(p)) {
-      fprintf(stderr, "Error dropping PDUs while bearer suspended. Queue should be unbounded\n");
+      srslte::logmap::get("RLC ")->warning("Dropping SDUs while bearer suspended.\n");
       return;
     }
   }
@@ -307,7 +308,7 @@ private:
   {
     // Do not block ever
     if (!tx_sdu_resume_queue.try_push(std::move(sdu)).first) {
-      fprintf(stderr, "Error dropping SDUs while bearer suspended. Queue should be unbounded\n");
+      srslte::logmap::get("RLC ")->warning("Dropping SDUs while bearer suspended.\n");
       return;
     }
   }
@@ -318,7 +319,7 @@ private:
   } pdu_t;
 
   block_queue<pdu_t>                rx_pdu_resume_queue;
-  block_queue<unique_byte_buffer_t> tx_sdu_resume_queue;
+  block_queue<unique_byte_buffer_t> tx_sdu_resume_queue{256};
 };
 
 } // namespace srslte

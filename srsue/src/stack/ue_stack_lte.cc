@@ -43,7 +43,7 @@ ue_stack_lte::ue_stack_lte() :
   pdcp(&timers, &pdcp_log),
   nas(&timers),
   thread("STACK"),
-  pending_tasks(1024),
+  pending_tasks(512),
   background_tasks(2)
 {
   ue_queue_id         = pending_tasks.add_queue();
