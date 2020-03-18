@@ -37,6 +37,7 @@
 #include "srsue/hdr/stack/upper/nas_ext.h"
 #include "srsue/hdr/stack/upper/nas_extif.h"
 #include "srsue/hdr/stack/upper/nas_metrics.h"
+#include "srsue/hdr/stack/upper/rrctl.h"
 
 using srslte::byte_buffer_t;
 
@@ -80,6 +81,17 @@ private:
 
   // Interface to an external NAS entity
   std::unique_ptr<nas_extif_base> iface;
+
+  // RRCTL message handlers
+  void handle_rrctl_reset(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len);
+  void handle_rrctl_plmn_search(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len);
+  void handle_rrctl_plmn_select(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len);
+  void handle_rrctl_conn_establish(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len);
+  void handle_rrctl_conn_release(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len);
+  void handle_rrctl_data(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len);
+
+  void rrctl_send_confirm(rrctl::proto::msg_type type);
+  void rrctl_send_error(rrctl::proto::msg_type type);
 };
 
 } // namespace srsue

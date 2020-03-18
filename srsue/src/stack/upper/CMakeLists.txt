@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES gw.cc nas.cc nas_ext.cc nas_extif.cc usim_base.cc usim.cc tft_packet_filter.cc)
+set(SOURCES gw.cc nas.cc nas_ext.cc nas_extif.cc rrctl.cc usim_base.cc usim.cc tft_packet_filter.cc)
 
 if(HAVE_PCSC)
   list(APPEND SOURCES "pcsc_usim.cc")

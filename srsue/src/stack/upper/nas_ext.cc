@@ -45,12 +45,136 @@ void nas_ext::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interf
   rrc  = rrc_;
   gw   = gw_;
 
-  auto rx_cb = [this](const srslte::byte_buffer_t& pdu) {
-    // TODO: parse received payload
+  // RRCTL PDU handler
+  auto rrctl_rx_cb = [this](const srslte::byte_buffer_t& pdu) {
+    rrctl::proto::msg_type type;
+    rrctl::proto::msg_disc disc;
+    const uint8_t* payload;
+    std::string desc;
+    uint16_t length;
+
+    // Parse the message header
+    try {
+      payload = rrctl::codec::dec_hdr(pdu, type, disc, length);
+      desc = rrctl::proto::msg_hdr_desc(type, disc, length);
+      nas_log->info("Got RRCTL message: %s\n", desc.c_str());
+    } catch (const rrctl::codec::error& e) {
+      nas_log->warning("Got malformed RRCTL message: %s\n", e.what());
+      return;
+    }
+
+    // Call the corresponding handler
+    switch (type) {
+    case rrctl::proto::RRCTL_RESET:
+      handle_rrctl_reset(disc, payload, length);
+      break;
+    case rrctl::proto::RRCTL_PLMN_SEARCH:
+      handle_rrctl_plmn_search(disc, payload, length);
+      break;
+    case rrctl::proto::RRCTL_PLMN_SELECT:
+      handle_rrctl_plmn_select(disc, payload, length);
+      break;
+    case rrctl::proto::RRCTL_CONN_ESTABLISH:
+      handle_rrctl_conn_establish(disc, payload, length);
+      break;
+    case rrctl::proto::RRCTL_DATA:
+      handle_rrctl_data(disc, payload, length);
+      break;
+    case rrctl::proto::RRCTL_CONN_RELEASE:
+    default:
+      nas_log->warning("%s is not handled\n", desc.c_str());
+    }
   };
 
-  std::unique_ptr<nas_extif_unix> iface_(new nas_extif_unix(nas_log, rx_cb, cfg.sock_path));
+  std::unique_ptr<nas_extif_unix> iface_(new nas_extif_unix(nas_log, rrctl_rx_cb, cfg.sock_path));
   iface = std::move(iface_);
+}
+
+void nas_ext::rrctl_send_confirm(rrctl::proto::msg_type type)
+{
+  srslte::byte_buffer_t pdu;
+
+  rrctl::codec::enc_hdr(pdu, type, rrctl::proto::RRCTL_CNF);
+  iface->write(pdu);
+}
+
+void nas_ext::rrctl_send_error(rrctl::proto::msg_type type)
+{
+  srslte::byte_buffer_t pdu;
+
+  rrctl::codec::enc_hdr(pdu, type, rrctl::proto::RRCTL_ERR);
+  iface->write(pdu);
+}
+
+void nas_ext::handle_rrctl_reset(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len)
+{
+  // TODO: do we need to reset anything?
+  rrctl_send_confirm(rrctl::proto::RRCTL_RESET);
+}
+
+void nas_ext::handle_rrctl_plmn_search(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len)
+{
+  // Response to be sent when RRC responds
+  rrc->plmn_search();
+}
+
+void nas_ext::handle_rrctl_plmn_select(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len)
+{
+  std::pair<uint16_t, uint16_t> mcc_mnc;
+  srslte::plmn_id_t plmn_id;
+
+  // Parse PLMN ID
+  try {
+    rrctl::codec::dec_plmn_select_req(mcc_mnc, msg, len);
+  } catch (const rrctl::codec::error& e) {
+    nas_log->warning("Failed to parse RRCTL message: %s\n", e.what());
+    rrctl_send_error(rrctl::proto::RRCTL_PLMN_SELECT);
+    return;
+  }
+
+  if (plmn_id.from_number(mcc_mnc.first, mcc_mnc.second) != SRSLTE_SUCCESS) {
+    nas_log->warning("Failed to parse PLMN ID from PLMN Select Request\n");
+    rrctl_send_error(rrctl::proto::RRCTL_PLMN_SELECT);
+  }
+
+  rrc->plmn_select(plmn_id);
+  rrctl_send_confirm(rrctl::proto::RRCTL_PLMN_SELECT);
+}
+
+void nas_ext::handle_rrctl_conn_establish(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len)
+{
+  srslte::establishment_cause_t cause;
+  const uint8_t* pdu;
+  size_t pdu_len;
+
+  try {
+    rrctl::codec::dec_conn_establish_req(cause, pdu, pdu_len, msg, len);
+  } catch (const rrctl::codec::error& e) {
+    nas_log->warning("Failed to parse RRCTL message: %s\n", e.what());
+    rrctl_send_error(rrctl::proto::RRCTL_CONN_ESTABLISH);
+    return;
+  }
+
+  // Allocate a new NAS PDU on heap
+  unique_byte_buffer_t nas_pdu = srslte::allocate_unique_buffer(*pool, true);
+  nas_pdu->append_bytes(pdu, pdu_len);
+
+  rrc->connection_request(cause, std::move(nas_pdu));
+}
+
+void nas_ext::handle_rrctl_data(rrctl::proto::msg_disc disc, const uint8_t* msg, size_t len)
+{
+  if (not rrc->is_connected()) {
+    nas_log->warning("Received DATA.req, but there is no active connection\n");
+    rrctl_send_error(rrctl::proto::RRCTL_DATA);
+    return;
+  }
+
+  // Allocate a new NAS PDU on heap
+  unique_byte_buffer_t nas_pdu = srslte::allocate_unique_buffer(*pool, true);
+  nas_pdu->append_bytes(msg, len);
+
+  rrc->write_sdu(std::move(nas_pdu));
 }
 
 void nas_ext::get_metrics(nas_metrics_t* m)
@@ -108,8 +232,12 @@ bool nas_ext::paging(srslte::s_tmsi_t* ue_identity)
 
 void nas_ext::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
+  srslte::byte_buffer_t msg;
+
   nas_log->info_hex(pdu->msg, pdu->N_bytes, "Received DL %s PDU from RRC\n", rrc->get_rb_name(lcid).c_str());
-  // TODO: send DATA.ind to the external entity
+
+  rrctl::codec::enc_data_ind(msg, pdu->msg, pdu->N_bytes, lcid);
+  iface->write(msg);
 }
 
 uint32_t nas_ext::get_k_enb_count()
@@ -146,15 +274,30 @@ void nas_ext::plmn_search_completed(
     const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
     int                                   nof_plmns)
 {
+  srslte::byte_buffer_t pdu;
+
   nas_log->info("RRC has completed PLMN search, %d carriers found\n", nof_plmns);
-  // TODO: send PLMN_SEARCH.res to the external entity
+
+  // Send PLMN_SEARCH.res to an external entity
+  if (nof_plmns >= 0) {
+    rrctl::codec::enc_plmn_search_res(pdu, found_plmns, nof_plmns);
+    iface->write(pdu);
+  } else {
+    nas_log->warning("PLMN search completed with an error\n");
+    rrctl_send_error(rrctl::proto::RRCTL_PLMN_SEARCH);
+  }
 }
 
 bool nas_ext::connection_request_completed(bool outcome)
 {
   nas_log->info("RRC has %s connection establisment\n", outcome ? "completed" : "failed");
-  // TODO: send CONN_ESTABLISH.res to the external entity
-  return false;
+
+  if (outcome)
+    rrctl_send_confirm(rrctl::proto::RRCTL_CONN_ESTABLISH);
+  else
+    rrctl_send_error(rrctl::proto::RRCTL_CONN_ESTABLISH);
+
+  return false; // FIXME: what should we return here?
 }
 
 } // namespace srsue
