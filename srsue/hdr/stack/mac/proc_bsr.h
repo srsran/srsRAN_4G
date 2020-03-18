@@ -97,7 +97,6 @@ private:
   triggered_bsr_type_t triggered_bsr_type;
 
   bool     sr_is_sent;
-  uint32_t last_print;
   uint32_t current_tti;
   uint32_t trigger_tti;
 

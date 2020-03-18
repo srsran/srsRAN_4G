@@ -58,7 +58,7 @@ public:
   void reset();
   void init(rlc_interface_mac* rlc, bsr_interface_mux* bsr_procedure, phr_proc* phr_procedure_);
 
-  void step(const uint32_t tti);
+  void step();
 
   bool is_pending_any_sdu();
   bool is_pending_sdu(uint32_t lcid);

@@ -56,7 +56,7 @@ void mux::reset()
   pending_crnti_ce = 0;
 }
 
-void mux::step(const uint32_t tti)
+void mux::step()
 {
   std::lock_guard<std::mutex> lock(mutex);
 

@@ -212,7 +212,7 @@ void mac::run_tti(const uint32_t tti)
 
   // Step all procedures
   Debug("Running MAC tti=%d\n", tti);
-  mux_unit.step(tti);
+  mux_unit.step();
   bsr_procedure.step(tti);
   phr_procedure.step(tti);
 
