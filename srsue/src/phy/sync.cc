@@ -358,7 +358,6 @@ void sync::run_thread()
   sf_worker*    worker    = nullptr;
   srslte_cell_t temp_cell = {};
 
-  bool is_end_of_burst        = false;
   bool force_camping_sfn_sync = false;
 
   srslte::rf_buffer_t dummy_buffer(sync_nof_rx_subframes);
@@ -514,8 +513,6 @@ void sync::run_thread()
                 }
               }
 
-              is_end_of_burst = true;
-
               // Start worker
               worker_com->semaphore.push(worker);
               workers_pool->start_worker(worker);
@@ -535,7 +532,6 @@ void sync::run_thread()
               Warning("SYNC:  Out-of-sync detected in PSS/SSS\n");
               out_of_sync();
               worker->release();
-              is_end_of_burst = true;
 
               // Force decoding MIB, for making sure that the TTI will be right
               if (!force_camping_sfn_sync) {
@@ -567,10 +563,7 @@ void sync::run_thread()
           if (rx_time.frac_secs == 0 && rx_time.full_secs == 0) {
             usleep(1000);
           }
-          if (is_end_of_burst) {
-            radio_h->tx_end();
-            is_end_of_burst = true;
-          }
+          radio_h->tx_end();
         } else {
           Debug("Sleeping\n");
           usleep(1000);
@@ -673,7 +666,7 @@ void sync::set_agc_enable(bool enable)
             &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain());
         search_p.set_agc_enable(true);
       } else {
-        ERROR("Error: Radio does not provide RF information\n");
+        Error("Error: Radio does not provide RF information\n");
       }
     } else {
       ERROR("Error setting AGC: PHY not initiated\n");

@@ -100,7 +100,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
                  dev_name ? dev_name : "default",
                  device_args ? device_args : "default");
   if (srslte_rf_open_devname(&rf_device, dev_name, device_args, nof_channels)) {
-    ERROR("Error opening RF device\n");
+    log_h->error("Error opening RF device\n");
     return SRSLTE_ERROR;
   }
 

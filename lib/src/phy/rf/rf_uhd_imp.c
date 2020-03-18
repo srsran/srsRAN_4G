@@ -151,6 +151,77 @@ static void* async_thread(void* h)
 }
 #endif
 
+static inline void uhd_free(rf_uhd_handler_t* h)
+{
+  rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
+
+  // NULL handler, return
+  if (!handler) {
+    return;
+  }
+
+  uhd_tx_metadata_free(&handler->tx_md);
+  uhd_rx_metadata_free(&handler->rx_md_first);
+  uhd_rx_metadata_free(&handler->rx_md);
+
+#if HAVE_ASYNC_THREAD
+  if (handler->async_thread_running) {
+    handler->async_thread_running = false;
+    pthread_join(handler->async_thread, NULL);
+  }
+#endif
+
+  uhd_tx_streamer_free(&handler->tx_stream);
+  uhd_rx_streamer_free(&handler->rx_stream);
+  uhd_usrp_free(&handler->usrp);
+
+  free(handler);
+}
+
+static inline int uhd_alloc(rf_uhd_handler_t* handler, char* args)
+{
+  uhd_error error;
+
+  error = uhd_usrp_make(&handler->usrp, args);
+  if (error) {
+    ERROR("Error opening UHD: code %d\n", error);
+    return SRSLTE_ERROR;
+  }
+
+  error = uhd_rx_streamer_make(&handler->rx_stream);
+  if (error) {
+    ERROR("Error making RX stream: %d\n", error);
+    return SRSLTE_ERROR;
+  }
+
+  error = uhd_tx_streamer_make(&handler->tx_stream);
+  if (error) {
+    ERROR("Error making TX stream: %d\n", error);
+    return SRSLTE_ERROR;
+  }
+
+  // Make metadata objects for RX/TX
+  error = uhd_rx_metadata_make(&handler->rx_md);
+  if (error) {
+    ERROR("Error making RX Metadata: %d\n", error);
+    return SRSLTE_ERROR;
+  }
+
+  error = uhd_rx_metadata_make(&handler->rx_md_first);
+  if (error) {
+    ERROR("Error making RX Metadata first: %d\n", error);
+    return SRSLTE_ERROR;
+  }
+
+  error = uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
+  if (error) {
+    ERROR("Error making TX Metadata: %d\n", error);
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 void rf_uhd_suppress_stdout(void* h)
 {
   rf_uhd_register_msg_handler_c(suppress_handler);
@@ -404,6 +475,8 @@ int rf_uhd_open(char* args, void** h)
 
 int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
 {
+  uhd_error error;
+
   if (h) {
     *h = NULL;
 
@@ -568,10 +641,8 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
 
     /* Create UHD handler */
     printf("Opening USRP channels=%d, args: %s\n", nof_channels, args);
-    uhd_error error = uhd_usrp_make(&handler->usrp, args);
-    if (error) {
-      fprintf(stderr, "Error opening UHD: code %d\n", error);
-      free(handler);
+    if (uhd_alloc(handler, args)) {
+      uhd_free(handler);
       return SRSLTE_ERROR;
     }
 
@@ -669,15 +740,16 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     }
 
     /* Initialize rx and tx stremers */
-    uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
     if (error) {
+      uhd_free(handler);
       ERROR("Error opening RX stream: %d\n", error);
       return SRSLTE_ERROR;
     }
-    uhd_tx_streamer_make(&handler->tx_stream);
+
     error = uhd_usrp_get_tx_stream(handler->usrp, &stream_args, handler->tx_stream);
     if (error) {
+      uhd_free(handler);
       ERROR("Error opening TX stream: %d\n", error);
       return SRSLTE_ERROR;
     }
@@ -699,11 +771,6 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     uhd_meta_range_stop(tx_gain_range, &handler->info.max_tx_gain);
     uhd_meta_range_free(&tx_gain_range);
 
-    // Make metadata objects for RX/TX
-    uhd_rx_metadata_make(&handler->rx_md);
-    uhd_rx_metadata_make(&handler->rx_md_first);
-    uhd_tx_metadata_make(&handler->tx_md, false, 0, 0, false, false);
-
     // Set starting gain to half maximum in case of using AGC
     rf_uhd_set_rx_gain(handler, handler->info.max_rx_gain * 0.7);
 
@@ -712,7 +779,8 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
       // Start low priority thread to receive async commands
       handler->async_thread_running = true;
       if (pthread_create(&handler->async_thread, NULL, async_thread, handler)) {
-        perror("pthread_create");
+        uhd_free(handler);
+        ERROR("pthread_create\n");
         return SRSLTE_ERROR;
       }
     }
@@ -721,7 +789,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     /* Restore priorities  */
     uhd_set_thread_priority(0, false);
 
-    return 0;
+    return SRSLTE_SUCCESS;
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -733,22 +801,8 @@ int rf_uhd_close(void* h)
 
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
 
-  uhd_tx_metadata_free(&handler->tx_md);
-  uhd_rx_metadata_free(&handler->rx_md_first);
-  uhd_rx_metadata_free(&handler->rx_md);
-
-#if HAVE_ASYNC_THREAD
-  if (handler->async_thread_running) {
-    handler->async_thread_running = false;
-    pthread_join(handler->async_thread, NULL);
-  }
-#endif
-
-  uhd_tx_streamer_free(&handler->tx_stream);
-  uhd_rx_streamer_free(&handler->rx_stream);
-  uhd_usrp_free(&handler->usrp);
-
-  free(handler);
+  /// Free all made UHD objects
+  uhd_free(handler);
 
   /** Something else to close the USRP?? */
   return SRSLTE_SUCCESS;
@@ -1008,7 +1062,11 @@ int rf_uhd_send_timed(void*  h,
                       bool   is_start_of_burst,
                       bool   is_end_of_burst)
 {
-  void* _data[SRSLTE_MAX_PORTS] = {data, zero_mem, zero_mem, zero_mem};
+  // Maximum number of channels to NULL
+  void* _data[SRSLTE_MAX_CHANNELS] = {NULL};
+
+  // Set only first channel
+  _data[0] = data;
 
   return rf_uhd_send_timed_multi(
       h, _data, nsamples, secs, frac_secs, has_time_spec, blocking, is_start_of_burst, is_end_of_burst);
