@@ -942,12 +942,6 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
           args_->stack.mac.sched.min_nof_ctrl_symbols);
     args_->stack.mac.sched.min_nof_ctrl_symbols = 1;
   }
-  if (cell_cfg_.nof_prb < 50 && args_->stack.mac.sched.max_nof_ctrl_symbols != 3) {
-    args_->stack.mac.sched.max_nof_ctrl_symbols = 3;
-    INFO("Setting maximum number of control symbols to %d for %d PRB cell.\n",
-         args_->stack.mac.sched.max_nof_ctrl_symbols,
-         cell_cfg_.nof_prb);
-  }
 
   // Parse EEA preference list
   std::vector<std::string> eea_pref_list;
