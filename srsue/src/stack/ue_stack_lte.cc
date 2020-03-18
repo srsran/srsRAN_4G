@@ -308,8 +308,9 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   if (args.have_tti_time_stats) {
     tti_tprof.start();
   }
+  current_tti = tti_point{tti};
 
-  // perform tasks in this TTI
+  // perform tasks for the received TTI range
   for (uint32_t i = 0; i < tti_jump; ++i) {
     uint32_t next_tti = TTI_SUB(tti, (tti_jump - i - 1));
     mac.run_tti(next_tti);

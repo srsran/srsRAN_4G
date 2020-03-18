@@ -214,7 +214,7 @@ void mac::run_tti(const uint32_t tti)
   Debug("Running MAC tti=%d\n", tti);
   mux_unit.step();
   bsr_procedure.step(tti);
-  phr_procedure.step(tti);
+  phr_procedure.step();
 
   // Check if BSR procedure need to start SR
   if (bsr_procedure.need_to_send_sr(tti)) {

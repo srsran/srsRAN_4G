@@ -126,7 +126,7 @@ void phr_proc::timer_expired(uint32_t timer_id)
   }
 }
 
-void phr_proc::step(uint32_t tti)
+void phr_proc::step()
 {
   if (phr_cfg.enabled && initiated) {
     if (pathloss_changed() && timer_prohibit.is_expired()) {

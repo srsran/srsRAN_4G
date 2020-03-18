@@ -37,6 +37,7 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
+#include "srslte/common/tti_point.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
@@ -421,8 +422,6 @@ public:
   /* Instructs the MAC to start receiving an MCH */
   virtual void mch_start_rx(uint32_t lcid) = 0;
 
-  virtual uint32_t get_current_tti() = 0;
-
   virtual void set_config(srslte::mac_cfg_t& mac_cfg) = 0;
 
   virtual void get_rntis(ue_rnti_t* rntis)                      = 0;
@@ -611,8 +610,9 @@ public:
 class stack_interface_rrc
 {
 public:
-  virtual void start_cell_search()                                              = 0;
-  virtual void start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) = 0;
+  virtual void              start_cell_search()                                              = 0;
+  virtual void              start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) = 0;
+  virtual srslte::tti_point get_current_tti()                                                = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

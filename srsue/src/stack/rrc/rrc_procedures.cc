@@ -305,7 +305,7 @@ void rrc::si_acquire_proc::start_si_acquire()
   const uint32_t nof_sib_harq_retxs = 5;
 
   // Instruct MAC to decode SIB (non-blocking)
-  tti_point tti{rrc_ptr->mac->get_current_tti()};
+  tti_point tti = rrc_ptr->stack->get_current_tti();
   auto      ret = compute_si_window(tti.to_uint(), sib_index, sched_index, period, rrc_ptr->serving_cell->sib1ptr());
   tti_point si_win_start = tti_point{ret.first};
   if (si_win_start < tti) {

@@ -124,8 +124,9 @@ public:
   void start_prach_configuration() final;
 
   // Interface for RRC
-  void start_cell_search() final;
-  void start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) final;
+  void      start_cell_search() final;
+  void      start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) final;
+  tti_point get_current_tti() final { return current_tti; }
 
   // Task Handling interface
   srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
@@ -143,6 +144,7 @@ private:
   bool                  running;
   srsue::stack_args_t   args;
   std::vector<uint32_t> proc_time;
+  srslte::tti_point     current_tti;
 
   // timers
   srslte::timer_handler timers;
