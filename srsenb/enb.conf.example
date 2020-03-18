@@ -143,7 +143,8 @@ enable = false
 # pdsch_max_mcs:     Optional PDSCH MCS limit 
 # pusch_mcs:         Optional fixed PUSCH MCS (ignores reported CQIs if specified)
 # pusch_max_mcs:     Optional PUSCH MCS limit 
-# #nof_ctrl_symbols: Number of control symbols 
+# min_nof_ctrl_symbols: Minimum number of control symbols 
+# max_nof_ctrl_symbols: Maximum number of control symbols 
 #
 #####################################################################
 [scheduler]
@@ -152,7 +153,8 @@ enable = false
 #pdsch_max_mcs    = -1
 #pusch_mcs        = -1
 pusch_max_mcs    = 16
-nof_ctrl_symbols = 3
+#min_nof_ctrl_symbols = 1
+#max_nof_ctrl_symbols = 3
 
 #####################################################################
 # eMBMS configuration options
