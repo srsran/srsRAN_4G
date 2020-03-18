@@ -325,7 +325,7 @@ public:
   // MAC interface
   void ho_ra_completed(bool ra_successful);
   void release_pucch_srs();
-  void run_tti(uint32_t tti);
+  void run_tti();
   void ra_problem();
 
   // GW interface

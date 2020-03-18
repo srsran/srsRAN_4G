@@ -199,7 +199,6 @@ public:
                plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
                                      int                                   nof_plmns)       = 0;
   virtual bool connection_request_completed(bool outcome) = 0;
-  virtual void run_tti(uint32_t tti)                      = 0;
 };
 
 // NAS interface for UE
@@ -386,9 +385,6 @@ public:
 
   /* Communicate the number of mbsfn services available  */
   virtual void set_mbsfn_config(uint32_t nof_mbsfn_services) = 0;
-
-  /* Indicate new TTI */
-  virtual void run_tti(const uint32_t tti) = 0;
 };
 
 /* Interface RRC -> MAC shared between different RATs */
@@ -622,6 +618,9 @@ public:
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_lte : public mac_interface_phy_lte, public rrc_interface_phy_lte
 {
+public:
+  /* Indicate new TTI */
+  virtual void run_tti(const uint32_t tti, const uint32_t tti_jump) = 0;
 };
 
 // Combined interface for stack (MAC and RRC) to access PHY

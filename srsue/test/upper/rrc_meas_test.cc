@@ -181,7 +181,7 @@ public:
   void run_tti(uint32_t tti_)
   {
     timers->step_all();
-    rrc::run_tti(tti_);
+    rrc::run_tti();
   }
 
   // Set RRC in state RRC_CONNECTED

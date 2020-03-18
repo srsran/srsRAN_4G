@@ -108,7 +108,7 @@ private:
     void mch_decoded(uint32_t len, bool crc) override {}
     void new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action) override {}
     void set_mbsfn_config(uint32_t nof_mbsfn_services) override {}
-    void run_tti(const uint32_t tti) override
+    void run_tti(const uint32_t tti, const uint32_t tti_jump) override
     {
       notify_run_tti();
       log_h.info("Run TTI %d\n", tti);

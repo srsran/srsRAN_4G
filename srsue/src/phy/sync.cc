@@ -883,12 +883,14 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_ti
     srslte_timestamp_copy(&radio_ts, rx_time);
 
     // Advance stack in time
-    while (srslte_timestamp_compare(rx_time, &tti_ts) > 0) {
-      // Run stack
-      stack->run_tti(tti);
+    if (srslte_timestamp_compare(rx_time, &tti_ts) > 0) {
+      uint32_t tti_jump = ceil((srslte_timestamp_real(rx_time) - srslte_timestamp_real(&tti_ts)) / 1.0e-3);
 
-      // Increase one millisecond
-      srslte_timestamp_add(&tti_ts, 0, 1.0e-3f);
+      // Run stack
+      stack->run_tti(tti, tti_jump);
+
+      // Increase by the number of tti jumps detected
+      srslte_timestamp_add(&tti_ts, 0, tti_jump * 1.0e-3f);
     }
 
     if (channel_emulator && rx_time) {

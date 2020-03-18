@@ -103,7 +103,7 @@ bool rrc::rrc_meas::parse_meas_config(const rrc_conn_recfg_r8_ies_s* mob_reconf_
   return ret;
 }
 
-void rrc::rrc_meas::run_tti(const uint32_t tti)
+void rrc::rrc_meas::run_tti()
 {
   std::lock_guard<std::mutex> lock(meas_cfg_mutex);
 

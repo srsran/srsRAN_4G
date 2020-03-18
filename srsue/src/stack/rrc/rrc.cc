@@ -219,13 +219,11 @@ bool rrc::have_drb()
  * RRC State Machine
  *
  */
-void rrc::run_tti(uint32_t tti)
+void rrc::run_tti()
 {
   if (!initiated) {
     return;
   }
-
-  rrc_log->step(tti);
 
   if (simulate_rlf) {
     radio_link_failure();
@@ -259,7 +257,7 @@ void rrc::run_tti(uint32_t tti)
       }
       break;
     case RRC_STATE_CONNECTED:
-      measurements->run_tti(tti);
+      measurements->run_tti();
       break;
     default:
       break;

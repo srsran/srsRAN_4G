@@ -239,7 +239,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   usim    = usim_;
   rrc     = rrc_;
   gw      = gw_;
-  state = EMM_STATE_DEREGISTERED;
+  state   = EMM_STATE_DEREGISTERED;
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
     nas_log->error("Getting Home PLMN Id from USIM. Defaulting to 001-01\n");
@@ -310,7 +310,7 @@ emm_state_t nas::get_state()
   return state;
 }
 
-void nas::run_tti(uint32_t tti)
+void nas::run_tti()
 {
   callbacks.run();
 }

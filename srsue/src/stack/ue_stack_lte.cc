@@ -298,22 +298,25 @@ void ue_stack_lte::out_of_sync()
   pending_tasks.push(sync_queue_id, [this]() { rrc.out_of_sync(); });
 }
 
-void ue_stack_lte::run_tti(uint32_t tti)
+void ue_stack_lte::run_tti(uint32_t tti, uint32_t tti_jump)
 {
-  pending_tasks.push(sync_queue_id, [this, tti]() { run_tti_impl(tti); });
+  pending_tasks.push(sync_queue_id, [this, tti, tti_jump]() { run_tti_impl(tti, tti_jump); });
 }
 
-void ue_stack_lte::run_tti_impl(uint32_t tti)
+void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
 {
   if (args.have_tti_time_stats) {
     tti_tprof.start();
   }
 
   // perform tasks in this TTI
-  mac.run_tti(tti);
-  rrc.run_tti(tti);
-  nas.run_tti(tti);
-  timers.step_all();
+  for (uint32_t i = 0; i < tti_jump; ++i) {
+    uint32_t next_tti = TTI_SUB(tti, (tti_jump - i - 1));
+    mac.run_tti(next_tti);
+    rrc.run_tti();
+    nas.run_tti();
+    timers.step_all();
+  }
 
   if (args.have_tti_time_stats) {
     std::chrono::nanoseconds dur = tti_tprof.stop();

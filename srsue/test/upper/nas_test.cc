@@ -161,10 +161,9 @@ public:
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
   void run_thread()
   {
-    running          = true;
-    uint32_t counter = 0;
+    running = true;
     while (running) {
-      nas->run_tti(counter++);
+      nas->run_tti();
     }
   }
   void stop()

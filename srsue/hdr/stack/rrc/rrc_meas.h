@@ -45,7 +45,7 @@ public:
   void init(rrc* rrc_ptr);
   void reset();
   bool parse_meas_config(const rrc_conn_recfg_r8_ies_s* meas_config, bool is_ho_reest = false, uint32_t src_earfcn = 0);
-  void run_tti(const uint32_t tti);
+  void run_tti();
   void update_phy();
   float rsrp_filter(const float new_value, const float avg_value);
   float rsrq_filter(const float new_value, const float avg_value);

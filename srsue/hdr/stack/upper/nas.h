@@ -43,7 +43,7 @@ public:
   nas(srslte::timer_handler* timers_);
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
-  void run_tti(uint32_t tti) final;
+  void run_tti();
 
   void        get_metrics(nas_metrics_t* m);
   emm_state_t get_state();
@@ -130,9 +130,9 @@ private:
 
   // timers
   srslte::timer_handler*              timers = nullptr;
-  srslte::timer_handler::unique_timer t3410; // started when attach request is sent, on expiry, start t3411
-  srslte::timer_handler::unique_timer t3411; // started when attach failed
-  srslte::timer_handler::unique_timer t3421; // started when detach request is sent
+  srslte::timer_handler::unique_timer t3410;          // started when attach request is sent, on expiry, start t3411
+  srslte::timer_handler::unique_timer t3411;          // started when attach failed
+  srslte::timer_handler::unique_timer t3421;          // started when detach request is sent
   srslte::timer_handler::unique_timer reattach_timer; // started to trigger delayed re-attach
 
   // Values according to TS 24.301 Sec 10.2

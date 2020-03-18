@@ -403,7 +403,7 @@ void lte_ttcn3_phy::run_tti()
     sr_tx_tti  = current_tti;
   }
 
-  stack->run_tti(current_tti);
+  stack->run_tti(current_tti, 1);
 }
 
 void lte_ttcn3_phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) {}

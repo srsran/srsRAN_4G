@@ -68,12 +68,12 @@ public:
   int  init(const stack_args_t& args_, srslte::logger* logger_);
   int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
   bool switch_on() final;
-  bool switch_off();
+  bool switch_off() final;
   bool enable_data();
   bool disable_data();
-  void stop();
+  void stop() final;
 
-  bool get_metrics(stack_metrics_t* metrics);
+  bool get_metrics(stack_metrics_t* metrics) final;
   bool is_rrc_connected();
 
   // RRC interface for PHY
@@ -82,33 +82,36 @@ public:
   void new_cell_meas(const std::vector<phy_meas_t>& meas) override { rrc.new_cell_meas(meas); }
 
   // MAC Interface for PHY
-  uint16_t get_dl_sched_rnti(uint32_t tti) { return mac.get_dl_sched_rnti(tti); }
-  uint16_t get_ul_sched_rnti(uint32_t tti) { return mac.get_ul_sched_rnti(tti); }
+  uint16_t get_dl_sched_rnti(uint32_t tti) final { return mac.get_dl_sched_rnti(tti); }
+  uint16_t get_ul_sched_rnti(uint32_t tti) final { return mac.get_ul_sched_rnti(tti); }
 
-  void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action)
+  void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action) final
   {
     mac.new_grant_ul(cc_idx, grant, action);
   }
 
-  void new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, tb_action_dl_t* action)
+  void new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, tb_action_dl_t* action) final
   {
     mac.new_grant_dl(cc_idx, grant, action);
   }
 
-  void tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS])
+  void tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]) final
   {
     mac.tb_decoded(cc_idx, grant, ack);
   }
 
-  void bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len) { mac.bch_decoded_ok(cc_idx, payload, len); }
+  void bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len) final
+  {
+    mac.bch_decoded_ok(cc_idx, payload, len);
+  }
 
-  void mch_decoded(uint32_t len, bool crc) { mac.mch_decoded(len, crc); }
+  void mch_decoded(uint32_t len, bool crc) final { mac.mch_decoded(len, crc); }
 
-  void new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action) { mac.new_mch_dl(phy_grant, action); }
+  void new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action) final { mac.new_mch_dl(phy_grant, action); }
 
-  void set_mbsfn_config(uint32_t nof_mbsfn_services) { mac.set_mbsfn_config(nof_mbsfn_services); }
+  void set_mbsfn_config(uint32_t nof_mbsfn_services) final { mac.set_mbsfn_config(nof_mbsfn_services); }
 
-  void run_tti(uint32_t tti) final;
+  void run_tti(uint32_t tti, uint32_t tti_jump) final;
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final;
@@ -128,9 +131,10 @@ public:
   srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
 
 private:
-  void run_thread() final;
-  void run_tti_impl(uint32_t tti);
-  void stop_impl();
+  void           run_thread() final;
+  void           run_tti_impl(uint32_t tti, uint32_t tti_jump);
+  void           calc_tti_stats(const uint32_t duration_us);;
+  void           stop_impl();
 
   const uint32_t                  TTI_STAT_PERIOD = 1024;
   const std::chrono::milliseconds TTI_WARN_THRESHOLD_MS{5};
