@@ -765,11 +765,15 @@ bool sync::set_cell()
   sfn_p.set_cell(cell);
   worker_com->set_cell(cell);
 
+  bool success = true;
   for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
-    if (!((sf_worker*)workers_pool->get_worker(i))->set_cell(0, cell)) {
-      Error("SYNC:  Setting cell: initiating PHCH worker\n");
-      return false;
-    }
+    sf_worker* w = (sf_worker*)workers_pool->wait_worker_id(i);
+    success &= w->set_cell(0, cell);
+    w->release();
+  }
+  if (!success) {
+    Error("SYNC:  Setting cell: initiating PHCH worker\n");
+    return false;
   }
 
   // Set options defined in expert section
