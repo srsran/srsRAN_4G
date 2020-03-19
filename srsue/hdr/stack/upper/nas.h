@@ -40,7 +40,7 @@ namespace srsue {
 class nas : public nas_interface_rrc, public nas_interface_ue, public srslte::timer_callback
 {
 public:
-  nas(srslte::timer_handler* timers_);
+  nas(srsue::task_handler_interface_lte* task_handler_);
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
   void run_tti();
@@ -129,7 +129,7 @@ private:
   uint8_t transaction_id = 0;
 
   // timers
-  srslte::timer_handler*              timers = nullptr;
+  srsue::task_handler_interface_lte*  task_handler = nullptr;
   srslte::timer_handler::unique_timer t3410;          // started when attach request is sent, on expiry, start t3411
   srslte::timer_handler::unique_timer t3411;          // started when attach failed
   srslte::timer_handler::unique_timer t3421;          // started when detach request is sent
@@ -269,18 +269,24 @@ private:
     struct connection_request_completed_t {
       bool outcome;
     };
+    struct attach_timeout {
+    };
 
-    explicit rrc_connect_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_) {}
+    explicit rrc_connect_proc(nas* nas_ptr_);
     srslte::proc_outcome_t init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu);
     srslte::proc_outcome_t step();
     void                   then(const srslte::proc_state_t& result);
     srslte::proc_outcome_t react(connection_request_completed_t event);
+    srslte::proc_outcome_t react(attach_timeout event);
     static const char*     name() { return "RRC Connect"; }
 
   private:
-    nas* nas_ptr;
+    static const uint32_t attach_timeout_ms = 5000;
+
+    nas*                                nas_ptr;
+    srslte::timer_handler::unique_timer timeout_timer;
+
     enum class state_t { conn_req, wait_attach } state;
-    uint32_t wait_timeout;
   };
   class plmn_search_proc
   {

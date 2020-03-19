@@ -32,6 +32,7 @@
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srsue/hdr/stack/upper/usim_base.h"
+#include "srsue/test/common/dummy_classes.h"
 #include <assert.h>
 #include <iostream>
 
@@ -140,11 +141,15 @@ private:
   bool         is_connected_flag = false;
 };
 
-class stack_dummy : public stack_interface_gw, public thread
+class test_stack_dummy : public srsue::stack_dummy, public stack_interface_gw, public thread
 {
 public:
-  stack_dummy(pdcp_interface_gw* pdcp_, srsue::nas* nas_) : pdcp(pdcp_), nas(nas_), thread("DUMMY STACK") {}
-  void init() { start(-1); }
+  test_stack_dummy(pdcp_interface_gw* pdcp_) : pdcp(pdcp_), thread("DUMMY STACK") {}
+  void init(srsue::nas* nas_)
+  {
+    nas = nas_;
+    start(-1);
+  }
   bool switch_on() final
   {
     proc_state_t proc_result;
@@ -163,6 +168,7 @@ public:
   {
     running = true;
     while (running) {
+      timers.step_all();
       nas->run_tti();
     }
   }
@@ -204,7 +210,7 @@ int security_command_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(10);
+  stack_dummy stack;
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
@@ -222,7 +228,7 @@ int security_command_test()
   usim.init(&args);
 
   {
-    srsue::nas nas(&timers);
+    srsue::nas nas(&stack);
     nas_args_t cfg;
     cfg.eia = "1,2,3";
     cfg.eea = "0,1,2,3";
@@ -271,8 +277,6 @@ int mme_attach_request_test()
   usim_log.set_hex_limit(100000);
   gw_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(10);
-
   rrc_dummy  rrc_dummy;
   pdcp_dummy pdcp_dummy;
 
@@ -290,9 +294,9 @@ int mme_attach_request_test()
     nas_args_t nas_cfg;
     nas_cfg.force_imsi_attach = true;
     nas_cfg.apn_name          = "test123";
-    srsue::nas  nas(&timers);
-    srsue::gw   gw;
-    stack_dummy stack(&pdcp_dummy, &nas);
+    test_stack_dummy stack(&pdcp_dummy);
+    srsue::nas       nas(&stack);
+    srsue::gw        gw;
 
     nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
     rrc_dummy.init(&nas);
@@ -304,8 +308,8 @@ int mme_attach_request_test()
     srslte::logger_stdout def_logstdout;
     srslte::logger*       logger = &def_logstdout;
     gw.init(gw_args, logger, &stack);
+    stack.init(&nas);
 
-    stack.init();
     // trigger test
     stack.switch_on();
     stack.stop();
@@ -348,7 +352,7 @@ int esm_info_request_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(10);
+  srsue::stack_dummy stack{};
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
@@ -368,7 +372,7 @@ int esm_info_request_test()
   pool = byte_buffer_pool::get_instance();
 
   {
-    srsue::nas nas(&timers);
+    srsue::nas nas(&stack);
     nas_args_t cfg;
     cfg.apn_name          = "srslte";
     cfg.apn_user          = "srsuser";
@@ -402,7 +406,7 @@ int dedicated_eps_bearer_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(10);
+  srsue::stack_dummy stack;
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
@@ -420,7 +424,7 @@ int dedicated_eps_bearer_test()
 
   srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
-  srsue::nas nas(&timers);
+  srsue::nas nas(&stack);
   nas_args_t cfg        = {};
   cfg.force_imsi_attach = true; // make sure we get a fresh security context
   nas.init(&usim, &rrc_dummy, &gw, cfg);

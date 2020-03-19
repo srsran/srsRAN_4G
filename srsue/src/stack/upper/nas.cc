@@ -133,6 +133,13 @@ proc_outcome_t nas::plmn_search_proc::react(const plmn_search_complete_t& t)
   return proc_outcome_t::yield;
 }
 
+nas::rrc_connect_proc::rrc_connect_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_)
+{
+  timeout_timer = nas_ptr->task_handler->get_unique_timer();
+  timeout_timer.set(attach_timeout_ms,
+                    [this](uint32_t tid) { nas_ptr->rrc_connector.trigger(nas::rrc_connect_proc::attach_timeout{}); });
+}
+
 proc_outcome_t nas::rrc_connect_proc::init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu)
 {
   if (nas_ptr->rrc->is_connected()) {
@@ -177,28 +184,36 @@ proc_outcome_t nas::rrc_connect_proc::step()
   if (state != state_t::wait_attach) {
     return proc_outcome_t::yield;
   }
-  wait_timeout++;
   // Wait until attachment. If doing a service request is already attached
-  if (wait_timeout < 5000 and nas_ptr->state != EMM_STATE_REGISTERED and nas_ptr->running and
-      nas_ptr->rrc->is_connected()) {
-    return proc_outcome_t::yield;
-  }
-  if (nas_ptr->state == EMM_STATE_REGISTERED) {
+  if (not nas_ptr->running) {
+    ProcError("NAS stopped running\n");
+    return proc_outcome_t::error;
+  } else if (not nas_ptr->rrc->is_connected()) {
+    ProcError("Was disconnected while attaching\n");
+    return proc_outcome_t::error;
+  } else if (nas_ptr->state == EMM_STATE_REGISTERED) {
     ProcInfo("Success: EMM Registered correctly.\n");
     return proc_outcome_t::success;
-  } else if (nas_ptr->state == EMM_STATE_DEREGISTERED) {
+  }
+  // still expecting attach finish
+  return proc_outcome_t::yield;
+}
+
+srslte::proc_outcome_t nas::rrc_connect_proc::react(attach_timeout event)
+{
+  if (state != state_t::wait_attach) {
+    return proc_outcome_t::yield;
+  }
+  if (nas_ptr->state == EMM_STATE_DEREGISTERED) {
     ProcError("Timeout or received attach reject while trying to attach\n");
     nas_ptr->nas_log->console("Failed to Attach\n");
-  } else if (!nas_ptr->rrc->is_connected()) {
-    ProcError("Was disconnected while attaching\n");
-  } else {
-    ProcError("Timed out while trying to attach\n");
   }
   return proc_outcome_t::error;
 }
 
 void nas::rrc_connect_proc::then(const srslte::proc_state_t& result)
 {
+  timeout_timer.stop();
   nas_ptr->plmn_searcher.trigger(result);
 }
 
@@ -206,11 +221,10 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
 {
   if (state == state_t::conn_req and event.outcome) {
     ProcInfo("Connection established correctly. Waiting for Attach\n");
-    wait_timeout = 0;
     // Wait until attachment. If doing a service request is already attached
     state = state_t::wait_attach;
-    // wake up proc
-    return step();
+    timeout_timer.run();
+    return proc_outcome_t::yield;
   } else {
     ProcError("Could not establish RRC connection\n");
     return proc_outcome_t::error;
@@ -221,15 +235,15 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
  *   NAS
  ********************************************************************/
 
-nas::nas(srslte::timer_handler* timers_) :
+nas::nas(srsue::task_handler_interface_lte* task_handler_) :
   pool(byte_buffer_pool::get_instance()),
   plmn_searcher(this),
   rrc_connector(this),
-  timers(timers_),
-  t3410(timers_->get_unique_timer()),
-  t3411(timers_->get_unique_timer()),
-  t3421(timers_->get_unique_timer()),
-  reattach_timer(timers_->get_unique_timer())
+  task_handler(task_handler_),
+  t3410(task_handler_->get_unique_timer()),
+  t3411(task_handler_->get_unique_timer()),
+  t3421(task_handler_->get_unique_timer()),
+  reattach_timer(task_handler_->get_unique_timer())
 {
 }
 
@@ -1850,13 +1864,13 @@ void nas::send_detach_request(bool switch_off)
   ctxt.tx_count++;
 }
 
-void nas::send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps_bearer_id)
+void nas::send_attach_complete(const uint8_t& transaction_id_, const uint8_t& eps_bearer_id)
 {
   // Send EPS bearer context accept and attach complete
   LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT                            attach_complete                   = {};
   LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept = {};
   act_def_eps_bearer_context_accept.eps_bearer_id                                                    = eps_bearer_id;
-  act_def_eps_bearer_context_accept.proc_transaction_id                                              = transaction_id;
+  act_def_eps_bearer_context_accept.proc_transaction_id                                              = transaction_id_;
   act_def_eps_bearer_context_accept.protocol_cnfg_opts_present                                       = false;
   liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_def_eps_bearer_context_accept,
                                                                  &attach_complete.esm_msg);

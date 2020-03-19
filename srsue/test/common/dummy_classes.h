@@ -31,7 +31,7 @@ class stack_dummy : public task_handler_interface_lte
 public:
   srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
 
-  srslte::timer_handler timers;
+  srslte::timer_handler timers{100};
 };
 
 } // namespace srsue
