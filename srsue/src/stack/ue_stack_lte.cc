@@ -45,7 +45,7 @@ ue_stack_lte::ue_stack_lte() :
   thread("STACK"),
   pending_tasks(512),
   background_tasks(2),
-  tti_tprof("proc_time", TTI_STAT_PERIOD, TTI_WARN_THRESHOLD_MS)
+  tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)
 {
   ue_queue_id         = pending_tasks.add_queue();
   sync_queue_id       = pending_tasks.add_queue();
@@ -305,7 +305,9 @@ void ue_stack_lte::run_tti(uint32_t tti)
 
 void ue_stack_lte::run_tti_impl(uint32_t tti)
 {
-  tti_tprof.start();
+  if (args.have_tti_time_stats) {
+    tti_tprof.start();
+  }
 
   // perform tasks in this TTI
   mac.run_tti(tti);
@@ -314,7 +316,12 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
   timers.step_all();
 
   if (args.have_tti_time_stats) {
-    tti_tprof.stop();
+    std::chrono::nanoseconds dur = tti_tprof.stop();
+    if (dur > TTI_WARN_THRESHOLD_MS) {
+      mac_log.warning("%s: detected long duration=%ld ms\n",
+                      "proc_time",
+                      std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
+    }
   }
 
   // print warning if PHY pushes new TTI messages faster than we process them

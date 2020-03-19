@@ -26,6 +26,8 @@
 using namespace srslte;
 using std::chrono::nanoseconds;
 
+// log utils
+
 template <typename TUnit>
 const char* get_tunit_str()
 {
@@ -57,14 +59,23 @@ const char* get_tunit_str<std::chrono::minutes>()
   return "min";
 }
 
-void avg_time_stats::process(nanoseconds duration)
+// tprof stats
+
+avg_time_stats::avg_time_stats(const char* name_, const char* logname, size_t print_period_) :
+  name(name_),
+  log_ptr(srslte::logmap::get(logname)),
+  print_period(print_period_)
+{
+}
+
+void avg_time_stats::operator()(nanoseconds duration)
 {
   count++;
   avg_val = avg_val * (count - 1) / count + static_cast<double>(duration.count()) / count;
   max_val = std::max(max_val, duration.count());
   min_val = std::min(min_val, duration.count());
   if (count % print_period == 0) {
-    log_ptr->info("%s: mean,max,min=%0.1f,%ld,%ld usec, nof_samples=%ld",
+    log_ptr->info("%s: {mean, max, min}={%0.1f, %ld, %ld} usec, nof_samples=%ld",
                   name.c_str(),
                   avg_val / 1e3,
                   max_val / 1000,
@@ -74,24 +85,21 @@ void avg_time_stats::process(nanoseconds duration)
 }
 
 template <typename TUnit>
-sliding_window_stats<TUnit>::sliding_window_stats(const char* name_, size_t print_period_, TUnit warn_thres_) :
+sliding_window_stats<TUnit>::sliding_window_stats(const char* name_, const char* logname, size_t print_period_) :
   name(name_),
-  sliding_window(print_period_),
-  warn_thres(warn_thres_)
+  log_ptr(srslte::logmap::get(logname)),
+  sliding_window(print_period_)
 {
 }
 
 template <typename TUnit>
-void sliding_window_stats<TUnit>::process(nanoseconds duration)
+void sliding_window_stats<TUnit>::operator()(nanoseconds duration)
 {
   using std::chrono::duration_cast;
   const char* unit_str = get_tunit_str<TUnit>();
   TUnit       dur      = std::chrono::duration_cast<TUnit>(duration);
 
   log_ptr->debug("%s: duration=%ld %s\n", name.c_str(), dur.count(), unit_str);
-  if (warn_thres > TUnit{0} and dur > warn_thres) {
-    log_ptr->warning("%s: detected long duration=%ld %s\n", name.c_str(), dur.count(), unit_str);
-  }
 
   sliding_window[window_idx++] = duration;
   if (window_idx == sliding_window.size()) {
@@ -100,7 +108,7 @@ void sliding_window_stats<TUnit>::process(nanoseconds duration)
     nanoseconds tmin  = *std::min_element(sliding_window.begin(), sliding_window.end());
     double      tmean = static_cast<double>(duration_cast<TUnit>(tsum).count()) / sliding_window.size();
 
-    log_ptr->info("%s: mean,max,min = %0.2f,%ld,%ld %s\n",
+    log_ptr->info("%s: {mean, max, min} = {%0.2f, %ld, %ld} %s\n",
                   name.c_str(),
                   tmean,
                   duration_cast<TUnit>(tmax).count(),

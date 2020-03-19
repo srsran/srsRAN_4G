@@ -25,42 +25,74 @@
 #include "srslte/common/logmap.h"
 #include <chrono>
 
+#ifdef ENABLE_TIMEPROF
+#define TPROF_ENABLE_DEFAULT true
+#else
+#define TPROF_ENABLE_DEFAULT false
+#endif
+
 namespace srslte {
 
-#ifdef ENABLE_TIMEPROF
-
-template <typename Prof>
-class tprof
+// individual time interval measure
+class tprof_measure
 {
 public:
   using tpoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
 
-  template <typename... Args>
-  explicit tprof(Args&&... args) : prof(std::forward<Args>(args)...)
-  {
-    srslte::logmap::get("TPROF")->set_level(LOG_LEVEL_INFO);
-  }
-
-  void start() { t1 = std::chrono::high_resolution_clock::now(); }
-
+  tprof_measure() = default;
+  void                     start() { t1 = std::chrono::high_resolution_clock::now(); }
   std::chrono::nanoseconds stop()
   {
     auto t2 = std::chrono::high_resolution_clock::now();
-    auto d  = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1);
-    prof.process(d);
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1);
+  }
+
+private:
+  tpoint t1;
+};
+
+template <typename Prof, bool Enabled = TPROF_ENABLE_DEFAULT>
+class tprof
+{
+public:
+  template <typename... Args>
+  explicit tprof(Args&&... args) : prof(std::forward<Args>(args)...)
+  {
+  }
+
+  void start() { meas.start(); }
+
+  std::chrono::nanoseconds stop()
+  {
+    auto d = meas.stop();
+    prof(d);
     return d;
   }
 
-  tpoint t1;
-  Prof   prof;
+  tprof_measure meas;
+  Prof          prof;
 };
 
+// specialization for when the tprof is disabled
 template <typename Prof>
+class tprof<Prof, false>
+{
+public:
+  template <typename... Args>
+  explicit tprof(Args&&... args)
+  {
+  }
+
+  void start() {}
+
+  std::chrono::nanoseconds stop() { return std::chrono::nanoseconds{0}; }
+};
+
+template <typename Prof, bool Enabled = TPROF_ENABLE_DEFAULT>
 struct mutexed_tprof {
-  using tpoint = std::chrono::time_point<std::chrono::high_resolution_clock>;
   struct measure {
   public:
-    measure(mutexed_tprof<Prof>* h_) : t1(std::chrono::high_resolution_clock::now()), h(h_) {}
+    explicit measure(mutexed_tprof<Prof>* h_) : h(h_) { meas.start(); }
     ~measure()
     {
       if (deferred) {
@@ -69,15 +101,14 @@ struct mutexed_tprof {
     }
     std::chrono::nanoseconds stop()
     {
-      auto                        t2 = std::chrono::high_resolution_clock::now();
+      auto                        d = meas.stop();
       std::lock_guard<std::mutex> lock(h->mutex);
-      std::chrono::nanoseconds    d = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1);
-      h->prof.process(d);
+      h->prof(d);
       return d;
     }
     void defer_stop() { deferred = true; }
 
-    tpoint               t1;
+    tprof_measure        meas;
     mutexed_tprof<Prof>* h;
     bool                 deferred = false;
   };
@@ -85,7 +116,6 @@ struct mutexed_tprof {
   template <typename... Args>
   explicit mutexed_tprof(Args&&... args) : prof(std::forward<Args>(args)...)
   {
-    srslte::logmap::get("TPROF")->set_level(LOG_LEVEL_INFO);
   }
   measure start() { return measure{this}; }
 
@@ -95,24 +125,11 @@ private:
   std::mutex mutex;
 };
 
-#else
-
 template <typename Prof>
-struct tprof {
-  template <typename... Args>
-  explicit tprof(Args&&... args)
-  {
-  }
-
-  void                     start() {}
-  std::chrono::nanoseconds stop() { return {}; }
-};
-
-template <typename Prof>
-struct mutexed_tprof {
+struct mutexed_tprof<Prof, false> {
   struct measure {
   public:
-    std::chrono::nanoseconds stop() { return {}; }
+    std::chrono::nanoseconds stop() { return std::chrono::nanoseconds{0}; }
     void                     defer_stop() {}
   };
 
@@ -120,20 +137,14 @@ struct mutexed_tprof {
   explicit mutexed_tprof(Args&&... args)
   {
   }
-
-  measure start() { return measure{}; }
-
-private:
-  void process(long duration) {}
+  measure start() {}
 };
 
-#endif
-
 struct avg_time_stats {
-  avg_time_stats(const char* name_, size_t print_period_) : name(name_), print_period(print_period_) {}
-  void process(std::chrono::nanoseconds duration);
+  avg_time_stats(const char* name_, const char* logname, size_t print_period_);
+  void operator()(std::chrono::nanoseconds duration);
 
-  srslte::log_ref log_ptr = srslte::logmap::get("TPROF");
+  srslte::log_ref log_ptr;
   std::string     name;
   double          avg_val = 1;
   long            count = 0, max_val = 0, min_val = std::numeric_limits<long>::max();
@@ -144,14 +155,13 @@ template <typename TUnit>
 class sliding_window_stats
 {
 public:
-  sliding_window_stats(const char* name_, size_t print_period_ = 10, TUnit warn_thres_ = 0);
-  void process(std::chrono::nanoseconds duration);
+  sliding_window_stats(const char* name_, const char* logname, size_t print_period_ = 10);
+  void operator()(std::chrono::nanoseconds duration);
 
-  srslte::log_ref                       log_ptr = srslte::logmap::get("TPROF");
+  srslte::log_ref                       log_ptr;
   std::string                           name;
   std::vector<std::chrono::nanoseconds> sliding_window;
   size_t                                window_idx = 0;
-  TUnit                                 warn_thres = 0;
 };
 using sliding_window_stats_ms = sliding_window_stats<std::chrono::milliseconds>;
 

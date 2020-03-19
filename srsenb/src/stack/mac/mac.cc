@@ -445,7 +445,7 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
 
 void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
-  static srslte::mutexed_tprof<srslte::avg_time_stats> rach_tprof("RACH", 1);
+  static srslte::mutexed_tprof<srslte::avg_time_stats> rach_tprof("rach_tprof", "MAC", 1);
   log_h->step(tti);
   uint16_t rnti;
   auto     rach_tprof_meas = rach_tprof.start();
