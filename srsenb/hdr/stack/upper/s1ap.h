@@ -117,7 +117,7 @@ private:
   asn1::s1ap::eutran_cgi_s eutran_cgi;
 
   // PCAP
-  srslte::s1ap_pcap *pcap;
+  srslte::s1ap_pcap* pcap = nullptr;
 
   asn1::s1ap::s1_setup_resp_s s1setupresponse;
 
