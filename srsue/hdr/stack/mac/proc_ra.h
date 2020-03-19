@@ -51,7 +51,6 @@ public:
     state                     = IDLE;
     last_msg3_group           = RA_GROUP_A;
     phy_h                     = NULL;
-    log_h                     = NULL;
     mux_unit                  = NULL;
     rrc                       = NULL;
     transmitted_contention_id = 0;
@@ -68,7 +67,7 @@ public:
 
   void init(phy_interface_mac_lte*               phy_h,
             rrc_interface_mac*                   rrc_,
-            srslte::log*                         log_h,
+            srslte::log_ref                      log_h,
             mac_interface_rrc::ue_rnti_t*        rntis,
             srslte::timer_handler::unique_timer* time_alignment_timer_,
             srslte::timer_handler::unique_timer  contention_resolution_timer_,
@@ -164,7 +163,7 @@ private:
   void read_params();
 
   phy_interface_mac_lte* phy_h;
-  srslte::log*           log_h;
+  srslte::log_ref        log_h;
   mux*                   mux_unit;
   srslte::mac_pcap*      pcap;
   rrc_interface_mac*     rrc;

@@ -39,9 +39,7 @@ class dl_harq_entity
 public:
   dl_harq_entity(uint8_t cc_idx_);
 
-  bool init(srslte::log*                         log_h,
-            mac_interface_rrc::ue_rnti_t*        rntis,
-            demux*                               demux_unit);
+  bool init(srslte::log_ref log_h, mac_interface_rrc::ue_rnti_t* rntis, demux* demux_unit);
   void reset();
   void start_pcap(srslte::mac_pcap* pcap_);
 
@@ -91,7 +89,7 @@ private:
 
       bool            is_initiated;
       dl_harq_entity* harq_entity;
-      srslte::log*    log_h;
+      srslte::log_ref log_h;
 
       bool is_first_tb;
       bool is_new_transmission;
@@ -118,14 +116,14 @@ private:
 
   dl_sps dl_sps_assig;
 
-  std::vector<dl_harq_process>         proc;
-  dl_harq_process                      bcch_proc;
-  demux*                               demux_unit          = nullptr;
-  srslte::log*                         log_h               = nullptr;
-  srslte::mac_pcap*                    pcap                = nullptr;
-  mac_interface_rrc::ue_rnti_t*        rntis               = nullptr;
-  uint16_t                             last_temporal_crnti = 0;
-  int                                  si_window_start     = 0;
+  std::vector<dl_harq_process>  proc;
+  dl_harq_process               bcch_proc;
+  demux*                        demux_unit = nullptr;
+  srslte::log_ref               log_h;
+  srslte::mac_pcap*             pcap                = nullptr;
+  mac_interface_rrc::ue_rnti_t* rntis               = nullptr;
+  uint16_t                      last_temporal_crnti = 0;
+  int                           si_window_start     = 0;
 
   float    average_retx = 0.0;
   uint64_t nof_pkts     = 0;

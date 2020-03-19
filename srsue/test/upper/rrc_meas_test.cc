@@ -170,7 +170,7 @@ class rrc_test : public rrc
   srsue::stack_dummy* stack = nullptr;
 
 public:
-  rrc_test(srslte::log* log_, stack_dummy* stack_) : rrc(log_, stack_), stack(stack_)
+  rrc_test(srslte::log* log_, stack_dummy* stack_) : rrc(stack_), stack(stack_)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
     nastest  = std::unique_ptr<nas_test>(new nas_test(stack));
@@ -216,7 +216,7 @@ public:
   void send_ccch_msg(dl_ccch_msg_s& dl_ccch_msg)
   {
     srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
-    ;
+
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_ccch_msg.pack(bref);
     bref.align_bytes_zero();

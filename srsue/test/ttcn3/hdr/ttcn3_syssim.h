@@ -49,8 +49,10 @@ class ttcn3_syssim : public syssim_interface_phy,
 {
 public:
   ttcn3_syssim(srslte::logger_file* logger_file_, ttcn3_ue* ue_) :
-    mac_msg_ul(20, &ss_mac_log),
-    mac_msg_dl(20, &ss_mac_log),
+    log{"SS  "},
+    ss_mac_log{"SS-MAC"},
+    mac_msg_ul(20, ss_mac_log),
+    mac_msg_dl(20, ss_mac_log),
     timers(8),
     pdus(128),
     logger(logger_file_),
@@ -80,59 +82,58 @@ public:
     }
 
     // init and configure logging
-    log.init("SS  ", logger, true);
+    srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS  ", logger, true}});
     ut_log.init("UT  ", logger);
     sys_log.init("SYS ", logger);
     ip_sock_log.init("IP_S", logger);
     ip_ctrl_log.init("IP_C", logger);
     srb_log.init("SRB  ", logger);
-    ss_mac_log.init("SS-MAC", logger);
     ss_rlc_log.init("SS-RLC", logger);
     ss_pdcp_log.init("SS-PDCP", logger);
 
-    log.set_level(args.log.all_level);
+    log->set_level(args.log.all_level);
     ut_log.set_level(args.log.all_level);
     sys_log.set_level(args.log.all_level);
     ip_sock_log.set_level(args.log.all_level);
     ip_ctrl_log.set_level(args.log.all_level);
     srb_log.set_level(args.log.all_level);
-    ss_mac_log.set_level(args.log.all_level);
+    ss_mac_log->set_level(args.log.all_level);
     ss_rlc_log.set_level(args.log.all_level);
     ss_pdcp_log.set_level(args.log.all_level);
 
-    log.set_hex_limit(args.log.all_hex_limit);
+    log->set_hex_limit(args.log.all_hex_limit);
     ut_log.set_hex_limit(args.log.all_hex_limit);
     sys_log.set_hex_limit(args.log.all_hex_limit);
     ip_sock_log.set_hex_limit(args.log.all_hex_limit);
     ip_ctrl_log.set_hex_limit(args.log.all_hex_limit);
     srb_log.set_hex_limit(args.log.all_hex_limit);
-    ss_mac_log.set_hex_limit(args.log.all_hex_limit);
+    ss_mac_log->set_hex_limit(args.log.all_hex_limit);
     ss_rlc_log.set_hex_limit(args.log.all_hex_limit);
     ss_pdcp_log.set_hex_limit(args.log.all_hex_limit);
 
     // Init epoll socket and add FDs
     epoll_fd = epoll_create1(0);
     if (epoll_fd == -1) {
-      log.error("Error creating epoll\n");
+      log->error("Error creating epoll\n");
       return SRSLTE_ERROR;
     }
 
     // add signalfd
     signal_fd = add_signalfd();
     if (add_epoll(signal_fd, epoll_fd) != SRSLTE_SUCCESS) {
-      log.error("Error while adding signalfd to epoll\n");
+      log->error("Error while adding signalfd to epoll\n");
       return SRSLTE_ERROR;
     }
     event_handler.insert({signal_fd, &signal_handler});
 
     // init system interfaces to tester
     if (add_port_handler() != SRSLTE_SUCCESS) {
-      log.error("Error creating port handlers\n");
+      log->error("Error creating port handlers\n");
       return SRSLTE_ERROR;
     }
 
     // Init SS layers
-    pdus.init(this, &log);
+    pdus.init(this, log);
     rlc.init(&pdcp, this, &timers, 0 /* RB_ID_SRB0 */);
     pdcp.init(&rlc, this, nullptr);
 
@@ -146,47 +147,47 @@ public:
     // UT port
     int ut_fd = ut.init(this, &ut_log, listen_address, UT_PORT);
     if (add_epoll(ut_fd, epoll_fd) != SRSLTE_SUCCESS) {
-      log.error("Error while adding UT port to epoll\n");
+      log->error("Error while adding UT port to epoll\n");
       return SRSLTE_ERROR;
     }
     event_handler.insert({ut_fd, &ut});
-    log.console("UT handler listening on SCTP port %d\n", UT_PORT);
+    log->console("UT handler listening on SCTP port %d\n", UT_PORT);
 
     // SYS port
     int sys_fd = sys.init(this, &sys_log, listen_address, SYS_PORT);
     if (add_epoll(sys_fd, epoll_fd) != SRSLTE_SUCCESS) {
-      log.error("Error while adding SYS port to epoll\n");
+      log->error("Error while adding SYS port to epoll\n");
       return SRSLTE_ERROR;
     }
     event_handler.insert({sys_fd, &sys});
-    log.console("SYS handler listening on SCTP port %d\n", SYS_PORT);
+    log->console("SYS handler listening on SCTP port %d\n", SYS_PORT);
 
     // IPsock port
     int ip_sock_fd = ip_sock.init(&ip_sock_log, listen_address, IPSOCK_PORT);
     if (add_epoll(ip_sock_fd, epoll_fd) != SRSLTE_SUCCESS) {
-      log.error("Error while adding IP sock port to epoll\n");
+      log->error("Error while adding IP sock port to epoll\n");
       return SRSLTE_ERROR;
     }
     event_handler.insert({ip_sock_fd, &ip_sock});
-    log.console("IPSOCK handler listening on SCTP port %d\n", IPSOCK_PORT);
+    log->console("IPSOCK handler listening on SCTP port %d\n", IPSOCK_PORT);
 
     // IPctrl port
     int ip_ctrl_fd = ip_ctrl.init(&ip_ctrl_log, listen_address, IPCTRL_PORT);
     if (add_epoll(ip_ctrl_fd, epoll_fd) != SRSLTE_SUCCESS) {
-      log.error("Error while adding IP ctrl port to epoll\n");
+      log->error("Error while adding IP ctrl port to epoll\n");
       return SRSLTE_ERROR;
     }
     event_handler.insert({ip_ctrl_fd, &ip_ctrl});
-    log.console("IPCTRL handler listening on SCTP port %d\n", IPCTRL_PORT);
+    log->console("IPCTRL handler listening on SCTP port %d\n", IPCTRL_PORT);
 
     // add SRB fd
     int srb_fd = srb.init(this, &srb_log, listen_address, SRB_PORT);
     if (add_epoll(srb_fd, epoll_fd) != SRSLTE_SUCCESS) {
-      log.error("Error while adding SRB port to epoll\n");
+      log->error("Error while adding SRB port to epoll\n");
       return SRSLTE_ERROR;
     }
     event_handler.insert({srb_fd, &srb});
-    log.console("SRB handler listening on SCTP port %d\n", SRB_PORT);
+    log->console("SRB handler listening on SCTP port %d\n", SRB_PORT);
 
     return SRSLTE_SUCCESS;
   }
@@ -196,15 +197,15 @@ public:
   {
     tti = (tti + 1) % 10240;
 
-    log.step(tti);
-    log.debug("Start TTI\n");
+    log->step(tti);
+    log->debug("Start TTI\n");
 
     ue->set_current_tti(tti);
 
     // check scheduled actions for this TTI
     if (tti_actions.find(tti) != tti_actions.end()) {
       while (!tti_actions[tti].empty()) {
-        log.debug("Running scheduled action\n");
+        log->debug("Running scheduled action\n");
         move_task_t task = std::move(tti_actions[tti].back());
         task();
         tti_actions[tti].pop_back();
@@ -213,7 +214,7 @@ public:
 
     // trying to apply pending PDCP config
     if (not pending_bearer_config.empty()) {
-      log.debug("Trying to apply pending PDCP config\n");
+      log->debug("Trying to apply pending PDCP config\n");
       pending_bearer_config = try_set_pdcp_security(pending_bearer_config);
     }
 
@@ -222,26 +223,26 @@ public:
       ss_events_t ev = event_queue.wait_pop();
       switch (ev) {
         case UE_SWITCH_ON:
-          log.console("Switching on UE ID=%d\n", run_id);
+          log->console("Switching on UE ID=%d\n", run_id);
           ue->switch_on();
           break;
         case UE_SWITCH_OFF:
-          log.console("Switching off UE ID=%d\n", run_id);
+          log->console("Switching off UE ID=%d\n", run_id);
           ue->switch_off();
           break;
         case ENABLE_DATA:
-          log.console("Enabling data for UE ID=%d\n", run_id);
+          log->console("Enabling data for UE ID=%d\n", run_id);
           ue->enable_data();
           break;
         case DISABLE_DATA:
-          log.console("Disabling data for UE ID=%d\n", run_id);
+          log->console("Disabling data for UE ID=%d\n", run_id);
           ue->disable_data();
           break;
       }
     }
 
     if (pcell_idx == -1) {
-      log.debug("Skipping TTI. Pcell not yet selected.\n");
+      log->debug("Skipping TTI. Pcell not yet selected.\n");
       return;
     }
 
@@ -255,7 +256,7 @@ public:
       dl_grant.tb[0].tbs                             = cells[pcell_idx]->sibs[cells[pcell_idx]->sib_idx]->N_bytes;
       dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
       ue->new_tb(dl_grant, cells[pcell_idx]->sibs[cells[pcell_idx]->sib_idx]->msg);
-      log.info("Delivered SIB%d for pcell_idx=%d\n", cells[pcell_idx]->sib_idx, pcell_idx);
+      log->info("Delivered SIB%d for pcell_idx=%d\n", cells[pcell_idx]->sib_idx, pcell_idx);
       cells[pcell_idx]->sib_idx = (cells[pcell_idx]->sib_idx + 1) % cells[pcell_idx]->sibs.size();
     } else if (SRSLTE_RNTI_ISRAR(dl_rnti)) {
       if (prach_tti != -1) {
@@ -265,12 +266,12 @@ public:
         }
       }
     } else if (SRSLTE_RNTI_ISPA(dl_rnti)) {
-      log.debug("Searching for paging RNTI\n");
+      log->debug("Searching for paging RNTI\n");
       // PCH will be triggered from SYSSIM after receiving Paging
     } else if (SRSLTE_RNTI_ISUSER(dl_rnti)) {
       // check if this is for contention resolution after PRACH/RAR
       if (dl_rnti == crnti) {
-        log.debug("Searching for C-RNTI=%d\n", crnti);
+        log->debug("Searching for C-RNTI=%d\n", crnti);
 
         if (rar_tti != -1) {
           msg3_tti = (rar_tti + 3) % 10240;
@@ -287,14 +288,14 @@ public:
       }
 
       if (dl_rnti != SRSLTE_INVALID_RNTI) {
-        log.debug("Searching for RNTI=%d\n", dl_rnti);
+        log->debug("Searching for RNTI=%d\n", dl_rnti);
 
         // look for DL data to be send in each bearer and provide grant accordingly
         for (int lcid = 0; lcid < SRSLTE_N_RADIO_BEARERS; lcid++) {
           uint32_t buf_state = rlc.get_buffer_state(lcid);
           // Schedule DL transmission if there is data in RLC buffer or we need to send Msg4
           if ((buf_state > 0 && bearer_follow_on_map[lcid] == false) || (msg3_tti != -1 && conres_id != 0)) {
-            log.debug("LCID=%d, buffer_state=%d\n", lcid, buf_state);
+            log->debug("LCID=%d, buffer_state=%d\n", lcid, buf_state);
             tx_payload_buffer.clear();
 
             const uint32_t mac_header_size = 10; // Add MAC header (10 B for all subheaders, etc)
@@ -304,13 +305,13 @@ public:
             if (msg3_tti != -1 && lcid == 0 && conres_id != 0) {
               if (mac_msg_dl.new_subh()) {
                 if (mac_msg_dl.get()->set_con_res_id(conres_id)) {
-                  log.info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
+                  log->info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
                 } else {
-                  log.error("CE:    Setting Contention Resolution ID CE\n");
+                  log->error("CE:    Setting Contention Resolution ID CE\n");
                 }
                 conres_id = 0; // reset CR so it's not sent twice
               } else {
-                log.error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
+                log->error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
               }
               msg3_tti = -1;
             }
@@ -322,7 +323,7 @@ public:
               if (mac_msg_dl.new_subh()) {
                 int n = mac_msg_dl.get()->set_sdu(lcid, buf_state, &rlc);
                 if (n == -1) {
-                  log.error("Error while adding SDU (%d B) to MAC PDU\n", buf_state);
+                  log->error("Error while adding SDU (%d B) to MAC PDU\n", buf_state);
                   mac_msg_dl.del_subh();
                 }
 
@@ -338,18 +339,18 @@ public:
             }
 
             // Assemble entire MAC PDU
-            uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(&log);
+            uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(log);
             if (mac_pdu_ptr != nullptr) {
               if (force_lcid != -1 && lcid == 0) {
                 if (has_single_sdu) {
-                  log.info("Patched lcid in mac header to: %d\n", force_lcid);
+                  log->info("Patched lcid in mac header to: %d\n", force_lcid);
                   mac_pdu_ptr[0] = (mac_pdu_ptr[0] & 0xe0) | (force_lcid & 0x1f);
                 } else if (mac_msg_dl.nof_subh() > 1) {
-                  log.warning(
+                  log->warning(
                       "Not patching lcid to %d in mac header (nof_subh == %d)\n", force_lcid, mac_msg_dl.nof_subh());
                 }
               }
-              log.info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU (%d B):\n", mac_msg_dl.get_pdu_len());
+              log->info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU (%d B):\n", mac_msg_dl.get_pdu_len());
 
               // Prepare MAC grant for CCCH
               mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
@@ -361,18 +362,18 @@ public:
 
               ue->new_tb(dl_grant, (const uint8_t*)mac_pdu_ptr);
             } else {
-              log.error("Error writing DL MAC PDU\n");
+              log->error("Error writing DL MAC PDU\n");
             }
             mac_msg_dl.reset();
 
           } else if (bearer_follow_on_map[lcid]) {
-            log.info("Waiting for more PDUs for transmission on LCID=%d\n", lcid);
+            log->info("Waiting for more PDUs for transmission on LCID=%d\n", lcid);
           }
         }
         // Check if we need to provide a UL grant as well
       }
     } else {
-      log.debug("Not handling RNTI=%d\n", dl_rnti);
+      log->debug("Not handling RNTI=%d\n", dl_rnti);
     }
   }
 
@@ -409,8 +410,8 @@ public:
       logger = logger_file;
     }
 
-    log.info("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
-    log.console("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
+    log->info("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
+    log->console("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
 
     // Patch UE config
     local_args.stack.pcap.filename     = get_filename_with_tc_name(args.stack.pcap.filename, run_id, tc_name);
@@ -420,14 +421,14 @@ public:
     if (ue->init(local_args, logger, this, tc_name)) {
       ue->stop();
       std::string err("Couldn't initialize UE.\n");
-      log.error("%s\n", err.c_str());
-      log.console("%s\n", err.c_str());
+      log->error("%s\n", err.c_str());
+      log->console("%s\n", err.c_str());
       return;
     }
 
     // create and add TTI timer to epoll
     if (add_epoll(timer_handler.get_timer_fd(), epoll_fd) != SRSLTE_SUCCESS) {
-      log.error("Error while adding TTI timer to epoll\n");
+      log->error("Error while adding TTI timer to epoll\n");
     }
     event_handler.insert({timer_handler.get_timer_fd(), &timer_handler});
   }
@@ -435,8 +436,8 @@ public:
   // Called from UT to terminate the testcase
   void tc_end()
   {
-    log.info("Deinitializing UE ID=%d\n", run_id);
-    log.console("Deinitializing UE ID=%d\n", run_id);
+    log->info("Deinitializing UE ID=%d\n", run_id);
+    log->console("Deinitializing UE ID=%d\n", run_id);
     ue->stop();
 
     // stop TTI timer
@@ -469,7 +470,7 @@ public:
   {
     // verify that UE intends to send PRACH on current Pcell
     if (cells[pcell_idx]->cell.id != cell_id) {
-      log.error("UE is attempting to PRACH on pci=%d, current Pcell=%d\n", cell_id, cells[pcell_idx]->cell.id);
+      log->error("UE is attempting to PRACH on pci=%d, current Pcell=%d\n", cell_id, cells[pcell_idx]->cell.id);
       return;
     }
 
@@ -481,7 +482,7 @@ public:
   // Called from PHY
   void sr_req(uint32_t tti_tx)
   {
-    log.info("Received SR from PHY\n");
+    log->info("Received SR from PHY\n");
     sr_tti = tti_tx;
   }
 
@@ -489,11 +490,11 @@ public:
   void tx_pdu(const uint8_t* payload, const int len, const uint32_t tx_tti)
   {
     if (payload == NULL) {
-      ss_mac_log.error("Received NULL as PDU payload. Dropping.\n");
+      ss_mac_log->error("Received NULL as PDU payload. Dropping.\n");
       return;
     }
 
-    log.debug_hex(payload, len, "Received MAC PDU (%d B)\n", len);
+    log->debug_hex(payload, len, "Received MAC PDU (%d B)\n", len);
 
     // Parse MAC
     mac_msg_ul.init_rx(len, true);
@@ -503,11 +504,11 @@ public:
       assert(mac_msg_ul.get());
       if (mac_msg_ul.get()->is_sdu()) {
         // Push PDU to our own RLC (needed to handle status reporting, etc. correctly
-        ss_mac_log.info_hex(mac_msg_ul.get()->get_sdu_ptr(),
-                            mac_msg_ul.get()->get_payload_size(),
-                            "Route PDU to LCID=%d (%d B)\n",
-                            mac_msg_ul.get()->get_sdu_lcid(),
-                            mac_msg_ul.get()->get_payload_size());
+        ss_mac_log->info_hex(mac_msg_ul.get()->get_sdu_ptr(),
+                             mac_msg_ul.get()->get_payload_size(),
+                             "Route PDU to LCID=%d (%d B)\n",
+                             mac_msg_ul.get()->get_sdu_lcid(),
+                             mac_msg_ul.get()->get_payload_size());
         rlc.write_pdu(
             mac_msg_ul.get()->get_sdu_lcid(), mac_msg_ul.get()->get_sdu_ptr(), mac_msg_ul.get()->get_payload_size());
 
@@ -520,10 +521,10 @@ public:
             for (int i = 0; i < nbytes; i++) {
               ue_cri_ptr[nbytes - i - 1] = pkt_ptr[i];
             }
-            ss_mac_log.info_hex(ue_cri_ptr, nbytes, "Contention resolution ID:\n");
+            ss_mac_log->info_hex(ue_cri_ptr, nbytes, "Contention resolution ID:\n");
           } else {
-            ss_mac_log.error("Received CCCH UL message of invalid size=%d bytes\n",
-                             mac_msg_ul.get()->get_payload_size());
+            ss_mac_log->error("Received CCCH UL message of invalid size=%d bytes\n",
+                              mac_msg_ul.get()->get_payload_size());
           }
         }
       }
@@ -544,7 +545,7 @@ public:
   // Internal function called from main thread
   void send_rar(uint32_t preamble_index)
   {
-    log.info("Sending RAR for RAPID=%d\n", preamble_index);
+    log->info("Sending RAR for RAPID=%d\n", preamble_index);
 
     // Prepare RAR grant
     uint8_t                grant_buffer[64] = {};
@@ -585,7 +586,7 @@ public:
   // Internal function called from main thread
   void send_msg3_grant()
   {
-    log.info("Sending Msg3 grant for C-RNTI=%d\n", crnti);
+    log->info("Sending Msg3 grant for C-RNTI=%d\n", crnti);
     mac_interface_phy_lte::mac_grant_ul_t ul_grant = {};
 
     ul_grant.tb.tbs         = 32;
@@ -627,41 +628,41 @@ public:
     switch (subh->ce_type()) {
       case srslte::sch_subh::PHR_REPORT:
         phr = subh->get_phr();
-        ss_mac_log.info("CE:    Received PHR from rnti=0x%x, value=%.0f\n", rnti, phr);
+        ss_mac_log->info("CE:    Received PHR from rnti=0x%x, value=%.0f\n", rnti, phr);
         break;
       case srslte::sch_subh::CRNTI:
         old_rnti = subh->get_c_rnti();
-        ss_mac_log.info("CE:    Received C-RNTI from temp_rnti=0x%x, rnti=0x%x\n", rnti, old_rnti);
+        ss_mac_log->info("CE:    Received C-RNTI from temp_rnti=0x%x, rnti=0x%x\n", rnti, old_rnti);
         break;
       case srslte::sch_subh::TRUNC_BSR:
       case srslte::sch_subh::SHORT_BSR:
         idx = subh->get_bsr(buff_size);
         if (idx == -1) {
-          ss_mac_log.error("Invalid Index Passed to lc groups\n");
+          ss_mac_log->error("Invalid Index Passed to lc groups\n");
           break;
         }
-        ss_mac_log.info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d\n",
-                        subh->ce_type() == srslte::sch_subh::SHORT_BSR ? "Short" : "Trunc",
-                        rnti,
-                        idx,
-                        buff_size[idx]);
+        ss_mac_log->info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d\n",
+                         subh->ce_type() == srslte::sch_subh::SHORT_BSR ? "Short" : "Trunc",
+                         rnti,
+                         idx,
+                         buff_size[idx]);
         is_bsr = true;
         break;
       case srslte::sch_subh::LONG_BSR:
         subh->get_bsr(buff_size);
         is_bsr = true;
-        ss_mac_log.info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n",
-                        rnti,
-                        buff_size[0],
-                        buff_size[1],
-                        buff_size[2],
-                        buff_size[3]);
+        ss_mac_log->info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n",
+                         rnti,
+                         buff_size[0],
+                         buff_size[1],
+                         buff_size[2],
+                         buff_size[3]);
         break;
       case srslte::sch_subh::PADDING:
-        ss_mac_log.debug("CE:    Received padding for rnti=0x%x\n", rnti);
+        ss_mac_log->debug("CE:    Received padding for rnti=0x%x\n", rnti);
         break;
       default:
-        ss_mac_log.error("CE:    Invalid lcid=0x%x\n", subh->ce_type());
+        ss_mac_log->error("CE:    Invalid lcid=0x%x\n", subh->ce_type());
         break;
     }
     return is_bsr;
@@ -674,7 +675,7 @@ public:
     // toggle NDI to always create new Tx
     const uint32_t pid = get_pid(tti_);
     last_ul_ndi[pid]   = !last_ul_ndi[pid];
-    log.info("UL-PID=%d NDI=%s\n", pid, last_ul_ndi[pid] ? "1" : "0");
+    log->info("UL-PID=%d NDI=%s\n", pid, last_ul_ndi[pid] ? "1" : "0");
     return last_ul_ndi[pid];
   }
 
@@ -683,7 +684,7 @@ public:
     // toggle NDI to always create new Tx
     const uint32_t pid = get_pid(tti_);
     last_dl_ndi[pid]   = !last_dl_ndi[pid];
-    log.info("DL-PID=%d NDI=%s\n", pid, last_dl_ndi[pid] ? "1" : "0");
+    log->info("DL-PID=%d NDI=%s\n", pid, last_dl_ndi[pid] ? "1" : "0");
     return last_dl_ndi[pid];
   }
 
@@ -738,7 +739,7 @@ public:
     if (timing.now) {
       set_cell_config_impl(cell_name, earfcn, cell, power);
     } else {
-      log.debug("Scheduling Cell configuration of %s for TTI=%d\n", cell_name.c_str(), timing.tti);
+      log->debug("Scheduling Cell configuration of %s for TTI=%d\n", cell_name.c_str(), timing.tti);
       tti_actions[timing.tti].push_back(
           [this, cell_name, earfcn, cell, power]() { set_cell_config_impl(cell_name, earfcn, cell, power); });
     }
@@ -752,7 +753,7 @@ public:
     // check if cell already exists
     if (not syssim_has_cell(cell_name_)) {
       // insert new cell
-      log.info("Adding cell %s with cellId=%d and power=%.2f dBm\n", cell_name_.c_str(), cell_.id, power_);
+      log->info("Adding cell %s with cellId=%d and power=%.2f dBm\n", cell_name_.c_str(), cell_.id, power_);
       unique_syssim_cell_t cell = unique_syssim_cell_t(new syssim_cell_t);
       cell->name                = cell_name_;
       cell->cell                = cell_;
@@ -761,7 +762,7 @@ public:
       cells.push_back(std::move(cell));
     } else {
       // cell is already there
-      log.info("Cell already there, reconfigure\n");
+      log->info("Cell already there, reconfigure\n");
     }
 
     update_cell_map();
@@ -783,7 +784,7 @@ public:
     if (timing.now) {
       set_cell_attenuation_impl(cell_name, value);
     } else {
-      log.debug("Scheduling Cell attenuation reconfiguration of %s for TTI=%d\n", cell_name.c_str(), timing.tti);
+      log->debug("Scheduling Cell attenuation reconfiguration of %s for TTI=%d\n", cell_name.c_str(), timing.tti);
       tti_actions[timing.tti].push_back([this, cell_name, value]() { set_cell_attenuation_impl(cell_name, value); });
     }
   }
@@ -791,7 +792,7 @@ public:
   void set_cell_attenuation_impl(const std::string cell_name, const float value)
   {
     if (not syssim_has_cell(cell_name)) {
-      log.error("Can't set cell power. Cell not found.\n");
+      log->error("Can't set cell power. Cell not found.\n");
     }
 
     // update cell's power
@@ -816,7 +817,7 @@ public:
         phy_cell.info                  = ss_cell->cell;
         phy_cell.power                 = ss_cell->initial_power - ss_cell->attenuation;
         phy_cell.earfcn                = ss_cell->earfcn;
-        log.info("Configuring cell with PCI=%d with TxPower=%.2f\n", phy_cell.info.id, phy_cell.power);
+        log->info("Configuring cell with PCI=%d with TxPower=%.2f\n", phy_cell.info.id, phy_cell.power);
         phy_cells.push_back(phy_cell);
       }
 
@@ -830,7 +831,7 @@ public:
   void add_bcch_dlsch_pdu(const string cell_name, unique_byte_buffer_t pdu)
   {
     if (not syssim_has_cell(cell_name)) {
-      log.error("Can't add BCCH to cell. Cell not found.\n");
+      log->error("Can't add BCCH to cell. Cell not found.\n");
     }
 
     // add SIB
@@ -848,7 +849,7 @@ public:
       // Add to SRB0 Tx queue
       rlc.write_sdu(0, std::move(pdu));
     } else {
-      log.debug("Scheduling CCCH PDU for TTI=%d\n", timing.tti);
+      log->debug("Scheduling CCCH PDU for TTI=%d\n", timing.tti);
       auto task = [this](srslte::unique_byte_buffer_t& pdu) { rlc.write_sdu(0, std::move(pdu)); };
       tti_actions[timing.tti].push_back(std::bind(task, std::move(pdu)));
     }
@@ -860,8 +861,10 @@ public:
     if (timing.now) {
       add_dcch_pdu_impl(lcid, std::move(pdu), follow_on_flag);
     } else {
-      log.debug("Scheduling DCCH PDU for TTI=%d\n", timing.tti);
-      auto task = [this](uint32_t lcid, srslte::unique_byte_buffer_t& pdu, bool follow_on_flag) { add_dcch_pdu_impl(lcid, std::move(pdu), follow_on_flag); };
+      log->debug("Scheduling DCCH PDU for TTI=%d\n", timing.tti);
+      auto task = [this](uint32_t lcid, srslte::unique_byte_buffer_t& pdu, bool follow_on_flag) {
+        add_dcch_pdu_impl(lcid, std::move(pdu), follow_on_flag);
+      };
       tti_actions[timing.tti].push_back(std::bind(task, lcid, std::move(pdu), follow_on_flag));
     }
   }
@@ -869,14 +872,14 @@ public:
   void add_dcch_pdu_impl(uint32_t lcid, unique_byte_buffer_t pdu, bool follow_on_flag)
   {
     // push to PDCP and create DL grant for it
-    log.info("Writing PDU (%d B) to LCID=%d\n", pdu->N_bytes, lcid);
+    log->info("Writing PDU (%d B) to LCID=%d\n", pdu->N_bytes, lcid);
     pdcp.write_sdu(lcid, std::move(pdu), true);
     bearer_follow_on_map[lcid] = follow_on_flag;
   }
 
   void add_pch_pdu(unique_byte_buffer_t pdu)
   {
-    log.info("Received PCH PDU (%d B)\n", pdu->N_bytes);
+    log->info("Received PCH PDU (%d B)\n", pdu->N_bytes);
 
     // Prepare MAC grant for PCH
     mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
@@ -895,21 +898,21 @@ public:
     if (timing.now) {
       add_srb_impl(lcid, pdcp_config);
     } else {
-      log.debug("Scheduling SRB%d addition for TTI=%d\n", lcid, timing.tti);
+      log->debug("Scheduling SRB%d addition for TTI=%d\n", lcid, timing.tti);
       tti_actions[timing.tti].push_back([this, lcid, pdcp_config]() { add_srb_impl(lcid, pdcp_config); });
     }
   }
 
   void add_srb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config)
   {
-    log.info("Adding SRB%d\n", lcid);
+    log->info("Adding SRB%d\n", lcid);
     pdcp.add_bearer(lcid, pdcp_config);
     rlc.add_bearer(lcid, srslte::rlc_config_t::srb_config(lcid));
   }
 
   void reestablish_bearer(uint32_t lcid)
   {
-    log.info("Reestablishing LCID=%d\n", lcid);
+    log->info("Reestablishing LCID=%d\n", lcid);
     pdcp.reestablish(lcid);
     rlc.reestablish(lcid);
   }
@@ -919,14 +922,14 @@ public:
     if (timing.now) {
       del_srb_impl(lcid);
     } else {
-      log.debug("Scheduling SRB%d deletion for TTI=%d\n", lcid, timing.tti);
+      log->debug("Scheduling SRB%d deletion for TTI=%d\n", lcid, timing.tti);
       tti_actions[timing.tti].push_back([this, lcid]() { del_srb_impl(lcid); });
     }
   }
 
   void del_srb_impl(uint32_t lcid)
   {
-    log.info("Deleting SRB%d\n", lcid);
+    log->info("Deleting SRB%d\n", lcid);
     // Only delete SRB1/2
     if (lcid > 0) {
       pdcp.del_bearer(lcid);
@@ -935,7 +938,7 @@ public:
 
     // Reset HARQ to generate new transmissions
     if (lcid == 0) {
-      log.info("Resetting UL/DL NDI counters\n");
+      log->info("Resetting UL/DL NDI counters\n");
       memset(last_dl_ndi, 0, sizeof(last_dl_ndi));
       memset(last_ul_ndi, 0, sizeof(last_ul_ndi));
     }
@@ -944,16 +947,16 @@ public:
   // RRC interface for PDCP, PDCP calls RRC to push RRC SDU
   void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   {
-    log.info_hex(pdu->msg,
-                 pdu->N_bytes,
-                 "RRC SDU received for LCID=%d cell_id=%d (%d B)\n",
-                 lcid,
-                 cells[pcell_idx]->cell.id,
-                 pdu->N_bytes);
+    log->info_hex(pdu->msg,
+                  pdu->N_bytes,
+                  "RRC SDU received for LCID=%d cell_id=%d (%d B)\n",
+                  lcid,
+                  cells[pcell_idx]->cell.id,
+                  pdu->N_bytes);
 
     // check cell ID
     if (cells[pcell_idx]->cell.id > 256) {
-      log.error("Cell ID too large to fit in single byte.\n");
+      log->error("Cell ID too large to fit in single byte.\n");
       return;
     }
 
@@ -972,11 +975,11 @@ public:
   }
 
   // Not supported right now
-  void write_pdu_bcch_bch(unique_byte_buffer_t pdu) { log.error("%s not implemented.\n", __FUNCTION__); }
-  void write_pdu_bcch_dlsch(unique_byte_buffer_t pdu) { log.error("%s not implemented.\n", __FUNCTION__); }
-  void write_pdu_pcch(unique_byte_buffer_t pdu) { log.error("%s not implemented.\n", __FUNCTION__); }
-  void write_pdu_mch(uint32_t lcid, unique_byte_buffer_t pdu) { log.error("%s not implemented.\n", __FUNCTION__); }
-  void max_retx_attempted() { log.error("%s not implemented.\n", __FUNCTION__); }
+  void write_pdu_bcch_bch(unique_byte_buffer_t pdu) { log->error("%s not implemented.\n", __FUNCTION__); }
+  void write_pdu_bcch_dlsch(unique_byte_buffer_t pdu) { log->error("%s not implemented.\n", __FUNCTION__); }
+  void write_pdu_pcch(unique_byte_buffer_t pdu) { log->error("%s not implemented.\n", __FUNCTION__); }
+  void write_pdu_mch(uint32_t lcid, unique_byte_buffer_t pdu) { log->error("%s not implemented.\n", __FUNCTION__); }
+  void max_retx_attempted() { log->error("%s not implemented.\n", __FUNCTION__); }
 
   std::string get_rb_name(uint32_t lcid)
   {
@@ -988,11 +991,11 @@ public:
 
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true)
   {
-    log.info_hex(sdu->msg, sdu->N_bytes, "Received SDU on LCID=%d\n", lcid);
+    log->info_hex(sdu->msg, sdu->N_bytes, "Received SDU on LCID=%d\n", lcid);
 
     uint8_t* mac_pdu_ptr;
-    mac_pdu_ptr = mac_msg_dl.write_packet(&log);
-    log.info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU:\n");
+    mac_pdu_ptr = mac_msg_dl.write_packet(log);
+    log->info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU:\n");
 
     // Prepare MAC grant for CCCH
     mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
@@ -1021,7 +1024,7 @@ public:
     if (timing.now) {
       set_as_security_impl(k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
     } else {
-      log.debug("Scheduling AS security configuration for TTI=%d\n", timing.tti);
+      log->debug("Scheduling AS security configuration for TTI=%d\n", timing.tti);
       tti_actions[timing.tti].push_back(
           [this, k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_]() {
             set_as_security_impl(k_rrc_enc_, k_rrc_int_, k_up_enc_, cipher_algo_, integ_algo_, bearers_);
@@ -1072,36 +1075,36 @@ public:
       if (lcid.dl_value_valid) {
         // make sure the current DL SN value match
         if (lcid.dl_value == dl_sn) {
-          log.info("Setting AS security for LCID=%d in DL direction\n", lcid.rb_id);
+          log->info("Setting AS security for LCID=%d in DL direction\n", lcid.rb_id);
           pdcp.config_security(lcid.rb_id, sec_cfg);
           pdcp.enable_integrity(lcid.rb_id, DIRECTION_TX);
           pdcp.enable_encryption(lcid.rb_id, DIRECTION_TX);
           lcid.dl_value_valid = false;
         } else {
-          log.info("Delaying AS security configuration of lcid=%d. DL: %d != %d\n", lcid.rb_id, lcid.dl_value, dl_sn);
+          log->info("Delaying AS security configuration of lcid=%d. DL: %d != %d\n", lcid.rb_id, lcid.dl_value, dl_sn);
         }
       } else {
-        log.debug("Downlink AS Security already applied for lcid=%d\n", lcid.rb_id);
+        log->debug("Downlink AS Security already applied for lcid=%d\n", lcid.rb_id);
       }
 
       if (lcid.ul_value_valid) {
         // Check UL count
         if (lcid.ul_value == ul_sn) {
-          log.info("Setting AS security for LCID=%d in UL direction\n", lcid.rb_id);
+          log->info("Setting AS security for LCID=%d in UL direction\n", lcid.rb_id);
           pdcp.config_security(lcid.rb_id, sec_cfg);
           pdcp.enable_integrity(lcid.rb_id, DIRECTION_RX);
           pdcp.enable_encryption(lcid.rb_id, DIRECTION_RX);
           lcid.ul_value_valid = false;
         } else {
-          log.info("Delaying AS security configuration of lcid=%d. UL: %d != %d\n", lcid.rb_id, lcid.ul_value, ul_sn);
+          log->info("Delaying AS security configuration of lcid=%d. UL: %d != %d\n", lcid.rb_id, lcid.ul_value, ul_sn);
         }
       } else {
-        log.debug("Uplink AS Security already applied for lcid=%d\n", lcid.rb_id);
+        log->debug("Uplink AS Security already applied for lcid=%d\n", lcid.rb_id);
       }
 
       // re-consider if at least one direction needs reconfiguration
       if (lcid.dl_value_valid || lcid.ul_value_valid) {
-        log.debug("Adding LCID=%d for later configuration (size=%zd)\n", lcid.rb_id, update_needed_list.size());
+        log->debug("Adding LCID=%d for later configuration (size=%zd)\n", lcid.rb_id, update_needed_list.size());
         update_needed_list.push_back(lcid);
       }
     }
@@ -1114,14 +1117,14 @@ public:
     if (timing.now) {
       release_as_security_impl();
     } else {
-      log.debug("Scheduling Release of AS security for TTI=%d\n", timing.tti);
+      log->debug("Scheduling Release of AS security for TTI=%d\n", timing.tti);
       tti_actions[timing.tti].push_back([this]() { release_as_security_impl(); });
     }
   }
 
   void release_as_security_impl()
   {
-    log.info("Releasing AS security\n");
+    log->info("Releasing AS security\n");
     pending_bearer_config.clear();
   }
 
@@ -1131,7 +1134,7 @@ public:
     for (uint32_t i = 0; i < cells.size(); ++i) {
       if (cells[i]->cell.id == phy_cell.id) {
         pcell_idx = i;
-        log.info("New PCell: PCI=%d\n", cells[pcell_idx]->cell.id);
+        log->info("New PCell: PCI=%d\n", cells[pcell_idx]->cell.id);
         return;
       }
     }
@@ -1148,7 +1151,7 @@ public:
         pdcp.get_bearer_status(i, &bearer.dl_value, &tmp, &bearer.ul_value, &tmp);
         bearer.rb_is_srb = i <= 2;
         bearer.rb_id     = i;
-        log.debug("PDCP count lcid=%d, dl=%d, ul=%d\n", bearer.rb_id, bearer.dl_value, bearer.ul_value);
+        log->debug("PDCP count lcid=%d, dl=%d, ul=%d\n", bearer.rb_id, bearer.dl_value, bearer.ul_value);
         bearers.push_back(bearer);
       }
     }
@@ -1174,13 +1177,13 @@ private:
   srslte::logger_stdout logger_stdout;
   srslte::logger_file*  logger_file = nullptr;
   srslte::logger*       logger      = nullptr;
-  srslte::log_filter    log;
+  srslte::log_ref       log;
   srslte::log_filter    ut_log;
   srslte::log_filter    sys_log;
   srslte::log_filter    ip_sock_log;
   srslte::log_filter    ip_ctrl_log;
   srslte::log_filter    srb_log;
-  srslte::log_filter    ss_mac_log;
+  srslte::log_ref       ss_mac_log;
   srslte::log_filter    ss_rlc_log;
   srslte::log_filter    ss_pdcp_log;
 
@@ -1239,8 +1242,8 @@ private:
   uint64_t conres_id = 0;
 
   // Simulator objects
-  srslte::rlc  rlc;
-  srslte::pdcp pdcp;
+  srslte::rlc              rlc;
+  srslte::pdcp             pdcp;
   std::map<uint32_t, bool> bearer_follow_on_map; ///< Indicates if for a given LCID the follow_on_flag is set or not
 
   // security config

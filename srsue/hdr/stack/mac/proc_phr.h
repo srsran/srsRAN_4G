@@ -22,7 +22,7 @@
 #ifndef SRSUE_PROC_PHR_H
 #define SRSUE_PROC_PHR_H
 
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include <stdint.h>
@@ -35,7 +35,7 @@ class phr_proc : public srslte::timer_callback
 {
 public:
   phr_proc();
-  void init(phy_interface_mac_lte* phy_h, srslte::log* log_h_, srslte::timer_handler* timers_db_);
+  void init(phy_interface_mac_lte* phy_h, srslte::log_ref log_h_, srslte::timer_handler* timers_db_);
   void set_config(srslte::phr_cfg_t& cfg);
   void step();
   void reset();
@@ -49,7 +49,7 @@ public:
 private:
   bool pathloss_changed();
 
-  srslte::log*           log_h;
+  srslte::log_ref        log_h;
   phy_interface_mac_lte* phy_h;
   srslte::timer_handler* timers_db;
   srslte::phr_cfg_t      phr_cfg;

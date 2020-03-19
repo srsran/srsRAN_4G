@@ -35,12 +35,20 @@ ue_stack_lte::ue_stack_lte() :
   running(false),
   args(),
   logger(nullptr),
+  stack_log("STCK"),
+  pool_log("POOL"),
+  mac_log("MAC "),
+  rlc_log("RLC "),
+  pdcp_log("PDCP"),
+  rrc_log("RRC "),
+  usim_log("USIM"),
+  nas_log("NAS "),
   usim(nullptr),
   phy(nullptr),
-  rlc(&rlc_log),
-  mac(&mac_log),
-  rrc(&rrc_log, this),
-  pdcp(&timers, &pdcp_log),
+  rlc(rlc_log.get()),
+  mac("MAC "),
+  rrc(this),
+  pdcp(&timers, pdcp_log.get()),
   nas(this),
   thread("STACK"),
   pending_tasks(512),
@@ -86,37 +94,25 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   args   = args_;
   logger = logger_;
 
-  // setup logging for each layer
-  mac_log.init("MAC ", logger, true);
-  rlc_log.init("RLC ", logger);
-  pdcp_log.init("PDCP", logger);
-  rrc_log.init("RRC ", logger);
-  usim_log.init("USIM", logger);
+  // init own log
+  stack_log->set_level(srslte::LOG_LEVEL_INFO);
+  pool_log->set_level(srslte::LOG_LEVEL_ERROR);
+  byte_buffer_pool::get_instance()->set_log(pool_log.get());
 
-  // init own logger
-  log.init("STCK", logger);
-  log.set_level(srslte::LOG_LEVEL_INFO);
-
-  pool_log.init("POOL", logger);
-  pool_log.set_level(srslte::LOG_LEVEL_ERROR);
-  byte_buffer_pool::get_instance()->set_log(&pool_log);
-
-  mac_log.set_level(args.log.mac_level);
-  rlc_log.set_level(args.log.rlc_level);
-  pdcp_log.set_level(args.log.pdcp_level);
-  rrc_log.set_level(args.log.rrc_level);
-  usim_log.set_level(args.log.usim_level);
-
-  mac_log.set_hex_limit(args.log.mac_hex_limit);
-  rlc_log.set_hex_limit(args.log.rlc_hex_limit);
-  pdcp_log.set_hex_limit(args.log.pdcp_hex_limit);
-  rrc_log.set_hex_limit(args.log.rrc_hex_limit);
-  usim_log.set_hex_limit(args.log.usim_hex_limit);
-
-  // Set NAS log
-  srslte::log_ref log_ptr = logmap::get("NAS");
-  log_ptr->set_level(args.log.nas_level);
-  log_ptr->set_hex_limit(args.log.nas_hex_limit);
+  // init layer logs
+  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC ", logger, true}});
+  mac_log->set_level(args.log.mac_level);
+  mac_log->set_hex_limit(args.log.mac_hex_limit);
+  rlc_log->set_level(args.log.rlc_level);
+  rlc_log->set_hex_limit(args.log.rlc_hex_limit);
+  pdcp_log->set_level(args.log.pdcp_level);
+  pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
+  rrc_log->set_level(args.log.rrc_level);
+  rrc_log->set_hex_limit(args.log.rrc_hex_limit);
+  usim_log->set_level(args.log.usim_level);
+  usim_log->set_hex_limit(args.log.usim_hex_limit);
+  nas_log->set_level(args.log.nas_level);
+  nas_log->set_hex_limit(args.log.nas_hex_limit);
 
   // Set up pcap
   if (args.pcap.enable) {
@@ -129,9 +125,9 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   }
 
   // Init USIM first to allow early exit in case reader couldn't be found
-  usim = usim_base::get_instance(&args.usim, &usim_log);
+  usim = usim_base::get_instance(&args.usim, usim_log.get());
   if (usim->init(&args.usim)) {
-    usim_log.console("Failed to initialize USIM.\n");
+    usim_log->console("Failed to initialize USIM.\n");
     return SRSLTE_ERROR;
   }
 
@@ -217,14 +213,14 @@ bool ue_stack_lte::switch_off()
 bool ue_stack_lte::enable_data()
 {
   // perform attach request
-  log.console("Turning off airplane mode.\n");
+  stack_log->console("Turning off airplane mode.\n");
   return switch_on();
 }
 
 bool ue_stack_lte::disable_data()
 {
   // generate detach request
-  log.console("Turning on airplane mode.\n");
+  stack_log->console("Turning on airplane mode.\n");
   int ret = nas.detach_request(false);
 
   // schedule airplane mode off command
@@ -277,7 +273,7 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bo
   };
   bool ret = pending_tasks.try_push(gw_queue_id, std::bind(task, std::move(sdu))).first;
   if (not ret) {
-    pdcp_log.warning("GW SDU with lcid=%d was discarded.\n", lcid);
+    pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
   }
 }
 
@@ -322,15 +318,15 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   if (args.have_tti_time_stats) {
     std::chrono::nanoseconds dur = tti_tprof.stop();
     if (dur > TTI_WARN_THRESHOLD_MS) {
-      mac_log.warning("%s: detected long duration=%ld ms\n",
-                      "proc_time",
-                      std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
+      mac_log->warning("%s: detected long duration=%ld ms\n",
+                       "proc_time",
+                       std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
     }
   }
 
   // print warning if PHY pushes new TTI messages faster than we process them
   if (pending_tasks.size(sync_queue_id) > SYNC_QUEUE_WARN_THRESHOLD) {
-    log.warning("Detected slow task processing (sync_queue_len=%zd).\n", pending_tasks.size(sync_queue_id));
+    stack_log->warning("Detected slow task processing (sync_queue_len=%zd).\n", pending_tasks.size(sync_queue_id));
   }
 }
 

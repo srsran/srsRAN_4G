@@ -241,7 +241,7 @@ compute_si_window(uint32_t tti, uint32_t sib_index, uint32_t n, uint32_t T, cons
 
 rrc::si_acquire_proc::si_acquire_proc(rrc* parent_) :
   rrc_ptr(parent_),
-  log_h(parent_->rrc_log),
+  log_h(srslte::logmap::get("RRC")),
   si_acq_timeout(rrc_ptr->stack->get_unique_timer()),
   si_acq_retry_timer(rrc_ptr->stack->get_unique_timer())
 {
@@ -363,7 +363,11 @@ proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
  *    Serving Cell Config Procedure
  *************************************/
 
-rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) : rrc_ptr(parent_), log_h(parent_->rrc_log) {}
+rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) :
+  rrc_ptr(parent_),
+  log_h(srslte::logmap::get("RRC"))
+{
+}
 
 /*
  * Retrieves all required SIB or configures them if already retrieved before
@@ -649,7 +653,7 @@ void rrc::cell_selection_proc::then(const srslte::proc_result_t<cs_result_t>& pr
  *       PLMN search Procedure
  *************************************/
 
-rrc::plmn_search_proc::plmn_search_proc(rrc* parent_) : rrc_ptr(parent_), log_h(parent_->rrc_log) {}
+rrc::plmn_search_proc::plmn_search_proc(rrc* parent_) : rrc_ptr(parent_), log_h(srslte::logmap::get("RRC")) {}
 
 proc_outcome_t rrc::plmn_search_proc::init()
 {
@@ -728,7 +732,11 @@ void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
  *     Connection Request Procedure
  *************************************/
 
-rrc::connection_request_proc::connection_request_proc(rrc* parent_) : rrc_ptr(parent_), log_h(parent_->rrc_log) {}
+rrc::connection_request_proc::connection_request_proc(rrc* parent_) :
+  rrc_ptr(parent_),
+  log_h(srslte::logmap::get("RRC"))
+{
+}
 
 proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t cause_,
                                                   srslte::unique_byte_buffer_t  dedicated_info_nas_)
@@ -892,7 +900,7 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
  *     Process PCCH procedure
  *************************************/
 
-rrc::process_pcch_proc::process_pcch_proc(srsue::rrc* parent_) : rrc_ptr(parent_), log_h(parent_->rrc_log) {}
+rrc::process_pcch_proc::process_pcch_proc(srsue::rrc* parent_) : rrc_ptr(parent_), log_h(srslte::logmap::get("RRC")) {}
 
 proc_outcome_t rrc::process_pcch_proc::init(const asn1::rrc::paging_s& paging_)
 {

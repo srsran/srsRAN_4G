@@ -30,7 +30,7 @@
 #include "proc_phr.h"
 #include "proc_ra.h"
 #include "proc_sr.h"
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
@@ -48,7 +48,7 @@ class mac : public mac_interface_phy_lte,
             public mac_interface_demux
 {
 public:
-  mac(srslte::log* log_);
+  mac(const char* logname);
   ~mac();
   bool init(phy_interface_mac_lte* phy,
             rlc_interface_mac*     rlc,
@@ -128,7 +128,7 @@ private:
   rlc_interface_mac*                         rlc_h   = nullptr;
   rrc_interface_mac*                         rrc_h   = nullptr;
   stack_interface_mac*                       stack_h = nullptr;
-  srslte::log*                               log_h;
+  srslte::log_ref                            log_h;
   mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg;
 
   // RNTI search window scheduling
@@ -177,7 +177,7 @@ private:
 
   mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
 
-  bool initialized    = false;
+  bool initialized = false;
 
   const uint8_t PCELL_CC_IDX = 0;
 };

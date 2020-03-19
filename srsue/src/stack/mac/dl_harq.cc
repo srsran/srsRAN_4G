@@ -34,7 +34,7 @@ namespace srsue {
 
 dl_harq_entity::dl_harq_entity(uint8_t cc_idx_) : proc(SRSLTE_MAX_HARQ_PROC), cc_idx(cc_idx_) {}
 
-bool dl_harq_entity::init(srslte::log* log_h_, mac_interface_rrc::ue_rnti_t* rntis_, demux* demux_unit_)
+bool dl_harq_entity::init(srslte::log_ref log_h_, mac_interface_rrc::ue_rnti_t* rntis_, demux* demux_unit_)
 {
   demux_unit = demux_unit_;
   log_h      = log_h_;

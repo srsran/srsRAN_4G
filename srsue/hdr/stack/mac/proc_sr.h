@@ -22,7 +22,7 @@
 #ifndef SRSUE_PROC_SR_H
 #define SRSUE_PROC_SR_H
 
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include <stdint.h>
 
@@ -34,7 +34,7 @@ class sr_proc
 {
 public:
   sr_proc();
-  void init(phy_interface_mac_lte* phy_h, rrc_interface_mac* rrc, srslte::log* log_h);
+  void init(phy_interface_mac_lte* phy_h, rrc_interface_mac* rrc, srslte::log_ref log_h);
   void step(uint32_t tti);
   void set_config(srslte::sr_cfg_t& cfg);
   void reset();
@@ -51,7 +51,7 @@ private:
 
   rrc_interface_mac*     rrc;
   phy_interface_mac_lte* phy_h;
-  srslte::log*           log_h;
+  srslte::log_ref        log_h;
 
   bool initiated;
   bool do_ra;

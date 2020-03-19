@@ -30,12 +30,12 @@
 
 namespace srsue {
 
-demux::demux(srslte::log* log_) :
-  mac_msg(20, log_),
-  mch_mac_msg(20, log_),
-  pending_mac_msg(20, log_),
+demux::demux(log_ref log_h_) :
+  log_h(log_h_),
+  mac_msg(20, log_h_),
+  mch_mac_msg(20, log_h_),
+  pending_mac_msg(20, log_h_),
   rlc(NULL),
-  log_h(log_),
   is_uecrid_successful(false),
   phy_h(nullptr),
   time_alignment_timer(nullptr),
@@ -101,18 +101,17 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
     is_uecrid_successful = false;
     while (pending_mac_msg.next()) {
       switch (pending_mac_msg.get()->ce_type()) {
-      case srslte::sch_subh::CON_RES_ID:
-        if (!is_uecrid_successful) {
-          Debug("Found Contention Resolution ID CE\n");
-          is_uecrid_successful = mac->contention_resolution_id_rcv(
-              pending_mac_msg.get()->get_con_res_id());
-        }
-        break;
-      case srslte::sch_subh::TA_CMD:
-        parse_ta_cmd(pending_mac_msg.get());
-        break;
-      default:
-        break;
+        case srslte::sch_subh::CON_RES_ID:
+          if (!is_uecrid_successful) {
+            Debug("Found Contention Resolution ID CE\n");
+            is_uecrid_successful = mac->contention_resolution_id_rcv(pending_mac_msg.get()->get_con_res_id());
+          }
+          break;
+        case srslte::sch_subh::TA_CMD:
+          parse_ta_cmd(pending_mac_msg.get());
+          break;
+        default:
+          break;
       }
     }
     pending_mac_msg.reset();
@@ -303,7 +302,8 @@ bool demux::process_ce(srslte::sch_subh* subh)
   return true;
 }
 
-void demux::parse_ta_cmd(srslte::sch_subh *subh) {
+void demux::parse_ta_cmd(srslte::sch_subh* subh)
+{
   phy_h->set_timeadv(subh->get_ta_cmd());
   Info("Received TA=%d (%d/%d) \n",
        subh->get_ta_cmd(),

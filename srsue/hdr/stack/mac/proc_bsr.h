@@ -25,7 +25,7 @@
 #include <map>
 #include <stdint.h>
 
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
@@ -55,7 +55,7 @@ class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
 {
 public:
   bsr_proc();
-  void init(rlc_interface_mac* rlc, srslte::log* log_h, srslte::timer_handler* timers_db);
+  void init(rlc_interface_mac* rlc, srslte::log_ref log_h, srslte::timer_handler* timers_db);
   void step(uint32_t tti);
   void reset();
   void set_config(srslte::bsr_cfg_t& bsr_cfg);
@@ -75,7 +75,7 @@ private:
 
   bool                   reset_sr;
   srslte::timer_handler* timers_db;
-  srslte::log*           log_h;
+  srslte::log_ref        log_h;
   rlc_interface_mac*     rlc;
 
   srslte::bsr_cfg_t bsr_cfg;

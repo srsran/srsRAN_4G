@@ -71,7 +71,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 
   // setup logging for each layer
   srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"MAC ", logger, true}});
-  srslte::log_ref mac_log = srslte::logmap::get("MAC ");
   mac_log->set_level(args.log.mac_level);
   mac_log->set_hex_limit(args.log.mac_hex_limit);
 
@@ -111,7 +110,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", &stack_log));
 
   // Init all layers
-  mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, this, mac_log.get());
+  mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, this, mac_log);
   rlc.init(&pdcp, &rrc, &mac, &timers, &rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);

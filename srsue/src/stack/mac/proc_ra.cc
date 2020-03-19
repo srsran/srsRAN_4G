@@ -59,7 +59,7 @@ int delta_preamble_db_table[5] = {0, 0, -3, -3, 8};
 // Initializes memory and pointers to other objects
 void ra_proc::init(phy_interface_mac_lte*               phy_h_,
                    rrc_interface_mac*                   rrc_,
-                   srslte::log*                         log_h_,
+                   srslte::log_ref                      log_h_,
                    mac_interface_rrc::ue_rnti_t*        rntis_,
                    srslte::timer_handler::unique_timer* time_alignment_timer_,
                    srslte::timer_handler::unique_timer  contention_resolution_timer_,

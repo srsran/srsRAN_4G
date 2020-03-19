@@ -40,7 +40,7 @@ ue::ue(uint16_t                 rnti_,
        rrc_interface_mac*       rrc_,
        rlc_interface_mac*       rlc_,
        phy_interface_stack_lte* phy_,
-       srslte::log*             log_,
+       srslte::log_ref          log_,
        uint32_t                 nof_rx_harq_proc_,
        uint32_t                 nof_tx_harq_proc_) :
   rnti(rnti_),

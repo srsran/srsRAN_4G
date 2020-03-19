@@ -28,7 +28,7 @@
 
 namespace srslte {
 
-void pdu_queue::init(process_callback* callback_, log* log_h_)
+void pdu_queue::init(process_callback* callback_, log_ref log_h_)
 {
   callback = callback_;
   log_h    = log_h_;

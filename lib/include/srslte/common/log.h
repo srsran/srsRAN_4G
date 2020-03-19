@@ -31,7 +31,6 @@
 #define SRSLTE_LOG_H
 
 #include <algorithm>
-#include <map>
 #include <stdint.h>
 #include <string>
 

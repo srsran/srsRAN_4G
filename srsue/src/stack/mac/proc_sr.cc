@@ -33,7 +33,7 @@ sr_proc::sr_proc()
   initiated = false;
 }
 
-void sr_proc::init(phy_interface_mac_lte* phy_h_, rrc_interface_mac* rrc_, srslte::log* log_h_)
+void sr_proc::init(phy_interface_mac_lte* phy_h_, rrc_interface_mac* rrc_, srslte::log_ref log_h_)
 {
   log_h      = log_h_;
   rrc        = rrc_;

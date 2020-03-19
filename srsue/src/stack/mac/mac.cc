@@ -37,7 +37,12 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-mac::mac(srslte::log* log_) : mch_msg(10, log_), mux_unit(log_), demux_unit(log_), pcap(nullptr), log_h(log_)
+mac::mac(const char* logname) :
+  log_h(srslte::logmap::get(logname)),
+  mch_msg(10, log_h),
+  mux_unit(log_h),
+  demux_unit(log_h),
+  pcap(nullptr)
 {
   // Create PCell HARQ entities
   auto ul = ul_harq_entity_ptr(new ul_harq_entity(PCELL_CC_IDX));

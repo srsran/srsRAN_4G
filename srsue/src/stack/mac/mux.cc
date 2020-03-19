@@ -32,7 +32,7 @@
 
 namespace srsue {
 
-mux::mux(srslte::log* log_) : pdu_msg(MAX_NOF_SUBHEADERS, log_), log_h(log_)
+mux::mux(srslte::log_ref log_) : pdu_msg(MAX_NOF_SUBHEADERS, log_), log_h(log_)
 {
   msg3_flush();
 }

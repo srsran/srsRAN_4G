@@ -45,7 +45,7 @@ public:
      rrc_interface_mac*       rrc_,
      rlc_interface_mac*       rlc,
      phy_interface_stack_lte* phy_,
-     srslte::log*             log_,
+     srslte::log_ref          log_,
      uint32_t                 nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
      uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB);
   virtual ~ue();
@@ -149,10 +149,10 @@ private:
   srslte::sch_pdu   mac_msg_dl, mac_msg_ul;
   srslte::mch_pdu   mch_mac_msg_dl;
 
-  rlc_interface_mac*       rlc   = nullptr;
-  rrc_interface_mac*       rrc   = nullptr;
-  phy_interface_stack_lte* phy   = nullptr;
-  srslte::log*             log_h = nullptr;
+  rlc_interface_mac*       rlc = nullptr;
+  rrc_interface_mac*       rrc = nullptr;
+  phy_interface_stack_lte* phy = nullptr;
+  srslte::log_ref          log_h;
   sched_interface*         sched = nullptr;
 
   bool conres_id_available = false;

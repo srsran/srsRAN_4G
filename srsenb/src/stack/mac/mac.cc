@@ -57,7 +57,7 @@ bool mac::init(const mac_args_t&        args_,
                rlc_interface_mac*       rlc,
                rrc_interface_mac*       rrc,
                stack_interface_mac_lte* stack_,
-               srslte::log*             log_h_)
+               srslte::log_ref          log_h_)
 {
   started = false;
 

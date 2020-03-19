@@ -142,21 +142,21 @@ private:
 
   bool                  running;
   srsue::stack_args_t   args;
-  std::vector<uint32_t> proc_time;
   srslte::tti_point     current_tti;
 
   // timers
   srslte::timer_handler timers;
 
   // UE stack logging
-  srslte::logger*    logger = nullptr;
-  srslte::log_filter log; ///< our own log filter
-  srslte::log_filter mac_log;
-  srslte::log_filter rlc_log;
-  srslte::log_filter pdcp_log;
-  srslte::log_filter rrc_log;
-  srslte::log_filter usim_log;
-  srslte::log_filter pool_log;
+  srslte::logger* logger = nullptr;
+  srslte::log_ref stack_log; ///< our own log filter
+  srslte::log_ref mac_log;
+  srslte::log_ref rlc_log;
+  srslte::log_ref pdcp_log;
+  srslte::log_ref rrc_log;
+  srslte::log_ref usim_log;
+  srslte::log_ref nas_log;
+  srslte::log_ref pool_log;
 
   // stack components
   srsue::mac                 mac;

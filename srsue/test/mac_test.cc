@@ -45,6 +45,8 @@ static std::unique_ptr<srslte::mac_pcap> pcap_handle = nullptr;
     }                                                                                                                  \
   }
 
+srslte::log_ref mac_log{"MAC"};
+
 namespace srslte {
 
 // fake classes
@@ -384,11 +386,8 @@ int mac_unpack_test()
                           0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x13, 0x89, 0x00, 0x00};
 
   srslte::log_filter    rlc_log("RLC");
-  srslte::log_filter    mac_log("MAC");
   srslte::timer_handler timers(64);
 
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
@@ -399,7 +398,7 @@ int mac_unpack_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
 
@@ -441,10 +440,6 @@ int mac_ul_sch_pdu_test1()
 {
   const uint8_t tv[] = {0x3f, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -458,7 +453,7 @@ int mac_ul_sch_pdu_test1()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -482,7 +477,7 @@ int mac_ul_sch_pdu_test1()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -511,10 +506,6 @@ int mac_ul_logical_channel_prioritization_test1()
   const uint8_t tv[] = {0x21, 0x0a, 0x22, 0x04, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
                         0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02, 0x02, 0x03, 0x03};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -528,7 +519,7 @@ int mac_ul_logical_channel_prioritization_test1()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -585,7 +576,7 @@ int mac_ul_logical_channel_prioritization_test1()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -626,10 +617,6 @@ int mac_ul_logical_channel_prioritization_test2()
                         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03,
                         0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x00};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -643,7 +630,7 @@ int mac_ul_logical_channel_prioritization_test2()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -700,7 +687,7 @@ int mac_ul_logical_channel_prioritization_test2()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -728,10 +715,6 @@ int mac_ul_logical_channel_prioritization_test3()
   const uint8_t tv[] = {0x24, 0x0a, 0x03, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04,
                         0x04, 0x04, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03, 0x03};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -745,7 +728,7 @@ int mac_ul_logical_channel_prioritization_test3()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -797,7 +780,7 @@ int mac_ul_logical_channel_prioritization_test3()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -818,10 +801,6 @@ int mac_ul_sch_pdu_with_short_bsr_test()
 {
   const uint8_t tv[] = {0x3f, 0x3d, 0x01, 0x02, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -835,7 +814,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -887,7 +866,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -906,10 +885,6 @@ int mac_ul_sch_pdu_with_short_bsr_test()
 // PDU with only padding BSR (long BSR) and the rest padding
 int mac_ul_sch_pdu_with_padding_bsr_test()
 {
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -923,7 +898,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -947,7 +922,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -982,7 +957,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -1003,10 +978,6 @@ int mac_ul_sch_pdu_one_byte_test()
 {
   const uint8_t tv[] = {0x1f};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -1020,7 +991,7 @@ int mac_ul_sch_pdu_one_byte_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -1044,7 +1015,7 @@ int mac_ul_sch_pdu_one_byte_test()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -1065,10 +1036,6 @@ int mac_ul_sch_pdu_two_byte_test()
 {
   const uint8_t tv[] = {0x01, 0x01};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -1082,7 +1049,7 @@ int mac_ul_sch_pdu_two_byte_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -1106,7 +1073,7 @@ int mac_ul_sch_pdu_two_byte_test()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -1127,10 +1094,6 @@ int mac_ul_sch_pdu_three_byte_test()
 {
   const uint8_t tv[] = {0x3f, 0x01, 0x01};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -1144,7 +1107,7 @@ int mac_ul_sch_pdu_three_byte_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
@@ -1168,7 +1131,7 @@ int mac_ul_sch_pdu_three_byte_test()
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
 
     // print generated PDU
-    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+    mac_log->info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
 #if HAVE_PCAP
     pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
 #endif
@@ -1371,10 +1334,6 @@ int mac_random_access_test()
   phy_log.set_level(srslte::LOG_LEVEL_DEBUG);
   phy_log.set_hex_limit(100000);
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
@@ -1399,7 +1358,7 @@ int mac_random_access_test()
       asn1::rrc::rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_opts::sf8;
 
   // Configure MAC
-  mac mac(&mac_log);
+  mac mac("MAC");
   stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   srslte::mac_cfg_t mac_cfg;
@@ -1437,7 +1396,7 @@ int mac_random_access_test()
 
   // Test 1: No RAR is received.
   //         According to end of 5.1.5, UE sends up to preamb_trans_max upon which indicates RA problem to higher layers
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   my_test.rach_cfg   = rach_cfg;
   my_test.nof_prachs = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
@@ -1455,7 +1414,7 @@ int mac_random_access_test()
   // Test 2: RAR received but no matching RAPID
   //         The UE receives a RAR without a matching RAPID on every RAR response window TTI.
   //         According to 5.1.5, the RA procedure is considered non successful and tries again
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   my_test.rar_nof_rapid         = 1;
   my_test.nof_prachs            = 1;
   my_test.rar_nof_invalid_rapid = rach_cfg.ra_supervision_info.ra_resp_win_size.to_number();
@@ -1464,7 +1423,7 @@ int mac_random_access_test()
   // Test 3: RAR received but no matching RAPID. Test Msg3 retransmissions
   //         On each HARQ retx, contention resolution timer must be restarted (5.1.5)
   //         When max-HARQ-msg3-retx, contention not successful
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   my_test.rar_nof_invalid_rapid = 0;
   my_test.nof_msg3_retx         = rach_cfg.max_harq_msg3_tx;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
@@ -1472,14 +1431,14 @@ int mac_random_access_test()
   // Test 4: RAR with valid RAPID. Msg3 transmitted, Msg4 received but invalid ConRes
   //         Contention resolution is defined in 5.1.5. If ConResID does not match, the ConRes is considered
   //         not successful and tries again
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   phy.reset();
   my_test.nof_msg3_retx = 0;
   my_test.msg4_enable   = true;
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
 
   // Test 5: Msg4 received and valid ConRes. In this case a valid ConResID is received and RA procedure is successful
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   my_test.msg4_valid_conres        = true;
   my_test.check_ra_successful      = true;
@@ -1491,7 +1450,7 @@ int mac_random_access_test()
   //         To trigger a new RA we have to either generate more data for DRB or wait until BSR-reTX is triggered
   rlc.write_sdu(3, 100);
   phy.set_crnti(0);
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   my_test.crnti = my_test.temp_rnti;
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   my_test.assume_prach_transmitted = -1;
@@ -1502,7 +1461,7 @@ int mac_random_access_test()
   //         It is similar to Test 5 because C-RNTI is available to the UE when start the RA but
   //         In this case we will let the procedure expire the Contention Resolution window and make sure
   //         and RRC HO fail signal is sent to RRC.
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   phy.set_prach_tti(tti + phy.prach_delay);
   phy.set_crnti(0);
   mac.start_cont_ho();
@@ -1519,7 +1478,7 @@ int mac_random_access_test()
   TESTASSERT(!rrc.ho_finish_successful && rrc.ho_finish);
 
   // Test 8: Test Contention based Random Access. Same as above but we let the procedure finish successfully.
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   phy.set_prach_tti(tti + phy.prach_delay);
   phy.set_crnti(0);
   mac.start_cont_ho();
@@ -1535,7 +1494,7 @@ int mac_random_access_test()
   // Test 9: Test non-Contention based HO. Used in HO but preamble is given by the network. In addition to checking
   //         that the given preamble is correctly passed to the PHY, in this case there is no contention.
   //         In this first test, no RAR is received and RA procedure fails
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   phy.set_prach_tti(tti + phy.prach_delay);
   mac.run_tti(tti++);
   timers.step_all();
@@ -1553,7 +1512,7 @@ int mac_random_access_test()
 
   // Test 10: Test non-Contention based HO. Used in HO but preamble is given by the network. We check that
   //         the procedure is considered successful without waiting for contention
-  mac_log.info("\n=========== Test %d =============\n", test_id++);
+  mac_log->info("\n=========== Test %d =============\n", test_id++);
   phy.set_prach_tti(tti + phy.prach_delay);
   mac.run_tti(tti++);
   timers.step_all();
@@ -1581,6 +1540,9 @@ int main(int argc, char** argv)
   pcap_handle = std::unique_ptr<srslte::mac_pcap>(new srslte::mac_pcap());
   pcap_handle->open("mac_test.pcap");
 #endif
+
+  mac_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log->set_hex_limit(100000);
 
   if (mac_unpack_test()) {
     printf("MAC PDU unpack test failed.\n");

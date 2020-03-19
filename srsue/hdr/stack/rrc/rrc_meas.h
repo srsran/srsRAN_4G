@@ -41,7 +41,7 @@ typedef std::vector<phy_interface_rrc_lte::phy_cell_t> cell_triggered_t;
 class rrc::rrc_meas
 {
 public:
-  rrc_meas(srslte::log* log_) : meas_cfg(&meas_report_list, log_), meas_report_list(&meas_cfg, log_), log_h(log_) {}
+  rrc_meas() : meas_cfg(&meas_report_list), meas_report_list(&meas_cfg), log_h(srslte::logmap::get("RRC")) {}
   void init(rrc* rrc_ptr);
   void reset();
   bool parse_meas_config(const rrc_conn_recfg_r8_ies_s* meas_config, bool is_ho_reest = false, uint32_t src_earfcn = 0);
@@ -61,7 +61,7 @@ private:
   class var_meas_report_list
   {
   public:
-    var_meas_report_list(var_meas_cfg* meas_cfg_, srslte::log* log_) : meas_cfg(meas_cfg_), log_h(log_) {}
+    var_meas_report_list(var_meas_cfg* meas_cfg_) : meas_cfg(meas_cfg_), log_h(srslte::logmap::get("RRC")) {}
     void             init(rrc* rrc);
     void             generate_report(const uint32_t measId);
     void             remove_all_varmeas_reports();
@@ -85,8 +85,8 @@ private:
       srslte::timer_handler::unique_timer periodic_timer      = {};
     };
     var_meas_cfg*                       meas_cfg = nullptr;
-    srslte::log*                        log_h    = nullptr;
-    rrc*                                rrc_ptr  = nullptr;
+    srslte::log_ref                     log_h;
+    rrc*                                rrc_ptr = nullptr;
     std::map<uint32_t, var_meas_report> varMeasReportList;
   };
 
@@ -95,7 +95,7 @@ private:
   class var_meas_cfg
   {
   public:
-    var_meas_cfg(var_meas_report_list* meas_report_, srslte::log* log_) : meas_report(meas_report_), log_h(log_) {}
+    var_meas_cfg(var_meas_report_list* meas_report_) : meas_report(meas_report_), log_h(srslte::logmap::get("RRC")) {}
     void                        init(rrc* rrc);
     void                        reset();
     phy_quant_t                 get_filter_a();
@@ -145,14 +145,14 @@ private:
     std::map<uint32_t, std::map<uint32_t, cell_trigger_state> > trigger_state;
 
     var_meas_report_list* meas_report = nullptr;
-    srslte::log*          log_h       = nullptr;
-    rrc*                  rrc_ptr     = nullptr;
+    srslte::log_ref       log_h;
+    rrc*                  rrc_ptr = nullptr;
   };
 
   std::mutex           meas_cfg_mutex;
   var_meas_cfg         meas_cfg;
   var_meas_report_list meas_report_list;
-  srslte::log*         log_h   = nullptr;
+  srslte::log_ref      log_h;
   rrc*                 rrc_ptr = nullptr;
 
   // Static functions

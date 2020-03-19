@@ -45,7 +45,7 @@ class ul_harq_entity
 public:
   ul_harq_entity(const uint8_t cc_idx_);
 
-  bool init(srslte::log* log_h_, mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* ra_proc_h_, mux* mux_unit_);
+  bool init(srslte::log_ref log_h_, mac_interface_rrc_common::ue_rnti_t* rntis_, ra_proc* ra_proc_h_, mux* mux_unit_);
 
   void reset();
   void reset_ndi();
@@ -91,7 +91,7 @@ private:
     bool     is_grant_configured;
     bool     is_initiated;
 
-    srslte::log*           log_h;
+    srslte::log_ref        log_h;
     ul_harq_entity*        harq_entity;
     srslte_softbuffer_tx_t softbuffer;
 
@@ -110,7 +110,7 @@ private:
 
   mux*              mux_unit = nullptr;
   srslte::mac_pcap* pcap     = nullptr;
-  srslte::log*      log_h    = nullptr;
+  srslte::log_ref   log_h;
 
   mac_interface_rrc_common::ue_rnti_t* rntis    = nullptr;
   srslte::ul_harq_cfg_t                harq_cfg = {};

@@ -137,7 +137,7 @@ struct mutexed_tprof<Prof, false> {
   explicit mutexed_tprof(Args&&... args)
   {
   }
-  measure start() {}
+  measure start() { return measure{}; }
 };
 
 struct avg_time_stats {

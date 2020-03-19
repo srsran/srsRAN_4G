@@ -31,8 +31,6 @@
 
 namespace srslte {
 
-class log_filter;
-
 class log_ref
 {
   using ptr_type = std::unique_ptr<log>*;
@@ -40,6 +38,7 @@ class log_ref
 public:
   log_ref() = default;
   explicit log_ref(ptr_type p) : ptr_(p) {}
+  explicit log_ref(const char* name);
 
   // works like a log*
   log* operator->() { return ptr_->get(); }

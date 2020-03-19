@@ -42,7 +42,7 @@ public:
 class demux : public srslte::pdu_queue::process_callback
 {
 public:
-  demux(srslte::log* log_);
+  demux(srslte::log_ref log_h_);
   void init(phy_interface_mac_common*            phy_h_,
             rlc_interface_mac*                   rlc,
             mac_interface_demux*                 mac,
@@ -68,6 +68,12 @@ private:
   const static int MAX_BCCH_PDU_LEN = 1024;
   uint8_t          bcch_buffer[MAX_BCCH_PDU_LEN]; // BCCH PID has a dedicated buffer
 
+  // args
+  srslte::log_ref           log_h;
+  phy_interface_mac_common* phy_h = nullptr;
+  rlc_interface_mac*        rlc   = nullptr;
+  mac_interface_demux*      mac   = nullptr;
+
   srslte::sch_pdu mac_msg;
   srslte::mch_pdu mch_mac_msg;
   srslte::sch_pdu pending_mac_msg;
@@ -76,15 +82,11 @@ private:
   void            process_sch_pdu(srslte::sch_pdu* pdu);
   void            process_mch_pdu(srslte::mch_pdu* pdu);
   bool            process_ce(srslte::sch_subh* subheader);
-  void            parse_ta_cmd(srslte::sch_subh *subh);
+  void            parse_ta_cmd(srslte::sch_subh* subh);
 
   bool is_uecrid_successful;
 
-  phy_interface_mac_common*            phy_h                = nullptr;
-  srslte::log*                         log_h                = nullptr;
   srslte::timer_handler::unique_timer* time_alignment_timer = nullptr;
-  rlc_interface_mac*                   rlc                  = nullptr;
-  mac_interface_demux*                 mac                  = nullptr;
 
   // Buffer of PDUs
   srslte::pdu_queue pdus;

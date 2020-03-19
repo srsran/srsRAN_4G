@@ -100,8 +100,8 @@ private:
   void start_si_acquire();
 
   // conts
-  rrc*         rrc_ptr;
-  srslte::log* log_h;
+  rrc*            rrc_ptr;
+  srslte::log_ref log_h;
 
   // state
   srslte::timer_handler::unique_timer si_acq_timeout, si_acq_retry_timer;
@@ -118,8 +118,8 @@ public:
   static const char*     name() { return "Serving Cell Configuration"; }
 
 private:
-  rrc*         rrc_ptr;
-  srslte::log* log_h;
+  rrc*            rrc_ptr;
+  srslte::log_ref log_h;
 
   srslte::proc_outcome_t launch_sib_acquire();
 
@@ -176,8 +176,8 @@ public:
 
 private:
   // consts
-  rrc*         rrc_ptr;
-  srslte::log* log_h;
+  rrc*            rrc_ptr;
+  srslte::log_ref log_h;
 
   // state variables
   found_plmn_t                                                    found_plmns[MAX_FOUND_PLMNS];
@@ -197,8 +197,8 @@ public:
 
 private:
   // const
-  rrc*         rrc_ptr;
-  srslte::log* log_h;
+  rrc*            rrc_ptr;
+  srslte::log_ref log_h;
   // args
   srslte::establishment_cause_t cause;
   srslte::unique_byte_buffer_t  dedicated_info_nas;
@@ -225,7 +225,7 @@ public:
 private:
   // args
   rrc*                rrc_ptr;
-  srslte::log*        log_h;
+  srslte::log_ref     log_h;
   asn1::rrc::paging_s paging;
 
   // vars

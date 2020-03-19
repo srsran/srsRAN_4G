@@ -30,7 +30,7 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -274,7 +274,7 @@ class rrc : public rrc_interface_nas,
             public srslte::timer_callback
 {
 public:
-  rrc(srslte::log* rrc_log_, stack_interface_rrc* stack_);
+  rrc(stack_interface_rrc* stack_);
   ~rrc();
 
   void init(phy_interface_rrc_lte* phy_,
@@ -362,7 +362,7 @@ private:
 
   stack_interface_rrc*      stack   = nullptr;
   srslte::byte_buffer_pool* pool    = nullptr;
-  srslte::log*              rrc_log = nullptr;
+  srslte::log_ref             rrc_log;
   phy_interface_rrc_lte*    phy     = nullptr;
   mac_interface_rrc*        mac     = nullptr;
   rlc_interface_rrc*        rlc     = nullptr;

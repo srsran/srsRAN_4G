@@ -59,8 +59,8 @@ void sch_pdu::parse_packet(uint8_t* ptr)
       subheaders[nof_subheaders - 1].set_payload_size(n_sub);
     } else {
       ERROR("Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
-      if (log) {
-        log->info_hex(ptr, pdu_len, "Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
+      if (log_h) {
+        log_h->info_hex(ptr, pdu_len, "Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
       }
 
       // reset PDU
@@ -71,11 +71,11 @@ void sch_pdu::parse_packet(uint8_t* ptr)
 
 uint8_t* sch_pdu::write_packet()
 {
-  return write_packet(NULL);
+  return write_packet(srslte::log_ref{"MAC "});
 }
 
 /* Writes the MAC PDU in the packet, including the MAC headers and CE payload. Section 6.1.2 */
-uint8_t* sch_pdu::write_packet(srslte::log* log_h)
+uint8_t* sch_pdu::write_packet(srslte::log_ref log_h)
 {
   // set padding to remaining length in PDU
   uint32_t num_padding = rem_len;
@@ -858,7 +858,7 @@ void rar_pdu::fprint(FILE* stream)
   pdu::fprint(stream);
 }
 
-rar_pdu::rar_pdu(uint32_t max_rars_, srslte::log* log_) : pdu(max_rars_, log_)
+rar_pdu::rar_pdu(uint32_t max_rars_, srslte::log_ref log_) : pdu(max_rars_, log_)
 {
   backoff_indicator     = 0;
   has_backoff_indicator = false;

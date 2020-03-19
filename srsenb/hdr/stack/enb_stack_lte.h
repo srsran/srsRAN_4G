@@ -149,6 +149,7 @@ private:
   srslte::byte_buffer_pool* pool   = nullptr;
 
   // Radio and PHY log are in enb.cc
+  srslte::log_ref    mac_log{"MAC "};
   srslte::log_filter rlc_log;
   srslte::log_filter pdcp_log;
   srslte::log_filter rrc_log;

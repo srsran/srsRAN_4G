@@ -182,9 +182,9 @@ int mac_sch_pdu_pack_test1()
 
   rlc_dummy rlc;
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
+  srslte::log_ref mac_log = srslte::logmap::get("MAC");
+  mac_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log->set_hex_limit(100000);
 
   // create RLC SDUs
   const uint32_t sdu_len = 8;
@@ -192,7 +192,7 @@ int mac_sch_pdu_pack_test1()
   rlc.write_sdu(2, sdu_len);
 
   const uint32_t  pdu_size = 25;
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, mac_log);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -215,11 +215,11 @@ int mac_sch_pdu_pack_test1()
   TESTASSERT(pdu.rem_size() == pdu_size - 16 - 3);
 
   // write PDU
-  TESTASSERT(pdu.write_packet(&mac_log) == buffer.msg);
+  TESTASSERT(pdu.write_packet(mac_log) == buffer.msg);
   TESTASSERT(buffer.N_bytes == pdu_size);
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -244,9 +244,9 @@ int mac_sch_pdu_pack_test2()
 
   rlc_dummy rlc;
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
+  srslte::log_ref mac_log = srslte::logmap::get("MAC");
+  mac_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log->set_hex_limit(100000);
 
   // create RLC SDUs
   const uint32_t sdu_len = 8;
@@ -255,7 +255,7 @@ int mac_sch_pdu_pack_test2()
 
   const uint32_t pdu_size = 21;
 
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, mac_log);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -278,10 +278,10 @@ int mac_sch_pdu_pack_test2()
   TESTASSERT(pdu.rem_size() == pdu_size - 16 - 3);
 
   // write PDU
-  pdu.write_packet(&mac_log);
+  pdu.write_packet(mac_log);
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -312,9 +312,7 @@ int mac_sch_pdu_pack_test3()
 
   rlc_dummy rlc;
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
+  srslte::log_ref mac_log("MAC");
 
   // create RLC SDUs
   // const uint32_t sdu_len = 130;
@@ -322,7 +320,7 @@ int mac_sch_pdu_pack_test3()
   rlc.write_sdu(2, 130);
 
   const uint32_t  pdu_size = 150;
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -345,10 +343,10 @@ int mac_sch_pdu_pack_test3()
   TESTASSERT(pdu.rem_size() == pdu_size - 138 - 3);
 
   // write PDU
-  pdu.write_packet(&mac_log);
+  pdu.write_packet(srslte::log_ref{"MAC"});
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -371,12 +369,10 @@ int mac_sch_pdu_pack_test4()
 
   rlc_dummy rlc;
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
+  srslte::log_ref mac_log("MAC");
 
   const uint32_t  pdu_size = 10;
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -394,13 +390,13 @@ int mac_sch_pdu_pack_test4()
   pdu.del_subh();
 
   // write PDU
-  pdu.write_packet(&mac_log);
+  pdu.write_packet(srslte::log_ref{"MAC"});
 
   // make sure full PDU has been written
   TESTASSERT(buffer.N_bytes == pdu_size);
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -417,15 +413,13 @@ int mac_sch_pdu_pack_test5()
 {
   rlc_dummy rlc;
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(32);
+  srslte::log_ref mac_log("MAC");
 
   // write big SDU
   rlc.write_sdu(2, 20000);
 
   const uint32_t  pdu_size = SRSLTE_MAX_TBSIZE_BITS / 8; // Max. DL allocation for a single TB using 256 QAM
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -440,13 +434,13 @@ int mac_sch_pdu_pack_test5()
   TESTASSERT(pdu.get()->set_sdu(2, pdu_size - 1, &rlc) != 0);
 
   // write PDU
-  pdu.write_packet(&mac_log);
+  pdu.write_packet(srslte::log_ref{"MAC"});
 
   // make sure full PDU has been written
   TESTASSERT(buffer.N_bytes == pdu_size);
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -458,12 +452,10 @@ int mac_sch_pdu_pack_test5()
 // Test for BSR CE
 int mac_sch_pdu_pack_test6()
 {
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(32);
+  srslte::log_ref mac_log("MAC");
 
   const uint32_t  pdu_size = 8;
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
   uint8_t tv[pdu_size] = {0x3e, 0x1f, 0x01, 0xfa, 0x7f, 0x00, 0x00, 0x00};
 
@@ -481,13 +473,13 @@ int mac_sch_pdu_pack_test6()
   TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::sch_subh::LONG_BSR));
 
   // write PDU
-  pdu.write_packet(&mac_log);
+  pdu.write_packet(srslte::log_ref{"MAC"});
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -499,15 +491,13 @@ int mac_sch_pdu_pack_test6()
 // Test for short MAC PDU containing padding only
 int mac_sch_pdu_pack_test7()
 {
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(32);
+  srslte::log_ref mac_log("MAC");
 
   rlc_dummy rlc;
   rlc.write_sdu(1, 8);
 
   const uint32_t  pdu_size = 2;
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
   uint8_t tv[pdu_size] = {0x1f, 0x1f};
 
@@ -529,13 +519,13 @@ int mac_sch_pdu_pack_test7()
   pdu.del_subh();
 
   // write PDU
-  pdu.write_packet(&mac_log);
+  pdu.write_packet(srslte::log_ref{"MAC"});
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -547,10 +537,10 @@ int mac_sch_pdu_pack_test7()
 // Test Packing of SCell Activation CE command
 int mac_sch_pdu_pack_test8()
 {
-  srslte::log_ref log_h = logmap::get("MAC");
+  srslte::log_ref log_h{"MAC"};
 
   const uint32_t  pdu_size = 2;
-  srslte::sch_pdu pdu(10, log_h.get());
+  srslte::sch_pdu pdu(10, log_h);
   std::bitset<8>  cc_mask(uniform_dist_u8(rand_gen));
 
   // subheader: R|F2|E|LCID = 0|0|0|11011
@@ -577,7 +567,7 @@ int mac_sch_pdu_pack_test8()
   TESTASSERT(pdu.get()->set_scell_activation_cmd(cc_activ_list));
 
   // write PDU
-  pdu.write_packet(log_h.get());
+  pdu.write_packet(log_h);
 
   // compare with tv
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
@@ -602,15 +592,13 @@ int mac_sch_pdu_pack_error_test()
 
   rlc_dummy rlc;
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
+  srslte::log_ref mac_log("MAC");
 
   // create RLC SDUs
   rlc.write_sdu(1, 8);
 
   const uint32_t  pdu_size = 150;
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -631,7 +619,7 @@ int mac_sch_pdu_pack_error_test()
   TESTASSERT(pdu.get()->set_sdu(1, 8, &rlc) == SRSLTE_ERROR);
 
   // writing PDU fails
-  TESTASSERT(pdu.write_packet(&mac_log) == nullptr);
+  TESTASSERT(pdu.write_packet(srslte::log_ref{"MAC"}) == nullptr);
 
   // reset buffer
   buffer.clear();
@@ -641,10 +629,10 @@ int mac_sch_pdu_pack_error_test()
   TESTASSERT(pdu.get()->set_sdu(1, 100, &rlc) == 8); // only 8 bytes in RLC buffer
 
   // writing PDU fails
-  TESTASSERT(pdu.write_packet(&mac_log));
+  TESTASSERT(pdu.write_packet(srslte::log_ref{"MAC"}));
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -658,12 +646,10 @@ int mac_mch_pdu_pack_test1()
   static uint8_t tv[] = {0x3e, 0x02, 0x20, 0x05, 0x21, 0x0a, 0x1f, 0x0f, 0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x02,
                          0x04, 0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
+  srslte::log_ref mac_log("MAC");
 
   const uint32_t  pdu_size = 30;
-  srslte::mch_pdu mch_pdu(10, &mac_log);
+  srslte::mch_pdu mch_pdu(10, srslte::log_ref{"MAC"});
   byte_buffer_t   buffer;
   mch_pdu.init_tx(&buffer, pdu_size, true);
 
@@ -685,10 +671,10 @@ int mac_mch_pdu_pack_test1()
   mch_pdu.get()->set_sdu(1, 10, sdu1);
 
   // write PDU
-  TESTASSERT(mch_pdu.write_packet(&mac_log) == buffer.msg);
+  TESTASSERT(mch_pdu.write_packet(srslte::log_ref{"MAC"}) == buffer.msg);
 
   // log
-  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+  mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
@@ -709,11 +695,7 @@ int mac_sch_pdu_unpack_test1()
 {
   static uint8_t tv[] = {0x3f, 0x3f, 0x21, 0x3f, 0x03, 0x00, 0x04, 0x00, 0x04};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
-  srslte::sch_pdu pdu(10, &mac_log);
+  srslte::sch_pdu pdu(10, srslte::log_ref{"MAC"});
   pdu.init_rx(sizeof(tv), false);
   pdu.parse_packet(tv);
 
@@ -733,11 +715,7 @@ int mac_sch_pdu_unpack_test2()
 {
   static uint8_t tv[] = {0x3f, 0x3f};
 
-  srslte::log_filter mac_log("MAC");
-  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  mac_log.set_hex_limit(100000);
-
-  srslte::sch_pdu pdu(20, &mac_log);
+  srslte::sch_pdu pdu(20, srslte::log_ref{"MAC"});
   pdu.init_rx(sizeof(tv), false);
   pdu.parse_packet(tv);
 
@@ -760,6 +738,10 @@ int main(int argc, char** argv)
 #endif
   logmap::set_default_hex_limit(100000);
   logmap::set_default_log_level(LOG_LEVEL_DEBUG);
+
+  srslte::log_ref mac_log{"MAC"};
+  mac_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log->set_hex_limit(100000);
 
   if (mac_rar_pdu_unpack_test1()) {
     fprintf(stderr, "mac_rar_pdu_unpack_test1 failed.\n");

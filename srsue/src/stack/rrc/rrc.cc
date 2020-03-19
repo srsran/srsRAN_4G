@@ -83,12 +83,12 @@ bool cell_t::is_sib_scheduled(uint32_t sib_index) const
   Base functions
 *******************************************************************************/
 
-rrc::rrc(srslte::log* rrc_log_, stack_interface_rrc* stack_) :
+rrc::rrc(stack_interface_rrc* stack_) :
   stack(stack_),
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
-  rrc_log(rrc_log_),
+  rrc_log(srslte::logmap::get("RRC")),
   cell_searcher(this),
   si_acquirer(this),
   serv_cell_cfg(this),
@@ -101,7 +101,7 @@ rrc::rrc(srslte::log* rrc_log_, stack_interface_rrc* stack_) :
   connection_reest(this),
   serving_cell(unique_cell_t(new cell_t()))
 {
-  measurements = std::unique_ptr<rrc_meas>(new rrc_meas(rrc_log));
+  measurements = std::unique_ptr<rrc_meas>(new rrc_meas());
 }
 
 rrc::~rrc() = default;
@@ -591,7 +591,7 @@ void rrc::log_neighbour_cells()
   if (not neighbour_cells.empty()) {
     const int32_t MAX_STR_LEN          = 512;
     char          ordered[MAX_STR_LEN] = {};
-    int  n            = 0;
+    int           n                    = 0;
     n += snprintf(ordered, MAX_STR_LEN, "[%s", neighbour_cells[0]->to_string().c_str());
     for (uint32_t i = 1; i < neighbour_cells.size(); i++) {
       if (MAX_STR_LEN - n > 0) { // make sure there is still room left

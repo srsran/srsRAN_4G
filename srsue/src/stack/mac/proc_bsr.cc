@@ -32,7 +32,6 @@ namespace srsue {
 
 bsr_proc::bsr_proc()
 {
-  log_h              = NULL;
   initiated          = false;
   current_tti        = 0;
   trigger_tti        = 0;
@@ -41,7 +40,7 @@ bsr_proc::bsr_proc()
   pthread_mutex_init(&mutex, NULL);
 }
 
-void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log* log_h_, srslte::timer_handler* timers_db_)
+void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log_ref log_h_, srslte::timer_handler* timers_db_)
 {
   log_h     = log_h_;
   rlc       = rlc_;

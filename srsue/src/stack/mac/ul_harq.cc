@@ -35,7 +35,7 @@ namespace srsue {
 
 ul_harq_entity::ul_harq_entity(const uint8_t cc_idx_) : proc(SRSLTE_MAX_HARQ_PROC), cc_idx(cc_idx_) {}
 
-bool ul_harq_entity::init(srslte::log*                         log_h_,
+bool ul_harq_entity::init(srslte::log_ref                      log_h_,
                           mac_interface_rrc_common::ue_rnti_t* rntis_,
                           ra_proc*                             ra_procedure_,
                           mux*                                 mux_unit_)
@@ -68,9 +68,9 @@ void ul_harq_entity::reset_ndi()
   }
 }
 
-void ul_harq_entity::set_config(srslte::ul_harq_cfg_t& harq_cfg)
+void ul_harq_entity::set_config(srslte::ul_harq_cfg_t& harq_cfg_)
 {
-  this->harq_cfg = harq_cfg;
+  harq_cfg = harq_cfg_;
 }
 
 void ul_harq_entity::start_pcap(srslte::mac_pcap* pcap_)
@@ -121,7 +121,6 @@ float ul_harq_entity::get_average_retx()
 
 ul_harq_entity::ul_harq_process::ul_harq_process()
 {
-  log_h          = NULL;
   pdu_ptr        = NULL;
   payload_buffer = NULL;
 
@@ -143,7 +142,7 @@ ul_harq_entity::ul_harq_process::~ul_harq_process()
   }
 }
 
-bool ul_harq_entity::ul_harq_process::init(uint32_t pid, ul_harq_entity* parent)
+bool ul_harq_entity::ul_harq_process::init(uint32_t pid_, ul_harq_entity* parent)
 {
   if (srslte_softbuffer_tx_init(&softbuffer, 110)) {
     ERROR("Error initiating soft buffer\n");
@@ -153,7 +152,7 @@ bool ul_harq_entity::ul_harq_process::init(uint32_t pid, ul_harq_entity* parent)
   harq_entity  = parent;
   log_h        = harq_entity->log_h;
   is_initiated = true;
-  this->pid    = pid;
+  pid          = pid_;
 
   payload_buffer = std::unique_ptr<byte_buffer_t>(new byte_buffer_t);
   if (!payload_buffer) {
@@ -223,9 +222,11 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       action->tb.enabled = true;
 
       // Decide if adaptive retx or new tx. 3 checks in 5.4.2.1
-    } else if ((grant.rnti != harq_entity->rntis->temp_rnti && grant.tb.ndi != get_ndi()) || // If not addressed to T-CRNTI and NDI toggled
-               (grant.rnti == harq_entity->rntis->crnti     && !has_grant())              || // If addressed to C-RNTI and buffer is empty
-               (grant.is_rar))                                                               // Grant received in a RAR
+    } else if ((grant.rnti != harq_entity->rntis->temp_rnti &&
+                grant.tb.ndi != get_ndi()) || // If not addressed to T-CRNTI and NDI toggled
+               (grant.rnti == harq_entity->rntis->crnti &&
+                !has_grant()) || // If addressed to C-RNTI and buffer is empty
+               (grant.is_rar))   // Grant received in a RAR
     {
       // New transmission
       reset();
@@ -367,7 +368,11 @@ void ul_harq_entity::ul_harq_process::generate_new_tx(mac_interface_phy_lte::mac
   current_tx_nb             = 0;
   current_irv               = 0;
 
-  Info("UL %d:  New TX%s, RV=%d, TBS=%d\n", pid, grant.rnti == harq_entity->rntis->temp_rnti ? " for Msg3" : "", get_rv(), cur_grant.tb.tbs);
+  Info("UL %d:  New TX%s, RV=%d, TBS=%d\n",
+       pid,
+       grant.rnti == harq_entity->rntis->temp_rnti ? " for Msg3" : "",
+       get_rv(),
+       cur_grant.tb.tbs);
   generate_tx(action);
 }
 

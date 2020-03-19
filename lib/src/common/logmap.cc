@@ -25,6 +25,11 @@
 
 using namespace srslte;
 
+log_ref::log_ref(const char* name)
+{
+  ptr_ = srslte::logmap::get(name).ptr_;
+}
+
 logmap::logmap() : logger_stdout_val(new logger_stdout{})
 {
   default_logger = logger_stdout_val.get();

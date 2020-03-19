@@ -38,7 +38,7 @@ phr_proc::phr_proc()
   phr_cfg          = {};
 }
 
-void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::log* log_h_, srslte::timer_handler* timers_db_)
+void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::log_ref log_h_, srslte::timer_handler* timers_db_)
 {
   phy_h     = phy_h_;
   log_h     = log_h_;
