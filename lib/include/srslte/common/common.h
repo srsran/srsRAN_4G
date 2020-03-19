@@ -172,7 +172,7 @@ public:
 #endif
   }
 
-  void append_bytes(uint8_t* buf, uint32_t size)
+  void append_bytes(const uint8_t* buf, uint32_t size)
   {
     memcpy(&msg[N_bytes], buf, size);
     N_bytes += size;
