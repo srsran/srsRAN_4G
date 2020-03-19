@@ -314,9 +314,9 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   for (uint32_t i = 0; i < tti_jump; ++i) {
     uint32_t next_tti = TTI_SUB(tti, (tti_jump - i - 1));
     mac.run_tti(next_tti);
-    rrc.run_tti();
     timers.step_all();
   }
+  rrc.run_tti();
   nas.run_tti();
 
   if (args.have_tti_time_stats) {
