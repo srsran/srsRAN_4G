@@ -9,6 +9,7 @@ sib1 =
     (
         {
             si_periodicity = 16;
+
             // comma-separated array of SIB-indexes (from 3 to 13), leave empty or commented to just scheduler sib2
             si_mapping_info = [ 3 ];
         }
@@ -119,19 +120,37 @@ sib2 =
 sib3 =
 {
     cell_reselection_common = {
-      q_hyst = 2; // in dB
+        q_hyst = 2; // in dB
     },
     cell_reselection_serving = {
-      s_non_intra_search = 3,
-      thresh_serving_low = 2,
-      cell_resel_prio = 6
+        s_non_intra_search = 3,
+        thresh_serving_low = 2,
+        cell_resel_prio = 6
     },
     intra_freq_reselection = {
-      q_rx_lev_min = -61,
-      p_max = 23,
-      s_intra_search = 5,
-      presence_ant_port_1 = true,
-      neigh_cell_cnfg = 1,
-      t_resel_eutra = 1
+        q_rx_lev_min = -61,
+        p_max = 23,
+        s_intra_search = 5,
+        presence_ant_port_1 = true,
+        neigh_cell_cnfg = 1,
+        t_resel_eutra = 1
     }
+};
+
+sib7 =
+{
+    t_resel_geran = 1;
+    carrier_freqs_info_list =
+    (
+        {
+            cell_resel_prio = 0;
+            ncc_permitted = 255;
+            q_rx_lev_min = 0;
+            thresh_x_high = 2;
+            thresh_x_low = 2;
+
+            start_arfcn = 871;
+            band_ind = "dcs1800";
+        }
+    );
 };

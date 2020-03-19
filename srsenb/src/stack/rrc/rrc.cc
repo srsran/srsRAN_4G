@@ -361,7 +361,6 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request
   }
   if (msg.protocol_ies.registered_lai_present) {
     rrc_log->warning("Not handling RegisteredLAI\n");
-    err = true;
   }
   if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
     rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
