@@ -26,10 +26,13 @@
 
 namespace srsue {
 
-class stack_dummy : public task_handler_interface_lte
+class stack_dummy : public stack_interface_rrc
 {
 public:
   srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
+  void                                start_cell_search() override {}
+  void                                start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) override {}
+  srslte::tti_point get_current_tti() override { return srslte::tti_point{timers.get_cur_time() % 10240}; }
 
   srslte::timer_handler timers{100};
 };

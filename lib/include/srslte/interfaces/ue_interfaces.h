@@ -606,8 +606,15 @@ public:
   virtual void start_prach_configuration()       = 0;
 };
 
+// Generic Task Management + Timer interface for upper stack
+class task_handler_interface_lte
+{
+public:
+  virtual srslte::timer_handler::unique_timer get_unique_timer() = 0;
+};
+
 // STACK interface for RRC
-class stack_interface_rrc
+class stack_interface_rrc : public task_handler_interface_lte
 {
 public:
   virtual void              start_cell_search()                                              = 0;
@@ -626,13 +633,6 @@ public:
 // Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_lte : public phy_interface_mac_lte, public phy_interface_rrc_lte
 {
-};
-
-// Generic Task Management + Timer interface for upper stack
-class task_handler_interface_lte
-{
-public:
-  virtual srslte::timer_handler::unique_timer get_unique_timer() = 0;
 };
 
 } // namespace srsue

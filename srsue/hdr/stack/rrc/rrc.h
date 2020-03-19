@@ -274,7 +274,7 @@ class rrc : public rrc_interface_nas,
             public srslte::timer_callback
 {
 public:
-  rrc(srslte::log* rrc_log_, task_handler_interface_lte* task_handler_);
+  rrc(srslte::log* rrc_log_, stack_interface_rrc* stack_);
   ~rrc();
 
   void init(phy_interface_rrc_lte* phy_,
@@ -284,7 +284,6 @@ public:
             nas_interface_rrc*     nas_,
             usim_interface_rrc*    usim_,
             gw_interface_rrc*      gw_,
-            stack_interface_rrc*   stack_,
             const rrc_args_t&      args_);
 
   void stop();
@@ -361,17 +360,16 @@ private:
 
   void process_pcch(srslte::unique_byte_buffer_t pdu);
 
-  task_handler_interface_lte* task_handler = nullptr;
-  srslte::byte_buffer_pool*   pool         = nullptr;
-  srslte::log*                rrc_log      = nullptr;
-  phy_interface_rrc_lte*      phy          = nullptr;
-  mac_interface_rrc*          mac          = nullptr;
-  rlc_interface_rrc*          rlc          = nullptr;
-  pdcp_interface_rrc*         pdcp         = nullptr;
-  nas_interface_rrc*          nas          = nullptr;
-  usim_interface_rrc*         usim         = nullptr;
-  gw_interface_rrc*           gw           = nullptr;
-  stack_interface_rrc*        stack        = nullptr;
+  stack_interface_rrc*      stack   = nullptr;
+  srslte::byte_buffer_pool* pool    = nullptr;
+  srslte::log*              rrc_log = nullptr;
+  phy_interface_rrc_lte*    phy     = nullptr;
+  mac_interface_rrc*        mac     = nullptr;
+  rlc_interface_rrc*        rlc     = nullptr;
+  pdcp_interface_rrc*       pdcp    = nullptr;
+  nas_interface_rrc*        nas     = nullptr;
+  usim_interface_rrc*       usim    = nullptr;
+  gw_interface_rrc*         gw      = nullptr;
 
   srslte::unique_byte_buffer_t dedicated_info_nas;
 

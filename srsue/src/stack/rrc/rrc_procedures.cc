@@ -242,8 +242,8 @@ compute_si_window(uint32_t tti, uint32_t sib_index, uint32_t n, uint32_t T, cons
 rrc::si_acquire_proc::si_acquire_proc(rrc* parent_) :
   rrc_ptr(parent_),
   log_h(parent_->rrc_log),
-  si_acq_timeout(rrc_ptr->task_handler->get_unique_timer()),
-  si_acq_retry_timer(rrc_ptr->task_handler->get_unique_timer())
+  si_acq_timeout(rrc_ptr->stack->get_unique_timer()),
+  si_acq_retry_timer(rrc_ptr->stack->get_unique_timer())
 {
   // SIB acquisition procedure timeout.
   // NOTE: The standard does not specify this timeout
@@ -985,13 +985,22 @@ proc_outcome_t rrc::process_pcch_proc::react(paging_complete e)
  *        Go Idle procedure
  *************************************/
 
-rrc::go_idle_proc::go_idle_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
+rrc::go_idle_proc::go_idle_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_)
+{
+  rlc_flush_timer = rrc_ptr->stack->get_unique_timer();
+  rlc_flush_timer.set(rlc_flush_timeout, [this](uint32_t tid) { rrc_ptr->idle_setter.trigger(true); });
+}
 
 proc_outcome_t rrc::go_idle_proc::init()
 {
-  rlc_flush_counter = 0;
   Info("Starting...\n");
   return step();
+}
+
+srslte::proc_outcome_t rrc::go_idle_proc::react(bool timeout)
+{
+  rrc_ptr->leave_connected();
+  return proc_outcome_t::success;
 }
 
 proc_outcome_t rrc::go_idle_proc::step()
@@ -1003,12 +1012,11 @@ proc_outcome_t rrc::go_idle_proc::step()
 
   // If the RLC SRB1 is not suspended
   // wait for max. 2s for RLC on SRB1 to be flushed
-  if (rrc_ptr->rlc->is_suspended(RB_ID_SRB1) || not rrc_ptr->rlc->has_data(RB_ID_SRB1) ||
-      ++rlc_flush_counter > rlc_flush_timeout) {
+  if (rrc_ptr->rlc->is_suspended(RB_ID_SRB1) || not rrc_ptr->rlc->has_data(RB_ID_SRB1)) {
     rrc_ptr->leave_connected();
     return proc_outcome_t::success;
   } else {
-    Debug("Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_counter, rlc_flush_timeout);
+    Debug("Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_timer.time_elapsed(), rlc_flush_timeout);
   }
   return proc_outcome_t::yield;
 }

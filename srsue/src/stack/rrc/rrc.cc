@@ -83,7 +83,8 @@ bool cell_t::is_sib_scheduled(uint32_t sib_index) const
   Base functions
 *******************************************************************************/
 
-rrc::rrc(srslte::log* rrc_log_, task_handler_interface_lte* task_handler_) :
+rrc::rrc(srslte::log* rrc_log_, stack_interface_rrc* stack_) :
+  stack(stack_),
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
@@ -98,8 +99,7 @@ rrc::rrc(srslte::log* rrc_log_, task_handler_interface_lte* task_handler_) :
   plmn_searcher(this),
   cell_reselector(this),
   connection_reest(this),
-  serving_cell(unique_cell_t(new cell_t())),
-  task_handler(task_handler_)
+  serving_cell(unique_cell_t(new cell_t()))
 {
   measurements = std::unique_ptr<rrc_meas>(new rrc_meas(rrc_log));
 }
@@ -136,7 +136,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                nas_interface_rrc*     nas_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
-               stack_interface_rrc*   stack_,
                const rrc_args_t&      args_)
 {
   pool  = byte_buffer_pool::get_instance();
@@ -147,7 +146,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   nas   = nas_;
   usim  = usim_;
   gw    = gw_;
-  stack = stack_;
 
   args = args_;
 
@@ -156,12 +154,12 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   security_is_activated = false;
 
-  t300 = task_handler->get_unique_timer();
-  t301 = task_handler->get_unique_timer();
-  t302 = task_handler->get_unique_timer();
-  t310 = task_handler->get_unique_timer();
-  t311 = task_handler->get_unique_timer();
-  t304 = task_handler->get_unique_timer();
+  t300 = stack->get_unique_timer();
+  t301 = stack->get_unique_timer();
+  t302 = stack->get_unique_timer();
+  t310 = stack->get_unique_timer();
+  t311 = stack->get_unique_timer();
+  t304 = stack->get_unique_timer();
 
   ue_identity_configured = false;
 

@@ -240,14 +240,16 @@ public:
   explicit go_idle_proc(rrc* rrc_);
   srslte::proc_outcome_t init();
   srslte::proc_outcome_t step();
+  srslte::proc_outcome_t react(bool timeout);
   static const char*     name() { return "Go Idle"; }
 
 private:
-  bool                  wait = false;
-  rrc*                  rrc_ptr;
   static const uint32_t rlc_flush_timeout = 2000;
 
-  uint32_t rlc_flush_counter;
+  rrc*                                rrc_ptr;
+  srslte::timer_handler::unique_timer rlc_flush_timer;
+
+  bool wait = false;
 };
 
 class rrc::cell_reselection_proc

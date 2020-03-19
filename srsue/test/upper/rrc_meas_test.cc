@@ -108,7 +108,7 @@ private:
 class nas_test : public srsue::nas
 {
 public:
-  nas_test(srslte::timer_handler* t) : srsue::nas(t) {}
+  nas_test(srsue::task_handler_interface_lte* t) : srsue::nas(t) {}
   bool is_attached() override { return false; }
 };
 
@@ -167,20 +167,20 @@ private:
 
 class rrc_test : public rrc
 {
-  srslte::timer_handler* timers = nullptr;
+  srsue::stack_dummy* stack = nullptr;
 
 public:
-  rrc_test(srslte::log* log_, stack_dummy* task_handler_) : rrc(log_, task_handler_), timers(&task_handler_->timers)
+  rrc_test(srslte::log* log_, stack_dummy* stack_) : rrc(log_, stack_), stack(stack_)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
-    nastest  = std::unique_ptr<nas_test>(new nas_test(timers));
-    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_, timers));
+    nastest  = std::unique_ptr<nas_test>(new nas_test(stack));
+    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_, &stack->timers));
   };
-  void init() { rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, nullptr, {}); }
+  void init() { rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
 
   void run_tti(uint32_t tti_)
   {
-    timers->step_all();
+    stack->timers.step_all();
     rrc::run_tti();
   }
 

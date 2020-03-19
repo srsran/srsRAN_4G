@@ -41,7 +41,7 @@ ue_stack_lte::ue_stack_lte() :
   mac(&mac_log),
   rrc(&rrc_log, this),
   pdcp(&timers, &pdcp_log),
-  nas(&timers),
+  nas(this),
   thread("STACK"),
   pending_tasks(512),
   background_tasks(2),
@@ -139,7 +139,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
-  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, this, args.rrc);
+  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, args.rrc);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -315,9 +315,9 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
     uint32_t next_tti = TTI_SUB(tti, (tti_jump - i - 1));
     mac.run_tti(next_tti);
     rrc.run_tti();
-    nas.run_tti();
     timers.step_all();
   }
+  nas.run_tti();
 
   if (args.have_tti_time_stats) {
     std::chrono::nanoseconds dur = tti_tprof.stop();

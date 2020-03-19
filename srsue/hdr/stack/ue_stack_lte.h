@@ -56,7 +56,6 @@ class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_gw,
                            public stack_interface_mac,
                            public stack_interface_rrc,
-                           public task_handler_interface_lte,
                            public srslte::thread
 {
 public:
