@@ -9,7 +9,7 @@ sib1 =
     (
         {
             si_periodicity = 16;
-            si_mapping_info = []; // comma-separated array of SIB-indexes (from 3 to 13). 
+            si_mapping_info = [7]; // comma-separated array of SIB-indexes (from 3 to 13). 
             // Leave empty or commented to just scheduler sib2
         }
     );
@@ -114,5 +114,23 @@ sib2 =
     };
 
     time_alignment_timer = "INFINITY"; // use "sf500", "sf750", etc.
+};
+
+sib7 =
+{
+    t_resel_geran = 1;
+    carrier_freqs_info_list =
+    (
+        {
+            cell_resel_prio = 0;
+            ncc_permitted = 255;
+            q_rx_lev_min = 0;
+            thresh_x_high = 2;
+            thresh_x_low = 2;
+
+            start_arfcn = 871;
+            band_ind = "dcs1800";
+        }
+    );
 };
 

@@ -405,7 +405,6 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIO
   }
   if (msg->RegisteredLAI_present) {
     rrc_log->warning("Not handling RegisteredLAI\n");
-    err = true;
   }
   if (msg->SubscriberProfileIDforRFP_present) {
     rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
