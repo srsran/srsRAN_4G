@@ -106,13 +106,6 @@ void sf_worker::init(phy_common* phy_, srslte::log* log_h_)
 #endif
 }
 
-void sf_worker::stop()
-{
-  std::lock_guard<std::mutex> lock(work_mutex);
-  running = false;
-  srslte::thread_pool::worker::stop();
-}
-
 cf_t* sf_worker::get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx)
 {
   return cc_workers[cc_idx]->get_buffer_rx(antenna_idx);

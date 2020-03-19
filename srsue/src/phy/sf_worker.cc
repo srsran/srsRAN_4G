@@ -90,7 +90,7 @@ void sf_worker::reset()
 
 bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
 {
-  std::lock_guard<std::mutex> lock(mutex);
+  // std::lock_guard<std::mutex> lock(mutex);
 
   if (cc_idx < cc_workers.size()) {
     if (!cc_workers[cc_idx]->set_cell(cell_)) {

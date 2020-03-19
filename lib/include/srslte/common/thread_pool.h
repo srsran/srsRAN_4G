@@ -51,7 +51,6 @@ public:
   public:
     worker();
     void         setup(uint32_t id, thread_pool* parent, uint32_t prio = 0, uint32_t mask = 255);
-    virtual void stop();
     uint32_t     get_id();
     void         release();
 
@@ -59,9 +58,9 @@ public:
     virtual void work_imp() = 0;
 
   private:
-    uint32_t     my_id;
-    thread_pool* my_parent;
-    bool         running;
+    uint32_t     my_id     = 0;
+    thread_pool* my_parent = nullptr;
+
     void         run_thread();
     void         wait_to_start();
     void         finished();
@@ -70,7 +69,7 @@ public:
   thread_pool(uint32_t nof_workers);
   void     init_worker(uint32_t id, worker*, uint32_t prio = 0, uint32_t mask = 255);
   void     stop();
-  worker*  wait_worker();
+  worker*  wait_worker_id(uint32_t id);
   worker*  wait_worker(uint32_t tti);
   worker*  wait_worker_nb(uint32_t tti);
   void     start_worker(worker*);
@@ -81,18 +80,16 @@ public:
 private:
   bool find_finished_worker(uint32_t tti, uint32_t* id);
 
-  typedef enum { IDLE, START_WORK, WORKER_READY, WORKING } worker_status;
+  typedef enum { STOP, IDLE, START_WORK, WORKER_READY, WORKING } worker_status;
 
-  std::vector<worker*>         workers;
-  uint32_t                     nof_workers;
-  uint32_t                     max_workers;
-  bool                         running;
-  pthread_cond_t               cvar_queue;
-  pthread_mutex_t              mutex_queue;
-  std::vector<worker_status>   status;
-  std::vector<pthread_cond_t>  cvar;
-  std::vector<pthread_mutex_t> mutex;
-  std::stack<worker*>          available_workers;
+  std::vector<worker*>                 workers     = {};
+  uint32_t                             nof_workers = 0;
+  uint32_t                             max_workers = 0;
+  bool                                 running     = false;
+  std::condition_variable              cvar_queue  = {};
+  std::mutex                           mutex_queue = {};
+  std::vector<worker_status>           status      = {};
+  std::vector<std::condition_variable> cvar_worker = {};
 };
 
 class task_thread_pool

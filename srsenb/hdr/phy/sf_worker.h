@@ -37,7 +37,6 @@ public:
   sf_worker() = default;
   ~sf_worker();
   void init(phy_common* phy, srslte::log* log_h);
-  void stop() final;
 
   cf_t* get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
   void  set_time(uint32_t tti, uint32_t tx_worker_cnt, srslte_timestamp_t tx_time);

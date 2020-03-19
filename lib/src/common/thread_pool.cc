@@ -31,11 +31,9 @@
       printf(fmt, __VA_ARGS__);                                                                                        \
   } while (0)
 
-#define USE_QUEUE
-
 namespace srslte {
 
-thread_pool::worker::worker() : my_id(0), running(false), my_parent(NULL), thread("THREAD_POOL_WORKER") {}
+thread_pool::worker::worker() : thread("THREAD_POOL_WORKER") {}
 
 void thread_pool::worker::setup(uint32_t id, thread_pool* parent, uint32_t prio, uint32_t mask)
 {
@@ -52,10 +50,9 @@ void thread_pool::worker::setup(uint32_t id, thread_pool* parent, uint32_t prio,
 void thread_pool::worker::run_thread()
 {
   set_name(std::string("WORKER") + std::to_string(my_id));
-  running = true;
-  while (running) {
+  while (my_parent->status[my_id] != STOP) {
     wait_to_start();
-    if (running) {
+    if (my_parent->status[my_id] != STOP) {
       work_imp();
       finished();
     }
@@ -67,65 +64,53 @@ uint32_t thread_pool::worker::get_id()
   return my_id;
 }
 
-void thread_pool::worker::stop()
-{
-  running = false;
-  pthread_cond_signal(&my_parent->cvar[my_id]);
-  wait_thread_finish();
-}
-
-thread_pool::thread_pool(uint32_t max_workers_) :
-  workers(max_workers_),
-  status(max_workers_),
-  cvar(max_workers_),
-  mutex(max_workers_)
+thread_pool::thread_pool(uint32_t max_workers_) : workers(max_workers_), status(max_workers_), cvar_worker(max_workers_)
 {
   max_workers = max_workers_;
   for (uint32_t i = 0; i < max_workers; i++) {
     workers[i] = NULL;
     status[i]  = IDLE;
-    pthread_mutex_init(&mutex[i], NULL);
-    pthread_cond_init(&cvar[i], NULL);
   }
-  pthread_mutex_init(&mutex_queue, NULL);
-  pthread_cond_init(&cvar_queue, NULL);
   running     = true;
   nof_workers = 0;
 }
 
 void thread_pool::init_worker(uint32_t id, worker* obj, uint32_t prio, uint32_t mask)
 {
+  std::lock_guard<std::mutex> lock(mutex_queue);
   if (id < max_workers) {
     if (id >= nof_workers) {
       nof_workers = id + 1;
     }
-    pthread_mutex_lock(&mutex_queue);
     workers[id] = obj;
-    available_workers.push(obj);
     obj->setup(id, this, prio, mask);
-    pthread_cond_signal(&cvar_queue);
-    pthread_mutex_unlock(&mutex_queue);
+    cvar_queue.notify_all();
   }
 }
 
 void thread_pool::stop()
 {
+  mutex_queue.lock();
+
   /* Stop any thread waiting for available worker */
   running = false;
 
   /* Now stop all workers */
   for (uint32_t i = 0; i < nof_workers; i++) {
     if (workers[i]) {
-      workers[i]->stop();
-      // Need to call start to wake it up
-      start_worker(i);
-      workers[i]->wait_thread_finish();
+      debug_thread("stop(): stoping %d\n", i);
+      status[i] = STOP;
+      cvar_worker[i].notify_all();
+      cvar_queue.notify_all();
     }
-    pthread_cond_destroy(&cvar[i]);
-    pthread_mutex_destroy(&mutex[i]);
   }
-  pthread_cond_destroy(&cvar_queue);
-  pthread_mutex_destroy(&mutex_queue);
+  mutex_queue.unlock();
+
+  for (uint32_t i = 0; i < nof_workers; i++) {
+    debug_thread("stop(): waiting %d\n", i);
+    workers[i]->wait_thread_finish();
+    debug_thread("stop(): done %d\n", i);
+  }
 }
 
 void thread_pool::worker::release()
@@ -135,40 +120,28 @@ void thread_pool::worker::release()
 
 void thread_pool::worker::wait_to_start()
 {
+  std::unique_lock<std::mutex> lock(my_parent->mutex_queue);
 
   debug_thread("wait_to_start() id=%d, status=%d, enter\n", my_id, my_parent->status[my_id]);
 
-  pthread_mutex_lock(&my_parent->mutex[my_id]);
-  while (my_parent->status[my_id] != START_WORK && running) {
-    pthread_cond_wait(&my_parent->cvar[my_id], &my_parent->mutex[my_id]);
+  while (my_parent->status[my_id] != START_WORK && my_parent->status[my_id] != STOP) {
+    my_parent->cvar_worker[my_id].wait(lock);
   }
-  my_parent->status[my_id] = WORKING;
-  pthread_mutex_unlock(&my_parent->mutex[my_id]);
+  if (my_parent->status[my_id] != STOP) {
+    my_parent->status[my_id] = WORKING;
+  }
 
   debug_thread("wait_to_start() id=%d, status=%d, exit\n", my_id, my_parent->status[my_id]);
 }
 
 void thread_pool::worker::finished()
 {
-#ifdef USE_QUEUE
-  pthread_mutex_lock(&my_parent->mutex[my_id]);
-  my_parent->status[my_id] = IDLE;
-  pthread_mutex_unlock(&my_parent->mutex[my_id]);
-
-  pthread_mutex_lock(&my_parent->mutex_queue);
-  pthread_cond_signal(&my_parent->cvar_queue);
-  pthread_mutex_unlock(&my_parent->mutex_queue);
-#else
-  pthread_mutex_lock(&my_parent->mutex[my_id]);
-  my_parent->status[my_id] = IDLE;
-  pthread_cond_signal(&my_parent->cvar[my_id]);
-  pthread_mutex_unlock(&my_parent->mutex[my_id]);
-#endif
-}
-
-thread_pool::worker* thread_pool::wait_worker()
-{
-  return wait_worker(0);
+  std::lock_guard<std::mutex> lock(my_parent->mutex_queue);
+  if (my_parent->status[my_id] != STOP) {
+    my_parent->status[my_id] = IDLE;
+    my_parent->cvar_worker[my_id].notify_all();
+    my_parent->cvar_queue.notify_all();
+  }
 }
 
 bool thread_pool::find_finished_worker(uint32_t tti, uint32_t* id)
@@ -182,77 +155,73 @@ bool thread_pool::find_finished_worker(uint32_t tti, uint32_t* id)
   return false;
 }
 
+thread_pool::worker* thread_pool::wait_worker_id(uint32_t id)
+{
+  std::unique_lock<std::mutex> lock(mutex_queue);
+
+  debug_thread("wait_worker_id() - enter - id=%d, state0=%d, state1=%d\n", id, status[0], status[1]);
+
+  thread_pool::worker* ret = nullptr;
+
+  while (status[id] != IDLE && running) {
+    cvar_queue.wait(lock);
+  }
+  if (running) {
+    ret        = workers[id];
+    status[id] = WORKER_READY;
+  }
+  debug_thread("wait_worker_id() - exit - id=%d\n", id);
+  return ret;
+}
+
 thread_pool::worker* thread_pool::wait_worker(uint32_t tti)
 {
-  thread_pool::worker* x;
+  std::unique_lock<std::mutex> lock(mutex_queue);
 
-#ifdef USE_QUEUE
   debug_thread("wait_worker() - enter - tti=%d, state0=%d, state1=%d\n", tti, status[0], status[1]);
-  pthread_mutex_lock(&mutex_queue);
-  uint32_t id = 0;
+
+  thread_pool::worker* ret = nullptr;
+  uint32_t             id  = 0;
+
   while (!find_finished_worker(tti, &id) && running) {
-    pthread_cond_wait(&cvar_queue, &mutex_queue);
+    cvar_queue.wait(lock);
   }
-  pthread_mutex_unlock(&mutex_queue);
   if (running) {
-    x = workers[id];
-    pthread_mutex_lock(&mutex[id]);
+    ret        = workers[id];
     status[id] = WORKER_READY;
-    pthread_mutex_unlock(&mutex[id]);
-  } else {
-    x = NULL;
   }
   debug_thread("wait_worker() - exit - id=%d\n", id);
-#else
-
-  uint32_t id = tti % nof_workers;
-  pthread_mutex_lock(&mutex[id]);
-  while (status[id] != IDLE && running) {
-    pthread_cond_wait(&cvar[id], &mutex[id]);
-  }
-  if (running) {
-    x          = (worker*)workers[id];
-    status[id] = WORKER_READY;
-  } else {
-    x = NULL;
-  }
-  pthread_mutex_unlock(&mutex[id]);
-#endif
-  return x;
+  return ret;
 }
 
 thread_pool::worker* thread_pool::wait_worker_nb(uint32_t tti)
 {
-  thread_pool::worker* x;
+  std::unique_lock<std::mutex> lock(mutex_queue);
 
-  debug_thread("wait_worker() - enter - tti=%d, state0=%d, state1=%d\n", tti, status[0], status[1]);
-  pthread_mutex_lock(&mutex_queue);
-  uint32_t id = 0;
-  if (find_finished_worker(tti, &id)) {
-    x = workers[id];
-  } else {
-    x = NULL;
-  }
-  pthread_mutex_unlock(&mutex_queue);
-  if (running && x) {
-    pthread_mutex_lock(&mutex[id]);
+  debug_thread("wait_worker_nb() - enter - tti=%d, state0=%d, state1=%d\n", tti, status[0], status[1]);
+
+  thread_pool::worker* ret = nullptr;
+  uint32_t             id  = 0;
+
+  if (find_finished_worker(tti, &id) && running) {
+    ret        = workers[id];
     status[id] = WORKER_READY;
-    pthread_mutex_unlock(&mutex[id]);
-  } else {
-    x = NULL;
   }
-  debug_thread("wait_worker() - exit - id=%d\n", id);
-  return x;
+
+  debug_thread("wait_worker_nb() - exit - id=%d\n", id);
+  return ret;
 }
 
 void thread_pool::start_worker(uint32_t id)
 {
+  std::unique_lock<std::mutex> lock(mutex_queue);
   if (id < nof_workers) {
-    pthread_mutex_lock(&mutex[id]);
-    status[id] = START_WORK;
-    pthread_cond_signal(&cvar[id]);
-    pthread_mutex_unlock(&mutex[id]);
     debug_thread("start_worker() id=%d, status=%d\n", id, status[id]);
+    if (status[id] != STOP) {
+      status[id] = START_WORK;
+      cvar_worker[id].notify_all();
+      cvar_queue.notify_all();
+    }
   }
 }
 
