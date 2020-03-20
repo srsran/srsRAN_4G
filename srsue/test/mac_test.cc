@@ -241,7 +241,13 @@ public:
     return 0;
   }
 
-  int ul_grant_and_check_tv(mac* mac_h, bool ack, uint16_t rnti, uint32_t len, const uint8_t* tv, bool is_rar = false, bool adaptive_retx = false)
+  int ul_grant_and_check_tv(mac*           mac_h,
+                            bool           ack,
+                            uint16_t       rnti,
+                            uint32_t       len,
+                            const uint8_t* tv,
+                            bool           is_rar        = false,
+                            bool           adaptive_retx = false)
   {
 
     mac_interface_phy_lte::tb_action_ul_t ul_action    = {};
@@ -352,8 +358,9 @@ public:
     }
     return false;
   }
-  void run_tti()
+  void run_tti(uint32_t tti)
   {
+    mac_h->run_tti(tti);
     // flush all events
     if (events_exist()) {
       srslte::move_task_t task{};
@@ -362,7 +369,6 @@ public:
       }
     }
     timers.step_all();
-    //    mac_h->run_tti(tti_rx);
   }
 
 private:
@@ -428,8 +434,7 @@ int mac_unpack_test()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   // check length of both received RLC PDUs
@@ -491,8 +496,7 @@ int mac_ul_sch_pdu_test1()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -556,8 +560,7 @@ int mac_ul_logical_channel_prioritization_test1()
   }
 
   // run TTI to setup Bj, no UL data available yet, so no BSR should be triggered
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   usleep(200);
 
   // write dummy data for each LCID (except CCCH)
@@ -590,8 +593,7 @@ int mac_ul_logical_channel_prioritization_test1()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -672,8 +674,7 @@ int mac_ul_logical_channel_prioritization_test2()
   rlc.write_sdu(3, 20);
 
   // run TTI to setup Bj, BSR should be generated
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   usleep(100);
 
   // create UL action and grant and push MAC PDU
@@ -701,8 +702,7 @@ int mac_ul_logical_channel_prioritization_test2()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -761,8 +761,7 @@ int mac_ul_logical_channel_prioritization_test3()
   }
 
   // run TTI to setup Bj
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   sleep(1);
 
   // write dummy data for each LCID
@@ -794,8 +793,7 @@ int mac_ul_logical_channel_prioritization_test3()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -851,8 +849,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
 
   // generate TTI
   uint32 tti = 0;
-  mac.run_tti(tti++);
-  stack.run_tti();
+  stack.run_tti(tti++);
   usleep(100);
 
   // create UL action and grant and push MAC PDU
@@ -880,8 +877,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(tti);
-  stack.run_tti();
+  stack.run_tti(tti);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -954,8 +950,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
     rlc.disable_read();
     rlc.write_sdu(1, 10);
     rlc.write_sdu(2, 100);
-    mac.run_tti(1);
-    stack.run_tti();
+    stack.run_tti(1);
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
@@ -971,8 +966,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -1028,8 +1022,7 @@ int mac_ul_sch_pdu_one_byte_test()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -1085,8 +1078,7 @@ int mac_ul_sch_pdu_two_byte_test()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -1142,8 +1134,7 @@ int mac_ul_sch_pdu_three_byte_test()
 
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
-  mac.run_tti(0);
-  stack.run_tti();
+  stack.run_tti(0);
   mac.stop();
 
   return SRSLTE_SUCCESS;
@@ -1188,8 +1179,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
     // In the next TTI, a BSR shall be triggered which triggers SR which triggers PRACH
     if (test.assume_prach_transmitted != (int)j) {
       phy->set_prach_tti(tti + phy->prach_delay);
-      mac->run_tti(tti++);
-      stack->run_tti();
+      stack->run_tti(tti++);
     }
 
     // Check MAC instructs PHY to transmit PRACH
@@ -1206,19 +1196,17 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
 
     // Check MAC does not schedule RA-RNTI before window starts
     for (uint32_t i = 0; i < phy->prach_delay + 3 - 1; i++) {
-      mac->run_tti(tti);
+      stack->run_tti(tti);
       TESTASSERT(!SRSLTE_RNTI_ISRAR(mac->get_dl_sched_rnti(tti)));
       tti++;
-      stack->run_tti();
     }
 
     bool rapid_found = false;
     // Check MAC schedules correct RA-RNTI during window
     for (uint32_t i = 0; i < test.rach_cfg.ra_supervision_info.ra_resp_win_size.to_number() && !rapid_found; i++) {
-      mac->run_tti(tti);
+      stack->run_tti(tti);
       TESTASSERT(mac->get_dl_sched_rnti(tti) == phy->get_rar_rnti());
       tti++;
-      stack->run_tti();
 
       // Receive RAR
       if (test.rar_nof_rapid > 0) {
@@ -1241,10 +1229,9 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
         // Step to contention resolution. Make sure timer does not start until Msg3 is transmitted
         // and restarts on every retx
         for (int j = 0; j < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 1; j++) {
-          mac->run_tti(tti);
+          stack->run_tti(tti);
           TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
           tti++;
-          stack->run_tti();
         }
 
         if (i == test.rach_cfg.max_harq_msg3_tx) {
@@ -1264,10 +1251,9 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
       }
 
       for (int i = 0; i < test.rach_cfg.ra_supervision_info.mac_contention_resolution_timer.to_number() - 1; i++) {
-        mac->run_tti(tti);
+        stack->run_tti(tti);
         TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
         tti++;
-        stack->run_tti();
 
         if (test.msg4_enable) {
           if (test.crnti) {
@@ -1303,18 +1289,16 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
       test.assume_prach_transmitted = (int)j + 1;
       phy->set_prach_tti(tti + phy->prach_delay, false);
       TESTASSERT(mac->get_dl_sched_rnti(tti) != temp_rnti);
-      mac->run_tti(tti++);
-      stack->run_tti();
+      stack->run_tti(tti++);
     }
   }
 
   // RA procedure should be completed here
   if (test.check_ra_successful) {
-    mac->run_tti(tti);
+    stack->run_tti(tti);
     TESTASSERT(phy->get_crnti() == (test.crnti ? test.crnti : test.temp_rnti));
     TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
     tti++;
-    stack->run_tti();
   }
 
   *tti_state = tti;
@@ -1402,9 +1386,8 @@ int mac_random_access_test()
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
 
   // Make sure it triggers RRC signal
-  mac.run_tti(tti++);
+  stack.run_tti(tti++);
   TESTASSERT(rrc.rach_problem == 1);
-  stack.run_tti();
 
   // Reset MAC
   mac.reset();
@@ -1465,8 +1448,7 @@ int mac_random_access_test()
   phy.set_prach_tti(tti + phy.prach_delay);
   phy.set_crnti(0);
   mac.start_cont_ho();
-  mac.run_tti(tti++);
-  stack.run_tti();
+  stack.run_tti(tti++);
   rrc.ho_finish      = false;
   my_test.nof_prachs = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
@@ -1482,8 +1464,7 @@ int mac_random_access_test()
   phy.set_prach_tti(tti + phy.prach_delay);
   phy.set_crnti(0);
   mac.start_cont_ho();
-  mac.run_tti(tti++);
-  stack.run_tti();
+  stack.run_tti(tti++);
   rrc.ho_finish      = false;
   my_test.nof_prachs = 1;
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
@@ -1496,8 +1477,7 @@ int mac_random_access_test()
   //         In this first test, no RAR is received and RA procedure fails
   mac_log->info("\n=========== Test %d =============\n", test_id++);
   phy.set_prach_tti(tti + phy.prach_delay);
-  mac.run_tti(tti++);
-  stack.run_tti();
+  stack.run_tti(tti++);
   phy.set_crnti(0);
   rrc.ho_finish        = false;
   my_test.preamble_idx = 3;
@@ -1506,16 +1486,14 @@ int mac_random_access_test()
   my_test.rar_nof_invalid_rapid = rach_cfg.ra_supervision_info.ra_resp_win_size.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
-  mac.run_tti(tti++);
-  stack.run_tti();
+  stack.run_tti(tti++);
   TESTASSERT(!rrc.ho_finish_successful && rrc.ho_finish);
 
   // Test 10: Test non-Contention based HO. Used in HO but preamble is given by the network. We check that
   //         the procedure is considered successful without waiting for contention
   mac_log->info("\n=========== Test %d =============\n", test_id++);
   phy.set_prach_tti(tti + phy.prach_delay);
-  mac.run_tti(tti++);
-  stack.run_tti();
+  stack.run_tti(tti++);
   phy.set_crnti(0);
   rrc.ho_finish        = false;
   my_test.preamble_idx = 3;
@@ -1525,8 +1503,7 @@ int mac_random_access_test()
   my_test.check_ra_successful   = true;
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &stack));
-  mac.run_tti(tti++);
-  stack.run_tti();
+  stack.run_tti(tti++);
   TESTASSERT(rrc.ho_finish_successful && rrc.ho_finish);
 
   mac.stop();
