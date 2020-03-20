@@ -322,8 +322,6 @@ private:
     uint32_t                  sr_N_pucch        = 0;
     uint32_t                  sr_I              = 0;
     bool                      cqi_allocated     = false;
-    int                       cqi_sched_sf_idx  = 0;
-    int                       cqi_sched_prb_idx = 0;
     bool                      nas_pending       = false;
     srslte::byte_buffer_t     erab_info;
 
@@ -332,6 +330,8 @@ private:
     typedef struct {
       uint32_t idx;
       uint32_t pucch_res;
+      uint32_t prb_idx;
+      uint32_t sf_idx;
     } cqi_res_t;
 
     std::map<uint32_t, cqi_res_t> cqi_res = {};

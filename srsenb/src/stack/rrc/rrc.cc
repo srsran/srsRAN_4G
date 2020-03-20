@@ -2513,14 +2513,20 @@ int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 int rrc::ue::cqi_free()
 {
   if (cqi_allocated) {
-    if (parent->cqi_sched.nof_users[cqi_sched_prb_idx][cqi_sched_sf_idx] > 0) {
-      parent->cqi_sched.nof_users[cqi_sched_prb_idx][cqi_sched_sf_idx]--;
-    } else {
-      parent->rrc_log->warning(
-          "Removing CQI resources: no users in time-frequency slot (%d, %d)\n", cqi_sched_prb_idx, cqi_sched_sf_idx);
+    for (uint32_t cc_idx = 0; cc_idx < get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list.size(); cc_idx++) {
+      if (cqi_res.count(cc_idx) > 0) {
+        if (parent->cqi_sched.nof_users[cqi_res[cc_idx].prb_idx][cqi_res[cc_idx].sf_idx] > 0) {
+          parent->cqi_sched.nof_users[cqi_res[cc_idx].prb_idx][cqi_res[cc_idx].sf_idx]--;
+        } else {
+          parent->rrc_log->warning("Removing CQI resources: no users in time-frequency slot (%d, %d)\n",
+                                   cqi_res[cc_idx].prb_idx,
+                                   cqi_res[cc_idx].sf_idx);
+        }
+        parent->rrc_log->info("Deallocated CQI resources for time-frequency slot (%d, %d)\n",
+                              cqi_res[cc_idx].prb_idx,
+                              cqi_res[cc_idx].sf_idx);
+      }
     }
-    parent->rrc_log->info(
-        "Deallocated CQI resources for time-frequency slot (%d, %d)\n", cqi_sched_prb_idx, cqi_sched_sf_idx);
   }
   return 0;
 }
@@ -2598,17 +2604,17 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
     }
     // Allocate user
     parent->cqi_sched.nof_users[i_min][j_min]++;
-    cqi_sched_prb_idx    = i_min;
-    cqi_sched_sf_idx     = j_min;
     cqi_allocated        = true;
     cqi_res[cc_idx].idx       = *pmi_idx;
     cqi_res[cc_idx].pucch_res = *n_pucch;
+    cqi_res[cc_idx].prb_idx   = i_min;
+    cqi_res[cc_idx].sf_idx    = j_min;
 
     parent->rrc_log->info(
         "Allocated CQI resources for cc_idx=%d, time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d\n",
         cc_idx,
-        cqi_sched_prb_idx,
-        cqi_sched_sf_idx,
+        i_min,
+        j_min,
         *n_pucch,
         *pmi_idx);
   }
