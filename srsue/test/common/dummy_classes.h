@@ -26,13 +26,23 @@
 
 namespace srsue {
 
-class stack_dummy_interface : public stack_interface_rrc
+class stack_dummy_interface : public stack_interface_rrc, public stack_interface_mac, public stack_interface_nas
 {
 public:
   srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
   void                                start_cell_search() override {}
   void                                start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) override {}
   srslte::tti_point get_current_tti() override { return srslte::tti_point{timers.get_cur_time() % 10240}; }
+  srslte::task_multiqueue::queue_handler make_task_queue() final { return pending_tasks.get_queue_handler(); }
+  void                                   enqueue_background_task(std::function<void(uint32_t)> f) override { f(0); }
+  void                                   notify_background_task_result(srslte::move_task_t task) override { task(); }
+  void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) final
+  {
+    timers.defer_callback(duration_ms, func);
+  }
+  void process_pdus() override {}
+  void wait_ra_completion(uint16_t rnti) override {}
+  void start_prach_configuration() override {}
 
   srslte::timer_handler   timers{100};
   srslte::task_multiqueue pending_tasks;

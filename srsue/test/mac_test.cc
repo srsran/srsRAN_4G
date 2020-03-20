@@ -335,7 +335,7 @@ public:
   uint32_t rach_problem         = 0;
 };
 
-class stack_dummy : public stack_interface_mac
+class stack_dummy : public stack_dummy_interface
 {
 public:
   void init(mac* mac_, phy_interface_mac_lte* phy_)

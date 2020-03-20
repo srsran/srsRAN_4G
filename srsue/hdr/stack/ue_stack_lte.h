@@ -56,6 +56,7 @@ class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_gw,
                            public stack_interface_mac,
                            public stack_interface_rrc,
+                           public stack_interface_nas,
                            public srslte::thread
 {
 public:
@@ -128,13 +129,16 @@ public:
   tti_point get_current_tti() final { return current_tti; }
 
   // Task Handling interface
-  srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
+  srslte::timer_handler::unique_timer    get_unique_timer() final { return timers.get_unique_timer(); }
+  srslte::task_multiqueue::queue_handler make_task_queue() final { return pending_tasks.get_queue_handler(); }
+  void                                   enqueue_background_task(std::function<void(uint32_t)> f) final;
+  void                                   notify_background_task_result(srslte::move_task_t task) final;
+  void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) final;
 
 private:
-  void           run_thread() final;
-  void           run_tti_impl(uint32_t tti, uint32_t tti_jump);
-  void           calc_tti_stats(const uint32_t duration_us);;
-  void           stop_impl();
+  void run_thread() final;
+  void run_tti_impl(uint32_t tti, uint32_t tti_jump);
+  void stop_impl();
 
   const uint32_t                  TTI_STAT_PERIOD = 1024;
   const std::chrono::milliseconds TTI_WARN_THRESHOLD_MS{5};

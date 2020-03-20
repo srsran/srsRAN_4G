@@ -598,8 +598,19 @@ class gw_interface_stack : public gw_interface_nas, public gw_interface_rrc, pub
 {
 };
 
+// Generic Task Management + Timer interface for upper stack
+class task_handler_interface_lte
+{
+public:
+  virtual srslte::timer_handler::unique_timer    get_unique_timer()                                               = 0;
+  virtual srslte::task_multiqueue::queue_handler make_task_queue()                                                = 0;
+  virtual void                                   enqueue_background_task(std::function<void(uint32_t)> task)      = 0;
+  virtual void                                   notify_background_task_result(srslte::move_task_t task)          = 0;
+  virtual void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) = 0;
+};
+
 // STACK interface for MAC
-class stack_interface_mac
+class stack_interface_mac : public task_handler_interface_lte
 {
 public:
   virtual void process_pdus()                    = 0;
@@ -607,11 +618,9 @@ public:
   virtual void start_prach_configuration()       = 0;
 };
 
-// Generic Task Management + Timer interface for upper stack
-class task_handler_interface_lte
+// STACK interface for MAC
+class stack_interface_nas : public task_handler_interface_lte
 {
-public:
-  virtual srslte::timer_handler::unique_timer get_unique_timer() = 0;
 };
 
 // STACK interface for RRC

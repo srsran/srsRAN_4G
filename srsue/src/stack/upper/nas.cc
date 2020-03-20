@@ -235,7 +235,7 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
  *   NAS
  ********************************************************************/
 
-nas::nas(srsue::task_handler_interface_lte* task_handler_) :
+nas::nas(srsue::stack_interface_nas* task_handler_) :
   pool(byte_buffer_pool::get_instance()),
   plmn_searcher(this),
   rrc_connector(this),

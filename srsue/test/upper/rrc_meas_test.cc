@@ -108,7 +108,7 @@ private:
 class nas_test : public srsue::nas
 {
 public:
-  nas_test(srsue::task_handler_interface_lte* t) : srsue::nas(t) {}
+  nas_test(srsue::stack_interface_nas* t) : srsue::nas(t) {}
   bool is_attached() override { return false; }
 };
 
@@ -118,7 +118,7 @@ public:
   pdcp_test(srslte::log* log_, srslte::timer_handler* t) : srslte::pdcp(t, log_) {}
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = false) override
   {
-    ul_dcch_msg_s ul_dcch_msg;
+    ul_dcch_msg_s  ul_dcch_msg;
     asn1::cbit_ref bref(sdu->msg, sdu->N_bytes);
     if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
         ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
@@ -259,8 +259,8 @@ public:
 private:
   std::unique_ptr<pdcp_test> pdcptest;
   std::unique_ptr<nas_test>  nastest;
-  uint32_t                  tti  = 0;
-  srslte::byte_buffer_pool* pool = nullptr;
+  uint32_t                   tti  = 0;
+  srslte::byte_buffer_pool*  pool = nullptr;
 };
 
 // Test Cell sear

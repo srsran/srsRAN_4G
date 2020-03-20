@@ -357,6 +357,26 @@ void ue_stack_lte::start_prach_configuration()
   });
 }
 
+/***************************
+ * Task Handling Interface
+ **************************/
+
+void ue_stack_lte::enqueue_background_task(std::function<void(uint32_t)> f)
+{
+  background_tasks.push_task(std::move(f));
+}
+
+void ue_stack_lte::notify_background_task_result(srslte::move_task_t task)
+{
+  // run the notification in the stack thread
+  pending_tasks.push(background_queue_id, std::move(task));
+}
+
+void ue_stack_lte::defer_callback(uint32_t duration_ms, std::function<void()> func)
+{
+  timers.defer_callback(duration_ms, func);
+}
+
 /********************
  *  RRC Interface
  *******************/
