@@ -422,23 +422,20 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     bpo::notify(vm);
   } catch (bpo::error& e) {
     cerr << e.what() << endl;
-    running = false;
     return SRSLTE_ERROR;
   }
   // help option was given - print usage and exit
   if (vm.count("help")) {
     cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
     cout << common << endl << general << endl;
-    running = false;
-    return SRSLTE_SUCCESS;
+    exit(SRSLTE_SUCCESS);
   }
 
   // print version number and exit
   if (vm.count("version")) {
     cout << "Version " << srslte_get_version_major() << "." << srslte_get_version_minor() << "."
          << srslte_get_version_patch() << endl;
-    running = false;
-    return SRSLTE_SUCCESS;
+    exit(SRSLTE_SUCCESS);
   }
 
   // if no config file given, check users home path
@@ -446,7 +443,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
     if (!config_exists(config_file, "ue.conf")) {
       cout << "Failed to read UE configuration file " << config_file << " - exiting" << endl;
-      running = false;
       return SRSLTE_ERROR;
     }
   }
@@ -455,7 +451,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   ifstream conf(config_file.c_str(), ios::in);
   if (conf.fail()) {
     cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
-    running = false;
     return SRSLTE_ERROR;
   }
 
@@ -465,14 +460,12 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     bpo::notify(vm);
   } catch (const boost::program_options::error& e) {
     cerr << e.what() << endl;
-    running = false;
     return SRSLTE_ERROR;
   }
 
   // Check conflicting OP/OPc options and which is being used
   if (vm.count("usim.op") && !vm["usim.op"].defaulted() && vm.count("usim.opc") && !vm["usim.opc"].defaulted()) {
     cout << "Conflicting options OP and OPc. Please configure either one or the other." << endl;
-    running = false;
     return SRSLTE_ERROR;
   } else {
     args->stack.usim.using_op = vm.count("usim.op");
@@ -580,14 +573,12 @@ int main(int argc, char* argv[])
   srslte_debug_handle_crash(argc, argv);
 
   all_args_t args = {};
-  int        ret  = parse_args(&args, argc, argv);
-  if (!running) {
-    return ret;
-  }
-
-  srslte::logger_stdout logger_stdout;
+  if (parse_args(&args, argc, argv) != SRSLTE_SUCCESS) {
+    return SRSLTE_ERROR;
+  };
 
   // Setup logging
+  srslte::logger_stdout logger_stdout;
   srslte::logger* logger = nullptr;
   if (args.log.filename == "stdout") {
     logger = &logger_stdout;
