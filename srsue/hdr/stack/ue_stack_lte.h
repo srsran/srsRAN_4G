@@ -119,7 +119,6 @@ public:
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp.is_lcid_enabled(lcid); }
 
   // Interface to upper MAC
-  void process_pdus() final;
   void wait_ra_completion(uint16_t rnti) final;
   void start_prach_configuration() final;
 

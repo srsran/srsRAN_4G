@@ -334,11 +334,6 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
  * low MAC Interface
  *******************/
 
-void ue_stack_lte::process_pdus()
-{
-  pending_tasks.push(mac_queue_id, [this]() { mac.process_pdus(); });
-}
-
 void ue_stack_lte::wait_ra_completion(uint16_t rnti)
 {
   background_tasks.push_task([this, rnti](uint32_t worker_id) {

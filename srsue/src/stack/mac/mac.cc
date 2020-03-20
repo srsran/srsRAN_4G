@@ -407,7 +407,8 @@ void mac::mch_decoded(uint32_t len, bool crc)
     }
 
     demux_unit.push_pdu_mch(mch_payload_buffer, len);
-    stack_h->process_pdus();
+    process_pdus();
+
     if (pcap) {
       pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti(), 0);
     }
@@ -448,7 +449,7 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
   } else {
 
     dl_harq.at(cc_idx)->tb_decoded(grant, ack);
-    stack_h->process_pdus();
+    process_pdus();
 
     for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
       if (grant.tb[tb].tbs) {
@@ -496,9 +497,15 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
 
 void mac::process_pdus()
 {
-  bool have_data = true;
-  while (initialized and have_data) {
-    have_data = demux_unit.process_pdus();
+  // dispatch work to stack thread
+  auto ret = stack_task_dispatch_queue.try_push([this]() {
+    bool have_data = true;
+    while (initialized and have_data) {
+      have_data = demux_unit.process_pdus();
+    }
+  });
+  if (not ret.first) {
+    Warning("Failed to dispatch mac::%s task to stack thread\n", __func__);
   }
 }
 

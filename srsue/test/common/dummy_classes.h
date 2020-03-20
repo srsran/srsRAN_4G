@@ -40,7 +40,6 @@ public:
   {
     timers.defer_callback(duration_ms, func);
   }
-  void process_pdus() override {}
   void wait_ra_completion(uint16_t rnti) override {}
   void start_prach_configuration() override {}
 
