@@ -368,8 +368,8 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
   }
   phy_meas_t new_meas = {rsrp, rsrq, tti, earfcn, pci};
   phy_meas_q.push(new_meas);
-  rrc_log->info("MEAS:  New measurement earfcn=%d, pci=%d (%s), rsrp=%.1f dBm.\n",
-                earfcn_i,
+  rrc_log->info("MEAS:  New measurement earfcn=%u, pci=%d (%s), rsrp=%.1f dBm.\n",
+                earfcn,
                 pci,
                 pci_i < 0 ? "serving" : "neighbour",
                 rsrp);
