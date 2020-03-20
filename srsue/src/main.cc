@@ -370,11 +370,11 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
     // UE simulation args
     ("sim.airplane_t_on_ms",
-     bpo::value<int>(&args->stack.sim.airplane_t_on_ms)->default_value(-1),
+     bpo::value<int>(&args->stack.nas.sim.airplane_t_on_ms)->default_value(-1),
      "On-time for airplane mode (in ms)")
 
     ("sim.airplane_t_off_ms",
-     bpo::value<int>(&args->stack.sim.airplane_t_off_ms)->default_value(-1),
+     bpo::value<int>(&args->stack.nas.sim.airplane_t_off_ms)->default_value(-1),
      "Off-time for airplane mode (in ms)")
 
      /* general options */

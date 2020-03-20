@@ -152,6 +152,10 @@ private:
   uint8_t k_nas_enc[32] = {};
   uint8_t k_nas_int[32] = {};
 
+  // Airplane mode simulation
+  typedef enum { DISABLED = 0, ENABLED } airplane_mode_state_t;
+  airplane_mode_state_t airplane_mode_state = {};
+
   // PCAP
   srslte::nas_pcap* pcap = nullptr;
 
@@ -209,6 +213,7 @@ private:
   void send_activate_test_mode_complete(const uint8_t sec_hdr_type);
 
   // Other internal helpers
+  void handle_airplane_mode_sim();
   void enter_emm_deregistered();
 
   // security context persistence file

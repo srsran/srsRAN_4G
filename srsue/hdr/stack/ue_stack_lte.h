@@ -141,6 +141,7 @@ private:
 
   bool                  running;
   srsue::stack_args_t   args;
+
   srslte::tti_point     current_tti;
 
   // timers

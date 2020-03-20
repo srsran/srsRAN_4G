@@ -302,6 +302,8 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   t3421.set(t3421_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
   reattach_timer.set(reattach_timer_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
 
+  handle_airplane_mode_sim();
+
   running = true;
 }
 
@@ -2321,6 +2323,40 @@ void nas::send_activate_test_mode_complete(const uint8_t sec_hdr_type)
   rrc->write_sdu(std::move(pdu));
 
   ctxt.tx_count++;
+}
+
+/*
+ * Handles the airplane mode simulation by triggering a UE switch off/on
+ * in user-definable time intervals
+ */
+void nas::handle_airplane_mode_sim()
+{
+  if (cfg.sim.airplane_t_on_ms > 0 && airplane_mode_state == DISABLED) {
+    // check if we're already attached, if so, schedule airplane mode command
+    if (state == EMM_STATE_REGISTERED) {
+      // NAS is attached
+      task_handler->defer_callback(cfg.sim.airplane_t_on_ms, [&]() {
+        // Enabling air-plane mode
+        send_detach_request(true);
+        airplane_mode_state = ENABLED;
+      });
+    }
+  } else if (cfg.sim.airplane_t_off_ms > 0 && airplane_mode_state == ENABLED) {
+    // check if we are already deregistered, if so, schedule command to turn off airplone mode again
+    if (state == EMM_STATE_DEREGISTERED) {
+      // NAS is deregistered
+      task_handler->defer_callback(cfg.sim.airplane_t_off_ms, [&]() {
+        // Disabling airplane mode again
+        start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+        airplane_mode_state = DISABLED;
+      });
+    }
+  }
+
+  // schedule another call
+  if (cfg.sim.airplane_t_on_ms > 0 || cfg.sim.airplane_t_off_ms > 0) {
+    task_handler->defer_callback(1000, [&]() { handle_airplane_mode_sim(); });
+  }
 }
 
 /*******************************************************************************
