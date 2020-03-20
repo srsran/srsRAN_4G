@@ -26,6 +26,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"
 #include "srsue/hdr/stack/mac/mux.h"
+#include "srsue/test/common/dummy_classes.h"
 #include <assert.h>
 #include <iostream>
 #include <string.h>
@@ -50,13 +51,13 @@ srslte::log_ref mac_log{"MAC"};
 namespace srslte {
 
 // fake classes
-class rlc_dummy : public srsue::rlc_interface_mac
+class rlc_dummy : public srsue::rlc_dummy_interface
 {
 public:
   rlc_dummy(srslte::log_filter* log_) : received_bytes(0), log(log_) {}
-  bool     has_data(const uint32_t lcid) { return ul_queues[lcid] > 0; }
-  uint32_t get_buffer_state(const uint32_t lcid) { return ul_queues[lcid]; }
-  int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+  bool     has_data(const uint32_t lcid) final { return ul_queues[lcid] > 0; }
+  uint32_t get_buffer_state(const uint32_t lcid) final { return ul_queues[lcid]; }
+  int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) final
   {
     if (!read_enable) {
       return 0;
@@ -71,17 +72,13 @@ public:
 
     return len;
   };
-  void write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
+  void write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) final
   {
     log->debug_hex(payload, nof_bytes, "Received %d B on LCID %d\n", nof_bytes, lcid);
     received_bytes += nof_bytes;
-  };
+  }
 
   void     write_sdu(uint32_t lcid, uint32_t nof_bytes) { ul_queues[lcid] += nof_bytes; }
-  void     write_pdu_bcch_bch(uint8_t* payload, uint32_t nof_bytes){};
-  void     write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes){};
-  void     write_pdu_pcch(uint8_t* payload, uint32_t nof_bytes){};
-  void     write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes){};
   uint32_t get_received_bytes() { return received_bytes; }
 
   void disable_read() { read_enable = false; }
@@ -99,7 +96,7 @@ class phy_dummy : public phy_interface_mac_lte
 public:
   phy_dummy() : scell_cmd(0){};
 
-  void set_log(srslte::log* log_h) { this->log_h = log_h; }
+  void set_log(srslte::log* log_h_) { log_h = log_h_; }
   void reset()
   {
     last_preamble_idx = 0;
@@ -266,9 +263,9 @@ public:
       ul_mac_grant.tb.ndi_present  = true;
     }
 
-    ul_mac_grant.is_rar          = is_rar;
-    ul_mac_grant.rnti            = rnti;
-    ul_mac_grant.tb.tbs          = len;
+    ul_mac_grant.is_rar = is_rar;
+    ul_mac_grant.rnti   = rnti;
+    ul_mac_grant.tb.tbs = len;
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
     mac_h->new_grant_ul(0, ul_mac_grant, &ul_action);

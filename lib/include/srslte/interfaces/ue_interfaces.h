@@ -35,6 +35,7 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
+#include "srslte/common/multiqueue.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/tti_point.h"
@@ -296,9 +297,9 @@ public:
   /* MAC calls RLC to push an RLC PDU. This function is called from an independent MAC thread.
    * PDU gets placed into the buffer and higher layer thread gets notified. */
   virtual void write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)     = 0;
-  virtual void write_pdu_bcch_bch(uint8_t* payload, uint32_t nof_bytes)           = 0;
+  virtual void write_pdu_bcch_bch(srslte::unique_byte_buffer_t payload)           = 0;
   virtual void write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes)         = 0;
-  virtual void write_pdu_pcch(uint8_t* payload, uint32_t nof_bytes)               = 0;
+  virtual void write_pdu_pcch(srslte::unique_byte_buffer_t payload)               = 0;
   virtual void write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) = 0;
 };
 

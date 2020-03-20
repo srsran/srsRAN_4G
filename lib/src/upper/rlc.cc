@@ -346,18 +346,10 @@ void rlc::write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 }
 
 // Pass directly to PDCP, no DL througput counting done
-void rlc::write_pdu_bcch_bch(uint8_t* payload, uint32_t nof_bytes)
+void rlc::write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu)
 {
-  rlc_log->info_hex(payload, nof_bytes, "BCCH BCH message received.");
-  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
-  if (buf != NULL) {
-    memcpy(buf->msg, payload, nof_bytes);
-    buf->N_bytes = nof_bytes;
-    buf->set_timestamp();
-    pdcp->write_pdu_bcch_bch(std::move(buf));
-  } else {
-    rlc_log->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_bch()\n");
-  }
+  rlc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
+  pdcp->write_pdu_bcch_bch(std::move(pdu));
 }
 
 // Pass directly to PDCP, no DL througput counting done
@@ -376,18 +368,10 @@ void rlc::write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes)
 }
 
 // Pass directly to PDCP, no DL througput counting done
-void rlc::write_pdu_pcch(uint8_t* payload, uint32_t nof_bytes)
+void rlc::write_pdu_pcch(srslte::unique_byte_buffer_t pdu)
 {
-  rlc_log->info_hex(payload, nof_bytes, "PCCH message received.");
-  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
-  if (buf != NULL) {
-    memcpy(buf->msg, payload, nof_bytes);
-    buf->N_bytes = nof_bytes;
-    buf->set_timestamp();
-    pdcp->write_pdu_pcch(std::move(buf));
-  } else {
-    rlc_log->error("Fatal error: Out of buffers from the pool in write_pdu_pcch()\n");
-  }
+  rlc_log->info_hex(pdu->msg, pdu->N_bytes, "PCCH message received.");
+  pdcp->write_pdu_pcch(std::move(pdu));
 }
 
 void rlc::write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)

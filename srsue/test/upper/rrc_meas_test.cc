@@ -167,10 +167,10 @@ private:
 
 class rrc_test : public rrc
 {
-  srsue::stack_dummy* stack = nullptr;
+  srsue::stack_dummy_interface* stack = nullptr;
 
 public:
-  rrc_test(srslte::log* log_, stack_dummy* stack_) : rrc(stack_), stack(stack_)
+  rrc_test(srslte::log* log_, stack_dummy_interface* stack_) : rrc(stack_), stack(stack_)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
     nastest  = std::unique_ptr<nas_test>(new nas_test(stack));
@@ -274,8 +274,8 @@ int cell_select_test()
   printf("======            Cell Select Testing      ===============\n");
   printf("==========================================================\n");
 
-  stack_dummy stack;
-  rrc_test    rrctest(&log1, &stack);
+  stack_dummy_interface stack;
+  rrc_test              rrctest(&log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -304,8 +304,8 @@ int meas_obj_test()
   printf("======    Object Configuration Testing    ===============\n");
   printf("==========================================================\n");
 
-  stack_dummy stack;
-  rrc_test    rrctest(&log1, &stack);
+  stack_dummy_interface stack;
+  rrc_test              rrctest(&log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -720,8 +720,8 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
   printf("============       Report Testing  A1      ===============\n");
   printf("==========================================================\n");
 
-  stack_dummy stack;
-  rrc_test    rrctest(&log1, &stack);
+  stack_dummy_interface stack;
+  rrc_test              rrctest(&log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -854,8 +854,8 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
   printf("============       Report Testing A3       ===============\n");
   printf("==========================================================\n");
 
-  stack_dummy stack;
-  rrc_test    rrctest(&log1, &stack);
+  stack_dummy_interface stack;
+  rrc_test              rrctest(&log1, &stack);
   rrctest.init();
   rrctest.connect();
 

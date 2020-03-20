@@ -26,7 +26,7 @@
 
 namespace srsue {
 
-class stack_dummy : public stack_interface_rrc
+class stack_dummy_interface : public stack_interface_rrc
 {
 public:
   srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
@@ -34,7 +34,21 @@ public:
   void                                start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) override {}
   srslte::tti_point get_current_tti() override { return srslte::tti_point{timers.get_cur_time() % 10240}; }
 
-  srslte::timer_handler timers{100};
+  srslte::timer_handler   timers{100};
+  srslte::task_multiqueue pending_tasks;
+};
+
+class rlc_dummy_interface : public rlc_interface_mac
+{
+public:
+  bool     has_data(const uint32_t lcid) override { return false; }
+  uint32_t get_buffer_state(const uint32_t lcid) override { return 0; }
+  int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override { return 0; }
+  void     write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override {}
+  void     write_pdu_bcch_bch(srslte::unique_byte_buffer_t payload) override {}
+  void     write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes) override {}
+  void     write_pdu_pcch(srslte::unique_byte_buffer_t payload) override {}
+  void     write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override {}
 };
 
 } // namespace srsue

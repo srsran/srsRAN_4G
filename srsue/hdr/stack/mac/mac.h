@@ -171,6 +171,9 @@ private:
   void                                timer_alignment_expire();
   srslte::timer_handler*              timers = nullptr;
 
+  /* Queue to dispatch stack tasks */
+  srslte::byte_buffer_pool* pool = nullptr;
+
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap              = nullptr;
   bool              is_first_ul_grant = false;

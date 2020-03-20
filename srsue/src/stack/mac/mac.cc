@@ -57,6 +57,8 @@ mac::mac(const char* logname) :
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
   srslte_softbuffer_rx_init(&mch_softbuffer, 100);
 
+  pool = srslte::byte_buffer_pool::get_instance();
+
   // Keep initialising members
   bzero(&metrics, sizeof(mac_metrics_t));
   clear_rntis();
@@ -370,7 +372,15 @@ uint16_t mac::get_dl_sched_rnti(uint32_t tti)
 void mac::bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len)
 {
   // Send MIB to RLC
-  rlc_h->write_pdu_bcch_bch(payload, len);
+  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
+  if (buf != nullptr) {
+    memcpy(buf->msg, payload, len);
+    buf->N_bytes = len;
+    buf->set_timestamp();
+    rlc_h->write_pdu_bcch_bch(std::move(buf));
+  } else {
+    log_h->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_bch()\n");
+  }
 
   if (pcap) {
     pcap->write_dl_bch(payload, len, true, phy_h->get_current_tti(), cc_idx);
@@ -416,7 +426,15 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
     }
   } else if (grant.rnti == SRSLTE_PRNTI) {
     // Send PCH payload to RLC
-    rlc_h->write_pdu_pcch(pch_payload_buffer, grant.tb[0].tbs);
+    unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+    if (pdu != nullptr) {
+      memcpy(pdu->msg, pch_payload_buffer, grant.tb[0].tbs);
+      pdu->N_bytes = grant.tb[0].tbs;
+      pdu->set_timestamp();
+      rlc_h->write_pdu_pcch(std::move(pdu));
+    } else {
+      log_h->error("Fatal error: Out of buffers from the pool in write_pdu_pcch()\n");
+    }
 
     if (pcap) {
       pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti, cc_idx);

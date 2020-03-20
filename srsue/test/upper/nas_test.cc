@@ -141,7 +141,7 @@ private:
   bool         is_connected_flag = false;
 };
 
-class test_stack_dummy : public srsue::stack_dummy, public stack_interface_gw, public thread
+class test_stack_dummy : public srsue::stack_dummy_interface, public stack_interface_gw, public thread
 {
 public:
   test_stack_dummy(pdcp_interface_gw* pdcp_) : pdcp(pdcp_), thread("DUMMY STACK") {}
@@ -210,7 +210,7 @@ int security_command_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  stack_dummy stack;
+  stack_dummy_interface stack;
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
@@ -352,7 +352,7 @@ int esm_info_request_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  srsue::stack_dummy stack{};
+  srsue::stack_dummy_interface stack{};
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
@@ -406,7 +406,7 @@ int dedicated_eps_bearer_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  srsue::stack_dummy stack;
+  srsue::stack_dummy_interface stack;
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
