@@ -509,11 +509,6 @@ void mac::process_pdus()
   }
 }
 
-void mac::notify_ra_completed()
-{
-  ra_procedure.notify_ra_completed();
-}
-
 uint32_t mac::get_current_tti()
 {
   return phy_h->get_current_tti();
@@ -604,11 +599,6 @@ void mac::set_contention_id(uint64_t uecri)
 void mac::start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask)
 {
   ra_procedure.start_noncont(preamble_index, prach_mask);
-}
-
-void mac::notify_phy_config_completed()
-{
-  ra_procedure.notify_phy_config_completed();
 }
 
 void mac::start_cont_ho()

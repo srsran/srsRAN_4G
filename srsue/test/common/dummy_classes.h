@@ -40,8 +40,6 @@ public:
   {
     timers.defer_callback(duration_ms, func);
   }
-  void wait_ra_completion(uint16_t rnti) override {}
-  void start_prach_configuration() override {}
 
   srslte::timer_handler   timers{100};
   srslte::task_multiqueue pending_tasks;

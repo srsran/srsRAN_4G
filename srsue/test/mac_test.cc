@@ -343,16 +343,6 @@ public:
     mac_h = mac_;
     phy_h = phy_;
   }
-  void wait_ra_completion(uint16_t rnti) final
-  {
-    phy_h->set_crnti(rnti);
-    mac_h->notify_ra_completed();
-  }
-  void start_prach_configuration() final
-  {
-    phy_h->configure_prach_params();
-    mac_h->notify_phy_config_completed();
-  }
   bool events_exist()
   {
     for (int i = 0; i < pending_tasks.nof_queues(); ++i) {
@@ -460,8 +450,6 @@ int mac_ul_sch_pdu_test1()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(64);
-
   // dummy layers
   phy_dummy   phy;
   rlc_dummy   rlc(&rlc_log);
@@ -526,8 +514,6 @@ int mac_ul_logical_channel_prioritization_test1()
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
-
-  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -640,8 +626,6 @@ int mac_ul_logical_channel_prioritization_test2()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(64);
-
   // dummy layers
   phy_dummy   phy;
   rlc_dummy   rlc(&rlc_log);
@@ -740,8 +724,6 @@ int mac_ul_logical_channel_prioritization_test3()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(64);
-
   // dummy layers
   phy_dummy   phy;
   rlc_dummy   rlc(&rlc_log);
@@ -828,8 +810,6 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(64);
-
   // dummy layers
   phy_dummy   phy;
   rlc_dummy   rlc(&rlc_log);
@@ -913,8 +893,6 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
-
-  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -1009,8 +987,6 @@ int mac_ul_sch_pdu_one_byte_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(64);
-
   // dummy layers
   phy_dummy   phy;
   rlc_dummy   rlc(&rlc_log);
@@ -1068,8 +1044,6 @@ int mac_ul_sch_pdu_two_byte_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timer_handler timers(64);
-
   // dummy layers
   phy_dummy   phy;
   rlc_dummy   rlc(&rlc_log);
@@ -1126,8 +1100,6 @@ int mac_ul_sch_pdu_three_byte_test()
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
-
-  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -1367,8 +1339,6 @@ int mac_random_access_test()
   srslte::log_filter rlc_log("RLC");
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
-
-  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy phy;

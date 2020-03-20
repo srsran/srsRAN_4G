@@ -236,8 +236,13 @@ void ra_proc::state_contention_resolution()
  */
 void ra_proc::state_completition()
 {
-  state = WAITING_COMPLETION;
-  stack->wait_ra_completion(rntis->crnti);
+  state         = WAITING_COMPLETION;
+  uint16_t rnti = rntis->crnti;
+  stack->enqueue_background_task([this, rnti](uint32_t worker_id) {
+    phy_h->set_crnti(rnti);
+    // signal MAC RA proc to go back to idle
+    notify_ra_completed();
+  });
 }
 
 void ra_proc::notify_phy_config_completed()
@@ -272,7 +277,11 @@ void ra_proc::initialization()
 
   // Instruct phy to configure PRACH
   state = WAITING_PHY_CONFIG;
-  stack->start_prach_configuration();
+  stack->enqueue_background_task([this](uint32_t worker_id) {
+    phy_h->configure_prach_params();
+    // notify back MAC
+    stack->notify_background_task_result([this]() { notify_phy_config_completed(); });
+  });
 }
 
 /* Resource selection as defined in 5.1.2 */
