@@ -448,7 +448,7 @@ void radio::set_tx_srate(const double& srate)
         nsamples = 120;
       } else if (srate_khz == 15.36e3) {
         // 75 PRB
-        nsamples = 160;
+        nsamples = 80;
       } else if (srate_khz == 23.04e3) {
         // 100 PRB
         nsamples = 160;
