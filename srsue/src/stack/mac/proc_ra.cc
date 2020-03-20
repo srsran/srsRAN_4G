@@ -62,7 +62,6 @@ void ra_proc::init(phy_interface_mac_lte*               phy_h_,
                    srslte::log_ref                      log_h_,
                    mac_interface_rrc::ue_rnti_t*        rntis_,
                    srslte::timer_handler::unique_timer* time_alignment_timer_,
-                   srslte::timer_handler::unique_timer  contention_resolution_timer_,
                    mux*                                 mux_unit_,
                    stack_interface_mac*                 stack_)
 {
@@ -74,7 +73,7 @@ void ra_proc::init(phy_interface_mac_lte*               phy_h_,
   stack    = stack_;
 
   time_alignment_timer        = time_alignment_timer_;
-  contention_resolution_timer = std::move(contention_resolution_timer_);
+  contention_resolution_timer = stack->get_unique_timer();
 
   srslte_softbuffer_rx_init(&softbuffer_rar, 10);
 
@@ -99,10 +98,10 @@ void ra_proc::start_pcap(srslte::mac_pcap* pcap_)
 }
 
 /* Sets a new configuration. The configuration is applied by initialization() function */
-void ra_proc::set_config(srslte::rach_cfg_t& rach_cfg)
+void ra_proc::set_config(srslte::rach_cfg_t& rach_cfg_)
 {
   std::unique_lock<std::mutex> ul(mutex);
-  new_cfg = rach_cfg;
+  new_cfg = rach_cfg_;
 }
 
 /* Reads the configuration and configures internal variables */

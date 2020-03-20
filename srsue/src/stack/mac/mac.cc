@@ -72,27 +72,23 @@ mac::~mac()
   srslte_softbuffer_rx_free(&mch_softbuffer);
 }
 
-bool mac::init(phy_interface_mac_lte* phy,
-               rlc_interface_mac*     rlc,
-               rrc_interface_mac*     rrc,
-               srslte::timer_handler* timers_,
-               stack_interface_mac*   stack_)
+bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, stack_interface_mac* stack_)
 {
   phy_h   = phy;
   rlc_h   = rlc;
   rrc_h   = rrc;
-  timers  = timers_;
   stack_h = stack_;
 
-  timer_alignment                                                 = timers->get_unique_timer();
-  srslte::timer_handler::unique_timer contention_resolution_timer = timers->get_unique_timer();
+  timer_alignment = stack_h->get_unique_timer();
 
-  bsr_procedure.init(rlc_h, log_h, timers);
-  phr_procedure.init(phy_h, log_h, timers);
+  // Create Stack task dispatch queue
+  stack_task_dispatch_queue = stack_h->make_task_queue();
+
+  bsr_procedure.init(rlc_h, log_h, stack_h);
+  phr_procedure.init(phy_h, log_h, stack_h);
   mux_unit.init(rlc_h, &bsr_procedure, &phr_procedure);
   demux_unit.init(phy_h, rlc_h, this, &timer_alignment);
-  ra_procedure.init(
-      phy_h, rrc, log_h, &uernti, &timer_alignment, std::move(contention_resolution_timer), &mux_unit, stack_h);
+  ra_procedure.init(phy_h, rrc, log_h, &uernti, &timer_alignment, &mux_unit, stack_h);
   sr_procedure.init(phy_h, rrc, log_h);
 
   // Create UL/DL unique HARQ pointers
@@ -377,7 +373,11 @@ void mac::bch_decoded_ok(uint32_t cc_idx, uint8_t* payload, uint32_t len)
     memcpy(buf->msg, payload, len);
     buf->N_bytes = len;
     buf->set_timestamp();
-    rlc_h->write_pdu_bcch_bch(std::move(buf));
+    auto p = stack_task_dispatch_queue.try_push(std::bind(
+        [this](srslte::unique_byte_buffer_t& buf) { rlc_h->write_pdu_bcch_bch(std::move(buf)); }, std::move(buf)));
+    if (not p.first) {
+      Warning("Failed to dispatch rlc::write_pdu_bcch_bch task to stack\n");
+    }
   } else {
     log_h->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_bch()\n");
   }
@@ -411,6 +411,7 @@ void mac::mch_decoded(uint32_t len, bool crc)
     if (pcap) {
       pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti(), 0);
     }
+
     metrics[0].rx_brate += len * 8;
   } else {
     metrics[0].rx_errors++;
@@ -431,7 +432,12 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
       memcpy(pdu->msg, pch_payload_buffer, grant.tb[0].tbs);
       pdu->N_bytes = grant.tb[0].tbs;
       pdu->set_timestamp();
-      rlc_h->write_pdu_pcch(std::move(pdu));
+
+      auto ret = stack_task_dispatch_queue.try_push(std::bind(
+          [this](srslte::unique_byte_buffer_t& pdu) { rlc_h->write_pdu_pcch(std::move(pdu)); }, std::move(pdu)));
+      if (not ret.first) {
+        Warning("Failed to dispatch rlc::write_pdu_pcch task to stack\n");
+      }
     } else {
       log_h->error("Fatal error: Out of buffers from the pool in write_pdu_pcch()\n");
     }

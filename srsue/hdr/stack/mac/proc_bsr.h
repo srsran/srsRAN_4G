@@ -55,7 +55,7 @@ class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
 {
 public:
   bsr_proc();
-  void init(rlc_interface_mac* rlc, srslte::log_ref log_h, srslte::timer_handler* timers_db);
+  void init(rlc_interface_mac* rlc, srslte::log_ref log_h, srsue::task_handler_interface_lte* task_handler_);
   void step(uint32_t tti);
   void reset();
   void set_config(srslte::bsr_cfg_t& bsr_cfg);
@@ -73,10 +73,10 @@ private:
 
   pthread_mutex_t mutex;
 
-  bool                   reset_sr;
-  srslte::timer_handler* timers_db;
-  srslte::log_ref        log_h;
-  rlc_interface_mac*     rlc;
+  bool                               reset_sr;
+  srsue::task_handler_interface_lte* task_handler;
+  srslte::log_ref                    log_h;
+  rlc_interface_mac*                 rlc;
 
   srslte::bsr_cfg_t bsr_cfg;
 
@@ -113,6 +113,7 @@ private:
 
   srslte::timer_handler::unique_timer timer_periodic;
   srslte::timer_handler::unique_timer timer_retx;
+  srslte::timer_handler::unique_timer timer_queue_status_print;
 };
 
 } // namespace srsue

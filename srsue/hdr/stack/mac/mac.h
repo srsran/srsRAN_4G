@@ -50,11 +50,7 @@ class mac : public mac_interface_phy_lte,
 public:
   mac(const char* logname);
   ~mac();
-  bool init(phy_interface_mac_lte* phy,
-            rlc_interface_mac*     rlc,
-            rrc_interface_mac*     rrc,
-            srslte::timer_handler* timers_,
-            stack_interface_mac*   stack);
+  bool init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, stack_interface_mac* stack_);
   void stop();
 
   void get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]);
@@ -169,10 +165,10 @@ private:
   srslte::timer_handler::unique_timer timer_alignment;
   void                                setup_timers(int time_alignment_timer);
   void                                timer_alignment_expire();
-  srslte::timer_handler*              timers = nullptr;
 
   /* Queue to dispatch stack tasks */
-  srslte::byte_buffer_pool* pool = nullptr;
+  srslte::task_multiqueue::queue_handler stack_task_dispatch_queue;
+  srslte::byte_buffer_pool*              pool = nullptr;
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap              = nullptr;

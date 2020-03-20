@@ -40,19 +40,20 @@ bsr_proc::bsr_proc()
   pthread_mutex_init(&mutex, NULL);
 }
 
-void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log_ref log_h_, srslte::timer_handler* timers_db_)
+void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log_ref log_h_, srsue::task_handler_interface_lte* task_handler_)
 {
-  log_h     = log_h_;
-  rlc       = rlc_;
-  timers_db = timers_db_;
+  log_h        = log_h_;
+  rlc          = rlc_;
+  task_handler = task_handler_;
 
-  timer_periodic = timers_db->get_unique_timer();
-  timer_retx     = timers_db->get_unique_timer();
+  timer_periodic           = task_handler->get_unique_timer();
+  timer_retx               = task_handler->get_unique_timer();
+  timer_queue_status_print = task_handler->get_unique_timer();
 
   reset();
 
   // Print periodically the LCID queue status
-  auto queue_status_print_task = [this]() {
+  auto queue_status_print_task = [this](uint32_t tid) {
     char str[128];
     str[0] = '\0';
     int n  = 0;
@@ -62,11 +63,10 @@ void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log_ref log_h_, srslte::tim
       }
     }
     Info("BSR:   triggered_bsr_type=%d, LCID QUEUE status: %s\n", triggered_bsr_type, str);
+    timer_queue_status_print.run();
   };
-  timers_db->defer_callback(QUEUE_STATUS_PERIOD_MS, [this, queue_status_print_task]() {
-    queue_status_print_task();
-    timers_db->defer_callback(QUEUE_STATUS_PERIOD_MS, queue_status_print_task);
-  });
+  timer_queue_status_print.set(QUEUE_STATUS_PERIOD_MS, queue_status_print_task);
+  timer_queue_status_print.run();
 
   initiated = true;
 }
@@ -89,19 +89,19 @@ void bsr_proc::reset()
   trigger_tti = 0;
 }
 
-void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg)
+void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg_)
 {
   pthread_mutex_lock(&mutex);
 
-  this->bsr_cfg = bsr_cfg;
+  bsr_cfg = bsr_cfg_;
 
-  if (bsr_cfg.periodic_timer > 0) {
-    timer_periodic.set(bsr_cfg.periodic_timer, [this](uint32_t tid) { timer_expired(tid); });
-    Info("BSR:   Configured timer periodic %d ms\n", bsr_cfg.periodic_timer);
+  if (bsr_cfg_.periodic_timer > 0) {
+    timer_periodic.set(bsr_cfg_.periodic_timer, [this](uint32_t tid) { timer_expired(tid); });
+    Info("BSR:   Configured timer periodic %d ms\n", bsr_cfg_.periodic_timer);
   }
-  if (bsr_cfg.retx_timer > 0) {
-    timer_retx.set(bsr_cfg.retx_timer, [this](uint32_t tid) { timer_expired(tid); });
-    Info("BSR:   Configured timer reTX %d ms\n", bsr_cfg.retx_timer);
+  if (bsr_cfg_.retx_timer > 0) {
+    timer_retx.set(bsr_cfg_.retx_timer, [this](uint32_t tid) { timer_expired(tid); });
+    Info("BSR:   Configured timer reTX %d ms\n", bsr_cfg_.retx_timer);
   }
   pthread_mutex_unlock(&mutex);
 }

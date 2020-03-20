@@ -131,7 +131,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
     return SRSLTE_ERROR;
   }
 
-  mac.init(phy, &rlc, &rrc, &timers, this);
+  mac.init(phy, &rlc, &rrc, this);
   rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);

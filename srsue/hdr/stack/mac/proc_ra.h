@@ -70,7 +70,6 @@ public:
             srslte::log_ref                      log_h,
             mac_interface_rrc::ue_rnti_t*        rntis,
             srslte::timer_handler::unique_timer* time_alignment_timer_,
-            srslte::timer_handler::unique_timer  contention_resolution_timer_,
             mux*                                 mux_unit,
             stack_interface_mac*                 stack_);
 
@@ -167,7 +166,7 @@ private:
   mux*                   mux_unit;
   srslte::mac_pcap*      pcap;
   rrc_interface_mac*     rrc;
-  stack_interface_mac*   stack;
+  stack_interface_mac*   stack = nullptr;
 
   srslte::timer_handler::unique_timer* time_alignment_timer = nullptr;
   srslte::timer_handler::unique_timer  contention_resolution_timer;
