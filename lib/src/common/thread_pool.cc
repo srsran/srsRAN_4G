@@ -98,7 +98,7 @@ void thread_pool::stop()
   /* Now stop all workers */
   for (uint32_t i = 0; i < nof_workers; i++) {
     if (workers[i]) {
-      debug_thread("stop(): stoping %d\n", i);
+      debug_thread("stop(): stopping %d\n", i);
       status[i] = STOP;
       cvar_worker[i].notify_all();
       cvar_queue.notify_all();
