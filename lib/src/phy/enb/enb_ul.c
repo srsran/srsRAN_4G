@@ -185,8 +185,8 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
 
   // Get possible resources
   int nof_resources = srslte_pucch_proc_get_resources(&q->cell, cfg, &cfg->uci_cfg, NULL, n_pucch_i);
-  if (nof_resources < SRSLTE_SUCCESS || nof_resources > SRSLTE_PUCCH_CS_MAX_ACK) {
-    ERROR("No PUCCH resource could be calculated\n");
+  if (nof_resources < 1 || nof_resources > SRSLTE_PUCCH_CS_MAX_ACK) {
+    ERROR("No PUCCH resource could be calculated (%d)\n", nof_resources);
     return SRSLTE_ERROR;
   }
 
@@ -216,12 +216,8 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
         srslte_pucch_cs_get_ack(cfg, &cfg->uci_cfg, i, b, &pucch_res.uci_data);
       }
 
-      char txt[256];
-      srslte_pucch_rx_info(cfg, &pucch_res.uci_data, txt, sizeof(txt));
-      INFO("[ENB_UL/PUCCH] Decoded %s, corr=%.3f\n", txt, pucch_res.correlation);
-
       // Check correlation value, keep maximum
-      if (pucch_res.correlation > res->correlation) {
+      if (i == 0 || pucch_res.correlation > res->correlation) {
         *res = pucch_res;
       }
     }

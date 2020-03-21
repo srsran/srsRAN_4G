@@ -91,6 +91,7 @@ typedef struct SRSLTE_API {
 
 typedef struct SRSLTE_API {
   srslte_uci_value_t uci_data;
+  float              dmrs_correlation;
   float              correlation;
   bool               detected;
 } srslte_pucch_res_t;
@@ -184,7 +185,7 @@ SRSLTE_API void
 srslte_pucch_tx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len);
 
 SRSLTE_API void
-srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len);
+srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* pucch_res, char* str, uint32_t str_len);
 
 SRSLTE_API bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t* cfg, uint32_t nof_prb);
 

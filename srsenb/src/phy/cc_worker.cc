@@ -422,8 +422,8 @@ int cc_worker::decode_pucch()
 
         // Logging
         char str[512];
-        srslte_pucch_rx_info(&ul_cfg.pucch, &pucch_res.uci_data, str, 512);
-        Info("PUCCH: cc=%d; %s, corr=%.1f\n", cc_idx, str, pucch_res.correlation);
+        srslte_pucch_rx_info(&ul_cfg.pucch, &pucch_res, str, 512);
+        Info("PUCCH: cc=%d; %s\n", cc_idx, str);
       }
     }
   }

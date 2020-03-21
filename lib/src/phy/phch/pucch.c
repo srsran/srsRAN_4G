@@ -912,17 +912,19 @@ int srslte_pucch_decode(srslte_pucch_t*        q,
     // Equalization
     srslte_predecoding_single(q->z_tmp, q->ce, q->z, NULL, nof_re, 1.0f, channel->noise_estimate);
 
-    // DMRS Detection
-    cf_t  _dmrs_corr = srslte_vec_acc_cc(q->ce, nof_re) / nof_re;
-    float _rms       = __real__(conjf(_dmrs_corr) * _dmrs_corr);
-    float _pow       = srslte_vec_avg_power_cf(q->ce, nof_re);
-    float _r         = _rms / _pow;
+    // Perform DMRS Detection, if enabled
+    if (isnormal(cfg->threshold_dmrs_detection)) {
+      cf_t  _dmrs_corr       = srslte_vec_acc_cc(q->ce, SRSLTE_NRE) / SRSLTE_NRE;
+      float rms              = __real__(conjf(_dmrs_corr) * _dmrs_corr);
+      float power            = srslte_vec_avg_power_cf(q->ce, SRSLTE_NRE);
+      data->dmrs_correlation = rms / power;
 
-    // Return not detected if the ratio is 0, NAN, +/- Infinity or below threshold
-    if (!isnormal(_r) || _r < cfg->threshold_dmrs_detection) {
-      data->detected    = false;
-      data->correlation = NAN;
-      return SRSLTE_SUCCESS;
+      // Return not detected if the ratio is 0, NAN, +/- Infinity or below threshold
+      if (!isnormal(data->dmrs_correlation) || data->dmrs_correlation < cfg->threshold_dmrs_detection) {
+        data->correlation = 0.0f;
+        data->detected    = false;
+        return SRSLTE_SUCCESS;
+      }
     }
 
     // Perform ML-decoding
@@ -1368,7 +1370,7 @@ void srslte_pucch_tx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data,
   }
 }
 
-void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len)
+void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* pucch_res, char* str, uint32_t str_len)
 {
   uint32_t n = srslte_print_check(str,
                                   str_len,
@@ -1378,7 +1380,13 @@ void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data,
                                   srslte_pucch_format_text_short(cfg->format),
                                   cfg->n_pucch);
 
-  if (uci_data) {
-    srslte_uci_data_info(&cfg->uci_cfg, uci_data, &str[n], str_len - n);
+  if (pucch_res) {
+    if (isnormal(cfg->threshold_dmrs_detection)) {
+      n = srslte_print_check(str, str_len, n, ", dmrs_corr=%.3f", pucch_res->dmrs_correlation);
+    }
+
+    n = srslte_print_check(str, str_len, n, ", corr=%.3f", pucch_res->correlation);
+
+    srslte_uci_data_info(&cfg->uci_cfg, &pucch_res->uci_data, &str[n], str_len - n);
   }
 }
