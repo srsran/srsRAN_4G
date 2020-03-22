@@ -25,8 +25,8 @@ enb_pid=0
 ue_pid=0
 
 print_use(){
-  echo "Please call script with srsLTE build path as first argument and number of PRBs as second"
-  echo "E.g. ./run_lte.sh [build_path] [nof_prb]"
+  echo "Please call script with srsLTE build path as first argument and number of PRBs as second (number of component carrier is optional)"
+  echo "E.g. ./run_lte.sh [build_path] [nof_prb] [num_cc]"
   exit -1
 }
 
@@ -79,7 +79,6 @@ valid_num_prb()
     esac
 }
 
-
 # check if build path has been passed
 if ([ ! $1 ])
 then
@@ -96,12 +95,24 @@ then
 fi
 nof_prb="$2"
 
+# check number of CC
+num_cc="1"
+if ([ $3 ])
+then
+  num_cc="$3"
+fi
+echo "Using $num_cc component carrier(s) in srsENB"
+
 base_srate="23.04e6"
 if ([ "$nof_prb" == "75" ])
 then
   base_srate="15.36e6"
 fi
 
+if ([ "$nof_prb" == "15" ])
+then
+  base_srate="3.84e6"
+fi
 
 # Check for LTE binaries in build path
 if [ ! -x "$build_path/srsenb/src/srsenb" ]; then
@@ -138,22 +149,32 @@ epc_args="$build_path/../srsepc/epc.conf.example \
           --log.filename=./${nof_prb}prb_epc.log"
 enb_args="$build_path/../srsenb/enb.conf.example \
           --enb_files.sib_config=$build_path/../srsenb/sib.conf.example \
-          --enb_files.rr_config=$build_path/../srsenb/rr.conf.example \
           --enb_files.drb_config=$build_path/../srsenb/drb.conf.example \
           --rf.device_name=zmq \
-          --rf.device_args=\"fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=${base_srate}\" \
           --expert.nof_phy_threads=1 \
-          --expert.rrc_inactivity_timer=1500 \
+          --expert.rrc_inactivity_timer=5000 \
           --enb.n_prb=$nof_prb \
           --log.filename=./${nof_prb}prb_enb.log"
+          
 ue_args="$build_path/../srsue/ue.conf.example \
          --rf.device_name=zmq \
-         --rf.device_args=\"tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=${base_srate}\" \
          --phy.nof_phy_threads=1  \
          --gw.netns=$ue_netns \
          --log.filename=./${nof_prb}prb_ue.log \
          --pcap.enable=true \
          --pcap.filename=./${nof_prb}prb_ue.pcap"
+          
+if ([ "$num_cc" == "2" ])
+then
+  enb_args="$enb_args --enb_files.rr_config=$build_path/../srsenb/rr_2ca.conf.example \
+            --rf.device_args=\"fail_on_disconnect=true,base_srate=${base_srate},id=enb,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,tx_port2=tcp://*:2002,rx_port2=tcp://localhost:2003,tx_freq=2630e6,rx_freq=2510e6,tx_freq2=2636e6,rx_freq2=2516e6\""
+  ue_args="$ue_args --rf.dl_earfcn=2850,2910 --rf.nof_carriers=2 --rrc.ue_category=7 --rrc.release=10 \
+           --rf.device_args=\"tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,tx_port2=tcp://*:2003,rx_port2=tcp://localhost:2002,id=ue,base_srate=${base_srate},tx_freq=2510e6,rx_freq=2630e6,tx_freq2=2516e6,rx_freq2=2636e6\""
+else
+  enb_args="$enb_args --enb_files.rr_config=$build_path/../srsenb/rr.conf.example \
+            --rf.device_args=\"fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=${base_srate}\""
+  ue_args="$ue_args --rf.device_args=\"tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=${base_srate}\""
+fi        
 
 # Remove existing log files
 log_files=$(ls -l | grep ${nof_prb}prb_)
@@ -165,7 +186,7 @@ fi
 # Run srsEPC
 echo "Starting srsEPC"
 screen -S srsepc -dm -L -Logfile ./${nof_prb}prb_screenlog_srsepc.log $build_path/srsepc/src/srsepc $epc_args
-sleep 3
+sleep 2
 epc_pid=$(pgrep srsepc)
 if [ -z "$epc_pid" ]
 then
@@ -237,9 +258,6 @@ screen -S srsue -X stuff "t$(printf \\r)"
 
 # Run tests now
 
-# sleep 3s to get RRC connection release
-sleep 1.5
-
 # run UL ping test
 echo "Run UL ping"
 ip netns exec $ue_netns screen -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_ul.log ping $mme_ip -c 3
@@ -250,7 +268,7 @@ echo "Run DL ping"
 screen -dm -L -Logfile ./${nof_prb}prb_screenlog_ping_dl.log ping $ip -c 3
 sleep 4
 
-# run UDP DL (rate must not be more than max DL rate for 6 PRB
+# run UDP DL (rate must not be more than max DL rate for 6 PRB)
 echo "Run DL iperf"
 screen -dm -L -Logfile ./${nof_prb}prb_screenlog_iperf_dl.log iperf -c $ip -u -t 1 -i 1 -b 1M
 sleep 3
@@ -291,9 +309,9 @@ if [ "$last_line" != "Closing log" ]; then
 fi
 
 # Check PRACH results
-num_prach=$(cat ./${nof_prb}prb_screenlog_srsenb.log | grep RACH | wc -l)
-if [ "$num_prach" != "5" ] 2>/dev/null; then
-  echo "Error. Detected $num_prach PRACH(s). But should be 5."
+num_prach=$(cat ./${nof_prb}prb_screenlog_srsenb.log | grep RACH: | wc -l)
+if [ "$num_prach" != "1" ] 2>/dev/null; then
+  echo "Error. Detected $num_prach PRACH(s). But should be only 1."
   exit 1
 fi
 
