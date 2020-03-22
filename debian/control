@@ -10,6 +10,7 @@ Build-Depends:
     libfftw3-dev,
     libmbedtls-dev,
     libboost-program-options-dev,
+    libasio-dev,
     libconfig++-dev,
     libsctp-dev,
     libuhd-dev,

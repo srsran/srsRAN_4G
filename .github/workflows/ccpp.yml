@@ -12,7 +12,7 @@ jobs:
       - name: Build srsLTE on x86
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
+          sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libasio-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
           mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest -T memcheck
   x86_ubuntu16_build:
     name: Build and test on x86 Ubuntu 16.04
@@ -25,7 +25,7 @@ jobs:
       - name: Build srsLTE on x86
         run: |
           sudo apt update
-          sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
+          sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libasio-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
           mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja && ctest -T memcheck
           
   aarch64_ubuntu18_build:
@@ -40,5 +40,5 @@ jobs:
         distribution: ubuntu18.04
         run: |
           apt update
-          apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev ninja-build
+          apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libasio-dev libconfig++-dev libsctp-dev ninja-build
           ls -l && pwd && mkdir build && cd build && cmake -DRF_FOUND=True -GNinja .. && ninja

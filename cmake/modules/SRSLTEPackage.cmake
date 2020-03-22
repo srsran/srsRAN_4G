@@ -1,7 +1,7 @@
 SET(CPACK_PACKAGE_DESCRIPTION "srsLTE")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "LTE library for SDR.")
 SET(CPACK_PACKAGE_NAME "srslte")
-SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.3.6), libgcc1 (>= 1:4.1), libboost-dev (>= 1.35)")
+SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.3.6), libgcc1 (>= 1:4.1), libboost-dev (>= 1.35) libasio-dev")
 
 SET(CPACK_PACKAGE_CONTACT "Ismael Gomez ")
 SET(CPACK_PACKAGE_VENDOR "Software Radio Systems Limited")
@@ -45,12 +45,12 @@ ENDIF()
 ########################################################################
 # Setup CPack Debian
 ########################################################################
-SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-dev")
+SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libboost-dev libasio-dev")
 
 ########################################################################
 # Setup CPack RPM
 ########################################################################
-SET(CPACK_RPM_PACKAGE_REQUIRES "boost-devel")
+SET(CPACK_RPM_PACKAGE_REQUIRES "boost-devel libasio-dev")
 
 ########################################################################
 # Setup CPack NSIS

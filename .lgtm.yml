@@ -8,6 +8,7 @@ extraction:
          - libmbedtls-dev
          - libpcsclite-dev
          - libboost-program-options-dev
+         - libasio-dev
          - libconfig++-dev
          - libsctp-dev
          - libuhd-dev
