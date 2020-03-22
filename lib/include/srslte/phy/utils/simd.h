@@ -1210,6 +1210,44 @@ static inline simd_i_t srslte_simd_i_add(simd_i_t a, simd_i_t b)
 #endif /* LV_HAVE_AVX512 */
 }
 
+static inline simd_i_t srslte_simd_i_mul(simd_i_t a, simd_i_t b)
+{
+#ifdef LV_HAVE_AVX512
+  return _mm512_mullo_epi32(a, b);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return _mm256_mullo_epi32(a, b);
+#else
+#ifdef LV_HAVE_SSE
+  return _mm_mul_epi32(a, b);
+#else
+#ifdef HAVE_NEON
+  return vmulq_s32(a, b);
+#endif /* HAVE_NEON */
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
+static inline simd_i_t srslte_simd_i_and(simd_i_t a, simd_i_t b)
+{
+#ifdef LV_HAVE_AVX512
+  return _mm512_and_si512(a, b);
+#else /* LV_HAVE_AVX512 */
+#ifdef LV_HAVE_AVX2
+  return _mm256_and_si256(a, b);
+#else
+#ifdef LV_HAVE_SSE
+  return _mm_and_si128(a, b);
+#else
+#ifdef HAVE_NEON
+  return vandq_s32(a, b);
+#endif /* HAVE_NEON */
+#endif /* LV_HAVE_SSE */
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+}
+
 static inline simd_sel_t srslte_simd_f_max(simd_f_t a, simd_f_t b)
 {
 #ifdef LV_HAVE_AVX512
