@@ -188,6 +188,14 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
   timers.step_all();
   rrc.tti_clock();
 
+  // send UE cap info
+  uint8_t ue_cap_info[] = {0x38, 0x01, 0x01, 0x0c, 0x98, 0x00, 0x00, 0x18, 0x00, 0x0f,
+                           0x30, 0x20, 0x80, 0x00, 0x01, 0x00, 0x0e, 0x01, 0x00, 0x00};
+  copy_msg_to_buffer(pdu, ue_cap_info, sizeof(ue_cap_info));
+  rrc.write_pdu(rnti, 1, std::move(pdu));
+  timers.step_all();
+  rrc.tti_clock();
+
   return SRSLTE_SUCCESS;
 }
 
