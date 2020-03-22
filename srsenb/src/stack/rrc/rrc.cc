@@ -1210,17 +1210,15 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::security_mode_complete:
       handle_security_mode_complete(&ul_dcch_msg.msg.c1().security_mode_complete());
-      // Skipping send_ue_cap_enquiry() procedure for now
-      // state = RRC_STATE_WAIT_FOR_UE_CAP_INFO;
-      notify_s1ap_ue_ctxt_setup_complete();
-      send_connection_reconf(std::move(pdu));
-      state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+      send_ue_cap_enquiry();
+      state = RRC_STATE_WAIT_FOR_UE_CAP_INFO;
       break;
     case ul_dcch_msg_type_c::c1_c_::types::security_mode_fail:
       handle_security_mode_failure(&ul_dcch_msg.msg.c1().security_mode_fail());
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
       if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info())) {
+        notify_s1ap_ue_ctxt_setup_complete();
         send_connection_reconf(std::move(pdu));
         state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
       } else {
