@@ -39,6 +39,10 @@ public:
     // General
     bool enable = false;
 
+    // AWGN options
+    bool  awgn_enable  = false;
+    float awgn_n0_dBfs = -30.0f;
+
     // Fading options
     bool        fading_enable = false;
     std::string fading_model  = "none";
@@ -71,6 +75,7 @@ public:
 private:
   srslte_channel_fading_t* fading[SRSLTE_MAX_CHANNELS] = {};
   srslte_channel_delay_t*  delay[SRSLTE_MAX_CHANNELS]  = {};
+  srslte_channel_awgn_t*   awgn                        = nullptr;
   srslte_channel_hst_t*    hst                      = nullptr; // HST has no buffers / no multiple instance is required
   srslte_channel_rlf_t*    rlf                      = nullptr; // RLF has no buffers / no multiple instance is required
   cf_t*                    buffer_in                = nullptr;

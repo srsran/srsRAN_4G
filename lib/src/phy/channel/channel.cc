@@ -74,6 +74,13 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_channels)
     }
   }
 
+  // Create AWGN channnel
+  if (channel_args.awgn_enable && ret == SRSLTE_SUCCESS) {
+    awgn = (srslte_channel_awgn_t*)calloc(sizeof(srslte_channel_awgn_t), 1);
+    ret  = srslte_channel_awgn_init(awgn, 1234);
+    srslte_channel_awgn_set_n0(awgn, args.awgn_n0_dBfs);
+  }
+
   // Create high speed train
   if (channel_args.hst_enable && ret == SRSLTE_SUCCESS) {
     hst = (srslte_channel_hst_t*)calloc(sizeof(srslte_channel_hst_t), 1);
@@ -99,6 +106,11 @@ channel::~channel()
 
   if (buffer_out) {
     free(buffer_out);
+  }
+
+  if (awgn) {
+    srslte_channel_awgn_free(awgn);
+    free(awgn);
   }
 
   if (hst) {
@@ -142,6 +154,11 @@ void channel::run(cf_t*                     in[SRSLTE_MAX_CHANNELS],
         if (in[i] != nullptr && out[i] != nullptr) {
           // Copy input buffer
           memcpy(buffer_in, in[i], sizeof(cf_t) * len);
+
+          if (awgn) {
+            srslte_channel_awgn_run_c(awgn, buffer_in, buffer_out, len);
+            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
+          }
 
           if (fading[i]) {
             srslte_channel_fading_execute(fading[i], buffer_in, buffer_out, len, t.full_secs + t.frac_secs);

@@ -175,6 +175,10 @@ pusch_max_mcs    = 16
 # Channel emulator options:
 # enable:            Enable/Disable internal Downlink/Uplink channel emulator
 #
+# -- AWGN Generator
+# awgn.enable:       Enable/disable AWGN generator
+# awgn.n0:           Noise power in dBfs
+#
 # -- Fading emulator
 # fading.enable:     Enable/disable fading simulator
 # fading.model:      Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)
@@ -201,6 +205,10 @@ pusch_max_mcs    = 16
 [channel.dl]
 #enable        = false
 
+[channel.dl.awgn]
+#enable        = false
+#n0            = -30
+
 [channel.dl.fading]
 #enable        = false
 #model         = none
@@ -225,6 +233,10 @@ pusch_max_mcs    = 16
 
 [channel.ul]
 #enable        = false
+
+[channel.ul.awgn]
+#enable        = false
+#n0            = -30
 
 [channel.ul.fading]
 #enable        = false

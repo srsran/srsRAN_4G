@@ -72,7 +72,7 @@ bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
   pthread_cond_init(&mtch_cvar, nullptr);
 
   // Instantiate DL channel emulator
-  if (params.ul_channel_args.enable) {
+  if (params.dl_channel_args.enable) {
     dl_channel = srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
     dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell_list[0].cell.nof_prb));
   }
