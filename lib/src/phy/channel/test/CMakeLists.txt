@@ -37,3 +37,10 @@ add_executable(hst_channel_test hst_channel_test.c)
 target_link_libraries(hst_channel_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 add_test(hst_channel_test hst_channel_test -f 750 -t 7.2 -i 0 -T 1 -s 1.92e6)
 
+add_executable(awgn_channel_test awgn_channel_test.c)
+if(SRSGUI_FOUND)
+  target_link_libraries(awgn_channel_test ${SRSGUI_LIBRARIES})
+endif(SRSGUI_FOUND)
+target_link_libraries(awgn_channel_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+add_test(awgn_channel_test awgn_channel_test)
+
