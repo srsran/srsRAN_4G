@@ -101,12 +101,17 @@ int main(int argc, char** argv)
 
 #ifdef ENABLE_GUI
   sdrgui_init();
-  sdrgui_init_title("SRS Fading channel");
+  sdrgui_init_title("SRS AWGN Channel");
   plot_real_t plot_fft = NULL;
+  plot_scatter_t plot_scatter = NULL;
 
   plot_real_init(&plot_fft);
-  plot_real_setTitle(&plot_fft, "AWGN");
+  plot_real_setTitle(&plot_fft, "Spectrum");
   plot_real_addToWindowGrid(&plot_fft, (char*)"Spectrum", 0, 0);
+
+  plot_scatter_init(&plot_scatter);
+  plot_scatter_setTitle(&plot_fft, "IQ");
+  plot_scatter_addToWindowGrid(&plot_fft, (char*)"IQ", 1, 0);
 
   cf_t*             fft_out = srslte_vec_cf_malloc(nof_samples);
   srslte_dft_plan_t fft     = {};
@@ -142,6 +147,8 @@ int main(int argc, char** argv)
     }
 
 #ifdef ENABLE_GUI
+    plot_scatter_setNewData(&plot_scatter, output_buffer, nof_samples);
+
     srslte_dft_run_c(&fft, output_buffer, fft_out);
 
     float  min     = +INFINITY;

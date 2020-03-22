@@ -59,9 +59,9 @@ int srslte_channel_awgn_init(srslte_channel_awgn_t* q, uint32_t seed)
   q->rand_state = seed;
 
   // Allocate complex exponential and logarithmic tables
-  q->table_exp = srslte_vec_cf_malloc(AWGN_TABLE_ALLOC_SIZE);
+  q->table_cos = srslte_vec_f_malloc(AWGN_TABLE_ALLOC_SIZE);
   q->table_log = srslte_vec_f_malloc(AWGN_TABLE_ALLOC_SIZE);
-  if (!q->table_exp || !q->table_log) {
+  if (!q->table_cos || !q->table_log) {
     ERROR("Malloc\n");
   }
 
@@ -70,7 +70,7 @@ int srslte_channel_awgn_init(srslte_channel_awgn_t* q, uint32_t seed)
     float temp1 = (float)i / (float)AWGN_TABLE_SIZE;
     float temp2 = (float)(i + 1) / (float)AWGN_TABLE_SIZE;
 
-    q->table_exp[i] = cexpf(I * 2.0f * (float)M_PI * temp1);
+    q->table_cos[i] = cosf(2.0f * (float)M_PI * temp1);
     q->table_log[i] = sqrtf(-2.0f * logf(temp2));
   }
 
@@ -88,15 +88,15 @@ int srslte_channel_awgn_init(srslte_channel_awgn_t* q, uint32_t seed)
     do {
       idx = channel_awgn_rand(q) % AWGN_TABLE_SIZE;
     } while (idx == i);
-    cf_t temp_exp     = q->table_exp[i];
-    q->table_exp[i]   = q->table_exp[idx];
-    q->table_exp[idx] = temp_exp;
+    float temp_cos    = q->table_cos[i];
+    q->table_cos[i]   = q->table_cos[idx];
+    q->table_cos[idx] = temp_cos;
   }
 
   // Copy head in tail for keeping continuity in SIMD registers
   for (uint32_t i = 0; i < SRSLTE_SIMD_F_SIZE; i++) {
     q->table_log[i + AWGN_TABLE_SIZE] = q->table_log[i];
-    q->table_exp[i + AWGN_TABLE_SIZE] = q->table_exp[i];
+    q->table_cos[i + AWGN_TABLE_SIZE] = q->table_cos[i];
   }
 
   return SRSLTE_SUCCESS;
@@ -124,7 +124,7 @@ static inline void channel_awgn_run(srslte_channel_awgn_t* q, const float* in, f
 #if SRSLTE_SIMD_F_SIZE
   for (; i < (int)size - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
     // Load SIMD registers
-    simd_f_t t1   = srslte_simd_f_loadu((float*)&q->table_exp[channel_awgn_rand(q)]);
+    simd_f_t t1   = srslte_simd_f_loadu(&q->table_cos[channel_awgn_rand(q)]);
     simd_f_t t2   = srslte_simd_f_loadu(&q->table_log[channel_awgn_rand(q)]);
     simd_f_t in_  = srslte_simd_f_loadu(&in[i]);
     simd_f_t out_ = srslte_simd_f_set1(std_dev);
@@ -153,23 +153,16 @@ static inline void channel_awgn_run(srslte_channel_awgn_t* q, const float* in, f
 
     float n = std_dev;
     n *= q->table_log[idx1];
+    n *= q->table_cos[idx2];
 
-    cf_t  t_exp = q->table_exp[idx2];
-    float n1    = n * __real__ t_exp;
-    float n2    = n * __imag__ t_exp;
-
-    out[i] = in[i] + n1;
-    i++;
-
-    if (i < size) {
-      out[i] = in[i] + n2;
-    }
+    out[i] = in[i] + n;
   }
 }
 
 void srslte_channel_awgn_run_c(srslte_channel_awgn_t* q, const cf_t* in, cf_t* out, uint32_t size)
 {
   channel_awgn_run(q, (float*)in, (float*)out, 2 * size, q->std_dev * (float)M_SQRT1_2);
+  //  srslte_ch_awgn_c(in, out, q->std_dev * M_SQRT1_2, size);
 }
 
 void srslte_channel_awgn_run_f(srslte_channel_awgn_t* q, const float* in, float* out, uint32_t size)
@@ -183,8 +176,8 @@ void srslte_channel_awgn_free(srslte_channel_awgn_t* q)
     return;
   }
 
-  if (q->table_exp) {
-    free(q->table_exp);
+  if (q->table_cos) {
+    free(q->table_cos);
   }
 
   if (q->table_log) {

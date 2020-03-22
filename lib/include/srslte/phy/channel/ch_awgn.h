@@ -41,7 +41,7 @@ extern "C" {
  * The srsLTE channel AWGN implements an efficient Box-Muller Method accelerated with SIMD.
  */
 typedef struct {
-  cf_t*    table_exp;
+  float*   table_cos;
   float*   table_log;
   uint32_t rand_state;
   float    std_dev;
