@@ -154,6 +154,16 @@ float* srslte_vec_f_malloc(uint32_t nsamples)
   return (float*)srslte_vec_malloc((uint32_t)sizeof(float) * nsamples);
 }
 
+int32_t* srslte_vec_i32_malloc(uint32_t nsamples)
+{
+  return (int32_t*)srslte_vec_malloc((uint32_t)sizeof(int32_t) * nsamples);
+}
+
+uint32_t* srslte_vec_u32_malloc(uint32_t nsamples)
+{
+  return (uint32_t*)srslte_vec_malloc((uint32_t)sizeof(uint32_t) * nsamples);
+}
+
 int16_t* srslte_vec_i16_malloc(uint32_t nsamples)
 {
   return (int16_t*)srslte_vec_malloc((uint32_t)sizeof(int16_t) * nsamples);

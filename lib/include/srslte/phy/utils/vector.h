@@ -82,6 +82,8 @@ SRSLTE_API cf_t srslte_vec_acc_cc(const cf_t* x, const uint32_t len);
 SRSLTE_API void* srslte_vec_malloc(uint32_t size);
 SRSLTE_API cf_t*  srslte_vec_cf_malloc(uint32_t size);
 SRSLTE_API float* srslte_vec_f_malloc(uint32_t size);
+SRSLTE_API int32_t* srslte_vec_i32_malloc(uint32_t nsamples);
+SRSLTE_API uint32_t* srslte_vec_u32_malloc(uint32_t nsamples);
 SRSLTE_API int16_t* srslte_vec_i16_malloc(uint32_t nsamples);
 SRSLTE_API uint16_t* srslte_vec_u16_malloc(uint32_t nsamples);
 SRSLTE_API int8_t* srslte_vec_i8_malloc(uint32_t nsamples);
