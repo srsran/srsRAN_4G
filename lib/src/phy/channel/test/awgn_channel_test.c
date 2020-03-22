@@ -153,7 +153,7 @@ int main(int argc, char** argv)
       min = SRSLTE_MIN(min, mag);
       max = SRSLTE_MAX(max, mag);
 
-      fft_mag[i] = srslte_convert_amplitude_to_dB(mag);
+      fft_mag[i] = mag;
     }
 
     plot_real_setYAxisScale(&plot_fft, min, max);
