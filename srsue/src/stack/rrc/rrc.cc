@@ -266,20 +266,11 @@ void rrc::run_tti()
     cmd_msg_t msg;
     if (cmd_q.try_pop(&msg)) {
       switch (msg.command) {
-        case cmd_msg_t::PDU:
-          process_pdu(msg.lcid, std::move(msg.pdu));
-          break;
         case cmd_msg_t::PCCH:
           process_pcch(std::move(msg.pdu));
           break;
-        case cmd_msg_t::PDU_MCH:
-          parse_pdu_mch(msg.lcid, std::move(msg.pdu));
-          break;
         case cmd_msg_t::RLF:
           radio_link_failure();
-          break;
-        case cmd_msg_t::PDU_BCCH_DLSCH:
-          parse_pdu_bcch_dlsch(std::move(msg.pdu));
           break;
         case cmd_msg_t::HO_COMPLETE:
           process_ho_ra_completed(msg.lcid > 0);
@@ -1478,10 +1469,7 @@ void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
 
 void rrc::write_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
 {
-  cmd_msg_t msg;
-  msg.command = cmd_msg_t::PDU_BCCH_DLSCH;
-  msg.pdu     = std::move(pdu);
-  cmd_q.push(std::move(msg));
+  parse_pdu_bcch_dlsch(std::move(pdu));
 }
 
 void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
@@ -1730,11 +1718,7 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   if (0 != lcid or serving_cell->has_mcch) {
     return;
   }
-  cmd_msg_t msg;
-  msg.command = cmd_msg_t::PDU_MCH;
-  msg.pdu     = std::move(pdu);
-  msg.lcid    = lcid;
-  cmd_q.push(std::move(msg));
+  parse_pdu_mch(lcid, std::move(pdu));
 }
 
 void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
@@ -1825,12 +1809,7 @@ void rrc::write_sdu(srslte::unique_byte_buffer_t sdu)
 
 void rrc::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 {
-  // add PDU to command queue
-  cmd_msg_t msg;
-  msg.pdu     = std::move(pdu);
-  msg.command = cmd_msg_t::PDU;
-  msg.lcid    = (uint16_t)lcid;
-  cmd_q.push(std::move(msg));
+  process_pdu(lcid, std::move(pdu));
 }
 
 void rrc::process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)

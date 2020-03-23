@@ -350,7 +350,7 @@ protected:
 
 private:
   typedef struct {
-    enum { PDU, PCCH, PDU_MCH, RLF, PDU_BCCH_DLSCH, HO_COMPLETE, STOP } command;
+    enum { PCCH, RLF, HO_COMPLETE, STOP } command;
     srslte::unique_byte_buffer_t pdu;
     uint16_t                     lcid;
   } cmd_msg_t;
