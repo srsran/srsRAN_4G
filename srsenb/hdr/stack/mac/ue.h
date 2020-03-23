@@ -46,6 +46,7 @@ public:
      rlc_interface_mac*       rlc,
      phy_interface_stack_lte* phy_,
      srslte::log_ref          log_,
+     uint32_t                 nof_cells_,
      uint32_t                 nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
      uint32_t                 nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB);
   virtual ~ue();
@@ -101,7 +102,7 @@ public:
   void metrics_cnt();
 
   bool is_phy_added = false;
-  int  read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes);
+  int  read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) final;
 
 private:
   uint32_t allocate_cc_buffers(const uint32_t num_cc = 1); ///< Add and initialize softbuffers for CC
@@ -138,9 +139,8 @@ private:
   typedef std::vector<uint8_t*> cc_buffer_ptr_t; ///< List of buffer pointers for RX HARQ processes of one carrier
   std::vector<cc_buffer_ptr_t>  pending_buffers; ///< List of buffer pointer list for Rx
 
-  // For DL there are two buffers, one for each Transport block
-  std::array<std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ>,
-             SRSLTE_MAX_CARRIERS>
+  // One buffer per TB per HARQ process and per carrier is needed for each UE.
+  std::vector<std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ> >
       tx_payload_buffer;
 
   srslte::block_queue<uint32_t> pending_ta_commands;

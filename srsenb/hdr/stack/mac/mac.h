@@ -130,8 +130,8 @@ private:
   sched_interface::dl_pdu_mch_t mch = {};
 
   /* Map of active UEs */
-  std::map<uint16_t, ue*> ue_db;
-  uint16_t                last_rnti = 0;
+  std::map<uint16_t, std::unique_ptr<ue> > ue_db;
+  uint16_t                                 last_rnti = 0;
 
   uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
                         uint32_t                               nof_grants,

@@ -41,6 +41,7 @@ ue::ue(uint16_t                 rnti_,
        rlc_interface_mac*       rlc_,
        phy_interface_stack_lte* phy_,
        srslte::log_ref          log_,
+       uint32_t                 nof_cells_,
        uint32_t                 nof_rx_harq_proc_,
        uint32_t                 nof_tx_harq_proc_) :
   rnti(rnti_),
@@ -59,6 +60,7 @@ ue::ue(uint16_t                 rnti_,
   ta_fsm(this)
 {
   srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
+  tx_payload_buffer.resize(nof_cells_);
   for (auto& carrier_buffers : tx_payload_buffer) {
     for (auto& harq_buffers : carrier_buffers) {
       for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {

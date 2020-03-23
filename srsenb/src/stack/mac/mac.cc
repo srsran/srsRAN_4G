@@ -100,9 +100,7 @@ void mac::stop()
 {
   srslte::rwlock_write_guard lock(rwlock);
   if (started) {
-    for (uint32_t i = 0; i < ue_db.size(); i++) {
-      delete ue_db[i];
-    }
+    ue_db.clear();
     for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
       srslte_softbuffer_tx_free(&bcch_softbuffer_tx[i]);
     }
@@ -200,7 +198,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
     Error("User rnti=0x%x not found\n", rnti);
     return SRSLTE_ERROR;
   }
-  ue_ptr = it->second;
+  ue_ptr = it->second.get();
 
   // Add RNTI to the PHY (pregenerate signals) now instead of after PRACH
   if (not ue_ptr->is_phy_added) {
@@ -240,7 +238,6 @@ int mac::ue_rem(uint16_t rnti)
   }
   srslte::rwlock_write_guard lock(rwlock);
   if (ue_db.count(rnti)) {
-    delete ue_db[rnti];
     ue_db.erase(rnti);
     Info("User rnti=0x%x removed from MAC/PHY\n", rnti);
   } else {
@@ -457,7 +454,8 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
 
     // Create new UE
     if (ue_db.count(rnti) == 0) {
-      ue_db[rnti] = new ue(rnti, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, SRSLTE_FDD_NOF_HARQ);
+      ue_db[rnti] =
+          std::unique_ptr<ue>{new ue(rnti, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, cells.size())};
     }
 
     // Set PCAP if available
@@ -884,7 +882,8 @@ void mac::write_mcch(sib_type2_s* sib2_, sib_type13_r9_s* sib13_, mcch_msg_s* mc
   mcch.pack(bref);
   current_mcch_length = bref.distance_bytes(&mcch_payload_buffer[1]);
   current_mcch_length = current_mcch_length + rlc_header_len;
-  ue_db[SRSLTE_MRNTI] = new ue(SRSLTE_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h);
+  ue_db[SRSLTE_MRNTI] =
+      std::unique_ptr<ue>{new ue(SRSLTE_MRNTI, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, cells.size())};
 
   rrc_h->add_user(SRSLTE_MRNTI, {});
 }
