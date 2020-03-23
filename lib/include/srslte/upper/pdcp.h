@@ -76,6 +76,9 @@ private:
   pdcp_map_t             pdcp_array, pdcp_array_mrb;
   pthread_rwlock_t       rwlock;
 
+  std::mutex         cache_mutex;
+  std::set<uint32_t> valid_lcids_cached;
+
   bool valid_lcid(uint32_t lcid);
   bool valid_mch_lcid(uint32_t lcid);
 };

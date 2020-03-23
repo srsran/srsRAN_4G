@@ -30,6 +30,10 @@ pdcp::pdcp(srslte::timer_handler* timers_, srslte::log* log_) : timers(timers_),
 
 pdcp::~pdcp()
 {
+  {
+    std::lock_guard<std::mutex> lock(cache_mutex);
+    valid_lcids_cached.clear();
+  }
   // destroy all remaining entities
   pthread_rwlock_wrlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
@@ -75,6 +79,10 @@ void pdcp::reestablish(uint32_t lcid)
 
 void pdcp::reset()
 {
+  {
+    std::lock_guard<std::mutex> lock(cache_mutex);
+    valid_lcids_cached.clear();
+  }
   // destroy all bearers
   pthread_rwlock_wrlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); /* post increment in erase */) {
@@ -88,15 +96,12 @@ void pdcp::reset()
 /*******************************************************************************
   RRC/GW interface
 *******************************************************************************/
+
+// NOTE: Called from separate thread
 bool pdcp::is_lcid_enabled(uint32_t lcid)
 {
-  pthread_rwlock_rdlock(&rwlock);
-  bool ret = false;
-  if (valid_lcid(lcid)) {
-    ret = pdcp_array.at(lcid)->is_active();
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
+  std::lock_guard<std::mutex> lock(cache_mutex);
+  return valid_lcids_cached.count(lcid) > 0;
 }
 
 void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
@@ -133,6 +138,10 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
                    lcid,
                    cfg.bearer_id,
                    cfg.sn_len);
+    {
+      std::lock_guard<std::mutex> lock(cache_mutex);
+      valid_lcids_cached.insert(lcid);
+    }
   } else {
     pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }
@@ -163,6 +172,10 @@ unlock_and_exit:
 
 void pdcp::del_bearer(uint32_t lcid)
 {
+  {
+    std::lock_guard<std::mutex> lock(cache_mutex);
+    valid_lcids_cached.erase(lcid);
+  }
   pthread_rwlock_wrlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_map_t::iterator it = pdcp_array.find(lcid);
@@ -187,6 +200,11 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
     if (not pdcp_array.insert(pdcp_map_pair_t(new_lcid, pdcp_entity)).second) {
       pdcp_log->error("Error inserting PDCP entity into array\n.");
       goto exit;
+    }
+    {
+      std::lock_guard<std::mutex> lock(cache_mutex);
+      valid_lcids_cached.erase(old_lcid);
+      valid_lcids_cached.insert(new_lcid);
     }
     // erase from old position
     pdcp_array.erase(it);
@@ -285,9 +303,6 @@ void pdcp::write_pdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
   }
 }
 
-/*******************************************************************************
-  Helpers (Lock must be hold when calling those)
-*******************************************************************************/
 bool pdcp::valid_lcid(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_RADIO_BEARERS) {
