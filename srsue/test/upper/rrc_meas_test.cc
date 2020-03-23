@@ -205,11 +205,10 @@ public:
     dl_dcch_msg.msg.c1().set_rrc_conn_recfg();
     dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
     dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8() = rrc_conn_recfg;
+    pdcptest->expecting_reconf_complete                                      = true;
     send_dcch_msg(dl_dcch_msg);
-
-    pdcptest->expecting_reconf_complete = true;
-    run_tti(tti++);
     pdcptest->expecting_reconf_complete = false;
+
     return !pdcptest->get_error() && pdcptest->received_reconf_complete;
   }
 
