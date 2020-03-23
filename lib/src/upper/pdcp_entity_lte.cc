@@ -40,11 +40,11 @@ pdcp_entity_lte::~pdcp_entity_lte() {}
 
 void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
 {
-  lcid          = lcid_;
-  cfg           = cfg_;
-  active        = true;
-  tx_count      = 0;
-  rx_count      = 0;
+  lcid                 = lcid_;
+  cfg                  = cfg_;
+  active               = true;
+  tx_count             = 0;
+  rx_count             = 0;
   integrity_direction  = DIRECTION_NONE;
   encryption_direction = DIRECTION_NONE;
 
@@ -107,29 +107,25 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
                 srslte_direction_text[integrity_direction],
                 srslte_direction_text[encryption_direction]);
 
-  {
-    std::unique_lock<std::mutex> lock(mutex);
+  write_data_header(sdu, tx_count);
 
-    write_data_header(sdu, tx_count);
-
-    // Append MAC (SRBs only)
-    uint8_t mac[4] = {};
-    bool do_integrity = integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX;
-    if (do_integrity && is_srb()) { 
-      integrity_generate(sdu->msg, sdu->N_bytes, tx_count, mac);
-    }
-
-    if (is_srb()) {
-      append_mac(sdu, mac);
-    }
- 
-    if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
-      cipher_encrypt(
-          &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
-      log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
-    }
-    tx_count++;
+  // Append MAC (SRBs only)
+  uint8_t mac[4]       = {};
+  bool    do_integrity = integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX;
+  if (do_integrity && is_srb()) {
+    integrity_generate(sdu->msg, sdu->N_bytes, tx_count, mac);
   }
+
+  if (is_srb()) {
+    append_mac(sdu, mac);
+  }
+
+  if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
+    cipher_encrypt(
+        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
+    log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
+  }
+  tx_count++;
 
   rlc->write_sdu(lcid, std::move(sdu), blocking);
 }
@@ -151,7 +147,6 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     return;
   }
 
-  std::unique_lock<std::mutex> lock(mutex);
   if (is_srb()) {
     handle_srb_pdu(std::move(pdu));
   } else if (is_drb() && rlc->rb_is_um(lcid)) {
@@ -267,7 +262,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
              next_pdcp_rx_sn);
 
   // Handle PDU
-  uint32_t count;
+  uint32_t count = 0;
   if ((0 <= sn_diff_last_submit && sn_diff_last_submit > (int32_t)reordering_window) ||
       (0 <= last_submit_diff_sn && last_submit_diff_sn < (int32_t)reordering_window)) {
     log->warning("|SN - last_submitted_sn| is larger than re-ordering window.\n");

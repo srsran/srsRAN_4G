@@ -30,7 +30,6 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
 #include "srslte/upper/pdcp_config.h"
-#include <mutex>
 
 namespace srslte {
 
@@ -127,8 +126,6 @@ protected:
                        PDCP_SN_LEN_12,
                        pdcp_t_reordering_t::ms500,
                        pdcp_discard_timer_t::infinity};
-
-  std::mutex mutex;
 
   srslte::as_security_config_t sec_cfg = {};
 

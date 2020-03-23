@@ -74,8 +74,8 @@ private:
   srslte::timer_handler* timers   = nullptr;
   log*                   pdcp_log = nullptr;
   pdcp_map_t             pdcp_array, pdcp_array_mrb;
-  pthread_rwlock_t       rwlock;
 
+  // cache valid lcids to be checked from separate thread
   std::mutex         cache_mutex;
   std::set<uint32_t> valid_lcids_cached;
 

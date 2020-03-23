@@ -23,10 +23,7 @@
 
 namespace srslte {
 
-pdcp::pdcp(srslte::timer_handler* timers_, srslte::log* log_) : timers(timers_), pdcp_log(log_)
-{
-  pthread_rwlock_init(&rwlock, NULL);
-}
+pdcp::pdcp(srslte::timer_handler* timers_, srslte::log* log_) : timers(timers_), pdcp_log(log_) {}
 
 pdcp::~pdcp()
 {
@@ -35,7 +32,6 @@ pdcp::~pdcp()
     valid_lcids_cached.clear();
   }
   // destroy all remaining entities
-  pthread_rwlock_wrlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
     delete (it->second);
   }
@@ -45,9 +41,6 @@ pdcp::~pdcp()
     delete (it->second);
   }
   pdcp_array_mrb.clear();
-
-  pthread_rwlock_unlock(&rwlock);
-  pthread_rwlock_destroy(&rwlock);
 }
 
 void pdcp::init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_)
@@ -61,20 +54,16 @@ void pdcp::stop() {}
 
 void pdcp::reestablish()
 {
-  pthread_rwlock_rdlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
     it->second->reestablish();
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::reestablish(uint32_t lcid)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->reestablish();
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::reset()
@@ -84,13 +73,11 @@ void pdcp::reset()
     valid_lcids_cached.clear();
   }
   // destroy all bearers
-  pthread_rwlock_wrlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); /* post increment in erase */) {
     it->second->reset();
     delete (it->second);
     pdcp_array.erase(it++);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 /*******************************************************************************
@@ -106,31 +93,26 @@ bool pdcp::is_lcid_enabled(uint32_t lcid)
 
 void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->write_sdu(std::move(sdu), blocking);
   } else {
     pdcp_log->warning("Writing sdu: lcid=%d. Deallocating sdu\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_mch_lcid(lcid)) {
     pdcp_array_mrb.at(lcid)->write_sdu(std::move(sdu), true);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 {
-  pthread_rwlock_wrlock(&rwlock);
   if (not valid_lcid(lcid)) {
     if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, timers, pdcp_log))).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
-      goto unlock_and_exit;
+      return;
     }
     pdcp_array.at(lcid)->init(lcid, cfg);
     pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
@@ -145,17 +127,14 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
   } else {
     pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }
-unlock_and_exit:
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
-  pthread_rwlock_wrlock(&rwlock);
   if (not valid_mch_lcid(lcid)) {
     if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, timers, pdcp_log))).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
-      goto unlock_and_exit;
+      return;
     }
     pdcp_array_mrb.at(lcid)->init(lcid, cfg);
     pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
@@ -166,8 +145,6 @@ void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
   } else {
     pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }
-unlock_and_exit:
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::del_bearer(uint32_t lcid)
@@ -176,7 +153,6 @@ void pdcp::del_bearer(uint32_t lcid)
     std::lock_guard<std::mutex> lock(cache_mutex);
     valid_lcids_cached.erase(lcid);
   }
-  pthread_rwlock_wrlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_map_t::iterator it = pdcp_array.find(lcid);
     delete (it->second);
@@ -185,13 +161,10 @@ void pdcp::del_bearer(uint32_t lcid)
   } else {
     pdcp_log->warning("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
-
   // make sure old LCID exists and new LCID is still free
   if (valid_lcid(old_lcid) && not valid_lcid(new_lcid)) {
     // insert old PDCP entity into new LCID
@@ -199,7 +172,7 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
     pdcp_entity_lte*     pdcp_entity = it->second;
     if (not pdcp_array.insert(pdcp_map_pair_t(new_lcid, pdcp_entity)).second) {
       pdcp_log->error("Error inserting PDCP entity into array\n.");
-      goto exit;
+      return;
     }
     {
       std::lock_guard<std::mutex> lock(cache_mutex);
@@ -216,44 +189,34 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
         old_lcid,
         new_lcid);
   }
-exit:
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::config_security(uint32_t lcid, as_security_config_t sec_cfg)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->config_security(sec_cfg);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::config_security_all(as_security_config_t sec_cfg)
 {
-  pthread_rwlock_rdlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
     it->second->config_security(sec_cfg);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::enable_integrity(uint32_t lcid, srslte_direction_t direction)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->enable_integrity(direction);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::enable_encryption(uint32_t lcid, srslte_direction_t direction)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->enable_encryption(direction);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 bool pdcp::get_bearer_status(uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
@@ -270,13 +233,11 @@ bool pdcp::get_bearer_status(uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uin
 *******************************************************************************/
 void pdcp::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_array.at(lcid)->write_pdu(std::move(pdu));
   } else {
     pdcp_log->warning("Writing pdu: lcid=%d. Deallocating pdu\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::write_pdu_bcch_bch(unique_byte_buffer_t sdu)
