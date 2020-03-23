@@ -40,7 +40,8 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-mac::mac() : last_rnti(0), rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload()
+mac::mac() :
+  last_rnti(0), rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload(), common_buffers(SRSLTE_MAX_CARRIERS)
 {
   pthread_rwlock_init(&rwlock, nullptr);
 }
@@ -79,14 +80,16 @@ bool mac::init(const mac_args_t&        args_,
     scheduler.set_sched_cfg(&args.sched);
 
     // Init softbuffer for SI messages
-    for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
-      srslte_softbuffer_tx_init(&bcch_softbuffer_tx[i], args.nof_prb);
-    }
-    // Init softbuffer for PCCH
-    srslte_softbuffer_tx_init(&pcch_softbuffer_tx, args.nof_prb);
+    for (int cc = 0; cc < SRSLTE_MAX_CARRIERS; cc++) {
+      for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
+        srslte_softbuffer_tx_init(&common_buffers[cc].bcch_softbuffer_tx[i], args.nof_prb);
+      }
+      // Init softbuffer for PCCH
+      srslte_softbuffer_tx_init(&common_buffers[cc].pcch_softbuffer_tx, args.nof_prb);
 
-    // Init softbuffer for RAR
-    srslte_softbuffer_tx_init(&rar_softbuffer_tx, args.nof_prb);
+      // Init softbuffer for RAR
+      srslte_softbuffer_tx_init(&common_buffers[cc].rar_softbuffer_tx, args.nof_prb);
+    }
 
     reset();
 
@@ -101,12 +104,14 @@ void mac::stop()
   srslte::rwlock_write_guard lock(rwlock);
   if (started) {
     ue_db.clear();
-    for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
-      srslte_softbuffer_tx_free(&bcch_softbuffer_tx[i]);
+    for (int cc = 0; cc < SRSLTE_MAX_CARRIERS; cc++) {
+      for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
+        srslte_softbuffer_tx_free(&common_buffers[cc].bcch_softbuffer_tx[i]);
+      }
+      srslte_softbuffer_tx_free(&common_buffers[cc].pcch_softbuffer_tx);
+      srslte_softbuffer_tx_free(&common_buffers[cc].rar_softbuffer_tx);
+      started = false;
     }
-    srslte_softbuffer_tx_free(&pcch_softbuffer_tx);
-    srslte_softbuffer_tx_free(&rar_softbuffer_tx);
-    started = false;
   }
 }
 
@@ -583,7 +588,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
       dl_sched_res->pdsch[n].dci = sched_result.rar[i].dci;
 
       // Set softbuffer (there are no retx in RAR but a softbuffer is required)
-      dl_sched_res->pdsch[n].softbuffer_tx[0] = &rar_softbuffer_tx;
+      dl_sched_res->pdsch[n].softbuffer_tx[0] = &common_buffers[enb_cc_idx].rar_softbuffer_tx;
 
       // Assemble PDU
       dl_sched_res->pdsch[n].data[0] =
@@ -608,17 +613,18 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
 
       // Set softbuffer
       if (sched_result.bc[i].type == sched_interface::dl_sched_bc_t::BCCH) {
-        dl_sched_res->pdsch[n].softbuffer_tx[0] = &bcch_softbuffer_tx[sched_result.bc[i].index];
-        dl_sched_res->pdsch[n].data[0]          = assemble_si(enb_cc_idx, sched_result.bc[i].index);
+        dl_sched_res->pdsch[n].softbuffer_tx[0] =
+            &common_buffers[enb_cc_idx].bcch_softbuffer_tx[sched_result.bc[i].index];
+        dl_sched_res->pdsch[n].data[0] = rrc_h->read_pdu_bcch_dlsch(enb_cc_idx, sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
         if (pcap) {
           pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, enb_cc_idx);
         }
 #endif
       } else {
-        dl_sched_res->pdsch[n].softbuffer_tx[0] = &pcch_softbuffer_tx;
-        dl_sched_res->pdsch[n].data[0]          = pcch_payload_buffer;
-        rlc_h->read_pdu_pcch(pcch_payload_buffer, pcch_payload_buffer_len);
+        dl_sched_res->pdsch[n].softbuffer_tx[0] = &common_buffers[enb_cc_idx].pcch_softbuffer_tx;
+        dl_sched_res->pdsch[n].data[0]          = common_buffers[enb_cc_idx].pcch_payload_buffer;
+        rlc_h->read_pdu_pcch(common_buffers[enb_cc_idx].pcch_payload_buffer, pcch_payload_buffer_len);
 
         if (pcap) {
           pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, enb_cc_idx);
@@ -770,16 +776,6 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
     Error("Assembling RAR: pdu_len > rar_payload_len (%d>%d)\n", pdu_len, rar_payload_len);
     return nullptr;
   }
-}
-
-uint8_t* mac::assemble_si(const uint8_t enb_cc_idx, const uint32_t sib_index)
-{
-  uint8_t* sib_payload = rrc_h->read_pdu_bcch_dlsch(enb_cc_idx, sib_index);
-  if (sib_payload == nullptr) {
-    // return MAC managed dummy buffer in this case
-    sib_payload = bcch_dlsch_payload;
-  }
-  return sib_payload;
 }
 
 int mac::get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res_list)

@@ -138,21 +138,22 @@ private:
                         int                                    rar_idx,
                         uint32_t                               pdu_len,
                         uint32_t                               tti);
-  uint8_t* assemble_si(const uint8_t cc_idx, const uint32_t index);
 
   const static int             rar_payload_len = 128;
   std::vector<srslte::rar_pdu> rar_pdu_msg;
   srslte::byte_buffer_t        rar_payload[sched_interface::MAX_RAR_LIST];
 
   const static int NOF_BCCH_DLSCH_MSG = sched_interface::MAX_SIBS;
-  ///< Backup buffer if RRC can't provide valid SIB
-  uint8_t bcch_dlsch_payload[sched_interface::MAX_SIB_PAYLOAD_LEN] = {};
 
   const static int       pcch_payload_buffer_len                      = 1024;
-  uint8_t                pcch_payload_buffer[pcch_payload_buffer_len] = {};
-  srslte_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG]       = {};
-  srslte_softbuffer_tx_t pcch_softbuffer_tx                           = {};
-  srslte_softbuffer_tx_t rar_softbuffer_tx                            = {};
+  typedef struct {
+    uint8_t                pcch_payload_buffer[pcch_payload_buffer_len] = {};
+    srslte_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG]       = {};
+    srslte_softbuffer_tx_t pcch_softbuffer_tx                           = {};
+    srslte_softbuffer_tx_t rar_softbuffer_tx                            = {};
+  } common_buffers_t;
+
+  std::vector<common_buffers_t> common_buffers;
 
   const static int           mcch_payload_len                      = 3000; // TODO FIND OUT MAX LENGTH
   int                        current_mcch_length                   = 0;
