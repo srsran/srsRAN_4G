@@ -58,6 +58,15 @@ ue::ue(uint16_t                 rnti_,
   nof_tx_harq_proc(nof_tx_harq_proc_),
   ta_fsm(this)
 {
+  srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
+  for (auto& carrier_buffers : tx_payload_buffer) {
+    for (auto& harq_buffers : carrier_buffers) {
+      for (srslte::unique_byte_buffer_t& tb_buffer : harq_buffers) {
+        tb_buffer = srslte::allocate_unique_buffer(*pool);
+      }
+    }
+  }
+
   pdus.init(this, log_h);
 
   // Allocate buffer for PCell
@@ -506,8 +515,8 @@ uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
   uint8_t*                    ret = nullptr;
   if (rlc) {
     if (ue_cc_idx < SRSLTE_MAX_CARRIERS && harq_pid < SRSLTE_FDD_NOF_HARQ && tb_idx < SRSLTE_MAX_TB) {
-      tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx].clear();
-      mac_msg_dl.init_tx(&tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx], grant_size, false);
+      tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx]->clear();
+      mac_msg_dl.init_tx(tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx].get(), grant_size, false);
       for (uint32_t i = 0; i < nof_pdu_elems; i++) {
         if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
           allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
@@ -533,8 +542,8 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
 {
   std::lock_guard<std::mutex> lock(mutex);
   uint8_t*                    ret = nullptr;
-  tx_payload_buffer[0][harq_pid][0].clear();
-  mch_mac_msg_dl.init_tx(&tx_payload_buffer[0][harq_pid][0], grant_size);
+  tx_payload_buffer[0][harq_pid][0]->clear();
+  mch_mac_msg_dl.init_tx(tx_payload_buffer[0][harq_pid][0].get(), grant_size);
 
   for (uint32_t i = 0; i < nof_pdu_elems; i++) {
     if (sched.pdu[i].lcid == srslte::sch_subh::MCH_SCHED_INFO) {

@@ -139,7 +139,9 @@ private:
   std::vector<cc_buffer_ptr_t>  pending_buffers; ///< List of buffer pointer list for Rx
 
   // For DL there are two buffers, one for each Transport block
-  srslte::byte_buffer_t tx_payload_buffer[SRSLTE_MAX_CARRIERS][SRSLTE_FDD_NOF_HARQ][SRSLTE_MAX_TB];
+  std::array<std::array<std::array<srslte::unique_byte_buffer_t, SRSLTE_MAX_TB>, SRSLTE_FDD_NOF_HARQ>,
+             SRSLTE_MAX_CARRIERS>
+      tx_payload_buffer;
 
   srslte::block_queue<uint32_t> pending_ta_commands;
   ta                            ta_fsm;
