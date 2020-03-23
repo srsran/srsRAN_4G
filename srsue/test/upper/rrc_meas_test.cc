@@ -384,7 +384,7 @@ int meas_obj_test()
     obj             = {};
     obj.meas_obj_id = 1 + i;
     obj.meas_obj.set_meas_obj_eutra();
-    obj.meas_obj.meas_obj_eutra().carrier_freq          = 1 + i;
+    obj.meas_obj.meas_obj_eutra().carrier_freq          = 100 + i;
     obj.meas_obj.meas_obj_eutra().allowed_meas_bw.value = allowed_meas_bw_opts::mbw6;
     if (i == 1) { // 2nd object has cells, 1st one doesn't
       for (int j = 1; j <= 4; j++) {
@@ -403,8 +403,8 @@ int meas_obj_test()
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
   // Test we configure 1 frequency with no cells
   TESTASSERT(rrctest.phytest.meas_nof_freqs() == 1);
-  TESTASSERT(rrctest.phytest.meas_freq_started(1));
-  TESTASSERT(rrctest.phytest.meas_nof_cells(1) == 0);
+  TESTASSERT(rrctest.phytest.meas_freq_started(100));
+  TESTASSERT(rrctest.phytest.meas_nof_cells(100) == 0);
 
   log1.info("Test5: Add existing objects and measId. Now add measId for 2nd cell\n");
   meas_cfg        = {};
@@ -414,6 +414,15 @@ int meas_obj_test()
   m.meas_id       = 3;
   meas_cfg.meas_id_to_add_mod_list.push_back(m);
   meas_cfg.meas_id_to_add_mod_list_present = true;
+  for (int i = 0; i < 2; i++) {
+    obj             = {};
+    obj.meas_obj_id = 1 + i;
+    obj.meas_obj.set_meas_obj_eutra();
+    obj.meas_obj.meas_obj_eutra().carrier_freq          = 1 + i;
+    obj.meas_obj.meas_obj_eutra().allowed_meas_bw.value = allowed_meas_bw_opts::mbw15;
+    meas_cfg.meas_obj_to_add_mod_list.push_back(obj);
+  }
+  meas_cfg.meas_obj_to_add_mod_list_present = true;
   rrctest.phytest.reset_test();
   TESTASSERT(rrctest.send_meas_cfg(rrc_conn_recfg));
 

@@ -791,6 +791,10 @@ void rrc::rrc_meas::var_meas_cfg::measObject_addmod(const meas_obj_to_add_mod_li
 
       // if an entry with the matching measObjectId exists in the measObjectList within the VarMeasConfig
       if (entry_exists) {
+        // Update carrier frequency0
+        local_obj.carrier_freq    = cfg_obj.carrier_freq;
+        local_obj.allowed_meas_bw = cfg_obj.allowed_meas_bw;
+
         // Combine the new cells with the existing ones and remove the cells indicated in config
         {
           // Remove cells
