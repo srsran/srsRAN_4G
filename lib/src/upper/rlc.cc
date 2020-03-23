@@ -336,13 +336,11 @@ int rlc::read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 
 void rlc::write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     rlc_array.at(lcid)->write_pdu_s(payload, nof_bytes);
   } else {
     rlc_log->warning("LCID %d doesn't exist. Dropping PDU.\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 // Pass directly to PDCP, no DL througput counting done
@@ -376,11 +374,9 @@ void rlc::write_pdu_pcch(srslte::unique_byte_buffer_t pdu)
 
 void rlc::write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
     rlc_array_mrb.at(lcid)->write_pdu(payload, nof_bytes);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 /*******************************************************************************
