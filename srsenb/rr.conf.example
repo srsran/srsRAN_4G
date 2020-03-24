@@ -55,7 +55,7 @@ cell_list =
   {
     // rf_port = 0;
     cell_id = 0x01;
-    tac = 0x0001;
+    tac = 0x0007;
     pci = 1;
     // root_seq_idx = 204;
     dl_earfcn = 3400;
