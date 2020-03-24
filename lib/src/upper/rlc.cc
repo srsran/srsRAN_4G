@@ -20,6 +20,7 @@
  */
 
 #include "srslte/upper/rlc.h"
+#include "srslte/common/rwlock_guard.h"
 #include "srslte/upper/rlc_am_lte.h"
 #include "srslte/upper/rlc_tm.h"
 #include "srslte/upper/rlc_um_lte.h"
@@ -37,18 +38,20 @@ rlc::rlc(const char* logname) : rlc_log(logname)
 rlc::~rlc()
 {
   // destroy all remaining entities
-  pthread_rwlock_wrlock(&rwlock);
-  for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
-    delete (it->second);
-  }
-  rlc_array.clear();
+  {
+    rwlock_write_guard lock(rwlock);
 
-  for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
-    delete (it->second);
-  }
-  rlc_array_mrb.clear();
+    for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
+      delete (it->second);
+    }
+    rlc_array.clear();
 
-  pthread_rwlock_unlock(&rwlock);
+    for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
+      delete (it->second);
+    }
+    rlc_array_mrb.clear();
+  }
+
   pthread_rwlock_destroy(&rwlock);
 }
 
@@ -145,21 +148,21 @@ void rlc::reestablish(uint32_t lcid)
 // All LCIDs are removed, except SRB0
 void rlc::reset()
 {
-  pthread_rwlock_wrlock(&rwlock);
+  {
+    rwlock_write_guard lock(rwlock);
 
-  for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
-    it->second->stop();
-    delete (it->second);
+    for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
+      it->second->stop();
+      delete (it->second);
+    }
+    rlc_array.clear();
+
+    for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
+      it->second->stop();
+      delete (it->second);
+    }
+    rlc_array_mrb.clear();
   }
-  rlc_array.clear();
-
-  for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
-    it->second->stop();
-    delete (it->second);
-  }
-  rlc_array_mrb.clear();
-
-  pthread_rwlock_unlock(&rwlock);
 
   // Add SRB0 again
   add_bearer(default_lcid, rlc_config_t());
@@ -185,50 +188,42 @@ void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
     return;
   }
 
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     rlc_array.at(lcid)->write_sdu_s(std::move(sdu), blocking);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
     rlc_array_mrb.at(lcid)->write_sdu(std::move(sdu), false); // write in non-blocking mode by default
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 bool rlc::rb_is_um(uint32_t lcid)
 {
   bool ret = false;
 
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->get_mode() == rlc_mode_t::um;
   } else {
     rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 
   return ret;
 }
 
 void rlc::discard_sdu(uint32_t lcid, uint32_t discard_sn)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     rlc_array.at(lcid)->discard_sdu(discard_sn);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Ignoring discard SDU\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 /*******************************************************************************
@@ -238,11 +233,9 @@ bool rlc::has_data(uint32_t lcid)
 {
   bool has_data = false;
 
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     has_data = rlc_array.at(lcid)->has_data();
   }
-  pthread_rwlock_unlock(&rwlock);
 
   return has_data;
 }
@@ -250,11 +243,9 @@ bool rlc::is_suspended(const uint32_t lcid)
 {
   bool ret = false;
 
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->is_suspended();
   }
-  pthread_rwlock_unlock(&rwlock);
 
   return ret;
 }
@@ -263,7 +254,7 @@ uint32_t rlc::get_buffer_state(uint32_t lcid)
 {
   uint32_t ret = 0;
 
-  pthread_rwlock_rdlock(&rwlock);
+  rwlock_read_guard lock(rwlock);
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->is_suspended()) {
       ret = 0;
@@ -271,7 +262,6 @@ uint32_t rlc::get_buffer_state(uint32_t lcid)
       ret = rlc_array.at(lcid)->get_buffer_state();
     }
   }
-  pthread_rwlock_unlock(&rwlock);
 
   return ret;
 }
@@ -280,12 +270,11 @@ uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
 {
   uint32_t ret = 0;
 
-  pthread_rwlock_rdlock(&rwlock);
+  rwlock_read_guard lock(rwlock);
 
   if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->get_buffer_state();
   }
-  pthread_rwlock_unlock(&rwlock);
 
   return ret;
 }
@@ -294,13 +283,12 @@ int rlc::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t ret = 0;
 
-  pthread_rwlock_rdlock(&rwlock);
+  rwlock_read_guard lock(rwlock);
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->read_pdu(payload, nof_bytes);
   } else {
     rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 
   return ret;
 }
@@ -309,13 +297,12 @@ int rlc::read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   uint32_t ret = 0;
 
-  pthread_rwlock_rdlock(&rwlock);
+  rwlock_read_guard lock(rwlock);
   if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->read_pdu(payload, nof_bytes);
   } else {
     rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 
   return ret;
 }
@@ -371,7 +358,7 @@ void rlc::write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 
 void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  rwlock_write_guard lock(rwlock);
 
   rlc_common* rlc_entity = NULL;
 
@@ -389,7 +376,7 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
           break;
         default:
           rlc_log->error("Cannot add RLC entity - invalid mode\n");
-          goto unlock_and_exit;
+          return;
       }
 #ifdef HAVE_5GNR
     } else if (cnfg.rat == srslte_rat_t::nr) {
@@ -407,7 +394,7 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
 #endif
     } else {
       rlc_log->error("RAT not supported\n");
-      goto unlock_and_exit;
+      return;
     }
 
     if (not rlc_array.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
@@ -432,15 +419,12 @@ delete_and_exit:
   if (rlc_entity) {
     delete (rlc_entity);
   }
-
-unlock_and_exit:
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::add_bearer_mrb(uint32_t lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
-  rlc_common* rlc_entity = NULL;
+  rwlock_write_guard lock(rwlock);
+  rlc_common*        rlc_entity = NULL;
 
   if (not valid_lcid_mrb(lcid)) {
     rlc_entity = new rlc_um_lte(rlc_log, lcid, pdcp, rrc, timers);
@@ -454,7 +438,7 @@ void rlc::add_bearer_mrb(uint32_t lcid)
       goto delete_and_exit;
     }
     rlc_log->warning("Added bearer MRB%d with mode RLC_UM\n", lcid);
-    goto unlock_and_exit;
+    return;
   } else {
     rlc_log->warning("Bearer MRB%d already created.\n", lcid);
   }
@@ -463,14 +447,11 @@ delete_and_exit:
   if (rlc_entity != NULL) {
     delete (rlc_entity);
   }
-
-unlock_and_exit:
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::del_bearer(uint32_t lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  rwlock_write_guard lock(rwlock);
 
   if (valid_lcid(lcid)) {
     rlc_map_t::iterator it = rlc_array.find(lcid);
@@ -481,13 +462,11 @@ void rlc::del_bearer(uint32_t lcid)
   } else {
     rlc_log->error("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
   }
-
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::del_bearer_mrb(uint32_t lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  rwlock_write_guard lock(rwlock);
 
   if (valid_lcid_mrb(lcid)) {
     rlc_map_t::iterator it = rlc_array_mrb.find(lcid);
@@ -498,13 +477,11 @@ void rlc::del_bearer_mrb(uint32_t lcid)
   } else {
     rlc_log->error("Can't delete bearer %s. Bearer doesn't exist.\n", rrc->get_rb_name(lcid).c_str());
   }
-
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  rwlock_write_guard lock(rwlock);
 
   // make sure old LCID exists and new LCID is still free
   if (valid_lcid(old_lcid) && not valid_lcid(new_lcid)) {
@@ -513,7 +490,7 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
     rlc_common*         rlc_entity = it->second;
     if (not rlc_array.insert(rlc_map_pair_t(new_lcid, rlc_entity)).second) {
       rlc_log->error("Error inserting RLC entity into array\n.");
-      goto exit;
+      return;
     }
     // erase from old position
     rlc_array.erase(it);
@@ -529,14 +506,10 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
                    old_lcid,
                    new_lcid);
   }
-exit:
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::suspend_bearer(uint32_t lcid)
 {
-  pthread_rwlock_rdlock(&rwlock);
-
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->suspend()) {
       rlc_log->info("Suspended radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
@@ -546,14 +519,10 @@ void rlc::suspend_bearer(uint32_t lcid)
   } else {
     rlc_log->error("Suspending bearer: bearer %s not configured.\n", rrc->get_rb_name(lcid).c_str());
   }
-
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::resume_bearer(uint32_t lcid)
 {
-  pthread_rwlock_rdlock(&rwlock);
-
   rlc_log->info("Resuming radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->resume()) {
@@ -564,15 +533,11 @@ void rlc::resume_bearer(uint32_t lcid)
   } else {
     rlc_log->error("Resuming bearer: bearer %s not configured.\n", rrc->get_rb_name(lcid).c_str());
   }
-
-  pthread_rwlock_unlock(&rwlock);
 }
 
 bool rlc::has_bearer(uint32_t lcid)
 {
-  pthread_rwlock_rdlock(&rwlock);
   bool ret = valid_lcid(lcid);
-  pthread_rwlock_unlock(&rwlock);
   return ret;
 }
 
