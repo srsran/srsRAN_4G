@@ -389,7 +389,7 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
           break;
         default:
           rlc_log->error("Cannot add RLC entity - invalid mode\n");
-          goto unlock_and_exit;
+          return;
       }
 #endif
     } else {
