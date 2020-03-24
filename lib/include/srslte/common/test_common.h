@@ -159,16 +159,16 @@ public:
   {
     std::unique_ptr<Log> l{new Log{std::forward<Args>(args)...}};
     // store previous log, and register the newly created one
-    prev_log    = srslte::logmap::get_instance()->deregister_log(l->get_service_name());
+    prev_log    = srslte::logmap::deregister_log(l->get_service_name());
     current_log = l.get();
-    srslte::logmap::get_instance()->register_log(std::move(l));
+    srslte::logmap::register_log(std::move(l));
   }
   scoped_log(scoped_log<Log>&&) noexcept = default;
   ~scoped_log()
   {
-    srslte::logmap::get_instance()->deregister_log(current_log->get_service_name());
+    srslte::logmap::deregister_log(current_log->get_service_name());
     if (prev_log != nullptr) {
-      srslte::logmap::get_instance()->register_log(std::move(prev_log));
+      srslte::logmap::register_log(std::move(prev_log));
     }
   }
 

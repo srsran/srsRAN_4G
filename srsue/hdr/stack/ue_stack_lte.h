@@ -139,24 +139,24 @@ private:
   const std::chrono::milliseconds TTI_WARN_THRESHOLD_MS{5};
   const uint32_t                  SYNC_QUEUE_WARN_THRESHOLD = 5;
 
-  bool                  running;
-  srsue::stack_args_t   args;
+  bool                running;
+  srsue::stack_args_t args;
 
-  srslte::tti_point     current_tti;
+  srslte::tti_point current_tti;
 
   // timers
   srslte::timer_handler timers;
 
   // UE stack logging
   srslte::logger* logger = nullptr;
-  srslte::log_ref stack_log; ///< our own log filter
-  srslte::log_ref mac_log;
-  srslte::log_ref rlc_log;
-  srslte::log_ref pdcp_log;
-  srslte::log_ref rrc_log;
-  srslte::log_ref usim_log;
-  srslte::log_ref nas_log;
-  srslte::log_ref pool_log;
+  srslte::log_ref stack_log{"STCK"}; ///< our own log filter
+  srslte::log_ref mac_log{"MAC"};
+  srslte::log_ref rlc_log{"RLC"};
+  srslte::log_ref pdcp_log{"PDCP"};
+  srslte::log_ref rrc_log{"RRC"};
+  srslte::log_ref usim_log{"USIM"};
+  srslte::log_ref nas_log{"NAS"};
+  srslte::log_ref pool_log{"POOL"};
 
   // stack components
   srsue::mac                 mac;

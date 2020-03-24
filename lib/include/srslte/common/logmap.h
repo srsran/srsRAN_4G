@@ -60,8 +60,6 @@ private:
 
 class logmap : public singleton_t<logmap>
 {
-  static const size_t servicename_minimum_length = 4;
-
 public:
   // Access to log map by servicename. If servicename does not exist, create a new log_filter with default cfg
   // Access to the map is protected by a mutex

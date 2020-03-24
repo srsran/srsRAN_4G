@@ -65,6 +65,11 @@ log_filter::log_filter(std::string layer, logger* logger_, bool tti) : log()
 
 void log_filter::init(std::string layer, logger* logger_, bool tti)
 {
+  // strip trailing white spaces
+  size_t last_char_pos = layer.find_last_not_of(' ');
+  if (last_char_pos != layer.size() - 1) {
+    layer.erase(last_char_pos + 1, layer.size());
+  }
   service_name = std::move(layer);
   logger_h     = logger_;
   do_tti       = tti;
@@ -99,7 +104,7 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
 
       snprintf(log_str->str(),
                log_str->get_buffer_size(),
-               "%s [%s] %s %s%s%s%s%s",
+               "%s [%-4s] %s %s%s%s%s%s",
                buffer_time,
                get_service_name().c_str(),
                log_level_text_short[level],

@@ -40,9 +40,10 @@ logmap::logmap() : logger_stdout_val(new logger_stdout{})
 log_ref SRSLTE_EXPORT logmap::get(std::string servicename)
 {
   logmap* pool = get_instance();
-  if (servicename.size() < servicename_minimum_length) {
-    // pad right of string with spaces
-    servicename.insert(servicename.end(), servicename_minimum_length - servicename.length(), ' ');
+  // strip trailing white spaces
+  size_t last_char_pos = servicename.find_last_not_of(' ');
+  if (last_char_pos != servicename.size() - 1) {
+    servicename.erase(last_char_pos + 1, servicename.size());
   }
   return pool->get_impl(std::move(servicename));
 }

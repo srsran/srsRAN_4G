@@ -35,14 +35,6 @@ ue_stack_lte::ue_stack_lte() :
   running(false),
   args(),
   logger(nullptr),
-  stack_log("STCK"),
-  pool_log("POOL"),
-  mac_log("MAC "),
-  rlc_log("RLC "),
-  pdcp_log("PDCP"),
-  rrc_log("RRC "),
-  usim_log("USIM"),
-  nas_log("NAS "),
   usim(nullptr),
   phy(nullptr),
   rlc(rlc_log.get()),
@@ -96,11 +88,11 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 
   // init own log
   stack_log->set_level(srslte::LOG_LEVEL_INFO);
-  pool_log->set_level(srslte::LOG_LEVEL_ERROR);
+  pool_log->set_level(srslte::LOG_LEVEL_WARNING);
   byte_buffer_pool::get_instance()->set_log(pool_log.get());
 
   // init layer logs
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC ", logger, true}});
+  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new srslte::log_filter{"MAC", logger, true}});
   mac_log->set_level(args.log.mac_level);
   mac_log->set_hex_limit(args.log.mac_hex_limit);
   rlc_log->set_level(args.log.rlc_level);

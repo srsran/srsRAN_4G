@@ -166,6 +166,21 @@ int test_log_singleton()
   return SRSLTE_SUCCESS;
 }
 
+int test_log_ref()
+{
+  // Check if trailing whitespaces are correctly removed
+  srslte::log_ref t1_log{"T1"};
+  TESTASSERT(t1_log->get_service_name() == "T1");
+  TESTASSERT(t1_log.get() == srslte::logmap::get("T1").get());
+  TESTASSERT(t1_log.get() == srslte::logmap::get("T1  ").get());
+  {
+    scoped_log<srslte::nullsink_log> null_log{"T2"};
+    TESTASSERT(null_log->get_service_name() == "T2");
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int full_test()
 {
   bool        result;
@@ -191,6 +206,7 @@ int main(int argc, char** argv)
   TESTASSERT(basic_hex_test() == SRSLTE_SUCCESS);
   TESTASSERT(full_test() == SRSLTE_SUCCESS);
   TESTASSERT(test_log_singleton() == SRSLTE_SUCCESS);
+  TESTASSERT(test_log_ref() == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }
