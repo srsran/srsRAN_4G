@@ -164,6 +164,7 @@ private:
   bool                    started = false;
   srslte::task_multiqueue pending_tasks;
   int enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1, gtpu_queue_id = -1, mac_queue_id = -1;
+  srslte::block_queue<stack_metrics_t> pending_stack_metrics;
 };
 
 } // namespace srsenb

@@ -439,8 +439,7 @@ private:
   class mobility_cfg;
   std::unique_ptr<mobility_cfg> enb_mobility_cfg;
 
-  void            rem_user_thread(uint16_t rnti);
-  pthread_mutex_t user_mutex;
+  void rem_user_thread(uint16_t rnti);
 
   pthread_mutex_t paging_mutex;
 };

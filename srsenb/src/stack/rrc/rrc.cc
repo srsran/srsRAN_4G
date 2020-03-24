@@ -78,7 +78,6 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   config_mac();
   enb_mobility_cfg.reset(new mobility_cfg(&cfg));
 
-  pthread_mutex_init(&user_mutex, nullptr);
   pthread_mutex_init(&paging_mutex, nullptr);
 
   bzero(&sr_sched, sizeof(sr_sched_t));
@@ -93,29 +92,22 @@ void rrc::stop()
     rrc_pdu p = {0, LCID_EXIT, nullptr};
     rx_pdu_queue.push(std::move(p));
   }
-  pthread_mutex_lock(&user_mutex);
   users.clear();
-  pthread_mutex_unlock(&user_mutex);
-  pthread_mutex_destroy(&user_mutex);
   pthread_mutex_destroy(&paging_mutex);
 }
 
 /*******************************************************************************
   Public functions
-
-  All public functions must be mutexed.
 *******************************************************************************/
 
 void rrc::get_metrics(rrc_metrics_t& m)
 {
   if (running) {
-    pthread_mutex_lock(&user_mutex);
     m.n_ues = 0;
     for (auto iter = users.begin(); m.n_ues < ENB_METRICS_MAX_USERS && iter != users.end(); ++iter) {
       ue* u                  = iter->second.get();
       m.ues[m.n_ues++].state = u->get_state();
     }
-    pthread_mutex_unlock(&user_mutex);
   }
 }
 
@@ -185,7 +177,6 @@ void rrc::max_retx_attempted(uint16_t rnti) {}
 // This function is called from PRACH worker (can wait)
 void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 {
-  pthread_mutex_lock(&user_mutex);
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
     users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
@@ -208,8 +199,6 @@ void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1, &teid_in);
     }
   }
-
-  pthread_mutex_unlock(&user_mutex);
 }
 
 /* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
@@ -221,7 +210,6 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
   rem_user_thread(new_rnti);
 
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
-  pthread_mutex_lock(&user_mutex);
   auto old_it = users.find(old_rnti);
   if (old_it != users.end()) {
     if (old_it->second->is_connected()) {
@@ -230,7 +218,6 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
       old_it->second->send_connection_release();
     }
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
 /*******************************************************************************
@@ -251,8 +238,6 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
   dl_dcch_msg.msg.set_c1();
   dl_dcch_msg_type_c::c1_c_* msg_c1 = &dl_dcch_msg.msg.c1();
 
-  pthread_mutex_lock(&user_mutex);
-
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
     dl_info_transfer_r8_ies_s* dl_info_r8 =
@@ -271,8 +256,6 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
   } else {
     rrc_log->error("Rx SDU for unknown rnti=0x%x\n", rnti);
   }
-
-  pthread_mutex_unlock(&user_mutex);
 }
 
 void rrc::release_complete(uint16_t rnti)
@@ -283,14 +266,11 @@ void rrc::release_complete(uint16_t rnti)
 
 bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg)
 {
-  pthread_mutex_lock(&user_mutex);
-
   rrc_log->info("Adding initial context for 0x%x\n", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
     rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
-    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 
@@ -354,22 +334,18 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_requ
   // Setup E-RABs
   user_it->second->setup_erabs(msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value);
 
-  pthread_mutex_unlock(&user_mutex);
-
   return true;
 }
 
 bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)
 {
   bool err = false;
-  pthread_mutex_lock(&user_mutex);
 
   rrc_log->info("Modifying context for 0x%x\n", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
     rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
-    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 
@@ -400,7 +376,6 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request
 
   if (err) {
     // maybe pass a cause value?
-    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 
@@ -422,21 +397,16 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request
     user_it->second->send_security_mode_command();
   }
 
-  pthread_mutex_unlock(&user_mutex);
-
   return true;
 }
 
 bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)
 {
-  pthread_mutex_lock(&user_mutex);
-
   rrc_log->info("Setting up erab(s) for 0x%x\n", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
     rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
-    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 
@@ -448,25 +418,20 @@ bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& 
   // Setup E-RABs
   user_it->second->setup_erabs(msg.protocol_ies.erab_to_be_setup_list_bearer_su_req.value);
 
-  pthread_mutex_unlock(&user_mutex);
-
   return true;
 }
 
 bool rrc::release_erabs(uint32_t rnti)
 {
-  pthread_mutex_lock(&user_mutex);
   rrc_log->info("Releasing E-RABs for 0x%x\n", rnti);
   auto user_it = users.find(rnti);
 
   if (user_it == users.end()) {
     rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
-    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 
   bool ret = user_it->second->release_erabs();
-  pthread_mutex_unlock(&user_mutex);
   return ret;
 }
 
@@ -1000,11 +965,9 @@ void rrc::enable_encryption(uint16_t rnti, uint32_t lcid)
 
 void rrc::tti_clock()
 {
-  pthread_mutex_lock(&user_mutex);
   // pop cmd from queue
   rrc_pdu p;
   if (not rx_pdu_queue.try_pop(&p)) {
-    pthread_mutex_unlock(&user_mutex);
     return;
   }
   // print Rx PDU
@@ -1016,7 +979,6 @@ void rrc::tti_clock()
   auto user_it = users.find(p.rnti);
   if (user_it == users.end()) {
     rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
-    pthread_mutex_unlock(&user_mutex);
     return;
   }
 
@@ -1048,7 +1010,6 @@ void rrc::tti_clock()
       rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
       break;
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
 /*******************************************************************************

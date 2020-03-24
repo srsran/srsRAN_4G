@@ -179,9 +179,17 @@ void enb_stack_lte::stop_impl()
 
 bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
 {
-  mac.get_metrics(metrics->mac);
-  rrc.get_metrics(metrics->rrc);
-  s1ap.get_metrics(metrics->s1ap);
+  // use stack thread to query metrics
+  pending_tasks.try_push(enb_queue_id, [this]() {
+    stack_metrics_t metrics{};
+    mac.get_metrics(metrics.mac);
+    rrc.get_metrics(metrics.rrc);
+    s1ap.get_metrics(metrics.s1ap);
+    pending_stack_metrics.push(metrics);
+  });
+
+  // wait for result
+  *metrics = pending_stack_metrics.wait_pop();
   return true;
 }
 
