@@ -121,7 +121,7 @@ private:
   rrc_interface_mac*                         rrc_h   = nullptr;
   stack_interface_mac*                       stack_h = nullptr;
   srslte::log_ref                            log_h;
-  mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg;
+  mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg = {};
 
   // RNTI search window scheduling
   int si_window_length = -1, si_window_start = -1;

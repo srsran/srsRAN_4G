@@ -25,8 +25,8 @@
 namespace srsue {
 
 typedef struct {
-  int airplane_t_on_ms;
-  int airplane_t_off_ms;
+  int airplane_t_on_ms  = -1;
+  int airplane_t_off_ms = -1;
 } nas_sim_args_t;
 
 class nas_args_t

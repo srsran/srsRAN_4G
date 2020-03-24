@@ -372,7 +372,7 @@ public:
   }
 
 private:
-  phy_interface_mac_lte* phy_h;
+  phy_interface_mac_lte* phy_h = nullptr;
   mac*                   mac_h = nullptr;
 };
 
