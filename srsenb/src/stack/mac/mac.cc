@@ -80,15 +80,16 @@ bool mac::init(const mac_args_t&        args_,
     scheduler.set_sched_cfg(&args.sched);
 
     // Init softbuffer for SI messages
-    for (int cc = 0; cc < SRSLTE_MAX_CARRIERS; cc++) {
+    common_buffers.resize(cells.size());
+    for (auto& cc : common_buffers) {
       for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
-        srslte_softbuffer_tx_init(&common_buffers[cc].bcch_softbuffer_tx[i], args.nof_prb);
+        srslte_softbuffer_tx_init(&cc.bcch_softbuffer_tx[i], args.nof_prb);
       }
       // Init softbuffer for PCCH
-      srslte_softbuffer_tx_init(&common_buffers[cc].pcch_softbuffer_tx, args.nof_prb);
+      srslte_softbuffer_tx_init(&cc.pcch_softbuffer_tx, args.nof_prb);
 
       // Init softbuffer for RAR
-      srslte_softbuffer_tx_init(&common_buffers[cc].rar_softbuffer_tx, args.nof_prb);
+      srslte_softbuffer_tx_init(&cc.rar_softbuffer_tx, args.nof_prb);
     }
 
     reset();
@@ -104,12 +105,12 @@ void mac::stop()
   srslte::rwlock_write_guard lock(rwlock);
   if (started) {
     ue_db.clear();
-    for (int cc = 0; cc < SRSLTE_MAX_CARRIERS; cc++) {
+    for (auto& cc : common_buffers) {
       for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
-        srslte_softbuffer_tx_free(&common_buffers[cc].bcch_softbuffer_tx[i]);
+        srslte_softbuffer_tx_free(&cc.bcch_softbuffer_tx[i]);
       }
-      srslte_softbuffer_tx_free(&common_buffers[cc].pcch_softbuffer_tx);
-      srslte_softbuffer_tx_free(&common_buffers[cc].rar_softbuffer_tx);
+      srslte_softbuffer_tx_free(&cc.pcch_softbuffer_tx);
+      srslte_softbuffer_tx_free(&cc.rar_softbuffer_tx);
       started = false;
     }
   }
