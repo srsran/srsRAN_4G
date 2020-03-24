@@ -217,6 +217,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
     rlc.get_metrics(metrics.rlc);
     nas.get_metrics(&metrics.nas);
     rrc.get_metrics(metrics.rrc);
+    pending_stack_metrics.push(metrics);
   });
   // wait for result
   *metrics = pending_stack_metrics.wait_pop();
