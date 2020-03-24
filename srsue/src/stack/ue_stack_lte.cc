@@ -210,10 +210,16 @@ bool ue_stack_lte::disable_data()
 
 bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 {
-  mac.get_metrics(metrics->mac);
-  rlc.get_metrics(metrics->rlc);
-  nas.get_metrics(&metrics->nas);
-  rrc.get_metrics(metrics->rrc);
+  // use stack thread to query metrics
+  pending_tasks.try_push(ue_queue_id, [this]() {
+    stack_metrics_t metrics{};
+    mac.get_metrics(metrics.mac);
+    rlc.get_metrics(metrics.rlc);
+    nas.get_metrics(&metrics.nas);
+    rrc.get_metrics(metrics.rrc);
+  });
+  // wait for result
+  *metrics = pending_stack_metrics.wait_pop();
   return (metrics->nas.state == EMM_STATE_REGISTERED && metrics->rrc.state == RRC_STATE_CONNECTED);
 }
 

@@ -82,20 +82,16 @@ void rlc::reset_metrics()
 
 void rlc::stop()
 {
-  pthread_rwlock_rdlock(&rwlock);
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
     it->second->stop();
   }
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
     it->second->stop();
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void rlc::get_metrics(rlc_metrics_t& m)
 {
-  pthread_rwlock_rdlock(&rwlock);
-
   gettimeofday(&metrics_time[2], NULL);
   get_time_interval(metrics_time);
   double secs = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec * 1e-6;
@@ -120,15 +116,11 @@ void rlc::get_metrics(rlc_metrics_t& m)
 
   memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));
   reset_metrics();
-
-  pthread_rwlock_unlock(&rwlock);
 }
 
 // Reestablish all RLC bearer
 void rlc::reestablish()
 {
-  pthread_rwlock_rdlock(&rwlock);
-
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
     it->second->reestablish();
   }
@@ -136,21 +128,17 @@ void rlc::reestablish()
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
     it->second->reestablish();
   }
-
-  pthread_rwlock_unlock(&rwlock);
 }
 
 // Reestablish a specific RLC bearer
 void rlc::reestablish(uint32_t lcid)
 {
-  pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
     rlc_log->info("Reestablishing LCID %d\n", lcid);
     rlc_array.at(lcid)->reestablish();
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 // Resetting the RLC layer returns the object to the state after the call to init():
@@ -180,11 +168,9 @@ void rlc::reset()
 void rlc::empty_queue()
 {
   // Empty Tx queue, not needed for MCH bearers
-  pthread_rwlock_rdlock(&rwlock);
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
     it->second->empty_queue();
   }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 /*******************************************************************************

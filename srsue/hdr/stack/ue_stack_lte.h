@@ -176,7 +176,8 @@ private:
   static const int        STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
   srslte::task_multiqueue pending_tasks;
   int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
-  srslte::task_thread_pool background_tasks; ///< Thread pool used for long, low-priority tasks
+  srslte::task_thread_pool             background_tasks; ///< Thread pool used for long, low-priority tasks
+  srslte::block_queue<stack_metrics_t> pending_stack_metrics;
 
   // TTI stats
   srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;

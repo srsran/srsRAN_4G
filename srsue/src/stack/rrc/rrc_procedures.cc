@@ -1003,7 +1003,8 @@ proc_outcome_t rrc::go_idle_proc::init()
 {
   Info("Starting...\n");
   rlc_flush_timer.run();
-  return step();
+  // Do not call step() directly. Instead we defer for one TTI to avoid double-locking the RLC mutex
+  return proc_outcome_t::yield;
 }
 
 srslte::proc_outcome_t rrc::go_idle_proc::react(bool timeout)
