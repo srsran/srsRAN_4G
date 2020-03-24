@@ -446,7 +446,7 @@ void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_pagi
     return;
   }
 
-  paging_record_s& paging_elem = pending_paging[ueid];
+  paging_record_s paging_elem;
   if (ue_paging_id.type().value == asn1::s1ap::ue_paging_id_c::types_opts::imsi) {
     paging_elem.ue_id.set_imsi();
     paging_elem.ue_id.imsi().resize(ue_paging_id.imsi().size());
@@ -463,6 +463,8 @@ void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_pagi
     paging_elem.ue_id.s_tmsi().m_tmsi.from_number(m_tmsi);
   }
   paging_elem.cn_domain = paging_record_s::cn_domain_e_::ps;
+
+  pending_paging.insert(std::make_pair(ueid, paging_elem));
 }
 
 // Described in Section 7 of 36.304
