@@ -78,8 +78,6 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   config_mac();
   enb_mobility_cfg.reset(new mobility_cfg(&cfg));
 
-  pthread_mutex_init(&paging_mutex, nullptr);
-
   bzero(&sr_sched, sizeof(sr_sched_t));
 
   running = true;
@@ -93,7 +91,6 @@ void rrc::stop()
     rx_pdu_queue.push(std::move(p));
   }
   users.clear();
-  pthread_mutex_destroy(&paging_mutex);
 }
 
 /*******************************************************************************
@@ -441,15 +438,31 @@ bool rrc::release_erabs(uint32_t rnti)
   than user map
 *******************************************************************************/
 
-void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& UEPagingID)
+void rrc::add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id)
 {
-  pthread_mutex_lock(&paging_mutex);
-  if (pending_paging.count(ueid) == 0) {
-    pending_paging[ueid] = UEPagingID;
-  } else {
+  std::lock_guard<std::mutex> lock(paging_mutex);
+  if (pending_paging.count(ueid) > 0) {
     rrc_log->warning("Received Paging for UEID=%d but not yet transmitted\n", ueid);
+    return;
   }
-  pthread_mutex_unlock(&paging_mutex);
+
+  paging_record_s& paging_elem = pending_paging[ueid];
+  if (ue_paging_id.type().value == asn1::s1ap::ue_paging_id_c::types_opts::imsi) {
+    paging_elem.ue_id.set_imsi();
+    paging_elem.ue_id.imsi().resize(ue_paging_id.imsi().size());
+    memcpy(paging_elem.ue_id.imsi().data(), ue_paging_id.imsi().data(), ue_paging_id.imsi().size());
+    rrc_log->console("Warning IMSI paging not tested\n");
+  } else {
+    paging_elem.ue_id.set_s_tmsi();
+    paging_elem.ue_id.s_tmsi().mmec.from_number(ue_paging_id.s_tmsi().mmec[0]);
+    uint32_t m_tmsi     = 0;
+    uint32_t nof_octets = ue_paging_id.s_tmsi().m_tmsi.size();
+    for (uint32_t i = 0; i < nof_octets; i++) {
+      m_tmsi |= ue_paging_id.s_tmsi().m_tmsi[i] << (8u * (nof_octets - i - 1u));
+    }
+    paging_elem.ue_id.s_tmsi().m_tmsi.from_number(m_tmsi);
+  }
+  paging_elem.cn_domain = paging_record_s::cn_domain_e_::ps;
 }
 
 // Described in Section 7 of 36.304
@@ -460,8 +473,6 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
   if (pending_paging.empty()) {
     return false;
   }
-
-  pthread_mutex_lock(&paging_mutex);
 
   asn1::rrc::pcch_msg_s pcch_msg;
   pcch_msg.msg.set_c1();
@@ -477,56 +488,41 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 
   std::vector<uint32_t> ue_to_remove;
 
-  int n = 0;
-  for (auto& item : pending_paging) {
-    if (n >= ASN1_RRC_MAX_PAGE_REC) {
-      break;
-    }
-    asn1::s1ap::ue_paging_id_c& u    = item.second;
-    uint32_t                    ueid = ((uint32_t)item.first) % 1024;
-    uint32_t                    i_s  = (ueid / N) % Ns;
+  {
+    std::lock_guard<std::mutex> lock(paging_mutex);
 
-    if ((sfn % T) != (T / N) * (ueid % N)) {
-      continue;
-    }
-
-    int sf_idx = sf_pattern[i_s % 4][(Ns - 1) % 4];
-    if (sf_idx < 0) {
-      rrc_log->error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d\n", Ns, i_s, ueid);
-      continue;
-    }
-
-    if ((uint32_t)sf_idx == (tti % 10)) {
-      paging_rec->paging_record_list_present = true;
-      paging_record_s paging_elem;
-      if (u.type().value == asn1::s1ap::ue_paging_id_c::types_opts::imsi) {
-        paging_elem.ue_id.set_imsi();
-        paging_elem.ue_id.imsi().resize(u.imsi().size());
-        memcpy(paging_elem.ue_id.imsi().data(), u.imsi().data(), u.imsi().size());
-        rrc_log->console("Warning IMSI paging not tested\n");
-      } else {
-        paging_elem.ue_id.set_s_tmsi();
-        paging_elem.ue_id.s_tmsi().mmec.from_number(u.s_tmsi().mmec[0]);
-        uint32_t m_tmsi     = 0;
-        uint32_t nof_octets = u.s_tmsi().m_tmsi.size();
-        for (uint32_t i = 0; i < nof_octets; i++) {
-          m_tmsi |= u.s_tmsi().m_tmsi[i] << (8u * (nof_octets - i - 1u));
-        }
-        paging_elem.ue_id.s_tmsi().m_tmsi.from_number(m_tmsi);
+    int n = 0;
+    for (auto& item : pending_paging) {
+      if (n >= ASN1_RRC_MAX_PAGE_REC) {
+        break;
       }
-      paging_elem.cn_domain = paging_record_s::cn_domain_e_::ps;
-      paging_rec->paging_record_list.push_back(paging_elem);
-      ue_to_remove.push_back(ueid);
-      n++;
-      rrc_log->info("Assembled paging for ue_id=%d, tti=%d\n", ueid, tti);
+      const asn1::rrc::paging_record_s& u    = item.second;
+      uint32_t                          ueid = ((uint32_t)item.first) % 1024;
+      uint32_t                          i_s  = (ueid / N) % Ns;
+
+      if ((sfn % T) != (T / N) * (ueid % N)) {
+        continue;
+      }
+
+      int sf_idx = sf_pattern[i_s % 4][(Ns - 1) % 4];
+      if (sf_idx < 0) {
+        rrc_log->error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d\n", Ns, i_s, ueid);
+        continue;
+      }
+
+      if ((uint32_t)sf_idx == (tti % 10)) {
+        paging_rec->paging_record_list_present = true;
+        paging_rec->paging_record_list.push_back(u);
+        ue_to_remove.push_back(ueid);
+        n++;
+        rrc_log->info("Assembled paging for ue_id=%d, tti=%d\n", ueid, tti);
+      }
+    }
+
+    for (unsigned int i : ue_to_remove) {
+      pending_paging.erase(i);
     }
   }
-
-  for (unsigned int i : ue_to_remove) {
-    pending_paging.erase(i);
-  }
-
-  pthread_mutex_unlock(&paging_mutex);
 
   if (paging_rec->paging_record_list.size() > 0) {
     byte_buf_paging.clear();
@@ -555,11 +551,10 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 
 void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 {
-  pthread_mutex_lock(&paging_mutex);
+  std::lock_guard<std::mutex> lock(paging_mutex);
   if (byte_buf_paging.N_bytes <= buffer_size) {
     memcpy(payload, byte_buf_paging.msg, byte_buf_paging.N_bytes);
   }
-  pthread_mutex_unlock(&paging_mutex);
 }
 
 /*******************************************************************************
@@ -1089,7 +1084,7 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
 
   switch (type) {
     case MSG3_RX_TIMEOUT:
-      deadline_s = 0;
+      deadline_s  = 0;
       deadline_ms = static_cast<uint32_t>(
           (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16);
       break;
@@ -1995,7 +1990,7 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present = true;
 
     // Get CQI allocation for secondary cell
-    auto& cqi_setup                 = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
+    auto& cqi_setup = ul_cfg_ded.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.set_setup();
     cqi_get(&cqi_setup.cqi_pmi_cfg_idx, &cqi_setup.cqi_pucch_res_idx_r10, scell_idx);
 
     cqi_setup.cqi_format_ind_periodic_r10.set_wideband_cqi_r10();
@@ -2409,7 +2404,7 @@ void rrc::ue::sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr)
 
 int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 {
-  uint32_t c                 = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
+  uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
   uint32_t delta_pucch_shift =
       get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
 
@@ -2502,7 +2497,7 @@ void rrc::ue::cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 
 int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
 {
-  uint32_t c                 = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
+  uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
   uint32_t delta_pucch_shift =
       get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
 
@@ -2563,7 +2558,7 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
     }
     // Allocate user
     parent->cqi_sched.nof_users[i_min][j_min]++;
-    cqi_allocated        = true;
+    cqi_allocated             = true;
     cqi_res[cc_idx].idx       = *pmi_idx;
     cqi_res[cc_idx].pucch_res = *n_pucch;
     cqi_res[cc_idx].prb_idx   = i_min;

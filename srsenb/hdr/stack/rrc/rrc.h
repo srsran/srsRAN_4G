@@ -316,13 +316,13 @@ private:
       uint32_t                                    teid_in;
     } erab_t;
     std::map<uint8_t, erab_t> erabs;
-    int                       sr_sched_sf_idx   = 0;
-    int                       sr_sched_prb_idx  = 0;
-    bool                      sr_allocated      = false;
-    uint32_t                  sr_N_pucch        = 0;
-    uint32_t                  sr_I              = 0;
-    bool                      cqi_allocated     = false;
-    bool                      nas_pending       = false;
+    int                       sr_sched_sf_idx  = 0;
+    int                       sr_sched_prb_idx = 0;
+    bool                      sr_allocated     = false;
+    uint32_t                  sr_N_pucch       = 0;
+    uint32_t                  sr_I             = 0;
+    bool                      cqi_allocated    = false;
+    bool                      nas_pending      = false;
     srslte::byte_buffer_t     erab_info;
 
     const static uint32_t UE_PCELL_CC_IDX = 0;
@@ -389,7 +389,7 @@ private:
 
   // state
   std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
-  std::map<uint32_t, asn1::s1ap::ue_paging_id_c> pending_paging;
+  std::map<uint32_t, asn1::rrc::paging_record_s> pending_paging;
 
   cell_ctxt_t* find_cell_ctxt(uint32_t cell_id);
 
@@ -441,7 +441,7 @@ private:
 
   void rem_user_thread(uint16_t rnti);
 
-  pthread_mutex_t paging_mutex;
+  std::mutex paging_mutex;
 };
 
 } // namespace srsenb
