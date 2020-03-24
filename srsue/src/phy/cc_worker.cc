@@ -133,7 +133,7 @@ bool cc_worker::set_cell(srslte_cell_t cell_)
     cell = cell_;
 
     if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
-      Error("Initiating UE DL\n");
+      Error("Setting ue_dl cell\n");
       return false;
     }
 

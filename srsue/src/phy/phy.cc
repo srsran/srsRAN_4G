@@ -437,6 +437,13 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
     return;
   }
 
+  // Disable cell_info if configuration has not been set
+  if (cell_info) {
+    if (!srslte_cell_isvalid(cell_info)) {
+      cell_info = nullptr;
+    }
+  }
+
   // Component carrier index zero should be reserved for PCell
   if (cc_idx < args.nof_carriers) {
     // Send configuration to workers
