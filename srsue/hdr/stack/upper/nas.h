@@ -121,6 +121,9 @@ private:
   nas_sec_ctxt ctxt         = {};
   bool         auth_request = false;
 
+  const uint32_t max_attach_attempts    = 5; // Sec. 5.5.1.2.6
+  uint32_t       attach_attempt_counter = 0;
+
   uint32_t ip_addr       = 0;
   uint8_t  ipv6_if_id[8] = {};
 
@@ -138,7 +141,7 @@ private:
   // Values according to TS 24.301 Sec 10.2
   const uint32_t t3410_duration_ms          = 15 * 1000; // 15s
   const uint32_t t3411_duration_ms          = 10 * 1000; // 10s
-  const uint32_t t3421_duration_ms          = 1 * 1000;  // 15s (here 1s to allow quick reattach)
+  const uint32_t t3421_duration_ms          = 15 * 1000; // 15s
   const uint32_t reattach_timer_duration_ms = 2 * 1000;  // 2s (arbitrarily chosen to delay re-attach)
 
   // TS 23.003 Sec. 6.2.2 IMEISV's last two octets are Software Version Number (SVN)

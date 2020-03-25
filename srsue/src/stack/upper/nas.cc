@@ -334,8 +334,19 @@ void nas::run_tti()
 void nas::timer_expired(uint32_t timeout_id)
 {
   if (timeout_id == t3410.id()) {
-    nas_log->info("Timer T3410 expired: starting T3411\n");
-    t3411.run();
+    // Section 5.5.1.2.6 case c)
+    attach_attempt_counter++;
+
+    nas_log->info("Timer T3410 expired: starting T3411 (attempt %d/%d)\n", attach_attempt_counter, max_attach_attempts);
+
+    if (attach_attempt_counter < max_attach_attempts) {
+      // start T3411, ToDo: EMM-DEREGISTERED.ATTEMPTING-TO-ATTACH isn't fully implemented yet
+      t3411.run();
+    } else {
+      // maximum attach attempts reached, cleanup current state and try again
+      enter_emm_deregistered();
+      start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+    }
   } else if (timeout_id == t3411.id()) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
     start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
@@ -467,8 +478,9 @@ void nas::enter_emm_deregistered()
 
   eps_bearer.clear();
 
-  plmn_is_selected = false;
-  state            = EMM_STATE_DEREGISTERED;
+  plmn_is_selected       = false;
+  attach_attempt_counter = 0;
+  state                  = EMM_STATE_DEREGISTERED;
 }
 
 void nas::left_rrc_connected() {}
@@ -513,7 +525,6 @@ bool nas::connection_request_completed(bool outcome)
 
 void nas::select_plmn()
 {
-
   plmn_is_selected = false;
 
   // First find if Home PLMN is available
