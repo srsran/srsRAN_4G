@@ -198,58 +198,60 @@ void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 
 void sf_worker::work_imp()
 {
-  std::lock_guard<std::mutex> lock(mutex);
+
   srslte::rf_buffer_t         tx_signal_ptr = {};
   if (!cell_initiated) {
     phy->worker_end(this, false, tx_signal_ptr, 0, tx_time);
   }
 
-  /***** Downlink Processing *******/
-
-  bool rx_signal_ok = false;
-
-  // Loop through all carriers. carrier_idx=0 is PCell
-  for (uint32_t carrier_idx = 0; carrier_idx < cc_workers.size(); carrier_idx++) {
-
-    // Process all DL and special subframes
-    if (srslte_sfidx_tdd_type(tdd_config, tti % 10) != SRSLTE_TDD_SF_U || cell.frame_type == SRSLTE_FDD) {
-      srslte_mbsfn_cfg_t mbsfn_cfg;
-      ZERO_OBJECT(mbsfn_cfg);
-
-      if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
-        cc_workers[0]->work_dl_mbsfn(mbsfn_cfg); // Don't do chest_ok in mbsfn since it trigger measurements
-      } else {
-        if ((carrier_idx == 0) || phy->scell_cfg[carrier_idx].enabled) {
-          rx_signal_ok = cc_workers[carrier_idx]->work_dl_regular();
-        }
-      }
-    }
-  }
-
-  /***** Uplink Generation + Transmission *******/
-
+  bool     rx_signal_ok    = false;
   bool     tx_signal_ready = false;
   uint32_t nof_samples     = SRSLTE_SF_LEN_PRB(cell.nof_prb);
 
-  /* If TTI+4 is an uplink subframe (TODO: Support short PRACH and SRS in UpPts special subframes) */
-  if ((srslte_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSLTE_TDD_SF_U) || cell.frame_type == SRSLTE_FDD) {
-    // Generate Uplink signal if no PRACH pending
-    if (!prach_ptr) {
+  /***** Downlink Processing *******/
+  {
+    std::lock_guard<std::mutex> lock(mutex);
 
-      // Common UCI data object for all carriers
-      srslte_uci_data_t uci_data;
-      reset_uci(&uci_data);
+    // Loop through all carriers. carrier_idx=0 is PCell
+    for (uint32_t carrier_idx = 0; carrier_idx < cc_workers.size(); carrier_idx++) {
 
-      // Loop through all carriers. Do in reverse order since control information from SCells is transmitted in PCell
-      for (int carrier_idx = phy->args->nof_carriers - 1; carrier_idx >= 0; carrier_idx--) {
-        tx_signal_ready |= cc_workers[carrier_idx]->work_ul(&uci_data);
+      // Process all DL and special subframes
+      if (srslte_sfidx_tdd_type(tdd_config, tti % 10) != SRSLTE_TDD_SF_U || cell.frame_type == SRSLTE_FDD) {
+        srslte_mbsfn_cfg_t mbsfn_cfg;
+        ZERO_OBJECT(mbsfn_cfg);
 
-        // Set signal pointer based on offset
-        cf_t* b = cc_workers[carrier_idx]->get_tx_buffer(0);
-        if (next_offset > 0) {
-          tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, b);
+        if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
+          cc_workers[0]->work_dl_mbsfn(mbsfn_cfg); // Don't do chest_ok in mbsfn since it trigger measurements
         } else {
-          tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, &b[-next_offset]);
+          if ((carrier_idx == 0) || phy->scell_cfg[carrier_idx].enabled) {
+            rx_signal_ok = cc_workers[carrier_idx]->work_dl_regular();
+          }
+        }
+      }
+    }
+
+    /***** Uplink Generation + Transmission *******/
+
+    /* If TTI+4 is an uplink subframe (TODO: Support short PRACH and SRS in UpPts special subframes) */
+    if ((srslte_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSLTE_TDD_SF_U) || cell.frame_type == SRSLTE_FDD) {
+      // Generate Uplink signal if no PRACH pending
+      if (!prach_ptr) {
+
+        // Common UCI data object for all carriers
+        srslte_uci_data_t uci_data;
+        reset_uci(&uci_data);
+
+        // Loop through all carriers. Do in reverse order since control information from SCells is transmitted in PCell
+        for (int carrier_idx = phy->args->nof_carriers - 1; carrier_idx >= 0; carrier_idx--) {
+          tx_signal_ready |= cc_workers[carrier_idx]->work_ul(&uci_data);
+
+          // Set signal pointer based on offset
+          cf_t* b = cc_workers[carrier_idx]->get_tx_buffer(0);
+          if (next_offset > 0) {
+            tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, b);
+          } else {
+            tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, &b[-next_offset]);
+          }
         }
       }
     }

@@ -86,6 +86,9 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   nof_antennas = args.nof_antennas;
   nof_carriers = args.nof_carriers;
 
+  cur_tx_freqs.resize(nof_carriers);
+  cur_rx_freqs.resize(nof_carriers);
+
   // Init and start Radio
   char* device_args = nullptr;
   if (args.device_args != "auto") {
@@ -323,19 +326,24 @@ void radio::set_rx_freq(const uint32_t& carrier_idx, const double& freq)
   // Map carrier index to physical channel
   if (rx_channel_mapping.allocate_freq(carrier_idx, freq)) {
     uint32_t physical_channel_idx = rx_channel_mapping.get_carrier_idx(carrier_idx);
-    if ((physical_channel_idx + 1) * nof_antennas <= nof_channels) {
-      for (uint32_t i = 0; i < nof_antennas; i++) {
-        log_h->info("Mapping RF channel %d to logical carrier %d on f_rx=%.1f MHz\n",
-                    physical_channel_idx * nof_antennas + i,
-                    carrier_idx,
-                    freq / 1e6);
-        srslte_rf_set_rx_freq(&rf_device, physical_channel_idx * nof_antennas + i, freq + freq_offset);
+    log_h->info("Mapping RF channel %d to logical carrier %d on f_rx=%.1f MHz\n",
+                physical_channel_idx * nof_antennas,
+                carrier_idx,
+                freq / 1e6);
+    if (cur_rx_freqs[physical_channel_idx] != freq) {
+      if ((physical_channel_idx + 1) * nof_antennas <= nof_channels) {
+        cur_rx_freqs[physical_channel_idx] = freq;
+        for (uint32_t i = 0; i < nof_antennas; i++) {
+          srslte_rf_set_rx_freq(&rf_device, physical_channel_idx * nof_antennas + i, freq + freq_offset);
+        }
+      } else {
+        log_h->error("set_rx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
+                     physical_channel_idx,
+                     nof_antennas,
+                     nof_channels);
       }
     } else {
-      log_h->error("set_rx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
-                   physical_channel_idx,
-                   nof_antennas,
-                   nof_channels);
+      log_h->info("RF channel %d already on freq\n", physical_channel_idx * nof_antennas);
     }
   } else {
     log_h->error("set_rx_freq: Could not allocate frequency %.1f MHz to carrier %d\n", freq / 1e6, carrier_idx);
@@ -378,19 +386,24 @@ void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)
   // Map carrier index to physical channel
   if (tx_channel_mapping.allocate_freq(carrier_idx, freq)) {
     uint32_t physical_channel_idx = tx_channel_mapping.get_carrier_idx(carrier_idx);
-    if ((physical_channel_idx + 1) * nof_antennas <= nof_channels) {
-      for (uint32_t i = 0; i < nof_antennas; i++) {
-        log_h->info("Mapping RF channel %d to logical carrier %d on f_tx=%.1f MHz\n",
-                    physical_channel_idx * nof_antennas + i,
-                    carrier_idx,
-                    freq / 1e6);
-        srslte_rf_set_tx_freq(&rf_device, physical_channel_idx * nof_antennas + i, freq + freq_offset);
+    log_h->info("Mapping RF channel %d to logical carrier %d on f_tx=%.1f MHz\n",
+                physical_channel_idx * nof_antennas,
+                carrier_idx,
+                freq / 1e6);
+    if (cur_tx_freqs[physical_channel_idx] != freq) {
+      if ((physical_channel_idx + 1) * nof_antennas <= nof_channels) {
+        cur_tx_freqs[physical_channel_idx] = freq;
+        for (uint32_t i = 0; i < nof_antennas; i++) {
+          srslte_rf_set_tx_freq(&rf_device, physical_channel_idx * nof_antennas + i, freq + freq_offset);
+        }
+      } else {
+        log_h->error("set_tx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
+                     physical_channel_idx,
+                     nof_antennas,
+                     nof_channels);
       }
     } else {
-      log_h->error("set_tx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
-                   physical_channel_idx,
-                   nof_antennas,
-                   nof_channels);
+      log_h->info("RF channel %d already on freq\n", physical_channel_idx * nof_antennas);
     }
   } else {
     log_h->error("set_tx_freq: Could not allocate frequency %.1f MHz to carrier %d\n", freq / 1e6, carrier_idx);

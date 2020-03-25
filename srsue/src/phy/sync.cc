@@ -134,8 +134,6 @@ void sync::stop()
 
 void sync::reset()
 {
-  radio_is_overflow     = false;
-  radio_overflow_return = false;
   in_sync_cnt           = 0;
   out_of_sync_cnt       = 0;
   time_adv_sec          = 0;
@@ -442,11 +440,17 @@ void sync::run_thread()
                 force_camping_sfn_sync = true;
               }
 
+              if (is_overflow) {
+                force_camping_sfn_sync = true;
+                is_overflow            = false;
+                log_h->info("Detected overflow, trying to resync SFN\n");
+              }
+
               // Force decode MIB if required
               if (force_camping_sfn_sync) {
                 uint32_t _tti                = 0;
                 temp_cell                    = cell;
-                sync::sfn_sync::ret_code ret = sfn_p.decode_mib(&temp_cell, &_tti, &sf_buffer, mib);
+                sync::sfn_sync::ret_code ret = sfn_p.decode_mib(&temp_cell, &_tti, &sync_buffer, mib);
                 if (ret == sfn_sync::SFN_FOUND) {
                   // Force tti
                   tti = _tti;
@@ -459,7 +463,11 @@ void sync::run_thread()
                                  "reselection to cells with different MIB is not supported\n");
                     log_h->console("Detected cell during SFN synchronization differs from configured cell. Cell "
                                    "reselection to cells with different MIB is not supported\n");
+                  } else {
+                    log_h->info("SFN resynchronized successfully\n");
                   }
+                } else {
+                  log_h->warning("SFN not yet synchronized, sending out-of-sync\n");
                 }
               }
 
@@ -571,39 +579,6 @@ void sync::run_thread()
         break;
     }
 
-    /* Radio overflow detected. If CAMPING, go through SFN sync again and when
-     * SFN is found again go back to camping
-     */
-    if (!rrc_mutex.try_lock()) {
-      if (radio_is_overflow) {
-        // If we are coming back from an overflow
-        if (radio_overflow_return) {
-          if (phy_state.is_camping()) {
-            log_h->info("Successfully resynchronized after overflow. Returning to CAMPING\n");
-            radio_overflow_return = false;
-            radio_is_overflow     = false;
-          } else if (phy_state.is_idle()) {
-            log_h->warning("Could not synchronize SFN after radio overflow. Trying again\n");
-            stack->out_of_sync();
-            phy_state.force_sfn_sync();
-          }
-        } else {
-          // Overflow has occurred now while camping
-          if (phy_state.is_camping()) {
-            log_h->warning("Detected radio overflow while camping. Resynchronizing cell\n");
-            sfn_p.reset();
-            srslte_ue_sync_reset(&ue_sync);
-            phy_state.force_sfn_sync();
-            radio_overflow_return = true;
-          } else {
-            radio_is_overflow = false;
-          }
-          // If overflow occurs in any other state, it does not harm
-        }
-      }
-      rrc_mutex.unlock();
-    }
-
     // Increase TTI counter
     tti = (tti + 1) % 10240;
   }
@@ -616,7 +591,7 @@ void sync::run_thread()
  */
 void sync::radio_overflow()
 {
-  radio_is_overflow = true;
+  is_overflow = true;
 }
 
 void sync::radio_error()

@@ -403,7 +403,7 @@ int rf_uhd_start_rx_stream(void* h, bool now)
   uhd_stream_cmd_t stream_cmd = {.stream_mode = UHD_STREAM_MODE_START_CONTINUOUS, .stream_now = now};
   if (!now) {
     uhd_usrp_get_time_now(handler->usrp, 0, &stream_cmd.time_spec_full_secs, &stream_cmd.time_spec_frac_secs);
-    stream_cmd.time_spec_frac_secs += 0.2;
+    stream_cmd.time_spec_frac_secs += 0.5;
     if (stream_cmd.time_spec_frac_secs > 1) {
       stream_cmd.time_spec_frac_secs -= 1;
       stream_cmd.time_spec_full_secs += 1;

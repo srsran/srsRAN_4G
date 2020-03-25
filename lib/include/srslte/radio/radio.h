@@ -223,6 +223,9 @@ private:
   uint32_t           nof_channels       = 0;
   uint32_t           nof_carriers       = 0;
 
+  std::vector<double> cur_tx_freqs = {};
+  std::vector<double> cur_rx_freqs = {};
+
   // Define default values for known radios
   constexpr static double uhd_default_tx_adv_samples    = 98;
   constexpr static double uhd_default_tx_adv_offset_sec = 4 * 1e-6;

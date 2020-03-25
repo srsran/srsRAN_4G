@@ -1002,6 +1002,7 @@ rrc::go_idle_proc::go_idle_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_)
 proc_outcome_t rrc::go_idle_proc::init()
 {
   Info("Starting...\n");
+  rlc_flush_timer.run();
   return step();
 }
 

@@ -343,7 +343,7 @@ enable = false
 #force_ul_amplitude = 0
 
 #in_sync_rsrp_dbm_th    = -130.0
-#in_sync_snr_db_th      = 1.0
+#in_sync_snr_db_th      = 3.0
 #nof_in_sync_events     = 10
 #nof_out_of_sync_events = 20
 

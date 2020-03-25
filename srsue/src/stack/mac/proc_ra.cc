@@ -236,51 +236,66 @@ void ra_proc::state_contention_resolution()
  */
 void ra_proc::state_completition()
 {
-  state         = WAITING_COMPLETION;
-  uint16_t rnti = rntis->crnti;
-  stack->enqueue_background_task([this, rnti](uint32_t worker_id) {
+  state            = WAITING_COMPLETION;
+  uint16_t rnti    = rntis->crnti;
+  uint32_t task_id = current_task_id;
+  stack->enqueue_background_task([this, rnti, task_id](uint32_t worker_id) {
     phy_h->set_crnti(rnti);
     // signal MAC RA proc to go back to idle
-    notify_ra_completed();
+    notify_ra_completed(task_id);
   });
 }
 
-void ra_proc::notify_phy_config_completed()
+void ra_proc::notify_phy_config_completed(uint32_t task_id)
 {
-  if (state != WAITING_PHY_CONFIG) {
-    rError("Received unexpected notification of PHY configuration completed\n");
+  if (current_task_id == task_id) {
+    if (state != WAITING_PHY_CONFIG) {
+      rError("Received unexpected notification of PHY configuration completed\n");
+    } else {
+      rDebug("RA waiting PHY configuration completed\n");
+    }
+    // Jump directly to Resource selection
+    resource_selection();
   } else {
-    rDebug("RA waiting PHY configuration completed\n");
+    rError("Received old notification of PHY configuration (old task_id=%d, current_task_id=%d)\n",
+           task_id,
+           current_task_id);
   }
-  // Jump directly to Resource selection
-  resource_selection();
 }
 
-void ra_proc::notify_ra_completed()
+void ra_proc::notify_ra_completed(uint32_t task_id)
 {
-  if (state != WAITING_COMPLETION) {
-    rError("Received unexpected notification of RA completion\n");
+  if (current_task_id == task_id) {
+    if (state != WAITING_COMPLETION) {
+      rError("Received unexpected notification of RA completion\n");
+    } else {
+      rInfo("RA waiting procedure completed\n");
+    }
+    state = IDLE;
   } else {
-    rInfo("RA waiting procedure completed\n");
+    rError("Received old notification of RA completition (old task_id=%d, current_task_id=%d)\n",
+           task_id,
+           current_task_id);
   }
-  state = IDLE;
 }
 
 /* RA procedure initialization as defined in 5.1.1 */
 void ra_proc::initialization()
 {
   read_params();
+  current_task_id++;
   transmitted_contention_id   = 0;
   preambleTransmissionCounter = 1;
   mux_unit->msg3_flush();
   backoff_param_ms = 0;
 
   // Instruct phy to configure PRACH
-  state = WAITING_PHY_CONFIG;
-  stack->enqueue_background_task([this](uint32_t worker_id) {
+  state            = WAITING_PHY_CONFIG;
+  uint32_t task_id = current_task_id;
+  stack->enqueue_background_task([this, task_id](uint32_t worker_id) {
     phy_h->configure_prach_params();
     // notify back MAC
-    stack->notify_background_task_result([this]() { notify_phy_config_completed(); });
+    stack->notify_background_task_result([this, task_id]() { notify_phy_config_completed(task_id); });
   });
 }
 

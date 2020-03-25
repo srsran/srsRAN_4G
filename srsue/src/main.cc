@@ -361,7 +361,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      "RSRP threshold (in dBm) above which the UE considers to be in-sync")
 
     ("phy.in_sync_snr_db_th",
-     bpo::value<float>(&args->phy.in_sync_snr_db_th)->default_value(1.0f),
+     bpo::value<float>(&args->phy.in_sync_snr_db_th)->default_value(3.0f),
      "SNR threshold (in dB) above which the UE considers to be in-sync")
 
     ("phy.nof_in_sync_events",

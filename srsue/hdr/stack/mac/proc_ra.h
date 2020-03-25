@@ -61,6 +61,7 @@ public:
     noncontention_enabled = false;
     next_preamble_idx     = 0;
     next_prach_mask       = 0;
+    current_task_id       = 0;
   };
 
   ~ra_proc();
@@ -94,8 +95,8 @@ public:
   bool contention_resolution_id_received(uint64_t uecri);
   void start_pcap(srslte::mac_pcap* pcap);
 
-  void notify_phy_config_completed();
-  void notify_ra_completed();
+  void notify_phy_config_completed(uint32_t task_id);
+  void notify_ra_completed(uint32_t task_id);
 
 private:
   void state_pdcch_setup();
@@ -139,6 +140,8 @@ private:
   uint32_t ra_rnti;
   uint32_t ra_tti;
   uint32_t current_ta;
+  // The task_id is a unique number associated with each RA procedure used to track background tasks
+  uint32_t current_task_id;
 
   srslte_softbuffer_rx_t softbuffer_rar;
 

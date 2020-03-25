@@ -166,9 +166,8 @@ private:
   bool set_frequency();
   bool set_cell();
 
-  bool radio_is_overflow     = false;
-  bool radio_overflow_return = false;
   bool running               = false;
+  bool is_overflow           = false;
 
   // Objects for internal use
   search                                              search_p;

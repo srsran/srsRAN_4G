@@ -133,7 +133,7 @@ private:
   bool                    is_configured = false;
   uint32_t                nof_workers   = 0;
 
-  const static int SF_RECV_THREAD_PRIO = 1;
+  const static int SF_RECV_THREAD_PRIO = 0;
   const static int WORKERS_THREAD_PRIO = 2;
 
   srslte::radio_interface_phy*                      radio = nullptr;
