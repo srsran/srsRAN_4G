@@ -26,6 +26,7 @@
 #include <srslte/srslte.h>
 
 #define SRSLTE_CHANNEL_FADING_MAXTAPS 9
+#define SRSLTE_CHANNEL_FADING_NTERMS 16
 
 typedef enum {
   srslte_channel_fading_model_none = 0,
@@ -40,22 +41,26 @@ typedef struct {
   srslte_channel_fading_model_t model;   // None, EPA, EVA, ETU
   float                         doppler; // Maximum doppler: 5, 70, 300
 
-  // Internal tap parametrization
-  uint32_t N;                                      // FFT size
-  uint32_t path_delay;                             // Path delay
-  double   coeff_w[SRSLTE_CHANNEL_FADING_MAXTAPS]; // Angular Speed, random
-  double   coeff_a[SRSLTE_CHANNEL_FADING_MAXTAPS]; // Modulation Coefficient
-  double   coeff_p[SRSLTE_CHANNEL_FADING_MAXTAPS]; // Initial phase, random
+  // Internal tap parametrisation
+  uint32_t N;          // FFT size
+  uint32_t path_delay; // Path delay
+  uint32_t state_len;  // Length of the impulse response saved in the state
+
+  float coeff_alpha[SRSLTE_CHANNEL_FADING_MAXTAPS][SRSLTE_CHANNEL_FADING_NTERMS]; // Angle of arrival
+  float coeff_a[SRSLTE_CHANNEL_FADING_MAXTAPS][SRSLTE_CHANNEL_FADING_NTERMS];     // Random phase
+  float coeff_b[SRSLTE_CHANNEL_FADING_MAXTAPS][SRSLTE_CHANNEL_FADING_NTERMS];     // Random phase
+  cf_t* h_tap[SRSLTE_CHANNEL_FADING_MAXTAPS]; // Static tap signal in frequency domain
 
   // Utils
-  srslte_dft_plan_t fft;    // DFT to frequency domain
-  srslte_dft_plan_t ifft;   // DFT to time domain
-  cf_t*             temp;   // Temporal buffer, length fft_size
-  cf_t*             h_freq; // Channel frequency response, length fft_size
-  cf_t*             y_freq; // Intermediate frequency domain buffer
+  srslte_dft_plan_t fft;             // DFT to frequency domain
+  srslte_dft_plan_t ifft;            // DFT to time domain
+  cf_t*             temp;            // Temporal buffer, length fft_size
+  cf_t*             h_freq;          // Channel frequency response, length fft_size
+  cf_t*             y_freq;          // Intermediate frequency domain buffer
+  float             sin_table[1024]; // Table of sinus values
 
   // State variables
-  cf_t* state; // Length fft_size/2
+  cf_t* state; // To save impulse response of the filter
 } srslte_channel_fading_t;
 
 #ifdef __cplusplus

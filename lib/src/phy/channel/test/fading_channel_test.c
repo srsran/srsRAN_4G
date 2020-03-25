@@ -30,7 +30,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#undef ENABLE_GUI /* Disable GUI by default */
+//#undef ENABLE_GUI /* Disable GUI by default */
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 static bool enable_gui = false;
@@ -75,11 +75,11 @@ static void parse_args(int argc, char** argv)
       case 'r':
         random_seed = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
-#ifdef ENABLE_GUI
       case 'g':
-        enable_gui ^= true;
-        break;
+#ifdef ENABLE_GUI
+        enable_gui = (enable_gui) ? false : true;
 #endif /* ENABLE_GUI */
+        break;
       default:
         usage(argv[0]);
         exit(-1);
@@ -196,18 +196,18 @@ int main(int argc, char** argv)
     if (enable_gui) {
       srslte_dft_run_c_zerocopy(&fft, output_buffer, fft_buffer);
       srslte_vec_prod_conj_ccc(fft_buffer, fft_buffer, fft_buffer, srate / 1000);
-      for (int i = 0; i < srate / 1000; i++) {
-        fft_mag[i] = srslte_convert_power_to_dB(__real__ fft_buffer[i]);
+      for (int j = 0; j < srate / 1000; j++) {
+        fft_mag[j] = srslte_convert_power_to_dB(__real__ fft_buffer[j]);
       }
       plot_real_setNewData(&plot_fft, fft_mag, srate / 1000);
 
-      for (int i = 0; i < channel_fading.N; i++) {
-        fft_mag[i] = srslte_convert_amplitude_to_dB(cabsf(channel_fading.h_freq[i]));
+      for (int j = 0; j < channel_fading.N; j++) {
+        fft_mag[j] = srslte_convert_amplitude_to_dB(cabsf(channel_fading.h_freq[j]));
       }
       plot_real_setNewData(&plot_h, fft_mag, channel_fading.N);
 
-      for (int i = 0; i < srate / 1000; i++) {
-        imp[i] = cabsf(output_buffer[i]);
+      for (int j = 0; j < srate / 1000; j++) {
+        imp[j] = cabsf(output_buffer[j]);
       }
       plot_real_setNewData(&plot_imp, imp, channel_fading.N);
 
@@ -229,7 +229,7 @@ clean_exit:
 
 #ifdef ENABLE_GUI
   if (enable_gui) {
-
+    sdrgui_exit();
     if (fft_mag) {
       free(fft_mag);
     }
@@ -240,7 +240,6 @@ clean_exit:
       free(fft_buffer);
     }
     srslte_dft_plan_free(&fft);
-    sdrgui_exit();
   }
 #endif /* ENABLE_GUI */
   if (input_buffer) {
@@ -250,5 +249,5 @@ clean_exit:
     free(output_buffer);
   }
   srslte_channel_fading_free(&channel_fading);
-  exit(ret);
+  return ret;
 }
