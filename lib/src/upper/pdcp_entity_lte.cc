@@ -265,12 +265,12 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
   uint32_t count = 0;
   if ((0 <= sn_diff_last_submit && sn_diff_last_submit > (int32_t)reordering_window) ||
       (0 <= last_submit_diff_sn && last_submit_diff_sn < (int32_t)reordering_window)) {
-    log->warning("|SN - last_submitted_sn| is larger than re-ordering window.\n");
-    if (sn > next_pdcp_rx_sn) {
-      count = (rx_hfn - 1) << cfg.sn_len | sn;
-    } else {
-      count = rx_hfn << cfg.sn_len | sn;
-    }
+    // discard
+    log->debug("Discarding SN=%d (sn_diff_last_submit=%d, last_submit_diff_sn=%d, reordering_window=%d)\n",
+               sn,
+               sn_diff_last_submit,
+               last_submit_diff_sn,
+               reordering_window);
     return; // Discard
   } else if ((int32_t)(next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
     log->debug("(Next_PDCP_RX_SN - SN) is larger than re-ordering window.\n");
