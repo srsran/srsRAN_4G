@@ -257,13 +257,11 @@ void rlc_um_lte::rlc_um_lte_rx::reestablish()
     timer_expired(reordering_timer.id());
   }
 
-  std::lock_guard<std::mutex> lock(mutex);
   reset();
 }
 
 void rlc_um_lte::rlc_um_lte_rx::stop()
 {
-  std::lock_guard<std::mutex> lock(mutex);
   reset();
 
   reordering_timer.stop();
@@ -284,8 +282,6 @@ void rlc_um_lte::rlc_um_lte_rx::reset()
 
 void rlc_um_lte::rlc_um_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
   rlc_umd_pdu_header_t header;
   rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.um.rx_sn_field_length, &header);
   log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN: %d (%d B)", rb_name.c_str(), header.sn, nof_bytes);
@@ -649,7 +645,6 @@ bool rlc_um_lte::rlc_um_lte_rx::inside_reordering_window(uint16_t sn)
 
 void rlc_um_lte::rlc_um_lte_rx::timer_expired(uint32_t timeout_id)
 {
-  std::lock_guard<std::mutex> lock(mutex);
   if (reordering_timer.id() == timeout_id) {
     // 36.322 v10 Section 5.1.2.2.4
     log->info("%s reordering timeout expiry - updating vr_ur and reassembling\n", rb_name.c_str());

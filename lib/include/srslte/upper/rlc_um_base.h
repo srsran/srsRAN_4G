@@ -135,8 +135,6 @@ protected:
 
     uint32_t& lcid;
 
-    std::mutex mutex;
-
     // helper functions
     virtual void debug_state() = 0;
   };
