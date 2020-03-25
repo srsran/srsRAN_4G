@@ -34,7 +34,7 @@ namespace srslte {
 class rlc_tm : public rlc_common
 {
 public:
-  rlc_tm(srslte::log*               log_,
+  rlc_tm(srslte::log_ref            log_,
          uint32_t                   lcid_,
          srsue::pdcp_interface_rlc* pdcp_,
          srsue::rrc_interface_rlc*  rrc_,
@@ -64,7 +64,7 @@ public:
 
 private:
   byte_buffer_pool*          pool = nullptr;
-  srslte::log*               log  = nullptr;
+  srslte::log_ref            log;
   uint32_t                   lcid = 0;
   srsue::pdcp_interface_rlc* pdcp = nullptr;
   srsue::rrc_interface_rlc*  rrc  = nullptr;

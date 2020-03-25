@@ -43,7 +43,7 @@ public:
             rrc_interface_rlc*     rrc_,
             mac_interface_rlc*     mac_,
             srslte::timer_handler* timers_,
-            srslte::log*           log_h);
+            srslte::log_ref        log_h);
   void stop();
 
   // rlc_interface_rrc
@@ -94,7 +94,7 @@ private:
   mac_interface_rlc*        mac;
   pdcp_interface_rlc*       pdcp;
   rrc_interface_rlc*        rrc;
-  srslte::log*              log_h;
+  srslte::log_ref           log_h;
   srslte::byte_buffer_pool* pool;
   srslte::timer_handler*    timers;
 };

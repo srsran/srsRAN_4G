@@ -25,7 +25,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
@@ -63,7 +63,7 @@ static const char srslte_direction_text[DIRECTION_N_ITEMS][6] = {"none", "tx", "
 class pdcp_entity_base
 {
 public:
-  pdcp_entity_base(srslte::timer_handler* timers_, srslte::log* log_);
+  pdcp_entity_base(srslte::timer_handler* timers_, srslte::log_ref log_);
   virtual ~pdcp_entity_base();
   virtual void reset()       = 0;
   virtual void reestablish() = 0;
@@ -111,11 +111,11 @@ public:
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
 protected:
-  srslte::log*           log    = nullptr;
+  srslte::log_ref        log;
   srslte::timer_handler* timers = nullptr;
 
-  bool     active        = false;
-  uint32_t lcid          = 0;
+  bool               active               = false;
+  uint32_t           lcid                 = 0;
   srslte_direction_t integrity_direction  = DIRECTION_NONE;
   srslte_direction_t encryption_direction = DIRECTION_NONE;
 

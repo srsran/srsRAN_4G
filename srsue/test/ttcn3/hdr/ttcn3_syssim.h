@@ -50,7 +50,6 @@ class ttcn3_syssim : public syssim_interface_phy,
 public:
   ttcn3_syssim(srslte::logger_file* logger_file_, ttcn3_ue* ue_) :
     log{"SS  "},
-    ss_mac_log{"SS-MAC"},
     mac_msg_ul(20, ss_mac_log),
     mac_msg_dl(20, ss_mac_log),
     timers(8),
@@ -59,10 +58,10 @@ public:
     logger_file(logger_file_),
     pool(byte_buffer_pool::get_instance()),
     ue(ue_),
-    rlc(&ss_rlc_log),
+    rlc(ss_rlc_log->get_service_name().c_str()),
     signal_handler(&running),
     timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); }),
-    pdcp(&timers, &ss_pdcp_log)
+    pdcp(&timers, ss_pdcp_log->get_service_name().c_str())
   {
     if (ue->init(all_args_t{}, logger, this, "INIT_TEST") != SRSLTE_SUCCESS) {
       ue->stop();
@@ -80,6 +79,7 @@ public:
     if (args.log.filename == "stdout") {
       logger = &logger_stdout;
     }
+    srslte::logmap::set_default_logger(logger);
 
     // init and configure logging
     srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS  ", logger, true}});
@@ -88,8 +88,8 @@ public:
     ip_sock_log.init("IP_S", logger);
     ip_ctrl_log.init("IP_C", logger);
     srb_log.init("SRB  ", logger);
-    ss_rlc_log.init("SS-RLC", logger);
-    ss_pdcp_log.init("SS-PDCP", logger);
+    srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-RLC", logger}});
+    srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-PDCP", logger}});
 
     log->set_level(args.log.all_level);
     ut_log.set_level(args.log.all_level);
@@ -98,8 +98,8 @@ public:
     ip_ctrl_log.set_level(args.log.all_level);
     srb_log.set_level(args.log.all_level);
     ss_mac_log->set_level(args.log.all_level);
-    ss_rlc_log.set_level(args.log.all_level);
-    ss_pdcp_log.set_level(args.log.all_level);
+    ss_rlc_log->set_level(args.log.all_level);
+    ss_pdcp_log->set_level(args.log.all_level);
 
     log->set_hex_limit(args.log.all_hex_limit);
     ut_log.set_hex_limit(args.log.all_hex_limit);
@@ -108,8 +108,8 @@ public:
     ip_ctrl_log.set_hex_limit(args.log.all_hex_limit);
     srb_log.set_hex_limit(args.log.all_hex_limit);
     ss_mac_log->set_hex_limit(args.log.all_hex_limit);
-    ss_rlc_log.set_hex_limit(args.log.all_hex_limit);
-    ss_pdcp_log.set_hex_limit(args.log.all_hex_limit);
+    ss_rlc_log->set_hex_limit(args.log.all_hex_limit);
+    ss_pdcp_log->set_hex_limit(args.log.all_hex_limit);
 
     // Init epoll socket and add FDs
     epoll_fd = epoll_create1(0);
@@ -1183,9 +1183,9 @@ private:
   srslte::log_filter    ip_sock_log;
   srslte::log_filter    ip_ctrl_log;
   srslte::log_filter    srb_log;
-  srslte::log_ref       ss_mac_log;
-  srslte::log_filter    ss_rlc_log;
-  srslte::log_filter    ss_pdcp_log;
+  srslte::log_ref       ss_mac_log{"SS-MAC"};
+  srslte::log_ref       ss_rlc_log{"SS-RLC"};
+  srslte::log_ref       ss_pdcp_log{"SS-PDCP"};
 
   all_args_t args = {};
 

@@ -26,7 +26,7 @@
 
 namespace srslte {
 
-pdcp_entity_base::pdcp_entity_base(srslte::timer_handler* timers_, srslte::log* log_) : log(log_), timers(timers_) {}
+pdcp_entity_base::pdcp_entity_base(srslte::timer_handler* timers_, srslte::log_ref log_) : log(log_), timers(timers_) {}
 
 pdcp_entity_base::~pdcp_entity_base() {}
 

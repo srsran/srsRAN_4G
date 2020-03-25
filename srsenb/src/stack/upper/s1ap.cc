@@ -413,12 +413,12 @@ bool s1ap::connect_mme()
 
   // Init SCTP socket and bind it
   if (not srslte::net_utils::sctp_init_client(
-          &s1ap_socket, srslte::net_utils::socket_type::seqpacket, args.s1c_bind_addr.c_str(), s1ap_log.get())) {
+          &s1ap_socket, srslte::net_utils::socket_type::seqpacket, args.s1c_bind_addr.c_str())) {
     return false;
   }
 
   // Connect to the MME address
-  if (not s1ap_socket.connect_to(args.mme_addr.c_str(), MME_PORT, &mme_addr, s1ap_log.get())) {
+  if (not s1ap_socket.connect_to(args.mme_addr.c_str(), MME_PORT, &mme_addr)) {
     return false;
   }
 

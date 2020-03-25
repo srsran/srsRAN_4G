@@ -33,32 +33,32 @@
 
 int test_socket_handler()
 {
-  srslte::log_filter log("S1AP");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(128);
+  srslte::log_ref log("S1AP");
+  log->set_level(srslte::LOG_LEVEL_DEBUG);
+  log->set_hex_limit(128);
 
   int counter = 0;
 
   srslte::socket_handler_t       server_socket, client_socket, client_socket2;
-  srslte::rx_multisocket_handler sockhandler("RXSOCKETS", &log);
+  srslte::rx_multisocket_handler sockhandler("RXSOCKETS", log);
   int                            server_port = 36412;
   const char*                    server_addr = "127.0.100.1";
   using namespace srslte::net_utils;
 
-  TESTASSERT(sctp_init_server(&server_socket, socket_type::seqpacket, server_addr, server_port, &log));
-  log.info("Listening from fd=%d\n", server_socket.fd());
+  TESTASSERT(sctp_init_server(&server_socket, socket_type::seqpacket, server_addr, server_port));
+  log->info("Listening from fd=%d\n", server_socket.fd());
 
-  TESTASSERT(sctp_init_client(&client_socket, socket_type::seqpacket, "127.0.0.1", &log));
-  TESTASSERT(sctp_init_client(&client_socket2, socket_type::seqpacket, "127.0.0.2", &log));
+  TESTASSERT(sctp_init_client(&client_socket, socket_type::seqpacket, "127.0.0.1"));
+  TESTASSERT(sctp_init_client(&client_socket2, socket_type::seqpacket, "127.0.0.2"));
   TESTASSERT(client_socket.connect_to(server_addr, server_port));
   TESTASSERT(client_socket2.connect_to(server_addr, server_port));
 
   // register server Rx handler
   auto pdu_handler =
-      [&log,
+      [log,
        &counter](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
         if (pdu->N_bytes > 0) {
-          log.info_hex(pdu->msg, pdu->N_bytes, "Received msg from %s:", get_ip(from).c_str());
+          log->info_hex(pdu->msg, pdu->N_bytes, "Received msg from %s:", get_ip(from).c_str());
           counter++;
         }
       };
@@ -89,7 +89,7 @@ int test_socket_handler()
                                   0);
     TESTASSERT(n_sent >= 0);
     usleep(1000);
-    log.info("Message %d sent.\n", i);
+    log->info("Message %d sent.\n", i);
   }
 
   uint32_t time_elapsed = 0;

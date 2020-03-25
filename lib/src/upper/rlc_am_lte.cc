@@ -32,7 +32,7 @@
 
 namespace srslte {
 
-rlc_am_lte::rlc_am_lte(srslte::log*               log_,
+rlc_am_lte::rlc_am_lte(srslte::log_ref            log_,
                        uint32_t                   lcid_,
                        srsue::pdcp_interface_rlc* pdcp_,
                        srsue::rrc_interface_rlc*  rrc_,

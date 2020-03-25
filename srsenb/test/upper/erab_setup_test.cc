@@ -46,7 +46,7 @@ int test_erab_setup(bool qci_exists)
   gtpu_dummy                        gtpu;
   rrc_log->set_level(srslte::LOG_LEVEL_INFO);
   rrc_log->set_hex_limit(1024);
-  rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, rrc_log.get());
+  rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers);
 
   auto tic = [&timers, &rrc] {
     timers.step_all();

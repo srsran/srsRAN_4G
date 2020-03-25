@@ -24,7 +24,7 @@
 
 #include "common_enb.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/srslte.h"
@@ -45,7 +45,6 @@ public:
             std::string               m1u_if_addr_,
             pdcp_interface_gtpu*      pdcp_,
             stack_interface_gtpu_lte* stack_,
-            srslte::log*              gtpu_log_,
             bool                      enable_mbsfn = false);
   void stop();
 
@@ -70,8 +69,8 @@ private:
   bool                         enable_mbsfn = false;
   std::string                  gtp_bind_addr;
   std::string                  mme_addr;
-  srsenb::pdcp_interface_gtpu* pdcp     = nullptr;
-  srslte::log*                 gtpu_log = nullptr;
+  srsenb::pdcp_interface_gtpu* pdcp = nullptr;
+  srslte::log_ref              gtpu_log;
 
   // Class to create
   class m1u_handler
@@ -87,9 +86,9 @@ private:
     void         handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
 
   private:
-    gtpu*                parent   = nullptr;
-    pdcp_interface_gtpu* pdcp     = nullptr;
-    srslte::log*         gtpu_log = nullptr;
+    gtpu*                parent = nullptr;
+    pdcp_interface_gtpu* pdcp   = nullptr;
+    srslte::log_ref      gtpu_log;
     std::string          m1u_multiaddr;
     std::string          m1u_if_addr;
 

@@ -204,14 +204,14 @@ int main(int argc, char* argv[])
     logger_file.log_char("\n---  Software Radio Systems MBMS log ---\n\n");
     logger = &logger_file;
   }
+  srslte::logmap::set_default_logger(logger);
 
-  srslte::log_filter mbms_gw_log;
-  mbms_gw_log.init("MBMS", logger);
-  mbms_gw_log.set_level(level(args.log_args.mbms_gw_level));
-  mbms_gw_log.set_hex_limit(args.log_args.mbms_gw_hex_limit);
+  srslte::log_ref mbms_gw_log{"MBMS"};
+  mbms_gw_log->set_level(level(args.log_args.mbms_gw_level));
+  mbms_gw_log->set_hex_limit(args.log_args.mbms_gw_hex_limit);
 
   mbms_gw* mbms_gw = mbms_gw::get_instance();
-  if (mbms_gw->init(&args.mbms_gw_args, &mbms_gw_log)) {
+  if (mbms_gw->init(&args.mbms_gw_args, mbms_gw_log)) {
     cout << "Error initializing MBMS-GW" << endl;
     exit(1);
   }

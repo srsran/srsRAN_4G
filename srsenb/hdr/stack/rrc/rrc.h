@@ -28,7 +28,7 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/enb_interfaces.h"
@@ -134,8 +134,7 @@ public:
             pdcp_interface_rrc*    pdcp,
             s1ap_interface_rrc*    s1ap,
             gtpu_interface_rrc*    gtpu,
-            srslte::timer_handler* timers_,
-            srslte::log*           log_rrc);
+            srslte::timer_handler* timers_);
 
   void stop();
   void get_metrics(rrc_metrics_t& m);
@@ -374,15 +373,15 @@ private:
   }; // class ue
 
   // args
-  srslte::timer_handler*    timers  = nullptr;
-  srslte::byte_buffer_pool* pool    = nullptr;
-  phy_interface_rrc_lte*    phy     = nullptr;
-  mac_interface_rrc*        mac     = nullptr;
-  rlc_interface_rrc*        rlc     = nullptr;
-  pdcp_interface_rrc*       pdcp    = nullptr;
-  gtpu_interface_rrc*       gtpu    = nullptr;
-  s1ap_interface_rrc*       s1ap    = nullptr;
-  srslte::log*              rrc_log = nullptr;
+  srslte::timer_handler*    timers = nullptr;
+  srslte::byte_buffer_pool* pool   = nullptr;
+  phy_interface_rrc_lte*    phy    = nullptr;
+  mac_interface_rrc*        mac    = nullptr;
+  rlc_interface_rrc*        rlc    = nullptr;
+  pdcp_interface_rrc*       pdcp   = nullptr;
+  gtpu_interface_rrc*       gtpu   = nullptr;
+  s1ap_interface_rrc*       s1ap   = nullptr;
+  srslte::log_ref           rrc_log;
 
   // derived params
   std::vector<std::unique_ptr<cell_ctxt_t> > cell_ctxt_list;

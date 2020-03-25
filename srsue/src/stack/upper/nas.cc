@@ -243,17 +243,17 @@ nas::nas(srsue::stack_interface_nas* task_handler_) :
   t3410(task_handler_->get_unique_timer()),
   t3411(task_handler_->get_unique_timer()),
   t3421(task_handler_->get_unique_timer()),
-  reattach_timer(task_handler_->get_unique_timer())
+  reattach_timer(task_handler_->get_unique_timer()),
+  nas_log{"NAS"}
 {
 }
 
 void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
-  nas_log = logmap::get("NAS ");
-  usim    = usim_;
-  rrc     = rrc_;
-  gw      = gw_;
-  state   = EMM_STATE_DEREGISTERED;
+  usim  = usim_;
+  rrc   = rrc_;
+  gw    = gw_;
+  state = EMM_STATE_DEREGISTERED;
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
     nas_log->error("Getting Home PLMN Id from USIM. Defaulting to 001-01\n");

@@ -23,7 +23,7 @@
 #define SRSLTE_GTPU_H
 
 #include "srslte/common/common.h"
-#include "srslte/common/log.h"
+#include "srslte/common/logmap.h"
 #include <stdint.h>
 
 namespace srslte {
@@ -76,11 +76,11 @@ typedef struct {
   uint8_t  next_ext_hdr_type;
 } gtpu_header_t;
 
-bool        gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte::log* gtpu_log);
-bool        gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte::log* gtpu_log);
+bool        gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte::log_ref gtpu_log);
+bool        gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte::log_ref gtpu_log);
 std::string gtpu_ntoa(uint32_t addr);
 
-inline bool gtpu_supported_flags_check(gtpu_header_t* header, srslte::log* gtpu_log)
+inline bool gtpu_supported_flags_check(gtpu_header_t* header, srslte::log_ref gtpu_log)
 {
   // flags
   if ((header->flags & GTPU_FLAGS_VERSION_MASK) != GTPU_FLAGS_VERSION_V1) {
@@ -102,7 +102,7 @@ inline bool gtpu_supported_flags_check(gtpu_header_t* header, srslte::log* gtpu_
   return true;
 }
 
-inline bool gtpu_supported_msg_type_check(gtpu_header_t* header, srslte::log* gtpu_log)
+inline bool gtpu_supported_msg_type_check(gtpu_header_t* header, srslte::log_ref gtpu_log)
 {
   // msg_tpye
   if (header->message_type != GTPU_MSG_DATA_PDU && header->message_type != GTPU_MSG_ECHO_REQUEST &&

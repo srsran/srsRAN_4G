@@ -32,7 +32,7 @@ namespace srsenb {
 enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
   timers(128),
   logger(logger_),
-  pdcp(&timers, &pdcp_log),
+  pdcp(&timers, "PDCP"),
   thread("STACK")
 {
   enb_queue_id  = pending_tasks.add_queue();
@@ -74,27 +74,20 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   mac_log->set_level(args.log.mac_level);
   mac_log->set_hex_limit(args.log.mac_hex_limit);
 
-  rlc_log.init("RLC ", logger);
-  pdcp_log.init("PDCP", logger);
-  rrc_log.init("RRC ", logger);
-  gtpu_log.init("GTPU", logger);
-  s1ap_log.init("S1AP", logger);
-  stack_log.init("STCK", logger);
-
   // Init logs
-  rlc_log.set_level(args.log.rlc_level);
-  pdcp_log.set_level(args.log.pdcp_level);
-  rrc_log.set_level(args.log.rrc_level);
-  gtpu_log.set_level(args.log.gtpu_level);
-  s1ap_log.set_level(args.log.s1ap_level);
-  stack_log.set_level(LOG_LEVEL_INFO);
+  rlc_log->set_level(args.log.rlc_level);
+  pdcp_log->set_level(args.log.pdcp_level);
+  rrc_log->set_level(args.log.rrc_level);
+  gtpu_log->set_level(args.log.gtpu_level);
+  s1ap_log->set_level(args.log.s1ap_level);
+  stack_log->set_level(LOG_LEVEL_INFO);
 
-  rlc_log.set_hex_limit(args.log.rlc_hex_limit);
-  pdcp_log.set_hex_limit(args.log.pdcp_hex_limit);
-  rrc_log.set_hex_limit(args.log.rrc_hex_limit);
-  gtpu_log.set_hex_limit(args.log.gtpu_hex_limit);
-  s1ap_log.set_hex_limit(args.log.s1ap_hex_limit);
-  stack_log.set_hex_limit(128);
+  rlc_log->set_hex_limit(args.log.rlc_hex_limit);
+  pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
+  rrc_log->set_hex_limit(args.log.rrc_hex_limit);
+  gtpu_log->set_hex_limit(args.log.gtpu_hex_limit);
+  s1ap_log->set_hex_limit(args.log.s1ap_hex_limit);
+  stack_log->set_hex_limit(128);
 
   // Set up pcap and trace
   if (args.mac_pcap.enable) {
@@ -107,13 +100,13 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   }
 
   // Init Rx socket handler
-  rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", &stack_log));
+  rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", stack_log));
 
   // Init all layers
   mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, this, mac_log);
-  rlc.init(&pdcp, &rrc, &mac, &timers, &rlc_log);
+  rlc.init(&pdcp, &rrc, &mac, &timers, rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
-  rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
+  rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers);
   s1ap.init(args.s1ap, &rrc, &timers, this);
   gtpu.init(args.s1ap.gtp_bind_addr,
             args.s1ap.mme_addr,
@@ -121,7 +114,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
             args.embms.m1u_if_addr,
             &pdcp,
             this,
-            &gtpu_log,
             args.embms.enable);
 
   started = true;

@@ -30,9 +30,9 @@
 
 #include "srslte/asn1/gtpc.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_file.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include <cstddef>
 #include <queue>
@@ -71,7 +71,7 @@ public:
   static spgw* get_instance(void);
   static void  cleanup(void);
   int          init(spgw_args_t*                           args,
-                    srslte::log_filter*                    gtpu_log,
+                    srslte::log_ref                        gtpu_log,
                     srslte::log_filter*                    gtpc_log,
                     srslte::log_filter*                    spgw_log,
                     const std::map<std::string, uint64_t>& ip_to_imsi);

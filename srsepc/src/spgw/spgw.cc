@@ -66,7 +66,7 @@ void spgw::cleanup()
 }
 
 int spgw::init(spgw_args_t*                           args,
-               srslte::log_filter*                    gtpu_log,
+               srslte::log_ref                        gtpu_log,
                srslte::log_filter*                    gtpc_log,
                srslte::log_filter*                    spgw_log,
                const std::map<std::string, uint64_t>& ip_to_imsi)

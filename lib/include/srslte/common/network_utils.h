@@ -23,6 +23,7 @@
 #define SRSLTE_RX_SOCKET_HANDLER_H
 
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 
 #include <functional>
@@ -53,21 +54,10 @@ int                    get_port(const sockaddr_in& addr);
 net_utils::socket_type get_addr_family(int fd);
 
 // Convenience socket functions
-int  open_socket(net_utils::addr_family   ip,
-                 net_utils::socket_type   socket_type,
-                 net_utils::protocol_type protocol,
-                 srslte::log*             log_ = nullptr);
-bool bind_addr(int fd, const sockaddr_in& addr_in, srslte::log* log_ = nullptr);
-bool bind_addr(int          fd,
-               const char*  bind_addr_str,
-               int          port,
-               sockaddr_in* addr_result = nullptr,
-               srslte::log* log_        = nullptr);
-bool connect_to(int          fd,
-                const char*  dest_addr_str,
-                int          dest_port,
-                sockaddr_in* dest_sockaddr = nullptr,
-                srslte::log* log_          = nullptr);
+int  open_socket(net_utils::addr_family ip, net_utils::socket_type socket_type, net_utils::protocol_type protocol);
+bool bind_addr(int fd, const sockaddr_in& addr_in);
+bool bind_addr(int fd, const char* bind_addr_str, int port, sockaddr_in* addr_result = nullptr);
+bool connect_to(int fd, const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr = nullptr);
 
 } // namespace net_utils
 
@@ -93,15 +83,9 @@ public:
   std::string            get_ip() const { return net_utils::get_ip(addr); }
   net_utils::socket_type get_family() const { return net_utils::get_addr_family(sockfd); }
 
-  bool bind_addr(const char* bind_addr_str, int port, srslte::log* log_ = nullptr);
-  bool connect_to(const char*  dest_addr_str,
-                  int          dest_port,
-                  sockaddr_in* dest_sockaddr = nullptr,
-                  srslte::log* log_          = nullptr);
-  bool open_socket(net_utils::addr_family   ip,
-                   net_utils::socket_type   socket_type,
-                   net_utils::protocol_type protocol,
-                   srslte::log*             log_ = nullptr);
+  bool bind_addr(const char* bind_addr_str, int port);
+  bool connect_to(const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr = nullptr);
+  bool open_socket(net_utils::addr_family ip, net_utils::socket_type socket_type, net_utils::protocol_type protocol);
 
 protected:
   sockaddr_in addr   = {};
@@ -110,25 +94,14 @@ protected:
 
 namespace net_utils {
 
-bool sctp_init_client(socket_handler_t*      socket,
-                      net_utils::socket_type socktype,
-                      const char*            bind_addr_str,
-                      srslte::log*           log_);
-bool sctp_init_server(socket_handler_t*      socket,
-                      net_utils::socket_type socktype,
-                      const char*            bind_addr_str,
-                      int                    port,
-                      srslte::log*           log_);
+bool sctp_init_client(socket_handler_t* socket, net_utils::socket_type socktype, const char* bind_addr_str);
+bool sctp_init_server(socket_handler_t* socket, net_utils::socket_type socktype, const char* bind_addr_str, int port);
 
 // TODO: for TCP and UDP
-bool tcp_make_server(socket_handler_t* socket,
-                     const char*       bind_addr_str,
-                     int               port,
-                     int               nof_connections = 1,
-                     srslte::log*      log_            = nullptr);
-int  tcp_accept(socket_handler_t* socket, sockaddr_in* destaddr, srslte::log* log_);
-int  tcp_read(int remotefd, void* buf, size_t nbytes, srslte::log* log_);
-int  tcp_send(int remotefd, const void* buf, size_t nbytes, srslte::log* log_);
+bool tcp_make_server(socket_handler_t* socket, const char* bind_addr_str, int port, int nof_connections = 1);
+int  tcp_accept(socket_handler_t* socket, sockaddr_in* destaddr);
+int  tcp_read(int remotefd, void* buf, size_t nbytes);
+int  tcp_send(int remotefd, const void* buf, size_t nbytes);
 
 } // namespace net_utils
 
@@ -156,7 +129,7 @@ public:
   using sctp_recv_callback_t =
       std::function<void(srslte::unique_byte_buffer_t, const sockaddr_in&, const sctp_sndrcvinfo&, int)>;
 
-  rx_multisocket_handler(std::string name_, srslte::log* log_, int thread_prio = 65);
+  rx_multisocket_handler(std::string name_, srslte::log_ref log_, int thread_prio = 65);
   rx_multisocket_handler(rx_multisocket_handler&&)      = delete;
   rx_multisocket_handler(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(const rx_multisocket_handler&) = delete;
@@ -183,8 +156,8 @@ private:
 
   // args
   std::string               name;
-  srslte::log*              log_h = nullptr;
-  srslte::byte_buffer_pool* pool  = nullptr;
+  srslte::log_ref           log_h;
+  srslte::byte_buffer_pool* pool = nullptr;
 
   // state
   std::mutex                     socket_mutex;

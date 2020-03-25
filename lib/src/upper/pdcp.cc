@@ -23,7 +23,7 @@
 
 namespace srslte {
 
-pdcp::pdcp(srslte::timer_handler* timers_, srslte::log* log_) : timers(timers_), pdcp_log(log_) {}
+pdcp::pdcp(srslte::timer_handler* timers_, const char* logname) : timers(timers_), pdcp_log(logname) {}
 
 pdcp::~pdcp()
 {

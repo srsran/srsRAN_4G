@@ -26,7 +26,7 @@ using namespace asn1::rrc;
 
 namespace srslte {
 
-rlc_um_base::rlc_um_base(srslte::log*               log_,
+rlc_um_base::rlc_um_base(srslte::log_ref            log_,
                          uint32_t                   lcid_,
                          srsue::pdcp_interface_rlc* pdcp_,
                          srsue::rrc_interface_rlc*  rrc_,

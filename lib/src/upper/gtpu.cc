@@ -28,7 +28,7 @@ namespace srslte {
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 29.281 v10.1.0 Section 5
  ***************************************************************************/
-bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte::log* gtpu_log)
+bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte::log_ref gtpu_log)
 {
   // flags
   if (!gtpu_supported_flags_check(header, gtpu_log)) {
@@ -95,7 +95,7 @@ bool gtpu_write_header(gtpu_header_t* header, srslte::byte_buffer_t* pdu, srslte
   return true;
 }
 
-bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte::log* gtpu_log)
+bool gtpu_read_header(srslte::byte_buffer_t* pdu, gtpu_header_t* header, srslte::log_ref gtpu_log)
 {
   uint8_t* ptr = pdu->msg;
 

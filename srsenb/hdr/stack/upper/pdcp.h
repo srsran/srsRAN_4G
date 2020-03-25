@@ -33,7 +33,7 @@ namespace srsenb {
 class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:
-  pdcp(srslte::timer_handler* timers, srslte::log* pdcp_log_);
+  pdcp(srslte::timer_handler* timers, const char* logname);
   virtual ~pdcp() {}
   void init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_);
   void stop();
@@ -107,7 +107,7 @@ private:
   rrc_interface_pdcp*       rrc;
   gtpu_interface_pdcp*      gtpu;
   srslte::timer_handler*    timers;
-  srslte::log*              log_h;
+  srslte::log_ref           log_h;
   srslte::byte_buffer_pool* pool;
 };
 

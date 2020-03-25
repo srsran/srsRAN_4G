@@ -24,14 +24,14 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/ip.h>
+#include <stdio.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <stdio.h>
 
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu() : m1u(this) {}
+gtpu::gtpu() : m1u(this), gtpu_log("GTPU") {}
 
 bool gtpu::init(std::string                  gtp_bind_addr_,
                 std::string                  mme_addr_,
@@ -39,11 +39,9 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
                 std::string                  m1u_if_addr_,
                 srsenb::pdcp_interface_gtpu* pdcp_,
                 stack_interface_gtpu_lte*    stack_,
-                srslte::log*                 gtpu_log_,
                 bool                         enable_mbsfn_)
 {
   pdcp          = pdcp_;
-  gtpu_log      = gtpu_log_;
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
   pool          = byte_buffer_pool::get_instance();

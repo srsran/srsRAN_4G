@@ -98,7 +98,7 @@ private:
   rrc*                      rrc_enb = nullptr;
   rrc::mobility_cfg*        cfg     = nullptr;
   srslte::byte_buffer_pool* pool    = nullptr;
-  srslte::log*              rrc_log = nullptr;
+  srslte::log_ref           rrc_log;
 
   // vars
   std::shared_ptr<const var_meas_cfg_t> ue_var_meas;

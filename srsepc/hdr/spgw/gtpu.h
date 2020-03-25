@@ -25,6 +25,7 @@
 #include "srsepc/hdr/spgw/spgw.h"
 #include "srslte/asn1/gtpc.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/logmap.h"
 #include "srslte/interfaces/epc_interfaces.h"
 #include <cstddef>
 #include <queue>
@@ -36,7 +37,7 @@ class spgw::gtpu : public gtpu_interface_gtpc
 public:
   gtpu();
   virtual ~gtpu();
-  int  init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_filter* gtpu_log);
+  int  init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_ref gtpu_log);
   void stop();
 
   int init_sgi(spgw_args_t* args);
@@ -71,7 +72,7 @@ public:
                                                              // UE is attached without an active user-plane
                                                              // for downlink notifications.
 
-  srslte::log_filter* m_gtpu_log;
+  srslte::log_ref m_gtpu_log;
 
 private:
   srslte::byte_buffer_pool* m_pool;

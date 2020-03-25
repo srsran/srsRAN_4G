@@ -394,12 +394,12 @@ private:
 
 void stress_test(stress_test_args_t args)
 {
-  srslte::log_filter log1("RLC_1");
-  srslte::log_filter log2("RLC_2");
-  log1.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
-  log2.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
-  log1.set_hex_limit(LOG_HEX_LIMIT);
-  log2.set_hex_limit(LOG_HEX_LIMIT);
+  srslte::log_ref log1("RLC_1");
+  srslte::log_ref log2("RLC_2");
+  log1->set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
+  log2->set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
+  log1->set_hex_limit(LOG_HEX_LIMIT);
+  log2->set_hex_limit(LOG_HEX_LIMIT);
   rlc_pcap pcap;
   uint32_t lcid = 1;
 
@@ -458,8 +458,8 @@ void stress_test(stress_test_args_t args)
 
   srslte::timer_handler timers(8);
 
-  rlc rlc1(&log1);
-  rlc rlc2(&log2);
+  rlc rlc1(log1->get_service_name().c_str());
+  rlc rlc2(log2->get_service_name().c_str());
 
   rlc_tester tester1(&rlc1, "tester1", args, lcid);
   rlc_tester tester2(&rlc2, "tester2", args, lcid);

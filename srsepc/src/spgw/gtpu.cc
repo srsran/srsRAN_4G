@@ -52,7 +52,7 @@ spgw::gtpu::~gtpu()
   return;
 }
 
-int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_filter* gtpu_log)
+int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_ref gtpu_log)
 {
   int err;
 

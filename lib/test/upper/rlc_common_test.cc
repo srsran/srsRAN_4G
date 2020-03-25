@@ -73,19 +73,19 @@ public:
 
 int meas_obj_test()
 {
-  srslte::log_filter log1("RLC_1");
-  srslte::log_filter log2("RLC_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
+  srslte::log_ref log1("RLC_1");
+  srslte::log_ref log2("RLC_2");
+  log1->set_level(srslte::LOG_LEVEL_DEBUG);
+  log2->set_level(srslte::LOG_LEVEL_DEBUG);
+  log1->set_hex_limit(-1);
+  log2->set_hex_limit(-1);
   rlc_tester            tester;
   srslte::timer_handler timers(1);
 
   int len = 0;
 
-  rlc rlc1(&log1);
-  rlc rlc2(&log2);
+  rlc rlc1(log1->get_service_name().c_str());
+  rlc rlc2(log2->get_service_name().c_str());
 
   rlc1.init(&tester, &tester, &timers, 0);
   rlc2.init(&tester, &tester, &timers, 0);

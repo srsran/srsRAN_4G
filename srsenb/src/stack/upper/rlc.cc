@@ -28,7 +28,7 @@ void rlc::init(pdcp_interface_rlc*    pdcp_,
                rrc_interface_rlc*     rrc_,
                mac_interface_rlc*     mac_,
                srslte::timer_handler* timers_,
-               srslte::log*           log_h_)
+               srslte::log_ref        log_h_)
 {
   pdcp   = pdcp_;
   rrc    = rrc_;
@@ -56,7 +56,7 @@ void rlc::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
-    std::unique_ptr<srslte::rlc> obj(new srslte::rlc(log_h));
+    std::unique_ptr<srslte::rlc> obj(new srslte::rlc(log_h->get_service_name().c_str()));
     obj->init(&users[rnti], &users[rnti], timers, RB_ID_SRB0);
     users[rnti].rnti   = rnti;
     users[rnti].pdcp   = pdcp;

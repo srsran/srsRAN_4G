@@ -36,7 +36,7 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc()
+rrc::rrc() : rrc_log("RRC")
 {
   pending_paging.clear();
 }
@@ -50,17 +50,15 @@ void rrc::init(const rrc_cfg_t&       cfg_,
                pdcp_interface_rrc*    pdcp_,
                s1ap_interface_rrc*    s1ap_,
                gtpu_interface_rrc*    gtpu_,
-               srslte::timer_handler* timers_,
-               srslte::log*           log_rrc)
+               srslte::timer_handler* timers_)
 {
-  phy     = phy_;
-  mac     = mac_;
-  rlc     = rlc_;
-  pdcp    = pdcp_;
-  gtpu    = gtpu_;
-  s1ap    = s1ap_;
-  rrc_log = log_rrc;
-  timers  = timers_;
+  phy    = phy_;
+  mac    = mac_;
+  rlc    = rlc_;
+  pdcp   = pdcp_;
+  gtpu   = gtpu_;
+  s1ap   = s1ap_;
+  timers = timers_;
 
   pool = srslte::byte_buffer_pool::get_instance();
 

@@ -22,12 +22,12 @@
 #ifndef SRSLTE_PDCP_BASE_TEST_H
 #define SRSLTE_PDCP_BASE_TEST_H
 
-#include "srslte/upper/pdcp_config.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/security.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/upper/pdcp_config.h"
 #include <iostream>
 
 int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::unique_byte_buffer_t& msg2)
@@ -43,7 +43,7 @@ int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::
 class rlc_dummy : public srsue::rlc_interface_pdcp
 {
 public:
-  rlc_dummy(srslte::log* log_) : log(log_) {}
+  rlc_dummy(srslte::log_ref log_) : log(log_) {}
 
   void get_last_sdu(const srslte::unique_byte_buffer_t& pdu)
   {
@@ -68,7 +68,7 @@ public:
   uint64_t discard_count = 0;
 
 private:
-  srslte::log*                 log;
+  srslte::log_ref              log;
   srslte::unique_byte_buffer_t last_pdcp_pdu;
 
   bool rb_is_um(uint32_t lcid) { return false; }
@@ -77,7 +77,7 @@ private:
 class rrc_dummy : public srsue::rrc_interface_pdcp
 {
 public:
-  rrc_dummy(srslte::log* log_) { log = log_; }
+  rrc_dummy(srslte::log_ref log_) { log = log_; }
 
   void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) {}
   void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) {}
@@ -86,7 +86,7 @@ public:
 
   std::string get_rb_name(uint32_t lcid) { return "None"; }
 
-  srslte::log* log;
+  srslte::log_ref log;
 
   // Members for testing
   uint32_t                     rx_count = 0;
@@ -111,7 +111,7 @@ public:
 class gw_dummy : public srsue::gw_interface_pdcp
 {
 public:
-  gw_dummy(srslte::log* log_) : log(log_) {}
+  gw_dummy(srslte::log_ref log_) : log(log_) {}
 
   void     write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
   uint32_t rx_count = 0;
@@ -130,7 +130,7 @@ public:
   }
 
 private:
-  srslte::log*                 log;
+  srslte::log_ref              log;
   srslte::unique_byte_buffer_t last_pdu;
 };
 

@@ -38,7 +38,7 @@ namespace srslte {
 class rlc_um_base : public rlc_common
 {
 public:
-  rlc_um_base(srslte::log*               log_,
+  rlc_um_base(srslte::log_ref            log_,
               uint32_t                   lcid_,
               srsue::pdcp_interface_rlc* pdcp_,
               srsue::rrc_interface_rlc*  rrc_,
@@ -87,7 +87,7 @@ protected:
 
   protected:
     byte_buffer_pool* pool = nullptr;
-    srslte::log*      log  = nullptr;
+    srslte::log_ref   log;
     std::string       rb_name;
 
     rlc_config_t cfg = {};
@@ -120,8 +120,8 @@ protected:
     virtual void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
 
   protected:
-    byte_buffer_pool*          pool   = nullptr;
-    srslte::log*               log    = nullptr;
+    byte_buffer_pool*          pool = nullptr;
+    srslte::log_ref            log;
     srslte::timer_handler*     timers = nullptr;
     srsue::pdcp_interface_rlc* pdcp   = nullptr;
     srsue::rrc_interface_rlc*  rrc    = nullptr;
@@ -142,9 +142,9 @@ protected:
   };
 
   // Common variables needed by parent class
-  srsue::rrc_interface_rlc*  rrc    = nullptr;
-  srsue::pdcp_interface_rlc* pdcp   = nullptr;
-  srslte::log*               log    = nullptr;
+  srsue::rrc_interface_rlc*  rrc  = nullptr;
+  srsue::pdcp_interface_rlc* pdcp = nullptr;
+  srslte::log_ref            log;
   srslte::timer_handler*     timers = nullptr;
   uint32_t                   lcid   = 0;
   rlc_config_t               cfg    = {};

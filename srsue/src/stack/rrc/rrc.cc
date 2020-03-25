@@ -88,7 +88,7 @@ rrc::rrc(stack_interface_rrc* stack_) :
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
-  rrc_log(srslte::logmap::get("RRC")),
+  rrc_log("RRC"),
   cell_searcher(this),
   si_acquirer(this),
   serv_cell_cfg(this),

@@ -40,7 +40,7 @@ namespace srslte {
 class rlc : public srsue::rlc_interface_mac, public srsue::rlc_interface_pdcp, public srsue::rlc_interface_rrc
 {
 public:
-  rlc(log* rlc_log_);
+  rlc(const char* logname);
   virtual ~rlc();
   void init(srsue::pdcp_interface_rlc* pdcp_,
             srsue::rrc_interface_rlc*  rrc_,
@@ -87,11 +87,11 @@ public:
 private:
   void reset_metrics();
 
-  byte_buffer_pool*          pool    = nullptr;
-  srslte::log*               rlc_log = nullptr;
-  srsue::pdcp_interface_rlc* pdcp    = nullptr;
-  srsue::rrc_interface_rlc*  rrc     = nullptr;
-  srslte::timer_handler*     timers  = nullptr;
+  byte_buffer_pool*          pool = nullptr;
+  srslte::log_ref            rlc_log;
+  srsue::pdcp_interface_rlc* pdcp   = nullptr;
+  srsue::rrc_interface_rlc*  rrc    = nullptr;
+  srslte::timer_handler*     timers = nullptr;
 
   typedef std::map<uint16_t, rlc_common*>  rlc_map_t;
   typedef std::pair<uint16_t, rlc_common*> rlc_map_pair_t;

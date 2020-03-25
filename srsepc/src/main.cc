@@ -398,6 +398,7 @@ int main(int argc, char* argv[])
     logger_file.log_char("\n---  Software Radio Systems EPC log ---\n\n");
     logger = &logger_file;
   }
+  srslte::logmap::set_default_logger(logger);
 
   srslte::log_filter nas_log;
   nas_log.init("NAS ", logger);
@@ -424,10 +425,9 @@ int main(int argc, char* argv[])
   spgw_gtpc_log.set_level(level(args.log_args.spgw_gtpc_level));
   spgw_gtpc_log.set_hex_limit(args.log_args.spgw_gtpc_hex_limit);
 
-  srslte::log_filter gtpu_log;
-  gtpu_log.init("GTPU", logger);
-  gtpu_log.set_level(level(args.log_args.mme_gtpc_level));
-  gtpu_log.set_hex_limit(args.log_args.mme_gtpc_hex_limit);
+  srslte::log_ref gtpu_log{"GTPU"};
+  gtpu_log->set_level(level(args.log_args.mme_gtpc_level));
+  gtpu_log->set_hex_limit(args.log_args.mme_gtpc_hex_limit);
 
   srslte::log_filter spgw_log;
   spgw_log.init("SPGW", logger);
@@ -447,7 +447,7 @@ int main(int argc, char* argv[])
   }
 
   spgw* spgw = spgw::get_instance();
-  if (spgw->init(&args.spgw_args, &gtpu_log, &spgw_gtpc_log, &spgw_log, hss->get_ip_to_imsi())) {
+  if (spgw->init(&args.spgw_args, gtpu_log, &spgw_gtpc_log, &spgw_log, hss->get_ip_to_imsi())) {
     cout << "Error initializing SP-GW" << endl;
     exit(1);
   }

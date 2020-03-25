@@ -23,7 +23,7 @@
 
 namespace srslte {
 
-rlc_tm::rlc_tm(srslte::log*               log_,
+rlc_tm::rlc_tm(srslte::log_ref            log_,
                uint32_t                   lcid_,
                srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,

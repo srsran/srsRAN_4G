@@ -24,9 +24,9 @@
 
 namespace srsenb {
 
-pdcp::pdcp(srslte::timer_handler* timers_, srslte::log* log_) :
+pdcp::pdcp(srslte::timer_handler* timers_, const char* logname) :
   timers(timers_),
-  log_h(log_),
+  log_h(logname),
   pool(srslte::byte_buffer_pool::get_instance())
 {
 }
@@ -49,7 +49,7 @@ void pdcp::stop()
 void pdcp::add_user(uint16_t rnti)
 {
   if (users.count(rnti) == 0) {
-    srslte::pdcp* obj = new srslte::pdcp(timers, log_h);
+    srslte::pdcp* obj = new srslte::pdcp(timers, log_h->get_service_name().c_str());
     obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf);
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;

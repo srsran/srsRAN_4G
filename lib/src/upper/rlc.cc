@@ -27,7 +27,7 @@
 
 namespace srslte {
 
-rlc::rlc(log* log_) : rlc_log(log_)
+rlc::rlc(const char* logname) : rlc_log(logname)
 {
   pool = byte_buffer_pool::get_instance();
   bzero(metrics_time, sizeof(metrics_time));

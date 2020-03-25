@@ -34,8 +34,6 @@
 #include "upper/rlc.h"
 #include "upper/s1ap.h"
 
-#include "srslte/common/log_filter.h"
-
 #include "enb_stack_base.h"
 #include "srsenb/hdr/enb.h"
 #include "srslte/common/multiqueue.h"
@@ -149,13 +147,13 @@ private:
   srslte::byte_buffer_pool* pool   = nullptr;
 
   // Radio and PHY log are in enb.cc
-  srslte::log_ref    mac_log{"MAC "};
-  srslte::log_filter rlc_log;
-  srslte::log_filter pdcp_log;
-  srslte::log_filter rrc_log;
-  srslte::log_filter s1ap_log;
-  srslte::log_filter gtpu_log;
-  srslte::log_filter stack_log;
+  srslte::log_ref mac_log{"MAC"};
+  srslte::log_ref rlc_log{"RLC"};
+  srslte::log_ref pdcp_log{"PDCP"};
+  srslte::log_ref rrc_log{"RRC"};
+  srslte::log_ref s1ap_log{"S1AP"};
+  srslte::log_ref gtpu_log{"GTPU"};
+  srslte::log_ref stack_log{"STCK"};
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;

@@ -34,6 +34,9 @@ using namespace srsue;
 using namespace srslte;
 using namespace asn1::rrc;
 
+srslte::log_ref rrc_log1("RLC_AM_1");
+srslte::log_ref rrc_log2("RLC_AM_2");
+
 class rlc_am_tester : public pdcp_interface_rlc, public rrc_interface_rlc
 {
 public:
@@ -133,19 +136,12 @@ void basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])
 
 bool meas_obj_test()
 {
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
-
   rlc_am_tester tester;
   timer_handler timers(8);
   byte_buffer_t pdu_bufs[NBUFS];
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   // before configuring entity
   assert(0 == rlc1.get_buffer_state());
@@ -199,17 +195,11 @@ bool meas_obj_test()
 
 bool concat_test()
 {
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -266,18 +256,12 @@ bool concat_test()
 
 bool segment_test(bool in_seq_rx)
 {
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -363,18 +347,12 @@ bool segment_test(bool in_seq_rx)
 
 bool retx_test()
 {
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester tester;
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -455,18 +433,12 @@ bool resegment_test_1()
   // PDUs:                |  10  |  10  |  10  |  10  |  10  |
   // Retx PDU segments:                 | 5 | 5|
 
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester tester;
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -559,18 +531,12 @@ bool resegment_test_2()
   // PDUs:              | 5 |  10  |     20     |  10  | 5 |
   // Retx PDU segments:            |  10  |  10 |
 
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester tester;
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -661,17 +627,11 @@ bool resegment_test_3()
   // PDUs:              | 5 | 5|      20     |  10  |  10  |
   // Retx PDU segments:        |  10  |  10  |
 
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -757,17 +717,11 @@ bool resegment_test_4()
   // PDUs:              | 5 | 5|         30         | 5 | 5|
   // Retx PDU segments:        |    15    |    15   |
 
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -855,17 +809,11 @@ bool resegment_test_5()
   // PDUs:              |2|3|            40            |3|2|
   // Retx PDU segments:     |     20      |     20     |
 
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -953,18 +901,12 @@ bool resegment_test_6()
   // PDUs:                |10|10|10|                270               | 54 |
   // Retx PDU segments:            |  120           |      150        |
 
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1081,13 +1023,6 @@ bool resegment_test_7()
   const uint32_t N_PDU_BUFS = 5;
   const uint32_t sdu_size   = 30;
 
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(100);
-  log2.set_hex_limit(100);
-
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_test7.pcap", 0);
@@ -1097,8 +1032,8 @@ bool resegment_test_7()
 #endif
   srslte::timer_handler timers(8);
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1252,13 +1187,6 @@ bool resegment_test_8()
   const uint32_t N_PDU_BUFS = 5;
   const uint32_t sdu_size   = 30;
 
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(100);
-  log2.set_hex_limit(100);
-
 #if HAVE_PCAP
   rlc_pcap pcap;
   pcap.open("rlc_am_test8.pcap", 0);
@@ -1268,8 +1196,8 @@ bool resegment_test_8()
 #endif
   srslte::timer_handler timers(8);
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1405,14 +1333,11 @@ bool resegment_test_8()
 
 bool reset_test()
 {
-  srslte::log_filter log1("RLC_AM_1");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1450,14 +1375,11 @@ bool reset_test()
 
 bool resume_test()
 {
-  srslte::log_filter log1("RLC_AM_1");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1495,13 +1417,10 @@ bool resume_test()
 
 bool stop_test()
 {
-  srslte::log_filter log1("RLC_AM_1");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1524,18 +1443,12 @@ bool stop_test()
 // be enough to fit all SNs that would need to be NACKed
 bool status_pdu_test()
 {
-  srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-  log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(rrc_log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(rrc_log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1647,6 +1560,11 @@ bool status_pdu_test()
 
 int main(int argc, char** argv)
 {
+  rrc_log1->set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log2->set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log1->set_hex_limit(-1);
+  rrc_log2->set_hex_limit(-1);
+
   if (meas_obj_test()) {
     printf("basic_test failed\n");
     exit(-1);
@@ -1713,10 +1631,12 @@ int main(int argc, char** argv)
   };
   byte_buffer_pool::get_instance()->cleanup();
 
+  rrc_log1->set_hex_limit(100);
+  rrc_log2->set_hex_limit(100);
   if (resegment_test_7()) {
     printf("resegment_test_7 failed\n");
     exit(-1);
-  };
+  }
   byte_buffer_pool::get_instance()->cleanup();
 
   if (resegment_test_8()) {
@@ -1724,6 +1644,8 @@ int main(int argc, char** argv)
     exit(-1);
   };
   byte_buffer_pool::get_instance()->cleanup();
+  rrc_log1->set_hex_limit(-1);
+  rrc_log2->set_hex_limit(-1);
 
   if (reset_test()) {
     printf("reset_test failed\n");

@@ -50,7 +50,7 @@ public:
                   srsue::rrc_interface_pdcp* rrc_,
                   srsue::gw_interface_pdcp*  gw_,
                   srslte::timer_handler*     timers_,
-                  srslte::log*               log_);
+                  srslte::log_ref            log_);
   ~pdcp_entity_lte();
   void init(uint32_t lcid_, pdcp_config_t cfg_);
   void reset();
