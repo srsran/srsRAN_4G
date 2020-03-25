@@ -1200,6 +1200,7 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
   if (not parent->s1ap->is_mme_connected()) {
     parent->rrc_log->error("MME isn't connected. Sending Connection Reject\n");
     send_connection_reject();
+    return;
   }
 
   rrc_conn_request_r8_ies_s* msg_r8 = &msg->crit_exts.rrc_conn_request_r8();
