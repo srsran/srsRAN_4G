@@ -73,17 +73,18 @@ public:
   void run(cf_t* in[SRSLTE_MAX_CHANNELS], cf_t* out[SRSLTE_MAX_CHANNELS], uint32_t len, const srslte_timestamp_t& t);
 
 private:
+  float                    hst_init_phase              = 0.0f;
   srslte_channel_fading_t* fading[SRSLTE_MAX_CHANNELS] = {};
   srslte_channel_delay_t*  delay[SRSLTE_MAX_CHANNELS]  = {};
   srslte_channel_awgn_t*   awgn                        = nullptr;
-  srslte_channel_hst_t*    hst                      = nullptr; // HST has no buffers / no multiple instance is required
-  srslte_channel_rlf_t*    rlf                      = nullptr; // RLF has no buffers / no multiple instance is required
-  cf_t*                    buffer_in                = nullptr;
-  cf_t*                    buffer_out               = nullptr;
-  log_filter*              log_h                    = nullptr;
+  srslte_channel_hst_t*    hst                         = nullptr;
+  srslte_channel_rlf_t*    rlf                         = nullptr;
+  cf_t*                    buffer_in                   = nullptr;
+  cf_t*                    buffer_out                  = nullptr;
+  log_filter*              log_h                       = nullptr;
   uint32_t                 nof_channels                = 0;
-  uint32_t                 current_srate            = 0;
-  args_t                   args                     = {};
+  uint32_t                 current_srate               = 0;
+  args_t                   args                        = {};
 };
 
 typedef std::unique_ptr<channel> channel_ptr;

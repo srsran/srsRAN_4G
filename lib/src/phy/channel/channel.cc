@@ -136,6 +136,16 @@ channel::~channel()
   }
 }
 
+extern "C" {
+static inline cf_t local_cexpf(float phase)
+{
+  cf_t ret;
+  __real__ ret = cosf(phase);
+  __imag__ ret = sinf(phase);
+  return ret;
+}
+}
+
 void channel::set_logger(log_filter* _log_h)
 {
   log_h = _log_h;
@@ -155,6 +165,11 @@ void channel::run(cf_t*                     in[SRSLTE_MAX_CHANNELS],
           // Copy input buffer
           memcpy(buffer_in, in[i], sizeof(cf_t) * len);
 
+          if (hst) {
+            srslte_channel_hst_execute(hst, buffer_in, buffer_out, len, &t);
+            srslte_vec_sc_prod_ccc(buffer_out, local_cexpf(hst_init_phase), buffer_in, len);
+          }
+
           if (awgn) {
             srslte_channel_awgn_run_c(awgn, buffer_in, buffer_out, len);
             memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
@@ -170,11 +185,6 @@ void channel::run(cf_t*                     in[SRSLTE_MAX_CHANNELS],
             memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
           }
 
-          if (hst) {
-            srslte_channel_hst_execute(hst, buffer_in, buffer_out, len, &t);
-            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
-          }
-
           if (rlf) {
             srslte_channel_rlf_execute(rlf, buffer_in, buffer_out, len, &t);
             memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
@@ -182,6 +192,21 @@ void channel::run(cf_t*                     in[SRSLTE_MAX_CHANNELS],
 
           // Copy output buffer
           memcpy(out[i], buffer_in, sizeof(cf_t) * len);
+        }
+      }
+
+      if (hst) {
+        // Increment phase to keep it coherent between frames
+        hst_init_phase += (2 * M_PI * len * hst->fs_hz / hst->srate_hz);
+
+        // Positive Remainder
+        while (hst_init_phase > 2 * M_PI) {
+          hst_init_phase -= 2 * M_PI;
+        }
+
+        // Negative Remainder
+        while (hst_init_phase < -2 * M_PI) {
+          hst_init_phase += 2 * M_PI;
         }
       }
 
