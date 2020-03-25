@@ -48,11 +48,6 @@ namespace srsenb {
 
 void phy_common::reset()
 {
-  for (auto& q : dl_grants) {
-    for (auto& g : q) {
-      g = {};
-    }
-  }
   for (auto& q : ul_grants) {
     for (auto& g : q) {
       g = {};
@@ -78,9 +73,6 @@ bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
   }
 
   // Create grants
-  for (auto& q : dl_grants) {
-    q.resize(cell_list.size());
-  }
   for (auto& q : ul_grants) {
     q.resize(cell_list.size());
   }
@@ -95,6 +87,34 @@ bool phy_common::init(const phy_cell_cfg_list_t&   cell_list_,
 void phy_common::stop()
 {
   semaphore.wait_all();
+}
+
+void phy_common::clear_grants(uint16_t rnti)
+{
+  std::lock_guard<std::mutex> lock(grant_mutex);
+
+  // remove any pending dci for each subframe
+  for (auto& list : ul_grants) {
+    for (auto& q : list) {
+      for (uint32_t j = 0; j < q.nof_grants; j++) {
+        if (q.pusch[j].dci.rnti == rnti) {
+          q.pusch[j].dci.rnti = 0;
+        }
+      }
+    }
+  }
+}
+
+const stack_interface_phy_lte::ul_sched_list_t& phy_common::get_ul_grants(uint32_t tti)
+{
+  std::lock_guard<std::mutex> lock(grant_mutex);
+  return ul_grants[tti % TTIMOD_SZ];
+}
+
+void phy_common::set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_grant_list)
+{
+  std::lock_guard<std::mutex> lock(grant_mutex);
+  ul_grants[tti % TTIMOD_SZ] = ul_grant_list;
 }
 
 /* The transmission of UL subframes must be in sequence. The correct sequence is guaranteed by a chain of N semaphores,

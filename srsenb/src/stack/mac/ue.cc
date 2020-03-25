@@ -192,7 +192,6 @@ uint8_t* ue::request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const 
       ret                                                      = pdus.request(len);
       pending_buffers.at(ue_cc_idx).at(tti % nof_rx_harq_proc) = ret;
     } else {
-      log_h->console("Error requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
       log_h->error("Requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
     }
   } else {

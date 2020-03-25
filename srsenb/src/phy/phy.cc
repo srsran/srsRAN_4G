@@ -92,6 +92,7 @@ int phy::init(const phy_args_t&            args,
     mylog->set_hex_limit(args.log.phy_hex_limit);
     log_vec.push_back(std::move(mylog));
   }
+  log_h = log_vec[0].get();
 
   // Add PHY lib log
   if (log_vec.at(0)->get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
@@ -170,11 +171,15 @@ int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
 
 void phy::rem_rnti(uint16_t rnti)
 {
+  // Remove the RNTI when the TTI finishes, this has a delay up to the pipeline length (3 ms)
+  for (uint32_t i = 0; i < nof_workers; i++) {
+    sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
+    w->rem_rnti(rnti);
+    w->release();
+  }
   if (SRSLTE_RNTI_ISUSER(rnti)) {
     workers_common.ue_db.rem_rnti(rnti);
-  }
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    workers[i].rem_rnti(rnti);
+    workers_common.clear_grants(rnti);
   }
 }
 

@@ -213,25 +213,6 @@ void cc_worker::rem_rnti(uint16_t rnti)
     srslte_enb_dl_rem_rnti(&enb_dl, rnti);
     srslte_enb_ul_rem_rnti(&enb_ul, rnti);
 
-    // remove any pending dci for each subframe
-    for (auto& list : phy->ul_grants) {
-      for (auto& q : list) {
-        for (uint32_t j = 0; j < q.nof_grants; j++) {
-          if (q.pusch[j].dci.rnti == rnti) {
-            q.pusch[j].dci.rnti = 0;
-          }
-        }
-      }
-    }
-    for (auto& list : phy->dl_grants) {
-      for (auto& q : list) {
-        for (uint32_t j = 0; j < q.nof_grants; j++) {
-          if (q.pdsch[j].dci.rnti == rnti) {
-            q.pdsch[j].dci.rnti = 0;
-          }
-        }
-      }
-    }
   } else {
     Error("Removing user: rnti=0x%x does not exist\n", rnti);
   }
@@ -555,7 +536,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
       // Save metrics stats
       ue_db[rnti]->metrics_dl(grants[i].dci.tb[0].mcs_idx);
     } else {
-      ERROR("RNTI (x%x) not found in Component Carrier worker %d\n", rnti, cc_idx);
+      Error("User rnti=0x%x not found in cc_worker=%d\n", rnti, cc_idx);
     }
   }
 

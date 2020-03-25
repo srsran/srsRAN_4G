@@ -176,9 +176,15 @@ void sf_worker::work_imp()
   srslte_mbsfn_cfg_t mbsfn_cfg;
   srslte_sf_t        sf_type = phy->is_mbsfn_sf(&mbsfn_cfg, tti_tx_dl) ? SRSLTE_SF_MBSFN : SRSLTE_SF_NORM;
 
-  stack_interface_phy_lte::ul_sched_list_t* ul_grants = phy->ul_grants;
-  stack_interface_phy_lte::dl_sched_list_t* dl_grants = phy->dl_grants;
-  stack_interface_phy_lte*                  stack     = phy->stack;
+  // Uplink grants to receive this TTI
+  stack_interface_phy_lte::ul_sched_list_t ul_grants = phy->get_ul_grants(t_rx);
+  // Uplink grants to transmit this tti and receive in the future
+  stack_interface_phy_lte::ul_sched_list_t ul_grants_tx = phy->get_ul_grants(t_tx_ul);
+
+  // Downlink grants to transmit this TTI
+  stack_interface_phy_lte::dl_sched_list_t dl_grants(phy->get_nof_carriers());
+
+  stack_interface_phy_lte* stack = phy->stack;
 
   log_h->step(tti_rx);
 
@@ -189,19 +195,19 @@ void sf_worker::work_imp()
 
   // Process UL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
-    cc_workers[cc]->work_ul(ul_sf, phy->ul_grants[t_rx][cc]);
+    cc_workers[cc]->work_ul(ul_sf, ul_grants[cc]);
   }
 
   // Get DL scheduling for the TX TTI from MAC
   if (sf_type == SRSLTE_SF_NORM) {
-    if (stack->get_dl_sched(tti_tx_dl, dl_grants[t_tx_dl]) < 0) {
+    if (stack->get_dl_sched(tti_tx_dl, dl_grants) < 0) {
       Error("Getting DL scheduling from MAC\n");
       phy->worker_end(this, tx_buffer, 0, tx_time);
       return;
     }
   } else {
-    dl_grants[t_tx_dl][0].cfi = mbsfn_cfg.non_mbsfn_region_length;
-    if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, dl_grants[t_tx_dl])) {
+    dl_grants[0].cfi = mbsfn_cfg.non_mbsfn_region_length;
+    if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, dl_grants)) {
       Error("Getting MCH packets from MAC\n");
       phy->worker_end(this, tx_buffer, 0, tx_time);
       return;
@@ -209,11 +215,11 @@ void sf_worker::work_imp()
   }
 
   // Make sure CFI is in the right range
-  dl_grants[t_tx_dl][0].cfi = SRSLTE_MAX(dl_grants[t_tx_dl][0].cfi, 1);
-  dl_grants[t_tx_dl][0].cfi = SRSLTE_MIN(dl_grants[t_tx_dl][0].cfi, 3);
+  dl_grants[0].cfi = SRSLTE_MAX(dl_grants[0].cfi, 1);
+  dl_grants[0].cfi = SRSLTE_MIN(dl_grants[0].cfi, 3);
 
   // Get UL scheduling for the TX TTI from MAC
-  if (stack->get_ul_sched(tti_tx_ul, ul_grants[t_tx_ul]) < 0) {
+  if (stack->get_ul_sched(tti_tx_ul, ul_grants_tx) < 0) {
     Error("Getting UL scheduling from MAC\n");
     phy->worker_end(this, tx_buffer, 0, tx_time);
     return;
@@ -229,9 +235,13 @@ void sf_worker::work_imp()
 
   // Process DL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
-    dl_sf.cfi = dl_grants[t_tx_dl][cc].cfi;
-    cc_workers[cc]->work_dl(dl_sf, phy->dl_grants[t_tx_dl][cc], phy->ul_grants[t_tx_ul][cc], &mbsfn_cfg);
+    dl_sf.cfi = dl_grants[cc].cfi;
+    cc_workers[cc]->work_dl(dl_sf, dl_grants[cc], ul_grants_tx[cc], &mbsfn_cfg);
   }
+
+  // Save grants
+  phy->set_ul_grants(t_tx_ul, ul_grants_tx);
+  phy->set_ul_grants(t_rx, ul_grants);
 
   Debug("Sending to radio\n");
   phy->worker_end(this, tx_buffer, SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)), tx_time);

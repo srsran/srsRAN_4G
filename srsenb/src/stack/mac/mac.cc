@@ -232,8 +232,8 @@ int mac::ue_rem(uint16_t rnti)
   {
     srslte::rwlock_read_guard lock(rwlock);
     if (ue_db.count(rnti)) {
-      scheduler.ue_rem(rnti);
       phy_h->rem_rnti(rnti);
+      scheduler.ue_rem(rnti);
       ret = 0;
     } else {
       Error("User rnti=0x%x not found\n", rnti);

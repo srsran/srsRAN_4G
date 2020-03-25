@@ -135,10 +135,6 @@ public:
   stack_interface_phy_lte*     stack      = nullptr;
   srslte::channel_ptr          dl_channel = nullptr;
 
-  // Common objects for scheduling grants
-  stack_interface_phy_lte::ul_sched_list_t ul_grants[TTIMOD_SZ] = {};
-  stack_interface_phy_lte::dl_sched_list_t dl_grants[TTIMOD_SZ] = {};
-
   /**
    * UE Database object, direct public access, all PHY threads should be able to access this attribute directly
    */
@@ -150,7 +146,16 @@ public:
   bool is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
   void set_mch_period_stop(uint32_t stop);
 
+  // Getters and setters for ul grants which need to be shared between workers
+  const stack_interface_phy_lte::ul_sched_list_t& get_ul_grants(uint32_t tti);
+  void set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_grants);
+  void clear_grants(uint16_t rnti);
+
 private:
+  // Common objects for scheduling grants
+  stack_interface_phy_lte::ul_sched_list_t ul_grants[TTIMOD_SZ] = {};
+  std::mutex                               grant_mutex          = {};
+
   phy_cell_cfg_list_t cell_list;
 
   bool                                     have_mtch_stop   = false;
