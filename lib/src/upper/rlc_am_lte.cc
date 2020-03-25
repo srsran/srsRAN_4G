@@ -1569,10 +1569,10 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
 
   pthread_mutex_lock(&mutex);
   num_rx_bytes += nof_bytes;
+  pthread_mutex_unlock(&mutex);
 
   if (rlc_am_is_control_pdu(payload)) {
     // unlock mutex and pass to Tx subclass
-    pthread_mutex_unlock(&mutex);
     parent->tx.handle_control_pdu(payload, nof_bytes);
   } else {
     rlc_amd_pdu_header_t header      = {};
@@ -1580,7 +1580,6 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
     rlc_am_read_data_pdu_header(&payload, &payload_len, &header);
     if (payload_len > nof_bytes) {
       log->info("Dropping corrupted PDU (%d B). Remaining length after header %d B.\n", nof_bytes, payload_len);
-      pthread_mutex_unlock(&mutex);
       return;
     }
     if (header.rf) {
@@ -1588,7 +1587,6 @@ void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_b
     } else {
       handle_data_pdu(payload, payload_len, header);
     }
-    pthread_mutex_unlock(&mutex);
   }
 }
 
