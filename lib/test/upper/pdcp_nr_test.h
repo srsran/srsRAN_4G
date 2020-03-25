@@ -95,7 +95,7 @@ pdcp_initial_state near_wraparound_init_state = {.tx_next  = 4294967295,
 class pdcp_nr_test_helper
 {
 public:
-  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg, srslte::log* log) :
+  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg, srslte::log_ref log) :
     rlc(log),
     rrc(log),
     gw(log),
@@ -129,7 +129,7 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
                                               uint8_t                             pdcp_sn_len,
                                               srslte::as_security_config_t        sec_cfg,
                                               srslte::byte_buffer_pool*           pool,
-                                              srslte::log*                        log)
+                                              srslte::log_ref                     log)
 {
   srslte::pdcp_config_t cfg = {1,
                                srslte::PDCP_RB_IS_DRB,
@@ -162,7 +162,7 @@ std::vector<pdcp_test_event_t> gen_expected_pdus_vector(const srslte::unique_byt
                                                         uint8_t                             pdcp_sn_len,
                                                         srslte::as_security_config_t        sec_cfg,
                                                         srslte::byte_buffer_pool*           pool,
-                                                        srslte::log*                        log)
+                                                        srslte::log_ref                     log)
 {
   std::vector<pdcp_test_event_t> pdu_vec;
   for (uint32_t tx_next : tx_nexts) {

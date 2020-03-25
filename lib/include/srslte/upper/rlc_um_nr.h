@@ -43,7 +43,7 @@ typedef struct {
 class rlc_um_nr : public rlc_um_base
 {
 public:
-  rlc_um_nr(srslte::log*               log_,
+  rlc_um_nr(srslte::log_ref            log_,
             uint32_t                   lcid_,
             srsue::pdcp_interface_rlc* pdcp_,
             srsue::rrc_interface_rlc*  rrc_,

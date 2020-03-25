@@ -28,7 +28,7 @@ pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
                                srsue::rrc_interface_pdcp* rrc_,
                                srsue::gw_interface_pdcp*  gw_,
                                srslte::timer_handler*     timers_,
-                               srslte::log*               log_) :
+                               srslte::log_ref            log_) :
   pdcp_entity_base(timers_, log_),
   rlc(rlc_),
   rrc(rrc_),
@@ -41,9 +41,9 @@ pdcp_entity_nr::~pdcp_entity_nr() {}
 
 void pdcp_entity_nr::init(uint32_t lcid_, pdcp_config_t cfg_)
 {
-  lcid          = lcid_;
-  cfg           = cfg_;
-  active        = true;
+  lcid                 = lcid_;
+  cfg                  = cfg_;
+  active               = true;
   integrity_direction  = DIRECTION_NONE;
   encryption_direction = DIRECTION_NONE;
 
@@ -72,9 +72,7 @@ void pdcp_entity_nr::reestablish()
 void pdcp_entity_nr::reset()
 {
   active = false;
-  if (log != nullptr) {
-    log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
-  }
+  log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
 }
 
 // SDAP/RRC interface
