@@ -178,6 +178,8 @@ public:
     wait_thread_finish();
   }
 
+  void enqueue_task(srslte::move_task_t task) { pending_tasks.push(std::move(task)); }
+
 private:
   void run_tx_tti(rlc_interface_mac* tx_rlc, rlc_interface_mac* rx_rlc, std::vector<unique_byte_buffer_t>& pdu_list)
   {
@@ -282,6 +284,7 @@ private:
 
   void run_thread() override
   {
+    srslte::move_task_t task;
     while (run_enable) {
       // Downlink direction first (RLC1->RLC2)
       run_tti(rlc1, rlc2, true);
@@ -291,6 +294,13 @@ private:
 
       // step timer
       timers->step_all();
+
+      if (pending_tasks.try_pop(&task)) {
+        task();
+      }
+    }
+    if (pending_tasks.try_pop(&task)) {
+      task();
     }
   }
 
@@ -304,6 +314,8 @@ private:
   srslte::log_filter     log;
   srslte::timer_handler* timers = nullptr;
 
+  srslte::block_queue<srslte::move_task_t> pending_tasks;
+
   std::mt19937                          mt19937;
   std::uniform_real_distribution<float> real_dist;
 };
@@ -312,7 +324,7 @@ class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc, public t
 {
 public:
   rlc_tester(rlc_interface_pdcp* rlc_, std::string name_, stress_test_args_t args_, uint32_t lcid_) :
-    log("Testr"),
+    log("TEST"),
     rlc(rlc_),
     run_enable(true),
     rx_pdus(),
@@ -496,8 +508,10 @@ void stress_test(stress_test_args_t args)
   printf("Test finished, tearing down ..\n");
 
   // Stop RLC instances first to release blocking writers
-  rlc1.stop();
-  rlc2.stop();
+  mac.enqueue_task([&rlc1, &rlc2]() {
+    rlc1.stop();
+    rlc2.stop();
+  });
 
   printf("RLC entities stopped.\n");
 
