@@ -342,7 +342,7 @@ void nas::timer_expired(uint32_t timeout_id)
     // Section 5.5.1.2.6 case c)
     attach_attempt_counter++;
 
-    nas_log->info("Timer T3410 expired after attach attempt %d/%d: starting T3411)\n",
+    nas_log->info("Timer T3410 expired after attach attempt %d/%d: starting T3411\n",
                   attach_attempt_counter,
                   max_attach_attempts);
 
@@ -383,21 +383,6 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
   nas_log->info("Attach Request with cause %s.\n", to_string(cause_).c_str());
   switch (state) {
     case EMM_STATE_DEREGISTERED:
-
-      // start T3410
-      nas_log->debug("Starting T3410\n");
-      t3410.run();
-
-      // stop T3411
-      if (t3411.is_running()) {
-        t3411.stop();
-      }
-
-      // stop T3402
-      if (t3402.is_running()) {
-        t3402.stop();
-      }
-
       // Search PLMN is not selected
       if (!plmn_is_selected) {
         nas_log->info("No PLMN selected. Starting PLMN Search...\n");
@@ -948,6 +933,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // stop T3410
   if (t3410.is_running()) {
+    nas_log->debug("Stopping T3410\n");
     t3410.stop();
   }
 
@@ -1192,6 +1178,7 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // stop T3410
   if (t3410.is_running()) {
+    nas_log->debug("Stopping T3410\n");
     t3410.stop();
   }
 
@@ -1708,11 +1695,20 @@ void nas::gen_attach_request(srslte::unique_byte_buffer_t& msg)
     ctxt.tx_count++;
   }
 
-  // stop T3411
+  // stop T3411 and T3402
   if (t3411.is_running()) {
     nas_log->debug("Stopping T3411\n");
     t3411.stop();
   }
+
+  if (t3402.is_running()) {
+    nas_log->debug("Stopping T3402\n");
+    t3402.stop();
+  }
+
+  // start T3410
+  nas_log->debug("Starting T3410\n");
+  t3410.run();
 }
 
 void nas::gen_service_request(srslte::unique_byte_buffer_t& msg)
