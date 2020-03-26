@@ -2342,7 +2342,12 @@ void rrc::set_phy_default()
   current_phy_cfg.set_defaults();
 
   if (phy != nullptr) {
-    phy->set_config(current_phy_cfg);
+    for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+      if (i == 0 or current_scell_configured[i]) {
+        phy->set_config(current_phy_cfg, i);
+        current_scell_configured[i] = false;
+      }
+    }
   } else {
     rrc_log->info("RRC not initialized. Skipping default PHY config.\n");
   }
@@ -2354,7 +2359,12 @@ void rrc::set_phy_config_dedicated_default()
   current_phy_cfg.set_defaults_dedicated();
 
   if (phy != nullptr) {
-    phy->set_config(current_phy_cfg);
+    for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+      if (i == 0 or current_scell_configured[i]) {
+        phy->set_config(current_phy_cfg, i);
+        current_scell_configured[i] = false;
+      }
+    }
   } else {
     rrc_log->info("RRC not initialized. Skipping default PHY config.\n");
   }
@@ -2427,6 +2437,7 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config)
   set_phy_cfg_t_scell_config(&scell_phy_cfg, scell_config);
 
   phy->set_config(scell_phy_cfg, scell_config.scell_idx_r10, earfcn, &scell);
+  current_scell_configured[scell_config.scell_idx_r10] = true;
 }
 
 void rrc::log_mac_config_dedicated()

@@ -405,6 +405,7 @@ private:
   cell_t                      ho_src_cell = {};
   srslte::phy_cfg_t           current_phy_cfg, previous_phy_cfg = {};
   srslte::mac_cfg_t           current_mac_cfg, previous_mac_cfg = {};
+  bool                        current_scell_configured[SRSLTE_MAX_CARRIERS] = {};
   bool                        pending_mob_reconf = false;
   asn1::rrc::rrc_conn_recfg_s mob_reconf         = {};
 
