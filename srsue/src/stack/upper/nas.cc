@@ -240,6 +240,7 @@ nas::nas(srsue::stack_interface_nas* task_handler_) :
   plmn_searcher(this),
   rrc_connector(this),
   task_handler(task_handler_),
+  t3402(task_handler_->get_unique_timer()),
   t3410(task_handler_->get_unique_timer()),
   t3411(task_handler_->get_unique_timer()),
   t3421(task_handler_->get_unique_timer()),
@@ -297,6 +298,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   }
 
   // Configure timers
+  t3402.set(t3402_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
   t3410.set(t3410_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
   t3411.set(t3411_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
   t3421.set(t3421_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
@@ -333,19 +335,24 @@ void nas::run_tti()
 
 void nas::timer_expired(uint32_t timeout_id)
 {
-  if (timeout_id == t3410.id()) {
+  if (timeout_id == t3402.id()) {
+    nas_log->info("Timer T3402 expired: trying to attach again\n");
+    start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+  } else if (timeout_id == t3410.id()) {
     // Section 5.5.1.2.6 case c)
     attach_attempt_counter++;
 
-    nas_log->info("Timer T3410 expired: starting T3411 (attempt %d/%d)\n", attach_attempt_counter, max_attach_attempts);
+    nas_log->info("Timer T3410 expired after attach attempt %d/%d: starting T3411)\n",
+                  attach_attempt_counter,
+                  max_attach_attempts);
 
     if (attach_attempt_counter < max_attach_attempts) {
       // start T3411, ToDo: EMM-DEREGISTERED.ATTEMPTING-TO-ATTACH isn't fully implemented yet
       t3411.run();
     } else {
-      // maximum attach attempts reached, cleanup current state and try again
+      // maximum attach attempts reached
       enter_emm_deregistered();
-      start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+      t3402.run();
     }
   } else if (timeout_id == t3411.id()) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
@@ -386,7 +393,10 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
         t3411.stop();
       }
 
-      // Todo: stop T3402
+      // stop T3402
+      if (t3402.is_running()) {
+        t3402.stop();
+      }
 
       // Search PLMN is not selected
       if (!plmn_is_selected) {
@@ -455,17 +465,14 @@ void nas::plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmn
 bool nas::detach_request(const bool switch_off)
 {
   switch (state) {
-    case EMM_STATE_DEREGISTERED:
-      // do nothing ..
-      break;
     case EMM_STATE_REGISTERED:
       // send detach request
       send_detach_request(switch_off);
       break;
+    case EMM_STATE_DEREGISTERED:
     case EMM_STATE_DEREGISTERED_INITIATED:
-      // do nothing ..
-      break;
     default:
+      nas_log->debug("Received request to detach in state %s\n", emm_state_text[state]);
       break;
   }
   return false;
