@@ -94,7 +94,7 @@ void sync::init(srslte::radio_interface_phy* _radio,
   search_p.init(sf_buffer, log_h, nof_rf_channels, this);
 
   // Initialize SFN synchronizer, it uses only pcell buffer
-  sfn_p.init(&ue_sync, sf_buffer, sf_buffer.size(), log_h);
+  sfn_p.init(&ue_sync, worker_com->args, sf_buffer, sf_buffer.size(), log_h);
 
   // Start intra-frequency measurement
   for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
@@ -1061,6 +1061,7 @@ sync::sfn_sync::~sfn_sync()
 }
 
 void sync::sfn_sync::init(srslte_ue_sync_t*    ue_sync_,
+                          const phy_args_t*    phy_args_,
                           srslte::rf_buffer_t& buffer,
                           uint32_t             buffer_max_samples_,
                           srslte::log*         log_h_,
@@ -1068,6 +1069,7 @@ void sync::sfn_sync::init(srslte_ue_sync_t*    ue_sync_,
 {
   log_h   = log_h_;
   ue_sync = ue_sync_;
+  phy_args = phy_args_;
   timeout = nof_subframes;
 
   mib_buffer         = buffer;
@@ -1158,6 +1160,15 @@ sync::sfn_sync::ret_code sync::sfn_sync::decode_mib(srslte_cell_t*              
         sfn = (sfn + sfn_offset) % 1024;
         if (tti_cnt) {
           *tti_cnt = 10 * sfn;
+
+          // Check if SNR is below the minimum threshold
+          if (ue_mib.chest_res.snr_db < phy_args->in_sync_snr_db_th) {
+            Info("SYNC:  MIB decoded, SNR is too low (%+.1f < %+.1f)\n",
+                 ue_mib.chest_res.snr_db,
+                 phy_args->in_sync_snr_db_th);
+            return SFN_NOFOUND;
+          }
+
           Info("SYNC:  DONE, SNR=%.1f dB, TTI=%d, sfn_offset=%d\n", ue_mib.chest_res.snr_db, *tti_cnt, sfn_offset);
         }
 

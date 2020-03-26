@@ -122,6 +122,7 @@ private:
     sfn_sync() = default;
     ~sfn_sync();
     void     init(srslte_ue_sync_t*    ue_sync,
+                  const phy_args_t*    phy_args_,
                   srslte::rf_buffer_t& buffer,
                   uint32_t             buffer_max_samples_,
                   srslte::log*         log_h,
@@ -141,6 +142,7 @@ private:
   private:
     const static int SFN_SYNC_NOF_SUBFRAMES = 100;
 
+    const phy_args_t*   phy_args           = nullptr;
     uint32_t            cnt                = 0;
     uint32_t            timeout            = 0;
     srslte::log*        log_h              = nullptr;
