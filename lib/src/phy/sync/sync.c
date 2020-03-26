@@ -80,7 +80,7 @@ int srslte_sync_init_decim(srslte_sync_t* q, uint32_t frame_size, uint32_t max_o
     q->max_offset      = max_offset;
     q->max_frame_size  = frame_size;
 
-    srslte_sync_cfo_reset(q);
+    srslte_sync_cfo_reset(q, 0.0f);
 
     if (srslte_cfo_init(&q->cfo_corr_frame, q->frame_size)) {
       ERROR("Error initiating CFO\n");
@@ -347,9 +347,9 @@ float srslte_sync_get_cfo(srslte_sync_t* q)
   return q->cfo_cp_mean + q->cfo_pss_mean + q->cfo_i_value;
 }
 
-void srslte_sync_cfo_reset(srslte_sync_t* q)
+void srslte_sync_cfo_reset(srslte_sync_t* q, float init_cfo_hz)
 {
-  q->cfo_cp_mean    = 0;
+  q->cfo_cp_mean    = init_cfo_hz / 15e3f;
   q->cfo_cp_is_set  = false;
   q->cfo_pss_mean   = 0;
   q->cfo_pss_is_set = false;

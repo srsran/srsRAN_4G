@@ -415,6 +415,7 @@ void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
     if (c != nullptr) {
       c->set_rsrp(measurements->rsrp_filter(m.rsrp, c->get_rsrp()));
       c->set_rsrq(measurements->rsrq_filter(m.rsrq, c->get_rsrq()));
+      c->set_cfo(m.cfo_hz);
     } else {
       // or just set initial value
       neighbour_added = add_neighbour_cell(m);
@@ -423,8 +424,11 @@ void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
     if (m.earfcn == 0) {
       rrc_log->info("MEAS:  New measurement serving cell: rsrp=%.2f dBm.\n", m.rsrp);
     } else {
-      rrc_log->info(
-          "MEAS:  New measurement neighbour cell: earfcn=%d, pci=%d, rsrp=%.2f dBm.\n", m.earfcn, m.pci, m.rsrp);
+      rrc_log->info("MEAS:  New measurement neighbour cell: earfcn=%d, pci=%d, rsrp=%.2f dBm, cfo=%+.1f Hz\n",
+                    m.earfcn,
+                    m.pci,
+                    m.rsrp,
+                    m.cfo_hz);
     }
   }
 
@@ -541,11 +545,8 @@ void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool disc
     }
     // Set new serving cell
     serving_cell = std::move(new_serving_cell);
-    rrc_log->info("Setting serving cell earfcn=%d, PCI=%d, rsrp=%.2f, nof_neighbours=%zd\n",
-                  serving_cell->get_earfcn(),
-                  serving_cell->get_pci(),
-                  serving_cell->get_rsrp(),
-                  neighbour_cells.size());
+    rrc_log->info(
+        "Setting serving cell %s, nof_neighbours=%zd\n", serving_cell->to_string().c_str(), neighbour_cells.size());
   } else {
     rrc_log->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.pci);
   }
@@ -653,6 +654,7 @@ bool rrc::add_neighbour_cell(phy_meas_t meas)
   unique_cell_t c                            = unique_cell_t(new cell_t(phy_cell));
   c.get()->set_rsrp(meas.rsrp);
   c.get()->set_rsrq(meas.rsrq);
+  c.get()->set_cfo(meas.cfo_hz);
   return add_neighbour_cell(std::move(c));
 }
 
@@ -1083,7 +1085,7 @@ bool rrc::ho_prepare()
     }
 
     cell_t* target_cell = get_neighbour_cell_handle(target_earfcn, mob_ctrl_info->target_pci);
-    if (!phy->cell_select(&target_cell->phy_cell)) {
+    if (not phy->cell_select(&target_cell->phy_cell, target_cell->get_cfo_hz())) {
       rrc_log->error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
                      target_cell->to_string().c_str(),
                      serving_cell->to_string().c_str());

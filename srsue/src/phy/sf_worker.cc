@@ -332,6 +332,7 @@ void sf_worker::update_measurements()
       rrc_interface_phy_lte::phy_meas_t meas = {};
       meas.rsrp                              = phy->avg_rsrp_dbm[cc_idx];
       meas.rsrq                              = phy->avg_rsrq_db[cc_idx];
+      meas.cfo_hz                            = phy->avg_cfo_hz[cc_idx];
       // Save EARFCN and PCI for secondary cells, primary cell has earfcn=0
       if (cc_idx > 0) {
         meas.earfcn = phy->scell_cfg[cc_idx].earfcn;

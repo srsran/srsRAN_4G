@@ -203,7 +203,7 @@ SRSLTE_API void srslte_ue_sync_file_wrap(srslte_ue_sync_t *q,
 SRSLTE_API int srslte_ue_sync_set_cell(srslte_ue_sync_t *q,
                                        srslte_cell_t cell);
 
-SRSLTE_API void srslte_ue_sync_cfo_reset(srslte_ue_sync_t *q);
+SRSLTE_API void srslte_ue_sync_cfo_reset(srslte_ue_sync_t* q, float init_cfo_hz);
 
 SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
 

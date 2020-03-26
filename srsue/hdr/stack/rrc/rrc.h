@@ -148,9 +148,16 @@ public:
       rsrq = rsrq_;
     }
   }
+  void set_cfo(float cfo_Hz_)
+  {
+    if (not std::isnan(cfo_Hz_) && not std::isinf(cfo_Hz_)) {
+      cfo_hz = cfo_Hz_;
+    }
+  }
 
   float get_rsrp() { return rsrp; }
   float get_rsrq() { return rsrq; }
+  float get_cfo_hz() { return cfo_hz; }
 
   void set_sib1(asn1::rrc::sib_type1_s* sib1_);
   void set_sib2(asn1::rrc::sib_type2_s* sib2_);
@@ -235,11 +242,12 @@ public:
     char buf[256];
     snprintf(buf,
              256,
-             "{cell_id: 0x%x, pci: %d, dl_earfcn: %d, rsrp=%+.1f}",
+             "{cell_id: 0x%x, pci: %d, dl_earfcn: %d, rsrp=%+.1f, cfo=%+.1f}",
              get_cell_id(),
              get_pci(),
              get_earfcn(),
-             get_rsrp());
+             get_rsrp(),
+             get_cfo_hz());
     return std::string{buf};
   }
 
@@ -256,6 +264,7 @@ public:
 private:
   float rsrp = NAN;
   float rsrq = NAN;
+  float cfo_hz = 0.0f;
 
   struct timeval last_update = {};
 

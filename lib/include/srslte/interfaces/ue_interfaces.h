@@ -127,6 +127,7 @@ public:
   typedef struct {
     float    rsrp;
     float    rsrq;
+    float    cfo_hz;
     uint32_t earfcn;
     uint32_t pci;
   } phy_meas_t;
@@ -578,9 +579,9 @@ public:
   } phy_cell_t;
 
   /* Cell search and selection procedures */
-  virtual cell_search_ret_t cell_search(phy_cell_t* cell)              = 0;
-  virtual bool              cell_select(const phy_cell_t* cell = NULL) = 0;
-  virtual bool              cell_is_camping()                          = 0;
+  virtual cell_search_ret_t cell_search(phy_cell_t* cell)                                      = 0;
+  virtual bool              cell_select(const phy_cell_t* cell = nullptr, float cfo_hz = 0.0f) = 0;
+  virtual bool              cell_is_camping()                                                  = 0;
 
   virtual void reset() = 0;
 

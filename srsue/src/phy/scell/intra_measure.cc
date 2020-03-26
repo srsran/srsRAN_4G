@@ -192,6 +192,7 @@ void intra_measure::measure_proc()
       m.earfcn                            = current_earfcn;
       m.rsrp                              = refsignal_dl_sync.rsrp_dBfs - rx_gain_offset_db;
       m.rsrq                              = refsignal_dl_sync.rsrq_dB;
+      m.cfo_hz                            = refsignal_dl_sync.cfo_Hz;
       neighbour_cells.push_back(m);
 
       Info("INTRA: Found neighbour cell: EARFCN=%d, PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, "

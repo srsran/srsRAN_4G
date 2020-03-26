@@ -252,7 +252,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
 /* Cell select synchronizes to a new cell (e.g. during HO or during cell reselection on IDLE) or
  * re-synchronizes with the current cell if cell argument is NULL
  */
-bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell)
+bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell, float cfo)
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
 
@@ -288,7 +288,7 @@ bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell)
   /* Reconfigure cell if necessary */
   if (new_cell != nullptr) {
     cell.id = new_cell->pci;
-    if (!set_cell()) {
+    if (not set_cell(cfo)) {
       Error("Cell Select: Reconfiguring cell\n");
       return ret;
     }
@@ -500,6 +500,7 @@ void sync::run_thread()
               // Set CFO for all Carriers
               for (uint32_t cc = 0; cc < worker_com->args->nof_carriers; cc++) {
                 worker->set_cfo(cc, get_tx_cfo());
+                worker_com->avg_cfo_hz[cc] = srslte_ue_sync_get_cfo(&ue_sync);
               }
 
               worker->set_tti(tti);
@@ -524,16 +525,6 @@ void sync::run_thread()
               // Start worker
               worker_com->semaphore.push(worker);
               workers_pool->start_worker(worker);
-
-              // Save signal for Intra-frequency measurement
-              if (srslte_cell_isvalid(&cell)) {
-                for (size_t i = 0; i < intra_freq_meas.size(); i++) {
-                  intra_freq_meas[i]->write(tti, worker->get_buffer(i, 0), SRSLTE_SF_LEN_PRB(cell.nof_prb));
-
-                  // Update RX gain
-                  intra_freq_meas[i]->set_rx_gain_offset(worker_com->rx_gain_offset);
-                }
-              }
 
               break;
             case 0:
@@ -695,7 +686,8 @@ void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
                                  worker_com->args->cfo_loop_pss_conv);
 
   // Disable CP based CFO estimation during find
-  if (cfo != 0) {
+  if (isnormal(cfo)) {
+    srslte_ue_sync_cfo_reset(q, cfo);
     q->cfo_current_value       = cfo / 15000;
     q->cfo_is_copied           = true;
     q->cfo_correct_enable_find = true;
@@ -720,7 +712,7 @@ void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
   srslte_sync_set_sss_algorithm(&q->sfind, (sss_alg_t)sss_alg);
 }
 
-bool sync::set_cell()
+bool sync::set_cell(float cfo)
 {
   if (!phy_state.is_idle()) {
     Warning("Can not change Cell while not in IDLE\n");
@@ -752,7 +744,7 @@ bool sync::set_cell()
   }
 
   // Set options defined in expert section
-  set_ue_sync_opts(&ue_sync, search_p.get_last_cfo());
+  set_ue_sync_opts(&ue_sync, cfo);
 
   // Reset ue_sync and set CFO/gain from search procedure
   srslte_ue_sync_reset(&ue_sync);
@@ -875,6 +867,16 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_ti
     if (channel_emulator && rx_time) {
       channel_emulator->set_srate((uint32_t)current_srate);
       channel_emulator->run(data.to_cf_t(), data.to_cf_t(), nsamples, *rx_time);
+    }
+
+    // Save signal for Intra-frequency measurement
+    if (srslte_cell_isvalid(&cell)) {
+      for (uint32_t i = 0; (uint32_t)i < intra_freq_meas.size(); i++) {
+        intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), SRSLTE_SF_LEN_PRB(cell.nof_prb));
+
+        // Update RX gain
+        intra_freq_meas[i]->set_rx_gain_offset(worker_com->rx_gain_offset);
+      }
     }
 
     int offset = nsamples - current_sflen;

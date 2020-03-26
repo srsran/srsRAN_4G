@@ -303,7 +303,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t*        q,
 
     srslte_ue_sync_set_N_id_2(&q->ue_sync, N_id_2);
     srslte_ue_sync_reset(&q->ue_sync);
-    srslte_ue_sync_cfo_reset(&q->ue_sync);
+    srslte_ue_sync_cfo_reset(&q->ue_sync, 0.0f);
     srslte_ue_sync_set_nof_find_frames(&q->ue_sync, q->max_frames);
 
     do {

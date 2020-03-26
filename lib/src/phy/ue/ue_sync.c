@@ -102,7 +102,7 @@ int srslte_ue_sync_init_file_multi(srslte_ue_sync_t* q,
       free(file_offset_buffer);
     }
 
-    srslte_ue_sync_cfo_reset(q);
+    srslte_ue_sync_cfo_reset(q, 0.0f);
     srslte_ue_sync_reset(q);
 
     ret = SRSLTE_SUCCESS;
@@ -114,12 +114,12 @@ clean_exit:
   return ret;
 }
 
-void srslte_ue_sync_cfo_reset(srslte_ue_sync_t* q)
+void srslte_ue_sync_cfo_reset(srslte_ue_sync_t* q, float init_cfo_hz)
 {
   q->cfo_is_copied     = false;
-  q->cfo_current_value = 0;
-  srslte_sync_cfo_reset(&q->strack);
-  srslte_sync_cfo_reset(&q->sfind);
+  q->cfo_current_value = init_cfo_hz / 15e3f;
+  srslte_sync_cfo_reset(&q->strack, init_cfo_hz);
+  srslte_sync_cfo_reset(&q->sfind, init_cfo_hz);
 }
 
 void srslte_ue_sync_reset(srslte_ue_sync_t* q)
@@ -609,7 +609,7 @@ static int find_peak_ok(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_CHANN
     if (!q->cfo_is_copied) {
       q->cfo_current_value = srslte_sync_get_cfo(&q->sfind);
     }
-    srslte_sync_cfo_reset(&q->strack);
+    srslte_sync_cfo_reset(&q->strack, 0.0f);
   }
 
   if (q->cell.id < 1000) {

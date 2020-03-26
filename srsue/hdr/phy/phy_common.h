@@ -65,6 +65,7 @@ public:
   float    avg_rsrp_dbm[SRSLTE_MAX_CARRIERS]   = {};
   float    avg_rsrq_db[SRSLTE_MAX_CARRIERS]    = {};
   float    avg_rssi_dbm[SRSLTE_MAX_CARRIERS]   = {};
+  float    avg_cfo_hz[SRSLTE_MAX_CARRIERS]     = {};
   float    rx_gain_offset                      = 0.0f;
   float    avg_snr_db_cqi[SRSLTE_MAX_CARRIERS] = {};
   float    avg_noise[SRSLTE_MAX_CARRIERS]      = {};

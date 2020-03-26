@@ -106,7 +106,7 @@ scell_recv::find_cells(const cf_t* input_buffer, const srslte_cell_t serving_cel
       srslte_sync_find_ret_t sync_res;
 
       srslte_sync_reset(&sync_find);
-      srslte_sync_cfo_reset(&sync_find);
+      srslte_sync_cfo_reset(&sync_find, 0.0f);
 
       sync_res          = SRSLTE_SYNC_NOFOUND;
       bool sss_detected = false;

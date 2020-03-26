@@ -184,7 +184,7 @@ SRSLTE_API void srslte_sync_set_sss_eq_enable(srslte_sync_t* q, bool enable);
 SRSLTE_API float srslte_sync_get_cfo(srslte_sync_t* q);
 
 /* Resets internal CFO state */
-SRSLTE_API void srslte_sync_cfo_reset(srslte_sync_t* q);
+SRSLTE_API void srslte_sync_cfo_reset(srslte_sync_t* q, float cfo_Hz);
 
 /* Copies CFO internal state from another object to avoid long transients */
 SRSLTE_API void srslte_sync_copy_cfo(srslte_sync_t* q, srslte_sync_t* src_obj);
