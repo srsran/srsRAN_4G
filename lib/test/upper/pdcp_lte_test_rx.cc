@@ -132,26 +132,26 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
 
   /*
    * RX Test 3: PDCP LTE Entity with SN LEN = 12
-   * Test reception of a dublicate PDU, the duplicate should just be dropped.
+   * Test reception of a dublicate SN, the duplicate should just be dropped.
    */
   {
     std::vector<uint32_t> test_counts(2);                  // Test two packets
-    std::iota(test_counts.begin(), test_counts.end(), 31); // Starting at COUNT 4095
+    std::iota(test_counts.begin(), test_counts.end(), 31); // Starting at COUNT 31
     std::vector<pdcp_test_event_t> test_pdus = gen_expected_pdus_vector(
         tst_sdu1, test_counts, srslte::PDCP_SN_LEN_12, srslte::PDCP_RB_IS_DRB, sec_cfg, pool, log);
     pdcp_lte_initial_state test_init_state = {
-        .tx_count = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 33, .last_submitted_pdcp_rx_sn = 32};
+        .tx_count = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 32, .last_submitted_pdcp_rx_sn = 31};
     TESTASSERT(test_rx(std::move(test_pdus),
                        test_init_state,
                        srslte::PDCP_SN_LEN_12,
                        srslte::PDCP_RB_IS_DRB,
-                       2,
+                       test_counts.size() - 1,
                        tst_sdu1,
                        pool,
                        log) == 0);
   }
 
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 // Setup all tests
