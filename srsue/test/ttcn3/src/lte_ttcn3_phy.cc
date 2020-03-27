@@ -151,7 +151,7 @@ phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* 
   return ret;
 };
 
-bool lte_ttcn3_phy::cell_select(const phy_cell_t* rrc_cell)
+bool lte_ttcn3_phy::cell_select(const phy_cell_t* rrc_cell, float cfo)
 {
   // try to find RRC cell in current cell map
   for (auto& cell : cells) {
