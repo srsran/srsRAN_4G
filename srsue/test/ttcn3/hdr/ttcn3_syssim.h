@@ -200,6 +200,10 @@ public:
     log->step(tti);
     log->debug("Start TTI\n");
 
+    // Make sure to step SS timers
+    step_timer();
+
+    // inform UE about new TTI
     ue->set_current_tti(tti);
 
     // check scheduled actions for this TTI
@@ -383,9 +387,9 @@ public:
     ue->stop();
   }
 
-  // Internal function called with acquired lock
   void reset()
   {
+    log->info("Resetting SS\n");
     rlc.reset();
     pdcp.reset();
     cells.clear();
