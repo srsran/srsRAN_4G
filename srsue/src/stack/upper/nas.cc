@@ -337,21 +337,22 @@ void nas::timer_expired(uint32_t timeout_id)
 {
   if (timeout_id == t3402.id()) {
     nas_log->info("Timer T3402 expired: trying to attach again\n");
+    attach_attempt_counter = 0; // Sec. 5.5.1.1
     start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
   } else if (timeout_id == t3410.id()) {
     // Section 5.5.1.2.6 case c)
     attach_attempt_counter++;
 
-    nas_log->info("Timer T3410 expired after attach attempt %d/%d: starting T3411\n",
-                  attach_attempt_counter,
-                  max_attach_attempts);
-
     if (attach_attempt_counter < max_attach_attempts) {
+      nas_log->info("Timer T3410 expired after attach attempt %d/%d: starting T3411\n",
+                    attach_attempt_counter,
+                    max_attach_attempts);
+
       // start T3411, ToDo: EMM-DEREGISTERED.ATTEMPTING-TO-ATTACH isn't fully implemented yet
       t3411.run();
     } else {
       // maximum attach attempts reached
-      enter_emm_deregistered();
+      nas_log->info("Timer T3410 expired. Maximum attempts reached. Starting T3402\n");
       t3402.run();
     }
   } else if (timeout_id == t3411.id()) {
@@ -470,9 +471,8 @@ void nas::enter_emm_deregistered()
 
   eps_bearer.clear();
 
-  plmn_is_selected       = false;
-  attach_attempt_counter = 0;
-  state                  = EMM_STATE_DEREGISTERED;
+  plmn_is_selected = false;
+  state            = EMM_STATE_DEREGISTERED;
 }
 
 void nas::left_rrc_connected() {}
@@ -540,6 +540,11 @@ void nas::select_plmn()
                      known_plmns[0].to_string().c_str());
     plmn_is_selected = true;
     current_plmn     = known_plmns[0];
+  }
+
+  // reset attach attempt counter (Sec. 5.2.2.3.4)
+  if (plmn_is_selected) {
+    attach_attempt_counter = 0;
   }
 }
 
@@ -1151,6 +1156,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       // bearer added successfully
       state = EMM_STATE_REGISTERED;
 
+      attach_attempt_counter = 0; // reset according to 5.5.1.1
+
       // send attach complete
       send_attach_complete(transaction_id, bearer.eps_bearer_id);
     } else {
@@ -1180,6 +1187,17 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   if (t3410.is_running()) {
     nas_log->debug("Stopping T3410\n");
     t3410.stop();
+  }
+
+  // Reset attach attempt counter according to 5.5.1.1
+  if (attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_PLMN_NOT_ALLOWED ||
+      attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_TRACKING_AREA_NOT_ALLOWED ||
+      attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_ROAMING_NOT_ALLOWED_IN_THIS_TRACKING_AREA ||
+      attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_EPS_SERVICES_NOT_ALLOWED_IN_THIS_PLMN ||
+      attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_NO_SUITABLE_CELLS_IN_TRACKING_AREA ||
+      attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG) {
+    // delete security context
+    attach_attempt_counter = 0;
   }
 
   // 5.5.1.2.5
@@ -1865,6 +1883,7 @@ void nas::send_detach_request(bool switch_off)
     state = EMM_STATE_DEREGISTERED_INITIATED;
 
     // start T3421
+    nas_log->info("Starting T3421\n");
     t3421.run();
   }
 
