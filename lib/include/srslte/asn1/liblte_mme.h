@@ -1063,6 +1063,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_ms_network_capability_ie(uint8**            
 // Defines
 // Enums
 // Structs
+#define LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE (7)
 typedef struct {
   LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_ENUM tsc_flag;
   uint8                                         nas_ksi;
