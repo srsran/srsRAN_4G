@@ -220,6 +220,7 @@ private:
   void send_activate_test_mode_complete(const uint8_t sec_hdr_type);
 
   // Other internal helpers
+  void enter_state(emm_state_t state_);
   void handle_airplane_mode_sim();
   void enter_emm_deregistered();
 

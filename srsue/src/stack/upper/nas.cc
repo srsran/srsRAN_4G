@@ -253,7 +253,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   usim  = usim_;
   rrc   = rrc_;
   gw    = gw_;
-  state = EMM_STATE_DEREGISTERED;
+  enter_state(EMM_STATE_DEREGISTERED);
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
     nas_log->error("Getting Home PLMN Id from USIM. Defaulting to 001-01\n");
@@ -493,7 +493,13 @@ void nas::enter_emm_deregistered()
   eps_bearer.clear();
 
   plmn_is_selected = false;
-  state            = EMM_STATE_DEREGISTERED;
+  enter_state(EMM_STATE_DEREGISTERED);
+}
+
+void nas::enter_state(emm_state_t state_)
+{
+  state = state_;
+  nas_log->info("New state %s\n", emm_state_text[state]);
 }
 
 void nas::left_rrc_connected() {}
@@ -1186,7 +1192,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     bearer.eps_bearer_id = act_def_eps_bearer_context_req.eps_bearer_id;
     if (eps_bearer.insert(eps_bearer_map_pair_t(bearer.eps_bearer_id, bearer)).second) {
       // bearer added successfully
-      state = EMM_STATE_REGISTERED;
+      enter_state(EMM_STATE_REGISTERED);
 
       attach_attempt_counter = 0; // reset according to 5.5.1.1
 
@@ -1919,7 +1925,7 @@ void nas::send_detach_request(bool switch_off)
     enter_emm_deregistered();
   } else {
     // we are expecting a response from the core
-    state = EMM_STATE_DEREGISTERED_INITIATED;
+    enter_state(EMM_STATE_DEREGISTERED_INITIATED);
 
     // start T3421
     nas_log->info("Starting T3421\n");
@@ -2234,7 +2240,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
 
   unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
   if (!pdu) {
-    nas_log->error("Fatal Error: Couldn't allocate PDU in send_attach_request().\n");
+    nas_log->error("Fatal Error: Couldn't allocate PDU in %s.\n", __FUNCTION__);
     return;
   }
 
