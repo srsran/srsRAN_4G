@@ -210,6 +210,7 @@ private:
   void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg);
   void send_security_mode_reject(uint8_t cause);
+  void send_attach_request();
   void send_detach_request(bool switch_off);
   void send_detach_accept();
   void send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_transaction_id,

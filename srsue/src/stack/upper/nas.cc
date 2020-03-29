@@ -356,7 +356,13 @@ void nas::timer_expired(uint32_t timeout_id)
     }
   } else if (timeout_id == t3411.id()) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
-    start_attach_proc(nullptr, srslte::establishment_cause_t::mo_sig);
+    if (rrc->is_connected()) {
+      // send attach request through established RRC connection
+      send_attach_request();
+    } else {
+      // start attach procedure
+      start_attach_proc(nullptr, srslte::establishment_cause_t::mo_sig);
+    }
   } else if (timeout_id == t3421.id()) {
     nas_log->info("Timer T3421 expired: entering EMM_STATE_DEREGISTERED\n");
     // TODO: TS 24.301 says to resend detach request but doesn't say how often before entering EMM_STATE_DEREGISTERED
@@ -1824,6 +1830,20 @@ void nas::send_security_mode_reject(uint8_t cause)
   }
   nas_log->info("Sending security mode reject\n");
   rrc->write_sdu(std::move(msg));
+}
+
+/**
+ * Pack attach request message and send to RRC for transmission.
+ */
+void nas::send_attach_request()
+{
+  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  if (!pdu) {
+    nas_log->error("Fatal Error: Couldn't allocate PDU in %s().\n", __FUNCTION__);
+    return;
+  }
+  gen_attach_request(pdu);
+  rrc->write_sdu(std::move(pdu));
 }
 
 void nas::send_detach_request(bool switch_off)
