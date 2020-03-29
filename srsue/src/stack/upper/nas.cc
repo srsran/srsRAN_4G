@@ -293,8 +293,6 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int, ctxt.cipher_algo, ctxt.integ_algo);
     nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
     nas_log->debug_hex(k_nas_int, 32, "NAS integrity key - k_nas_int");
-    have_guti = true;
-    have_ctxt = true;
   }
 
   // Configure timers
@@ -354,6 +352,7 @@ void nas::timer_expired(uint32_t timeout_id)
       // maximum attach attempts reached
       nas_log->info("Timer T3410 expired. Maximum attempts reached. Starting T3402\n");
       t3402.run();
+      reset_security_context();
     }
   } else if (timeout_id == t3411.id()) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
@@ -918,6 +917,17 @@ int nas::apply_security_config(srslte::unique_byte_buffer_t& pdu)
   return SRSLTE_SUCCESS;
 }
 
+/**
+ * Reset and delete any GUTI, TAI list, last visited registered TAI, list of equivalent PLMNs and KSI
+ */
+void nas::reset_security_context()
+{
+  have_guti = false;
+  have_ctxt = false;
+  ctxt      = {};
+  ctxt.ksi = LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE;
+}
+
 /*******************************************************************************
  * Parsers
  ******************************************************************************/
@@ -1196,7 +1206,6 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
       attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_EPS_SERVICES_NOT_ALLOWED_IN_THIS_PLMN ||
       attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_NO_SUITABLE_CELLS_IN_TRACKING_AREA ||
       attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_NOT_AUTHORIZED_FOR_THIS_CSG) {
-    // delete security context
     attach_attempt_counter = 0;
   }
 
@@ -1205,9 +1214,7 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
       attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_ILLEGAL_ME ||
       attach_rej.emm_cause == LIBLTE_MME_EMM_CAUSE_REQUESTED_SERVICE_OPTION_NOT_AUTHORIZED) {
     // delete security context
-    have_guti = false;
-    have_ctxt = false;
-    ctxt      = {};
+    reset_security_context();
   }
 
   // TODO: handle other relevant reject causes
@@ -1418,11 +1425,7 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   // TODO: handle NAS backoff-timers correctly
 
   enter_emm_deregistered();
-
-  // Reset security context
-  ctxt      = {};
-  have_ctxt = false;
-  have_guti = false;
+  reset_security_context();
 
   // Send attach request after receiving service reject
   pdu->clear();

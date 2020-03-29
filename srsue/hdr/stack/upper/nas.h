@@ -172,6 +172,7 @@ private:
   void cipher_encrypt(srslte::byte_buffer_t* pdu);
   void cipher_decrypt(srslte::byte_buffer_t* pdu);
   int  apply_security_config(srslte::unique_byte_buffer_t& pdu);
+  void reset_security_context();
 
   void set_k_enb_count(uint32_t count);
 
