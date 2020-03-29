@@ -283,7 +283,7 @@ public:
   using base_t::get_if;
   using base_t::is;
 
-  choice_t() noexcept { this_union().construct_unsafe(); }
+  choice_t() noexcept { base_t::construct_unsafe(); }
 
   choice_t(const choice_t<Args...>& other) noexcept { base_t::copy_unsafe(other); }
 
@@ -325,20 +325,38 @@ public:
   choice_t& operator=(choice_t&& other) noexcept
   {
     base_t::dtor_unsafe();
-    base_t::move_unsafe(other);
+    base_t::move_unsafe(std::move(other));
     return *this;
   }
 
+  bool holds_same_type(const choice_t& other) noexcept { return base_t::type_id == other.type_id; }
+
+  template <typename Functor>
+  void visit(Functor&& f)
+  {
+    choice_details::visit<Functor, Args...>(*static_cast<base_t*>(this), f);
+  }
+
+  template <typename Functor>
+  void visit(Functor&& f) const
+  {
+    choice_details::visit<Functor, Args...>(*static_cast<const base_t*>(this), f);
+  }
+
 private:
-  base_t&       this_union() { return *this; }
-  const base_t& this_union() const { return *this; }
 };
 
-// template <typename Functor, typename First, typename... Args>
-// void visit(choice_t<First, Args...>& u, Functor&& f)
-//{
-//  choice_details::visit_impl<Functor, decltype(u), First, Args...>::template apply(u, f);
-//}
+template <typename Functor, typename... Args>
+void visit(choice_t<Args...>& u, Functor&& f)
+{
+  u.visit(std::forward<Functor>(f));
+}
+
+template <typename Functor, typename... Args>
+void visit(const choice_t<Args...>& u, Functor&& f)
+{
+  u.visit(std::forward<Functor>(f));
+}
 
 } // namespace srslte
 
