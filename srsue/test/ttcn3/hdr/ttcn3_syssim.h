@@ -255,6 +255,7 @@ public:
     if (SRSLTE_RNTI_ISSI(dl_rnti)) {
       // deliver SIBs one after another
       mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
+      dl_grant.tti                                   = tti;
       dl_grant.pid                                   = get_pid(tti);
       dl_grant.rnti                                  = dl_rnti;
       dl_grant.tb[0].tbs                             = cells[pcell_idx]->sibs[cells[pcell_idx]->sib_idx]->N_bytes;
@@ -358,6 +359,7 @@ public:
 
               // Prepare MAC grant for CCCH
               mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
+              dl_grant.tti                                   = tti;
               dl_grant.pid                                   = get_pid(tti);
               dl_grant.rnti                                  = dl_rnti;
               dl_grant.tb[0].tbs                             = mac_msg_dl.get_pdu_len();
@@ -575,6 +577,7 @@ public:
 
     // Prepare grant and pass all to MAC
     mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
+    dl_grant.tti                                   = tti;
     dl_grant.pid                                   = get_pid(tti);
     dl_grant.rnti                                  = 0x1; // must be a valid RAR-RNTI
     dl_grant.tb[0].tbs                             = rar_buffer.N_bytes;
@@ -593,6 +596,7 @@ public:
     log->info("Sending Msg3 grant for C-RNTI=%d\n", crnti);
     mac_interface_phy_lte::mac_grant_ul_t ul_grant = {};
 
+    ul_grant.tti_tx         = (tti + 3) % 10240;
     ul_grant.tb.tbs         = 32;
     ul_grant.tb.ndi_present = true;
     ul_grant.tb.ndi         = get_ndi_for_new_ul_tx(tti);
@@ -608,6 +612,7 @@ public:
   {
     // Provide new UL grant to UE
     mac_interface_phy_lte::mac_grant_ul_t ul_grant = {};
+    ul_grant.tti_tx                                = (tti + 3) % 10240;
     ul_grant.tb.tbs                                = 100; // TODO: reasonable size?
     ul_grant.tb.ndi_present                        = true;
     ul_grant.tb.ndi                                = get_ndi_for_new_ul_tx(tti);
@@ -887,6 +892,7 @@ public:
 
     // Prepare MAC grant for PCH
     mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
+    dl_grant.tti                                   = tti;
     dl_grant.pid                                   = get_pid(tti);
     dl_grant.rnti                                  = SRSLTE_PRNTI;
     dl_grant.tb[0].tbs                             = pdu->N_bytes;
@@ -997,6 +1003,7 @@ public:
     // Prepare MAC grant for CCCH
     mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
     dl_grant.pid                                   = get_pid(tti);
+    dl_grant.tti                                   = tti;
     dl_grant.rnti                                  = dl_rnti;
     dl_grant.tb[0].tbs                             = mac_msg_dl.get_pdu_len();
     dl_grant.tb[0].ndi_present                     = true;
