@@ -153,7 +153,7 @@ public:
   bool switch_on() final
   {
     proc_state_t proc_result;
-    nas->start_attach_request(&proc_result, srslte::establishment_cause_t::mo_data);
+    nas->start_attach_proc(&proc_result, srslte::establishment_cause_t::mo_data);
     while (not proc_result.is_complete()) {
       usleep(1000);
     }

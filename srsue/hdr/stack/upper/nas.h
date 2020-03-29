@@ -60,7 +60,7 @@ public:
   bool     get_ipv6_addr(uint8_t* ipv6_addr);
 
   // UE interface
-  void start_attach_request(srslte::proc_state_t* result, srslte::establishment_cause_t cause_) final;
+  void start_attach_proc(srslte::proc_state_t* result, srslte::establishment_cause_t cause_) final;
   bool detach_request(const bool switch_off) final;
 
   void plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],

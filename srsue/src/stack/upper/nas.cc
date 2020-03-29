@@ -338,7 +338,7 @@ void nas::timer_expired(uint32_t timeout_id)
   if (timeout_id == t3402.id()) {
     nas_log->info("Timer T3402 expired: trying to attach again\n");
     attach_attempt_counter = 0; // Sec. 5.5.1.1
-    start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+    start_attach_proc(nullptr, srslte::establishment_cause_t::mo_sig);
   } else if (timeout_id == t3410.id()) {
     // Section 5.5.1.2.6 case c)
     attach_attempt_counter++;
@@ -357,7 +357,7 @@ void nas::timer_expired(uint32_t timeout_id)
     }
   } else if (timeout_id == t3411.id()) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
-    start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+    start_attach_proc(nullptr, srslte::establishment_cause_t::mo_sig);
   } else if (timeout_id == t3421.id()) {
     nas_log->info("Timer T3421 expired: entering EMM_STATE_DEREGISTERED\n");
     // TODO: TS 24.301 says to resend detach request but doesn't say how often before entering EMM_STATE_DEREGISTERED
@@ -365,7 +365,7 @@ void nas::timer_expired(uint32_t timeout_id)
     enter_emm_deregistered();
   } else if (timeout_id == reattach_timer.id()) {
     nas_log->info("Reattach timer expired: trying to attach again\n");
-    start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+    start_attach_proc(nullptr, srslte::establishment_cause_t::mo_sig);
   } else {
     nas_log->error("Timeout from unknown timer id %d\n", timeout_id);
   }
@@ -379,7 +379,7 @@ void nas::timer_expired(uint32_t timeout_id)
  * The function returns true if the UE could attach correctly or false in case of error or timeout during attachment.
  *
  */
-void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishment_cause_t cause_)
+void nas::start_attach_proc(srslte::proc_state_t* result, srslte::establishment_cause_t cause_)
 {
   nas_log->info("Attach Request with cause %s.\n", to_string(cause_).c_str());
   switch (state) {
@@ -2380,7 +2380,7 @@ void nas::handle_airplane_mode_sim()
       // NAS is deregistered
       task_handler->defer_callback(cfg.sim.airplane_t_off_ms, [&]() {
         // Disabling airplane mode again
-        start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
+        start_attach_proc(nullptr, srslte::establishment_cause_t::mo_sig);
         airplane_mode_state = DISABLED;
       });
     }
