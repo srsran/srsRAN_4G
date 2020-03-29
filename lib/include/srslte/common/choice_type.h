@@ -211,10 +211,14 @@ struct tagged_union_t
   using base_t::get_buffer;
   using base_t::get_unsafe;
 
-  auto construct_unsafe() -> decltype(default_type(), void())
+  template <typename U, typename... Args2>
+  void construct_emplace_unsafe(Args2&&... args)
   {
-    type_id = sizeof...(Args) - 1;
-    new (get_buffer()) default_type();
+    using U2 = typename std::decay<U>::type;
+    static_assert(type_indexer<U2, Args...>::index != invalid_idx,
+                  "The provided type to ctor is not part of the list of possible types");
+    new (get_buffer()) U2(std::forward<Args2>(args)...);
+    type_id = type_indexer<U2, Args...>::index;
   }
 
   template <typename U>
@@ -255,7 +259,40 @@ struct tagged_union_t
   }
 
   template <typename T>
+  const T& get() const
+  {
+    if (is<T>()) {
+      return get_unsafe<T>();
+    }
+    throw choice_details::bad_choice_access{"in get<T>"};
+  }
+
+  template <std::size_t I, typename T = typename choice_details::type_get<sizeof...(Args) - I - 1, Args...>::type>
+  T& get()
+  {
+    if (is<T>()) {
+      return get_unsafe<T>();
+    }
+    throw choice_details::bad_choice_access{"in get<I>"};
+  }
+
+  template <std::size_t I, typename T = typename choice_details::type_get<sizeof...(Args) - I - 1, Args...>::type>
+  const T& get() const
+  {
+    if (is<T>()) {
+      return get_unsafe<T>();
+    }
+    throw choice_details::bad_choice_access{"in get<I>"};
+  }
+
+  template <typename T>
   T* get_if()
+  {
+    return (is<T>()) ? &get_unsafe<T>() : nullptr;
+  }
+
+  template <typename T>
+  const T* get_if() const
   {
     return (is<T>()) ? &get_unsafe<T>() : nullptr;
   }
@@ -283,14 +320,20 @@ public:
   using base_t::get_if;
   using base_t::is;
 
-  choice_t() noexcept { base_t::construct_unsafe(); }
+  template <
+      typename... Args2,
+      typename = typename std::enable_if<std::is_constructible<typename base_t::default_type, Args2...>::value>::type>
+  explicit choice_t(Args2&&... args) noexcept
+  {
+    base_t::template construct_emplace_unsafe<typename base_t::default_type>(std::forward<Args2>(args)...);
+  }
 
   choice_t(const choice_t<Args...>& other) noexcept { base_t::copy_unsafe(other); }
 
   choice_t(choice_t<Args...>&& other) noexcept { base_t::move_unsafe(std::move(other)); }
 
   template <typename U, typename = enable_if_can_hold<U> >
-  explicit choice_t(U&& u) noexcept
+  choice_t(U&& u) noexcept
   {
     base_t::construct_unsafe(std::forward<U>(u));
   }
@@ -307,10 +350,11 @@ public:
     return *this;
   }
 
-  template <typename U>
-  void emplace(U&& u) noexcept
+  template <typename U, typename... Args2>
+  void emplace(Args2&&... args) noexcept
   {
-    *this = std::forward<U>(u);
+    base_t::dtor_unsafe();
+    base_t::template construct_emplace_unsafe<U>(std::forward<Args2>(args)...);
   }
 
   choice_t& operator=(const choice_t& other) noexcept
@@ -345,6 +389,30 @@ public:
 
 private:
 };
+
+template <typename T, typename Choice>
+bool holds_alternative(const Choice& u)
+{
+  return u.template is<T>();
+}
+
+template <typename T, typename Choice>
+T* get_if(Choice& c)
+{
+  return c.template get_if<T>();
+}
+
+template <typename T, typename... Args>
+const T* get_if(const choice_t<Args...>& c)
+{
+  return c.template get_if<T>();
+}
+
+template <std::size_t I, typename... Args>
+auto get(const choice_t<Args...>& c) -> decltype(c.template get<I>())
+{
+  return c.template get<I>();
+}
 
 template <typename Functor, typename... Args>
 void visit(choice_t<Args...>& u, Functor&& f)

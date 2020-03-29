@@ -96,6 +96,10 @@ add_executable(tti_point_test tti_point_test.cc)
 target_link_libraries(tti_point_test srslte_common)
 add_test(tti_point_test tti_point_test)
 
+add_executable(fsm_test fsm_test.cc)
+target_link_libraries(fsm_test srslte_common)
+add_test(fsm_test fsm_test)
+
 add_executable(choice_type_test choice_type_test.cc)
 target_link_libraries(choice_type_test srslte_common)
 add_test(choice_type_test choice_type_test)

@@ -115,6 +115,7 @@ int test_choice()
     choice_t<char, int, double, C> c, c2{i}, c3{c0};
     TESTASSERT(c.is<char>());
     TESTASSERT(c2.is<int>() and c2.get<int>() == i and *c2.get_if<int>() == i);
+    TESTASSERT(c2.get<1>() == c2.get<int>());
     TESTASSERT(c3.is<C>());
     TESTASSERT(C::counter == 2);
 
