@@ -206,7 +206,6 @@ srslte::proc_outcome_t nas::rrc_connect_proc::react(attach_timeout event)
   }
   if (nas_ptr->state == EMM_STATE_DEREGISTERED) {
     ProcError("Timeout or received attach reject while trying to attach\n");
-    nas_ptr->nas_log->console("Failed to Attach\n");
   }
   return proc_outcome_t::error;
 }
@@ -341,6 +340,7 @@ void nas::timer_expired(uint32_t timeout_id)
     // Section 5.5.1.2.6 case c)
     attach_attempt_counter++;
 
+    nas_log->console("Attach failed (attempt %d/%d)\n",attach_attempt_counter, max_attach_attempts);
     if (attach_attempt_counter < max_attach_attempts) {
       nas_log->info("Timer T3410 expired after attach attempt %d/%d: starting T3411\n",
                     attach_attempt_counter,
