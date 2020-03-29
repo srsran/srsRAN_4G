@@ -939,13 +939,6 @@ public:
       pdcp.del_bearer(lcid);
       rlc.del_bearer(lcid);
     }
-
-    // Reset HARQ to generate new transmissions
-    if (lcid == 0) {
-      log->info("Resetting UL/DL NDI counters\n");
-      memset(last_dl_ndi, 0, sizeof(last_dl_ndi));
-      memset(last_ul_ndi, 0, sizeof(last_ul_ndi));
-    }
   }
 
   // RRC interface for PDCP, PDCP calls RRC to push RRC SDU
