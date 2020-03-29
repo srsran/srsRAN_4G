@@ -68,10 +68,10 @@ target_link_libraries(pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT
 add_test(pdu_test pdu_test)
 
 if (ENABLE_5GNR)
-  add_executable(mac_nr_pdu_test mac_nr_pdu_test.cc)
-  target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
-  add_test(mac_nr_pdu_test mac_nr_pdu_test)
-endif(ENABLE_5GNR)
+    add_executable(mac_nr_pdu_test mac_nr_pdu_test.cc)
+    target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
+    add_test(mac_nr_pdu_test mac_nr_pdu_test)
+endif (ENABLE_5GNR)
 
 add_executable(stack_procedure_test stack_procedure_test.cc)
 add_test(stack_procedure_test stack_procedure_test)
@@ -95,3 +95,7 @@ add_test(test_common_test test_common_test)
 add_executable(tti_point_test tti_point_test.cc)
 target_link_libraries(tti_point_test srslte_common)
 add_test(tti_point_test tti_point_test)
+
+add_executable(choice_type_test choice_type_test.cc)
+target_link_libraries(choice_type_test srslte_common)
+add_test(choice_type_test choice_type_test)
