@@ -405,10 +405,26 @@ void nas::start_attach_proc(srslte::proc_state_t* result, srslte::establishment_
           }
         });
       } else {
-        nas_log->error("PLMN selected in state %s\n", emm_state_text[state]);
-        if (result != nullptr) {
-          result->set_error();
+        nas_log->info("PLMN selected in state %s\n", emm_state_text[state]);
+
+        if (not rrc_connector.launch(cause_, nullptr)) {
+          nas_log->error("Cannot initiate concurrent rrc connection procedures\n");
+          if (result != nullptr) {
+            result->set_error();
+          }
+          return;
         }
+        rrc_connector.then([this, result](const proc_state_t& res) {
+          if (res.is_success()) {
+            nas_log->info("NAS attached successfully\n");
+          } else {
+            nas_log->error("Could not attach from attach_request\n");
+          }
+          if (result != nullptr) {
+            *result = res;
+          }
+        });
+        callbacks.add_proc(rrc_connector);
       }
       break;
     case EMM_STATE_REGISTERED:
