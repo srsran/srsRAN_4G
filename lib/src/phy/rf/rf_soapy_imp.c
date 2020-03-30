@@ -32,6 +32,7 @@
 #include <SoapySDR/Formats.h>
 #include <SoapySDR/Logger.h>
 #include <SoapySDR/Time.h>
+#include <SoapySDR/Version.h>
 #include <Types.h>
 
 #define HAVE_ASYNC_THREAD 1
@@ -342,6 +343,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
       rx_channels[i] = i;
     }
     printf("Setting up Rx stream with %zd channel(s)\n", handler->num_rx_channels);
+#if SOAPY_SDR_API_VERSION < 0x00080000
     if (SoapySDRDevice_setupStream(handler->device,
                                    &handler->rxStream,
                                    SOAPY_SDR_RX,
@@ -349,6 +351,12 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
                                    rx_channels,
                                    handler->num_rx_channels,
                                    NULL) != 0) {
+
+#else
+    handler->rxStream = SoapySDRDevice_setupStream(
+        handler->device, SOAPY_SDR_RX, SOAPY_SDR_CF32, rx_channels, handler->num_rx_channels, NULL);
+    if (handler->rxStream == NULL) {
+#endif
       printf("Rx setupStream fail: %s\n", SoapySDRDevice_lastError());
       return SRSLTE_ERROR;
     }
@@ -364,6 +372,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
       tx_channels[i] = i;
     }
     printf("Setting up Tx stream with %zd channel(s)\n", handler->num_tx_channels);
+#if SOAPY_SDR_API_VERSION < 0x00080000
     if (SoapySDRDevice_setupStream(handler->device,
                                    &handler->txStream,
                                    SOAPY_SDR_TX,
@@ -371,6 +380,11 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
                                    tx_channels,
                                    handler->num_tx_channels,
                                    NULL) != 0) {
+#else
+    handler->txStream = SoapySDRDevice_setupStream(
+        handler->device, SOAPY_SDR_TX, SOAPY_SDR_CF32, tx_channels, handler->num_tx_channels, NULL);
+    if (handler->txStream == NULL) {
+#endif
       printf("Tx setupStream fail: %s\n", SoapySDRDevice_lastError());
       return SRSLTE_ERROR;
     }
