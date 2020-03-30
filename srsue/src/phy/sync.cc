@@ -825,22 +825,39 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_ti
 
   // Receive
   if (radio_h->rx_now(data, nsamples, rx_time)) {
-    // Detect Radio Timestamp reset
-    if (srslte_timestamp_compare(rx_time, &radio_ts) < 0) {
-      srslte_timestamp_init(&radio_ts, 0, 0.0);
+    // check timestamp reset
+    if (forced_rx_time_init || srslte_timestamp_iszero(&tti_ts) || srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
+      if (srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
+        log_h->warning("SYNC:  radio time seems to be going backwards (rx_time=%f, tti_ts=%f)\n",
+                       srslte_timestamp_real(rx_time),
+                       srslte_timestamp_real(&tti_ts));
+        // time-stamp will be set to rx time below and run_tti() will be called with MIN_TTI_JUMP
+      }
+
+      // init tti_ts with last rx time
+      log_h->debug("SYNC:  Setting initial TTI time to %f\n", srslte_timestamp_real(rx_time));
+      srslte_timestamp_copy(&tti_ts, rx_time);
+      forced_rx_time_init = false;
     }
-    srslte_timestamp_copy(&radio_ts, rx_time);
 
     // Advance stack in time
-    if (srslte_timestamp_compare(rx_time, &tti_ts) > 0) {
-      uint32_t tti_jump = ceil((srslte_timestamp_real(rx_time) - srslte_timestamp_real(&tti_ts)) / 1.0e-3);
+    if (srslte_timestamp_compare(rx_time, &tti_ts) >= 0) {
+      srslte_timestamp_t temp = {};
+      srslte_timestamp_copy(&temp, rx_time);
+      srslte_timestamp_sub(&temp, tti_ts.full_secs, tti_ts.frac_secs);
+      int32_t tti_jump = static_cast<int32_t>(srslte_timestamp_uint64(&temp, 1e3));
+      tti_jump         = SRSLTE_MAX(tti_jump, MIN_TTI_JUMP);
+      if (tti_jump > MAX_TTI_JUMP) {
+        log_h->warning("SYNC:  TTI jump of %d limited to %d\n", tti_jump, MAX_TTI_JUMP);
+        tti_jump = SRSLTE_MIN(tti_jump, MAX_TTI_JUMP);
+      }
 
       // Run stack
       stack->run_tti(tti, tti_jump);
-
-      // Increase by the number of tti jumps detected
-      srslte_timestamp_add(&tti_ts, 0, tti_jump * 1.0e-3f);
     }
+
+    // update timestamp
+    srslte_timestamp_copy(&tti_ts, rx_time);
 
     if (channel_emulator && rx_time) {
       channel_emulator->set_srate((uint32_t)current_srate);

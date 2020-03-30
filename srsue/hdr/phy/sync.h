@@ -167,6 +167,8 @@ private:
   bool running               = false;
   bool is_overflow           = false;
 
+  bool forced_rx_time_init = true; // Rx time sync after first receive from radio
+
   // Objects for internal use
   search                                              search_p;
   sfn_sync                                            sfn_p;
@@ -340,7 +342,6 @@ private:
   bool                                        started           = false;
   uint32_t                                    tti               = 0;
   srslte_timestamp_t                          tti_ts            = {};
-  srslte_timestamp_t                          radio_ts          = {};
   std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib               = {};
 
   uint32_t nof_workers             = 0;
@@ -351,6 +352,9 @@ private:
 
   float dl_freq = -1;
   float ul_freq = -1;
+
+  const static int MIN_TTI_JUMP = 1;    // Time gap reported to stack after receiving subframe
+  const static int MAX_TTI_JUMP = 1000; // Maximum time gap tolerance in RF stream metadata
 
   const uint8_t SYNC_CC_IDX = 0; ///< From the sync POV, the CC idx is always the first
 };
