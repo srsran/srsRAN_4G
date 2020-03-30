@@ -241,6 +241,17 @@ static int init_plots(uint32_t frame_size)
 
 #endif /* ENABLE_GUI */
 
+class phy_dummy : public phy_interface_radio
+{
+public:
+  void radio_overflow() { num_overflows++; }
+  void radio_failure() { num_failures++; };
+
+private:
+  uint32_t num_overflows = 0;
+  uint32_t num_failures  = 0;
+};
+
 int main(int argc, char** argv)
 {
   int                ret                        = SRSLTE_ERROR;
@@ -251,6 +262,7 @@ int main(int argc, char** argv)
   srslte_filesink_t  filesink[SRSLTE_MAX_RADIOS] = {};
   srslte_dft_plan_t  dft_plan = {}, idft_plan = {};
   srslte_agc_t       agc[SRSLTE_MAX_RADIOS] = {};
+  phy_dummy          phy;
 
   bzero(&ts_prev, sizeof(ts_prev));
   bzero(&ts_rx, sizeof(ts_rx));
@@ -308,7 +320,7 @@ int main(int argc, char** argv)
     radio_args.device_args  = radios_args[r];
     radio_args.rx_gain      = agc_enable ? -1 : rf_gain;
 
-    if (!radio_h[r]->init(radio_args, NULL)) {
+    if (radio_h[r]->init(radio_args, &phy) != SRSLTE_SUCCESS) {
       fprintf(stderr, "Error: Calling radio_multi constructor\n");
       goto clean_exit;
     }
