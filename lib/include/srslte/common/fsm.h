@@ -53,11 +53,11 @@ struct state_name_visitor {
 template <typename TargetVariant, typename PrevState>
 struct variant_convert {
   template <typename State>
-  void operator()(State&& s)
+  void operator()(State& s)
   {
     static_assert(not std::is_same<typename std::decay<State>::type, typename std::decay<PrevState>::type>::value,
                   "State cannot transition to itself.\n");
-    *v = s;
+    *v = std::move(s);
   }
   TargetVariant* v;
   PrevState*     p;
@@ -138,13 +138,7 @@ struct fsm_helper {
 class state_t
 {
 public:
-  state_t() = default;
-  //  // forbid copies, allow move
-  //  state_t(const state_t&)     = delete;
-  //  state_t(state_t&&) noexcept = default;
-  //  state_t& operator=(const state_t&) = delete;
-  //  state_t& operator=(state_t&&) noexcept = default;
-
+  state_t()                        = default;
   virtual const char* name() const = 0;
 };
 
