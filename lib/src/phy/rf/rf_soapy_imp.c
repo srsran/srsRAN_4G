@@ -37,6 +37,7 @@
 
 #define HAVE_ASYNC_THREAD 1
 
+#define STOP_STREAM_BEFORE_RATE_CHANGE 1
 #define USE_TX_MTU 0
 #define SET_RF_BW 1
 
@@ -592,11 +593,13 @@ double rf_soapy_set_rx_srate(void* h, double rate)
 {
   rf_soapy_handler_t* handler = (rf_soapy_handler_t*)h;
 
+#if STOP_STREAM_BEFORE_RATE_CHANGE
   // Restart streaming, as the Lime seems to have problems reconfiguring the sample rate during streaming
   bool rx_stream_active = handler->rx_stream_active;
   if (rx_stream_active) {
     rf_soapy_stop_rx_stream(handler);
   }
+#endif // STOP_STREAM_BEFORE_RATE_CHANGE
 
   for (uint32_t i = 0; i < handler->num_rx_channels; i++) {
     if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_RX, i, rate) != 0) {
@@ -622,9 +625,11 @@ double rf_soapy_set_rx_srate(void* h, double rate)
 #endif
   }
 
+#if STOP_STREAM_BEFORE_RATE_CHANGE
   if (rx_stream_active) {
     rf_soapy_start_rx_stream(handler, true);
   }
+#endif // STOP_STREAM_BEFORE_RATE_CHANGE
 
   // retrun sample rate of first channel
   return SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_RX, 0);
@@ -634,11 +639,13 @@ double rf_soapy_set_tx_srate(void* h, double rate)
 {
   rf_soapy_handler_t* handler = (rf_soapy_handler_t*)h;
 
+#if STOP_STREAM_BEFORE_RATE_CHANGE
   // stop/start streaming during rate reconfiguration
   bool rx_stream_active = handler->rx_stream_active;
   if (handler->rx_stream_active) {
     rf_soapy_stop_rx_stream(handler);
   }
+#endif // STOP_STREAM_BEFORE_RATE_CHANGE
 
   for (uint32_t i = 0; i < handler->num_tx_channels; i++) {
     if (SoapySDRDevice_setSampleRate(handler->device, SOAPY_SDR_TX, i, rate) != 0) {
@@ -663,9 +670,12 @@ double rf_soapy_set_tx_srate(void* h, double rate)
     }
 #endif
   }
+
+#if STOP_STREAM_BEFORE_RATE_CHANGE
   if (rx_stream_active) {
     rf_soapy_start_rx_stream(handler, true);
   }
+#endif // STOP_STREAM_BEFORE_RATE_CHANGE
 
   handler->tx_rate = SoapySDRDevice_getSampleRate(handler->device, SOAPY_SDR_TX, 0);
 
