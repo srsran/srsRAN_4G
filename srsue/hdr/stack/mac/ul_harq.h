@@ -22,11 +22,6 @@
 #ifndef SRSUE_UL_HARQ_H
 #define SRSUE_UL_HARQ_H
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
-
 #include "mux.h"
 #include "proc_ra.h"
 #include "srslte/common/interfaces_common.h"

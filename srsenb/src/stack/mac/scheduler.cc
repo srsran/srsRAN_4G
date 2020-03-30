@@ -25,14 +25,10 @@
 #include "srsenb/hdr/stack/mac/scheduler.h"
 #include "srsenb/hdr/stack/mac/scheduler_carrier.h"
 #include "srslte/common/logmap.h"
-#include "srslte/common/pdu.h"
 #include "srslte/srslte.h"
 
 #define Console(fmt, ...) srslte::logmap::get("MAC ")->console(fmt, ##__VA_ARGS__)
 #define Error(fmt, ...) srslte::logmap::get("MAC ")->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
 

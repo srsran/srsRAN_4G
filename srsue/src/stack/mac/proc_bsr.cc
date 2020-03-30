@@ -19,13 +19,8 @@
  *
  */
 
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
-
 #include "srsue/hdr/stack/mac/proc_bsr.h"
-#include "srsue/hdr/stack/mac/mac.h"
+#include "srslte/common/log_helper.h"
 #include "srsue/hdr/stack/mac/mux.h"
 
 namespace srsue {

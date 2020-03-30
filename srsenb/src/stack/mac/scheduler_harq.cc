@@ -22,13 +22,9 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srslte/common/log_helper.h"
 #include "srslte/common/pdu.h"
 #include "srslte/srslte.h"
-
-#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
-#define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 using srslte::tti_point;
 
