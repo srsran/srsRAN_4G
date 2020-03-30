@@ -68,7 +68,7 @@ bool mac::init(const mac_args_t&        args_,
     args  = args_;
     cells = cells_;
 
-    stack_task_queue = stack->get_task_queue();
+    stack_task_queue = stack->make_task_queue();
 
     scheduler.init(rrc);
 

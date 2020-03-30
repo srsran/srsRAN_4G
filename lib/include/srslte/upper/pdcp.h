@@ -32,7 +32,7 @@ namespace srslte {
 class pdcp : public srsue::pdcp_interface_rlc, public srsue::pdcp_interface_rrc
 {
 public:
-  pdcp(srslte::timer_handler* timers_, const char* logname);
+  pdcp(srslte::task_handler_interface* task_executor_, const char* logname);
   virtual ~pdcp();
   void init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_);
   void stop();
@@ -71,9 +71,9 @@ private:
   typedef std::map<uint16_t, pdcp_entity_lte*>  pdcp_map_t;
   typedef std::pair<uint16_t, pdcp_entity_lte*> pdcp_map_pair_t;
 
-  srslte::timer_handler* timers = nullptr;
-  srslte::log_ref        pdcp_log;
-  pdcp_map_t             pdcp_array, pdcp_array_mrb;
+  srslte::task_handler_interface* task_executor = nullptr;
+  srslte::log_ref                 pdcp_log;
+  pdcp_map_t                      pdcp_array, pdcp_array_mrb;
 
   // cache valid lcids to be checked from separate thread
   std::mutex         cache_mutex;

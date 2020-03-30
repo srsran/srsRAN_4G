@@ -23,7 +23,11 @@
 
 namespace srslte {
 
-pdcp::pdcp(srslte::timer_handler* timers_, const char* logname) : timers(timers_), pdcp_log(logname) {}
+pdcp::pdcp(srslte::task_handler_interface* task_executor_, const char* logname) :
+  task_executor(task_executor_),
+  pdcp_log(logname)
+{
+}
 
 pdcp::~pdcp()
 {
@@ -110,7 +114,8 @@ void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_lcid(lcid)) {
-    if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, timers, pdcp_log))).second) {
+    if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log)))
+                .second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       return;
     }
@@ -132,7 +137,8 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_mch_lcid(lcid)) {
-    if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, timers, pdcp_log))).second) {
+    if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log)))
+                .second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       return;
     }

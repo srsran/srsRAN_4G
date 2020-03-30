@@ -40,7 +40,7 @@ namespace srsue {
 class nas : public nas_interface_rrc, public nas_interface_ue, public srslte::timer_callback
 {
 public:
-  explicit nas(srsue::stack_interface_nas* task_handler_);
+  explicit nas(srslte::task_handler_interface* task_handler_);
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
   void run_tti();
@@ -132,7 +132,7 @@ private:
   uint8_t transaction_id = 0;
 
   // timers
-  srsue::task_handler_interface_lte*  task_handler = nullptr;
+  srslte::task_handler_interface*     task_handler = nullptr;
   srslte::timer_handler::unique_timer t3402;          // started when attach attempt counter reached 5
   srslte::timer_handler::unique_timer t3410;          // started when attach request is sent, on expiry, start t3411
   srslte::timer_handler::unique_timer t3411;          // started when attach failed
@@ -141,10 +141,10 @@ private:
 
   // Values according to TS 24.301 Sec 10.2
   const uint32_t t3402_duration_ms          = 12 * 60 * 1000; // 12m
-  const uint32_t t3410_duration_ms          = 15 * 1000; // 15s
-  const uint32_t t3411_duration_ms          = 10 * 1000; // 10s
-  const uint32_t t3421_duration_ms          = 15 * 1000; // 15s
-  const uint32_t reattach_timer_duration_ms = 2 * 1000;  // 2s (arbitrarily chosen to delay re-attach)
+  const uint32_t t3410_duration_ms          = 15 * 1000;      // 15s
+  const uint32_t t3411_duration_ms          = 10 * 1000;      // 10s
+  const uint32_t t3421_duration_ms          = 15 * 1000;      // 15s
+  const uint32_t reattach_timer_duration_ms = 2 * 1000;       // 2s (arbitrarily chosen to delay re-attach)
 
   // TS 23.003 Sec. 6.2.2 IMEISV's last two octets are Software Version Number (SVN)
   // which identifies the software version number of the mobile equipment

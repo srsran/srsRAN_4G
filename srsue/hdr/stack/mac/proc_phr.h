@@ -35,7 +35,7 @@ class phr_proc : public srslte::timer_callback
 {
 public:
   phr_proc();
-  void init(phy_interface_mac_lte* phy_h, srslte::log_ref log_h_, srsue::task_handler_interface_lte* task_handler_);
+  void init(phy_interface_mac_lte* phy_h, srslte::log_ref log_h_, srslte::task_handler_interface* task_handler_);
   void set_config(srslte::phr_cfg_t& cfg);
   void step();
   void reset();
@@ -49,13 +49,13 @@ public:
 private:
   bool pathloss_changed();
 
-  srslte::log_ref                    log_h;
-  phy_interface_mac_lte*             phy_h;
-  srsue::task_handler_interface_lte* task_handler;
-  srslte::phr_cfg_t                  phr_cfg;
-  bool                               initiated;
-  int                                last_pathloss_db;
-  bool                               phr_is_triggered;
+  srslte::log_ref                 log_h;
+  phy_interface_mac_lte*          phy_h;
+  srslte::task_handler_interface* task_handler;
+  srslte::phr_cfg_t               phr_cfg;
+  bool                            initiated;
+  int                             last_pathloss_db;
+  bool                            phr_is_triggered;
 
   srslte::timer_handler::unique_timer timer_periodic;
   srslte::timer_handler::unique_timer timer_prohibit;

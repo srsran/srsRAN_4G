@@ -41,7 +41,7 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
   pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp   = &pdcp_hlp.pdcp;
   rlc_dummy*              rlc    = &pdcp_hlp.rlc;
-  srslte::timer_handler*  timers = &pdcp_hlp.timers;
+  srslte::timer_handler*  timers = &pdcp_hlp.stack.timers;
 
   pdcp_hlp.set_pdcp_initial_state(init_state);
 

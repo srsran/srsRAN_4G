@@ -24,6 +24,7 @@
 
 #include "dut_utils.h"
 #include "srslte/common/pdu_queue.h"
+#include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
 #include "ttcn3_common.h"
@@ -34,7 +35,6 @@
 #include "ttcn3_ue.h"
 #include "ttcn3_ut_interface.h"
 #include <functional>
-#include <srslte/interfaces/ue_interfaces.h>
 
 #define TTCN3_CRNTI (0x1001)
 
@@ -52,7 +52,6 @@ public:
     log{"SS  "},
     mac_msg_ul(20, ss_mac_log),
     mac_msg_dl(20, ss_mac_log),
-    timers(8),
     pdus(128),
     logger(logger_file_),
     logger_file(logger_file_),
@@ -61,7 +60,7 @@ public:
     rlc(ss_rlc_log->get_service_name().c_str()),
     signal_handler(&running),
     timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); }),
-    pdcp(&timers, ss_pdcp_log->get_service_name().c_str())
+    pdcp(&stack, ss_pdcp_log->get_service_name().c_str())
   {
     if (ue->init(all_args_t{}, logger, this, "INIT_TEST") != SRSLTE_SUCCESS) {
       ue->stop();
@@ -134,7 +133,7 @@ public:
 
     // Init SS layers
     pdus.init(this, log);
-    rlc.init(&pdcp, this, &timers, 0 /* RB_ID_SRB0 */);
+    rlc.init(&pdcp, this, &stack.timers, 0 /* RB_ID_SRB0 */);
     pdcp.init(&rlc, this, nullptr);
 
     return SRSLTE_SUCCESS;
@@ -901,7 +900,7 @@ public:
     ue->new_tb(dl_grant, (const uint8_t*)pdu->msg);
   }
 
-  void step_timer() { timers.step_all(); }
+  void step_timer() { stack.timers.step_all(); }
 
   void add_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config)
   {
@@ -1204,18 +1203,18 @@ private:
 
   uint32_t run_id = 0;
 
-  int32_t               tti                  = 0;
-  int32_t               prach_tti            = -1;
-  int32_t               rar_tti              = -1;
-  int32_t               msg3_tti             = -1;
-  int32_t               sr_tti               = -1;
-  uint32_t              prach_preamble_index = 0;
-  uint16_t              dl_rnti              = 0;
-  uint16_t              crnti                = TTCN3_CRNTI;
-  int                   force_lcid           = -1;
-  srslte::timer_handler timers;
-  bool                  last_dl_ndi[SRSLTE_FDD_NOF_HARQ] = {};
-  bool                  last_ul_ndi[SRSLTE_FDD_NOF_HARQ] = {};
+  int32_t                 tti                  = 0;
+  int32_t                 prach_tti            = -1;
+  int32_t                 rar_tti              = -1;
+  int32_t                 msg3_tti             = -1;
+  int32_t                 sr_tti               = -1;
+  uint32_t                prach_preamble_index = 0;
+  uint16_t                dl_rnti              = 0;
+  uint16_t                crnti                = TTCN3_CRNTI;
+  int                     force_lcid           = -1;
+  srsue::stack_test_dummy stack;
+  bool                    last_dl_ndi[SRSLTE_FDD_NOF_HARQ] = {};
+  bool                    last_ul_ndi[SRSLTE_FDD_NOF_HARQ] = {};
 
   // For events/actions that need to be carried out in a specific TTI
   typedef std::vector<move_task_t>              task_list_t;

@@ -35,7 +35,7 @@ bsr_proc::bsr_proc()
   pthread_mutex_init(&mutex, NULL);
 }
 
-void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log_ref log_h_, srsue::task_handler_interface_lte* task_handler_)
+void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log_ref log_h_, srslte::task_handler_interface* task_handler_)
 {
   log_h        = log_h_;
   rlc          = rlc_;

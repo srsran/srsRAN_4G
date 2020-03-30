@@ -72,7 +72,7 @@ public:
             mac_interface_rrc::ue_rnti_t*        rntis,
             srslte::timer_handler::unique_timer* time_alignment_timer_,
             mux*                                 mux_unit,
-            stack_interface_mac*                 stack_);
+            srslte::task_handler_interface*      stack_);
 
   void reset();
 
@@ -164,12 +164,12 @@ private:
 
   void read_params();
 
-  phy_interface_mac_lte* phy_h;
-  srslte::log_ref        log_h;
-  mux*                   mux_unit;
-  srslte::mac_pcap*      pcap;
-  rrc_interface_mac*     rrc;
-  stack_interface_mac*   stack = nullptr;
+  phy_interface_mac_lte*          phy_h;
+  srslte::log_ref                 log_h;
+  mux*                            mux_unit;
+  srslte::mac_pcap*               pcap;
+  rrc_interface_mac*              rrc;
+  srslte::task_handler_interface* stack = nullptr;
 
   srslte::timer_handler::unique_timer* time_alignment_timer = nullptr;
   srslte::timer_handler::unique_timer  contention_resolution_timer;

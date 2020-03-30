@@ -234,7 +234,7 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
  *   NAS
  ********************************************************************/
 
-nas::nas(srsue::stack_interface_nas* task_handler_) :
+nas::nas(srslte::task_handler_interface* task_handler_) :
   pool(byte_buffer_pool::get_instance()),
   plmn_searcher(this),
   rrc_connector(this),
@@ -250,9 +250,9 @@ nas::nas(srsue::stack_interface_nas* task_handler_) :
 
 void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
-  usim  = usim_;
-  rrc   = rrc_;
-  gw    = gw_;
+  usim = usim_;
+  rrc  = rrc_;
+  gw   = gw_;
   enter_state(EMM_STATE_DEREGISTERED);
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
@@ -340,7 +340,7 @@ void nas::timer_expired(uint32_t timeout_id)
     // Section 5.5.1.2.6 case c)
     attach_attempt_counter++;
 
-    nas_log->console("Attach failed (attempt %d/%d)\n",attach_attempt_counter, max_attach_attempts);
+    nas_log->console("Attach failed (attempt %d/%d)\n", attach_attempt_counter, max_attach_attempts);
     if (attach_attempt_counter < max_attach_attempts) {
       nas_log->info("Timer T3410 expired after attach attempt %d/%d: starting T3411\n",
                     attach_attempt_counter,
@@ -953,7 +953,7 @@ void nas::reset_security_context()
   have_guti = false;
   have_ctxt = false;
   ctxt      = {};
-  ctxt.ksi = LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE;
+  ctxt.ksi  = LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE;
 }
 
 /*******************************************************************************

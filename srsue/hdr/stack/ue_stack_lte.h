@@ -54,9 +54,7 @@ namespace srsue {
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
                            public stack_interface_gw,
-                           public stack_interface_mac,
                            public stack_interface_rrc,
-                           public stack_interface_nas,
                            public srslte::thread
 {
 public:

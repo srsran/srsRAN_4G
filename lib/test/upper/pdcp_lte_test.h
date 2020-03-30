@@ -23,6 +23,7 @@
 #define SRSLTE_PDCP_LTE_TEST_H
 
 #include "pdcp_base_test.h"
+#include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp_entity_lte.h"
 
 struct pdcp_lte_initial_state {
@@ -78,8 +79,7 @@ public:
     rlc(log),
     rrc(log),
     gw(log),
-    timers(64),
-    pdcp(&rlc, &rrc, &gw, &timers, log)
+    pdcp(&rlc, &rrc, &gw, &stack, log)
   {
     pdcp.init(0, cfg);
     pdcp.config_security(sec_cfg);
@@ -98,7 +98,7 @@ public:
   rlc_dummy               rlc;
   rrc_dummy               rrc;
   gw_dummy                gw;
-  srslte::timer_handler   timers;
+  srsue::stack_test_dummy stack;
   srslte::pdcp_entity_lte pdcp;
 };
 

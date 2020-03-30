@@ -24,9 +24,9 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"
 #include "srsue/hdr/stack/mac/mux.h"
-#include "srsue/test/common/dummy_classes.h"
 #include <assert.h>
 #include <iostream>
 #include <string.h>
@@ -341,7 +341,7 @@ public:
   uint32_t rach_problem         = 0;
 };
 
-class stack_dummy : public stack_dummy_interface
+class stack_dummy : public stack_test_dummy
 {
 public:
   void init(mac* mac_, phy_interface_mac_lte* phy_)

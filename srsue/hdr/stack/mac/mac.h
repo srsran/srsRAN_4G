@@ -50,7 +50,10 @@ class mac : public mac_interface_phy_lte,
 public:
   mac(const char* logname);
   ~mac();
-  bool init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, stack_interface_mac* stack_);
+  bool init(phy_interface_mac_lte*          phy,
+            rlc_interface_mac*              rlc,
+            rrc_interface_mac*              rrc,
+            srslte::task_handler_interface* stack_);
   void stop();
 
   void get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]);
@@ -119,7 +122,7 @@ private:
   phy_interface_mac_lte*                     phy_h   = nullptr;
   rlc_interface_mac*                         rlc_h   = nullptr;
   rrc_interface_mac*                         rrc_h   = nullptr;
-  stack_interface_mac*                       stack_h = nullptr;
+  srslte::task_handler_interface*            stack_h = nullptr;
   srslte::log_ref                            log_h;
   mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg = {};
 

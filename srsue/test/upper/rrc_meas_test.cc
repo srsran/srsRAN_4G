@@ -23,11 +23,11 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/test_common.h"
+#include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srsue/hdr/stack/upper/nas.h"
-#include "srsue/test/common/dummy_classes.h"
 #include <iostream>
 
 using namespace asn1::rrc;
@@ -108,14 +108,14 @@ private:
 class nas_test : public srsue::nas
 {
 public:
-  nas_test(srsue::stack_interface_nas* t) : srsue::nas(t) {}
+  nas_test(srslte::task_handler_interface* t) : srsue::nas(t) {}
   bool is_attached() override { return false; }
 };
 
 class pdcp_test : public srslte::pdcp
 {
 public:
-  pdcp_test(const char* logname, srslte::timer_handler* t) : srslte::pdcp(t, logname) {}
+  pdcp_test(const char* logname, srslte::task_handler_interface* t) : srslte::pdcp(t, logname) {}
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = false) override
   {
     ul_dcch_msg_s  ul_dcch_msg;
@@ -167,14 +167,14 @@ private:
 
 class rrc_test : public rrc
 {
-  srsue::stack_dummy_interface* stack = nullptr;
+  srsue::stack_test_dummy* stack = nullptr;
 
 public:
-  rrc_test(srslte::log_ref log_, stack_dummy_interface* stack_) : rrc(stack_), stack(stack_)
+  rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) : rrc(stack_), stack(stack_)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
     nastest  = std::unique_ptr<nas_test>(new nas_test(stack));
-    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->timers));
+    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), stack));
   };
   void init() { rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
 
@@ -273,8 +273,8 @@ int cell_select_test()
   printf("======            Cell Select Testing      ===============\n");
   printf("==========================================================\n");
 
-  stack_dummy_interface stack;
-  rrc_test              rrctest(log1, &stack);
+  stack_test_dummy stack;
+  rrc_test         rrctest(log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -303,8 +303,8 @@ int meas_obj_test()
   printf("======    Object Configuration Testing    ===============\n");
   printf("==========================================================\n");
 
-  stack_dummy_interface stack;
-  rrc_test              rrctest(log1, &stack);
+  stack_test_dummy stack;
+  rrc_test         rrctest(log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -728,8 +728,8 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
   printf("============       Report Testing  A1      ===============\n");
   printf("==========================================================\n");
 
-  stack_dummy_interface stack;
-  rrc_test              rrctest(log1, &stack);
+  stack_test_dummy stack;
+  rrc_test         rrctest(log1, &stack);
   rrctest.init();
   rrctest.connect();
 
@@ -862,8 +862,8 @@ int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
   printf("============       Report Testing A3       ===============\n");
   printf("==========================================================\n");
 
-  stack_dummy_interface stack;
-  rrc_test              rrctest(log1, &stack);
+  stack_test_dummy stack;
+  rrc_test         rrctest(log1, &stack);
   rrctest.init();
   rrctest.connect();
 

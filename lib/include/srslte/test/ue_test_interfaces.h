@@ -26,7 +26,7 @@
 
 namespace srsue {
 
-class stack_dummy_interface : public stack_interface_rrc, public stack_interface_mac, public stack_interface_nas
+class stack_test_dummy : public stack_interface_rrc
 {
 public:
   srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }

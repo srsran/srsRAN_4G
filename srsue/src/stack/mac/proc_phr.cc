@@ -38,9 +38,9 @@ phr_proc::phr_proc()
   phr_cfg          = {};
 }
 
-void phr_proc::init(phy_interface_mac_lte*             phy_h_,
-                    srslte::log_ref                    log_h_,
-                    srsue::task_handler_interface_lte* task_handler_)
+void phr_proc::init(phy_interface_mac_lte*          phy_h_,
+                    srslte::log_ref                 log_h_,
+                    srslte::task_handler_interface* task_handler_)
 {
   phy_h        = phy_h_;
   log_h        = log_h_;

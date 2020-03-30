@@ -22,6 +22,7 @@
 #ifndef SRSLTE_INTERFACES_COMMON_H
 #define SRSLTE_INTERFACES_COMMON_H
 
+#include "srslte/common/multiqueue.h"
 #include "srslte/common/security.h"
 #include "srslte/common/timers.h"
 #include <string>
@@ -75,6 +76,17 @@ class read_pdu_interface
 {
 public:
   virtual int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) = 0;
+};
+
+// Generic Task Management + Timer interface for upper stack
+class task_handler_interface
+{
+public:
+  virtual srslte::timer_handler::unique_timer    get_unique_timer()                                               = 0;
+  virtual srslte::task_multiqueue::queue_handler make_task_queue()                                                = 0;
+  virtual void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) = 0;
+  virtual void                                   enqueue_background_task(std::function<void(uint32_t)> task)      = 0;
+  virtual void                                   notify_background_task_result(srslte::move_task_t task)          = 0;
 };
 
 } // namespace srslte

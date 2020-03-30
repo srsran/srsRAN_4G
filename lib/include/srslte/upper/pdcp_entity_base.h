@@ -63,7 +63,7 @@ static const char srslte_direction_text[DIRECTION_N_ITEMS][6] = {"none", "tx", "
 class pdcp_entity_base
 {
 public:
-  pdcp_entity_base(srslte::timer_handler* timers_, srslte::log_ref log_);
+  pdcp_entity_base(srslte::task_handler_interface* task_executor_, srslte::log_ref log_);
   virtual ~pdcp_entity_base();
   virtual void reset()       = 0;
   virtual void reestablish() = 0;
@@ -111,8 +111,8 @@ public:
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
 protected:
-  srslte::log_ref        log;
-  srslte::timer_handler* timers = nullptr;
+  srslte::log_ref                 log;
+  srslte::task_handler_interface* task_executor = nullptr;
 
   bool               active               = false;
   uint32_t           lcid                 = 0;

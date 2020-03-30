@@ -23,6 +23,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/pdcp_entity_lte.h"
 #include "srslte/upper/rlc.h"
@@ -32,7 +33,6 @@
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srsue/hdr/stack/upper/usim.h"
 #include "srsue/hdr/stack/upper/usim_base.h"
-#include "srsue/test/common/dummy_classes.h"
 #include <assert.h>
 #include <iostream>
 
@@ -141,7 +141,7 @@ private:
   bool         is_connected_flag = false;
 };
 
-class test_stack_dummy : public srsue::stack_dummy_interface, public stack_interface_gw, public thread
+class test_stack_dummy : public srsue::stack_test_dummy, public stack_interface_gw, public thread
 {
 public:
   test_stack_dummy(pdcp_interface_gw* pdcp_) : pdcp(pdcp_), thread("DUMMY STACK") {}
@@ -210,7 +210,7 @@ int security_command_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  stack_dummy_interface stack;
+  stack_test_dummy stack;
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
@@ -352,7 +352,7 @@ int esm_info_request_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  srsue::stack_dummy_interface stack{};
+  srsue::stack_test_dummy stack{};
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
@@ -406,7 +406,7 @@ int dedicated_eps_bearer_test()
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_hex_limit(100000);
 
-  srsue::stack_dummy_interface stack;
+  srsue::stack_test_dummy stack;
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;

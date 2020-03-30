@@ -72,7 +72,10 @@ mac::~mac()
   srslte_softbuffer_rx_free(&mch_softbuffer);
 }
 
-bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, stack_interface_mac* stack_)
+bool mac::init(phy_interface_mac_lte*  phy,
+               rlc_interface_mac*      rlc,
+               rrc_interface_mac*      rrc,
+               task_handler_interface* stack_)
 {
   phy_h   = phy;
   rlc_h   = rlc;

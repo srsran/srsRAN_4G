@@ -508,13 +508,6 @@ typedef struct {
   int                           link_failure_nof_err;
 } mac_args_t;
 
-class enb_task_interface_lte
-{
-public:
-  virtual srslte::timer_handler::unique_timer    get_unique_timer() = 0;
-  virtual srslte::task_multiqueue::queue_handler get_task_queue()   = 0;
-};
-
 class stack_interface_s1ap_lte
 {
 public:
@@ -530,7 +523,7 @@ public:
 };
 
 // STACK interface for MAC
-class stack_interface_mac_lte : public enb_task_interface_lte
+class stack_interface_mac_lte : public srslte::task_handler_interface
 {
 };
 

@@ -56,7 +56,7 @@ void ra_proc::init(phy_interface_mac_lte*               phy_h_,
                    mac_interface_rrc::ue_rnti_t*        rntis_,
                    srslte::timer_handler::unique_timer* time_alignment_timer_,
                    mux*                                 mux_unit_,
-                   stack_interface_mac*                 stack_)
+                   srslte::task_handler_interface*      stack_)
 {
   phy_h    = phy_h_;
   log_h    = log_h_;

@@ -32,7 +32,7 @@ namespace srsenb {
 enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
   timers(128),
   logger(logger_),
-  pdcp(&timers, "PDCP"),
+  pdcp(this, "PDCP"),
   thread("STACK")
 {
   enb_queue_id  = pending_tasks.add_queue();
@@ -250,9 +250,24 @@ srslte::timer_handler::unique_timer enb_stack_lte::get_unique_timer()
   return timers.get_unique_timer();
 }
 
-srslte::task_multiqueue::queue_handler enb_stack_lte::get_task_queue()
+srslte::task_multiqueue::queue_handler enb_stack_lte::make_task_queue()
 {
   return pending_tasks.get_queue_handler();
+}
+
+void enb_stack_lte::defer_callback(uint32_t duration_ms, std::function<void()> func)
+{
+  timers.defer_callback(duration_ms, func);
+}
+
+void enb_stack_lte::enqueue_background_task(std::function<void(uint32_t)> task)
+{
+  task(0);
+}
+
+void enb_stack_lte::notify_background_task_result(srslte::move_task_t task)
+{
+  task();
 }
 
 } // namespace srsenb

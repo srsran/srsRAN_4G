@@ -24,12 +24,12 @@
 
 namespace srslte {
 
-pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
-                               srsue::rrc_interface_pdcp* rrc_,
-                               srsue::gw_interface_pdcp*  gw_,
-                               srslte::timer_handler*     timers_,
-                               srslte::log_ref            log_) :
-  pdcp_entity_base(timers_, log_),
+pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp*      rlc_,
+                               srsue::rrc_interface_pdcp*      rrc_,
+                               srsue::gw_interface_pdcp*       gw_,
+                               srslte::task_handler_interface* task_executor_,
+                               srslte::log_ref                 log_) :
+  pdcp_entity_base(task_executor_, log_),
   rlc(rlc_),
   rrc(rrc_),
   gw(gw_),
@@ -50,7 +50,7 @@ void pdcp_entity_nr::init(uint32_t lcid_, pdcp_config_t cfg_)
   window_size = 1 << (cfg.sn_len - 1);
 
   // Timers
-  reordering_timer = timers->get_unique_timer();
+  reordering_timer = task_executor->get_unique_timer();
 
   // configure timer
   if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
@@ -102,7 +102,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 
   // Start discard timer
   if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
-    timer_handler::unique_timer discard_timer = timers->get_unique_timer();
+    timer_handler::unique_timer discard_timer = task_executor->get_unique_timer();
     discard_callback            discard_fnc(this, tx_next);
     discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
     discard_timer.run();

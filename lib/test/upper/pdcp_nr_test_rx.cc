@@ -45,7 +45,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
   pdcp_nr_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp_rx   = &pdcp_hlp_rx.pdcp;
   gw_dummy*               gw_rx     = &pdcp_hlp_rx.gw;
-  srslte::timer_handler*  timers_rx = &pdcp_hlp_rx.timers;
+  srslte::timer_handler*  timers_rx = &pdcp_hlp_rx.stack.timers;
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
   // Generate test message and encript/decript SDU.

@@ -40,7 +40,7 @@ ue_stack_lte::ue_stack_lte() :
   rlc("RLC"),
   mac("MAC "),
   rrc(this),
-  pdcp(&timers, "PDCP"),
+  pdcp(this, "PDCP"),
   nas(this),
   thread("STACK"),
   pending_tasks(512),
