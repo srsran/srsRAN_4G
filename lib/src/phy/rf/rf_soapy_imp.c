@@ -302,20 +302,22 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   }
 
   // Select Soapy device by id
-  const char dev_arg[] = "id=";
-  char*      dev_ptr   = strstr(args, dev_arg);
-  int        dev_id    = 0;
-  if (dev_ptr) {
-    char dev_str[64] = {0};
-    copy_subdev_string(dev_str, dev_ptr + strnlen(dev_arg, 64));
-    printf("Selecting Soapy device: %s\n", dev_str);
-    dev_id = strtol(dev_str, NULL, 0);
-    if (dev_id < 0 || dev_id > 10) {
-      ERROR("Failed to set device. Using 0 as default.\n");
-      dev_id = 0;
+  int dev_id = 0;
+  if (args != NULL) {
+    const char dev_arg[] = "id=";
+    char*      dev_ptr   = strstr(args, dev_arg);
+    if (dev_ptr) {
+      char dev_str[64] = {0};
+      copy_subdev_string(dev_str, dev_ptr + strnlen(dev_arg, 64));
+      printf("Selecting Soapy device: %s\n", dev_str);
+      dev_id = strtol(dev_str, NULL, 0);
+      if (dev_id < 0 || dev_id > 10) {
+        ERROR("Failed to set device. Using 0 as default.\n");
+        dev_id = 0;
+      }
+      remove_substring(args, dev_arg);
+      remove_substring(args, dev_str);
     }
-    remove_substring(args, dev_arg);
-    remove_substring(args, dev_str);
   }
 
   SoapySDRDevice* sdr = SoapySDRDevice_make(&(soapy_args[dev_id]));
