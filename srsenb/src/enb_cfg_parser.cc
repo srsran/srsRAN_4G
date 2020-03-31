@@ -991,11 +991,12 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     }
   }
 
-  // Check PRACH configuration
+  // Check PUCCH and PRACH configuration
+  uint32_t nrb_pucch         = std::max(rrc_cfg_->sr_cfg.nof_prb, rrc_cfg_->cqi_cfg.nof_prb);
   uint32_t prach_freq_offset = rrc_cfg_->sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-  if (args_->enb.n_prb > 10) {
-    uint32_t lower_bound = SRSLTE_MAX(rrc_cfg_->sr_cfg.nof_prb, rrc_cfg_->cqi_cfg.nof_prb);
-    uint32_t upper_bound = args_->enb.n_prb - lower_bound;
+  if (args_->enb.n_prb > 6) {
+    uint32_t lower_bound = nrb_pucch;
+    uint32_t upper_bound = args_->enb.n_prb - nrb_pucch;
     if (prach_freq_offset + 6 > upper_bound or prach_freq_offset < lower_bound) {
       fprintf(stderr,
               "ERROR: Invalid PRACH configuration - prach_freq_offset=%d collides with PUCCH.\n",
@@ -1009,7 +1010,7 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   } else { // 6 PRB case
     if (prach_freq_offset + 6 > args_->enb.n_prb) {
       fprintf(stderr,
-              "WARNING: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0, %d).\n",
+              "ERROR: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0, %d).\n",
               prach_freq_offset,
               prach_freq_offset + 6,
               args_->enb.n_prb);
@@ -1019,6 +1020,18 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       // patch PRACH config for PHY and in RRC for SIB2
       rrc_cfg_->sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset = 0;
       phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset                             = 0;
+      return SRSLTE_ERROR;
+    }
+    if (nrb_pucch > 1) {
+      fprintf(stderr,
+              "ERROR: Invalid PUCCH configuration - \"cqi_report_cnfg=%d\" and \"sched_request_cnfg.nof_prb=%d\""
+              " in rr.conf for 6 PRBs.\n      Consider decreasing these values to 1 to leave enough space for the "
+              "transmission of Msg3.\n",
+              rrc_cfg_->cqi_cfg.nof_prb,
+              rrc_cfg_->sr_cfg.nof_prb);
+      rrc_cfg_->cqi_cfg.nof_prb = 1;
+      rrc_cfg_->sr_cfg.nof_prb  = 1;
+      return SRSLTE_ERROR;
     }
   }
 

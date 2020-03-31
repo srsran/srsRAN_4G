@@ -106,7 +106,7 @@ inline srsenb::sched_interface::cell_cfg_t generate_default_cell_cfg(uint32_t no
   cell_cfg.sibs[1].len       = 41;
   cell_cfg.sibs[1].period_rf = 16;
   cell_cfg.si_window_ms      = 40;
-  cell_cfg.nrb_pucch         = 2;
+  cell_cfg.nrb_pucch         = (cell_cfg_phy.nof_prb == 6) ? 1 : 2;
   cell_cfg.prach_freq_offset = (cell_cfg_phy.nof_prb == 6) ? 0 : 2;
   cell_cfg.prach_rar_window  = 3;
   cell_cfg.maxharq_msg3tx    = 3;

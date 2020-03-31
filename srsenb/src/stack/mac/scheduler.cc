@@ -64,10 +64,21 @@ bool sched_cell_params_t::set_cfg(uint32_t                             enb_cc_id
     return false;
   }
 
-  // PRACH has to fit within the PUSCH space
-  bool invalid_prach = cfg.cell.nof_prb == 6 and (cfg.prach_freq_offset + 6 > cfg.cell.nof_prb);
-  invalid_prach |= cfg.cell.nof_prb > 6 and ((cfg.prach_freq_offset + 6) > (cfg.cell.nof_prb - cfg.nrb_pucch) or
-                                             (int) cfg.prach_freq_offset < cfg.nrb_pucch);
+  bool invalid_prach;
+  if (cfg.cell.nof_prb == 6) {
+    // PUCCH has to allow space for Msg3
+    if (cfg.nrb_pucch > 1) {
+      Console("Invalid PUCCH configuration: nrb_pucch=%d does not allow space for Msg3 transmission..\n",
+              cfg.nrb_pucch);
+      return false;
+    }
+    // PRACH has to fit within the PUSCH+PUCCH space
+    invalid_prach = cfg.prach_freq_offset + 6 > cfg.cell.nof_prb;
+  } else {
+    // PRACH has to fit within the PUSCH space
+    invalid_prach = (cfg.prach_freq_offset + 6) > (cfg.cell.nof_prb - cfg.nrb_pucch) or
+                    ((int)cfg.prach_freq_offset < cfg.nrb_pucch);
+  }
   if (invalid_prach) {
     Error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
     Console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);

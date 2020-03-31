@@ -354,6 +354,9 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
       // Notify MAC new received data and HARQ Indication value
       if (pusch_res.data) {
+        static bool test_flag = false;
+        pusch_res.crc         = pusch_res.crc && test_flag;
+        test_flag             = true;
         phy->stack->crc_info(tti_rx, rnti, cc_idx, grant.tb.tbs / 8, pusch_res.crc);
 
         // Save metrics stats

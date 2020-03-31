@@ -53,7 +53,7 @@ int test_pdcch_one_ue()
   sched_interface::ue_cfg_t        ue_cfg   = generate_default_ue_cfg();
   sched_interface::cell_cfg_t      cell_cfg = generate_default_cell_cfg(nof_prb);
   sched_interface::sched_args_t    sched_args{};
-  cell_params[ENB_CC_IDX].set_cfg(ENB_CC_IDX, cell_cfg, sched_args);
+  TESTASSERT(cell_params[ENB_CC_IDX].set_cfg(ENB_CC_IDX, cell_cfg, sched_args));
 
   pdcch_grid_t pdcch;
   sched_ue     sched_ue{};
