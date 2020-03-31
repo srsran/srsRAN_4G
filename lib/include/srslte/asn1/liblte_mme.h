@@ -4007,4 +4007,19 @@ liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_STRUCT*            
 LIBLTE_ERROR_ENUM
 liblte_mme_pack_activate_test_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT* msg, uint8 sec_hdr_type, uint32 count);
 
+/*********************************************************************
+    Message Name: CLOSE UE TEST LOOP COMPLETE
+
+    Description: Sent by the UE to the network in response to a
+                 CLOSE UE TEST LOOP message.
+
+    Document Reference: 36.509 v8.7.0 Section 6.2
+*********************************************************************/
+// Defines
+// Enums
+// Structs
+// Functions
+LIBLTE_ERROR_ENUM
+liblte_mme_pack_close_ue_test_loop_complete_msg(LIBLTE_BYTE_MSG_STRUCT* msg, uint8 sec_hdr_type, uint32 count);
+
 #endif // SRSLTE_LIBLTE_MME_H

@@ -694,10 +694,12 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
     case LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE:
       parse_activate_test_mode(lcid, std::move(pdu));
       break;
-    // TODO: Handle deactivate test mode and ue close/open
-    case LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE:
     case LIBLTE_MME_MSG_TYPE_CLOSE_UE_TEST_LOOP:
+      parse_close_ue_test_loop(lcid, std::move(pdu));
+      break;
+    // TODO: Handle deactivate test mode and ue open test loop
     case LIBLTE_MME_MSG_TYPE_OPEN_UE_TEST_LOOP:
+    case LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE:
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
       return;
@@ -1674,6 +1676,17 @@ void nas::parse_activate_test_mode(uint32_t lcid, unique_byte_buffer_t pdu)
   send_activate_test_mode_complete();
 }
 
+void nas::parse_close_ue_test_loop(uint32_t lcid, unique_byte_buffer_t pdu)
+{
+  nas_log->info("Received Close UE test loop\n");
+
+  ctxt.rx_count++;
+
+  // TODO: Save the test loop mode
+
+  send_close_ue_test_loop_complete();
+}
+
 void nas::parse_emm_status(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   LIBLTE_MME_EMM_STATUS_MSG_STRUCT emm_status;
@@ -2420,6 +2433,31 @@ void nas::send_activate_test_mode_complete()
   }
 
   nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending Activate test mode complete\n");
+  rrc->write_sdu(std::move(pdu));
+
+  ctxt.tx_count++;
+}
+
+void nas::send_close_ue_test_loop_complete()
+{
+  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+
+  if (liblte_mme_pack_close_ue_test_loop_complete_msg(
+          (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), current_sec_hdr, ctxt.tx_count)) {
+    nas_log->error("Error packing close UE test loop complete.\n");
+    return;
+  }
+
+  if (pcap != nullptr) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  if (apply_security_config(pdu, current_sec_hdr)) {
+    nas_log->error("Error applying NAS security.\n");
+    return;
+  }
+
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending Close UE test loop complete\n");
   rrc->write_sdu(std::move(pdu));
 
   ctxt.tx_count++;
