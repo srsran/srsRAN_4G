@@ -103,7 +103,7 @@ public:
 
   void new_tx(uint32_t tti, int mcs, int tbs, ul_alloc_t alloc, uint32_t max_retx_);
   void new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, ul_alloc_t alloc);
-  void set_ack(uint32_t tb_idx, bool ack);
+  bool set_ack(uint32_t tb_idx, bool ack);
 
   ul_alloc_t get_alloc() const;
   bool       has_pending_retx() const;

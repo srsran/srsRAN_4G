@@ -277,9 +277,10 @@ int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_
   return ret;
 }
 
-int sched::ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc)
+int sched::ul_crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, bool crc)
 {
-  return ue_db_access(rnti, [tti, enb_cc_idx, crc](sched_ue& ue) { ue.set_ul_crc(tti, enb_cc_idx, crc); });
+  return ue_db_access(
+      rnti, [tti_rx, enb_cc_idx, crc](sched_ue& ue) { ue.set_ul_crc(srslte::tti_point{tti_rx}, enb_cc_idx, crc); });
 }
 
 int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t ri_value)
@@ -368,14 +369,14 @@ std::array<int, SRSLTE_MAX_CARRIERS> sched::get_enb_ue_cc_map(uint16_t rnti)
  *******************************************************/
 
 // Downlink Scheduler API
-int sched::dl_sched(uint32_t tti, uint32_t cc_idx, sched_interface::dl_sched_res_t& sched_result)
+int sched::dl_sched(uint32_t tti_tx_dl, uint32_t cc_idx, sched_interface::dl_sched_res_t& sched_result)
 {
   if (!configured) {
     return 0;
   }
 
   std::lock_guard<std::mutex> lock(sched_mutex);
-  uint32_t                    tti_rx = sched_utils::tti_subtract(tti, FDD_HARQ_DELAY_UL_MS);
+  uint32_t                    tti_rx = sched_utils::tti_subtract(tti_tx_dl, FDD_HARQ_DELAY_UL_MS);
   last_tti                           = sched_utils::max_tti(last_tti, tti_rx);
 
   if (cc_idx < carrier_schedulers.size()) {

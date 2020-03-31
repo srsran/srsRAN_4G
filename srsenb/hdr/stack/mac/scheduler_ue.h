@@ -112,7 +112,7 @@ public:
   void set_dl_pmi(uint32_t tti, uint32_t enb_cc_idx, uint32_t ri);
   void set_dl_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi);
   int  set_ack_info(uint32_t tti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack);
-  void set_ul_crc(uint32_t tti, uint32_t enb_cc_idx, bool crc_res);
+  void set_ul_crc(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res);
 
   /*******************************************************
    * Custom functions

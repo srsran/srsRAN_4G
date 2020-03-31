@@ -313,14 +313,14 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_
   return SRSLTE_SUCCESS;
 }
 
-int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc)
+int mac::crc_info(uint32_t tti_rx, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof_bytes, bool crc)
 {
   int ret = SRSLTE_ERROR;
-  log_h->step(tti);
+  log_h->step(tti_rx);
   srslte::rwlock_read_guard lock(rwlock);
 
   if (ue_db.count(rnti)) {
-    ue_db[rnti]->set_tti(tti);
+    ue_db[rnti]->set_tti(tti_rx);
     ue_db[rnti]->metrics_rx(crc, nof_bytes);
 
     std::array<int, SRSLTE_MAX_CARRIERS> enb_ue_cc_map = scheduler.get_enb_ue_cc_map(rnti);
@@ -332,15 +332,15 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t nof
 
     // push the pdu through the queue if received correctly
     if (crc) {
-      Info("Pushing PDU rnti=0x%x, tti=%d, nof_bytes=%d\n", rnti, tti, nof_bytes);
-      ue_db[rnti]->push_pdu(ue_cc_idx, tti, nof_bytes);
+      Info("Pushing PDU rnti=0x%x, tti_rx=%d, nof_bytes=%d\n", rnti, tti_rx, nof_bytes);
+      ue_db[rnti]->push_pdu(ue_cc_idx, tti_rx, nof_bytes);
       stack_task_queue.push([this]() { process_pdus(); });
     } else {
-      ue_db[rnti]->deallocate_pdu(ue_cc_idx, tti);
+      ue_db[rnti]->deallocate_pdu(ue_cc_idx, tti_rx);
     }
 
     // Scheduler uses eNB's CC mapping
-    ret = scheduler.ul_crc_info(tti, rnti, enb_cc_idx, crc);
+    ret = scheduler.ul_crc_info(tti_rx, rnti, enb_cc_idx, crc);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
   }
@@ -511,18 +511,18 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   });
 }
 
-int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
+int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
 {
   if (!started) {
     return 0;
   }
 
-  log_h->step(tti);
+  log_h->step(TTI_SUB(tti_tx_dl, FDD_HARQ_DELAY_UL_MS));
 
   for (uint32_t enb_cc_idx = 0; enb_cc_idx < cell_config.size(); enb_cc_idx++) {
     // Run scheduler with current info
     sched_interface::dl_sched_res_t sched_result = {};
-    if (scheduler.dl_sched(tti, enb_cc_idx, sched_result) < 0) {
+    if (scheduler.dl_sched(tti_tx_dl, enb_cc_idx, sched_result) < 0) {
       Error("Running scheduler\n");
       return SRSLTE_ERROR;
     }
@@ -562,7 +562,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
 
               if (pcap) {
                 pcap->write_dl_crnti(
-                    dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti, enb_cc_idx);
+                    dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti_tx_dl, enb_cc_idx);
               }
 
             } else {
@@ -588,15 +588,15 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
       dl_sched_res->pdsch[n].softbuffer_tx[0] = &common_buffers[enb_cc_idx].rar_softbuffer_tx;
 
       // Assemble PDU
-      dl_sched_res->pdsch[n].data[0] =
-          assemble_rar(sched_result.rar[i].msg3_grant, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs, tti);
+      dl_sched_res->pdsch[n].data[0] = assemble_rar(
+          sched_result.rar[i].msg3_grant, sched_result.rar[i].nof_grants, i, sched_result.rar[i].tbs, tti_tx_dl);
 
       if (pcap) {
         pcap->write_dl_ranti(dl_sched_res->pdsch[n].data[0],
                              sched_result.rar[i].tbs,
                              dl_sched_res->pdsch[n].dci.rnti,
                              true,
-                             tti,
+                             tti_tx_dl,
                              enb_cc_idx);
       }
 
@@ -615,7 +615,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
         dl_sched_res->pdsch[n].data[0] = rrc_h->read_pdu_bcch_dlsch(enb_cc_idx, sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
         if (pcap) {
-          pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, enb_cc_idx);
+          pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
         }
 #endif
       } else {
@@ -624,7 +624,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_list_t& dl_sched_res_list)
         rlc_h->read_pdu_pcch(common_buffers[enb_cc_idx].pcch_payload_buffer, pcch_payload_buffer_len);
 
         if (pcap) {
-          pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti, enb_cc_idx);
+          pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti_tx_dl, enb_cc_idx);
         }
       }
 
@@ -775,13 +775,13 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
   }
 }
 
-int mac::get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res_list)
+int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
 {
   if (!started) {
     return SRSLTE_SUCCESS;
   }
 
-  log_h->step(tti);
+  log_h->step(TTI_SUB(tti_tx_ul, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS));
 
   // Execute TA FSM
   for (auto& ue : ue_db) {
@@ -796,7 +796,7 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res_list)
 
     // Run scheduler with current info
     sched_interface::ul_sched_res_t sched_result = {};
-    if (scheduler.ul_sched(tti, enb_cc_idx, sched_result) < 0) {
+    if (scheduler.ul_sched(tti_tx_ul, enb_cc_idx, sched_result) < 0) {
       Error("Running scheduler\n");
       return SRSLTE_ERROR;
     }
@@ -819,12 +819,12 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res_list)
             phy_ul_sched_res->pusch[n].needs_pdcch   = sched_result.pusch[i].needs_pdcch;
             phy_ul_sched_res->pusch[n].dci           = sched_result.pusch[i].dci;
             phy_ul_sched_res->pusch[n].softbuffer_rx =
-                ue_db[rnti]->get_rx_softbuffer(sched_result.pusch[i].dci.ue_cc_idx, tti);
+                ue_db[rnti]->get_rx_softbuffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul);
             if (sched_result.pusch[n].current_tx_nb == 0) {
               srslte_softbuffer_rx_reset_tbs(phy_ul_sched_res->pusch[n].softbuffer_rx, sched_result.pusch[i].tbs * 8);
             }
             phy_ul_sched_res->pusch[n].data =
-                ue_db[rnti]->request_buffer(sched_result.pusch[i].dci.ue_cc_idx, tti, sched_result.pusch[i].tbs);
+                ue_db[rnti]->request_buffer(sched_result.pusch[i].dci.ue_cc_idx, tti_tx_ul, sched_result.pusch[i].tbs);
             phy_ul_sched_res->nof_grants++;
             n++;
           } else {

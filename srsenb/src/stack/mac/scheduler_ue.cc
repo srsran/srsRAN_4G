@@ -287,11 +287,14 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
   Debug("SCHED: recv_len=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", len, lcid, lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
 }
 
-void sched_ue::set_ul_crc(uint32_t tti, uint32_t enb_cc_idx, bool crc_res)
+void sched_ue::set_ul_crc(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
 {
   auto p = get_cell_index(enb_cc_idx);
   if (p.first) {
-    get_ul_harq(tti, p.second)->set_ack(0, crc_res);
+    srslte::tti_point tti_tx_ul = srslte::to_tx_ul(tti_rx);
+    if (not get_ul_harq(tti_tx_ul.to_uint(), p.second)->set_ack(0, crc_res)) {
+      log_h->warning("Received UL CRC for invalid tti_tx_ul=%d\n", (int)tti_tx_ul.to_uint());
+    }
   } else {
     log_h->warning("Received UL CRC for invalid cell index %d\n", enb_cc_idx);
   }

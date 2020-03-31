@@ -255,10 +255,14 @@ void ul_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, 
   new_retx_common(tb_idx, tti_point{tti_}, mcs, tbs);
 }
 
-void ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
+bool ul_harq_proc::set_ack(uint32_t tb_idx, bool ack_)
 {
+  if (is_empty()) {
+    return false;
+  }
   pending_ack = ack_ ? ACK : NACK;
   set_ack_common(tb_idx, ack_);
+  return true;
 }
 
 bool ul_harq_proc::has_pending_ack() const

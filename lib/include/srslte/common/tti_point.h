@@ -117,6 +117,19 @@ inline tti_point min(tti_point tti1, tti_point tti2)
   return tti1 < tti2 ? tti1 : tti2;
 }
 
+inline tti_point to_tx_dl(const srslte::tti_point& t)
+{
+  return t + FDD_HARQ_DELAY_UL_MS;
+}
+inline tti_point to_tx_ul(const srslte::tti_point& t)
+{
+  return t + (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
+}
+inline tti_point to_tx_dl_ack(const srslte::tti_point& t)
+{
+  return to_tx_ul(t);
+}
+
 } // namespace srslte
 
 #endif // SRSLTE_TTI_POINT_H
