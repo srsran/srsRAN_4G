@@ -82,7 +82,7 @@ struct fsm_helper {
   {
     // do nothing
   }
-  //! TargetState is type-erased. Apply its stored type to the fsm current state
+  //! TargetState is type-erased (a choice). Apply its stored type to the fsm current state
   template <typename FSM, typename... Args, typename PrevState>
   static void handle_state_change(FSM* f, choice_t<Args...>* s, PrevState* p)
   {
@@ -164,10 +164,11 @@ public:
   virtual void        exit() {}
 };
 
+//! CRTP Class for all non-nested FSMs
 template <typename Derived>
 class fsm_t : public state_t
 {
-public:
+protected:
   // get access to derived protected members from the base
   class derived_view : public Derived
   {
@@ -175,6 +176,8 @@ public:
     using Derived::react;
     using Derived::states;
   };
+
+public:
   static const bool is_nested = false;
 
   // Push Events to FSM
@@ -204,6 +207,13 @@ public:
     return visitor.name;
   }
 
+  //! Static method to check if State belongs to the list of possible states
+  template <typename State>
+  constexpr static bool can_hold_state()
+  {
+    return fsm_details::fsm_helper::get_fsm_state_list<fsm_t<Derived> >::template can_hold_type<State>();
+  }
+
 protected:
   friend struct fsm_details::fsm_helper;
 
@@ -215,9 +225,8 @@ protected:
 template <typename Derived, typename ParentFSM>
 class nested_fsm_t : public fsm_t<Derived>
 {
-  using base_t      = fsm_t<Derived>;
-  using parent_t    = ParentFSM;
-  using parent_view = typename parent_t::derived_view;
+  using base_t   = fsm_t<Derived>;
+  using parent_t = ParentFSM;
 
 public:
   static const bool is_nested = true;

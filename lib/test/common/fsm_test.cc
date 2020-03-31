@@ -137,6 +137,7 @@ static_assert(std::is_same<fsm_helper::enable_if_fsm_state<fsm1, fsm1::idle_st>,
               "get state list failed\n");
 static_assert(std::is_same<fsm_helper::disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value,
               "get state list failed\n");
+static_assert(fsm1::can_hold_state<fsm1::state1>(), "can hold state method failed\n");
 
 } // namespace fsm_details
 } // namespace srslte
