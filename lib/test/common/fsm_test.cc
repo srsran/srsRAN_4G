@@ -38,18 +38,13 @@ public:
   uint32_t idle_enter_counter = 0, state1_enter_counter = 0;
   uint32_t foo_counter = 0;
 
-  fsm1() : states(idle_st{this}) {}
-
   const char* name() const override { return "fsm1"; }
 
   // idle state
-  struct idle_st : srslte::state_t {
-    idle_st(fsm1* f)
-    {
-      test_log->info("fsm1::%s::enter called\n", name());
-      f->idle_enter_counter++;
-    }
-    ~idle_st() { test_log->info("fsm1::%s::exit called\n", name()); }
+  struct idle_st : public srslte::state_t {
+    idle_st(fsm1* f) { f->idle_enter_counter++; }
+    void        enter() final { test_log->info("fsm1::%s::enter called\n", name()); }
+    void        exit() final { test_log->info("fsm1::%s::exit called\n", name()); }
     const char* name() const final { return "idle"; }
   };
 
@@ -72,7 +67,7 @@ public:
     struct state_inner : public srslte::state_t {
       const char* name() const final { return "state_inner"; }
       state_inner() { test_log->info("fsm2::%s::enter called\n", name()); }
-      ~state_inner() { test_log->info("fsm2::%s::exit called\n", name()); }
+      void exit() final { test_log->info("fsm2::%s::exit called\n", name()); }
     };
 
     fsm2(fsm1* f_) : nested_fsm_t(f_) { test_log->info("%s::enter called\n", name()); }
@@ -129,6 +124,24 @@ auto fsm1::react(state1& s, ev2 e) -> srslte::state_list<idle_st, fsm2>
   test_log->info("fsm1::%s::react called\n", s.name());
   return idle_st{this};
 }
+
+// Static Checks
+
+namespace srslte {
+namespace fsm_details {
+
+static_assert(std::is_same<fsm_helper::get_fsm_state_list<fsm1>,
+                           srslte::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
+              "get state list failed\n");
+static_assert(std::is_same<fsm_helper::enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value,
+              "get state list failed\n");
+static_assert(std::is_same<fsm_helper::disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value,
+              "get state list failed\n");
+
+} // namespace fsm_details
+} // namespace srslte
+
+// Runtime checks
 
 int test_hsm()
 {

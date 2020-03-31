@@ -77,6 +77,10 @@ static_assert(std::is_same<tagged_union_t<char, int, double>::default_type, char
 static_assert(tagged_union_t<char, int, double>::can_hold_type<int>(), "Can hold type implementation is incorrect\n");
 static_assert(not tagged_union_t<char, int, double>::can_hold_type<uint8_t>(),
               "Can hold type implementation is incorrect\n");
+static_assert(std::is_same<choice_t<char, int, double>::enable_if_can_hold<char>, void>::value,
+              "Metafunction enable if not working\n");
+static_assert(std::is_same<choice_t<char, int, double>::disable_if_can_hold<float>, void>::value,
+              "Metafunction enable if not working\n");
 
 } // namespace choice_details
 } // namespace srslte

@@ -310,11 +310,16 @@ template <typename... Args>
 class choice_t : private choice_details::tagged_union_t<Args...>
 {
   using base_t = choice_details::tagged_union_t<Args...>;
+
+public:
+  //! Useful metafunction
   template <typename T>
   using enable_if_can_hold =
       typename std::enable_if<base_t::template can_hold_type<typename std::decay<T>::type>()>::type;
+  template <typename T>
+  using disable_if_can_hold =
+      typename std::enable_if<not base_t::template can_hold_type<typename std::decay<T>::type>()>::type;
 
-public:
   using base_t::can_hold_type;
   using base_t::get;
   using base_t::get_if;
@@ -406,6 +411,12 @@ template <typename T, typename... Args>
 const T* get_if(const choice_t<Args...>& c)
 {
   return c.template get_if<T>();
+}
+
+template <typename T, typename... Args>
+T& get(choice_t<Args...>& c)
+{
+  return c.template get<T>();
 }
 
 template <std::size_t I, typename... Args>

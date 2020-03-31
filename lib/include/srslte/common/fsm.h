@@ -57,13 +57,25 @@ struct variant_convert {
   {
     static_assert(not std::is_same<typename std::decay<State>::type, typename std::decay<PrevState>::type>::value,
                   "State cannot transition to itself.\n");
+    if (p != nullptr) {
+      srslte::get<PrevState>(*v).exit();
+    }
     *v = std::move(s);
+    srslte::get<State>(*v).enter();
   }
   TargetVariant* v;
   PrevState*     p;
 };
 
 struct fsm_helper {
+  //! Metafunction to determine if FSM can hold given State type
+  template <typename FSM>
+  using get_fsm_state_list = decltype(std::declval<typename FSM::derived_view>().states);
+  template <typename FSM, typename State>
+  using enable_if_fsm_state = typename get_fsm_state_list<FSM>::template enable_if_can_hold<State>;
+  template <typename FSM, typename State>
+  using disable_if_fsm_state = typename get_fsm_state_list<FSM>::template disable_if_can_hold<State>;
+
   //! Stayed in same state
   template <typename FSM, typename PrevState>
   static void handle_state_change(FSM* f, same_state* s, PrevState* p)
@@ -79,17 +91,25 @@ struct fsm_helper {
   }
   //! Simple state transition in FSM
   template <typename FSM, typename State, typename PrevState>
-  static auto handle_state_change(FSM* f, State* s, PrevState* p) -> decltype(f->states = std::move(*s), void())
+  static enable_if_fsm_state<FSM, State> handle_state_change(FSM* f, State* s, PrevState* p)
   {
     static_assert(not std::is_same<State, PrevState>::value, "State cannot transition to itself.\n");
+    if (p != nullptr) {
+      srslte::get<PrevState>(f->states).exit();
+    }
     f->states = std::move(*s);
+    srslte::get<State>(f->states).enter();
   }
   //! State not present in current FSM. Attempt state transition in parent FSM in the case of NestedFSM
-  template <typename FSM, typename... Args>
-  static void handle_state_change(FSM* f, Args&&... args)
+  template <typename FSM, typename State, typename PrevState>
+  static disable_if_fsm_state<FSM, State> handle_state_change(FSM* f, State* s, PrevState* p)
   {
     static_assert(FSM::is_nested, "State is not present in the FSM list of valid states");
-    handle_state_change(f->parent_fsm()->derived(), args...);
+    if (p != nullptr) {
+      srslte::get<PrevState>(f->states).exit();
+      p = nullptr;
+    }
+    handle_state_change(f->parent_fsm()->derived(), s, p);
   }
 
   //! Trigger Event, that will result in a state transition
@@ -140,10 +160,12 @@ class state_t
 public:
   state_t()                        = default;
   virtual const char* name() const = 0;
+  virtual void        enter() {}
+  virtual void        exit() {}
 };
 
 template <typename Derived>
-class fsm_t
+class fsm_t : public state_t
 {
 public:
   // get access to derived protected members from the base
@@ -154,8 +176,6 @@ public:
     using Derived::states;
   };
   static const bool is_nested = false;
-
-  virtual const char* name() const = 0;
 
   // Push Events to FSM
   template <typename Ev>
