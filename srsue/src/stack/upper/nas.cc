@@ -616,7 +616,37 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   // Parse the message header
   liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &pd, &msg_type);
   nas_log->info_hex(pdu->msg, pdu->N_bytes, "DL %s Decrypted PDU", rrc->get_rb_name(lcid).c_str());
-  // TODO: Check if message type requieres specical security header type and if it isvalid
+
+  // drop messages if integrity protection isn't applied (see TS 24.301 Sec. 4.4.4.2)
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS) {
+    switch (msg_type) {
+      case LIBLTE_MME_MSG_TYPE_IDENTITY_REQUEST: // special case for IMSI is checked in parse_identity_request()
+      case LIBLTE_MME_MSG_TYPE_EMM_INFORMATION:
+      case LIBLTE_MME_MSG_TYPE_EMM_STATUS:
+      case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REQUEST:
+      case LIBLTE_MME_MSG_TYPE_AUTHENTICATION_REJECT:
+      case LIBLTE_MME_MSG_TYPE_ATTACH_REJECT:
+      case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
+      case LIBLTE_MME_MSG_TYPE_DETACH_ACCEPT:
+      case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REJECT:
+      case LIBLTE_MME_MSG_TYPE_SERVICE_REJECT:
+        break;
+      default:
+        nas_log->error("Not handling NAS message MSG_TYPE=%02X with SEC_HDR_TYPE=%02X without integrity protection!\n",
+                       msg_type,
+                       sec_hdr_type);
+        return;
+    }
+  }
+
+  // Reserved for Security Mode Command (Sec 9.3.1)
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT &&
+      msg_type != LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMMAND) {
+    nas_log->error("Not handling NAS message MSG_TYPE=%02X with SEC_HDR_TYPE=%02X. Security header type reserved!\n",
+                   msg_type,
+                   sec_hdr_type);
+    return;
+  }
 
   switch (msg_type) {
     case LIBLTE_MME_MSG_TYPE_ATTACH_ACCEPT:
@@ -662,7 +692,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
       parse_modify_eps_bearer_context_request(std::move(pdu));
       break;
     case LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE:
-      parse_activate_test_mode(lcid, std::move(pdu), sec_hdr_type);
+      parse_activate_test_mode(lcid, std::move(pdu));
       break;
     // TODO: Handle deactivate test mode and ue close/open
     case LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE:
@@ -808,7 +838,13 @@ bool nas::integrity_check(byte_buffer_t* pdu)
         return false;
       }
     }
-    nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n", ctxt.rx_count, pdu->msg[5]);
+    nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d  [%02x %02x %02x %02x]\n",
+                  ctxt.rx_count,
+                  pdu->msg[5],
+                  mac[0],
+                  mac[1],
+                  mac[2],
+                  mac[3]);
 
     // Updated local count (according to TS 24.301 Sec. 4.4.3.3)
     if (pdu->msg[5] != ctxt.rx_count) {
@@ -921,20 +957,26 @@ bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT* caps)
 /**
  * Applies the current security config on a packed NAS PDU
  *
- * The PDU is ciphered and integrity protected if NAS security is configured
- * and the current security context is valid. The function also performs
- * a length check.
+ * The PDU is ciphered and integrity protected if NAS security is configured,
+ * the header type requires security protection and the current security context is valid.
+ * The function also performs a length check.
  *
  * @param pdu The NAS PDU already packed inside a byte_buffer
- * @return True if successfull, false otherwise
+ * @param sec_hdr_type Security header type of the message
+ * @return True if successful, false otherwise
  */
-int nas::apply_security_config(srslte::unique_byte_buffer_t& pdu)
+int nas::apply_security_config(srslte::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type)
 {
   if (have_ctxt) {
     if (pdu->N_bytes > 5) {
-      cipher_encrypt(pdu.get());
-      integrity_generate(
-          &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+      if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED ||
+          sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT) {
+        cipher_encrypt(pdu.get());
+      }
+      if (sec_hdr_type >= LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY) {
+        integrity_generate(
+            &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+      }
     } else {
       nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
       return SRSLTE_ERROR;
@@ -952,6 +994,7 @@ void nas::reset_security_context()
 {
   have_guti = false;
   have_ctxt = false;
+  current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS;
   ctxt      = {};
   ctxt.ksi  = LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE;
 }
@@ -1252,8 +1295,7 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 
 void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
 {
-  LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req;
-  bzero(&auth_req, sizeof(LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT));
+  LIBLTE_MME_AUTHENTICATION_REQUEST_MSG_STRUCT auth_req = {};
 
   nas_log->info("Received Authentication Request\n");
   liblte_mme_unpack_authentication_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &auth_req);
@@ -1282,7 +1324,10 @@ void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, 
 
   if (auth_result == AUTH_OK) {
     nas_log->info("Network authentication successful\n");
-    send_authentication_response(res, res_len, sec_hdr_type);
+    // MME wants to re-establish security context, use provided protection level until security (re-)activation
+    current_sec_hdr = sec_hdr_type;
+
+    send_authentication_response(res, res_len);
     nas_log->info_hex(ctxt.k_asme, 32, "Generated k_asme:\n");
     set_k_enb_count(0);
     auth_request = true;
@@ -1314,7 +1359,7 @@ void nas::parse_identity_request(unique_byte_buffer_t pdu, const uint8_t sec_hdr
   // do not respond if request is not protected (TS 24.301 Sec. 4.4.4.2)
   if (sec_hdr_type >= LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
       (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS && id_req.id_type == LIBLTE_MME_MOBILE_ID_TYPE_IMSI)) {
-    send_identity_response(id_req.id_type, sec_hdr_type);
+    send_identity_response(id_req.id_type);
   } else {
     nas_log->info("Not sending identity response due to missing integrity protection.\n");
   }
@@ -1332,11 +1377,7 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
     return;
   }
 
-  LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sec_mode_cmd;
-  bzero(&sec_mode_cmd, sizeof(LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT));
-  LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sec_mode_comp;
-  bzero(&sec_mode_comp, sizeof(LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT));
-
+  LIBLTE_MME_SECURITY_MODE_COMMAND_MSG_STRUCT sec_mode_cmd = {};
   liblte_mme_unpack_security_mode_command_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &sec_mode_cmd);
   nas_log->info("Received Security Mode Command ksi: %d, eea: %s, eia: %s\n",
                 sec_mode_cmd.nas_ksi.nas_ksi,
@@ -1400,9 +1441,7 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
 
   ctxt.rx_count++;
 
-  // Take security context into use
-  have_ctxt = true;
-
+  LIBLTE_MME_SECURITY_MODE_COMPLETE_MSG_STRUCT sec_mode_comp = {};
   if (sec_mode_cmd.imeisv_req_present && LIBLTE_MME_IMEISV_REQUESTED == sec_mode_cmd.imeisv_req) {
     sec_mode_comp.imeisv_present    = true;
     sec_mode_comp.imeisv.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMEISV;
@@ -1413,18 +1452,19 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
     sec_mode_comp.imeisv_present = false;
   }
 
-  // Send response
+  // Take security context into use and use new security header
+  have_ctxt       = true;
+  current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT;
+
+  // Pack and send response
   pdu->clear();
   liblte_mme_pack_security_mode_complete_msg(
-      &sec_mode_comp,
-      LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT,
-      ctxt.tx_count,
-      (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+      &sec_mode_comp, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
   if (pcap != nullptr) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (apply_security_config(pdu)) {
+  if (apply_security_config(pdu, current_sec_hdr)) {
     nas_log->error("Error applying NAS security.\n");
     return;
   }
@@ -1434,6 +1474,9 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
                 rrc->get_rb_name(lcid).c_str());
   rrc->write_sdu(std::move(pdu));
   ctxt.tx_count++;
+
+  // switch security header for all following messages
+  current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
 }
 
 void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
@@ -1621,13 +1664,13 @@ void nas::parse_modify_eps_bearer_context_request(srslte::unique_byte_buffer_t p
   send_modify_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
 }
 
-void nas::parse_activate_test_mode(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
+void nas::parse_activate_test_mode(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   nas_log->info("Received Activate test mode\n");
 
   ctxt.rx_count++;
 
-  send_activate_test_mode_complete(sec_hdr_type);
+  send_activate_test_mode_complete();
 }
 
 void nas::parse_emm_status(uint32_t lcid, unique_byte_buffer_t pdu)
@@ -1722,7 +1765,7 @@ void nas::gen_attach_request(srslte::unique_byte_buffer_t& msg)
     liblte_mme_pack_attach_request_msg(
         &attach_req, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)msg.get());
 
-    if (apply_security_config(msg)) {
+    if (apply_security_config(msg, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY)) {
       nas_log->error("Error applying NAS security.\n");
       return;
     }
@@ -1793,8 +1836,7 @@ void nas::gen_service_request(srslte::unique_byte_buffer_t& msg)
 
 void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg)
 {
-  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
-  ZERO_OBJECT(pdn_con_req);
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
 
   nas_log->info("Generating PDN Connectivity Request\n");
 
@@ -1876,8 +1918,7 @@ void nas::send_detach_request(bool switch_off)
     return;
   }
 
-  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_request;
-  bzero(&detach_request, sizeof(detach_request));
+  LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_request = {};
   if (switch_off) {
     detach_request.detach_type.switch_off     = 1;
     detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_SWITCH_OFF;
@@ -1892,18 +1933,15 @@ void nas::send_detach_request(bool switch_off)
     memcpy(&detach_request.eps_mobile_id.guti, &ctxt.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
     detach_request.nas_ksi.tsc_flag = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
     detach_request.nas_ksi.nas_ksi  = ctxt.ksi;
-    nas_log->info("Sending detach request with GUTI\n"); // If sent as an Initial UE message, it cannot be chiphered
-    liblte_mme_pack_detach_request_msg(&detach_request,
-                                       rrc->is_connected() ? LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED
-                                                           : LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
-                                       ctxt.tx_count,
-                                       (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+    nas_log->info("Sending detach request with GUTI\n"); // If sent as an Initial UE message, it cannot be ciphered
+    liblte_mme_pack_detach_request_msg(
+        &detach_request, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
     if (pcap != nullptr) {
       pcap->write_nas(pdu->msg, pdu->N_bytes);
     }
 
-    if (apply_security_config(pdu)) {
+    if (apply_security_config(pdu, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY)) {
       nas_log->error("Error applying NAS security.\n");
       return;
     }
@@ -1914,7 +1952,7 @@ void nas::send_detach_request(bool switch_off)
     usim->get_imsi_vec(detach_request.eps_mobile_id.imsi, 15);
     nas_log->info("Sending detach request with IMSI\n");
     liblte_mme_pack_detach_request_msg(
-        &detach_request, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+        &detach_request, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
     if (pcap != nullptr) {
       pcap->write_nas(pdu->msg, pdu->N_bytes);
@@ -1957,16 +1995,14 @@ void nas::send_attach_complete(const uint8_t& transaction_id_, const uint8_t& ep
 
   // Pack entire message
   unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
-  liblte_mme_pack_attach_complete_msg(&attach_complete,
-                                      LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                      ctxt.tx_count,
-                                      (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+  liblte_mme_pack_attach_complete_msg(
+      &attach_complete, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
   // Write NAS pcap
   if (pcap != nullptr) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (apply_security_config(pdu)) {
+  if (apply_security_config(pdu, current_sec_hdr)) {
     nas_log->error("Error applying NAS security.\n");
     return;
   }
@@ -1989,16 +2025,13 @@ void nas::send_detach_accept()
 
   LIBLTE_MME_DETACH_ACCEPT_MSG_STRUCT detach_accept;
   bzero(&detach_accept, sizeof(detach_accept));
-  liblte_mme_pack_detach_accept_msg(&detach_accept,
-                                    LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                    ctxt.tx_count,
-                                    (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+  liblte_mme_pack_detach_accept_msg(&detach_accept, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
   if (pcap != nullptr) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (apply_security_config(pdu)) {
+  if (apply_security_config(pdu, current_sec_hdr)) {
     nas_log->error("Error applying NAS security.\n");
     return;
   }
@@ -2007,7 +2040,7 @@ void nas::send_detach_accept()
   rrc->write_sdu(std::move(pdu));
 }
 
-void nas::send_authentication_response(const uint8_t* res, const size_t res_len, const uint8_t sec_hdr_type)
+void nas::send_authentication_response(const uint8_t* res, const size_t res_len)
 {
   unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
   if (!pdu) {
@@ -2015,25 +2048,22 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len,
     return;
   }
 
-  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res;
-  bzero(&auth_res, sizeof(LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT));
+  LIBLTE_MME_AUTHENTICATION_RESPONSE_MSG_STRUCT auth_res = {};
 
   for (uint32_t i = 0; i < res_len; i++) {
     auth_res.res[i] = res[i];
   }
   auth_res.res_len = res_len;
   liblte_mme_pack_authentication_response_msg(
-      &auth_res, sec_hdr_type, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+      &auth_res, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
   if (pcap != nullptr) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED) {
-    if (apply_security_config(pdu)) {
-      nas_log->error("Error applying NAS security.\n");
-      return;
-    }
+  if (apply_security_config(pdu, current_sec_hdr)) {
+    nas_log->error("Error applying NAS security.\n");
+    return;
   }
 
   nas_log->info("Sending Authentication Response\n");
@@ -2067,7 +2097,7 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
   rrc->write_sdu(std::move(msg));
 }
 
-void nas::send_identity_response(const uint8 id_type, const uint8_t sec_hdr_type)
+void nas::send_identity_response(const uint8 id_type)
 {
   LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp = {};
 
@@ -2097,14 +2127,12 @@ void nas::send_identity_response(const uint8 id_type, const uint8_t sec_hdr_type
     return;
   }
 
-  liblte_mme_pack_identity_response_msg(&id_resp, sec_hdr_type, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+  liblte_mme_pack_identity_response_msg(&id_resp, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
   // add security if needed
-  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED) {
-    if (apply_security_config(pdu)) {
-      nas_log->error("Error applying NAS security.\n");
-      return;
-    }
+  if (apply_security_config(pdu, current_sec_hdr)) {
+    nas_log->error("Error applying NAS security.\n");
+    return;
   }
 
   if (pcap != nullptr) {
@@ -2244,10 +2272,8 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
     return;
   }
 
-  if (liblte_mme_pack_esm_information_response_msg(&esm_info_resp,
-                                                   LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                                   ctxt.tx_count,
-                                                   (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) != LIBLTE_SUCCESS) {
+  if (liblte_mme_pack_esm_information_response_msg(
+          &esm_info_resp, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) != LIBLTE_SUCCESS) {
     nas_log->error("Error packing ESM information response.\n");
     return;
   }
@@ -2256,7 +2282,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id)
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (apply_security_config(pdu)) {
+  if (apply_security_config(pdu, current_sec_hdr)) {
     nas_log->error("Error applying NAS security.\n");
     return;
   }
@@ -2279,10 +2305,7 @@ void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_
   accept.proc_transaction_id = proc_transaction_id;
 
   if (liblte_mme_pack_activate_dedicated_eps_bearer_context_accept_msg(
-          &accept,
-          LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-          ctxt.tx_count,
-          (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) != LIBLTE_SUCCESS) {
+          &accept, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) != LIBLTE_SUCCESS) {
     nas_log->error("Error packing Activate Dedicated EPS Bearer context accept.\n");
     return;
   }
@@ -2291,7 +2314,7 @@ void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (apply_security_config(pdu)) {
+  if (apply_security_config(pdu, current_sec_hdr)) {
     nas_log->error("Error applying NAS security.\n");
     return;
   }
@@ -2315,11 +2338,9 @@ void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transact
   accept.eps_bearer_id       = eps_bearer_id;
   accept.proc_transaction_id = proc_transaction_id;
 
-  if (liblte_mme_pack_deactivate_eps_bearer_context_accept_msg(&accept,
-                                                               LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                                               ctxt.tx_count,
-                                                               (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) != LIBLTE_SUCCESS) {
-    nas_log->error("Error packing Aeactivate EPS Bearer context accept.\n");
+  if (liblte_mme_pack_deactivate_eps_bearer_context_accept_msg(
+          &accept, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) != LIBLTE_SUCCESS) {
+    nas_log->error("Error packing Activate EPS Bearer context accept.\n");
     return;
   }
 
@@ -2327,7 +2348,7 @@ void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transact
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (apply_security_config(pdu)) {
+  if (apply_security_config(pdu, current_sec_hdr)) {
     nas_log->error("Error applying NAS security.\n");
     return;
   }
@@ -2351,10 +2372,8 @@ void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_
   accept.eps_bearer_id       = eps_bearer_id;
   accept.proc_transaction_id = proc_transaction_id;
 
-  if (liblte_mme_pack_modify_eps_bearer_context_accept_msg(&accept,
-                                                           LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                                           ctxt.tx_count,
-                                                           (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) != LIBLTE_SUCCESS) {
+  if (liblte_mme_pack_modify_eps_bearer_context_accept_msg(
+          &accept, current_sec_hdr, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get()) != LIBLTE_SUCCESS) {
     nas_log->error("Error packing Modify EPS Bearer context accept.\n");
     return;
   }
@@ -2363,7 +2382,7 @@ void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (apply_security_config(pdu)) {
+  if (apply_security_config(pdu, current_sec_hdr)) {
     nas_log->error("Error applying NAS security.\n");
     return;
   }
@@ -2378,12 +2397,12 @@ void nas::send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_
   ctxt.tx_count++;
 }
 
-void nas::send_activate_test_mode_complete(const uint8_t sec_hdr_type)
+void nas::send_activate_test_mode_complete()
 {
   unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
 
   if (liblte_mme_pack_activate_test_mode_complete_msg(
-          (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), sec_hdr_type, ctxt.tx_count)) {
+          (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), current_sec_hdr, ctxt.tx_count)) {
     nas_log->error("Error packing activate test mode complete.\n");
     return;
   }
@@ -2392,7 +2411,7 @@ void nas::send_activate_test_mode_complete(const uint8_t sec_hdr_type)
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  if (apply_security_config(pdu)) {
+  if (apply_security_config(pdu, current_sec_hdr)) {
     nas_log->error("Error applying NAS security.\n");
     return;
   }
@@ -2491,7 +2510,6 @@ bool nas::read_ctxt_file(nas_sec_ctxt* ctxt_)
     }
 
     file.close();
-    have_guti = true;
     nas_log->info("Read GUTI from file "
                   "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
                   ctxt_->guti.m_tmsi,
@@ -2499,7 +2517,6 @@ bool nas::read_ctxt_file(nas_sec_ctxt* ctxt_)
                   ctxt_->guti.mnc,
                   ctxt_->guti.mme_group_id,
                   ctxt_->guti.mme_code);
-    have_ctxt = true;
     nas_log->info("Read security ctxt from file .ctxt. "
                   "ksi: %x, k_asme: %s, tx_count: %x, rx_count: %x, int_alg: %d, enc_alg: %d\n",
                   ctxt_->ksi,
@@ -2508,6 +2525,11 @@ bool nas::read_ctxt_file(nas_sec_ctxt* ctxt_)
                   ctxt_->rx_count,
                   ctxt_->integ_algo,
                   ctxt_->cipher_algo);
+
+    have_guti       = true;
+    have_ctxt       = true;
+    current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED;
+
     return true;
   }
   return false;

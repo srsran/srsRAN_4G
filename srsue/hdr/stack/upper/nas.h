@@ -120,6 +120,7 @@ private:
   bool         have_ctxt    = false;
   nas_sec_ctxt ctxt         = {};
   bool         auth_request = false;
+  uint8_t      current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS;
 
   const uint32_t max_attach_attempts    = 5; // Sec. 5.5.1.2.6
   uint32_t       attach_attempt_counter = 0;
@@ -171,7 +172,7 @@ private:
   bool integrity_check(srslte::byte_buffer_t* pdu);
   void cipher_encrypt(srslte::byte_buffer_t* pdu);
   void cipher_decrypt(srslte::byte_buffer_t* pdu);
-  int  apply_security_config(srslte::unique_byte_buffer_t& pdu);
+  int  apply_security_config(srslte::unique_byte_buffer_t& pdu, uint8_t sec_hdr_type);
   void reset_security_context();
 
   void set_k_enb_count(uint32_t count);
@@ -194,7 +195,7 @@ private:
   void parse_emm_status(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_deactivate_eps_bearer_context_request(srslte::unique_byte_buffer_t pdu);
-  void parse_activate_test_mode(uint32_t lcid, srslte::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
+  void parse_activate_test_mode(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_modify_eps_bearer_context_request(srslte::unique_byte_buffer_t pdu);
 
   // Packet generators
@@ -203,10 +204,10 @@ private:
 
   // Senders
   void send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps_bearer_id);
-  void send_identity_response(uint8 id_type, const uint8_t sec_hdr_type);
+  void send_identity_response(uint8 id_type);
   void send_service_request();
   void send_esm_information_response(const uint8 proc_transaction_id);
-  void send_authentication_response(const uint8_t* res, const size_t res_len, const uint8_t sec_hdr_type);
+  void send_authentication_response(const uint8_t* res, const size_t res_len);
   void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
   void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg);
   void send_security_mode_reject(uint8_t cause);
@@ -217,7 +218,7 @@ private:
                                                          const uint8_t& eps_bearer_id);
   void send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id);
   void send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id);
-  void send_activate_test_mode_complete(const uint8_t sec_hdr_type);
+  void send_activate_test_mode_complete();
 
   // Other internal helpers
   void enter_state(emm_state_t state_);
