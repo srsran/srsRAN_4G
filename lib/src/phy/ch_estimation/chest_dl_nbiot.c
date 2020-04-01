@@ -46,19 +46,18 @@ int srslte_chest_dl_nbiot_init(srslte_chest_dl_nbiot_t* q, uint32_t max_prb)
       goto clean_exit;
     }
 
-    q->tmp_noise = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
+    q->tmp_noise = srslte_vec_cf_malloc(SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
     if (!q->tmp_noise) {
       perror("malloc");
       goto clean_exit;
     }
-    q->pilot_estimates =
-        srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb) + SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN);
+    q->pilot_estimates = srslte_vec_cf_malloc(SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb) + SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN);
     if (!q->pilot_estimates) {
       perror("malloc");
       goto clean_exit;
     }
     q->pilot_estimates_average =
-        srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb) + SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN);
+        srslte_vec_cf_malloc(SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb) + SRSLTE_CHEST_MAX_SMOOTH_FIL_LEN);
     if (!q->pilot_estimates_average) {
       perror("malloc");
       goto clean_exit;
@@ -67,7 +66,7 @@ int srslte_chest_dl_nbiot_init(srslte_chest_dl_nbiot_t* q, uint32_t max_prb)
       q->pilot_estimates_average[i] = 1;
     }
 
-    q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
+    q->pilot_recv_signal = srslte_vec_cf_malloc(SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
     if (!q->pilot_recv_signal) {
       perror("malloc");
       goto clean_exit;

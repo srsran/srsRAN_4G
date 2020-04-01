@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 
   flen = fft_size * 15 * 5;
 
-  buffer = malloc(sizeof(cf_t) * flen * 2);
+  buffer = srslte_vec_cf_malloc(flen * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);

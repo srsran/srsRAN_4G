@@ -92,31 +92,31 @@ int srslte_chest_dl_init(srslte_chest_dl_t* q, uint32_t max_prb, uint32_t nof_rx
       pilot_vec_size = SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb);
     }
 
-    q->tmp_noise = srslte_vec_malloc(sizeof(cf_t) * pilot_vec_size);
+    q->tmp_noise = srslte_vec_cf_malloc(pilot_vec_size);
     if (!q->tmp_noise) {
       perror("malloc");
       goto clean_exit;
     }
 
-    q->tmp_cfo_estimate = srslte_vec_malloc(sizeof(cf_t) * pilot_vec_size);
+    q->tmp_cfo_estimate = srslte_vec_cf_malloc(pilot_vec_size);
     if (!q->tmp_cfo_estimate) {
       perror("malloc");
       goto clean_exit;
     }
 
-    q->pilot_estimates = srslte_vec_malloc(sizeof(cf_t) * pilot_vec_size);
+    q->pilot_estimates = srslte_vec_cf_malloc(pilot_vec_size);
     if (!q->pilot_estimates) {
       perror("malloc");
       goto clean_exit;
     }
 
-    q->pilot_estimates_average = srslte_vec_malloc(sizeof(cf_t) * pilot_vec_size);
+    q->pilot_estimates_average = srslte_vec_cf_malloc(pilot_vec_size);
     if (!q->pilot_estimates_average) {
       perror("malloc");
       goto clean_exit;
     }
 
-    q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * pilot_vec_size);
+    q->pilot_recv_signal = srslte_vec_cf_malloc(pilot_vec_size);
     if (!q->pilot_recv_signal) {
       perror("malloc");
       goto clean_exit;
@@ -197,12 +197,12 @@ int srslte_chest_dl_res_init(srslte_chest_dl_res_t* q, uint32_t max_prb)
   q->nof_re = SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM);
   for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
     for (uint32_t j = 0; j < SRSLTE_MAX_PORTS; j++) {
-      q->ce[i][j] = srslte_vec_malloc(q->nof_re * sizeof(cf_t));
+      q->ce[i][j] = srslte_vec_cf_malloc(q->nof_re);
       if (!q->ce[i][j]) {
         perror("malloc");
         return -1;
       }
-      bzero(q->ce[i][j], SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+      srslte_vec_cf_zero(q->ce[i][j], SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
     }
   }
   return 0;

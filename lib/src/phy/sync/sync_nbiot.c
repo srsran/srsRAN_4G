@@ -64,7 +64,7 @@ int srslte_sync_nbiot_init(srslte_sync_nbiot_t* q, uint32_t frame_size, uint32_t
     srslte_sync_nbiot_set_cfo_tol(q, DEFAULT_CFO_TOL);
 
     // initialize shift buffer for CFO estimation
-    q->shift_buffer = srslte_vec_malloc(SRSLTE_SF_LEN(q->fft_size) * sizeof(cf_t));
+    q->shift_buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN(q->fft_size));
     if (!q->shift_buffer) {
       perror("malloc");
       goto clean_exit;
@@ -72,7 +72,7 @@ int srslte_sync_nbiot_init(srslte_sync_nbiot_t* q, uint32_t frame_size, uint32_t
     srslte_cexptab_gen_sf(q->shift_buffer, -SRSLTE_NBIOT_FREQ_SHIFT_FACTOR, q->fft_size);
 
     // allocate memory for early CFO estimation
-    q->cfo_output = srslte_vec_malloc(10 * SRSLTE_SF_LEN(q->fft_size) * sizeof(cf_t));
+    q->cfo_output = srslte_vec_cf_malloc(SRSLTE_NOF_SF_X_FRAME * SRSLTE_SF_LEN(q->fft_size));
     if (!q->cfo_output) {
       perror("malloc");
       goto clean_exit;

@@ -35,13 +35,13 @@ int srslte_enb_ul_init(srslte_enb_ul_t* q, cf_t* in_buffer, uint32_t max_prb)
 
     bzero(q, sizeof(srslte_enb_ul_t));
 
-    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+    q->sf_symbols = srslte_vec_cf_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
     if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit;
     }
 
-    q->chest_res.ce = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+    q->chest_res.ce = srslte_vec_cf_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
     if (!q->chest_res.ce) {
       perror("malloc");
       goto clean_exit;

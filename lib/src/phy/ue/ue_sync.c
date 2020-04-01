@@ -93,7 +93,7 @@ int srslte_ue_sync_init_file_multi(srslte_ue_sync_t* q,
     INFO("Offseting input file by %d samples and %.1f kHz\n", offset_time, offset_freq / 1000);
 
     if (offset_time) {
-      cf_t* file_offset_buffer = srslte_vec_malloc(offset_time * nof_rx_ant * sizeof(cf_t));
+      cf_t* file_offset_buffer = srslte_vec_cf_malloc(offset_time * nof_rx_ant);
       if (!file_offset_buffer) {
         perror("malloc");
         goto clean_exit;

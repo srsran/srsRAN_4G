@@ -114,7 +114,7 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  buffer = malloc(sizeof(cf_t) * FLEN * 2);
+  buffer = srslte_vec_cf_malloc(FLEN * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);

@@ -117,7 +117,7 @@ public:
 
     // Allocate buffer for eNb
     for (uint32_t i = 0; i < cell_base.nof_ports; i++) {
-      signal_buffer[i] = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
+      signal_buffer[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
       if (!signal_buffer[i]) {
         ERROR("Error allocating buffer\n");
       }
@@ -416,7 +416,7 @@ int main(int argc, char** argv)
   }
 
   // Common for simulation and over-the-air
-  auto                        baseband_buffer = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_MAX);
+  cf_t*                       baseband_buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
   srslte_timestamp_t          ts              = {};
   srsue::scell::intra_measure intra_measure;
   srslte::log_filter          logger("intra_measure");
@@ -470,7 +470,7 @@ int main(int argc, char** argv)
       ERROR("Error initiating softbuffer_tx\n");
     }
 
-    data_tx[i] = (uint8_t*)srslte_vec_malloc(sizeof(uint8_t) * nof_bytes);
+    data_tx[i] = srslte_vec_u8_malloc(nof_bytes);
     if (!data_tx[i]) {
       ERROR("Error allocating data tx\n");
     } else {
@@ -562,7 +562,7 @@ int main(int argc, char** argv)
     sf_cfg_dl.sf_type            = SRSLTE_SF_NORM;
 
     // Clean buffer
-    bzero(baseband_buffer, sizeof(cf_t) * SRSLTE_SF_LEN_MAX);
+    srslte_vec_cf_zero(baseband_buffer, SRSLTE_SF_LEN_MAX);
 
     if (radio) {
       // Receive radio

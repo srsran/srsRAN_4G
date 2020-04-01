@@ -132,13 +132,13 @@ int main(int argc, char** argv)
   printf("sf_n_samples: %i\n", sf_n_samples);
 
   uint32_t sf_n_re   = SRSLTE_CP_NSYMB(SRSLTE_CP_NORM) * SRSLTE_NRE * 2 * nof_prb;
-  cf_t*    sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+  cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
-  cf_t* input_buffer      = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
-  cf_t* input_buffer_temp = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
+  cf_t* input_buffer      = srslte_vec_cf_malloc(sf_n_samples);
+  cf_t* input_buffer_temp = srslte_vec_cf_malloc(sf_n_samples);
 
   uint32_t output_buffer_len = 0;
-  cf_t*    output_buffer     = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
+  cf_t*    output_buffer     = srslte_vec_cf_malloc(sf_n_samples);
 
   srslte_ofdm_t ifft;
   if (srslte_ofdm_tx_init(&ifft, cp, sf_buffer, output_buffer, nof_prb)) {
@@ -162,14 +162,14 @@ int main(int argc, char** argv)
   } else {
     // Self-test with a single subframe (but can be extended to a radio frame or a PSCCH Period)
 
-    bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
+    srslte_vec_cf_zero(sf_buffer, sf_n_re);
 
     srslte_psss_put_sf_buffer(psss.psss_signal[((N_sl_id < 168) ? 0 : 1)], sf_buffer, nof_prb, cp);
     srslte_ssss_put_sf_buffer(ssss.ssss_signal[N_sl_id], sf_buffer, nof_prb, cp);
 
     // TS 36.211 Section 9.3.2: The last SC-FDMA symbol in a sidelink subframe serves as a guard period and shall
     // not be used for sidelink transmission.
-    bzero(&sf_buffer[SRSLTE_NRE * nof_prb * (SRSLTE_CP_NSYMB(cp) * 2 - 1)], sizeof(cf_t) * SRSLTE_NRE * nof_prb);
+    srslte_vec_cf_zero(&sf_buffer[SRSLTE_NRE * nof_prb * (SRSLTE_CP_NSYMB(cp) * 2 - 1)], SRSLTE_NRE * nof_prb);
     srslte_ofdm_tx_sf(&ifft);
 
     output_buffer_len = sf_n_samples;
@@ -205,7 +205,7 @@ int main(int argc, char** argv)
     samples_to_read = sf_n_samples - offset_pos;
 
     if (offset < samples_to_read) {
-      bzero(input_buffer, sizeof(cf_t) * offset);
+      srslte_vec_cf_zero(input_buffer, offset);
       samples_to_read = sf_n_samples - offset_pos - offset;
 
       if (input_file_name) {
@@ -229,7 +229,7 @@ int main(int argc, char** argv)
     } else {
       samples_read = samples_to_read;
       offset       = offset - samples_read;
-      bzero(input_buffer, sizeof(cf_t) * samples_read);
+      srslte_vec_cf_zero(input_buffer, samples_read);
     }
 
     if (samples_read != samples_to_read) {

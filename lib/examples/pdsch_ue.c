@@ -403,7 +403,7 @@ int main(int argc, char** argv)
 #endif /* ENABLE_GUI */
 
   for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    data[i] = srslte_vec_malloc(sizeof(uint8_t) * 2000 * 8);
+    data[i] = srslte_vec_u8_malloc(2000 * 8);
     if (!data[i]) {
       ERROR("Allocating data");
       go_exit = true;
@@ -674,7 +674,7 @@ int main(int argc, char** argv)
   bool decode_pdsch = false;
 
   for (int i = 0; i < SRSLTE_MAX_LAYERS; i++) {
-    bzero(sinr[i], sizeof(float) * SRSLTE_MAX_CODEBOOKS);
+    srslte_vec_f_zero(sinr[i], SRSLTE_MAX_CODEBOOKS);
   }
 
   /* Main loop */
@@ -1062,7 +1062,7 @@ void* plot_thread_run(void* arg)
         }
       }
       int sz = srslte_symbol_sz(ue_dl.cell.nof_prb);
-      bzero(tmp_plot2, sizeof(float) * sz);
+      srslte_vec_f_zero(tmp_plot2, sz);
       int g = (sz - 12 * ue_dl.cell.nof_prb) / 2;
       for (i = 0; i < 12 * ue_dl.cell.nof_prb; i++) {
         tmp_plot2[g + i] = srslte_convert_amplitude_to_dB(cabsf(ue_dl.chest_res.ce[0][0][i]));

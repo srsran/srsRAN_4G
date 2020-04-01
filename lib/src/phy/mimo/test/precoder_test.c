@@ -214,14 +214,14 @@ int main(int argc, char** argv)
   /* Allocate x and xr (received symbols) in memory for each layer */
   for (i = 0; i < nof_layers; i++) {
     /* Source data */
-    x[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
+    x[i] = srslte_vec_cf_malloc(nof_symbols);
     if (!x[i]) {
       perror("srslte_vec_malloc");
       exit(-1);
     }
 
     /* Sink data */
-    xr[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
+    xr[i] = srslte_vec_cf_malloc(nof_symbols);
     if (!xr[i]) {
       perror("srslte_vec_malloc");
       exit(-1);
@@ -230,7 +230,7 @@ int main(int argc, char** argv)
 
   /* Allocate y in memory for tx each port */
   for (i = 0; i < nof_tx_ports; i++) {
-    y[i] = srslte_vec_malloc(sizeof(cf_t) * nof_re);
+    y[i] = srslte_vec_cf_malloc(nof_re);
     if (!y[i]) {
       perror("srslte_vec_malloc");
       exit(-1);
@@ -240,7 +240,7 @@ int main(int argc, char** argv)
   /* Allocate h in memory for each cross channel and layer */
   for (i = 0; i < nof_tx_ports; i++) {
     for (j = 0; j < nof_rx_ports; j++) {
-      h[i][j] = srslte_vec_malloc(sizeof(cf_t) * nof_re);
+      h[i][j] = srslte_vec_cf_malloc(nof_re);
       if (!h[i][j]) {
         perror("srslte_vec_malloc");
         exit(-1);
@@ -250,7 +250,7 @@ int main(int argc, char** argv)
 
   /* Allocate r */
   for (i = 0; i < nof_rx_ports; i++) {
-    r[i] = srslte_vec_malloc(sizeof(cf_t) * nof_re);
+    r[i] = srslte_vec_cf_malloc(nof_re);
     if (!r[i]) {
       perror("srslte_vec_malloc");
       exit(-1);

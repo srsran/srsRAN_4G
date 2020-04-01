@@ -123,13 +123,13 @@ int base_init()
 
   flen = SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb));
 
-  input_buffer = srslte_vec_malloc(flen * sizeof(cf_t));
+  input_buffer = srslte_vec_cf_malloc(flen);
   if (!input_buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  fft_buffer[0] = srslte_vec_malloc(SRSLTE_NOF_RE(cell) * sizeof(cf_t));
+  fft_buffer[0] = srslte_vec_cf_malloc(SRSLTE_NOF_RE(cell));
   if (!fft_buffer[0]) {
     perror("malloc");
     return -1;

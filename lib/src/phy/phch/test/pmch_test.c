@@ -159,7 +159,7 @@ int main(int argc, char** argv)
   srslte_chest_dl_res_set_identity(&chest_dl_res);
 
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    rx_slot_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_NOF_RE(cell));
+    rx_slot_symbols[i] = srslte_vec_cf_malloc(SRSLTE_NOF_RE(cell));
     if (!rx_slot_symbols[i]) {
       perror("srslte_vec_malloc");
       goto quit;
@@ -202,8 +202,8 @@ int main(int argc, char** argv)
 #ifdef DO_OFDM
 
   for (i = 0; i < cell.nof_ports; i++) {
-    tx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-    bzero(tx_sf_symbols[i], sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    tx_sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    srslte_vec_cf_zero(tx_sf_symbols[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn[i], SRSLTE_CP_EXT, tx_slot_symbols[i], tx_sf_symbols[i], cell.nof_prb)) {
       ERROR("Error creating iFFT object\n");
       exit(-1);
@@ -214,8 +214,8 @@ int main(int argc, char** argv)
   }
 
   for (i = 0; i < nof_rx_antennas; i++) {
-    rx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-    bzero(rx_sf_symbols[i], sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    rx_sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    srslte_vec_cf_zero(rx_sf_symbols[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ofdm_rx_init_mbsfn(&fft_mbsfn[i], SRSLTE_CP_EXT, rx_sf_symbols[i], rx_slot_symbols[i], cell.nof_prb)) {
       ERROR("Error creating iFFT object\n");
       exit(-1);
@@ -252,14 +252,14 @@ int main(int argc, char** argv)
 
   for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     if (pmch_cfg.pdsch_cfg.grant.tb[i].enabled) {
-      data_tx[i] = srslte_vec_malloc(sizeof(uint8_t) * pmch_cfg.pdsch_cfg.grant.tb[i].tbs);
+      data_tx[i] = srslte_vec_u8_malloc((uint32_t)pmch_cfg.pdsch_cfg.grant.tb[i].tbs);
       if (!data_tx[i]) {
         perror("srslte_vec_malloc");
         goto quit;
       }
       bzero(data_tx[i], sizeof(uint8_t) * pmch_cfg.pdsch_cfg.grant.tb[i].tbs);
 
-      data_rx[i] = srslte_vec_malloc(sizeof(uint8_t) * pmch_cfg.pdsch_cfg.grant.tb[i].tbs);
+      data_rx[i] = srslte_vec_u8_malloc((uint32_t)pmch_cfg.pdsch_cfg.grant.tb[i].tbs);
       if (!data_rx[i]) {
         perror("srslte_vec_malloc");
         goto quit;

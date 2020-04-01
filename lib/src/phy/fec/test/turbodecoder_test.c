@@ -150,39 +150,39 @@ int main(int argc, char** argv)
     printf("  EbNo: %.2f\n", ebno_db);
   }
 
-  data_tx = srslte_vec_malloc(frame_length * sizeof(uint8_t));
+  data_tx = srslte_vec_u8_malloc(frame_length);
   if (!data_tx) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx = srslte_vec_malloc(frame_length * sizeof(uint8_t));
+  data_rx = srslte_vec_u8_malloc(frame_length);
   if (!data_rx) {
     perror("malloc");
     exit(-1);
   }
-  data_rx_bytes = srslte_vec_malloc(frame_length * sizeof(uint8_t));
+  data_rx_bytes = srslte_vec_u8_malloc(frame_length);
   if (!data_rx_bytes) {
     perror("malloc");
     exit(-1);
   }
 
-  symbols = srslte_vec_malloc(coded_length * sizeof(uint8_t));
+  symbols = srslte_vec_u8_malloc(coded_length);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  llr = srslte_vec_malloc(coded_length * sizeof(float));
+  llr = srslte_vec_f_malloc(coded_length);
   if (!llr) {
     perror("malloc");
     exit(-1);
   }
-  llr_s = srslte_vec_malloc(coded_length * sizeof(short));
+  llr_s = srslte_vec_i16_malloc(coded_length);
   if (!llr_s) {
     perror("malloc");
     exit(-1);
   }
-  llr_c = srslte_vec_malloc(coded_length * sizeof(uint8_t));
+  llr_c = srslte_vec_u8_malloc(coded_length);
   if (!llr_c) {
     perror("malloc");
     exit(-1);

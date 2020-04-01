@@ -84,8 +84,8 @@ int main(int argc, char** argv)
 
   // Initialise buffers
   uint32_t size = srate_hz / 1000; // 1 ms samples
-  input_buffer  = srslte_vec_malloc(sizeof(cf_t) * size);
-  output_buffer = srslte_vec_malloc(sizeof(cf_t) * size);
+  input_buffer  = srslte_vec_cf_malloc(size);
+  output_buffer = srslte_vec_cf_malloc(size);
   if (!input_buffer || !output_buffer) {
     fprintf(stderr, "Error: Allocating memory\n");
     ret = SRSLTE_ERROR;

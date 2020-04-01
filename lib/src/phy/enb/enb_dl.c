@@ -44,7 +44,7 @@ int srslte_enb_dl_init(srslte_enb_dl_t* q, cf_t* out_buffer[SRSLTE_MAX_PORTS], u
     bzero(q, sizeof(srslte_enb_dl_t));
 
     for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->sf_symbols[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+      q->sf_symbols[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
       if (!q->sf_symbols[i]) {
         perror("malloc");
         goto clean_exit;
@@ -288,7 +288,7 @@ void srslte_enb_dl_prepare_power_allocation(srslte_enb_dl_t* q)
 static void clear_sf(srslte_enb_dl_t* q)
 {
   for (int i = 0; i < q->cell.nof_ports; i++) {
-    bzero(q->sf_symbols[i], CURRENT_SFLEN_RE * sizeof(cf_t));
+    srslte_vec_cf_zero(q->sf_symbols[i], CURRENT_SFLEN_RE);
   }
 }
 

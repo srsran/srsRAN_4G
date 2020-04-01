@@ -28,6 +28,7 @@
 #include "srslte/phy/fec/tc_interl.h"
 #include "srslte/phy/fec/turbocoder.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 /************************************************
  *
@@ -92,8 +93,8 @@ int srslte_tc_interl_LTE_gen_interl(srslte_tc_interl_t* h, uint32_t long_cb, uin
     h->reverse[j] = (uint32_t)i;
   }
   if (interl_win != 1) {
-    uint16_t* f = malloc(long_cb * sizeof(uint16_t));
-    uint16_t* r = malloc(long_cb * sizeof(uint16_t));
+    uint16_t* f = srslte_vec_u16_malloc(long_cb);
+    uint16_t* r = srslte_vec_u16_malloc(long_cb);
     memcpy(f, h->forward, long_cb * sizeof(uint16_t));
     memcpy(r, h->reverse, long_cb * sizeof(uint16_t));
     for (i = 0; i < long_cb; i++) {

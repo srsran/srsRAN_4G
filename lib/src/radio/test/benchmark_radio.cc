@@ -204,14 +204,14 @@ static int init_plots(uint32_t frame_size)
   }
 
   for (uint32_t r = 0; r < nof_radios; r++) {
-    fft_plot_buffer[r] = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * frame_size);
+    fft_plot_buffer[r] = srslte_vec_cf_malloc(frame_size);
     if (!fft_plot_buffer[r]) {
       ERROR("Error: Allocating buffer\n");
       return SRSLTE_ERROR;
     }
   }
 
-  fft_plot_temp = (float*)srslte_vec_malloc(sizeof(float) * frame_size);
+  fft_plot_temp = srslte_vec_f_malloc(frame_size);
   if (!fft_plot_temp) {
     ERROR("Error: Allocating buffer\n");
     return SRSLTE_ERROR;
@@ -296,7 +296,7 @@ int main(int argc, char** argv)
 
   for (uint32_t r = 0; r < nof_radios; r++) {
     for (uint32_t p = 0; p < nof_ports; p++) {
-      buffers[r][p] = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * frame_size);
+      buffers[r][p] = srslte_vec_cf_malloc(frame_size);
       if (!buffers[r][p]) {
         ERROR("Error: Allocating buffer (%d,%d)\n", r, p);
         goto clean_exit;

@@ -172,7 +172,7 @@ int main(int argc, char** argv)
     goto quit;
   }
 
-  sf_symbols = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_NOF_RE(cell));
+  sf_symbols = srslte_vec_cf_malloc(SRSLTE_NOF_RE(cell));
   if (!sf_symbols) {
     goto quit;
   }

@@ -30,7 +30,8 @@
 
 #include "srslte/srslte.h"
 
-int nof_tx_bits = -1, nof_rx_bits = -1;
+static uint32_t nof_tx_bits = 0;
+static uint32_t nof_rx_bits = 0;
 
 void usage(char* prog)
 {
@@ -43,21 +44,21 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "tr")) != -1) {
     switch (opt) {
       case 't':
-        nof_tx_bits = (int)strtol(argv[optind], NULL, 10);
+        nof_tx_bits = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'r':
-        nof_rx_bits = (int)strtol(argv[optind], NULL, 10);
+        nof_rx_bits = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       default:
         usage(argv[0]);
         exit(-1);
     }
   }
-  if (nof_tx_bits == -1) {
+  if (nof_tx_bits == 0) {
     usage(argv[0]);
     exit(-1);
   }
-  if (nof_rx_bits == -1) {
+  if (nof_rx_bits == 0) {
     usage(argv[0]);
     exit(-1);
   }
@@ -72,22 +73,22 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  bits = malloc(sizeof(uint8_t) * nof_tx_bits);
+  bits = srslte_vec_u8_malloc(nof_tx_bits);
   if (!bits) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits = malloc(sizeof(uint8_t) * nof_rx_bits);
+  rm_bits = srslte_vec_u8_malloc(nof_rx_bits);
   if (!rm_bits) {
     perror("malloc");
     exit(-1);
   }
-  rm_symbols = malloc(sizeof(float) * nof_rx_bits);
+  rm_symbols = srslte_vec_f_malloc(nof_rx_bits);
   if (!rm_symbols) {
     perror("malloc");
     exit(-1);
   }
-  unrm_symbols = malloc(sizeof(float) * nof_tx_bits);
+  unrm_symbols = srslte_vec_f_malloc(nof_tx_bits);
   if (!unrm_symbols) {
     perror("malloc");
     exit(-1);

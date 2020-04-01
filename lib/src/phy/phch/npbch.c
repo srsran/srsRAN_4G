@@ -79,40 +79,40 @@ int srslte_npbch_init(srslte_npbch_t* q)
     q->encoder.tail_biting = true;
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
 
-    q->d = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+    q->d = srslte_vec_cf_malloc(q->nof_symbols);
     if (!q->d) {
       fprintf(stderr, "Error allocating memory.\n");
       goto clean;
     }
     for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->ce[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+      q->ce[i] = srslte_vec_cf_malloc(q->nof_symbols);
       if (!q->ce[i]) {
         fprintf(stderr, "Error allocating memory.\n");
         goto clean;
       }
-      q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+      q->x[i] = srslte_vec_cf_malloc(q->nof_symbols);
       if (!q->x[i]) {
         fprintf(stderr, "Error allocating memory.\n");
         goto clean;
       }
-      q->symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols * SRSLTE_NPBCH_NUM_FRAMES);
+      q->symbols[i] = srslte_vec_cf_malloc(q->nof_symbols * SRSLTE_NPBCH_NUM_FRAMES);
       if (!q->symbols[i]) {
         fprintf(stderr, "Error allocating memory.\n");
         goto clean;
       }
     }
-    q->llr = srslte_vec_malloc(sizeof(float) * q->nof_symbols * SRSLTE_NPBCH_NUM_FRAMES * 2);
+    q->llr = srslte_vec_f_malloc(q->nof_symbols * SRSLTE_NPBCH_NUM_FRAMES * 2);
     if (!q->llr) {
       fprintf(stderr, "Error allocating memory.\n");
       goto clean;
     }
 
-    q->temp = srslte_vec_malloc(sizeof(float) * q->nof_symbols * SRSLTE_NPBCH_NUM_FRAMES * 2);
+    q->temp = srslte_vec_f_malloc(q->nof_symbols * SRSLTE_NPBCH_NUM_FRAMES * 2);
     if (!q->temp) {
       fprintf(stderr, "Error allocating memory.\n");
       goto clean;
     }
-    q->rm_b = srslte_vec_malloc(sizeof(float) * q->nof_symbols * SRSLTE_NPBCH_NUM_FRAMES * 2);
+    q->rm_b = srslte_vec_u8_malloc(q->nof_symbols * SRSLTE_NPBCH_NUM_FRAMES * 2);
     if (!q->rm_b) {
       fprintf(stderr, "Error allocating memory.\n");
       goto clean;

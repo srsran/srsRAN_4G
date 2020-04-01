@@ -163,34 +163,34 @@ int srslte_pbch_init(srslte_pbch_t* q)
 
     q->nof_symbols = PBCH_RE_CP_NORM;
 
-    q->d = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+    q->d = srslte_vec_cf_malloc(q->nof_symbols);
     if (!q->d) {
       goto clean;
     }
     int i;
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->ce[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+      q->ce[i] = srslte_vec_cf_malloc(q->nof_symbols);
       if (!q->ce[i]) {
         goto clean;
       }
-      q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+      q->x[i] = srslte_vec_cf_malloc(q->nof_symbols);
       if (!q->x[i]) {
         goto clean;
       }
-      q->symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->nof_symbols);
+      q->symbols[i] = srslte_vec_cf_malloc(q->nof_symbols);
       if (!q->symbols[i]) {
         goto clean;
       }
     }
-    q->llr = srslte_vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->llr = srslte_vec_f_malloc(q->nof_symbols * 4 * 2);
     if (!q->llr) {
       goto clean;
     }
-    q->temp = srslte_vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->temp = srslte_vec_f_malloc(q->nof_symbols * 4 * 2);
     if (!q->temp) {
       goto clean;
     }
-    q->rm_b = srslte_vec_malloc(sizeof(float) * q->nof_symbols * 4 * 2);
+    q->rm_b = srslte_vec_u8_malloc(q->nof_symbols * 4 * 2);
     if (!q->rm_b) {
       goto clean;
     }

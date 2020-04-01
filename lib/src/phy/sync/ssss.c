@@ -64,11 +64,11 @@ int srslte_ssss_init(srslte_ssss_t* q, uint32_t nof_prb, srslte_cp_t cp, srslte_
     srslte_dft_plan_set_mirror(&q->plan_input, true);
     srslte_dft_plan_set_norm(&q->plan_input, true);
 
-    q->input_pad_freq = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+    q->input_pad_freq = srslte_vec_cf_malloc(sf_n_re);
     if (!q->input_pad_freq) {
       return SRSLTE_ERROR;
     }
-    q->input_pad_time = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
+    q->input_pad_time = srslte_vec_cf_malloc(sf_n_samples);
     if (!q->input_pad_time) {
       return SRSLTE_ERROR;
     }
@@ -86,16 +86,16 @@ int srslte_ssss_init(srslte_ssss_t* q, uint32_t nof_prb, srslte_cp_t cp, srslte_
       return SRSLTE_ERROR;
     }
     for (int i = 0; i < SRSLTE_SSSS_NOF_SEQ; ++i) {
-      q->ssss_sf_freq[i] = srslte_vec_malloc(sizeof(cf_t) * ssss_n_samples);
+      q->ssss_sf_freq[i] = srslte_vec_cf_malloc(ssss_n_samples);
       if (!q->ssss_sf_freq[i]) {
         return SRSLTE_ERROR;
       }
     }
 
     for (int i = 0; i < SRSLTE_SSSS_NOF_SEQ; ++i) {
-      bzero(q->input_pad_freq, sizeof(cf_t) * ssss_n_samples);
-      bzero(q->input_pad_time, sizeof(cf_t) * ssss_n_samples);
-      bzero(q->ssss_sf_freq[i], sizeof(cf_t) * ssss_n_samples);
+      srslte_vec_cf_zero(q->input_pad_freq, ssss_n_samples);
+      srslte_vec_cf_zero(q->input_pad_time, ssss_n_samples);
+      srslte_vec_cf_zero(q->ssss_sf_freq[i], ssss_n_samples);
 
       srslte_ssss_put_sf_buffer(q->ssss_signal[i], q->input_pad_freq, nof_prb, cp);
       srslte_ofdm_tx_sf(&ssss_ifft);
@@ -106,23 +106,23 @@ int srslte_ssss_init(srslte_ssss_t* q, uint32_t nof_prb, srslte_cp_t cp, srslte_
 
     srslte_ofdm_tx_free(&ssss_ifft);
 
-    q->dot_prod_output = srslte_vec_malloc(sizeof(cf_t) * ssss_n_samples);
+    q->dot_prod_output = srslte_vec_cf_malloc(ssss_n_samples);
     if (!q->dot_prod_output) {
       return SRSLTE_ERROR;
     }
 
-    q->dot_prod_output_time = srslte_vec_malloc(sizeof(cf_t) * ssss_n_samples);
+    q->dot_prod_output_time = srslte_vec_cf_malloc(ssss_n_samples);
     if (!q->dot_prod_output_time) {
       return SRSLTE_ERROR;
     }
 
-    q->shifted_output = srslte_vec_malloc(sizeof(cf_t) * ssss_n_samples);
+    q->shifted_output = srslte_vec_cf_malloc(ssss_n_samples);
     if (!q->shifted_output) {
       return SRSLTE_ERROR;
     }
     memset(q->shifted_output, 0, sizeof(cf_t) * ssss_n_samples);
 
-    q->shifted_output_abs = srslte_vec_malloc(sizeof(float) * ssss_n_samples);
+    q->shifted_output_abs = srslte_vec_f_malloc(ssss_n_samples);
     if (!q->shifted_output_abs) {
       return SRSLTE_ERROR;
     }
@@ -191,12 +191,12 @@ void srslte_ssss_put_sf_buffer(float* ssss_signal, cf_t* sf_buffer, uint32_t nof
   uint32_t slot1_pos = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE * nof_prb;
   for (int i = 0; i < 2; i++) {
     uint32_t k = (SRSLTE_CP_NSYMB(cp) - 3 + i) * nof_prb * SRSLTE_NRE + nof_prb * SRSLTE_NRE / 2 - 31;
-    bzero(&sf_buffer[slot1_pos + k - 5], sizeof(cf_t) * 5);
+    srslte_vec_cf_zero(&sf_buffer[slot1_pos + k - 5], 5);
     for (int j = 0; j < SRSLTE_SSSS_LEN; j++) {
       __real__ sf_buffer[slot1_pos + k + j] = ssss_signal[j];
       __imag__ sf_buffer[slot1_pos + k + j] = 0;
     }
-    bzero(&sf_buffer[slot1_pos + k + SRSLTE_SSSS_LEN], sizeof(cf_t) * 5);
+    srslte_vec_cf_zero(&sf_buffer[slot1_pos + k + SRSLTE_SSSS_LEN], 5);
   }
 }
 
@@ -219,8 +219,8 @@ int srslte_ssss_find(srslte_ssss_t* q, cf_t* input, uint32_t nof_prb, uint32_t N
   uint32_t ssss_n_samples = (symbol_sz + cp_len) * 2 +
                             cp_len; // We need an extra cp_len in order to get the peaks centered after the correlation
 
-  bzero(q->input_pad_freq, sizeof(cf_t) * ssss_n_samples);
-  bzero(q->input_pad_time, sizeof(cf_t) * ssss_n_samples);
+  srslte_vec_cf_zero(q->input_pad_freq, ssss_n_samples);
+  srslte_vec_cf_zero(q->input_pad_time, ssss_n_samples);
 
   // CP Normal: ssss (with its cp) starts at sample number: 11 symbol_sz + 2 CP_LEN_NORM_0 + 9 cp_len
   // CP Extended: ssss (with its cp) starts at sample number: 9 symbol_sz + 9 cp_len
@@ -259,7 +259,7 @@ int srslte_ssss_find(srslte_ssss_t* q, cf_t* input, uint32_t nof_prb, uint32_t N
       q->corr_peak_pos = -1;
       continue;
     }
-    bzero(&q->shifted_output_abs[q->corr_peak_pos - (symbol_sz / 2)], sizeof(float) * symbol_sz);
+    srslte_vec_f_zero(&q->shifted_output_abs[q->corr_peak_pos - (symbol_sz / 2)], symbol_sz);
 
     // Find the first side peak
     uint32_t peak_1_pos   = srslte_vec_max_fi(q->shifted_output_abs, ssss_n_samples);
@@ -272,7 +272,7 @@ int srslte_ssss_find(srslte_ssss_t* q, cf_t* input, uint32_t nof_prb, uint32_t N
       q->corr_peak_pos = -1;
       continue;
     }
-    bzero(&q->shifted_output_abs[peak_1_pos - ((cp_len - 2) / 2)], sizeof(float) * (cp_len - 2));
+    srslte_vec_f_zero(&q->shifted_output_abs[peak_1_pos - ((cp_len - 2) / 2)], cp_len - 2);
 
     // Find the second side peak
     uint32_t peak_2_pos   = srslte_vec_max_fi(q->shifted_output_abs, ssss_n_samples);
@@ -285,7 +285,7 @@ int srslte_ssss_find(srslte_ssss_t* q, cf_t* input, uint32_t nof_prb, uint32_t N
       q->corr_peak_pos = -1;
       continue;
     }
-    bzero(&q->shifted_output_abs[peak_2_pos - ((cp_len - 2) / 2)], sizeof(float) * (cp_len - 2));
+    srslte_vec_f_zero(&q->shifted_output_abs[peak_2_pos - ((cp_len - 2) / 2)], cp_len - 2);
 
     float threshold_above = q->corr_peak_value / 2.0 * 1.6;
     if ((peak_1_value > threshold_above) || (peak_2_value > threshold_above)) {

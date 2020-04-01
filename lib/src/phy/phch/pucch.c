@@ -68,11 +68,11 @@ int srslte_pucch_init_(srslte_pucch_t* q, bool is_ue)
 
     srslte_uci_cqi_pucch_init(&q->cqi);
 
-    q->z     = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_PUCCH_MAX_SYMBOLS);
-    q->z_tmp = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_PUCCH_MAX_SYMBOLS);
+    q->z     = srslte_vec_cf_malloc(SRSLTE_PUCCH_MAX_SYMBOLS);
+    q->z_tmp = srslte_vec_cf_malloc(SRSLTE_PUCCH_MAX_SYMBOLS);
 
     if (!q->is_ue) {
-      q->ce = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_PUCCH_MAX_SYMBOLS);
+      q->ce = srslte_vec_cf_malloc(SRSLTE_PUCCH_MAX_SYMBOLS);
     }
 
     ret = SRSLTE_SUCCESS;
@@ -560,7 +560,7 @@ static int encode_signal_format3(srslte_pucch_t*     q,
     uint32_t n_cs_cell = q->n_cs_cell[(2 * (sf->tti % 10) + ((n < N_sf_0) ? 0 : 1)) % SRSLTE_NSLOTS_X_FRAME][l];
 
     cf_t y_n[SRSLTE_NRE];
-    bzero(y_n, sizeof(cf_t) * SRSLTE_NRE);
+    srslte_vec_cf_zero(y_n, SRSLTE_NRE);
 
     cf_t h;
     if (n < N_sf_0) {
@@ -608,8 +608,7 @@ static int decode_signal_format3(srslte_pucch_t*     q,
     uint32_t l         = get_pucch_symbol(n, cfg->format, q->cell.cp);
     uint32_t n_cs_cell = q->n_cs_cell[(2 * (sf->tti % 10) + ((n < N_sf_0) ? 0 : 1)) % SRSLTE_NSLOTS_X_FRAME][l];
 
-    cf_t y_n[SRSLTE_NRE];
-    bzero(y_n, sizeof(cf_t) * SRSLTE_NRE);
+    cf_t y_n[SRSLTE_NRE] = {};
 
     // Do FFT
     for (int k = 0; k < SRSLTE_NRE; k++) {

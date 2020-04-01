@@ -585,7 +585,7 @@ void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo
 int cc_worker::read_ce_abs(float* ce_abs)
 {
   int sz = srslte_symbol_sz(phy->get_nof_prb(cc_idx));
-  bzero(ce_abs, sizeof(float) * sz);
+  srslte_vec_f_zero(ce_abs, sz);
   int g = (sz - SRSLTE_NRE * phy->get_nof_prb(cc_idx)) / 2;
   srslte_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSLTE_NRE * phy->get_nof_prb(cc_idx));
   return sz;
@@ -594,7 +594,7 @@ int cc_worker::read_ce_abs(float* ce_abs)
 int cc_worker::read_ce_arg(float* ce_arg)
 {
   int sz = srslte_symbol_sz(phy->get_nof_prb(cc_idx));
-  bzero(ce_arg, sizeof(float) * sz);
+  srslte_vec_f_zero(ce_arg, sz);
   int g = (sz - SRSLTE_NRE * phy->get_nof_prb(cc_idx)) / 2;
   srslte_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSLTE_NRE * phy->get_nof_prb(cc_idx));
   return sz;

@@ -141,7 +141,7 @@ int main(int argc, char** argv)
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
-  buffer = malloc(sizeof(cf_t) * input_len * 2);
+  buffer = srslte_vec_cf_malloc(input_len * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);

@@ -48,7 +48,7 @@ int srslte_ue_cellsearch_nbiot_init(srslte_ue_cellsearch_nbiot_t* q,
     }
 
     for (uint32_t i = 0; i < SRSLTE_NBIOT_NUM_RX_ANTENNAS; i++) {
-      q->rx_buffer[i] = srslte_vec_malloc(10 * SRSLTE_SF_LEN_PRB_NBIOT * sizeof(cf_t));
+      q->rx_buffer[i] = srslte_vec_cf_malloc(SRSLTE_NOF_SF_X_FRAME * SRSLTE_SF_LEN_PRB_NBIOT);
       if (!q->rx_buffer[i]) {
         perror("malloc");
         goto clean_exit;
@@ -56,7 +56,7 @@ int srslte_ue_cellsearch_nbiot_init(srslte_ue_cellsearch_nbiot_t* q,
     }
 
     // buffer to hold subframes for NSSS detection
-    q->nsss_buffer = srslte_vec_malloc(SRSLTE_NSSS_NUM_SF_DETECT * SRSLTE_SF_LEN_PRB_NBIOT * sizeof(cf_t));
+    q->nsss_buffer = srslte_vec_cf_malloc(SRSLTE_NSSS_NUM_SF_DETECT * SRSLTE_SF_LEN_PRB_NBIOT);
     if (!q->nsss_buffer) {
       perror("malloc");
       goto clean_exit;

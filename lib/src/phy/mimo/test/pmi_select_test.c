@@ -48,11 +48,11 @@ int main(int argc, char** argv)
   /* Allocate channels */
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
     for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
-      h[i][j] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
+      h[i][j] = srslte_vec_cf_malloc(nof_symbols);
       if (!h[i][j]) {
         goto clean;
       }
-      bzero(h[i][j], sizeof(cf_t) * nof_symbols);
+      srslte_vec_cf_zero(h[i][j], nof_symbols);
     }
   }
 

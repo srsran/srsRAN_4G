@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 
   /* init memory */
   for (int i = 0; i < cell.nof_ports; i++) {
-    ce[i] = malloc(sizeof(cf_t) * nof_re);
+    ce[i] = srslte_vec_cf_malloc(nof_re);
     if (!ce[i]) {
       perror("malloc");
       exit(-1);
@@ -137,7 +137,7 @@ int main(int argc, char** argv)
     for (int j = 0; j < nof_re; j++) {
       ce[i][j] = 1;
     }
-    sf_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    sf_symbols[i] = srslte_vec_cf_malloc(nof_re);
     if (!sf_symbols[i]) {
       perror("malloc");
       exit(-1);

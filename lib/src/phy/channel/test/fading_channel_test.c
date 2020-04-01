@@ -131,19 +131,19 @@ int main(int argc, char** argv)
 
     srslte_dft_plan_c(&fft, srate / 1000, SRSLTE_DFT_FORWARD);
 
-    fft_buffer = srslte_vec_malloc(sizeof(cf_t) * srate / 1000);
+    fft_buffer = srslte_vec_cf_malloc(srate / 1000);
     if (!fft_buffer) {
       fprintf(stderr, "Error: malloc\n");
       goto clean_exit;
     }
 
-    fft_mag = srslte_vec_malloc(sizeof(float) * srate / 1000);
+    fft_mag = srslte_vec_f_malloc(srate / 1000);
     if (!fft_mag) {
       fprintf(stderr, "Error: malloc\n");
       goto clean_exit;
     }
 
-    imp = srslte_vec_malloc(sizeof(float) * srate / 1000);
+    imp = srslte_vec_f_malloc(srate / 1000);
     if (!imp) {
       fprintf(stderr, "Error: malloc\n");
       goto clean_exit;
@@ -158,14 +158,14 @@ int main(int argc, char** argv)
   }
 
   // Allocate buffers
-  input_buffer = srslte_vec_malloc(sizeof(cf_t) * srate / 1000);
+  input_buffer = srslte_vec_cf_malloc(srate / 1000);
   if (!input_buffer) {
     fprintf(stderr, "Error: allocating input buffer\n");
     goto clean_exit;
   }
 
 #if INPUT_TYPE == 0
-  bzero(input_buffer, sizeof(cf_t) * srate / 1000);
+  srslte_vec_cf_zero(input_buffer, srate / 1000);
   input_buffer[0] = 1;
 #else
   for (int i = 0; i < srate / 1000; i++) {
@@ -174,7 +174,7 @@ int main(int argc, char** argv)
   srslte_dft_run_c(&ifft, input_buffer, input_buffer);
 #endif
 
-  output_buffer = srslte_vec_malloc(sizeof(cf_t) * srate / 1000);
+  output_buffer = srslte_vec_cf_malloc(srate / 1000);
   if (!output_buffer) {
     fprintf(stderr, "Error: allocating output buffer\n");
     goto clean_exit;

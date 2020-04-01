@@ -202,42 +202,42 @@ int srslte_tdec_init_manual(srslte_tdec_t* h, uint32_t max_long_cb, srslte_tdec_
 
   h->max_long_cb = max_long_cb;
 
-  h->app1 = srslte_vec_malloc(sizeof(int16_t) * len);
+  h->app1 = srslte_vec_i16_malloc(len);
   if (!h->app1) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->app2 = srslte_vec_malloc(sizeof(int16_t) * len);
+  h->app2 = srslte_vec_i16_malloc(len);
   if (!h->app2) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->ext1 = srslte_vec_malloc(sizeof(int16_t) * len);
+  h->ext1 = srslte_vec_i16_malloc(len);
   if (!h->ext1) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->ext2 = srslte_vec_malloc(sizeof(int16_t) * len);
+  h->ext2 = srslte_vec_i16_malloc(len);
   if (!h->ext2) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->syst0 = srslte_vec_malloc(sizeof(int16_t) * len);
+  h->syst0 = srslte_vec_i16_malloc(len);
   if (!h->syst0) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->parity0 = srslte_vec_malloc(sizeof(int16_t) * len);
+  h->parity0 = srslte_vec_i16_malloc(len);
   if (!h->parity0) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->parity1 = srslte_vec_malloc(sizeof(int16_t) * len);
+  h->parity1 = srslte_vec_i16_malloc(len);
   if (!h->parity1) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;
   }
-  h->input_conv = srslte_vec_malloc(sizeof(int16_t) * (len * 3 + 32 * 3));
+  h->input_conv = srslte_vec_i16_malloc(len * 3 + 32 * 3);
   if (!h->input_conv) {
     perror("srslte_vec_malloc");
     goto clean_and_exit;

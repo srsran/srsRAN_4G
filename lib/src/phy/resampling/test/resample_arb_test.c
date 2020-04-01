@@ -39,12 +39,12 @@ int main(int argc, char** argv)
     float rate = up / down;
     printf("Testing rate %f\n", rate);
 
-    cf_t* in = malloc(N * sizeof(cf_t));
+    cf_t* in = srslte_vec_cf_malloc(N);
     if (!in) {
       perror("malloc");
       exit(-1);
     }
-    cf_t* out = malloc(N * sizeof(cf_t));
+    cf_t* out = srslte_vec_cf_malloc(N);
     if (!out) {
       perror("malloc");
       exit(-1);

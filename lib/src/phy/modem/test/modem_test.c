@@ -33,8 +33,8 @@
 time_t         start, finish;
 struct timeval x, y;
 
-int          num_bits   = 1000;
-srslte_mod_t modulation = SRSLTE_MOD_BPSK;
+static uint32_t     num_bits   = 1000;
+static srslte_mod_t modulation = SRSLTE_MOD_BPSK;
 
 void usage(char* prog)
 {
@@ -49,7 +49,7 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "nm")) != -1) {
     switch (opt) {
       case 'n':
-        num_bits = (int)strtol(argv[optind], NULL, 10);
+        num_bits = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'm':
         switch (strtol(argv[optind], NULL, 10)) {
@@ -108,33 +108,33 @@ int main(int argc, char** argv)
   }
 
   /* allocate buffers */
-  input = srslte_vec_malloc(sizeof(uint8_t) * num_bits);
+  input = srslte_vec_u8_malloc(num_bits);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  input_bytes = srslte_vec_malloc(sizeof(uint8_t) * num_bits / 8);
+  input_bytes = srslte_vec_u8_malloc(num_bits / 8);
   if (!input_bytes) {
     perror("malloc");
     exit(-1);
   }
-  output = srslte_vec_malloc(sizeof(uint8_t) * num_bits);
+  output = srslte_vec_u8_malloc(num_bits);
   if (!output) {
     perror("malloc");
     exit(-1);
   }
-  symbols = srslte_vec_malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
+  symbols = srslte_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
-  symbols_bytes = srslte_vec_malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
+  symbols_bytes = srslte_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
   if (!symbols_bytes) {
     perror("malloc");
     exit(-1);
   }
 
-  llr = srslte_vec_malloc(sizeof(float) * num_bits);
+  llr = srslte_vec_f_malloc(num_bits);
   if (!llr) {
     perror("malloc");
     exit(-1);
@@ -174,7 +174,7 @@ int main(int argc, char** argv)
     }
   }
 
-  bzero(llr, sizeof(float) * num_bits / mod.nbits_x_symbol);
+  srslte_vec_f_zero(llr, num_bits / mod.nbits_x_symbol);
 
   printf("Symbols OK\n");
   /* demodulate */

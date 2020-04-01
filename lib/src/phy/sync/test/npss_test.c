@@ -91,19 +91,19 @@ int main(int argc, char** argv)
 
   printf("Input buffer length is %d samples\n", input_len);
   uint32_t buffer_len = input_len + SRSLTE_NPSS_CORR_FILTER_LEN + 1;
-  fft_buffer          = malloc(sizeof(cf_t) * buffer_len);
+  fft_buffer          = srslte_vec_cf_malloc(buffer_len);
   if (!fft_buffer) {
     perror("malloc");
     exit(-1);
   }
-  bzero(fft_buffer, sizeof(cf_t) * buffer_len);
+  srslte_vec_cf_zero(fft_buffer, buffer_len);
 
-  input_buffer = malloc(sizeof(cf_t) * input_len);
+  input_buffer = srslte_vec_cf_malloc(input_len);
   if (!input_buffer) {
     perror("malloc");
     exit(-1);
   }
-  bzero(input_buffer, sizeof(cf_t) * input_len);
+  srslte_vec_cf_zero(input_buffer, input_len);
 
   if (srslte_ofdm_tx_init(&ifft, SRSLTE_CP_NORM, input_buffer, fft_buffer, SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL)) {
     fprintf(stderr, "Error creating iFFT object\n");

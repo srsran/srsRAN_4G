@@ -78,7 +78,7 @@ static inline void refsignal_sf_prepare_correlation(srslte_refsignal_dl_sync_t* 
   uint32_t sf_len   = q->ifft.sf_sz;
   cf_t*    ptr_filt = q->conv_fft_cc.filter_fft;
   memcpy(ptr_filt, q->sequences[0], sizeof(cf_t) * sf_len);
-  bzero(&ptr_filt[sf_len], sizeof(cf_t) * sf_len);
+  srslte_vec_cf_zero(&ptr_filt[sf_len], sf_len);
   srslte_dft_run_c(&q->conv_fft_cc.filter_plan, ptr_filt, ptr_filt);
 }
 
@@ -236,7 +236,7 @@ int srslte_refsignal_dl_sync_set_cell(srslte_refsignal_dl_sync_t* q, srslte_cell
         dl_sf_cfg.tti                = i;
 
         // Reset OFDM buffer
-        bzero(q->ifft_buffer_in, sizeof(cf_t) * q->ifft.sf_sz);
+        srslte_vec_cf_zero(q->ifft_buffer_in, q->ifft.sf_sz);
 
         // Put Synchronization signals
         if (i == 0 || i == 5) {

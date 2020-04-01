@@ -26,6 +26,7 @@
 
 #include "srslte/phy/fec/tc_interl.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 #define TURBO_SRSLTE_TCOD_RATE 3
 
@@ -50,12 +51,12 @@ const uint8_t        table_v[52] = {3, 2, 2, 3, 2, 5, 2, 3, 2, 6, 3, 5, 2, 2,  2
 int srslte_tc_interl_init(srslte_tc_interl_t* h, uint32_t max_long_cb)
 {
   int ret    = -1;
-  h->forward = malloc(sizeof(uint32_t) * max_long_cb);
+  h->forward = srslte_vec_u16_malloc(max_long_cb);
   if (!h->forward) {
     perror("malloc");
     goto clean_exit;
   }
-  h->reverse = malloc(sizeof(uint32_t) * max_long_cb);
+  h->reverse = srslte_vec_u16_malloc(max_long_cb);
   if (!h->reverse) {
     perror("malloc");
     goto clean_exit;

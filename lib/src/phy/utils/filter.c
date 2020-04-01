@@ -67,7 +67,7 @@ void srslte_filt_decim_cc_init(srslte_filt_cc_t* q, int factor, int order)
   q->factor       = factor;
   q->num_taps     = order + 1;
   q->is_decimator = true;
-  q->taps         = malloc(q->num_taps * sizeof(float));
+  q->taps         = srslte_vec_f_malloc(q->num_taps);
 
   switch (q->factor) {
     case 2:

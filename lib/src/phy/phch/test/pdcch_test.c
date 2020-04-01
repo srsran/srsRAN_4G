@@ -191,12 +191,12 @@ int main(int argc, char** argv)
   srslte_chest_dl_res_set_identity(&chest_dl_res);
 
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    slot_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    slot_symbols[i] = srslte_vec_cf_malloc(nof_re);
     if (!slot_symbols[i]) {
       perror("malloc");
       exit(-1);
     }
-    bzero(slot_symbols[i], sizeof(cf_t) * nof_re);
+    srslte_vec_cf_zero(slot_symbols[i], nof_re);
   }
 
   if (srslte_regs_init(&regs, cell)) {

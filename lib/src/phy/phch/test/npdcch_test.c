@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 
   // init memory
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    ce[i] = malloc(sizeof(cf_t) * nof_re);
+    ce[i] = srslte_vec_cf_malloc(nof_re);
     if (!ce[i]) {
       perror("malloc");
       exit(-1);
@@ -111,7 +111,7 @@ int main(int argc, char** argv)
     for (int j = 0; j < nof_re; j++) {
       ce[i][j] = 1;
     }
-    slot_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    slot_symbols[i] = srslte_vec_cf_malloc(nof_re);
     if (!slot_symbols[i]) {
       perror("malloc");
       exit(-1);

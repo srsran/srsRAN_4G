@@ -120,20 +120,20 @@ int base_init()
     exit(-1);
   }
 
-  input_buffer = malloc(SFLEN * sizeof(cf_t));
+  input_buffer = srslte_vec_cf_malloc(SFLEN);
   if (!input_buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  fft_buffer = malloc(SRSLTE_SF_LEN(srslte_symbol_sz(cell.base.nof_prb)) * sizeof(cf_t));
+  fft_buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN(srslte_symbol_sz(cell.base.nof_prb)));
   if (!fft_buffer) {
     perror("malloc");
     return -1;
   }
 
   for (int i = 0; i < cell.base.nof_ports; i++) {
-    ce[i] = malloc(SRSLTE_SF_LEN_RE(cell.base.nof_prb, cell.base.cp) * sizeof(cf_t));
+    ce[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_RE(cell.base.nof_prb, cell.base.cp));
     if (!ce[i]) {
       perror("malloc");
       return -1;

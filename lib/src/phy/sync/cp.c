@@ -31,7 +31,7 @@ int srslte_cp_synch_init(srslte_cp_synch_t* q, uint32_t symbol_sz)
   q->symbol_sz     = symbol_sz;
   q->max_symbol_sz = symbol_sz;
 
-  q->corr = srslte_vec_malloc(sizeof(cf_t) * q->symbol_sz);
+  q->corr = srslte_vec_cf_malloc(q->symbol_sz);
   if (!q->corr) {
     perror("malloc");
     return SRSLTE_ERROR;

@@ -48,34 +48,34 @@ int srslte_nsss_synch_init(srslte_nsss_synch_t* q, uint32_t input_size, uint32_t
 
     uint32_t buffer_size = SRSLTE_NSSS_CORR_FILTER_LEN + q->input_size + 1;
     DEBUG("NSSS buffer size is %d samples.\n", buffer_size);
-    q->tmp_input = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+    q->tmp_input = srslte_vec_cf_malloc(buffer_size);
     if (!q->tmp_input) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->tmp_input, buffer_size * sizeof(cf_t));
+    srslte_vec_cf_zero(q->tmp_input, buffer_size);
 
-    q->conv_output = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+    q->conv_output = srslte_vec_cf_malloc(buffer_size);
     if (!q->conv_output) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->conv_output, sizeof(cf_t) * buffer_size);
+    srslte_vec_cf_zero(q->conv_output, buffer_size);
 
-    q->conv_output_abs = srslte_vec_malloc(buffer_size * sizeof(float));
+    q->conv_output_abs = srslte_vec_f_malloc(buffer_size);
     if (!q->conv_output_abs) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->conv_output_abs, sizeof(float) * buffer_size);
+    srslte_vec_f_zero(q->conv_output_abs, buffer_size);
 
     for (int i = 0; i < SRSLTE_NUM_PCI; i++) {
-      q->nsss_signal_time[i] = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+      q->nsss_signal_time[i] = srslte_vec_cf_malloc(buffer_size);
       if (!q->nsss_signal_time[i]) {
         fprintf(stderr, "Error allocating memory\n");
         goto clean_and_exit;
       }
-      bzero(q->nsss_signal_time[i], sizeof(cf_t) * buffer_size);
+      srslte_vec_cf_zero(q->nsss_signal_time[i], buffer_size);
     }
 
     // generate NSSS sequences
@@ -172,8 +172,7 @@ int srslte_nsss_corr_init(srslte_nsss_synch_t* q)
   // generate correlation sequences
   DEBUG("Generating NSSS sequences\n");
   for (int i = 0; i < SRSLTE_NUM_PCI; i++) {
-    float complex nsss_signal[SRSLTE_NSSS_TOT_LEN];
-    bzero(nsss_signal, SRSLTE_NSSS_TOT_LEN * sizeof(cf_t));
+    float complex nsss_signal[SRSLTE_NSSS_TOT_LEN] = {};
     srslte_nsss_generate(nsss_signal, i);
 
     // one symbol at a time
@@ -181,7 +180,7 @@ int srslte_nsss_corr_init(srslte_nsss_synch_t* q)
     int   output_len = 0;
     for (int i = 0; i < SRSLTE_NSSS_NSYMB; i++) {
       // zero buffer, copy NSSS symbol to appr. pos and transform to time-domain
-      bzero(nsss_signal_pad, q->fft_size * sizeof(cf_t));
+      srslte_vec_cf_zero(nsss_signal_pad, q->fft_size);
 
       // 5th NSSS symbol has CP length of 10 symbols
       int cp_len =

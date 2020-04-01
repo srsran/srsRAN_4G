@@ -171,7 +171,7 @@ int srslte_sch_init(srslte_sch_t* q)
       goto clean;
     }
     bzero(q->temp_g_bits, SRSLTE_MAX_PRB * 12 * 12 * 12);
-    q->ul_interleaver = srslte_vec_malloc(sizeof(uint32_t) * SCH_MAX_G_BITS);
+    q->ul_interleaver = srslte_vec_u32_malloc(SCH_MAX_G_BITS);
     if (!q->ul_interleaver) {
       goto clean;
     }

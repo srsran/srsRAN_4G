@@ -94,7 +94,7 @@ int main(int argc, char** argv)
         chest_dl_res.ce[i][j][k] = 1;
       }
     }
-    sf_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    sf_symbols[i] = srslte_vec_cf_malloc(nof_re);
     if (!sf_symbols[i]) {
       perror("malloc");
       exit(-1);

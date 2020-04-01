@@ -96,7 +96,7 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(nof_prb, cp);
-  cf_t*    sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+  cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
   // MIB-SL
   srslte_mib_sl_t mib_sl;

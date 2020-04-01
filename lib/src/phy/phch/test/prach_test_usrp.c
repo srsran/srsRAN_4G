@@ -149,14 +149,14 @@ int main(int argc, char** argv)
   uint32_t flen  = srate / 1000;
 
   printf("Generating PRACH\n");
-  bzero(preamble, flen * sizeof(cf_t));
+  srslte_vec_cf_zero(preamble, flen);
   srslte_prach_gen(&prach, seq_idx, frequency_offset, preamble);
 
   uint32_t prach_len = prach.N_seq + prach.N_cp;
 
   srslte_vec_save_file("generated", preamble, prach_len * sizeof(cf_t));
 
-  cf_t* buffer = malloc(sizeof(cf_t) * flen * nof_frames);
+  cf_t* buffer = srslte_vec_cf_malloc(flen * nof_frames);
 
   // Send through UHD
   srslte_rf_t rf;

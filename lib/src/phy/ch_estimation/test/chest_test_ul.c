@@ -84,7 +84,7 @@ int main(int argc, char** argv)
 {
   srslte_chest_ul_t est;
   cf_t *            input = NULL, *ce = NULL, *h = NULL;
-  int               i, j, n_port = 0, sf_idx = 0, cid = 0, num_re;
+  int               i, j, n_port = 0, sf_idx = 0, cid = 0;
   int               ret = -1;
   int               max_cid;
   FILE*             fmatlab = NULL;
@@ -99,24 +99,24 @@ int main(int argc, char** argv)
     }
   }
 
-  num_re = 2 * cell.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.cp);
+  uint32_t num_re = 2U * cell.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.cp);
 
-  input = srslte_vec_malloc(num_re * sizeof(cf_t));
+  input = srslte_vec_cf_malloc(num_re);
   if (!input) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  h = srslte_vec_malloc(num_re * sizeof(cf_t));
+  h = srslte_vec_cf_malloc(num_re);
   if (!h) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  ce = srslte_vec_malloc(num_re * sizeof(cf_t));
+  ce = srslte_vec_cf_malloc(num_re);
   if (!ce) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  bzero(ce, num_re * sizeof(cf_t));
+  srslte_vec_cf_zero(ce, num_re);
 
   if (cell.id == 1000) {
     cid     = 0;
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
                   }
 
                   /* Generate random input */
-                  bzero(input, sizeof(cf_t) * num_re);
+                  srslte_vec_cf_zero(input, num_re);
                   for (i = 0; i < num_re; i++) {
                     input[i] = 0.5 - rand() / RAND_MAX + I * (0.5 - (float)rand() / RAND_MAX);
                   }

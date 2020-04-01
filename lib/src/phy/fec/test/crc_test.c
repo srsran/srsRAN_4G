@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  data = malloc(sizeof(uint8_t) * (num_bits + crc_length * 2));
+  data = srslte_vec_u8_malloc(num_bits + crc_length * 2);
   if (!data) {
     perror("malloc");
     exit(-1);

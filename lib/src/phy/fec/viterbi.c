@@ -285,13 +285,13 @@ int init37(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_bitin
   q->decode       = decode37;
   q->free         = free37;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp = srslte_vec_malloc(TB_ITER * 3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+    q->tmp = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     bzero(q->tmp, 3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
     if (!q->tmp) {
       perror("malloc");
@@ -336,7 +336,7 @@ int init37_sse(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_b
   }
 #endif
   if (q->tail_biting) {
-    q->tmp = srslte_vec_malloc(TB_ITER * 3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+    q->tmp = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -368,13 +368,13 @@ int init37_neon(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_
   q->decode       = decode37_neon;
   q->free         = free37_neon;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp = srslte_vec_malloc(TB_ITER * 3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+    q->tmp = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -406,13 +406,13 @@ int init37_avx2(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool tail_
   q->decode       = decode37_avx2;
   q->free         = free37_avx2;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp = srslte_vec_malloc(TB_ITER * 3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
+    q->tmp = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     if (!q->tmp) {
       perror("malloc");
       free37(q);
@@ -442,15 +442,15 @@ int init37_avx2_16bit(srslte_viterbi_t* q, int poly[3], uint32_t framebits, bool
   q->decode_s     = decode37_avx2_16bit;
   q->free         = free37_avx2_16bit;
   q->decode_f     = NULL;
-  q->symbols_uc   = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
-  q->symbols_us   = srslte_vec_malloc(3 * (q->framebits + q->K - 1) * sizeof(uint16_t));
+  q->symbols_uc   = srslte_vec_u8_malloc(3 * (q->framebits + q->K - 1));
+  q->symbols_us   = srslte_vec_u16_malloc(3 * (q->framebits + q->K - 1));
   if (!q->symbols_uc || !q->symbols_us) {
     perror("malloc");
     return -1;
   }
   if (q->tail_biting) {
-    q->tmp   = srslte_vec_malloc(TB_ITER * 3 * (q->framebits + q->K - 1) * sizeof(uint8_t));
-    q->tmp_s = srslte_vec_malloc(TB_ITER * 3 * (q->framebits + q->K - 1) * sizeof(uint16_t));
+    q->tmp   = srslte_vec_u8_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
+    q->tmp_s = srslte_vec_u16_malloc(TB_ITER * 3 * (q->framebits + q->K - 1));
     if (!q->tmp) {
       perror("malloc");
       free37(q);

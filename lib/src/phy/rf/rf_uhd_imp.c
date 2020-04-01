@@ -523,7 +523,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     // Initialize handler
     handler->uhd_error_handler = NULL;
 
-    bzero(zero_mem, sizeof(cf_t) * 64 * 1024);
+    srslte_vec_cf_zero(zero_mem, 64 * 1024);
 
     // Check external clock argument
     enum { DEFAULT, EXTERNAL, GPSDO } clock_src;

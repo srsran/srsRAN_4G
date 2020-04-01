@@ -111,24 +111,25 @@ int main(int argc, char** argv)
 
   uint32_t flen = srslte_sampling_freq_hz(nof_prb) / 1000;
 
-  cf_t* rx_buffer = malloc(sizeof(cf_t) * flen * nof_frames);
+  cf_t* rx_buffer = srslte_vec_cf_malloc(flen * nof_frames);
   if (!rx_buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  cf_t* tx_buffer = malloc(sizeof(cf_t) * (flen + time_adv_samples));
+  cf_t* tx_buffer = srslte_vec_cf_malloc((flen + time_adv_samples));
   if (!tx_buffer) {
     perror("malloc");
     exit(-1);
   }
-  bzero(tx_buffer, sizeof(cf_t) * (flen + time_adv_samples));
+  srslte_vec_cf_zero(tx_buffer, flen + time_adv_samples);
 
-  cf_t* zeros = calloc(sizeof(cf_t), flen);
+  cf_t* zeros = srslte_vec_cf_malloc(flen);
   if (!zeros) {
     perror("calloc");
     exit(-1);
   }
+  srslte_vec_cf_zero(zeros, flen);
 
   float time_adv_sec = (float)time_adv_samples / srslte_sampling_freq_hz(nof_prb);
 

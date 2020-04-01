@@ -39,14 +39,14 @@ int srslte_ue_mib_nbiot_init(srslte_ue_mib_nbiot_t* q, cf_t** in_buffer, uint32_
       goto clean_exit;
     }
 
-    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+    q->sf_symbols = srslte_vec_cf_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
     if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit;
     }
 
     for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->ce[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
+      q->ce[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM));
       if (!q->ce[i]) {
         perror("malloc");
         goto clean_exit;
@@ -195,7 +195,7 @@ int srslte_ue_mib_sync_nbiot_init_multi(
     q->sf_buffer[i] = NULL;
   }
   for (int i = 0; i < nof_rx_antennas; i++) {
-    q->sf_buffer[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB_NBIOT * 10);
+    q->sf_buffer[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB_NBIOT * SRSLTE_NOF_SF_X_FRAME);
   }
   q->nof_rx_antennas = nof_rx_antennas;
 

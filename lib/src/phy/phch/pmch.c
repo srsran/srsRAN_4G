@@ -149,30 +149,30 @@ int srslte_pmch_init(srslte_pmch_t* q, uint32_t max_prb, uint32_t nof_rx_antenna
     srslte_sch_init(&q->dl_sch);
 
     // Allocate int16_t for reception (LLRs)
-    q->e = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
+    q->e = srslte_vec_i16_malloc(q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
     if (!q->e) {
       goto clean;
     }
 
-    q->d = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+    q->d = srslte_vec_cf_malloc(q->max_re);
     if (!q->d) {
       goto clean;
     }
 
     for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->x[i] = srslte_vec_cf_malloc(q->max_re);
       if (!q->x[i]) {
         goto clean;
       }
       for (int j = 0; j < q->nof_rx_antennas; j++) {
-        q->ce[i][j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+        q->ce[i][j] = srslte_vec_cf_malloc(q->max_re);
         if (!q->ce[i][j]) {
           goto clean;
         }
       }
     }
     for (int j = 0; j < q->nof_rx_antennas; j++) {
-      q->symbols[j] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->symbols[j] = srslte_vec_cf_malloc(q->max_re);
       if (!q->symbols[j]) {
         goto clean;
       }

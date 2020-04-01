@@ -100,7 +100,7 @@ int                     rvidx[SRSLTE_MAX_CODEWORDS] = {0, 0};
 
 cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL}, *output_buffer[SRSLTE_MAX_PORTS] = {NULL};
 
-int sf_n_re, sf_n_samples;
+uint32_t sf_n_re, sf_n_samples;
 
 pthread_t          net_thread;
 void*              net_thread_fnc(void* arg);
@@ -247,18 +247,18 @@ void base_init()
 
   /* Allocate memory */
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    data[i] = srslte_vec_malloc(sizeof(uint8_t) * SOFTBUFFER_SIZE);
+    data[i] = srslte_vec_u8_malloc(SOFTBUFFER_SIZE);
     if (!data[i]) {
       perror("malloc");
       exit(-1);
     }
     bzero(data[i], sizeof(uint8_t) * SOFTBUFFER_SIZE);
   }
-  data_mbms = srslte_vec_malloc(sizeof(uint8_t) * SOFTBUFFER_SIZE);
+  data_mbms = srslte_vec_u8_malloc(SOFTBUFFER_SIZE);
 
   /* init memory */
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    sf_buffer[i] = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+    sf_buffer[i] = srslte_vec_cf_malloc(sf_n_re);
     if (!sf_buffer[i]) {
       perror("malloc");
       exit(-1);
@@ -266,12 +266,12 @@ void base_init()
   }
 
   for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    output_buffer[i] = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
+    output_buffer[i] = srslte_vec_cf_malloc(sf_n_samples);
     if (!output_buffer[i]) {
       perror("malloc");
       exit(-1);
     }
-    bzero(output_buffer[i], sizeof(cf_t) * sf_n_samples);
+    srslte_vec_cf_zero(output_buffer[i], sf_n_samples);
   }
 
   /* open file or USRP */
@@ -832,7 +832,7 @@ int main(int argc, char** argv)
   while ((nf < nof_frames || nof_frames == -1) && !go_exit) {
     for (sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME && (nf < nof_frames || nof_frames == -1) && !go_exit; sf_idx++) {
       /* Set Antenna port resource elements to zero */
-      bzero(sf_symbols[0], sizeof(cf_t) * sf_n_re);
+      srslte_vec_cf_zero(sf_symbols[0], sf_n_re);
 
       if (sf_idx == 0 || sf_idx == 5) {
         srslte_pss_put_slot(pss_signal, sf_symbols[0], cell.nof_prb, SRSLTE_CP_NORM);

@@ -135,17 +135,17 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  input = malloc(frame_length * sizeof(cf_t));
+  input = srslte_vec_cf_malloc(frame_length);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  cfo = malloc(nof_frames * sizeof(float));
+  cfo = srslte_vec_f_malloc(nof_frames);
   if (!cfo) {
     perror("malloc");
     exit(-1);
   }
-  exec_time = malloc(nof_frames * sizeof(int));
+  exec_time = srslte_vec_i32_malloc(nof_frames);
   if (!exec_time) {
     perror("malloc");
     exit(-1);

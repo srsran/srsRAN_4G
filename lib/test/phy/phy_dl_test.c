@@ -330,7 +330,7 @@ int main(int argc, char** argv)
    * Allocate Memory
    */
   for (int i = 0; i < cell.nof_ports; i++) {
-    signal_buffer[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    signal_buffer[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (!signal_buffer[i]) {
       ERROR("Error allocating buffer\n");
       goto quit;
@@ -360,13 +360,13 @@ int main(int argc, char** argv)
       goto quit;
     }
 
-    data_tx[i] = srslte_vec_malloc(sizeof(uint8_t) * MAX_DATABUFFER_SIZE);
+    data_tx[i] = srslte_vec_u8_malloc(MAX_DATABUFFER_SIZE);
     if (!data_tx[i]) {
       ERROR("Error allocating data tx\n");
       goto quit;
     }
 
-    data_rx[i] = srslte_vec_malloc(sizeof(uint8_t) * MAX_DATABUFFER_SIZE);
+    data_rx[i] = srslte_vec_u8_malloc(MAX_DATABUFFER_SIZE);
     if (!data_rx[i]) {
       ERROR("Error allocating data tx\n");
       goto quit;

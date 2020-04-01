@@ -44,7 +44,7 @@ int srslte_refsignal_cs_init(srslte_refsignal_t* q, uint32_t max_prb)
     bzero(q, sizeof(srslte_refsignal_t));
     for (int p = 0; p < 2; p++) {
       for (int i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
-        q->pilots[p][i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
+        q->pilots[p][i] = srslte_vec_cf_malloc(SRSLTE_REFSIGNAL_MAX_NUM_SF(max_prb));
         if (!q->pilots[p][i]) {
           perror("malloc");
           goto free_and_exit;
@@ -424,7 +424,7 @@ int srslte_refsignal_mbsfn_init(srslte_refsignal_t* q, uint32_t max_prb)
 
     for (p = 0; p < 2; p++) {
       for (i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
-        q->pilots[p][i] = srslte_vec_malloc(sizeof(cf_t) * max_prb * 18);
+        q->pilots[p][i] = srslte_vec_cf_malloc(max_prb * 18);
         if (!q->pilots[p][i]) {
           perror("malloc");
           goto free_and_exit;

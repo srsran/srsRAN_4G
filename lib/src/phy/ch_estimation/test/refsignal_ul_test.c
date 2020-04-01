@@ -94,7 +94,7 @@ int main(int argc, char** argv)
     goto do_exit;
   }
 
-  signal = malloc(2 * SRSLTE_NRE * cell.nof_prb * sizeof(cf_t));
+  signal = srslte_vec_cf_malloc(2 * SRSLTE_NRE * cell.nof_prb);
   if (!signal) {
     perror("malloc");
     goto do_exit;

@@ -96,22 +96,22 @@ int main(int argc, char** argv)
     printf("Running test for %d PRB, %d RE... ", n_prb, n_re);
     fflush(stdout);
 
-    input = srslte_vec_malloc(sizeof(cf_t) * n_re * 2);
+    input = srslte_vec_cf_malloc(n_re * 2U);
     if (!input) {
       perror("malloc");
       exit(-1);
     }
-    outfft = srslte_vec_malloc(sizeof(cf_t) * n_re * 2);
+    outfft = srslte_vec_cf_malloc(n_re * 2U);
     if (!outfft) {
       perror("malloc");
       exit(-1);
     }
-    outifft = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * 2);
+    outifft = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * 2U);
     if (!outifft) {
       perror("malloc");
       exit(-1);
     }
-    bzero(outifft, sizeof(cf_t) * SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * 2);
+    srslte_vec_cf_zero(outifft, SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * 2);
 
     if (srslte_ofdm_rx_init(&fft, cp, outifft, outfft, n_prb)) {
       ERROR("Error initializing FFT\n");

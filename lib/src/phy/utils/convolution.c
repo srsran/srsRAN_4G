@@ -36,9 +36,9 @@ int srslte_conv_fft_cc_init(srslte_conv_fft_cc_t* q, uint32_t input_len, uint32_
   q->output_len     = input_len + filter_len;
   q->max_filter_len = filter_len;
   q->max_input_len  = input_len;
-  q->input_fft      = srslte_vec_malloc(sizeof(cf_t) * q->output_len);
-  q->filter_fft     = srslte_vec_malloc(sizeof(cf_t) * q->output_len);
-  q->output_fft     = srslte_vec_malloc(sizeof(cf_t) * q->output_len);
+  q->input_fft      = srslte_vec_cf_malloc(q->output_len);
+  q->filter_fft     = srslte_vec_cf_malloc(q->output_len);
+  q->output_fft     = srslte_vec_cf_malloc(q->output_len);
 
   if (!q->input_fft || !q->filter_fft || !q->output_fft) {
     return SRSLTE_ERROR;

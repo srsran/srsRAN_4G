@@ -69,7 +69,7 @@ int srslte_channel_delay_init(srslte_channel_delay_t* q,
   int ret = srslte_ringbuffer_init(&q->rb, sizeof(cf_t) * buff_size);
 
   // Create zero buffer
-  q->zero_buffer = srslte_vec_malloc(sizeof(cf_t) * buff_size);
+  q->zero_buffer = srslte_vec_cf_malloc(buff_size);
   if (!q->zero_buffer) {
     ret = SRSLTE_ERROR;
   }
@@ -114,7 +114,7 @@ void srslte_channel_delay_execute(srslte_channel_delay_t*   q,
 
   if (available_nsamples < q->delay_nsamples) {
     uint32_t nzeros = q->delay_nsamples - available_nsamples;
-    bzero(q->zero_buffer, sizeof(cf_t) * nzeros);
+    srslte_vec_cf_zero(q->zero_buffer, nzeros);
     srslte_ringbuffer_write(&q->rb, q->zero_buffer, sizeof(cf_t) * nzeros);
   } else if (available_nsamples > q->delay_nsamples) {
     srslte_ringbuffer_read(&q->rb, q->zero_buffer, sizeof(cf_t) * (available_nsamples - q->delay_nsamples));

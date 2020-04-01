@@ -103,7 +103,7 @@ int srslte_interp_linear_vector_init(srslte_interp_linsrslte_vec_t* q, uint32_t 
   if (q) {
     bzero(q, sizeof(srslte_interp_linsrslte_vec_t));
     ret         = SRSLTE_SUCCESS;
-    q->diff_vec = srslte_vec_malloc(vector_len * sizeof(cf_t));
+    q->diff_vec = srslte_vec_cf_malloc(vector_len);
     if (!q->diff_vec) {
       perror("malloc");
       return SRSLTE_ERROR;
@@ -193,18 +193,18 @@ int srslte_interp_linear_init(srslte_interp_lin_t* q, uint32_t vector_len, uint3
   if (q) {
     bzero(q, sizeof(srslte_interp_lin_t));
     ret         = SRSLTE_SUCCESS;
-    q->diff_vec = srslte_vec_malloc(vector_len * sizeof(cf_t));
+    q->diff_vec = srslte_vec_cf_malloc(vector_len);
     if (!q->diff_vec) {
       perror("malloc");
       return SRSLTE_ERROR;
     }
-    q->diff_vec2 = srslte_vec_malloc(M * vector_len * sizeof(cf_t));
+    q->diff_vec2 = srslte_vec_cf_malloc(M * vector_len);
     if (!q->diff_vec2) {
       perror("malloc");
       free(q->diff_vec);
       return SRSLTE_ERROR;
     }
-    q->ramp = srslte_vec_malloc(M * sizeof(float));
+    q->ramp = srslte_vec_f_malloc(M);
     if (!q->ramp) {
       perror("malloc");
       free(q->ramp);

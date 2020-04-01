@@ -30,9 +30,9 @@
 
 #include "srslte/srslte.h"
 
-int          nof_frames = 10;
-int          num_bits   = 1000;
-srslte_mod_t modulation = 10;
+static uint32_t     nof_frames = 10;
+static uint32_t     num_bits   = 1000;
+static srslte_mod_t modulation = 10;
 
 void usage(char* prog)
 {
@@ -48,10 +48,10 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "nmvf")) != -1) {
     switch (opt) {
       case 'n':
-        num_bits = (int)strtol(argv[optind], NULL, 10);
+        num_bits = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'f':
-        nof_frames = (int)strtol(argv[optind], NULL, 10);
+        nof_frames = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;
@@ -105,7 +105,7 @@ float mse_threshold()
     case SRSLTE_MOD_256QAM:
       return 0.3;
     default:
-      return -1.0;
+      return -1.0f;
   }
 }
 
@@ -131,35 +131,35 @@ int main(int argc, char** argv)
   num_bits = mod.nbits_x_symbol * (num_bits / mod.nbits_x_symbol);
 
   /* allocate buffers */
-  input = srslte_vec_malloc(sizeof(uint8_t) * num_bits);
+  input = srslte_vec_u8_malloc(num_bits);
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  output = srslte_vec_malloc(sizeof(uint8_t) * num_bits);
+  output = srslte_vec_u8_malloc(num_bits);
   if (!output) {
     perror("malloc");
     exit(-1);
   }
-  symbols = srslte_vec_malloc(sizeof(cf_t) * num_bits / mod.nbits_x_symbol);
+  symbols = srslte_vec_cf_malloc(num_bits / mod.nbits_x_symbol);
   if (!symbols) {
     perror("malloc");
     exit(-1);
   }
 
-  llr = srslte_vec_malloc(sizeof(float) * num_bits);
+  llr = srslte_vec_f_malloc(num_bits);
   if (!llr) {
     perror("malloc");
     exit(-1);
   }
 
-  llr_s = srslte_vec_malloc(sizeof(short) * num_bits);
+  llr_s = srslte_vec_i16_malloc(num_bits);
   if (!llr_s) {
     perror("malloc");
     exit(-1);
   }
 
-  llr_b = srslte_vec_malloc(sizeof(int8_t) * num_bits);
+  llr_b = srslte_vec_i8_malloc(num_bits);
   if (!llr_b) {
     perror("malloc");
     exit(-1);

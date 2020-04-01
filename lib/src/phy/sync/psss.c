@@ -57,17 +57,17 @@ int srslte_psss_init(srslte_psss_t* q, uint32_t nof_prb, srslte_cp_t cp)
       return SRSLTE_ERROR;
     }
     for (uint32_t i = 0; i < 2; ++i) {
-      q->psss_sf_freq[i] = srslte_vec_malloc(sizeof(cf_t) * fft_size);
+      q->psss_sf_freq[i] = srslte_vec_cf_malloc(fft_size);
       if (!q->psss_sf_freq[i]) {
         return SRSLTE_ERROR;
       }
     }
 
-    q->input_pad_freq = srslte_vec_malloc(sizeof(cf_t) * fft_size);
+    q->input_pad_freq = srslte_vec_cf_malloc(fft_size);
     if (!q->input_pad_freq) {
       return SRSLTE_ERROR;
     }
-    q->input_pad_time = srslte_vec_malloc(sizeof(cf_t) * fft_size);
+    q->input_pad_time = srslte_vec_cf_malloc(fft_size);
     if (!q->input_pad_time) {
       return SRSLTE_ERROR;
     }
@@ -89,8 +89,8 @@ int srslte_psss_init(srslte_psss_t* q, uint32_t nof_prb, srslte_cp_t cp)
 
     // Create empty subframes with only PSSS
     for (uint32_t N_id_2 = 0; N_id_2 < 2; ++N_id_2) {
-      bzero(q->input_pad_freq, sizeof(cf_t) * fft_size);
-      bzero(q->input_pad_time, sizeof(cf_t) * fft_size);
+      srslte_vec_cf_zero(q->input_pad_freq, fft_size);
+      srslte_vec_cf_zero(q->input_pad_time, fft_size);
 
       srslte_psss_put_sf_buffer(q->psss_signal[N_id_2], q->input_pad_freq, nof_prb, cp);
       srslte_ofdm_tx_sf(&psss_tx);
@@ -102,19 +102,19 @@ int srslte_psss_init(srslte_psss_t* q, uint32_t nof_prb, srslte_cp_t cp)
     srslte_dft_plan_free(&plan);
     srslte_ofdm_tx_free(&psss_tx);
 
-    q->dot_prod_output = srslte_vec_malloc(sizeof(cf_t) * fft_size);
+    q->dot_prod_output = srslte_vec_cf_malloc(fft_size);
     if (!q->dot_prod_output) {
       return SRSLTE_ERROR;
     }
-    q->dot_prod_output_time = srslte_vec_malloc(sizeof(cf_t) * fft_size);
+    q->dot_prod_output_time = srslte_vec_cf_malloc(fft_size);
     if (!q->dot_prod_output_time) {
       return SRSLTE_ERROR;
     }
-    q->shifted_output = srslte_vec_malloc(sizeof(cf_t) * fft_size);
+    q->shifted_output = srslte_vec_cf_malloc(fft_size);
     if (!q->shifted_output) {
       return SRSLTE_ERROR;
     }
-    q->shifted_output_abs = srslte_vec_malloc(sizeof(float) * fft_size);
+    q->shifted_output_abs = srslte_vec_f_malloc(fft_size);
     if (!q->shifted_output_abs) {
       return SRSLTE_ERROR;
     }
@@ -178,9 +178,9 @@ void srslte_psss_put_sf_buffer(cf_t* psss_signal, cf_t* sf_buffer, uint32_t nof_
   // Extended cyclic prefix l = 0,1
   for (int i = 0; i < 2; i++) {
     uint32_t k = (SRSLTE_CP_NSYMB(cp) - (5 + i)) * nof_prb * SRSLTE_NRE + nof_prb * SRSLTE_NRE / 2 - 31;
-    bzero(&sf_buffer[k - 5], sizeof(cf_t) * 5);
+    srslte_vec_cf_zero(&sf_buffer[k - 5], 5);
     memcpy(&sf_buffer[k], psss_signal, SRSLTE_PSSS_LEN * sizeof(cf_t));
-    bzero(&sf_buffer[k + SRSLTE_PSSS_LEN], sizeof(cf_t) * 5);
+    srslte_vec_cf_zero(&sf_buffer[k + SRSLTE_PSSS_LEN], 5);
   }
 }
 
@@ -200,8 +200,8 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
   uint32_t sf_n_samples = srslte_symbol_sz(nof_prb) * 15;
   uint32_t fft_size     = sf_n_samples * 2;
 
-  bzero(q->input_pad_freq, sizeof(cf_t) * fft_size);
-  bzero(q->input_pad_time, sizeof(cf_t) * fft_size);
+  srslte_vec_cf_zero(q->input_pad_freq, fft_size);
+  srslte_vec_cf_zero(q->input_pad_time, fft_size);
 
   memcpy(q->input_pad_time, input, sizeof(cf_t) * sf_n_samples);
 
@@ -214,13 +214,13 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
     // IFFT
     srslte_dft_run_c(&q->plan_out, q->dot_prod_output, q->dot_prod_output_time);
 
-    bzero(q->shifted_output, sizeof(cf_t) * fft_size);
+    srslte_vec_cf_zero(q->shifted_output, fft_size);
     memcpy(q->shifted_output, &q->dot_prod_output_time[fft_size / 2], sizeof(cf_t) * fft_size / 2);
     memcpy(&q->shifted_output[fft_size / 2], q->dot_prod_output_time, sizeof(cf_t) * fft_size / 2);
 
     // Peak detection
     q->corr_peak_pos = -1;
-    bzero(q->shifted_output_abs, sizeof(float) * fft_size);
+    srslte_vec_f_zero(q->shifted_output_abs, fft_size);
     srslte_vec_abs_cf_simd(q->shifted_output, q->shifted_output_abs, fft_size);
 
     // Experimental Validation
@@ -243,7 +243,7 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
       q->corr_peak_pos = -1;
       continue;
     }
-    bzero(&q->shifted_output_abs[q->corr_peak_pos - (symbol_sz / 2)], sizeof(float) * symbol_sz);
+    srslte_vec_f_zero(&q->shifted_output_abs[q->corr_peak_pos - (symbol_sz / 2)], symbol_sz);
 
     // Find the first side peak
     uint32_t peak_1_pos   = srslte_vec_max_fi(q->shifted_output_abs, fft_size);
@@ -256,7 +256,7 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
       q->corr_peak_pos = -1;
       continue;
     }
-    bzero(&q->shifted_output_abs[peak_1_pos - (symbol_sz / 2)], sizeof(float) * symbol_sz);
+    srslte_vec_f_zero(&q->shifted_output_abs[peak_1_pos - (symbol_sz / 2)], symbol_sz);
 
     // Find the second side peak
     uint32_t peak_2_pos   = srslte_vec_max_fi(q->shifted_output_abs, fft_size);
@@ -269,7 +269,7 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
       q->corr_peak_pos = -1;
       continue;
     }
-    bzero(&q->shifted_output_abs[peak_2_pos - (symbol_sz / 2)], sizeof(float) * symbol_sz);
+    srslte_vec_f_zero(&q->shifted_output_abs[peak_2_pos - (symbol_sz / 2)], symbol_sz);
 
     float threshold_above = q->corr_peak_value / 2.0 * 1.4;
     if ((peak_1_value > threshold_above) || (peak_2_value > threshold_above)) {

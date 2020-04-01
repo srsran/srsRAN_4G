@@ -105,29 +105,29 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  int num_re = 2 * cell.base.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.base.cp);
+  uint32_t num_re = 2 * cell.base.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.base.cp);
 
-  input = srslte_vec_malloc(num_re * sizeof(cf_t));
+  input = srslte_vec_cf_malloc(num_re);
   if (!input) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  output = srslte_vec_malloc(num_re * sizeof(cf_t));
+  output = srslte_vec_cf_malloc(num_re);
   if (!output) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  sf_buffer = malloc(2 * SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.base.nof_prb)) * sizeof(cf_t));
+  sf_buffer = srslte_vec_cf_malloc(2U * SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.base.nof_prb)));
   if (!sf_buffer) {
     perror("malloc");
     return -1;
   }
-  h = srslte_vec_malloc(num_re * sizeof(cf_t));
+  h = srslte_vec_cf_malloc(num_re);
   if (!h) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  ce = srslte_vec_malloc(num_re * sizeof(cf_t));
+  ce = srslte_vec_cf_malloc(num_re);
   if (!ce) {
     perror("srslte_vec_malloc");
     goto do_exit;
@@ -152,13 +152,13 @@ int main(int argc, char** argv)
 
   for (int sf_idx = 0; sf_idx < 1; sf_idx++) {
     for (int n_port = 0; n_port < cell.base.nof_ports; n_port++) {
-      bzero(input, sizeof(cf_t) * num_re);
+      srslte_vec_cf_zero(input, num_re);
       for (int i = 0; i < num_re; i++) {
         input[i] = 0.5 - rand() / RAND_MAX + I * (0.5 - rand() / RAND_MAX);
       }
 
-      bzero(ce, sizeof(cf_t) * num_re);
-      bzero(h, sizeof(cf_t) * num_re);
+      srslte_vec_cf_zero(ce, num_re);
+      srslte_vec_cf_zero(h, num_re);
 
       srslte_ofdm_t ifft, fft;
       if (have_ofdm) {

@@ -38,8 +38,8 @@ int srslte_pss_init_N_id_2(cf_t* pss_signal_freq, cf_t* pss_signal_time, uint32_
 
     srslte_pss_generate(pss_signal_freq, N_id_2);
 
-    bzero(pss_signal_pad, fft_size * sizeof(cf_t));
-    bzero(pss_signal_time, fft_size * sizeof(cf_t));
+    srslte_vec_cf_zero(pss_signal_pad, fft_size);
+    srslte_vec_cf_zero(pss_signal_time, fft_size);
     memcpy(&pss_signal_pad[(fft_size - SRSLTE_PSS_LEN) / 2 + cfo_i], pss_signal_freq, SRSLTE_PSS_LEN * sizeof(cf_t));
 
     /* Convert signal into the time domain */
@@ -121,8 +121,8 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t* q,
     if (q->decimate > 1) {
       int filter_order = 3;
       srslte_filt_decim_cc_init(&q->filter, q->decimate, filter_order);
-      q->filter.filter_output     = srslte_vec_malloc((buffer_size) * sizeof(cf_t));
-      q->filter.downsampled_input = srslte_vec_malloc((buffer_size + filter_order) * sizeof(cf_t));
+      q->filter.filter_output     = srslte_vec_cf_malloc(buffer_size);
+      q->filter.downsampled_input = srslte_vec_cf_malloc(buffer_size + filter_order);
       printf("decimation for the  PSS search is %d \n", q->decimate);
     }
 
@@ -142,39 +142,39 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t* q,
     srslte_dft_plan_set_dc(&q->idftp_input, true);
     srslte_dft_plan_set_norm(&q->idftp_input, false);
 
-    bzero(q->tmp_fft2, sizeof(cf_t) * SRSLTE_SYMBOL_SZ_MAX);
+    srslte_vec_cf_zero(q->tmp_fft2, SRSLTE_SYMBOL_SZ_MAX);
 
-    q->tmp_input = srslte_vec_malloc((buffer_size + frame_size * (q->decimate - 1)) * sizeof(cf_t));
+    q->tmp_input = srslte_vec_cf_malloc(buffer_size + frame_size * (q->decimate - 1));
     if (!q->tmp_input) {
       ERROR("Error allocating memory\n");
       goto clean_and_exit;
     }
 
-    bzero(&q->tmp_input[q->frame_size], q->fft_size * sizeof(cf_t));
+    srslte_vec_cf_zero(&q->tmp_input[q->frame_size], q->fft_size);
 
-    q->conv_output = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+    q->conv_output = srslte_vec_cf_malloc(buffer_size);
     if (!q->conv_output) {
       ERROR("Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->conv_output, sizeof(cf_t) * buffer_size);
-    q->conv_output_avg = srslte_vec_malloc(buffer_size * sizeof(float));
+    srslte_vec_cf_zero(q->conv_output, buffer_size);
+    q->conv_output_avg = srslte_vec_f_malloc(buffer_size);
     if (!q->conv_output_avg) {
       ERROR("Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->conv_output_avg, sizeof(float) * buffer_size);
+    srslte_vec_f_zero(q->conv_output_avg, buffer_size);
 #ifdef SRSLTE_PSS_ACCUMULATE_ABS
-    q->conv_output_abs = srslte_vec_malloc(buffer_size * sizeof(float));
+    q->conv_output_abs = srslte_vec_f_malloc(buffer_size);
     if (!q->conv_output_abs) {
       ERROR("Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->conv_output_abs, sizeof(float) * buffer_size);
+    srslte_vec_f_zero(q->conv_output_abs, buffer_size);
 #endif
 
     for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
-      q->pss_signal_time[N_id_2] = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+      q->pss_signal_time[N_id_2] = srslte_vec_cf_malloc(buffer_size);
       if (!q->pss_signal_time[N_id_2]) {
         ERROR("Error allocating memory\n");
         goto clean_and_exit;
@@ -184,7 +184,7 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t* q,
         ERROR("Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
         goto clean_and_exit;
       }
-      bzero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
+      srslte_vec_cf_zero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size);
     }
 #ifdef CONVOLUTION_FFT
 
@@ -193,7 +193,7 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t* q,
       goto clean_and_exit;
     }
     for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
-      q->pss_signal_freq_full[N_id_2] = srslte_vec_malloc(buffer_size * sizeof(cf_t));
+      q->pss_signal_freq_full[N_id_2] = srslte_vec_cf_malloc(buffer_size);
       srslte_dft_run_c(&q->conv_fft.filter_plan, q->pss_signal_time[N_id_2], q->pss_signal_freq_full[N_id_2]);
     }
 
@@ -253,14 +253,14 @@ int srslte_pss_resize(srslte_pss_t* q, uint32_t frame_size, uint32_t fft_size, i
       return SRSLTE_ERROR;
     }
 
-    bzero(q->tmp_fft2, sizeof(cf_t) * SRSLTE_SYMBOL_SZ_MAX);
+    srslte_vec_cf_zero(q->tmp_fft2, SRSLTE_SYMBOL_SZ_MAX);
 
-    bzero(&q->tmp_input[q->frame_size], q->fft_size * sizeof(cf_t));
-    bzero(q->conv_output, sizeof(cf_t) * buffer_size);
-    bzero(q->conv_output_avg, sizeof(float) * buffer_size);
+    srslte_vec_cf_zero(&q->tmp_input[q->frame_size], q->fft_size);
+    srslte_vec_cf_zero(q->conv_output, buffer_size);
+    srslte_vec_f_zero(q->conv_output_avg, buffer_size);
 
 #ifdef SRSLTE_PSS_ACCUMULATE_ABS
-    bzero(q->conv_output_abs, sizeof(float) * buffer_size);
+    srslte_vec_f_zero(q->conv_output_abs, buffer_size);
 #endif
 
     // Generate PSS sequences for this FFT size
@@ -269,7 +269,7 @@ int srslte_pss_resize(srslte_pss_t* q, uint32_t frame_size, uint32_t fft_size, i
         ERROR("Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
         return SRSLTE_ERROR;
       }
-      bzero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
+      srslte_vec_cf_zero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size);
     }
 #ifdef CONVOLUTION_FFT
 
@@ -336,7 +336,7 @@ void srslte_pss_free(srslte_pss_t* q)
 void srslte_pss_reset(srslte_pss_t* q)
 {
   uint32_t buffer_size = q->fft_size + q->frame_size + 1;
-  bzero(q->conv_output_avg, sizeof(float) * buffer_size);
+  srslte_vec_f_zero(q->conv_output_avg, buffer_size);
 }
 
 /**
@@ -573,7 +573,7 @@ void srslte_pss_sic(srslte_pss_t* q, cf_t* input)
 {
   if (q->chest_on_filter) {
 
-    bzero(q->tmp_fft, sizeof(cf_t) * q->fft_size);
+    srslte_vec_cf_zero(q->tmp_fft, q->fft_size);
 
     // Pass transmitted PSS sequence through the channel
     srslte_vec_prod_ccc(

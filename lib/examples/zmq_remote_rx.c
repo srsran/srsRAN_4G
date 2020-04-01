@@ -108,7 +108,7 @@ int main(int argc, char** argv)
   // Initializes memory for input buffer
   bzero(buffer, sizeof(void*) * max_rx_antennas);
   for (int i = 0; i < nof_rx_antennas; i++) {
-    buffer[i] = malloc(buflen * sizeof(cf_t));
+    buffer[i] = srslte_vec_cf_malloc(buflen);
     if (!buffer[i]) {
       perror("malloc");
       exit(-1);

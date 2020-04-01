@@ -249,19 +249,19 @@ int main(int argc, char** argv)
   srslte_pusch_set_rnti(&pusch_rx, rnti);
 
   uint32_t nof_re = SRSLTE_NRE * cell.nof_prb * 2 * SRSLTE_CP_NSYMB(cell.cp);
-  sf_symbols      = srslte_vec_malloc(sizeof(cf_t) * nof_re);
+  sf_symbols      = srslte_vec_cf_malloc(nof_re);
   if (!sf_symbols) {
     perror("malloc");
     exit(-1);
   }
 
-  data = srslte_vec_malloc(sizeof(uint8_t) * 150000);
+  data = srslte_vec_u8_malloc(150000);
   if (!data) {
     perror("malloc");
     exit(-1);
   }
 
-  data_rx = srslte_vec_malloc(sizeof(uint8_t) * 150000);
+  data_rx = srslte_vec_u8_malloc(150000);
   if (!data_rx) {
     perror("malloc");
     exit(-1);

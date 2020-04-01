@@ -109,12 +109,12 @@ int main(int argc, char** argv)
   }
 
   if (!do_floats) {
-    input_b = malloc(sizeof(uint8_t) * seq.cur_len);
+    input_b = srslte_vec_u8_malloc(seq.cur_len);
     if (!input_b) {
       perror("malloc");
       exit(-1);
     }
-    scrambled_b = malloc(sizeof(uint8_t) * seq.cur_len);
+    scrambled_b = srslte_vec_u8_malloc(seq.cur_len);
     if (!scrambled_b) {
       perror("malloc");
       exit(-1);
@@ -142,12 +142,12 @@ int main(int argc, char** argv)
     free(input_b);
     free(scrambled_b);
   } else {
-    input_f = malloc(sizeof(float) * seq.cur_len);
+    input_f = srslte_vec_f_malloc(seq.cur_len);
     if (!input_f) {
       perror("malloc");
       exit(-1);
     }
-    scrambled_f = malloc(sizeof(float) * seq.cur_len);
+    scrambled_f = srslte_vec_f_malloc(seq.cur_len);
     if (!scrambled_f) {
       perror("malloc");
       exit(-1);
@@ -179,12 +179,12 @@ int main(int argc, char** argv)
     int16_t *input_s, *scrambled_s;
 
     // Scramble also shorts
-    input_s = malloc(sizeof(int16_t) * seq.cur_len);
+    input_s = srslte_vec_i16_malloc(seq.cur_len);
     if (!input_s) {
       perror("malloc");
       exit(-1);
     }
-    scrambled_s = malloc(sizeof(int16_t) * seq.cur_len);
+    scrambled_s = srslte_vec_i16_malloc(seq.cur_len);
     if (!scrambled_s) {
       perror("malloc");
       exit(-1);
@@ -216,12 +216,12 @@ int main(int argc, char** argv)
     int8_t *input_b, *scrambled_b;
 
     // Scramble also bytes
-    input_b = malloc(sizeof(int8_t) * seq.cur_len);
+    input_b = srslte_vec_i8_malloc(seq.cur_len);
     if (!input_b) {
       perror("malloc");
       exit(-1);
     }
-    scrambled_b = malloc(sizeof(int8_t) * seq.cur_len);
+    scrambled_b = srslte_vec_i8_malloc(seq.cur_len);
     if (!scrambled_b) {
       perror("malloc");
       exit(-1);

@@ -30,14 +30,14 @@
 
 #include "srslte/srslte.h"
 
-int nof_e_bits = -1;
-int rv_idx     = -1;
-int cb_idx     = -1;
+uint32_t nof_e_bits = 0;
+uint32_t rv_idx     = 0;
+uint32_t cb_idx     = 0;
 
 uint8_t systematic[6148], parity[2 * 6148];
 uint8_t systematic_bytes[6148 / 8 + 1], parity_bytes[2 * 6148 / 8 + 1];
 
-#define BUFFSZ 6176 * 3
+#define BUFFSZ (6176 * 3)
 
 uint8_t bits[3 * 6144 + 12];
 uint8_t buff_b[BUFFSZ];
@@ -56,20 +56,20 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "cei")) != -1) {
     switch (opt) {
       case 'c':
-        cb_idx = (int)strtol(argv[optind], NULL, 10);
+        cb_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
-        nof_e_bits = (int)strtol(argv[optind], NULL, 10);
+        nof_e_bits = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'i':
-        rv_idx = (int)strtol(argv[optind], NULL, 10);
+        rv_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       default:
         usage(argv[0]);
         exit(-1);
     }
   }
-  if (nof_e_bits == -1) {
+  if (nof_e_bits == 0) {
     usage(argv[0]);
     exit(-1);
   }
@@ -86,27 +86,27 @@ int main(int argc, char** argv)
 
   srslte_rm_turbo_gentables();
 
-  rm_bits_s = srslte_vec_malloc(sizeof(short) * nof_e_bits);
+  rm_bits_s = srslte_vec_i16_malloc(nof_e_bits);
   if (!rm_bits_s) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits_f = srslte_vec_malloc(sizeof(float) * nof_e_bits);
+  rm_bits_f = srslte_vec_f_malloc(nof_e_bits);
   if (!rm_bits_f) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits = srslte_vec_malloc(sizeof(uint8_t) * nof_e_bits);
+  rm_bits = srslte_vec_u8_malloc(nof_e_bits);
   if (!rm_bits) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits2 = malloc(sizeof(uint8_t) * nof_e_bits);
+  rm_bits2 = srslte_vec_u8_malloc(nof_e_bits);
   if (!rm_bits2) {
     perror("malloc");
     exit(-1);
   }
-  rm_bits2_bytes = malloc(sizeof(uint8_t) * nof_e_bits / 8 + 1);
+  rm_bits2_bytes = srslte_vec_u8_malloc(nof_e_bits / 8 + 1);
   if (!rm_bits2_bytes) {
     perror("malloc");
     exit(-1);
@@ -175,7 +175,7 @@ int main(int argc, char** argv)
         rm_bits_s[i] = (short)rm_bits_f[i];
       }
 
-      bzero(buff_f, BUFFSZ * sizeof(float));
+      srslte_vec_f_zero(buff_f, BUFFSZ);
       srslte_rm_turbo_rx(buff_f, BUFFSZ, rm_bits_f, nof_e_bits, bits_f, long_cb_enc, rv_idx, 0);
 
       bzero(bits2_s, long_cb_enc * sizeof(short));

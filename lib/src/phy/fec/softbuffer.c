@@ -71,13 +71,13 @@ int srslte_softbuffer_rx_init(srslte_softbuffer_rx_t* q, uint32_t nof_prb)
 
       // TODO: Use HARQ buffer limitation based on UE category
       for (uint32_t i = 0; i < q->max_cb; i++) {
-        q->buffer_f[i] = srslte_vec_malloc(sizeof(int16_t) * SOFTBUFFER_SIZE);
+        q->buffer_f[i] = srslte_vec_i16_malloc(SOFTBUFFER_SIZE);
         if (!q->buffer_f[i]) {
           perror("malloc");
           goto clean_exit;
         }
 
-        q->data[i] = srslte_vec_malloc(sizeof(uint8_t) * 6144 / 8);
+        q->data[i] = srslte_vec_u8_malloc(6144 / 8);
         if (!q->data[i]) {
           perror("malloc");
           goto clean_exit;
@@ -159,8 +159,6 @@ int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t* q, uint32_t nof_prb)
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
-    ret = SRSLTE_ERROR;
-
     bzero(q, sizeof(srslte_softbuffer_tx_t));
 
     ret = srslte_ra_tbs_from_idx(SRSLTE_RA_NOF_TBS_IDX - 1, nof_prb);
@@ -175,7 +173,7 @@ int srslte_softbuffer_tx_init(srslte_softbuffer_tx_t* q, uint32_t nof_prb)
 
       // TODO: Use HARQ buffer limitation based on UE category
       for (uint32_t i = 0; i < q->max_cb; i++) {
-        q->buffer_b[i] = srslte_vec_malloc(sizeof(float) * SOFTBUFFER_SIZE);
+        q->buffer_b[i] = srslte_vec_u8_malloc(SOFTBUFFER_SIZE);
         if (!q->buffer_b[i]) {
           perror("malloc");
           return SRSLTE_ERROR;

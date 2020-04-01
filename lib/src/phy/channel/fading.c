@@ -189,7 +189,7 @@ static inline void filter_segment(srslte_channel_fading_t* q, const cf_t* input,
 {
   // Fill Input vector
   memcpy(q->temp, input, sizeof(cf_t) * nsamples);
-  bzero(&q->temp[nsamples], sizeof(cf_t) * (q->N - nsamples));
+  srslte_vec_cf_zero(&q->temp[nsamples], q->N - nsamples);
 
   // Do FFT
   srslte_dft_run_c_zerocopy(&q->fft, q->temp, q->y_freq);
@@ -245,7 +245,7 @@ int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const c
       }
 
       // Allocate tap frequency response
-      q->h_tap[i] = srslte_vec_malloc(sizeof(cf_t) * q->N);
+      q->h_tap[i] = srslte_vec_cf_malloc(q->N);
 
       // Generate tap frequency response
       generate_tap(

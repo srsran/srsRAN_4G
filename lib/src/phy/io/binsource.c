@@ -25,6 +25,7 @@
 
 #include "srslte/phy/io/binsource.h"
 #include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/vector.h"
 
 #define DIV(a, b) ((a - 1) / b + 1)
 
@@ -36,7 +37,7 @@ static int gen_seq_buff(srslte_binsource_t* q, int nwords)
     q->seq_buff_nwords = 0;
   }
   if (!q->seq_buff_nwords) {
-    q->seq_buff = malloc(nwords * sizeof(uint32_t));
+    q->seq_buff = srslte_vec_u32_malloc(nwords);
     if (!q->seq_buff) {
       return -1;
     }

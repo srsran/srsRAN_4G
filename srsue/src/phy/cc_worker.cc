@@ -926,8 +926,8 @@ void cc_worker::upd_config_dci(srslte_dci_cfg_t &dci_cfg)
 
 int cc_worker::read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_antenna)
 {
-  int sz = srslte_symbol_sz(cell.nof_prb);
-  bzero(ce_abs, sizeof(float) * sz);
+  uint32_t sz = (uint32_t)srslte_symbol_sz(cell.nof_prb);
+  srslte_vec_f_zero(ce_abs, sz);
   int g = (sz - 12 * cell.nof_prb) / 2;
   srslte_vec_abs_dB_cf(ue_dl.chest_res.ce[tx_antenna][rx_antenna], -80, &ce_abs[g], SRSLTE_NRE * cell.nof_prb);
   return sz;

@@ -81,7 +81,7 @@ int main(int argc, char** argv)
 {
   srslte_chest_dl_t est;
   cf_t *            input = NULL, *ce = NULL, *h = NULL, *output = NULL;
-  int               i, j, num_re;
+  int               i, j;
   int               ret = -1;
   int               max_cid;
   FILE*             fmatlab = NULL;
@@ -97,24 +97,24 @@ int main(int argc, char** argv)
     }
   }
 
-  num_re = 2 * cell.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.cp);
+  uint32_t num_re = 2 * cell.nof_prb * SRSLTE_NRE * SRSLTE_CP_NSYMB(cell.cp);
 
-  input = srslte_vec_malloc(num_re * sizeof(cf_t));
+  input = srslte_vec_cf_malloc(num_re);
   if (!input) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  output = srslte_vec_malloc(num_re * sizeof(cf_t));
+  output = srslte_vec_cf_malloc(num_re);
   if (!output) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  h = srslte_vec_malloc(num_re * sizeof(cf_t));
+  h = srslte_vec_cf_malloc(num_re);
   if (!h) {
     perror("srslte_vec_malloc");
     goto do_exit;
   }
-  ce = srslte_vec_malloc(num_re * sizeof(cf_t));
+  ce = srslte_vec_cf_malloc(num_re);
   if (!ce) {
     perror("srslte_vec_malloc");
     goto do_exit;
@@ -145,13 +145,13 @@ int main(int argc, char** argv)
 
       for (uint32_t n_port = 0; n_port < cell.nof_ports; n_port++) {
 
-        bzero(input, sizeof(cf_t) * num_re);
+        srslte_vec_cf_zero(input, num_re);
         for (i = 0; i < num_re; i++) {
           input[i] = 0.5 - rand() / RAND_MAX + I * (0.5 - rand() / RAND_MAX);
         }
 
-        bzero(ce, sizeof(cf_t) * num_re);
-        bzero(h, sizeof(cf_t) * num_re);
+        srslte_vec_cf_zero(ce, num_re);
+        srslte_vec_cf_zero(h, num_re);
 
         srslte_refsignal_cs_put_sf(&est.csr_refs, &sf_cfg, n_port, input);
 

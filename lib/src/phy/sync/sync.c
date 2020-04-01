@@ -96,14 +96,14 @@ int srslte_sync_init_decim(srslte_sync_t* q, uint32_t frame_size, uint32_t max_o
     srslte_sync_set_cfo_tol(q, DEFAULT_CFO_TOL);
 
     for (int i = 0; i < 2; i++) {
-      q->cfo_i_corr[i] = srslte_vec_malloc(sizeof(cf_t) * q->frame_size);
+      q->cfo_i_corr[i] = srslte_vec_cf_malloc(q->frame_size);
       if (!q->cfo_i_corr[i]) {
         perror("malloc");
         goto clean_exit;
       }
     }
 
-    q->temp = srslte_vec_malloc(sizeof(cf_t) * 2 * q->frame_size);
+    q->temp = srslte_vec_cf_malloc(2 * q->frame_size);
     if (!q->temp) {
       perror("malloc");
       goto clean_exit;
@@ -314,7 +314,7 @@ static void generate_freq_sss(srslte_sync_t* q, uint32_t N_id_1)
   uint32_t k = q->fft_size / 2 - 31;
 
   for (int n = 0; n < 2; n++) {
-    bzero(symbol, q->fft_size * sizeof(cf_t));
+    srslte_vec_cf_zero(symbol, q->fft_size);
     for (uint32_t i = 0; i < SRSLTE_SSS_LEN; i++) {
       __real__ symbol[k + i] = sf[n][i];
       __imag__ symbol[k + i] = 0;

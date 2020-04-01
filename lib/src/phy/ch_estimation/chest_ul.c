@@ -60,30 +60,30 @@ int srslte_chest_ul_init(srslte_chest_ul_t* q, uint32_t max_prb)
       goto clean_exit;
     }
 
-    q->tmp_noise = srslte_vec_malloc(sizeof(cf_t) * MAX_REFS_SF);
+    q->tmp_noise = srslte_vec_cf_malloc(MAX_REFS_SF);
     if (!q->tmp_noise) {
       perror("malloc");
       goto clean_exit;
     }
-    q->pilot_estimates = srslte_vec_malloc(sizeof(cf_t) * MAX_REFS_SF);
+    q->pilot_estimates = srslte_vec_cf_malloc(MAX_REFS_SF);
     if (!q->pilot_estimates) {
       perror("malloc");
       goto clean_exit;
     }
     for (int i = 0; i < 4; i++) {
-      q->pilot_estimates_tmp[i] = srslte_vec_malloc(sizeof(cf_t) * MAX_REFS_SF);
+      q->pilot_estimates_tmp[i] = srslte_vec_cf_malloc(MAX_REFS_SF);
       if (!q->pilot_estimates_tmp[i]) {
         perror("malloc");
         goto clean_exit;
       }
     }
-    q->pilot_recv_signal = srslte_vec_malloc(sizeof(cf_t) * (MAX_REFS_SF + 1));
+    q->pilot_recv_signal = srslte_vec_cf_malloc(MAX_REFS_SF + 1);
     if (!q->pilot_recv_signal) {
       perror("malloc");
       goto clean_exit;
     }
 
-    q->pilot_known_signal = srslte_vec_malloc(sizeof(cf_t) * (MAX_REFS_SF + 1));
+    q->pilot_known_signal = srslte_vec_cf_malloc(MAX_REFS_SF + 1);
     if (!q->pilot_known_signal) {
       perror("malloc");
       goto clean_exit;
@@ -145,7 +145,7 @@ int srslte_chest_ul_res_init(srslte_chest_ul_res_t* q, uint32_t max_prb)
 {
   bzero(q, sizeof(srslte_chest_ul_res_t));
   q->nof_re = SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM);
-  q->ce     = srslte_vec_malloc(q->nof_re * sizeof(cf_t));
+  q->ce     = srslte_vec_cf_malloc(q->nof_re);
   if (!q->ce) {
     perror("malloc");
     return -1;

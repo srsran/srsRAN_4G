@@ -43,8 +43,8 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_channels)
   args = channel_args;
 
   // Allocate internal buffers
-  buffer_in  = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * buffer_size);
-  buffer_out = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * buffer_size);
+  buffer_in  = srslte_vec_cf_malloc(buffer_size);
+  buffer_out = srslte_vec_cf_malloc(buffer_size);
   if (!buffer_out || !buffer_in) {
     ret = SRSLTE_ERROR;
   }

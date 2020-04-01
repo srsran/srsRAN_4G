@@ -66,37 +66,37 @@ int srslte_npdcch_init(srslte_npdcch_t* q)
       goto clean;
     }
 
-    q->e = srslte_vec_malloc(sizeof(uint8_t) * q->max_bits);
+    q->e = srslte_vec_u8_malloc(q->max_bits);
     if (!q->e) {
       goto clean;
     }
 
     for (int i = 0; i < 2; i++) {
-      q->llr[i] = srslte_vec_malloc(sizeof(float) * q->max_bits);
+      q->llr[i] = srslte_vec_f_malloc(q->max_bits);
       if (!q->llr[i]) {
         goto clean;
       }
-      bzero(q->llr[i], sizeof(float) * q->max_bits);
+      srslte_vec_f_zero(q->llr[i], q->max_bits);
     }
 
-    q->d = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+    q->d = srslte_vec_cf_malloc(q->max_bits / 2);
     if (!q->d) {
       goto clean;
     }
 
     for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->ce[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+      q->ce[i] = srslte_vec_cf_malloc(q->max_bits / 2);
       if (!q->ce[i]) {
         goto clean;
       }
       for (uint32_t k = 0; k < q->max_bits / 2; k++) {
         q->ce[i][k] = 1;
       }
-      q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+      q->x[i] = srslte_vec_cf_malloc(q->max_bits / 2);
       if (!q->x[i]) {
         goto clean;
       }
-      q->symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_bits / 2);
+      q->symbols[i] = srslte_vec_cf_malloc(q->max_bits / 2);
       if (!q->symbols[i]) {
         goto clean;
       }
@@ -200,7 +200,7 @@ int srslte_npdcch_dci_decode(srslte_npdcch_t* q, float* e, uint8_t* data, uint32
 
   if (q != NULL) {
     if (data != NULL && E <= q->max_bits && nof_bits <= SRSLTE_DCI_MAX_BITS) {
-      bzero(q->rm_f, sizeof(float) * 3 * (SRSLTE_DCI_MAX_BITS + 16));
+      srslte_vec_f_zero(q->rm_f, 3 * (SRSLTE_DCI_MAX_BITS + 16));
 
       uint32_t coded_len = 3 * (nof_bits + 16);
 
@@ -337,7 +337,7 @@ int srslte_npdcch_extract_llr(srslte_npdcch_t* q,
 
       if (i != SRSLTE_NPDCCH_FORMAT0_UPPER_HALF) {
         // don't overwrite lower half LLRs
-        bzero(llr, sizeof(float) * q->max_bits);
+        srslte_vec_f_zero(llr, q->max_bits);
       }
 
       // number of layers equals number of ports

@@ -289,7 +289,7 @@ int main(int argc, char** argv)
 
   /* init memory */
   for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    rx_slot_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_NOF_RE(cell));
+    rx_slot_symbols[i] = srslte_vec_cf_malloc(SRSLTE_NOF_RE(cell));
     if (!rx_slot_symbols[i]) {
       perror("srslte_vec_malloc");
       goto quit;
@@ -306,14 +306,14 @@ int main(int argc, char** argv)
 
   for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
     if (pdsch_cfg.grant.tb[i].enabled) {
-      data_tx[i] = srslte_vec_malloc(sizeof(uint8_t) * pdsch_cfg.grant.tb[i].tbs);
+      data_tx[i] = srslte_vec_u8_malloc(pdsch_cfg.grant.tb[i].tbs);
       if (!data_tx[i]) {
         perror("srslte_vec_malloc");
         goto quit;
       }
       bzero(data_tx[i], sizeof(uint8_t) * pdsch_cfg.grant.tb[i].tbs);
 
-      data_rx[i] = srslte_vec_malloc(sizeof(uint8_t) * pdsch_cfg.grant.tb[i].tbs);
+      data_rx[i] = srslte_vec_u8_malloc(pdsch_cfg.grant.tb[i].tbs);
       if (!data_rx[i]) {
         perror("srslte_vec_malloc");
         goto quit;

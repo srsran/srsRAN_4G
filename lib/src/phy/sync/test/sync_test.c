@@ -95,13 +95,13 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  buffer = malloc(sizeof(cf_t) * FLEN);
+  buffer = srslte_vec_cf_malloc(FLEN);
   if (!buffer) {
     perror("malloc");
     exit(-1);
   }
 
-  fft_buffer = malloc(sizeof(cf_t) * FLEN * 2);
+  fft_buffer = srslte_vec_cf_malloc(FLEN * 2);
   if (!fft_buffer) {
     perror("malloc");
     exit(-1);
@@ -153,7 +153,7 @@ int main(int argc, char** argv)
       for (int i = 0; i < FLEN; i++) {
         fft_buffer[FLEN - i - 1 + offset] = fft_buffer[FLEN - i - 1];
       }
-      bzero(fft_buffer, sizeof(cf_t) * offset);
+      srslte_vec_cf_zero(fft_buffer, offset);
 
       if (srslte_sync_find(&syncobj, fft_buffer, 0, &find_idx) < 0) {
         ERROR("Error running srslte_sync_find\n");

@@ -47,7 +47,7 @@ int srslte_ue_ul_init(srslte_ue_ul_t* q, cf_t* out_buffer, uint32_t max_prb)
 
     bzero(q, sizeof(srslte_ue_ul_t));
 
-    q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_PRB(max_prb) * sizeof(cf_t));
+    q->sf_symbols = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB(max_prb));
     if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit;
@@ -77,13 +77,13 @@ int srslte_ue_ul_init(srslte_ue_ul_t* q, cf_t* out_buffer, uint32_t max_prb)
       ERROR("Error initiating srslte_refsignal_ul\n");
       goto clean_exit;
     }
-    q->refsignal = srslte_vec_malloc(2 * SRSLTE_NRE * max_prb * sizeof(cf_t));
+    q->refsignal = srslte_vec_cf_malloc(2 * SRSLTE_NRE * max_prb);
     if (!q->refsignal) {
       perror("malloc");
       goto clean_exit;
     }
 
-    q->srs_signal = srslte_vec_malloc(SRSLTE_NRE * max_prb * sizeof(cf_t));
+    q->srs_signal = srslte_vec_cf_malloc(SRSLTE_NRE * max_prb);
     if (!q->srs_signal) {
       perror("malloc");
       goto clean_exit;
@@ -309,7 +309,7 @@ static int pusch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
 
   if (q != NULL) {
 
-    bzero(q->sf_symbols, sizeof(cf_t) * SRSLTE_NOF_RE(q->cell));
+    srslte_vec_cf_zero(q->sf_symbols, SRSLTE_NOF_RE(q->cell));
 
     if (srslte_pusch_encode(&q->pusch, sf, &cfg->ul_cfg.pusch, data, q->sf_symbols)) {
       ERROR("Error encoding PUSCH\n");
@@ -431,7 +431,7 @@ static int srs_encode(srslte_ue_ul_t* q, uint32_t tti, srslte_ue_ul_cfg_t* cfg)
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
   if (q && cfg) {
 
-    bzero(q->sf_symbols, sizeof(cf_t) * SRSLTE_NOF_RE(q->cell));
+    srslte_vec_cf_zero(q->sf_symbols, SRSLTE_NOF_RE(q->cell));
 
     add_srs(q, cfg, tti);
 
@@ -516,7 +516,7 @@ pucch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg,
       return ret;
     }
 
-    bzero(q->sf_symbols, sizeof(cf_t) * SRSLTE_NOF_RE(q->cell));
+    srslte_vec_cf_zero(q->sf_symbols, SRSLTE_NOF_RE(q->cell));
 
     // Prepare configuration
     srslte_ue_ul_pucch_resource_selection(

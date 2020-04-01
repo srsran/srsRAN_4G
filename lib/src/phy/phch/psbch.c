@@ -58,19 +58,19 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
   q->sl_bch_tb_crc_len  = q->sl_bch_tb_len + SRSLTE_SL_BCH_CRC_LEN;
   q->sl_bch_encoded_len = 3 * q->sl_bch_tb_crc_len;
 
-  q->c = srslte_vec_malloc(sizeof(uint8_t) * q->sl_bch_tb_crc_len);
+  q->c = srslte_vec_u8_malloc(q->sl_bch_tb_crc_len);
   if (!q->c) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
-  q->d = srslte_vec_malloc(sizeof(uint8_t) * q->sl_bch_encoded_len);
+  q->d = srslte_vec_u8_malloc(q->sl_bch_encoded_len);
   if (!q->d) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
-  q->d_16 = srslte_vec_malloc(sizeof(int16_t) * q->sl_bch_encoded_len);
+  q->d_16 = srslte_vec_i16_malloc(q->sl_bch_encoded_len);
   if (!q->d_16) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
@@ -82,7 +82,7 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
     return SRSLTE_ERROR;
   }
 
-  q->crc_temp = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_SL_BCH_CRC_LEN);
+  q->crc_temp = srslte_vec_u8_malloc(SRSLTE_SL_BCH_CRC_LEN);
   if (!q->crc_temp) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
@@ -104,19 +104,19 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
   q->Qm = srslte_mod_bits_x_symbol(SRSLTE_MOD_QPSK);
   q->E  = q->nof_data_re * q->Qm;
 
-  q->e = srslte_vec_malloc(sizeof(uint8_t) * q->E);
+  q->e = srslte_vec_u8_malloc(q->E);
   if (!q->e) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
-  q->e_16 = srslte_vec_malloc(sizeof(int16_t) * q->E);
+  q->e_16 = srslte_vec_i16_malloc(q->E);
   if (!q->e_16) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
-  q->e_bytes = srslte_vec_malloc(sizeof(uint8_t) * q->E / 8);
+  q->e_bytes = srslte_vec_u8_malloc(q->E / 8);
   if (!q->e_bytes) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
@@ -129,20 +129,20 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
     return SRSLTE_ERROR;
   }
 
-  q->codeword = srslte_vec_malloc(sizeof(uint8_t) * q->E);
+  q->codeword = srslte_vec_u8_malloc(q->E);
   if (!q->codeword) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
-  q->codeword_bytes = srslte_vec_malloc(sizeof(uint8_t) * q->E / 8);
+  q->codeword_bytes = srslte_vec_u8_malloc(q->E / 8);
   if (!q->codeword_bytes) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
   // Interleaving
-  q->interleaver_lut = srslte_vec_malloc(sizeof(uint32_t) * q->E);
+  q->interleaver_lut = srslte_vec_u32_malloc(q->E);
   if (!q->interleaver_lut) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
@@ -154,33 +154,33 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
     return SRSLTE_ERROR;
   }
 
-  q->mod_symbols = srslte_vec_malloc(sizeof(cf_t) * q->nof_data_re);
+  q->mod_symbols = srslte_vec_cf_malloc(q->nof_data_re);
   if (!q->mod_symbols) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
   // Soft-demod
-  q->llr = srslte_vec_malloc(sizeof(int16_t) * q->E);
+  q->llr = srslte_vec_i16_malloc(q->E);
   if (!q->llr) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
   // Transform precoding
-  q->precoding_scaling = 1.0;
+  q->precoding_scaling = 1.0f;
   if (srslte_dft_precoding_init_tx(&q->dft_precoder, SRSLTE_PSBCH_NOF_PRB) != SRSLTE_SUCCESS) {
     ERROR("Error srslte_dft_precoding_init\n");
     return SRSLTE_ERROR;
   }
 
-  q->scfdma_symbols = srslte_vec_malloc(sizeof(cf_t) * q->nof_data_re);
+  q->scfdma_symbols = srslte_vec_cf_malloc(q->nof_data_re);
   if (!q->scfdma_symbols) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
   ///< Make sure last bits are zero as they are not considered during unpack
-  bzero(q->scfdma_symbols, sizeof(cf_t) * q->nof_data_re);
+  srslte_vec_cf_zero(q->scfdma_symbols, q->nof_data_re);
 
   if (srslte_dft_precoding_init_rx(&q->idft_precoder, SRSLTE_PSBCH_NOF_PRB) != SRSLTE_SUCCESS) {
     ERROR("Error srslte_idft_precoding_init\n");

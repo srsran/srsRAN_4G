@@ -346,9 +346,9 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
     p->max_N_ifft_ul = max_N_ifft_ul;
 
     // Set up containers
-    p->prach_bins = srslte_vec_malloc(sizeof(cf_t) * MAX_N_zc);
-    p->corr_spec  = srslte_vec_malloc(sizeof(cf_t) * MAX_N_zc);
-    p->corr       = srslte_vec_malloc(sizeof(float) * MAX_N_zc);
+    p->prach_bins = srslte_vec_cf_malloc(MAX_N_zc);
+    p->corr_spec  = srslte_vec_cf_malloc(MAX_N_zc);
+    p->corr       = srslte_vec_f_malloc(MAX_N_zc);
 
     // Set up ZC FFTS
     if (srslte_dft_plan(&p->zc_fft, MAX_N_zc, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
@@ -365,8 +365,8 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
 
     uint32_t fft_size_alloc = max_N_ifft_ul * DELTA_F / DELTA_F_RA;
 
-    p->ifft_in  = (cf_t*)srslte_vec_malloc(fft_size_alloc * sizeof(cf_t));
-    p->ifft_out = (cf_t*)srslte_vec_malloc(fft_size_alloc * sizeof(cf_t));
+    p->ifft_in  = srslte_vec_cf_malloc(fft_size_alloc);
+    p->ifft_out = srslte_vec_cf_malloc(fft_size_alloc);
     if (srslte_dft_plan(&p->ifft, fft_size_alloc, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
       ERROR("Error creating DFT plan\n");
       return -1;
@@ -379,7 +379,7 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
       return -1;
     }
 
-    p->signal_fft = srslte_vec_malloc(sizeof(cf_t) * fft_size_alloc);
+    p->signal_fft = srslte_vec_cf_malloc(fft_size_alloc);
     if (!p->signal_fft) {
       ERROR("Error allocating memory\n");
       return -1;

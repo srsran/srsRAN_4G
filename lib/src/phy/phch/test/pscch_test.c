@@ -96,7 +96,7 @@ int main(int argc, char** argv)
   char sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = "";
 
   uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
-  cf_t*    sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+  cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
   // SCI
   srslte_sci_t sci;

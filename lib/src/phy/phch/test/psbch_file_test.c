@@ -125,11 +125,11 @@ int main(int argc, char** argv)
   printf("sf_n_samples: %i\n", sf_n_samples);
 
   uint32_t sf_n_re             = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE * 2 * nof_prb;
-  cf_t*    sf_buffer           = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
-  cf_t*    equalized_sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+  cf_t*    sf_buffer           = srslte_vec_cf_malloc(sf_n_re);
+  cf_t*    equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
-  cf_t* input_buffer  = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
-  cf_t* output_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
+  cf_t* input_buffer  = srslte_vec_cf_malloc(sf_n_samples);
+  cf_t* output_buffer = srslte_vec_cf_malloc(sf_n_samples);
 
   // TX
   srslte_ofdm_t ifft;

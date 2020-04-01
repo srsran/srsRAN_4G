@@ -41,9 +41,9 @@ void srslte_bit_interleaver_init(srslte_bit_interleaver_t* q, uint16_t* interlea
 
   bzero(q, sizeof(srslte_bit_interleaver_t));
 
-  q->interleaver = srslte_vec_malloc(sizeof(uint16_t) * nof_bits);
-  q->byte_idx    = srslte_vec_malloc(sizeof(uint16_t) * nof_bits);
-  q->bit_mask    = srslte_vec_malloc(sizeof(uint8_t) * nof_bits);
+  q->interleaver = srslte_vec_u16_malloc(nof_bits);
+  q->byte_idx    = srslte_vec_u16_malloc(nof_bits);
+  q->bit_mask    = srslte_vec_u8_malloc(nof_bits);
   q->nof_bits    = nof_bits;
 
   for (int i = 0; i < nof_bits; i++) {

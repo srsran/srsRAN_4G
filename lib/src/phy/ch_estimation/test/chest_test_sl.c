@@ -95,16 +95,16 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   int   sf_n_re   = SRSLTE_CP_NSYMB(cp) * SRSLTE_NRE * nof_prb * 2;
-  cf_t* sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
-  bzero(sf_buffer, sizeof(cf_t) * sf_n_re);
+  cf_t* sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  srslte_vec_cf_zero(sf_buffer, sf_n_re);
 
   // Variables init Rx
-  cf_t* sf_buffer_rx = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
-  bzero(sf_buffer_rx, sizeof(cf_t) * sf_n_re);
+  cf_t* sf_buffer_rx = srslte_vec_cf_malloc(sf_n_re);
+  srslte_vec_cf_zero(sf_buffer_rx, sf_n_re);
 
   cf_t* dmrs_received[SRSLTE_SL_MAX_DMRS_SYMB] = {NULL};
   for (int i = 0; i < SRSLTE_SL_MAX_DMRS_SYMB; i++) {
-    dmrs_received[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_NRE * nof_prb);
+    dmrs_received[i] = srslte_vec_cf_malloc(SRSLTE_NRE * nof_prb);
   }
 
   // Variables init Tx

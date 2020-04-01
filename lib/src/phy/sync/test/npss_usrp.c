@@ -181,12 +181,12 @@ int main(int argc, char** argv)
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
-  buffer = malloc(sizeof(cf_t) * flen * 2);
+  buffer = srslte_vec_cf_malloc(flen * 2);
   if (!buffer) {
     perror("malloc");
     exit(-1);
   }
-  bzero(buffer, sizeof(cf_t) * flen * 2);
+  srslte_vec_cf_zero(buffer, flen * 2);
 
   if (srslte_npss_synch_init(&npss, flen, fft_size)) {
     fprintf(stderr, "Error initializing NPSS object\n");

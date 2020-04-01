@@ -34,10 +34,10 @@ void scell_recv::init(srslte::log* _log_h, uint32_t max_sf_window)
 
   // and a separate ue_sync instance
 
-  uint32_t max_fft_sz  = srslte_symbol_sz(100);
+  uint32_t max_fft_sz  = (uint32_t)srslte_symbol_sz(100);
   uint32_t max_sf_size = SRSLTE_SF_LEN(max_fft_sz);
 
-  sf_buffer[0] = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * max_sf_size);
+  sf_buffer[0] = srslte_vec_cf_malloc(max_sf_size);
   if (!sf_buffer[0]) {
     log_h->error("Error allocating %d samples for scell\n", max_sf_size);
     return;

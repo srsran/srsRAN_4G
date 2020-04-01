@@ -130,19 +130,19 @@ int base_init()
 
   sf_n_re = SRSLTE_CP_NSYMB(cell.cp) * SRSLTE_NRE * 2 * cell.nof_prb;
 
-  sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+  sf_buffer = srslte_vec_cf_malloc(sf_n_re);
   if (!sf_buffer) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
-  equalized_sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+  equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
   if (!equalized_sf_buffer) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
 
-  input_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
+  input_buffer = srslte_vec_cf_malloc(sf_n_samples);
   if (!input_buffer) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;

@@ -144,24 +144,24 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
     }
 
     // Allocate int16 for reception (LLRs). Buffer casted to uint8_t for transmission
-    q->q = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
+    q->q = srslte_vec_i16_malloc(q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
     if (!q->q) {
       goto clean;
     }
 
     // Allocate int16 for reception (LLRs). Buffer casted to uint8_t for transmission
-    q->g = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
+    q->g = srslte_vec_i16_malloc(q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
     if (!q->g) {
       goto clean;
     }
-    q->d = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+    q->d = srslte_vec_cf_malloc(q->max_re);
     if (!q->d) {
       goto clean;
     }
 
     // Allocate eNb specific buffers
     if (!q->is_ue) {
-      q->ce = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->ce = srslte_vec_cf_malloc(q->max_re);
       if (!q->ce) {
         goto clean;
       }
@@ -172,7 +172,7 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
         goto clean;
       }
     }
-    q->z = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+    q->z = srslte_vec_cf_malloc(q->max_re);
     if (!q->z) {
       goto clean;
     }

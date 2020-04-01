@@ -34,7 +34,7 @@
 /** Internal functions */
 static int table_create(srslte_modem_table_t* q)
 {
-  q->symbol_table = srslte_vec_malloc(q->nsymbols * sizeof(cf_t));
+  q->symbol_table = srslte_vec_cf_malloc(q->nsymbols);
   return q->symbol_table == NULL;
 }
 

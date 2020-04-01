@@ -35,38 +35,38 @@ int srslte_chest_sl_init_dmrs(srslte_chest_sl_t* q)
   srslte_interp_linear_vector_init(&q->lin_vec_sl, SRSLTE_MAX_PRB * SRSLTE_NRE);
 
   for (int i = 0; i < SRSLTE_SL_MAX_DMRS_SYMB; i++) {
-    q->r[i] = srslte_vec_malloc(sizeof(float) * SRSLTE_MAX_PRB * SRSLTE_NRE);
+    q->r[i] = srslte_vec_f_malloc(SRSLTE_MAX_PRB * SRSLTE_NRE);
     if (!q->r[i]) {
       ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
-    q->r_uv[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_MAX_PRB * SRSLTE_NRE);
+    q->r_uv[i] = srslte_vec_cf_malloc(SRSLTE_MAX_PRB * SRSLTE_NRE);
     if (!q->r_uv[i]) {
       ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
-    q->r_sequence[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_MAX_PRB * SRSLTE_NRE);
+    q->r_sequence[i] = srslte_vec_cf_malloc(SRSLTE_MAX_PRB * SRSLTE_NRE);
     if (!q->r_sequence[i]) {
       ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
 
-    q->dmrs_received[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_MAX_PRB * SRSLTE_NRE);
+    q->dmrs_received[i] = srslte_vec_cf_malloc(SRSLTE_MAX_PRB * SRSLTE_NRE);
     if (!q->dmrs_received[i]) {
       ERROR("Error allocating memory");
       return SRSLTE_ERROR;
     }
   }
 
-  q->f_gh_pattern = srslte_vec_malloc(sizeof(uint32_t) * SRSLTE_SL_MAX_DMRS_PERIOD_LENGTH); // MAX PERIOD LENGTH 320
+  q->f_gh_pattern = srslte_vec_u32_malloc(SRSLTE_SL_MAX_DMRS_PERIOD_LENGTH); // MAX PERIOD LENGTH 320
   if (!q->f_gh_pattern) {
     ERROR("Error allocating memory");
     return SRSLTE_ERROR;
   }
 
-  q->ce = srslte_vec_malloc(sizeof(cf_t) * 2 * SRSLTE_CP_NSYMB(SRSLTE_CP_NORM) * SRSLTE_NRE * SRSLTE_MAX_PRB);
+  q->ce = srslte_vec_cf_malloc(2 * SRSLTE_CP_NSYMB(SRSLTE_CP_NORM) * SRSLTE_NRE * SRSLTE_MAX_PRB);
   if (!q->ce) {
     ERROR("Error allocating memory");
     return SRSLTE_ERROR;
@@ -464,7 +464,7 @@ void srslte_chest_sl_psbch_ls_estimate_equalize(srslte_chest_sl_t* q,
 
   // Get Pilot Estimates
   // Use the known DMRS signal to compute least-squares estimates
-  bzero(q->ce, sizeof(cf_t) * sf_n_re);
+  srslte_vec_cf_zero(q->ce, sf_n_re);
 
   if (tm <= SRSLTE_SIDELINK_TM2) {
     if (cp == SRSLTE_CP_NORM) {
@@ -628,7 +628,7 @@ void srslte_chest_sl_pscch_ls_estimate_equalize(srslte_chest_sl_t* q,
 
   // Get Pilot Estimates
   // Use the known DMRS signal to compute least-squares estimates
-  bzero(q->ce, sizeof(cf_t) * sf_n_re);
+  srslte_vec_cf_zero(q->ce, sf_n_re);
 
   if ((tm == SRSLTE_SIDELINK_TM1) || (tm == SRSLTE_SIDELINK_TM2)) {
     uint32_t dmrs_index = 0;

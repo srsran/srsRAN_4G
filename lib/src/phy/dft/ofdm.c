@@ -71,37 +71,34 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t*   q,
 
   if (srslte_dft_plan_c(&q->fft_plan, symbol_sz, dir)) {
     ERROR("Error: Creating DFT plan\n");
-    return -1;
+    return SRSLTE_ERROR;
   }
 
 #ifdef AVOID_GURU
-  q->tmp = srslte_vec_malloc((uint32_t)symbol_sz * sizeof(cf_t));
+  q->tmp = srslte_vec_cf_malloc(symbol_sz);
   if (!q->tmp) {
     perror("malloc");
-    return -1;
+    return SRSLTE_ERROR;
   }
-  bzero(q->tmp, sizeof(cf_t) * symbol_sz);
+  srslte_vec_cf_zero(q->tmp, symbol_sz);
 #else
   int cp1 = SRSLTE_CP_ISNORM(cp) ? SRSLTE_CP_LEN_NORM(0, symbol_sz) : SRSLTE_CP_LEN_EXT(symbol_sz);
   int cp2 = SRSLTE_CP_ISNORM(cp) ? SRSLTE_CP_LEN_NORM(1, symbol_sz) : SRSLTE_CP_LEN_EXT(symbol_sz);
 
-  q->tmp = srslte_vec_malloc(sizeof(cf_t) * q->sf_sz);
+  q->tmp = srslte_vec_cf_malloc(q->sf_sz);
   if (!q->tmp) {
     perror("malloc");
-    return -1;
+    return SRSLTE_ERROR;
   }
-  bzero(q->tmp, sizeof(cf_t) * q->sf_sz);
+  srslte_vec_cf_zero(q->tmp, q->sf_sz);
 
   if (dir == SRSLTE_DFT_BACKWARD) {
-    bzero(in_buffer, sizeof(cf_t) * SRSLTE_SF_LEN_RE(nof_prb, cp));
+    srslte_vec_cf_zero(in_buffer, SRSLTE_SF_LEN_RE(nof_prb, cp));
   } else {
-    bzero(in_buffer, sizeof(cf_t) * q->sf_sz);
+    srslte_vec_cf_zero(in_buffer, q->sf_sz);
   }
 
   for (int slot = 0; slot < 2; slot++) {
-    // bzero(&q->fft_plan_sf[slot], sizeof(srslte_dft_plan_t));
-    // bzero(q->tmp  + SRSLTE_CP_NSYMB(cp)*symbol_sz*slot, sizeof(cf_t) * (cp1 + (SRSLTE_CP_NSYMB(cp) - 1)*cp2 +
-    // SRSLTE_CP_NSYMB(cp)*symbol_sz));
     if (dir == SRSLTE_DFT_FORWARD) {
       if (srslte_dft_plan_guru_c(&q->fft_plan_sf[slot],
                                  symbol_sz,
@@ -134,7 +131,7 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t*   q,
   }
 #endif
 
-  q->shift_buffer = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN(symbol_sz));
+  q->shift_buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN(symbol_sz));
   if (!q->shift_buffer) {
     perror("malloc");
     return -1;
@@ -197,17 +194,17 @@ int srslte_ofdm_replan_(srslte_ofdm_t* q, srslte_cp_t cp, int symbol_sz, int nof
     free(q->tmp);
   }
 
-  q->tmp = srslte_vec_malloc(sizeof(cf_t) * q->sf_sz);
+  q->tmp = srslte_vec_cf_malloc(q->sf_sz);
   if (!q->tmp) {
     perror("malloc");
     return -1;
   }
-  bzero(q->tmp, sizeof(cf_t) * q->sf_sz);
+  srslte_vec_cf_zero(q->tmp, q->sf_sz);
 
   if (dir == SRSLTE_DFT_BACKWARD) {
-    bzero(in_buffer, sizeof(cf_t) * SRSLTE_SF_LEN_RE(nof_prb, cp));
+    srslte_vec_cf_zero(in_buffer, SRSLTE_SF_LEN_RE(nof_prb, cp));
   } else {
-    bzero(in_buffer, sizeof(cf_t) * q->sf_sz);
+    srslte_vec_cf_zero(in_buffer, q->sf_sz);
   }
 
   for (int slot = 0; slot < 2; slot++) {
@@ -320,8 +317,8 @@ int srslte_ofdm_tx_init(srslte_ofdm_t* q, srslte_cp_t cp, cf_t* in_buffer, cf_t*
 
     /* set now zeros at CP */
     for (i = 0; i < q->nof_symbols; i++) {
-      bzero(q->tmp, q->nof_guards * sizeof(cf_t));
-      bzero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards * sizeof(cf_t));
+      srslte_vec_cf_zero(q->tmp, q->nof_guards);
+      srslte_vec_cf_zero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards);
     }
   }
   return ret;
@@ -345,8 +342,8 @@ int srslte_ofdm_tx_init_mbsfn(srslte_ofdm_t* q, srslte_cp_t cp, cf_t* in_buffer,
 
     /* set now zeros at CP */
     for (i = 0; i < q->nof_symbols; i++) {
-      bzero(q->tmp, q->nof_guards * sizeof(cf_t));
-      bzero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards * sizeof(cf_t));
+      srslte_vec_cf_zero(q->tmp, q->nof_guards);
+      srslte_vec_cf_zero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards);
     }
   }
   return ret;
@@ -386,8 +383,8 @@ int srslte_ofdm_tx_set_prb(srslte_ofdm_t* q, srslte_cp_t cp, uint32_t nof_prb)
     if (ret == SRSLTE_SUCCESS) {
       /* set now zeros at CP */
       for (i = 0; i < q->nof_symbols; i++) {
-        bzero(q->tmp, q->nof_guards * sizeof(cf_t));
-        bzero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards * sizeof(cf_t));
+        srslte_vec_cf_zero(q->tmp, q->nof_guards);
+        srslte_vec_cf_zero(&q->tmp[q->nof_re + q->nof_guards], q->nof_guards);
       }
     }
     return ret;
@@ -583,31 +580,6 @@ void srslte_ofdm_tx_slot(srslte_ofdm_t* q, int slot_in_sf)
     output += q->symbol_sz + cp_len;
   }
 #endif
-
-  /*input = q->in_buffer + slot_in_sf * q->nof_re * q->nof_symbols;
-  cf_t *output2 = srslte_vec_malloc(sizeof(cf_t) * q->slot_sz);
-  cf_t *o2 = output2;
-  bzero(q->tmp, sizeof(cf_t)*q->symbol_sz);
-  //bzero(output2, sizeof(cf_t)*q->slot_sz);
-  for (int i=0;i<q->nof_symbols;i++) {
-    int cp_len = SRSLTE_CP_ISNORM(q->cp)?SRSLTE_CP_LEN_NORM(i, q->symbol_sz):SRSLTE_CP_LEN_EXT(q->symbol_sz);
-    memcpy(&q->tmp[q->nof_guards], input, q->nof_re * sizeof(cf_t));
-    srslte_dft_run_c(&q->fft_plan, q->tmp, &o2[cp_len]);
-    input += q->nof_re;
-    memcpy(o2, &o2[q->symbol_sz], cp_len * sizeof(cf_t));
-    o2 += q->symbol_sz + cp_len;
-  }
-  cf_t *output1 = q->out_buffer + slot_in_sf * q->slot_sz;//srslte_vec_malloc(sizeof(cf_t) * q->slot_sz);
-
-  for (int i = 0; i < q->slot_sz; i++) {
-    float error = cabsf(output1[i] - output2[i])/cabsf(output2[i]);
-    cf_t k = output1[i]/output2[i];
-    if (error > 0.1) printf("%d/%05d error=%f output=%+f%+fi gold=%+f%+fi k=%+f%+fi\n", slot_in_sf, i, ERROR(
-                            __real__ output1[i], __imag__ output1[i],
-                            __real__ output2[i], __imag__ output2[i],
-                            __real__ k, __imag__ k);
-  }
-  free(output2);/**/
 }
 
 void srslte_ofdm_tx_slot_mbsfn(srslte_ofdm_t* q, cf_t* input, cf_t* output)

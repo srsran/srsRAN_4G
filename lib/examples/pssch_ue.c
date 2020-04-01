@@ -204,7 +204,7 @@ int main(int argc, char** argv)
   }
 
   uint32_t sf_n_re             = SRSLTE_CP_NSYMB(SRSLTE_CP_NORM) * SRSLTE_NRE * 2 * sl_cell.nof_prb;
-  cf_t*    equalized_sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+  cf_t*    equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
   // RX
   srslte_ofdm_t fft;

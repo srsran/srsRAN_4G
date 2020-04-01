@@ -28,8 +28,9 @@
 #include <unistd.h>
 
 #include "srslte/phy/dft/dft.h"
+#include "srslte/phy/utils/vector.h"
 
-int  N       = 256;
+uint32_t N       = 256;
 bool forward = true;
 bool mirror  = false;
 bool norm    = false;
@@ -51,7 +52,7 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "Nbmnd")) != -1) {
     switch (opt) {
       case 'N':
-        N = (int)strtol(argv[optind], NULL, 10);
+        N = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'b':
         forward = false;
@@ -96,10 +97,10 @@ int test_dft(cf_t* in)
   srslte_dft_plan_set_norm(&plan, norm);
   srslte_dft_plan_set_dc(&plan, dc);
 
-  cf_t* out1 = malloc(sizeof(cf_t) * N);
-  cf_t* out2 = malloc(sizeof(cf_t) * N);
-  bzero(out1, sizeof(cf_t) * N);
-  bzero(out2, sizeof(cf_t) * N);
+  cf_t* out1 = srslte_vec_cf_malloc(N);
+  cf_t* out2 = srslte_vec_cf_malloc(N);
+  srslte_vec_cf_zero(out1, N);
+  srslte_vec_cf_zero(out2, N);
 
   print(in, N);
   srslte_dft_run(&plan, in, out1);
@@ -141,8 +142,8 @@ int test_dft(cf_t* in)
 int main(int argc, char** argv)
 {
   parse_args(argc, argv);
-  cf_t* in = malloc(sizeof(cf_t) * N);
-  bzero(in, sizeof(cf_t) * N);
+  cf_t* in = srslte_vec_cf_malloc(N);
+  srslte_vec_cf_zero(in, N);
   for (int i = 1; i < N - 1; i++) {
     float re = 100 * (float)rand() / RAND_MAX;
     float im = 100 * (float)rand() / RAND_MAX;
