@@ -792,13 +792,16 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
     Debug("UE RA Category: %d\n", capitem.ue_category);
   } else {
     hoprep_r8.ue_radio_access_cap_info.resize(1);
-    for (ue_cap_rat_container_s& ratcntr : hoprep_r8.ue_radio_access_cap_info) {
-      ratcntr.rat_type = asn1::rrc::rat_type_e::eutra;
-      asn1::bit_ref bref(&ratcntr.ue_cap_rat_container[0], ratcntr.ue_cap_rat_container.size());
-      if (rrc_ue->eutra_capabilities.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
-        rrc_log->error("Failed to pack UE EUTRA Capability\n");
-      }
+    hoprep_r8.ue_radio_access_cap_info[0].rat_type = asn1::rrc::rat_type_e::eutra;
+
+    srslte::unique_byte_buffer_t buffer = srslte::allocate_unique_buffer(*pool);
+    asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
+    if (rrc_ue->eutra_capabilities.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+      rrc_log->error("Failed to pack UE EUTRA Capability\n");
+      return false;
     }
+    hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.resize(bref.distance_bytes());
+    memcpy(&hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container[0], buffer->msg, bref.distance_bytes());
   }
   /*** fill AS-Config ***/
   hoprep_r8.as_cfg_present = true;

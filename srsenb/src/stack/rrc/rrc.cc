@@ -1318,7 +1318,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
         parent->rrc_log->error("Failed to unpack EUTRA capabilities message\n");
         return false;
       }
-      eutra_capabilities_unpacked = false; // TODO: Shall be set to true
+      eutra_capabilities_unpacked = true;
       parent->rrc_log->info("UE rnti: 0x%x category: %d\n", rnti, eutra_capabilities.ue_category);
     }
   }
