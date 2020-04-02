@@ -35,8 +35,6 @@ namespace srslte {
 // using same_state = mpark::monostate;
 struct same_state {
 };
-template <typename... Args>
-using state_list = choice_t<Args...>;
 
 namespace fsm_details {
 
@@ -60,7 +58,7 @@ struct variant_convert {
     if (p != nullptr) {
       srslte::get<PrevState>(*v).exit();
     }
-    *v = std::move(s);
+    v->transit(std::move(s));
     srslte::get<State>(*v).enter();
   }
   TargetVariant* v;
@@ -75,6 +73,14 @@ struct fsm_helper {
   using enable_if_fsm_state = typename get_fsm_state_list<FSM>::template enable_if_can_hold<State>;
   template <typename FSM, typename State>
   using disable_if_fsm_state = typename get_fsm_state_list<FSM>::template disable_if_can_hold<State>;
+
+  struct enter_visitor {
+    template <typename State>
+    void operator()(State&& s)
+    {
+      s.do_enter();
+    }
+  };
 
   //! Stayed in same state
   template <typename FSM, typename PrevState>
@@ -97,8 +103,8 @@ struct fsm_helper {
     if (p != nullptr) {
       srslte::get<PrevState>(f->states).exit();
     }
-    f->states = std::move(*s);
-    srslte::get<State>(f->states).enter();
+    f->states.transit(std::move(*s));
+    srslte::get<State>(f->states).do_enter();
   }
   //! State not present in current FSM. Attempt state transition in parent FSM in the case of NestedFSM
   template <typename FSM, typename State, typename PrevState>
@@ -164,8 +170,12 @@ class state_t
 public:
   state_t()                        = default;
   virtual const char* name() const = 0;
-  virtual void        enter() {}
-  virtual void        exit() {}
+  void                do_enter() { enter(); }
+  void                do_exit() { exit(); }
+
+protected:
+  virtual void enter() {}
+  virtual void exit() {}
 };
 
 //! CRTP Class for all non-nested FSMs
@@ -184,6 +194,24 @@ protected:
 
 public:
   static const bool is_nested = false;
+
+  template <typename... States>
+  struct state_list : public choice_t<States...> {
+    using base_t = choice_t<States...>;
+    template <typename... Args>
+    state_list(Args&&... args) : base_t(std::forward<Args>(args)...)
+    {
+      if (not Derived::is_nested) {
+        fsm_details::fsm_helper::enter_visitor visitor{};
+        this->visit(visitor);
+      }
+    }
+    template <typename State>
+    void transit(State&& s)
+    {
+      this->template emplace<State>(std::forward<State>(s));
+    }
+  };
 
   // Push Events to FSM
   template <typename Ev>
@@ -225,6 +253,13 @@ protected:
   // Access to CRTP derived class
   derived_view*       derived() { return static_cast<derived_view*>(this); }
   const derived_view* derived() const { return static_cast<const derived_view*>(this); }
+
+  void do_enter()
+  {
+    enter();
+    fsm_details::fsm_helper::enter_visitor visitor{};
+    derived()->states.visit(visitor);
+  }
 };
 
 template <typename Derived, typename ParentFSM>

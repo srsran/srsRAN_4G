@@ -79,19 +79,19 @@ public:
     auto react(state_inner& s, ev2 e) -> state1;
 
     // list of states
-    srslte::state_list<state_inner> states;
+    state_list<state_inner> states;
   };
 
 protected:
   // transitions
   auto react(idle_st& s, ev1 e) -> state1;
   auto react(state1& s, ev1 e) -> fsm2;
-  auto react(state1& s, ev2 e) -> srslte::state_list<idle_st, fsm2>;
+  auto react(state1& s, ev2 e) -> srslte::choice_t<idle_st, fsm2>;
 
   void foo(ev1 e) { foo_counter++; }
 
   // list of states
-  srslte::state_list<idle_st, state1, fsm2> states{idle_st{this}};
+  state_list<idle_st, state1, fsm2> states{idle_st{this}};
 };
 
 // FSM event handlers
@@ -118,7 +118,7 @@ auto fsm1::react(state1& s, ev1 e) -> fsm2
   test_log->info("fsm1::%s::react called\n", s.name());
   return fsm2{this};
 }
-auto fsm1::react(state1& s, ev2 e) -> srslte::state_list<idle_st, fsm2>
+auto fsm1::react(state1& s, ev2 e) -> srslte::choice_t<idle_st, fsm2>
 {
   test_log->info("fsm1::%s::react called\n", s.name());
   return idle_st{this};
@@ -130,7 +130,7 @@ namespace srslte {
 namespace fsm_details {
 
 static_assert(std::is_same<fsm_helper::get_fsm_state_list<fsm1>,
-                           srslte::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
+                           fsm1::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
               "get state list failed\n");
 static_assert(std::is_same<fsm_helper::enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value,
               "get state list failed\n");

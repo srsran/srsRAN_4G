@@ -401,8 +401,8 @@ bool holds_alternative(const Choice& u)
   return u.template is<T>();
 }
 
-template <typename T, typename Choice>
-T* get_if(Choice& c)
+template <typename T, typename... Args>
+T* get_if(choice_t<Args...>& c)
 {
   return c.template get_if<T>();
 }
