@@ -197,6 +197,8 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
     }
   }
 
+  rx_count = sn;
+
   // Discard header
   discard_data_header(pdu);
 
@@ -231,6 +233,8 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
     cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
     log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
+
+  rx_count = sn;
 
   next_pdcp_rx_sn = sn + 1;
   if (next_pdcp_rx_sn > maximum_pdcp_sn) {
@@ -297,6 +301,8 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 
   // Update info on last PDU submitted to upper layers
   last_submitted_pdcp_rx_sn = sn;
+
+  rx_count = sn;
 
   // Pass to upper layers
   log->info_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
