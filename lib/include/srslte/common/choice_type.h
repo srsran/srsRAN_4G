@@ -217,8 +217,8 @@ struct tagged_union_t
     using U2 = typename std::decay<U>::type;
     static_assert(type_indexer<U2, Args...>::index != invalid_idx,
                   "The provided type to ctor is not part of the list of possible types");
-    new (get_buffer()) U2(std::forward<Args2>(args)...);
     type_id = type_indexer<U2, Args...>::index;
+    new (get_buffer()) U2(std::forward<Args2>(args)...);
   }
 
   template <typename U>

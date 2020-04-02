@@ -107,9 +107,8 @@ struct fsm_helper {
     static_assert(FSM::is_nested, "State is not present in the FSM list of valid states");
     if (p != nullptr) {
       srslte::get<PrevState>(f->states).exit();
-      p = nullptr;
     }
-    handle_state_change(f->parent_fsm()->derived(), s, p);
+    handle_state_change(f->parent_fsm()->derived(), s, static_cast<typename FSM::derived_t*>(f));
   }
 
   //! Trigger Event, that will result in a state transition
@@ -132,20 +131,25 @@ struct fsm_helper {
     template <typename State>
     auto call_trigger(State* current_state) -> NextState<State>
     {
-      using next_state = NextState<State>;
-      static_assert(not std::is_same<next_state, State>::value, "State cannot transition to itself.\n");
+      static_assert(not std::is_same<NextState<State>, State>::value, "State cannot transition to itself.\n");
       auto target_state = f->react(*current_state, std::move(ev));
       fsm_helper::handle_state_change(f, &target_state, current_state);
       return target_state;
     }
+    //! No react method found. Try forward trigger to HSM
+    template <typename State, typename... Args>
+    void call_trigger(State* current_state, Args&&... args)
+    {
+      call_trigger2(current_state);
+    }
     //! In case a react(CurrentState&, Event) method is not found, but we are in a NestedFSM with a trigger method
     template <typename State>
-    auto call_trigger(State* s) -> decltype(std::declval<State>().trigger(std::declval<Event>()))
+    auto call_trigger2(State* s) -> decltype(std::declval<State>().trigger(std::declval<Event>()))
     {
       s->trigger(std::move(ev));
     }
     //! No trigger or react method found. Do nothing
-    void call_trigger(...) {}
+    void call_trigger2(...) {}
 
     FSM*  f;
     Event ev;
@@ -173,6 +177,7 @@ protected:
   class derived_view : public Derived
   {
   public:
+    using derived_t = Derived;
     using Derived::react;
     using Derived::states;
   };
@@ -225,10 +230,9 @@ protected:
 template <typename Derived, typename ParentFSM>
 class nested_fsm_t : public fsm_t<Derived>
 {
-  using base_t   = fsm_t<Derived>;
-  using parent_t = ParentFSM;
-
 public:
+  using base_t                = nested_fsm_t<Derived, ParentFSM>;
+  using parent_t              = ParentFSM;
   static const bool is_nested = true;
 
   explicit nested_fsm_t(ParentFSM* parent_fsm_) : fsm_ptr(parent_fsm_) {}
