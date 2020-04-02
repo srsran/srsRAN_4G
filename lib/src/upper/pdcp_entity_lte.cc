@@ -133,19 +133,20 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 // RLC interface
 void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 {
-  log->info_hex(pdu->msg,
-                pdu->N_bytes,
-                "RX %s PDU (%d B), integrity=%s, encryption=%s",
-                rrc->get_rb_name(lcid).c_str(),
-                pdu->N_bytes,
-                srslte_direction_text[integrity_direction],
-                srslte_direction_text[encryption_direction]);
-
   // Sanity check
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
     log->error("PDCP PDU smaller than required header size.\n");
     return;
   }
+
+  log->info_hex(pdu->msg,
+                pdu->N_bytes,
+                "%s Rx PDU SN=%d (%d B, integrity=%s, encryption=%s)",
+                rrc->get_rb_name(lcid).c_str(),
+                read_data_header(pdu),
+                pdu->N_bytes,
+                srslte_direction_text[integrity_direction],
+                srslte_direction_text[encryption_direction]);
 
   if (is_srb()) {
     handle_srb_pdu(std::move(pdu));
@@ -165,9 +166,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
 // SRBs (5.1.2.2)
 void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
 {
-  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU", rrc->get_rb_name(lcid).c_str());
-
-  // Read recvd SN from header
+  // Read SN from header
   uint32_t sn = read_data_header(pdu);
 
   log->debug("RX SRB PDU. Next_PDCP_RX_SN %d, SN %d", next_pdcp_rx_sn, sn);
@@ -180,10 +179,10 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
     count = COUNT(rx_hfn, sn);
   }
 
-  // Perform decription
+  // Perform decryption
   if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
     cipher_decrypt(&pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, count, &pdu->msg[cfg.hdr_len_bytes]);
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+    log->info_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
 
   // Extract MAC
@@ -213,9 +212,8 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   }
 
   // Pass to upper layers
-  log->info_hex(pdu->msg, pdu->N_bytes, "Passing SDU to upper layers");
+  log->debug_hex(pdu->msg, pdu->N_bytes, "Passing SDU to upper layers");
   rrc->write_pdu(lcid, std::move(pdu));
-  return;
 }
 
 // DRBs mapped on RLC UM (5.1.2.1.3)
@@ -231,7 +229,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
   uint32_t count = (rx_hfn << cfg.sn_len) | sn;
   if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
     cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
-    log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+    log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
 
   next_pdcp_rx_sn = sn + 1;
@@ -241,7 +239,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
   }
 
   // Pass to upper layers
-  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
+  log->info_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
   gw->write_pdu(lcid, std::move(pdu));
 }
 
@@ -295,15 +293,14 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 
   // Decrypt
   cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
-  log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+  log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
 
   // Update info on last PDU submitted to upper layers
   last_submitted_pdcp_rx_sn = sn;
 
   // Pass to upper layers
-  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
+  log->info_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
   gw->write_pdu(lcid, std::move(pdu));
-  return;
 }
 
 /****************************************************************************
