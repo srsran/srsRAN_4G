@@ -52,11 +52,9 @@ public:
   class state1 : public srslte::state_t
   {
   public:
-    state1(fsm1* f)
-    {
-      test_log->info("fsm1::%s::enter called\n", name());
-      f->state1_enter_counter++;
-    }
+    state1(fsm1* f) { f->state1_enter_counter++; }
+    void        enter() final { test_log->info("fsm1::%s::enter called\n", name()); }
+    void        exit() final { test_log->info("fsm1::%s::exit called\n", name()); }
     const char* name() const final { return "state1"; }
   };
 
@@ -66,12 +64,13 @@ public:
   public:
     struct state_inner : public srslte::state_t {
       const char* name() const final { return "state_inner"; }
-      state_inner() { test_log->info("fsm2::%s::enter called\n", name()); }
-      void exit() final { test_log->info("fsm2::%s::exit called\n", name()); }
+      void        enter() { test_log->info("fsm2::%s::enter called\n", name()); }
+      void        exit() final { test_log->info("fsm2::%s::exit called\n", name()); }
     };
 
-    fsm2(fsm1* f_) : nested_fsm_t(f_) { test_log->info("%s::enter called\n", name()); }
-    ~fsm2() { test_log->info("%s::exit called\n", name()); }
+    fsm2(fsm1* f_) : nested_fsm_t(f_) {}
+    void        enter() final { test_log->info("%s::enter called\n", name()); }
+    void        exit() { test_log->info("%s::exit called\n", name()); }
     const char* name() const final { return "fsm2"; }
 
   protected:
