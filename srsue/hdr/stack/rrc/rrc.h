@@ -151,13 +151,13 @@ public:
   void set_cfo(float cfo_Hz_)
   {
     if (not std::isnan(cfo_Hz_) && not std::isinf(cfo_Hz_)) {
-      cfo_hz = cfo_Hz_;
+      phy_cell.cfo_hz = cfo_Hz_;
     }
   }
 
   float get_rsrp() { return rsrp; }
   float get_rsrq() { return rsrq; }
-  float get_cfo_hz() { return cfo_hz; }
+  float get_cfo_hz() { return phy_cell.cfo_hz; }
 
   void set_sib1(asn1::rrc::sib_type1_s* sib1_);
   void set_sib2(asn1::rrc::sib_type2_s* sib2_);
@@ -264,7 +264,6 @@ public:
 private:
   float rsrp = NAN;
   float rsrq = NAN;
-  float cfo_hz = 0.0f;
 
   struct timeval last_update = {};
 

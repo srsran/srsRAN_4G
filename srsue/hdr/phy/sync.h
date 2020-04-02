@@ -65,7 +65,7 @@ public:
 
   // RRC interface for controling the SYNC state
   phy_interface_rrc_lte::cell_search_ret_t cell_search(phy_interface_rrc_lte::phy_cell_t* cell);
-  bool                                     cell_select(const phy_interface_rrc_lte::phy_cell_t* cell, float cfo);
+  bool                                     cell_select(const phy_interface_rrc_lte::phy_cell_t* cell);
   bool                                     cell_is_camping();
 
   // RRC interface for controlling the neighbour cell measurement

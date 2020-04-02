@@ -69,7 +69,7 @@ public:
   /********** RRC INTERFACE ********************/
   void              reset() final;
   cell_search_ret_t cell_search(phy_cell_t* cell) final;
-  bool              cell_select(const phy_cell_t* cell, float cfo) final;
+  bool              cell_select(const phy_cell_t* cell) final;
 
   void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) final;
   void meas_stop() final;

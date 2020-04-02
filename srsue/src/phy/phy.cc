@@ -314,9 +314,9 @@ void phy::meas_stop()
   sfsync.meas_stop();
 }
 
-bool phy::cell_select(const phy_cell_t* cell, float cfo)
+bool phy::cell_select(const phy_cell_t* cell)
 {
-  return sfsync.cell_select(cell, cfo);
+  return sfsync.cell_select(cell);
 }
 
 phy_interface_rrc_lte::cell_search_ret_t phy::cell_search(phy_cell_t* cell)

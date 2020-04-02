@@ -576,11 +576,12 @@ public:
   typedef struct {
     uint32_t pci;
     uint32_t earfcn;
+    float    cfo_hz;
   } phy_cell_t;
 
   /* Cell search and selection procedures */
   virtual cell_search_ret_t cell_search(phy_cell_t* cell)                                      = 0;
-  virtual bool              cell_select(const phy_cell_t* cell = nullptr, float cfo_hz = 0.0f) = 0;
+  virtual bool              cell_select(const phy_cell_t* cell = nullptr)                      = 0;
   virtual bool              cell_is_camping()                                                  = 0;
 
   virtual void reset() = 0;

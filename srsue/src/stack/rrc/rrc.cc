@@ -1085,7 +1085,7 @@ bool rrc::ho_prepare()
     }
 
     cell_t* target_cell = get_neighbour_cell_handle(target_earfcn, mob_ctrl_info->target_pci);
-    if (not phy->cell_select(&target_cell->phy_cell, target_cell->get_cfo_hz())) {
+    if (not phy->cell_select(&target_cell->phy_cell)) {
       rrc_log->error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
                      target_cell->to_string().c_str(),
                      serving_cell->to_string().c_str());

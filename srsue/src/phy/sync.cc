@@ -252,7 +252,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
 /* Cell select synchronizes to a new cell (e.g. during HO or during cell reselection on IDLE) or
  * re-synchronizes with the current cell if cell argument is NULL
  */
-bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell, float cfo)
+bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell)
 {
   std::unique_lock<std::mutex> ul(rrc_mutex);
 
@@ -288,7 +288,7 @@ bool sync::cell_select(const phy_interface_rrc_lte::phy_cell_t* new_cell, float 
   /* Reconfigure cell if necessary */
   if (new_cell != nullptr) {
     cell.id = new_cell->pci;
-    if (not set_cell(cfo)) {
+    if (not set_cell(new_cell->cfo_hz)) {
       Error("Cell Select: Reconfiguring cell\n");
       return ret;
     }
@@ -686,7 +686,7 @@ void sync::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
                                  worker_com->args->cfo_loop_pss_conv);
 
   // Disable CP based CFO estimation during find
-  if (isnormal(cfo)) {
+  if (std::isnormal(cfo)) {
     srslte_ue_sync_cfo_reset(q, cfo);
     q->cfo_current_value       = cfo / 15000;
     q->cfo_is_copied           = true;
