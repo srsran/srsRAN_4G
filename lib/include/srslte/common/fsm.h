@@ -23,6 +23,7 @@
 #define SRSLTE_FSM_H
 
 #include "choice_type.h"
+#include "srslte/common/logmap.h"
 #include <cassert>
 #include <cstdio>
 #include <cstring>
@@ -101,7 +102,7 @@ struct fsm_helper {
   {
     static_assert(not std::is_same<State, PrevState>::value, "State cannot transition to itself.\n");
     if (p != nullptr) {
-      srslte::get<PrevState>(f->states).exit();
+      srslte::get<PrevState>(f->states).do_exit();
     }
     f->states.transit(std::move(*s));
     srslte::get<State>(f->states).do_enter();
@@ -112,7 +113,7 @@ struct fsm_helper {
   {
     static_assert(FSM::is_nested, "State is not present in the FSM list of valid states");
     if (p != nullptr) {
-      srslte::get<PrevState>(f->states).exit();
+      srslte::get<PrevState>(f->states).do_exit();
     }
     handle_state_change(f->parent_fsm()->derived(), s, static_cast<typename FSM::derived_t*>(f));
   }
@@ -280,6 +281,79 @@ protected:
   using parent_fsm_t = ParentFSM;
 
   ParentFSM* fsm_ptr = nullptr;
+};
+
+template <typename Proc>
+struct proc_complete_ev {
+  proc_complete_ev(bool success_) : success(success_) {}
+  bool success;
+};
+
+// event
+template <typename... Args>
+struct proc_launch_ev {
+  std::tuple<Args...> args;
+  explicit proc_launch_ev(Args&&... args_) : args(std::forward<Args>(args_)...) {}
+};
+
+template <typename Derived, typename Result = srslte::same_state>
+class proc_fsm_t : public fsm_t<Derived>
+{
+  using fsm_type = Derived;
+  using fsm_t<Derived>::derived;
+
+public:
+  using base_t = proc_fsm_t<Derived, Result>;
+  using fsm_t<Derived>::trigger;
+
+  // states
+  struct idle_st : public state_t {
+    const char* name() const final { return "idle"; }
+    idle_st(Derived* f_) : fsm(f_) {}
+    void exit()
+    {
+      fsm->launch_counter++;
+      fsm->log_h->info("Proc %s: Starting run no. %d\n", fsm->derived()->name(), fsm->launch_counter);
+    }
+    Derived* fsm;
+  };
+  struct complete_st : public srslte::state_t {
+    complete_st(Derived* fsm_, bool success_) : fsm(fsm_), success(success_) {}
+    const char* name() const final { return "complete"; }
+    void        enter() { fsm->trigger(srslte::proc_complete_ev<bool>{success}); }
+    Derived*    fsm;
+    bool        success;
+  };
+
+  explicit proc_fsm_t(srslte::log_ref log_) : log_h(log_) {}
+
+  bool is_running() const { return base_t::template is_in_state<idle_st>(); }
+
+  srslte::log_ref log_h;
+
+  template <typename... Args>
+  void launch(Args&&... args)
+  {
+    trigger(proc_launch_ev<Args...>(std::forward<Args>(args)...));
+  }
+
+  //  template <typename... Args>
+  //  void trigger(proc_launch_ev<Args...> e)
+  //  {
+  //    if (not base_t::template is_in_state<idle_st>()) {
+  //      log_h->error("Proc %s: Ignoring launch because procedure is already running\n", base_t::derived()->name());
+  //      return;
+  //    }
+  //    base_t::trigger(std::move(e));
+  //  }
+  //  template <typename T>
+  //  void trigger(T&& t)
+  //  {
+  //    base_t::trigger(std::forward<T>(t));
+  //  }
+
+private:
+  int launch_counter = 0;
 };
 
 } // namespace srslte

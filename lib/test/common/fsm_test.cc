@@ -188,9 +188,72 @@ int test_hsm()
   return SRSLTE_SUCCESS;
 }
 
+///////////////////////////
+
+struct procevent1 {
+};
+struct procevent2 {
+};
+
+struct proc1 : public srslte::proc_fsm_t<proc1, int> {
+public:
+  struct procstate1 : public srslte::state_t {
+    const char* name() const final { return "procstate1"; }
+  };
+
+  proc1(srslte::log_ref log_) : base_t(log_) {}
+
+  const char* name() const final { return "proc1"; }
+
+protected:
+  // Transitions
+  auto react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> procstate1;
+  auto react(procstate1& s, procevent1 ev) -> complete_st;
+  auto react(procstate1& s, procevent2 ev) -> complete_st;
+  auto react(complete_st& s, srslte::proc_complete_ev<bool> ev) -> idle_st;
+
+  state_list<idle_st, procstate1, complete_st> states{this};
+};
+
+auto proc1::react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> procstate1
+{
+  log_h->info("started!\n");
+  return {};
+}
+auto proc1::react(procstate1& s, procevent1 ev) -> complete_st
+{
+  log_h->info("success!\n");
+  return {this, true};
+}
+auto proc1::react(procstate1& s, procevent2 ev) -> complete_st
+{
+  log_h->info("failure!\n");
+  return {this, false};
+}
+auto proc1::react(complete_st& s, srslte::proc_complete_ev<bool> ev) -> idle_st
+{
+  log_h->info("propagate results %s\n", s.success ? "success" : "failure");
+  return {this};
+}
+
+int test_fsm_proc()
+{
+  proc1 proc{srslte::logmap::get("TEST")};
+  int   v = 2;
+  proc.launch(&v);
+  proc.launch(&v);
+  proc.trigger(procevent1{});
+  proc.launch(&v);
+  proc.trigger(procevent2{});
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
-  TESTASSERT(test_hsm() == SRSLTE_SUCCESS);
+  srslte::logmap::get("TEST")->set_level(srslte::LOG_LEVEL_INFO);
+  //  TESTASSERT(test_hsm() == SRSLTE_SUCCESS);
+  TESTASSERT(test_fsm_proc() == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }
