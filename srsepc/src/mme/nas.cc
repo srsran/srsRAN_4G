@@ -1666,16 +1666,17 @@ bool nas::short_integrity_check(srslte::byte_buffer_t* pdu)
 
 bool nas::integrity_check(srslte::byte_buffer_t* pdu)
 {
-  uint8_t  exp_mac[4] = {0x00, 0x00, 0x00, 0x00};
-  uint8_t* mac        = &pdu->msg[1];
-  int      i;
+  uint8_t        exp_mac[4] = {};
+  const uint8_t* mac        = &pdu->msg[1];
+
+  uint32_t estimated_count = (m_sec_ctx.ul_nas_count & 0xffffff00) | (pdu->msg[5] & 0xff);
 
   switch (m_sec_ctx.integ_algo) {
     case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
       break;
     case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
       srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
-                                m_sec_ctx.ul_nas_count,
+                                estimated_count,
                                 0,
                                 srslte::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[5],
@@ -1684,7 +1685,7 @@ bool nas::integrity_check(srslte::byte_buffer_t* pdu)
       break;
     case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
       srslte::security_128_eia2(&m_sec_ctx.k_nas_int[16],
-                                m_sec_ctx.ul_nas_count,
+                                estimated_count,
                                 0,
                                 srslte::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[5],
@@ -1693,7 +1694,7 @@ bool nas::integrity_check(srslte::byte_buffer_t* pdu)
       break;
     case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
       srslte::security_128_eia3(&m_sec_ctx.k_nas_int[16],
-                                m_sec_ctx.ul_nas_count,
+                                estimated_count,
                                 0,
                                 srslte::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[5],
@@ -1704,11 +1705,12 @@ bool nas::integrity_check(srslte::byte_buffer_t* pdu)
       break;
   }
   // Check if expected mac equals the sent mac
-  for (i = 0; i < 4; i++) {
+  for (int i = 0; i < 4; i++) {
     if (exp_mac[i] != mac[i]) {
       m_nas_log->warning("Integrity check failure. Algorithm=EIA%d\n", (int)m_sec_ctx.integ_algo);
-      m_nas_log->warning("UL Local: count=%d, MAC=[%02x %02x %02x %02x], "
+      m_nas_log->warning("UL Local: est_count=%d, old_count=%d, MAC=[%02x %02x %02x %02x], "
                          "Received: UL count=%d, MAC=[%02x %02x %02x %02x]\n",
+                         estimated_count,
                          m_sec_ctx.ul_nas_count,
                          exp_mac[0],
                          exp_mac[1],
@@ -1722,7 +1724,9 @@ bool nas::integrity_check(srslte::byte_buffer_t* pdu)
       return false;
     }
   }
-  m_nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n", m_sec_ctx.ul_nas_count, pdu->msg[5]);
+  m_nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n", estimated_count, pdu->msg[5]);
+  m_sec_ctx.ul_nas_count = estimated_count;
+
   return true;
 }
 
