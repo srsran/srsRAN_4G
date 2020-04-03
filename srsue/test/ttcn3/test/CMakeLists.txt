@@ -24,5 +24,5 @@ add_executable(rapidjson_test rapidjson_test.cc)
 add_test(rapidjson_test rapidjson_test)
 
 add_executable(ttcn3_if_handler_test ttcn3_if_handler_test.cc)
-target_link_libraries(ttcn3_if_handler_test sctp srslte_phy srslte_common)
+target_link_libraries(ttcn3_if_handler_test sctp srslte_phy srslte_common rrc_asn1)
 add_test(ttcn3_if_handler_test ttcn3_if_handler_test)

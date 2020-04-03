@@ -22,6 +22,7 @@
 #ifndef SRSUE_TTCN3_SYS_INTERFACE_H
 #define SRSUE_TTCN3_SYS_INTERFACE_H
 
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/buffer_pool.h"
 #include "ttcn3_helpers.h"
 #include "ttcn3_interfaces.h"
@@ -304,13 +305,7 @@ private:
             syssim->set_forced_lcid(-1);
           }
           if (lcid > 0) {
-            pdcp_config_t pdcp_cfg = {.bearer_id     = static_cast<uint8_t>(lcid),
-                                      .rb_type       = PDCP_RB_IS_SRB,
-                                      .tx_direction  = SECURITY_DIRECTION_DOWNLINK,
-                                      .rx_direction  = SECURITY_DIRECTION_UPLINK,
-                                      .sn_len        = PDCP_SN_LEN_5,
-                                      .t_reorderding = srslte::pdcp_t_reordering_t::ms500,
-                                      .discard_timer = srslte::pdcp_discard_timer_t::infinity};
+            pdcp_config_t pdcp_cfg = make_srb_pdcp_config_t(static_cast<uint8_t>(lcid), false);
             syssim->add_srb(ttcn3_helpers::get_timing_info(document), lcid, pdcp_cfg);
           }
         } else if (config.HasMember("Release")) {
