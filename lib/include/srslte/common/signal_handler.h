@@ -35,7 +35,7 @@
 extern "C" {
 #endif // __cplusplus
 
-#define SRSLTE_TERM_TIMEOUT_S (3)
+#define SRSLTE_TERM_TIMEOUT_S (5)
 
 // static vars required by signal handling
 static srslte::logger_file logger_file;
@@ -47,7 +47,7 @@ static void srslte_signal_handler(int signal)
     case SIGALRM:
       fprintf(stderr, "Couldn't stop after %ds. Forcing exit.\n", SRSLTE_TERM_TIMEOUT_S);
       logger_file.stop();
-      exit(-1);
+      raise(SIGKILL);
     default:
       // all other registered signals try to stop the app gracefully
       if (running) {
