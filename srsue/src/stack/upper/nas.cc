@@ -1359,6 +1359,7 @@ void nas::parse_identity_request(unique_byte_buffer_t pdu, const uint8_t sec_hdr
   // do not respond if request is not protected (TS 24.301 Sec. 4.4.4.2)
   if (sec_hdr_type >= LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
       (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS && id_req.id_type == LIBLTE_MME_MOBILE_ID_TYPE_IMSI)) {
+    current_sec_hdr = sec_hdr_type; // use MME protection level until security (re-)activation
     send_identity_response(id_req.id_type);
   } else {
     nas_log->info("Not sending identity response due to missing integrity protection.\n");
