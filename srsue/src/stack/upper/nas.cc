@@ -1762,6 +1762,8 @@ void nas::gen_attach_request(srslte::unique_byte_buffer_t& msg)
                   ctxt.guti.mnc,
                   ctxt.guti.mme_group_id,
                   ctxt.guti.mme_code);
+
+    // According to Sec 4.4.5, the attach request is always unciphered, even if a context exists
     liblte_mme_pack_attach_request_msg(
         &attach_req, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)msg.get());
 
