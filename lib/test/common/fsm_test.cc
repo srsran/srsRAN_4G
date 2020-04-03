@@ -33,7 +33,7 @@ struct ev2 {
 class fsm1 : public srslte::fsm_t<fsm1>
 {
 public:
-  uint32_t idle_enter_counter = 0, state1_enter_counter = 0;
+  uint32_t idle_enter_counter = 0, state1_enter_counter = 0, inner_enter_counter = 0;
   uint32_t foo_counter = 0;
 
   // states
@@ -56,7 +56,11 @@ public:
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
 
   protected:
-    void enter(state_inner& s) { log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(s).c_str()); }
+    void enter(state_inner& s)
+    {
+      log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(s).c_str());
+      parent_fsm()->inner_enter_counter++;
+    }
     void exit(state_inner& s) { log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(s).c_str()); }
 
     // FSM2 transitions
@@ -156,7 +160,6 @@ static_assert(fsm1::can_hold_state<fsm1::state1>(), "can hold state method faile
 int test_hsm()
 {
   srslte::log_ref log_h{"HSM"};
-  log_h->prepend_string("HSM: ");
   log_h->set_level(srslte::LOG_LEVEL_INFO);
 
   fsm1 f{log_h};
@@ -177,6 +180,7 @@ int test_hsm()
   TESTASSERT(f.get_state_name() == "fsm2");
   TESTASSERT(f.is_in_state<fsm1::fsm2>());
   TESTASSERT(f.get_state<fsm1::fsm2>()->get_state_name() == "state_inner");
+  TESTASSERT(f.inner_enter_counter == 1);
 
   // Fsm2 does not listen to ev1
   f.trigger(e);
@@ -196,6 +200,10 @@ int test_hsm()
   TESTASSERT(f.is_in_state<fsm1::idle_st>());
   TESTASSERT(f.foo_counter == 1);
   TESTASSERT(f.idle_enter_counter == 2);
+
+  // Call unhandled event
+  f.trigger(ev2{});
+  TESTASSERT(f.get_state_name() == "idle_st");
 
   return SRSLTE_SUCCESS;
 }
@@ -219,7 +227,7 @@ protected:
   auto react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> procstate1;
   auto react(procstate1& s, procevent1 ev) -> complete_st;
   auto react(procstate1& s, procevent2 ev) -> complete_st;
-  auto react(complete_st& s, srslte::proc_complete_ev<bool> ev) -> idle_st;
+  auto react(complete_st& s, reset_ev ev) -> idle_st;
 
   // example of uncaught event handling
   void unhandled_event(int e) { log_h->info("I dont know how to handle an \"int\" event\n"); }
@@ -242,7 +250,7 @@ auto proc1::react(procstate1& s, procevent2 ev) -> complete_st
   log_h->info("failure!\n");
   return {false};
 }
-auto proc1::react(complete_st& s, srslte::proc_complete_ev<bool> ev) -> idle_st
+auto proc1::react(complete_st& s, reset_ev ev) -> idle_st
 {
   log_h->info("propagate results %s\n", s.success ? "success" : "failure");
   return {};
@@ -251,7 +259,6 @@ auto proc1::react(complete_st& s, srslte::proc_complete_ev<bool> ev) -> idle_st
 int test_fsm_proc()
 {
   proc1 proc{srslte::logmap::get("PROC")};
-  proc.get_log()->prepend_string("Proc1: ");
   proc.get_log()->set_level(srslte::LOG_LEVEL_INFO);
   proc.set_fsm_event_log_level(srslte::LOG_LEVEL_INFO);
   int v = 2;
