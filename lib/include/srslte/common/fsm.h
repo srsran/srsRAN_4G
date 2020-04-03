@@ -31,9 +31,25 @@
 #include <memory>
 #include <tuple>
 
+// Helper to print a type name for logging
+#if defined(__GNUC__) && !defined(__clang__)
+template <typename T>
+std::string get_type_name()
+{
+  static const char* s    = __PRETTY_FUNCTION__;
+  static const char* pos1 = strchr(s, '=') + 2;
+  return std::string{pos1, strchr(pos1, ';')};
+}
+#else
+template <typename T>
+std::string get_type_name()
+{
+  return "anonymous";
+}
+#endif
+
 namespace srslte {
 
-// using same_state = mpark::monostate;
 struct same_state {
 };
 
@@ -156,7 +172,7 @@ struct fsm_helper {
       s->trigger(std::move(ev));
     }
     //! No trigger or react method found. Do nothing
-    void call_trigger2(...) {}
+    void call_trigger2(...) { f->unhandled_event(std::move(ev)); }
 
     FSM*  f;
     Event ev;
@@ -184,6 +200,7 @@ template <typename Derived>
 class fsm_t : public state_t
 {
 protected:
+  using base_t = fsm_t<Derived>;
   // get access to derived protected members from the base
   class derived_view : public Derived
   {
@@ -191,6 +208,8 @@ protected:
     using derived_t = Derived;
     using Derived::react;
     using Derived::states;
+    using Derived::unhandled_event;
+    using Derived::base_t::unhandled_event;
   };
 
 public:
@@ -213,6 +232,8 @@ public:
       this->template emplace<State>(std::forward<State>(s));
     }
   };
+
+  explicit fsm_t(srslte::log_ref log_) : log_h(log_) {}
 
   // Push Events to FSM
   template <typename Ev>
@@ -248,6 +269,9 @@ public:
     return fsm_details::fsm_helper::get_fsm_state_list<fsm_t<Derived> >::template can_hold_type<State>();
   }
 
+  void            set_fsm_event_log_level(srslte::LOG_LEVEL_ENUM e) { fsm_event_log_level = e; }
+  srslte::log_ref get_log() const { return log_h; }
+
 protected:
   friend struct fsm_details::fsm_helper;
 
@@ -261,6 +285,30 @@ protected:
     fsm_details::fsm_helper::enter_visitor visitor{};
     derived()->states.visit(visitor);
   }
+
+  template <typename Event>
+  void unhandled_event(Event&& e)
+  {
+    switch (fsm_event_log_level) {
+      case LOG_LEVEL_DEBUG:
+        log_h->debug("Unhandled event caught: \"%s\"\n", get_type_name<Event>().c_str());
+        break;
+      case LOG_LEVEL_INFO:
+        log_h->info("Unhandled event caught: \"%s\"\n", get_type_name<Event>().c_str());
+        break;
+      case LOG_LEVEL_WARNING:
+        log_h->warning("Unhandled event caught: \"%s\"\n", get_type_name<Event>().c_str());
+        break;
+      case LOG_LEVEL_ERROR:
+        log_h->error("Unhandled event caught: \"%s\"\n", get_type_name<Event>().c_str());
+        break;
+      default:
+        break;
+    }
+  }
+
+  srslte::log_ref        log_h;
+  srslte::LOG_LEVEL_ENUM fsm_event_log_level = LOG_LEVEL_DEBUG;
 };
 
 template <typename Derived, typename ParentFSM>
@@ -271,7 +319,7 @@ public:
   using parent_t              = ParentFSM;
   static const bool is_nested = true;
 
-  explicit nested_fsm_t(ParentFSM* parent_fsm_) : fsm_ptr(parent_fsm_) {}
+  explicit nested_fsm_t(ParentFSM* parent_fsm_) : fsm_t<Derived>(parent_fsm_->get_log()), fsm_ptr(parent_fsm_) {}
 
   // Get pointer to outer FSM in case of HSM
   const parent_t* parent_fsm() const { return fsm_ptr; }
@@ -301,6 +349,15 @@ class proc_fsm_t : public fsm_t<Derived>
 {
   using fsm_type = Derived;
   using fsm_t<Derived>::derived;
+  friend struct fsm_details::fsm_helper;
+
+protected:
+  using fsm_t<Derived>::log_h;
+  using fsm_t<Derived>::unhandled_event;
+  void unhandled_event(srslte::proc_launch_ev<int*> e)
+  {
+    log_h->warning("Unhandled event \"launch\" caught when procedure is already running\n");
+  }
 
 public:
   using base_t = proc_fsm_t<Derived, Result>;
@@ -325,11 +382,9 @@ public:
     bool        success;
   };
 
-  explicit proc_fsm_t(srslte::log_ref log_) : log_h(log_) {}
+  explicit proc_fsm_t(srslte::log_ref log_) : fsm_t<Derived>(log_) {}
 
   bool is_running() const { return base_t::template is_in_state<idle_st>(); }
-
-  srslte::log_ref log_h;
 
   template <typename... Args>
   void launch(Args&&... args)
