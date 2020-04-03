@@ -56,8 +56,8 @@ public:
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
 
   protected:
-    void enter(state_inner& s) { log_h->info("fsm1::%s::enter called\n", get_type_name<state_inner>().c_str()); }
-    void exit(state_inner& s) { log_h->info("fsm1::%s::exit called\n", get_type_name<state_inner>().c_str()); }
+    void enter(state_inner& s) { log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(s).c_str()); }
+    void exit(state_inner& s) { log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(s).c_str()); }
 
     // FSM2 transitions
     auto react(state_inner& s, ev1 e) -> srslte::same_state;
@@ -72,12 +72,12 @@ protected:
   template <typename State>
   void enter(State& s)
   {
-    log_h->info("%s::enter called\n", get_type_name<State>().c_str());
+    log_h->info("%s::enter called\n", srslte::get_type_name(s).c_str());
   }
   template <typename State>
   void exit(State& s)
   {
-    log_h->info("%s::exit called\n", get_type_name<State>().c_str());
+    log_h->info("%s::exit called\n", srslte::get_type_name(s).c_str());
   }
   void enter(idle_st& s);
   void enter(state1& s);
@@ -95,12 +95,12 @@ protected:
 
 void fsm1::enter(idle_st& s)
 {
-  log_h->info("%s::enter custom called\n", get_type_name(s).c_str());
+  log_h->info("%s::enter custom called\n", srslte::get_type_name(s).c_str());
   idle_enter_counter++;
 }
 void fsm1::enter(state1& s)
 {
-  log_h->info("%s::enter custom called\n", get_type_name(s).c_str());
+  log_h->info("%s::enter custom called\n", srslte::get_type_name(s).c_str());
   state1_enter_counter++;
 }
 
@@ -119,18 +119,18 @@ auto fsm1::fsm2::react(state_inner& s, ev2 e) -> state1
 
 auto fsm1::react(idle_st& s, ev1 e) -> state1
 {
-  log_h->info("%s::react called\n", get_type_name(s).c_str());
+  log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
   foo(e);
   return {};
 }
 auto fsm1::react(state1& s, ev1 e) -> fsm2
 {
-  log_h->info("%s::react called\n", get_type_name(s).c_str());
+  log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
   return {this};
 }
 auto fsm1::react(state1& s, ev2 e) -> srslte::choice_t<idle_st, fsm2>
 {
-  log_h->info("%s::react called\n", get_type_name(s).c_str());
+  log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
   return idle_st{};
 }
 
@@ -162,37 +162,37 @@ int test_hsm()
   fsm1 f{log_h};
   TESTASSERT(f.idle_enter_counter == 1);
   TESTASSERT(get_type_name(f) == "fsm1");
-  TESTASSERT(f.get_state_name() == "fsm1::idle_st");
+  TESTASSERT(f.get_state_name() == "idle_st");
   TESTASSERT(f.is_in_state<fsm1::idle_st>());
   TESTASSERT(f.foo_counter == 0);
 
   // Moving Idle -> State1
   ev1 e;
   f.trigger(e);
-  TESTASSERT(f.get_state_name() == "fsm1::state1");
+  TESTASSERT(f.get_state_name() == "state1");
   TESTASSERT(f.is_in_state<fsm1::state1>());
 
   // Moving State1 -> fsm2
   f.trigger(e);
-  TESTASSERT(f.get_state_name() == "fsm1::fsm2");
+  TESTASSERT(f.get_state_name() == "fsm2");
   TESTASSERT(f.is_in_state<fsm1::fsm2>());
-  TESTASSERT(f.get_state<fsm1::fsm2>()->get_state_name() == "fsm1::fsm2::state_inner");
+  TESTASSERT(f.get_state<fsm1::fsm2>()->get_state_name() == "state_inner");
 
   // Fsm2 does not listen to ev1
   f.trigger(e);
-  TESTASSERT(std::string{f.get_state_name()} == "fsm1::fsm2");
+  TESTASSERT(std::string{f.get_state_name()} == "fsm2");
   TESTASSERT(f.is_in_state<fsm1::fsm2>());
-  TESTASSERT(f.get_state<fsm1::fsm2>()->get_state_name() == "fsm1::fsm2::state_inner");
+  TESTASSERT(f.get_state<fsm1::fsm2>()->get_state_name() == "state_inner");
 
   // Moving fsm2 -> state1
   f.trigger(ev2{});
-  TESTASSERT(std::string{f.get_state_name()} == "fsm1::state1");
+  TESTASSERT(std::string{f.get_state_name()} == "state1");
   TESTASSERT(f.is_in_state<fsm1::state1>());
   TESTASSERT(f.state1_enter_counter == 2);
 
   // Moving state1 -> idle
   f.trigger(ev2{});
-  TESTASSERT(std::string{f.get_state_name()} == "fsm1::idle_st");
+  TESTASSERT(std::string{f.get_state_name()} == "idle_st");
   TESTASSERT(f.is_in_state<fsm1::idle_st>());
   TESTASSERT(f.foo_counter == 1);
   TESTASSERT(f.idle_enter_counter == 2);
@@ -245,7 +245,7 @@ auto proc1::react(procstate1& s, procevent2 ev) -> complete_st
 auto proc1::react(complete_st& s, srslte::proc_complete_ev<bool> ev) -> idle_st
 {
   log_h->info("propagate results %s\n", s.success ? "success" : "failure");
-  return {}; //{this};
+  return {};
 }
 
 int test_fsm_proc()

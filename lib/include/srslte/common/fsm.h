@@ -31,14 +31,22 @@
 #include <memory>
 #include <tuple>
 
+namespace srslte {
+
 //! Helper to print the name of a type for logging
 #if defined(__GNUC__) && !defined(__clang__)
 template <typename T>
 std::string get_type_name()
 {
-  static const char* s    = __PRETTY_FUNCTION__;
-  static const char* pos1 = strchr(s, '=') + 2;
-  return std::string{pos1, strchr(pos1, ';')};
+  static const char*       funcname = __PRETTY_FUNCTION__;
+  static const std::string s        = []() {
+    static const char* pos1 = strchr(funcname, '=') + 2;
+    static const char* pos2 = strchr(pos1, ';');
+    std::string        s2{pos1, pos2};
+    size_t             colon_pos = s2.rfind(':');
+    return colon_pos == std::string::npos ? s2 : s2.substr(colon_pos + 1, s2.size());
+  }();
+  return s;
 }
 #else
 template <typename T>
@@ -54,8 +62,6 @@ std::string get_type_name(const T& t)
 {
   return get_type_name<T>();
 }
-
-namespace srslte {
 
 //! When there is no state transition
 struct same_state {
@@ -101,22 +107,6 @@ struct fsm_helper {
     f->exit(*s);
   }
   static void call_exit(...) {}
-
-  template <typename FSM, typename PrevState>
-  struct variant_convert {
-    variant_convert(FSM* f_, PrevState* p_) : f(f_), p(p_) {}
-    template <typename State>
-    void operator()(State& s)
-    {
-      static_assert(not std::is_same<typename std::decay<State>::type, typename std::decay<PrevState>::type>::value,
-                    "State cannot transition to itself.\n");
-      call_exit(f, &srslte::get<PrevState>(f->states));
-      f->states.transit(std::move(s));
-      call_enter(f, &srslte::get<State>(f->states));
-    }
-    FSM*       f;
-    PrevState* p;
-  };
 
   template <typename FSM>
   struct enter_visitor {
@@ -179,12 +169,15 @@ struct fsm_helper {
     template <typename State>
     using NextState = decltype(std::declval<FSM>().react(std::declval<State&>(), std::declval<Event>()));
 
-    //! In case a react(CurrentState&, Event) method is found
+    //! In case a "react(State&, Event) -> NextState" method is found
     template <typename State>
     auto call_trigger(State* current_state) -> NextState<State>
     {
       static_assert(not std::is_same<NextState<State>, State>::value, "State cannot transition to itself.\n");
       auto target_state = f->react(*current_state, std::move(ev));
+      f->log_fsm_activity("Detected fsm transition \"%s\" -> \"%s\"",
+                          get_type_name(*current_state).c_str(),
+                          get_type_name(target_state).c_str());
       fsm_helper::handle_state_change(f, &target_state, current_state);
       return target_state;
     }
@@ -192,19 +185,31 @@ struct fsm_helper {
     template <typename State, typename... Args>
     void call_trigger(State* current_state, Args&&... args)
     {
-      call_trigger2(current_state);
+      call_trigger_stage2(current_state);
     }
     //! In case a react(CurrentState&, Event) method is not found, but we are in a NestedFSM with a trigger method
     template <typename State>
-    auto call_trigger2(State* s) -> decltype(std::declval<State>().trigger(std::declval<Event>()))
+    auto call_trigger_stage2(State* s) -> decltype(std::declval<State>().trigger(std::declval<Event>()))
     {
       s->trigger(std::move(ev));
     }
     //! No trigger or react method found. Do nothing
-    void call_trigger2(...) { f->unhandled_event(std::move(ev)); }
+    void call_trigger_stage2(...) { f->unhandled_event(std::move(ev)); }
 
     FSM*  f;
     Event ev;
+  };
+
+  template <typename FSM, typename PrevState>
+  struct variant_convert {
+    variant_convert(FSM* f_, PrevState* p_) : f(f_), p(p_) {}
+    template <typename State>
+    void operator()(State& s)
+    {
+      handle_state_change(f, &s, p);
+    }
+    FSM*       f;
+    PrevState* p;
   };
 };
 
@@ -327,6 +332,27 @@ protected:
     }
   }
 
+  template <typename... Args>
+  void log_fsm_activity(const char* format, Args&&... args)
+  {
+    switch (fsm_event_log_level) {
+      case LOG_LEVEL_DEBUG:
+        log_h->debug(format, std::forward<Args>(args)...);
+        break;
+      case LOG_LEVEL_INFO:
+        log_h->info(format, std::forward<Args>(args)...);
+        break;
+      case LOG_LEVEL_WARNING:
+        log_h->warning(format, std::forward<Args>(args)...);
+        break;
+      case LOG_LEVEL_ERROR:
+        log_h->error(format, std::forward<Args>(args)...);
+        break;
+      default:
+        break;
+    }
+  }
+
   srslte::log_ref        log_h;
   srslte::LOG_LEVEL_ENUM fsm_event_log_level = LOG_LEVEL_DEBUG;
 };
@@ -390,7 +416,8 @@ public:
   };
   struct complete_st {
     complete_st(bool success_) : success(success_) {}
-    bool success;
+    bool   success;
+    Result result;
   };
 
   explicit proc_fsm_t(srslte::log_ref log_) : fsm_t<Derived>(log_) {}
