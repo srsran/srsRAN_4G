@@ -31,7 +31,7 @@
 #include <memory>
 #include <tuple>
 
-// Helper to print a type name for logging
+//! Helper to print the name of a type for logging
 #if defined(__GNUC__) && !defined(__clang__)
 template <typename T>
 std::string get_type_name()
@@ -48,8 +48,16 @@ std::string get_type_name()
 }
 #endif
 
+//! This version leverages type deduction. (e.g. get_type_name(var))
+template <typename T>
+std::string get_type_name(const T& t)
+{
+  return get_type_name<T>();
+}
+
 namespace srslte {
 
+//! When there is no state transition
 struct same_state {
 };
 
@@ -60,26 +68,9 @@ struct state_name_visitor {
   template <typename State>
   void operator()(State&& s)
   {
-    name = s.name();
+    name = get_type_name(s);
   }
-  const char* name = "invalid state";
-};
-
-template <typename TargetVariant, typename PrevState>
-struct variant_convert {
-  template <typename State>
-  void operator()(State& s)
-  {
-    static_assert(not std::is_same<typename std::decay<State>::type, typename std::decay<PrevState>::type>::value,
-                  "State cannot transition to itself.\n");
-    if (p != nullptr) {
-      srslte::get<PrevState>(*v).exit();
-    }
-    v->transit(std::move(s));
-    srslte::get<State>(*v).enter();
-  }
-  TargetVariant* v;
-  PrevState*     p;
+  std::string name = "invalid state";
 };
 
 struct fsm_helper {
@@ -91,12 +82,51 @@ struct fsm_helper {
   template <typename FSM, typename State>
   using disable_if_fsm_state = typename get_fsm_state_list<FSM>::template disable_if_can_hold<State>;
 
+  template <typename FSM>
+  static auto call_init(FSM* f) -> decltype(f->derived()->do_init())
+  {
+    f->derived()->do_init();
+  }
+  static void call_init(...) {}
+  template <typename FSM, typename State>
+  static auto call_enter(FSM* f, State* s) -> decltype(f->enter(*s))
+  {
+    f->enter(*s);
+    call_init(s);
+  }
+  static void call_enter(...) {}
+  template <typename FSM, typename State>
+  static auto call_exit(FSM* f, State* s) -> decltype(f->exit(*s))
+  {
+    f->exit(*s);
+  }
+  static void call_exit(...) {}
+
+  template <typename FSM, typename PrevState>
+  struct variant_convert {
+    variant_convert(FSM* f_, PrevState* p_) : f(f_), p(p_) {}
+    template <typename State>
+    void operator()(State& s)
+    {
+      static_assert(not std::is_same<typename std::decay<State>::type, typename std::decay<PrevState>::type>::value,
+                    "State cannot transition to itself.\n");
+      call_exit(f, &srslte::get<PrevState>(f->states));
+      f->states.transit(std::move(s));
+      call_enter(f, &srslte::get<State>(f->states));
+    }
+    FSM*       f;
+    PrevState* p;
+  };
+
+  template <typename FSM>
   struct enter_visitor {
+    enter_visitor(FSM* f_) : f(f_) {}
     template <typename State>
     void operator()(State&& s)
     {
-      s.do_enter();
+      call_enter(f, &s);
     }
+    FSM* f;
   };
 
   //! Stayed in same state
@@ -109,7 +139,7 @@ struct fsm_helper {
   template <typename FSM, typename... Args, typename PrevState>
   static void handle_state_change(FSM* f, choice_t<Args...>* s, PrevState* p)
   {
-    fsm_details::variant_convert<decltype(f->states), PrevState> visitor{.v = &f->states, .p = p};
+    fsm_details::fsm_helper::variant_convert<FSM, PrevState> visitor{f, p};
     s->visit(visitor);
   }
   //! Simple state transition in FSM
@@ -117,11 +147,9 @@ struct fsm_helper {
   static enable_if_fsm_state<FSM, State> handle_state_change(FSM* f, State* s, PrevState* p)
   {
     static_assert(not std::is_same<State, PrevState>::value, "State cannot transition to itself.\n");
-    if (p != nullptr) {
-      srslte::get<PrevState>(f->states).do_exit();
-    }
+    call_exit(f, &srslte::get<PrevState>(f->states));
     f->states.transit(std::move(*s));
-    srslte::get<State>(f->states).do_enter();
+    call_enter(f, &srslte::get<State>(f->states));
   }
   //! State not present in current FSM. Attempt state transition in parent FSM in the case of NestedFSM
   template <typename FSM, typename State, typename PrevState>
@@ -129,7 +157,8 @@ struct fsm_helper {
   {
     static_assert(FSM::is_nested, "State is not present in the FSM list of valid states");
     if (p != nullptr) {
-      srslte::get<PrevState>(f->states).do_exit();
+      //      srslte::get<PrevState>(f->states).do_exit();
+      call_exit(f, &srslte::get<PrevState>(f->states));
     }
     handle_state_change(f->parent_fsm()->derived(), s, static_cast<typename FSM::derived_t*>(f));
   }
@@ -181,23 +210,9 @@ struct fsm_helper {
 
 } // namespace fsm_details
 
-//! Base class for states and FSMs
-class state_t
-{
-public:
-  state_t()                        = default;
-  virtual const char* name() const = 0;
-  void                do_enter() { enter(); }
-  void                do_exit() { exit(); }
-
-protected:
-  virtual void enter() {}
-  virtual void exit() {}
-};
-
 //! CRTP Class for all non-nested FSMs
 template <typename Derived>
-class fsm_t : public state_t
+class fsm_t
 {
 protected:
   using base_t = fsm_t<Derived>;
@@ -206,6 +221,9 @@ protected:
   {
   public:
     using derived_t = Derived;
+    using Derived::do_init;
+    using Derived::enter;
+    using Derived::exit;
     using Derived::react;
     using Derived::states;
     using Derived::unhandled_event;
@@ -219,10 +237,10 @@ public:
   struct state_list : public choice_t<States...> {
     using base_t = choice_t<States...>;
     template <typename... Args>
-    state_list(Args&&... args) : base_t(std::forward<Args>(args)...)
+    state_list(fsm_t<Derived>* f, Args&&... args) : base_t(std::forward<Args>(args)...)
     {
       if (not Derived::is_nested) {
-        fsm_details::fsm_helper::enter_visitor visitor{};
+        fsm_details::fsm_helper::enter_visitor<derived_view> visitor{f->derived()};
         this->visit(visitor);
       }
     }
@@ -255,7 +273,7 @@ public:
     return srslte::get_if<State>(derived()->states);
   }
 
-  const char* get_state_name() const
+  std::string get_state_name() const
   {
     fsm_details::state_name_visitor visitor{};
     derived()->states.visit(visitor);
@@ -279,12 +297,14 @@ protected:
   derived_view*       derived() { return static_cast<derived_view*>(this); }
   const derived_view* derived() const { return static_cast<const derived_view*>(this); }
 
-  void do_enter()
+  void do_init()
   {
-    enter();
-    fsm_details::fsm_helper::enter_visitor visitor{};
+    fsm_details::fsm_helper::enter_visitor<derived_view> visitor{derived()};
     derived()->states.visit(visitor);
   }
+
+  void enter() {}
+  void exit() {}
 
   template <typename Event>
   void unhandled_event(Event&& e)
@@ -327,6 +347,8 @@ public:
 
 protected:
   using parent_fsm_t = ParentFSM;
+  using fsm_t<Derived>::enter;
+  using fsm_t<Derived>::do_init;
 
   ParentFSM* fsm_ptr = nullptr;
 };
@@ -364,22 +386,11 @@ public:
   using fsm_t<Derived>::trigger;
 
   // states
-  struct idle_st : public state_t {
-    const char* name() const final { return "idle"; }
-    idle_st(Derived* f_) : fsm(f_) {}
-    void exit()
-    {
-      fsm->launch_counter++;
-      fsm->log_h->info("Proc %s: Starting run no. %d\n", fsm->derived()->name(), fsm->launch_counter);
-    }
-    Derived* fsm;
+  struct idle_st {
   };
-  struct complete_st : public srslte::state_t {
-    complete_st(Derived* fsm_, bool success_) : fsm(fsm_), success(success_) {}
-    const char* name() const final { return "complete"; }
-    void        enter() { fsm->trigger(srslte::proc_complete_ev<bool>{success}); }
-    Derived*    fsm;
-    bool        success;
+  struct complete_st {
+    complete_st(bool success_) : success(success_) {}
+    bool success;
   };
 
   explicit proc_fsm_t(srslte::log_ref log_) : fsm_t<Derived>(log_) {}
@@ -392,20 +403,13 @@ public:
     trigger(proc_launch_ev<Args...>(std::forward<Args>(args)...));
   }
 
-  //  template <typename... Args>
-  //  void trigger(proc_launch_ev<Args...> e)
-  //  {
-  //    if (not base_t::template is_in_state<idle_st>()) {
-  //      log_h->error("Proc %s: Ignoring launch because procedure is already running\n", base_t::derived()->name());
-  //      return;
-  //    }
-  //    base_t::trigger(std::move(e));
-  //  }
-  //  template <typename T>
-  //  void trigger(T&& t)
-  //  {
-  //    base_t::trigger(std::forward<T>(t));
-  //  }
+protected:
+  void exit(idle_st& s)
+  {
+    launch_counter++;
+    log_h->info("Starting run no. %d\n", launch_counter);
+  }
+  void enter(complete_st& s) { trigger(srslte::proc_complete_ev<bool>{s.success}); }
 
 private:
   int launch_counter = 0;
