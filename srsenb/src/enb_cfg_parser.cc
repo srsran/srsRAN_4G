@@ -1020,7 +1020,6 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       // patch PRACH config for PHY and in RRC for SIB2
       rrc_cfg_->sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset = 0;
       phy_cfg_->prach_cnfg.prach_cfg_info.prach_freq_offset                             = 0;
-      return SRSLTE_ERROR;
     }
     if (nrb_pucch > 1) {
       fprintf(stderr,
@@ -1031,7 +1030,6 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
               rrc_cfg_->sr_cfg.nof_prb);
       rrc_cfg_->cqi_cfg.nof_prb = 1;
       rrc_cfg_->sr_cfg.nof_prb  = 1;
-      return SRSLTE_ERROR;
     }
   }
 
