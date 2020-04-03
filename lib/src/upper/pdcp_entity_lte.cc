@@ -44,7 +44,6 @@ void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
   cfg                  = cfg_;
   active               = true;
   tx_count             = 0;
-  rx_count             = 0;
   integrity_direction  = DIRECTION_NONE;
   encryption_direction = DIRECTION_NONE;
 
@@ -72,17 +71,15 @@ void pdcp_entity_lte::reestablish()
   log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // For SRBs
   if (is_srb()) {
-    tx_count        = 0;
-    rx_count        = 0;
-    rx_hfn          = 0;
-    next_pdcp_rx_sn = 0;
+    tx_count           = 0;
+    rx_hfn             = 0;
+    next_pdcp_rx_sn    = 0;
   } else {
     // Only reset counter in RLC-UM
     if (rlc->rb_is_um(lcid)) {
-      tx_count        = 0;
-      rx_count        = 0;
-      rx_hfn          = 0;
-      next_pdcp_rx_sn = 0;
+      tx_count           = 0;
+      rx_hfn             = 0;
+      next_pdcp_rx_sn    = 0;
     }
   }
 }
@@ -197,8 +194,6 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
     }
   }
 
-  rx_count = sn;
-
   // Discard header
   discard_data_header(pdu);
 
@@ -233,8 +228,6 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
     cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
     log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
-
-  rx_count = sn;
 
   next_pdcp_rx_sn = sn + 1;
   if (next_pdcp_rx_sn > maximum_pdcp_sn) {
@@ -302,8 +295,6 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
   // Update info on last PDU submitted to upper layers
   last_submitted_pdcp_rx_sn = sn;
 
-  rx_count = sn;
-
   // Pass to upper layers
   log->info_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
   gw->write_pdu(lcid, std::move(pdu));
@@ -312,9 +303,9 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 /****************************************************************************
  * Security functions
  ***************************************************************************/
-uint32_t pdcp_entity_lte::get_dl_count()
+uint32_t pdcp_entity_lte::get_last_submitted_rx_count()
 {
-  return rx_count;
+  return COUNT(rx_hfn, last_submitted_pdcp_rx_sn);
 }
 
 uint32_t pdcp_entity_lte::get_ul_count()
@@ -328,20 +319,16 @@ void pdcp_entity_lte::get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_
     if (12 == cfg.sn_len) {
       *dlsn  = (uint16_t)(tx_count & 0xFFFu);
       *dlhfn = (uint16_t)((tx_count - *dlsn) >> 12u);
-      *ulsn  = (uint16_t)(rx_count & 0xFFFu);
-      *ulhfn = (uint16_t)((rx_count - *ulsn) >> 12u);
     } else {
       *dlsn  = (uint16_t)(tx_count & 0x7Fu);
       *dlhfn = (uint16_t)((tx_count - *dlsn) >> 7u);
-      *ulsn  = (uint16_t)(rx_count & 0x7Fu);
-      *ulhfn = (uint16_t)((rx_count - *ulsn) >> 7u);
     }
   } else { // is control
     *dlsn  = (uint16_t)(tx_count & 0x1Fu);
     *dlhfn = (uint16_t)((tx_count - *dlsn) >> 5u);
-    *ulsn  = (uint16_t)(rx_count & 0x1Fu);
-    *ulhfn = (uint16_t)((rx_count - *ulsn) >> 5u);
   }
+  *ulsn  = (uint16_t)next_pdcp_rx_sn;
+  *ulhfn = (uint16_t)rx_hfn;
 }
 
 } // namespace srslte

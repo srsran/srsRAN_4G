@@ -60,8 +60,8 @@ public:
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
   void get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn);
 
-  uint32_t get_dl_count();
   uint32_t get_ul_count();
+  uint32_t get_last_submitted_rx_count();
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
@@ -80,7 +80,6 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  uint32_t rx_count = 0;
   uint32_t tx_count = 0;
 
   uint32_t rx_hfn                    = 0;
