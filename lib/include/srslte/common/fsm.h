@@ -142,11 +142,11 @@ struct fsm_helper {
     static_assert(not std::is_same<State, PrevState>::value, "State cannot transition to itself.\n");
     f->exit(srslte::get<PrevState>(f->states));
     f->states.transit(std::move(*s));
-    call_enter(f, &srslte::get<State>(f->states));
     f->log_h->info("FSM \"%s\": Detected transition \"%s\" -> \"%s\"",
                    get_type_name<typename FSM::derived_t>().c_str(),
                    get_type_name<PrevState>().c_str(),
                    get_type_name<State>().c_str());
+    call_enter(f, &srslte::get<State>(f->states));
   }
   //! State not present in current FSM. Attempt state transition in parent FSM in the case of NestedFSM
   template <typename FSM, typename State, typename PrevState>
