@@ -28,6 +28,7 @@
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
 #include "ttcn3_common.h"
+#include "ttcn3_drb_interface.h"
 #include "ttcn3_ip_ctrl_interface.h"
 #include "ttcn3_ip_sock_interface.h"
 #include "ttcn3_srb_interface.h"
@@ -87,6 +88,7 @@ public:
     ip_sock_log.init("IP_S", logger);
     ip_ctrl_log.init("IP_C", logger);
     srb_log.init("SRB  ", logger);
+    drb_log.init("DRB  ", logger);
     srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-RLC", logger}});
     srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-PDCP", logger}});
 
@@ -96,6 +98,7 @@ public:
     ip_sock_log.set_level(args.log.all_level);
     ip_ctrl_log.set_level(args.log.all_level);
     srb_log.set_level(args.log.all_level);
+    drb_log.set_level(args.log.all_level);
     ss_mac_log->set_level(args.log.all_level);
     ss_rlc_log->set_level(args.log.all_level);
     ss_pdcp_log->set_level(args.log.all_level);
@@ -106,6 +109,7 @@ public:
     ip_sock_log.set_hex_limit(args.log.all_hex_limit);
     ip_ctrl_log.set_hex_limit(args.log.all_hex_limit);
     srb_log.set_hex_limit(args.log.all_hex_limit);
+    drb_log.set_hex_limit(args.log.all_hex_limit);
     ss_mac_log->set_hex_limit(args.log.all_hex_limit);
     ss_rlc_log->set_hex_limit(args.log.all_hex_limit);
     ss_pdcp_log->set_hex_limit(args.log.all_hex_limit);
@@ -187,6 +191,15 @@ public:
     }
     event_handler.insert({srb_fd, &srb});
     log->console("SRB handler listening on SCTP port %d\n", SRB_PORT);
+
+    // add DRB fd
+    int drb_fd = drb.init(this, &drb_log, listen_address, DRB_PORT);
+    if (add_epoll(drb_fd, epoll_fd) != SRSLTE_SUCCESS) {
+      log->error("Error while adding DRB port to epoll\n");
+      return SRSLTE_ERROR;
+    }
+    event_handler.insert({drb_fd, &drb});
+    log->console("DRB handler listening on SCTP port %d\n", DRB_PORT);
 
     return SRSLTE_SUCCESS;
   }
@@ -1168,6 +1181,7 @@ private:
   ttcn3_ip_sock_interface ip_sock;
   ttcn3_ip_ctrl_interface ip_ctrl;
   ttcn3_srb_interface     srb;
+  ttcn3_drb_interface     drb;
 
   // Epoll
   int                                epoll_fd  = -1;
@@ -1186,6 +1200,7 @@ private:
   srslte::log_filter    ip_sock_log;
   srslte::log_filter    ip_ctrl_log;
   srslte::log_filter    srb_log;
+  srslte::log_filter    drb_log;
   srslte::log_ref       ss_mac_log{"SS-MAC"};
   srslte::log_ref       ss_rlc_log{"SS-RLC"};
   srslte::log_ref       ss_pdcp_log{"SS-PDCP"};
@@ -1263,6 +1278,7 @@ private:
   const uint32_t    IPSOCK_PORT    = 2224;
   const uint32_t    IPCTRL_PORT    = 2225;
   const uint32_t    SRB_PORT       = 2226;
+  const uint32_t    DRB_PORT       = 2227;
 };
 
 #endif // SRSUE_TTCN3_SYSSIM_H
