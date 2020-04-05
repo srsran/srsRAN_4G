@@ -22,51 +22,46 @@
 #ifndef SRSLTE_FSM_H
 #define SRSLTE_FSM_H
 
-#include "choice_type.h"
 #include "srslte/common/logmap.h"
-#include <cassert>
+#include "type_utils.h"
 #include <cstdio>
-#include <cstring>
 #include <limits>
 #include <memory>
 #include <tuple>
 
 namespace srslte {
 
-//! Helper to print the name of a type for logging
-#if defined(__GNUC__) && !defined(__clang__)
-template <typename T>
-std::string get_type_name()
-{
-  static const char*       funcname = __PRETTY_FUNCTION__;
-  static const std::string s        = []() {
-    static const char* pos1 = strchr(funcname, '=') + 2;
-    static const char* pos2 = strchr(pos1, ';');
-    std::string        s2{pos1, pos2};
-    size_t             colon_pos = s2.rfind(':');
-    std::string        s3        = colon_pos == std::string::npos ? s2 : s2.substr(colon_pos + 1, s2.size());
-    return s3.find('>') == std::string::npos ? s3 : s2;
-  }();
-  return s;
-}
-#else
-template <typename T>
-std::string get_type_name()
-{
-  return "anonymous";
-}
-#endif
+//! Transition Type
+template <typename NextState>
+struct to_state {
+  using next_state = NextState;
+};
 
-//! This version leverages argument type deduction. (e.g. get_type_name(var))
-template <typename T>
-std::string get_type_name(const T& t)
-{
-  return get_type_name<T>();
-}
+template <typename... NextStates>
+struct to_states {
+  template <typename ChosenState>
+  to_states(to_state<ChosenState>) : state_idx(get_type_index<ChosenState, NextStates...>())
+  {
+  }
+
+  template <typename State>
+  bool is() const
+  {
+    return get_type_index<State, NextStates...>() == state_idx;
+  }
+
+  size_t get_type_idx() const { return state_idx; }
+
+  size_t state_idx;
+};
 
 //! Return for when there is no state transition
 struct same_state {
 };
+
+//! Forward declaration
+template <typename Derived>
+class fsm_t;
 
 namespace fsm_details {
 
@@ -77,15 +72,15 @@ struct state_name_visitor {
   {
     name = get_type_name(s);
   }
-  std::string name = "invalid state";
+  std::string name = "invalid";
 };
 
-//! Visitor to convert a type inside a choice to another choice
+//! Visitor to convert a to_state<States...> back to a single state
 template <typename FSM, typename PrevState>
-struct choice_to_state_visitor {
-  choice_to_state_visitor(FSM* f_, PrevState* p_) : f(f_), p(p_) {}
+struct to_state_visitor {
+  to_state_visitor(FSM* f_, PrevState* p_) : f(f_), p(p_) {}
   template <typename State>
-  void       operator()(State& s);
+  void       operator()();
   FSM*       f;
   PrevState* p;
 };
@@ -99,25 +94,37 @@ struct enter_visitor {
   FSM* f;
 };
 
+//! Helper metafunctions
+template <typename FSM, typename State>
+using enable_if_fsm_state = typename std::enable_if<FSM::template can_hold_state<State>()>::type;
+template <typename FSM, typename State>
+using disable_if_fsm_state = typename std::enable_if<not FSM::template can_hold_state<State>()>::type;
+template <typename FSM>
+constexpr bool is_fsm()
+{
+  return std::is_base_of<fsm_t<FSM>, FSM>::value;
+}
+template <typename FSM>
+constexpr bool is_nested_fsm()
+{
+  return is_fsm<FSM>() and FSM::is_nested;
+}
+
 struct fsm_helper {
   //! Metafunction to determine if FSM can hold given State type
   template <typename FSM>
-  using get_fsm_state_list = decltype(std::declval<typename FSM::derived_view>().states);
-  template <typename FSM, typename State>
-  using enable_if_fsm_state = typename get_fsm_state_list<FSM>::template enable_if_can_hold<State>;
-  template <typename FSM, typename State>
-  using disable_if_fsm_state = typename get_fsm_state_list<FSM>::template disable_if_can_hold<State>;
+  using fsm_state_list_type = decltype(std::declval<typename FSM::derived_view>().states);
 
   //! Call FSM/State enter method
   template <typename FSM, typename State>
-  static auto call_enter(FSM* f, State* s) -> decltype(s->derived()->parent_fsm(), void())
+  static typename std::enable_if<is_fsm<State>()>::type call_enter(FSM* f, State* s)
   {
     f->enter(*s);
     fsm_details::enter_visitor<typename State::derived_view> visitor{s->derived()};
-    s->derived()->states.visit(visitor);
+    srslte::visit(visitor, s->derived()->states);
   }
   template <typename FSM, typename State, typename... Args>
-  static void call_enter(FSM* f, State* s, Args&&...)
+  static typename std::enable_if<not is_fsm<State>()>::type call_enter(FSM* f, State* s)
   {
     f->enter(*s);
   }
@@ -130,30 +137,30 @@ struct fsm_helper {
   }
   //! TargetState is type-erased (a choice). Apply its stored type to the fsm current state
   template <typename FSM, typename... Args, typename PrevState>
-  static void handle_state_change(FSM* f, choice_t<Args...>* s, PrevState* p)
+  static void handle_state_change(FSM* f, to_states<Args...>* s, PrevState* p)
   {
-    choice_to_state_visitor<FSM, PrevState> visitor{f, p};
-    s->visit(visitor);
+    to_state_visitor<FSM, PrevState> visitor{f, p};
+    srslte::static_visit(visitor, *s);
   }
   //! Simple state transition in FSM (no same_state of entry in nested FSM)
   template <typename FSM, typename State, typename PrevState>
-  static enable_if_fsm_state<FSM, State> handle_state_change(FSM* f, State* s, PrevState* p)
+  static auto handle_state_change(FSM* f, to_state<State>* s, PrevState* p) -> enable_if_fsm_state<FSM, State>
   {
     static_assert(not std::is_same<State, PrevState>::value, "State cannot transition to itself.\n");
-    f->exit(srslte::get<PrevState>(f->states));
-    f->states.transit(std::move(*s));
+    f->exit(f->states.template get_unchecked<PrevState>());
+    f->states.template transit<State>();
     f->log_h->info("FSM \"%s\": Detected transition \"%s\" -> \"%s\"",
                    get_type_name<typename FSM::derived_t>().c_str(),
                    get_type_name<PrevState>().c_str(),
                    get_type_name<State>().c_str());
-    call_enter(f, &srslte::get<State>(f->states));
+    call_enter(f, &f->states.template get_unchecked<State>());
   }
   //! State not present in current FSM. Attempt state transition in parent FSM in the case of NestedFSM
   template <typename FSM, typename State, typename PrevState>
-  static disable_if_fsm_state<FSM, State> handle_state_change(FSM* f, State* s, PrevState* p)
+  static auto handle_state_change(FSM* f, to_state<State>* s, PrevState* p) -> disable_if_fsm_state<FSM, State>
   {
     static_assert(FSM::is_nested, "State is not present in the FSM list of valid states");
-    f->exit(srslte::get<PrevState>(f->states));
+    f->exit(f->states.template get_unchecked<PrevState>());
     handle_state_change(f->parent_fsm()->derived(), s, static_cast<typename FSM::derived_t*>(f));
   }
 
@@ -203,9 +210,10 @@ struct fsm_helper {
 
 template <typename FSM, typename PrevState>
 template <typename State>
-void choice_to_state_visitor<FSM, PrevState>::operator()(State& s)
+void to_state_visitor<FSM, PrevState>::operator()()
 {
-  fsm_helper::handle_state_change(f, &s, p);
+  to_state<State> t;
+  fsm_helper::handle_state_change(f, &t, p);
 }
 
 template <typename FSM>
@@ -219,10 +227,10 @@ void enter_visitor<FSM>::operator()(State&& s)
 
 //! Gets the typename currently stored in the choice_t
 template <typename... Args>
-std::string get_type_name(const srslte::choice_t<Args...>& t)
+std::string get_type_name(const srslte::to_states<Args...>& t)
 {
   fsm_details::state_name_visitor v{};
-  t.visit(v);
+  srslte::visit(v, t);
   return v.name;
 }
 
@@ -232,6 +240,7 @@ class fsm_t
 {
 protected:
   using base_t = fsm_t<Derived>;
+
   //! get access to derived protected members from the base
   class derived_view : public Derived
   {
@@ -251,24 +260,65 @@ protected:
 
 public:
   static const bool is_nested = false;
+  template <typename NextState>
+  using to_state = srslte::to_state<NextState>;
+  template <typename... NextStates>
+  using to_states = srslte::to_states<NextStates...>;
 
   //! Struct used to store FSM states
   template <typename... States>
-  struct state_list : public choice_t<States...> {
-    using base_t = choice_t<States...>;
+  struct state_list : public std::tuple<States...> {
+    using tuple_base_t = std::tuple<States...>;
     template <typename... Args>
-    state_list(fsm_t<Derived>* f, Args&&... args) : base_t(std::forward<Args>(args)...)
+    state_list(fsm_t<Derived>* f, Args&&... args) : tuple_base_t(std::forward<Args>(args)...)
     {
       if (not Derived::is_nested) {
+        // If Root FSM, call initial state enter method
         fsm_details::enter_visitor<derived_view> visitor{f->derived()};
-        f->derived()->states.visit(visitor);
+        srslte::visit(visitor, *this);
       }
     }
+
     template <typename State>
-    void transit(State&& s)
+    bool is() const
     {
-      this->template emplace<State>(std::forward<State>(s));
+      return type_idx<State>() == current_idx;
     }
+
+    template <typename State>
+    State& get_unchecked()
+    {
+      return std::get<type_idx<State>()>(*this);
+    }
+
+    template <typename State>
+    const State& get_unchecked() const
+    {
+      return std::get<type_idx<State>()>(*this);
+    }
+
+    template <typename NextState>
+    void transit()
+    {
+      current_idx = type_idx<NextState>();
+    }
+
+    template <typename State>
+    constexpr static bool can_hold_type()
+    {
+      return srslte::type_list_contains<State, States...>();
+    }
+
+    template <typename State>
+    constexpr static size_t type_idx()
+    {
+      return get_type_index<State, States...>();
+    }
+
+    size_t get_type_idx() const { return current_idx; }
+
+  private:
+    size_t current_idx = 0;
   };
 
   explicit fsm_t(srslte::log_ref log_) : log_h(log_) {}
@@ -278,7 +328,7 @@ public:
   void trigger(Ev&& e)
   {
     fsm_details::fsm_helper::trigger_visitor<derived_view, Ev> visitor{derived(), std::forward<Ev>(e)};
-    derived()->states.visit(visitor);
+    srslte::visit(visitor, derived()->states);
   }
 
   template <typename State>
@@ -290,13 +340,13 @@ public:
   template <typename State>
   const State* get_state() const
   {
-    return srslte::get_if<State>(derived()->states);
+    return is_in_state<State>() ? &derived()->states.template get_unchecked<State>() : nullptr;
   }
 
   std::string get_state_name() const
   {
     fsm_details::state_name_visitor visitor{};
-    derived()->states.visit(visitor);
+    srslte::visit(visitor, derived()->states);
     return visitor.name;
   }
 
@@ -304,7 +354,7 @@ public:
   template <typename State>
   constexpr static bool can_hold_state()
   {
-    return fsm_details::fsm_helper::get_fsm_state_list<fsm_t<Derived> >::template can_hold_type<State>();
+    return fsm_details::fsm_helper::fsm_state_list_type<fsm_t<Derived> >::template can_hold_type<State>();
   }
 
   void            set_fsm_event_log_level(srslte::LOG_LEVEL_ENUM e) { fsm_event_log_level = e; }
@@ -395,7 +445,7 @@ struct proc_launch_ev {
   explicit proc_launch_ev(Args&&... args_) : args(std::forward<Args>(args_)...) {}
 };
 
-template <typename Derived, typename Result = srslte::same_state>
+template <typename Derived, typename Result = std::true_type>
 class proc_fsm_t : public fsm_t<Derived>
 {
   using fsm_type = Derived;
@@ -425,9 +475,6 @@ public:
   struct idle_st {
   };
   struct complete_st {
-    complete_st(bool success_) : success(success_) {}
-    bool   success;
-    Result result;
   };
 
   explicit proc_fsm_t(srslte::log_ref log_) : fsm_t<Derived>(log_) {}
@@ -448,10 +495,32 @@ protected:
   }
   void enter(complete_st& s) { trigger(reset_ev{}); }
 
-  auto react(complete_st& s, reset_ev ev) -> idle_st { return {}; }
+  auto react(complete_st& s, reset_ev ev) -> to_state<idle_st> { return {}; }
+
+  srslte::to_state<complete_st> set_success(Result&& r = {})
+  {
+    result  = std::forward<Result>(r);
+    success = true;
+    return {};
+  }
+  srslte::to_state<complete_st> set_failure()
+  {
+    success = false;
+    return {};
+  }
+  bool    is_success() const { return success; }
+  Result& get_result() const
+  {
+    if (is_success()) {
+      return result;
+    }
+    throw bad_type_access{"in proc_fsm_t::get_result"};
+  }
 
 private:
-  int launch_counter = 0;
+  int    launch_counter = 0;
+  bool   success        = false;
+  Result result;
 };
 
 } // namespace srslte

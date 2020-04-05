@@ -63,17 +63,16 @@ namespace choice_details {
 
 static_assert(static_max<1, 2>::value == 2, "StaticMax not working");
 static_assert(static_max<2, 1>::value == 2, "StaticMax not working");
-static_assert(type_indexer<double, char, float, int, long, double>::index == 0, "Type indexer not working");
-static_assert(type_indexer<double, double, float, int, long, char>::index == 4, "Type indexer not working");
-static_assert(type_indexer<double, char, float, int>::index == invalid_idx, "Type Indexer not working");
+static_assert(get_type_index<double, char, float, int, long, double>() == 4, "Type indexer not working");
+static_assert(get_type_index<double, double, float, int, long, char>() == 0, "Type indexer not working");
+static_assert(get_type_index<double, char, float, int>() == invalid_type_index, "Type Indexer not working");
 static_assert(sizeof(choice_storage_t<5, 4>) == 8, "Size of storage wrongly computed");
 static_assert(alignof(choice_storage_t<5, 4>) == 4, "Alignment of storage wrongly computed");
-static_assert(std::is_same<typename type_get<0, char, float, int, long, double>::type, double>::value,
+static_assert(std::is_same<typename get_index_type<0, char, float, int, long, double>::type, char>::value,
               "type index-based search not working");
-static_assert(std::is_same<typename type_get<3, char, float, int, long, double>::type, float>::value,
+static_assert(std::is_same<typename get_index_type<3, char, float, int, long, double>::type, long>::value,
               "type index-based search not working");
-static_assert(std::is_same<tagged_union_t<char, int, double>::default_type, char>::value,
-              "Default type is incorrect\n");
+static_assert(std::is_same<choice_t<char, int, double>::default_type, char>::value, "Default type is incorrect\n");
 static_assert(tagged_union_t<char, int, double>::can_hold_type<int>(), "Can hold type implementation is incorrect\n");
 static_assert(not tagged_union_t<char, int, double>::can_hold_type<uint8_t>(),
               "Can hold type implementation is incorrect\n");
@@ -91,8 +90,7 @@ int test_tagged_union()
   tagged_union_t<char, int, double, C> u;
   u.construct_unsafe(5);
   TESTASSERT(u.is<int>());
-  TESTASSERT(u.get_unsafe<int>() == 5);
-  TESTASSERT(u.get_unsafe<1>() == 5);
+  TESTASSERT(u.get_unchecked<int>() == 5);
   u.destroy_unsafe<int>();
 
   TESTASSERT(C::counter == 0);
@@ -106,8 +104,8 @@ int test_tagged_union()
 
 int test_choice()
 {
+  using srslte::bad_type_access;
   using srslte::choice_t;
-  using srslte::choice_details::bad_choice_access;
 
   TESTASSERT(C::counter == 0);
   TESTASSERT(D::counter == 0);
@@ -118,47 +116,47 @@ int test_choice()
     // TEST: correct construction, holding the right type and value
     choice_t<char, int, double, C> c, c2{i}, c3{c0};
     TESTASSERT(c.is<char>());
-    TESTASSERT(c2.is<int>() and c2.get<int>() == i and *c2.get_if<int>() == i);
-    TESTASSERT(c2.get<1>() == c2.get<int>());
+    TESTASSERT(c2.is<int>() and srslte::get<int>(c2) == i and *srslte::get_if<int>(c2) == i);
+    TESTASSERT(srslte::get<1>(c2) == srslte::get<int>(c2));
     TESTASSERT(c3.is<C>());
     TESTASSERT(C::counter == 2);
 
     // TEST: Invalid member access. get<>() should throw
-    TESTASSERT(c2.get_if<char>() == nullptr);
+    TESTASSERT(srslte::get_if<char>(c2) == nullptr);
     bool catched = false;
     try {
       char n = '1';
-      n      = c2.get<char>();
+      n      = srslte::get<char>(c2);
       TESTASSERT(n == '1');
-    } catch (bad_choice_access& e) {
+    } catch (bad_type_access& e) {
       catched = true;
     }
     TESTASSERT(catched);
 
     // TEST: simple emplace after construction
     c2 = 'c';
-    TESTASSERT(c2.is<char>() and c2.get<char>() == 'c');
+    TESTASSERT(c2.is<char>() and srslte::get<char>(c2) == 'c');
 
     // TEST: copy ctor test.
     choice_t<char, int, double, C> c5{c3};
     TESTASSERT(C::counter == 3);
     TESTASSERT(c5.is<C>());
-    TESTASSERT(c5.get_if<C>() == &c5.get<C>());
+    TESTASSERT(srslte::get_if<C>(c5) == &srslte::get<C>(c5));
 
     // TEST: copy assignment
     c = c5;
     TESTASSERT(C::counter == 4);
-    TESTASSERT(c.is<C>() and c.get_if<C>() != c5.get_if<C>());
+    TESTASSERT(c.is<C>() and srslte::get_if<C>(c) != srslte::get_if<C>(c5));
     c = c2;
     TESTASSERT(C::counter == 3);
-    TESTASSERT(c2.is<char>() and c.get<char>() == 'c');
+    TESTASSERT(c2.is<char>() and srslte::get<char>(c) == 'c');
   }
   TESTASSERT(C::counter == 0);
   TESTASSERT(D::counter == 0);
   {
     choice_t<char, int, double, C, D> c, c2{5.0}, c3{C{}}, c4{D{}};
     TESTASSERT(c.is<char>());
-    TESTASSERT(c2.is<double>() and c2.get<double>() == 5.0 and *c2.get_if<double>() == 5.0);
+    TESTASSERT(c2.is<double>() and srslte::get<double>(c2) == 5.0 and *srslte::get_if<double>(c2) == 5.0);
     TESTASSERT(c3.is<C>());
     TESTASSERT(c4.is<D>());
     TESTASSERT(C::counter == 1);
@@ -182,7 +180,7 @@ int test_choice()
     TESTASSERT(D::counter == 3);
     c = std::move(c2);
     TESTASSERT(c.is<double>() and c2.is<double>() and c.holds_same_type(c2));
-    TESTASSERT(c.get<double>() == c2.get<double>());
+    TESTASSERT(srslte::get<double>(c) == srslte::get<double>(c2));
     TESTASSERT(C::counter == 2 and D::counter == 2);
   }
   TESTASSERT(C::counter == 0);
@@ -213,26 +211,26 @@ int test_visit()
 
   // TEST: visitor hits integer type which is noop
   EVisitor v;
-  srslte::visit(c, v);
-  TESTASSERT(c.is<int>() and c.get<int>() == 5);
+  srslte::visit(v, c);
+  TESTASSERT(c.is<int>() and srslte::get<int>(c) == 5);
   TESTASSERT(v.pdu == nullptr);
 
   // TEST: visitor hits type E and steals pdu
   E e;
   e.pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
   c     = std::move(e);
-  TESTASSERT(c.is<E>() and c.get<E>().pdu != nullptr);
-  srslte::visit(c, v);
+  TESTASSERT(c.is<E>() and srslte::get<E>(c).pdu != nullptr);
+  srslte::visit(v, c);
   TESTASSERT(v.pdu != nullptr);
-  TESTASSERT(c.is<E>() and c.get<E>().pdu == nullptr);
+  TESTASSERT(c.is<E>() and srslte::get<E>(c).pdu == nullptr);
 
   // TEST: visitor hits type E and steals pdu. Second type called there is no pdu to steal.
   v.pdu = nullptr;
   e.pdu = srslte::allocate_unique_buffer(*srslte::byte_buffer_pool::get_instance());
   c     = std::move(e);
-  c.visit(v);
+  srslte::visit(v, c);
   TESTASSERT(v.pdu != nullptr);
-  c.visit(v);
+  srslte::visit(v, c);
   TESTASSERT(v.pdu == nullptr);
 
   return SRSLTE_SUCCESS;

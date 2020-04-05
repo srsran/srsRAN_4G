@@ -42,7 +42,7 @@ public:
   struct state1 {
   };
 
-  fsm1(srslte::log_ref log_) : srslte::fsm_t<fsm1>(log_) {}
+  explicit fsm1(srslte::log_ref log_) : srslte::fsm_t<fsm1>(log_) {}
 
   // this state is another FSM
   class fsm2 : public srslte::nested_fsm_t<fsm2, fsm1>
@@ -52,7 +52,7 @@ public:
     struct state_inner {
     };
 
-    fsm2(fsm1* f_) : nested_fsm_t(f_) {}
+    explicit fsm2(fsm1* f_) : nested_fsm_t(f_) {}
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
 
   protected:
@@ -65,7 +65,7 @@ public:
 
     // FSM2 transitions
     auto react(state_inner& s, ev1 e) -> srslte::same_state;
-    auto react(state_inner& s, ev2 e) -> state1;
+    auto react(state_inner& s, ev2 e) -> srslte::to_state<state1>;
 
     // list of states
     state_list<state_inner> states{this};
@@ -87,14 +87,14 @@ protected:
   void enter(state1& s);
 
   // transitions
-  auto react(idle_st& s, ev1 e) -> state1;
-  auto react(state1& s, ev1 e) -> fsm2;
-  auto react(state1& s, ev2 e) -> srslte::choice_t<idle_st, fsm2>;
+  auto react(idle_st& s, ev1 e) -> srslte::to_state<state1>;
+  auto react(state1& s, ev1 e) -> srslte::to_state<fsm2>;
+  auto react(state1& s, ev2 e) -> srslte::to_states<idle_st, fsm2>;
 
   void foo(ev1 e) { foo_counter++; }
 
   // list of states
-  state_list<idle_st, state1, fsm2> states{this, idle_st{}};
+  state_list<idle_st, state1, fsm2> states = {this, idle_st{}, state1{}, fsm2{this}};
 };
 
 void fsm1::enter(idle_st& s)
@@ -109,33 +109,33 @@ void fsm1::enter(state1& s)
 }
 
 // FSM event handlers
-auto fsm1::fsm2::react(state_inner& s, ev1 e) -> srslte::same_state
+auto fsm1::fsm2::react(state_inner& s, ev1) -> srslte::same_state
 {
   log_h->info("fsm2::state_inner::react called\n");
   return {};
 }
 
-auto fsm1::fsm2::react(state_inner& s, ev2 e) -> state1
+auto fsm1::fsm2::react(state_inner& s, ev2) -> srslte::to_state<state1>
 {
   log_h->info("fsm2::state_inner::react called\n");
   return {};
 }
 
-auto fsm1::react(idle_st& s, ev1 e) -> state1
+auto fsm1::react(idle_st& s, ev1 e) -> srslte::to_state<state1>
 {
   log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
   foo(e);
   return {};
 }
-auto fsm1::react(state1& s, ev1 e) -> fsm2
+auto fsm1::react(state1& s, ev1) -> srslte::to_state<fsm2>
 {
   log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
-  return {this};
+  return {};
 }
-auto fsm1::react(state1& s, ev2 e) -> srslte::choice_t<idle_st, fsm2>
+auto fsm1::react(state1& s, ev2) -> srslte::to_states<idle_st, fsm2>
 {
   log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
-  return idle_st{};
+  return srslte::to_state<idle_st>{};
 }
 
 // Static Checks
@@ -143,14 +143,15 @@ auto fsm1::react(state1& s, ev2 e) -> srslte::choice_t<idle_st, fsm2>
 namespace srslte {
 namespace fsm_details {
 
-static_assert(std::is_same<fsm_helper::get_fsm_state_list<fsm1>,
+static_assert(is_fsm<fsm1>(), "invalid metafunction\n");
+static_assert(is_nested_fsm<fsm1::fsm2>(), "invalid metafunction\n");
+static_assert(std::is_same<fsm_helper::fsm_state_list_type<fsm1>,
                            fsm1::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
               "get state list failed\n");
-static_assert(std::is_same<fsm_helper::enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value,
+static_assert(fsm1::can_hold_state<fsm1::state1>(), "failed can_hold_state check\n");
+static_assert(std::is_same<enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value, "get state list failed\n");
+static_assert(std::is_same<disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value,
               "get state list failed\n");
-static_assert(std::is_same<fsm_helper::disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value,
-              "get state list failed\n");
-static_assert(fsm1::can_hold_state<fsm1::state1>(), "can hold state method failed\n");
 
 } // namespace fsm_details
 } // namespace srslte
@@ -190,7 +191,7 @@ int test_hsm()
 
   // Moving fsm2 -> state1
   f.trigger(ev2{});
-  TESTASSERT(std::string{f.get_state_name()} == "state1");
+  TESTASSERT(f.get_state_name() == "state1");
   TESTASSERT(f.is_in_state<fsm1::state1>());
   TESTASSERT(f.state1_enter_counter == 2);
 
@@ -208,7 +209,7 @@ int test_hsm()
   return SRSLTE_SUCCESS;
 }
 
-///////////////////////////
+/////////////////////////////
 
 struct procevent1 {
 };
@@ -224,35 +225,35 @@ public:
 
 protected:
   // Transitions
-  auto react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> procstate1;
-  auto react(procstate1& s, procevent1 ev) -> complete_st;
-  auto react(procstate1& s, procevent2 ev) -> complete_st;
-  auto react(complete_st& s, reset_ev ev) -> idle_st;
+  auto react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> to_state<procstate1>;
+  auto react(procstate1& s, procevent1 ev) -> to_state<complete_st>;
+  auto react(procstate1& s, procevent2 ev) -> to_state<complete_st>;
+  auto react(complete_st& s, reset_ev ev) -> to_state<idle_st>;
 
   // example of uncaught event handling
   void unhandled_event(int e) { log_h->info("I dont know how to handle an \"int\" event\n"); }
 
-  state_list<idle_st, procstate1, complete_st> states{this};
+  state_list<idle_st, procstate1, complete_st> states{this, idle_st{}, procstate1{}, complete_st{}};
 };
 
-auto proc1::react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> procstate1
+auto proc1::react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> to_state<procstate1>
 {
   log_h->info("started!\n");
   return {};
 }
-auto proc1::react(procstate1& s, procevent1 ev) -> complete_st
+auto proc1::react(procstate1& s, procevent1 ev) -> to_state<complete_st>
 {
   log_h->info("success!\n");
-  return {true};
+  return set_success();
 }
-auto proc1::react(procstate1& s, procevent2 ev) -> complete_st
+auto proc1::react(procstate1& s, procevent2 ev) -> to_state<complete_st>
 {
   log_h->info("failure!\n");
-  return {false};
+  return set_failure();
 }
-auto proc1::react(complete_st& s, reset_ev ev) -> idle_st
+auto proc1::react(complete_st& s, reset_ev ev) -> to_state<idle_st>
 {
-  log_h->info("propagate results %s\n", s.success ? "success" : "failure");
+  log_h->info("propagate results %s\n", is_success() ? "success" : "failure");
   return {};
 }
 
