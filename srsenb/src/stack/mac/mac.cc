@@ -418,7 +418,7 @@ int mac::snr_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, float snr)
 
 int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)
 {
-  srslte::rwlock_write_guard lock(rwlock);
+  srslte::rwlock_read_guard lock(rwlock);
   if (ue_db.count(rnti)) {
     uint32_t nof_ta_count = ue_db[rnti]->set_ta_us(ta_us);
     if (nof_ta_count) {
