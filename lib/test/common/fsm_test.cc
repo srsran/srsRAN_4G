@@ -317,9 +317,10 @@ protected:
   auto react(emm_ta_updating_initiated& s, tau_outcome_ev ev) -> to_state<emm_registered>;
   auto react(emm_ta_updating_initiated& s, tau_reject_other_cause_ev ev) -> to_state<emm_deregistered>;
   auto react(emm_deregistered_initiated& s, detach_accept_ev ev) -> to_state<emm_deregistered>;
-  template <typename AnyState,
-            typename = typename std::enable_if<not std::is_same<AnyState, emm_deregistered>::value>::type>
+  // on power-off go to deregistered state. Disable react if we are already in deregistered
+  template <typename AnyState>
   auto react(AnyState& s, power_off_ev ev) -> to_state<emm_deregistered>;
+  auto react(emm_deregistered& s, power_off_ev ev) -> srslte::same_state { return {}; }
 
   state_list<emm_null_st,
              emm_deregistered,
@@ -398,7 +399,7 @@ auto nas_fsm::react(emm_deregistered_initiated& s, detach_accept_ev ev) -> to_st
   LOGEVENT();
   return {};
 }
-template <typename AnyState, typename>
+template <typename AnyState>
 auto nas_fsm::react(AnyState& s, power_off_ev ev) -> to_state<emm_deregistered>
 {
   LOGEVENT();
