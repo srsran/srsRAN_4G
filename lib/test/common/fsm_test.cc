@@ -25,10 +25,8 @@
 /////////////////////////////
 
 // Events
-struct ev1 {
-};
-struct ev2 {
-};
+struct ev1 {};
+struct ev2 {};
 
 class fsm1 : public srslte::fsm_t<fsm1>
 {
@@ -37,10 +35,8 @@ public:
   uint32_t foo_counter = 0;
 
   // states
-  struct idle_st {
-  };
-  struct state1 {
-  };
+  struct idle_st {};
+  struct state1 {};
 
   explicit fsm1(srslte::log_ref log_) : srslte::fsm_t<fsm1>(log_) {}
 
@@ -49,8 +45,7 @@ public:
   {
   public:
     // states
-    struct state_inner {
-    };
+    struct state_inner {};
 
     explicit fsm2(fsm1* f_) : nested_fsm_t(f_) {}
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
@@ -211,15 +206,12 @@ int test_hsm()
 
 /////////////////////////////
 
-struct procevent1 {
-};
-struct procevent2 {
-};
+struct procevent1 {};
+struct procevent2 {};
 
 struct proc1 : public srslte::proc_fsm_t<proc1, int> {
 public:
-  struct procstate1 {
-  };
+  struct procstate1 {};
 
   proc1(srslte::log_ref log_) : base_t(log_) {}
 
@@ -283,6 +275,205 @@ int test_fsm_proc()
 
 ///////////////////////////
 
+class nas_fsm : public srslte::fsm_t<nas_fsm>
+{
+public:
+  // states
+  struct emm_null_st {};
+  struct emm_deregistered {};
+  struct emm_deregistered_initiated {};
+  struct emm_ta_updating_initiated {};
+  struct emm_registered {};
+  struct emm_service_req_initiated {};
+  struct emm_registered_initiated {};
+
+  // events
+  struct enable_s1_ev {};
+  struct disable_s1_ev {};
+  struct attach_request_ev {};
+  struct emm_registr_fail_ev {}; ///< attach rejected, network init DETACH request, lower layer failure
+  struct attach_accept_ev {};    ///< attach accept and default EPS bearer context activated
+  struct sr_initiated_ev {};
+  struct sr_outcome_ev {};
+  struct tau_request_ev {};
+  struct tau_outcome_ev {};
+  struct tau_reject_other_cause_ev {};
+  struct power_off_ev {};
+  struct detach_request_ev {};
+  struct detach_accept_ev {};
+
+  nas_fsm(srslte::log_ref log_) : fsm_t<nas_fsm>(log_) {}
+
+protected:
+  auto react(emm_null_st& s, enable_s1_ev ev) -> to_state<emm_deregistered>;
+  auto react(emm_deregistered& s, disable_s1_ev ev) -> to_state<emm_null_st>;
+  auto react(emm_deregistered& s, attach_request_ev ev) -> to_state<emm_registered_initiated>;
+  auto react(emm_registered_initiated& s, emm_registr_fail_ev ev) -> to_state<emm_deregistered>;
+  auto react(emm_registered_initiated& s, attach_accept_ev ev) -> to_state<emm_registered>;
+  auto react(emm_registered& s, sr_initiated_ev ev) -> to_state<emm_service_req_initiated>;
+  auto react(emm_service_req_initiated& s, sr_outcome_ev) -> to_state<emm_registered>;
+  auto react(emm_registered& s, tau_request_ev ev) -> to_state<emm_ta_updating_initiated>;
+  auto react(emm_registered& s, detach_request_ev ev) -> to_state<emm_deregistered_initiated>;
+  auto react(emm_ta_updating_initiated& s, tau_outcome_ev ev) -> to_state<emm_registered>;
+  auto react(emm_ta_updating_initiated& s, tau_reject_other_cause_ev ev) -> to_state<emm_deregistered>;
+  auto react(emm_deregistered_initiated& s, detach_accept_ev ev) -> to_state<emm_deregistered>;
+  template <typename AnyState,
+            typename = typename std::enable_if<not std::is_same<AnyState, emm_deregistered>::value>::type>
+  auto react(AnyState& s, power_off_ev ev) -> to_state<emm_deregistered>;
+
+  state_list<emm_null_st,
+             emm_deregistered,
+             emm_registered_initiated,
+             emm_registered,
+             emm_service_req_initiated,
+             emm_ta_updating_initiated,
+             emm_deregistered_initiated>
+      states{nullptr};
+};
+
+#define LOGEVENT() log_h->info("Received an \"%s\" event\n", srslte::get_type_name(ev).c_str())
+
+auto nas_fsm::react(emm_null_st& s, enable_s1_ev ev) -> to_state<emm_deregistered>
+{
+  LOGEVENT();
+  return {};
+}
+
+auto nas_fsm::react(emm_deregistered& s, disable_s1_ev ev) -> to_state<emm_null_st>
+{
+  LOGEVENT();
+  return {};
+}
+
+auto nas_fsm::react(emm_deregistered& s, attach_request_ev ev) -> to_state<emm_registered_initiated>
+{
+  LOGEVENT();
+  return {};
+}
+
+auto nas_fsm::react(emm_registered_initiated& s, emm_registr_fail_ev ev) -> to_state<emm_deregistered>
+{
+  LOGEVENT();
+  return {};
+}
+
+auto nas_fsm::react(emm_registered_initiated& s, attach_accept_ev ev) -> to_state<emm_registered>
+{
+  LOGEVENT();
+  return {};
+}
+
+auto nas_fsm::react(emm_registered& s, sr_initiated_ev ev) -> to_state<emm_service_req_initiated>
+{
+  LOGEVENT();
+  return {};
+}
+auto nas_fsm::react(emm_service_req_initiated& s, sr_outcome_ev ev) -> to_state<emm_registered>
+{
+  LOGEVENT();
+  return {};
+}
+auto nas_fsm::react(emm_registered& s, tau_request_ev ev) -> to_state<emm_ta_updating_initiated>
+{
+  LOGEVENT();
+  return {};
+}
+auto nas_fsm::react(emm_registered& s, detach_request_ev ev) -> to_state<emm_deregistered_initiated>
+{
+  LOGEVENT();
+  return {};
+}
+auto nas_fsm::react(emm_ta_updating_initiated& s, tau_outcome_ev ev) -> to_state<emm_registered>
+{
+  LOGEVENT();
+  return {};
+}
+auto nas_fsm::react(emm_ta_updating_initiated& s, tau_reject_other_cause_ev ev) -> to_state<emm_deregistered>
+{
+  LOGEVENT();
+  return {};
+}
+auto nas_fsm::react(emm_deregistered_initiated& s, detach_accept_ev ev) -> to_state<emm_deregistered>
+{
+  LOGEVENT();
+  return {};
+}
+template <typename AnyState, typename>
+auto nas_fsm::react(AnyState& s, power_off_ev ev) -> to_state<emm_deregistered>
+{
+  LOGEVENT();
+  return {};
+}
+
+int test_nas_fsm()
+{
+  srslte::log_ref log_h{"NAS"};
+  log_h->set_level(srslte::LOG_LEVEL_INFO);
+  nas_fsm fsm{log_h};
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_null_st>());
+
+  // NULL -> EMM-DEREGISTERED
+  fsm.trigger(nas_fsm::enable_s1_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_deregistered>());
+
+  // EMM-DEREGISTERED -> EMM-NULL -> EMM-DEREGISTERED
+  fsm.trigger(nas_fsm::disable_s1_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_null_st>());
+  fsm.trigger(nas_fsm::enable_s1_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_deregistered>());
+
+  // EMM-DEREGISTERED -> EMM-REGISTERED-INITIATED -> EMM-DEREGISTERED
+  fsm.trigger(nas_fsm::attach_request_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_registered_initiated>());
+  fsm.trigger(nas_fsm::emm_registr_fail_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_deregistered>());
+
+  // EMM-DEREGISTERED -> EMM-REGISTERED-INITIATED -> EMM-REGISTERED
+  fsm.trigger(nas_fsm::attach_request_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_registered_initiated>());
+  fsm.trigger(nas_fsm::attach_accept_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_registered>());
+
+  // EMM-REGISTERED -> EMM-SERVICE-REQUEST-INITIATED -> EMM-REGISTERED
+  fsm.trigger(nas_fsm::sr_initiated_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_service_req_initiated>());
+  fsm.trigger(nas_fsm::sr_outcome_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_registered>());
+
+  // EMM-REGISTERED -> EMM-TRACKING-AREA-UPDATING-INITIATED -> EMM-REGISTERED
+  fsm.trigger(nas_fsm::tau_request_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_ta_updating_initiated>());
+  fsm.trigger(nas_fsm::tau_outcome_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_registered>());
+
+  // EMM-REGISTERED -> EMM-DEREGISTED-INITIATED -> EMM-DEREGISTERED
+  fsm.trigger(nas_fsm::detach_request_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_deregistered_initiated>());
+  fsm.trigger(nas_fsm::detach_accept_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_deregistered>());
+
+  // EMM-DEREGISTERED -> EMM-REGISTERED-INITIATED -> EMM-REGISTERED -> EMM-TRACKING-AREA-UPDATING-INITIATED ->
+  // EMM-DEREGISTERED
+  fsm.trigger(nas_fsm::attach_request_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_registered_initiated>());
+  fsm.trigger(nas_fsm::attach_accept_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_registered>());
+  fsm.trigger(nas_fsm::tau_request_ev{});
+  fsm.trigger(nas_fsm::tau_reject_other_cause_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_deregistered>());
+
+  // EMM-DEREGISTERED -> EMM-REGISTERED-INITIATED -> EMM-REGISTERED -> EMM-SERVICE-REQUEST-INITIATED -> EMM-DEREGISTERED
+  // (power-off)
+  fsm.trigger(nas_fsm::attach_request_ev{});
+  fsm.trigger(nas_fsm::attach_accept_ev{});
+  fsm.trigger(nas_fsm::sr_initiated_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_service_req_initiated>());
+  fsm.trigger(nas_fsm::power_off_ev{});
+  TESTASSERT(fsm.is_in_state<nas_fsm::emm_deregistered>());
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   srslte::log_ref testlog{"TEST"};
@@ -291,6 +482,8 @@ int main()
   testlog->info("TEST \"hsm\" finished successfully\n\n");
   TESTASSERT(test_fsm_proc() == SRSLTE_SUCCESS);
   testlog->info("TEST \"proc\" finished successfully\n\n");
+  TESTASSERT(test_nas_fsm() == SRSLTE_SUCCESS);
+  testlog->info("TEST \"nas fsm\" finished successfully\n\n");
 
   return SRSLTE_SUCCESS;
 }
