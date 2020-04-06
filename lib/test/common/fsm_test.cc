@@ -231,7 +231,12 @@ protected:
   auto react(complete_st& s, reset_ev ev) -> to_state<idle_st>;
 
   // example of uncaught event handling
-  void unhandled_event(int e) { log_h->info("I dont know how to handle an \"int\" event\n"); }
+  template <typename State>
+  srslte::same_state react(State& s, int e)
+  {
+    log_h->info("I dont know how to handle an \"int\" event\n");
+    return {};
+  }
 
   state_list<idle_st, procstate1, complete_st> states{this, idle_st{}, procstate1{}, complete_st{}};
 };
@@ -244,7 +249,7 @@ auto proc1::react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> to_state<procs
 auto proc1::react(procstate1& s, procevent1 ev) -> to_state<complete_st>
 {
   log_h->info("success!\n");
-  return set_success();
+  return set_success(5);
 }
 auto proc1::react(procstate1& s, procevent2 ev) -> to_state<complete_st>
 {
@@ -254,6 +259,9 @@ auto proc1::react(procstate1& s, procevent2 ev) -> to_state<complete_st>
 auto proc1::react(complete_st& s, reset_ev ev) -> to_state<idle_st>
 {
   log_h->info("propagate results %s\n", is_success() ? "success" : "failure");
+  if (is_success()) {
+    log_h->info("result was %d\n", get_result());
+  }
   return {};
 }
 

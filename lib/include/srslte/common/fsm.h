@@ -105,9 +105,14 @@ constexpr bool is_fsm()
   return std::is_base_of<fsm_t<FSM>, FSM>::value;
 }
 template <typename FSM>
-constexpr bool is_nested_fsm()
+constexpr typename std::enable_if<is_fsm<FSM>(), bool>::type is_nested_fsm()
 {
   return is_fsm<FSM>() and FSM::is_nested;
+}
+template <typename FSM>
+constexpr typename std::enable_if<not is_fsm<FSM>(), bool>::type is_nested_fsm()
+{
+  return false;
 }
 
 struct fsm_helper {
@@ -169,42 +174,35 @@ struct fsm_helper {
   struct trigger_visitor {
     trigger_visitor(FSM* f_, Event&& ev_) : f(f_), ev(std::forward<Event>(ev_)) {}
 
-    //! Trigger visitor callback for the current state
+    /**
+     * @brief Trigger visitor callback for the current state.
+     * @description tries to find an fsm::trigger method in case the current state is a nested fsm. If it does not
+     * find it, searches for a react(current_state&, event) method at the current level
+     * Stores True in "result" if state changed. False otherwise
+     */
     template <typename CurrentState>
     void operator()(CurrentState& s)
     {
-      call_trigger(&s);
+      result = call_trigger(&s);
+      if (not result) {
+        auto target_state = f->react(s, std::move(ev));
+        fsm_helper::handle_state_change(f, &target_state, &s);
+        result = not std::is_same<decltype(target_state), srslte::same_state>::value;
+      }
     }
 
-    //! Check if react exists
+    //! In case it is a NestedFSM, call the trigger method
     template <typename State>
-    using enable_if_has_react = decltype(std::declval<FSM>().react(std::declval<State&>(), std::declval<Event>()),
-                                         void());
-
-    //! In case a "react(State&, Event) -> NextState" method is found
-    template <typename State>
-    auto call_trigger(State* current_state) -> enable_if_has_react<State>
+    typename std::enable_if<is_nested_fsm<State>(), bool>::type call_trigger(State* s)
     {
-      auto target_state = f->react(*current_state, std::move(ev));
-      fsm_helper::handle_state_change(f, &target_state, current_state);
+      return s->trigger(std::move(ev));
     }
-    //! No react method found. Try forward trigger to HSM
-    template <typename State, typename... Args>
-    void call_trigger(State* current_state, Args&&... args)
-    {
-      call_trigger_stage2(current_state);
-    }
-    //! In case a react(CurrentState&, Event) method is not found, but we are in a NestedFSM with a trigger method
-    template <typename State>
-    auto call_trigger_stage2(State* s) -> decltype(std::declval<State>().trigger(std::declval<Event>()))
-    {
-      s->trigger(std::move(ev));
-    }
-    //! No trigger or react method found. Do nothing
-    void call_trigger_stage2(...) { f->unhandled_event(std::move(ev)); }
+    //! In case a "trigger(Event)" method is not found
+    bool call_trigger(...) { return false; }
 
     FSM*  f;
     Event ev;
+    bool  result = false;
   };
 };
 
@@ -249,13 +247,12 @@ protected:
     // propagate fsm_t methods
     using Derived::base_t::enter;
     using Derived::base_t::exit;
-    using Derived::base_t::unhandled_event;
+    using Derived::base_t::react;
     // propagate user fsm methods
     using Derived::enter;
     using Derived::exit;
     using Derived::react;
     using Derived::states;
-    using Derived::unhandled_event;
   };
 
 public:
@@ -325,10 +322,11 @@ public:
 
   // Push Events to FSM
   template <typename Ev>
-  void trigger(Ev&& e)
+  bool trigger(Ev&& e)
   {
     fsm_details::fsm_helper::trigger_visitor<derived_view, Ev> visitor{derived(), std::forward<Ev>(e)};
     srslte::visit(visitor, derived()->states);
+    return visitor.result;
   }
 
   template <typename State>
@@ -378,11 +376,12 @@ protected:
     // do nothing by default
   }
 
-  template <typename Event>
-  void unhandled_event(Event&& e)
+  template <typename State, typename Event>
+  srslte::same_state react(State& s, Event&& e)
   {
     log_fsm_activity(
         "FSM \"%s\": Unhandled event caught: \"%s\"\n", get_type_name(*this).c_str(), get_type_name<Event>().c_str());
+    return {};
   }
 
   template <typename... Args>
@@ -454,13 +453,15 @@ class proc_fsm_t : public fsm_t<Derived>
 
 protected:
   using fsm_t<Derived>::log_h;
-  using fsm_t<Derived>::unhandled_event;
   using fsm_t<Derived>::enter;
   using fsm_t<Derived>::exit;
+  using fsm_t<Derived>::react;
 
-  void unhandled_event(srslte::proc_launch_ev<int*> e)
+  template <typename State>
+  auto react(State&, srslte::proc_launch_ev<int*> e) -> srslte::same_state
   {
     log_h->warning("Unhandled event \"launch\" caught when procedure is already running\n");
+    return {};
   }
 
 public:
@@ -508,8 +509,8 @@ protected:
     success = false;
     return {};
   }
-  bool    is_success() const { return success; }
-  Result& get_result() const
+  bool          is_success() const { return success; }
+  const Result& get_result() const
   {
     if (is_success()) {
       return result;
