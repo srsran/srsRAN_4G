@@ -2467,7 +2467,7 @@ int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 int rrc::ue::cqi_free()
 {
   if (cqi_allocated) {
-    for (uint32_t cc_idx = 0; cc_idx < get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list.size(); cc_idx++) {
+    for (uint32_t cc_idx = 0; cc_idx < parent->cfg.cell_list.size(); cc_idx++) {
       if (cqi_res.count(cc_idx) > 0) {
         if (parent->cqi_sched.nof_users[cqi_res[cc_idx].prb_idx][cqi_res[cc_idx].sf_idx] > 0) {
           parent->cqi_sched.nof_users[cqi_res[cc_idx].prb_idx][cqi_res[cc_idx].sf_idx]--;
@@ -2504,7 +2504,7 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
   uint32_t max_users = 12 * c / delta_pucch_shift;
 
   // Allocate all CQI resources for all carriers now
-  for (uint32_t cc_idx = 0; cc_idx < get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list.size(); cc_idx++) {
+  for (uint32_t cc_idx = 0; cc_idx < parent->cfg.cell_list.size(); cc_idx++) {
     // Find freq-time resources with least number of users
     int      i_min = 0, j_min = 0;
     uint32_t min_users = std::numeric_limits<uint32_t>::max();
