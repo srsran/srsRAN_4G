@@ -960,50 +960,49 @@ void rrc::enable_encryption(uint16_t rnti, uint32_t lcid)
 
 void rrc::tti_clock()
 {
-  // pop cmd from queue
+  // pop cmds from queue
   rrc_pdu p;
-  if (not rx_pdu_queue.try_pop(&p)) {
-    return;
-  }
-  // print Rx PDU
-  if (p.pdu != nullptr) {
-    rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
-  }
+  while (rx_pdu_queue.try_pop(&p)) {
+    // print Rx PDU
+    if (p.pdu != nullptr) {
+      rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
+    }
 
-  // check if user exists
-  auto user_it = users.find(p.rnti);
-  if (user_it == users.end()) {
-    rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
-    return;
-  }
+    // check if user exists
+    auto user_it = users.find(p.rnti);
+    if (user_it == users.end()) {
+      rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
+      continue;
+    }
 
-  // handle queue cmd
-  switch (p.lcid) {
-    case RB_ID_SRB0:
-      parse_ul_ccch(p.rnti, std::move(p.pdu));
-      break;
-    case RB_ID_SRB1:
-    case RB_ID_SRB2:
-      parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
-      break;
-    case LCID_REM_USER:
-      rem_user(p.rnti);
-      break;
-    case LCID_REL_USER:
-      process_release_complete(p.rnti);
-      break;
-    case LCID_RLF_USER:
-      process_rl_failure(p.rnti);
-      break;
-    case LCID_ACT_USER:
-      user_it->second->set_activity();
-      break;
-    case LCID_EXIT:
-      rrc_log->info("Exiting thread\n");
-      break;
-    default:
-      rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
-      break;
+    // handle queue cmd
+    switch (p.lcid) {
+      case RB_ID_SRB0:
+        parse_ul_ccch(p.rnti, std::move(p.pdu));
+        break;
+      case RB_ID_SRB1:
+      case RB_ID_SRB2:
+        parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
+        break;
+      case LCID_REM_USER:
+        rem_user(p.rnti);
+        break;
+      case LCID_REL_USER:
+        process_release_complete(p.rnti);
+        break;
+      case LCID_RLF_USER:
+        process_rl_failure(p.rnti);
+        break;
+      case LCID_ACT_USER:
+        user_it->second->set_activity();
+        break;
+      case LCID_EXIT:
+        rrc_log->info("Exiting thread\n");
+        break;
+      default:
+        rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
+        break;
+    }
   }
 }
 
