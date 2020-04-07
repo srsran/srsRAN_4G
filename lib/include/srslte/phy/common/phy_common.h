@@ -451,6 +451,13 @@ SRSLTE_API const char* srslte_ack_nack_feedback_mode_string(srslte_ack_nack_feed
  */
 SRSLTE_API srslte_ack_nack_feedback_mode_t srslte_string_ack_nack_feedback_mode(const char* str);
 
+/**
+ * Returns the number of bits for Rank Indicador reporting depending on the cell
+ *
+ * @param cell
+ */
+SRSLTE_API uint32_t srslte_ri_nof_bits(const srslte_cell_t* cell);
+
 #ifdef __cplusplus
 }
 #endif

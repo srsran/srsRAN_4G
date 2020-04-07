@@ -855,3 +855,16 @@ srslte_ack_nack_feedback_mode_t srslte_string_ack_nack_feedback_mode(const char*
   // Otherwise Normal
   return SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
 }
+
+uint32_t srslte_ri_nof_bits(const srslte_cell_t* cell)
+{
+  uint32_t ret = 0;
+
+  if (cell->nof_ports == 2) {
+    ret = 1;
+  } else if (cell->nof_ports > 2) {
+    ret = 2;
+  }
+
+  return ret;
+}
