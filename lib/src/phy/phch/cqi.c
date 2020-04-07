@@ -322,7 +322,7 @@ int srslte_cqi_size(srslte_cqi_cfg_t* cfg)
   int size = 0;
 
   if (!cfg->data_enable) {
-    return 0;
+    return cfg->ri_len;
   }
 
   switch (cfg->type) {

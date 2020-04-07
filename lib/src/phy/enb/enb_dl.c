@@ -421,7 +421,7 @@ bool srslte_enb_dl_gen_cqi_periodic(const srslte_cell_t*   cell,
 {
   bool cqi_enabled = false;
   if (srslte_cqi_periodic_ri_send(&dl_cfg->cqi_report, tti, cell->frame_type)) {
-    cqi_cfg->ri_len = 1; /* Asumes only 1 bit for RI */
+    cqi_cfg->ri_len = srslte_ri_nof_bits(cell);
     cqi_enabled     = true;
   } else if (srslte_cqi_periodic_send(&dl_cfg->cqi_report, tti, cell->frame_type)) {
     cqi_cfg->type = SRSLTE_CQI_TYPE_WIDEBAND;
@@ -445,7 +445,7 @@ bool srslte_enb_dl_gen_cqi_aperiodic(const srslte_cell_t*   cell,
 
   cqi_cfg->type = SRSLTE_CQI_TYPE_SUBBAND_HL;
   if (dl_cfg->tm == SRSLTE_TM3 || dl_cfg->tm == SRSLTE_TM4) {
-    cqi_cfg->ri_present = true;
+    cqi_cfg->ri_len = srslte_ri_nof_bits(cell);
   }
   cqi_cfg->N                  = (cell->nof_prb > 7) ? srslte_cqi_hl_get_no_subbands(cell->nof_prb) : 0;
   cqi_cfg->four_antenna_ports = (cell->nof_ports == 4);
@@ -493,44 +493,134 @@ void srslte_enb_dl_gen_ack(const srslte_cell_t*      cell,
   *uci_cfg = uci_data.cfg;
 }
 
-static void get_ack_fdd(const srslte_uci_value_t* uci_value, srslte_pdsch_ack_t* pdsch_ack)
+static void enb_dl_get_ack_fdd_all_spatial_bundling(const srslte_uci_value_t* uci_value,
+                                                    srslte_pdsch_ack_t*       pdsch_ack,
+                                                    uint32_t                  nof_tb)
 {
-  uint32_t nof_tb = 1;
-  if (pdsch_ack->transmission_mode > SRSLTE_TM2) {
-    nof_tb = SRSLTE_MAX_CODEWORDS;
-  }
-
-  // Second clause: When 2 CC are configured with PUCCH CS mode and SR is also requested, bundle spatial codewords
-  if (pdsch_ack->nof_cc == SRSLTE_PUCCH_CS_MAX_CARRIERS && uci_value->scheduling_request == true &&
-      pdsch_ack->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
-    for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
-      if (pdsch_ack->cc[cc_idx].m[0].present) {
-        if (uci_value->ack.ack_value[cc_idx] == 1) {
-          for (uint32_t tb = 0; tb < nof_tb; tb++) {
+  for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
+    if (pdsch_ack->cc[cc_idx].m[0].present) {
+      if (uci_value->ack.ack_value[cc_idx] == 1) {
+        for (uint32_t tb = 0; tb < nof_tb; tb++) {
+          // Check that TB was transmitted
+          if (pdsch_ack->cc[cc_idx].m[0].value[tb] != 2) {
             pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx];
           }
-        }
-      }
-    }
-  } else {
-    // By default, in FDD we just pass through all HARQ-ACK bits
-    uint32_t n = 0;
-    for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
-      for (uint32_t tb = 0; tb < nof_tb; tb++, n++) {
-        if (pdsch_ack->cc[cc_idx].m[0].present) {
-          pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[n];
         }
       }
     }
   }
 }
 
+static void
+enb_dl_get_ack_fdd_pcell_skip_drx(const srslte_uci_value_t* uci_value, srslte_pdsch_ack_t* pdsch_ack, uint32_t nof_tb)
+{
+  if (pdsch_ack->cc[0].m[0].present) {
+    if (uci_value->ack.ack_value[0] == 1) {
+      for (uint32_t tb = 0; tb < nof_tb; tb++) {
+        // Check that TB was transmitted
+        if (pdsch_ack->cc[0].m[0].value[tb] != 2) {
+          pdsch_ack->cc[0].m[0].value[tb] = uci_value->ack.ack_value[0];
+        }
+      }
+    }
+  }
+}
+
+static void
+enb_dl_get_ack_fdd_all_keep_drx(const srslte_uci_value_t* uci_value, srslte_pdsch_ack_t* pdsch_ack, uint32_t nof_tb)
+{
+  for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
+    if (pdsch_ack->cc[cc_idx].m[0].present) {
+      if (uci_value->ack.ack_value[cc_idx] == 1) {
+        for (uint32_t tb = 0; tb < nof_tb; tb++) {
+          // Check that TB was transmitted
+          if (pdsch_ack->cc[cc_idx].m[0].value[tb] != 2) {
+            pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx * nof_tb + tb];
+          }
+        }
+      }
+    }
+  }
+}
+
+static void
+get_ack_fdd(const srslte_uci_cfg_t* uci_cfg, const srslte_uci_value_t* uci_value, srslte_pdsch_ack_t* pdsch_ack)
+{
+  // Number of transport blocks for the current Transmission Mode
+  uint32_t nof_tb = 1;
+  if (pdsch_ack->transmission_mode > SRSLTE_TM2) {
+    nof_tb = SRSLTE_MAX_CODEWORDS;
+  }
+
+  // Count number of transmissions
+  uint32_t tb_count     = 0; // All transmissions
+  uint32_t tb_count_cc0 = 0; // Transmissions on PCell
+  for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
+    for (uint32_t tb = 0; tb < nof_tb; tb++) {
+      if (pdsch_ack->cc[cc_idx].m[0].present && pdsch_ack->cc[cc_idx].m[0].value[tb] != 2) {
+        tb_count++;
+      }
+
+      // Save primary cell number of TB
+      if (cc_idx == 0) {
+        tb_count_cc0 = tb_count;
+      }
+    }
+  }
+
+  // Does CSI report need to be transmitted?
+  bool csi_report = uci_cfg->cqi.data_enable || uci_cfg->cqi.ri_len;
+
+  switch (pdsch_ack->ack_nack_feedback_mode) {
+
+    case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL:
+      // Get ACK from PCell only, skipping DRX
+      enb_dl_get_ack_fdd_pcell_skip_drx(uci_value, pdsch_ack, nof_tb);
+      break;
+    case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS:
+      if (pdsch_ack->nof_cc == 1) {
+        enb_dl_get_ack_fdd_pcell_skip_drx(uci_value, pdsch_ack, nof_tb);
+      } else if (pdsch_ack->is_pusch_available) {
+        enb_dl_get_ack_fdd_all_keep_drx(uci_value, pdsch_ack, nof_tb);
+      } else if (uci_value->scheduling_request) {
+        // For FDD with PUCCH format 1b with channel selection, when both HARQ-ACK and SR are transmitted in the same
+        // sub-frame a UE shall transmit the HARQ-ACK on its assigned HARQ-ACK PUCCH resource with channel selection as
+        // defined in subclause 10.1.2.2.1 for a negative SR transmission and transmit one HARQ-ACK bit per serving cell
+        // on its assigned SR PUCCH resource for a positive SR transmission according to the following:
+        // − if only one transport block or a PDCCH indicating downlink SPS release is detected on a serving cell, the
+        //   HARQ-ACK bit for the serving cell is the HARQ-ACK bit corresponding to the transport block or the PDCCH
+        //   indicating downlink SPS release;
+        // − if two transport blocks are received on a serving cell, the HARQ-ACK bit for the serving cell is generated
+        //   by spatially bundling the HARQ-ACK bits corresponding to the transport blocks;
+        // − if neither PDSCH transmission for which HARQ-ACK response shall be provided nor PDCCH indicating
+        //   downlink SPS release is detected for a serving cell, the HARQ-ACK bit for the serving cell is set to NACK;
+        enb_dl_get_ack_fdd_all_spatial_bundling(uci_value, pdsch_ack, nof_tb);
+      } else if (csi_report) {
+        enb_dl_get_ack_fdd_pcell_skip_drx(uci_value, pdsch_ack, nof_tb);
+      } else {
+        enb_dl_get_ack_fdd_all_keep_drx(uci_value, pdsch_ack, nof_tb);
+      }
+      break;
+    case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3:
+      if (tb_count == tb_count_cc0) {
+        enb_dl_get_ack_fdd_pcell_skip_drx(uci_value, pdsch_ack, nof_tb);
+      } else {
+        enb_dl_get_ack_fdd_all_keep_drx(uci_value, pdsch_ack, nof_tb);
+      }
+      break;
+    case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_ERROR:
+    default:; // Do nothing
+      break;
+  }
+}
+
 void srslte_enb_dl_get_ack(const srslte_cell_t*      cell,
+                           const srslte_uci_cfg_t*   uci_cfg,
                            const srslte_uci_value_t* uci_value,
                            srslte_pdsch_ack_t*       pdsch_ack)
 {
   if (cell->frame_type == SRSLTE_FDD) {
-    get_ack_fdd(uci_value, pdsch_ack);
+    get_ack_fdd(uci_cfg, uci_value, pdsch_ack);
   } else {
     ERROR("Not implemented for TDD\n");
   }

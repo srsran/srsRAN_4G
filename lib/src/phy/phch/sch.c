@@ -1025,7 +1025,7 @@ static int uci_decode_ri_ack(srslte_sch_t*       q,
 
   // If there is RI and CQI, assume RI = 1 for the purpose of RI/ACK decoding (3GPP 36.212 Clause 5.2.4.1. )
   if (cfg->uci_cfg.cqi.data_enable) {
-    if (cfg->uci_cfg.cqi.type == SRSLTE_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_present) {
+    if (cfg->uci_cfg.cqi.type == SRSLTE_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_len) {
       cfg->uci_cfg.cqi.rank_is_not_one = false;
     }
   }
@@ -1075,7 +1075,7 @@ static int uci_decode_ri_ack(srslte_sch_t*       q,
 
   // Now set correct RI
   if (cfg->uci_cfg.cqi.data_enable) {
-    if (cfg->uci_cfg.cqi.type == SRSLTE_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_present) {
+    if (cfg->uci_cfg.cqi.type == SRSLTE_CQI_TYPE_SUBBAND_HL && cfg->uci_cfg.cqi.ri_len) {
       cfg->uci_cfg.cqi.rank_is_not_one = uci_data->ri > 0;
     }
   }

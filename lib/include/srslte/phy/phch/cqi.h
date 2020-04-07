@@ -120,7 +120,6 @@ typedef enum {
 
 typedef struct SRSLTE_API {
   bool              data_enable;
-  bool              ri_present;
   bool              pmi_present;
   bool              four_antenna_ports;   ///< If cell has 4 antenna ports then true otherwise false
   bool              rank_is_not_one;      ///< If rank > 1 then true otherwise false

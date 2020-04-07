@@ -361,10 +361,13 @@ void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_
   pdsch_ack_m.resource.tpc_for_pucch = dci.tpc_pucch;
 
   // Set TB info
-  for (uint32_t i = 0; i < srslte_dci_format_max_tb(dci.format); i++) {
-    if (SRSLTE_DCI_IS_TB_EN(dci.tb[i])) {
-      pdsch_ack_m.value[i] = 1;
+  for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_CODEWORDS; tb_idx++) {
+    // Count only if the TB is enabled and the TB index is valid for the DCI format
+    if (SRSLTE_DCI_IS_TB_EN(dci.tb[tb_idx]) and tb_idx < srslte_dci_format_max_tb(dci.format)) {
+      pdsch_ack_m.value[tb_idx] = 1;
       pdsch_ack_m.k++;
+    } else {
+      pdsch_ack_m.value[tb_idx] = 2;
     }
   }
 }
@@ -374,7 +377,7 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
                              uint16_t          rnti,
                              bool              aperiodic_cqi_request,
                              bool              is_pusch_available,
-                             srslte_uci_cfg_t& uci_cfg) const
+                             srslte_uci_cfg_t& uci_cfg)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -391,9 +394,12 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
     return false;
   }
 
-  const auto& ue           = ue_db.at(rnti);
-  const auto& pcell_cfg    = ue.cell_info[0].phy_cfg;
-  bool        uci_required = false;
+  common_ue&               ue           = ue_db.at(rnti);
+  const srslte::phy_cfg_t& pcell_cfg    = ue.cell_info[0].phy_cfg;
+  bool                     uci_required = false;
+
+  const cell_info_t&   pcell_info = ue.cell_info[0];
+  const srslte_cell_t& pcell      = cell_cfg_list->at(pcell_info.enb_cc_idx).cell;
 
   // Check if SR opportunity (will only be used in PUCCH)
   uci_cfg.is_scheduling_request_tti = (srslte_ue_ul_sr_send_tti(&pcell_cfg.ul_cfg.pucch, tti) == 1);
@@ -420,20 +426,17 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   // If no periodic CQI report required, check aperiodic reporting
   if ((not periodic_cqi_required) and aperiodic_cqi_request) {
     // Aperiodic only supported for PCell
-    const cell_info_t&     pcell_info = ue.cell_info[0];
-    const srslte_cell_t&   cell       = cell_cfg_list->at(pcell_info.enb_cc_idx).cell;
-    const srslte_dl_cfg_t& dl_cfg     = pcell_info.phy_cfg.dl_cfg;
+    const srslte_dl_cfg_t& dl_cfg = pcell_info.phy_cfg.dl_cfg;
 
-    uci_required = srslte_enb_dl_gen_cqi_aperiodic(&cell, &dl_cfg, pcell_info.last_ri, &uci_cfg.cqi);
+    uci_required = srslte_enb_dl_gen_cqi_aperiodic(&pcell, &dl_cfg, pcell_info.last_ri, &uci_cfg.cqi);
   }
 
   // Get pending ACKs from PDSCH
-  srslte_dl_sf_cfg_t dl_sf_cfg = {};
-  dl_sf_cfg.tti                = tti;
-  const srslte_cell_t& cell    = cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell;
-  srslte_pdsch_ack_t   ack_info = ue.pdsch_ack[TTIMOD(tti)];
-  ack_info.is_pusch_available   = is_pusch_available;
-  srslte_enb_dl_gen_ack(&cell, &dl_sf_cfg, &ack_info, &uci_cfg);
+  srslte_dl_sf_cfg_t dl_sf_cfg  = {};
+  dl_sf_cfg.tti                 = tti;
+  srslte_pdsch_ack_t& pdsch_ack = ue.pdsch_ack[TTIMOD(tti)];
+  pdsch_ack.is_pusch_available  = is_pusch_available;
+  srslte_enb_dl_gen_ack(&pcell, &dl_sf_cfg, &pdsch_ack, &uci_cfg);
   uci_required |= (srslte_uci_cfg_total_ack(&uci_cfg) > 0);
 
   // Return whether UCI needs to be decoded
@@ -468,15 +471,17 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
 
   // Get ACK info
   srslte_pdsch_ack_t& pdsch_ack = ue.pdsch_ack[TTIMOD(tti)];
-  srslte_enb_dl_get_ack(&cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell, &uci_value, &pdsch_ack);
+  srslte_enb_dl_get_ack(&cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell, &uci_cfg, &uci_value, &pdsch_ack);
 
   // Iterate over the ACK information
   for (uint32_t scell_idx = 0; scell_idx < SRSLTE_MAX_CARRIERS; scell_idx++) {
     const srslte_pdsch_ack_cc_t& pdsch_ack_cc = pdsch_ack.cc[scell_idx];
     for (uint32_t m = 0; m < pdsch_ack_cc.M; m++) {
       if (pdsch_ack_cc.m[m].present) {
-        for (uint32_t tb = 0; tb < pdsch_ack_cc.m[m].k; tb++) {
-          stack->ack_info(tti, rnti, ue.cell_info[scell_idx].enb_cc_idx, tb, pdsch_ack_cc.m[m].value[tb] == 1);
+        for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
+          if (pdsch_ack_cc.m[m].value[tb] != 2) {
+            stack->ack_info(tti, rnti, ue.cell_info[scell_idx].enb_cc_idx, tb, pdsch_ack_cc.m[m].value[tb] == 1);
+          }
         }
       }
     }
@@ -511,12 +516,6 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
       stack->cqi_info(tti, rnti, cqi_cc_idx, cqi_value);
     }
 
-    // Rank indicator (TM3 and TM4)
-    if (uci_cfg.cqi.ri_len) {
-      stack->ri_info(tti, rnti, cqi_cc_idx, uci_value.ri);
-      cqi_scell_info.last_ri = uci_value.ri;
-    }
-
     // Precoding Matrix indicator (TM4)
     if (uci_cfg.cqi.pmi_present) {
       uint8_t pmi_value = 0;
@@ -533,6 +532,12 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
       }
       stack->pmi_info(tti, rnti, cqi_cc_idx, pmi_value);
     }
+  }
+
+  // Rank indicator (TM3 and TM4)
+  if (uci_cfg.cqi.ri_len) {
+    stack->ri_info(tti, rnti, cqi_cc_idx, uci_value.ri);
+    cqi_scell_info.last_ri = uci_value.ri;
   }
 }
 

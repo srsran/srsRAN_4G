@@ -1205,7 +1205,7 @@ static int dci_format2AB_unpack(srslte_cell_t*      cell,
     dci->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(cell->nof_ports));
   }
 
-  // Apply TB swap table
+  // Apply TB swap table according to 3GPP 36.212 R8, section 5.3.3.1.5
   if (nof_tb == 2) {
     // Table 5.3.3.1.5-1
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
@@ -1213,10 +1213,6 @@ static int dci_format2AB_unpack(srslte_cell_t*      cell,
     }
   } else {
     // Table 5.3.3.1.5-2
-    if (!SRSLTE_DCI_IS_TB_EN(dci->tb[0])) {
-      dci->tb[0] = dci->tb[1];
-    }
-    SRSLTE_DCI_TB_DISABLE(dci->tb[1]);
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       dci->tb[i].cw_idx = 0;
     }

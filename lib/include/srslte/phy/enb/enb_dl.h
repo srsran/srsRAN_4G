@@ -151,10 +151,13 @@ SRSLTE_API void srslte_enb_dl_gen_ack(const srslte_cell_t*      cell,
  * info itself. Note that it expects that the HARQ-ACK info has been set prior the UCI Data decoding.
  *
  * @param cell points to the physical layer cell parameters
+ * @param uci_cfg points to the UCI configration
  * @param uci_value points to the received UCI values
  * @param ack_info is the HARQ-ACK information
  */
-SRSLTE_API void
-srslte_enb_dl_get_ack(const srslte_cell_t* cell, const srslte_uci_value_t* uci_value, srslte_pdsch_ack_t* pdsch_ack);
+SRSLTE_API void srslte_enb_dl_get_ack(const srslte_cell_t*      cell,
+                                      const srslte_uci_cfg_t*   uci_cfg,
+                                      const srslte_uci_value_t* uci_value,
+                                      srslte_pdsch_ack_t*       pdsch_ack);
 
 #endif // SRSLTE_ENB_DL_H

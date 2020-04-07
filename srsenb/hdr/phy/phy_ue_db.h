@@ -266,7 +266,7 @@ public:
                     uint16_t          rnti,
                     bool              aperiodic_cqi_request,
                     bool              is_pusch_available,
-                    srslte_uci_cfg_t& uci_cfg) const;
+                    srslte_uci_cfg_t& uci_cfg);
 
   /**
    * Sends the decoded Uplink Control Information by PUCCH or PUSCH to MAC
