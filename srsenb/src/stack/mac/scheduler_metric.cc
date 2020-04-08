@@ -109,6 +109,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
     }
     if (code == alloc_outcome_t::DCI_COLLISION) {
       // No DCIs available for this user. Move to next
+      log_h->warning("SCHED: Couldn't find space in PDCCH for DL retx for rnti=0x%x\n", user->get_rnti());
       return nullptr;
     }
 
@@ -120,6 +121,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
         return h;
       }
       if (code == alloc_outcome_t::DCI_COLLISION) {
+        log_h->warning("SCHED: Couldn't find space in PDCCH for DL retx for rnti=0x%x\n", user->get_rnti());
         return nullptr;
       }
     }
@@ -137,6 +139,8 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
         code = tti_alloc->alloc_dl_user(user, newtx_mask, h->get_id());
         if (code == alloc_outcome_t::SUCCESS) {
           return h;
+        } else if (code == alloc_outcome_t::DCI_COLLISION) {
+          log_h->warning("SCHED: Couldn't find space in PDCCH for DL tx for rnti=0x%x\n", user->get_rnti());
         }
       }
     }
