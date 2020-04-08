@@ -19,6 +19,7 @@
  *
  */
 
+#include "srslte/common/multiqueue.h"
 #include <functional>
 #include <list>
 #include <memory>
@@ -73,7 +74,7 @@ class callback_group_t
 {
 public:
   using callback_id_t = uint32_t;
-  using callback_t    = std::function<void(Args...)>;
+  using callback_t    = srslte::move_function<Args...>;
 
   //! register callback, that gets called once
   callback_id_t on_next_call(callback_t f_)
@@ -93,11 +94,11 @@ public:
 
   // call all callbacks
   template <typename... ArgsRef>
-  void operator()(const ArgsRef&... args)
+  void operator()(ArgsRef&&... args)
   {
     for (auto& f : func_list) {
       if (f.active) {
-        f.func(args...);
+        f.func(std::forward<ArgsRef>(args)...);
         if (not f.call_always) {
           f.active = false;
         }
@@ -274,7 +275,7 @@ public:
   using result_type          = ResultType;
   using proc_result_type     = proc_result_t<result_type>;
   using proc_future_type     = proc_future_t<result_type>;
-  using then_callback_list_t = callback_group_t<proc_result_type>;
+  using then_callback_list_t = callback_group_t<const proc_result_type&>;
   using callback_t           = typename then_callback_list_t::callback_t;
   using callback_id_t        = typename then_callback_list_t::callback_id_t;
 
@@ -312,8 +313,8 @@ public:
   }
 
   //! methods to schedule continuation tasks
-  callback_id_t then(const callback_t& c) { return complete_callbacks.on_next_call(c); }
-  callback_id_t then_always(const callback_t& c) { return complete_callbacks.on_every_call(c); }
+  callback_id_t then(callback_t c) { return complete_callbacks.on_next_call(std::move(c)); }
+  callback_id_t then_always(callback_t c) { return complete_callbacks.on_every_call(std::move(c)); }
 
   //! launch a procedure, returning true if successful or running and false if it error or it failed to launch
   template <class... Args>
@@ -363,7 +364,7 @@ protected:
     // call T::then() if it exists
     proc_detail::optional_then(proc_ptr.get(), &result);
     // signal continuations
-    complete_callbacks(result);
+    complete_callbacks(std::move(result));
     // back to inactive
     proc_detail::optional_clear(proc_ptr.get());
     proc_state = proc_status_t::idle;
