@@ -63,6 +63,7 @@ public:
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                   const uint8_t&                                 lcid,
                                   const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
+  void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);

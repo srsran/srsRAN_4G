@@ -4007,6 +4007,17 @@ liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_STRUCT*            
 LIBLTE_ERROR_ENUM
 liblte_mme_pack_activate_test_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT* msg, uint8 sec_hdr_type, uint32 count);
 
+// UE test mode type
+typedef enum {
+  LIBLTE_MME_UE_TEST_LOOP_MODE_A = 0,
+  LIBLTE_MME_UE_TEST_LOOP_MODE_B,
+  LIBLTE_MME_UE_TEST_LOOP_MODE_C,
+  LIBLTE_MME_UE_TEST_LOOP_MODE_N_ITEMS,
+} LIBLTE_MME_UE_TEST_LOOP_MODE_ENUM;
+static const char liblte_ue_test_loop_mode_text[LIBLTE_MME_UE_TEST_LOOP_MODE_N_ITEMS][20] = {"UE test loop mode A",
+                                                                                             "UE test loop mode B",
+                                                                                             "UE test loop mode C"};
+
 /*********************************************************************
     Message Name: CLOSE UE TEST LOOP COMPLETE
 

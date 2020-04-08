@@ -29,7 +29,7 @@
 class ttcn3_ue : public phy_interface_syssim, public gw_interface_stack
 {
 public:
-  ttcn3_ue() {}
+  ttcn3_ue() : tft_matcher(&log) {}
 
   virtual ~ttcn3_ue() {}
 
@@ -133,14 +133,95 @@ public:
 
   // GW interface
   void add_mch_port(uint32_t lcid, uint32_t port) {}
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+  {
+    log.debug_hex(pdu->msg, pdu->N_bytes, "Rx PDU (%d B) on lcid=%d\n", pdu->N_bytes, lcid);
+    switch (test_loop_mode) {
+      case TEST_LOOP_INACTIVE:
+        log.warning("Test loop inactive. Dropping PDU.\n");
+        break;
+      case TEST_LOOP_MODE_A_ACTIVE:
+        log.error("Test loop mode A not implemented. Dropping PDU.\n");
+        break;
+      case TEST_LOOP_MODE_B_ACTIVE:
+        // Section 5.4.4 in TS 36.509
+        if (pdu_delay_timer.is_running()) {
+          pdu_queue[lcid].push(std::move(pdu));
+        } else {
+          if (pdu_delay_timer.is_valid()) {
+            pdu_queue[lcid].push(std::move(pdu));
+            pdu_delay_timer.run(); // timer is already set
+          } else {
+            loop_back_pdu_with_tft(lcid, std::move(pdu));
+          }
+        }
+        break;
+      case TEST_LOOP_MODE_C_ACTIVE:
+        log.error("Test loop mode C not implemented. Dropping PDU.\n");
+        break;
+    }
+  }
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
   int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str) { return 0; }
+
   int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                   const uint8_t&                                 lcid,
                                   const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
   {
-    return 0;
+    return tft_matcher.apply_traffic_flow_template(eps_bearer_id, lcid, tft);
+  }
+
+  void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms_ = 0)
+  {
+    test_loop_mode = mode;
+    switch (test_loop_mode) {
+      case TEST_LOOP_INACTIVE:
+        // deactivate timer
+        log.info("Deactivating Test Loop Mode\n");
+        pdu_delay_timer.release();
+        break;
+      case TEST_LOOP_MODE_A_ACTIVE:
+        log.error("Test loop mode A not implemented\n");
+        break;
+      case TEST_LOOP_MODE_B_ACTIVE:
+        log.info("Activating Test loop mode B with %d ms PDU delay\n", ip_pdu_delay_ms_);
+        // only create timer if needed
+        if (ip_pdu_delay_ms_ > 0) {
+          pdu_delay_timer = stack->get_unique_timer();
+          pdu_delay_timer.set(ip_pdu_delay_ms_, [this](uint32_t tid) { timer_expired(tid); });
+        }
+        break;
+      case TEST_LOOP_MODE_C_ACTIVE:
+        log.error("Test loop mode A not implemented\n");
+        break;
+    }
+  }
+
+  void timer_expired(uint32_t timeout_id)
+  {
+    if (timeout_id == pdu_delay_timer.id()) {
+      log.info("Testmode B PDU delay timer expired\n");
+      for (auto& bearer_pdu_queue : pdu_queue) {
+        log.info("Delivering %zd buffered PDUs for LCID=%d\n", bearer_pdu_queue.second.size(), bearer_pdu_queue.first);
+        while (not pdu_queue.empty()) {
+          srslte::unique_byte_buffer_t pdu;
+          bearer_pdu_queue.second.try_pop(&pdu);
+          loop_back_pdu_with_tft(bearer_pdu_queue.first, std::move(pdu));
+        }
+      }
+    }
+  }
+
+  void loop_back_pdu_with_tft(uint32_t input_lcid, srslte::unique_byte_buffer_t pdu)
+  {
+    uint8_t output_lcid = tft_matcher.check_tft_filter_match(pdu);
+    log.info_hex(pdu->msg,
+                 pdu->N_bytes,
+                 "Rx PDU (%d B) on lcid=%d, looping back to lcid=%d\n",
+                 pdu->N_bytes,
+                 input_lcid,
+                 output_lcid);
+    stack->write_sdu(input_lcid, std::move(pdu), false);
   }
 
 private:
@@ -150,6 +231,11 @@ private:
   // Generic logger members
   srslte::logger*    logger = nullptr;
   srslte::log_filter log; // Own logger for UE
+
+  test_loop_mode_state_t                                         test_loop_mode = TEST_LOOP_INACTIVE;
+  srslte::timer_handler::unique_timer                            pdu_delay_timer;
+  std::map<uint32_t, block_queue<srslte::unique_byte_buffer_t> > pdu_queue; // A PDU queue for each DRB
+  tft_pdu_matcher                                                tft_matcher;
 
   all_args_t args = {};
 };

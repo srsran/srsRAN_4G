@@ -192,6 +192,11 @@ int gw::apply_traffic_flow_template(const uint8_t&                              
   return tft_matcher.apply_traffic_flow_template(erab_id, lcid, tft);
 }
 
+void gw::set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms)
+{
+  log.error("UE test loop mode not supported\n");
+}
+
 /*******************************************************************************
   RRC interface
 *******************************************************************************/

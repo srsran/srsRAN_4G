@@ -700,6 +700,8 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
     // TODO: Handle deactivate test mode and ue open test loop
     case LIBLTE_MME_MSG_TYPE_OPEN_UE_TEST_LOOP:
     case LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE:
+      gw->set_test_loop_mode(gw_interface_nas::TEST_LOOP_INACTIVE);
+      break;
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
       return;
@@ -1678,11 +1680,23 @@ void nas::parse_activate_test_mode(uint32_t lcid, unique_byte_buffer_t pdu)
 
 void nas::parse_close_ue_test_loop(uint32_t lcid, unique_byte_buffer_t pdu)
 {
-  nas_log->info("Received Close UE test loop\n");
+  LIBLTE_MME_UE_TEST_LOOP_MODE_ENUM mode = static_cast<LIBLTE_MME_UE_TEST_LOOP_MODE_ENUM>(pdu->msg[8]);
+  nas_log->info("Received Close UE test loop for %s\n", liblte_ue_test_loop_mode_text[mode]);
+  switch (mode) {
+    case LIBLTE_MME_UE_TEST_LOOP_MODE_A:
+      gw->set_test_loop_mode(gw_interface_nas::TEST_LOOP_MODE_A_ACTIVE);
+      break;
+    case LIBLTE_MME_UE_TEST_LOOP_MODE_B:
+      gw->set_test_loop_mode(gw_interface_nas::TEST_LOOP_MODE_B_ACTIVE, pdu->msg[9] * 1000);
+      break;
+    case LIBLTE_MME_UE_TEST_LOOP_MODE_C:
+      gw->set_test_loop_mode(gw_interface_nas::TEST_LOOP_MODE_C_ACTIVE);
+      break;
+    default:
+      break;
+  }
 
   ctxt.rx_count++;
-
-  // TODO: Save the test loop mode
 
   send_close_ue_test_loop_complete();
 }

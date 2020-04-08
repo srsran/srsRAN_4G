@@ -89,6 +89,20 @@ public:
   virtual int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
                                           const uint8_t&                                 lcid,
                                           const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)                      = 0;
+
+  typedef enum {
+    TEST_LOOP_INACTIVE = 0,
+    TEST_LOOP_MODE_A_ACTIVE,
+    TEST_LOOP_MODE_B_ACTIVE,
+    TEST_LOOP_MODE_C_ACTIVE
+  } test_loop_mode_state_t;
+
+  /**
+   * Updates the test loop mode. The IP delay parameter is only valid for Mode B.
+   * @param mode
+   * @param ip_pdu_delay_ms The PDU delay in ms
+   */
+  virtual void set_test_loop_mode(const test_loop_mode_state_t mode, const uint32_t ip_pdu_delay_ms = 0) = 0;
 };
 
 // GW interface for RRC
