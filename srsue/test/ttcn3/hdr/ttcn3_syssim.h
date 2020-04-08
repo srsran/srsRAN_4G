@@ -228,12 +228,6 @@ public:
       }
     }
 
-    // trying to apply pending PDCP config
-    if (not pending_bearer_config.empty()) {
-      log->debug("Trying to apply pending PDCP config\n");
-      pending_bearer_config = try_set_pdcp_security(pending_bearer_config);
-    }
-
     // process events, if any
     while (not event_queue.empty()) {
       ss_events_t ev = event_queue.wait_pop();
@@ -512,7 +506,7 @@ public:
       return;
     }
 
-    log->debug_hex(payload, len, "Received MAC PDU (%d B)\n", len);
+    log->info_hex(payload, len, "UL MAC PDU (%d B):\n", len);
 
     // Parse MAC
     mac_msg_ul.init_rx(len, true);
@@ -524,7 +518,7 @@ public:
         // Push PDU to our own RLC (needed to handle status reporting, etc. correctly
         ss_mac_log->info_hex(mac_msg_ul.get()->get_sdu_ptr(),
                              mac_msg_ul.get()->get_payload_size(),
-                             "Route PDU to LCID=%d (%d B)\n",
+                             "Route UL PDU to LCID=%d (%d B)\n",
                              mac_msg_ul.get()->get_sdu_lcid(),
                              mac_msg_ul.get()->get_payload_size());
         rlc.write_pdu(
@@ -1063,69 +1057,15 @@ public:
                .integ_algo  = integ_algo_,
                .cipher_algo = cipher_algo_};
 
-    // try to apply security config on bearers
-    pending_bearer_config = try_set_pdcp_security(bearers);
-  }
-
-  /**
-   * Try to configure PDCP security on the list of provided bearers.
-   *
-   * The function iterates over the map of bearers and tries to set/update
-   * the security settings, if and only if, the current DL/UL counter match
-   * with the requested values in the bearer map.
-   *
-   * The function returns a map of bearers for which it could not update the
-   * configuration.
-   *
-   * @param bearers for which PDCP configuration should be updated
-   * @return list of bearers for which update could not be carried out (fully)
-   */
-  ttcn3_helpers::pdcp_count_map_t try_set_pdcp_security(ttcn3_helpers::pdcp_count_map_t bearers)
-  {
-    ttcn3_helpers::pdcp_count_map_t update_needed_list;
-
     for (auto& lcid : bearers) {
-      uint16_t dl_sn = 0, ul_sn = 0, tmp = 0;
-      pdcp.get_bearer_status(lcid.rb_id, &dl_sn, &tmp, &ul_sn, &tmp);
+      pdcp.config_security(lcid.rb_id, sec_cfg);
 
-      if (lcid.dl_value_valid) {
-        // make sure the current DL SN value match
-        if (lcid.dl_value == dl_sn) {
-          log->info("Setting AS security for LCID=%d in DL direction\n", lcid.rb_id);
-          pdcp.config_security(lcid.rb_id, sec_cfg);
-          pdcp.enable_integrity(lcid.rb_id, DIRECTION_TX);
-          pdcp.enable_encryption(lcid.rb_id, DIRECTION_TX);
-          lcid.dl_value_valid = false;
-        } else {
-          log->info("Delaying AS security configuration of lcid=%d. DL: %d != %d\n", lcid.rb_id, lcid.dl_value, dl_sn);
-        }
-      } else {
-        log->debug("Downlink AS Security already applied for lcid=%d\n", lcid.rb_id);
-      }
+      log->info("Setting AS security for LCID=%d in DL direction from SN=%d onwards\n", lcid.rb_id, lcid.dl_value);
+      pdcp.enable_security_timed(lcid.rb_id, DIRECTION_TX, lcid.dl_value);
 
-      if (lcid.ul_value_valid) {
-        // Check UL count
-        if (lcid.ul_value == ul_sn) {
-          log->info("Setting AS security for LCID=%d in UL direction\n", lcid.rb_id);
-          pdcp.config_security(lcid.rb_id, sec_cfg);
-          pdcp.enable_integrity(lcid.rb_id, DIRECTION_RX);
-          pdcp.enable_encryption(lcid.rb_id, DIRECTION_RX);
-          lcid.ul_value_valid = false;
-        } else {
-          log->info("Delaying AS security configuration of lcid=%d. UL: %d != %d\n", lcid.rb_id, lcid.ul_value, ul_sn);
-        }
-      } else {
-        log->debug("Uplink AS Security already applied for lcid=%d\n", lcid.rb_id);
-      }
-
-      // re-consider if at least one direction needs reconfiguration
-      if (lcid.dl_value_valid || lcid.ul_value_valid) {
-        log->debug("Adding LCID=%d for later configuration (size=%zd)\n", lcid.rb_id, update_needed_list.size());
-        update_needed_list.push_back(lcid);
-      }
+      log->info("Setting AS security for LCID=%d in UL direction from SN=%d onwards\n", lcid.rb_id, lcid.ul_value);
+      pdcp.enable_security_timed(lcid.rb_id, DIRECTION_RX, lcid.ul_value);
     }
-
-    return update_needed_list;
   }
 
   void release_as_security(const ttcn3_helpers::timing_info_t timing)
