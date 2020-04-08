@@ -34,7 +34,7 @@
 
 namespace srsue {
 
-gw::gw() : thread("GW"), pool(srslte::byte_buffer_pool::get_instance()) {}
+gw::gw() : thread("GW"), pool(srslte::byte_buffer_pool::get_instance()), tft_matcher(&log) {}
 
 int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack_)
 {
@@ -123,7 +123,6 @@ void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   } else {
     // Only handle IPv4 and IPv6 packets
     struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
-    struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
     if (ip_pkt->version == 4 || ip_pkt->version == 6) {
       int n = write(tun_fd, pdu->msg, pdu->N_bytes);
       if (n > 0 && (pdu->N_bytes != (uint32_t)n)) {
@@ -179,6 +178,7 @@ int gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t
   }
 
   default_lcid = lcid;
+  tft_matcher.set_default_lcid(lcid);
 
   // Setup a thread to receive packets from the TUN device
   start(GW_THREAD_PRIO);
@@ -189,24 +189,7 @@ int gw::apply_traffic_flow_template(const uint8_t&                              
                                     const uint8_t&                                 lcid,
                                     const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
-  std::lock_guard<std::mutex> lock(tft_mutex);
-  switch (tft->tft_op_code) {
-    case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
-      for (int i = 0; i < tft->packet_filter_list_size; i++) {
-        log.info("New packet filter for TFT\n");
-        tft_packet_filter_t filter(erab_id, lcid, tft->packet_filter_list[i], &log);
-        auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
-        if (it.second == false) {
-          log.error("Error inserting TFT Packet Filter\n");
-          return SRSLTE_ERROR_CANT_START;
-        }
-      }
-      break;
-    default:
-      log.error("Unhandled TFT OP code\n");
-      return SRSLTE_ERROR_CANT_START;
-  }
-  return SRSLTE_SUCCESS;
+  return tft_matcher.apply_traffic_flow_template(erab_id, lcid, tft);
 }
 
 /*******************************************************************************
@@ -285,7 +268,7 @@ void gw::run_thread()
             break;
           }
 
-          uint8_t lcid = check_tft_filter_match(pdu);
+          uint8_t lcid = tft_matcher.check_tft_filter_match(pdu);
           // Send PDU directly to PDCP
           if (stack->is_lcid_enabled(lcid)) {
             pdu->set_timestamp();
@@ -316,21 +299,6 @@ void gw::run_thread()
   }
   running = false;
   log.info("GW IP receiver thread exiting.\n");
-}
-
-uint8_t gw::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu)
-{
-  std::lock_guard<std::mutex> lock(tft_mutex);
-  uint8_t                     lcid = default_lcid;
-  for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
-    bool match = filter_pair.second.match(pdu);
-    if (match) {
-      lcid = filter_pair.second.lcid;
-      log.debug("Found filter match -- EPS bearer Id %d, LCID %d\n", filter_pair.second.eps_bearer_id, lcid);
-      break;
-    }
-  }
-  return lcid;
 }
 
 /**************************/
@@ -538,7 +506,7 @@ bool gw::find_ipv6_addr(struct in6_addr* in6_out)
   req.r.ifa_family = AF_INET6;
 
   // Fill up all the attributes for the rtnetlink header.
-  // The lenght is important. 16 signifies we are requesting IPv6 addresses
+  // The length is important. 16 signifies we are requesting IPv6 addresses
   rta          = (struct rtattr*)(((char*)&req) + NLMSG_ALIGN(req.n.nlmsg_len));
   rta->rta_len = RTA_LENGTH(16);
 

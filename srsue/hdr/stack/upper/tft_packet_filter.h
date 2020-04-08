@@ -25,6 +25,8 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
+#include "srslte/common/log_filter.h"
+#include <mutex>
 
 namespace srsue {
 
@@ -99,6 +101,29 @@ public:
   bool match_type_of_service(const srslte::unique_byte_buffer_t& pdu);
   bool match_flow_label(const srslte::unique_byte_buffer_t& pdu);
   bool match_port(const srslte::unique_byte_buffer_t& pdu);
+};
+
+/**
+ * TFT PDU matcher class used by GW and TTCN3 DUT testloop handler
+ */
+class tft_pdu_matcher
+{
+public:
+  tft_pdu_matcher(srslte::log_filter* log_) : log(log_){};
+  ~tft_pdu_matcher(){};
+
+  void    set_default_lcid(const uint8_t lcid);
+  uint8_t check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu);
+  int     apply_traffic_flow_template(const uint8_t&                                 erab_id,
+                                      const uint8_t&                                 lcid,
+                                      const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
+
+private:
+  srslte::log_filter*                             log          = nullptr;
+  uint8_t                                         default_lcid = 0;
+  std::mutex                                      tft_mutex;
+  typedef std::map<uint16_t, tft_packet_filter_t> tft_filter_map_t;
+  tft_filter_map_t                                tft_filter_map;
 };
 
 } // namespace srsue
