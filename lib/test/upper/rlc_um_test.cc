@@ -37,7 +37,6 @@
 
 using namespace srslte;
 using namespace srsue;
-using namespace asn1::rrc;
 
 // Helper class to create two pre-configured RLC instances
 class rlc_um_lte_test_context1

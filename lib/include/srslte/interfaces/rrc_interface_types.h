@@ -28,20 +28,6 @@
 #include <string>
 
 /************************
- * Forward declarations
- ***********************/
-namespace asn1 {
-namespace rrc {
-
-struct plmn_id_s;
-struct s_tmsi_s;
-struct rlc_cfg_c;
-struct srb_to_add_mod_s;
-
-} // namespace rrc
-} // namespace asn1
-
-/************************
  *   Interface types
  ***********************/
 namespace srslte {

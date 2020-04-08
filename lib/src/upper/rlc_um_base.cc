@@ -22,8 +22,6 @@
 #include "srslte/upper/rlc_um_base.h"
 #include <sstream>
 
-using namespace asn1::rrc;
-
 namespace srslte {
 
 rlc_um_base::rlc_um_base(srslte::log_ref            log_,

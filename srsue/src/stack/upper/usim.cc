@@ -24,7 +24,6 @@
 #include <sstream>
 
 using namespace srslte;
-using namespace asn1::rrc;
 
 namespace srsue {
 

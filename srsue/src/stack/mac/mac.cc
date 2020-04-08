@@ -33,8 +33,6 @@
 #include "srslte/common/pcap.h"
 #include "srsue/hdr/stack/mac/mac.h"
 
-using namespace asn1::rrc;
-
 namespace srsue {
 
 mac::mac(const char* logname) :

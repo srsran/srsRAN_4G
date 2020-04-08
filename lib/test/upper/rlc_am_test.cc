@@ -32,7 +32,6 @@
 
 using namespace srsue;
 using namespace srslte;
-using namespace asn1::rrc;
 
 srslte::log_ref rrc_log1("RLC_AM_1");
 srslte::log_ref rrc_log2("RLC_AM_2");

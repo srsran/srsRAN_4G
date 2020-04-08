@@ -40,8 +40,6 @@
 #define CURRENT_SFIDX (sf_cfg_dl.tti % 10)
 #define CURRENT_TTI_TX (sf_cfg_ul.tti)
 
-using namespace asn1::rrc;
-
 namespace srsue {
 
 /************

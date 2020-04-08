@@ -46,7 +46,6 @@
   log_h->debug(fmt, ##__VA_ARGS__)
 
 using namespace std;
-using namespace asn1::rrc;
 
 namespace srsue {
 

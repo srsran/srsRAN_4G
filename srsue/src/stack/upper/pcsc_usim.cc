@@ -28,7 +28,6 @@
 #define CHECK_SIM_PIN 0
 
 using namespace srslte;
-using namespace asn1::rrc;
 
 namespace srsue {
 

@@ -38,8 +38,6 @@
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
   log_h->debug(fmt, ##__VA_ARGS__)
 
-using namespace asn1::rrc;
-
 namespace srsue {
 
 static srslte::rf_buffer_t zeros_multi(1);

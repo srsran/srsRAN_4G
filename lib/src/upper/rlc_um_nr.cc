@@ -24,8 +24,6 @@
 
 #define RX_MOD_NR_BASE(x) (((x)-RX_Next_Highest - cfg.um_nr.UM_Window_Size) % cfg.um_nr.mod)
 
-using namespace asn1::rrc;
-
 namespace srslte {
 
 rlc_um_nr::rlc_um_nr(srslte::log_ref            log_,

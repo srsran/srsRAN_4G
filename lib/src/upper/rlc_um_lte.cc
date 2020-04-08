@@ -24,8 +24,6 @@
 
 #define RX_MOD_BASE(x) (((x)-vr_uh - cfg.um.rx_window_size) % cfg.um.rx_mod)
 
-using namespace asn1::rrc;
-
 namespace srslte {
 
 rlc_um_lte::rlc_um_lte(srslte::log_ref            log_,

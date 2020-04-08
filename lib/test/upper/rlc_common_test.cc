@@ -35,7 +35,6 @@
 #define NBUFS 5
 
 using namespace srslte;
-using namespace asn1::rrc;
 
 class rlc_tester : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
 {
