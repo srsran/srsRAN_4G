@@ -83,6 +83,7 @@ public:
     } else {
       integrity_direction = direction;
     }
+    log->debug("LCID=%d, integrity=%s\n", lcid, srslte_direction_text[integrity_direction]);
   }
 
   void enable_encryption(srslte_direction_t direction = DIRECTION_TXRX)
@@ -94,6 +95,22 @@ public:
       encryption_direction = DIRECTION_TXRX;
     } else {
       encryption_direction = direction;
+    }
+    log->debug("LCID=%d encryption=%s\n", lcid, srslte_direction_text[integrity_direction]);
+  }
+
+  void enable_security_timed(srslte_direction_t direction, uint32_t sn)
+  {
+    switch (direction) {
+      case DIRECTION_TX:
+        enable_security_tx_sn = sn;
+        break;
+      case DIRECTION_RX:
+        enable_security_rx_sn = sn;
+        break;
+      default:
+        log->error("Timed security activation for direction %s not supported.\n", srslte_direction_text[direction]);
+        break;
     }
   }
 
@@ -118,6 +135,9 @@ protected:
   uint32_t           lcid                 = 0;
   srslte_direction_t integrity_direction  = DIRECTION_NONE;
   srslte_direction_t encryption_direction = DIRECTION_NONE;
+
+  int32_t enable_security_tx_sn = -1; // TX SN at which security will be enabled
+  int32_t enable_security_rx_sn = -1; // RX SN at which security will be enabled
 
   pdcp_config_t cfg = {1,
                        PDCP_RB_IS_DRB,

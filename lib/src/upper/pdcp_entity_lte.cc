@@ -96,6 +96,13 @@ void pdcp_entity_lte::reset()
 // GW/RRC interface
 void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
+  // check for pending security config in transmit direction
+  if (enable_security_tx_sn != -1 && enable_security_tx_sn == static_cast<int32_t>(tx_count)) {
+    enable_integrity(DIRECTION_TX);
+    enable_encryption(DIRECTION_TX);
+    enable_security_tx_sn = -1;
+  }
+
   log->info_hex(sdu->msg,
                 sdu->N_bytes,
                 "TX %s SDU, SN=%d, integrity=%s, encryption=%s",
@@ -136,11 +143,21 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     return;
   }
 
+  // Pull out SN
+  uint32_t sn = read_data_header(pdu);
+
+  // check for pending security config in receive direction
+  if (enable_security_rx_sn != -1 && enable_security_rx_sn == static_cast<int32_t>(sn)) {
+    enable_integrity(DIRECTION_RX);
+    enable_encryption(DIRECTION_RX);
+    enable_security_rx_sn = -1;
+  }
+
   log->info_hex(pdu->msg,
                 pdu->N_bytes,
                 "%s Rx PDU SN=%d (%d B, integrity=%s, encryption=%s)",
                 rrc->get_rb_name(lcid).c_str(),
-                read_data_header(pdu),
+                sn,
                 pdu->N_bytes,
                 srslte_direction_text[integrity_direction],
                 srslte_direction_text[encryption_direction]);
@@ -303,15 +320,6 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 /****************************************************************************
  * Security functions
  ***************************************************************************/
-uint32_t pdcp_entity_lte::get_last_submitted_rx_count()
-{
-  return COUNT(rx_hfn, last_submitted_pdcp_rx_sn);
-}
-
-uint32_t pdcp_entity_lte::get_ul_count()
-{
-  return tx_count;
-}
 
 void pdcp_entity_lte::get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
 {

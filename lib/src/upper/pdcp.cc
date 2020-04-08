@@ -225,6 +225,13 @@ void pdcp::enable_encryption(uint32_t lcid, srslte_direction_t direction)
   }
 }
 
+void pdcp::enable_security_timed(uint32_t lcid, srslte_direction_t direction, uint32_t sn)
+{
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->enable_security_timed(direction, sn);
+  }
+}
+
 bool pdcp::get_bearer_status(uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
 {
   if (not valid_lcid(lcid)) {
