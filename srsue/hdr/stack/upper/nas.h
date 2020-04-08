@@ -49,15 +49,15 @@ public:
   emm_state_t get_state();
 
   // RRC interface
-  void     left_rrc_connected();
-  bool     paging(srslte::s_tmsi_t* ue_identity);
-  void     set_barring(barring_t barring);
-  void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  uint32_t get_k_enb_count();
-  bool     is_attached();
-  bool     get_k_asme(uint8_t* k_asme_, uint32_t n);
-  uint32_t get_ipv4_addr();
-  bool     get_ipv6_addr(uint8_t* ipv6_addr);
+  void     left_rrc_connected() override;
+  bool     paging(srslte::s_tmsi_t* ue_identity) override;
+  void     set_barring(srslte::barring_t barring) override;
+  void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
+  uint32_t get_k_enb_count() override;
+  bool     is_attached() override;
+  bool     get_k_asme(uint8_t* k_asme_, uint32_t n) override;
+  uint32_t get_ipv4_addr() override;
+  bool     get_ipv6_addr(uint8_t* ipv6_addr) override;
 
   // UE interface
   void start_attach_proc(srslte::proc_state_t* result, srslte::establishment_cause_t cause_) final;
@@ -68,7 +68,7 @@ public:
   bool connection_request_completed(bool outcome) final;
 
   // timer callback
-  void timer_expired(uint32_t timeout_id);
+  void timer_expired(uint32_t timeout_id) override;
 
   // PCAP
   void start_pcap(srslte::nas_pcap* pcap_);
@@ -84,7 +84,7 @@ private:
 
   emm_state_t state = EMM_STATE_DEREGISTERED;
 
-  nas_interface_rrc::barring_t current_barring = BARRING_NONE;
+  srslte::barring_t current_barring = srslte::barring_t::none;
 
   bool              plmn_is_selected = false;
   srslte::plmn_id_t current_plmn;
@@ -116,10 +116,10 @@ private:
   typedef std::pair<uint8_t, eps_bearer_t> eps_bearer_map_pair_t;
   eps_bearer_map_t                         eps_bearer;
 
-  bool         have_guti    = false;
-  bool         have_ctxt    = false;
-  nas_sec_ctxt ctxt         = {};
-  bool         auth_request = false;
+  bool         have_guti       = false;
+  bool         have_ctxt       = false;
+  nas_sec_ctxt ctxt            = {};
+  bool         auth_request    = false;
   uint8_t      current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS;
 
   const uint32_t max_attach_attempts    = 5; // Sec. 5.5.1.2.6

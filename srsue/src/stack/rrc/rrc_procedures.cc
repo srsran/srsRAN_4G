@@ -756,7 +756,7 @@ proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t 
 
   if (rrc_ptr->t302.is_running()) {
     Info("Requested RRC connection establishment while T302 is running\n");
-    rrc_ptr->nas->set_barring(nas_interface_rrc::BARRING_MO_DATA);
+    rrc_ptr->nas->set_barring(srslte::barring_t::mo_data);
     return proc_outcome_t::error;
   }
 

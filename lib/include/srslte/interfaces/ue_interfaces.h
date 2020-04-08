@@ -31,6 +31,9 @@
 #include <set>
 #include <string>
 
+#include "mac_interface_types.h"
+#include "pdcp_interface_types.h"
+#include "rlc_interface_types.h"
 #include "rrc_interface_types.h"
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/common.h"
@@ -39,10 +42,8 @@
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/tti_point.h"
-#include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
-#include "srslte/upper/pdcp_config.h"
 #include "srslte/upper/pdcp_entity_base.h"
 
 namespace srsue {
@@ -188,9 +189,8 @@ public:
 class nas_interface_rrc
 {
 public:
-  typedef enum { BARRING_NONE = 0, BARRING_MO_DATA, BARRING_MO_SIGNALLING, BARRING_MT, BARRING_ALL } barring_t;
   virtual void     left_rrc_connected()                                       = 0;
-  virtual void     set_barring(barring_t barring)                             = 0;
+  virtual void     set_barring(srslte::barring_t barring)                     = 0;
   virtual bool     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
   virtual bool     is_attached()                                              = 0;
   virtual void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
@@ -580,9 +580,9 @@ public:
   } phy_cell_t;
 
   /* Cell search and selection procedures */
-  virtual cell_search_ret_t cell_search(phy_cell_t* cell)                                      = 0;
-  virtual bool              cell_select(const phy_cell_t* cell = nullptr)                      = 0;
-  virtual bool              cell_is_camping()                                                  = 0;
+  virtual cell_search_ret_t cell_search(phy_cell_t* cell)                 = 0;
+  virtual bool              cell_select(const phy_cell_t* cell = nullptr) = 0;
+  virtual bool              cell_is_camping()                             = 0;
 
   virtual void reset() = 0;
 

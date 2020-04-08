@@ -29,7 +29,7 @@
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
-#include "srslte/upper/pdcp_config.h"
+#include "srslte/interfaces/pdcp_interface_types.h"
 
 namespace srslte {
 

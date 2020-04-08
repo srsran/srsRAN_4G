@@ -838,7 +838,7 @@ void rrc::timer_expired(uint32_t timeout_id)
     }
   } else if (timeout_id == t302.id()) {
     rrc_log->info("Timer T302 expired. Informing NAS about barrier alleviation\n");
-    nas->set_barring(nas_interface_rrc::BARRING_NONE);
+    nas->set_barring(srslte::barring_t::none);
   } else if (timeout_id == t300.id()) {
     // Do nothing, handled in connection_request()
   } else if (timeout_id == t304.id()) {
@@ -1852,12 +1852,12 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       t300.stop();
 
       if (reject_r8->wait_time) {
-        nas->set_barring(nas_interface_rrc::BARRING_ALL);
+        nas->set_barring(srslte::barring_t::all);
         t302.set(reject_r8->wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
         t302.run();
       } else {
         // Perform the actions upon expiry of T302 if wait time is zero
-        nas->set_barring(nas_interface_rrc::BARRING_NONE);
+        nas->set_barring(srslte::barring_t::none);
         start_go_idle();
       }
     } break;
@@ -2590,7 +2590,7 @@ void rrc::handle_con_setup(rrc_conn_setup_s* setup)
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
 
-  nas->set_barring(nas_interface_rrc::BARRING_NONE);
+  nas->set_barring(srslte::barring_t::none);
 
   if (dedicated_info_nas.get()) {
     send_con_setup_complete(std::move(dedicated_info_nas));

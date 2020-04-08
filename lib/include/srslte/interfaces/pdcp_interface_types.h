@@ -24,8 +24,8 @@
  * Description: Structures used for configuration of the PDCP entities
  *****************************************************************************/
 
-#ifndef SRSLTE_PDCP_CONFIG_H
-#define SRSLTE_PDCP_CONFIG_H
+#ifndef SRSLTE_PDCP_INTERFACE_TYPES_H
+#define SRSLTE_PDCP_INTERFACE_TYPES_H
 
 #include "srslte/common/security.h"
 #include <stdint.h>
@@ -140,4 +140,4 @@ public:
 
 } // namespace srslte
 
-#endif // SRSLTE_PDCP_CONFIG_H
+#endif // SRSLTE_PDCP_INTERFACE_TYPES_H

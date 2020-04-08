@@ -21,15 +21,16 @@
 
 #include "srslte/srslte.h"
 
+#include "pdcp_interface_types.h"
+#include "rlc_interface_types.h"
+#include "rrc_interface_types.h"
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/asn1/s1ap_asn1.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/common/security.h"
-#include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
-#include "srslte/upper/pdcp_config.h"
 #include <vector>
 
 #ifndef SRSLTE_ENB_INTERFACES_H
