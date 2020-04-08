@@ -27,6 +27,7 @@
 
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/simd.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/vector_simd.h"
 

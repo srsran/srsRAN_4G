@@ -82,7 +82,14 @@ int main(int argc, char** argv)
 
     /* Check SINR for 1 layer */
     for (int i = 0; i < ret; i++) {
-      if (fabsf(gold->snri_1l[i] - sinr_1l[i]) > 0.1) {
+      float err = fabsf(gold->snri_1l[i] - sinr_1l[i]);
+
+      // Normalise to prevent floating point rounding error
+      if (gold->snri_1l[i] > 1000.0f) {
+        err /= gold->snri_1l[i];
+      }
+
+      if (err > 0.1f) {
         ERROR("Test case %d failed computing 1 layer SINR for codebook %d (test=%.2f; gold=%.2f)\n",
               c + 1,
               i,
@@ -107,7 +114,14 @@ int main(int argc, char** argv)
 
     /* Check SINR for 2 layer */
     for (int i = 0; i < ret; i++) {
-      if (fabsf(gold->snri_2l[i] - sinr_2l[i]) > 0.1) {
+      float err = fabsf(gold->snri_2l[i] - sinr_2l[i]);
+
+      // Normalise to prevent floating point rounding error
+      if (gold->snri_2l[i] > 1000.0f) {
+        err /= gold->snri_2l[i];
+      }
+
+      if (err > 0.1f) {
         ERROR("Test case %d failed computing 2 layer SINR for codebook %d (test=%.2f; gold=%.2f)\n",
               c + 1,
               i,

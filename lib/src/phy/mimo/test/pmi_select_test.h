@@ -22,7 +22,7 @@
 #ifndef PMI_SELECT_TEST_H
 #define PMI_SELECT_TEST_H
 
-#define PMI_SELECT_TEST_NOF_CASES 16
+#define PMI_SELECT_TEST_NOF_CASES 20
 
 #include <inttypes.h>
 
@@ -214,6 +214,46 @@ static pmi_select_test_case_gold_t pmi_select_test_case_gold[PMI_SELECT_TEST_NOF
         .pmi     = {2, 1},
         .ri      = 2,
         .k       = 7.7799,
+    },
+    {
+        /* Test case 17 */
+        .h       = {{1.0f, 0.0f}, {0.0f, 0.0f}},
+        .n       = 0.0f,
+        .snri_1l = {5e8f, 5e8f, 5e8f, 5e8f},
+        .snri_2l = {0.0f, 0.0f},
+        .pmi     = {0, 0},
+        .ri      = 2,
+        .k       = 93.0,
+    },
+    {
+        /* Test case 18 */
+        .h       = {{1.0f, 0.0f}, {1.0f, 0.0f}},
+        .n       = 0.0f,
+        .snri_1l = {2e9f, 0.0f, 1e9f, 1e9f},
+        .snri_2l = {1e9f, 0.0f},
+        .pmi     = {0, 0},
+        .ri      = 2,
+        .k       = 96.0,
+    },
+    {
+        /* Test case 19 */
+        .h       = {{1.0f, 1.0f}, {1.0f, 1.0f}},
+        .n       = 0.0f,
+        .snri_1l = {4e9f, 0.0f, 2e9f, 2e9f},
+        .snri_2l = {2e9f, 0.0f},
+        .pmi     = {0, 0},
+        .ri      = 1,
+        .k       = 99.0,
+    },
+    {
+        /* Test case 20 */
+        .h       = {{1.0f, 0.0f}, {0.0f, 1.0f}},
+        .n       = 0.0f,
+        .snri_1l = {1e9f, 1e9f, 1e9f, 1e9f},
+        .snri_2l = {1e9f, 1e9f},
+        .pmi     = {0, 0},
+        .ri      = 2,
+        .k       = 0.0,
     },
 };
 

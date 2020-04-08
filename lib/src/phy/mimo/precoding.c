@@ -2357,232 +2357,127 @@ int srslte_precoding_pmi_select_1l_gen(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_
   return i;
 }
 
-#ifdef LV_HAVE_SSE
+#ifdef SRSLTE_SIMD_CF_SIZE
 
 /* PMI Select for 1 layer */
-int srslte_precoding_pmi_select_1l_sse(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                       uint32_t  nof_symbols,
-                                       float     noise_estimate,
-                                       uint32_t* pmi,
-                                       float     sinr_list[SRSLTE_MAX_CODEBOOKS])
+int srslte_precoding_pmi_select_1l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        uint32_t  nof_symbols,
+                                        float     noise_estimate,
+                                        uint32_t* pmi,
+                                        float     sinr_list[SRSLTE_MAX_CODEBOOKS])
 {
-  float    max_sinr = 0.0;
-  uint32_t i, count;
-  __m128   sse_norm = _mm_set1_ps(0.5f);
+  float    max_sinr    = 0.0;
+  simd_f_t simd_f_norm = srslte_simd_f_set1(0.5f);
 
-  for (i = 0; i < 4; i++) {
-    sinr_list[i] = 0;
-    count        = 0;
+  for (uint32_t i = 0; i < 4; i++) {
+    float sinr_acc = 0;
+    float count    = 0;
 
-    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 2 + 1; j += PMI_SEL_PRECISION * 2) {
-      /* 0. Load channel matrix */
-      __m128 h00 = _mm_set_ps(crealf(h[0][0][j]),
-                              cimagf(h[0][0][j]),
-                              crealf(h[0][0][j + PMI_SEL_PRECISION]),
-                              cimagf(h[0][0][j + PMI_SEL_PRECISION]));
-      __m128 h01 = _mm_set_ps(crealf(h[1][0][j]),
-                              cimagf(h[1][0][j]),
-                              crealf(h[1][0][j + PMI_SEL_PRECISION]),
-                              cimagf(h[1][0][j + PMI_SEL_PRECISION]));
-      __m128 h10 = _mm_set_ps(crealf(h[0][1][j]),
-                              cimagf(h[0][1][j]),
-                              crealf(h[0][1][j + PMI_SEL_PRECISION]),
-                              cimagf(h[0][1][j + PMI_SEL_PRECISION]));
-      __m128 h11 = _mm_set_ps(crealf(h[1][1][j]),
-                              cimagf(h[1][1][j]),
-                              crealf(h[1][1][j + PMI_SEL_PRECISION]),
-                              cimagf(h[1][1][j + PMI_SEL_PRECISION]));
+    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * SRSLTE_SIMD_CF_SIZE + 1;
+         j += PMI_SEL_PRECISION * SRSLTE_SIMD_CF_SIZE) {
+      // 0. Load channel matrix
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h00_v[SRSLTE_SIMD_CF_SIZE];
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h01_v[SRSLTE_SIMD_CF_SIZE];
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h10_v[SRSLTE_SIMD_CF_SIZE];
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h11_v[SRSLTE_SIMD_CF_SIZE];
+
+      for (uint32_t k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
+        h00_v[k] = h[0][0][j + PMI_SEL_PRECISION * k];
+        h01_v[k] = h[1][0][j + PMI_SEL_PRECISION * k];
+        h10_v[k] = h[0][1][j + PMI_SEL_PRECISION * k];
+        h11_v[k] = h[1][1][j + PMI_SEL_PRECISION * k];
+      }
+
+      simd_cf_t h00 = srslte_simd_cfi_load(h00_v);
+      simd_cf_t h01 = srslte_simd_cfi_load(h01_v);
+      simd_cf_t h10 = srslte_simd_cfi_load(h10_v);
+      simd_cf_t h11 = srslte_simd_cfi_load(h11_v);
 
       /* 1. B = W'* H' */
-      __m128 a0, a1;
+      simd_cf_t a0, a1;
       switch (i) {
         case 0:
-          a0 = _mm_add_ps(_MM_CONJ_PS(h00), _MM_CONJ_PS(h01));
-          a1 = _mm_add_ps(_MM_CONJ_PS(h10), _MM_CONJ_PS(h11));
+          a0 = srslte_simd_cf_add(srslte_simd_cf_conj(h00), srslte_simd_cf_conj(h01));
+          a1 = srslte_simd_cf_add(srslte_simd_cf_conj(h10), srslte_simd_cf_conj(h11));
           break;
         case 1:
-          a0 = _mm_sub_ps(_MM_CONJ_PS(h00), _MM_CONJ_PS(h01));
-          a1 = _mm_sub_ps(_MM_CONJ_PS(h10), _MM_CONJ_PS(h11));
+          a0 = srslte_simd_cf_sub(srslte_simd_cf_conj(h00), srslte_simd_cf_conj(h01));
+          a1 = srslte_simd_cf_sub(srslte_simd_cf_conj(h10), srslte_simd_cf_conj(h11));
           break;
         case 2:
-          a0 = _mm_add_ps(_MM_CONJ_PS(h00), _MM_MULJ_PS(_MM_CONJ_PS(h01)));
-          a1 = _mm_add_ps(_MM_CONJ_PS(h10), _MM_MULJ_PS(_MM_CONJ_PS(h11)));
+          a0 = srslte_simd_cf_sub(srslte_simd_cf_conj(h00), srslte_simd_cf_mulj(srslte_simd_cf_conj(h01)));
+          a1 = srslte_simd_cf_sub(srslte_simd_cf_conj(h10), srslte_simd_cf_mulj(srslte_simd_cf_conj(h11)));
           break;
-        case 3:
-          a0 = _mm_sub_ps(_MM_CONJ_PS(h00), _MM_MULJ_PS(_MM_CONJ_PS(h01)));
-          a1 = _mm_sub_ps(_MM_CONJ_PS(h10), _MM_MULJ_PS(_MM_CONJ_PS(h11)));
+        default:
+          a0 = srslte_simd_cf_add(srslte_simd_cf_conj(h00), srslte_simd_cf_mulj(srslte_simd_cf_conj(h01)));
+          a1 = srslte_simd_cf_add(srslte_simd_cf_conj(h10), srslte_simd_cf_mulj(srslte_simd_cf_conj(h11)));
           break;
       }
 
       /* 2. B = W' * H' * H = A * H */
-      __m128 b0 = _mm_add_ps(_MM_PROD_PS(a0, h00), _MM_PROD_PS(a1, h10));
-      __m128 b1 = _mm_add_ps(_MM_PROD_PS(a0, h01), _MM_PROD_PS(a1, h11));
+      simd_cf_t b0 = srslte_simd_cf_add(srslte_simd_cf_prod(a0, h00), srslte_simd_cf_prod(a1, h10));
+      simd_cf_t b1 = srslte_simd_cf_add(srslte_simd_cf_prod(a0, h01), srslte_simd_cf_prod(a1, h11));
 
       /* 3. C = W' * H' * H * W' = B * W */
-      __m128 c;
+      simd_cf_t c;
       switch (i) {
         case 0:
-          c = _mm_add_ps(b0, b1);
+          c = srslte_simd_cf_add(b0, b1);
           break;
         case 1:
-          c = _mm_sub_ps(b0, b1);
+          c = srslte_simd_cf_sub(b0, b1);
           break;
         case 2:
-          c = _mm_sub_ps(b0, _MM_MULJ_PS(b1));
+          c = srslte_simd_cf_add(b0, srslte_simd_cf_mulj(b1));
           break;
         case 3:
-          c = _mm_add_ps(b0, _MM_MULJ_PS(b1));
+          c = srslte_simd_cf_sub(b0, srslte_simd_cf_mulj(b1));
           break;
         default:
           return SRSLTE_ERROR;
       }
-      c = _mm_mul_ps(c, sse_norm);
 
-      /* Add for averaging */
-      __attribute__((aligned(128))) float gamma[4];
-      _mm_store_ps(gamma, c);
-      sinr_list[i] += gamma[0] + gamma[2];
+      simd_f_t gamma = srslte_simd_f_mul(srslte_simd_cf_re(c), simd_f_norm);
 
-      count += 2;
+      // Horizontal accumulation
+      for (int k = 1; k < SRSLTE_SIMD_F_SIZE; k *= 2) {
+        gamma = srslte_simd_f_hadd(gamma, gamma);
+      }
+
+      // Temporal store accumulated values
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) float v[SRSLTE_SIMD_F_SIZE];
+      srslte_simd_f_store(v, gamma);
+
+      // Average and accumulate SINR loop
+      sinr_acc += (v[0] / SRSLTE_SIMD_CF_SIZE);
+
+      // Increase loop counter
+      count += 1;
     }
 
-    /* Divide average by noise */
-    sinr_list[i] /= noise_estimate * count;
+    // Average accumulated SINR
+    if (count) {
+      sinr_acc /= (noise_estimate * count);
+    } else {
+      sinr_acc = 1e+9f;
+    }
 
-    if (sinr_list[i] > max_sinr) {
-      max_sinr = sinr_list[i];
+    // Save SINR if available
+    if (sinr_list) {
+      sinr_list[i] = sinr_acc;
+    }
+
+    // Select maximum SINR Codebook
+    if (pmi && sinr_acc > max_sinr) {
+      max_sinr = sinr_acc;
       *pmi     = i;
     }
   }
 
-  return i;
+  return 4;
 }
 
-#endif /* LV_HAVE_SSE */
-
-#ifdef LV_HAVE_AVX
-
-/* PMI Select for 1 layer */
-int srslte_precoding_pmi_select_1l_avx(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                       uint32_t  nof_symbols,
-                                       float     noise_estimate,
-                                       uint32_t* pmi,
-                                       float     sinr_list[SRSLTE_MAX_CODEBOOKS])
-{
-  float    max_sinr = 0.0;
-  uint32_t i, count;
-  __m256   avx_norm = _mm256_set1_ps(0.5f);
-
-  for (i = 0; i < 4; i++) {
-    sinr_list[i] = 0;
-    count        = 0;
-
-    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 4 + 1; j += PMI_SEL_PRECISION * 4) {
-      /* 0. Load channel matrix */
-      __m256 h00 = _mm256_setr_ps(crealf(h[0][0][j]),
-                                  cimagf(h[0][0][j]),
-                                  crealf(h[0][0][j + PMI_SEL_PRECISION]),
-                                  cimagf(h[0][0][j + PMI_SEL_PRECISION]),
-                                  crealf(h[0][0][j + PMI_SEL_PRECISION * 2]),
-                                  cimagf(h[0][0][j + PMI_SEL_PRECISION * 2]),
-                                  crealf(h[0][0][j + PMI_SEL_PRECISION * 3]),
-                                  cimagf(h[0][0][j + PMI_SEL_PRECISION * 3]));
-      __m256 h01 = _mm256_setr_ps(crealf(h[1][0][j]),
-                                  cimagf(h[1][0][j]),
-                                  crealf(h[1][0][j + PMI_SEL_PRECISION]),
-                                  cimagf(h[1][0][j + PMI_SEL_PRECISION]),
-                                  crealf(h[1][0][j + PMI_SEL_PRECISION * 2]),
-                                  cimagf(h[1][0][j + PMI_SEL_PRECISION * 2]),
-                                  crealf(h[1][0][j + PMI_SEL_PRECISION * 3]),
-                                  cimagf(h[1][0][j + PMI_SEL_PRECISION * 3]));
-      __m256 h10 = _mm256_setr_ps(crealf(h[0][1][j]),
-                                  cimagf(h[0][1][j]),
-                                  crealf(h[0][1][j + PMI_SEL_PRECISION]),
-                                  cimagf(h[0][1][j + PMI_SEL_PRECISION]),
-                                  crealf(h[0][1][j + PMI_SEL_PRECISION * 2]),
-                                  cimagf(h[0][1][j + PMI_SEL_PRECISION * 2]),
-                                  crealf(h[0][1][j + PMI_SEL_PRECISION * 3]),
-                                  cimagf(h[0][1][j + PMI_SEL_PRECISION * 3]));
-      __m256 h11 = _mm256_setr_ps(crealf(h[1][1][j]),
-                                  cimagf(h[1][1][j]),
-                                  crealf(h[1][1][j + PMI_SEL_PRECISION]),
-                                  cimagf(h[1][1][j + PMI_SEL_PRECISION]),
-                                  crealf(h[1][1][j + PMI_SEL_PRECISION * 2]),
-                                  cimagf(h[1][1][j + PMI_SEL_PRECISION * 2]),
-                                  crealf(h[1][1][j + PMI_SEL_PRECISION * 3]),
-                                  cimagf(h[1][1][j + PMI_SEL_PRECISION * 3]));
-
-      /* 1. B = W'* H' */
-      __m256 a0, a1;
-      switch (i) {
-        case 0:
-          a0 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_CONJ_PS(h01));
-          a1 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
-          break;
-        case 1:
-          a0 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_CONJ_PS(h01));
-          a1 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
-          break;
-        case 2:
-          a0 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
-          a1 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
-          break;
-        default:
-          a0 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
-          a1 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
-          break;
-      }
-
-        /* 2. B = W' * H' * H = A * H */
-#ifdef LV_HAVE_FMA
-      __m256 b0 = _MM256_PROD_ADD_PS(a0, h00, _MM256_PROD_PS(a1, h10));
-      __m256 b1 = _MM256_PROD_ADD_PS(a0, h01, _MM256_PROD_PS(a1, h11));
-#else
-      __m256 b0  = _mm256_add_ps(_MM256_PROD_PS(a0, h00), _MM256_PROD_PS(a1, h10));
-      __m256 b1  = _mm256_add_ps(_MM256_PROD_PS(a0, h01), _MM256_PROD_PS(a1, h11));
-#endif /* LV_HAVE_FMA */
-
-      /* 3. C = W' * H' * H * W' = B * W */
-      __m256 c;
-      switch (i) {
-        case 0:
-          c = _mm256_add_ps(b0, b1);
-          break;
-        case 1:
-          c = _mm256_sub_ps(b0, b1);
-          break;
-        case 2:
-          c = _mm256_add_ps(b0, _MM256_MULJ_PS(b1));
-          break;
-        case 3:
-          c = _mm256_sub_ps(b0, _MM256_MULJ_PS(b1));
-          break;
-        default:
-          return SRSLTE_ERROR;
-      }
-      c = _mm256_mul_ps(c, avx_norm);
-
-      /* Add for averaging */
-      __attribute__((aligned(256))) float gamma[8];
-      _mm256_store_ps(gamma, c);
-      sinr_list[i] += gamma[0] + gamma[2] + gamma[4] + gamma[6];
-
-      count += 4;
-    }
-
-    /* Divide average by noise */
-    sinr_list[i] /= noise_estimate * count;
-
-    if (sinr_list[i] > max_sinr) {
-      max_sinr = sinr_list[i];
-      *pmi     = i;
-    }
-  }
-
-  return i;
-}
-
-#endif /* LV_HAVE_AVX */
+#endif /* SRSLTE_SIMD_CF_SIZE */
 
 int srslte_precoding_pmi_select_1l(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
                                    uint32_t  nof_symbols,
@@ -2591,15 +2486,11 @@ int srslte_precoding_pmi_select_1l(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
                                    float     sinr_list[SRSLTE_MAX_CODEBOOKS])
 {
   int ret;
-#ifdef LV_HAVE_AVX
-  ret = srslte_precoding_pmi_select_1l_avx(h, nof_symbols, noise_estimate, pmi, sinr_list);
-#else
-#ifdef LV_HAVE_SSE
-  ret = srslte_precoding_pmi_select_1l_sse(h, nof_symbols, noise_estimate, pmi, sinr_list);
+#ifdef SRSLTE_SIMD_CF_SIZE
+  ret = srslte_precoding_pmi_select_1l_simd(h, nof_symbols, noise_estimate, pmi, sinr_list);
 #else
   ret = srslte_precoding_pmi_select_1l_gen(h, nof_symbols, noise_estimate, pmi, sinr_list);
-#endif
-#endif
+#endif /* SRSLTE_SIMD_CF_SIZE */
   INFO("Precoder PMI Select for 1 layer SINR=[%.1fdB; %.1fdB; %.1fdB; %.1fdB] PMI=%d\n",
        srslte_convert_power_to_dB(sinr_list[0]),
        srslte_convert_power_to_dB(sinr_list[1]),
@@ -2713,285 +2604,161 @@ int srslte_precoding_pmi_select_2l_gen(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_
   return i;
 }
 
-#ifdef LV_HAVE_SSE
+#ifdef SRSLTE_SIMD_CF_SIZE
 
-int srslte_precoding_pmi_select_2l_sse(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                       uint32_t  nof_symbols,
-                                       float     noise_estimate,
-                                       uint32_t* pmi,
-                                       float     sinr_list[SRSLTE_MAX_CODEBOOKS])
+int srslte_precoding_pmi_select_2l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                                        int       nof_symbols,
+                                        float     noise_estimate,
+                                        uint32_t* pmi,
+                                        float     sinr_list[SRSLTE_MAX_CODEBOOKS])
 {
+  // SIMD Constants
+  const simd_cf_t simd_cf_noise_estimate = srslte_simd_cf_set1(noise_estimate);
+  const simd_f_t  simd_f_noise_estimate  = srslte_simd_f_set1(noise_estimate);
+  const simd_f_t  simd_f_norm            = srslte_simd_f_set1(0.25f);
+  const simd_f_t  simd_f_ones            = srslte_simd_f_set1(1.0f);
+  const simd_f_t  simd_f_det_min         = srslte_simd_f_set1(1e-10f);
+  const simd_f_t  simd_f_gamma_min       = srslte_simd_f_set1(1e-9f);
 
-  float    max_sinr = 0.0;
-  uint32_t i, count;
+  float max_sinr = 0.0f;
 
-  __m128 sse_noise_estimate = _mm_setr_ps(noise_estimate, 0.0f, noise_estimate, 0.0f);
-  __m128 sse_norm           = _mm_set1_ps(0.25f);
-  __m128 sse_ones           = _mm_set1_ps(1.0f);
+  for (uint32_t i = 0; i < 2; i++) {
+    float count    = 0.0f;
+    float sinr_acc = 0.0f;
 
-  for (i = 0; i < 2; i++) {
-    sinr_list[i] = 0;
-    count        = 0;
+    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * SRSLTE_SIMD_CF_SIZE + 1;
+         j += PMI_SEL_PRECISION * SRSLTE_SIMD_CF_SIZE) {
+      // 0. Load channel matrix
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h00_v[SRSLTE_SIMD_CF_SIZE];
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h01_v[SRSLTE_SIMD_CF_SIZE];
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h10_v[SRSLTE_SIMD_CF_SIZE];
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h11_v[SRSLTE_SIMD_CF_SIZE];
 
-    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 2 + 1; j += PMI_SEL_PRECISION * 2) {
-      /* 0. Load channel matrix */
-      __m128 h00 = _mm_setr_ps(crealf(h[0][0][j]),
-                               cimagf(h[0][0][j]),
-                               crealf(h[0][0][j + PMI_SEL_PRECISION]),
-                               cimagf(h[0][0][j + PMI_SEL_PRECISION]));
-      __m128 h01 = _mm_setr_ps(crealf(h[1][0][j]),
-                               cimagf(h[1][0][j]),
-                               crealf(h[1][0][j + PMI_SEL_PRECISION]),
-                               cimagf(h[1][0][j + PMI_SEL_PRECISION]));
-      __m128 h10 = _mm_setr_ps(crealf(h[0][1][j]),
-                               cimagf(h[0][1][j]),
-                               crealf(h[0][1][j + PMI_SEL_PRECISION]),
-                               cimagf(h[0][1][j + PMI_SEL_PRECISION]));
-      __m128 h11 = _mm_setr_ps(crealf(h[1][1][j]),
-                               cimagf(h[1][1][j]),
-                               crealf(h[1][1][j + PMI_SEL_PRECISION]),
-                               cimagf(h[1][1][j + PMI_SEL_PRECISION]));
+      for (uint32_t k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
+        h00_v[k] = h[0][0][j + PMI_SEL_PRECISION * k];
+        h01_v[k] = h[1][0][j + PMI_SEL_PRECISION * k];
+        h10_v[k] = h[0][1][j + PMI_SEL_PRECISION * k];
+        h11_v[k] = h[1][1][j + PMI_SEL_PRECISION * k];
+      }
 
-      /* 1. B = W'* H' */
-      __m128 a00, a01, a10, a11;
+      simd_cf_t h00 = srslte_simd_cfi_load(h00_v);
+      simd_cf_t h01 = srslte_simd_cfi_load(h01_v);
+      simd_cf_t h10 = srslte_simd_cfi_load(h10_v);
+      simd_cf_t h11 = srslte_simd_cfi_load(h11_v);
+
+      // 1. B = W'* H'
+      simd_cf_t a00, a01, a10, a11;
       switch (i) {
         case 0:
-          a00 = _mm_add_ps(_MM_CONJ_PS(h00), _MM_CONJ_PS(h01));
-          a01 = _mm_add_ps(_MM_CONJ_PS(h10), _MM_CONJ_PS(h11));
-          a10 = _mm_sub_ps(_MM_CONJ_PS(h00), _MM_CONJ_PS(h01));
-          a11 = _mm_sub_ps(_MM_CONJ_PS(h10), _MM_CONJ_PS(h11));
+          a00 = srslte_simd_cf_add(srslte_simd_cf_conj(h00), srslte_simd_cf_conj(h01));
+          a01 = srslte_simd_cf_add(srslte_simd_cf_conj(h10), srslte_simd_cf_conj(h11));
+          a10 = srslte_simd_cf_sub(srslte_simd_cf_conj(h00), srslte_simd_cf_conj(h01));
+          a11 = srslte_simd_cf_sub(srslte_simd_cf_conj(h10), srslte_simd_cf_conj(h11));
           break;
         case 1:
-          a00 = _mm_sub_ps(_MM_CONJ_PS(h00), _MM_MULJ_PS(_MM_CONJ_PS(h01)));
-          a01 = _mm_sub_ps(_MM_CONJ_PS(h10), _MM_MULJ_PS(_MM_CONJ_PS(h11)));
-          a10 = _mm_add_ps(_MM_CONJ_PS(h00), _MM_MULJ_PS(_MM_CONJ_PS(h01)));
-          a11 = _mm_add_ps(_MM_CONJ_PS(h10), _MM_MULJ_PS(_MM_CONJ_PS(h11)));
+          a00 = srslte_simd_cf_sub(srslte_simd_cf_conj(h00), srslte_simd_cf_mulj(srslte_simd_cf_conj(h01)));
+          a01 = srslte_simd_cf_sub(srslte_simd_cf_conj(h10), srslte_simd_cf_mulj(srslte_simd_cf_conj(h11)));
+          a10 = srslte_simd_cf_add(srslte_simd_cf_conj(h00), srslte_simd_cf_mulj(srslte_simd_cf_conj(h01)));
+          a11 = srslte_simd_cf_add(srslte_simd_cf_conj(h10), srslte_simd_cf_mulj(srslte_simd_cf_conj(h11)));
           break;
         default:
           return SRSLTE_ERROR;
       }
 
-      /* 2. B = W' * H' * H = A * H */
-      __m128 b00 = _mm_add_ps(_MM_PROD_PS(a00, h00), _MM_PROD_PS(a01, h10));
-      __m128 b01 = _mm_add_ps(_MM_PROD_PS(a00, h01), _MM_PROD_PS(a01, h11));
-      __m128 b10 = _mm_add_ps(_MM_PROD_PS(a10, h00), _MM_PROD_PS(a11, h10));
-      __m128 b11 = _mm_add_ps(_MM_PROD_PS(a10, h01), _MM_PROD_PS(a11, h11));
+      // 2. B = W' * H' * H = A * H
+      simd_cf_t b00 = srslte_simd_cf_add(srslte_simd_cf_prod(a00, h00), srslte_simd_cf_prod(a01, h10));
+      simd_cf_t b01 = srslte_simd_cf_add(srslte_simd_cf_prod(a00, h01), srslte_simd_cf_prod(a01, h11));
+      simd_cf_t b10 = srslte_simd_cf_add(srslte_simd_cf_prod(a10, h00), srslte_simd_cf_prod(a11, h10));
+      simd_cf_t b11 = srslte_simd_cf_add(srslte_simd_cf_prod(a10, h01), srslte_simd_cf_prod(a11, h11));
 
-      /* 3. C = W' * H' * H * W' = B * W */
-      __m128 c00, c01, c10, c11;
+      // 3. C = W' * H' * H * W' = B * W
+      simd_cf_t c00, c01, c10, c11;
       switch (i) {
         case 0:
-          c00 = _mm_add_ps(b00, b01);
-          c01 = _mm_sub_ps(b00, b01);
-          c10 = _mm_add_ps(b10, b11);
-          c11 = _mm_sub_ps(b10, b11);
+          c00 = srslte_simd_cf_add(b00, b01);
+          c01 = srslte_simd_cf_sub(b00, b01);
+          c10 = srslte_simd_cf_add(b10, b11);
+          c11 = srslte_simd_cf_sub(b10, b11);
           break;
         case 1:
-          c00 = _mm_add_ps(b00, _MM_MULJ_PS(b01));
-          c01 = _mm_sub_ps(b00, _MM_MULJ_PS(b01));
-          c10 = _mm_add_ps(b10, _MM_MULJ_PS(b11));
-          c11 = _mm_sub_ps(b10, _MM_MULJ_PS(b11));
+          c00 = srslte_simd_cf_add(b00, srslte_simd_cf_mulj(b01));
+          c01 = srslte_simd_cf_sub(b00, srslte_simd_cf_mulj(b01));
+          c10 = srslte_simd_cf_add(b10, srslte_simd_cf_mulj(b11));
+          c11 = srslte_simd_cf_sub(b10, srslte_simd_cf_mulj(b11));
           break;
         default:
           return SRSLTE_ERROR;
       }
-      c00 = _mm_mul_ps(c00, sse_norm);
-      c01 = _mm_mul_ps(c01, sse_norm);
-      c10 = _mm_mul_ps(c10, sse_norm);
-      c11 = _mm_mul_ps(c11, sse_norm);
+      c00 = srslte_simd_cf_mul(c00, simd_f_norm);
+      c01 = srslte_simd_cf_mul(c01, simd_f_norm);
+      c10 = srslte_simd_cf_mul(c10, simd_f_norm);
+      c11 = srslte_simd_cf_mul(c11, simd_f_norm);
 
-      /* 4. C += noise * I */
-      c00 = _mm_add_ps(c00, sse_noise_estimate);
-      c11 = _mm_add_ps(c11, sse_noise_estimate);
+      // 4. C += noise * I
+      c00 = srslte_simd_cf_add(c00, simd_cf_noise_estimate);
+      c11 = srslte_simd_cf_add(c11, simd_cf_noise_estimate);
 
-      /* 5. detC */
-      __m128 detC     = srslte_mat_2x2_det_sse(c00, c01, c10, c11);
-      __m128 inv_detC = srslte_mat_cf_recip_sse(detC);
-      inv_detC        = _mm_mul_ps(sse_noise_estimate, inv_detC);
+      // 5. detC
+      simd_f_t detC = srslte_simd_cf_re(srslte_mat_2x2_det_simd(c00, c01, c10, c11));
 
-      __m128 den0 = _MM_PROD_PS(c00, inv_detC);
-      __m128 den1 = _MM_PROD_PS(c11, inv_detC);
+      // Avoid zero determinant
+      detC = srslte_simd_f_select(detC, simd_f_det_min, srslte_simd_f_min(detC, simd_f_det_min));
 
-      __m128 gamma0 = _mm_sub_ps(_mm_rcp_ps(den0), sse_ones);
-      __m128 gamma1 = _mm_sub_ps(_mm_rcp_ps(den1), sse_ones);
+      simd_f_t inv_detC = srslte_simd_f_rcp(detC);
+      inv_detC          = srslte_simd_f_mul(simd_f_noise_estimate, inv_detC);
 
-      /* Add for averaging */
-      __m128                              sinr_sse = _mm_add_ps(gamma0, gamma1);
-      __attribute__((aligned(128))) float sinr[4];
-      _mm_store_ps(sinr, sinr_sse);
+      simd_f_t den0 = srslte_simd_f_mul(srslte_simd_cf_re(c00), inv_detC);
+      simd_f_t den1 = srslte_simd_f_mul(srslte_simd_cf_re(c11), inv_detC);
 
-      sinr_list[i] += sinr[0] + sinr[2];
+      simd_f_t gamma0 = srslte_simd_f_sub(srslte_simd_f_rcp(den0), simd_f_ones);
+      simd_f_t gamma1 = srslte_simd_f_sub(srslte_simd_f_rcp(den1), simd_f_ones);
 
-      count += 2;
+      // Avoid negative gamma
+      gamma0 = srslte_simd_f_select(gamma0, simd_f_gamma_min, srslte_simd_f_min(gamma0, simd_f_gamma_min));
+      gamma1 = srslte_simd_f_select(gamma1, simd_f_gamma_min, srslte_simd_f_min(gamma1, simd_f_gamma_min));
+
+      simd_f_t gamma_sum = srslte_simd_f_hadd(gamma0, gamma1);
+
+      // Horizontal accumulation
+      for (int k = 1; k < SRSLTE_SIMD_F_SIZE; k *= 2) {
+        gamma_sum = srslte_simd_f_hadd(gamma_sum, gamma_sum);
+      }
+
+      // Temporal store accumulated values
+      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) float v[SRSLTE_SIMD_F_SIZE];
+      srslte_simd_f_store(v, gamma_sum);
+
+      // Average and accumulate SINR loop
+      sinr_acc += (v[0] / SRSLTE_SIMD_CF_SIZE);
+
+      // Increase loop counter
+      count += 1.0f;
     }
 
-    /* Divide average by noise */
-    if (count) {
-      sinr_list[i] /= count;
+    // Average loop accumulator
+    if (isnormal(count)) {
+      sinr_acc /= count;
+    } else {
+      sinr_acc = 1e+9f;
     }
 
-    if (sinr_list[i] > max_sinr) {
-      max_sinr = sinr_list[i];
+    // Set SINR if available
+    if (sinr_list) {
+      sinr_list[i] = sinr_acc;
+    }
+
+    // Set PMI if available
+    if (pmi && sinr_acc > max_sinr) {
+      max_sinr = sinr_acc;
       *pmi     = i;
     }
   }
 
-  return i;
+  // Return number of codebooks
+  return 2;
 }
 
-#endif /* LV_HAVE_SSE */
-
-#ifdef LV_HAVE_AVX
-
-int srslte_precoding_pmi_select_2l_avx(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                       uint32_t  nof_symbols,
-                                       float     noise_estimate,
-                                       uint32_t* pmi,
-                                       float     sinr_list[SRSLTE_MAX_CODEBOOKS])
-{
-
-  float    max_sinr = 0.0;
-  uint32_t i, count;
-
-  __m256 avx_noise_estimate =
-      _mm256_setr_ps(noise_estimate, 0.0f, noise_estimate, 0.0f, noise_estimate, 0.0f, noise_estimate, 0.0f);
-  __m256 avx_norm = _mm256_set1_ps(0.25f);
-  __m256 avx_ones = _mm256_set1_ps(1.0f);
-
-  for (i = 0; i < 2; i++) {
-    sinr_list[i] = 0;
-    count        = 0;
-
-    for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * 4 + 1; j += PMI_SEL_PRECISION * 4) {
-      /* 0. Load channel matrix */
-      __m256 h00 = _mm256_setr_ps(crealf(h[0][0][j]),
-                                  cimagf(h[0][0][j]),
-                                  crealf(h[0][0][j + PMI_SEL_PRECISION]),
-                                  cimagf(h[0][0][j + PMI_SEL_PRECISION]),
-                                  crealf(h[0][0][j + PMI_SEL_PRECISION * 2]),
-                                  cimagf(h[0][0][j + PMI_SEL_PRECISION * 2]),
-                                  crealf(h[0][0][j + PMI_SEL_PRECISION * 3]),
-                                  cimagf(h[0][0][j + PMI_SEL_PRECISION * 3]));
-      __m256 h01 = _mm256_setr_ps(crealf(h[1][0][j]),
-                                  cimagf(h[1][0][j]),
-                                  crealf(h[1][0][j + PMI_SEL_PRECISION]),
-                                  cimagf(h[1][0][j + PMI_SEL_PRECISION]),
-                                  crealf(h[1][0][j + PMI_SEL_PRECISION * 2]),
-                                  cimagf(h[1][0][j + PMI_SEL_PRECISION * 2]),
-                                  crealf(h[1][0][j + PMI_SEL_PRECISION * 3]),
-                                  cimagf(h[1][0][j + PMI_SEL_PRECISION * 3]));
-      __m256 h10 = _mm256_setr_ps(crealf(h[0][1][j]),
-                                  cimagf(h[0][1][j]),
-                                  crealf(h[0][1][j + PMI_SEL_PRECISION]),
-                                  cimagf(h[0][1][j + PMI_SEL_PRECISION]),
-                                  crealf(h[0][1][j + PMI_SEL_PRECISION * 2]),
-                                  cimagf(h[0][1][j + PMI_SEL_PRECISION * 2]),
-                                  crealf(h[0][1][j + PMI_SEL_PRECISION * 3]),
-                                  cimagf(h[0][1][j + PMI_SEL_PRECISION * 3]));
-      __m256 h11 = _mm256_setr_ps(crealf(h[1][1][j]),
-                                  cimagf(h[1][1][j]),
-                                  crealf(h[1][1][j + PMI_SEL_PRECISION]),
-                                  cimagf(h[1][1][j + PMI_SEL_PRECISION]),
-                                  crealf(h[1][1][j + PMI_SEL_PRECISION * 2]),
-                                  cimagf(h[1][1][j + PMI_SEL_PRECISION * 2]),
-                                  crealf(h[1][1][j + PMI_SEL_PRECISION * 3]),
-                                  cimagf(h[1][1][j + PMI_SEL_PRECISION * 3]));
-
-      /* 1. B = W'* H' */
-      __m256 a00, a01, a10, a11;
-      switch (i) {
-        case 0:
-          a00 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_CONJ_PS(h01));
-          a01 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
-          a10 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_CONJ_PS(h01));
-          a11 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_CONJ_PS(h11));
-          break;
-        case 1:
-          a00 = _mm256_sub_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
-          a01 = _mm256_sub_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
-          a10 = _mm256_add_ps(_MM256_CONJ_PS(h00), _MM256_MULJ_PS(_MM256_CONJ_PS(h01)));
-          a11 = _mm256_add_ps(_MM256_CONJ_PS(h10), _MM256_MULJ_PS(_MM256_CONJ_PS(h11)));
-          break;
-        default:
-          return SRSLTE_ERROR;
-      }
-
-        /* 2. B = W' * H' * H = A * H */
-#ifdef LV_HAVE_FMA
-      __m256 b00 = _MM256_PROD_ADD_PS(a00, h00, _MM256_PROD_PS(a01, h10));
-      __m256 b01 = _MM256_PROD_ADD_PS(a00, h01, _MM256_PROD_PS(a01, h11));
-      __m256 b10 = _MM256_PROD_ADD_PS(a10, h00, _MM256_PROD_PS(a11, h10));
-      __m256 b11 = _MM256_PROD_ADD_PS(a10, h01, _MM256_PROD_PS(a11, h11));
-#else
-      __m256 b00 = _mm256_add_ps(_MM256_PROD_PS(a00, h00), _MM256_PROD_PS(a01, h10));
-      __m256 b01 = _mm256_add_ps(_MM256_PROD_PS(a00, h01), _MM256_PROD_PS(a01, h11));
-      __m256 b10 = _mm256_add_ps(_MM256_PROD_PS(a10, h00), _MM256_PROD_PS(a11, h10));
-      __m256 b11 = _mm256_add_ps(_MM256_PROD_PS(a10, h01), _MM256_PROD_PS(a11, h11));
-#endif /* LV_HAVE_FMA */
-
-      /* 3. C = W' * H' * H * W' = B * W */
-      __m256 c00, c01, c10, c11;
-      switch (i) {
-        case 0:
-          c00 = _mm256_add_ps(b00, b01);
-          c01 = _mm256_sub_ps(b00, b01);
-          c10 = _mm256_add_ps(b10, b11);
-          c11 = _mm256_sub_ps(b10, b11);
-          break;
-        case 1:
-          c00 = _mm256_add_ps(b00, _MM256_MULJ_PS(b01));
-          c01 = _mm256_sub_ps(b00, _MM256_MULJ_PS(b01));
-          c10 = _mm256_add_ps(b10, _MM256_MULJ_PS(b11));
-          c11 = _mm256_sub_ps(b10, _MM256_MULJ_PS(b11));
-          break;
-        default:
-          return SRSLTE_ERROR;
-      }
-      c00 = _mm256_mul_ps(c00, avx_norm);
-      c01 = _mm256_mul_ps(c01, avx_norm);
-      c10 = _mm256_mul_ps(c10, avx_norm);
-      c11 = _mm256_mul_ps(c11, avx_norm);
-
-      /* 4. C += noise * I */
-      c00 = _mm256_add_ps(c00, avx_noise_estimate);
-      c11 = _mm256_add_ps(c11, avx_noise_estimate);
-
-      /* 5. detC */
-      __m256 detC     = srslte_mat_2x2_det_avx(c00, c01, c10, c11);
-      __m256 inv_detC = srslte_mat_cf_recip_avx(detC);
-      inv_detC        = _mm256_mul_ps(avx_noise_estimate, inv_detC);
-
-      __m256 den0 = _MM256_PROD_PS(c00, inv_detC);
-      __m256 den1 = _MM256_PROD_PS(c11, inv_detC);
-
-      __m256 gamma0 = _mm256_sub_ps(_mm256_rcp_ps(den0), avx_ones);
-      __m256 gamma1 = _mm256_sub_ps(_mm256_rcp_ps(den1), avx_ones);
-
-      /* Add for averaging */
-      __m256                              sinr_avx = _mm256_permute_ps(_mm256_add_ps(gamma0, gamma1), 0b00101000);
-      __attribute__((aligned(256))) float sinr[8];
-      _mm256_store_ps(sinr, sinr_avx);
-
-      sinr_list[i] += sinr[0] + sinr[2] + sinr[4] + sinr[6];
-
-      count += 4;
-    }
-
-    /* Divide average by noise */
-    if (count) {
-      sinr_list[i] /= count;
-    }
-
-    if (sinr_list[i] > max_sinr) {
-      max_sinr = sinr_list[i];
-      *pmi     = i;
-    }
-  }
-
-  return i;
-}
-
-#endif /* LV_HAVE_AVX */
+#endif /* SRSLTE_SIMD_CF_SIZE */
 
 /* PMI Select for 2 layers */
 int srslte_precoding_pmi_select_2l(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
@@ -3002,15 +2769,11 @@ int srslte_precoding_pmi_select_2l(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORT
 {
 
   int ret;
-#ifdef LV_HAVE_AVX
-  ret = srslte_precoding_pmi_select_2l_avx(h, nof_symbols, noise_estimate, pmi, sinr_list);
-#else
-#ifdef LV_HAVE_SSE
-  ret = srslte_precoding_pmi_select_2l_sse(h, nof_symbols, noise_estimate, pmi, sinr_list);
+#ifdef SRSLTE_SIMD_CF_SIZE
+  ret = srslte_precoding_pmi_select_2l_simd(h, nof_symbols, noise_estimate, pmi, sinr_list);
 #else
   ret = srslte_precoding_pmi_select_2l_gen(h, nof_symbols, noise_estimate, pmi, sinr_list);
-#endif /* LV_HAVE_SSE */
-#endif /* LV_HAVE_AVX */
+#endif /* SRSLTE_SIMD_CF_SIZE */
 
   INFO("Precoder PMI Select for 2 layers SINR=[%.1fdB; %.1fdB] PMI=%d\n",
        srslte_convert_power_to_dB(sinr_list[0]),
@@ -3029,15 +2792,17 @@ int srslte_precoding_pmi_select(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
 {
   int ret;
 
-  if (sinr == NULL || pmi == NULL) {
-    ERROR("Null pointer");
-    ret = SRSLTE_ERROR_INVALID_INPUTS;
-  } else if (nof_layers == 1) {
+  // Bound noise estimate value
+  if (!isnormal(noise_estimate) || noise_estimate < 1e-9f) {
+    noise_estimate = 1e-9f;
+  }
+
+  if (nof_layers == 1) {
     ret = srslte_precoding_pmi_select_1l(h, nof_symbols, noise_estimate, pmi, sinr);
   } else if (nof_layers == 2) {
     ret = srslte_precoding_pmi_select_2l(h, nof_symbols, noise_estimate, pmi, sinr);
   } else {
-    ERROR("Wrong number of layers");
+    ERROR("Unsupported number of layers");
     ret = SRSLTE_ERROR_INVALID_INPUTS;
   }
 

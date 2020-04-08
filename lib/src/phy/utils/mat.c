@@ -122,25 +122,32 @@ void srslte_mat_2x2_mmse_gen(cf_t  y0,
 
 inline float srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11)
 {
-  /* 1. A = H * H' (A = A') */
+  // 1. A = H * H' (A = A')
   float a00 =
       crealf(h00) * crealf(h00) + crealf(h01) * crealf(h01) + cimagf(h00) * cimagf(h00) + cimagf(h01) * cimagf(h01);
-  cf_t a01 = h00 * conjf(h10) + h01 * conjf(h11);
-  // cf_t a10 = h10*conjf(h00) + h11*conjf(h01) = conjf(a01);
+  cf_t  a01 = h00 * conjf(h10) + h01 * conjf(h11);
   float a11 =
       crealf(h10) * crealf(h10) + crealf(h11) * crealf(h11) + cimagf(h10) * cimagf(h10) + cimagf(h11) * cimagf(h11);
 
-  /* 2. |H * H' - {λ0, λ1}| = 0 -> aλ² + bλ + c = 0 */
+  // 2. |H * H' - {λ0, λ1}| = 0 -> aλ² + bλ + c = 0
   float b = a00 + a11;
   float c = a00 * a11 - (crealf(a01) * crealf(a01) + cimagf(a01) * cimagf(a01));
 
-  /* 3. λ = (-b ± sqrt(b² - 4 * c))/2 */
+  // 3. λ = (-b ± sqrt(b² - 4 * c))/2
   float sqr  = sqrtf(b * b - 4.0f * c);
   float xmax = b + sqr;
   float xmin = b - sqr;
 
-  /* 4. κ = sqrt(λ_max / λ_min) */
-  return 10 * log10f(xmax / xmin);
+  // 4. Bound xmin and xmax
+  if (!isnormal(xmin) || xmin < 1e-9) {
+    xmin = 1e-9;
+  }
+  if (!isnormal(xmax) || xmax > 1e+9) {
+    xmax = 1e+9;
+  }
+
+  // 5. κ = sqrt(λ_max / λ_min)
+  return 10.0f * log10f(xmax / xmin);
 }
 
 #ifdef LV_HAVE_SSE

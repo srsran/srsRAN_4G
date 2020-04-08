@@ -30,24 +30,6 @@ extern "C" {
 #include <stdint.h>
 #include <stdio.h>
 
-#ifdef LV_HAVE_AVX512
-#define SRSLTE_SIMD_BIT_ALIGN 512
-#define SRSLTE_IS_ALIGNED(PTR) (((size_t)(PTR)&0x3F) == 0)
-#else /* LV_HAVE_AVX512 */
-#ifdef LV_HAVE_AVX
-#define SRSLTE_SIMD_BIT_ALIGN 256
-#define SRSLTE_IS_ALIGNED(PTR) (((size_t)(PTR)&0x1F) == 0)
-#else /* LV_HAVE_AVX */
-#ifdef LV_HAVE_SSE
-#define SRSLTE_SIMD_BIT_ALIGN 128
-#define SRSLTE_IS_ALIGNED(PTR) (((size_t)(PTR)&0x0F) == 0)
-#else /* LV_HAVE_SSE */
-#define SRSLTE_SIMD_BIT_ALIGN 64
-#define SRSLTE_IS_ALIGNED(PTR) (1)
-#endif /* LV_HAVE_SSE */
-#endif /* LV_HAVE_AVX */
-#endif /* LV_HAVE_AVX512 */
-
 /*SIMD Logical operations*/
 SRSLTE_API void srslte_vec_xor_bbb_simd(const int8_t* x, const int8_t* y, int8_t* z, int len);
 

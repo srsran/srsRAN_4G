@@ -578,9 +578,9 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
   dci_blind_search_t  search_space;
   dci_blind_search_t* current_ss = &search_space;
 
-  uint32_t          sf_idx  = sf->tti % 10;
-  uint32_t          cfi     = sf->cfi;
-  srslte_dci_cfg_t dci_cfg  = cfg->cfg.dci;
+  uint32_t         sf_idx  = sf->tti % 10;
+  uint32_t         cfi     = sf->cfi;
+  srslte_dci_cfg_t dci_cfg = cfg->cfg.dci;
 
   // Search first Common SS
 
@@ -606,7 +606,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
   }
 
   // Search UE-specific search space
-  dci_cfg  = cfg->cfg.dci;
+  dci_cfg = cfg->cfg.dci;
   if (q->pregen_rnti == rnti) {
     current_ss = &q->current_ss_ue[MI_IDX(sf_idx)][cfi - 1][sf_idx];
   } else {
@@ -740,7 +740,7 @@ static int select_pmi(srslte_ue_dl_t* q, uint32_t ri, uint32_t* pmi, float* sinr
 
     /* Set PMI */
     if (sinr_db != NULL) {
-      *sinr_db = srslte_convert_power_to_dB(sinr_list[*pmi % SRSLTE_MAX_CODEBOOKS]);
+      *sinr_db = srslte_convert_power_to_dB(sinr_list[best_pmi % SRSLTE_MAX_CODEBOOKS]);
     }
   }
 
