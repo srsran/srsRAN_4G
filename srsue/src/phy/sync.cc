@@ -224,6 +224,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
       if (found_cell) {
         found_cell->earfcn = current_earfcn;
         found_cell->pci    = cell.id;
+        found_cell->cfo_hz = search_p.get_last_cfo();
       }
       ret.found = phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND;
       break;
