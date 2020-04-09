@@ -202,6 +202,9 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
   }
   ue_ptr = it->second.get();
 
+  // Start TA FSM in UE entity
+  ue_ptr->start_ta();
+
   // Add RNTI to the PHY (pregenerate signals) now instead of after PRACH
   if (not ue_ptr->is_phy_added) {
     Info("Registering RNTI=0x%X to PHY...\n", rnti);

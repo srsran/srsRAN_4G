@@ -59,15 +59,10 @@ public:
 
   uint32_t set_ta(int ta) override;
 
+  void     start_ta() { ta_fsm.start(); };
   uint32_t set_ta_us(float ta_us) { return ta_fsm.push_value(ta_us); };
   uint32_t tick_ta_fsm() { return ta_fsm.tick(); };
 
-  void     config(uint16_t           rnti,
-                  uint32_t           nof_prb,
-                  sched_interface*   sched,
-                  rrc_interface_mac* rrc_,
-                  rlc_interface_mac* rlc,
-                  srslte::log*       log_h);
   uint8_t* generate_pdu(uint32_t                        ue_cc_idx,
                         uint32_t                        harq_pid,
                         uint32_t                        tb_idx,

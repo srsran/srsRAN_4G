@@ -42,17 +42,18 @@ public:
 /**
  * UE's FSM for controlling Time Aligment command generation.
  *
- * Initially the FSM starts at none state which automatically transitions to Measure. Measurements are collected while
- * the FSM is in Measure state. Up to MAX_NOF_MEAS are stored. The FSM uses a minimum of MIN_NOF_MEAS measurements to
- * compute the TA average. The TA command is triggered as soon as the TA average is higher than TA_N_THRESHOLD. After
- * triggering a TA command, holds in prohibit state for PROHIBIT_PERIOD_MS before start collecting measurements.
+ * Initially the FSM starts at idle state which transitions to Measure as soon as start is called. Measurements are
+ * collected while the FSM is in Measure state. Up to MAX_NOF_MEAS are stored. The FSM uses a minimum of MIN_NOF_MEAS
+ * measurements to compute the TA average. The TA command is triggered as soon as the TA average is higher than
+ * TA_N_THRESHOLD. After triggering a TA command, holds in prohibit state for PROHIBIT_PERIOD_MS before start collecting
+ * measurements.
  *
- *  +------+  First call   +---------+   Trigger   +----------+
- *  | None | ------------->| Measure |------------>| Prohibit |
- *  +------+               +---------+             +----------+
- *     ^                        ^                        |
- *     |                        |    Prohibit expires    |
- *   --+                        +------------------------+
+ *  +------+  Start  +---------+   Trigger   +----------+
+ *  | Idle | ------->| Measure |------------>| Prohibit |
+ *  +------+         +---------+             +----------+
+ *     ^                  ^                        |
+ *     |                  |    Prohibit expires    |
+ *   --+                  +------------------------+
  *
  *
  */
@@ -82,11 +83,11 @@ private:
 
   // FSM states
   typedef enum {
-    state_none = 0, ///< NO state has been set yet
+    state_idle = 0, ///< Waits for start order
     state_measure,  ///< Performing measurement
     state_prohibit  ///< Waiting for HARQ to transmit CE command, NO measurement shall be stored
   } state_t;
-  state_t state = state_none;
+  state_t state = state_idle;
 
   /**
    * Reset Measurement and timer counter
@@ -118,17 +119,6 @@ private:
 
     // Return the n_ta value
     return static_cast<int>(std::roundf(ta_us * 1e-6f / SRSLTE_LTE_TS / 16.0f));
-  }
-
-  /**
-   * Runs initial state none
-   * @return 0
-   */
-  uint32_t run_state_none()
-  {
-    reset_measurements();
-    state = state_measure;
-    return 0;
   }
 
   /**
@@ -187,8 +177,9 @@ private:
   uint32_t run_fsm()
   {
     switch (state) {
-      case state_none:
-        return run_state_none();
+      case state_idle:
+        // Waits for Start order, do nothing
+        return 0;
       case state_measure:
         return run_state_measure();
       case state_prohibit:
@@ -208,6 +199,17 @@ public:
   {
     /// Initial FSM run
     run_fsm();
+  }
+
+  /**
+   * Gives an start order to the FSM
+   */
+  void start()
+  {
+    // Transition to idle only if the current state is idle
+    if (state == state_idle) {
+      state = state_measure;
+    }
   }
 
   /**
