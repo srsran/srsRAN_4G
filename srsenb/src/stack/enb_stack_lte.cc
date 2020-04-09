@@ -107,14 +107,20 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rlc.init(&pdcp, &rrc, &mac, &timers, rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers);
-  s1ap.init(args.s1ap, &rrc, &timers, this);
-  gtpu.init(args.s1ap.gtp_bind_addr,
-            args.s1ap.mme_addr,
-            args.embms.m1u_multiaddr,
-            args.embms.m1u_if_addr,
-            &pdcp,
-            this,
-            args.embms.enable);
+  if (s1ap.init(args.s1ap, &rrc, &timers, this) != SRSLTE_SUCCESS) {
+    stack_log->error("Couldn't initialize S1AP\n");
+    return SRSLTE_ERROR;
+  }
+  if (gtpu.init(args.s1ap.gtp_bind_addr,
+                args.s1ap.mme_addr,
+                args.embms.m1u_multiaddr,
+                args.embms.m1u_if_addr,
+                &pdcp,
+                this,
+                args.embms.enable)) {
+    stack_log->error("Couldn't initialize GTPU\n");
+    return SRSLTE_ERROR;
+  }
 
   started = true;
   start(STACK_MAIN_THREAD_PRIO);

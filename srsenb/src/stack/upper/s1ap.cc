@@ -221,10 +221,10 @@ void s1ap::s1_setup_proc_t::then(const srslte::proc_state_t& result) const
 
 s1ap::s1ap() : s1setup_proc(this) {}
 
-bool s1ap::init(s1ap_args_t                       args_,
-                rrc_interface_s1ap*               rrc_,
-                srslte::timer_handler*            timers_,
-                srsenb::stack_interface_s1ap_lte* stack_)
+int s1ap::init(s1ap_args_t                       args_,
+               rrc_interface_s1ap*               rrc_,
+               srslte::timer_handler*            timers_,
+               srsenb::stack_interface_s1ap_lte* stack_)
 {
   rrc      = rrc_;
   args     = args_;
@@ -259,7 +259,7 @@ bool s1ap::init(s1ap_args_t                       args_,
     s1ap_log->error("Failed to initiate S1Setup procedure.\n");
   }
 
-  return true;
+  return SRSLTE_SUCCESS;
 }
 
 void s1ap::stop()

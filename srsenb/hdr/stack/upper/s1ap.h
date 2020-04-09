@@ -56,7 +56,7 @@ public:
   static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
 
   s1ap();
-  bool init(s1ap_args_t                       args_,
+  int  init(s1ap_args_t                       args_,
             rrc_interface_s1ap*               rrc_,
             srslte::timer_handler*            timers_,
             srsenb::stack_interface_s1ap_lte* stack_);

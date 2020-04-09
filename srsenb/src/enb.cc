@@ -42,6 +42,7 @@ enb::~enb()
 
 int enb::init(const all_args_t& args_, srslte::logger* logger_)
 {
+  int ret = SRSLTE_SUCCESS;
   logger = logger_;
 
   // Init UE log
@@ -81,17 +82,17 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   // Init layers
   if (lte_radio->init(args.rf, lte_phy.get())) {
     log.console("Error initializing radio.\n");
-    return SRSLTE_ERROR;
+    ret = SRSLTE_ERROR;
   }
 
   if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
     log.console("Error initializing PHY.\n");
-    return SRSLTE_ERROR;
+    ret = SRSLTE_ERROR;
   }
 
   if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get())) {
     log.console("Error initializing stack.\n");
-    return SRSLTE_ERROR;
+    ret = SRSLTE_ERROR;
   }
 
   stack = std::move(lte_stack);
@@ -101,9 +102,9 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   log.console("\n==== eNodeB started ===\n");
   log.console("Type <t> to view trace\n");
 
-  started = true;
+  started = (ret == SRSLTE_SUCCESS);
 
-  return SRSLTE_SUCCESS;
+  return ret;
 }
 
 void enb::stop()

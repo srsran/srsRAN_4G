@@ -39,7 +39,7 @@ class gtpu final : public gtpu_interface_rrc, public gtpu_interface_pdcp
 public:
   gtpu();
 
-  bool init(std::string               gtp_bind_addr_,
+  int  init(std::string               gtp_bind_addr_,
             std::string               mme_addr_,
             std::string               m1u_multiaddr_,
             std::string               m1u_if_addr_,
