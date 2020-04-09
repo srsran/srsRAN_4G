@@ -152,14 +152,17 @@ public:
   void step_stack();
 
   void add_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config);
-
   void add_srb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config);
 
   void reestablish_bearer(uint32_t lcid);
 
   void del_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid);
-
   void del_srb_impl(uint32_t lcid);
+
+  void add_drb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config);
+  void add_drb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config);
+  void del_drb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid);
+  void del_drb_impl(uint32_t lcid);
 
   // RRC interface for PDCP, PDCP calls RRC to push RRC SDU
   void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu);

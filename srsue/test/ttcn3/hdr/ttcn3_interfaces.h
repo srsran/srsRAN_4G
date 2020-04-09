@@ -58,6 +58,9 @@ public:
   virtual void
                add_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const srslte::pdcp_config_t pdcp_config) = 0;
   virtual void del_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid) = 0;
+  virtual void
+               add_drb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const srslte::pdcp_config_t pdcp_config) = 0;
+  virtual void del_drb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid) = 0;
 
   virtual void                            set_as_security(const ttcn3_helpers::timing_info_t        timing,
                                                           const std::array<uint8_t, 32>             k_rrc_enc,

@@ -316,9 +316,22 @@ private:
         }
       } else if (id.HasMember("Drb")) {
         log->info("Configure DRB%d\n", id["Drb"].GetInt());
-      }
 
-      // TODO: actually do configuration
+        const Value& config = (*itr)["Config"];
+        if (config.HasMember("AddOrReconfigure")) {
+          const Value& aor  = config["AddOrReconfigure"];
+          uint32_t     lcid = aor["LogicalChannelId"].GetInt();
+          if (lcid > 0) {
+            pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(static_cast<uint8_t>(lcid), false);
+            syssim->add_drb(ttcn3_helpers::get_timing_info(document), lcid, pdcp_cfg);
+          }
+        } else if (config.HasMember("Release")) {
+          uint32_t lcid = id["Drb"].GetInt() + 2;
+          syssim->del_drb(ttcn3_helpers::get_timing_info(document), lcid);
+        } else {
+          log->error("Unknown config.\n");
+        }
+      }
     }
 
     std::string resp = ttcn3_helpers::get_basic_sys_req_cnf(cell_id.GetString(), "RadioBearerList");

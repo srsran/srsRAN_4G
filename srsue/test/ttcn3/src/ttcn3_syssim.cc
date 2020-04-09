@@ -972,6 +972,47 @@ void ttcn3_syssim::del_srb_impl(uint32_t lcid)
   }
 }
 
+void ttcn3_syssim::add_drb(const ttcn3_helpers::timing_info_t timing,
+                           const uint32_t                     lcid,
+                           const srslte::pdcp_config_t        pdcp_config)
+{
+  if (timing.now) {
+    add_drb_impl(lcid, pdcp_config);
+  } else {
+    log->debug("Scheduling DRB%d addition for TTI=%d\n", lcid - 2, timing.tti);
+    tti_actions[timing.tti].push_back([this, lcid, pdcp_config]() { add_drb_impl(lcid, pdcp_config); });
+  }
+}
+
+void ttcn3_syssim::add_drb_impl(const uint32_t lcid, const pdcp_config_t pdcp_config)
+{
+  if (lcid > 2) {
+    log->info("Adding DRB%d\n", lcid - 2);
+    pdcp.add_bearer(lcid, pdcp_config);
+    rlc.add_bearer(lcid, srslte::rlc_config_t::default_rlc_am_config());
+  }
+}
+
+void ttcn3_syssim::del_drb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid)
+{
+  if (timing.now) {
+    del_drb_impl(lcid);
+  } else {
+    log->debug("Scheduling DRB%d deletion for TTI=%d\n", lcid - 2, timing.tti);
+    tti_actions[timing.tti].push_back([this, lcid]() { del_drb_impl(lcid); });
+  }
+}
+
+void ttcn3_syssim::del_drb_impl(uint32_t lcid)
+{
+  // Only delete DRB
+  if (lcid > 2) {
+    log->info("Deleting DRB%d\n", lcid - 2);
+    pdcp.del_bearer(lcid);
+    rlc.del_bearer(lcid);
+  }
+}
+
 // RRC interface for PDCP, PDCP calls RRC to push RRC SDU
 void ttcn3_syssim::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 {
@@ -999,7 +1040,11 @@ void ttcn3_syssim::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   pdu->N_bytes++;
 
   // push content to Titan
-  srb.tx(std::move(pdu));
+  if (lcid <= 2) {
+    srb.tx(std::move(pdu));
+  } else {
+    drb.tx(std::move(pdu));
+  }
 }
 
 // Not supported right now

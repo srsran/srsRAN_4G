@@ -85,9 +85,51 @@ private:
     document.Accept(writer);
     log->info("Received JSON with %d B\n%s\n", json_len, (char*)buffer.GetString());
 
-    // TODO: call handler
+    // check for common
+    assert(document.HasMember("Common"));
+    assert(document["Common"].IsObject());
+
+    // Check for user data
+    assert(document.HasMember("U_Plane"));
+    assert(document["U_Plane"].IsObject());
+
+    // Handle Pdus
+    const Value& uplane = document["U_Plane"];
+    assert(uplane.HasMember("SubframeDataList"));
+    assert(uplane["SubframeDataList"].IsArray());
+
+    uint32_t lcid = document["Common"]["RoutingInfo"]["RadioBearerId"]["Drb"].GetInt() + 2;
+
+    for (auto& sfdata : uplane["SubframeDataList"].GetArray()) {
+      assert(sfdata.HasMember("PduSduList"));
+      assert(sfdata["PduSduList"].IsObject());
+      assert(sfdata["PduSduList"].HasMember("PdcpSdu"));
+      assert(sfdata["PduSduList"]["PdcpSdu"].IsArray());
+
+      const Value& sdulist = sfdata["PduSduList"]["PdcpSdu"];
+      for (auto& sdu : sdulist.GetArray()) {
+        assert(sdu.IsString());
+        string              sdustr = sdu.GetString();
+        asn1::dyn_octstring octstr(sdustr.size());
+        octstr.from_string(sdustr);
+
+        handle_sdu(document, lcid, octstr.data(), octstr.size(), ttcn3_helpers::get_follow_on_flag(document));
+      }
+    }
 
     return SRSLTE_SUCCESS;
+  }
+
+  void handle_sdu(Document& document, const uint16_t lcid, const uint8_t* payload, const uint16_t len, bool follow_on)
+  {
+    log->info_hex(payload, len, "Received DRB PDU (lcid=%d)\n", lcid);
+
+    // pack into byte buffer
+    unique_byte_buffer_t pdu = pool_allocate_blocking;
+    pdu->N_bytes             = len;
+    memcpy(pdu->msg, payload, pdu->N_bytes);
+
+    syssim->add_dcch_pdu(ttcn3_helpers::get_timing_info(document), lcid, std::move(pdu), follow_on);
   }
 
   ss_srb_interface* syssim = nullptr;
