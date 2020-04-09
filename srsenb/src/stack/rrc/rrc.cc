@@ -1445,9 +1445,9 @@ void rrc::ue::setup_erab(uint8_t                                            id,
 
   if (nas_pdu != nullptr) {
     nas_pending[id] = true;
-    memcpy(erab_info.msg, nas_pdu->data(), nas_pdu->size());
-    erab_info.N_bytes = nas_pdu->size();
-    parent->rrc_log->info_hex(erab_info.msg, erab_info.N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
+    memcpy(erab_info[id]->msg, nas_pdu->data(), nas_pdu->size());
+    erab_info[id]->N_bytes = nas_pdu->size();
+    parent->rrc_log->info_hex(erab_info[id]->msg, erab_info[id]->N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   } else {
     nas_pending[id] = false;
   }
@@ -1889,11 +1889,11 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   // Add E-RAB info message for E-RAB 5 (DRB1)
   if (nas_pending[5]) {
     parent->rrc_log->info_hex(
-        erab_info.msg, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+        erab_info[5]->msg, erab_info[5]->N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
     conn_reconf->ded_info_nas_list_present = true;
     conn_reconf->ded_info_nas_list.resize(1);
-    conn_reconf->ded_info_nas_list[0].resize(erab_info.N_bytes);
-    memcpy(conn_reconf->ded_info_nas_list[0].data(), erab_info.msg, erab_info.N_bytes);
+    conn_reconf->ded_info_nas_list[0].resize(erab_info[5]->N_bytes);
+    memcpy(conn_reconf->ded_info_nas_list[0].data(), erab_info[5]->msg, erab_info[5]->N_bytes);
   } else {
     parent->rrc_log->debug("Not adding NAS message to connection reconfiguration\n");
     conn_reconf->ded_info_nas_list.resize(0);
@@ -2097,9 +2097,9 @@ void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_set
     // Add NAS message
     if (nas_pending[id]) {
       parent->rrc_log->info_hex(
-          erab_info.msg, erab_info.N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
-      asn1::dyn_octstring octstr(erab_info.N_bytes);
-      memcpy(octstr.data(), erab_info.msg, erab_info.N_bytes);
+          erab_info[id]->msg, erab_info[id]->N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
+      asn1::dyn_octstring octstr(erab_info[id]->N_bytes);
+      memcpy(octstr.data(), erab_info[id]->msg, erab_info[id]->N_bytes);
       conn_reconf->ded_info_nas_list.push_back(octstr);
       conn_reconf->ded_info_nas_list_present = true;
     }
