@@ -78,8 +78,10 @@ bool txrx::init(srslte::radio_interface_phy* radio_h_,
 
 void txrx::stop()
 {
-  running = false;
-  wait_thread_finish();
+  if (running) {
+    running = false;
+    wait_thread_finish();
+  }
 }
 
 void txrx::run_thread()
