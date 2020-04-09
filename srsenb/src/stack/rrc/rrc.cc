@@ -1780,6 +1780,10 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
   phys_cfg_ded_s* phy_cfg                      = &conn_reconf->rr_cfg_ded.phys_cfg_ded;
 
+  // Parse UE capabilities
+  srslte::rrc_ue_eutra_cap_t rrc_ue_eutra_cap;
+  srslte::set_rrc_ue_eutra_cap_t(rrc_ue_eutra_cap, eutra_capabilities);
+
   // Configure PHY layer
   phy_cfg->ant_info_present              = true;
   phy_cfg->ant_info.set_explicit_value() = parent->cfg.antenna_info;
@@ -1843,6 +1847,14 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     parent->rrc_log->error("Getting DRB1 configuration\n");
     parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qci);
     return;
+  }
+
+  // Configure 256QAM
+  if (rrc_ue_eutra_cap.category_dl >= 11 && rrc_ue_eutra_cap.support_dl_256qam) {
+    phy_cfg->cqi_report_cfg_pcell_v1250.set_present(true);
+    cqi_report_cfg_v1250_s* cqi_report_cfg    = conn_reconf->rr_cfg_ded.phys_cfg_ded.cqi_report_cfg_pcell_v1250.get();
+    cqi_report_cfg->alt_cqi_table_r12_present = true;
+    cqi_report_cfg->alt_cqi_table_r12         = asn1::rrc::cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::all_sfs;
   }
 
   // Configure SRB2 in RLC and PDCP

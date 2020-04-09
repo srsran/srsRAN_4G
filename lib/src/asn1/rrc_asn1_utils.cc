@@ -794,6 +794,79 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
   }
 }
 
+/*
+ * UE Capabilities parser
+ */
+
+template <class T>
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t& ue_cap, const T& ue_eutra_cap)
+{
+  if (ue_eutra_cap.non_crit_ext_present) {
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+  }
+}
+
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t& ue_cap, const asn1::rrc::ue_eutra_cap_s& ue_eutra_cap)
+{
+  ue_cap.release  = ue_eutra_cap.access_stratum_release.to_number();
+  ue_cap.category = ue_eutra_cap.ue_category;
+
+  if (ue_eutra_cap.non_crit_ext_present) {
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+  }
+}
+
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t&                        ue_cap,
+                                       const asn1::rrc::ue_eutra_cap_v1020_ies_s& ue_eutra_cap)
+{
+  if (ue_eutra_cap.ue_category_v1020_present) {
+    ue_cap.category = ue_eutra_cap.ue_category_v1020;
+  }
+
+  if (ue_eutra_cap.non_crit_ext_present) {
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+  }
+}
+
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t&                        ue_cap,
+                                       const asn1::rrc::ue_eutra_cap_v1250_ies_s& ue_eutra_cap)
+{
+  if (ue_eutra_cap.ue_category_dl_r12_present) {
+    ue_cap.category_dl = ue_eutra_cap.ue_category_dl_r12;
+  }
+
+  if (ue_eutra_cap.ue_category_ul_r12_present) {
+    ue_cap.category_ul = ue_eutra_cap.ue_category_ul_r12;
+  }
+
+  if (ue_eutra_cap.rf_params_v1250_present) {
+    const asn1::rrc::rf_params_v1250_s& rf_params = ue_eutra_cap.rf_params_v1250;
+    if (rf_params.supported_band_list_eutra_v1250_present) {
+      ue_cap.support_dl_256qam = true;
+
+      for (const asn1::rrc::supported_band_eutra_v1250_s& supported_band : rf_params.supported_band_list_eutra_v1250) {
+        ue_cap.support_dl_256qam &= supported_band.dl_minus256_qam_r12_present;
+        ue_cap.support_ul_64qam &= supported_band.ul_minus64_qam_r12_present;
+      }
+    }
+  }
+
+  if (ue_eutra_cap.non_crit_ext_present) {
+    set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
+  }
+}
+
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t&                        ue_cap,
+                                       const asn1::rrc::ue_eutra_cap_v1530_ies_s& ue_eutra_cap)
+{
+  ; // Do nothing
+}
+
+void set_rrc_ue_eutra_cap_t(rrc_ue_eutra_cap_t& ue_cap, const asn1::rrc::ue_eutra_cap_s eutra_cap_s)
+{
+  set_rrc_ue_eutra_cap_t_gen(ue_cap, eutra_cap_s);
+}
+
 // MBMS
 
 mbms_notif_cfg_t make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_type)
