@@ -127,6 +127,7 @@ public:
   void                                   enqueue_background_task(std::function<void(uint32_t)> f) final;
   void                                   notify_background_task_result(srslte::move_task_t task) final;
   void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) final;
+  void                                   defer_task(srslte::move_task_t task) final;
 
 private:
   void run_thread() final;
@@ -156,6 +157,21 @@ private:
   srslte::log_ref nas_log{"NAS"};
   srslte::log_ref pool_log{"POOL"};
 
+  // RAT-specific interfaces
+  phy_interface_stack_lte* phy = nullptr;
+  gw_interface_stack*      gw  = nullptr;
+
+  // Thread
+  static const int        STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  srslte::task_multiqueue pending_tasks;
+  int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, stack_queue_id = -1, background_queue_id = -1;
+  srslte::task_thread_pool             background_tasks;     ///< Thread pool used for long, low-priority tasks
+  std::vector<srslte::move_task_t>     deferred_stack_tasks; ///< enqueues stack tasks from within. Avoids locking
+  srslte::block_queue<stack_metrics_t> pending_stack_metrics;
+
+  // TTI stats
+  srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;
+
   // stack components
   srsue::mac                 mac;
   srslte::mac_pcap           mac_pcap;
@@ -165,20 +181,6 @@ private:
   srsue::rrc                 rrc;
   srsue::nas                 nas;
   std::unique_ptr<usim_base> usim;
-
-  // RAT-specific interfaces
-  phy_interface_stack_lte* phy = nullptr;
-  gw_interface_stack*      gw  = nullptr;
-
-  // Thread
-  static const int        STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
-  srslte::task_multiqueue pending_tasks;
-  int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
-  srslte::task_thread_pool             background_tasks; ///< Thread pool used for long, low-priority tasks
-  srslte::block_queue<stack_metrics_t> pending_stack_metrics;
-
-  // TTI stats
-  srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;
 };
 
 } // namespace srsue

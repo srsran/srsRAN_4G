@@ -174,24 +174,34 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
     while (running) {
-      // Round-robin for all queues
-      for (const queue_wrapper& q : queues) {
-        spin_idx = (spin_idx + 1) % queues.size();
-        if (is_queue_active_(spin_idx) and not queues[spin_idx].empty()) {
-          if (value) {
-            *value = std::move(queues[spin_idx].front());
-          }
-          queues[spin_idx].pop();
-          if (nof_threads_waiting > 0) {
-            lock.unlock();
-            queues[spin_idx].cv_full.notify_one();
-          }
-          return spin_idx;
+      if (round_robin_pop_(value)) {
+        if (nof_threads_waiting > 0) {
+          lock.unlock();
+          queues[spin_idx].cv_full.notify_one();
         }
+        return spin_idx;
       }
       nof_threads_waiting++;
       cv_empty.wait(lock);
       nof_threads_waiting--;
+    }
+    cv_exit.notify_one();
+    return -1;
+  }
+
+  int try_pop(myobj* value)
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    if (running) {
+      if (round_robin_pop_(value)) {
+        if (nof_threads_waiting > 0) {
+          lock.unlock();
+          queues[spin_idx].cv_full.notify_one();
+        }
+        return spin_idx;
+      }
+      // didn't find any task
+      return -1;
     }
     cv_exit.notify_one();
     return -1;
@@ -236,6 +246,22 @@ public:
 
 private:
   bool is_queue_active_(int qidx) const { return running and queues[qidx].active; }
+
+  bool round_robin_pop_(myobj* value)
+  {
+    // Round-robin for all queues
+    for (const queue_wrapper& q : queues) {
+      spin_idx = (spin_idx + 1) % queues.size();
+      if (is_queue_active_(spin_idx) and not queues[spin_idx].empty()) {
+        if (value) {
+          *value = std::move(queues[spin_idx].front());
+        }
+        queues[spin_idx].pop();
+        return true;
+      }
+    }
+    return false;
+  }
 
   std::mutex                 mutex;
   std::condition_variable    cv_empty, cv_exit;

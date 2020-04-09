@@ -29,6 +29,8 @@ namespace srsue {
 class stack_test_dummy : public stack_interface_rrc
 {
 public:
+  stack_test_dummy() { stack_queue_id = pending_tasks.add_queue(); }
+
   srslte::timer_handler::unique_timer get_unique_timer() override { return timers.get_unique_timer(); }
   void                                start_cell_search() override {}
   void                                start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) override {}
@@ -40,9 +42,31 @@ public:
   {
     timers.defer_callback(duration_ms, func);
   }
+  void defer_task(srslte::move_task_t task) final { pending_tasks.push(stack_queue_id, std::move(task)); }
 
-  srslte::timer_handler   timers{100};
-  srslte::task_multiqueue pending_tasks;
+  // Testing utility functions
+  void call_on_every_tti(srslte::move_task_t t) { tti_callbacks.push_back(std::move(t)); }
+  void process_tasks()
+  {
+    // Make sure to process any stack pending tasks
+    srslte::move_task_t task;
+    while (pending_tasks.try_pop(&task) >= 0) {
+      task();
+    }
+  }
+  void run_tti()
+  {
+    process_tasks();
+    for (auto& t : tti_callbacks) {
+      t();
+    }
+    timers.step_all();
+  }
+
+  srslte::timer_handler            timers{100};
+  srslte::task_multiqueue          pending_tasks;
+  std::vector<srslte::move_task_t> tti_callbacks;
+  int                              stack_queue_id = -1;
 };
 
 class rlc_dummy_interface : public rlc_interface_mac

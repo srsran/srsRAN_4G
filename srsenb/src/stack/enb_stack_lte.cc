@@ -35,11 +35,12 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
   pdcp(this, "PDCP"),
   thread("STACK")
 {
-  enb_queue_id  = pending_tasks.add_queue();
-  sync_queue_id = pending_tasks.add_queue();
-  mme_queue_id  = pending_tasks.add_queue();
-  gtpu_queue_id = pending_tasks.add_queue();
-  mac_queue_id  = pending_tasks.add_queue();
+  enb_queue_id   = pending_tasks.add_queue();
+  sync_queue_id  = pending_tasks.add_queue();
+  mme_queue_id   = pending_tasks.add_queue();
+  gtpu_queue_id  = pending_tasks.add_queue();
+  mac_queue_id   = pending_tasks.add_queue();
+  stack_queue_id = pending_tasks.add_queue();
 
   pool = byte_buffer_pool::get_instance();
 }
@@ -135,6 +136,10 @@ void enb_stack_lte::tti_clock()
 
 void enb_stack_lte::tti_clock_impl()
 {
+  for (auto& t : deferred_stack_tasks) {
+    t();
+  }
+  deferred_stack_tasks.clear();
   timers.step_all();
   rrc.tti_clock();
 }
@@ -274,6 +279,11 @@ void enb_stack_lte::enqueue_background_task(std::function<void(uint32_t)> task)
 void enb_stack_lte::notify_background_task_result(srslte::move_task_t task)
 {
   task();
+}
+
+void enb_stack_lte::defer_task(srslte::move_task_t task)
+{
+  deferred_stack_tasks.push_back(std::move(task));
 }
 
 } // namespace srsenb

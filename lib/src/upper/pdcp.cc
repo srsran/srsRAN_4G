@@ -36,14 +36,7 @@ pdcp::~pdcp()
     valid_lcids_cached.clear();
   }
   // destroy all remaining entities
-  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
-    delete (it->second);
-  }
   pdcp_array.clear();
-
-  for (pdcp_map_t::iterator it = pdcp_array_mrb.begin(); it != pdcp_array_mrb.end(); ++it) {
-    delete (it->second);
-  }
   pdcp_array_mrb.clear();
 }
 
@@ -58,8 +51,8 @@ void pdcp::stop() {}
 
 void pdcp::reestablish()
 {
-  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
-    it->second->reestablish();
+  for (auto& lcid_it : pdcp_array) {
+    lcid_it.second->reestablish();
   }
 }
 
@@ -77,11 +70,7 @@ void pdcp::reset()
     valid_lcids_cached.clear();
   }
   // destroy all bearers
-  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); /* post increment in erase */) {
-    it->second->reset();
-    delete (it->second);
-    pdcp_array.erase(it++);
-  }
+  pdcp_array.clear();
 }
 
 /*******************************************************************************
@@ -114,7 +103,7 @@ void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_lcid(lcid)) {
-    if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log)))
+    if (not pdcp_array.insert(std::make_pair(lcid, new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log)))
                 .second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       return;
@@ -137,7 +126,7 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_mch_lcid(lcid)) {
-    if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log)))
+    if (not pdcp_array_mrb.insert(std::make_pair(lcid, new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log)))
                 .second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       return;
@@ -160,8 +149,6 @@ void pdcp::del_bearer(uint32_t lcid)
     valid_lcids_cached.erase(lcid);
   }
   if (valid_lcid(lcid)) {
-    pdcp_map_t::iterator it = pdcp_array.find(lcid);
-    delete (it->second);
     pdcp_array.erase(it);
     pdcp_log->warning("Deleted PDCP bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
@@ -174,19 +161,17 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
   // make sure old LCID exists and new LCID is still free
   if (valid_lcid(old_lcid) && not valid_lcid(new_lcid)) {
     // insert old PDCP entity into new LCID
-    pdcp_map_t::iterator it          = pdcp_array.find(old_lcid);
-    pdcp_entity_lte*     pdcp_entity = it->second;
-    if (not pdcp_array.insert(pdcp_map_pair_t(new_lcid, pdcp_entity)).second) {
+    std::lock_guard<std::mutex>      lock(cache_mutex);
+    auto                             it          = pdcp_array.find(old_lcid);
+    std::unique_ptr<pdcp_entity_lte> pdcp_entity = std::move(it->second);
+    if (not pdcp_array.insert(std::make_pair(new_lcid, std::move(pdcp_entity))).second) {
       pdcp_log->error("Error inserting PDCP entity into array\n.");
       return;
     }
-    {
-      std::lock_guard<std::mutex> lock(cache_mutex);
-      valid_lcids_cached.erase(old_lcid);
-      valid_lcids_cached.insert(new_lcid);
-    }
     // erase from old position
     pdcp_array.erase(it);
+    valid_lcids_cached.erase(old_lcid);
+    valid_lcids_cached.insert(new_lcid);
     pdcp_log->warning("Changed LCID of PDCP bearer from %d to %d\n", old_lcid, new_lcid);
   } else {
     pdcp_log->error(
@@ -206,8 +191,8 @@ void pdcp::config_security(uint32_t lcid, as_security_config_t sec_cfg)
 
 void pdcp::config_security_all(as_security_config_t sec_cfg)
 {
-  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
-    it->second->config_security(sec_cfg);
+  for (auto& it : pdcp_array) {
+    it.second->config_security(sec_cfg);
   }
 }
 
@@ -284,11 +269,7 @@ bool pdcp::valid_lcid(uint32_t lcid)
     return false;
   }
 
-  if (pdcp_array.find(lcid) == pdcp_array.end()) {
-    return false;
-  }
-
-  return true;
+  return pdcp_array.find(lcid) != pdcp_array.end();
 }
 
 bool pdcp::valid_mch_lcid(uint32_t lcid)
@@ -298,11 +279,7 @@ bool pdcp::valid_mch_lcid(uint32_t lcid)
     return false;
   }
 
-  if (pdcp_array_mrb.find(lcid) == pdcp_array_mrb.end()) {
-    return false;
-  }
-
-  return true;
+  return pdcp_array_mrb.find(lcid) != pdcp_array_mrb.end();
 }
 
 } // namespace srslte

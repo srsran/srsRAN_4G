@@ -65,16 +65,13 @@ public:
   void write_pdu_pcch(unique_byte_buffer_t sdu);
 
 private:
-  srsue::rlc_interface_pdcp* rlc = nullptr;
-  srsue::rrc_interface_pdcp* rrc = nullptr;
-  srsue::gw_interface_pdcp*  gw  = nullptr;
-
-  typedef std::map<uint16_t, pdcp_entity_lte*>  pdcp_map_t;
-  typedef std::pair<uint16_t, pdcp_entity_lte*> pdcp_map_pair_t;
-
+  srsue::rlc_interface_pdcp*      rlc           = nullptr;
+  srsue::rrc_interface_pdcp*      rrc           = nullptr;
+  srsue::gw_interface_pdcp*       gw            = nullptr;
   srslte::task_handler_interface* task_executor = nullptr;
   srslte::log_ref                 pdcp_log;
-  pdcp_map_t                      pdcp_array, pdcp_array_mrb;
+
+  std::map<uint16_t, std::unique_ptr<pdcp_entity_lte> > pdcp_array, pdcp_array_mrb;
 
   // cache valid lcids to be checked from separate thread
   std::mutex         cache_mutex;

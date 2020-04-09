@@ -212,8 +212,8 @@ public:
     log->step(tti);
     log->debug("Start TTI\n");
 
-    // Make sure to step SS timers
-    step_timer();
+    // Make sure to step SS
+    step_stack();
 
     // inform UE about new TTI
     ue->set_current_tti(tti);
@@ -907,7 +907,7 @@ public:
     ue->new_tb(dl_grant, (const uint8_t*)pdu->msg);
   }
 
-  void step_timer() { stack.timers.step_all(); }
+  void step_stack() { stack.run_tti(); }
 
   void add_srb(const ttcn3_helpers::timing_info_t timing, const uint32_t lcid, const pdcp_config_t pdcp_config)
   {

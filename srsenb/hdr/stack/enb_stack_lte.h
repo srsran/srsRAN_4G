@@ -117,6 +117,7 @@ public:
   void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) final;
   void                                   enqueue_background_task(std::function<void(uint32_t)> task) final;
   void                                   notify_background_task_result(srslte::move_task_t task) final;
+  void                                   defer_task(srslte::move_task_t task) final;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
@@ -164,7 +165,9 @@ private:
   // state
   bool                    started = false;
   srslte::task_multiqueue pending_tasks;
-  int enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1, gtpu_queue_id = -1, mac_queue_id = -1;
+  int enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1, gtpu_queue_id = -1, mac_queue_id = -1,
+      stack_queue_id = -1;
+  std::vector<srslte::move_task_t>     deferred_stack_tasks; ///< enqueues stack tasks from within. Avoids locking
   srslte::block_queue<stack_metrics_t> pending_stack_metrics;
 };
 

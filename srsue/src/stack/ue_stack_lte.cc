@@ -50,7 +50,7 @@ ue_stack_lte::ue_stack_lte() :
   ue_queue_id         = pending_tasks.add_queue();
   sync_queue_id       = pending_tasks.add_queue();
   gw_queue_id         = pending_tasks.add_queue();
-  mac_queue_id        = pending_tasks.add_queue();
+  stack_queue_id      = pending_tasks.add_queue();
   background_queue_id = pending_tasks.add_queue();
 
   background_tasks.start();
@@ -288,6 +288,12 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   }
   current_tti = tti_point{tti};
 
+  // Perform pending stack deferred tasks
+  for (auto& task : deferred_stack_tasks) {
+    task();
+  }
+  deferred_stack_tasks.clear();
+
   // perform tasks for the received TTI range
   for (uint32_t i = 0; i < tti_jump; ++i) {
     uint32_t next_tti = TTI_SUB(tti, (tti_jump - i - 1));
@@ -330,6 +336,11 @@ void ue_stack_lte::notify_background_task_result(srslte::move_task_t task)
 void ue_stack_lte::defer_callback(uint32_t duration_ms, std::function<void()> func)
 {
   timers.defer_callback(duration_ms, func);
+}
+
+void ue_stack_lte::defer_task(srslte::move_task_t task)
+{
+  deferred_stack_tasks.push_back(std::move(task));
 }
 
 /********************

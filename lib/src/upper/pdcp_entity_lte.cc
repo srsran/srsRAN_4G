@@ -36,7 +36,10 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp*      rlc_,
 {
 }
 
-pdcp_entity_lte::~pdcp_entity_lte() {}
+pdcp_entity_lte::~pdcp_entity_lte()
+{
+  reset();
+}
 
 void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
 {
@@ -87,10 +90,10 @@ void pdcp_entity_lte::reestablish()
 // Used to stop/pause the entity (called on RRC conn release)
 void pdcp_entity_lte::reset()
 {
-  active = false;
-  if (log) {
+  if (active and log) {
     log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
   }
+  active = false;
 }
 
 // GW/RRC interface
