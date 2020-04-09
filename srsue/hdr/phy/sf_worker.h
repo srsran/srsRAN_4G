@@ -55,7 +55,7 @@ public:
   cf_t*    get_buffer(uint32_t cc_idx, uint32_t antenna_idx);
   uint32_t get_buffer_len();
   void     set_tti(uint32_t tti);
-  void     set_tx_time(srslte_timestamp_t tx_time, int next_offset);
+  void     set_tx_time(srslte_timestamp_t tx_time);
   void     set_prach(cf_t* prach_ptr, float prach_power);
   void     set_cfo(const uint32_t& cc_idx, float cfo);
 
@@ -111,7 +111,6 @@ private:
 
   uint32_t           tti         = 0;
   srslte_timestamp_t tx_time     = {};
-  int                next_offset = {};
 
   uint32_t rssi_read_cnt = 0;
 };

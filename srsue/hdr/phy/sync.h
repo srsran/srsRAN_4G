@@ -78,7 +78,6 @@ public:
   void out_of_sync() final;
   void set_cfo(float cfo) final;
 
-  void     set_time_adv_sec(float time_adv_sec);
   void     get_current_cell(srslte_cell_t* cell, uint32_t* earfcn = nullptr);
   uint32_t get_current_tti();
 
@@ -177,8 +176,6 @@ private:
   std::vector<std::unique_ptr<scell::intra_measure> > intra_freq_meas;
 
   uint32_t current_sflen     = 0;
-  int      next_offset       = 0; // Sample offset triggered by Time aligment commands
-  int      next_radio_offset = 0; // Sample offset triggered by SFO compensation
 
   // Pointers to other classes
   stack_interface_phy_lte*     stack            = nullptr;
@@ -344,8 +341,6 @@ private:
   // This is the primary cell
   srslte_cell_t                               cell              = {};
   bool                                        started           = false;
-  float                                       time_adv_sec      = 0;
-  float                                       next_time_adv_sec = 0;
   uint32_t                                    tti               = 0;
   srslte_timestamp_t                          tti_ts            = {};
   srslte_timestamp_t                          radio_ts          = {};

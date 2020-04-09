@@ -30,6 +30,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
+#include "ta_control.h"
 #include <condition_variable>
 #include <mutex>
 #include <string.h>
@@ -87,6 +88,9 @@ public:
   int last_dl_tbs[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS][SRSLTE_MAX_CODEWORDS] = {};
 
   srslte::tti_semaphore<void*> semaphore;
+
+  // Time Aligment Controller, internal thread safe
+  ta_control ta;
 
   phy_common();
 

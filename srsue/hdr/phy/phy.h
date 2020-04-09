@@ -156,10 +156,6 @@ private:
   srslte::phy_cfg_t config = {};
   phy_args_t        args   = {};
 
-  /* Current time advance */
-  uint32_t n_ta = 0;
-  uint32_t n_ta_base = 0;
-
   static void set_default_args(phy_args_t& args);
   bool check_args(const phy_args_t& args);
 };

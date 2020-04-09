@@ -138,9 +138,8 @@ void sf_worker::set_tti(uint32_t tti_)
   }
 }
 
-void sf_worker::set_tx_time(srslte_timestamp_t tx_time_, int next_offset_)
+void sf_worker::set_tx_time(srslte_timestamp_t tx_time_)
 {
-  next_offset = next_offset_;
   tx_time     = tx_time_;
 }
 
@@ -207,10 +206,12 @@ void sf_worker::work_imp()
   bool     rx_signal_ok    = false;
   bool     tx_signal_ready = false;
   uint32_t nof_samples     = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+  int32_t  next_offset     = 0;
 
-  /***** Downlink Processing *******/
   {
     std::lock_guard<std::mutex> lock(mutex);
+
+    /***** Downlink Processing *******/
 
     // Loop through all carriers. carrier_idx=0 is PCell
     for (uint32_t carrier_idx = 0; carrier_idx < cc_workers.size(); carrier_idx++) {
@@ -229,6 +230,9 @@ void sf_worker::work_imp()
         }
       }
     }
+
+    // Load TA
+    next_offset = phy->ta.get_pending_nsamples(nof_samples * 1000U);
 
     /***** Uplink Generation + Transmission *******/
 
@@ -259,10 +263,12 @@ void sf_worker::work_imp()
 
   // Set PRACH buffer signal pointer
   if (prach_ptr) {
+    srslte_timestamp_sub(&tx_time, 0, phy->ta.get_current_sec());
     tx_signal_ready = true;
     tx_signal_ptr.set(0, prach_ptr);
     prach_ptr = nullptr;
   } else {
+    srslte_timestamp_sub(&tx_time, 0, phy->ta.get_previous_sec());
     nof_samples += next_offset;
   }
 

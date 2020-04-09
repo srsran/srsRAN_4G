@@ -136,9 +136,6 @@ void sync::reset()
 {
   in_sync_cnt           = 0;
   out_of_sync_cnt       = 0;
-  time_adv_sec          = 0;
-  next_offset           = 0;
-  next_radio_offset     = 0;
   current_earfcn        = -1;
   srate_mode            = SRATE_NONE;
   sfn_p.reset();
@@ -476,7 +473,7 @@ void sync::run_thread()
 
               metrics.sfo   = srslte_ue_sync_get_sfo(&ue_sync);
               metrics.cfo   = srslte_ue_sync_get_cfo(&ue_sync);
-              metrics.ta_us = time_adv_sec * 1e6f;
+              metrics.ta_us = worker_com->ta.get_current_usec();
               for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
                 worker_com->set_sync_metrics(i, metrics);
               }
@@ -493,9 +490,9 @@ void sync::run_thread()
               srslte_timestamp_t rx_time, tx_time;
               srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
               srslte_timestamp_copy(&tx_time, &rx_time);
-              srslte_timestamp_add(&tx_time, 0, FDD_HARQ_DELAY_DL_MS * 1e-3 - time_adv_sec);
+              srslte_timestamp_add(&tx_time, 0, FDD_HARQ_DELAY_DL_MS * 1e-3);
 
-              worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSLTE_SF_LEN_PRB(cell.nof_prb)] : NULL,
+              worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSLTE_SF_LEN_PRB(cell.nof_prb)] : nullptr,
                                 prach_power);
 
               // Set CFO for all Carriers
@@ -505,21 +502,14 @@ void sync::run_thread()
               }
 
               worker->set_tti(tti);
-              worker->set_tx_time(tx_time, next_radio_offset + next_offset);
-              next_offset = 0;
-              ZERO_OBJECT(next_radio_offset);
-
-              // Process time aligment command
-              if (next_time_adv_sec != time_adv_sec) {
-                time_adv_sec = next_time_adv_sec;
-              }
+              worker->set_tx_time(tx_time);
 
               // Advance/reset prach subframe pointer
               if (prach_ptr) {
                 prach_sf_cnt++;
                 if (prach_sf_cnt == prach_nof_sf) {
                   prach_sf_cnt = 0;
-                  prach_ptr    = NULL;
+                  prach_ptr    = nullptr;
                 }
               }
 
@@ -641,14 +631,6 @@ void sync::set_agc_enable(bool enable)
   } else {
     ERROR("Error stopping AGC: not implemented\n");
   }
-}
-
-void sync::set_time_adv_sec(float time_adv_sec_)
-{
-  // If transmitting earlier, transmit less samples to align time advance. If transmit later just delay next TX
-  next_offset       = (int)round((time_adv_sec - time_adv_sec_) * srslte_sampling_freq_hz(cell.nof_prb));
-  next_time_adv_sec = time_adv_sec_;
-  Info("Applying time_adv_sec=%.1f us, next_offset=%d\n", time_adv_sec_ * 1e6, next_offset);
 }
 
 float sync::get_tx_cfo()
@@ -882,9 +864,9 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_ti
 
     int offset = nsamples - current_sflen;
     if (abs(offset) < 10 && offset != 0) {
-      next_radio_offset = offset;
+      worker_com->ta.set_pending_nsamples(offset);
     } else if (nsamples < 10) {
-      next_radio_offset = nsamples;
+      worker_com->ta.set_pending_nsamples(nsamples);
     }
 
     log_h->debug("SYNC:  received %d samples from radio\n", nsamples);

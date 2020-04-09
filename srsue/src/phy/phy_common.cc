@@ -68,6 +68,8 @@ void phy_common::init(phy_args_t*                  _args,
   args           = _args;
   sr_last_tx_tti = -1;
 
+  ta.set_logger(_log);
+
   // Instantiate UL channel emulator
   if (args->ul_channel_args.enable) {
     ul_channel = srslte::channel_ptr(new srslte::channel(args->ul_channel_args, args->nof_carriers * args->nof_rx_ant));
