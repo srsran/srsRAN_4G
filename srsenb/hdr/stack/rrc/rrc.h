@@ -322,7 +322,8 @@ private:
     uint32_t                  sr_N_pucch       = 0;
     uint32_t                  sr_I             = 0;
     bool                      cqi_allocated    = false;
-    bool                      nas_pending      = false;
+
+    std::array<bool, 16>      nas_pending = {};
     srslte::byte_buffer_t     erab_info;
 
     const static uint32_t UE_PCELL_CC_IDX = 0;

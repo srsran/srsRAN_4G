@@ -1444,12 +1444,12 @@ void rrc::ue::setup_erab(uint8_t                                            id,
   parent->gtpu->add_bearer(rnti, lcid, addr_, erabs[id].teid_out, &(erabs[id].teid_in));
 
   if (nas_pdu != nullptr) {
-    nas_pending = true;
+    nas_pending[id] = true;
     memcpy(erab_info.msg, nas_pdu->data(), nas_pdu->size());
     erab_info.N_bytes = nas_pdu->size();
     parent->rrc_log->info_hex(erab_info.msg, erab_info.N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   } else {
-    nas_pending = false;
+    nas_pending[id] = false;
   }
 }
 
@@ -1886,8 +1886,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->pdcp->enable_encryption(rnti, 3);
   // DRB1 has already been configured in GTPU through bearer setup
 
-  // Add NAS Attach accept
-  if (nas_pending) {
+  // Add E-RAB info message for E-RAB 5 (DRB1)
+  if (nas_pending[5]) {
     parent->rrc_log->info_hex(
         erab_info.msg, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
     conn_reconf->ded_info_nas_list_present = true;
@@ -2095,7 +2095,7 @@ void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_set
     conn_reconf->rr_cfg_ded.drb_to_add_mod_list.push_back(drb_item);
 
     // Add NAS message
-    if (nas_pending) {
+    if (nas_pending[id]) {
       parent->rrc_log->info_hex(
           erab_info.msg, erab_info.N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
       asn1::dyn_octstring octstr(erab_info.N_bytes);
