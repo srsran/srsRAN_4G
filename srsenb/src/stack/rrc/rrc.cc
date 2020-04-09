@@ -77,7 +77,6 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   enb_mobility_cfg.reset(new mobility_cfg(&cfg));
 
   bzero(&sr_sched, sizeof(sr_sched_t));
-
   running = true;
 }
 
@@ -1033,6 +1032,11 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
+
+  // Setup buffers for NAS msgs
+  for (srslte::unique_byte_buffer_t& erab_info_buff : erab_info) {
+    erab_info_buff = srslte::allocate_unique_buffer(*pool);
+  }
 }
 
 rrc_state_t rrc::ue::get_state()
