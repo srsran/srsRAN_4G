@@ -397,8 +397,6 @@ inline static uint8x16_t v_load_s8(int i15,
 #define normalize_period 2
 #define win_overlap_len 40
 
-#define divide_output 1
-
 #define INF 10000
 
 #else
