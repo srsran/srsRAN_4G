@@ -1032,7 +1032,6 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
-
 }
 
 rrc_state_t rrc::ue::get_state()
@@ -1274,7 +1273,7 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
 
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
-    // Finally, add SRB2 and DRB1 to the scheduler
+    // Finally, add SRB2 and DRB1 and any dedicated DRBs to the scheduler
     srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg = {};
     bearer_cfg.direction                                = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
     bearer_cfg.group                                    = 0;
@@ -1283,7 +1282,9 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
                            .rrc_conn_recfg_r8()
                            .rr_cfg_ded.drb_to_add_mod_list[0]
                            .lc_ch_cfg.ul_specific_params.lc_ch_group;
-    parent->mac->bearer_ue_cfg(rnti, 3, &bearer_cfg);
+    for (const std::pair<uint8_t, erab_t>& erab_pair : erabs) {
+      parent->mac->bearer_ue_cfg(rnti, erab_pair.second.id - 2, &bearer_cfg);
+    }
 
     // Acknowledge Dedicated Configuration
     parent->mac->phy_config_enabled(rnti, true);
@@ -1874,7 +1875,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   uint8_t vec_idx = 0;
   for (const std::pair<uint8_t, erab_t>& erab_id_pair : erabs) {
     const erab_t& erab = erab_id_pair.second;
-    parent->rrc_log->console("%d\n", erab.id);
     uint8_t drb_id = erab.id - 4;
     uint8_t lcid = erab.id - 2; 
 
@@ -1917,8 +1917,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     }
     vec_idx++;
   }
-
-
 
   if (mobility_handler != nullptr) {
     mobility_handler->fill_conn_recfg_msg(conn_reconf);
