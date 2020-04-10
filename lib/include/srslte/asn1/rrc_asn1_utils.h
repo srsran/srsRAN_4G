@@ -125,22 +125,7 @@ void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled);
 /***************************
  *  EUTRA UE Capabilities
  **************************/
-typedef struct {
-  uint8_t release           = 8;
-  uint8_t category          = 4;
-  uint8_t category_dl       = 0;
-  uint8_t category_ul       = 0;
-  bool    support_dl_256qam = false;
-  bool    support_ul_64qam  = false;
-} rrc_ue_eutra_cap_t;
-
-/**
- * Flattens the UE EUTRA capabilities from the ASN.1 message decoder
- *
- * @param ue_cap Flat UE EUTRA capabilities
- * @param eutra_cap_s ASN.1 structure
- */
-void set_rrc_ue_eutra_cap_t(rrc_ue_eutra_cap_t& ue_cap, const asn1::rrc::ue_eutra_cap_s eutra_cap_s);
+void set_rrc_ue_capabilities_t(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s eutra_cap_s);
 
 // mbms
 mbms_notif_cfg_t  make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_type);

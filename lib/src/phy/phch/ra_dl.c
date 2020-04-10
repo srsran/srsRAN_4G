@@ -26,7 +26,6 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/srslte.h"
-#include "tbs_tables.h"
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -321,50 +320,16 @@ int srslte_ra_dl_grant_to_grant_prb_allocation(const srslte_dci_dl_t* dci,
 
 int srslte_dl_fill_ra_mcs(srslte_ra_tb_t* tb, int last_tbs, uint32_t nprb, bool pdsch_use_tbs_index_alt)
 {
-  int i_tbs = 0;
-  if (!pdsch_use_tbs_index_alt) {
-    // Implements 3GPP 36.211 Table  3.56.35-431
-    if (tb->mcs_idx < 10) {
-      tb->mod = SRSLTE_MOD_QPSK;
-      i_tbs   = tb->mcs_idx;
-    } else if (tb->mcs_idx < 17) {
-      tb->mod = SRSLTE_MOD_16QAM;
-      i_tbs   = tb->mcs_idx - 1;
-    } else if (tb->mcs_idx < 29) {
-      tb->mod = SRSLTE_MOD_64QAM;
-      i_tbs   = tb->mcs_idx - 2;
-    } else if (tb->mcs_idx == 29) {
-      tb->mod = SRSLTE_MOD_QPSK;
-      i_tbs   = -1;
-    } else if (tb->mcs_idx == 30) {
-      tb->mod = SRSLTE_MOD_16QAM;
-      i_tbs   = -1;
-    } else if (tb->mcs_idx == 31) {
-      tb->mod = SRSLTE_MOD_64QAM;
-      i_tbs   = -1;
-    }
-  } else {
-    if (tb->mcs_idx < 28) {
-      i_tbs = dl_mcs_tbs_idx_table2[tb->mcs_idx];
-    } else {
-      i_tbs = SRSLTE_ERROR;
-    }
+  // Get modulation
+  tb->mod = srslte_ra_dl_mod_from_mcs(tb->mcs_idx, pdsch_use_tbs_index_alt);
 
-    if (tb->mcs_idx < 5 || tb->mcs_idx == 28) {
-      tb->mod = SRSLTE_MOD_QPSK;
-    } else if (tb->mcs_idx < 11 || tb->mcs_idx == 29) {
-      tb->mod = SRSLTE_MOD_16QAM;
-    } else if (tb->mcs_idx < 20 || tb->mcs_idx == 30) {
-      tb->mod = SRSLTE_MOD_64QAM;
-    } else {
-      tb->mod = SRSLTE_MOD_256QAM;
-    }
-  }
+  // Get Transport block size index
+  int i_tbs = srslte_ra_tbs_idx_from_mcs(tb->mcs_idx, pdsch_use_tbs_index_alt, false);
 
   // If i_tbs = -1, TBS is determined from the latest PDCCH for this TB (7.1.7.2 36.213)
   int tbs = 0;
   if (i_tbs >= 0) {
-    tbs     = srslte_ra_tbs_from_idx(i_tbs, nprb);
+    tbs     = srslte_ra_tbs_from_idx((uint32_t)i_tbs, nprb);
     tb->tbs = tbs;
   } else {
     tb->tbs = last_tbs;

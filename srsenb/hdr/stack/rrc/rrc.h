@@ -306,6 +306,7 @@ private:
     asn1::s1ap::ue_security_cap_s              security_capabilities;
     bool                                       eutra_capabilities_unpacked = false;
     asn1::rrc::ue_eutra_cap_s                  eutra_capabilities;
+    srslte::rrc_ue_capabilities_t              ue_capabilities;
 
     typedef struct {
       uint8_t                                     id;

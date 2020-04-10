@@ -799,14 +799,14 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
  */
 
 template <class T>
-static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t& ue_cap, const T& ue_eutra_cap)
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t& ue_cap, const T& ue_eutra_cap)
 {
   if (ue_eutra_cap.non_crit_ext_present) {
     set_rrc_ue_eutra_cap_t_gen(ue_cap, ue_eutra_cap.non_crit_ext);
   }
 }
 
-static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t& ue_cap, const asn1::rrc::ue_eutra_cap_s& ue_eutra_cap)
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s& ue_eutra_cap)
 {
   ue_cap.release  = ue_eutra_cap.access_stratum_release.to_number();
   ue_cap.category = ue_eutra_cap.ue_category;
@@ -816,7 +816,7 @@ static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t& ue_cap, const asn1::r
   }
 }
 
-static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t&                        ue_cap,
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
                                        const asn1::rrc::ue_eutra_cap_v1020_ies_s& ue_eutra_cap)
 {
   if (ue_eutra_cap.ue_category_v1020_present) {
@@ -828,7 +828,7 @@ static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t&                      
   }
 }
 
-static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t&                        ue_cap,
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
                                        const asn1::rrc::ue_eutra_cap_v1250_ies_s& ue_eutra_cap)
 {
   if (ue_eutra_cap.ue_category_dl_r12_present) {
@@ -856,13 +856,13 @@ static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t&                      
   }
 }
 
-static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_eutra_cap_t&                        ue_cap,
+static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                     ue_cap,
                                        const asn1::rrc::ue_eutra_cap_v1530_ies_s& ue_eutra_cap)
 {
   ; // Do nothing
 }
 
-void set_rrc_ue_eutra_cap_t(rrc_ue_eutra_cap_t& ue_cap, const asn1::rrc::ue_eutra_cap_s eutra_cap_s)
+void set_rrc_ue_capabilities_t(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s eutra_cap_s)
 {
   set_rrc_ue_eutra_cap_t_gen(ue_cap, eutra_cap_s);
 }

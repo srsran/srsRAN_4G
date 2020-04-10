@@ -505,7 +505,8 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
       srslte_dl_cfg_t dl_cfg = phy->ue_db.get_config(rnti, cc_idx).dl_cfg;
 
       // Compute DL grant
-      if (srslte_ra_dl_dci_to_grant(&enb_dl.cell, &dl_sf, dl_cfg.tm, false, &grants[i].dci, &dl_cfg.pdsch.grant)) {
+      if (srslte_ra_dl_dci_to_grant(
+              &enb_dl.cell, &dl_sf, dl_cfg.tm, dl_cfg.pdsch.use_tbs_index_alt, &grants[i].dci, &dl_cfg.pdsch.grant)) {
         Error("Computing DL grant\n");
       }
 

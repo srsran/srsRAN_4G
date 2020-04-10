@@ -64,7 +64,7 @@ struct sched_ue_carrier {
   uint32_t ul_cqi_tti = 0;
   bool     dl_cqi_rx  = false;
 
-  int      max_mcs_dl = 28, max_mcs_ul = 28;
+  uint32_t max_mcs_dl = 28, max_mcs_dl_alt = 27, max_mcs_ul = 28;
   uint32_t max_aggr_level = 3;
   int      fixed_mcs_ul = 0, fixed_mcs_dl = 0;
 
@@ -187,6 +187,7 @@ public:
                         uint32_t  nof_re,
                         uint32_t  max_mcs,
                         uint32_t  max_Qm,
+                        bool      use_tbs_index_alt,
                         bool      is_ul,
                         uint32_t* mcs);
 

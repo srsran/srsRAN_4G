@@ -43,9 +43,19 @@ namespace sched_utils {
 const uint32_t conres_ce_size = 6;
 
 //! Obtains TB size *in bytes* for a given MCS and N_{PRB}
-uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool is_ul)
+uint32_t get_tbs_bytes(uint32_t mcs, uint32_t nof_alloc_prb, bool use_tbs_index_alt, bool is_ul)
 {
-  return srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, is_ul), nof_alloc_prb) / 8;
+  int tbs_idx = srslte_ra_tbs_idx_from_mcs(mcs, use_tbs_index_alt, is_ul);
+  if (tbs_idx < SRSLTE_SUCCESS) {
+    tbs_idx = 0;
+  }
+
+  int tbs = srslte_ra_tbs_from_idx((uint32_t)tbs_idx, nof_alloc_prb);
+  if (tbs < SRSLTE_SUCCESS) {
+    tbs = 0;
+  }
+
+  return (uint32_t)tbs / 8U;
 }
 
 //! TS 36.321 sec 7.1.2 - MAC PDU subheader is 2 bytes if L<=128 and 3 otherwise
@@ -535,14 +545,15 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
     tbs_bytes = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.second, &mcs);
   } else {
     // Fixed MCS
-    tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)carriers[ue_cc_idx].fixed_mcs_dl, nof_alloc_prbs, false);
+    tbs_bytes = sched_utils::get_tbs_bytes(
+        (uint32_t)carriers[ue_cc_idx].fixed_mcs_dl, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
   }
 
   // If the number of prbs is not sufficient to fit minimum required bytes, increase the mcs
   // NOTE: this may happen during ConRes CE tx when DL-CQI is still not available
   while (tbs_bytes > 0 and (uint32_t) tbs_bytes < req_bytes.first and mcs < 28) {
     mcs++;
-    tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)mcs, nof_alloc_prbs, false);
+    tbs_bytes = sched_utils::get_tbs_bytes((uint32_t)mcs, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
   }
 
   return {mcs, tbs_bytes};
@@ -690,7 +701,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     nof_retx = (data->needs_pdcch) ? get_max_retx() : max_msg3retx;
 
     if (mcs >= 0) {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, true), alloc.L) / 8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.L) / 8;
     } else {
       // dynamic mcs
       uint32_t req_bytes = get_pending_ul_new_data_unlocked(tti);
@@ -705,7 +716,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
   } else {
     // retx
     h->new_retx(0, tti, &mcs, nullptr, alloc);
-    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, true), alloc.L) / 8;
+    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.L) / 8;
   }
 
   data->tbs = tbs;
@@ -1157,6 +1168,7 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
                          uint32_t  nof_re,
                          uint32_t  max_mcs,
                          uint32_t  max_Qm,
+                         bool      use_tbs_index_alt,
                          bool      is_ul,
                          uint32_t* mcs)
 {
@@ -1169,10 +1181,11 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
 
   do {
     sel_mcs--;
-    uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs, is_ul);
+    uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs, use_tbs_index_alt, is_ul);
     tbs              = srslte_ra_tbs_from_idx(tbs_idx, nof_prb);
     coderate         = srslte_coderate(tbs, nof_re);
-    srslte_mod_t mod = (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs);
+    srslte_mod_t mod =
+        (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs, use_tbs_index_alt);
     Qm               = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(mod));
     eff_coderate     = coderate / Qm;
   } while ((sel_mcs > 0 && coderate > max_coderate) || eff_coderate > 0.930);
@@ -1206,6 +1219,8 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
   // set max mcs
   max_mcs_ul     = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
   max_mcs_dl     = cell_params->sched_cfg->pdsch_max_mcs >= 0 ? cell_params->sched_cfg->pdsch_max_mcs : 28;
+  max_mcs_dl_alt =
+      cell_params->sched_cfg->pdsch_max_mcs >= 0 ? SRSLTE_MIN(cell_params->sched_cfg->pdsch_max_mcs, 27) : 27;
   max_aggr_level = cell_params->sched_cfg->max_aggr_level >= 0 ? cell_params->sched_cfg->max_aggr_level : 3;
 
   // set fixed mcs
@@ -1280,16 +1295,17 @@ int sched_ue_carrier::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_
   uint32_t sel_mcs = 0;
 
   uint32_t cqi     = is_ul ? ul_cqi : dl_cqi;
-  uint32_t max_mcs = is_ul ? max_mcs_ul : max_mcs_dl;
+  uint32_t max_mcs = is_ul ? max_mcs_ul : (cfg->use_tbs_index_alt) ? max_mcs_dl_alt : max_mcs_dl;
   uint32_t max_Qm  = is_ul ? 4 : 6; // Allow 16-QAM in PUSCH Only
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
-  int tbs_bytes = sched_ue::cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, is_ul, &sel_mcs) / 8;
+  int tbs_bytes =
+      sched_ue::cqi_to_tbs(cqi, nof_prb, nof_re, max_mcs, max_Qm, cfg->use_tbs_index_alt, is_ul, &sel_mcs) / 8;
 
   /* If less bytes are requested, lower the MCS */
   if (tbs_bytes > (int)req_bytes && req_bytes > 0) {
     int req_tbs_idx = srslte_ra_tbs_to_table_idx(req_bytes * 8, nof_prb);
-    int req_mcs     = srslte_ra_mcs_from_tbs_idx(req_tbs_idx, is_ul);
+    int req_mcs     = srslte_ra_mcs_from_tbs_idx(req_tbs_idx, cfg->use_tbs_index_alt, is_ul);
 
     if (req_mcs < (int)sel_mcs) {
       sel_mcs   = req_mcs;
@@ -1299,7 +1315,7 @@ int sched_ue_carrier::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_
   // Avoid the unusual case n_prb=1, mcs=6 tbs=328 (used in voip)
   if (nof_prb == 1 && sel_mcs == 6) {
     sel_mcs--;
-    uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs, is_ul);
+    uint32_t tbs_idx = srslte_ra_tbs_idx_from_mcs(sel_mcs, cfg->use_tbs_index_alt, is_ul);
     tbs_bytes        = srslte_ra_tbs_from_idx(tbs_idx, nof_prb) / 8;
   }
 
@@ -1333,7 +1349,7 @@ int sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_
     if (fixed_mcs_dl < 0 or not dl_cqi_rx) {
       tbs = alloc_tbs_dl(n + 1, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl, false), n + 1) / 8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl, cfg->use_tbs_index_alt, false), n + 1) / 8;
     }
     if (tbs > 0) {
       nbytes = tbs;
@@ -1362,7 +1378,7 @@ uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul, true), n) / 8;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul, false, true), n) / 8;
     }
     if (tbs > 0) {
       nbytes = tbs;
