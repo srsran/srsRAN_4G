@@ -862,7 +862,7 @@ static void set_rrc_ue_eutra_cap_t_gen(rrc_ue_capabilities_t&                   
   ; // Do nothing
 }
 
-void set_rrc_ue_capabilities_t(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s eutra_cap_s)
+void set_rrc_ue_capabilities_t(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s& eutra_cap_s)
 {
   set_rrc_ue_eutra_cap_t_gen(ue_cap, eutra_cap_s);
 }
