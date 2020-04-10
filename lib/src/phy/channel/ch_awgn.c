@@ -29,24 +29,40 @@
 #include <srslte/phy/utils/vector.h>
 #include <srslte/srslte.h>
 
+#define AWGN_TABLE_READ_BURST 32U
 #define AWGN_TABLE_SIZE_POW 10U
 #define AWGN_TABLE_SIZE (1U << AWGN_TABLE_SIZE_POW)
-#define AWGN_TABLE_ALLOC_SIZE (AWGN_TABLE_SIZE + SRSLTE_SIMD_F_SIZE)
+#define AWGN_TABLE_ALLOC_SIZE (AWGN_TABLE_SIZE + SRSLTE_MAX(SRSLTE_SIMD_F_SIZE, AWGN_TABLE_READ_BURST))
 
 // Linear congruential Generator parameters
 #define AWGN_LCG_A 12345U
 #define AWGN_LCG_C 1103515245U
 
-#undef ENABLE_GUI /* Disable GUI by default */
-#ifdef ENABLE_GUI
-#include "srsgui/srsgui.h"
-static bool enable_gui = false;
-#endif /* ENABLE_GUI */
-
 static inline int32_t channel_awgn_rand(srslte_channel_awgn_t* q)
 {
-  q->rand_state = (AWGN_LCG_A + AWGN_LCG_C * q->rand_state) & (AWGN_TABLE_SIZE - 1);
-  return q->rand_state;
+  q->rand_state = (AWGN_LCG_A + AWGN_LCG_C * q->rand_state);
+  return q->rand_state % AWGN_TABLE_SIZE;
+}
+
+static inline void channel_awgn_shuffle_tables(srslte_channel_awgn_t* q)
+{
+  for (uint32_t i = 0; i < AWGN_TABLE_SIZE; i++) {
+    int32_t idx;
+
+    do {
+      idx = channel_awgn_rand(q);
+    } while (idx == i);
+    float temp_log    = q->table_log[i];
+    q->table_log[i]   = q->table_log[idx];
+    q->table_log[idx] = temp_log;
+
+    do {
+      idx = channel_awgn_rand(q);
+    } while (idx == i);
+    float temp_cos    = q->table_cos[i];
+    q->table_cos[i]   = q->table_cos[idx];
+    q->table_cos[idx] = temp_cos;
+  }
 }
 
 int srslte_channel_awgn_init(srslte_channel_awgn_t* q, uint32_t seed)
@@ -75,23 +91,7 @@ int srslte_channel_awgn_init(srslte_channel_awgn_t* q, uint32_t seed)
   }
 
   // Shuffle values in tables to break correlation in SIMD registers
-  for (uint32_t i = 0; i < AWGN_TABLE_SIZE; i++) {
-    int32_t idx;
-
-    do {
-      idx = channel_awgn_rand(q) % AWGN_TABLE_SIZE;
-    } while (idx == i);
-    float temp_log    = q->table_log[i];
-    q->table_log[i]   = q->table_log[idx];
-    q->table_log[idx] = temp_log;
-
-    do {
-      idx = channel_awgn_rand(q) % AWGN_TABLE_SIZE;
-    } while (idx == i);
-    float temp_cos    = q->table_cos[i];
-    q->table_cos[i]   = q->table_cos[idx];
-    q->table_cos[idx] = temp_cos;
-  }
+  channel_awgn_shuffle_tables(q);
 
   // Copy head in tail for keeping continuity in SIMD registers
   for (uint32_t i = 0; i < SRSLTE_SIMD_F_SIZE; i++) {
@@ -119,13 +119,24 @@ static inline void channel_awgn_run(srslte_channel_awgn_t* q, const float* in, f
     return;
   }
 
-  int i = 0;
+  int32_t i    = 0;
+  int32_t idx1 = 0;
+  int32_t idx2 = 0;
 
 #if SRSLTE_SIMD_F_SIZE
   for (; i < (int)size - SRSLTE_SIMD_F_SIZE + 1; i += SRSLTE_SIMD_F_SIZE) {
+
+    if (i % AWGN_TABLE_READ_BURST == 0) {
+      idx1 = channel_awgn_rand(q);
+      idx2 = channel_awgn_rand(q);
+    } else {
+      idx1 = (idx1 + SRSLTE_SIMD_F_SIZE) % AWGN_TABLE_SIZE;
+      idx2 = (idx2 + SRSLTE_SIMD_F_SIZE) % AWGN_TABLE_SIZE;
+    }
+
     // Load SIMD registers
-    simd_f_t t1   = srslte_simd_f_loadu(&q->table_cos[channel_awgn_rand(q)]);
-    simd_f_t t2   = srslte_simd_f_loadu(&q->table_log[channel_awgn_rand(q)]);
+    simd_f_t t1   = srslte_simd_f_loadu(&q->table_cos[idx1]);
+    simd_f_t t2   = srslte_simd_f_loadu(&q->table_log[idx2]);
     simd_f_t in_  = srslte_simd_f_loadu(&in[i]);
     simd_f_t out_ = srslte_simd_f_set1(std_dev);
 
@@ -139,11 +150,9 @@ static inline void channel_awgn_run(srslte_channel_awgn_t* q, const float* in, f
   }
 #endif /* SRSLTE_SIMD_F_SIZE */
 
-  int32_t idx1 = channel_awgn_rand(q);
-  int32_t idx2 = channel_awgn_rand(q);
   for (; i < size; i++) {
 
-    if (i % 8 == 0) {
+    if (i % AWGN_TABLE_READ_BURST == 0) {
       idx1 = channel_awgn_rand(q);
       idx2 = channel_awgn_rand(q);
     } else {
@@ -162,7 +171,6 @@ static inline void channel_awgn_run(srslte_channel_awgn_t* q, const float* in, f
 void srslte_channel_awgn_run_c(srslte_channel_awgn_t* q, const cf_t* in, cf_t* out, uint32_t size)
 {
   channel_awgn_run(q, (float*)in, (float*)out, 2 * size, q->std_dev * (float)M_SQRT1_2);
-  //  srslte_ch_awgn_c(in, out, q->std_dev * M_SQRT1_2, size);
 }
 
 void srslte_channel_awgn_run_f(srslte_channel_awgn_t* q, const float* in, float* out, uint32_t size)
