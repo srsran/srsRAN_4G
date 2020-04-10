@@ -588,7 +588,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
     log_rrc_message("SRB0", Rx, pdu.get(), ul_ccch_msg, ul_ccch_msg.msg.c1().type().to_string());
 
     auto user_it = users.find(rnti);
-    switch (ul_ccch_msg.msg.c1().type()) {
+    switch (ul_ccch_msg.msg.c1().type().value) {
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request:
         if (user_it != users.end()) {
           user_it->second->handle_rrc_con_req(&ul_ccch_msg.msg.c1().rrc_conn_request());
@@ -1257,11 +1257,15 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
     // Finally, add secondary carriers
     // TODO: For now the ue supports all cc
-    using cc_cfg_t = sched_interface::ue_cfg_t::cc_cfg_t;
-    auto& list     = current_sched_ue_cfg.supported_cc_list;
+    using cc_cfg_t   = sched_interface::ue_cfg_t::cc_cfg_t;
+    auto& list       = current_sched_ue_cfg.supported_cc_list;
+    auto& scell_list = parent->cfg.cell_list[current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx].scell_list;
     for (uint32_t i = 0; i < parent->cfg.cell_list.size(); ++i) {
-      auto it = std::find_if(list.begin(), list.end(), [i](const cc_cfg_t& u) { return u.enb_cc_idx == i; });
-      if (it == list.end()) {
+      auto& c        = parent->cfg.cell_list[i];
+      auto  it       = std::find_if(list.begin(), list.end(), [i](const cc_cfg_t& u) { return u.enb_cc_idx == i; });
+      auto  scell_it = std::find_if(
+          scell_list.begin(), scell_list.end(), [&c](const scell_cfg_t& s) { return s.cell_id == c.cell_id; });
+      if (it == list.end() and scell_it != scell_list.end()) {
         list.emplace_back();
         list.back().active     = true;
         list.back().enb_cc_idx = i;
@@ -1921,7 +1925,8 @@ rrc::cell_ctxt_t* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 //! Method to fill SCellToAddModList for SCell info
 void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
 {
-  if (parent->cfg.cell_list.size() <= 1) {
+  const cell_ctxt_t* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+  if (pcell_cfg->cell_cfg.scell_list.size() <= 1) {
     return;
   }
 
@@ -1932,8 +1937,7 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
   auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
 
   // Add all SCells configured for the current PCell
-  uint32_t           scell_idx = 1; // SCell start with 1, zero reserved for PCell
-  const cell_ctxt_t* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+  uint32_t scell_idx = 1; // SCell start with 1, zero reserved for PCell
   for (auto& scell : pcell_cfg->cell_cfg.scell_list) {
     // get corresponding eNB cell context for this scell
     const cell_ctxt_t* cc_cfg = parent->find_cell_ctxt(scell.cell_id);
