@@ -1855,14 +1855,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   conn_reconf->rr_cfg_ded.srb_to_add_mod_list[0].rlc_cfg_present = true;
   conn_reconf->rr_cfg_ded.srb_to_add_mod_list[0].rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types::default_value);
 
-  // Get DRB1 configuration
-  conn_reconf->rr_cfg_ded.drb_to_add_mod_list_present = true;
-  conn_reconf->rr_cfg_ded.drb_to_add_mod_list.resize(1);
-  if (get_drbid_config(&conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0], 1)) {
-    parent->rrc_log->error("Getting DRB1 configuration\n");
-    parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qci);
-    return;
-  }
 
   // Configure SRB2 in RLC and PDCP
   parent->rlc->add_bearer(rnti, 2, srslte::rlc_config_t::srb_config(2));
@@ -1873,35 +1865,68 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->pdcp->enable_integrity(rnti, 2);
   parent->pdcp->enable_encryption(rnti, 2);
 
-  // Configure DRB1 in RLC
-  parent->rlc->add_bearer(rnti, 3, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg));
+  // Add DRB Add/Mod list
+  conn_reconf->rr_cfg_ded.drb_to_add_mod_list_present = true;
+  conn_reconf->rr_cfg_ded.drb_to_add_mod_list.resize(erabs.size());
 
-  // Configure DRB1 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(1, false);
-  if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um_present) {
-    if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
-        pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
-      pdcp_cnfg_drb.sn_len = srslte::PDCP_SN_LEN_7;
+  // Add space for NAS messages
+  uint8_t n_nas = 0;
+  for (bool pending : nas_pending) {
+    if (pending) {
+      n_nas++;
     }
   }
-  parent->pdcp->add_bearer(rnti, 3, pdcp_cnfg_drb);
-  parent->pdcp->config_security(rnti, 3, sec_cfg);
-  parent->pdcp->enable_integrity(rnti, 3);
-  parent->pdcp->enable_encryption(rnti, 3);
-  // DRB1 has already been configured in GTPU through bearer setup
-
-  // Add E-RAB info message for E-RAB 5 (DRB1)
-  if (nas_pending[5]) {
-    parent->rrc_log->info_hex(
-        erab_info[5]->msg, erab_info[5]->N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+  if (n_nas > 0) {
     conn_reconf->ded_info_nas_list_present = true;
-    conn_reconf->ded_info_nas_list.resize(1);
-    conn_reconf->ded_info_nas_list[0].resize(erab_info[5]->N_bytes);
-    memcpy(conn_reconf->ded_info_nas_list[0].data(), erab_info[5]->msg, erab_info[5]->N_bytes);
-  } else {
-    parent->rrc_log->debug("Not adding NAS message to connection reconfiguration\n");
-    conn_reconf->ded_info_nas_list.resize(0);
+    conn_reconf->ded_info_nas_list.resize(n_nas);
   }
+
+  // Configure all DRBs
+  uint8_t vec_idx = 0;
+  for (const std::pair<uint8_t, erab_t>& erab_id_pair : erabs) {
+    const erab_t& erab = erab_id_pair.second;
+    parent->rrc_log->console("%d\n", erab.id);
+    uint8_t drb_id = erab.id - 4;
+    uint8_t lcid = erab.id - 2; 
+
+    // Get DRB1 configuration
+    if (get_drbid_config(&conn_reconf->rr_cfg_ded.drb_to_add_mod_list[drb_id - 1], drb_id)) {
+      parent->rrc_log->error("Getting DRB1 configuration\n");
+      parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erab.qos_params.qci);
+      return;
+    }
+
+    // Configure DRBs in RLC
+    parent->rlc->add_bearer(
+        rnti, lcid, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].rlc_cfg));
+
+    // Configure DRB1 in PDCP
+    srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb_id, false);
+    if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].pdcp_cfg.rlc_um_present) {
+      if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
+          pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
+        pdcp_cnfg_drb.sn_len = srslte::PDCP_SN_LEN_7;
+      }
+    }
+    parent->pdcp->add_bearer(rnti, lcid, pdcp_cnfg_drb);
+    parent->pdcp->config_security(rnti, lcid, sec_cfg);
+    parent->pdcp->enable_integrity(rnti, lcid);
+    parent->pdcp->enable_encryption(rnti, lcid);
+
+    // DRBs have already been configured in GTPU through bearer setup
+    // Add E-RAB info message for E-RAB 5 (DRB1)
+    if (nas_pending[erab.id]) {
+      parent->rrc_log->info_hex(
+          erab_info[erab.id]->msg, erab_info[erab.id]->N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+      conn_reconf->ded_info_nas_list[vec_idx].resize(erab_info[erab.id]->N_bytes);
+      memcpy(conn_reconf->ded_info_nas_list[vec_idx].data(), erab_info[erab.id]->msg, erab_info[erab.id]->N_bytes);
+    } else {
+      parent->rrc_log->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d\n", erab.id);
+    }
+    vec_idx++;
+  }
+
+
 
   if (mobility_handler != nullptr) {
     mobility_handler->fill_conn_recfg_msg(conn_reconf);
