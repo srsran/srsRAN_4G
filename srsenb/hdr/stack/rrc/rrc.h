@@ -323,8 +323,7 @@ private:
     uint32_t                  sr_I             = 0;
     bool                      cqi_allocated    = false;
 
-    std::array<bool, 16>                         nas_pending = {};
-    std::array<srslte::unique_byte_buffer_t, 16> erab_info;
+    std::map<uint8_t, srslte::unique_byte_buffer_t> erab_info_list;
 
     const static uint32_t UE_PCELL_CC_IDX = 0;
 

@@ -1033,10 +1033,6 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   // Configure
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
 
-  // Setup buffers for NAS msgs
-  for (srslte::unique_byte_buffer_t& erab_info_buff : erab_info) {
-    erab_info_buff = srslte::allocate_unique_buffer(*pool);
-  }
 }
 
 rrc_state_t rrc::ue::get_state()
@@ -1448,13 +1444,11 @@ void rrc::ue::setup_erab(uint8_t                                            id,
   parent->gtpu->add_bearer(rnti, lcid, addr_, erabs[id].teid_out, &(erabs[id].teid_in));
 
   if (nas_pdu != nullptr) {
-    nas_pending[id] = true;
-    memcpy(erab_info[id]->msg, nas_pdu->data(), nas_pdu->size());
-    erab_info[id]->N_bytes = nas_pdu->size();
-    parent->rrc_log->info_hex(erab_info[id]->msg, erab_info[id]->N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
-  } else {
-    nas_pending[id] = false;
-  }
+    erab_info_list[id] = allocate_unique_buffer(*pool);
+    memcpy(erab_info_list[id]->msg, nas_pdu->data(), nas_pdu->size());
+    erab_info_list[id]->N_bytes = nas_pdu->size();
+    parent->rrc_log->info_hex(erab_info_list[id]->msg, erab_info_list[id]->N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
+  } 
 }
 
 bool rrc::ue::release_erabs()
@@ -1870,12 +1864,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   conn_reconf->rr_cfg_ded.drb_to_add_mod_list.resize(erabs.size());
 
   // Add space for NAS messages
-  uint8_t n_nas = 0;
-  for (bool pending : nas_pending) {
-    if (pending) {
-      n_nas++;
-    }
-  }
+  uint8_t n_nas = erab_info_list.size();
   if (n_nas > 0) {
     conn_reconf->ded_info_nas_list_present = true;
     conn_reconf->ded_info_nas_list.resize(n_nas);
@@ -1915,11 +1904,14 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 
     // DRBs have already been configured in GTPU through bearer setup
     // Add E-RAB info message for E-RAB 5 (DRB1)
-    if (nas_pending[erab.id]) {
+    std::map<uint8_t, srslte::unique_byte_buffer_t>::const_iterator it = erab_info_list.find(erab.id);
+    if (it != erab_info_list.end()) {
+      const srslte::unique_byte_buffer_t& erab_info = it->second;
       parent->rrc_log->info_hex(
-          erab_info[erab.id]->msg, erab_info[erab.id]->N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
-      conn_reconf->ded_info_nas_list[vec_idx].resize(erab_info[erab.id]->N_bytes);
-      memcpy(conn_reconf->ded_info_nas_list[vec_idx].data(), erab_info[erab.id]->msg, erab_info[erab.id]->N_bytes);
+          erab_info->msg, erab_info->N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+      conn_reconf->ded_info_nas_list[vec_idx].resize(erab_info->N_bytes);
+      memcpy(conn_reconf->ded_info_nas_list[vec_idx].data(), erab_info->msg, erab_info->N_bytes);
+      erab_info_list.erase(it);
     } else {
       parent->rrc_log->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d\n", erab.id);
     }
@@ -2124,13 +2116,16 @@ void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_set
     conn_reconf->rr_cfg_ded.drb_to_add_mod_list.push_back(drb_item);
 
     // Add NAS message
-    if (nas_pending[id]) {
+    std::map<uint8_t, srslte::unique_byte_buffer_t>::const_iterator it = erab_info_list.find(id);
+    if (it != erab_info_list.end()) {
+      const srslte::unique_byte_buffer_t& erab_info = erab_info_list[id];
       parent->rrc_log->info_hex(
-          erab_info[id]->msg, erab_info[id]->N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
-      asn1::dyn_octstring octstr(erab_info[id]->N_bytes);
-      memcpy(octstr.data(), erab_info[id]->msg, erab_info[id]->N_bytes);
+          erab_info->msg, erab_info->N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
+      asn1::dyn_octstring octstr(erab_info->N_bytes);
+      memcpy(octstr.data(), erab_info->msg, erab_info->N_bytes);
       conn_reconf->ded_info_nas_list.push_back(octstr);
       conn_reconf->ded_info_nas_list_present = true;
+      erab_info_list.erase(it);
     }
   }
   conn_reconf->rr_cfg_ded_present                     = true;
