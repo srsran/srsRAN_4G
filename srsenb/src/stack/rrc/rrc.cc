@@ -1926,7 +1926,7 @@ rrc::cell_ctxt_t* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
 {
   const cell_ctxt_t* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-  if (pcell_cfg->cell_cfg.scell_list.size() <= 1) {
+  if (pcell_cfg->cell_cfg.scell_list.size() == 0) {
     return;
   }
 
