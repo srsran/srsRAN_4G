@@ -922,6 +922,22 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
       }
       phy_cell_cfg.ul_freq_hz = 1e6 * srslte_band_fu(cfg.ul_earfcn);
     }
+
+    for (auto scell_it = cfg.scell_list.begin(); scell_it != cfg.scell_list.end();) {
+      auto cell_it = std::find_if(rrc_cfg_->cell_list.begin(),
+                                  rrc_cfg_->cell_list.end(),
+                                  [scell_it](const cell_cfg_t& c) { return scell_it->cell_id == c.cell_id; });
+      if (cell_it == rrc_cfg_->cell_list.end()) {
+        ERROR("Scell with cell_id=0x%x is not present in rr.conf. Ignoring it.\n", scell_it->cell_id);
+        scell_it = cfg.scell_list.erase(scell_it);
+      } else if (cell_it->cell_id == cfg.cell_id) {
+        ERROR("A cell cannot have an scell with the same cell_id=0x%x\n", cfg.cell_id);
+        return SRSLTE_ERROR;
+      } else {
+        scell_it++;
+      }
+    }
+
     phy_cfg_->phy_cell_cfg.push_back(phy_cell_cfg);
   }
 

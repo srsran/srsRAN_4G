@@ -64,7 +64,7 @@ cell_list =
 
     // CA cells
     scell_list = (
-      {cell_id = 0x02; cross_carrier_scheduling = false; scheduling_cell_id = 0x02; ul_allowed = true}
+      // {cell_id = 0x02; cross_carrier_scheduling = false; scheduling_cell_id = 0x02; ul_allowed = true}
     )
 
     // Cells available for handover
