@@ -53,8 +53,6 @@
 #define normalize_period 2
 #define win_overlap_len 40
 
-#define divide_output 1
-
 #define INF 10000
 
 #else
