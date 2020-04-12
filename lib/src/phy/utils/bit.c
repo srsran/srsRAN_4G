@@ -740,9 +740,25 @@ void srslte_bit_pack_vector(uint8_t* unpacked, uint8_t* packed, int nof_bits)
 {
   uint32_t i, nbytes;
   nbytes = nof_bits / 8;
+
+#ifdef LV_HAVE_SSE
+  for (i = 0; i < nbytes; i++) {
+    // Get 8 Bit
+    __m64 mask = _mm_cmpgt_pi8(*((__m64*)unpacked), _mm_set1_pi8(0));
+    unpacked += 8;
+
+    // Reverse
+    mask = _mm_shuffle_pi8(mask, _mm_set_pi8(0, 1, 2, 3, 4, 5, 6, 7));
+
+    // Get mask and write
+    packed[i] = (uint8_t)_mm_movemask_pi8(mask);
+  }
+#else  /* LV_HAVE_SSE */
   for (i = 0; i < nbytes; i++) {
     packed[i] = srslte_bit_pack(&unpacked, 8);
   }
+#endif /* LV_HAVE_SSE */
+
   if (nof_bits % 8) {
     packed[i] = srslte_bit_pack(&unpacked, nof_bits % 8);
     packed[i] <<= 8 - (nof_bits % 8);
