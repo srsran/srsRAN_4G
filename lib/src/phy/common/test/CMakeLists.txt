@@ -18,7 +18,11 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES phy_common.c phy_common_sl.c sequence.c timestamp.c)
-add_library(srslte_phy_common OBJECT ${SOURCES})
+########################################################################
+# SEQUENCE TEST
+########################################################################
 
-add_subdirectory(test)
+add_executable(sequence_test sequence_test.c)
+target_link_libraries(sequence_test srslte_phy)
+
+add_test(sequence_test sequence_test)
