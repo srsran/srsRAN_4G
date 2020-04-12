@@ -21,7 +21,6 @@
 
 #include <math.h>
 #include <stdlib.h>
-#include <string.h>
 
 float rand_gauss(void)
 {
