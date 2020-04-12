@@ -26,7 +26,6 @@
 
 #ifdef LV_HAVE_SSE
 #include <immintrin.h>
-#include <srslte/phy/common/sequence.h>
 #endif /* LV_HAVE_SSE */
 
 /**
@@ -129,8 +128,8 @@ static inline uint32_t sequence_gen_LTE_pr_memless_step_x2(uint32_t state)
 }
 
 /**
- * Static precomputed array x1 and x2
- * ----------------------------------
+ * Static precomputed x1 and x2 states after Nc shifts
+ * -------------------------------------------------------
  *
  * The pre-computation of the Pseudo-Random sequences is based in their linearity properties.
  *
@@ -148,7 +147,7 @@ static uint32_t sequence_x1_init                    = 0;
 static uint32_t sequence_x2_init[SEQUENCE_SEED_LEN] = {};
 
 /**
- * C constructor, pre-computes X1 and X2 initial states and sequences
+ * C constructor, pre-computes X1 and X2 initial states
  */
 __attribute__((constructor)) __attribute__((unused)) static void srslte_lte_pr_pregen()
 {
@@ -169,7 +168,7 @@ __attribute__((constructor)) __attribute__((unused)) static void srslte_lte_pr_p
   }
 }
 
-static void sequence_gen_LTE_pr_memless(uint8_t* pr, uint32_t len, uint32_t seed)
+static void sequence_gen_LTE_pr(uint8_t* pr, uint32_t len, uint32_t seed)
 {
   int      n  = 0;
   uint32_t x1 = sequence_x1_init; // X1 initial state is fix
@@ -183,7 +182,7 @@ static void sequence_gen_LTE_pr_memless(uint8_t* pr, uint32_t len, uint32_t seed
   }
 
   // Parallel stage
-  if (len > SEQUENCE_PAR_BITS) {
+  if (len >= SEQUENCE_PAR_BITS) {
     for (; n < len - (SEQUENCE_PAR_BITS - 1); n += SEQUENCE_PAR_BITS) {
       // XOR x1 and x2
       uint32_t c = (uint32_t)(x1 ^ x2);
@@ -218,7 +217,7 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed
     return SRSLTE_ERROR;
   }
 
-  sequence_gen_LTE_pr_memless(q->c, len, seed);
+  sequence_gen_LTE_pr(q->c, len, seed);
 
   return SRSLTE_SUCCESS;
 }
@@ -235,42 +234,44 @@ sequence_generate_signed(const uint8_t* c_unpacked, int8_t* c_char, int16_t* c_s
   __m128i* sse_c_short = (__m128i*)c_short;
   float*   sse_c_float = c_float;
 
-  for (; i < ((int)len) - 15; i += 16) {
-    // Get bit mask
-    __m128i m8 = _mm_cmpgt_epi8(_mm_load_si128(sse_c), _mm_set1_epi8(0));
-    sse_c++;
+  if (len >= 16) {
+    for (; i < len - 15; i += 16) {
+      // Get bit mask
+      __m128i m8 = _mm_cmpgt_epi8(_mm_load_si128(sse_c), _mm_set1_epi8(0));
+      sse_c++;
 
-    // Generate blend masks
-    __m128i m16_1 = _mm_unpacklo_epi8(m8, m8);
-    __m128i m16_2 = _mm_unpackhi_epi8(m8, m8);
-    __m128  m32_1 = (__m128)_mm_unpacklo_epi8(m16_1, m16_1);
-    __m128  m32_2 = (__m128)_mm_unpackhi_epi8(m16_1, m16_1);
-    __m128  m32_3 = (__m128)_mm_unpacklo_epi8(m16_2, m16_2);
-    __m128  m32_4 = (__m128)_mm_unpackhi_epi8(m16_2, m16_2);
+      // Generate blend masks
+      __m128i m16_1 = _mm_unpacklo_epi8(m8, m8);
+      __m128i m16_2 = _mm_unpackhi_epi8(m8, m8);
+      __m128  m32_1 = (__m128)_mm_unpacklo_epi8(m16_1, m16_1);
+      __m128  m32_2 = (__m128)_mm_unpackhi_epi8(m16_1, m16_1);
+      __m128  m32_3 = (__m128)_mm_unpacklo_epi8(m16_2, m16_2);
+      __m128  m32_4 = (__m128)_mm_unpackhi_epi8(m16_2, m16_2);
 
-    // Generate int8 values
-    const __m128i bp = _mm_set1_epi8(+1);
-    const __m128i bn = _mm_set1_epi8(-1);
-    _mm_storeu_si128(sse_c_char, _mm_blendv_epi8(bp, bn, m8));
-    sse_c_char++;
+      // Generate int8 values
+      const __m128i bp = _mm_set1_epi8(+1);
+      const __m128i bn = _mm_set1_epi8(-1);
+      _mm_storeu_si128(sse_c_char, _mm_blendv_epi8(bp, bn, m8));
+      sse_c_char++;
 
-    // Generate int16 values
-    const __m128i sp = _mm_set1_epi16(+1);
-    const __m128i sn = _mm_set1_epi16(-1);
-    _mm_store_si128(sse_c_short++, _mm_blendv_epi8(sp, sn, m16_1));
-    _mm_store_si128(sse_c_short++, _mm_blendv_epi8(sp, sn, m16_2));
+      // Generate int16 values
+      const __m128i sp = _mm_set1_epi16(+1);
+      const __m128i sn = _mm_set1_epi16(-1);
+      _mm_store_si128(sse_c_short++, _mm_blendv_epi8(sp, sn, m16_1));
+      _mm_store_si128(sse_c_short++, _mm_blendv_epi8(sp, sn, m16_2));
 
-    // Generate float values
-    const __m128 fp = _mm_set1_ps(+1);
-    const __m128 fn = _mm_set1_ps(-1);
-    _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_1));
-    sse_c_float += 4;
-    _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_2));
-    sse_c_float += 4;
-    _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_3));
-    sse_c_float += 4;
-    _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_4));
-    sse_c_float += 4;
+      // Generate float values
+      const __m128 fp = _mm_set1_ps(+1);
+      const __m128 fn = _mm_set1_ps(-1);
+      _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_1));
+      sse_c_float += 4;
+      _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_2));
+      sse_c_float += 4;
+      _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_3));
+      sse_c_float += 4;
+      _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_4));
+      sse_c_float += 4;
+    }
   }
 #endif /* LV_HAVE_SSE */
 
