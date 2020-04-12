@@ -19,109 +19,271 @@
  *
  */
 
-#include <pthread.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
-
 #include "srslte/phy/common/sequence.h"
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-#define Nc 1600
+#ifdef LV_HAVE_SSE
+#include <immintrin.h>
+#include <srslte/phy/common/sequence.h>
+#endif /* LV_HAVE_SSE */
 
-#define MAX_SEQ_LEN (256 * 1024)
+/**
+ * Length of the seed, used for the feedback delay. Do not change.
+ */
+#define SEQUENCE_SEED_LEN (31)
 
-#define static_memory
+/**
+ * Nc parameter defined in 3GPP. Do not change.
+ */
+#define SEQUENCE_NC (1600)
 
 /*
  * Pseudo Random Sequence generation.
  * It follows the 3GPP Release 8 (LTE) 36.211
  * Section 7.2
  */
-#ifdef static_memory
-static uint8_t x1[Nc + MAX_SEQ_LEN + 31];
-static uint8_t x2[Nc + MAX_SEQ_LEN + 31];
 
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int                    srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
+/**
+ * Parallel bit generation for x1/x2 sequences parameters. Exploits the fact that the sequence generation is 31 chips
+ * ahead and the maximum register shift is 3 (for x2).
+ */
+#define SEQUENCE_PAR_BITS (28U)
+#define SEQUENCE_MASK ((1U << SEQUENCE_PAR_BITS) - 1U)
+
+/**
+ * Computes one step of the X1 sequence for SEQUENCE_PAR_BITS simultaneously
+ * @param state 32 bit current state
+ * @return new 32 bit state
+ */
+static inline uint32_t sequence_gen_LTE_pr_memless_step_par_x1(uint32_t state)
 {
-  int n;
+  // Perform XOR
+  uint32_t f = state ^ (state >> 3U);
 
-  if (len > q->max_len) {
-    ERROR("Error generating pseudo-random sequence: len %d exceeds maximum len %d\n", len, MAX_SEQ_LEN);
-    return -1;
-  }
+  // Prepare feedback
+  f = ((f & SEQUENCE_MASK) << (SEQUENCE_SEED_LEN - SEQUENCE_PAR_BITS));
 
-  if (len > q->max_len) {
-    ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d\n", len, q->max_len);
-    return -1;
-  }
-  pthread_mutex_lock(&mutex);
+  // Insert feedback
+  state = (state >> SEQUENCE_PAR_BITS) ^ f;
 
-  for (n = 0; n < 31; n++) {
-    x2[n] = (seed >> n) & 0x1;
-  }
-  x1[0] = 1;
-
-  for (n = 0; n < Nc + len; n++) {
-    x1[n + 31] = (x1[n + 3] + x1[n]) & 0x1;
-    x2[n + 31] = (x2[n + 3] + x2[n + 2] + x2[n + 1] + x2[n]) & 0x1;
-  }
-
-  for (n = 0; n < len; n++) {
-    q->c[n] = (x1[n + Nc] + x2[n + Nc]) & 0x1;
-  }
-  pthread_mutex_unlock(&mutex);
-
-  return 0;
+  return state;
 }
 
-#else
+/**
+ * Computes one step of the X1 sequence for 1bit
+ * @param state 32 bit current state
+ * @return new 32 bit state
+ */
+static inline uint32_t sequence_gen_LTE_pr_memless_step_x1(uint32_t state)
+{
+  // Perform XOR
+  uint32_t f = state ^ (state >> 3U);
+
+  // Prepare feedback
+  f = ((f & 1U) << (SEQUENCE_SEED_LEN - 1U));
+
+  // Insert feedback
+  state = (state >> 1U) ^ f;
+
+  return state;
+}
+
+/**
+ * Computes one step of the X2 sequence for SEQUENCE_PAR_BITS simultaneously
+ * @param state 32 bit current state
+ * @return new 32 bit state
+ */
+static inline uint32_t sequence_gen_LTE_pr_memless_step_par_x2(uint32_t state)
+{
+  // Perform XOR
+  uint32_t f = state ^ (state >> 1U) ^ (state >> 2U) ^ (state >> 3U);
+
+  // Prepare feedback
+  f = ((f & SEQUENCE_MASK) << (SEQUENCE_SEED_LEN - SEQUENCE_PAR_BITS));
+
+  // Insert feedback
+  state = (state >> SEQUENCE_PAR_BITS) ^ f;
+
+  return state;
+}
+
+/**
+ * Computes one step of the X2 sequence for 1bit
+ * @param state 32 bit current state
+ * @return new 32 bit state
+ */
+static inline uint32_t sequence_gen_LTE_pr_memless_step_x2(uint32_t state)
+{
+  // Perform XOR
+  uint32_t f = state ^ (state >> 1U) ^ (state >> 2U) ^ (state >> 3U);
+
+  // Prepare feedback
+  f = ((f & 1U) << (SEQUENCE_SEED_LEN - 1U));
+
+  // Insert feedback
+  state = (state >> 1U) ^ f;
+
+  return state;
+}
+
+/**
+ * Static precomputed array x1 and x2
+ * ----------------------------------
+ *
+ * The pre-computation of the Pseudo-Random sequences is based in their linearity properties.
+ *
+ * Having two seeds seed_1 and seed_2 generate x2_1 and x2_2 respectively:
+ *     seed_1 -> x2_1
+ *     seed_2 -> x2_2
+ *
+ * Then, the linearity property satisfies:
+ *     seed_1 ^ seed_2 -> x2_1 ^ x2_2
+ *
+ * Because of this, a different x2 can be pre-computed for each bit of the seed.
+ *
+ */
+static uint32_t sequence_x1_init                    = 0;
+static uint32_t sequence_x2_init[SEQUENCE_SEED_LEN] = {};
+
+/**
+ * C constructor, pre-computes X1 and X2 initial states and sequences
+ */
+__attribute__((constructor)) __attribute__((unused)) static void srslte_lte_pr_pregen()
+{
+
+  // Compute transition step
+  sequence_x1_init = 1;
+  for (uint32_t n = 0; n < SEQUENCE_NC; n++) {
+    sequence_x1_init = sequence_gen_LTE_pr_memless_step_x1(sequence_x1_init);
+  }
+
+  // For each bit of the seed
+  for (uint32_t i = 0; i < SEQUENCE_SEED_LEN; i++) {
+    // Compute transition step
+    sequence_x2_init[i] = 1U << i;
+    for (uint32_t n = 0; n < SEQUENCE_NC; n++) {
+      sequence_x2_init[i] = sequence_gen_LTE_pr_memless_step_x2(sequence_x2_init[i]);
+    }
+  }
+}
+
+static void sequence_gen_LTE_pr_memless(uint8_t* pr, uint32_t len, uint32_t seed)
+{
+  int      n  = 0;
+  uint32_t x1 = sequence_x1_init; // X1 initial state is fix
+  uint32_t x2 = 0;
+
+  // Load X2 state
+  for (uint32_t i = 0; i < SEQUENCE_SEED_LEN; i++) {
+    if ((seed >> i) & 1U) {
+      x2 ^= sequence_x2_init[i];
+    }
+  }
+
+  // Parallel stage
+  if (len > SEQUENCE_PAR_BITS) {
+    for (; n < len - (SEQUENCE_PAR_BITS - 1); n += SEQUENCE_PAR_BITS) {
+      // XOR x1 and x2
+      uint32_t c = (uint32_t)(x1 ^ x2);
+
+      // Save state
+      for (uint32_t i = 0; i < SEQUENCE_PAR_BITS; i++) {
+        pr[n + i] = (uint8_t)((c >> i) & 1U);
+      }
+
+      // Parallel step
+      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
+      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+    }
+  }
+
+  // Single step
+  for (; n < len; n++) {
+    // Save current state
+    pr[n] = (uint8_t)((x1 ^ x2) & 1U);
+
+    // Single step
+    x1 = sequence_gen_LTE_pr_memless_step_x1(x1);
+    x2 = sequence_gen_LTE_pr_memless_step_x2(x2);
+  }
+}
+
+// static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
 {
-  int       n;
-  uint32_t *x1, *x2;
-
   if (len > q->max_len) {
     ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d\n", len, q->max_len);
-    return -1;
+    return SRSLTE_ERROR;
   }
 
-  x1 = calloc(Nc + len + 31, sizeof(uint32_t));
-  if (!x1) {
-    perror("calloc");
-    return -1;
-  }
-  x2 = calloc(Nc + len + 31, sizeof(uint32_t));
-  if (!x2) {
-    free(x1);
-    perror("calloc");
-    return -1;
-  }
+  sequence_gen_LTE_pr_memless(q->c, len, seed);
 
-  for (n = 0; n < 31; n++) {
-    x2[n] = (seed >> n) & 0x1;
-  }
-  x1[0] = 1;
-
-  for (n = 0; n < Nc + len; n++) {
-    x1[n + 31] = (x1[n + 3] + x1[n]) & 0x1;
-    x2[n + 31] = (x2[n + 3] + x2[n + 2] + +x2[n + 1] + x2[n]) & 0x1;
-  }
-
-  for (n = 0; n < len; n++) {
-    q->c[n] = (x1[n + Nc] + x2[n + Nc]) & 0x1;
-  }
-
-  free(x1);
-  free(x2);
-
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
-#endif
+static inline void
+sequence_generate_signed(const uint8_t* c_unpacked, int8_t* c_char, int16_t* c_short, float* c_float, uint32_t len)
+{
+
+  int i = 0;
+
+#ifdef LV_HAVE_SSE
+  __m128i* sse_c       = (__m128i*)c_unpacked;
+  __m128i* sse_c_char  = (__m128i*)c_char;
+  __m128i* sse_c_short = (__m128i*)c_short;
+  float*   sse_c_float = c_float;
+
+  for (; i < ((int)len) - 15; i += 16) {
+    // Get bit mask
+    __m128i m8 = _mm_cmpgt_epi8(_mm_load_si128(sse_c), _mm_set1_epi8(0));
+    sse_c++;
+
+    // Generate blend masks
+    __m128i m16_1 = _mm_unpacklo_epi8(m8, m8);
+    __m128i m16_2 = _mm_unpackhi_epi8(m8, m8);
+    __m128  m32_1 = (__m128)_mm_unpacklo_epi8(m16_1, m16_1);
+    __m128  m32_2 = (__m128)_mm_unpackhi_epi8(m16_1, m16_1);
+    __m128  m32_3 = (__m128)_mm_unpacklo_epi8(m16_2, m16_2);
+    __m128  m32_4 = (__m128)_mm_unpackhi_epi8(m16_2, m16_2);
+
+    // Generate int8 values
+    const __m128i bp = _mm_set1_epi8(+1);
+    const __m128i bn = _mm_set1_epi8(-1);
+    _mm_storeu_si128(sse_c_char, _mm_blendv_epi8(bp, bn, m8));
+    sse_c_char++;
+
+    // Generate int16 values
+    const __m128i sp = _mm_set1_epi16(+1);
+    const __m128i sn = _mm_set1_epi16(-1);
+    _mm_store_si128(sse_c_short++, _mm_blendv_epi8(sp, sn, m16_1));
+    _mm_store_si128(sse_c_short++, _mm_blendv_epi8(sp, sn, m16_2));
+
+    // Generate float values
+    const __m128 fp = _mm_set1_ps(+1);
+    const __m128 fn = _mm_set1_ps(-1);
+    _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_1));
+    sse_c_float += 4;
+    _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_2));
+    sse_c_float += 4;
+    _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_3));
+    sse_c_float += 4;
+    _mm_store_ps(sse_c_float, _mm_blendv_ps(fp, fn, (__m128)m32_4));
+    sse_c_float += 4;
+  }
+#endif /* LV_HAVE_SSE */
+
+  for (; i < len; i++) {
+    // Load signed
+    int8_t tt = (int8_t)(c_unpacked[i] ? -1 : +1);
+
+    // TYpecast conversion for each type
+    c_char[i]  = tt;
+    c_short[i] = (int16_t)tt;
+    c_float[i] = (float)tt;
+  }
+}
 
 int srslte_sequence_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
 {
@@ -129,14 +291,16 @@ int srslte_sequence_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
     return SRSLTE_ERROR;
   }
   q->cur_len = len;
+
+  // Generate sequence
   srslte_sequence_set_LTE_pr(q, len, seed);
+
+  // Pack PR sequence
   srslte_bit_pack_vector(q->c, q->c_bytes, len);
-  for (int i = 0; i < len; i++) {
-    q->c_float[i] = (1 - 2 * q->c[i]);
-    q->c_short[i] = (int16_t)q->c_float[i];
-    q->c_char[i]  = (int8_t)q->c_float[i];
-    ;
-  }
+
+  // Generate signed type values
+  sequence_generate_signed(q->c, q->c_char, q->c_short, q->c_float, len);
+
   return SRSLTE_SUCCESS;
 }
 
