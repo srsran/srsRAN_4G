@@ -58,20 +58,23 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
       return SRSLTE_ERROR;
     }
 
+    // Max E value for memory allocation
+    uint32_t E_max = SRSLTE_NRE * SRSLTE_PSCCH_MAX_NUM_DATA_SYMBOLS * SRSLTE_PSCCH_MAX_NOF_PRB * SRSLTE_PSCCH_QM;
+
     // Channel Coding
     q->encoder.K           = 7;
     q->encoder.R           = 3;
     q->encoder.tail_biting = true;
     int poly[3]            = {0x6D, 0x4F, 0x57};
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
-    q->d = srslte_vec_u8_malloc(SRSLTE_PSCCH_MAX_CODED_BITS);
+    q->d = srslte_vec_u8_malloc(E_max);
     if (!q->d) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
-    memset(q->d, 0, sizeof(uint8_t) * SRSLTE_PSCCH_MAX_CODED_BITS);
+    srslte_vec_u8_zero(q->d, E_max);
 
-    q->d_16 = srslte_vec_i16_malloc(SRSLTE_PSCCH_MAX_CODED_BITS);
+    q->d_16 = srslte_vec_i16_malloc(E_max);
     if (!q->d_16) {
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
@@ -80,8 +83,6 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
     srslte_viterbi_init(
         &q->dec, SRSLTE_VITERBI_37, q->encoder.poly, SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN, q->encoder.tail_biting);
 
-    // Max E value for memory allocation
-    uint32_t E_max = SRSLTE_NRE * SRSLTE_PSCCH_MAX_NUM_DATA_SYMBOLS * SRSLTE_PSCCH_MAX_NOF_PRB * SRSLTE_PSCCH_QM;
     q->e           = srslte_vec_u8_malloc(E_max);
     if (!q->e) {
       ERROR("Error allocating memory\n");
@@ -129,6 +130,7 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
+    srslte_vec_cf_zero(q->mod_symbols, E_max / SRSLTE_PSCCH_QM);
 
     q->llr = srslte_vec_i16_malloc(E_max);
     if (!q->llr) {
@@ -145,6 +147,7 @@ int srslte_pscch_init(srslte_pscch_t* q, uint32_t max_prb)
       ERROR("Error allocating memory\n");
       return SRSLTE_ERROR;
     }
+    srslte_vec_cf_zero(q->scfdma_symbols, E_max / SRSLTE_PSCCH_QM);
 
     // IDFT Predecoding
     if (srslte_dft_precoding_init(&q->idft_precoder, SRSLTE_PSCCH_MAX_NOF_PRB, false)) {
