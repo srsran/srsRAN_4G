@@ -19,8 +19,8 @@
  *
  */
 
+#include "srslte/common/inplace_task.h"
 #include "srslte/common/multiqueue.h"
-#include "srslte/common/task.h"
 #include "srslte/common/thread_pool.h"
 #include <iostream>
 #include <thread>
@@ -334,8 +334,14 @@ int test_inplace_task()
   std::cout << "\n======= TEST inplace task: start =======\n";
   int v = 0;
 
-  srslte::inplace_task<void()> t{[&v]() { v = 1; }};
+  auto l0 = [&v]() { v = 1; };
+
+  srslte::inplace_task<void()> t{l0};
   srslte::inplace_task<void()> t2{[v]() mutable { v = 2; }};
+  // sanity static checks
+  static_assert(task_details::is_inplace_task<std::decay<decltype(t)>::type>::value, "failed check\n");
+  static_assert(std::is_base_of<std::false_type, task_details::is_inplace_task<std::decay<decltype(l0)>::type> >::value,
+                "failed check\n");
 
   t();
   t2();

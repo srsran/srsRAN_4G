@@ -28,7 +28,7 @@
 #ifndef SRSLTE_MULTIQUEUE_H
 #define SRSLTE_MULTIQUEUE_H
 
-#include "task.h"
+#include "inplace_task.h"
 #include <algorithm>
 #include <condition_variable>
 #include <functional>

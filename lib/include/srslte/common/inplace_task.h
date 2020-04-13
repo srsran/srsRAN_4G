@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_TASK_H
-#define SRSLTE_TASK_H
+#ifndef SRSLTE_INPLACE_TASK_H
+#define SRSLTE_INPLACE_TASK_H
 
 #include <cstddef>
 #include <functional>
@@ -104,6 +104,12 @@ struct is_inplace_task : std::false_type {};
 template <class Sig, size_t Capacity>
 struct is_inplace_task<inplace_task<Sig, Capacity> > : std::true_type {};
 
+template <typename T, size_t Cap, typename FunT = typename std::decay<T>::type>
+using enable_small_capture =
+    typename std::enable_if<sizeof(FunT) <= Cap and not is_inplace_task<FunT>::value, bool>::type;
+template <typename T, size_t Cap, typename FunT = typename std::decay<T>::type>
+using enable_big_capture = typename std::enable_if < Cap<sizeof(FunT) and not is_inplace_task<FunT>::value, bool>::type;
+
 } // namespace task_details
 
 template <class R, class... Args, size_t Capacity>
@@ -116,24 +122,20 @@ class inplace_task<R(Args...), Capacity>
 public:
   inplace_task() noexcept { oper_ptr = oper_table_t::get_empty(); }
 
-  template <typename T,
-            typename FunT = typename std::decay<T>::type,
-            typename      = typename std::enable_if<sizeof(FunT) <= capacity>::type,
-            typename      = typename std::enable_if<not task_details::is_inplace_task<FunT>::value>::type>
+  template <typename T, task_details::enable_small_capture<T, capacity> = true>
   inplace_task(T&& function)
   {
-    oper_ptr = oper_table_t::template get_small<FunT>();
+    using FunT = typename std::decay<T>::type;
+    oper_ptr   = oper_table_t::template get_small<FunT>();
     ::new (&buffer) FunT{std::forward<T>(function)};
   }
 
-  template <typename T,
-            typename FunT = typename std::decay<T>::type,
-            typename      = typename std::enable_if<not task_details::is_inplace_task<FunT>::value and
-                                               (sizeof(FunT) > capacity)>::type>
+  template <typename T, task_details::enable_big_capture<T, capacity> = true>
   inplace_task(T&& function)
   {
-    oper_ptr = oper_table_t::template get_big<FunT>();
-    ptr      = static_cast<void*>(new FunT{std::forward<T>(function)});
+    using FunT = typename std::decay<T>::type;
+    oper_ptr   = oper_table_t::template get_big<FunT>();
+    ptr        = static_cast<void*>(new FunT{std::forward<T>(function)});
   }
 
   inplace_task(inplace_task&& other) noexcept
@@ -205,4 +207,4 @@ private:
 
 } // namespace srslte
 
-#endif // SRSLTE_TASK_H
+#endif // SRSLTE_INPLACE_TASK_H
