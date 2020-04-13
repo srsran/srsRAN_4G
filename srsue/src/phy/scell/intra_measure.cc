@@ -108,7 +108,7 @@ void intra_measure::set_cells_to_meas(const std::set<uint32_t>& pci)
   active_pci = pci;
   active_pci_mutex.unlock();
   state.set_state(internal_state::receive);
-  log_h->info("INTRA: Received list of %lu neighbour cells to measure in EARFCN %d.\n", pci.size(), current_earfcn);
+  log_h->info("INTRA: Received list of %zd neighbour cells to measure in EARFCN %d.\n", pci.size(), current_earfcn);
 }
 
 void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)

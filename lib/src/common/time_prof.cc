@@ -21,6 +21,7 @@
 
 #include "srslte/common/time_prof.h"
 #include <algorithm>
+#include <inttypes.h>
 #include <numeric>
 
 using namespace srslte;
@@ -72,8 +73,8 @@ void avg_time_stats::operator()(nanoseconds duration)
 {
   count++;
   avg_val = avg_val * (count - 1) / count + static_cast<double>(duration.count()) / count;
-  max_val = std::max(max_val, duration.count());
-  min_val = std::min(min_val, duration.count());
+  max_val = std::max<long>(max_val, duration.count());
+  min_val = std::min<long>(min_val, duration.count());
   if (count % print_period == 0) {
     log_ptr->info("%s: {mean, max, min}={%0.1f, %ld, %ld} usec, nof_samples=%ld",
                   name.c_str(),
@@ -99,7 +100,7 @@ void sliding_window_stats<TUnit>::operator()(nanoseconds duration)
   const char* unit_str = get_tunit_str<TUnit>();
   TUnit       dur      = std::chrono::duration_cast<TUnit>(duration);
 
-  log_ptr->debug("%s: duration=%ld %s\n", name.c_str(), dur.count(), unit_str);
+  log_ptr->debug("%s: duration=%" PRId64 " %s\n", name.c_str(), dur.count(), unit_str);
 
   sliding_window[window_idx++] = duration;
   if (window_idx == sliding_window.size()) {
@@ -108,7 +109,7 @@ void sliding_window_stats<TUnit>::operator()(nanoseconds duration)
     nanoseconds tmin  = *std::min_element(sliding_window.begin(), sliding_window.end());
     double      tmean = static_cast<double>(duration_cast<TUnit>(tsum).count()) / sliding_window.size();
 
-    log_ptr->info("%s: {mean, max, min} = {%0.2f, %ld, %ld} %s\n",
+    log_ptr->info("%s: {mean, max, min} = {%0.2f, %" PRId64 ", %" PRId64 "} %s\n",
                   name.c_str(),
                   tmean,
                   duration_cast<TUnit>(tmax).count(),

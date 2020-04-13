@@ -306,7 +306,7 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   if (args.have_tti_time_stats) {
     std::chrono::nanoseconds dur = tti_tprof.stop();
     if (dur > TTI_WARN_THRESHOLD_MS) {
-      mac_log->warning("%s: detected long duration=%ld ms\n",
+      mac_log->warning("%s: detected long duration=%" PRId64 "ms\n",
                        "proc_time",
                        std::chrono::duration_cast<std::chrono::milliseconds>(dur).count());
     }
