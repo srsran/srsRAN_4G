@@ -185,6 +185,11 @@ uint8_t* srslte_vec_u8_malloc(uint32_t nsamples)
   return (uint8_t*)srslte_vec_malloc((uint32_t)sizeof(uint8_t) * nsamples);
 }
 
+void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples)
+{
+  memset(ptr, 0, sizeof(uint8_t) * nsamples);
+}
+
 void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples)
 {
   memset(ptr, 0, sizeof(cf_t) * nsamples);

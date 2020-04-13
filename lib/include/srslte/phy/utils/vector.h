@@ -93,8 +93,8 @@ SRSLTE_API void* srslte_vec_realloc(void* ptr, uint32_t old_size, uint32_t new_s
 
 /* Zero memory */
 SRSLTE_API void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples);
-
 SRSLTE_API void srslte_vec_f_zero(float* ptr, uint32_t nsamples);
+SRSLTE_API void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples);
 
 /* print vectors */
 SRSLTE_API void srslte_vec_fprint_c(FILE* stream, const cf_t* x, const uint32_t len);
