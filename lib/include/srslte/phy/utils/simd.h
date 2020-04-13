@@ -1333,21 +1333,21 @@ static inline simd_sel_t srslte_simd_f_min(simd_f_t a, simd_f_t b)
 #endif /* LV_HAVE_AVX512 */
 }
 
-static inline simd_f_t srslte_simd_f_select(simd_f_t a, simd_f_t b, simd_sel_t sel)
+static inline simd_f_t srslte_simd_f_select(simd_f_t a, simd_f_t b, simd_sel_t selector)
 {
 #ifdef LV_HAVE_AVX512
-  return _mm512_mask_blend_ps(sel, (__m512)a, (__m512)b);
+  return _mm512_mask_blend_ps(selector, (__m512)a, (__m512)b);
 #else /* LV_HAVE_AVX512 */
 #ifdef LV_HAVE_AVX2
-  return _mm256_blendv_ps(a, b, sel);
+  return _mm256_blendv_ps(a, b, selector);
 #else
 #ifdef LV_HAVE_SSE
-  return _mm_blendv_ps(a, b, sel);
+  return _mm_blendv_ps(a, b, selector);
 #else            /* LV_HAVE_SSE */
 #ifdef HAVE_NEON // CURRENTLY USES GENERIC IMPLEMENTATION FOR NEON
   float*   a_ptr = (float*)&a;
   float*   b_ptr = (float*)&b;
-  simd_i_t ret;
+  simd_f_t ret;
   int*     sel   = (int*)&selector;
   float*   c_ptr = (float*)&ret;
   for (int i = 0; i < 4; i++) {
