@@ -28,9 +28,9 @@
 
 namespace srslte {
 
-constexpr size_t default_buffer_size = 256;
+constexpr size_t default_buffer_size = 32;
 
-template <class Signature, size_t Capacity = default_buffer_size, size_t Alignment = alignof(std::max_align_t)>
+template <class Signature, size_t Capacity = default_buffer_size>
 class inplace_task;
 
 namespace task_details {
@@ -39,30 +39,42 @@ template <typename R, typename... Args>
 struct oper_table_t {
   using call_oper_t = R (*)(void* src, Args&&... args);
   using move_oper_t = void (*)(void* src, void* dest);
-  //  using copy_oper_t = void (*)(void* src, void* dest);
   using dtor_oper_t = void (*)(void* src);
 
-  static oper_table_t* get_empty() noexcept
+  const static oper_table_t* get_empty() noexcept
   {
-    static oper_table_t t;
-    t.call = [](void* src, Args&&... args) -> R { throw std::bad_function_call(); };
-    t.move = [](void*, void*) {};
-    //    t.copy = [](void*, void*) {};
-    t.dtor = [](void*) {};
+    const static oper_table_t t{true,
+                                [](void* src, Args&&... args) -> R { throw std::bad_function_call(); },
+                                [](void*, void*) {},
+                                [](void*) {}};
     return &t;
   }
 
   template <typename Func>
-  static oper_table_t* get() noexcept
+  const static oper_table_t* get_small() noexcept
   {
-    static oper_table_t t{};
-    t.call = [](void* src, Args&&... args) -> R { return (*static_cast<Func*>(src))(std::forward<Args>(args)...); };
-    t.move = [](void* src, void* dest) -> void {
-      ::new (dest) Func{std::move(*static_cast<Func*>(src))};
-      static_cast<Func*>(src)->~Func();
-    };
-    //    t.copy = [](void* src, void* dest) -> void { ::new (dest) Func{*static_cast<Func*>(src)}; };
-    t.dtor = [](void* src) -> void { static_cast<Func*>(src)->~Func(); };
+    const static oper_table_t t{
+        true,
+        [](void* src, Args&&... args) -> R { return (*static_cast<Func*>(src))(std::forward<Args>(args)...); },
+        [](void* src, void* dest) -> void {
+          ::new (dest) Func{std::move(*static_cast<Func*>(src))};
+          static_cast<Func*>(src)->~Func();
+        },
+        [](void* src) -> void { static_cast<Func*>(src)->~Func(); }};
+    return &t;
+  }
+
+  template <typename Func>
+  const static oper_table_t* get_big() noexcept
+  {
+    const static oper_table_t t{
+        false,
+        [](void* src, Args&&... args) -> R { return (*static_cast<Func*>(src))(std::forward<Args>(args)...); },
+        [](void* src, void* dest) -> void {
+          *static_cast<Func**>(dest) = *static_cast<Func**>(src);
+          *static_cast<Func**>(src)  = nullptr;
+        },
+        [](void* src) -> void { static_cast<Func*>(src)->~Func(); }};
     return &t;
   }
 
@@ -72,101 +84,123 @@ struct oper_table_t {
   oper_table_t& operator=(oper_table_t&&) = delete;
   ~oper_table_t()                         = default;
 
+  bool        is_in_buffer;
   call_oper_t call;
   move_oper_t move;
-  //  copy_oper_t copy;
   dtor_oper_t dtor;
-
-  static oper_table_t<R, Args...>* empty_oper;
 
 private:
   oper_table_t() = default;
+  oper_table_t(bool is_in_buffer_, call_oper_t call_, move_oper_t move_, dtor_oper_t dtor_) :
+    is_in_buffer(is_in_buffer_),
+    call(call_),
+    move(move_),
+    dtor(dtor_)
+  {}
 };
 
 template <class>
 struct is_inplace_task : std::false_type {};
-template <class Sig, size_t Cap, size_t Align>
-struct is_inplace_task<inplace_task<Sig, Cap, Align> > : std::true_type {};
-
-template <typename R, typename... Args>
-oper_table_t<R, Args...>* oper_table_t<R, Args...>::empty_oper = oper_table_t<R, Args...>::get_empty();
+template <class Sig, size_t Capacity>
+struct is_inplace_task<inplace_task<Sig, Capacity> > : std::true_type {};
 
 } // namespace task_details
 
-template <class R, class... Args, size_t Capacity, size_t Alignment>
-class inplace_task<R(Args...), Capacity, Alignment>
+template <class R, class... Args, size_t Capacity>
+class inplace_task<R(Args...), Capacity>
 {
-  using storage_t    = typename std::aligned_storage<Capacity, Alignment>::type;
-  using oper_table_t = task_details::oper_table_t<R, Args...>;
+  static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*);
+  using storage_t                  = typename std::aligned_storage<capacity, alignof(std::max_align_t)>::type;
+  using oper_table_t               = task_details::oper_table_t<R, Args...>;
 
 public:
-  inplace_task() noexcept { oper_ptr = oper_table_t::empty_oper; }
+  inplace_task() noexcept { oper_ptr = oper_table_t::get_empty(); }
 
   template <typename T,
             typename FunT = typename std::decay<T>::type,
+            typename      = typename std::enable_if<sizeof(FunT) <= capacity>::type,
             typename      = typename std::enable_if<not task_details::is_inplace_task<FunT>::value>::type>
   inplace_task(T&& function)
   {
-    static_assert(sizeof(FunT) <= sizeof(buffer), "inplace_task cannot store object with given size.\n");
-    static_assert(Alignment % alignof(FunT) == 0, "inplace_task cannot store object with given alignment.\n");
-
+    oper_ptr = oper_table_t::template get_small<FunT>();
     ::new (&buffer) FunT{std::forward<T>(function)};
-    oper_ptr = oper_table_t::template get<T>();
+  }
+
+  template <typename T,
+            typename FunT = typename std::decay<T>::type,
+            typename      = typename std::enable_if<not task_details::is_inplace_task<FunT>::value and
+                                               (sizeof(FunT) > capacity)>::type>
+  inplace_task(T&& function)
+  {
+    oper_ptr = oper_table_t::template get_big<FunT>();
+    ptr      = static_cast<void*>(new FunT{std::forward<T>(function)});
   }
 
   inplace_task(inplace_task&& other) noexcept
   {
     oper_ptr       = other.oper_ptr;
-    other.oper_ptr = oper_table_t::empty_oper;
-    oper_ptr->move(&other.buffer, &buffer);
+    other.oper_ptr = oper_table_t::get_empty();
+    if (oper_ptr->is_in_buffer) {
+      oper_ptr->move(&other.buffer, &buffer);
+    } else {
+      oper_ptr->move(&other.ptr, &ptr);
+    }
   }
 
-  //  inplace_task(const inplace_task& other) noexcept
-  //  {
-  //    oper_ptr = other.oper_ptr;
-  //    oper_ptr->copy(&other.buffer, &buffer);
-  //  }
-
-  ~inplace_task() { oper_ptr->dtor(&buffer); }
+  ~inplace_task() { oper_ptr->dtor(get_buffer()); }
 
   inplace_task& operator=(inplace_task&& other) noexcept
   {
-    oper_ptr->dtor(&buffer);
+    oper_ptr->dtor(get_buffer());
     oper_ptr       = other.oper_ptr;
-    other.oper_ptr = oper_table_t::empty_oper;
-    oper_ptr->move(&other.buffer, &buffer);
+    other.oper_ptr = oper_table_t::get_empty();
+    if (oper_ptr->is_in_buffer) {
+      oper_ptr->move(&other.buffer, &buffer);
+    } else {
+      oper_ptr->move(&other.ptr, &ptr);
+    }
     return *this;
   }
 
-  //  inplace_task& operator=(const inplace_task& other) noexcept
-  //  {
-  //    if (this != &other) {
-  //      oper_ptr->dtor(&buffer);
-  //      oper_ptr = other.oper_ptr;
-  //      oper_ptr->copy(&other.buffer, &buffer);
-  //    }
-  //    return *this;
-  //  }
+  R operator()(Args&&... args) { return oper_ptr->call(get_buffer(), std::forward<Args>(args)...); }
 
-  R operator()(Args&&... args) { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
-
-  bool is_empty() const { return oper_ptr == oper_table_t::empty_oper; }
+  bool is_empty() const { return oper_ptr == oper_table_t::get_empty(); }
+  bool is_in_small_buffer() const { return oper_ptr->is_in_buffer; }
 
   void swap(inplace_task& other) noexcept
   {
     if (this == &other)
       return;
 
-    storage_t tmp;
-    oper_ptr->move(&buffer, &tmp);
-    other.oper_ptr->move(&other.buffer, &buffer);
-    oper_ptr->move(&tmp, &other.buffer);
+    if (oper_ptr->is_in_buffer and other.oper_ptr->is_in_buffer) {
+      storage_t tmp;
+      oper_ptr->move(&buffer, &tmp);
+      other.oper_ptr->move(&other.buffer, &buffer);
+      oper_ptr->move(&tmp, &other.buffer);
+    } else if (oper_ptr->is_in_buffer and not other.oper_ptr->is_in_buffer) {
+      void* tmpptr = other.ptr;
+      oper_ptr->move(&buffer, &other.buffer);
+      ptr = tmpptr;
+    } else if (not oper_ptr->is_in_buffer and other.oper_ptr->is_in_buffer) {
+      void* tmpptr = ptr;
+      other.oper_ptr->move(&other.buffer, &buffer);
+      oper_ptr->move(&tmpptr, &other.ptr);
+    } else {
+      std::swap(ptr, other.ptr);
+    }
     std::swap(oper_ptr, other.oper_ptr);
   }
 
+  friend void swap(inplace_task& lhs, inplace_task& rhs) noexcept { lhs.swap(rhs); }
+
 private:
-  storage_t     buffer;
-  oper_table_t* oper_ptr;
+  union {
+    storage_t buffer;
+    void*     ptr;
+  };
+  const oper_table_t* oper_ptr;
+
+  void* get_buffer() { return oper_ptr->is_in_buffer ? &buffer : ptr; }
 };
 
 } // namespace srslte

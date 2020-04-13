@@ -324,6 +324,10 @@ int test_task_thread_pool3()
 struct C {
   std::unique_ptr<int> val{new int{5}};
 };
+struct D {
+  std::array<int, 64> big_val;
+  D() { big_val[0] = 6; }
+};
 
 int test_inplace_task()
 {
@@ -349,6 +353,36 @@ int test_inplace_task()
     t5();
     TESTASSERT(v == 5);
   }
+
+  D                            d;
+  srslte::inplace_task<void()> t6 = [&v, d]() { v = d.big_val[0]; };
+  {
+    srslte::inplace_task<void()> t7;
+    t6();
+    TESTASSERT(v == 6);
+    v  = 0;
+    t7 = std::move(t6);
+    t7();
+    TESTASSERT(v == 6);
+  }
+
+  auto l1 = std::bind([&v](C& c) { v = *c.val; }, C{});
+  auto l2 = [&v, d]() { v = d.big_val[0]; };
+  t       = std::move(l1);
+  t2      = l2;
+  v       = 0;
+  t();
+  TESTASSERT(v == 5);
+  t2();
+  TESTASSERT(v == 6);
+  TESTASSERT(t.is_in_small_buffer() and not t2.is_in_small_buffer());
+  swap(t, t2);
+  TESTASSERT(t2.is_in_small_buffer() and not t.is_in_small_buffer());
+  v = 0;
+  t();
+  TESTASSERT(v == 6);
+  t2();
+  TESTASSERT(v == 5);
 
   std::cout << "outcome: Success\n";
   std::cout << "========================================\n";
