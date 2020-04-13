@@ -32,6 +32,7 @@ target_link_libraries(asn1_utils srslte_common)
 
 add_library(rrc_asn1 STATIC
         rrc_asn1.cc
+        rrc_asn1_nbiot.cc
         rrc_asn1_enum.cc
         rrc_asn1_utils.cc
         )
