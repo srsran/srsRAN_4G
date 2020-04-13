@@ -168,6 +168,7 @@ int srslte_pscch_set_cell(srslte_pscch_t* q, srslte_cell_sl_t cell)
       q->sci_len       = srslte_sci_format0_sizeof(cell.nof_prb);
       q->nof_symbols   = SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS;
       q->pscch_nof_prb = SRSLTE_PSCCH_TM12_NOF_PRB;
+      q->E             = SRSLTE_PSCCH_TM12_NOF_CODED_BITS;
 
       if (cell.cp == SRSLTE_CP_EXT) {
         q->nof_symbols = SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS_EXT;
@@ -176,14 +177,12 @@ int srslte_pscch_set_cell(srslte_pscch_t* q, srslte_cell_sl_t cell)
       q->sci_len       = SRSLTE_SCI_TM34_LEN;
       q->nof_symbols   = SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS;
       q->pscch_nof_prb = SRSLTE_PSCCH_TM34_NOF_PRB;
+      q->E             = SRSLTE_PSCCH_TM34_NOF_CODED_BITS;
     } else {
       return ret;
     }
 
     q->cell = cell;
-
-    ///< Calculate actual number of RE
-    q->E = SRSLTE_NRE * q->nof_symbols * q->pscch_nof_prb * SRSLTE_PSCCH_QM;
 
     ///< Last OFDM symbol is processed but not transmitted
     q->nof_tx_re = (q->nof_symbols - 1) * SRSLTE_NRE * q->pscch_nof_prb;
@@ -322,6 +321,9 @@ int srslte_pscch_get(srslte_pscch_t* q, cf_t* sf_buffer, uint32_t prb_start_idx)
       sample_pos += (SRSLTE_NRE * q->pscch_nof_prb);
     }
   }
+
+  // Force zeros in last symbol
+  srslte_vec_cf_zero(&q->scfdma_symbols[sample_pos], SRSLTE_NRE * q->pscch_nof_prb);
 
   return sample_pos;
 }

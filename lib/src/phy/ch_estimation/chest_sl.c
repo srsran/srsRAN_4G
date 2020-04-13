@@ -296,14 +296,6 @@ static void chest_sl_psbch_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
   interpolate_pilots_sl_psbch(q);
 }
 
-static void chest_sl_psbch_ls_equalize(srslte_chest_sl_t* q, cf_t* sf_buffer, cf_t* equalized_sf_buffer)
-{
-  srslte_chest_sl_estimate_noise(q);
-
-  // Perform channel equalization
-  srslte_predecoding_single(sf_buffer, q->ce_average, equalized_sf_buffer, NULL, q->sf_n_re, 1, q->noise_estimated);
-}
-
 static int chest_sl_pscch_gen(srslte_chest_sl_t* q, uint32_t cyclic_shift)
 {
   // M_sc_rs - Reference Signal Length
@@ -522,14 +514,6 @@ static void chest_sl_pscch_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
   }
 
   interpolate_pilots_sl_pscch(q);
-}
-
-static void chest_sl_pscch_ls_equalize(srslte_chest_sl_t* q, cf_t* sf_buffer, cf_t* equalized_sf_buffer)
-{
-  srslte_chest_sl_estimate_noise(q);
-
-  // Perform channel equalization
-  srslte_predecoding_single(sf_buffer, q->ce_average, equalized_sf_buffer, NULL, q->sf_n_re, 1.0, q->noise_estimated);
 }
 
 static int chest_sl_pssch_gen(srslte_chest_sl_t* q)
@@ -964,14 +948,6 @@ static void chest_sl_pssch_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
   interpolate_pilots_sl_pssch(q);
 }
 
-static void chest_sl_pssch_ls_equalize(srslte_chest_sl_t* q, cf_t* sf_buffer, cf_t* equalized_sf_buffer)
-{
-  srslte_chest_sl_estimate_noise(q);
-
-  // Perform channel equalization
-  srslte_predecoding_single(sf_buffer, q->ce_average, equalized_sf_buffer, NULL, q->sf_n_re, 1.0, q->noise_estimated);
-}
-
 static void get_subband_noise(srslte_chest_sl_t* q, uint32_t k_start, uint32_t k_end, uint32_t sf_nsymbols)
 {
   for (int k = k_start; k < k_end; k++) {
@@ -1241,16 +1217,10 @@ void srslte_chest_sl_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
 
 void srslte_chest_sl_ls_equalize(srslte_chest_sl_t* q, cf_t* sf_buffer, cf_t* equalized_sf_buffer)
 {
-  switch (q->channel) {
-    case SRSLTE_SIDELINK_PSBCH:
-      return chest_sl_psbch_ls_equalize(q, sf_buffer, equalized_sf_buffer);
-    case SRSLTE_SIDELINK_PSCCH:
-      return chest_sl_pscch_ls_equalize(q, sf_buffer, equalized_sf_buffer);
-    case SRSLTE_SIDELINK_PSSCH:
-      return chest_sl_pssch_ls_equalize(q, sf_buffer, equalized_sf_buffer);
-    default:
-      return;
-  }
+  srslte_chest_sl_estimate_noise(q);
+
+  // Perform channel equalization
+  srslte_predecoding_single(sf_buffer, q->ce_average, equalized_sf_buffer, NULL, q->sf_n_re, 1.0, q->noise_estimated);
 }
 
 void srslte_chest_sl_ls_estimate_equalize(srslte_chest_sl_t* q, cf_t* sf_buffer, cf_t* equalized_sf_buffer)

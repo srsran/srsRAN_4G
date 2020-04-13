@@ -34,27 +34,27 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-char*            input_file_name;
-srslte_cell_sl_t cell                   = {.nof_prb = 6, .N_sl_id = 0, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
-bool             use_standard_lte_rates = false;
-uint32_t         file_offset            = 0;
+static char*            input_file_name = NULL;
+static srslte_cell_sl_t cell            = {.nof_prb = 6, .N_sl_id = 0, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
+static bool             use_standard_lte_rates = false;
+static uint32_t         file_offset            = 0;
 
-uint32_t                       sf_n_samples;
-uint32_t                       sf_n_re;
-cf_t*                          sf_buffer;
-cf_t*                          equalized_sf_buffer;
-cf_t*                          input_buffer;
-srslte_sci_t                   sci;
-srslte_pscch_t                 pscch;
-srslte_chest_sl_t              pscch_chest;
-srslte_ofdm_t                  fft;
-srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
-uint32_t                       size_sub_channel = 10;
-uint32_t                       num_sub_channel  = 5;
+static uint32_t                       sf_n_samples          = 0;
+static uint32_t                       sf_n_re               = 0;
+static cf_t*                          sf_buffer             = NULL;
+static cf_t*                          equalized_sf_buffer   = NULL;
+static cf_t*                          input_buffer          = NULL;
+static srslte_sci_t                   sci                   = {};
+static srslte_pscch_t                 pscch                 = {};
+static srslte_chest_sl_t              pscch_chest           = {};
+static srslte_ofdm_t                  fft                   = {};
+static srslte_sl_comm_resource_pool_t sl_comm_resource_pool = {};
+static uint32_t                       size_sub_channel      = 10;
+static uint32_t                       num_sub_channel       = 5;
 
-srslte_chest_sl_cfg_t pscch_chest_sl_cfg;
+static srslte_chest_sl_cfg_t pscch_chest_sl_cfg = {};
 
-srslte_filesource_t fsrc;
+static srslte_filesource_t fsrc = {};
 
 void usage(char* prog)
 {
@@ -88,13 +88,13 @@ void parse_args(int argc, char** argv)
         input_file_name = argv[optind];
         break;
       case 's':
-        size_sub_channel = (int32_t)strtol(argv[optind], NULL, 10);
+        size_sub_channel = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
-        num_sub_channel = (int32_t)strtol(argv[optind], NULL, 10);
+        num_sub_channel = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
-        cell.nof_prb = (int32_t)strtol(argv[optind], NULL, 10);
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
         switch ((int32_t)strtol(argv[optind], NULL, 10)) {
@@ -134,7 +134,7 @@ void parse_args(int argc, char** argv)
 int base_init()
 {
   sf_n_samples = srslte_symbol_sz(cell.nof_prb) * 15;
-  sf_n_re = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
+  sf_n_re      = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
 
   if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
     ERROR("Error initializing sl_comm_resource_pool\n");

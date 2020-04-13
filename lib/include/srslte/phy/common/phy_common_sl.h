@@ -44,10 +44,10 @@ typedef enum SRSLTE_API {
 } srslte_sl_tm_t;
 
 typedef enum SRSLTE_API {
-  SRSLTE_SIDELINK_PSBCH = 0,
-  SRSLTE_SIDELINK_PSCCH,
-  SRSLTE_SIDELINK_PSSCH,
-  SRSLTE_SIDELINK_PSDCH
+  SRSLTE_SIDELINK_PSBCH = 0, // Physical Sidelink Broadcast Channel
+  SRSLTE_SIDELINK_PSCCH,     // Physical Sidelink Control Channel
+  SRSLTE_SIDELINK_PSSCH,     // Physical Sidelink Shared Channel
+  SRSLTE_SIDELINK_PSDCH      // Physical Sidelink Discovery Channel
 } srslte_sl_channels_t;
 
 typedef struct SRSLTE_API {
@@ -109,14 +109,18 @@ typedef enum SRSLTE_API {
 #define SRSLTE_PSCCH_MAX_NOF_PRB (SRSLTE_PSCCH_TM34_NOF_PRB)
 #define SRSLTE_PSCCH_SCRAMBLING_SEED (510) ///< Scrambling seed for PSCCH is 510
 
-#define SRSLTE_PSCCH_MAX_CODED_BITS (3 * (SRSLTE_SCI_MAX_LEN + SRSLTE_SCI_CRC_LEN))
-
 #define SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS (12)
 #define SRSLTE_PSCCH_TM12_NUM_DMRS_SYMBOLS (2)
 #define SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS_EXT (10)
 
 #define SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS (10)
 #define SRSLTE_PSCCH_TM34_NUM_DMRS_SYMBOLS (4)
+
+#define SRSLTE_PSCCH_TM12_NOF_CODED_BITS                                                                               \
+  (SRSLTE_NRE * SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS * SRSLTE_PSCCH_TM12_NOF_PRB * SRSLTE_PSCCH_QM)
+#define SRSLTE_PSCCH_TM34_NOF_CODED_BITS                                                                               \
+  (SRSLTE_NRE * SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS * SRSLTE_PSCCH_TM34_NOF_PRB * SRSLTE_PSCCH_QM)
+#define SRSLTE_PSCCH_MAX_CODED_BITS SRSLTE_MAX(SRSLTE_PSCCH_TM12_NOF_CODED_BITS, SRSLTE_PSCCH_TM34_NOF_CODED_BITS)
 
 #define SRSLTE_PSSCH_CRC_LEN 24
 #define SRSLTE_MAX_CODEWORD_LEN 168000   // 12 subcarriers * 100 PRB * 14 symbols * 10 bits, assuming 1024QAM
