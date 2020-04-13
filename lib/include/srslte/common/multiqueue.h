@@ -28,6 +28,7 @@
 #ifndef SRSLTE_MULTIQUEUE_H
 #define SRSLTE_MULTIQUEUE_H
 
+#include "task.h"
 #include <algorithm>
 #include <condition_variable>
 #include <functional>
@@ -40,21 +41,50 @@ namespace srslte {
 template <typename myobj>
 class multiqueue_handler
 {
-  // NOTE: needed to create a queue wrapper to make its move ctor noexcept.
-  // otherwise we couldnt use the resize method of std::vector<queue<myobj>> if myobj is move-only
-  class queue_wrapper : private std::queue<myobj>
+  class circular_buffer
   {
   public:
-    queue_wrapper() = default;
-    queue_wrapper(queue_wrapper&& other) noexcept : std::queue<myobj>(std::move(other)) {}
-    using std::queue<myobj>::push;
-    using std::queue<myobj>::pop;
-    using std::queue<myobj>::size;
-    using std::queue<myobj>::empty;
-    using std::queue<myobj>::front;
+    circular_buffer(uint32_t cap) : buffer(cap + 1) {}
+    circular_buffer(circular_buffer&& other) noexcept
+    {
+      active       = other.active;
+      other.active = false;
+      widx         = other.widx;
+      ridx         = other.ridx;
+      buffer       = std::move(other.buffer);
+    }
 
     std::condition_variable cv_full;
     bool                    active = true;
+
+    bool   empty() const { return widx == ridx; }
+    size_t size() const { return widx >= ridx ? widx - ridx : widx + (buffer.size() - ridx); }
+    bool   full() const { return (ridx > 0) ? widx == ridx - 1 : widx == buffer.size() - 1; }
+    size_t capacity() const { return buffer.size() - 1; }
+
+    template <typename T>
+    void push(T&& o) noexcept
+    {
+      buffer[widx++] = std::forward<T>(o);
+      if (widx >= buffer.size()) {
+        widx = 0;
+      }
+    }
+
+    void pop() noexcept
+    {
+      ridx++;
+      if (ridx >= buffer.size()) {
+        ridx = 0;
+      }
+    }
+
+    myobj&       front() noexcept { return buffer[ridx]; }
+    const myobj& front() const noexcept { return buffer[ridx]; }
+
+  private:
+    std::vector<myobj> buffer;
+    size_t             widx = 0, ridx = 0;
   };
 
 public:
@@ -76,7 +106,7 @@ public:
     int                        queue_id = -1;
   };
 
-  explicit multiqueue_handler(uint32_t capacity_ = std::numeric_limits<uint32_t>::max()) : capacity(capacity_) {}
+  explicit multiqueue_handler(uint32_t capacity_ = 8192) : capacity(capacity_) {}
   ~multiqueue_handler() { reset(); }
 
   void reset()
@@ -108,7 +138,7 @@ public:
       ;
     if (qidx == queues.size()) {
       // create new queue
-      queues.emplace_back();
+      queues.emplace_back(capacity);
     } else {
       queues[qidx].active = true;
     }
@@ -130,7 +160,7 @@ public:
   {
     {
       std::unique_lock<std::mutex> lock(mutex);
-      while (is_queue_active_(q_idx) and queues[q_idx].size() >= capacity) {
+      while (is_queue_active_(q_idx) and queues[q_idx].full()) {
         nof_threads_waiting++;
         queues[q_idx].cv_full.wait(lock);
         nof_threads_waiting--;
@@ -148,7 +178,7 @@ public:
   {
     {
       std::lock_guard<std::mutex> lock(mutex);
-      if (not is_queue_active_(q_idx) or queues[q_idx].size() >= capacity) {
+      if (not is_queue_active_(q_idx) or queues[q_idx].full()) {
         return false;
       }
       queues[q_idx].push(value);
@@ -161,7 +191,7 @@ public:
   {
     {
       std::lock_guard<std::mutex> lck(mutex);
-      if (not is_queue_active_(q_idx) or queues[q_idx].size() >= capacity) {
+      if (not is_queue_active_(q_idx) or queues[q_idx].full()) {
         return {false, std::move(value)};
       }
       queues[q_idx].push(std::move(value));
@@ -250,7 +280,7 @@ private:
   bool round_robin_pop_(myobj* value)
   {
     // Round-robin for all queues
-    for (const queue_wrapper& q : queues) {
+    for (const circular_buffer& q : queues) {
       spin_idx = (spin_idx + 1) % queues.size();
       if (is_queue_active_(spin_idx) and not queues[spin_idx].empty()) {
         if (value) {
@@ -263,13 +293,13 @@ private:
     return false;
   }
 
-  std::mutex                 mutex;
-  std::condition_variable    cv_empty, cv_exit;
-  uint32_t                   spin_idx = 0;
-  bool                       running  = true;
-  std::vector<queue_wrapper> queues;
-  uint32_t                   capacity            = 0;
-  uint32_t                   nof_threads_waiting = 0;
+  std::mutex                   mutex;
+  std::condition_variable      cv_empty, cv_exit;
+  uint32_t                     spin_idx = 0;
+  bool                         running  = true;
+  std::vector<circular_buffer> queues;
+  uint32_t                     capacity            = 0;
+  uint32_t                     nof_threads_waiting = 0;
 };
 
 /***********************************************************
@@ -283,8 +313,7 @@ public:
   move_function() = default;
   template <typename Func>
   move_function(Func&& f) : task_ptr(new derived_task<Func>(std::forward<Func>(f)))
-  {
-  }
+  {}
   void operator()(Args&&... args) { (*task_ptr)(std::forward<Args>(args)...); }
 
 private:
@@ -304,7 +333,8 @@ private:
   std::unique_ptr<base_task> task_ptr;
 };
 
-using move_task_t     = move_function<>;
+// using move_task_t     = move_function<>;
+using move_task_t     = inplace_task<void()>;
 using task_multiqueue = multiqueue_handler<move_task_t>;
 
 } // namespace srslte

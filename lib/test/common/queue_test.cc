@@ -20,6 +20,7 @@
  */
 
 #include "srslte/common/multiqueue.h"
+#include "srslte/common/task.h"
 #include "srslte/common/thread_pool.h"
 #include <iostream>
 #include <thread>
@@ -320,6 +321,40 @@ int test_task_thread_pool3()
   return 0;
 }
 
+struct C {
+  std::unique_ptr<int> val{new int{5}};
+};
+
+int test_inplace_task()
+{
+  std::cout << "\n======= TEST inplace task: start =======\n";
+  int v = 0;
+
+  srslte::inplace_task<void()> t{[&v]() { v = 1; }};
+  srslte::inplace_task<void()> t2{[v]() mutable { v = 2; }};
+
+  t();
+  t2();
+  TESTASSERT(v == 1);
+  v              = 2;
+  decltype(t) t3 = std::move(t);
+  t3();
+  TESTASSERT(v == 1);
+
+  C                            c;
+  srslte::inplace_task<void()> t4{std::bind([&v](C& c) { v = *c.val; }, std::move(c))};
+  {
+    decltype(t4) t5;
+    t5 = std::move(t4);
+    t5();
+    TESTASSERT(v == 5);
+  }
+
+  std::cout << "outcome: Success\n";
+  std::cout << "========================================\n";
+  return 0;
+}
+
 int main()
 {
   TESTASSERT(test_multiqueue() == 0);
@@ -330,4 +365,6 @@ int main()
   TESTASSERT(test_task_thread_pool() == 0);
   TESTASSERT(test_task_thread_pool2() == 0);
   TESTASSERT(test_task_thread_pool3() == 0);
+
+  TESTASSERT(test_inplace_task() == 0);
 }
