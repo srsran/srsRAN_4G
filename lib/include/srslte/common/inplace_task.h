@@ -155,7 +155,7 @@ public:
     return *this;
   }
 
-  R operator()(Args&&... args) { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
+  R operator()(Args&&... args) const { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
 
   bool is_empty() const { return oper_ptr == oper_table_t::get_empty(); }
   bool is_in_small_buffer() const { return oper_ptr->is_in_buffer; }
@@ -188,8 +188,8 @@ public:
 
 private:
   union {
-    storage_t buffer;
-    void*     ptr;
+    mutable storage_t buffer;
+    void*             ptr;
   };
   const oper_table_t* oper_ptr;
 };

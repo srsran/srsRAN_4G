@@ -390,6 +390,13 @@ int test_inplace_task()
   t2();
   TESTASSERT(v == 5);
 
+  // TEST: task works in const contexts
+  t       = l2;
+  auto l3 = [](const srslte::inplace_task<void()>& task) { task(); };
+  v       = 0;
+  l3(t);
+  TESTASSERT(v == 6);
+
   std::cout << "outcome: Success\n";
   std::cout << "========================================\n";
   return 0;
