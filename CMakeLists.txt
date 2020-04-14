@@ -501,6 +501,12 @@ add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)
 
 ########################################################################
+# Create optional target to build osmo-gsm-tester trial
+########################################################################
+add_custom_target(trial
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/build_trial.sh)
+
+########################################################################
 # Add -fPIC property to all targets
 ########################################################################
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
