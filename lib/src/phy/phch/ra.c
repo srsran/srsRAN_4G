@@ -151,6 +151,7 @@ int srslte_ra_tbs_idx_from_mcs(uint32_t mcs, bool use_tbs_index_alt, bool is_ul)
 srslte_mod_t srslte_ra_dl_mod_from_mcs(uint32_t mcs, bool use_tbs_index_alt)
 {
   if (use_tbs_index_alt) {
+    // 3GPP 36.213 R12 Table 7.1.7.1-1A
     if (mcs < 5 || mcs == 28) {
       return SRSLTE_MOD_QPSK;
     } else if (mcs < 11 || mcs == 29) {
@@ -161,9 +162,10 @@ srslte_mod_t srslte_ra_dl_mod_from_mcs(uint32_t mcs, bool use_tbs_index_alt)
       return SRSLTE_MOD_256QAM;
     }
   } else {
-    if (mcs <= 10 || mcs == 29) {
+    // 3GPP 36.213 R12 Table 7.1.7.1-1
+    if (mcs < 10 || mcs == 29) {
       return SRSLTE_MOD_QPSK;
-    } else if (mcs <= 17 || mcs == 30) {
+    } else if (mcs < 17 || mcs == 30) {
       return SRSLTE_MOD_16QAM;
     } else {
       return SRSLTE_MOD_64QAM;
