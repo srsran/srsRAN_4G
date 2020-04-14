@@ -69,12 +69,12 @@ struct oper_table_t {
   {
     const static oper_table_t t{
         false,
-        [](void* src, Args&&... args) -> R { return (*static_cast<Func*>(src))(std::forward<Args>(args)...); },
+        [](void* src, Args&&... args) -> R { return (**static_cast<Func**>(src))(std::forward<Args>(args)...); },
         [](void* src, void* dest) -> void {
           *static_cast<Func**>(dest) = *static_cast<Func**>(src);
           *static_cast<Func**>(src)  = nullptr;
         },
-        [](void* src) -> void { static_cast<Func*>(src)->~Func(); }};
+        [](void* src) -> void { (*static_cast<Func**>(src))->~Func(); }};
     return &t;
   }
 
@@ -90,7 +90,6 @@ struct oper_table_t {
   dtor_oper_t dtor;
 
 private:
-  oper_table_t() = default;
   oper_table_t(bool is_in_buffer_, call_oper_t call_, move_oper_t move_, dtor_oper_t dtor_) :
     is_in_buffer(is_in_buffer_),
     call(call_),
@@ -142,29 +141,21 @@ public:
   {
     oper_ptr       = other.oper_ptr;
     other.oper_ptr = oper_table_t::get_empty();
-    if (oper_ptr->is_in_buffer) {
-      oper_ptr->move(&other.buffer, &buffer);
-    } else {
-      oper_ptr->move(&other.ptr, &ptr);
-    }
+    oper_ptr->move(&other.buffer, &buffer);
   }
 
-  ~inplace_task() { oper_ptr->dtor(get_buffer()); }
+  ~inplace_task() { oper_ptr->dtor(&buffer); }
 
   inplace_task& operator=(inplace_task&& other) noexcept
   {
-    oper_ptr->dtor(get_buffer());
+    oper_ptr->dtor(&buffer);
     oper_ptr       = other.oper_ptr;
     other.oper_ptr = oper_table_t::get_empty();
-    if (oper_ptr->is_in_buffer) {
-      oper_ptr->move(&other.buffer, &buffer);
-    } else {
-      oper_ptr->move(&other.ptr, &ptr);
-    }
+    oper_ptr->move(&other.buffer, &buffer);
     return *this;
   }
 
-  R operator()(Args&&... args) { return oper_ptr->call(get_buffer(), std::forward<Args>(args)...); }
+  R operator()(Args&&... args) { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
 
   bool is_empty() const { return oper_ptr == oper_table_t::get_empty(); }
   bool is_in_small_buffer() const { return oper_ptr->is_in_buffer; }
@@ -201,8 +192,6 @@ private:
     void*     ptr;
   };
   const oper_table_t* oper_ptr;
-
-  void* get_buffer() { return oper_ptr->is_in_buffer ? &buffer : ptr; }
 };
 
 } // namespace srslte
