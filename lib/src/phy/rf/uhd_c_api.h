@@ -18,6 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#ifndef SRSLTE_UHD_C_API_C_
+#define SRSLTE_UHD_C_API_C_
 
 #include "srslte/config.h"
 #include "srslte/phy/rf/rf.h"
@@ -30,3 +32,5 @@ SRSLTE_API void uhd_tx_metadata_set_start(uhd_tx_metadata_handle* md, bool is_st
 SRSLTE_API void uhd_tx_metadata_set_has_time_spec(uhd_tx_metadata_handle* md, bool has_time_spec);
 SRSLTE_API void uhd_tx_metadata_set_end(uhd_tx_metadata_handle* md, bool is_end_of_burst);
 SRSLTE_API void uhd_tx_metadata_add_time_spec(uhd_tx_metadata_handle* md, double frac_secs);
+
+#endif /* SRSLTE_UHD_C_API_C_ */

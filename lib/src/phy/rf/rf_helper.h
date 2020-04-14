@@ -18,6 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#ifndef SRSLTE_RF_HELPER_H_
+#define SRSLTE_RF_HELPER_H_
 
 // A bunch of helper functions to process device arguments
 
@@ -110,3 +112,5 @@ static inline int parse_uint32(char* args, const char* config_arg_base, int chan
 
   return ret;
 }
+
+#endif /* SRSLTE_RF_HELPER_H_ */

@@ -2081,7 +2081,7 @@ int rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload)
 
 bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status)
 {
-  for (uint16_t i = 0; i < status.N_nack; ++i) {
+  for (uint32_t i = 0; i < status.N_nack; ++i) {
     if (status.nacks[i].nack_sn == status.ack_sn) {
       return false;
     }

@@ -586,9 +586,11 @@ void rrc::log_neighbour_cells()
     int           n                    = 0;
     n += snprintf(ordered, MAX_STR_LEN, "[%s", neighbour_cells[0]->to_string().c_str());
     for (uint32_t i = 1; i < neighbour_cells.size(); i++) {
-      if (MAX_STR_LEN - n > 0) { // make sure there is still room left
-        int m = snprintf(&ordered[n], MAX_STR_LEN - n, " | %s", neighbour_cells[i]->to_string().c_str());
-        n += m;
+      if (n < MAX_STR_LEN) { // make sure there is still room left
+        int m = snprintf(&ordered[n], (size_t)MAX_STR_LEN - n, " | %s", neighbour_cells[i]->to_string().c_str());
+        if (m > 0) {
+          n += m;
+        }
       }
     }
     rrc_log->info("Neighbours: %s]\n", ordered);

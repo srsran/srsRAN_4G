@@ -932,7 +932,7 @@ int pcsc_usim::scard::get_imsi(char* imsi, size_t* len)
 
   imsilen = (blen - 2) * 2 + 1;
   log->debug("SCARD: IMSI file length=%ld imsilen=%ld\n", (long)blen, (long)imsilen);
-  if (blen < 2 || imsilen > *len) {
+  if (imsilen > *len) {
     *len = imsilen;
     return -4;
   }

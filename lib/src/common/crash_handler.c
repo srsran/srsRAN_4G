@@ -39,13 +39,13 @@ static void crash_handler(int sig)
     printf("srsLTE crashed... we could not save backtrace in '%s'...\n", crash_file_name);
   } else {
     time_t     lnTime;
-    struct tm* stTime;
+    struct tm  stTime;
     char       strdate[32];
 
     time(&lnTime);
-    stTime = localtime(&lnTime);
+    gmtime_r(&lnTime, &stTime);
 
-    strftime(strdate, 32, "%d/%m/%Y %H:%M:%S", stTime);
+    strftime(strdate, sizeof(strdate), "%d/%m/%Y %H:%M:%S", &stTime);
 
     fprintf(f, "--- command='");
     for (int i = 0; i < bt_argc; i++) {

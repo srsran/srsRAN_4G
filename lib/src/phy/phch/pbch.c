@@ -401,7 +401,7 @@ int decode_frame(srslte_pbch_t* q, uint32_t src, uint32_t dst, uint32_t n, uint3
   int j;
 
   if (dst + n <= 4 && src + n <= 4) {
-    memcpy(&q->temp[dst * nof_bits], &q->llr[src * nof_bits], n * nof_bits * sizeof(float));
+    srs_vec_f_copy(&q->temp[dst * nof_bits], &q->llr[src * nof_bits], n * nof_bits);
 
     /* descramble */
     srslte_scrambling_f_offset(&q->seq, &q->temp[dst * nof_bits], dst * nof_bits, n * nof_bits);

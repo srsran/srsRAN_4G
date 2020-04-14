@@ -19,6 +19,9 @@
  *
  */
 
+#ifndef SRSLTE_RF_ZMQ_IMP_H_
+#define SRSLTE_RF_ZMQ_IMP_H_
+
 #include <inttypes.h>
 #include <stdbool.h>
 
@@ -96,3 +99,5 @@ SRSLTE_API int rf_zmq_send_timed_multi(void*  h,
                                        bool   blocking,
                                        bool   is_start_of_burst,
                                        bool   is_end_of_burst);
+
+#endif /* SRSLTE_RF_ZMQ_IMP_H_ */

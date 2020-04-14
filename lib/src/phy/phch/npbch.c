@@ -517,7 +517,7 @@ int srslte_npbch_decode_frame(srslte_npbch_t* q,
                               uint32_t        nof_bits,
                               uint32_t        nof_ports)
 {
-  memcpy(&q->temp[dst * nof_bits], &q->llr[src * nof_bits], n * nof_bits * sizeof(float));
+  srs_vec_f_copy(&q->temp[dst * nof_bits], &q->llr[src * nof_bits], n * nof_bits);
 
   // descramble
   srslte_scrambling_f_offset(&q->seq, &q->temp[dst * nof_bits], dst * nof_bits, n * nof_bits);
