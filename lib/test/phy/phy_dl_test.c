@@ -53,7 +53,7 @@ void usage(char* prog)
   printf("\t-p cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-s number of subframes to simulate [Default %d]\n", nof_subframes);
   printf("\t-d Print DCI table [Default %s]\n", print_dci_table ? "yes" : "no");
-  printf("\t-t Transmission mode: 1,2,3,4 [Default %d]\n", transmission_mode);
+  printf("\t-t Transmission mode: 1,2,3,4 [Default %d]\n", transmission_mode + 1);
   printf("\t-m mcs [Default %d]\n", mcs);
   printf("\tAdvanced parameters:\n");
   if (cross_carrier_indicator >= 0) {
