@@ -993,10 +993,6 @@ int srslte_pdsch_decode(srslte_pdsch_t*        q,
       ERROR("Error predecoding\n");
       return SRSLTE_ERROR;
     }
-    //    printf("h%d=", sf->tti); srslte_vec_fprint_c(stdout, channel->ce[0][0], SRSLTE_SF_LEN_RE(q->cell.nof_prb,
-    //    q->cell.cp)); printf("h%d=", sf->tti); srslte_vec_fprint_c(stdout, q->ce[0][0], cfg->grant.nof_re);
-    //    printf("xx%d=", sf->tti); srslte_vec_fprint_c(stdout, x[0], cfg->grant.nof_re);
-    //    printf("y%d=", sf->tti); srslte_vec_fprint_c(stdout, q->symbols[0], cfg->grant.nof_re);
 
     // Layer demapping only if necessary
     if (cfg->grant.nof_layers != nof_tb) {
@@ -1241,7 +1237,6 @@ int srslte_pdsch_encode(srslte_pdsch_t*     q,
     for (i = 0; i < q->cell.nof_ports; i++) {
       srslte_pdsch_put(q, q->symbols[i], sf_symbols[i], &cfg->grant, lstart, sf->tti % 10);
     }
-    //    printf("x%d=", sf->tti); srslte_vec_fprint_c(stdout, q->symbols[0], cfg->grant.nof_re);
 
     if (cfg->meas_time_en) {
       gettimeofday(&t[2], NULL);
