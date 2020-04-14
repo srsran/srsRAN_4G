@@ -29,18 +29,16 @@
 #include "srslte/phy/io/filesource.h"
 #include "srslte/phy/phch/mib_sl.h"
 #include "srslte/phy/phch/psbch.h"
-#include "srslte/phy/sync/cfo.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
 srslte_cell_sl_t cell = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
-
-char*    input_file_name;
-uint32_t offset                 = 0;
-float    frequency_offset       = 0.0;
-float    snr                    = 100.0;
-bool     use_standard_lte_rates = false;
-bool     do_equalization        = true;
+char*            input_file_name;
+uint32_t         offset                 = 0;
+float            frequency_offset       = 0.0;
+float            snr                    = 100.0;
+bool             use_standard_lte_rates = false;
+bool             do_equalization        = true;
 
 srslte_filesource_t fsrc;
 
@@ -107,6 +105,11 @@ void parse_args(int argc, char** argv)
         exit(-1);
     }
   }
+  if (SRSLTE_CP_ISEXT(cell.cp) && cell.tm >= SRSLTE_SIDELINK_TM3) {
+    ERROR("Selected TM does not support extended CP");
+    usage(argv[0]);
+    exit(-1);
+  }
 }
 
 int main(int argc, char** argv)
@@ -122,7 +125,7 @@ int main(int argc, char** argv)
   uint32_t sf_n_samples = srslte_symbol_sz(cell.nof_prb) * 15;
   printf("sf_n_samples: %i\n", sf_n_samples);
 
-  uint32_t sf_n_re             = SRSLTE_CP_NSYMB(cell.cp) * SRSLTE_NRE * 2 * cell.nof_prb;
+  uint32_t sf_n_re             = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
   cf_t*    sf_buffer           = srslte_vec_cf_malloc(sf_n_re);
   cf_t*    equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
@@ -149,7 +152,7 @@ int main(int argc, char** argv)
 
   // PSBCH
   srslte_psbch_t psbch;
-  if (srslte_psbch_init(&psbch, cell.nof_prb, cell.N_sl_id, cell.tm, SRSLTE_CP_NORM) != SRSLTE_SUCCESS) {
+  if (srslte_psbch_init(&psbch, cell.nof_prb, cell.N_sl_id, cell.tm, cell.cp) != SRSLTE_SUCCESS) {
     ERROR("Error in psbch init\n");
     return SRSLTE_ERROR;
   }

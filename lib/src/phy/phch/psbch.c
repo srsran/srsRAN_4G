@@ -35,11 +35,10 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
 
   q->N_sl_id = N_sl_id;
   q->tm      = tm;
-
   q->nof_prb = nof_prb;
 
-  if (SRSLTE_CP_ISEXT(cp)) {
-    ERROR("Extended CP is not supported yet.");
+  if (SRSLTE_CP_ISEXT(cp) && (tm >= SRSLTE_SIDELINK_TM3)) {
+    ERROR("Selected TM does not support extended CP");
     return SRSLTE_ERROR;
   }
   q->cp = cp;
@@ -48,6 +47,9 @@ int srslte_psbch_init(srslte_psbch_t* q, uint32_t nof_prb, uint32_t N_sl_id, srs
   if (q->tm <= SRSLTE_SIDELINK_TM2) {
     q->nof_data_symbols = SRSLTE_PSBCH_TM12_NUM_DATA_SYMBOLS;
     q->sl_bch_tb_len    = SRSLTE_MIB_SL_LEN;
+    if (SRSLTE_CP_ISEXT(cp)) {
+      q->nof_data_symbols = SRSLTE_PSBCH_TM12_NUM_DATA_SYMBOLS_EXT;
+    }
   } else {
     q->nof_data_symbols = SRSLTE_PSBCH_TM34_NUM_DATA_SYMBOLS;
     q->sl_bch_tb_len    = SRSLTE_MIB_SL_V2X_LEN;
@@ -322,7 +324,7 @@ int srslte_psbch_put(srslte_psbch_t* q, cf_t* symbols, cf_t* sf_buffer)
   uint32_t k          = q->nof_prb * SRSLTE_NRE / 2 - 36;
 
   // Mapping to physical resources
-  for (uint32_t i = 0; i < SRSLTE_CP_NORM_SF_NSYMB; i++) {
+  for (uint32_t i = 0; i < srslte_sl_get_num_symbols(q->tm, q->cp); i++) {
     if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i, q->cp)) {
       memcpy(&sf_buffer[k + i * q->nof_prb * SRSLTE_NRE],
              &symbols[sample_pos],
@@ -340,7 +342,7 @@ int srslte_psbch_get(srslte_psbch_t* q, cf_t* sf_buffer, cf_t* symbols)
   uint32_t k          = q->nof_prb * SRSLTE_NRE / 2 - 36;
 
   // Get PSBCH REs
-  for (uint32_t i = 0; i < SRSLTE_CP_NORM_SF_NSYMB; i++) {
+  for (uint32_t i = 0; i < srslte_sl_get_num_symbols(q->tm, q->cp); i++) {
     if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i, q->cp)) {
       memcpy(&symbols[sample_pos],
              &sf_buffer[k + i * q->nof_prb * SRSLTE_NRE],

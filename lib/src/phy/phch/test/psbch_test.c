@@ -20,7 +20,6 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include <strings.h>
 #include <unistd.h>
 
@@ -30,18 +29,15 @@
 #include <srslte/phy/utils/debug.h>
 #include <srslte/phy/utils/vector.h>
 
-int32_t        N_sl_id = 168;
-srslte_cp_t    cp      = SRSLTE_CP_NORM;
-uint32_t       nof_prb = 6;
-srslte_sl_tm_t tm      = SRSLTE_SIDELINK_TM2;
+srslte_cell_sl_t cell = {.nof_prb = 6, .N_sl_id = 168, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
 
 void usage(char* prog)
 {
   printf("Usage: %s [cdeipt]\n", prog);
-  printf("\t-p nof_prb [Default %d]\n", nof_prb);
+  printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-e extended CP [Default normal]\n");
-  printf("\t-c N_sl_id [Default %d]\n", N_sl_id);
-  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (tm + 1));
+  printf("\t-c N_sl_id [Default %d]\n", cell.N_sl_id);
+  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell.tm + 1));
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
@@ -51,27 +47,27 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "ceiptv")) != -1) {
     switch (opt) {
       case 'c':
-        N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
+        cell.N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
-        cp = SRSLTE_CP_EXT;
+        cell.cp = SRSLTE_CP_EXT;
         break;
       case 'p':
-        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
         switch (strtol(argv[optind], NULL, 10)) {
           case 1:
-            tm = SRSLTE_SIDELINK_TM1;
+            cell.tm = SRSLTE_SIDELINK_TM1;
             break;
           case 2:
-            tm = SRSLTE_SIDELINK_TM2;
+            cell.tm = SRSLTE_SIDELINK_TM2;
             break;
           case 3:
-            tm = SRSLTE_SIDELINK_TM3;
+            cell.tm = SRSLTE_SIDELINK_TM3;
             break;
           case 4:
-            tm = SRSLTE_SIDELINK_TM4;
+            cell.tm = SRSLTE_SIDELINK_TM4;
             break;
           default:
             usage(argv[0]);
@@ -87,6 +83,11 @@ void parse_args(int argc, char** argv)
         exit(-1);
     }
   }
+  if (SRSLTE_CP_ISEXT(cell.cp) && cell.tm >= SRSLTE_SIDELINK_TM3) {
+    ERROR("Selected TM does not support extended CP");
+    usage(argv[0]);
+    exit(-1);
+  }
 }
 
 int main(int argc, char** argv)
@@ -95,17 +96,17 @@ int main(int argc, char** argv)
 
   parse_args(argc, argv);
 
-  uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(nof_prb, cp);
+  uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
   cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);
 
   // MIB-SL
   srslte_mib_sl_t mib_sl;
-  srslte_mib_sl_init(&mib_sl, tm);
-  srslte_mib_sl_set(&mib_sl, nof_prb, 0, 128, 4, false);
+  srslte_mib_sl_init(&mib_sl, cell.tm);
+  srslte_mib_sl_set(&mib_sl, cell.nof_prb, 0, 128, 4, false);
 
   // PSBCH
   srslte_psbch_t psbch;
-  if (srslte_psbch_init(&psbch, nof_prb, N_sl_id, tm, SRSLTE_CP_NORM) != SRSLTE_SUCCESS) {
+  if (srslte_psbch_init(&psbch, cell.nof_prb, cell.N_sl_id, cell.tm, cell.cp) != SRSLTE_SUCCESS) {
     ERROR("Error in psbch init\n");
     return SRSLTE_ERROR;
   }
@@ -132,16 +133,22 @@ int main(int argc, char** argv)
     srslte_mib_sl_printf(stdout, &mib_sl);
 
     // check decoded bandwidth matches user configured value
-    if (srslte_mib_sl_bandwith_to_prb[mib_sl.sl_bandwidth_r12] == nof_prb) {
+    if (srslte_mib_sl_bandwith_to_prb[mib_sl.sl_bandwidth_r12] == cell.nof_prb) {
       ret = SRSLTE_SUCCESS;
     }
   }
 
   // Sanity check (less REs are transmitted than mapped)
-  if (tm <= SRSLTE_SIDELINK_TM2) {
-    // TM1 and TM2 have always 576 mapped PSBCH resource elements of which 504 are transmitted
-    TESTASSERT(psbch.nof_data_re == 576);
-    TESTASSERT(psbch.nof_tx_re == 504);
+  if (cell.tm <= SRSLTE_SIDELINK_TM2) {
+    if (SRSLTE_CP_ISNORM(cell.cp)) {
+      // TM1 and TM2 have always 576 mapped PSBCH resource elements of which 504 are transmitted
+      TESTASSERT(psbch.nof_data_re == 576);
+      TESTASSERT(psbch.nof_tx_re == 504);
+    } else {
+      // TM1 and TM2 with extended cp have always 432 mapped PSBCH resource elements of which 360 are transmitted
+      TESTASSERT(psbch.nof_data_re == 432);
+      TESTASSERT(psbch.nof_tx_re == 360);
+    }
   } else {
     // TM3 and TM4 have always 504 mapped PSBCH resource elements of which 432 are transmitted
     TESTASSERT(psbch.nof_data_re == 504);

@@ -91,7 +91,9 @@ typedef enum SRSLTE_API {
 #define SRSLTE_SL_TM12_DEFAULT_NUM_DMRS_SYMBOLS (2)
 #define SRSLTE_SL_TM34_DEFAULT_NUM_DMRS_SYMBOLS (4) ///< In TM3/4, all channels have 4 DMRS by default
 
-#define SRSLTE_PSBCH_TM12_NUM_DATA_SYMBOLS (8) ///< SL-BCH is in 8 OFDM symbols (but only 7 are tx'ed)
+#define SRSLTE_PSBCH_TM12_NUM_DATA_SYMBOLS (8) // PSBCH is in 8 OFDM symbols (but only 7 are tx'ed)
+#define SRSLTE_PSBCH_TM12_NUM_DATA_SYMBOLS_EXT                                                                         \
+  (6) // PSBCH is in 7 OFDM symbols for extended cyclic prefix (but only 6 are tx'ed)
 #define SRSLTE_PSBCH_TM12_NUM_DMRS_SYMBOLS (2) ///< PSBCH has 2 DMRS symbols
 #define SRSLTE_PSBCH_TM12_NUM_SYNC_SYMBOLS (4) ///< Two symbols PSSS and two SSSS
 
