@@ -285,6 +285,7 @@ enable = false
 #                                   refs:  use difference between noise references and noiseless (after filtering)
 #                                   empty: use empty subcarriers in the boarder of pss/sss signal
 # pdsch_max_its:        Maximum number of turbo decoder iterations (Default 4)
+# pdsch_meas_evm:       Measure PDSCH EVM, increases CPU load (default false)
 # nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
 # equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
 #                       non-negative real number to indicate a regularized zf coefficient.
@@ -326,6 +327,7 @@ enable = false
 #snr_ema_coeff       = 0.1
 #snr_estim_alg       = refs
 #pdsch_max_its       = 8    # These are half iterations
+#pdsch_meas_evm      = false
 #nof_phy_threads     = 3
 #equalizer_mode      = mmse
 #correct_sync_error  = false

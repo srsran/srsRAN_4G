@@ -254,8 +254,12 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      "Sets the noise estimation algorithm. (Default refs)")
 
     ("phy.pdsch_max_its",
-     bpo::value<int>(&args->phy.pdsch_max_its)->default_value(8),
+     bpo::value<uint32_t>(&args->phy.pdsch_max_its)->default_value(8),
      "Maximum number of turbo decoder iterations")
+
+    ("phy.meas_evm",
+     bpo::value<bool>(&args->phy.meas_evm)->default_value(false),
+     "Measure PDSCH EVM, increases CPU load (default false)")
 
     ("phy.nof_phy_threads",
      bpo::value<int>(&args->phy.nof_phy_threads)->default_value(3),

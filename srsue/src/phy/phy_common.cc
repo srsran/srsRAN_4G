@@ -110,9 +110,9 @@ void phy_common::set_ue_dl_cfg(srslte_ue_dl_cfg_t* ue_dl_cfg)
 
 void phy_common::set_pdsch_cfg(srslte_pdsch_cfg_t* pdsch_cfg)
 {
-  bzero(pdsch_cfg, sizeof(srslte_pdsch_cfg_t));
   pdsch_cfg->csi_enable         = args->pdsch_csi_enabled;
   pdsch_cfg->max_nof_iterations = args->pdsch_max_its;
+  pdsch_cfg->meas_evm_en        = args->meas_evm;
   pdsch_cfg->decoder_type       = (args->equalizer_mode == "zf") ? SRSLTE_MIMO_DECODER_ZF : SRSLTE_MIMO_DECODER_MMSE;
 }
 
