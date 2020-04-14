@@ -230,8 +230,6 @@ cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
       f_idx = prach_obj.current_prach_idx;
       // For format4, choose odd or even position
       if (prach_obj.config_idx >= 48) {
-        if ((transmitted_tti / 10) % 2) {
-        }
         f_idx += 6;
       }
       if (f_idx >= 12) {

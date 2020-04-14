@@ -269,7 +269,7 @@ public:
   virtual void reset()                                                                          = 0;
   virtual void reestablish()                                                                    = 0;
   virtual void reestablish(uint32_t lcid)                                                       = 0;
-  virtual void add_bearer(uint32_t lcid, srslte::rlc_config_t cnfg)                             = 0;
+  virtual void add_bearer(uint32_t lcid, const srslte::rlc_config_t& cnfg)                      = 0;
   virtual void add_bearer_mrb(uint32_t lcid)                                                    = 0;
   virtual void del_bearer(uint32_t lcid)                                                        = 0;
   virtual void suspend_bearer(uint32_t lcid)                                                    = 0;
@@ -398,7 +398,7 @@ public:
   virtual void mch_decoded(uint32_t len, bool crc) = 0;
 
   /* Obtain action for a new MCH subframe. */
-  virtual void new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action) = 0;
+  virtual void new_mch_dl(const srslte_pdsch_grant_t& phy_grant, tb_action_dl_t* action) = 0;
 
   /* Communicate the number of mbsfn services available  */
   virtual void set_mbsfn_config(uint32_t nof_mbsfn_services) = 0;

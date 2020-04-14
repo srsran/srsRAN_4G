@@ -31,7 +31,7 @@
 
 namespace srslte {
 
-class rlc_tm : public rlc_common
+class rlc_tm final : public rlc_common
 {
 public:
   rlc_tm(srslte::log_ref            log_,
@@ -41,7 +41,7 @@ public:
          srslte::timer_handler*     timers_,
          uint32_t                   queue_len = 16);
   ~rlc_tm();
-  bool configure(rlc_config_t cnfg);
+  bool configure(const rlc_config_t& cnfg) override;
   void stop();
   void reestablish();
   void empty_queue();

@@ -356,7 +356,7 @@ void rlc::write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   RRC interface
 *******************************************************************************/
 
-void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
+void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
 {
   rwlock_write_guard lock(rwlock);
 

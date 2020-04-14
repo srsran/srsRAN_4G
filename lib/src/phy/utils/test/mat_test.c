@@ -173,8 +173,8 @@ bool test_zf_solver_simd(void)
 
   srslte_mat_2x2_zf_simd(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 1.0f);
 
-  __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN))) cf_t x0[SRSLTE_SIMD_CF_SIZE];
-  __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN))) cf_t x1[SRSLTE_SIMD_CF_SIZE];
+  srslte_simd_aligned cf_t x0[SRSLTE_SIMD_CF_SIZE];
+  srslte_simd_aligned cf_t x1[SRSLTE_SIMD_CF_SIZE];
 
   srslte_simd_cfi_store(x0, _x0);
   srslte_simd_cfi_store(x1, _x1);
@@ -223,8 +223,8 @@ bool test_mmse_solver_simd(void)
 
   srslte_mat_2x2_mmse_simd(_y0, _y1, _h00, _h01, _h10, _h11, &_x0, &_x1, 0.0f, 1.0f);
 
-  __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN))) cf_t x0[SRSLTE_SIMD_CF_SIZE];
-  __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN))) cf_t x1[SRSLTE_SIMD_CF_SIZE];
+  srslte_simd_aligned cf_t x0[SRSLTE_SIMD_CF_SIZE];
+  srslte_simd_aligned cf_t x1[SRSLTE_SIMD_CF_SIZE];
 
   srslte_simd_cfi_store(x0, _x0);
   srslte_simd_cfi_store(x1, _x1);

@@ -585,10 +585,10 @@ srslte_pss_t* srslte_sync_get_cur_pss_obj(srslte_sync_t* q)
 static float cfo_cp_estimate(srslte_sync_t* q, const cf_t* input)
 {
   uint32_t cp_offset = 0;
-  cp_offset =
-      srslte_cp_synch(&q->cp_synch, input, q->max_offset, q->cfo_cp_nsymbols, SRSLTE_CP_LEN_NORM(1, q->fft_size));
+  cp_offset          = srslte_cp_synch(
+      &q->cp_synch, input, q->max_offset, q->cfo_cp_nsymbols, (uint32_t)SRSLTE_CP_LEN_NORM(1, q->fft_size));
   cf_t  cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
-  float cfo         = -cargf(cp_corr_max) / M_PI / 2;
+  float cfo         = -cargf(cp_corr_max) / ((float)M_PI * 2.0f);
   return cfo;
 }
 
@@ -598,9 +598,9 @@ static int cfo_i_estimate(srslte_sync_t* q, const cf_t* input, int find_offset, 
   float         max_peak_value = -99;
   int           max_cfo_i      = 0;
   srslte_pss_t* pss_obj[3]     = {&q->pss_i[0], &q->pss, &q->pss_i[1]};
-  for (int cfo_i = 0; cfo_i < 3; cfo_i++) {
-    srslte_pss_set_N_id_2(pss_obj[cfo_i], q->N_id_2);
-    int p = srslte_pss_find_pss(pss_obj[cfo_i], &input[find_offset], &peak_value);
+  for (int cfo = 0; cfo < 3; cfo++) {
+    srslte_pss_set_N_id_2(pss_obj[cfo], q->N_id_2);
+    int p = srslte_pss_find_pss(pss_obj[cfo], &input[find_offset], &peak_value);
     if (p < 0) {
       return -1;
     }
@@ -610,7 +610,7 @@ static int cfo_i_estimate(srslte_sync_t* q, const cf_t* input, int find_offset, 
         *peak_pos = p;
       }
       q->peak_value = peak_value;
-      max_cfo_i     = cfo_i - 1;
+      max_cfo_i     = cfo - 1;
     }
   }
   if (cfo_i) {

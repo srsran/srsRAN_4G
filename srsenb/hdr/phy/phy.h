@@ -58,8 +58,9 @@ public:
                                          const std::array<bool, SRSLTE_MAX_CARRIERS>& activation) override;
 
   /*RRC-PHY interface*/
-  void
-  configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) override;
+  void configure_mbsfn(asn1::rrc::sib_type2_s*      sib2,
+                       asn1::rrc::sib_type13_r9_s*  sib13,
+                       const asn1::rrc::mcch_msg_s& mcch) override;
 
   void start_plot() override;
   void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) override;

@@ -197,7 +197,7 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
   float    corr_peak_value[2] = {};
   uint32_t corr_peak_pos[2]   = {};
 
-  uint32_t sf_n_samples = srslte_symbol_sz(nof_prb) * 15;
+  uint32_t sf_n_samples = (uint32_t)SRSLTE_SF_LEN_PRB(nof_prb);
   uint32_t fft_size     = sf_n_samples * 2;
 
   srslte_vec_cf_zero(q->input_pad_freq, fft_size);
@@ -215,8 +215,8 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
     srslte_dft_run_c(&q->plan_out, q->dot_prod_output, q->dot_prod_output_time);
 
     srslte_vec_cf_zero(q->shifted_output, fft_size);
-    memcpy(q->shifted_output, &q->dot_prod_output_time[fft_size / 2], sizeof(cf_t) * fft_size / 2);
-    memcpy(&q->shifted_output[fft_size / 2], q->dot_prod_output_time, sizeof(cf_t) * fft_size / 2);
+    srs_vec_cf_copy(q->shifted_output, &q->dot_prod_output_time[fft_size / 2], fft_size / 2);
+    srs_vec_cf_copy(&q->shifted_output[fft_size / 2], q->dot_prod_output_time, fft_size / 2);
 
     // Peak detection
     q->corr_peak_pos = -1;
@@ -224,7 +224,7 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
     srslte_vec_abs_cf_simd(q->shifted_output, q->shifted_output_abs, fft_size);
 
     // Experimental Validation
-    int symbol_sz = srslte_symbol_sz(nof_prb);
+    uint32_t symbol_sz = (uint32_t)srslte_symbol_sz(nof_prb);
     int cp_len    = SRSLTE_CP_SZ(symbol_sz, cp);
 
     // Correlation output peaks:
@@ -250,8 +250,10 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
     float    peak_1_value = q->shifted_output_abs[peak_1_pos];
     if ((peak_1_pos >= (q->corr_peak_pos - (symbol_sz + cp_len) - 2)) &&
         (peak_1_pos <= (q->corr_peak_pos - (symbol_sz + cp_len) + 2))) {
+      ; // Do nothing
     } else if ((peak_1_pos >= (q->corr_peak_pos + (symbol_sz + cp_len) - 2)) &&
                (peak_1_pos <= (q->corr_peak_pos + (symbol_sz + cp_len) + 2))) {
+      ; // Do nothing
     } else {
       q->corr_peak_pos = -1;
       continue;
@@ -263,32 +265,34 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
     float    peak_2_value = q->shifted_output_abs[peak_2_pos];
     if ((peak_2_pos >= (q->corr_peak_pos - (symbol_sz + cp_len) - 2)) &&
         (peak_2_pos <= (q->corr_peak_pos - (symbol_sz + cp_len) + 2))) {
+      ; // Do nothing
     } else if ((peak_2_pos >= (q->corr_peak_pos + (symbol_sz + cp_len) - 2)) &&
                (peak_2_pos <= (q->corr_peak_pos + (symbol_sz + cp_len) + 2))) {
+      ; // Do nothing
     } else {
       q->corr_peak_pos = -1;
       continue;
     }
     srslte_vec_f_zero(&q->shifted_output_abs[peak_2_pos - (symbol_sz / 2)], symbol_sz);
 
-    float threshold_above = q->corr_peak_value / 2.0 * 1.4;
+    float threshold_above = q->corr_peak_value / 2.0f * 1.4f;
     if ((peak_1_value > threshold_above) || (peak_2_value > threshold_above)) {
       q->corr_peak_pos = -1;
       continue;
     }
 
-    float threshold_below = q->corr_peak_value / 2.0 * 0.6;
+    float threshold_below = q->corr_peak_value / 2.0f * 0.6f;
     if ((peak_1_value < threshold_below) || (peak_2_value < threshold_below)) {
       q->corr_peak_pos = -1;
       continue;
     }
 
     corr_peak_value[i] = q->corr_peak_value;
-    corr_peak_pos[i]   = q->corr_peak_pos;
+    corr_peak_pos[i]   = (uint32_t)q->corr_peak_pos;
   }
 
   q->N_id_2 = srslte_vec_max_fi(corr_peak_value, 2);
-  if (corr_peak_value[q->N_id_2] == 0.0) {
+  if (corr_peak_value[q->N_id_2] == 0.0f) {
     return SRSLTE_ERROR;
   }
 

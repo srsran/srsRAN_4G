@@ -361,8 +361,7 @@ int srslte_refsignal_dmrs_pusch_pregen_init(srslte_refsignal_ul_dmrs_pregen_t* p
         for (uint32_t n = 0; n <= max_prb; n++) {
           if (srslte_dft_precoding_valid_prb(n)) {
             pregen->r[cs][sf_idx][n] = srslte_vec_cf_malloc(n * 2 * SRSLTE_NRE);
-            if (pregen->r[cs][sf_idx][n]) {
-            } else {
+            if (!pregen->r[cs][sf_idx][n]) {
               return SRSLTE_ERROR;
             }
           }

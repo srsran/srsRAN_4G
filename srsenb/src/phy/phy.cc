@@ -247,7 +247,7 @@ void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& de
   }
 }
 
-void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s mcch)
+void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, const mcch_msg_s& mcch)
 {
   if (sib2->mbsfn_sf_cfg_list_present) {
     if (sib2->mbsfn_sf_cfg_list.size() == 0) {

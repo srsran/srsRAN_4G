@@ -423,8 +423,6 @@ int srslte_pdcch_decode_msg(srslte_pdcch_t* q, srslte_dl_sf_cfg_t* sf, srslte_dc
   return ret;
 }
 
-int cnt = 0;
-
 /** Performs PDCCH receiver processing to extract LLR for all control region. LLR bits are stored in srslte_pdcch_t
  * object. DCI can be decoded from given locations in successive calls to srslte_pdcch_decode_msg()
  */

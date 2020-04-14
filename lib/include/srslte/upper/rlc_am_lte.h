@@ -69,7 +69,7 @@ public:
              srsue::pdcp_interface_rlc* pdcp_,
              srsue::rrc_interface_rlc*  rrc_,
              srslte::timer_handler*     timers_);
-  bool configure(rlc_config_t cfg_);
+  bool configure(const rlc_config_t& cfg_);
   void reestablish();
   void stop();
 
@@ -99,7 +99,7 @@ private:
     rlc_am_lte_tx(rlc_am_lte* parent_);
     ~rlc_am_lte_tx();
 
-    bool configure(rlc_config_t cfg_);
+    bool configure(const rlc_config_t& cfg_);
 
     void empty_queue();
     void reestablish();
