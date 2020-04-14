@@ -18,6 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#ifndef SRSLTE_PARITY_H_
+#define SRSLTE_PARITY_H_
 
 #include <inttypes.h>
 
@@ -53,3 +55,5 @@ static inline uint32_t parity(int x)
   x ^= (x >> 8);
   return parityb(x);
 }
+
+#endif /* SRSLTE_PARITY_H_ */

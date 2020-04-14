@@ -1251,7 +1251,7 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
 
     srslte_bit_pack_vector(q->temp_g_bits, g_bits, Q_prime_cqi * Qm);
     // Reset the buffer because will be reused in ulsch_interleave
-    bzero(q->temp_g_bits, Q_prime_cqi * Qm);
+    srslte_vec_u8_zero(q->temp_g_bits, Q_prime_cqi * Qm);
   }
 
   e_offset += Q_prime_cqi * Qm;

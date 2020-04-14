@@ -19,6 +19,9 @@
  *
  */
 
+#ifndef SRSLTE_HARD_DEMOD_LTE_H_
+#define SRSLTE_HARD_DEMOD_LTE_H_
+
 #include <complex.h>
 #include <math.h>
 #include <stdint.h>
@@ -281,3 +284,5 @@ inline void hard_qam256_demod(const cf_t* in, uint8_t* out, uint32_t N)
     }
   }
 }
+
+#endif /* SRSLTE_HARD_DEMOD_LTE_H_ */

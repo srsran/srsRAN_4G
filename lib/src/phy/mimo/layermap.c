@@ -53,7 +53,7 @@ int srslte_layermap_multiplex(cf_t* d[SRSLTE_MAX_CODEWORDS],
 {
   if (nof_cw == nof_layers) {
     for (int i = 0; i < nof_cw; i++) {
-      srs_vec_cf_cpy(d[i], x[i], (uint32_t)nof_symbols[0]);
+      srs_vec_cf_copy(x[i], d[i], (uint32_t)nof_symbols[0]);
     }
     return nof_symbols[0];
   } else if (nof_cw == 1) {

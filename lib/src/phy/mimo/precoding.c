@@ -1889,16 +1889,16 @@ int srslte_predecoding_type(cf_t*              y[SRSLTE_MAX_PORTS],
 
   if (nof_ports > SRSLTE_MAX_PORTS) {
     ERROR("Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS, nof_ports);
-    return -1;
+    return SRSLTE_ERROR;
   }
   if (nof_layers > SRSLTE_MAX_LAYERS) {
     ERROR("Maximum number of layers is %d (nof_layers=%d)\n", SRSLTE_MAX_LAYERS, nof_layers);
-    return -1;
+    return SRSLTE_ERROR;
   }
 
   switch (type) {
     case SRSLTE_TXSCHEME_CDD:
-      if (nof_layers >= 2 && nof_layers <= 4) {
+      if (nof_layers == 2) {
         switch (mimo_decoder) {
           case SRSLTE_MIMO_DECODER_ZF:
             return srslte_predecoding_ccd_zf(y, h, x, csi, nof_rxant, nof_ports, nof_layers, nof_symbols, scaling);
@@ -1908,9 +1908,9 @@ int srslte_predecoding_type(cf_t*              y[SRSLTE_MAX_PORTS],
         }
       } else {
         ERROR("Invalid number of layers %d\n", nof_layers);
-        return -1;
+        return SRSLTE_ERROR;
       }
-      return -1;
+      return SRSLTE_ERROR;
     case SRSLTE_TXSCHEME_PORT0:
       if (nof_ports == 1 && nof_layers == 1) {
         return srslte_predecoding_single_multi(y, h[0], x[0], csi, nof_rxant, nof_symbols, scaling, noise_estimate);
@@ -1918,14 +1918,14 @@ int srslte_predecoding_type(cf_t*              y[SRSLTE_MAX_PORTS],
         ERROR("Number of ports and layers must be 1 for transmission on single antenna ports (%d, %d)\n",
               nof_ports,
               nof_layers);
-        return -1;
+        return SRSLTE_ERROR;
       }
     case SRSLTE_TXSCHEME_DIVERSITY:
       if (nof_ports == nof_layers) {
         return srslte_predecoding_diversity_multi(y, h, x, csi, nof_rxant, nof_ports, nof_symbols, scaling);
       } else {
         ERROR("Error number of layers must equal number of ports in transmit diversity\n");
-        return -1;
+        return SRSLTE_ERROR;
       }
     case SRSLTE_TXSCHEME_SPATIALMUX:
       return srslte_predecoding_multiplex(

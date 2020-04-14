@@ -96,6 +96,11 @@ SRSLTE_API void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_f_zero(float* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples);
 
+/* Copy memory */
+SRSLTE_API void srs_vec_cf_copy(cf_t* dst, const cf_t* src, uint32_t len);
+SRSLTE_API void srs_vec_f_copy(float* dst, const float* src, uint32_t len);
+SRSLTE_API void srs_vec_u8_copy(uint8_t* dst, const uint8_t* src, uint32_t len);
+
 /* print vectors */
 SRSLTE_API void srslte_vec_fprint_c(FILE* stream, const cf_t* x, const uint32_t len);
 SRSLTE_API void srslte_vec_fprint_f(FILE* stream, const float* x, const uint32_t len);
@@ -266,9 +271,6 @@ SRSLTE_API void srslte_vec_abs_dB_cf(const cf_t* x, float default_value, float* 
  *
  */
 SRSLTE_API void srslte_vec_arg_deg_cf(const cf_t* x, float default_value, float* arg, const uint32_t len);
-
-/* Copy 256 bit aligned vector */
-SRSLTE_API void srs_vec_cf_cpy(const cf_t* src, cf_t* dst, const int len);
 
 SRSLTE_API void srslte_vec_interleave(const cf_t* x, const cf_t* y, cf_t* z, const int len);
 

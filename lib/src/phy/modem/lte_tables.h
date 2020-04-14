@@ -18,6 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#ifndef SRSLTE_LTE_TABLES_H_
+#define SRSLTE_LTE_TABLES_H_
 
 #include <srslte/config.h>
 
@@ -54,3 +56,5 @@ void set_16QAMtable(cf_t* table);
 void set_64QAMtable(cf_t* table);
 
 void set_256QAMtable(cf_t* table);
+
+#endif /* SRSLTE_LTE_TABLES_H_ */

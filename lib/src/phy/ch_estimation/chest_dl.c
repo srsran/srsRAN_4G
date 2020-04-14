@@ -156,8 +156,11 @@ clean_exit:
 
 void srslte_chest_dl_free(srslte_chest_dl_t* q)
 {
-  if (&q->csr_refs)
-    srslte_refsignal_free(&q->csr_refs);
+  if (!q) {
+    return;
+  }
+
+  srslte_refsignal_free(&q->csr_refs);
 
   if (q->mbsfn_refs) {
     for (int i = 0; i < SRSLTE_MAX_MBSFN_AREA_IDS; i++) {

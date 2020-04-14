@@ -29,7 +29,7 @@
 #define SRSLTE_PUCCH_SIZE_AN_CS 4
 #define SRSLTE_PUCCH_SIZE_AN_N3 4
 #define SRSLTE_PUCCH_NOF_AN_CS 2
-#define SRSLTE_PUCCH2_MAX_DMRS_BITS 16
+#define SRSLTE_PUCCH_MAX_BITS SRSLTE_CQI_MAX_BITS
 
 typedef enum SRSLTE_API {
   SRSLTE_PUCCH_FORMAT_1 = 0,
@@ -80,7 +80,7 @@ typedef struct SRSLTE_API {
   // PUCCH configuration generated during a call to encode/decode
   srslte_pucch_format_t format;
   uint16_t              n_pucch;
-  uint8_t               pucch2_drs_bits[SRSLTE_PUCCH2_MAX_DMRS_BITS];
+  uint8_t               pucch2_drs_bits[SRSLTE_PUCCH_MAX_BITS];
 
 } srslte_pucch_cfg_t;
 

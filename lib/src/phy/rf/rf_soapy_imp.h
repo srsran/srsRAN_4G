@@ -19,6 +19,9 @@
  *
  */
 
+#ifndef SRSLTE_RF_SOAPY_IMP_H_
+#define SRSLTE_RF_SOAPY_IMP_H_
+
 #include "srslte/config.h"
 #include "srslte/phy/rf/rf.h"
 #include <stdbool.h>
@@ -98,3 +101,5 @@ int rf_soapy_send_timed_multi(void*  h,
                               bool   blocking,
                               bool   is_start_of_burst,
                               bool   is_end_of_burst);
+
+#endif /* SRSLTE_RF_SOAPY_IMP_H_ */

@@ -298,8 +298,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_protocolextensioncontainer(LIBLTE_M2AP_PROTOC
     // Length
     liblte_value_2_bits(ie->len - 1, ptr, 16);
     liblte_align_up_zero(ptr, 8);
-    uint32_t i;
-    for (i = 0; i < ie->len; i++) {
+    for (uint32_t i = 0; i < ie->len; i++) {
       if (liblte_m2ap_pack_protocolextensionfield(&ie->buffer[i], ptr) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_ENCODE_FAIL;
       }
@@ -324,8 +323,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_protocolextensioncontainer(uint8_t**       
           ie->len);
       return LIBLTE_ERROR_DECODE_FAIL;
     }
-    uint32_t i;
-    for (i = 0; i < ie->len; i++) {
+    for (uint32_t i = 0; i < ie->len; i++) {
       if (liblte_m2ap_unpack_protocolextensionfield(ptr, &ie->buffer[i]) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_DECODE_FAIL;
       }
@@ -413,8 +411,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_ipaddress(LIBLTE_M2AP_IP_ADDRESS_STRUCT* ie, 
     liblte_value_2_bits(ie->len - 4, ptr, 4);
     liblte_align_up_zero(ptr, 8);
     // Octets
-    uint32_t i;
-    for (i = 0; i < ie->len; i++) {
+    for (uint8_t i = 0; i < ie->len; i++) {
       liblte_value_2_bits(ie->buffer[i], ptr, 8);
     }
     err = LIBLTE_SUCCESS;
@@ -433,7 +430,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_ipaddress(uint8_t** ptr, LIBLTE_M2AP_IP_ADD
     if (ie->len > 16) {
       return LIBLTE_ERROR_DECODE_FAIL;
     }
-    for (int i = 0; i < ie->len; i++) {
+    for (uint8_t i = 0; i < ie->len; i++) {
       ie->buffer[i] = liblte_bits_2_value(ptr, 8);
     }
     err = LIBLTE_SUCCESS;
@@ -981,7 +978,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_mbmsserviceareaidlist(LIBLTE_M2AP_MBMS_SERVIC
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   liblte_value_2_bits(ie->len - 1, ptr, 8);
-  for (int i = 0; i < ie->len; i++) {
+  for (uint8_t i = 0; i < ie->len; i++) {
     liblte_m2ap_pack_mbmsservicearea(&ie->buffer[i], ptr);
   }
   err = LIBLTE_SUCCESS;
@@ -994,7 +991,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mbmsserviceareaidlist(uint8_t**            
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   if (ie != NULL && ptr != NULL) {
     ie->len = liblte_bits_2_value(ptr, 8) + 1;
-    for (int i = 0; i < ie->len; i++) {
+    for (uint8_t i = 0; i < ie->len; i++) {
       liblte_m2ap_unpack_mbmsservicearea(ptr, &ie->buffer[i]);
     }
     err = LIBLTE_SUCCESS;
@@ -2106,7 +2103,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_enbmbmsconfigurationdatalist(LIBLTE_M2AP_ENB_
     // Length
     liblte_value_2_bits(ie->len - 1, ptr, 8);
 
-    for (uint16_t i = 0; i < ie->len; i++) {
+    for (uint8_t i = 0; i < ie->len; i++) {
       LIBLTE_BIT_MSG_STRUCT tmp_msg;
       uint8_t*              tmp_ptr;
 
@@ -2152,7 +2149,7 @@ liblte_m2ap_unpack_enbmbmsconfigurationdatalist(uint8_t** ptr, LIBLTE_M2AP_ENB_M
       return LIBLTE_ERROR_DECODE_FAIL;
     }
 
-    for (uint16_t i = 0; i < ie->len; i++) {
+    for (uint8_t i = 0; i < ie->len; i++) {
       if (liblte_m2ap_unpack_protocolie_singlecontainer(ptr, &proto_container) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_DECODE_FAIL;
       }
@@ -2258,7 +2255,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_mbmssessionlistperpmchitem(LIBLTE_M2AP_MBMS_S
     // Length
     liblte_value_2_bits(ie->len - 1, ptr, 5);
 
-    for (int i = 0; i < ie->len; i++) {
+    for (uint16_t i = 0; i < ie->len; i++) {
       liblte_value_2_bits(ie->buffer[i].ext, ptr, 1);
       liblte_value_2_bits(ie->buffer[i].iE_Extensions_present, ptr, 1);
 
@@ -2285,7 +2282,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mbmssessionlistperpmchitem(uint8_t**       
     // Length
     ie->len = liblte_bits_2_value(ptr, 5) + 1;
 
-    for (int i = 0; i < ie->len; i++) {
+    for (uint16_t i = 0; i < ie->len; i++) {
       ie->buffer[i].ext                   = liblte_bits_2_value(ptr, 1);
       ie->buffer[i].iE_Extensions_present = liblte_bits_2_value(ptr, 1);
       // TMGI
@@ -2410,7 +2407,7 @@ liblte_m2ap_pack_mbsfnsubframeconfigurationlist(LIBLTE_M2AP_MBSFN_SUBFRAME_CONFI
     liblte_value_2_bits(ie->len - 1, ptr, 3);
     liblte_align_up_zero(ptr, 8);
 
-    for (uint16_t i = 0; i < ie->len; i++) {
+    for (uint32_t i = 0; i < ie->len; i++) {
       LIBLTE_BIT_MSG_STRUCT tmp_msg;
       uint8_t*              tmp_ptr;
 
@@ -2458,7 +2455,7 @@ liblte_m2ap_unpack_mbsfnsubframeconfigurationlist(uint8_t**                     
       return LIBLTE_ERROR_DECODE_FAIL;
     }
 
-    for (uint16_t i = 0; i < ie->len; i++) {
+    for (uint32_t i = 0; i < ie->len; i++) {
       if (liblte_m2ap_unpack_protocolie_header(ptr, &ie_id, &crit, &len) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_DECODE_FAIL;
       }
@@ -2864,7 +2861,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_mbsfnareaconfigurationlist(LIBLTE_M2AP_MBSFN_
     // Length
     liblte_value_2_bits(ie->len - 1, ptr, 8);
 
-    for (uint16_t i = 0; i < ie->len; i++) {
+    for (uint8_t i = 0; i < ie->len; i++) {
       // ProtocolIE - MBSFN-Area-Configuration-Item
       err = liblte_m2ap_pack_mbsfnareaconfigurationitem(&ie->buffer[i], ptr);
       if (err != LIBLTE_SUCCESS) {
@@ -2897,7 +2894,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mbsfnareaconfigurationlist(uint8_t**       
       return LIBLTE_ERROR_DECODE_FAIL;
     }
 
-    for (uint16_t i = 0; i < ie->len; i++) {
+    for (uint8_t i = 0; i < ie->len; i++) {
       err = liblte_m2ap_unpack_mbsfnareaconfigurationitem(ptr, &ie->buffer[i]);
       if (err != LIBLTE_SUCCESS)
         return err;

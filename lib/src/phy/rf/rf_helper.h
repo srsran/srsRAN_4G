@@ -18,6 +18,8 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+#ifndef SRSLTE_RF_HELPER_H_
+#define SRSLTE_RF_HELPER_H_
 
 // A bunch of helper functions to process device arguments
 
@@ -48,3 +50,5 @@ static inline void copy_subdev_string(char* dst, char* src)
   }
   dst[n] = '\0';
 }
+
+#endif /* SRSLTE_RF_HELPER_H_ */

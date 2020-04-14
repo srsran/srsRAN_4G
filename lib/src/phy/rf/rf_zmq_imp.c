@@ -501,8 +501,6 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
 int rf_zmq_close(void* h)
 {
-  rf_zmq_stop_rx_stream(h);
-
   rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
 
   rf_zmq_info(handler->id, "Closing ...\n");
@@ -827,7 +825,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
             }
           }
 #endif // ZMQ_MONITOR
-          if (n > 0) {
+          if (n > SRSLTE_SUCCESS) {
             // No error
             count[i] += n;
           } else if (n == SRSLTE_ERROR_TIMEOUT) {
@@ -835,7 +833,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
             if (handler->receiver[i].fail_on_disconnect) {
               goto clean_exit;
             }
-          } else if (n > 0) {
+          } else if (n < SRSLTE_SUCCESS) {
             // Other error, exit
             fprintf(stderr, "Error: receiving data.\n");
             goto clean_exit;

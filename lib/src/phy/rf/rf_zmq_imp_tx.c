@@ -138,7 +138,7 @@ static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
 
     // Send base-band if request was received
     if (n > 0) {
-      n = zmq_send(q->sock, buf, sample_sz * nsamples, 0);
+      n = zmq_send(q->sock, buf, (size_t)sample_sz * nsamples, 0);
       if (n < 0) {
         if (rf_zmq_handle_error(q->id, "tx baseband send")) {
           n = SRSLTE_ERROR;

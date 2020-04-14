@@ -106,8 +106,8 @@ int srslte_dft_replan(srslte_dft_plan_t* plan, const int new_dft_points)
 
 static void allocate(srslte_dft_plan_t* plan, int size_in, int size_out, int len)
 {
-  plan->in  = fftwf_malloc(size_in * len);
-  plan->out = fftwf_malloc(size_out * len);
+  plan->in  = fftwf_malloc((size_t)size_in * len);
+  plan->out = fftwf_malloc((size_t)size_out * len);
 }
 
 int srslte_dft_replan_guru_c(srslte_dft_plan_t* plan,
@@ -294,11 +294,11 @@ static void copy_pre(uint8_t* dst, uint8_t* src, int size_d, int len, bool forwa
   int offset = dc ? 1 : 0;
   if (mirror && !forward) {
     int hlen = dft_floor(len, 2);
-    memset(dst, 0, size_d * offset);
-    memcpy(&dst[size_d * offset], &src[size_d * hlen], size_d * (len - hlen - offset));
-    memcpy(&dst[(len - hlen) * size_d], src, size_d * hlen);
+    memset(dst, 0, (size_t)size_d * offset);
+    memcpy(&dst[size_d * offset], &src[size_d * hlen], (size_t)size_d * (len - hlen - offset));
+    memcpy(&dst[(len - hlen) * size_d], src, (size_t)size_d * hlen);
   } else {
-    memcpy(dst, src, size_d * len);
+    memcpy(dst, src, (size_t)size_d * len);
   }
 }
 
@@ -307,10 +307,10 @@ static void copy_post(uint8_t* dst, uint8_t* src, int size_d, int len, bool forw
   int offset = dc ? 1 : 0;
   if (mirror && forward) {
     int hlen = dft_ceil(len, 2);
-    memcpy(dst, &src[size_d * hlen], size_d * (len - hlen));
-    memcpy(&dst[(len - hlen) * size_d], &src[size_d * offset], size_d * (hlen - offset));
+    memcpy(dst, &src[size_d * hlen], (size_t)size_d * (len - hlen));
+    memcpy(&dst[(len - hlen) * size_d], &src[size_d * offset], (size_t)size_d * (hlen - offset));
   } else {
-    memcpy(dst, src, size_d * len);
+    memcpy(dst, src, (size_t)size_d * len);
   }
 }
 

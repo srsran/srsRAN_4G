@@ -234,9 +234,9 @@ void log_filter::get_tti_str(const uint32_t tti_, char* buffer, const uint32_t b
 
 void log_filter::now_time(char* buffer, const uint32_t buffer_len)
 {
-  struct timeval rawtime;
-  struct tm*     timeinfo;
-  char           us[16];
+  timeval rawtime  = {};
+  tm      timeinfo = {};
+  char    us[16];
 
   srslte_timestamp_t now;
   uint64_t           usec_epoch;
@@ -247,16 +247,16 @@ void log_filter::now_time(char* buffer, const uint32_t buffer_len)
   }
 
   if (!time_src) {
-    gettimeofday(&rawtime, NULL);
-    timeinfo = localtime(&rawtime.tv_sec);
+    gettimeofday(&rawtime, nullptr);
+    gmtime_r(&rawtime.tv_sec, &timeinfo);
 
     if (time_format == TIME) {
-      strftime(buffer, buffer_len, "%H:%M:%S.", timeinfo);
+      strftime(buffer, buffer_len, "%H:%M:%S.", &timeinfo);
       snprintf(us, 16, "%06ld", rawtime.tv_usec);
-      uint32_t dest_len = strlen(buffer);
+      uint32_t dest_len = (uint32_t)strlen(buffer);
       strncat(buffer, us, buffer_len - dest_len - 1);
     } else {
-      usec_epoch = rawtime.tv_sec * 1000000 + rawtime.tv_usec;
+      usec_epoch = rawtime.tv_sec * 1000000UL + rawtime.tv_usec;
       snprintf(buffer, buffer_len, "%" PRIu64, usec_epoch);
     }
   } else {
@@ -265,7 +265,7 @@ void log_filter::now_time(char* buffer, const uint32_t buffer_len)
     if (time_format == TIME) {
       snprintf(buffer, buffer_len, "%ld:%06u", now.full_secs, (uint32_t)(now.frac_secs * 1e6));
     } else {
-      usec_epoch = now.full_secs * 1000000 + (uint32_t)(now.frac_secs * 1e6);
+      usec_epoch = now.full_secs * 1000000UL + (uint64_t)(now.frac_secs * 1e6);
       snprintf(buffer, buffer_len, "%" PRIu64, usec_epoch);
     }
   }
