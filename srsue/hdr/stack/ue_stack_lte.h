@@ -105,7 +105,10 @@ public:
 
   void mch_decoded(uint32_t len, bool crc) final { mac.mch_decoded(len, crc); }
 
-  void new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action) final { mac.new_mch_dl(phy_grant, action); }
+  void new_mch_dl(const srslte_pdsch_grant_t& phy_grant, tb_action_dl_t* action) final
+  {
+    mac.new_mch_dl(phy_grant, action);
+  }
 
   void set_mbsfn_config(uint32_t nof_mbsfn_services) final { mac.set_mbsfn_config(nof_mbsfn_services); }
 

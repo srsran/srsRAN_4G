@@ -116,6 +116,8 @@ typedef _Complex float cf_t;
 #endif /* LV_HAVE_AVX */
 #endif /* LV_HAVE_AVX512 */
 
+#define srslte_simd_aligned __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8)))
+
 /* Memory Sizes for Single Floating Point and fixed point */
 #ifdef LV_HAVE_AVX512
 

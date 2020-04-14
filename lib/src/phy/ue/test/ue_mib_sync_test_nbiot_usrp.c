@@ -133,19 +133,19 @@ int main(int argc, char** argv)
   printf("Frame length %d samples\n", flen);
 
   printf("Opening RF device...\n");
-  srslte_rf_t rf;
-  if (srslte_rf_open(&rf, rf_args)) {
+  srslte_rf_t rf_device;
+  if (srslte_rf_open(&rf_device, rf_args)) {
     fprintf(stderr, "Error opening rf\n");
     exit(-1);
   }
 
-  printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
+  printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf_device, srate) / 1000000);
+  printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf_device, rf_gain));
+  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf_device, 0, rf_freq) / 1000000);
 
   srslte_ue_mib_sync_nbiot_t mib_sync;
   if (srslte_ue_mib_sync_nbiot_init_multi(
-          &mib_sync, srslte_rf_recv_wrapper, SRSLTE_NBIOT_NUM_RX_ANTENNAS, (void*)&rf)) {
+          &mib_sync, srslte_rf_recv_wrapper, SRSLTE_NBIOT_NUM_RX_ANTENNAS, (void*)&rf_device)) {
     fprintf(stderr, "Error initializing MIB sync object\n");
     exit(-1);
   }
@@ -155,7 +155,7 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  srslte_rf_start_rx_stream(&rf, false);
+  srslte_rf_start_rx_stream(&rf_device, false);
 
   int max_frames = 2 * SRSLTE_NPBCH_NUM_FRAMES;
 
@@ -173,8 +173,7 @@ int main(int argc, char** argv)
   }
 
   srslte_ue_mib_sync_nbiot_free(&mib_sync);
-  srslte_rf_close(&rf);
-
+  srslte_rf_close(&rf_device);
 
   return SRSLTE_SUCCESS;
 }

@@ -41,7 +41,7 @@ rlc_um_lte::~rlc_um_lte()
   stop();
 }
 
-bool rlc_um_lte::configure(rlc_config_t cnfg_)
+bool rlc_um_lte::configure(const rlc_config_t& cnfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = get_rb_name(rrc, lcid, cnfg_.um.is_mrb);
@@ -102,7 +102,7 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::get_buffer_state()
   return n_bytes;
 }
 
-bool rlc_um_lte::rlc_um_lte_tx::configure(rlc_config_t cnfg_, std::string rb_name_)
+bool rlc_um_lte::rlc_um_lte_tx::configure(const rlc_config_t& cnfg_, std::string rb_name_)
 {
   cfg = cnfg_;
 

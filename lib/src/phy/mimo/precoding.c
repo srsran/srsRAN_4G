@@ -2376,10 +2376,10 @@ int srslte_precoding_pmi_select_1l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX
     for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * SRSLTE_SIMD_CF_SIZE + 1;
          j += PMI_SEL_PRECISION * SRSLTE_SIMD_CF_SIZE) {
       // 0. Load channel matrix
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h00_v[SRSLTE_SIMD_CF_SIZE];
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h01_v[SRSLTE_SIMD_CF_SIZE];
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h10_v[SRSLTE_SIMD_CF_SIZE];
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h11_v[SRSLTE_SIMD_CF_SIZE];
+      srslte_simd_aligned cf_t h00_v[SRSLTE_SIMD_CF_SIZE];
+      srslte_simd_aligned cf_t h01_v[SRSLTE_SIMD_CF_SIZE];
+      srslte_simd_aligned cf_t h10_v[SRSLTE_SIMD_CF_SIZE];
+      srslte_simd_aligned cf_t h11_v[SRSLTE_SIMD_CF_SIZE];
 
       for (uint32_t k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
         h00_v[k] = h[0][0][j + PMI_SEL_PRECISION * k];
@@ -2445,7 +2445,7 @@ int srslte_precoding_pmi_select_1l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX
       }
 
       // Temporal store accumulated values
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) float v[SRSLTE_SIMD_F_SIZE];
+      srslte_simd_aligned float v[SRSLTE_SIMD_F_SIZE];
       srslte_simd_f_store(v, gamma);
 
       // Average and accumulate SINR loop
@@ -2629,10 +2629,10 @@ int srslte_precoding_pmi_select_2l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX
     for (uint32_t j = 0; j < nof_symbols - PMI_SEL_PRECISION * SRSLTE_SIMD_CF_SIZE + 1;
          j += PMI_SEL_PRECISION * SRSLTE_SIMD_CF_SIZE) {
       // 0. Load channel matrix
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h00_v[SRSLTE_SIMD_CF_SIZE];
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h01_v[SRSLTE_SIMD_CF_SIZE];
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h10_v[SRSLTE_SIMD_CF_SIZE];
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) cf_t h11_v[SRSLTE_SIMD_CF_SIZE];
+      srslte_simd_aligned cf_t h00_v[SRSLTE_SIMD_CF_SIZE];
+      srslte_simd_aligned cf_t h01_v[SRSLTE_SIMD_CF_SIZE];
+      srslte_simd_aligned cf_t h10_v[SRSLTE_SIMD_CF_SIZE];
+      srslte_simd_aligned cf_t h11_v[SRSLTE_SIMD_CF_SIZE];
 
       for (uint32_t k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
         h00_v[k] = h[0][0][j + PMI_SEL_PRECISION * k];
@@ -2725,7 +2725,7 @@ int srslte_precoding_pmi_select_2l_simd(cf_t*     h[SRSLTE_MAX_PORTS][SRSLTE_MAX
       }
 
       // Temporal store accumulated values
-      __attribute__((aligned(SRSLTE_SIMD_BIT_ALIGN / 8))) float v[SRSLTE_SIMD_F_SIZE];
+      srslte_simd_aligned float v[SRSLTE_SIMD_F_SIZE];
       srslte_simd_f_store(v, gamma_sum);
 
       // Average and accumulate SINR loop

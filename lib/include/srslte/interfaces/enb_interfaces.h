@@ -244,8 +244,9 @@ public:
     phy_cfg_mbsfn_t mbsfn;
   } phy_rrc_cfg_t;
 
-  virtual void
-  configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) = 0;
+  virtual void configure_mbsfn(asn1::rrc::sib_type2_s*      sib2,
+                               asn1::rrc::sib_type13_r9_s*  sib13,
+                               const asn1::rrc::mcch_msg_s& mcch) = 0;
 
   typedef struct {
     bool              configured = false; ///< Indicates whether PHY shall consider configuring this cell/carrier

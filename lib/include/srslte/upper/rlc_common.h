@@ -214,11 +214,11 @@ public:
   // Size of the Uplink buffer in number of PDUs
   const static int RLC_BUFFER_NOF_PDU = 128;
 
-  virtual ~rlc_common() {}
-  virtual bool configure(rlc_config_t cnfg) = 0;
-  virtual void stop()                       = 0;
-  virtual void reestablish()                = 0;
-  virtual void empty_queue()                = 0;
+  virtual ~rlc_common()                            = default;
+  virtual bool configure(const rlc_config_t& cnfg) = 0;
+  virtual void stop()                              = 0;
+  virtual void reestablish()                       = 0;
+  virtual void empty_queue()                       = 0;
 
   bool suspend()
   {

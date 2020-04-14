@@ -43,14 +43,14 @@ srslte_rf_t rf;
 #pragma message "Compiling pdsch_ue with no RF support"
 #endif
 
-char* output_file_name = NULL;
+static char* output_file_name = NULL;
 
 #define LEFT_KEY 68
 #define RIGHT_KEY 67
 #define UP_KEY 65
 #define DOWN_KEY 66
 
-srslte_cell_t cell = {
+static srslte_cell_t cell = {
     25,                // nof_prb
     1,                 // nof_ports
     0,                 // cell_id
@@ -61,65 +61,59 @@ srslte_cell_t cell = {
 
 };
 
-uint16_t c = -1;
+static int      net_port = -1; // -1 generates random dataThat means there is some problem sending samples to the device
+static uint32_t cfi      = 2;
+static uint32_t mcs_idx = 1, last_mcs_idx = 1;
+static int      nof_frames              = -1;
+static srslte_tm_t transmission_mode    = SRSLTE_TM1;
+static uint32_t    nof_tb               = 1;
+static uint32_t    multiplex_pmi        = 0;
+static uint32_t    multiplex_nof_layers = 1;
+static uint8_t     mbsfn_sf_mask        = 32;
+static int         mbsfn_area_id        = -1;
+static char*       rf_args              = "";
+static char*       rf_dev               = "";
+static float       rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
+static bool        enable_256qam   = false;
+static float       output_file_snr = +INFINITY;
 
-int net_port = -1; // -1 generates random dataThat means there is some problem sending samples to the device
+static bool                    null_file_sink = false;
+static srslte_filesink_t       fsink;
+static srslte_ofdm_t           ifft[SRSLTE_MAX_PORTS];
+static srslte_ofdm_t           ifft_mbsfn;
+static srslte_pbch_t           pbch;
+static srslte_pcfich_t         pcfich;
+static srslte_pdcch_t          pdcch;
+static srslte_pdsch_t          pdsch;
+static srslte_pdsch_cfg_t      pdsch_cfg;
+static srslte_pmch_t           pmch;
+static srslte_pmch_cfg_t       pmch_cfg;
+static srslte_softbuffer_tx_t* softbuffers[SRSLTE_MAX_CODEWORDS];
+static srslte_regs_t           regs;
+static srslte_dci_dl_t         dci_dl;
+static int                     rvidx[SRSLTE_MAX_CODEWORDS] = {0, 0};
 
-uint32_t cfi     = 2;
-uint32_t mcs_idx = 1, last_mcs_idx = 1;
-int      nof_frames = -1;
+static cf_t *   sf_buffer[SRSLTE_MAX_PORTS] = {NULL}, *output_buffer[SRSLTE_MAX_PORTS] = {NULL};
+static uint32_t sf_n_re, sf_n_samples;
 
-srslte_tm_t transmission_mode    = SRSLTE_TM1;
-uint32_t    nof_tb               = 1;
-uint32_t    multiplex_pmi        = 0;
-uint32_t    multiplex_nof_layers = 1;
-uint8_t     mbsfn_sf_mask        = 32;
-int         mbsfn_area_id        = -1;
-char*       rf_args              = "";
-char*       rf_dev               = "";
-float       rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
-static bool enable_256qam = false;
+static pthread_t          net_thread;
+static void*              net_thread_fnc(void* arg);
+static sem_t              net_sem;
+static bool               net_packet_ready = false;
+static srslte_netsource_t net_source;
+static srslte_netsink_t   net_sink;
 
-float output_file_snr = +INFINITY;
-
-bool                    null_file_sink = false;
-srslte_filesink_t       fsink;
-srslte_ofdm_t           ifft[SRSLTE_MAX_PORTS];
-srslte_ofdm_t           ifft_mbsfn;
-srslte_pbch_t           pbch;
-srslte_pcfich_t         pcfich;
-srslte_pdcch_t          pdcch;
-srslte_pdsch_t          pdsch;
-srslte_pdsch_cfg_t      pdsch_cfg;
-srslte_pmch_t           pmch;
-srslte_pmch_cfg_t       pmch_cfg;
-srslte_softbuffer_tx_t* softbuffers[SRSLTE_MAX_CODEWORDS];
-srslte_regs_t           regs;
-srslte_dci_dl_t         dci_dl;
-int                     rvidx[SRSLTE_MAX_CODEWORDS] = {0, 0};
-
-cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL}, *output_buffer[SRSLTE_MAX_PORTS] = {NULL};
-
-uint32_t sf_n_re, sf_n_samples;
-
-pthread_t          net_thread;
-void*              net_thread_fnc(void* arg);
-sem_t              net_sem;
-bool               net_packet_ready = false;
-srslte_netsource_t net_source;
-srslte_netsink_t   net_sink;
-
-int prbset_num = 1, last_prbset_num = 1;
-int prbset_orig = 0;
+static int prbset_num = 1, last_prbset_num = 1;
+static int prbset_orig = 0;
 //#define DATA_BUFF_SZ    1024*128
 // uint8_t data[8*DATA_BUFF_SZ], data2[DATA_BUFF_SZ];
 // uint8_t data_tmp[DATA_BUFF_SZ];
 
 #define DATA_BUFF_SZ 1024 * 1024
-uint8_t *data_mbms, *data[2], data2[DATA_BUFF_SZ];
-uint8_t  data_tmp[DATA_BUFF_SZ];
+static uint8_t *data_mbms, *data[2], data2[DATA_BUFF_SZ];
+static uint8_t  data_tmp[DATA_BUFF_SZ];
 
-void usage(char* prog)
+static void usage(char* prog)
 {
   printf("Usage: %s [Iagmfoncvpuxb]\n", prog);
 #ifndef DISABLE_RF
@@ -150,7 +144,7 @@ void usage(char* prog)
   printf("\t*: See 3GPP 36.212 Table  5.3.3.1.5-4 for more information\n");
 }
 
-void parse_args(int argc, char** argv)
+static void parse_args(int argc, char** argv)
 {
   int opt;
   while ((opt = getopt(argc, argv, "IadglfmoncpqvutxbwMsB")) != -1) {
@@ -226,7 +220,7 @@ void parse_args(int argc, char** argv)
 #endif
 }
 
-void base_init()
+static void base_init()
 {
   int i;
 
@@ -395,7 +389,7 @@ void base_init()
   }
 }
 
-void base_free()
+static void base_free()
 {
   int i;
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
@@ -449,16 +443,16 @@ void base_free()
 
 bool go_exit = false;
 #ifndef DISABLE_RF
-void sig_int_handler(int signo)
+static void sig_int_handler(int signo)
 {
   printf("SIGINT received. Exiting...\n");
   if (signo == SIGINT) {
     go_exit = true;
   }
 }
-#endif
+#endif /* DISABLE_RF */
 
-unsigned int reverse(register unsigned int x)
+static unsigned int reverse(register unsigned int x)
 {
   x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
   x = (((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2));
@@ -467,7 +461,7 @@ unsigned int reverse(register unsigned int x)
   return ((x >> 16) | (x << 16));
 }
 
-uint32_t prbset_to_bitmask()
+static uint32_t prbset_to_bitmask()
 {
   uint32_t mask = 0;
   int      nb   = (int)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
@@ -479,7 +473,7 @@ uint32_t prbset_to_bitmask()
   return reverse(mask) >> (32 - nb);
 }
 
-int update_radl()
+static int update_radl()
 {
 
   ZERO_OBJECT(dci_dl);
@@ -546,7 +540,7 @@ int update_radl()
 }
 
 /* Read new MCS from stdin */
-int update_control()
+static int update_control()
 {
   char input[128];
 
@@ -644,7 +638,7 @@ int update_control()
 }
 
 /** Function run in a separate thread to receive UDP data */
-void* net_thread_fnc(void* arg)
+static void* net_thread_fnc(void* arg)
 {
   int n;
   int rpm = 0, wpm = 0;

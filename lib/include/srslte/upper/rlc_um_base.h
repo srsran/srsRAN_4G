@@ -73,7 +73,7 @@ protected:
   public:
     rlc_um_base_tx(rlc_um_base* parent_);
     virtual ~rlc_um_base_tx();
-    virtual bool     configure(rlc_config_t cfg, std::string rb_name) = 0;
+    virtual bool     configure(const rlc_config_t& cfg, std::string rb_name) = 0;
     int              build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
     void             stop();
     void             reestablish();

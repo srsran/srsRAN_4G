@@ -48,7 +48,7 @@ rlc_am_lte::rlc_am_lte(srslte::log_ref            log_,
 }
 
 // Applies new configuration. Must be just reestablished or initiated
-bool rlc_am_lte::configure(rlc_config_t cfg_)
+bool rlc_am_lte::configure(const rlc_config_t& cfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = rrc->get_rb_name(lcid);
@@ -176,7 +176,7 @@ rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
   pthread_mutex_destroy(&mutex);
 }
 
-bool rlc_am_lte::rlc_am_lte_tx::configure(rlc_config_t cfg_)
+bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
 {
   // TODO: add config checks
   cfg = cfg_.am;

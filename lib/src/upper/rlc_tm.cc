@@ -44,7 +44,7 @@ rlc_tm::~rlc_tm()
   pool = NULL;
 }
 
-bool rlc_tm::configure(rlc_config_t cnfg)
+bool rlc_tm::configure(const rlc_config_t& cnfg)
 {
   log->error("Attempted to configure TM RLC entity\n");
   return true;

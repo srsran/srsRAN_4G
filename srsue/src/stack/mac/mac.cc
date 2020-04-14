@@ -549,7 +549,7 @@ void mac::new_grant_ul(uint32_t                               cc_idx,
   }
 }
 
-void mac::new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action)
+void mac::new_mch_dl(const srslte_pdsch_grant_t& phy_grant, tb_action_dl_t* action)
 {
   action->generate_ack        = false;
   action->tb[0].enabled       = true;

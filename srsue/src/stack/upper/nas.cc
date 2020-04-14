@@ -1040,24 +1040,34 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       rrc->set_ue_identity(s_tmsi);
     }
     if (attach_accept.lai_present) {
+      ; // Do nothing;
     }
     if (attach_accept.ms_id_present) {
+      ; // Do nothing;
     }
     if (attach_accept.emm_cause_present) {
+      ; // Do nothing;
     }
     if (attach_accept.t3402_present) {
+      ; // Do nothing;
     }
     if (attach_accept.t3412_ext_present) {
+      ; // Do nothing;
     }
     if (attach_accept.t3423_present) {
+      ; // Do nothing;
     }
     if (attach_accept.equivalent_plmns_present) {
+      ; // Do nothing;
     }
     if (attach_accept.emerg_num_list_present) {
+      ; // Do nothing;
     }
     if (attach_accept.eps_network_feature_support_present) {
+      ; // Do nothing;
     }
     if (attach_accept.additional_update_result_present) {
+      ; // Do nothing;
     }
 
     LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req = {};
