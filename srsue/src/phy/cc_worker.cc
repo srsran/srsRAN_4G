@@ -909,6 +909,8 @@ void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
   ue_dl_cfg.cfg    = phy_cfg.dl_cfg;
   ue_ul_cfg.ul_cfg = phy_cfg.ul_cfg;
 
+  phy->set_pdsch_cfg(&ue_dl_cfg.cfg.pdsch);
+
   // Update signals
   if (pregen_enabled) {
     Info("Pre-generating UL signals...\n");
