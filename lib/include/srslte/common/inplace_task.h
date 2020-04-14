@@ -84,10 +84,10 @@ struct oper_table_t {
   oper_table_t& operator=(oper_table_t&&) = delete;
   ~oper_table_t()                         = default;
 
-  bool        is_in_buffer;
-  call_oper_t call;
-  move_oper_t move;
-  dtor_oper_t dtor;
+  const bool        is_in_buffer;
+  const call_oper_t call;
+  const move_oper_t move;
+  const dtor_oper_t dtor;
 
 private:
   oper_table_t(bool is_in_buffer_, call_oper_t call_, move_oper_t move_, dtor_oper_t dtor_) :
@@ -122,7 +122,7 @@ public:
   inplace_task() noexcept { oper_ptr = oper_table_t::get_empty(); }
 
   template <typename T, task_details::enable_small_capture<T, capacity> = true>
-  inplace_task(T&& function)
+  inplace_task(T&& function) noexcept
   {
     using FunT = typename std::decay<T>::type;
     oper_ptr   = oper_table_t::template get_small<FunT>();
@@ -177,7 +177,7 @@ public:
     } else if (not oper_ptr->is_in_buffer and other.oper_ptr->is_in_buffer) {
       void* tmpptr = ptr;
       other.oper_ptr->move(&other.buffer, &buffer);
-      oper_ptr->move(&tmpptr, &other.ptr);
+      other.ptr = tmpptr;
     } else {
       std::swap(ptr, other.ptr);
     }
