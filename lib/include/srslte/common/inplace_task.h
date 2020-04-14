@@ -74,7 +74,7 @@ struct oper_table_t {
           *static_cast<Func**>(dest) = *static_cast<Func**>(src);
           *static_cast<Func**>(src)  = nullptr;
         },
-        [](void* src) -> void { (*static_cast<Func**>(src))->~Func(); }};
+        [](void* src) -> void { delete (*static_cast<Func**>(src)); }};
     return &t;
   }
 
