@@ -80,110 +80,126 @@ typedef struct {
 
 static void* srslte_pdsch_decode_thread(void* arg);
 
-int srslte_pdsch_cp(srslte_pdsch_t*       q,
-                    cf_t*                 input,
-                    cf_t*                 output,
-                    srslte_pdsch_grant_t* grant,
-                    uint32_t              lstart_grant,
-                    uint32_t              sf_idx,
-                    bool                  put)
+static inline bool pdsch_cp_skip_symbol(const srslte_cell_t*        cell,
+                                        const srslte_pdsch_grant_t* grant,
+                                        uint32_t                    sf_idx,
+                                        uint32_t                    s,
+                                        uint32_t                    l,
+                                        uint32_t                    n)
 {
-  uint32_t s, n, l, lp, lstart, nof_refs;
-  bool     skip_symbol;
-  cf_t *   in_ptr = input, *out_ptr = output;
-  uint32_t offset = 0;
-
-#ifdef DEBUG_IDX
-  indices_ptr = 0;
-  if (put) {
-    offset_original = output;
-  } else {
-    offset_original = input;
-  }
-#endif
-
-  if (q->cell.nof_ports == 1) {
-    nof_refs = 2;
-  } else {
-    nof_refs = 4;
-  }
-
-  for (s = 0; s < 2; s++) {
-    if (s == 0) {
-      lstart = lstart_grant;
+  // Skip center block signals
+  if ((n >= cell->nof_prb / 2 - 3 && n < cell->nof_prb / 2 + 3 + (cell->nof_prb % 2))) {
+    if (cell->frame_type == SRSLTE_FDD) {
+      // FDD PSS/SSS
+      if (s == 0 && (sf_idx == 0 || sf_idx == 5) && (l >= grant->nof_symb_slot[s] - 2)) {
+        return true;
+      }
     } else {
-      lstart = 0;
+      // TDD SSS
+      if (s == 1 && (sf_idx == 0 || sf_idx == 5) && (l >= grant->nof_symb_slot[s] - 1)) {
+        return true;
+      }
+      // TDD PSS
+      if (s == 0 && (sf_idx == 1 || sf_idx == 6) && (l == 2)) {
+        return true;
+      }
     }
-    for (l = lstart; l < grant->nof_symb_slot[s]; l++) {
-      for (n = 0; n < q->cell.nof_prb; n++) {
+    // PBCH same in FDD and TDD
+    if (s == 1 && sf_idx == 0 && l < 4) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static inline uint32_t pdsch_cp_crs_offset(const srslte_cell_t* cell, uint32_t l, bool has_crs)
+{
+  // No CRS, return 0
+  if (!has_crs) {
+    return 0;
+  }
+
+  // For 1 port cell
+  if (cell->nof_ports == 1) {
+    if (l == 0) {
+      return cell->id % 6;
+    } else {
+      return (cell->id + 3) % 6;
+    }
+  }
+
+  // For more 2 ports or more
+  return cell->id % 3;
+}
+
+static int srslte_pdsch_cp(const srslte_pdsch_t*       q,
+                           cf_t*                       input,
+                           cf_t*                       output,
+                           const srslte_pdsch_grant_t* grant,
+                           uint32_t                    lstart_grant,
+                           uint32_t                    sf_idx,
+                           bool                        put)
+{
+  cf_t*    in_ptr   = input;
+  cf_t*    out_ptr  = output;
+  uint32_t nof_refs = (q->cell.nof_ports == 1) ? 2 : 4;
+
+  // Iterate over slots
+  for (uint32_t s = 0; s < SRSLTE_NOF_SLOTS_PER_SF; s++) {
+    // Skip PDCCH symbols
+    uint32_t lstart = (s == 0) ? lstart_grant : 0;
+
+    // Iterate over symbols
+    for (uint32_t l = lstart; l < grant->nof_symb_slot[s]; l++) {
+      bool     has_crs    = SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports);
+      uint32_t crs_offset = pdsch_cp_crs_offset(&q->cell, l, has_crs);
+
+      // Grid symbol
+      uint32_t lp = l + s * grant->nof_symb_slot[0];
+
+      // Iterate over PRB
+      for (uint32_t n = 0; n < q->cell.nof_prb; n++) {
 
         // If this PRB is assigned
         if (grant->prb_idx[s][n]) {
+          bool skip = pdsch_cp_skip_symbol(&q->cell, grant, sf_idx, s, l, n);
 
-          skip_symbol = false;
-
-          // Skip center block signals
-          if ((n >= q->cell.nof_prb / 2 - 3 && n < q->cell.nof_prb / 2 + 3 + (q->cell.nof_prb % 2))) {
-            if (q->cell.frame_type == SRSLTE_FDD) {
-              // FDD PSS/SSS
-              if (s == 0 && (sf_idx == 0 || sf_idx == 5) && (l >= grant->nof_symb_slot[s] - 2)) {
-                skip_symbol = true;
-              }
-            } else {
-              // TDD SSS
-              if (s == 1 && (sf_idx == 0 || sf_idx == 5) && (l >= grant->nof_symb_slot[s] - 1)) {
-                skip_symbol = true;
-              }
-              // TDD PSS
-              if (s == 0 && (sf_idx == 1 || sf_idx == 6) && (l == 2)) {
-                skip_symbol = true;
-              }
-            }
-            // PBCH same in FDD and TDD
-            if (s == 1 && sf_idx == 0 && l < 4) {
-              skip_symbol = true;
-            }
-          }
-          lp = l + s * grant->nof_symb_slot[0];
+          // Get grid pointer
           if (put) {
             out_ptr = &output[(lp * q->cell.nof_prb + n) * SRSLTE_NRE];
           } else {
             in_ptr = &input[(lp * q->cell.nof_prb + n) * SRSLTE_NRE];
           }
+
           // This is a symbol in a normal PRB with or without references
-          if (!skip_symbol) {
-            if (SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-              if (nof_refs == 2) {
-                if (l == 0) {
-                  offset = q->cell.id % 6;
-                } else {
-                  offset = (q->cell.id + 3) % 6;
-                }
-              } else {
-                offset = q->cell.id % 3;
-              }
-              prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs, put);
+          if (!skip) {
+            if (has_crs) {
+              prb_cp_ref(&in_ptr, &out_ptr, crs_offset, nof_refs, nof_refs, put);
             } else {
               prb_cp(&in_ptr, &out_ptr, 1);
             }
-          }
-          // This is a symbol in a PRB with PBCH or Synch signals (SS).
-          // If the number or total PRB is odd, half of the the PBCH or SS will fall into the symbol
-          if ((q->cell.nof_prb % 2) && skip_symbol) {
+          } else if (q->cell.nof_prb % 2 != 0) {
+            // This is a symbol in a PRB with PBCH or Synch signals (SS).
+            // If the number or total PRB is odd, half of the the PBCH or SS will fall into the symbol
             if (n == q->cell.nof_prb / 2 - 3) {
-              if (SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-                prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs / 2, put);
+              // Lower sync block half RB
+              if (has_crs) {
+                prb_cp_ref(&in_ptr, &out_ptr, crs_offset, nof_refs, nof_refs / 2, put);
               } else {
                 prb_cp_half(&in_ptr, &out_ptr, 1);
               }
             } else if (n == q->cell.nof_prb / 2 + 3) {
+              // Upper sync block half RB
+              // Skip half RB on the grid
               if (put) {
-                out_ptr += 6;
+                out_ptr += SRSLTE_NRE / 2;
               } else {
-                in_ptr += 6;
+                in_ptr += SRSLTE_NRE / 2;
               }
-              if (SRSLTE_SYMBOL_HAS_REF(l, q->cell.cp, q->cell.nof_ports)) {
-                prb_cp_ref(&in_ptr, &out_ptr, offset, nof_refs, nof_refs / 2, put);
+
+              if (has_crs) {
+                prb_cp_ref(&in_ptr, &out_ptr, crs_offset, nof_refs, nof_refs / 2, put);
               } else {
                 prb_cp_half(&in_ptr, &out_ptr, 1);
               }
@@ -977,6 +993,10 @@ int srslte_pdsch_decode(srslte_pdsch_t*        q,
       ERROR("Error predecoding\n");
       return SRSLTE_ERROR;
     }
+    //    printf("h%d=", sf->tti); srslte_vec_fprint_c(stdout, channel->ce[0][0], SRSLTE_SF_LEN_RE(q->cell.nof_prb,
+    //    q->cell.cp)); printf("h%d=", sf->tti); srslte_vec_fprint_c(stdout, q->ce[0][0], cfg->grant.nof_re);
+    //    printf("xx%d=", sf->tti); srslte_vec_fprint_c(stdout, x[0], cfg->grant.nof_re);
+    //    printf("y%d=", sf->tti); srslte_vec_fprint_c(stdout, q->symbols[0], cfg->grant.nof_re);
 
     // Layer demapping only if necessary
     if (cfg->grant.nof_layers != nof_tb) {
@@ -1221,6 +1241,7 @@ int srslte_pdsch_encode(srslte_pdsch_t*     q,
     for (i = 0; i < q->cell.nof_ports; i++) {
       srslte_pdsch_put(q, q->symbols[i], sf_symbols[i], &cfg->grant, lstart, sf->tti % 10);
     }
+    //    printf("x%d=", sf->tti); srslte_vec_fprint_c(stdout, q->symbols[0], cfg->grant.nof_re);
 
     if (cfg->meas_time_en) {
       gettimeofday(&t[2], NULL);
