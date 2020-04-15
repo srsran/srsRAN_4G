@@ -448,6 +448,7 @@ void base_free()
 }
 
 bool go_exit = false;
+#ifndef DISABLE_RF
 void sig_int_handler(int signo)
 {
   printf("SIGINT received. Exiting...\n");
@@ -455,6 +456,7 @@ void sig_int_handler(int signo)
     go_exit = true;
   }
 }
+#endif
 
 unsigned int reverse(register unsigned int x)
 {
