@@ -113,9 +113,9 @@ public:
     }
   }
 
-  cell_t() { cell_t({0, 0}); }
+  cell_t() { cell_t({0, 0, 0}); }
 
-  cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell_)
+  explicit cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell_)
   {
     gettimeofday(&last_update, nullptr);
     has_valid_sib1  = false;

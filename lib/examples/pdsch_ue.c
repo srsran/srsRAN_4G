@@ -707,7 +707,7 @@ int main(int argc, char** argv)
       }
     }
 
-    cf_t* buffers[SRSLTE_MAX_PORTS] = {};
+    cf_t* buffers[SRSLTE_MAX_CHANNELS] = {};
     for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
       buffers[p] = sf_buffer[p];
     }

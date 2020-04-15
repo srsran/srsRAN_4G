@@ -240,7 +240,7 @@ int32_t srslte_uci_decode_m_basis_bits(const int16_t* llr, uint32_t nof_llr, uin
 
     /// Compute correlation for the number of LLR
     bool early_termination = false;
-    for (uint8_t i = 0; i < nof_llr && !early_termination; i++) {
+    for (uint32_t i = 0; i < nof_llr && !early_termination; i++) {
       // Encode guess word
       bool d = encode_M_basis_seq_u16(guess, i);
 
@@ -266,7 +266,7 @@ int32_t srslte_uci_decode_m_basis_bits(const int16_t* llr, uint32_t nof_llr, uin
 
   // Unpack
   for (uint32_t i = 0; i < data_len; i++) {
-    data[i] = (uint8_t)(max_data >> i) & 1U;
+    data[i] = (uint8_t)((max_data >> i) & 1U);
   }
 
   // Return correlation
@@ -794,7 +794,7 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
                              uint32_t            H_prime_total,
                              uint32_t            O_cqi,
                              srslte_uci_bit_t*   ack_ri_bits,
-                             uint8_t             data[SRSLTE_UCI_MAX_ACK_SR_BITS],
+                             uint8_t*            data,
                              uint32_t            nof_bits,
                              bool                is_ri)
 {

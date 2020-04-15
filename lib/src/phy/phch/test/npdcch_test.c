@@ -232,7 +232,7 @@ int main(int argc, char** argv)
     srslte_ra_nbiot_dl_dci_t   dci_unpacked;
     srslte_ra_nbiot_dl_grant_t grant;
     if (srslte_nbiot_dci_msg_to_dl_grant(
-            &dci_rx, rnti, &dci_unpacked, &grant, tti / 10, tti % 10, 64 /* fixme: remove */, cell.mode)) {
+            &dci_rx, rnti, &dci_unpacked, &grant, tti / 10, tti % 10, 64 /* todo: remove */, cell.mode)) {
       fprintf(stderr, "Error unpacking DCI\n");
       return SRSLTE_ERROR;
     }

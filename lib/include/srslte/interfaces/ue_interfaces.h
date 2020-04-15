@@ -163,6 +163,7 @@ public:
 
   const static int MAX_FOUND_PLMNS = 16;
 
+  virtual ~rrc_interface_nas()                                                           = default;
   virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                       = 0;
   virtual uint16_t    get_mcc()                                                         = 0;
   virtual uint16_t    get_mnc()                                                         = 0;
