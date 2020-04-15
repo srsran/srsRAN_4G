@@ -49,7 +49,7 @@ public:
             srsue::rrc_interface_rlc*  rrc_,
             srslte::timer_handler*     timers_);
   ~rlc_um_nr();
-  bool configure(rlc_config_t cnfg);
+  bool configure(const rlc_config_t& cnfg);
 
 private:
   // Transmitter sub-class for NR
@@ -58,7 +58,7 @@ private:
   public:
     rlc_um_nr_tx(rlc_um_base* parent_);
 
-    bool     configure(rlc_config_t cfg, std::string rb_name);
+    bool     configure(const rlc_config_t& cfg, std::string rb_name);
     int      build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes);
     uint32_t get_buffer_state();
 
