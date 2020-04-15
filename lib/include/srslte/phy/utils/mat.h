@@ -74,29 +74,6 @@ SRSLTE_API __m128 srslte_mat_cf_recip_sse(__m128 a);
 /* SSE implementation for 2x2 determinant */
 SRSLTE_API __m128 srslte_mat_2x2_det_sse(__m128 a00, __m128 a01, __m128 a10, __m128 a11);
 
-/* SSE implementation for Zero Forcing (ZF) solver */
-SRSLTE_API void srslte_mat_2x2_zf_sse(__m128  y0,
-                                      __m128  y1,
-                                      __m128  h00,
-                                      __m128  h01,
-                                      __m128  h10,
-                                      __m128  h11,
-                                      __m128* x0,
-                                      __m128* x1,
-                                      float   norm);
-
-/* SSE implementation for Minimum Mean Squared Error (MMSE) solver */
-SRSLTE_API void srslte_mat_2x2_mmse_sse(__m128  y0,
-                                        __m128  y1,
-                                        __m128  h00,
-                                        __m128  h01,
-                                        __m128  h10,
-                                        __m128  h11,
-                                        __m128* x0,
-                                        __m128* x1,
-                                        float   noise_estimate,
-                                        float   norm);
-
 #endif /* LV_HAVE_SSE */
 
 #ifdef LV_HAVE_AVX
@@ -106,29 +83,6 @@ SRSLTE_API __m256 srslte_mat_cf_recip_avx(__m256 a);
 
 /* AVX implementation for 2x2 determinant */
 SRSLTE_API __m256 srslte_mat_2x2_det_avx(__m256 a00, __m256 a01, __m256 a10, __m256 a11);
-
-/* AVX implementation for Zero Forcing (ZF) solver */
-SRSLTE_API void srslte_mat_2x2_zf_avx(__m256  y0,
-                                      __m256  y1,
-                                      __m256  h00,
-                                      __m256  h01,
-                                      __m256  h10,
-                                      __m256  h11,
-                                      __m256* x0,
-                                      __m256* x1,
-                                      float   norm);
-
-/* AVX implementation for Minimum Mean Squared Error (MMSE) solver */
-SRSLTE_API void srslte_mat_2x2_mmse_avx(__m256  y0,
-                                        __m256  y1,
-                                        __m256  h00,
-                                        __m256  h01,
-                                        __m256  h10,
-                                        __m256  h11,
-                                        __m256* x0,
-                                        __m256* x1,
-                                        float   noise_estimate,
-                                        float   norm);
 
 #endif /* LV_HAVE_AVX */
 

@@ -34,7 +34,11 @@
 static bool            zf_solver   = false;
 static bool            mmse_solver = false;
 static bool            verbose     = false;
-static srslte_random_t random_gen  = NULL;
+static srslte_random_t random_gen = NULL;
+
+#define MAXIMUM_ERROR (1e-6f)
+#define RANDOM_F() srslte_random_uniform_real_dist(random_gen, -1.0f, +1.0f)
+#define RANDOM_CF() srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f)
 
 double elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
 {
@@ -47,7 +51,7 @@ double elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
   }
 }
 
-#define BLOCK_SIZE 100
+#define BLOCK_SIZE 1000
 #define RUN_TEST(FUNCTION) /*TYPE NAME (void)*/                                                                        \
   do {                                                                                                                 \
     int            i;                                                                                                  \
@@ -97,16 +101,16 @@ void parse_args(int argc, char** argv)
   }
 }
 
-bool test_zf_solver_gen(void)
+static bool test_zf_solver_gen(void)
 {
   cf_t  x0, x1, cf_error0, cf_error1;
   float error;
 
-  cf_t x0_gold = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t x1_gold = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h00     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h01     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h10     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
+  cf_t x0_gold = RANDOM_CF();
+  cf_t x1_gold = RANDOM_CF();
+  cf_t h00     = RANDOM_CF();
+  cf_t h01     = RANDOM_CF();
+  cf_t h10     = RANDOM_CF();
   cf_t h11     = (1 - h01 * h10) / h00;
   cf_t y0      = x0_gold * h00 + x1_gold * h01;
   cf_t y1      = x0_gold * h10 + x1_gold * h11;
@@ -118,20 +122,20 @@ bool test_zf_solver_gen(void)
   error     = crealf(cf_error0) * crealf(cf_error0) + cimagf(cf_error0) * cimagf(cf_error0) +
           crealf(cf_error1) * crealf(cf_error1) + cimagf(cf_error1) * cimagf(cf_error1);
 
-  return (error < 1e-6);
+  return (error < MAXIMUM_ERROR);
 }
 
-bool test_mmse_solver_gen(void)
+static bool test_mmse_solver_gen(void)
 {
   cf_t  x0, x1, cf_error0, cf_error1;
   float error;
 
-  cf_t x0_gold = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t x1_gold = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h00     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h01     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h10     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h11     = (1 - h01 * h10) / h00;
+  cf_t x0_gold = RANDOM_CF();
+  cf_t x1_gold = RANDOM_CF();
+  cf_t h00     = RANDOM_CF();
+  cf_t h01     = RANDOM_CF();
+  cf_t h10     = RANDOM_CF();
+  cf_t h11     = (1 - h01 * h10) * conjf(h00);
   cf_t y0      = x0_gold * h00 + x1_gold * h01;
   cf_t y1      = x0_gold * h10 + x1_gold * h11;
 
@@ -142,22 +146,22 @@ bool test_mmse_solver_gen(void)
   error     = crealf(cf_error0) * crealf(cf_error0) + cimagf(cf_error0) * cimagf(cf_error0) +
           crealf(cf_error1) * crealf(cf_error1) + cimagf(cf_error1) * cimagf(cf_error1);
 
-  return (error < 1e-6);
+  return (error < MAXIMUM_ERROR);
 }
 
 #if SRSLTE_SIMD_CF_SIZE != 0
 
-bool test_zf_solver_simd(void)
+static bool test_zf_solver_simd(void)
 {
   cf_t  cf_error0, cf_error1;
   float error = 0.0f;
 
-  cf_t x0_gold_1 = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t x1_gold_1 = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h00_1     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h01_1     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h10_1     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-  cf_t h11_1     = (1 - h01_1 * h10_1) / h00_1;
+  cf_t x0_gold_1 = RANDOM_CF();
+  cf_t x1_gold_1 = RANDOM_CF();
+  cf_t h00_1     = RANDOM_CF();
+  cf_t h01_1     = RANDOM_CF();
+  cf_t h10_1     = RANDOM_CF();
+  cf_t h11_1     = (1 - h01_1 * h10_1) * conjf(h00_1);
   cf_t y0_1      = x0_gold_1 * h00_1 + x1_gold_1 * h01_1;
   cf_t y1_1      = x0_gold_1 * h10_1 + x1_gold_1 * h11_1;
 
@@ -184,10 +188,10 @@ bool test_zf_solver_simd(void)
   error += crealf(cf_error0) * crealf(cf_error0) + cimagf(cf_error0) * cimagf(cf_error0) +
            crealf(cf_error1) * crealf(cf_error1) + cimagf(cf_error1) * cimagf(cf_error1);
 
-  return (error < 1e-3);
+  return (error < MAXIMUM_ERROR);
 }
 
-bool test_mmse_solver_simd(void)
+static bool test_mmse_solver_simd(void)
 {
   cf_t  cf_error0, cf_error1;
   float error = 0.0f;
@@ -200,13 +204,14 @@ bool test_mmse_solver_simd(void)
   cf_t h11[SRSLTE_SIMD_CF_SIZE];
   cf_t y0[SRSLTE_SIMD_CF_SIZE];
   cf_t y1[SRSLTE_SIMD_CF_SIZE];
+
   for (int i = 0; i < SRSLTE_SIMD_CF_SIZE; i++) {
-    x0_gold[i] = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-    x1_gold[i] = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-    h00[i]     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-    h01[i]     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-    h10[i]     = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-    h11[i]     = (1 - h01[i] * h10[i]) / h00[i];
+    x0_gold[i] = RANDOM_CF();
+    x1_gold[i] = RANDOM_CF();
+    h00[i]     = RANDOM_CF();
+    h01[i]     = RANDOM_CF();
+    h10[i]     = RANDOM_CF();
+    h11[i]     = (1 - h01[i] * h10[i]) * conjf(h00[i]);
     y0[i]      = x0_gold[i] * h00[i] + x1_gold[i] * h01[i];
     y1[i]      = x0_gold[i] * h10[i] + x1_gold[i] * h11[i];
   }
@@ -231,23 +236,26 @@ bool test_mmse_solver_simd(void)
 
   cf_error0 = x0[1] - x0_gold[1];
   cf_error1 = x1[1] - x1_gold[1];
-  error += crealf(cf_error0) * crealf(cf_error0) + cimagf(cf_error0) * cimagf(cf_error0) +
-           crealf(cf_error1) * crealf(cf_error1) + cimagf(cf_error1) * cimagf(cf_error1);
+  error += __real__ cf_error0 * __real__ cf_error0;
+  error += __imag__ cf_error0 * __imag__ cf_error0;
+  error += __real__ cf_error1 * __real__ cf_error1;
+  error += __imag__ cf_error1 * __imag__ cf_error1;
+  error /= 2.0f;
 
-  return (error < 1e-3);
+  return (error < MAXIMUM_ERROR);
 }
 
 #endif /* SRSLTE_SIMD_CF_SIZE != 0 */
 
-bool test_vec_dot_prod_ccc(void)
+static bool test_vec_dot_prod_ccc(void)
 {
   __attribute__((aligned(256))) cf_t a[14];
   __attribute__((aligned(256))) cf_t b[14];
   cf_t                               res = 0, gold = 0;
 
   for (int i = 0; i < 14; i++) {
-    a[i] = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
-    b[i] = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
+    a[i] = RANDOM_CF();
+    b[i] = RANDOM_CF();
   }
 
   res = srslte_vec_dot_prod_ccc(a, b, 14);
@@ -256,8 +264,7 @@ bool test_vec_dot_prod_ccc(void)
     gold += a[i] * b[i];
   }
 
-  float err = cabsf(res - gold);
-  return (err < 1e-3);
+  return (cabsf(res - gold) < MAXIMUM_ERROR);
 }
 
 int main(int argc, char** argv)
@@ -272,7 +279,7 @@ int main(int argc, char** argv)
   if (zf_solver) {
     RUN_TEST(test_zf_solver_gen);
 
-#if SRSLTE_SIMD_CF_SIZE
+#if SRSLTE_SIMD_CF_SIZE != 0
     RUN_TEST(test_zf_solver_simd);
 #endif /* SRSLTE_SIMD_CF_SIZE != 0*/
   }
@@ -280,7 +287,7 @@ int main(int argc, char** argv)
   if (mmse_solver) {
     RUN_TEST(test_mmse_solver_gen);
 
-#if SRSLTE_SIMD_CF_SIZE
+#if SRSLTE_SIMD_CF_SIZE != 0
     RUN_TEST(test_mmse_solver_simd);
 #endif /* SRSLTE_SIMD_CF_SIZE != 0*/
   }
@@ -289,9 +296,11 @@ int main(int argc, char** argv)
 
   printf("%s!\n", (passed) ? "Ok" : "Failed");
 
+  srslte_random_free(random_gen);
+
   if (!passed) {
     ret = SRSLTE_ERROR;
   }
 
-  exit(ret);
+  return ret;
 }
