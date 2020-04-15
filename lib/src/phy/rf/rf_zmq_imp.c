@@ -44,16 +44,13 @@ typedef struct {
   double   rx_gain;
   uint32_t tx_freq_mhz[SRSLTE_MAX_CHANNELS];
   uint32_t rx_freq_mhz[SRSLTE_MAX_CHANNELS];
-  bool     tx_used;
+  bool     tx_off;
+  char     id[RF_PARAM_LEN];
 
   // Server
   void*       context;
   rf_zmq_tx_t transmitter[SRSLTE_MAX_CHANNELS];
   rf_zmq_rx_t receiver[SRSLTE_MAX_CHANNELS];
-
-  char rx_port[PARAM_LEN];
-  char tx_port[PARAM_LEN];
-  char id[PARAM_LEN_SHORT];
 
   // Various sample buffers
   cf_t* buffer_decimation[SRSLTE_MAX_CHANNELS];
@@ -194,20 +191,6 @@ int rf_zmq_open(char* args, void** h)
   return rf_zmq_open_multi(args, h, 1);
 }
 
-static inline int parse_double(const char* args, const char* config_arg, double* value)
-{
-  int ret = SRSLTE_ERROR;
-  if (args && config_arg && value) {
-    char* config_ptr = strstr(args, config_arg);
-
-    if (config_ptr) {
-      *value = strtod(config_ptr + strlen(config_arg), NULL);
-      ret    = SRSLTE_SUCCESS;
-    }
-  }
-  return ret;
-}
-
 int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 {
   int ret = SRSLTE_ERROR;
@@ -250,104 +233,57 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
     // parse args
     if (args && strlen(args)) {
       // base_srate
-      {
-        const char config_arg[]          = "base_srate=";
-        char       config_str[PARAM_LEN] = {0};
-        char*      config_ptr            = strstr(args, config_arg);
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          printf("Using base rate=%s\n", config_str);
-          handler->base_srate = (uint32_t)strtod(config_str, NULL);
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
-        }
-      }
+      parse_uint32(args, "base_srate", -1, &handler->base_srate);
 
       // id
-      {
-        const char config_arg[]                = "id=";
-        char       config_str[PARAM_LEN_SHORT] = {0};
-        char*      config_ptr                  = strstr(args, config_arg);
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          printf("Using ID=%s\n", config_str);
-          strncpy(handler->id, config_str, PARAM_LEN_SHORT);
-          handler->id[PARAM_LEN_SHORT - 1] = 0;
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
-        }
-      }
+      parse_string(args, "id", -1, handler->id);
+
       // rx_type
-      {
-        const char config_arg[]                = "rx_type=";
-        char       config_str[PARAM_LEN_SHORT] = {0};
-        char*      config_ptr                  = strstr(args, config_arg);
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          if (!strcmp(config_str, "sub")) {
-            rx_opts.socket_type = ZMQ_SUB;
-            printf("Using ZMQ_SUB for rx socket\n");
-          } else {
-            printf("Unsupported socket type %s. Using ZMQ_REQ for rx socket\n", config_str);
-          }
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
-        }
-      }
-      // rx_format
-      {
-        const char config_arg[]                = "rx_format=";
-        char       config_str[PARAM_LEN_SHORT] = {0};
-        char*      config_ptr                  = strstr(args, config_arg);
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          rx_opts.sample_format = ZMQ_TYPE_FC32;
-          if (!strcmp(config_str, "sc16")) {
-            rx_opts.sample_format = ZMQ_TYPE_SC16;
-            printf("Using sc16 format for rx socket\n");
-          } else {
-            printf("Unsupported sample format %s. Using fc32 for rx socket\n", config_str);
-          }
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
-        }
-      }
-      // tx_type
-      {
-        const char config_arg[]                = "tx_type=";
-        char       config_str[PARAM_LEN_SHORT] = {0};
-        char*      config_ptr                  = strstr(args, config_arg);
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          if (!strcmp(config_str, "pub")) {
-            tx_opts.socket_type = ZMQ_PUB;
-            printf("Using ZMQ_PUB for tx socket\n");
-          } else {
-            printf("Unsupported socket type %s. Using ZMQ_REP for tx socket\n", config_str);
-          }
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
-        }
-      }
-      // tx_format
-      {
-        const char config_arg[]                = "tx_format=";
-        char       config_str[PARAM_LEN_SHORT] = {0};
-        char*      config_ptr                  = strstr(args, config_arg);
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          tx_opts.sample_format = ZMQ_TYPE_FC32;
-          if (!strcmp(config_str, "sc16")) {
-            tx_opts.sample_format = ZMQ_TYPE_SC16;
-            printf("Using sc16 format for tx socket\n");
-          } else {
-            printf("Unsupported sample format %s. Using fc32 for tx socket\n", config_str);
-          }
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
+      char tmp[RF_PARAM_LEN] = {0};
+      parse_string(args, "rx_type", -1, tmp);
+      if (strlen(tmp) > 0) {
+        if (!strcmp(tmp, "sub")) {
+          rx_opts.socket_type = ZMQ_SUB;
+        } else {
+          printf("Unsupported socket type %s\n", tmp);
+          goto clean_exit;
         }
       }
 
+      // rx_format
+      parse_string(args, "rx_format", -1, tmp);
+      rx_opts.sample_format = ZMQ_TYPE_FC32;
+      if (strlen(tmp) > 0) {
+        if (!strcmp(tmp, "sc16")) {
+          rx_opts.sample_format = ZMQ_TYPE_SC16;
+        } else {
+          printf("Unsupported sample format %s\n", tmp);
+          goto clean_exit;
+        }
+      }
+
+      // tx_type
+      parse_string(args, "tx_type", -1, tmp);
+      if (strlen(tmp) > 0) {
+        if (!strcmp(tmp, "pub")) {
+          tx_opts.socket_type = ZMQ_PUB;
+        } else {
+          printf("Unsupported socket type %s\n", tmp);
+          goto clean_exit;
+        }
+      }
+
+      // tx_format
+      parse_string(args, "tx_format", -1, tmp);
+      tx_opts.sample_format = ZMQ_TYPE_FC32;
+      if (strlen(tmp) > 0) {
+        if (!strcmp(tmp, "sc16")) {
+          tx_opts.sample_format = ZMQ_TYPE_SC16;
+        } else {
+          printf("Unsupported sample format %s\n", tmp);
+          goto clean_exit;
+        }
+      }
     } else {
       fprintf(stderr, "[zmq] Error: RF device args are required for ZMQ no-RF module\n");
       goto clean_exit;
@@ -363,104 +299,46 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
     }
 
     for (int i = 0; i < handler->nof_channels; i++) {
-      // rxport
-      {
-        char config_arg[PARAM_LEN] = "rx_port=";
-        char config_str[PARAM_LEN] = {0};
+      char rx_port[RF_PARAM_LEN] = {};
+      char tx_port[RF_PARAM_LEN] = {};
 
-        if (i > 0) {
-          snprintf(config_arg, PARAM_LEN, "rx_port%d=", i + 1);
-        }
-
-        char* config_ptr = strstr(args, config_arg);
-
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          printf("Channel %d. Using rx_port=%s\n", i, config_str);
-          strncpy(handler->rx_port, config_str, PARAM_LEN);
-          handler->rx_port[PARAM_LEN - 1] = 0;
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
-        }
-      }
+      // rx_port
+      parse_string(args, "rx_port", i, rx_port);
 
       // rx_freq
-      {
-        char config_arg[PARAM_LEN] = "rx_freq=";
-        if (i > 0) {
-          snprintf(config_arg, PARAM_LEN, "rx_freq%d=", i + 1);
-        }
+      double rx_freq = 0.0f;
+      parse_double(args, "rx_freq", i, &rx_freq);
+      rx_opts.frequency_mhz = (uint32_t)(rx_freq / 1e6);
 
-        double freq = 0.0;
-        if (!parse_double(args, config_arg, &freq)) {
-          rx_opts.frequency_mhz = (uint32_t)(freq / 1e6);
-          printf("Channel %d. Using rx_freq=%dMHz\n", i, rx_opts.frequency_mhz);
-        }
-      }
-
-      // txport
-      {
-        char config_arg[PARAM_LEN] = "tx_port=";
-        char config_str[PARAM_LEN] = {0};
-
-        if (i > 0) {
-          snprintf(config_arg, PARAM_LEN, "tx_port%d=", i + 1);
-        }
-
-        char* config_ptr = strstr(args, config_arg);
-
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          printf("Channel %d. Using tx_port=%s\n", i, config_str);
-          strncpy(handler->tx_port, config_str, PARAM_LEN);
-          handler->tx_port[PARAM_LEN - 1] = 0;
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
-        }
-      }
+      // tx_port
+      parse_string(args, "tx_port", i, tx_port);
 
       // tx_freq
-      {
-        char config_arg[PARAM_LEN] = "tx_freq=";
-        if (i > 0) {
-          snprintf(config_arg, PARAM_LEN, "tx_freq%d=", i + 1);
-        }
-
-        double freq = 0.0;
-        if (!parse_double(args, config_arg, &freq)) {
-          tx_opts.frequency_mhz = (uint32_t)(freq / 1e6);
-          printf("Channel %d. Using tx_freq=%dMHz\n", i, tx_opts.frequency_mhz);
-        }
-      }
+      double tx_freq = 0.0f;
+      parse_double(args, "tx_freq", i, &tx_freq);
+      tx_opts.frequency_mhz = (uint32_t)(tx_freq / 1e6);
 
       // fail_on_disconnect
-      {
-        const char config_arg[]                = "fail_on_disconnect=";
-        char       config_str[PARAM_LEN_SHORT] = {0};
-        char*      config_ptr                  = strstr(args, config_arg);
-        if (config_ptr) {
-          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
-          if (strncmp(config_str, "true", PARAM_LEN_SHORT) == 0 || strncmp(config_str, "yes", PARAM_LEN_SHORT) == 0) {
-            rx_opts.fail_on_disconnect = true;
-          }
-          remove_substring(args, config_arg);
-          remove_substring(args, config_str);
-        }
+      char tmp[RF_PARAM_LEN] = {};
+      parse_string(args, "fail_on_disconnect", i, tmp);
+      if (strncmp(tmp, "true", RF_PARAM_LEN) == 0 || strncmp(tmp, "yes", RF_PARAM_LEN) == 0) {
+        rx_opts.fail_on_disconnect = true;
       }
 
       // initialize transmitter
-      if (strlen(handler->tx_port) != 0) {
-        if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, handler->tx_port) != SRSLTE_SUCCESS) {
+      if (strlen(tx_port) != 0) {
+        if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, tx_port) != SRSLTE_SUCCESS) {
           fprintf(stderr, "[zmq] Error: opening transmitter\n");
           goto clean_exit;
         }
       } else {
         fprintf(stdout, "[zmq] %s Tx port not specified. Disabling transmitter.\n", handler->id);
+        handler->tx_off = true;
       }
 
       // initialize receiver
-      if (strlen(handler->rx_port) != 0) {
-        if (rf_zmq_rx_open(&handler->receiver[i], rx_opts, handler->context, handler->rx_port) != SRSLTE_SUCCESS) {
+      if (strlen(rx_port) != 0) {
+        if (rf_zmq_rx_open(&handler->receiver[i], rx_opts, handler->context, rx_port) != SRSLTE_SUCCESS) {
           fprintf(stderr, "[zmq] Error: opening receiver\n");
           goto clean_exit;
         }
@@ -965,7 +843,7 @@ int rf_zmq_send_timed_multi(void*  h,
     rf_zmq_info(handler->id, "Tx %d samples (%d B)\n", nsamples, nbytes);
 
     // return if transmitter is switched off
-    if (strlen(handler->tx_port) == 0) {
+    if (handler->tx_off) {
       return SRSLTE_SUCCESS;
     }
 
@@ -1037,7 +915,6 @@ int rf_zmq_send_timed_multi(void*  h,
         }
       }
     }
-    handler->tx_used = true;
   }
 
   ret = SRSLTE_SUCCESS;

@@ -29,6 +29,8 @@
 
 #include "srslte/config.h"
 
+#define RF_PARAM_LEN (256)
+
 typedef struct {
   void* handler;
   void* dev;

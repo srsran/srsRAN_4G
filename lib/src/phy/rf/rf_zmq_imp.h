@@ -26,8 +26,6 @@
 #include "srslte/phy/rf/rf.h"
 
 #define DEVNAME_ZMQ "ZeroMQ"
-#define PARAM_LEN (256)
-#define PARAM_LEN_SHORT (PARAM_LEN / 2)
 
 SRSLTE_API int rf_zmq_open(char* args, void** handler);
 

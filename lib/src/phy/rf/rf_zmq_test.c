@@ -41,9 +41,9 @@ pthread_t          rx_thread;
 
 void* ue_rx_thread_function(void* args)
 {
-  char rf_args[PARAM_LEN];
-  strncpy(rf_args, (char*)args, PARAM_LEN - 1);
-  rf_args[PARAM_LEN - 1] = 0;
+  char rf_args[RF_PARAM_LEN];
+  strncpy(rf_args, (char*)args, RF_PARAM_LEN - 1);
+  rf_args[RF_PARAM_LEN - 1] = 0;
 
   // sleep(1);
 
@@ -73,9 +73,9 @@ void* ue_rx_thread_function(void* args)
 
 void enb_tx_function(const char* tx_args, bool timed_tx)
 {
-  char rf_args[PARAM_LEN];
-  strncpy(rf_args, tx_args, PARAM_LEN - 1);
-  rf_args[PARAM_LEN - 1] = 0;
+  char rf_args[RF_PARAM_LEN];
+  strncpy(rf_args, tx_args, RF_PARAM_LEN - 1);
+  rf_args[RF_PARAM_LEN - 1] = 0;
 
   printf("opening tx device with args=%s\n", rf_args);
   if (srslte_rf_open_devname(&enb_radio, "zmq", rf_args, NOF_RX_ANT)) {
@@ -182,8 +182,52 @@ exit:
   return ret;
 }
 
+int param_test(const char* args_param, const int num_channels)
+{
+  char rf_args[RF_PARAM_LEN] = {};
+  strncpy(rf_args, (char*)args_param, RF_PARAM_LEN - 1);
+  rf_args[RF_PARAM_LEN - 1] = 0;
+
+  printf("opening tx device with args=%s\n", rf_args);
+  if (srslte_rf_open_devname(&enb_radio, "zmq", rf_args, num_channels)) {
+    fprintf(stderr, "Error opening rf\n");
+    return SRSLTE_ERROR;
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
+  // two Rx ports
+  if (param_test("rx_port=ipc://dl0,rx_port1=ipc://dl1", 2)) {
+    fprintf(stderr, "Param test failed!\n");
+    return SRSLTE_ERROR;
+  }
+
+  // multiple rx ports, no channel index provided
+  if (param_test("rx_port=ipc://dl0,rx_port=ipc://dl1,rx_port=ipc://dl2,rx_port=ipc://dl3,base_srate=1.92e6", 4)) {
+    fprintf(stderr, "Param test failed!\n");
+    return SRSLTE_ERROR;
+  }
+
+  // One Rx, one Tx and all generic options
+  if (param_test("rx_port0=tcp://"
+                 "localhost:2000,rx_format=sc16,tx_format=sc16,tx_type=pub,rx_type=sub,base_srate=1.92e6,id=test",
+                 1)) {
+    fprintf(stderr, "Param test failed!\n");
+    return SRSLTE_ERROR;
+  }
+
+  // 1 port, 2 antennas, MIMO freq config
+  if (param_test(
+          "tx_port0=tcp://*:2001,tx_port1=tcp://*:2003,rx_port0=tcp://localhost:2000,rx_port1=tcp://"
+          "localhost:2002,id=ue,base_srate=23.04e6,tx_freq0=2510e6,tx_freq1=2510e6,rx_freq0=2630e6,,rx_freq1=2630e6",
+          2)) {
+    fprintf(stderr, "Param test failed!\n");
+    return SRSLTE_ERROR;
+  }
+
   // single tx, single rx with continuous transmissions (no timed tx) using IPC transport
   if (run_test("rx_port=ipc://link1,id=ue,base_srate=1.92e6", "tx_port=ipc://link1,id=enb,base_srate=1.92e6", false) !=
       SRSLTE_SUCCESS) {
@@ -207,5 +251,5 @@ int main()
     return -1;
   }
 
-  return 0;
+  return SRSLTE_SUCCESS;
 }
