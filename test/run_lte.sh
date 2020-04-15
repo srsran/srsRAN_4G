@@ -155,7 +155,7 @@ enb_args="$build_path/../srsenb/enb.conf.example \
           --expert.rrc_inactivity_timer=5000 \
           --enb.n_prb=$nof_prb \
           --log.filename=./${nof_prb}prb_enb.log"
-          
+
 ue_args="$build_path/../srsue/ue.conf.example \
          --rf.device_name=zmq \
          --phy.nof_phy_threads=1  \
@@ -163,18 +163,18 @@ ue_args="$build_path/../srsue/ue.conf.example \
          --log.filename=./${nof_prb}prb_ue.log \
          --pcap.enable=true \
          --pcap.filename=./${nof_prb}prb_ue.pcap"
-          
+
 if ([ "$num_cc" == "2" ])
 then
   enb_args="$enb_args --enb_files.rr_config=$build_path/../srsenb/rr_2ca.conf.example \
-            --rf.device_args=\"fail_on_disconnect=true,base_srate=${base_srate},id=enb,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,tx_port2=tcp://*:2002,rx_port2=tcp://localhost:2003,tx_freq=2630e6,rx_freq=2510e6,tx_freq2=2636e6,rx_freq2=2516e6\""
+            --rf.device_args=\"fail_on_disconnect=true,base_srate=${base_srate},id=enb,tx_port0=tcp://*:2000,tx_port1=tcp://*:2002,rx_port0=tcp://localhost:2001,rx_port1=tcp://localhost:2003,tx_freq0=2630e6,tx_freq1=2636e6,rx_freq0=2510e6,rx_freq1=2516e6\""
   ue_args="$ue_args --rf.dl_earfcn=2850,2910 --rf.nof_carriers=2 --rrc.ue_category=7 --rrc.release=10 \
-           --rf.device_args=\"tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,tx_port2=tcp://*:2003,rx_port2=tcp://localhost:2002,id=ue,base_srate=${base_srate},tx_freq=2510e6,rx_freq=2630e6,tx_freq2=2516e6,rx_freq2=2636e6\""
+           --rf.device_args=\"tx_port0=tcp://*:2001,tx_port1=tcp://*:2003,rx_port0=tcp://localhost:2000,rx_port1=tcp://localhost:2002,id=ue,base_srate=${base_srate},tx_freq0=2510e6,tx_freq1=2516e6,rx_freq0=2630e6,rx_freq1=2636e6\""
 else
   enb_args="$enb_args --enb_files.rr_config=$build_path/../srsenb/rr.conf.example \
-            --rf.device_args=\"fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=${base_srate}\""
-  ue_args="$ue_args --rf.device_args=\"tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=${base_srate}\""
-fi        
+            --rf.device_args=\"fail_on_disconnect=true,tx_port0=tcp://*:2000,rx_port0=tcp://localhost:2001,id=enb,base_srate=${base_srate}\""
+  ue_args="$ue_args --rf.device_args=\"tx_port0=tcp://*:2001,rx_port0=tcp://localhost:2000,id=ue,base_srate=${base_srate}\""
+fi
 
 # Remove existing log files
 log_files=$(ls -l | grep ${nof_prb}prb_)
