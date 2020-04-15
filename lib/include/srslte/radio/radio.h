@@ -49,7 +49,7 @@ public:
    * largest system bandwidth
    * @param nof_subframes_ Number of subframes to allocate
    */
-  rf_buffer_t(uint32_t nof_subframes_)
+  explicit rf_buffer_t(uint32_t nof_subframes_)
   {
     if (nof_subframes_ > 0) {
       // Allocate buffers for an integer number of subframes
@@ -66,7 +66,7 @@ public:
    * contain up to SRSLTE_MAX_CHANNELS pointers
    * @param data Flat array to use as initializer for the internal buffer pointers
    */
-  rf_buffer_t(cf_t* data[SRSLTE_MAX_CHANNELS])
+  explicit rf_buffer_t(cf_t* data[SRSLTE_MAX_CHANNELS])
   {
     for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
       sample_buffer[i] = data[i];
@@ -76,11 +76,11 @@ public:
    * Creates an object from a single array pointer. The rest of the channel pointers will be left to NULL
    * @param data Flat array to use as initializer for the internal buffer pointers
    */
-  rf_buffer_t(cf_t* data) { sample_buffer[0] = data; }
+  explicit rf_buffer_t(cf_t* data) { sample_buffer[0] = data; }
   /**
    * Default constructor leaves the internal pointers to NULL
    */
-  rf_buffer_t() {}
+  rf_buffer_t() = default;
 
   /**
    * The destructor will deallocate memory only if it was allocated passing nof_subframes > 0

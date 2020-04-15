@@ -145,7 +145,7 @@ SRSLTE_API int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
                                         uint32_t            H_prime_total,
                                         uint32_t            O_cqi,
                                         srslte_uci_bit_t*   ack_ri_bits,
-                                        uint8_t             data[SRSLTE_UCI_MAX_ACK_SR_BITS],
+                                        uint8_t*            data,
                                         uint32_t            nof_bits,
                                         bool                is_ri);
 

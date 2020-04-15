@@ -188,7 +188,7 @@ int main(int argc, char** argv)
   uint32_t sf_len = SRSLTE_SF_LEN_PRB(cell_sl.nof_prb);
   printf("Using a SF len of %d samples\n", sf_len);
 
-  cf_t* rx_buffer[SRSLTE_MAX_PORTS] = {NULL}; //< For radio to receive samples
+  cf_t* rx_buffer[SRSLTE_MAX_CHANNELS] = {};     //< For radio to receive samples
   cf_t* sf_buffer[SRSLTE_MAX_PORTS] = {NULL}; ///< For OFDM object to store subframe after FFT
 
   for (int i = 0; i < nof_rx_antennas; i++) {

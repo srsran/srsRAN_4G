@@ -160,7 +160,7 @@ bool s1ap_mngmt_proc::unpack_s1_setup_request(const asn1::s1ap::s1_setup_request
   }
 
   // Default Paging DRX
-  enb_ctx->drx = s1_req.default_paging_drx.value;
+  enb_ctx->drx.value = s1_req.default_paging_drx.value;
 
   return true;
 }
