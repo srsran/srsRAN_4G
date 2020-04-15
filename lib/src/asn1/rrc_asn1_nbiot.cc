@@ -28,13 +28,6 @@ using namespace asn1::rrc;
 /*******************************************************************************
  *                              Logging Utilities
  ******************************************************************************/
-
-void rrc_asn1_warn_assert(bool cond, const char* filename, int lineno)
-{
-  if (cond) {
-    asn1::log_warning("Assertion in [%s][%d] failed.\n", filename, lineno);
-  }
-}
 static void log_invalid_choice_id(uint32_t val, const char* choice_type)
 {
   asn1::log_error("Invalid choice id=%d for choice type %s\n", val, choice_type);

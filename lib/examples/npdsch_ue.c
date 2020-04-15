@@ -70,11 +70,23 @@ pthread_t plot_thread;
 sem_t     plot_sem;
 uint32_t  plot_sf_idx = 0;
 bool      plot_track  = true;
+#define HAVE_RSRP_PLOT 0
 #endif // ENABLE_GUI
 
 #define PRINT_CHANGE_SCHEDULIGN
 #define NPSS_FIND_PLOT_WIDTH 80
 //#define CORRECT_SAMPLE_OFFSET
+
+static srslte_nbiot_si_params_t sib2_params;
+extern int get_sib2_params(const uint8_t* sib1_payload, const uint32_t len, srslte_nbiot_si_params_t* sib2_params);
+extern int bcch_bch_to_pretty_string(const uint8_t* bcch_bch_payload,
+                                     const uint32_t input_len,
+                                     char*          output,
+                                     const uint32_t max_output_len);
+extern int bcch_dl_sch_to_pretty_string(const uint8_t* bcch_dl_sch_payload,
+                                        const uint32_t input_len,
+                                        char*          output,
+                                        const uint32_t max_output_len);
 
 /**********************************************************************
  *  Program arguments processing
@@ -87,7 +99,6 @@ typedef struct {
   uint32_t time_offset;
   int      n_id_ncell;
   bool     is_r14;
-  bool     decode_sib2;
   int      sib2_periodicity;
   int      sib2_radio_frame_offset;
   int      sib2_repetition_pattern;
@@ -112,13 +123,7 @@ void args_default(prog_args_t* args)
   args->nof_subframes                      = -1;
   args->rnti                               = SRSLTE_SIRNTI;
   args->n_id_ncell                         = SRSLTE_CELL_ID_UNKNOWN;
-  args->is_r14                             = false;
-  args->decode_sib2                        = false;
-  args->sib2_periodicity                   = 512;
-  args->sib2_radio_frame_offset            = 0;
-  args->sib2_repetition_pattern            = 1;
-  args->sib2_tb                            = 328;
-  args->sib2_window_length                 = 960;
+  args->is_r14                             = true;
   args->input_file_name                    = NULL;
   args->disable_cfo                        = false;
   args->time_offset                        = 0;
@@ -157,12 +162,6 @@ void usage(prog_args_t* args, char* prog)
   printf("\t-r RNTI in Hex [Default 0x%x]\n", args->rnti);
   printf("\t-l n_id_ncell [Default %d]\n", args->n_id_ncell);
   printf("\t-R Is R14 cell [Default %s]\n", args->is_r14 ? "Yes" : "No");
-  printf("\t-B Decode SIB2 [Default %s]\n", args->decode_sib2 ? "Yes" : "No");
-  printf("\t-q SIB2 periodicity [Default %d]\n", args->sib2_periodicity);
-  printf("\t-w SIB2 radio frame offset [Default %d]\n", args->sib2_radio_frame_offset);
-  printf("\t-z SIB2 repetions pattern [Default %d]\n", args->sib2_repetition_pattern);
-  printf("\t-x SIB2 TB size [Default %d]\n", args->sib2_tb);
-  printf("\t-c SIB2 window length [Default %d]\n", args->sib2_window_length);
   printf("\t-C Disable CFO correction [Default %s]\n", args->disable_cfo ? "Disabled" : "Enabled");
   printf("\t-t Add time offset [Default %d]\n", args->time_offset);
 #ifdef ENABLE_GUI
@@ -204,24 +203,6 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         break;
       case 'C':
         args->disable_cfo = true;
-        break;
-      case 'B':
-        args->decode_sib2 = true;
-        break;
-      case 'q':
-        args->sib2_periodicity = (uint32_t)strtol(argv[optind], NULL, 10);
-        break;
-      case 'w':
-        args->sib2_radio_frame_offset = (uint32_t)strtol(argv[optind], NULL, 10);
-        break;
-      case 'z':
-        args->sib2_repetition_pattern = (uint32_t)strtol(argv[optind], NULL, 10);
-        break;
-      case 'x':
-        args->sib2_tb = (uint32_t)strtol(argv[optind], NULL, 10);
-        break;
-      case 'c':
-        args->sib2_window_length = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
         args->time_offset = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -277,7 +258,7 @@ void sig_int_handler(int signo)
 void pcap_pack_and_write(FILE*    pcap_file,
                          uint8_t* pdu,
                          uint32_t pdu_len_bytes,
-                         uint32_t reTX,
+                         uint8_t  reTX,
                          bool     crc_ok,
                          uint32_t tti,
                          uint16_t crnti,
@@ -291,8 +272,8 @@ void pcap_pack_and_write(FILE*    pcap_file,
                                 .ueid           = 1,
                                 .isRetx         = reTX,
                                 .crcStatusOK    = crc_ok,
-                                .sysFrameNumber = tti / 10,
-                                .subFrameNumber = tti % 10,
+                                .sysFrameNumber = (uint16_t)(tti / 10),
+                                .subFrameNumber = (uint16_t)(tti % 10),
                                 .nbiotMode      = 1};
   if (pdu) {
     LTE_PCAP_MAC_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
@@ -314,9 +295,9 @@ void srslte_rf_set_rx_gain_th_wrapper_(void* h, float f)
 
 #endif
 
-extern float mean_exec_time;
-
 enum receiver_state { DECODE_MIB, DECODE_SIB, DECODE_NPDSCH } state;
+
+static srslte_nbiot_cell_t cell = {};
 
 srslte_nbiot_ue_dl_t   ue_dl;
 srslte_nbiot_ue_sync_t ue_sync;
@@ -325,18 +306,24 @@ prog_args_t            prog_args;
 bool have_sib1 = false;
 bool have_sib2 = false;
 
-uint32_t sfn = 0; // system frame number
-uint32_t hfn = 0; // Hyper frame number
+#ifdef ENABLE_GUI
+#define MAX_MSG_BUF (8192)
+static char mib_buffer_disp[MAX_MSG_BUF], mib_buffer_decode[MAX_MSG_BUF];
+static char sib1_buffer_disp[MAX_MSG_BUF], sib1_buffer_decode[MAX_MSG_BUF];
+static char sib2_buffer_disp[MAX_MSG_BUF], sib2_buffer_decode[MAX_MSG_BUF];
 
 #define RSRP_TABLE_MAX_IDX 1024
-float    rsrp_table[RSRP_TABLE_MAX_IDX];
-uint32_t rsrp_table_index = 0;
-uint32_t rsrp_num_plot    = RSRP_TABLE_MAX_IDX;
+static float    rsrp_table[RSRP_TABLE_MAX_IDX];
+static uint32_t rsrp_table_index = 0;
+static uint32_t rsrp_num_plot    = RSRP_TABLE_MAX_IDX;
+#endif // ENABLE_GUI
+
+uint32_t sfn = 0; // system frame number
+uint32_t hfn = 0; // Hyper frame number
 
 int main(int argc, char** argv)
 {
   int                   ret;
-  srslte_nbiot_cell_t   cell = {};
   int64_t               sf_cnt;
   srslte_ue_mib_nbiot_t ue_mib;
 #ifndef DISABLE_RF
@@ -486,7 +473,7 @@ int main(int argc, char** argv)
 
   // Allocate memory to fit a full frame (needed for time re-alignment)
   cf_t* buff_ptrs[SRSLTE_MAX_PORTS] = {NULL};
-  buff_ptrs[0]                      = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB_NBIOT * 10);
+  buff_ptrs[0]                      = srslte_vec_cf_malloc(SRSLTE_SF_LEN_PRB_NBIOT * 10);
 
   if (srslte_ue_mib_nbiot_init(&ue_mib, buff_ptrs, SRSLTE_NBIOT_MAX_PRB)) {
     fprintf(stderr, "Error initaiting UE MIB decoder\n");
@@ -497,21 +484,12 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  // configure SIB2-NB parameters
-  srslte_nbiot_si_params_t sib2_params;
-  sib2_params.n                     = 1;
-  sib2_params.si_periodicity        = prog_args.sib2_periodicity;
-  sib2_params.si_radio_frame_offset = prog_args.sib2_radio_frame_offset;
-  sib2_params.si_repetition_pattern = prog_args.sib2_repetition_pattern;
-  sib2_params.si_tb                 = prog_args.sib2_tb;
-  sib2_params.si_window_length      = prog_args.sib2_window_length;
-
-  /* Initialize subframe counter */
+  // Initialize subframe counter
   sf_cnt = 0;
 
 #ifdef ENABLE_GUI
   if (!prog_args.disable_plots) {
-    init_plots(cell);
+    init_plots();
   }
 #endif // ENABLE_GUI
 
@@ -524,7 +502,6 @@ int main(int argc, char** argv)
   // Variables for measurements
   uint32_t nframes = 0;
   float    rsrp = 0.0, rsrq = 0.0, noise = 0.0;
-  bzero(&rsrp_table, sizeof(float) * RSRP_TABLE_MAX_IDX);
 
 #ifndef DISABLE_RF
   if (prog_args.rf_gain < 0) {
@@ -602,9 +579,17 @@ int main(int argc, char** argv)
               srslte_nbiot_ue_dl_set_mib(&ue_dl, mib);
               srslte_nbiot_ue_dl_set_rnti(&ue_dl, prog_args.rnti);
 
+              // Pretty-print MIB
+              srslte_bit_pack_vector(bch_payload, data, SRSLTE_MIB_NB_CRC_LEN);
+#ifdef ENABLE_GUI
+              if (bcch_bch_to_pretty_string(
+                      data, SRSLTE_MIB_NB_CRC_LEN, mib_buffer_decode, sizeof(mib_buffer_decode))) {
+                fprintf(stderr, "Error decoding MIB\n");
+              }
+#endif
+
 #if HAVE_PCAP
               // write to PCAP
-              srslte_bit_pack_vector(bch_payload, data, SRSLTE_MIB_NB_CRC_LEN);
               pcap_pack_and_write(
                   pcap_file, data, SRSLTE_MIB_NB_CRC_LEN, 0, true, sfn * 10, 0, DIRECTION_DOWNLINK, NO_RNTI);
 #endif
@@ -624,8 +609,25 @@ int main(int argc, char** argv)
                                                            srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                            SRSLTE_SIRNTI);
             if (dec_ret == SRSLTE_SUCCESS) {
-              printf("SIB1 received.\n");
+              printf("SIB1 received\n");
+              srslte_sys_info_block_type_1_nb_t sib = {};
+              srslte_npdsch_sib1_unpack(data, &sib);
+              hfn = sib.hyper_sfn;
+
               have_sib1 = true;
+
+#ifdef ENABLE_GUI
+              if (bcch_dl_sch_to_pretty_string(
+                      data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib1_buffer_decode, sizeof(sib1_buffer_decode))) {
+                fprintf(stderr, "Error decoding SIB1\n");
+              }
+#endif
+
+              // Decode SIB1 and extract SIB2 scheduling params
+              get_sib2_params(data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, &sib2_params);
+
+              // Activate SIB2 decoding
+              srslte_nbiot_ue_dl_decode_sib(&ue_dl, hfn, sfn, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
 #if HAVE_PCAP
               pcap_pack_and_write(pcap_file,
                                   data,
@@ -637,13 +639,6 @@ int main(int argc, char** argv)
                                   DIRECTION_DOWNLINK,
                                   SI_RNTI);
 #endif
-
-              // active SIB2 decoding if set
-              if (prog_args.decode_sib2) {
-                srslte_nbiot_ue_dl_decode_sib(&ue_dl, hfn, sfn, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
-              } else {
-                have_sib2 = true;
-              }
               // if SIB1 was decoded in this subframe, skip processing it further
               break;
             } else if (dec_ret == SRSLTE_ERROR) {
@@ -662,8 +657,16 @@ int main(int argc, char** argv)
                                                            srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                            SRSLTE_SIRNTI);
             if (dec_ret == SRSLTE_SUCCESS) {
-              printf("SIB2 received.\n");
+              printf("SIB2 received\n");
               have_sib2 = true;
+
+#ifdef ENABLE_GUI
+              if (bcch_dl_sch_to_pretty_string(
+                      data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib2_buffer_decode, sizeof(sib2_buffer_decode))) {
+                fprintf(stderr, "Error decoding SIB2\n");
+              }
+#endif
+
 #if HAVE_PCAP
               pcap_pack_and_write(pcap_file,
                                   data,
@@ -722,7 +725,7 @@ int main(int argc, char** argv)
                                                      &grant,
                                                      sfn,
                                                      srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
-                                                     64 /* fixme: remove */,
+                                                     64 /* TODO: remove */,
                                                      cell.mode)) {
                   fprintf(stderr, "Error unpacking DCI\n");
                   return SRSLTE_ERROR;
@@ -732,13 +735,23 @@ int main(int argc, char** argv)
               }
             }
           } else {
-            // decode SIB1 continously
+            // decode SIB1 over and over again
             n = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                  &buff_ptrs[0][prog_args.time_offset],
                                                  data,
                                                  sfn,
                                                  srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                  prog_args.rnti);
+
+#ifdef ENABLE_GUI
+            if (n == SRSLTE_SUCCESS) {
+              if (bcch_dl_sch_to_pretty_string(
+                      data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib1_buffer_decode, sizeof(sib1_buffer_decode))) {
+                fprintf(stderr, "Error decoding SIB1\n");
+              }
+            }
+#endif // ENABLE_GUI
+
             // reactivate SIB1 grant
             if (srslte_nbiot_ue_dl_has_grant(&ue_dl) == false) {
               srslte_nbiot_ue_dl_decode_sib1(&ue_dl, sfn);
@@ -786,6 +799,7 @@ int main(int argc, char** argv)
         sfn++;
         if (sfn == 1024) {
           sfn = 0;
+          hfn++;
           printf("\n");
 
           // don't reset counter when reading from file to maintain complete stats
@@ -836,15 +850,6 @@ int main(int argc, char** argv)
     printf("dci_detected=%d\n", ue_dl.nof_detected);
   }
 
-#ifdef ENABLE_GUI
-  if (!prog_args.disable_plots) {
-    if (!pthread_kill(plot_thread, 0)) {
-      pthread_kill(plot_thread, SIGHUP);
-      pthread_join(plot_thread, NULL);
-    }
-  }
-#endif // ENABLE_GUI
-
   srslte_nbiot_ue_dl_free(&ue_dl);
   srslte_ue_sync_nbiot_free(&ue_sync);
 
@@ -864,6 +869,16 @@ int main(int argc, char** argv)
   }
 #endif
 
+#ifdef ENABLE_GUI
+  if (!prog_args.disable_plots) {
+    sem_post(&plot_sem);
+    if (!pthread_kill(plot_thread, 0)) {
+      pthread_kill(plot_thread, SIGHUP);
+      pthread_join(plot_thread, NULL);
+    }
+  }
+#endif // ENABLE_GUI
+
   printf("\nBye\n");
   return SRSLTE_SUCCESS;
 }
@@ -873,27 +888,35 @@ int main(int argc, char** argv)
  ***********************************************************************/
 #ifdef ENABLE_GUI
 
-plot_real_t    p_sync, pce, rsrp_plot;
+plot_real_t p_sync, pce;
+#if HAVE_RSRP_PLOT
+plot_real_t rsrp_plot;
+#endif
 plot_scatter_t constellation_plot;
+text_edit_t    miblog, sib1log, sib2log;
+key_value_t    id_label, mode_label, hfn_label;
+
+#define LABLE_MAX_LEN (10)
+static char lable_buf[LABLE_MAX_LEN];
 
 float tmp_plot[110 * 15 * 2048];
 float tmp_plot2[110 * 15 * 2048];
-float tmp_plot3[110 * 15 * 2048];
 
 void* plot_thread_run(void* arg)
 {
-  int      i;
   uint32_t nof_re   = SRSLTE_SF_LEN_RE(ue_dl.cell.base.nof_prb, ue_dl.cell.base.cp);
+#if HAVE_RSRP_PLOT
   float    rsrp_lin = 0;
+#endif
 
-  sdrgui_init();
+  sdrgui_init_title("Software Radio Systems NB-IoT Receiver");
 
   plot_scatter_init(&constellation_plot);
-  plot_scatter_setTitle(&constellation_plot, "NPDSCH/NPDCCH - Equalized Symbols");
-  plot_scatter_setXAxisScale(&constellation_plot, -4, 4);
-  plot_scatter_setYAxisScale(&constellation_plot, -4, 4);
+  plot_scatter_setTitle(&constellation_plot, "NPDCCH/NPDSCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&constellation_plot, -2, 2);
+  plot_scatter_setYAxisScale(&constellation_plot, -2, 2);
 
-  plot_scatter_addToWindowGrid(&constellation_plot, (char*)"pdsch_ue", 0, 0);
+  plot_scatter_addToWindowGrid(&constellation_plot, (char*)"npdsch_ue", 1, 0);
 
   if (!prog_args.disable_plots_except_constellation) {
     plot_real_init(&pce);
@@ -905,21 +928,51 @@ void* plot_thread_run(void* arg)
     plot_real_setTitle(&p_sync, "NPSS Cross-Corr abs value");
     plot_real_setYAxisScale(&p_sync, 0, 1);
 
+#if HAVE_RSRP_PLOT
     plot_real_init(&rsrp_plot);
     plot_real_setTitle(&rsrp_plot, "RSRP");
     plot_real_setLabels(&rsrp_plot, "subframe index", "dBm");
     plot_real_setYAxisScale(&rsrp_plot, 20, 50);
+#endif
 
-    plot_real_addToWindowGrid(&pce, (char*)"pdsch_ue", 0, 1);
-    plot_real_addToWindowGrid(&rsrp_plot, (char*)"pdsch_ue", 1, 0);
-    plot_real_addToWindowGrid(&p_sync, (char*)"pdsch_ue", 1, 1);
+    plot_real_addToWindowGrid(&pce, (char*)"npdsch_ue", 1, 2);
+    plot_real_addToWindowGrid(&p_sync, (char*)"npdsch_ue", 1, 1);
+
+#if HAVE_RSRP_PLOT
+    plot_real_addToWindowGrid(&rsrp_plot, (char*)"npdsch_ue", 1, 3);
+#endif
+
+    // add log
+    text_edit_init(&miblog);
+    text_edit_addToWindowGrid(&miblog, (char*)"npdsch_ue", 2, 0);
+    text_edit_setTitle(&miblog, "Master Information Block - NB");
+
+    text_edit_init(&sib1log);
+    text_edit_addToWindowGrid(&sib1log, (char*)"npdsch_ue", 2, 1);
+    text_edit_setTitle(&sib1log, "System Information Block 1 - NB");
+
+    text_edit_init(&sib2log);
+    text_edit_addToWindowGrid(&sib2log, (char*)"npdsch_ue", 2, 2);
+    text_edit_setTitle(&sib2log, "System Information - NB");
+
+    key_value_init(&id_label);
+    text_edit_addToWindowGrid(&id_label, (char*)"npdsch_ue", 0, 0);
+    key_value_setKeyText(&id_label, "Cell ID:");
+
+    key_value_init(&mode_label);
+    text_edit_addToWindowGrid(&mode_label, (char*)"npdsch_ue", 0, 1);
+    key_value_setKeyText(&mode_label, "Operation Mode:");
+
+    key_value_init(&hfn_label);
+    text_edit_addToWindowGrid(&hfn_label, (char*)"npdsch_ue", 0, 2);
+    key_value_setKeyText(&hfn_label, "Hyper/System Frame Number:");
   }
 
-  while (1) {
+  while (!go_exit) {
     sem_wait(&plot_sem);
 
     if (!prog_args.disable_plots_except_constellation) {
-      for (i = 0; i < nof_re; i++) {
+      for (int i = 0; i < nof_re; i++) {
         tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[i]));
         if (isinf(tmp_plot[i])) {
           tmp_plot[i] = -80;
@@ -928,7 +981,7 @@ void* plot_thread_run(void* arg)
       int numpoints = SRSLTE_NRE * 2;
       bzero(tmp_plot2, sizeof(float) * numpoints);
       int g = (numpoints - SRSLTE_NRE) / 2;
-      for (i = 0; i < 12 * ue_dl.cell.base.nof_prb; i++) {
+      for (int i = 0; i < 12 * ue_dl.cell.base.nof_prb; i++) {
         tmp_plot2[g + i] = 20 * log10(cabsf(ue_dl.ce[0][i]));
         if (isinf(tmp_plot2[g + i])) {
           tmp_plot2[g + i] = -80;
@@ -954,6 +1007,7 @@ void* plot_thread_run(void* arg)
         }
       }
 
+#if HAVE_RSRP_PLOT
       // get current RSRP estimate
       rsrp_lin                       = SRSLTE_VEC_EMA(srslte_chest_dl_nbiot_get_rsrp(&ue_dl.chest), rsrp_lin, 0.05);
       rsrp_table[rsrp_table_index++] = 10 * log10(rsrp_lin);
@@ -961,6 +1015,29 @@ void* plot_thread_run(void* arg)
         rsrp_table_index = 0;
       }
       plot_real_setNewData(&rsrp_plot, rsrp_table, rsrp_num_plot);
+#endif
+
+      // update MIB and SIB widget only if their content changed
+      if (memcmp(mib_buffer_disp, mib_buffer_decode, sizeof(mib_buffer_disp) != 0)) {
+        memcpy(mib_buffer_disp, mib_buffer_decode, sizeof(mib_buffer_disp));
+        text_edit_setMessage(&miblog, mib_buffer_disp);
+      }
+      if (memcmp(sib1_buffer_disp, sib1_buffer_decode, sizeof(sib1_buffer_disp) != 0)) {
+        memcpy(sib1_buffer_disp, sib1_buffer_decode, sizeof(sib1_buffer_disp));
+        text_edit_setMessage(&sib1log, sib1_buffer_disp);
+      }
+      if (memcmp(sib2_buffer_disp, sib2_buffer_decode, sizeof(sib2_buffer_disp) != 0)) {
+        memcpy(sib2_buffer_disp, sib2_buffer_decode, sizeof(sib2_buffer_disp));
+        text_edit_setMessage(&sib2log, sib2_buffer_disp);
+      }
+
+      snprintf(lable_buf, LABLE_MAX_LEN, "%d", cell.n_id_ncell);
+      key_value_setValueText(&id_label, lable_buf);
+
+      key_value_setValueText(&mode_label, srslte_nbiot_mode_string(cell.mode));
+
+      snprintf(lable_buf, LABLE_MAX_LEN, "%d / %d", hfn, sfn);
+      key_value_setValueText(&hfn_label, lable_buf);
     }
 
     // check if NPDSCH or NPDCCH has been received
