@@ -397,7 +397,7 @@ void rrc::process_cell_meas()
 void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
 {
   bool neighbour_added = false;
-  rrc_log->debug("MEAS:  Processing measurement of %lu cells\n", meas.size());
+  rrc_log->debug("MEAS:  Processing measurement of %zd cells\n", meas.size());
   for (auto& m : meas) {
     cell_t* c = nullptr;
     // Get serving_cell handle if it's the serving cell
