@@ -302,38 +302,7 @@ private:
   uint32_t                     nof_threads_waiting = 0;
 };
 
-/***********************************************************
- * Specialization for tasks with content that is move-only
- **********************************************************/
-
-template <typename... Args>
-class move_function
-{
-public:
-  move_function() = default;
-  template <typename Func>
-  move_function(Func&& f) : task_ptr(new derived_task<Func>(std::forward<Func>(f)))
-  {}
-  void operator()(Args&&... args) { (*task_ptr)(std::forward<Args>(args)...); }
-
-private:
-  struct base_task {
-    virtual ~base_task() {}
-    virtual void operator()(Args&&...) = 0;
-  };
-  template <typename Func>
-  struct derived_task : public base_task {
-    derived_task(Func&& f_) : f(std::forward<Func>(f_)) {}
-    void operator()(Args&&... args) final { f(std::forward<Args>(args)...); }
-
-  private:
-    Func f;
-  };
-
-  std::unique_ptr<base_task> task_ptr;
-};
-
-using move_task_t     = move_callback<void()>;
+//! Specialization for tasks
 using task_multiqueue = multiqueue_handler<move_task_t>;
 
 } // namespace srslte

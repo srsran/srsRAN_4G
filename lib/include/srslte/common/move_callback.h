@@ -165,6 +165,9 @@ private:
 template <typename R, typename... Args, size_t Capacity>
 constexpr task_details::empty_table_t<R, Args...> move_callback<R(Args...), Capacity>::empty_table;
 
+//! Generic move task
+using move_task_t = move_callback<void()>;
+
 } // namespace srslte
 
 #endif // SRSLTE_MOVE_CALLBACK_H

@@ -38,7 +38,6 @@
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/common/multiqueue.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/tti_point.h"

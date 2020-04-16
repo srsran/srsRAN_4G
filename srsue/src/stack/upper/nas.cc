@@ -518,10 +518,7 @@ bool nas::paging(s_tmsi_t* ue_identity)
       return false;
     }
     // once completed, call paging complete
-    rrc_connector.then([this](proc_state_t outcome) {
-      rrc->paging_completed(outcome.is_success());
-      return proc_outcome_t::success;
-    });
+    rrc_connector.then([this](proc_state_t outcome) { rrc->paging_completed(outcome.is_success()); });
     callbacks.add_proc(rrc_connector);
   } else {
     nas_log->warning("Received paging while in state %s\n", emm_state_text[state]);

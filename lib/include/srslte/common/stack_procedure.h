@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/common/multiqueue.h"
+#include "srslte/common/move_callback.h"
 #include <functional>
 #include <list>
 #include <memory>
@@ -74,7 +74,7 @@ class callback_group_t
 {
 public:
   using callback_id_t = uint32_t;
-  using callback_t    = srslte::move_function<Args...>;
+  using callback_t    = srslte::move_callback<void(Args...)>;
 
   //! register callback, that gets called once
   callback_id_t on_next_call(callback_t f_)
