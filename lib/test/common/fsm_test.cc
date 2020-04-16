@@ -41,11 +41,12 @@ public:
   explicit fsm1(srslte::log_ref log_) : srslte::fsm_t<fsm1>(log_) {}
 
   // this state is another FSM
-  class fsm2 : public srslte::nested_fsm_t<fsm2, fsm1>
+  class fsm2 : public subfsm_t<fsm2>
   {
   public:
     // states
     struct state_inner {};
+    struct state_inner2 {};
 
     explicit fsm2(fsm1* f_) : nested_fsm_t(f_) {}
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
@@ -56,14 +57,16 @@ public:
       log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(s).c_str());
       parent_fsm()->inner_enter_counter++;
     }
-    void exit(state_inner& s) { log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(s).c_str()); }
+    void enter(state_inner2& s) { log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(s).c_str()); }
+    void exit(state_inner2& s) { log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(s).c_str()); }
 
     // FSM2 transitions
     auto react(state_inner& s, ev1 e) -> srslte::same_state;
-    auto react(state_inner& s, ev2 e) -> srslte::to_state<state1>;
+    auto react(state_inner& s, ev2 e) -> to_state<state_inner2>;
+    auto react(state_inner2& s, ev2 e) -> to_state<state1>;
 
     // list of states
-    state_list<state_inner> states{this};
+    state_list<state_inner, state_inner2> states{this};
   };
 
 protected:
@@ -110,7 +113,13 @@ auto fsm1::fsm2::react(state_inner& s, ev1) -> srslte::same_state
   return {};
 }
 
-auto fsm1::fsm2::react(state_inner& s, ev2) -> srslte::to_state<state1>
+auto fsm1::fsm2::react(state_inner& s, ev2) -> to_state<state_inner2>
+{
+  log_h->info("fsm2::state_inner::react called\n");
+  return {};
+}
+
+auto fsm1::fsm2::react(state_inner2& s, ev2) -> to_state<state1>
 {
   log_h->info("fsm2::state_inner::react called\n");
   return {};
@@ -161,45 +170,58 @@ int test_hsm()
   fsm1 f{log_h};
   TESTASSERT(f.idle_enter_counter == 1);
   TESTASSERT(get_type_name(f) == "fsm1");
-  TESTASSERT(f.get_state_name() == "idle_st");
+  TESTASSERT(f.current_state_name() == "idle_st");
   TESTASSERT(f.is_in_state<fsm1::idle_st>());
   TESTASSERT(f.foo_counter == 0);
 
   // Moving Idle -> State1
   ev1 e;
   f.trigger(e);
-  TESTASSERT(f.get_state_name() == "state1");
+  TESTASSERT(f.current_state_name() == "state1");
   TESTASSERT(f.is_in_state<fsm1::state1>());
 
   // Moving State1 -> fsm2
   f.trigger(e);
-  TESTASSERT(f.get_state_name() == "fsm2");
+  TESTASSERT(f.current_state_name() == "fsm2");
   TESTASSERT(f.is_in_state<fsm1::fsm2>());
-  TESTASSERT(f.get_state<fsm1::fsm2>()->get_state_name() == "state_inner");
+  TESTASSERT(f.get_if_current_state<fsm1::fsm2>()->current_state_name() == "state_inner");
   TESTASSERT(f.inner_enter_counter == 1);
 
   // Fsm2 does not listen to ev1
   f.trigger(e);
-  TESTASSERT(std::string{f.get_state_name()} == "fsm2");
+  TESTASSERT(f.current_state_name() == "fsm2");
   TESTASSERT(f.is_in_state<fsm1::fsm2>());
-  TESTASSERT(f.get_state<fsm1::fsm2>()->get_state_name() == "state_inner");
+  TESTASSERT(f.get_if_current_state<fsm1::fsm2>()->current_state_name() == "state_inner");
+
+  // Fsm2 state_inner -> state_inner2
+  f.trigger(ev2{});
+  TESTASSERT(f.current_state_name() == "fsm2");
+  TESTASSERT(f.is_in_state<fsm1::fsm2>());
+  TESTASSERT(f.get_if_current_state<fsm1::fsm2>()->current_state_name() == "state_inner2");
 
   // Moving fsm2 -> state1
   f.trigger(ev2{});
-  TESTASSERT(f.get_state_name() == "state1");
+  TESTASSERT(f.current_state_name() == "state1");
   TESTASSERT(f.is_in_state<fsm1::state1>());
   TESTASSERT(f.state1_enter_counter == 2);
 
   // Moving state1 -> idle
   f.trigger(ev2{});
-  TESTASSERT(std::string{f.get_state_name()} == "idle_st");
+  TESTASSERT(std::string{f.current_state_name()} == "idle_st");
   TESTASSERT(f.is_in_state<fsm1::idle_st>());
   TESTASSERT(f.foo_counter == 1);
   TESTASSERT(f.idle_enter_counter == 2);
 
   // Call unhandled event
   f.trigger(ev2{});
-  TESTASSERT(f.get_state_name() == "idle_st");
+  TESTASSERT(f.current_state_name() == "idle_st");
+
+  // Enter fsm2 again
+  f.trigger(ev1{});
+  f.trigger(ev1{});
+  TESTASSERT(f.current_state_name() == "fsm2");
+  TESTASSERT(f.is_in_state<fsm1::fsm2>());
+  TESTASSERT(f.get_if_current_state<fsm1::fsm2>()->current_state_name() == "state_inner");
 
   return SRSLTE_SUCCESS;
 }
@@ -305,7 +327,7 @@ public:
   nas_fsm(srslte::log_ref log_) : fsm_t<nas_fsm>(log_) {}
 
 protected:
-  auto react(emm_null_st& s, enable_s1_ev ev) -> to_state<emm_deregistered>;
+  auto react(emm_null_st& s, const enable_s1_ev& ev) -> to_state<emm_deregistered>;
   auto react(emm_deregistered& s, disable_s1_ev ev) -> to_state<emm_null_st>;
   auto react(emm_deregistered& s, attach_request_ev ev) -> to_state<emm_registered_initiated>;
   auto react(emm_registered_initiated& s, emm_registr_fail_ev ev) -> to_state<emm_deregistered>;
@@ -334,7 +356,7 @@ protected:
 
 #define LOGEVENT() log_h->info("Received an \"%s\" event\n", srslte::get_type_name(ev).c_str())
 
-auto nas_fsm::react(emm_null_st& s, enable_s1_ev ev) -> to_state<emm_deregistered>
+auto nas_fsm::react(emm_null_st& s, const enable_s1_ev& ev) -> to_state<emm_deregistered>
 {
   LOGEVENT();
   return {};

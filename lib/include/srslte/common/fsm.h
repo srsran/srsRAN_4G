@@ -41,8 +41,7 @@ template <typename... NextStates>
 struct to_states {
   template <typename ChosenState>
   to_states(to_state<ChosenState>) : state_idx(get_type_index<ChosenState, NextStates...>())
-  {
-  }
+  {}
 
   template <typename State>
   bool is() const
@@ -56,8 +55,7 @@ struct to_states {
 };
 
 //! Return for when there is no state transition
-struct same_state {
-};
+struct same_state {};
 
 //! Forward declaration
 template <typename Derived>
@@ -124,7 +122,12 @@ struct fsm_helper {
   template <typename FSM, typename State>
   static typename std::enable_if<is_fsm<State>()>::type call_enter(FSM* f, State* s)
   {
+    using init_type = typename fsm_state_list_type<State>::init_state_t;
+    // set default FSM type
+    s->derived()->states.template transit<init_type>();
+    // call FSM enter function
     f->enter(*s);
+    // call initial substate enter
     fsm_details::enter_visitor<typename State::derived_view> visitor{s->derived()};
     srslte::visit(visitor, s->derived()->states);
   }
@@ -137,6 +140,11 @@ struct fsm_helper {
   //! Stayed in same state
   template <typename FSM, typename PrevState>
   static void handle_state_change(FSM* f, same_state* s, PrevState* p)
+  {
+    // do nothing
+  }
+  template <typename FSM, typename PrevState>
+  static void handle_state_change(FSM* f, to_state<same_state>* s, PrevState* p)
   {
     // do nothing
   }
@@ -185,9 +193,7 @@ struct fsm_helper {
     {
       result = call_trigger(&s);
       if (not result) {
-        auto target_state = f->react(s, std::move(ev));
-        fsm_helper::handle_state_change(f, &target_state, &s);
-        result = not std::is_same<decltype(target_state), srslte::same_state>::value;
+        result = call_react(s);
       }
     }
 
@@ -195,10 +201,28 @@ struct fsm_helper {
     template <typename State>
     typename std::enable_if<is_nested_fsm<State>(), bool>::type call_trigger(State* s)
     {
-      return s->trigger(std::move(ev));
+      return s->trigger(std::forward<Event>(ev));
     }
     //! In case a "trigger(Event)" method is not found
     bool call_trigger(...) { return false; }
+
+    template <typename State>
+    using enable_if_react = decltype(std::declval<FSM>().react(std::declval<State&>(), std::declval<Event&&>()),
+                                     bool());
+    //! In case there is a react method
+    template <typename State>
+    auto call_react(State& s) -> decltype(std::declval<FSM>().react(s, std::declval<Event&&>()), bool())
+    {
+      auto target_state = f->react(s, std::forward<Event>(ev));
+      fsm_helper::handle_state_change(f, &target_state, &s);
+      return true;
+    }
+    bool call_react(...)
+    {
+      f->log_fsm_activity(
+          "FSM \"%s\": Unhandled event caught: \"%s\"\n", get_type_name<FSM>().c_str(), get_type_name<Event>().c_str());
+      return false;
+    }
 
     FSM*  f;
     Event ev;
@@ -232,22 +256,25 @@ std::string get_type_name(const srslte::to_states<Args...>& t)
   return v.name;
 }
 
+template <typename Derived, typename ParentFSM>
+class nested_fsm_t;
+
 //! CRTP Class for all non-nested FSMs
 template <typename Derived>
 class fsm_t
 {
 protected:
   using base_t = fsm_t<Derived>;
+  template <typename SubFSM>
+  using subfsm_t = nested_fsm_t<SubFSM, Derived>;
 
   //! get access to derived protected members from the base
   class derived_view : public Derived
   {
   public:
     using derived_t = Derived;
-    // propagate fsm_t methods
-    using Derived::base_t::enter;
-    using Derived::base_t::exit;
-    using Derived::base_t::react;
+    using derived_t::base_t::enter;
+    using derived_t::base_t::exit;
     // propagate user fsm methods
     using Derived::enter;
     using Derived::exit;
@@ -266,13 +293,14 @@ public:
   template <typename... States>
   struct state_list : public std::tuple<States...> {
     using tuple_base_t = std::tuple<States...>;
+    using init_state_t = typename std::decay<decltype(std::get<0>(std::declval<tuple_base_t>()))>::type;
+
     template <typename... Args>
     state_list(fsm_t<Derived>* f, Args&&... args) : tuple_base_t(std::forward<Args>(args)...)
     {
       if (not Derived::is_nested) {
         // If Root FSM, call initial state enter method
-        fsm_details::enter_visitor<derived_view> visitor{f->derived()};
-        srslte::visit(visitor, *this);
+        fsm_details::fsm_helper::call_enter(f->derived(), &get_unchecked<init_state_t>());
       }
     }
 
@@ -336,12 +364,24 @@ public:
   }
 
   template <typename State>
-  const State* get_state() const
+  const State* get_if_current_state() const
   {
-    return is_in_state<State>() ? &derived()->states.template get_unchecked<State>() : nullptr;
+    return is_in_state<State>() ? get_state<State>() : nullptr;
   }
 
-  std::string get_state_name() const
+  template <typename State>
+  State* get_state()
+  {
+    return &derived()->states.template get_unchecked<State>();
+  }
+
+  template <typename State>
+  const State* get_state() const
+  {
+    return &derived()->states.template get_unchecked<State>();
+  }
+
+  std::string current_state_name() const
   {
     fsm_details::state_name_visitor visitor{};
     srslte::visit(visitor, derived()->states);
@@ -374,14 +414,6 @@ protected:
   void exit(State& s)
   {
     // do nothing by default
-  }
-
-  template <typename State, typename Event>
-  srslte::same_state react(State& s, Event&& e)
-  {
-    log_fsm_activity(
-        "FSM \"%s\": Unhandled event caught: \"%s\"\n", get_type_name(*this).c_str(), get_type_name<Event>().c_str());
-    return {};
   }
 
   template <typename... Args>
@@ -455,7 +487,6 @@ protected:
   using fsm_t<Derived>::log_h;
   using fsm_t<Derived>::enter;
   using fsm_t<Derived>::exit;
-  using fsm_t<Derived>::react;
 
   template <typename State>
   auto react(State&, srslte::proc_launch_ev<int*> e) -> srslte::same_state
@@ -469,14 +500,11 @@ public:
   using fsm_t<Derived>::trigger;
 
   // events
-  struct reset_ev {
-  };
+  struct reset_ev {};
 
   // states
-  struct idle_st {
-  };
-  struct complete_st {
-  };
+  struct idle_st {};
+  struct complete_st {};
 
   explicit proc_fsm_t(srslte::log_ref log_) : fsm_t<Derived>(log_) {}
 
