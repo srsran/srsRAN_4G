@@ -39,28 +39,29 @@ template <typename R, typename... Args>
 class oper_table_t
 {
 public:
-  constexpr    oper_table_t(bool in_buffer_) : is_in_buffer(in_buffer_) {}
+  constexpr    oper_table_t()                        = default;
   virtual R    call(void* src, Args&&... args) const = 0;
   virtual void move(void* src, void* dest) const     = 0;
   virtual void dtor(void* src) const                 = 0;
-  bool         is_in_buffer;
+  virtual bool is_in_small_buffer() const            = 0;
 };
 
 template <typename R, typename... Args>
 class empty_table_t : public oper_table_t<R, Args...>
 {
 public:
-  constexpr empty_table_t() : oper_table_t<R, Args...>(true) {}
+  constexpr empty_table_t() = default;
   R         call(void* src, Args&&... args) const final { throw std::bad_function_call(); }
   void      move(void* src, void* dest) const final {}
   void      dtor(void* src) const final {}
+  bool      is_in_small_buffer() const final { return true; }
 };
 
 template <typename FunT, typename R, typename... Args>
 class smallbuffer_table_t : public oper_table_t<R, Args...>
 {
 public:
-  constexpr smallbuffer_table_t() : oper_table_t<R, Args...>(true) {}
+  constexpr smallbuffer_table_t() = default;
   R    call(void* src, Args&&... args) const final { return (*static_cast<FunT*>(src))(std::forward<Args>(args)...); }
   void move(void* src, void* dest) const final
   {
@@ -68,13 +69,14 @@ public:
     static_cast<FunT*>(src)->~FunT();
   }
   void dtor(void* src) const final { static_cast<FunT*>(src)->~FunT(); }
+  bool is_in_small_buffer() const final { return true; }
 };
 
 template <typename FunT, typename R, typename... Args>
 class heap_table_t : public oper_table_t<R, Args...>
 {
 public:
-  constexpr heap_table_t() : oper_table_t<R, Args...>(false) {}
+  constexpr heap_table_t() = default;
   R    call(void* src, Args&&... args) const final { return (**static_cast<FunT**>(src))(std::forward<Args>(args)...); }
   void move(void* src, void* dest) const final
   {
@@ -82,6 +84,7 @@ public:
     *static_cast<FunT**>(src)  = nullptr;
   }
   void dtor(void* src) const final { delete (*static_cast<FunT**>(src)); }
+  bool is_in_small_buffer() const final { return false; }
 };
 
 //! Metafunction to check if object is move_callback<> type
@@ -93,10 +96,10 @@ struct is_move_callback<move_callback<Sig, Capacity> > : std::true_type {};
 //! metafunctions to enable/disable functions based on whether the callback fits small buffer or not
 template <typename T, size_t Cap, typename FunT = typename std::decay<T>::type>
 using enable_if_small_capture =
-    typename std::enable_if<sizeof(FunT) <= Cap and not is_move_callback<T>::value, bool>::type;
+    typename std::enable_if<sizeof(FunT) <= Cap and not is_move_callback<FunT>::value, bool>::type;
 template <typename T, size_t Cap, typename FunT = typename std::decay<T>::type>
 using enable_if_big_capture =
-    typename std::enable_if < Cap<sizeof(FunT) and not is_move_callback<T>::value, bool>::type;
+    typename std::enable_if < Cap<sizeof(FunT) and not is_move_callback<FunT>::value, bool>::type;
 
 } // namespace task_details
 
@@ -149,33 +152,7 @@ public:
   R operator()(Args&&... args) const noexcept { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
 
   bool is_empty() const { return oper_ptr == empty_table; }
-  bool is_in_small_buffer() const { return oper_ptr->is_in_buffer; }
-
-  void swap(move_callback& other) noexcept
-  {
-    if (this == &other)
-      return;
-
-    if (oper_ptr->is_in_buffer and other.oper_ptr->is_in_buffer) {
-      storage_t tmp;
-      oper_ptr->move(&buffer, &tmp);
-      other.oper_ptr->move(&other.buffer, &buffer);
-      oper_ptr->move(&tmp, &other.buffer);
-    } else if (oper_ptr->is_in_buffer and not other.oper_ptr->is_in_buffer) {
-      void* tmpptr = other.ptr;
-      oper_ptr->move(&buffer, &other.buffer);
-      ptr = tmpptr;
-    } else if (not oper_ptr->is_in_buffer and other.oper_ptr->is_in_buffer) {
-      void* tmpptr = ptr;
-      other.oper_ptr->move(&other.buffer, &buffer);
-      other.ptr = tmpptr;
-    } else {
-      std::swap(ptr, other.ptr);
-    }
-    std::swap(oper_ptr, other.oper_ptr);
-  }
-
-  friend void swap(move_callback& lhs, move_callback& rhs) noexcept { lhs.swap(rhs); }
+  bool is_in_small_buffer() const { return oper_ptr->is_in_small_buffer(); }
 
 private:
   union {

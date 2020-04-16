@@ -383,7 +383,7 @@ int test_inplace_task()
   t2();
   TESTASSERT(v == 6);
   TESTASSERT(t.is_in_small_buffer() and not t2.is_in_small_buffer());
-  swap(t, t2);
+  std::swap(t, t2);
   TESTASSERT(t2.is_in_small_buffer() and not t.is_in_small_buffer());
   v = 0;
   t();
