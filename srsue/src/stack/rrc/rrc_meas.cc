@@ -666,7 +666,7 @@ std::list<meas_obj_eutra_s> rrc::rrc_meas::var_meas_cfg::get_active_objects()
     }
   }
   if (log_h->get_level() == LOG_LEVEL_DEBUG) {
-    log_h->debug("MEAS:  Returning %lu active objects\n", r.size());
+    log_h->debug("MEAS:  Returning %zd active objects\n", r.size());
     for (auto& o : r) {
       log_h->debug("MEAS:      carrier_freq=%d, %u cells\n", o.carrier_freq, o.cells_to_add_mod_list.size());
     }
