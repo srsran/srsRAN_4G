@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/common/inplace_task.h"
+#include "srslte/common/move_callback.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/common/thread_pool.h"
 #include <iostream>
@@ -336,8 +336,8 @@ int test_inplace_task()
 
   auto l0 = [&v]() { v = 1; };
 
-  srslte::inplace_task<void()> t{l0};
-  srslte::inplace_task<void()> t2{[v]() mutable { v = 2; }};
+  srslte::move_callback<void()> t{l0};
+  srslte::move_callback<void()> t2{[v]() mutable { v = 2; }};
   // sanity static checks
   static_assert(task_details::is_inplace_task<std::decay<decltype(t)>::type>::value, "failed check\n");
   static_assert(std::is_base_of<std::false_type, task_details::is_inplace_task<std::decay<decltype(l0)>::type> >::value,
@@ -351,8 +351,8 @@ int test_inplace_task()
   t3();
   TESTASSERT(v == 1);
 
-  C                            c;
-  srslte::inplace_task<void()> t4{std::bind([&v](C& c) { v = *c.val; }, std::move(c))};
+  C                             c;
+  srslte::move_callback<void()> t4{std::bind([&v](C& c) { v = *c.val; }, std::move(c))};
   {
     decltype(t4) t5;
     t5 = std::move(t4);
@@ -360,10 +360,10 @@ int test_inplace_task()
     TESTASSERT(v == 5);
   }
 
-  D                            d;
-  srslte::inplace_task<void()> t6 = [&v, d]() { v = d.big_val[0]; };
+  D                             d;
+  srslte::move_callback<void()> t6 = [&v, d]() { v = d.big_val[0]; };
   {
-    srslte::inplace_task<void()> t7;
+    srslte::move_callback<void()> t7;
     t6();
     TESTASSERT(v == 6);
     v  = 0;
@@ -392,7 +392,7 @@ int test_inplace_task()
 
   // TEST: task works in const contexts
   t       = l2;
-  auto l3 = [](const srslte::inplace_task<void()>& task) { task(); };
+  auto l3 = [](const srslte::move_callback<void()>& task) { task(); };
   v       = 0;
   l3(t);
   TESTASSERT(v == 6);

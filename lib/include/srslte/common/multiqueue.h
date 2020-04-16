@@ -28,7 +28,7 @@
 #ifndef SRSLTE_MULTIQUEUE_H
 #define SRSLTE_MULTIQUEUE_H
 
-#include "inplace_task.h"
+#include "move_callback.h"
 #include <algorithm>
 #include <condition_variable>
 #include <functional>
@@ -333,8 +333,7 @@ private:
   std::unique_ptr<base_task> task_ptr;
 };
 
-// using move_task_t     = move_function<>;
-using move_task_t     = inplace_task<void()>;
+using move_task_t     = move_callback<void()>;
 using task_multiqueue = multiqueue_handler<move_task_t>;
 
 } // namespace srslte

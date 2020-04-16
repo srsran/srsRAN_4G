@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_INPLACE_TASK_H
-#define SRSLTE_INPLACE_TASK_H
+#ifndef SRSLTE_MOVE_CALLBACK_H
+#define SRSLTE_MOVE_CALLBACK_H
 
 #include <cstddef>
 #include <functional>
@@ -31,16 +31,18 @@ namespace srslte {
 constexpr size_t default_buffer_size = 32;
 
 template <class Signature, size_t Capacity = default_buffer_size>
-class inplace_task;
+class move_callback;
 
 namespace task_details {
 
+//! Class used to type-erase the functor/lambda capture move/call/dtor operators
 template <typename R, typename... Args>
 struct oper_table_t {
   using call_oper_t = R (*)(void* src, Args&&... args);
   using move_oper_t = void (*)(void* src, void* dest);
   using dtor_oper_t = void (*)(void* src);
 
+  //! Returns a operator table for when the move_function object is empty
   const static oper_table_t* get_empty() noexcept
   {
     const static oper_table_t t{true,
@@ -50,6 +52,7 @@ struct oper_table_t {
     return &t;
   }
 
+  //! Returns a operator table for when the move_function fits the small buffer
   template <typename Func>
   const static oper_table_t* get_small() noexcept
   {
@@ -64,6 +67,7 @@ struct oper_table_t {
     return &t;
   }
 
+  //! Returns a operator table for when the move_function fits the big buffer
   template <typename Func>
   const static oper_table_t* get_big() noexcept
   {
@@ -101,7 +105,7 @@ private:
 template <class>
 struct is_inplace_task : std::false_type {};
 template <class Sig, size_t Capacity>
-struct is_inplace_task<inplace_task<Sig, Capacity> > : std::true_type {};
+struct is_inplace_task<move_callback<Sig, Capacity> > : std::true_type {};
 
 template <typename T, size_t Cap, typename FunT = typename std::decay<T>::type>
 using enable_small_capture =
@@ -112,17 +116,17 @@ using enable_big_capture = typename std::enable_if < Cap<sizeof(FunT) and not is
 } // namespace task_details
 
 template <class R, class... Args, size_t Capacity>
-class inplace_task<R(Args...), Capacity>
+class move_callback<R(Args...), Capacity>
 {
   static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*);
   using storage_t                  = typename std::aligned_storage<capacity, alignof(std::max_align_t)>::type;
   using oper_table_t               = task_details::oper_table_t<R, Args...>;
 
 public:
-  inplace_task() noexcept { oper_ptr = oper_table_t::get_empty(); }
+  move_callback() noexcept { oper_ptr = oper_table_t::get_empty(); }
 
   template <typename T, task_details::enable_small_capture<T, capacity> = true>
-  inplace_task(T&& function) noexcept
+  move_callback(T&& function) noexcept
   {
     using FunT = typename std::decay<T>::type;
     oper_ptr   = oper_table_t::template get_small<FunT>();
@@ -130,23 +134,23 @@ public:
   }
 
   template <typename T, task_details::enable_big_capture<T, capacity> = true>
-  inplace_task(T&& function)
+  move_callback(T&& function)
   {
     using FunT = typename std::decay<T>::type;
     oper_ptr   = oper_table_t::template get_big<FunT>();
     ptr        = static_cast<void*>(new FunT{std::forward<T>(function)});
   }
 
-  inplace_task(inplace_task&& other) noexcept
+  move_callback(move_callback&& other) noexcept
   {
     oper_ptr       = other.oper_ptr;
     other.oper_ptr = oper_table_t::get_empty();
     oper_ptr->move(&other.buffer, &buffer);
   }
 
-  ~inplace_task() { oper_ptr->dtor(&buffer); }
+  ~move_callback() { oper_ptr->dtor(&buffer); }
 
-  inplace_task& operator=(inplace_task&& other) noexcept
+  move_callback& operator=(move_callback&& other) noexcept
   {
     oper_ptr->dtor(&buffer);
     oper_ptr       = other.oper_ptr;
@@ -155,12 +159,12 @@ public:
     return *this;
   }
 
-  R operator()(Args&&... args) const { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
+  R operator()(Args&&... args) const noexcept { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
 
   bool is_empty() const { return oper_ptr == oper_table_t::get_empty(); }
   bool is_in_small_buffer() const { return oper_ptr->is_in_buffer; }
 
-  void swap(inplace_task& other) noexcept
+  void swap(move_callback& other) noexcept
   {
     if (this == &other)
       return;
@@ -184,7 +188,7 @@ public:
     std::swap(oper_ptr, other.oper_ptr);
   }
 
-  friend void swap(inplace_task& lhs, inplace_task& rhs) noexcept { lhs.swap(rhs); }
+  friend void swap(move_callback& lhs, move_callback& rhs) noexcept { lhs.swap(rhs); }
 
 private:
   union {
@@ -196,4 +200,4 @@ private:
 
 } // namespace srslte
 
-#endif // SRSLTE_INPLACE_TASK_H
+#endif // SRSLTE_MOVE_CALLBACK_H
