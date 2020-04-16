@@ -28,6 +28,7 @@
 
 namespace srslte {
 
+//! Size of the buffer used by "move_callback<R(Args...)>" to store functors without calling "new"
 constexpr size_t default_buffer_size = 32;
 
 template <class Signature, size_t Capacity = default_buffer_size>
@@ -35,6 +36,7 @@ class move_callback;
 
 namespace task_details {
 
+//! Base vtable for move/call/destroy operations over the functor stored in "move_callback<R(Args...)"
 template <typename R, typename... Args>
 class oper_table_t
 {
@@ -46,6 +48,7 @@ public:
   virtual bool is_in_small_buffer() const            = 0;
 };
 
+//! specialization of move/call/destroy operations for when the "move_callback<R(Args...)>" is empty
 template <typename R, typename... Args>
 class empty_table_t : public oper_table_t<R, Args...>
 {
@@ -57,6 +60,7 @@ public:
   bool      is_in_small_buffer() const final { return true; }
 };
 
+//! specialization of move/call/destroy operations for when the functor is stored in "move_callback<R(Args...)>" buffer
 template <typename FunT, typename R, typename... Args>
 class smallbuffer_table_t : public oper_table_t<R, Args...>
 {
@@ -72,6 +76,7 @@ public:
   bool is_in_small_buffer() const final { return true; }
 };
 
+//! move/call/destroy operations for when the functor is stored outside of "move_callback<R(Args...)>" buffer
 template <typename FunT, typename R, typename... Args>
 class heap_table_t : public oper_table_t<R, Args...>
 {
@@ -87,13 +92,13 @@ public:
   bool is_in_small_buffer() const final { return false; }
 };
 
-//! Metafunction to check if object is move_callback<> type
+//! Metafunction to check if a type is an instantiation of move_callback<R(Args...)>
 template <class>
 struct is_move_callback : std::false_type {};
 template <class Sig, size_t Capacity>
 struct is_move_callback<move_callback<Sig, Capacity> > : std::true_type {};
 
-//! metafunctions to enable/disable functions based on whether the callback fits small buffer or not
+//! metafunctions to enable different ctor implementations depending on whether the callback fits the small buffer
 template <typename T, size_t Cap, typename FunT = typename std::decay<T>::type>
 using enable_if_small_capture =
     typename std::enable_if<sizeof(FunT) <= Cap and not is_move_callback<FunT>::value, bool>::type;
@@ -106,7 +111,7 @@ using enable_if_big_capture =
 template <class R, class... Args, size_t Capacity>
 class move_callback<R(Args...), Capacity>
 {
-  static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*);
+  static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*); ///< size of buffer
   using storage_t                  = typename std::aligned_storage<capacity, alignof(std::max_align_t)>::type;
   using oper_table_t               = task_details::oper_table_t<R, Args...>;
   static constexpr task_details::empty_table_t<R, Args...> empty_table{};
@@ -114,6 +119,7 @@ class move_callback<R(Args...), Capacity>
 public:
   move_callback() noexcept : oper_ptr(&empty_table) {}
 
+  //! Called when T capture fits the move_callback buffer
   template <typename T, task_details::enable_if_small_capture<T, capacity> = true>
   move_callback(T&& function) noexcept
   {
@@ -123,6 +129,7 @@ public:
     ::new (&buffer) FunT{std::forward<T>(function)};
   }
 
+  //! Called when T capture does not fit the move_callback buffer
   template <typename T, task_details::enable_if_big_capture<T, capacity> = true>
   move_callback(T&& function)
   {
