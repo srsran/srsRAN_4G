@@ -339,9 +339,10 @@ int test_inplace_task()
   srslte::move_callback<void()> t{l0};
   srslte::move_callback<void()> t2{[v]() mutable { v = 2; }};
   // sanity static checks
-  static_assert(task_details::is_inplace_task<std::decay<decltype(t)>::type>::value, "failed check\n");
-  static_assert(std::is_base_of<std::false_type, task_details::is_inplace_task<std::decay<decltype(l0)>::type> >::value,
-                "failed check\n");
+  static_assert(task_details::is_move_callback<std::decay<decltype(t)>::type>::value, "failed check\n");
+  static_assert(
+      std::is_base_of<std::false_type, task_details::is_move_callback<std::decay<decltype(l0)>::type> >::value,
+      "failed check\n");
 
   t();
   t2();

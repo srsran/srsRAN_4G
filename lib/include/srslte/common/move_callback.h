@@ -35,83 +35,68 @@ class move_callback;
 
 namespace task_details {
 
-//! Class used to type-erase the functor/lambda capture move/call/dtor operators
 template <typename R, typename... Args>
-struct oper_table_t {
-  using call_oper_t = R (*)(void* src, Args&&... args);
-  using move_oper_t = void (*)(void* src, void* dest);
-  using dtor_oper_t = void (*)(void* src);
-
-  //! Returns a operator table for when the move_function object is empty
-  const static oper_table_t* get_empty() noexcept
-  {
-    const static oper_table_t t{true,
-                                [](void* src, Args&&... args) -> R { throw std::bad_function_call(); },
-                                [](void*, void*) {},
-                                [](void*) {}};
-    return &t;
-  }
-
-  //! Returns a operator table for when the move_function fits the small buffer
-  template <typename Func>
-  const static oper_table_t* get_small() noexcept
-  {
-    const static oper_table_t t{
-        true,
-        [](void* src, Args&&... args) -> R { return (*static_cast<Func*>(src))(std::forward<Args>(args)...); },
-        [](void* src, void* dest) -> void {
-          ::new (dest) Func{std::move(*static_cast<Func*>(src))};
-          static_cast<Func*>(src)->~Func();
-        },
-        [](void* src) -> void { static_cast<Func*>(src)->~Func(); }};
-    return &t;
-  }
-
-  //! Returns a operator table for when the move_function fits the big buffer
-  template <typename Func>
-  const static oper_table_t* get_big() noexcept
-  {
-    const static oper_table_t t{
-        false,
-        [](void* src, Args&&... args) -> R { return (**static_cast<Func**>(src))(std::forward<Args>(args)...); },
-        [](void* src, void* dest) -> void {
-          *static_cast<Func**>(dest) = *static_cast<Func**>(src);
-          *static_cast<Func**>(src)  = nullptr;
-        },
-        [](void* src) -> void { delete (*static_cast<Func**>(src)); }};
-    return &t;
-  }
-
-  oper_table_t(const oper_table_t&) = delete;
-  oper_table_t(oper_table_t&&)      = delete;
-  oper_table_t& operator=(const oper_table_t&) = delete;
-  oper_table_t& operator=(oper_table_t&&) = delete;
-  ~oper_table_t()                         = default;
-
-  const bool        is_in_buffer;
-  const call_oper_t call;
-  const move_oper_t move;
-  const dtor_oper_t dtor;
-
-private:
-  oper_table_t(bool is_in_buffer_, call_oper_t call_, move_oper_t move_, dtor_oper_t dtor_) :
-    is_in_buffer(is_in_buffer_),
-    call(call_),
-    move(move_),
-    dtor(dtor_)
-  {}
+class oper_table_t
+{
+public:
+  constexpr    oper_table_t(bool in_buffer_) : is_in_buffer(in_buffer_) {}
+  virtual R    call(void* src, Args&&... args) const = 0;
+  virtual void move(void* src, void* dest) const     = 0;
+  virtual void dtor(void* src) const                 = 0;
+  bool         is_in_buffer;
 };
 
-template <class>
-struct is_inplace_task : std::false_type {};
-template <class Sig, size_t Capacity>
-struct is_inplace_task<move_callback<Sig, Capacity> > : std::true_type {};
+template <typename R, typename... Args>
+class empty_table_t : public oper_table_t<R, Args...>
+{
+public:
+  constexpr empty_table_t() : oper_table_t<R, Args...>(true) {}
+  R         call(void* src, Args&&... args) const final { throw std::bad_function_call(); }
+  void      move(void* src, void* dest) const final {}
+  void      dtor(void* src) const final {}
+};
 
+template <typename FunT, typename R, typename... Args>
+class smallbuffer_table_t : public oper_table_t<R, Args...>
+{
+public:
+  constexpr smallbuffer_table_t() : oper_table_t<R, Args...>(true) {}
+  R    call(void* src, Args&&... args) const final { return (*static_cast<FunT*>(src))(std::forward<Args>(args)...); }
+  void move(void* src, void* dest) const final
+  {
+    ::new (dest) FunT{std::move(*static_cast<FunT*>(src))};
+    static_cast<FunT*>(src)->~FunT();
+  }
+  void dtor(void* src) const final { static_cast<FunT*>(src)->~FunT(); }
+};
+
+template <typename FunT, typename R, typename... Args>
+class heap_table_t : public oper_table_t<R, Args...>
+{
+public:
+  constexpr heap_table_t() : oper_table_t<R, Args...>(false) {}
+  R    call(void* src, Args&&... args) const final { return (**static_cast<FunT**>(src))(std::forward<Args>(args)...); }
+  void move(void* src, void* dest) const final
+  {
+    *static_cast<FunT**>(dest) = *static_cast<FunT**>(src);
+    *static_cast<FunT**>(src)  = nullptr;
+  }
+  void dtor(void* src) const final { delete (*static_cast<FunT**>(src)); }
+};
+
+//! Metafunction to check if object is move_callback<> type
+template <class>
+struct is_move_callback : std::false_type {};
+template <class Sig, size_t Capacity>
+struct is_move_callback<move_callback<Sig, Capacity> > : std::true_type {};
+
+//! metafunctions to enable/disable functions based on whether the callback fits small buffer or not
 template <typename T, size_t Cap, typename FunT = typename std::decay<T>::type>
-using enable_small_capture =
-    typename std::enable_if<sizeof(FunT) <= Cap and not is_inplace_task<FunT>::value, bool>::type;
+using enable_if_small_capture =
+    typename std::enable_if<sizeof(FunT) <= Cap and not is_move_callback<T>::value, bool>::type;
 template <typename T, size_t Cap, typename FunT = typename std::decay<T>::type>
-using enable_big_capture = typename std::enable_if < Cap<sizeof(FunT) and not is_inplace_task<FunT>::value, bool>::type;
+using enable_if_big_capture =
+    typename std::enable_if < Cap<sizeof(FunT) and not is_move_callback<T>::value, bool>::type;
 
 } // namespace task_details
 
@@ -121,30 +106,32 @@ class move_callback<R(Args...), Capacity>
   static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*);
   using storage_t                  = typename std::aligned_storage<capacity, alignof(std::max_align_t)>::type;
   using oper_table_t               = task_details::oper_table_t<R, Args...>;
+  static constexpr task_details::empty_table_t<R, Args...> empty_table{};
 
 public:
-  move_callback() noexcept { oper_ptr = oper_table_t::get_empty(); }
+  move_callback() noexcept : oper_ptr(&empty_table) {}
 
-  template <typename T, task_details::enable_small_capture<T, capacity> = true>
+  template <typename T, task_details::enable_if_small_capture<T, capacity> = true>
   move_callback(T&& function) noexcept
   {
     using FunT = typename std::decay<T>::type;
-    oper_ptr   = oper_table_t::template get_small<FunT>();
+    static const task_details::smallbuffer_table_t<FunT, R, Args...> small_oper_table{};
+    oper_ptr = &small_oper_table;
     ::new (&buffer) FunT{std::forward<T>(function)};
   }
 
-  template <typename T, task_details::enable_big_capture<T, capacity> = true>
+  template <typename T, task_details::enable_if_big_capture<T, capacity> = true>
   move_callback(T&& function)
   {
     using FunT = typename std::decay<T>::type;
-    oper_ptr   = oper_table_t::template get_big<FunT>();
-    ptr        = static_cast<void*>(new FunT{std::forward<T>(function)});
+    static const task_details::heap_table_t<FunT, R, Args...> heap_oper_table{};
+    oper_ptr = &heap_oper_table;
+    ptr      = static_cast<void*>(new FunT{std::forward<T>(function)});
   }
 
-  move_callback(move_callback&& other) noexcept
+  move_callback(move_callback&& other) noexcept : oper_ptr(other.oper_ptr)
   {
-    oper_ptr       = other.oper_ptr;
-    other.oper_ptr = oper_table_t::get_empty();
+    other.oper_ptr = &empty_table;
     oper_ptr->move(&other.buffer, &buffer);
   }
 
@@ -154,14 +141,14 @@ public:
   {
     oper_ptr->dtor(&buffer);
     oper_ptr       = other.oper_ptr;
-    other.oper_ptr = oper_table_t::get_empty();
+    other.oper_ptr = &empty_table;
     oper_ptr->move(&other.buffer, &buffer);
     return *this;
   }
 
   R operator()(Args&&... args) const noexcept { return oper_ptr->call(&buffer, std::forward<Args>(args)...); }
 
-  bool is_empty() const { return oper_ptr == oper_table_t::get_empty(); }
+  bool is_empty() const { return oper_ptr == empty_table; }
   bool is_in_small_buffer() const { return oper_ptr->is_in_buffer; }
 
   void swap(move_callback& other) noexcept
@@ -197,6 +184,9 @@ private:
   };
   const oper_table_t* oper_ptr;
 };
+
+template <typename R, typename... Args, size_t Capacity>
+constexpr task_details::empty_table_t<R, Args...> move_callback<R(Args...), Capacity>::empty_table;
 
 } // namespace srslte
 
