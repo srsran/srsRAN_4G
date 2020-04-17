@@ -35,11 +35,11 @@
 #include <SoapySDR/Version.h>
 #include <Types.h>
 
-#define HAVE_ASYNC_THREAD 1
+#define HAVE_ASYNC_THREAD 0
 
-#define STOP_STREAM_BEFORE_RATE_CHANGE 1
+#define STOP_STREAM_BEFORE_RATE_CHANGE 0
 #define USE_TX_MTU 0
-#define SET_RF_BW 1
+#define SET_RF_BW 0
 
 #define PRINT_RX_STATS 0
 #define PRINT_TX_STATS 0
@@ -615,14 +615,13 @@ double rf_soapy_set_rx_srate(void* h, double rate)
       double bw = rate * 0.75;
       bw        = SRSLTE_MIN(bw, bw_range[k].maximum);
       bw        = SRSLTE_MAX(bw, bw_range[k].minimum);
-      bw        = SRSLTE_MAX(bw, 2.5e6); // For the Lime to avoid warnings
       if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_RX, i, bw) != 0) {
         printf("setBandwidth fail: %s\n", SoapySDRDevice_lastError());
         return SRSLTE_ERROR;
       }
       printf("Set Rx bandwidth to %.2f MHz\n", SoapySDRDevice_getBandwidth(handler->device, SOAPY_SDR_RX, i) / 1e6);
     }
-#endif
+#endif // SET_RF_BW
   }
 
 #if STOP_STREAM_BEFORE_RATE_CHANGE
@@ -668,7 +667,7 @@ double rf_soapy_set_tx_srate(void* h, double rate)
       }
       printf("Set Tx bandwidth to %.2f MHz\n", SoapySDRDevice_getBandwidth(handler->device, SOAPY_SDR_TX, i) / 1e6);
     }
-#endif
+#endif // SET_RF_BW
   }
 
 #if STOP_STREAM_BEFORE_RATE_CHANGE
