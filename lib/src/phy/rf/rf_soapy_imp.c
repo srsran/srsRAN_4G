@@ -55,7 +55,6 @@ typedef struct {
   bool             rx_stream_active;
   srslte_rf_info_t info;
   double           tx_rate;
-  double           master_clock_rate;
   size_t           rx_mtu, tx_mtu;
   size_t           num_rx_channels;
   size_t           num_tx_channels;
@@ -310,7 +309,6 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     if (dev_ptr) {
       char dev_str[64] = {0};
       copy_subdev_string(dev_str, dev_ptr + strnlen(dev_arg, 64));
-      printf("Selecting Soapy device: %s\n", dev_str);
       dev_id = strtol(dev_str, NULL, 0);
       if (dev_id < 0 || dev_id > 10) {
         ERROR("Failed to set device. Using 0 as default.\n");
@@ -320,6 +318,10 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
       remove_substring(args, dev_str);
     }
   }
+
+  // select last device if dev_id exceeds available devices
+  dev_id = SRSLTE_MIN(dev_id, length - 1);
+  printf("Selecting Soapy device: %d\n", dev_id);
 
   SoapySDRDevice* sdr = SoapySDRDevice_make(&(soapy_args[dev_id]));
   if (sdr == NULL) {
