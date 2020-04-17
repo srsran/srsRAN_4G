@@ -40,6 +40,7 @@ using namespace srslte;
 #define SRSLTE_MAX_RADIOS 3
 
 static char radios_args[SRSLTE_MAX_RADIOS][64] = {"auto", "auto", "auto"};
+static char radio_device[64];
 
 log_filter  log_h;
 std::string file_pattern = "radio%d.dat";
@@ -78,6 +79,7 @@ void usage(char* prog)
   printf("\t-a Arguments for first radio [Default %s]\n", radios_args[0]);
   printf("\t-b Arguments for second radio [Default %s]\n", radios_args[1]);
   printf("\t-c Arguments for third radio [Default %s]\n", radios_args[2]);
+  printf("\t-d Radio device [Default %s]\n", radio_device);
   printf("\t-r number of radios 1-%d [Default %d]\n", SRSLTE_MAX_RADIOS, nof_radios);
   printf("\t-p number of ports 1-%d [Default %d]\n", SRSLTE_MAX_PORTS, nof_ports);
   printf("\t-s sampling rate [Default %.0f]\n", srate);
@@ -117,6 +119,10 @@ void parse_args(int argc, char** argv)
       case 'c':
         strncpy(radios_args[2], argv[optind], 63);
         radios_args[2][63] = '\0';
+        break;
+      case 'd':
+        strncpy(radio_device, argv[optind], 63);
+        radio_device[63] = '\0';
         break;
       case 'r':
         nof_radios = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -319,6 +325,7 @@ int main(int argc, char** argv)
     radio_args.nof_carriers = 1;
     radio_args.device_args  = radios_args[r];
     radio_args.rx_gain      = agc_enable ? -1 : rf_gain;
+    radio_args.device_name  = radio_device;
 
     if (radio_h[r]->init(radio_args, &phy) != SRSLTE_SUCCESS) {
       fprintf(stderr, "Error: Calling radio_multi constructor\n");
