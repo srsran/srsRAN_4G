@@ -111,7 +111,7 @@ static inline void refsignal_dl_pss_sss_strength(srslte_refsignal_dl_sync_t* q,
                                                  float*                      sss_strength,
                                                  float*                      sss_strength_false)
 {
-  uint32_t symbol_sz = q->ifft.symbol_sz;
+  uint32_t symbol_sz = q->ifft.cfg.symbol_sz;
   uint32_t cp_len0   = SRSLTE_CP_LEN_NORM(0, symbol_sz);
   uint32_t cp_len1   = SRSLTE_CP_LEN_NORM(1, symbol_sz);
 
@@ -528,7 +528,7 @@ void srslte_refsignal_dl_sync_measure_sf(srslte_refsignal_dl_sync_t* q,
   if (q) {
     cf_t* sf_sequence = q->sequences[sf_idx % SRSLTE_NOF_SF_X_FRAME];
 
-    uint32_t symbol_sz = q->ifft.symbol_sz;
+    uint32_t symbol_sz = q->ifft.cfg.symbol_sz;
     uint32_t nsymbols  = srslte_refsignal_cs_nof_symbols(&q->refsignal, &dl_sf_cfg, 0);
     uint32_t cp_len0   = SRSLTE_CP_LEN_NORM(0, symbol_sz);
     uint32_t cp_len1   = SRSLTE_CP_LEN_NORM(1, symbol_sz);

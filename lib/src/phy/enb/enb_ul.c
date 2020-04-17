@@ -47,12 +47,18 @@ int srslte_enb_ul_init(srslte_enb_ul_t* q, cf_t* in_buffer, uint32_t max_prb)
       goto clean_exit;
     }
 
-    if (srslte_ofdm_rx_init(&q->fft, SRSLTE_CP_NORM, in_buffer, q->sf_symbols, max_prb)) {
+    srslte_ofdm_cfg_t ofdm_cfg = {};
+    ofdm_cfg.nof_prb           = max_prb;
+    ofdm_cfg.in_buffer         = in_buffer;
+    ofdm_cfg.out_buffer        = q->sf_symbols;
+    ofdm_cfg.cp                = SRSLTE_CP_NORM;
+    ofdm_cfg.freq_shift_f      = -0.5f;
+    ofdm_cfg.normalize         = false;
+    ofdm_cfg.rx_window_offset  = 0.5f;
+    if (srslte_ofdm_rx_init_cfg(&q->fft, &ofdm_cfg)) {
       ERROR("Error initiating FFT\n");
       goto clean_exit;
     }
-    srslte_ofdm_set_normalize(&q->fft, false);
-    srslte_ofdm_set_freq_shift(&q->fft, -0.5);
 
     if (srslte_pucch_init_enb(&q->pucch)) {
       ERROR("Error creating PUCCH object\n");

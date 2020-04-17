@@ -84,14 +84,26 @@ int srslte_ue_dl_init(srslte_ue_dl_t* q, cf_t* in_buffer[SRSLTE_MAX_PORTS], uint
       }
     }
 
+    srslte_ofdm_cfg_t ofdm_cfg = {};
+    ofdm_cfg.nof_prb           = max_prb;
+    ofdm_cfg.cp                = SRSLTE_CP_NORM;
+    ofdm_cfg.rx_window_offset  = 0.0f;
+    ofdm_cfg.normalize         = false;
     for (int i = 0; i < nof_rx_antennas; i++) {
-      if (srslte_ofdm_rx_init(&q->fft[i], SRSLTE_CP_NORM, in_buffer[i], q->sf_symbols[i], max_prb)) {
+      ofdm_cfg.in_buffer  = in_buffer[i];
+      ofdm_cfg.out_buffer = q->sf_symbols[i];
+      ofdm_cfg.sf_type    = SRSLTE_SF_NORM;
+
+      if (srslte_ofdm_rx_init_cfg(&q->fft[i], &ofdm_cfg)) {
         ERROR("Error initiating FFT\n");
         goto clean_exit;
       }
     }
 
-    if (srslte_ofdm_rx_init_mbsfn(&q->fft_mbsfn, SRSLTE_CP_EXT, in_buffer[0], q->sf_symbols[0], max_prb)) {
+    ofdm_cfg.in_buffer  = in_buffer[0];
+    ofdm_cfg.out_buffer = q->sf_symbols[0];
+    ofdm_cfg.sf_type    = SRSLTE_SF_MBSFN;
+    if (srslte_ofdm_rx_init_cfg(&q->fft_mbsfn, &ofdm_cfg)) {
       ERROR("Error initiating FFT for MBSFN subframes \n");
       goto clean_exit;
     }

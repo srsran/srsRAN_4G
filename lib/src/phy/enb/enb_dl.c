@@ -51,14 +51,24 @@ int srslte_enb_dl_init(srslte_enb_dl_t* q, cf_t* out_buffer[SRSLTE_MAX_PORTS], u
       }
     }
 
+    srslte_ofdm_cfg_t ofdm_cfg = {};
+    ofdm_cfg.nof_prb           = max_prb;
+    ofdm_cfg.cp                = SRSLTE_CP_NORM;
+    ofdm_cfg.normalize         = false;
     for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      if (srslte_ofdm_tx_init(&q->ifft[i], SRSLTE_CP_NORM, q->sf_symbols[i], out_buffer[i], max_prb)) {
+      ofdm_cfg.in_buffer  = q->sf_symbols[i];
+      ofdm_cfg.out_buffer = out_buffer[i];
+      ofdm_cfg.sf_type    = SRSLTE_SF_NORM;
+      if (srslte_ofdm_tx_init_cfg(&q->ifft[i], &ofdm_cfg)) {
         ERROR("Error initiating FFT (%d)\n", i);
         goto clean_exit;
       }
     }
 
-    if (srslte_ofdm_tx_init_mbsfn(&q->ifft_mbsfn, SRSLTE_CP_EXT, q->sf_symbols[0], out_buffer[0], max_prb)) {
+    ofdm_cfg.in_buffer  = q->sf_symbols[0];
+    ofdm_cfg.out_buffer = out_buffer[0];
+    ofdm_cfg.sf_type    = SRSLTE_SF_MBSFN;
+    if (srslte_ofdm_tx_init_cfg(&q->ifft_mbsfn, &ofdm_cfg)) {
       ERROR("Error initiating FFT \n");
       goto clean_exit;
     }
@@ -402,13 +412,17 @@ void srslte_enb_dl_gen_signal(srslte_enb_dl_t* q)
 
   if (q->dl_sf.sf_type == SRSLTE_SF_MBSFN) {
     srslte_ofdm_tx_sf(&q->ifft_mbsfn);
-    srslte_vec_sc_prod_cfc(
-        q->ifft_mbsfn.out_buffer, norm_factor, q->ifft_mbsfn.out_buffer, (uint32_t)SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+    srslte_vec_sc_prod_cfc(q->ifft_mbsfn.cfg.out_buffer,
+                           norm_factor,
+                           q->ifft_mbsfn.cfg.out_buffer,
+                           (uint32_t)SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
   } else {
     for (int i = 0; i < q->cell.nof_ports; i++) {
       srslte_ofdm_tx_sf(&q->ifft[i]);
-      srslte_vec_sc_prod_cfc(
-          q->ifft[i].out_buffer, norm_factor, q->ifft[i].out_buffer, (uint32_t)SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+      srslte_vec_sc_prod_cfc(q->ifft[i].cfg.out_buffer,
+                             norm_factor,
+                             q->ifft[i].cfg.out_buffer,
+                             (uint32_t)SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
     }
   }
 }

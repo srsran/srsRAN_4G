@@ -53,12 +53,17 @@ int srslte_ue_ul_init(srslte_ue_ul_t* q, cf_t* out_buffer, uint32_t max_prb)
       goto clean_exit;
     }
 
-    if (srslte_ofdm_tx_init(&q->fft, SRSLTE_CP_NORM, q->sf_symbols, out_buffer, max_prb)) {
+    srslte_ofdm_cfg_t ofdm_cfg = {};
+    ofdm_cfg.nof_prb           = max_prb;
+    ofdm_cfg.in_buffer         = q->sf_symbols;
+    ofdm_cfg.out_buffer        = out_buffer;
+    ofdm_cfg.cp                = SRSLTE_CP_NORM;
+    ofdm_cfg.freq_shift_f      = 0.5f;
+    ofdm_cfg.normalize         = true;
+    if (srslte_ofdm_tx_init_cfg(&q->fft, &ofdm_cfg)) {
       ERROR("Error initiating FFT\n");
       goto clean_exit;
     }
-    srslte_ofdm_set_freq_shift(&q->fft, 0.5);
-    srslte_ofdm_set_normalize(&q->fft, true);
 
     if (srslte_cfo_init(&q->cfo, MAX_SFLEN)) {
       ERROR("Error creating CFO object\n");

@@ -26,13 +26,16 @@
 #include <strings.h>
 #include <unistd.h>
 
+#include "srslte/phy/utils/random.h"
 #include "srslte/srslte.h"
 
-int         nof_prb         = -1;
-srslte_cp_t cp              = SRSLTE_CP_NORM;
-int         nof_repetitions = 128;
-
-static double elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
+static int         nof_prb          = -1;
+static srslte_cp_t cp               = SRSLTE_CP_NORM;
+static int         nof_repetitions  = 1;
+static float       rx_window_offset = 0.5f;
+static float       freq_shift_f     = 0.0f;
+static uint32_t    force_symbol_sz  = 0;
+static double      elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
 {
   if (ts_end->tv_usec > ts_start->tv_usec) {
     return ((double)ts_end->tv_sec - (double)ts_start->tv_sec) * 1000000 + (double)ts_end->tv_usec -
@@ -43,27 +46,39 @@ static double elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
   }
 }
 
-void usage(char* prog)
+static void usage(char* prog)
 {
   printf("Usage: %s\n", prog);
-  printf("\t-n nof_prb [Default All]\n");
+  printf("\t-N Force symbol size, 0 for auto [Default %d]\n", force_symbol_sz);
+  printf("\t-n Force number of Resource blocks [Default All]\n");
   printf("\t-e extended cyclic prefix [Default Normal]\n");
   printf("\t-r nof_repetitions [Default %d]\n", nof_repetitions);
+  printf("\t-o rx window offset (portion of CP length) [Default %.1f]\n", rx_window_offset);
+  printf("\t-s frequency shift (normalised with sampling rate) [Default %.1f]\n", freq_shift_f);
 }
 
-void parse_args(int argc, char** argv)
+static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "ner")) != -1) {
+  while ((opt = getopt(argc, argv, "Nneros")) != -1) {
     switch (opt) {
       case 'n':
         nof_prb = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'N':
+        force_symbol_sz = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'e':
         cp = SRSLTE_CP_EXT;
         break;
       case 'r':
         nof_repetitions = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'o':
+        rx_window_offset = SRSLTE_MIN(1.0f, SRSLTE_MAX(0.0f, strtof(argv[optind], NULL)));
+        break;
+      case 's':
+        freq_shift_f = SRSLTE_MIN(1.0f, SRSLTE_MAX(0.0f, strtof(argv[optind], NULL)));
         break;
       default:
         usage(argv[0]);
@@ -74,100 +89,91 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  struct timeval start, end;
-  srslte_ofdm_t  fft, ifft;
-  cf_t *         input, *outfft, *outifft;
-  float          mse;
-  int            n_prb, max_prb, n_re;
-  int            i;
+  srslte_random_t random_gen = srslte_random_init(0);
+  struct timeval  start, end;
+  srslte_ofdm_t   fft = {}, ifft = {};
+  cf_t *          input, *outfft, *outifft;
+  float           mse;
+  uint32_t        n_prb, max_prb;
 
   parse_args(argc, argv);
 
   if (nof_prb == -1) {
     n_prb   = 6;
-    max_prb = 100;
+    max_prb = SRSLTE_MAX_PRB;
   } else {
-    n_prb   = nof_prb;
-    max_prb = nof_prb;
+    n_prb   = (uint32_t)nof_prb;
+    max_prb = (uint32_t)nof_prb;
   }
   while (n_prb <= max_prb) {
-    n_re = SRSLTE_CP_NSYMB(cp) * n_prb * SRSLTE_NRE;
+    uint32_t symbol_sz = (force_symbol_sz) ? force_symbol_sz : (uint32_t)srslte_symbol_sz(n_prb);
+    uint32_t n_re      = SRSLTE_CP_NSYMB(cp) * n_prb * SRSLTE_NRE * SRSLTE_NOF_SLOTS_PER_SF;
+    uint32_t sf_len    = SRSLTE_SF_LEN(symbol_sz);
 
     printf("Running test for %d PRB, %d RE... ", n_prb, n_re);
     fflush(stdout);
 
-    input = srslte_vec_cf_malloc(n_re * 2U);
-    if (!input) {
+    input   = srslte_vec_cf_malloc(n_re);
+    outfft  = srslte_vec_cf_malloc(n_re);
+    outifft = srslte_vec_cf_malloc(sf_len);
+    if (!input || !outfft || !outifft) {
       perror("malloc");
       exit(-1);
     }
-    outfft = srslte_vec_cf_malloc(n_re * 2U);
-    if (!outfft) {
-      perror("malloc");
-      exit(-1);
-    }
-    outifft = srslte_vec_cf_malloc(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * 2U);
-    if (!outifft) {
-      perror("malloc");
-      exit(-1);
-    }
-    srslte_vec_cf_zero(outifft, SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * 2);
+    srslte_vec_cf_zero(outifft, sf_len);
 
-    if (srslte_ofdm_rx_init(&fft, cp, outifft, outfft, n_prb)) {
-      ERROR("Error initializing FFT\n");
-      exit(-1);
-    }
-    srslte_ofdm_set_normalize(&fft, true);
-
-    if (srslte_ofdm_tx_init(&ifft, cp, input, outifft, n_prb)) {
+    srslte_ofdm_cfg_t ofdm_cfg = {};
+    ofdm_cfg.cp                = cp;
+    ofdm_cfg.in_buffer         = input;
+    ofdm_cfg.out_buffer        = outifft;
+    ofdm_cfg.nof_prb           = n_prb;
+    ofdm_cfg.symbol_sz         = symbol_sz;
+    ofdm_cfg.freq_shift_f      = freq_shift_f;
+    ofdm_cfg.normalize         = true;
+    if (srslte_ofdm_tx_init_cfg(&ifft, &ofdm_cfg)) {
       ERROR("Error initializing iFFT\n");
       exit(-1);
     }
-    srslte_ofdm_set_normalize(&ifft, true);
 
-    for (i = 0; i < n_re; i++) {
-      input[i] = 100 * ((float)rand() / (float)RAND_MAX + I * ((float)rand() / (float)RAND_MAX));
-      // input[i] = 100;
+    ofdm_cfg.in_buffer        = outifft;
+    ofdm_cfg.out_buffer       = outfft;
+    ofdm_cfg.rx_window_offset = rx_window_offset;
+    ofdm_cfg.freq_shift_f     = -freq_shift_f;
+    if (srslte_ofdm_rx_init_cfg(&fft, &ofdm_cfg)) {
+      ERROR("Error initializing FFT\n");
+      exit(-1);
     }
 
+    if (isnormal(freq_shift_f)) {
+      nof_repetitions = 1;
+    }
+
+    // Generate Random data
+    srslte_random_uniform_complex_dist_vector(random_gen, input, n_re, -1.0f, +1.0f);
+
+    // Execute Tx
     gettimeofday(&start, NULL);
-    for (int i = 0; i < nof_repetitions; i++) {
-      srslte_ofdm_tx_slot(&ifft, 0);
+    for (uint32_t i = 0; i < nof_repetitions; i++) {
+      srslte_ofdm_tx_sf(&ifft);
     }
     gettimeofday(&end, NULL);
-    printf(" Tx@%.1fMsps",
-           (float)(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * nof_repetitions) / elapsed_us(&start, &end));
+    printf(" Tx@%.1fMsps", (float)(sf_len * nof_repetitions) / elapsed_us(&start, &end));
 
+    // Execute Rx
     gettimeofday(&start, NULL);
-    for (int i = 0; i < nof_repetitions; i++) {
-      srslte_ofdm_rx_slot(&fft, 0);
+    for (uint32_t i = 0; i < nof_repetitions; i++) {
+      srslte_ofdm_rx_sf(&fft);
     }
     gettimeofday(&end, NULL);
-    printf(" Rx@%.1fMsps",
-           (float)(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * nof_repetitions) / elapsed_us(&start, &end));
+    printf(" Rx@%.1fMsps", (double)(sf_len * nof_repetitions) / elapsed_us(&start, &end));
 
-    /* compute MSE */
-    mse = 0.0f;
-    for (i = 0; i < n_re; i++) {
-      cf_t error = input[i] - outfft[i];
-      mse += (__real__ error * __real__ error + __imag__ error * __imag__ error) / cabsf(input[i]);
-      if (mse > 1.0f)
-        printf("%04d. %+.1f%+.1fi Vs. %+.1f%+.1f %+.1f%+.1f (mse=%f)\n",
-               i,
-               __real__ input[i],
-               __imag__ input[i],
-               __real__ outifft[i],
-               __imag__ outifft[i],
-               __real__ outfft[i],
-               __imag__ outfft[i],
-               mse);
-    }
-    /*for (i=0;i<n_re;i++) {
-      mse += cabsf(input[i] - outfft[i]);
-    }*/
+    // compute Mean Square Error
+    srslte_vec_sub_ccc(input, outfft, outfft, n_re);
+    mse = sqrtf(srslte_vec_avg_power_cf(outfft, n_re));
+
     printf(" MSE=%.6f\n", mse);
 
-    if (mse >= 0.07) {
+    if (mse >= 0.0001) {
       printf("MSE too large\n");
       exit(-1);
     }
@@ -182,6 +188,7 @@ int main(int argc, char** argv)
     n_prb++;
   }
 
+  srslte_random_free(random_gen);
 
   exit(0);
 }

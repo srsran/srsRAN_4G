@@ -197,7 +197,7 @@ public:
     }
 
     // Undo srslte_enb_dl_gen_signal scaling
-    float scale = sqrtf(cell_base.nof_prb) / 0.05f / enb_dl.ifft->symbol_sz;
+    float scale = sqrtf(cell_base.nof_prb) / 0.05f / enb_dl.ifft->cfg.symbol_sz;
 
     // Apply Neighbour cell attenuation
     if (enb_dl.cell.id != *pcis_to_simulate.begin()) {
