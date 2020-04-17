@@ -37,7 +37,10 @@ using namespace asn1::rrc;
 namespace srsenb {
 
 mac::mac() :
-  last_rnti(0), rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload(), common_buffers(SRSLTE_MAX_CARRIERS)
+  last_rnti(0),
+  rar_pdu_msg(sched_interface::MAX_RAR_LIST),
+  rar_payload(),
+  common_buffers(SRSLTE_MAX_CARRIERS)
 {
   pthread_rwlock_init(&rwlock, nullptr);
 }
@@ -445,34 +448,38 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
   return ret;
 }
 
+uint16_t mac::allocate_rnti()
+{
+  std::lock_guard<std::mutex> lock(rnti_mutex);
+
+  // Assign a c-rnti
+  uint16_t rnti = last_rnti++;
+  if (last_rnti >= 60000) {
+    last_rnti = 70;
+  }
+
+  return rnti;
+}
+
 void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
   static srslte::mutexed_tprof<srslte::avg_time_stats> rach_tprof("rach_tprof", "MAC", 1);
   log_h->step(tti);
-  uint16_t rnti;
-  auto     rach_tprof_meas = rach_tprof.start();
+  auto rach_tprof_meas = rach_tprof.start();
+
+  uint16_t rnti = allocate_rnti();
+
+  // Create new UE
+  std::unique_ptr<ue> ue_ptr{new ue(rnti, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, cells.size())};
+
+  // Set PCAP if available
+  if (pcap != nullptr) {
+    ue_ptr->start_pcap(pcap);
+  }
 
   {
     srslte::rwlock_write_guard lock(rwlock);
-
-    rnti = last_rnti;
-
-    // Create new UE
-    if (ue_db.count(rnti) == 0) {
-      ue_db[rnti] =
-          std::unique_ptr<ue>{new ue(rnti, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, cells.size())};
-    }
-
-    // Set PCAP if available
-    if (pcap != nullptr) {
-      ue_db[rnti]->start_pcap(pcap);
-    }
-
-    // Increase RNTI counter
-    last_rnti++;
-    if (last_rnti >= 60000) {
-      last_rnti = 70;
-    }
+    ue_db[rnti] = std::move(ue_ptr);
   }
 
   stack_task_queue.push([this, rnti, tti, enb_cc_idx, preamble_idx, time_adv, rach_tprof_meas]() mutable {

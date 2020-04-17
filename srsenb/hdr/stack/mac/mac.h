@@ -99,10 +99,15 @@ public:
   void
   write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override;
 
+  /* Allocate C-RNTI */
+  uint16_t allocate_rnti() final;
+
 private:
   static const int      MAX_LOCATIONS            = 20;
   static const uint32_t cfi                      = 3;
   srslte_dci_location_t locations[MAX_LOCATIONS] = {};
+
+  std::mutex rnti_mutex;
 
   // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since
   // access for different TTIs

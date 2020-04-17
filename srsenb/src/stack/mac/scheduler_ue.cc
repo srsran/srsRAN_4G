@@ -748,7 +748,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
  *
  *******************************************************/
 
-bool sched_ue::bearer_is_ul(ue_bearer_t* lch)
+bool sched_ue::bearer_is_ul(const ue_bearer_t* lch)
 {
   return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::UL ||
          lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
@@ -1186,8 +1186,8 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
     coderate         = srslte_coderate(tbs, nof_re);
     srslte_mod_t mod =
         (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs, use_tbs_index_alt);
-    Qm               = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(mod));
-    eff_coderate     = coderate / Qm;
+    Qm           = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(mod));
+    eff_coderate = coderate / Qm;
   } while ((sel_mcs > 0 && coderate > max_coderate) || eff_coderate > 0.930);
 
   if (mcs != nullptr) {
@@ -1217,8 +1217,8 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
   dl_cqi    = (ue_cc_idx == 0) ? cell_params->cfg.initial_dl_cqi : 0;
 
   // set max mcs
-  max_mcs_ul     = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
-  max_mcs_dl     = cell_params->sched_cfg->pdsch_max_mcs >= 0 ? cell_params->sched_cfg->pdsch_max_mcs : 28;
+  max_mcs_ul = cell_params->sched_cfg->pusch_max_mcs >= 0 ? cell_params->sched_cfg->pusch_max_mcs : 28;
+  max_mcs_dl = cell_params->sched_cfg->pdsch_max_mcs >= 0 ? cell_params->sched_cfg->pdsch_max_mcs : 28;
   max_mcs_dl_alt =
       cell_params->sched_cfg->pdsch_max_mcs >= 0 ? SRSLTE_MIN(cell_params->sched_cfg->pdsch_max_mcs, 27) : 27;
   max_aggr_level = cell_params->sched_cfg->max_aggr_level >= 0 ? cell_params->sched_cfg->max_aggr_level : 3;

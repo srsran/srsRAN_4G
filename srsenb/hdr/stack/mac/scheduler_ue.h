@@ -212,7 +212,7 @@ private:
                                           uint32_t               cfi,
                                           const srslte_dci_dl_t& dci);
 
-  static bool bearer_is_ul(ue_bearer_t* lch);
+  static bool bearer_is_ul(const ue_bearer_t* lch);
   static bool bearer_is_dl(const ue_bearer_t* lch);
 
   uint32_t get_pending_ul_old_data_unlocked(uint32_t cc_idx);

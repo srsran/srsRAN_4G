@@ -282,6 +282,9 @@ public:
   virtual void phy_config_enabled(uint16_t rnti, bool enabled)                                     = 0;
   virtual void
   write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) = 0;
+
+  /* Allocation of C-RNTI during HO */
+  virtual uint16_t allocate_rnti() = 0;
 };
 
 class mac_interface_rlc
@@ -487,8 +490,7 @@ public:
 
 // Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_lte : public phy_interface_mac_lte, public phy_interface_rrc_lte
-{
-};
+{};
 
 typedef struct {
   uint32_t    enb_id;  // 20-bit id (lsb bits)
@@ -524,8 +526,7 @@ public:
 
 // STACK interface for MAC
 class stack_interface_mac_lte : public srslte::task_handler_interface
-{
-};
+{};
 
 } // namespace srsenb
 
