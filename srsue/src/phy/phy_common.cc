@@ -532,6 +532,9 @@ void phy_common::worker_end(void*                tx_sem_id,
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
 
+  // Add Time Alignment
+  srslte_timestamp_sub(&tx_time, 0, ta.get_sec());
+
   // For each radio, transmit
   if (tx_enable && !srslte_timestamp_iszero(&tx_time)) {
 

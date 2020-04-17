@@ -473,7 +473,7 @@ void sync::run_thread()
 
               metrics.sfo   = srslte_ue_sync_get_sfo(&ue_sync);
               metrics.cfo   = srslte_ue_sync_get_cfo(&ue_sync);
-              metrics.ta_us = worker_com->ta.get_current_usec();
+              metrics.ta_us = worker_com->ta.get_usec();
               for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
                 worker_com->set_sync_metrics(i, metrics);
               }
@@ -860,13 +860,6 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_ti
         // Update RX gain
         intra_freq_meas[i]->set_rx_gain_offset(worker_com->rx_gain_offset);
       }
-    }
-
-    int offset = nsamples - current_sflen;
-    if (abs(offset) < 10 && offset != 0) {
-      worker_com->ta.set_pending_nsamples(offset);
-    } else if (nsamples < 10) {
-      worker_com->ta.set_pending_nsamples(nsamples);
     }
 
     log_h->debug("SYNC:  received %d samples from radio\n", nsamples);

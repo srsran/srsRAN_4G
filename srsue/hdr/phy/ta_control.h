@@ -35,9 +35,6 @@ private:
   mutable std::mutex mutex;
   uint32_t           next_base_nta    = 0;
   float              next_base_sec    = 0.0f;
-  float              current_base_sec = 0.0f;
-  float              prev_base_sec    = 0.0f;
-  int32_t            pending_nsamples = 0;
 
 public:
   /**
@@ -61,9 +58,6 @@ public:
 
     // Update base in nta
     next_base_nta = static_cast<uint32_t>(roundf(next_base_sec / SRSLTE_LTE_TS));
-
-    // Resets pending samples
-    pending_nsamples = 0;
 
     // Log information information if available
     if (log_h) {
@@ -139,42 +133,16 @@ public:
   }
 
   /**
-   * Increments/Decrements the number pending samples for next transmission
-   *
-   * @param nsamples is the number of samples
-   */
-  void set_pending_nsamples(int32_t nsamples)
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-
-    // Increment number of pending samples
-    pending_nsamples += nsamples;
-  }
-
-  /**
-   * Get the previous time alignment in seconds
-   *
-   * @return Time alignment in seconds
-   */
-  float get_previous_sec() const
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-
-    // Returns the previous base
-    return prev_base_sec;
-  }
-
-  /**
    * Get the current time alignment in seconds
    *
    * @return Time alignment in seconds
    */
-  float get_current_sec() const
+  float get_sec() const
   {
     std::lock_guard<std::mutex> lock(mutex);
 
     // Returns the current base
-    return current_base_sec;
+    return next_base_sec;
   }
 
   /**
@@ -182,12 +150,12 @@ public:
    *
    * @return Time alignment in microseconds
    */
-  float get_current_usec() const
+  float get_usec() const
   {
     std::lock_guard<std::mutex> lock(mutex);
 
     // Returns the current base
-    return current_base_sec * 1e6f;
+    return next_base_sec * 1e6f;
   }
 
   /**
@@ -195,41 +163,12 @@ public:
    *
    * @return Distance based on the current time base
    */
-  float get_current_km() const
+  float get_km() const
   {
     std::lock_guard<std::mutex> lock(mutex);
 
     // Returns the current base, one direction distance
-    return current_base_sec * (3.6f * 3e8f / 2.0f);
-  }
-
-  /**
-   * Get the total number of pending samples to transmit, considering the time difference between the next base and the
-   * current base.
-   *
-   * Attention: this method changes the internal state of the class.
-   *
-   * @return the total number of pending samples considering the sampling rate
-   */
-  int32_t get_pending_nsamples(uint32_t sampling_rate_hz)
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-
-    // Convert sampling rate to float
-    float srate = static_cast<float>(sampling_rate_hz);
-
-    // Calculate number of samples
-    int32_t nsamples = static_cast<int32_t>(roundf(srate * (current_base_sec - next_base_sec)));
-
-    // Update current base
-    prev_base_sec    = current_base_sec;
-    current_base_sec = next_base_sec;
-
-    // Reset pending samples
-    pending_nsamples = 0;
-
-    // Return number of samples
-    return nsamples;
+    return next_base_sec * (3.6f * 3e8f / 2.0f);
   }
 };
 

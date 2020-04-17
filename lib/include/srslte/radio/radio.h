@@ -334,7 +334,10 @@ private:
 
   channel_mapping rx_channel_mapping = {}, tx_channel_mapping = {};
 
-  bool map_channels(channel_mapping& map, const rf_buffer_interface& buffer, void* radio_buffers[SRSLTE_MAX_CHANNELS]);
+  bool map_channels(channel_mapping&           map,
+                    uint32_t                   sample_offset,
+                    const rf_buffer_interface& buffer,
+                    void*                      radio_buffers[SRSLTE_MAX_CHANNELS]);
   bool start_agc(bool tx_gain_same_rx = false);
   void set_tx_adv(int nsamples);
   void set_tx_adv_neg(bool tx_adv_is_neg);

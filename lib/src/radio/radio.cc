@@ -222,7 +222,7 @@ bool radio::rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, srs
   double* frac_secs = rxd_time ? &rxd_time->frac_secs : NULL;
 
   void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
-  if (!map_channels(rx_channel_mapping, buffer, radio_buffers)) {
+  if (!map_channels(rx_channel_mapping, 0, buffer, radio_buffers)) {
     log_h->error("Mapping logical channels to physical channels for transmission\n");
     return false;
   }
@@ -260,8 +260,11 @@ bool radio::has_rssi()
   return srslte_rf_has_rssi(&rf_device);
 }
 
-bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const srslte_timestamp_t& tx_time_)
+bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples_, const srslte_timestamp_t& tx_time_)
 {
+  uint32_t nof_samples   = nof_samples_;
+  uint32_t sample_offset = 0;
+
   if (!is_initialized) {
     return false;
   }
@@ -272,12 +275,32 @@ bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const s
     srslte_timestamp_add(&tx_time, 0, tx_adv_sec);
   }
 
+  // Calculate Tx gap if it is not start of the burst
+  if (not is_start_of_burst) {
+    srslte_timestamp_t tx_gap = end_of_burst_time;
+    srslte_timestamp_sub(&tx_gap, tx_time.full_secs, tx_time.frac_secs);
+    int32_t past_nsamples = (int32_t)round(cur_tx_srate * srslte_timestamp_real(&tx_gap));
+
+    // Negative gap, trimming first samples by setting a sample offset. Otherwise, ignore
+    if (past_nsamples > 0) {
+      // If the gap is larger than the amount of samples to transmit, return without doing anything else
+      if ((int32_t)nof_samples < past_nsamples) {
+        return true;
+      }
+
+      // Update transmission parameters
+      tx_time = end_of_burst_time;
+      nof_samples -= past_nsamples;
+      sample_offset = (uint32_t)past_nsamples;
+    }
+  }
+
   // Save possible end of burst time
   srslte_timestamp_copy(&end_of_burst_time, &tx_time);
   srslte_timestamp_add(&end_of_burst_time, 0, (double)nof_samples / cur_tx_srate);
 
   void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
-  if (!map_channels(rx_channel_mapping, buffer, radio_buffers)) {
+  if (!map_channels(rx_channel_mapping, sample_offset, buffer, radio_buffers)) {
     log_h->error("Mapping logical channels to physical channels for transmission\n");
     return false;
   }
@@ -285,11 +308,7 @@ bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const s
   int ret = srslte_rf_send_timed_multi(
       &rf_device, radio_buffers, nof_samples, tx_time.full_secs, tx_time.frac_secs, true, is_start_of_burst, false);
   is_start_of_burst = false;
-  if (ret > 0) {
-    return true;
-  } else {
-    return false;
-  }
+  return ret > SRSLTE_SUCCESS;
 }
 
 void radio::tx_end()
@@ -616,6 +635,7 @@ void radio::rf_msg_callback(void* arg, srslte_rf_error_t error)
 }
 
 bool radio::map_channels(channel_mapping&           map,
+                         uint32_t                   sample_offset,
                          const rf_buffer_interface& buffer,
                          void*                      radio_buffers[SRSLTE_MAX_CHANNELS])
 {
@@ -630,7 +650,7 @@ bool radio::map_channels(channel_mapping&           map,
       uint32_t physical_idx = map.get_carrier_idx(i);
       for (uint32_t j = 0; j < nof_antennas; j++) {
         if (physical_idx * nof_antennas + j < SRSLTE_MAX_CHANNELS) {
-          radio_buffers[physical_idx * nof_antennas + j] = buffer.get(i, j, nof_antennas);
+          radio_buffers[physical_idx * nof_antennas + j] = buffer.get(i, j, nof_antennas) + sample_offset;
         } else {
           return false;
         }

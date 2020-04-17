@@ -206,7 +206,6 @@ void sf_worker::work_imp()
   bool     rx_signal_ok    = false;
   bool     tx_signal_ready = false;
   uint32_t nof_samples     = SRSLTE_SF_LEN_PRB(cell.nof_prb);
-  int32_t  next_offset     = 0;
 
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -231,9 +230,6 @@ void sf_worker::work_imp()
       }
     }
 
-    // Load TA
-    next_offset = phy->ta.get_pending_nsamples(nof_samples * 1000U);
-
     /***** Uplink Generation + Transmission *******/
 
     /* If TTI+4 is an uplink subframe (TODO: Support short PRACH and SRS in UpPts special subframes) */
@@ -250,12 +246,7 @@ void sf_worker::work_imp()
           tx_signal_ready |= cc_workers[carrier_idx]->work_ul(&uci_data);
 
           // Set signal pointer based on offset
-          cf_t* b = cc_workers[carrier_idx]->get_tx_buffer(0);
-          if (next_offset > 0) {
-            tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, b);
-          } else {
-            tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, &b[-next_offset]);
-          }
+          tx_signal_ptr.set((uint32_t)carrier_idx, 0, phy->args->nof_rx_ant, cc_workers[carrier_idx]->get_tx_buffer(0));
         }
       }
     }
@@ -263,13 +254,9 @@ void sf_worker::work_imp()
 
   // Set PRACH buffer signal pointer
   if (prach_ptr) {
-    srslte_timestamp_sub(&tx_time, 0, phy->ta.get_current_sec());
     tx_signal_ready = true;
     tx_signal_ptr.set(0, prach_ptr);
     prach_ptr = nullptr;
-  } else {
-    srslte_timestamp_sub(&tx_time, 0, phy->ta.get_previous_sec());
-    nof_samples += next_offset;
   }
 
   // Call worker_end to transmit the signal
