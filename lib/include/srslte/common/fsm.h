@@ -103,15 +103,19 @@ constexpr bool is_fsm()
   return std::is_base_of<fsm_t<FSM>, FSM>::value;
 }
 template <typename FSM>
-constexpr typename std::enable_if<is_fsm<FSM>(), bool>::type is_nested_fsm()
+constexpr typename std::enable_if<is_fsm<FSM>(), bool>::type is_subfsm()
 {
-  return is_fsm<FSM>() and FSM::is_nested;
+  return FSM::is_nested;
 }
 template <typename FSM>
-constexpr typename std::enable_if<not is_fsm<FSM>(), bool>::type is_nested_fsm()
+constexpr typename std::enable_if<not is_fsm<FSM>(), bool>::type is_subfsm()
 {
   return false;
 }
+template <typename FSM>
+using enable_if_subfsm = typename std::enable_if<is_subfsm<FSM>()>::type;
+template <typename FSM>
+using disable_if_subfsm = typename std::enable_if<not is_subfsm<FSM>()>::type;
 
 struct fsm_helper {
   //! Metafunction to determine if FSM can hold given State type
@@ -120,7 +124,7 @@ struct fsm_helper {
 
   //! Call FSM/State enter method
   template <typename FSM, typename State>
-  static typename std::enable_if<is_fsm<State>()>::type call_enter(FSM* f, State* s)
+  static enable_if_subfsm<State> call_enter(FSM* f, State* s)
   {
     using init_type = typename fsm_state_list_type<State>::init_state_t;
     // set default FSM type
@@ -132,7 +136,7 @@ struct fsm_helper {
     srslte::visit(visitor, s->derived()->states);
   }
   template <typename FSM, typename State, typename... Args>
-  static typename std::enable_if<not is_fsm<State>()>::type call_enter(FSM* f, State* s)
+  static disable_if_subfsm<State> call_enter(FSM* f, State* s)
   {
     f->enter(*s);
   }
@@ -189,22 +193,19 @@ struct fsm_helper {
      * Stores True in "result" if state changed. False otherwise
      */
     template <typename CurrentState>
-    void operator()(CurrentState& s)
+    disable_if_subfsm<CurrentState> operator()(CurrentState& s)
     {
-      result = call_trigger(&s);
+      result = call_react(s);
+    }
+    template <typename CurrentState>
+    enable_if_subfsm<CurrentState> operator()(CurrentState& s)
+    {
+      // Enter here for SubFSMs
+      result = s.trigger(std::forward<Event>(ev));
       if (not result) {
         result = call_react(s);
       }
     }
-
-    //! In case it is a NestedFSM, call the trigger method
-    template <typename State>
-    typename std::enable_if<is_nested_fsm<State>(), bool>::type call_trigger(State* s)
-    {
-      return s->trigger(std::forward<Event>(ev));
-    }
-    //! In case a "trigger(Event)" method is not found
-    bool call_trigger(...) { return false; }
 
     template <typename State>
     using enable_if_react = decltype(std::declval<FSM>().react(std::declval<State&>(), std::declval<Event&&>()),

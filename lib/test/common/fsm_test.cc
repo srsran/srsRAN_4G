@@ -148,7 +148,7 @@ namespace srslte {
 namespace fsm_details {
 
 static_assert(is_fsm<fsm1>(), "invalid metafunction\n");
-static_assert(is_nested_fsm<fsm1::fsm2>(), "invalid metafunction\n");
+static_assert(is_subfsm<fsm1::fsm2>(), "invalid metafunction\n");
 static_assert(std::is_same<fsm_helper::fsm_state_list_type<fsm1>,
                            fsm1::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
               "get state list failed\n");
