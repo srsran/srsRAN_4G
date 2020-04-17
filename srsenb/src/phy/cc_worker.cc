@@ -438,9 +438,11 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
       }
 
       // Logging
-      char str[512];
-      srslte_dci_ul_info(&grants[i].dci, str, 512);
-      Info("PDCCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
+      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+        char str[512];
+        srslte_dci_ul_info(&grants[i].dci, str, 512);
+        log_h->info("PDCCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
+      }
     }
   }
   return SRSLTE_SUCCESS;
@@ -456,7 +458,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
         return SRSLTE_ERROR;
       }
 
-      if (LOG_THIS(rnti)) {
+      if (LOG_THIS(rnti) and log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
         // Logging
         char str[512];
         srslte_dci_dl_info(&grants[i].dci, str, 512);
@@ -484,9 +486,11 @@ int cc_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srs
   }
 
   // Logging
-  char str[512];
-  srslte_pdsch_tx_info(&pmch_cfg.pdsch_cfg, str, 512);
-  Info("PMCH: %s\n", str);
+  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    char str[512];
+    srslte_pdsch_tx_info(&pmch_cfg.pdsch_cfg, str, 512);
+    log_h->info("PMCH: %s\n", str);
+  }
 
   // Save metrics stats
   ue_db[SRSLTE_MRNTI]->metrics_dl(mbsfn_cfg->mbsfn_mcs);
@@ -527,11 +531,11 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
         phy->ue_db.set_ack_pending(tti_tx_ul, cc_idx, grants[i].dci);
       }
 
-      if (LOG_THIS(rnti)) {
+      if (LOG_THIS(rnti) and log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
         // Logging
         char str[512];
         srslte_pdsch_tx_info(&dl_cfg.pdsch, str, 512);
-        Info("PDSCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
+        log_h->info("PDSCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
       }
 
       // Save metrics stats

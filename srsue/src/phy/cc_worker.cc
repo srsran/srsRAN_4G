@@ -393,9 +393,11 @@ int cc_worker::decode_pdcch_dl()
       phy->set_dl_pending_grant(CURRENT_TTI, dci[k].cif_present ? dci[k].cif : cc_idx, cc_idx, &dci[k]);
 
       // Logging
-      char str[512] = {};
-      srslte_dci_dl_info(&dci[k], str, 512);
-      Info("PDCCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
+      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+        char str[512];
+        srslte_dci_dl_info(&dci[k], str, 512);
+        log_h->info("PDCCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
+      }
     }
   }
   return nof_grants;
@@ -462,9 +464,11 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
     dl_metrics.turbo_iters = pdsch_dec->avg_iterations_block / 2;
 
     // Logging
-    char str[512] = {};
-    srslte_pdsch_rx_info(&ue_dl_cfg.cfg.pdsch, pdsch_dec, str, 512);
-    Info("PDSCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
+    if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+      char str[512];
+      srslte_pdsch_rx_info(&ue_dl_cfg.cfg.pdsch, pdsch_dec, str, 512);
+      log_h->info("PDSCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
+    }
   }
 
   return SRSLTE_SUCCESS;
@@ -763,9 +767,11 @@ int cc_worker::decode_pdcch_ul()
       phy->set_ul_pending_grant(&sf_cfg_dl, cc_idx_grant, &dci[k]);
 
       // Logging
-      char str[512];
-      srslte_dci_ul_info(&dci[k], str, 512);
-      Info("PDCCH: cc=%d, %s, snr=%.1f dB\n", cc_idx_grant, str, ue_dl.chest_res.snr_db);
+      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+        char str[512];
+        srslte_dci_ul_info(&dci[k], str, 512);
+        log_h->info("PDCCH: cc=%d, %s, snr=%.1f dB\n", cc_idx_grant, str, ue_dl.chest_res.snr_db);
+      }
     }
   }
 
@@ -814,9 +820,11 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
   }
 
   // Logging
-  char str[512];
-  if (srslte_ue_ul_info(&ue_ul_cfg, &sf_cfg_ul, &data.uci, str, 512)) {
-    Info("%s\n", str);
+  if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+    char str[512];
+    if (srslte_ue_ul_info(&ue_ul_cfg, &sf_cfg_ul, &data.uci, str, 512)) {
+      log_h->info("%s\n", str);
+    }
   }
 
   return ret > 0;

@@ -1423,9 +1423,11 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
 
   if (ret == 1) {
     // Logging
-    char str[512];
-    srslte_dci_dl_info(&dci_dl, str, 512);
-    INFO("PDCCH: %s, snr=%.1f dB\n", str, q->chest_res.snr_db);
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO) {
+      char str[512];
+      srslte_dci_dl_info(&dci_dl, str, 512);
+      INFO("PDCCH: %s, snr=%.1f dB\n", str, q->chest_res.snr_db);
+    }
 
     // Force known MBSFN grant
     if (sf->sf_type == SRSLTE_SF_MBSFN) {
