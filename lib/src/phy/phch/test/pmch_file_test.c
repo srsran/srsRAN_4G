@@ -50,7 +50,7 @@ uint32_t sf_idx     = 1;
 uint8_t non_mbsfn_region = 2;
 int     mbsfn_area_id    = 1;
 
-srslte_softbuffer_rx_t softbuffer_rx;
+srslte_softbuffer_rx_t softbuffer_rx = {};
 srslte_filesource_t    fsrc;
 srslte_ue_dl_t         ue_dl;
 cf_t*                  input_buffer[SRSLTE_MAX_PORTS];
@@ -80,7 +80,7 @@ void parse_args(int argc, char** argv)
         cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
-        sf_idx = (int)strtol(argv[optind], NULL, 10);
+        sf_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'f':
         cfi = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -151,6 +151,7 @@ void base_free()
 {
   srslte_filesource_free(&fsrc);
   srslte_ue_dl_free(&ue_dl);
+  srslte_softbuffer_rx_free(&softbuffer_rx);
   free(input_buffer[0]);
 }
 

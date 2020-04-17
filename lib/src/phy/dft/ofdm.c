@@ -257,6 +257,8 @@ int srslte_ofdm_rx_init(srslte_ofdm_t* q, srslte_cp_t cp, cf_t* in_buffer, cf_t*
 
 int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t* q, srslte_cp_t cp, cf_t* in_buffer, cf_t* out_buffer, uint32_t max_prb)
 {
+  bzero(q, sizeof(srslte_ofdm_t));
+
   srslte_ofdm_cfg_t cfg = {};
   cfg.cp                = cp;
   cfg.in_buffer         = in_buffer;
@@ -283,16 +285,22 @@ int srslte_ofdm_tx_init(srslte_ofdm_t* q, srslte_cp_t cp, cf_t* in_buffer, cf_t*
 
 int srslte_ofdm_tx_init_cfg(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg)
 {
+  bzero(q, sizeof(srslte_ofdm_t));
+
   return ofdm_init_mbsfn_(q, cfg, SRSLTE_DFT_BACKWARD);
 }
 
 int srslte_ofdm_rx_init_cfg(srslte_ofdm_t* q, srslte_ofdm_cfg_t* cfg)
 {
+  bzero(q, sizeof(srslte_ofdm_t));
+
   return ofdm_init_mbsfn_(q, cfg, SRSLTE_DFT_FORWARD);
 }
 
 int srslte_ofdm_tx_init_mbsfn(srslte_ofdm_t* q, srslte_cp_t cp, cf_t* in_buffer, cf_t* out_buffer, uint32_t nof_prb)
 {
+  bzero(q, sizeof(srslte_ofdm_t));
+
   srslte_ofdm_cfg_t cfg = {};
   cfg.cp                = cp;
   cfg.in_buffer         = in_buffer;
