@@ -118,7 +118,7 @@ void parse_args(int argc, char** argv)
         }
         break;
       case 'x':
-        snr = atof(argv[optind]);
+        snr = strtof(argv[optind], NULL);
         break;
       case 'v':
         srslte_verbose++;
@@ -142,7 +142,7 @@ int base_init()
   }
 
   flen         = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.base.nof_prb)));
-  buff_ptrs[0] = malloc(flen * sizeof(cf_t));
+  buff_ptrs[0] = srslte_vec_cf_malloc(flen);
   if (!buff_ptrs[0]) {
     perror("malloc");
     exit(-1);

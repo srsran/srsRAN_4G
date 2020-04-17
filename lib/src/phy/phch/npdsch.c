@@ -209,42 +209,42 @@ int srslte_npdsch_init(srslte_npdsch_t* q)
     q->encoder.tail_biting = true;
     memcpy(q->encoder.poly, poly, 3 * sizeof(int));
 
-    q->d = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+    q->d = srslte_vec_cf_malloc(q->max_re);
     if (!q->d) {
       goto clean;
     }
     for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
-      q->ce[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->ce[i] = srslte_vec_cf_malloc(q->max_re);
       if (!q->ce[i]) {
         goto clean;
       }
       for (int k = 0; k < q->max_re / 2; k++) {
         q->ce[i][k] = 1;
       }
-      q->x[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->x[i] = srslte_vec_cf_malloc(q->max_re);
       if (!q->x[i]) {
         goto clean;
       }
-      q->symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->symbols[i] = srslte_vec_cf_malloc(q->max_re);
       if (!q->symbols[i]) {
         goto clean;
       }
-      q->sib_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * q->max_re);
+      q->sib_symbols[i] = srslte_vec_cf_malloc(q->max_re);
       if (!q->sib_symbols[i]) {
         goto clean;
       }
     }
-    q->llr = srslte_vec_malloc(sizeof(float) * q->max_re * 2);
+    q->llr = srslte_vec_f_malloc(q->max_re * 2);
     if (!q->llr) {
       goto clean;
     }
     bzero(q->llr, sizeof(float) * q->max_re * 2);
 
-    q->temp = srslte_vec_malloc(sizeof(uint8_t) * SRSLTE_NPDSCH_MAX_TBS_CRC);
+    q->temp = srslte_vec_u8_malloc(SRSLTE_NPDSCH_MAX_TBS_CRC);
     if (!q->temp) {
       goto clean;
     }
-    q->rm_b = srslte_vec_malloc(sizeof(float) * q->max_re * 2);
+    q->rm_b = srslte_vec_u8_malloc(q->max_re * 2);
     if (!q->rm_b) {
       goto clean;
     }
@@ -412,7 +412,11 @@ int srslte_npdsch_decode_rnti(srslte_npdsch_t*        q,
       }
       total_syms += cfg->nbits.nof_re;
     }
-    assert(total_syms == cfg->grant.nof_sf * cfg->nbits.nof_re);
+
+    if (total_syms != cfg->grant.nof_sf * cfg->nbits.nof_re) {
+      fprintf(stderr, "Error expecting %d symbols but got %d\n", cfg->grant.nof_sf * cfg->nbits.nof_re, total_syms);
+      return SRSLTE_ERROR;
+    }
 
 #if DUMP_SIGNALS
     if (SRSLTE_VERBOSE_ISDEBUG()) {
@@ -445,7 +449,7 @@ int srslte_npdsch_decode_rnti(srslte_npdsch_t*        q,
     // demodulate symbols
     srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, q->llr, cfg->grant.nof_sf * cfg->nbits.nof_re);
 
-#if 0
+#if DUMP_SIGNALS
     uint8_t demodbuf[320];
     hard_qpsk_demod(q->d,demodbuf,cfg->nbits.nof_re);
 
@@ -567,7 +571,7 @@ int srslte_npdsch_encode_rnti(srslte_npdsch_t*        q,
 {
   if (rnti != q->rnti) {
     srslte_sequence_t seq;
-    // FIXME: skip sequence init if cfg->is_encoded==true
+    // TODO: skip sequence init if cfg->is_encoded==true
     if (srslte_sequence_npdsch(&seq,
                                rnti,
                                0,

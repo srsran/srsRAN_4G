@@ -188,12 +188,12 @@ void parse_args(int argc, char** argv)
 void base_init()
 {
   // init memory
-  sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
+  sf_buffer = srslte_vec_cf_malloc(sf_n_re);
   if (!sf_buffer) {
     perror("malloc");
     exit(-1);
   }
-  output_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_samples);
+  output_buffer = srslte_vec_cf_malloc(sf_n_samples);
   if (!output_buffer) {
     perror("malloc");
     exit(-1);
@@ -681,16 +681,10 @@ int main(int argc, char** argv)
 
       if (output_file_name && snr != -100.0) {
         // compute average energy per symbol
-        float abs[sf_n_samples];
-        srslte_vec_abs_square_cf(output_buffer, abs, sf_n_samples);
-        float abs_avg = 0;
-        for (int i = 0; i < sf_n_samples; i++) {
-          abs_avg += abs[i];
-        }
-        abs_avg /= sf_n_samples;
+        float abs_avg = srslte_vec_avg_power_cf(output_buffer, sf_n_samples);
 
         // find the noise spectral density
-        float snr_lin = powf(10.0f, snr / 10);
+        float snr_lin = srslte_convert_dB_to_power(snr);
         float n0      = abs_avg / snr_lin;
         float nstd    = sqrtf(n0 / 2);
 

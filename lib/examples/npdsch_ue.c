@@ -312,10 +312,12 @@ static char mib_buffer_disp[MAX_MSG_BUF], mib_buffer_decode[MAX_MSG_BUF];
 static char sib1_buffer_disp[MAX_MSG_BUF], sib1_buffer_decode[MAX_MSG_BUF];
 static char sib2_buffer_disp[MAX_MSG_BUF], sib2_buffer_decode[MAX_MSG_BUF];
 
+#if HAVE_RSRP_PLOT
 #define RSRP_TABLE_MAX_IDX 1024
 static float    rsrp_table[RSRP_TABLE_MAX_IDX];
 static uint32_t rsrp_table_index = 0;
 static uint32_t rsrp_num_plot    = RSRP_TABLE_MAX_IDX;
+#endif // HAVE_RSRP_PLOT
 #endif // ENABLE_GUI
 
 uint32_t sfn = 0; // system frame number
@@ -400,18 +402,18 @@ int main(int argc, char** argv)
       float               nsss_peak_value;
       int                 input_len = srate * 10 / 1000 * 2; // capture two full frames to make sure we have one NSSS
 
-      cf_t* buffer = malloc(sizeof(cf_t) * input_len * 2);
+      cf_t* buffer = srslte_vec_cf_malloc(input_len * 2);
       if (!buffer) {
         perror("malloc");
         exit(-1);
       }
 
-      if (srslte_nsss_synch_init(&nsss, cell, input_len, srate / 15000)) {
+      if (srslte_nsss_synch_init(&nsss, input_len, srate / 15000)) {
         fprintf(stderr, "Error initializing NSSS object\n");
         exit(-1);
       }
 
-      srslte_rf_start_rx_stream(&rf);
+      srslte_rf_start_rx_stream(&rf, false);
       n = srslte_rf_recv(&rf, buffer, input_len, 1);
       if (n != input_len) {
         fprintf(stderr, "Error receiving samples\n");
@@ -423,7 +425,7 @@ int main(int argc, char** argv)
       printf("Detecting NSSS signal .. ");
       fflush(stdout);
       uint32_t sfn_partial;
-      srslte_nsss_sync_find(&nsss, buffer, &nsss_peak_value, (int*)&cell.n_id_ncell, &sfn_partial);
+      srslte_nsss_sync_find(&nsss, buffer, &nsss_peak_value, (uint32_t*)&cell.n_id_ncell, &sfn_partial);
       printf("done!");
       srslte_nsss_synch_free(&nsss);
       free(buffer);
