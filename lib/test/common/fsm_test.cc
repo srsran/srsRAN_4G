@@ -61,7 +61,7 @@ public:
     void exit(state_inner2& s) { log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(s).c_str()); }
 
     // FSM2 transitions
-    auto react(state_inner& s, ev1 e) -> srslte::same_state;
+    auto react(state_inner& s, ev1 e) -> to_state<state_inner>;
     auto react(state_inner& s, ev2 e) -> to_state<state_inner2>;
     auto react(state_inner2& s, ev2 e) -> to_state<state1>;
 
@@ -107,7 +107,7 @@ void fsm1::enter(state1& s)
 }
 
 // FSM event handlers
-auto fsm1::fsm2::react(state_inner& s, ev1) -> srslte::same_state
+auto fsm1::fsm2::react(state_inner& s, ev1) -> to_state<state_inner>
 {
   log_h->info("fsm2::state_inner::react called\n");
   return {};
@@ -125,13 +125,13 @@ auto fsm1::fsm2::react(state_inner2& s, ev2) -> to_state<state1>
   return {};
 }
 
-auto fsm1::react(idle_st& s, ev1 e) -> srslte::to_state<state1>
+auto fsm1::react(idle_st& s, ev1 e) -> to_state<state1>
 {
   log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
   foo(e);
   return {};
 }
-auto fsm1::react(state1& s, ev1) -> srslte::to_state<fsm2>
+auto fsm1::react(state1& s, ev1) -> to_state<fsm2>
 {
   log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
   return {};
@@ -246,7 +246,7 @@ protected:
 
   // example of uncaught event handling
   template <typename State>
-  srslte::same_state react(State& s, int e)
+  to_state<State> react(State& s, int e)
   {
     log_h->info("I dont know how to handle an \"int\" event\n");
     return {};
@@ -342,7 +342,6 @@ protected:
   // on power-off go to deregistered state. Disable react if we are already in deregistered
   template <typename AnyState>
   auto react(AnyState& s, power_off_ev ev) -> to_state<emm_deregistered>;
-  auto react(emm_deregistered& s, power_off_ev ev) -> srslte::same_state { return {}; }
 
   state_list<emm_null_st,
              emm_deregistered,

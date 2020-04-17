@@ -54,9 +54,6 @@ struct to_states {
   size_t state_idx;
 };
 
-//! Return for when there is no state transition
-struct same_state {};
-
 //! Forward declaration
 template <typename Derived>
 class fsm_t;
@@ -81,15 +78,6 @@ struct to_state_visitor {
   void       operator()();
   FSM*       f;
   PrevState* p;
-};
-
-//! Visitor to call current state enter method for a given FSM
-template <typename FSM>
-struct enter_visitor {
-  explicit enter_visitor(FSM* f_) : f(f_) {}
-  template <typename State>
-  void operator()(State&& s);
-  FSM* f;
 };
 
 //! Helper metafunctions
@@ -132,8 +120,7 @@ struct fsm_helper {
     // call FSM enter function
     f->enter(*s);
     // call initial substate enter
-    fsm_details::enter_visitor<typename State::derived_view> visitor{s->derived()};
-    srslte::visit(visitor, s->derived()->states);
+    call_enter(s->derived(), &s->derived()->states.template get_unchecked<init_type>());
   }
   template <typename FSM, typename State, typename... Args>
   static disable_if_subfsm<State> call_enter(FSM* f, State* s)
@@ -141,17 +128,6 @@ struct fsm_helper {
     f->enter(*s);
   }
 
-  //! Stayed in same state
-  template <typename FSM, typename PrevState>
-  static void handle_state_change(FSM* f, same_state* s, PrevState* p)
-  {
-    // do nothing
-  }
-  template <typename FSM, typename PrevState>
-  static void handle_state_change(FSM* f, to_state<same_state>* s, PrevState* p)
-  {
-    // do nothing
-  }
   //! TargetState is type-erased (a choice). Apply its stored type to the fsm current state
   template <typename FSM, typename... Args, typename PrevState>
   static void handle_state_change(FSM* f, to_states<Args...>* s, PrevState* p)
@@ -163,7 +139,12 @@ struct fsm_helper {
   template <typename FSM, typename State, typename PrevState>
   static auto handle_state_change(FSM* f, to_state<State>* s, PrevState* p) -> enable_if_fsm_state<FSM, State>
   {
-    static_assert(not std::is_same<State, PrevState>::value, "State cannot transition to itself.\n");
+    if (std::is_same<State, PrevState>::value) {
+      f->log_h->info("FSM \"%s\": No transition occurred while in state \"%s\"\n",
+                     get_type_name<typename FSM::derived_t>().c_str(),
+                     get_type_name<State>().c_str());
+      return;
+    }
     f->exit(f->states.template get_unchecked<PrevState>());
     f->states.template transit<State>();
     f->log_h->info("FSM \"%s\": Detected transition \"%s\" -> \"%s\"",
@@ -239,13 +220,6 @@ void to_state_visitor<FSM, PrevState>::operator()()
   fsm_helper::handle_state_change(f, &t, p);
 }
 
-template <typename FSM>
-template <typename State>
-void enter_visitor<FSM>::operator()(State&& s)
-{
-  fsm_helper::call_enter(f, &s);
-}
-
 } // namespace fsm_details
 
 //! Gets the typename currently stored in the choice_t
@@ -295,6 +269,7 @@ public:
   struct state_list : public std::tuple<States...> {
     using tuple_base_t = std::tuple<States...>;
     using init_state_t = typename std::decay<decltype(std::get<0>(std::declval<tuple_base_t>()))>::type;
+    static_assert(not type_list_contains<Derived, States...>(), "An FSM cannot contain itself as state\n");
 
     template <typename... Args>
     state_list(fsm_t<Derived>* f, Args&&... args) : tuple_base_t(std::forward<Args>(args)...)
@@ -490,7 +465,7 @@ protected:
   using fsm_t<Derived>::exit;
 
   template <typename State>
-  auto react(State&, srslte::proc_launch_ev<int*> e) -> srslte::same_state
+  auto react(State&, srslte::proc_launch_ev<int*> e) -> to_state<State>
   {
     log_h->warning("Unhandled event \"launch\" caught when procedure is already running\n");
     return {};
