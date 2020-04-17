@@ -140,9 +140,14 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
         // New carrier needs to be added
         carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx);
       } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
-        // TODO: Check if this will ever happen.
         // One carrier was added in the place of another
         carriers[ue_idx] = sched_ue_carrier{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
+        if (ue_idx == 0) {
+          // PCell was changed possibly due to handover. Schedule a new ConRes CE to be transmitted after the Msg3
+          conres_ce_pending = true;
+          lch[0].buf_tx     = std::max(lch[0].buf_tx, 1); // TODO: find a cleaner way to schedule conres CE
+          log_h->info("SCHED: PCell has changed. ConRes CE scheduled\n");
+        }
       } else {
         // The SCell internal configuration may have changed
         carriers[ue_idx].set_cfg(cfg);
