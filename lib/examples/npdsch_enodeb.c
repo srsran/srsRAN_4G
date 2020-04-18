@@ -52,7 +52,7 @@ const uint8_t dummy_sib1_payload[] = {0x43, 0x4d, 0xd0, 0x92, 0x22, 0x06, 0x04, 
 #include "srslte/phy/rf/rf.h"
 srslte_rf_t rf;
 #else
-#warning Compiling npdsch_ue with no RF support
+#pragma message "Compiling npdsch_ue with no RF support"
 #endif
 
 char* output_file_name = NULL;
