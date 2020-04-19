@@ -546,7 +546,7 @@ int main(int argc, char** argv)
             if (n < 0) {
               fprintf(stderr, "Error decoding UE MIB\n");
               exit(-1);
-            } else if (n == SRSLTE_UE_MIB_FOUND) {
+            } else if (n == SRSLTE_UE_MIB_NBIOT_FOUND) {
               printf("MIB received (CFO: %+6.2f kHz)\n", srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000);
               srslte_mib_nb_t mib;
               srslte_npbch_mib_unpack(bch_payload, &mib);
