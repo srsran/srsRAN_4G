@@ -31,6 +31,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include "npdsch_ue_helper.h"
 #include "srslte/phy/ch_estimation/chest_dl_nbiot.h"
 #include "srslte/phy/channel/ch_awgn.h"
 #include "srslte/phy/io/filesink.h"
@@ -78,15 +79,6 @@ bool      plot_track  = true;
 //#define CORRECT_SAMPLE_OFFSET
 
 static srslte_nbiot_si_params_t sib2_params;
-extern int get_sib2_params(const uint8_t* sib1_payload, const uint32_t len, srslte_nbiot_si_params_t* sib2_params);
-extern int bcch_bch_to_pretty_string(const uint8_t* bcch_bch_payload,
-                                     const uint32_t input_len,
-                                     char*          output,
-                                     const uint32_t max_output_len);
-extern int bcch_dl_sch_to_pretty_string(const uint8_t* bcch_dl_sch_payload,
-                                        const uint32_t input_len,
-                                        char*          output,
-                                        const uint32_t max_output_len);
 
 /**********************************************************************
  *  Program arguments processing

@@ -19,13 +19,9 @@
  *
  */
 
+#include "npdsch_ue_helper.h"
 #include "srslte/asn1/rrc_asn1_nbiot.h"
-#include "srslte/phy/phch/ra_nbiot.h"
-#include "srslte/phy/utils/vector.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "srslte/phy/utils/vector.h" // for SRSLTE_MIN
 
 int get_sib2_params(const uint8_t* sib1_payload, const uint32_t len, srslte_nbiot_si_params_t* sib2_params)
 {
@@ -35,6 +31,10 @@ int get_sib2_params(const uint8_t* sib1_payload, const uint32_t len, srslte_nbio
   asn1::rrc::bcch_dl_sch_msg_nb_s dlsch_msg;
   asn1::cbit_ref                  dlsch_bref(sib1_payload, len);
   asn1::SRSASN_CODE               err = dlsch_msg.unpack(dlsch_bref);
+  if (err != asn1::SRSASN_SUCCESS) {
+    fprintf(stderr, "Error unpacking DL-SCH message\n");
+    return SRSLTE_ERROR;
+  }
 
   // set SIB2-NB parameters
   sib2_params->n              = 1;
@@ -61,6 +61,10 @@ int bcch_bch_to_pretty_string(const uint8_t* bcch_bch_payload,
   asn1::rrc::bcch_bch_msg_nb_s bch_msg;
   asn1::cbit_ref               bch_bref(bcch_bch_payload, input_len);
   asn1::SRSASN_CODE            err = bch_msg.unpack(bch_bref);
+  if (err != asn1::SRSASN_SUCCESS) {
+    fprintf(stderr, "Error unpacking BCCH message\n");
+    return SRSLTE_ERROR;
+  }
 
   asn1::json_writer json_writer;
   bch_msg.to_json(json_writer);
@@ -82,6 +86,10 @@ int bcch_dl_sch_to_pretty_string(const uint8_t* bcch_dl_sch_payload,
   asn1::rrc::bcch_dl_sch_msg_nb_s dlsch_msg;
   asn1::cbit_ref                  dlsch_bref(bcch_dl_sch_payload, input_len);
   asn1::SRSASN_CODE               err = dlsch_msg.unpack(dlsch_bref);
+  if (err != asn1::SRSASN_SUCCESS) {
+    fprintf(stderr, "Error unpacking DL-SCH message\n");
+    return SRSLTE_ERROR;
+  }
 
   asn1::json_writer json_writer;
   dlsch_msg.to_json(json_writer);
@@ -91,7 +99,3 @@ int bcch_dl_sch_to_pretty_string(const uint8_t* bcch_dl_sch_payload,
 
   return SRSLTE_SUCCESS;
 }
-
-#ifdef __cplusplus
-}
-#endif

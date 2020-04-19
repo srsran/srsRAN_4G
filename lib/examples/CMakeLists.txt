@@ -53,7 +53,7 @@ else(RF_FOUND)
   add_executable(npdsch_enodeb npdsch_enodeb.c)
   target_link_libraries(npdsch_enodeb srslte_phy pthread)
 
-  add_executable(npdsch_ue npdsch_ue.c)
+  add_executable(npdsch_ue npdsch_ue.c npdsch_ue_helper.cc)
   target_link_libraries(npdsch_ue srslte_common srslte_phy pthread rrc_asn1)
 endif(RF_FOUND)
 
