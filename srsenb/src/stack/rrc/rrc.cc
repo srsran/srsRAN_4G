@@ -1639,6 +1639,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   current_sched_ue_cfg.pucch_cfg.n_rb_2            = sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
   current_sched_ue_cfg.pucch_cfg.N_pucch_1         = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
   current_sched_ue_cfg.dl_ant_info                 = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
+  current_sched_ue_cfg.conn_state                  = sched_interface::ue_cfg_t::ue_id_rx;
 
   // Configure MAC
   parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);

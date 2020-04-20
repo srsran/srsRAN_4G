@@ -107,56 +107,62 @@ void sched_ue::init(uint16_t rnti_, const std::vector<sched_cell_params_t>& cell
 
 void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
-  {
-    // for the first configured cc, set it as primary cc
-    if (cfg.supported_cc_list.empty()) {
-      uint32_t primary_cc_idx = 0;
-      if (not cfg_.supported_cc_list.empty()) {
-        primary_cc_idx = cfg_.supported_cc_list[0].enb_cc_idx;
-      } else {
-        Warning("Primary cc idx not provided in scheduler ue_cfg. Defaulting to cc_idx=0\n");
+  // for the first configured cc, set it as primary cc
+  if (cfg.supported_cc_list.empty()) {
+    uint32_t primary_cc_idx = 0;
+    if (not cfg_.supported_cc_list.empty()) {
+      primary_cc_idx = cfg_.supported_cc_list[0].enb_cc_idx;
+    } else {
+      Warning("Primary cc idx not provided in scheduler ue_cfg. Defaulting to cc_idx=0\n");
+    }
+    // setup primary cc
+    main_cc_params = &(*cell_params_list)[primary_cc_idx];
+    cell           = main_cc_params->cfg.cell;
+    max_msg3retx   = main_cc_params->cfg.maxharq_msg3tx;
+  }
+
+  // update configuration
+  std::vector<sched::ue_cfg_t::cc_cfg_t> prev_supported_cc_list = std::move(cfg.supported_cc_list);
+  sched::ue_cfg_t::conn_state_t          prev_state             = cfg.conn_state;
+  cfg                                                           = cfg_;
+
+  // update in connection state detected
+  if (prev_state != cfg.conn_state) {
+    if (cfg.conn_state == sched_interface::ue_cfg_t::ue_id_rx) {
+      conres_state = ra_state_t::conres_sched_pending;
+    }
+  }
+
+  // update bearer cfgs
+  for (uint32_t i = 0; i < sched_interface::MAX_LC; ++i) {
+    set_bearer_cfg_unlocked(i, cfg.ue_bearers[i]);
+  }
+
+  // either add a new carrier, or reconfigure existing one
+  bool scell_activation_state_changed = false;
+  for (uint32_t ue_idx = 0; ue_idx < cfg.supported_cc_list.size(); ++ue_idx) {
+    auto& cc_cfg = cfg.supported_cc_list[ue_idx];
+
+    if (ue_idx >= prev_supported_cc_list.size()) {
+      // New carrier needs to be added
+      carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx);
+    } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
+      // One carrier was added in the place of another
+      carriers[ue_idx] = sched_ue_carrier{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
+      if (ue_idx == 0) {
+        // PCell was changed possibly due to handover. Schedule a new ConRes CE to be transmitted after the Msg3
+        conres_state = ra_state_t::conres_sched_pending;
+        log_h->info("SCHED: PCell has changed for rnti=0x%x. ConRes CE scheduled\n", rnti);
       }
-      // setup primary cc
-      main_cc_params = &(*cell_params_list)[primary_cc_idx];
-      cell           = main_cc_params->cfg.cell;
-      max_msg3retx   = main_cc_params->cfg.maxharq_msg3tx;
+    } else {
+      // The SCell internal configuration may have changed
+      carriers[ue_idx].set_cfg(cfg);
     }
-
-    // update configuration
-    std::vector<sched::ue_cfg_t::cc_cfg_t> prev_supported_cc_list = std::move(cfg.supported_cc_list);
-    cfg                                                           = cfg_;
-
-    // update bearer cfgs
-    for (uint32_t i = 0; i < sched_interface::MAX_LC; ++i) {
-      set_bearer_cfg_unlocked(i, cfg.ue_bearers[i]);
-    }
-
-    // either add a new carrier, or reconfigure existing one
-    bool scell_activation_state_changed = false;
-    for (uint32_t ue_idx = 0; ue_idx < cfg.supported_cc_list.size(); ++ue_idx) {
-      auto& cc_cfg = cfg.supported_cc_list[ue_idx];
-
-      if (ue_idx >= prev_supported_cc_list.size()) {
-        // New carrier needs to be added
-        carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx);
-      } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
-        // One carrier was added in the place of another
-        carriers[ue_idx] = sched_ue_carrier{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
-        if (ue_idx == 0) {
-          // PCell was changed possibly due to handover. Schedule a new ConRes CE to be transmitted after the Msg3
-          conres_state = ra_state_t::conres_sched_pending;
-          log_h->info("SCHED: PCell has changed. ConRes CE scheduled\n");
-        }
-      } else {
-        // The SCell internal configuration may have changed
-        carriers[ue_idx].set_cfg(cfg);
-      }
-      scell_activation_state_changed |= carriers[ue_idx].is_active() != cc_cfg.active and ue_idx > 0;
-    }
-    if (scell_activation_state_changed) {
-      pending_ces.emplace_back(srslte::sch_subh::SCELL_ACTIVATION);
-      log_h->info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x\n", rnti);
-    }
+    scell_activation_state_changed |= carriers[ue_idx].is_active() != cc_cfg.active and ue_idx > 0;
+  }
+  if (scell_activation_state_changed) {
+    pending_ces.emplace_back(srslte::sch_subh::SCELL_ACTIVATION);
+    log_h->info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x\n", rnti);
   }
 }
 
@@ -308,10 +314,6 @@ void sched_ue::set_ul_crc(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool cr
     auto ret = carriers[p.second].harq_ent.set_ul_crc(tti_rx, 0, crc_res);
     if (not ret.first) {
       log_h->warning("Received UL CRC for invalid tti_rx=%d\n", (int)tti_rx.to_uint());
-    } else {
-      if (conres_state == ra_state_t::wait_msg3_ack and ret.second == msg3_pid and crc_res) {
-        conres_state = ra_state_t::conres_sched_pending;
-      }
     }
   } else {
     log_h->warning("Received UL CRC for invalid cell index %d\n", enb_cc_idx);
@@ -1095,12 +1097,6 @@ std::pair<bool, uint32_t> sched_ue::get_cell_index(uint32_t enb_cc_idx) const
 uint32_t sched_ue::get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits)
 {
   return carriers[ue_cc_idx].get_aggr_level(nof_bits);
-}
-
-void sched_ue::sched_conres_ce(uint32_t msg3_tti_tx_ul)
-{
-  msg3_pid     = carriers[0].harq_ent.get_ul_harq(msg3_tti_tx_ul)->get_id();
-  conres_state = ra_state_t::wait_msg3_ack;
 }
 
 void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)

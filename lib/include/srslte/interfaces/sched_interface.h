@@ -144,6 +144,7 @@ public:
     std::vector<cc_cfg_t>               supported_cc_list; ///< list of UE supported CCs. First index for PCell
     ant_info_ded_t                      dl_ant_info;
     bool                                use_tbs_index_alt = false;
+    enum conn_state_t { none, ue_id_rx } conn_state       = none;
   };
 
   typedef struct {

@@ -139,8 +139,7 @@ ra_sched::ra_sched(const sched_cell_params_t& cfg_, std::map<uint16_t, sched_ue>
   cc_cfg(&cfg_),
   log_h(srslte::logmap::get("MAC")),
   ue_db(&ue_db_)
-{
-}
+{}
 
 // Schedules RAR
 // On every call to this function, we schedule the oldest RAR which is still within the window. If outside the window we
@@ -242,7 +241,6 @@ void ra_sched::ul_sched(sf_sched* sf_dl_sched, sf_sched* sf_msg3_sched)
       auto     user_it = ue_db->find(crnti);
       if (user_it != ue_db->end() and sf_msg3_sched->alloc_msg3(&user_it->second, msg3grant)) {
         log_h->debug("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n", crnti, sf_msg3_sched->get_tti_tx_ul());
-        user_it->second.sched_conres_ce(sf_msg3_sched->get_tti_tx_ul());
       } else {
         log_h->error("SCHED: Failed to allocate Msg3 for rnti=0x%x at tti=%d\n", crnti, sf_msg3_sched->get_tti_tx_ul());
       }

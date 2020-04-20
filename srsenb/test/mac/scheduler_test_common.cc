@@ -871,7 +871,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       rem_user(ue_ev.rnti);
     }
 
-    // configure carriers
+    // configure bearers
     if (ue_ev.bearer_cfg != nullptr) {
       CONDERROR(not ue_tester->user_exists(ue_ev.rnti), "User rnti=0x%x does not exist\n", ue_ev.rnti);
       // TODO: Instantiate more bearers
@@ -886,6 +886,10 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       if (pending_dl_new_data == 0) {
         uint32_t lcid = 0; // Use SRB0 to schedule Msg4
         dl_rlc_buffer_state(ue_ev.rnti, lcid, 50, 0);
+        auto current_ue_cfg       = *get_current_ue_cfg(ue_ev.rnti);
+        current_ue_cfg.conn_state = ue_cfg_t::ue_id_rx;
+        TESTASSERT(ue_cfg(ue_ev.rnti, current_ue_cfg) == SRSLTE_SUCCESS);
+        ue_tester->user_reconf(ue_ev.rnti, current_ue_cfg);
       } else {
         // Let SRB0 Msg4 get fully transmitted
       }

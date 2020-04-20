@@ -126,7 +126,6 @@ public:
   std::pair<bool, uint32_t>        get_cell_index(uint32_t enb_cc_idx) const;
   const sched_interface::ue_cfg_t& get_ue_cfg() const { return cfg; }
   uint32_t                         get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits);
-  void                             sched_conres_ce(uint32_t msg3_tti_tx_ul);
 
   /*******************************************************
    * Functions used by scheduler metric objects
@@ -267,9 +266,7 @@ private:
     wait_msg3_ack,
     conres_sched_pending,
     conres_sent
-  } conres_state    = ra_state_t::msg3_sched_pending;
-  uint32_t msg3_pid = 0;
-
+  } conres_state     = ra_state_t::msg3_sched_pending;
   int next_tpc_pusch = 0;
   int next_tpc_pucch = 0;
 
