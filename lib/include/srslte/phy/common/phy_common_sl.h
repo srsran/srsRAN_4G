@@ -57,6 +57,7 @@ typedef struct SRSLTE_API {
   srslte_cp_t    cp;
 } srslte_cell_sl_t;
 
+#define SRSLTE_SL_MAX_PERIOD_LENGTH 320 // SL-PeriodComm-r12 3GPP TS 36.331 Section 6.3.8
 // SL-CommResourcePool: 3GPP TS 36.331 version 15.6.0 Release 15 Section 6.3.8
 typedef struct SRSLTE_API {
   uint32_t period_length;
@@ -65,10 +66,16 @@ typedef struct SRSLTE_API {
   uint32_t prb_start;
   uint32_t prb_end;
 
+  uint8_t pscch_sf_bitmap[SRSLTE_SL_MAX_PERIOD_LENGTH];
+  uint8_t pssch_sf_bitmap[SRSLTE_SL_MAX_PERIOD_LENGTH];
+
   uint32_t size_sub_channel;      // sizeSubchannel-r14
   uint32_t num_sub_channel;       // numSubchannel-r14
   uint32_t start_prb_sub_channel; // startRB-Subchannel-r14 offset
   bool     adjacency_pscch_pssch; // adjacencyPSCCH-PSSCH-r14
+
+  uint32_t sf_bitmap_tm34_len;
+  uint8_t  sf_bitmap_tm34[SRSLTE_SL_MAX_PERIOD_LENGTH]; // sl_Subframe_r14: 3GPP 36.331 Section 6.3.8
 } srslte_sl_comm_resource_pool_t;
 
 typedef enum SRSLTE_API {
@@ -80,6 +87,10 @@ typedef enum SRSLTE_API {
 
 #define SRSLTE_SL_DUPLEX_MODE_FDD (1)
 #define SRSLTE_SL_DUPLEX_MODE_TDD (2)
+
+#define SRSLTE_SLSS_SIDE_PEAK_OFFSET (0.005f)
+#define SRSLTE_SLSS_SIDE_PEAK_THRESHOLD_HIGH (0.49f) // square(0.7), max 70% of main peak
+#define SRSLTE_SLSS_SIDE_PEAK_THRESHOLD_LOW (0.09f)  // square(0.3), min 30% of main peak
 
 #define SRSLTE_PSBCH_NOF_PRB (6)
 #define SRSLTE_PSCCH_TM34_NOF_PRB (2)
@@ -124,9 +135,11 @@ typedef enum SRSLTE_API {
   (SRSLTE_NRE * SRSLTE_PSCCH_TM34_NUM_DATA_SYMBOLS * SRSLTE_PSCCH_TM34_NOF_PRB * SRSLTE_PSCCH_QM)
 #define SRSLTE_PSCCH_MAX_CODED_BITS SRSLTE_MAX(SRSLTE_PSCCH_TM12_NOF_CODED_BITS, SRSLTE_PSCCH_TM34_NOF_CODED_BITS)
 
+#define SRSLTE_PSSCH_MAX_QM 6
 #define SRSLTE_PSSCH_CRC_LEN 24
 #define SRSLTE_MAX_CODEWORD_LEN 168000   // 12 subcarriers * 100 PRB * 14 symbols * 10 bits, assuming 1024QAM
 #define SRSLTE_SL_SCH_MAX_TB_LEN 1000000 // Must be checked in 3GPP
+#define SRSLTE_PSSCH_MAX_CODED_BITS (3 * SRSLTE_TCOD_MAX_LEN_CB + SRSLTE_TCOD_TOTALTAIL)
 
 #define SRSLTE_PSSCH_TM12_NUM_DATA_SYMBOLS (12) // PSSCH is in 12 OFDM symbols (but only 11 are tx'ed)
 #define SRSLTE_PSSCH_TM12_NUM_DMRS_SYMBOLS (2)  // PSSCH has 2 DMRS symbols in TM1 and TM2
@@ -141,6 +154,14 @@ typedef enum SRSLTE_API {
 
 SRSLTE_API int srslte_sl_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME * 2], uint32_t N_x_id);
 #define SRSLTE_PSCCH_MAX_NUM_DATA_SYMBOLS (SRSLTE_PSCCH_TM12_NUM_DATA_SYMBOLS)
+
+SRSLTE_API bool srslte_slss_side_peak_pos_is_valid(uint32_t side_peak_pos,
+                                                   uint32_t main_peak_pos,
+                                                   uint32_t side_peak_delta_a,
+                                                   uint32_t side_peak_delta_b);
+SRSLTE_API bool srslte_slss_side_peak_value_is_valid(float side_peak_value, float threshold_low, float threshold_high);
+
+SRSLTE_API int srslte_sl_tm_to_cell_sl_tm_t(srslte_cell_sl_t* q, uint32_t tm);
 
 SRSLTE_API int  srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp);
 SRSLTE_API bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);

@@ -88,43 +88,72 @@ add_test(pscch_test_tm4_p50 pscch_test -p 50 -t 4)
 add_test(pscch_test_tm4_p75 pscch_test -p 75 -t 4)
 add_test(pscch_test_tm4_p100 pscch_test -p 100 -t 4)
 
-add_executable(pscch_file_test pscch_file_test.c)
-target_link_libraries(pscch_file_test srslte_phy)
+########################################################################
+# PSSCH TEST
+########################################################################
+
+add_executable(pssch_test pssch_test.c)
+target_link_libraries(pssch_test srslte_phy)
+
+# TM2 self tests
+add_test(pssch_test_tm2_p6 pssch_test -p 6 -m 2)
+add_test(pssch_test_tm2_p15 pssch_test -p 15 -m 6)
+add_test(pssch_test_tm2_p25 pssch_test -p 25 -m 7)
+add_test(pssch_test_tm2_p50 pssch_test -p 50 -m 9)
+add_test(pssch_test_tm2_p50_ext pssch_test -p 50 -m 9 -e)
+add_test(pssch_test_tm2_p75 pssch_test -p 75 -m 17)
+add_test(pssch_test_tm2_p100 pssch_test -p 100 -m 21)
+add_test(pssch_test_tm2_p100_ext pssch_test -p 100 -m 21 -e)
+
+# TM4 self tests
+add_test(pssch_test_tm4_p6 pssch_test -p 6 -t 4 -m 2)
+add_test(pssch_test_tm4_p15 pssch_test -p 15 -t 4 -m 6)
+add_test(pssch_test_tm4_p25 pssch_test -p 25 -t 4 -m 7)
+add_test(pssch_test_tm4_p50 pssch_test -p 50 -t 4 -m 9)
+add_test(pssch_test_tm4_p75 pssch_test -p 75 -t 4 -m 17)
+add_test(pssch_test_tm4_p100 pssch_test -p 100 -t 4 -m 21)
+
+########################################################################
+# PSCCH AND PSSCH FILE TEST
+########################################################################
+
+add_executable(pssch_pscch_file_test pssch_pscch_file_test.c)
+target_link_libraries(pssch_pscch_file_test srslte_phy)
 
 # TM2 file tests
-add_test(pscch_file_test_ideal_tm2_p100 pscch_file_test -p 100 -t 2 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
-set_property(TEST pscch_file_test_ideal_tm2_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2")
+add_test(pssch_pscch_file_test_ideal_tm2_p100 pssch_pscch_file_test -p 100 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e6.dat)
+set_property(TEST pssch_pscch_file_test_ideal_tm2_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2 num_decoded_tb=1")
 
 # TM4 file tests
-add_test(pscch_file_test_ideal_tm4_p100 pscch_file_test -p 100 -t 4 -s 10 -n 10 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
-set_property(TEST pscch_file_test_ideal_tm4_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
+add_test(pssch_pscch_file_test_ideal_tm4_p100 pssch_pscch_file_test -p 100 -t 4 -s 10 -n 10 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
+set_property(TEST pssch_pscch_file_test_ideal_tm4_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1 num_decoded_tb=1")
 
-add_test(pscch_test_tm4_p50_qc pscch_file_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_qc9150_f5.92e9_s15.36e6_50prb_20offset.dat)
-set_property(TEST pscch_test_tm4_p50_qc PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
+add_test(pssch_pscch_test_tm4_p50_qc pssch_pscch_file_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_qc9150_f5.92e9_s15.36e6_50prb_20offset.dat)
+set_property(TEST pssch_pscch_test_tm4_p50_qc PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1 num_decoded_tb=1")
 
-# Capture has a SFO offset of ~64 samples, but offsetting by 20 is sufficiant to decode it
-add_test(pscch_test_tm4_p50_cmw pscch_file_test -p 50 -t 4 -o 20 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_cmw500_f5.92e9_s11.52e6_50prb_0offset_1ms.dat)
-set_property(TEST pscch_test_tm4_p50_cmw PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
+# Capture has a SFO offset of ~64 samples, but offsetting by 20 is enough to decode it
+add_test(pssch_pscch_test_tm4_p50_cmw pssch_pscch_file_test -p 50 -t 4 -o 20 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_cmw500_f5.92e9_s11.52e6_50prb_0offset_1ms.dat)
+set_property(TEST pssch_pscch_test_tm4_p50_cmw PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1 num_decoded_tb=1")
 
 # With PHY retransmission (3 TTI offset)
-add_test(pscch_test_tm4_p50_huawei pscch_file_test -p 50 -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_huawei_s11.52e6_50prb_10prb_offset_with_retx.dat)
-set_property(TEST pscch_test_tm4_p50_huawei PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2")
+add_test(pssch_pscch_test_tm4_p50_huawei pssch_pscch_file_test -p 50 -t 4 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_huawei_s11.52e6_50prb_10prb_offset_with_retx.dat)
+set_property(TEST pssch_pscch_test_tm4_p50_huawei PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=2 num_decoded_tb=2")
 
 # With PHY ReTx (0 TTI offset?)
-add_test(pscch_test_tm4_p50_uxm1 pscch_file_test -p 50 -d -t 4 -s 5 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s15.36e6_50prb_0prb_offset_mcs12.dat)
-set_property(TEST pscch_test_tm4_p50_uxm1 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=2")
+add_test(pssch_pscch_test_tm4_p50_uxm1 pssch_pscch_file_test -p 50 -d -t 4 -s 5 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s15.36e6_50prb_0prb_offset_mcs12.dat)
+set_property(TEST pssch_pscch_test_tm4_p50_uxm1 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=2 num_decoded_tb=2")
 
 # 100 PRB startOffset 1 MCS12 MAC padding
-add_test(pscch_test_tm4_p100_uxm2 pscch_file_test -p 100 -t 4 -s 10 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s23.04e6_100prb_1prb_offset_mcs12_padding.dat)
-set_property(TEST pscch_test_tm4_p100_uxm2 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=4")
+add_test(pssch_pscch_test_tm4_p100_uxm2 pssch_pscch_file_test -p 100 -t 4 -s 10 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s23.04e6_100prb_1prb_offset_mcs12_padding.dat)
+set_property(TEST pssch_pscch_test_tm4_p100_uxm2 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=4 num_decoded_tb=4")
 
 # 100 PRB LTE sampling rate, startOffset1 MCS12 ITS data
-add_test(pscch_test_tm4_p100_uxm3 pscch_file_test -p 100 -d -t 4 -s 10 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s30.72e6_100prb_1prb_offset_mcs12_its.dat)
-set_property(TEST pscch_test_tm4_p100_uxm3 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=1")
+add_test(pssch_pscch_test_tm4_p100_uxm3 pssch_pscch_file_test -p 100 -d -t 4 -s 10 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s30.72e6_100prb_1prb_offset_mcs12_its.dat)
+set_property(TEST pssch_pscch_test_tm4_p100_uxm3 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=1 num_decoded_tb=1")
 
 # 50 PRB LTE sampling rate, startOffset0 MCS28 MAC padding
-add_test(pscch_test_tm4_p50_uxm4 pscch_file_test -p 50 -d -t 4 -s 5 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s15.36e6_50prb_0prb_offset_mcs28_padding_5ms.dat)
-set_property(TEST pscch_test_tm4_p50_uxm4 PROPERTY PASS_REGULAR_EXPRESSION "mcs=28.*num_decoded_sci=5")
+add_test(pssch_pscch_test_tm4_p50_uxm4 pssch_pscch_file_test -p 50 -d -t 4 -s 5 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s15.36e6_50prb_0prb_offset_mcs28_padding_5ms.dat)
+set_property(TEST pssch_pscch_test_tm4_p50_uxm4 PROPERTY PASS_REGULAR_EXPRESSION "mcs=28.*num_decoded_sci=5 num_decoded_tb=5")
 
 ########################################################################
 # NPBCH TEST

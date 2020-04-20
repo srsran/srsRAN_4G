@@ -190,6 +190,16 @@ void srslte_vec_u8_zero(uint8_t* ptr, uint32_t nsamples)
   memset(ptr, 0, sizeof(uint8_t) * nsamples);
 }
 
+void srslte_vec_i16_zero(int16_t* ptr, uint32_t nsamples)
+{
+  memset(ptr, 0, sizeof(int16_t) * nsamples);
+}
+
+void srslte_vec_u32_zero(uint32_t* ptr, uint32_t nsamples)
+{
+  memset(ptr, 0, sizeof(uint32_t) * nsamples);
+}
+
 void srslte_vec_cf_zero(cf_t* ptr, uint32_t nsamples)
 {
   memset(ptr, 0, sizeof(cf_t) * nsamples);

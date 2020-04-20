@@ -32,6 +32,8 @@
 #include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/phch/pscch.h"
+#include "srslte/phy/phch/pssch.h"
+#include "srslte/phy/phch/ra_sl.h"
 #include "srslte/phy/phch/sci.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/ue/ue_sync.h"
@@ -50,7 +52,8 @@ srslte_cell_sl_t cell_sl         = {.nof_prb = 50, .tm = SRSLTE_SIDELINK_TM4, .c
 bool use_standard_lte_rates = false;
 bool disable_plots          = false;
 
-srslte_pscch_t pscch; // Defined global for plotting thread
+static srslte_pscch_t pscch = {}; // Defined global for plotting thread
+static srslte_pssch_t pssch = {};
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
@@ -219,8 +222,8 @@ int main(int argc, char** argv)
   // SCI
   srslte_sci_t sci;
   srslte_sci_init(&sci, cell_sl, sl_comm_resource_pool);
-  uint8_t sci_rx[SRSLTE_SCI_MAX_LEN]           = {};
-  char    sci_msg[SRSLTE_SCI_MSG_MAX_LEN]      = {};
+  uint8_t sci_rx[SRSLTE_SCI_MAX_LEN]      = {};
+  char    sci_msg[SRSLTE_SCI_MSG_MAX_LEN] = {};
 
   // init PSCCH object
   if (srslte_pscch_init(&pscch, SRSLTE_MAX_PRB) != SRSLTE_SUCCESS) {
@@ -240,6 +243,22 @@ int main(int argc, char** argv)
     ERROR("Error in chest PSCCH init\n");
     return SRSLTE_ERROR;
   }
+
+  if (srslte_pssch_init(&pssch, cell_sl, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
+    ERROR("Error initializing PSSCH\n");
+    return SRSLTE_ERROR;
+  }
+
+  srslte_chest_sl_cfg_t pssch_chest_sl_cfg;
+  srslte_chest_sl_t     pssch_chest;
+  if (srslte_chest_sl_init(&pssch_chest, SRSLTE_SIDELINK_PSSCH, cell_sl, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
+    ERROR("Error in chest PSSCH init\n");
+    return SRSLTE_ERROR;
+  }
+
+  uint32_t num_decoded_tb               = 0;
+  uint8_t  tb[SRSLTE_SL_SCH_MAX_TB_LEN] = {};
+  uint32_t pssch_sf_idx                 = 0;
 
   srslte_ue_sync_t sync;
   if (srslte_ue_sync_init_multi_decim_mode(
@@ -289,6 +308,8 @@ int main(int argc, char** argv)
              ts_rx.frac_secs,
              srslte_ue_sync_get_sfn(&sync),
              srslte_ue_sync_get_sfidx(&sync));
+
+      pssch_sf_idx = (srslte_ue_sync_get_sfn(&sync) * 10) + srslte_ue_sync_get_sfidx(&sync);
     }
 
     // do FFT
@@ -318,6 +339,47 @@ int main(int argc, char** argv)
               sem_post(&plot_sem);
             }
 #endif
+
+            // Decode PSSCH
+
+            uint32_t sub_channel_start_idx = 0;
+            uint32_t L_subCH               = 0;
+            srslte_ra_sl_type0_from_riv(
+                sci.riv, sl_comm_resource_pool.num_sub_channel, &L_subCH, &sub_channel_start_idx);
+
+            // 3GPP TS 36.213 Section 14.1.1.4C
+            uint32_t pssch_prb_start_idx = (sub_channel_idx * sl_comm_resource_pool.size_sub_channel) +
+                                           pscch.pscch_nof_prb + sl_comm_resource_pool.start_prb_sub_channel;
+            uint32_t nof_prb_pssch = ((L_subCH + sub_channel_idx) * sl_comm_resource_pool.size_sub_channel) -
+                                     pssch_prb_start_idx + sl_comm_resource_pool.start_prb_sub_channel;
+
+            uint32_t N_x_id = 0;
+            for (int j = 0; j < SRSLTE_SCI_CRC_LEN; j++) {
+              N_x_id += pscch.sci_crc[j] * exp2(SRSLTE_SCI_CRC_LEN - 1 - j);
+            }
+
+            uint32_t rv_idx = 0;
+            if (sci.retransmission == true) {
+              rv_idx = 1;
+            }
+
+            // PSSCH Channel estimation
+            pssch_chest_sl_cfg.N_x_id        = N_x_id;
+            pssch_chest_sl_cfg.sf_idx        = pssch_sf_idx;
+            pssch_chest_sl_cfg.prb_start_idx = pssch_prb_start_idx;
+            pssch_chest_sl_cfg.nof_prb       = nof_prb_pssch;
+            srslte_chest_sl_set_cfg(&pssch_chest, pssch_chest_sl_cfg);
+            srslte_chest_sl_ls_estimate_equalize(&pssch_chest, sf_buffer[0], equalized_sf_buffer);
+
+            srslte_pssch_cfg_t pssch_cfg = {
+                pssch_prb_start_idx, nof_prb_pssch, N_x_id, sci.mcs_idx, rv_idx, pssch_sf_idx};
+            if (srslte_pssch_set_cfg(&pssch, pssch_cfg) == SRSLTE_SUCCESS) {
+              if (srslte_pssch_decode(&pssch, equalized_sf_buffer, tb, SRSLTE_SL_SCH_MAX_TB_LEN) == SRSLTE_SUCCESS) {
+                srslte_vec_fprint_byte(stdout, tb, pssch.sl_sch_tb_len);
+                num_decoded_tb++;
+                printf("PSSCH num_decoded_tb: %d\n", num_decoded_tb);
+              }
+            }
           }
         }
         if (SRSLTE_VERBOSE_ISDEBUG()) {
@@ -333,7 +395,7 @@ int main(int argc, char** argv)
         }
       }
     }
-
+    pssch_sf_idx++;
     subframe_count++;
   }
 

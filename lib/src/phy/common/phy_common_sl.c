@@ -24,6 +24,7 @@
 #include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/common/sequence.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 int srslte_sl_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME * 2], uint32_t N_x_id)
 {
@@ -42,6 +43,50 @@ int srslte_sl_group_hopping_f_gh(uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME * 2], uint3
   }
 
   srslte_sequence_free(&seq);
+  return SRSLTE_SUCCESS;
+}
+
+bool srslte_slss_side_peak_pos_is_valid(uint32_t side_peak_pos,
+                                        uint32_t main_peak_pos,
+                                        uint32_t side_peak_delta_a,
+                                        uint32_t side_peak_delta_b)
+{
+  if ((side_peak_pos >= (main_peak_pos - side_peak_delta_b)) &&
+      (side_peak_pos <= (main_peak_pos - side_peak_delta_a))) {
+    return true;
+  } else if ((side_peak_pos >= (main_peak_pos + side_peak_delta_a)) &&
+             (side_peak_pos <= (main_peak_pos + side_peak_delta_b))) {
+    return true;
+  }
+  return false;
+}
+
+bool srslte_slss_side_peak_value_is_valid(float side_peak_value, float threshold_low, float threshold_high)
+{
+  if ((side_peak_value >= threshold_low) && (side_peak_value <= threshold_high)) {
+    return true;
+  }
+  return false;
+}
+
+int srslte_sl_tm_to_cell_sl_tm_t(srslte_cell_sl_t* q, uint32_t tm)
+{
+  switch (tm) {
+    case 1:
+      q->tm = SRSLTE_SIDELINK_TM1;
+      break;
+    case 2:
+      q->tm = SRSLTE_SIDELINK_TM2;
+      break;
+    case 3:
+      q->tm = SRSLTE_SIDELINK_TM3;
+      break;
+    case 4:
+      q->tm = SRSLTE_SIDELINK_TM4;
+      break;
+    default:
+      return SRSLTE_ERROR;
+  }
   return SRSLTE_SUCCESS;
 }
 
@@ -279,10 +324,22 @@ int srslte_sl_comm_resource_pool_get_default_config(srslte_sl_comm_resource_pool
     q->prb_start = 0;
     q->prb_end   = cell.nof_prb - 1;
 
+    // 0110000000000000000000000000000000000000
+    bzero(q->pscch_sf_bitmap, SRSLTE_SL_MAX_PERIOD_LENGTH);
+    memset(&q->pscch_sf_bitmap[1], 1, 2);
+
+    // 0001111111111111111111111111111111111111
+    bzero(q->pssch_sf_bitmap, SRSLTE_SL_MAX_PERIOD_LENGTH);
+    memset(&q->pssch_sf_bitmap[3], 1, 37);
+
     q->size_sub_channel      = 10;
     q->num_sub_channel       = 5;
     q->start_prb_sub_channel = 0;
     q->adjacency_pscch_pssch = true;
+
+    q->sf_bitmap_tm34_len = 10;
+    bzero(q->sf_bitmap_tm34, SRSLTE_SL_MAX_PERIOD_LENGTH);
+    memset(q->sf_bitmap_tm34, 1, q->sf_bitmap_tm34_len);
 
     if (cell.tm == SRSLTE_SIDELINK_TM4) {
       switch (cell.nof_prb) {
