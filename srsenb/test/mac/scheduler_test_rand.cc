@@ -64,7 +64,6 @@ using srslte::tti_point;
  *******************************************************/
 
 uint32_t const seed = std::chrono::system_clock::now().time_since_epoch().count();
-// uint32_t const seed = 2452071795;
 // uint32_t const seed = 1581009287; // prb==25
 bool check_old_pids = false;
 

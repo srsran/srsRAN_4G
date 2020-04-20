@@ -472,6 +472,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
       data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::CON_RES_ID;
       data->nof_pdu_elems[0]++;
       conres_state = ra_state_t::conres_sent;
+      rem_tbs -= sched_utils::conres_ce_size + 1;
       Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
     }
 
@@ -494,9 +495,11 @@ int sched_ue::generate_format1(uint32_t                          pid,
     // Allocate DL Harq, if there was at least one successful allocation
     if (rem_tbs != tbs) {
       h->new_tx(user_mask, 0, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
+      Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
+    } else {
+      Warning("SCHED: Failed to allocate DL harq pid=%d\n", h->get_id());
     }
 
-    Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
   } else {
     h->new_retx(user_mask, 0, tti_tx_dl, &mcs, &tbs, data->dci.location.ncce);
     Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
@@ -905,12 +908,12 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   if (is_dci_format1 and (lch[0].buf_tx > 0 or lch[0].buf_retx > 0)) {
     srb0_data = compute_sdu_total_bytes(0, lch[0].buf_retx);
     srb0_data += compute_sdu_total_bytes(0, lch[0].buf_tx);
-    if (is_conres_ce_pending()) {
-      sum_ce_data = sched_utils::conres_ce_size + ce_subheader_size;
-    }
   }
   // Add pending CEs
   if (is_dci_format1 and ue_cc_idx == 0) {
+    if (is_conres_ce_pending()) {
+      sum_ce_data = sched_utils::conres_ce_size + ce_subheader_size;
+    }
     for (const auto& ce : pending_ces) {
       sum_ce_data += ce.get_req_bytes(cfg);
     }
@@ -925,12 +928,11 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   max_data = srb0_data + sum_ce_data + rb_data;
 
   /* Set Minimum boundary */
-  if (srb0_data > 0) {
-    min_data = srb0_data;
-    if (is_conres_ce_pending()) {
-      min_data += sched_utils::conres_ce_size + ce_subheader_size;
-    }
-  } else {
+  min_data = srb0_data;
+  if (is_conres_ce_pending()) {
+    min_data += sched_utils::conres_ce_size + ce_subheader_size;
+  }
+  if (min_data == 0) {
     if (sum_ce_data > 0) {
       min_data = pending_ces.front().get_req_bytes(cfg);
     } else if (rb_data > 0) {
