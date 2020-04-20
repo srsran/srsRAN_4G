@@ -2699,20 +2699,14 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
     rrc_log->warning("LCID not present, using %d\n", lcid);
   }
 
-  // Setup PDCP
-  pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cnfg->drb_id, true);
+  // Setup RLC
+  rlc->add_bearer(lcid, make_rlc_config_t(drb_cnfg->rlc_cfg));
 
-  if (drb_cnfg->pdcp_cfg.rlc_um_present) {
-    if (drb_cnfg->pdcp_cfg.rlc_um.pdcp_sn_size == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
-      pdcp_cfg.sn_len = 7;
-    }
-  }
+  // Setup PDCP
+  pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cnfg->drb_id, true, drb_cnfg->pdcp_cfg);
   pdcp->add_bearer(lcid, pdcp_cfg);
   pdcp->config_security(lcid, sec_cfg);
   pdcp->enable_encryption(lcid);
-
-  // Setup RLC
-  rlc->add_bearer(lcid, make_rlc_config_t(drb_cnfg->rlc_cfg));
 
   // Setup MAC
   uint8_t log_chan_group       = 0;

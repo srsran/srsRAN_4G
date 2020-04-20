@@ -66,6 +66,11 @@ void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
             cfg.hdr_len_bytes,
             reordering_window,
             maximum_pdcp_sn);
+
+  // Check supported config
+  if (!check_valid_config()) {
+    log->console("Warning: Invalid PDCP config.\n");
+  }
 }
 
 // Reestablishment procedure: 36.323 5.2
@@ -323,7 +328,6 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 /****************************************************************************
  * Security functions
  ***************************************************************************/
-
 void pdcp_entity_lte::get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
 {
   if (cfg.rb_type == PDCP_RB_IS_DRB) {
@@ -340,6 +344,30 @@ void pdcp_entity_lte::get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_
   }
   *ulsn  = (uint16_t)next_pdcp_rx_sn;
   *ulhfn = (uint16_t)rx_hfn;
+}
+
+/****************************************************************************
+ * Config checking helper
+ ***************************************************************************/
+bool pdcp_entity_lte::check_valid_config()
+{
+  if (cfg.sn_len != PDCP_SN_LEN_5 && cfg.sn_len != PDCP_SN_LEN_7 && cfg.sn_len != PDCP_SN_LEN_12) {
+    log->error("Trying to configure bearer with invalid SN LEN=%d\n", cfg.sn_len);
+    return false;
+  }
+  if (cfg.sn_len == PDCP_SN_LEN_5 && is_drb()) {
+    log->error("Trying to configure DRB bearer with SN LEN of 5\n");
+    return false;
+  }
+  if (cfg.sn_len == PDCP_SN_LEN_7 && (is_srb() || !rlc->rb_is_um(lcid))) {
+    log->error("Trying to configure SRB or RLC AM bearer with SN LEN of 7\n");
+    return false;
+  }
+  if (cfg.sn_len == PDCP_SN_LEN_12 && is_srb()) {
+    log->error("Trying to configure SRB with SN LEN of 12.\n");
+    return false;
+  }
+  return true;
 }
 
 } // namespace srslte

@@ -72,6 +72,9 @@ public:
     last_submitted_pdcp_rx_sn = last_submitted_pdcp_rx_sn_;
   }
 
+  // Config helpers
+  bool check_valid_config();
+
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;

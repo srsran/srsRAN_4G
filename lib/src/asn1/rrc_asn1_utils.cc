@@ -214,26 +214,34 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
 
 srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg)
 {
-  pdcp_config_t cfg = make_drb_pdcp_config_t(bearer_id, is_ue);
-  // TODO: complete config processing
+  // TODO: complete config processing 
+  pdcp_discard_timer_t discard_timer =  pdcp_discard_timer_t::infinity;
   if (pdcp_cfg.discard_timer_present) {
     switch (pdcp_cfg.discard_timer.to_number()) {
       case 10:
-        cfg.discard_timer = pdcp_discard_timer_t::ms10;
+        discard_timer = pdcp_discard_timer_t::ms10;
         break;
       default:
-        cfg.discard_timer = pdcp_discard_timer_t::infinity;
+        discard_timer = pdcp_discard_timer_t::infinity;
         break;
     }
   }
 
+  pdcp_t_reordering_t t_reordering = pdcp_t_reordering_t::ms500;
   if (pdcp_cfg.t_reordering_r12_present) {
     switch (pdcp_cfg.t_reordering_r12.to_number()) {
       case 0:
-        cfg.t_reordering = pdcp_t_reordering_t::ms0;
+        t_reordering = pdcp_t_reordering_t::ms0;
         break;
       default:
-        cfg.t_reordering = pdcp_t_reordering_t::ms500;
+        t_reordering = pdcp_t_reordering_t::ms500;
+    }
+  }
+
+  uint8_t sn_len = srslte::PDCP_SN_LEN_12;
+  if (pdcp_cfg.rlc_um_present) {
+    if (pdcp_cfg.rlc_um.pdcp_sn_size.value == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
+      sn_len = srslte::PDCP_SN_LEN_7;
     }
   }
 
@@ -241,6 +249,13 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
     // TODO: handle RLC AM config for PDCP
   }
 
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_DRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    sn_len,
+                    t_reordering,
+                    discard_timer);
   return cfg;
 }
 

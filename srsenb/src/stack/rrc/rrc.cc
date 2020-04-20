@@ -1895,20 +1895,14 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
         rnti, lcid, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].rlc_cfg));
 
     // Configure DRB1 in PDCP
-    srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb_id, false);
-    if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].pdcp_cfg.rlc_um_present) {
-      if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
-          pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
-        pdcp_cnfg_drb.sn_len = srslte::PDCP_SN_LEN_7;
-      }
-    }
+    srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb_id, false, conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].pdcp_cfg);
     parent->pdcp->add_bearer(rnti, lcid, pdcp_cnfg_drb);
     parent->pdcp->config_security(rnti, lcid, sec_cfg);
     parent->pdcp->enable_integrity(rnti, lcid);
     parent->pdcp->enable_encryption(rnti, lcid);
 
     // DRBs have already been configured in GTPU through bearer setup
-    // Add E-RAB info message for E-RAB 5 (DRB1)
+    // Add E-RAB info message for the E-RABs
     std::map<uint8_t, srslte::unique_byte_buffer_t>::const_iterator it = erab_info_list.find(erab.id);
     if (it != erab_info_list.end()) {
       const srslte::unique_byte_buffer_t& erab_info = it->second;

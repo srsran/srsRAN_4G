@@ -234,6 +234,9 @@ uint32_t pdcp_entity_base::read_data_header(const unique_byte_buffer_t& pdu)
     case PDCP_SN_LEN_5:
       rcvd_sn_32 = SN(pdu->msg[0]);
       break;
+    case PDCP_SN_LEN_7:
+      rcvd_sn_32 = SN(pdu->msg[0]);
+      break;
     case PDCP_SN_LEN_12:
       srslte::uint8_to_uint16(pdu->msg, &rcvd_sn_16);
       rcvd_sn_32 = SN(rcvd_sn_16);
@@ -269,6 +272,12 @@ void pdcp_entity_base::write_data_header(const srslte::unique_byte_buffer_t& sdu
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_5:
       sdu->msg[0] = SN(count); // Data PDU and SN LEN 5 implies SRB, D flag must not be present
+      break;
+    case PDCP_SN_LEN_7:
+      sdu->msg[0] = SN(count); 
+      if (is_drb()) {
+        sdu->msg[0] |= 0x80; // On Data PDUs for DRBs we must set the D flag.
+      }
       break;
     case PDCP_SN_LEN_12:
       srslte::uint16_to_uint8(SN(count), sdu->msg);
