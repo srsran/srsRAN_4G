@@ -831,7 +831,7 @@ int common_sched_tester::schedule_acks()
       if (ack_data.ul_harq.nof_retx(0) == 0) {
         ack_data.ack = randf() > sim_args0.P_retx;
       } else {
-        ack_data.ack = ack_data.ul_harq.nof_retx(0) == 3;
+        ack_data.ack = ack_data.ul_harq.nof_retx(0) == 2;
       }
       to_ul_ack.insert(std::make_pair(ack_data.tti_tx_ul, ack_data));
     }

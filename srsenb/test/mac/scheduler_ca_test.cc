@@ -196,15 +196,16 @@ int test_scell_activation(test_scell_activation_params params)
 
   // Event: Wait for UE to receive and ack CE. Send cqi==0, which should not activate the SCell
   uint32_t cqi = 0;
-  for (uint32_t i = 0; i < FDD_HARQ_DELAY_UL_MS; ++i) {
-    tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, 1, cqi);
-    generator.step_tti();
+  for (uint32_t cidx = 1; cidx < cc_idxs.size(); ++cidx) {
+    for (uint32_t i = 0; i < FDD_HARQ_DELAY_UL_MS; ++i) {
+      tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, cc_idxs[cidx], cqi);
+      generator.step_tti();
+    }
   }
   tester.test_next_ttis(generator.tti_events);
   // The UE should now have received the CE
 
   // Event: Generate a bit more data, it should *not* go through SCells until we send a CQI
-  tester.dl_cqi_info(tester.tti_info.tti_params.tti_rx, rnti1, 1, cqi);
   generate_data(5, P_dl, P_ul_sr, randf());
   tester.test_next_ttis(generator.tti_events);
   TESTASSERT(tester.sched_stats->users[rnti1].tot_dl_sched_data[params.pcell_idx] > 0);

@@ -37,8 +37,10 @@ public:
   int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override { return 0; }
   void phy_config_enabled(uint16_t rnti, bool enabled) override {}
   void write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override
-  {
-  }
+  {}
+  uint16_t allocate_rnti() override { return last_rnti++; }
+
+  uint16_t last_rnti = 70;
 };
 
 class rlc_dummy : public rlc_interface_rrc

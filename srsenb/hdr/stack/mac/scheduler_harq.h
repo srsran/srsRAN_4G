@@ -161,6 +161,11 @@ public:
   //! Get UL Harq for a given tti_tx_ul
   ul_harq_proc* get_ul_harq(uint32_t tti_tx_ul);
 
+  /**
+   * Set ACK state for UL Harq Proc
+   */
+  std::pair<bool, uint32_t> set_ul_crc(srslte::tti_point tti_tx_ul, uint32_t tb_idx, bool ack_);
+
   //! Resets pending harq ACKs and cleans UL Harqs with maxretx == 0
   void reset_pending_data(uint32_t tti_rx);
 

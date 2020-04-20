@@ -366,10 +366,17 @@ ul_harq_proc* harq_entity::get_ul_harq(uint32_t tti_tx_ul)
   return &ul_harqs[tti_tx_ul % ul_harqs.size()];
 }
 
+std::pair<bool, uint32_t> harq_entity::set_ul_crc(srslte::tti_point tti_rx, uint32_t tb_idx, bool ack_)
+{
+  ul_harq_proc* h   = get_ul_harq(tti_rx.to_uint());
+  uint32_t      pid = h->get_id();
+  return {h->set_ack(tb_idx, ack_), pid};
+}
+
 void harq_entity::reset_pending_data(uint32_t tti_rx)
 {
-  tti_point tti_tx_ul = tti_point{tti_rx} + FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
-  tti_point tti_tx_dl = tti_point{tti_rx} + FDD_HARQ_DELAY_UL_MS;
+  tti_point tti_tx_ul = srslte::to_tx_ul(tti_point{tti_rx});
+  tti_point tti_tx_dl = srslte::to_tx_dl(tti_point{tti_rx});
 
   // Reset ACK state of UL Harq
   get_ul_harq(tti_tx_ul.to_uint())->reset_pending_data();
