@@ -52,7 +52,8 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
                            uint32_t             root_seq_index,
                            bool                 high_speed_flag,
                            uint32_t             zero_corr_zone_config,
-                           srslte_tdd_config_t* tdd_config);
+                           srslte_tdd_config_t* tdd_config,
+                           uint32_t             num_ra_preambles);
 
 uint32_t srslte_prach_get_preamble_format(uint32_t config_idx)
 {
@@ -334,7 +335,8 @@ int srslte_prach_set_cfg(srslte_prach_t* p, srslte_prach_cfg_t* cfg, uint32_t no
                                 cfg->root_seq_idx,
                                 cfg->hs_flag,
                                 cfg->zero_corr_zone,
-                                &cfg->tdd_config);
+                                &cfg->tdd_config,
+                                cfg->num_ra_preambles);
 }
 
 int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
@@ -402,7 +404,8 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
                            uint32_t             root_seq_index,
                            bool                 high_speed_flag,
                            uint32_t             zero_corr_zone_config,
-                           srslte_tdd_config_t* tdd_config)
+                           srslte_tdd_config_t* tdd_config,
+                           uint32_t             num_ra_preambles)
 {
   int ret = SRSLTE_ERROR;
   if (p != NULL && N_ifft_ul < 2049 && config_idx < 64 && root_seq_index < MAX_ROOTS) {
@@ -418,6 +421,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     p->hs                    = high_speed_flag;
     p->zczc                  = zero_corr_zone_config;
     p->detect_factor         = PRACH_DETECT_FACTOR;
+    p->num_ra_preambles      = num_ra_preambles;
     if (tdd_config) {
       p->tdd_config = *tdd_config;
     }
@@ -463,7 +467,10 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     // Generate our 64 sequences
     p->N_roots = 0;
     srslte_prach_gen_seqs(p);
-
+    // Ensure num_ra_preambles is valid, if not assign default value
+    if (p->num_ra_preambles < 4 || p->num_ra_preambles > 64) {
+      p->num_ra_preambles = p->N_roots;
+    }
     // Generate sequence FFTs
     for (int i = 0; i < N_SEQS; i++) {
       srslte_dft_run(&p->zc_fft, p->seqs[i], p->dft_seqs[i]);
@@ -597,7 +604,7 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
 
     memcpy(p->prach_bins, &p->signal_fft[begin], p->N_zc * sizeof(cf_t));
 
-    for (int i = 0; i < p->N_roots; i++) {
+    for (int i = 0; i < p->num_ra_preambles; i++) {
       cf_t* root_spec = p->dft_seqs[p->root_seqs_idx[i]];
 
       srslte_vec_prod_conj_ccc(p->prach_bins, root_spec, p->corr_spec, p->N_zc);

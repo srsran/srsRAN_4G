@@ -40,6 +40,7 @@ uint32_t frequency_offset = 0;
 uint32_t zero_corr_zone   = 11;
 float    timeadv          = 0;
 uint32_t nof_frames       = 20;
+uint32_t num_ra_preambles = 0; // use default
 
 float uhd_rx_gain = 40, uhd_tx_gain = 60, uhd_freq = 2.4e9;
 char* uhd_args        = "";
@@ -130,11 +131,12 @@ int main(int argc, char** argv)
 
   srslte_prach_cfg_t prach_cfg;
   ZERO_OBJECT(prach_cfg);
-  prach_cfg.config_idx     = preamble_format;
-  prach_cfg.hs_flag        = high_speed_flag;
-  prach_cfg.freq_offset    = 0;
-  prach_cfg.root_seq_idx   = root_seq_idx;
-  prach_cfg.zero_corr_zone = zero_corr_zone;
+  prach_cfg.config_idx       = preamble_format;
+  prach_cfg.hs_flag          = high_speed_flag;
+  prach_cfg.freq_offset      = 0;
+  prach_cfg.root_seq_idx     = root_seq_idx;
+  prach_cfg.zero_corr_zone   = zero_corr_zone;
+  prach_cfg.num_ra_preambles = num_ra_preambles;
 
   if (srslte_prach_init(&prach, srslte_symbol_sz(nof_prb))) {
     return -1;

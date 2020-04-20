@@ -916,6 +916,8 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
     phy_cell_cfg.cell_id        = cfg.cell_id;
     phy_cell_cfg.root_seq_idx   = cfg.root_seq_idx;
     phy_cell_cfg.rf_port        = cfg.rf_port;
+    phy_cell_cfg.num_ra_preambles =
+        rrc_cfg_->sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
 
     if (cfg.dl_freq_hz > 0) {
       phy_cell_cfg.dl_freq_hz = cfg.dl_freq_hz;

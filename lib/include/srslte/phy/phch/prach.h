@@ -93,7 +93,7 @@ typedef struct SRSLTE_API {
   uint32_t deadzone;
   float    peak_values[65];
   uint32_t peak_offsets[65];
-
+  uint32_t            num_ra_preambles;
   srslte_tdd_config_t tdd_config;
   uint32_t            current_prach_idx;
 
@@ -114,6 +114,7 @@ typedef struct {
   uint32_t            root_seq_idx;
   uint32_t            zero_corr_zone;
   uint32_t            freq_offset;
+  uint32_t            num_ra_preambles;
   bool                hs_flag;
   srslte_tdd_config_t tdd_config;
 } srslte_prach_cfg_t;

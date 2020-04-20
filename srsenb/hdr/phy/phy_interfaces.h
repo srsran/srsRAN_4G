@@ -37,6 +37,7 @@ struct phy_cell_cfg_t {
   double        dl_freq_hz;
   double        ul_freq_hz;
   uint32_t      root_seq_idx;
+  uint32_t      num_ra_preambles;
 };
 
 typedef std::vector<phy_cell_cfg_t> phy_cell_cfg_list_t;

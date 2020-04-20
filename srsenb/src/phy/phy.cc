@@ -62,12 +62,12 @@ phy::~phy()
 void phy::parse_common_config(const phy_cfg_t& cfg)
 {
   // PRACH configuration
-  prach_cfg.config_idx     = cfg.prach_cnfg.prach_cfg_info.prach_cfg_idx;
-  prach_cfg.hs_flag        = cfg.prach_cnfg.prach_cfg_info.high_speed_flag;
-  prach_cfg.root_seq_idx   = cfg.prach_cnfg.root_seq_idx;
-  prach_cfg.zero_corr_zone = cfg.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
-  prach_cfg.freq_offset    = cfg.prach_cnfg.prach_cfg_info.prach_freq_offset;
-
+  prach_cfg.config_idx       = cfg.prach_cnfg.prach_cfg_info.prach_cfg_idx;
+  prach_cfg.hs_flag          = cfg.prach_cnfg.prach_cfg_info.high_speed_flag;
+  prach_cfg.root_seq_idx     = cfg.prach_cnfg.root_seq_idx;
+  prach_cfg.zero_corr_zone   = cfg.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
+  prach_cfg.freq_offset      = cfg.prach_cnfg.prach_cfg_info.prach_freq_offset;
+  prach_cfg.num_ra_preambles = cfg.phy_cell_cfg.at(0).num_ra_preambles;
   // DMRS
   workers_common.dmrs_pusch_cfg.cyclic_shift        = cfg.pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
   workers_common.dmrs_pusch_cfg.delta_ss            = cfg.pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
