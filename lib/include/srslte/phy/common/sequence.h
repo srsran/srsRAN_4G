@@ -52,6 +52,12 @@ SRSLTE_API int srslte_sequence_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32
 
 SRSLTE_API int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed);
 
+SRSLTE_API void srslte_sequence_apply_f(const float* in, float* out, uint32_t length, uint32_t seed);
+
+SRSLTE_API void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, uint32_t seed);
+
+SRSLTE_API void srslte_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uint32_t seed);
+
 SRSLTE_API int srslte_sequence_pbch(srslte_sequence_t* seq, srslte_cp_t cp, uint32_t cell_id);
 
 SRSLTE_API int srslte_sequence_pcfich(srslte_sequence_t* seq, uint32_t nslot, uint32_t cell_id);

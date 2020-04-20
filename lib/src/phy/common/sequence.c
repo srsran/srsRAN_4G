@@ -168,18 +168,24 @@ __attribute__((constructor)) __attribute__((unused)) static void srslte_lte_pr_p
   }
 }
 
-static void sequence_gen_LTE_pr(uint8_t* pr, uint32_t len, uint32_t seed)
+static uint32_t sequence_get_x2_init(uint32_t seed)
 {
-  int      n  = 0;
-  uint32_t x1 = sequence_x1_init; // X1 initial state is fix
   uint32_t x2 = 0;
 
-  // Load X2 state
   for (uint32_t i = 0; i < SEQUENCE_SEED_LEN; i++) {
     if ((seed >> i) & 1U) {
       x2 ^= sequence_x2_init[i];
     }
   }
+
+  return x2;
+}
+
+static void sequence_gen_LTE_pr(uint8_t* pr, uint32_t len, uint32_t seed)
+{
+  int      n  = 0;
+  uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
+  uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
 
   // Parallel stage
   if (len >= SEQUENCE_PAR_BITS) {
@@ -354,4 +360,174 @@ void srslte_sequence_free(srslte_sequence_t* q)
     free(q->c_char);
   }
   bzero(q, sizeof(srslte_sequence_t));
+}
+
+void srslte_sequence_apply_f(const float* in, float* out, uint32_t length, uint32_t seed)
+{
+  uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
+  uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
+
+  uint32_t i = 0;
+
+  if (length >= SEQUENCE_PAR_BITS) {
+    for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
+      uint32_t c = (uint32_t)(x1 ^ x2);
+
+      uint32_t j = 0;
+#ifdef LV_HAVE_SSE
+      for (; j < SEQUENCE_PAR_BITS - 3; j += 4) {
+        // Preloads bits of interest in the 4 LSB
+        __m128i mask = _mm_set1_epi32(c >> j);
+
+        // Masks each bit
+        mask = _mm_and_si128(mask, _mm_setr_epi32(1, 2, 4, 8));
+
+        // Get non zero mask
+        mask = _mm_cmpgt_epi32(mask, _mm_set1_epi32(0));
+
+        // And with MSB
+        mask = _mm_and_si128(mask, (__m128i)_mm_set1_ps(-0.0F));
+
+        // Load input
+        __m128 v = _mm_loadu_ps(in + i + j);
+
+        // Loads input and perform sign XOR
+        v = _mm_xor_ps((__m128)mask, v);
+
+        _mm_storeu_ps(out + i + j, v);
+      }
+#endif
+      for (; j < SEQUENCE_PAR_BITS; j++) {
+        ((uint32_t*)out)[i + j] = ((uint32_t*)in)[i] ^ (((c >> j) & 1U) << 31U);
+      }
+
+      // Step sequences
+      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
+      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+    }
+  }
+
+  for (; i < length; i++) {
+
+    ((uint32_t*)out)[i] = ((uint32_t*)in)[i] ^ (((x1 ^ x2) & 1U) << 31U);
+
+    // Step sequences
+    x1 = sequence_gen_LTE_pr_memless_step_x1(x1);
+    x2 = sequence_gen_LTE_pr_memless_step_x2(x2);
+  }
+}
+
+void srslte_sequence_apply_s(const int16_t* in, int16_t* out, uint32_t length, uint32_t seed)
+{
+  uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
+  uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
+
+  uint32_t i = 0;
+
+  if (length >= SEQUENCE_PAR_BITS) {
+    for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
+      uint32_t c = (uint32_t)(x1 ^ x2);
+
+      uint32_t j = 0;
+#ifdef LV_HAVE_SSE
+      for (; j < SEQUENCE_PAR_BITS - 7; j += 8) {
+        // Preloads bits of interest in the 8 LSB
+        __m128i mask = _mm_set1_epi16((c >> j) & 0xff);
+
+        // Masks each bit
+        mask = _mm_and_si128(mask, _mm_setr_epi16(0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80));
+
+        // Get non zero mask
+        mask = _mm_cmpgt_epi16(mask, _mm_set1_epi16(0));
+
+        // Load input
+        __m128i v = _mm_loadu_si128((__m128i*)(in + i + j));
+
+        // Negate
+        v = _mm_xor_si128(v, mask);
+
+        // Add one
+        mask = _mm_and_si128(mask, _mm_set1_epi16(1));
+        v    = _mm_add_epi16(v, mask);
+
+        _mm_storeu_si128((__m128i*)(out + i + j), v);
+      }
+#endif
+      for (; j < SEQUENCE_PAR_BITS; j++) {
+        out[i + j] = in[i + j] * (((c >> j) & 1U) ? -1 : +1);
+      }
+
+      // Step sequences
+      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
+      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+    }
+  }
+
+  for (; i < length; i++) {
+    out[i] = in[i] * (((x1 ^ x2) & 1U) ? -1 : +1);
+
+    // Step sequences
+    x1 = sequence_gen_LTE_pr_memless_step_x1(x1);
+    x2 = sequence_gen_LTE_pr_memless_step_x2(x2);
+  }
+}
+
+void srslte_sequence_apply_c(const int8_t* in, int8_t* out, uint32_t length, uint32_t seed)
+{
+  uint32_t x1 = sequence_x1_init;           // X1 initial state is fix
+  uint32_t x2 = sequence_get_x2_init(seed); // loads x2 initial state
+
+  uint32_t i = 0;
+
+  if (length >= SEQUENCE_PAR_BITS) {
+    for (; i < length - (SEQUENCE_PAR_BITS - 1); i += SEQUENCE_PAR_BITS) {
+      uint32_t c = (uint32_t)(x1 ^ x2);
+
+      uint32_t j = 0;
+#ifdef LV_HAVE_SSE
+      if (SEQUENCE_PAR_BITS >= 16) {
+        // Preloads bits of interest in the 16 LSB
+        __m128i mask = _mm_set1_epi32(c);
+        mask         = _mm_shuffle_epi8(mask, _mm_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1));
+
+        // Masks each bit
+        // mask = _mm_and_si128( mask, _mm_set_epi64x(0x0102040810204080, 0x0102040810204080));
+        mask = _mm_and_si128(mask, _mm_set_epi64x(0x8040201008040201, 0x8040201008040201));
+
+        // Get non zero mask
+        mask = _mm_cmpeq_epi8(mask, _mm_set_epi64x(0x8040201008040201, 0x8040201008040201));
+
+        // Load input
+        __m128i v = _mm_loadu_si128((__m128i*)(in + i + j));
+
+        // Negate
+        v = _mm_xor_si128(mask, v);
+
+        // Add one
+        mask = _mm_and_si128(mask, _mm_set1_epi8(1));
+        v    = _mm_add_epi8(v, mask);
+
+        _mm_storeu_si128((__m128i*)(out + i + j), v);
+
+        // Increment bit counter `j`
+        j += 16;
+      }
+#endif
+      for (; j < SEQUENCE_PAR_BITS; j++) {
+        out[i + j] = in[i + j] * (((c >> j) & 1U) ? -1 : +1);
+      }
+
+      // Step sequences
+      x1 = sequence_gen_LTE_pr_memless_step_par_x1(x1);
+      x2 = sequence_gen_LTE_pr_memless_step_par_x2(x2);
+    }
+  }
+
+  for (; i < length; i++) {
+    out[i] = in[i] * (((x1 ^ x2) & 1U) ? -1 : +1);
+
+    // Step sequences
+    x1 = sequence_gen_LTE_pr_memless_step_x1(x1);
+    x2 = sequence_gen_LTE_pr_memless_step_x2(x2);
+  }
 }
