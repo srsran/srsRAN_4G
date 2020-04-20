@@ -130,7 +130,7 @@ int srslte_nbiot_ue_dl_init(srslte_nbiot_ue_dl_t* q,
       fprintf(stderr, "Error initiating SFO correct\n");
       goto clean_exit;
     }
-    srslte_cfo_set_tol(&q->sfo_correct, 1e-5 / q->fft.symbol_sz);
+    srslte_cfo_set_tol(&q->sfo_correct, 1e-5 / q->fft.cfg.symbol_sz);
 
     ret = SRSLTE_SUCCESS;
   } else {
@@ -514,7 +514,7 @@ int srslte_nbiot_ue_dl_decode_fft_estimate(srslte_nbiot_ue_dl_t* q, uint32_t sf_
         srslte_cfo_correct(&q->sfo_correct,
                            &q->sf_symbols[i * q->cell.base.nof_prb * SRSLTE_NRE],
                            &q->sf_symbols[i * q->cell.base.nof_prb * SRSLTE_NRE],
-                           q->sample_offset / q->fft.symbol_sz);
+                           q->sample_offset / q->fft.cfg.symbol_sz);
       }
     }
 
