@@ -340,7 +340,10 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   handler->devname          = devname;
 
   // create stream args from device args
-  SoapySDRKwargs stream_args = SoapySDRKwargs_fromString(args);
+  SoapySDRKwargs stream_args = {};
+#if SOAPY_SDR_API_VERSION >= 0x00060000
+  stream_args = SoapySDRKwargs_fromString(args);
+#endif
 
   // Setup Rx streamer
   size_t num_available_channels = SoapySDRDevice_getNumChannels(handler->device, SOAPY_SDR_RX);
