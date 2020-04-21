@@ -99,7 +99,6 @@ public:
   int  ue_cfg(uint16_t rnti, const ue_cfg_t& ue_cfg) final;
   int  ue_rem(uint16_t rnti) final;
   bool ue_exists(uint16_t rnti) final;
-  void ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd);
 
   void phy_config_enabled(uint16_t rnti, bool enabled);
 
@@ -110,7 +109,7 @@ public:
   uint32_t get_dl_buffer(uint16_t rnti) final;
 
   int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) final;
-  int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code) final;
+  int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmds = 1) final;
 
   int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) final;
   int dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info) final;

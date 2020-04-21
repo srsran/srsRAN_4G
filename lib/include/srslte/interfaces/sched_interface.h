@@ -144,7 +144,6 @@ public:
     std::vector<cc_cfg_t>               supported_cc_list; ///< list of UE supported CCs. First index for PCell
     ant_info_ded_t                      dl_ant_info;
     bool                                use_tbs_index_alt = false;
-    enum conn_state_t { none, ue_id_rx } conn_state       = none;
   };
 
   typedef struct {
@@ -257,7 +256,7 @@ public:
   /******************* Scheduling Interface ***********************/
   /* DL buffer status report */
   virtual int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) = 0;
-  virtual int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)                                       = 0;
+  virtual int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmds)                    = 0;
 
   /* DL information */
   virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) = 0;

@@ -254,6 +254,26 @@ int mac::ue_rem(uint16_t rnti)
   return 0;
 }
 
+// Called after Msg3
+int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg)
+{
+  int ret = ue_cfg(crnti, cfg);
+  if (ret != SRSLTE_SUCCESS) {
+    return ret;
+  }
+  srslte::rwlock_read_guard lock(rwlock);
+  if (temp_crnti == crnti) {
+    // if RNTI is maintained, Msg3 contained a RRC Setup Request
+    scheduler.dl_mac_buffer_state(crnti, srslte::sch_subh::CON_RES_ID);
+  } else {
+    // C-RNTI corresponds to older user. Handover scenario.
+    phy_h->rem_rnti(crnti);
+    phy_h->add_rnti(crnti, cfg->supported_cc_list[0].enb_cc_idx, false);
+    scheduler.dl_mac_buffer_state(crnti, srslte::sch_subh::CON_RES_ID);
+  }
+  return ret;
+}
+
 int mac::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg_)
 {
   cell_config = cell_cfg_;
@@ -428,7 +448,7 @@ int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)
   if (ue_db.count(rnti)) {
     uint32_t nof_ta_count = ue_db[rnti]->set_ta_us(ta_us);
     if (nof_ta_count) {
-      scheduler.ue_needs_ta_cmd(rnti, nof_ta_count);
+      scheduler.dl_mac_buffer_state(rnti, srslte::sch_subh::TA_CMD, nof_ta_count);
     }
   }
   return SRSLTE_SUCCESS;
@@ -797,7 +817,7 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
   for (auto& ue : ue_db) {
     uint32_t nof_ta_count = ue.second->tick_ta_fsm();
     if (nof_ta_count) {
-      scheduler.ue_needs_ta_cmd(ue.first, nof_ta_count);
+      scheduler.dl_mac_buffer_state(ue.first, srslte::sch_subh::TA_CMD, nof_ta_count);
     }
   }
 

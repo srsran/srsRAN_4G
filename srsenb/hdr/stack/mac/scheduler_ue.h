@@ -104,7 +104,7 @@ public:
   void dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
   void ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value = true);
   void ul_phr(int phr);
-  void mac_buffer_state(uint32_t ce_code);
+  void mac_buffer_state(uint32_t ce_code, uint32_t nof_cmds);
   void ul_recv_len(uint32_t lcid, uint32_t len);
 
   void set_ul_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code);
@@ -156,8 +156,6 @@ public:
 
   void set_sr();
   void unset_sr();
-
-  void set_needs_ta_cmd(uint32_t nof_ta_cmd);
 
   int generate_dl_dci_format(uint32_t                          pid,
                              sched_interface::dl_sched_data_t* data,
@@ -217,7 +215,6 @@ private:
 
   uint32_t get_pending_ul_old_data_unlocked(uint32_t cc_idx);
   uint32_t get_pending_ul_new_data_unlocked(uint32_t tti);
-  bool     is_conres_ce_pending() const;
 
   bool needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_send = false);
 
@@ -240,8 +237,6 @@ private:
                        uint32_t                          cfi,
                        const rbgmask_t&                  user_mask);
 
-  bool is_first_dl_tx();
-
   /* Args */
   sched_interface::ue_cfg_t               cfg  = {};
   srslte_cell_t                           cell = {};
@@ -250,10 +245,8 @@ private:
   const sched_cell_params_t*              main_cc_params   = nullptr;
 
   /* Buffer states */
-  bool                                             sr      = false;
-  int                                              buf_mac = 0;
-  int                                              buf_ul  = 0;
-  std::array<ue_bearer_t, sched_interface::MAX_LC> lch     = {};
+  bool                                             sr  = false;
+  std::array<ue_bearer_t, sched_interface::MAX_LC> lch = {};
 
   int      power_headroom  = 0;
   uint32_t cqi_request_tti = 0;
@@ -261,12 +254,6 @@ private:
   uint32_t max_msg3retx    = 0;
 
   /* User State */
-  enum class ra_state_t {
-    msg3_sched_pending,
-    wait_msg3_ack,
-    conres_sched_pending,
-    conres_sent
-  } conres_state     = ra_state_t::msg3_sched_pending;
   int next_tpc_pusch = 0;
   int next_tpc_pucch = 0;
 

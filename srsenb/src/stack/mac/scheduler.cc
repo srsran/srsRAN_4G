@@ -234,11 +234,6 @@ bool sched::ue_exists(uint16_t rnti)
   return ue_db_access(rnti, [](sched_ue& ue) {}) >= 0;
 }
 
-void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd)
-{
-  ue_db_access(rnti, [nof_ta_cmd](sched_ue& ue) { ue.set_needs_ta_cmd(nof_ta_cmd); }, __PRETTY_FUNCTION__);
-}
-
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   // TODO: Check if correct use of last_tti
@@ -276,9 +271,9 @@ int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue,
   return ue_db_access(rnti, [&](sched_ue& ue) { ue.dl_buffer_state(lc_id, tx_queue, retx_queue); });
 }
 
-int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
+int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmds)
 {
-  return ue_db_access(rnti, [ce_code](sched_ue& ue) { ue.mac_buffer_state(ce_code); });
+  return ue_db_access(rnti, [ce_code, nof_cmds](sched_ue& ue) { ue.mac_buffer_state(ce_code, nof_cmds); });
 }
 
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)

@@ -273,8 +273,9 @@ public:
   virtual void reset()                                                            = 0;
 
   /* Manages UE configuration context */
-  virtual int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) = 0;
-  virtual int ue_rem(uint16_t rnti)                                 = 0;
+  virtual int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)                             = 0;
+  virtual int ue_rem(uint16_t rnti)                                                             = 0;
+  virtual int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg) = 0;
 
   /* Manages UE bearers and associated configuration */
   virtual int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) = 0;

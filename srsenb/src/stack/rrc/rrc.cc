@@ -1448,8 +1448,9 @@ void rrc::ue::setup_erab(uint8_t                                            id,
     erab_info_list[id] = allocate_unique_buffer(*pool);
     memcpy(erab_info_list[id]->msg, nas_pdu->data(), nas_pdu->size());
     erab_info_list[id]->N_bytes = nas_pdu->size();
-    parent->rrc_log->info_hex(erab_info_list[id]->msg, erab_info_list[id]->N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
-  } 
+    parent->rrc_log->info_hex(
+        erab_info_list[id]->msg, erab_info_list[id]->N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
+  }
 }
 
 bool rrc::ue::release_erabs()
@@ -1639,10 +1640,13 @@ void rrc::ue::send_connection_setup(bool is_setup)
   current_sched_ue_cfg.pucch_cfg.n_rb_2            = sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
   current_sched_ue_cfg.pucch_cfg.N_pucch_1         = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
   current_sched_ue_cfg.dl_ant_info                 = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
-  current_sched_ue_cfg.conn_state                  = sched_interface::ue_cfg_t::ue_id_rx;
 
   // Configure MAC
-  parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
+  if (is_setup) {
+    parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
+  } else {
+    parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
+  }
 
   // Configure SRB1 in RLC
   parent->rlc->add_bearer(rnti, 1, srslte::rlc_config_t::srb_config(1));
@@ -1851,7 +1855,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   conn_reconf->rr_cfg_ded.srb_to_add_mod_list[0].rlc_cfg_present = true;
   conn_reconf->rr_cfg_ded.srb_to_add_mod_list[0].rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types::default_value);
 
-
   // Configure SRB2 in RLC and PDCP
   parent->rlc->add_bearer(rnti, 2, srslte::rlc_config_t::srb_config(2));
 
@@ -1875,9 +1878,9 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   // Configure all DRBs
   uint8_t vec_idx = 0;
   for (const std::pair<uint8_t, erab_t>& erab_id_pair : erabs) {
-    const erab_t& erab = erab_id_pair.second;
-    uint8_t drb_id = erab.id - 4;
-    uint8_t lcid = erab.id - 2; 
+    const erab_t& erab   = erab_id_pair.second;
+    uint8_t       drb_id = erab.id - 4;
+    uint8_t       lcid   = erab.id - 2;
 
     // Get DRB1 configuration
     if (get_drbid_config(&conn_reconf->rr_cfg_ded.drb_to_add_mod_list[drb_id - 1], drb_id)) {

@@ -33,6 +33,7 @@ public:
   void reset() override {}
   int  ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override { return 0; }
   int  ue_rem(uint16_t rnti) override { return 0; }
+  int  ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg) override { return 0; }
   int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override { return 0; }
   int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override { return 0; }
   void phy_config_enabled(uint16_t rnti, bool enabled) override {}
@@ -79,15 +80,13 @@ class s1ap_dummy : public s1ap_interface_rrc
 {
 public:
   void initial_ue(uint16_t rnti, asn1::s1ap::rrc_establishment_cause_e cause, srslte::unique_byte_buffer_t pdu) override
-  {
-  }
+  {}
   void initial_ue(uint16_t                              rnti,
                   asn1::s1ap::rrc_establishment_cause_e cause,
                   srslte::unique_byte_buffer_t          pdu,
                   uint32_t                              m_tmsi,
                   uint8_t                               mmec) override
-  {
-  }
+  {}
 
   void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu) override {}
   bool user_exists(uint16_t rnti) override { return true; }
@@ -113,8 +112,7 @@ class phy_dummy : public phy_interface_rrc_lte
 public:
   void
   configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch) override
-  {
-  }
+  {}
   void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) override {}
 };
 
