@@ -390,30 +390,6 @@ public:
   virtual uint8_t* read_pdu_bcch_dlsch(const uint8_t enb_cc_idx, const uint32_t sib_index) = 0;
 };
 
-// SCell configuration
-struct scell_cfg_t {
-  uint32_t cell_id;
-  bool     cross_carrier_sched = false;
-  uint32_t sched_cell_id;
-  bool     ul_allowed;
-};
-
-// Cell/Sector configuration
-struct cell_cfg_t {
-  uint32_t                 rf_port;
-  uint32_t                 cell_id;
-  uint16_t                 tac;
-  uint32_t                 pci;
-  uint16_t                 root_seq_idx;
-  uint32_t                 dl_earfcn;
-  double                   dl_freq_hz;
-  uint32_t                 ul_earfcn;
-  double                   ul_freq_hz;
-  uint32_t                 initial_dl_cqi;
-  std::vector<scell_cfg_t> scell_list;
-};
-typedef std::vector<cell_cfg_t> cell_list_t;
-
 // RRC interface for PDCP
 class rrc_interface_pdcp
 {

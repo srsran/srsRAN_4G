@@ -32,6 +32,7 @@
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_rrc_interface_types.h"
 #include <map>
 #include <queue>
 
@@ -66,25 +67,6 @@ typedef struct {
   asn1::rrc::rlc_cfg_c                          rlc_cfg;
 } rrc_cfg_qci_t;
 
-//! Cell to measure for HO. Filled by cfg file parser.
-struct meas_cell_cfg_t {
-  uint32_t earfcn;
-  uint16_t pci;
-  uint32_t eci;
-  float    q_offset;
-};
-
-// neigh measurement Cell info
-struct rrc_meas_cfg_t {
-  std::vector<meas_cell_cfg_t>               meas_cells;
-  std::vector<asn1::rrc::report_cfg_eutra_s> meas_reports;
-  asn1::rrc::quant_cfg_eutra_s               quant_cfg;
-  //  uint32_t nof_meas_ids;
-  //  srslte::rrc_meas_id_t meas_ids[LIBLTE_RRC_MAX_MEAS_ID];
-  // TODO: Add blacklist cells
-  // TODO: Add multiple meas configs
-};
-
 #define MAX_NOF_QCI 10
 
 struct rrc_cfg_t {
@@ -105,7 +87,6 @@ struct rrc_cfg_t {
   srslte::CIPHERING_ALGORITHM_ID_ENUM eea_preference_list[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS];
   srslte::INTEGRITY_ALGORITHM_ID_ENUM eia_preference_list[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS];
   bool                                meas_cfg_present = false;
-  rrc_meas_cfg_t                      meas_cfg;
   srslte_cell_t                       cell;
   cell_list_t                         cell_list;
 };
@@ -269,7 +250,8 @@ private:
     uint16_t rnti   = 0;
     rrc*     parent = nullptr;
 
-    bool connect_notified = false;
+    bool                          connect_notified = false;
+    std::unique_ptr<rrc_mobility> mobility_handler;
 
     bool is_csfb = false;
 
@@ -283,7 +265,6 @@ private:
     asn1::rrc::security_algorithm_cfg_s last_security_mode_cmd;
 
     asn1::rrc::establishment_cause_e establishment_cause;
-    std::unique_ptr<rrc_mobility>    mobility_handler;
 
     // S-TMSI for this UE
     bool     has_tmsi = false;
@@ -436,8 +417,8 @@ private:
   uint32_t               nof_si_messages = 0;
   asn1::rrc::sib_type7_s sib7;
 
-  class mobility_cfg;
-  std::unique_ptr<mobility_cfg> enb_mobility_cfg;
+  class enb_mobility_handler;
+  std::unique_ptr<enb_mobility_handler> enb_mobility_cfg;
 
   void rem_user_thread(uint16_t rnti);
 

@@ -484,6 +484,25 @@ private:
   std::list<proc_obj_t> proc_list;
 };
 
+template <typename Functor>
+struct deferred_callback {
+  explicit deferred_callback(Functor&& f_) : f(std::forward<Functor>(f_)) {}
+  deferred_callback(const deferred_callback&)     = delete;
+  deferred_callback(deferred_callback&&) noexcept = default;
+  deferred_callback& operator=(const deferred_callback&) = delete;
+  deferred_callback& operator=(deferred_callback&&) noexcept = default;
+  ~deferred_callback() { f(); }
+
+private:
+  Functor f;
+};
+template <typename Functor>
+deferred_callback<Functor> defer_call(Functor&& f)
+{
+  return deferred_callback<Functor>{std::forward<Functor>(f)};
+}
+#define DEFER(FUNC) auto on_exit_call = ::srslte::defer_call([&]() { FUNC })
+
 } // namespace srslte
 
 #endif // SRSLTE_RESUMABLE_PROCEDURES_H

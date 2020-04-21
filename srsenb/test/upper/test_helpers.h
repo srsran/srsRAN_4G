@@ -74,7 +74,11 @@ public:
     uint32_t                     target_eci;
     srslte::plmn_id_t            target_plmn;
     srslte::unique_byte_buffer_t rrc_container;
-  } last_ho_required;
+  } last_ho_required = {};
+  struct enb_status_transfer_info {
+    uint16_t                        rnti;
+    std::vector<bearer_status_info> bearer_list;
+  } last_enb_status = {};
 
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
@@ -128,6 +132,17 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   phy_cfg_t phy_cfg;
 
   return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &phy_cfg);
+}
+
+template <typename ASN1Type>
+bool unpack_asn1(ASN1Type& asn1obj, const srslte::unique_byte_buffer_t& pdu)
+{
+  asn1::cbit_ref bref{pdu->msg, pdu->N_bytes};
+  if (asn1obj.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    srslte::logmap::get("TEST")->error("Failed to unpack ASN1 type\n");
+    return false;
+  }
+  return true;
 }
 
 void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, uint8_t* msg, size_t nof_bytes)

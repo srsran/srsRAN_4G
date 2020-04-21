@@ -74,7 +74,7 @@ void rrc::init(const rrc_cfg_t&       cfg_,
 
   nof_si_messages = generate_sibs();
   config_mac();
-  enb_mobility_cfg.reset(new mobility_cfg(&cfg));
+  enb_mobility_cfg.reset(new enb_mobility_handler(this));
 
   bzero(&sr_sched, sizeof(sr_sched_t));
   running = true;
@@ -562,7 +562,7 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 
 void rrc::ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container)
 {
-  users.at(rnti)->handle_ho_preparation_complete(is_success, std::move(rrc_container));
+  users.at(rnti)->mobility_handler->handle_ho_preparation_complete(is_success, std::move(rrc_container));
 }
 
 /*******************************************************************************
@@ -2100,6 +2100,7 @@ void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_set
     srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
     bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
     parent->mac->bearer_ue_cfg(rnti, lcid, &bearer_cfg);
+    current_sched_ue_cfg.ue_bearers[lcid] = bearer_cfg;
 
     // Configure DRB in RLC
     parent->rlc->add_bearer(rnti, lcid, srslte::make_rlc_config_t(drb_item.rlc_cfg));

@@ -38,6 +38,7 @@
 #include "srsenb/hdr/enb.h"
 #include "srslte/common/multiqueue.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/enb_rrc_interface_types.h"
 
 namespace srsenb {
 

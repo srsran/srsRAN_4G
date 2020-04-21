@@ -30,6 +30,7 @@
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/interfaces/enb_rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
 #include "ta.h"
 #include "ue.h"

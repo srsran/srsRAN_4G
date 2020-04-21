@@ -237,7 +237,7 @@ int test_correct_meascfg_calculation()
 }
 
 struct mobility_test_params {
-  enum class test_fail_at { success, wrong_measreport, concurrent_ho, ho_prep_failure } fail_at;
+  enum class test_fail_at { success, wrong_measreport, concurrent_ho, ho_prep_failure, recover } fail_at;
   const char* to_string()
   {
     switch (fail_at) {
@@ -249,15 +249,17 @@ struct mobility_test_params {
         return "measreport while in handover";
       case test_fail_at::ho_prep_failure:
         return "ho preparation failure";
+      case test_fail_at::recover:
+        return "fail and success";
       default:
         return "none";
     }
   }
 };
 
-int test_mobility_class(mobility_test_params test_params)
+int test_s1ap_mobility(mobility_test_params test_params)
 {
-  printf("\n===== TEST: test_mobility_class() for event \"%s\" =====\n", test_params.to_string());
+  printf("\n===== TEST: test_s1ap_mobility() for event \"%s\" =====\n", test_params.to_string());
   srslte::scoped_log<srslte::test_log_filter> rrc_log("RRC ");
   srslte::timer_handler                       timers;
   srslte::unique_byte_buffer_t                pdu;
@@ -266,11 +268,11 @@ int test_mobility_class(mobility_test_params test_params)
   rrc_cfg_t          cfg;
   TESTASSERT(test_helpers::parse_default_cfg(&cfg, args) == SRSLTE_SUCCESS);
   report_cfg_eutra_s rep = generate_rep1();
-  cfg.meas_cfg.meas_reports.push_back(rep);
+  cfg.cell_list[0].meas_cfg.meas_reports.push_back(rep);
   meas_cell_cfg_t cell2 = generate_cell1();
   cell2.pci             = 2;
   cell2.eci             = 0x19C02;
-  cfg.meas_cfg.meas_cells.push_back(cell2);
+  cfg.cell_list[0].meas_cfg.meas_cells.push_back(cell2);
   cfg.meas_cfg_present = true;
 
   srsenb::rrc                       rrc;
@@ -332,7 +334,7 @@ int test_mobility_class(mobility_test_params test_params)
     return SRSLTE_SUCCESS;
   }
 
-  /* Check HO Required was sent to S1AP */
+  /* Test Case: Check HO Required was sent to S1AP */
   TESTASSERT(s1ap.last_ho_required.rnti == rnti);
   TESTASSERT(s1ap.last_ho_required.target_eci == cell2.eci);
   TESTASSERT(s1ap.last_ho_required.target_plmn.to_string() == "00101");
@@ -360,9 +362,14 @@ int test_mobility_class(mobility_test_params test_params)
                                     0x10, 0x00, 0x01, 0x00, 0x05, 0x00, 0xa7, 0xd0, 0xc1, 0xf6, 0xaf, 0x3e, 0x12, 0xcc,
                                     0x86, 0x0d, 0x30, 0x00, 0x0b, 0x5a, 0x02, 0x17, 0x86, 0x00, 0x05, 0xa0, 0x20};
   test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container, sizeof(ho_cmd_rrc_container));
+  TESTASSERT(s1ap.last_enb_status.rnti != rnti);
   rrc.ho_preparation_complete(rnti, true, std::move(pdu));
-
   TESTASSERT(rrc_log->error_counter == 0);
+  asn1::rrc::dl_dcch_msg_s ho_cmd;
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, pdcp.last_sdu.sdu));
+  auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(recfg_r8.mob_ctrl_info_present);
+
   return SRSLTE_SUCCESS;
 }
 
@@ -377,10 +384,10 @@ int main(int argc, char** argv)
   argparse::parse_args(argc, argv);
   TESTASSERT(test_correct_insertion() == 0);
   TESTASSERT(test_correct_meascfg_calculation() == 0);
-  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::wrong_measreport}) == 0);
-  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::concurrent_ho}) == 0);
-  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::ho_prep_failure}) == 0);
-  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::success}) == 0);
+  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::wrong_measreport}) == 0);
+  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::concurrent_ho}) == 0);
+  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::ho_prep_failure}) == 0);
+  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::success}) == 0);
 
   printf("\nSuccess\n");
 

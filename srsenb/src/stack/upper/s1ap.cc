@@ -285,8 +285,6 @@ void s1ap::get_metrics(s1ap_metrics_t& m)
 void s1ap::build_tai_cgi()
 {
   uint32_t plmn;
-  uint32_t tmp32;
-  uint16_t tmp16;
 
   // TAI
   s1ap_mccmnc_to_plmn(args.mcc, args.mnc, &plmn);

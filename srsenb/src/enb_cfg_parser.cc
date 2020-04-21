@@ -720,8 +720,8 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     parse_default_field(cell_cfg.initial_dl_cqi, cellroot, "initial_dl_cqi", 5u);
 
     if (cellroot["ho_active"]) {
-      HANDLEPARSERCODE(parse_meas_cell_list(&rrc_cfg->meas_cfg, cellroot["meas_cell_list"]));
-      HANDLEPARSERCODE(parse_meas_report_desc(&rrc_cfg->meas_cfg, cellroot["meas_report_desc"]));
+      HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));
+      HANDLEPARSERCODE(parse_meas_report_desc(&cell_cfg.meas_cfg, cellroot["meas_report_desc"]));
     }
 
     cell_cfg.scell_list.resize(cellroot["scell_list"].getLength());

@@ -63,21 +63,26 @@ public:
   asn1::rrc::report_cfg_to_add_mod_list_l&       rep_cfgs() { return var_meas.report_cfg_list; }
   asn1::rrc::meas_id_to_add_mod_list_l&          meas_ids() { return var_meas.meas_id_list; }
 
+  static var_meas_cfg_t make(const asn1::rrc::meas_cfg_s& meas_cfg);
+
 private:
   asn1::rrc::var_meas_cfg_s var_meas;
   srslte::log_ref           rrc_log;
 };
 
-class rrc::mobility_cfg
+class rrc::enb_mobility_handler
 {
 public:
-  explicit mobility_cfg(const rrc_cfg_t* cfg_);
+  explicit enb_mobility_handler(rrc* rrc_);
 
-  std::shared_ptr<const var_meas_cfg_t> current_meas_cfg; ///< const to enable ptr comparison as identity comparison
+  //! Variable used to store the MeasConfig expected for each cell.
+  // Note: Made const to forbid silent updates and enable comparison based on addr
+  std::vector<std::shared_ptr<const var_meas_cfg_t> > cell_meas_cfg_list;
 
 private:
   // args
-  const rrc_cfg_t* cfg = nullptr;
+  rrc*             rrc_ptr = nullptr;
+  const rrc_cfg_t* cfg     = nullptr;
 };
 
 class rrc::ue::rrc_mobility
@@ -94,11 +99,18 @@ private:
   bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
   bool start_enb_status_transfer();
 
-  rrc::ue*                  rrc_ue  = nullptr;
-  rrc*                      rrc_enb = nullptr;
-  rrc::mobility_cfg*        cfg     = nullptr;
-  srslte::byte_buffer_pool* pool    = nullptr;
-  srslte::log_ref           rrc_log;
+  bool update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
+                              uint32_t                     target_enb_cc_idx,
+                              asn1::rrc::meas_cfg_s*       diff_meas_cfg);
+  bool update_ue_var_meas_cfg(const var_meas_cfg_t&  source_var_meas_cfg,
+                              uint32_t               target_enb_cc_idx,
+                              asn1::rrc::meas_cfg_s* diff_meas_cfg);
+
+  rrc::ue*                   rrc_ue  = nullptr;
+  rrc*                       rrc_enb = nullptr;
+  rrc::enb_mobility_handler* cfg     = nullptr;
+  srslte::byte_buffer_pool*  pool    = nullptr;
+  srslte::log_ref            rrc_log;
 
   // vars
   std::shared_ptr<const var_meas_cfg_t> ue_var_meas;
