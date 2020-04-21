@@ -699,10 +699,25 @@ static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& root)
   return SRSLTE_SUCCESS;
 }
 
-static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
+static int parse_scell_list(cell_cfg_t& cell_cfg, Setting& cellroot)
 {
   auto cell_id_parser = [](uint32_t& cell_id, Setting& root) { return parse_bounded_number(cell_id, root, 0u, 255u); };
 
+  cell_cfg.scell_list.resize(cellroot["scell_list"].getLength());
+  for (uint32_t i = 0; i < cell_cfg.scell_list.size(); ++i) {
+    auto& scell     = cell_cfg.scell_list[i];
+    auto& scellroot = cellroot["scell_list"][i];
+    cell_id_parser(scell.cell_id, scellroot["cell_id"]);
+    scell.cross_carrier_sched = (bool)scellroot["cross_carrier_scheduling"];
+    cell_id_parser(scell.sched_cell_id, scellroot["scheduling_cell_id"]);
+    scell.ul_allowed = (bool)scellroot["ul_allowed"];
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
+{
   rrc_cfg->cell_list.resize(root.getLength());
   for (uint32_t n = 0; n < rrc_cfg->cell_list.size(); ++n) {
     cell_cfg_t& cell_cfg = rrc_cfg->cell_list[n];
@@ -719,19 +734,13 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
         cell_cfg.root_seq_idx, cellroot, "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
     parse_default_field(cell_cfg.initial_dl_cqi, cellroot, "initial_dl_cqi", 5u);
 
-    if (cellroot["ho_active"]) {
+    if (cellroot.exists("ho_active") and cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&cell_cfg.meas_cfg, cellroot["meas_cell_list"]));
       HANDLEPARSERCODE(parse_meas_report_desc(&cell_cfg.meas_cfg, cellroot["meas_report_desc"]));
     }
 
-    cell_cfg.scell_list.resize(cellroot["scell_list"].getLength());
-    for (uint32_t i = 0; i < cell_cfg.scell_list.size(); ++i) {
-      auto& scell     = cell_cfg.scell_list[i];
-      auto& scellroot = cellroot["scell_list"][i];
-      cell_id_parser(scell.cell_id, scellroot["cell_id"]);
-      scell.cross_carrier_sched = (bool)scellroot["cross_carrier_scheduling"];
-      cell_id_parser(scell.sched_cell_id, scellroot["scheduling_cell_id"]);
-      scell.ul_allowed = (bool)scellroot["ul_allowed"];
+    if (cellroot.exists("scell_list")) {
+      parse_scell_list(cell_cfg, cellroot);
     }
   }
 

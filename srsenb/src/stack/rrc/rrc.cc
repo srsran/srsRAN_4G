@@ -1947,6 +1947,24 @@ void rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn
     return;
   }
 
+  // Set DL HARQ Feedback mode, PUCCH3 by default
+  conn_reconf->rr_cfg_ded_present              = true;
+  conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
+  conn_reconf->rr_cfg_ded.phys_cfg_ded.ext     = true;
+  conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.set_present(true);
+  conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.get()->pucch_format_r10_present = true;
+  auto pucch_format_r10                      = conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.get();
+  pucch_format_r10->pucch_format_r10_present = true;
+
+  auto& format3                        = pucch_format_r10->pucch_format_r10.set_format3_r10();
+  format3.n3_pucch_an_list_r13_present = true;
+  uint32_t k                           = 0;
+  format3.n3_pucch_an_list_r13.resize(4);
+  for (auto& e : format3.n3_pucch_an_list_r13) {
+    // TODO: Allocate from scheduler for avoiding collisions
+    e = 0;
+  }
+
   conn_reconf->non_crit_ext_present                                                     = true;
   conn_reconf->non_crit_ext.non_crit_ext_present                                        = true;
   conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext_present                           = true;
