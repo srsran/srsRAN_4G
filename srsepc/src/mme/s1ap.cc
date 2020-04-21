@@ -209,7 +209,7 @@ bool s1ap::s1ap_tx_pdu(const asn1::s1ap::s1ap_pdu_c& pdu, struct sctp_sndrcvinfo
   }
   buf->N_bytes = bref.distance_bytes();
 
-  ssize_t n_sent = sctp_send(m_s1mme, buf->msg, buf->N_bytes, enb_sri, 0);
+  ssize_t n_sent = sctp_send(m_s1mme, buf->msg, buf->N_bytes, enb_sri, MSG_NOSIGNAL);
   if (n_sent == -1) {
     m_s1ap_log->console("Failed to send S1AP PDU. Error: %s\n", strerror(errno));
     m_s1ap_log->error("Failed to send S1AP PDU. Error: %s \n", strerror(errno));
