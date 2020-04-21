@@ -23,7 +23,7 @@
 
 #include "srsenb/hdr/stack/mac/scheduler.h"
 #include "srslte/common/log_helper.h"
-#include "srslte/common/pdu.h"
+#include "srslte/mac/pdu.h"
 #include "srslte/srslte.h"
 
 using srslte::tti_point;

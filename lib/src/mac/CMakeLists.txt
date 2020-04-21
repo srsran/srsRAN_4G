@@ -18,8 +18,11 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(mac)
-add_subdirectory(phy)
-add_subdirectory(upper)
+SET(SOURCES pdu.cc pdu_queue.cc)
+
+if (ENABLE_5GNR)
+    set(SOURCES ${SOURCES} mac_nr_pdu.cc)
+endif(ENABLE_5GNR)
+
+add_library(srslte_mac STATIC ${SOURCES})
+

@@ -25,7 +25,7 @@
 #include "srsenb/hdr/stack/mac/scheduler_ue.h"
 #include "srslte/common/log_helper.h"
 #include "srslte/common/logmap.h"
-#include "srslte/common/pdu.h"
+#include "srslte/mac/pdu.h"
 #include "srslte/srslte.h"
 
 /******************************************************

@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/common/mac_nr_pdu.h"
+#include "srslte/mac/mac_nr_pdu.h"
 
 namespace srslte {
 

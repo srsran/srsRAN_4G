@@ -25,6 +25,7 @@ add_executable(sched_grid_test sched_grid_test.cc)
 target_link_libraries(sched_grid_test srsenb_mac
         srsenb_phy
         srslte_common
+        srslte_mac
         scheduler_test_common
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})

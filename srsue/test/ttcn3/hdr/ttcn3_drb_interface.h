@@ -24,7 +24,7 @@
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
-#include "srslte/common/pdu.h"
+#include "srslte/mac/pdu.h"
 #include "ttcn3_interfaces.h"
 #include "ttcn3_port_handler.h"
 #include <srslte/interfaces/ue_interfaces.h>

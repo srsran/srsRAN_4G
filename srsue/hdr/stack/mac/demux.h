@@ -23,10 +23,10 @@
 #define SRSUE_DEMUX_H
 
 #include "srslte/common/log.h"
-#include "srslte/common/pdu.h"
-#include "srslte/common/pdu_queue.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/mac/pdu.h"
+#include "srslte/mac/pdu_queue.h"
 
 /* Logical Channel Demultiplexing and MAC CE dissassemble */
 

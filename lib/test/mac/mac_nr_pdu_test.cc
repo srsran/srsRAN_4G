@@ -21,8 +21,8 @@
 
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_nr_pcap.h"
-#include "srslte/common/mac_nr_pdu.h"
 #include "srslte/config.h"
+#include "srslte/mac/mac_nr_pdu.h"
 
 #include <array>
 #include <iostream>

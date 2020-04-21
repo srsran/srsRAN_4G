@@ -63,16 +63,6 @@ target_link_libraries(timeout_test srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(bcd_helpers_test bcd_helpers_test.cc)
 
-add_executable(pdu_test pdu_test.cc)
-target_link_libraries(pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
-add_test(pdu_test pdu_test)
-
-if (ENABLE_5GNR)
-    add_executable(mac_nr_pdu_test mac_nr_pdu_test.cc)
-    target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
-    add_test(mac_nr_pdu_test mac_nr_pdu_test)
-endif (ENABLE_5GNR)
-
 add_executable(stack_procedure_test stack_procedure_test.cc)
 add_test(stack_procedure_test stack_procedure_test)
 

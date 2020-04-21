@@ -18,8 +18,12 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(mac)
-add_subdirectory(phy)
-add_subdirectory(upper)
+add_executable(pdu_test pdu_test.cc)
+target_link_libraries(pdu_test srslte_phy srslte_common srslte_mac ${CMAKE_THREAD_LIBS_INIT})
+add_test(pdu_test pdu_test)
+
+if (ENABLE_5GNR)
+    add_executable(mac_nr_pdu_test mac_nr_pdu_test.cc)
+    target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common srslte_mac ${CMAKE_THREAD_LIBS_INIT})
+    add_test(mac_nr_pdu_test mac_nr_pdu_test)
+endif (ENABLE_5GNR)

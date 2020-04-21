@@ -30,8 +30,8 @@
 #include "proc_phr.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
-#include "srslte/common/pdu.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/mac/pdu.h"
 #include <mutex>
 
 /* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */

@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/common/pdu_queue.h"
+#include "srslte/mac/pdu_queue.h"
 #include "srslte/common/log_helper.h"
 
 namespace srslte {

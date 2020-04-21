@@ -24,6 +24,7 @@ target_link_libraries(ttcn3_dut srsue_stack
                                 srsue_rrc
                                 srslte_upper
                                 srslte_common
+                                srslte_mac
                                 srslte_phy
                                 srslte_radio
                                 srslte_upper

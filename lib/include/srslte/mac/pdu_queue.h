@@ -25,8 +25,8 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
-#include "srslte/common/pdu.h"
 #include "srslte/common/timers.h"
+#include "srslte/mac/pdu.h"
 
 /* Logical Channel Demultiplexing and MAC CE dissassemble */
 

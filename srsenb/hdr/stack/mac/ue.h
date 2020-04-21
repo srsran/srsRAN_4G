@@ -26,10 +26,10 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
-#include "srslte/common/pdu.h"
-#include "srslte/common/pdu_queue.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
+#include "srslte/mac/pdu.h"
+#include "srslte/mac/pdu_queue.h"
 #include "ta.h"
 #include <pthread.h>
 #include <vector>

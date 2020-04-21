@@ -32,8 +32,6 @@ set(SOURCES arch_select.cc
             nas_pcap.cc
             network_utils.cc
             pcap.c
-            pdu.cc
-            pdu_queue.cc
             rlc_pcap.cc
             s1ap_pcap.cc
             security.cc
@@ -46,7 +44,7 @@ set(SOURCES arch_select.cc
             zuc.cc)
 
 if (ENABLE_5GNR)
-  set(SOURCES ${SOURCES} mac_nr_pcap.cc mac_nr_pdu.cc)
+  set(SOURCES ${SOURCES} mac_nr_pcap.cc)
 endif(ENABLE_5GNR)
 
 # Avoid warnings caused by libmbedtls about deprecated functions

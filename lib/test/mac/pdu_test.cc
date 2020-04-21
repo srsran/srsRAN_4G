@@ -23,9 +23,9 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/mac_pcap.h"
-#include "srslte/common/pdu.h"
 #include "srslte/common/test_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/mac/pdu.h"
 #include <bitset>
 #include <iostream>
 #include <map>

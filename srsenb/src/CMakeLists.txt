@@ -41,6 +41,7 @@ target_link_libraries(srsenb  srsenb_phy
                               srsenb_mac
                               srsenb_rrc
                               srslte_common
+                              srslte_mac
                               srslte_phy
                               srslte_upper
                               srslte_radio

@@ -29,8 +29,8 @@
 #include "mux.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
-#include "srslte/common/pdu.h"
 #include "srslte/common/timers.h"
+#include "srslte/mac/pdu.h"
 
 /* Random access procedure as specified in Section 5.1 of 36.321 */
 

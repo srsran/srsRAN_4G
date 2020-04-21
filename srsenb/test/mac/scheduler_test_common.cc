@@ -20,8 +20,8 @@
  */
 
 #include "scheduler_test_common.h"
-#include "lib/include/srslte/common/pdu.h"
 #include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srslte/mac/pdu.h"
 
 #include "srslte/common/test_common.h"
 

@@ -23,7 +23,7 @@
 #define SRSUE_TTCN3_SYSSIM_H
 
 #include "dut_utils.h"
-#include "srslte/common/pdu_queue.h"
+#include "srslte/mac/pdu_queue.h"
 #include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"

@@ -37,6 +37,7 @@ target_link_libraries(srsue   srsue_phy
                               srsue_mac
                               srsue_rrc
                               srslte_common
+                              srslte_mac
                               srslte_phy
                               srslte_radio
                               srslte_upper

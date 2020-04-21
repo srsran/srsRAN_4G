@@ -30,5 +30,5 @@ target_link_libraries(metrics_test srslte_phy srslte_common)
 add_test(metrics_test metrics_test -o ${CMAKE_CURRENT_BINARY_DIR}/ue_metrics.csv)
 
 add_executable(mac_test mac_test.cc)
-target_link_libraries(mac_test srsue_mac srsue_phy srslte_common srslte_phy srslte_radio srslte_asn1 rrc_asn1 ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+target_link_libraries(mac_test srsue_mac srsue_phy srslte_common srslte_mac srslte_phy srslte_radio srslte_asn1 rrc_asn1 ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 add_test(mac_test mac_test)
