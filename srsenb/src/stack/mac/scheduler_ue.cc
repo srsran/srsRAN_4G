@@ -399,6 +399,71 @@ uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uin
   return total_tbs - rem_tbs;
 }
 
+/**
+ * Allocate space for pending MAC CEs
+ * @param data struct where the MAC CEs allocations are stored
+ * @param total_tbs available space in bytes for allocations
+ * @return number of bytes allocated
+ */
+uint32_t sched_ue::allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t ue_cc_idx)
+{
+  if (ue_cc_idx != 0) {
+    return 0;
+  }
+
+  int rem_tbs = total_tbs;
+  while (not pending_ces.empty()) {
+    int toalloc = pending_ces.front().get_req_bytes(cfg);
+    if (rem_tbs < toalloc) {
+      break;
+    }
+    data->pdu[0][data->nof_pdu_elems[0]].lcid = pending_ces.front().cetype;
+    data->nof_pdu_elems[0]++;
+    rem_tbs -= toalloc;
+    Info("SCHED: Added a MAC %s CE for rnti=0x%x\n", pending_ces.front().to_string().c_str(), rnti);
+    pending_ces.pop_front();
+  }
+  return total_tbs - rem_tbs;
+}
+
+/**
+ * Allocate space
+ * @param data
+ * @param total_tbs
+ * @param ue_cc_idx
+ * @return pair with allocated tbs and mcs
+ */
+std::pair<int, int> sched_ue::allocate_new_dl_mac_pdu(sched::dl_sched_data_t* data,
+                                                      dl_harq_proc*           h,
+                                                      const rbgmask_t&        user_mask,
+                                                      uint32_t                tti_tx_dl,
+                                                      uint32_t                ue_cc_idx,
+                                                      uint32_t                cfi,
+                                                      uint32_t                tb,
+                                                      const char*             dci_format)
+{
+  srslte_dci_dl_t* dci     = &data->dci;
+  uint32_t         nof_prb = sched_utils::count_prb_per_tb(*carriers[ue_cc_idx].get_cell_cfg(), user_mask);
+  auto             ret     = compute_mcs_and_tbs(ue_cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
+  int              mcs     = ret.first;
+  int              tbs     = ret.second;
+
+  /* Allocate MAC PDU (subheaders, CEs, and SDUS) */
+  int rem_tbs = tbs;
+  rem_tbs -= allocate_mac_ces(data, rem_tbs, ue_cc_idx);
+  rem_tbs -= allocate_mac_sdus(data, rem_tbs, tb);
+
+  /* Allocate DL UE Harq */
+  if (rem_tbs != tbs) {
+    h->new_tx(user_mask, tb, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
+    Debug("SCHED: Alloc DCI format%s new mcs=%d, tbs=%d, nof_prb=%d\n", dci_format, mcs, tbs, nof_prb);
+  } else {
+    Warning("SCHED: Failed to allocate DL harq pid=%d\n", h->get_id());
+  }
+
+  return std::make_pair(tbs, mcs);
+}
+
 int sched_ue::generate_dl_dci_format(uint32_t                          pid,
                                      sched_interface::dl_sched_data_t* data,
                                      uint32_t                          tti_tx_dl,
@@ -430,11 +495,11 @@ int sched_ue::generate_dl_dci_format(uint32_t                          pid,
 int sched_ue::generate_format1(uint32_t                          pid,
                                sched_interface::dl_sched_data_t* data,
                                uint32_t                          tti_tx_dl,
-                               uint32_t                          cc_idx,
+                               uint32_t                          ue_cc_idx,
                                uint32_t                          cfi,
                                const rbgmask_t&                  user_mask)
 {
-  dl_harq_proc*    h   = &carriers[cc_idx].harq_ent.dl_harq_procs()[pid];
+  dl_harq_proc*    h   = &carriers[ue_cc_idx].harq_ent.dl_harq_procs()[pid];
   srslte_dci_dl_t* dci = &data->dci;
 
   int mcs = 0;
@@ -444,40 +509,9 @@ int sched_ue::generate_format1(uint32_t                          pid,
   dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
   if (h->is_empty(0)) {
-    uint32_t req_bytes = get_pending_dl_new_data_total();
-    uint32_t nof_prb   = sched_utils::count_prb_per_tb(*carriers[cc_idx].get_cell_cfg(), user_mask);
-
-    auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
-    mcs      = ret.first;
-    tbs      = ret.second;
-
-    /* Allocate MAC PDU (subheaders, CEs, and SDUS) */
-    int rem_tbs = tbs;
-
-    // Allocate MAC CE CMDs
-    while (cc_idx == 0 and not pending_ces.empty()) {
-      int toalloc = pending_ces.front().get_req_bytes(cfg);
-      if (rem_tbs < toalloc) {
-        break;
-      }
-      data->pdu[0][data->nof_pdu_elems[0]].lcid = pending_ces.front().cetype;
-      data->nof_pdu_elems[0]++;
-      rem_tbs -= toalloc;
-      Info("SCHED: Added a MAC %s CE for rnti=0x%x\n", pending_ces.front().to_string().c_str(), rnti);
-      pending_ces.pop_front();
-    }
-
-    // Allocate MAC SDU and respective subheaders
-    rem_tbs -= allocate_mac_sdus(data, rem_tbs, 0);
-
-    // Allocate DL Harq, if there was at least one successful allocation
-    if (rem_tbs != tbs) {
-      h->new_tx(user_mask, 0, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
-      Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
-    } else {
-      Warning("SCHED: Failed to allocate DL harq pid=%d\n", h->get_id());
-    }
-
+    auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, 0, "1");
+    tbs      = ret.first;
+    mcs      = ret.second;
   } else {
     h->new_retx(user_mask, 0, tti_tx_dl, &mcs, &tbs, data->dci.location.ncce);
     Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
@@ -486,7 +520,7 @@ int sched_ue::generate_format1(uint32_t                          pid,
   if (tbs > 0) {
     dci->rnti          = rnti;
     dci->pid           = h->get_id();
-    dci->ue_cc_idx     = cc_idx;
+    dci->ue_cc_idx     = ue_cc_idx;
     dci->tb[0].mcs_idx = (uint32_t)mcs;
     dci->tb[0].rv      = sched_utils::get_rvidx(h->nof_retx(0));
     dci->tb[0].ndi     = h->get_ndi(0);
@@ -552,22 +586,20 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
 int sched_ue::generate_format2a(uint32_t                          pid,
                                 sched_interface::dl_sched_data_t* data,
                                 uint32_t                          tti_tx_dl,
-                                uint32_t                          cc_idx,
+                                uint32_t                          ue_cc_idx,
                                 uint32_t                          cfi,
                                 const rbgmask_t&                  user_mask)
 {
-  dl_harq_proc* h                    = &carriers[cc_idx].harq_ent.dl_harq_procs()[pid];
+  dl_harq_proc* h                    = &carriers[ue_cc_idx].harq_ent.dl_harq_procs()[pid];
   bool          tb_en[SRSLTE_MAX_TB] = {false};
 
   srslte_dci_dl_t* dci         = &data->dci;
   dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
   dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
-  uint32_t nof_prb = sched_utils::count_prb_per_tb(*carriers[cc_idx].get_cell_cfg(), user_mask);
-
   bool no_retx = true;
 
-  if (carriers[cc_idx].dl_ri == 0) {
+  if (carriers[ue_cc_idx].dl_ri == 0) {
     if (h->is_empty(1)) {
       /* One layer, tb1 buffer is empty, send tb0 only */
       tb_en[0] = true;
@@ -601,15 +633,9 @@ int sched_ue::generate_format2a(uint32_t                          pid,
       Debug("SCHED: Alloc format2/2a previous mcs=%d, tbs=%d\n", mcs, tbs);
 
     } else if (tb_en[tb] && req_bytes > 0 && no_retx) {
-
-      auto ret = compute_mcs_and_tbs(cc_idx, tti_tx_dl, nof_prb, cfi, *dci);
-      mcs      = ret.first;
-      tbs      = ret.second;
-
-      if (allocate_mac_sdus(data, tbs, tb) > 0) {
-        h->new_tx(user_mask, tb, tti_tx_dl, mcs, tbs, data->dci.location.ncce);
-        Debug("SCHED: Alloc format2/2a new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
-      }
+      auto ret = allocate_new_dl_mac_pdu(data, h, user_mask, tti_tx_dl, ue_cc_idx, cfi, tb, "2/2a");
+      tbs      = ret.first;
+      mcs      = ret.second;
     }
 
     /* Fill DCI TB dedicated fields */
@@ -631,7 +657,7 @@ int sched_ue::generate_format2a(uint32_t                          pid,
   /* Fill common fields */
   dci->format    = SRSLTE_DCI_FORMAT2A;
   dci->rnti      = rnti;
-  dci->ue_cc_idx = cc_idx;
+  dci->ue_cc_idx = ue_cc_idx;
   dci->pid       = h->get_id();
   dci->tpc_pucch = (uint8_t)next_tpc_pucch;
   next_tpc_pucch = 1;
@@ -867,7 +893,7 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
     srb0_data += compute_sdu_total_bytes(0, lch[0].buf_tx);
   }
   // Add pending CEs
-  if (is_dci_format1 and ue_cc_idx == 0) {
+  if (ue_cc_idx == 0) {
     for (const auto& ce : pending_ces) {
       sum_ce_data += ce.get_req_bytes(cfg);
     }

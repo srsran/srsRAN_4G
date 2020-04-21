@@ -201,8 +201,17 @@ private:
 
   bool is_sr_triggered();
 
-  int      alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs);
-  uint32_t allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t tbidx);
+  int                 alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs);
+  uint32_t            allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t tbidx);
+  uint32_t            allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t ue_cc_idx);
+  std::pair<int, int> allocate_new_dl_mac_pdu(sched_interface::dl_sched_data_t* data,
+                                              dl_harq_proc*                     h,
+                                              const rbgmask_t&                  user_mask,
+                                              uint32_t                          tti_tx_dl,
+                                              uint32_t                          ue_cc_idx,
+                                              uint32_t                          cfi,
+                                              uint32_t                          tb,
+                                              const char*                       dci_format);
 
   std::pair<int, int> compute_mcs_and_tbs(uint32_t               ue_cc_idx,
                                           uint32_t               tti_tx_dl,
