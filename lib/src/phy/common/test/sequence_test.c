@@ -177,7 +177,10 @@ int main(int argc, char** argv)
   }
 
   // Initialise sequence object
-  srslte_sequence_init(&sequence, max_length);
+  if (srslte_sequence_init(&sequence, max_length) != SRSLTE_SUCCESS) {
+    fprintf(stderr, "Error initializing sequence object\n");
+    return SRSLTE_ERROR;
+  }
 
   printf("%8s; %8s; %8s; %8s; %8s; %8s; %8s\n", "seed", "length", "GEN", "XOR PS", "XOR 16", "XOR 8", "Passed");
 

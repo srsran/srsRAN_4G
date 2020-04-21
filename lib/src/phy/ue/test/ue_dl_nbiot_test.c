@@ -72,7 +72,7 @@ int dl_grant_with_sib1_test()
   }
 
   // pass MIB to compute SIB1 parameters
-  srslte_mib_nb_t mib;
+  srslte_mib_nb_t mib = {};
   mib.sched_info_sib1 = 3;
   // srslte_mib_nb_printf(stdout, cell, &mib);
   srslte_nbiot_ue_dl_set_mib(&ue_dl, mib);
@@ -108,7 +108,7 @@ int dl_grant_with_sib2_test()
   }
 
   // pass MIB to compute SIB1 parameters
-  srslte_mib_nb_t mib;
+  srslte_mib_nb_t mib = {};
   mib.sched_info_sib1 = 3;
   srslte_nbiot_ue_dl_set_mib(&ue_dl, mib);
 

@@ -496,7 +496,7 @@ int main(int argc, char** argv)
 
   ret = SRSLTE_SUCCESS;
 
-  if (measure_delay) {
+  if (measure_delay && delay_count > 0) {
     for (uint32_t r = 1; r < nof_radios; r++) {
       printf("Radio %d is delayed %.1f samples from radio 0;\n", r, delay_idx[r] / delay_count);
     }
