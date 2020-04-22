@@ -396,7 +396,7 @@ void mac::mch_decoded(uint32_t len, bool crc)
     mch_msg.parse_packet(mch_payload_buffer);
     while (mch_msg.next()) {
       for (uint32_t i = 0; i < phy_mbsfn_cfg.nof_mbsfn_services; i++) {
-        if (srslte::sch_subh::MCH_SCHED_INFO == mch_msg.get()->ce_type()) {
+        if (srslte::mch_lcid::MCH_SCHED_INFO == mch_msg.get()->mch_ce_type()) {
           uint16_t stop;
           uint8_t  lcid;
           if (mch_msg.get()->get_next_mch_sched_info(&lcid, &stop)) {

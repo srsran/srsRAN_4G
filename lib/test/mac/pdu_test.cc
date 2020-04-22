@@ -470,7 +470,7 @@ int mac_sch_pdu_pack_test6()
   // Try to Long BSR CE
   uint32_t buff_size[4] = {0, 1000, 5000, 19200000};
   TESTASSERT(pdu.new_subh());
-  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::sch_subh::LONG_BSR));
+  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::ul_sch_lcid::LONG_BSR));
 
   // write PDU
   pdu.write_packet(srslte::log_ref{"MAC"});

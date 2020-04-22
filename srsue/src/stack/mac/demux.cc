@@ -40,8 +40,7 @@ demux::demux(log_ref log_h_) :
   phy_h(nullptr),
   time_alignment_timer(nullptr),
   mac(nullptr)
-{
-}
+{}
 
 void demux::init(phy_interface_mac_common*            phy_,
                  rlc_interface_mac*                   rlc_,
@@ -100,14 +99,14 @@ void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
     // Look for Contention Resolution UE ID and TA commands
     is_uecrid_successful = false;
     while (pending_mac_msg.next()) {
-      switch (pending_mac_msg.get()->ce_type()) {
-        case srslte::sch_subh::CON_RES_ID:
+      switch (pending_mac_msg.get()->dl_sch_ce_type()) {
+        case srslte::dl_sch_lcid::CON_RES_ID:
           if (!is_uecrid_successful) {
             Debug("Found Contention Resolution ID CE\n");
             is_uecrid_successful = mac->contention_resolution_id_rcv(pending_mac_msg.get()->get_con_res_id());
           }
           break;
-        case srslte::sch_subh::TA_CMD:
+        case srslte::dl_sch_lcid::TA_CMD:
           parse_ta_cmd(pending_mac_msg.get());
           break;
         default:
@@ -246,7 +245,7 @@ void demux::process_mch_pdu(srslte::mch_pdu* mch_msg)
   // disgarding headers that have already been processed
   while (mch_msg->next()) {
 
-    if (srslte::sch_subh::MCH_SCHED_INFO == mch_msg->get()->ce_type()) {
+    if (srslte::mch_lcid::MCH_SCHED_INFO == mch_msg->get()->mch_ce_type()) {
       uint16_t stop;
       uint8_t  lcid;
       if (mch_msg->get()->get_next_mch_sched_info(&lcid, &stop)) {
@@ -281,22 +280,22 @@ void demux::mch_start_rx(uint32_t lcid)
 bool demux::process_ce(srslte::sch_subh* subh)
 {
   uint32_t cc_idx = 0;
-  switch (subh->ce_type()) {
-    case srslte::sch_subh::CON_RES_ID:
+  switch (subh->dl_sch_ce_type()) {
+    case srslte::dl_sch_lcid::CON_RES_ID:
       // Do nothing
       break;
-    case srslte::sch_subh::TA_CMD:
+    case srslte::dl_sch_lcid::TA_CMD:
       parse_ta_cmd(subh);
       break;
-    case srslte::sch_subh::SCELL_ACTIVATION:
+    case srslte::dl_sch_lcid::SCELL_ACTIVATION:
       cc_idx = (uint32_t)subh->get_activation_deactivation_cmd();
       phy_h->set_activation_deactivation_scell(cc_idx);
       mac->reset_harq(cc_idx);
       break;
-    case srslte::sch_subh::PADDING:
+    case srslte::dl_sch_lcid::PADDING:
       break;
     default:
-      Error("MAC CE 0x%x not supported\n", subh->ce_type());
+      Error("MAC CE 0x%x not supported\n", subh->lcid_value());
       break;
   }
   return true;

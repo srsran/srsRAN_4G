@@ -640,30 +640,30 @@ public:
     int32_t  idx          = 0;
     uint16_t old_rnti     = 0;
     bool     is_bsr       = false;
-    switch (subh->ce_type()) {
-      case srslte::sch_subh::PHR_REPORT:
+    switch (subh->ul_sch_ce_type()) {
+      case srslte::ul_sch_lcid::PHR_REPORT:
         phr = subh->get_phr();
         ss_mac_log->info("CE:    Received PHR from rnti=0x%x, value=%.0f\n", rnti, phr);
         break;
-      case srslte::sch_subh::CRNTI:
+      case srslte::ul_sch_lcid::CRNTI:
         old_rnti = subh->get_c_rnti();
         ss_mac_log->info("CE:    Received C-RNTI from temp_rnti=0x%x, rnti=0x%x\n", rnti, old_rnti);
         break;
-      case srslte::sch_subh::TRUNC_BSR:
-      case srslte::sch_subh::SHORT_BSR:
+      case srslte::ul_sch_lcid::TRUNC_BSR:
+      case srslte::ul_sch_lcid::SHORT_BSR:
         idx = subh->get_bsr(buff_size);
         if (idx == -1) {
           ss_mac_log->error("Invalid Index Passed to lc groups\n");
           break;
         }
         ss_mac_log->info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d\n",
-                         subh->ce_type() == srslte::sch_subh::SHORT_BSR ? "Short" : "Trunc",
+                         subh->ul_sch_ce_type() == srslte::ul_sch_lcid::SHORT_BSR ? "Short" : "Trunc",
                          rnti,
                          idx,
                          buff_size[idx]);
         is_bsr = true;
         break;
-      case srslte::sch_subh::LONG_BSR:
+      case srslte::ul_sch_lcid::LONG_BSR:
         subh->get_bsr(buff_size);
         is_bsr = true;
         ss_mac_log->info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n",
@@ -673,11 +673,11 @@ public:
                          buff_size[2],
                          buff_size[3]);
         break;
-      case srslte::sch_subh::PADDING:
+      case srslte::ul_sch_lcid::PADDING:
         ss_mac_log->debug("CE:    Received padding for rnti=0x%x\n", rnti);
         break;
       default:
-        ss_mac_log->error("CE:    Invalid lcid=0x%x\n", subh->ce_type());
+        ss_mac_log->error("CE:    Invalid lcid=0x%x\n", subh->lcid_value());
         break;
     }
     return is_bsr;

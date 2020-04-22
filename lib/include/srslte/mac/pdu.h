@@ -45,13 +45,17 @@ enum class dl_sch_lcid {
   DRX_CMD                  = 0b11110,
   PADDING                  = 0b11111
 };
-const char* to_string(dl_sch_lcid v);
-uint32_t    ce_size(dl_sch_lcid v);
-uint32_t    ce_subheader_size(dl_sch_lcid v);
-uint32_t    ce_total_size(dl_sch_lcid v);
-bool        is_mac_ce(dl_sch_lcid v)
+const char*    to_string(dl_sch_lcid v);
+uint32_t       ce_size(dl_sch_lcid v);
+uint32_t       ce_subheader_size(dl_sch_lcid v);
+uint32_t       ce_total_size(dl_sch_lcid v);
+constexpr bool is_mac_ce(dl_sch_lcid v)
 {
   return v > dl_sch_lcid::RESERVED;
+}
+constexpr bool is_sdu(dl_sch_lcid v)
+{
+  return v <= dl_sch_lcid::RESERVED;
 }
 
 /* 3GPP 36.321 Table 6.2.1-2 */
@@ -67,10 +71,15 @@ enum class ul_sch_lcid {
   LONG_BSR       = 0b11110,
   PADDING        = 0b11111
 };
-const char* to_string(ul_sch_lcid v);
-bool        is_mac_ce(ul_sch_lcid v)
+const char*    to_string(ul_sch_lcid v);
+uint32_t       ce_size(ul_sch_lcid v);
+constexpr bool is_mac_ce(ul_sch_lcid v)
 {
-  return v >= ul_sch_lcid::RESERVED;
+  return v > ul_sch_lcid::RESERVED;
+}
+constexpr bool is_sdu(ul_sch_lcid v)
+{
+  return v <= ul_sch_lcid::RESERVED;
 }
 
 /* 3GPP 36.321 Table 6.2.1-4 */
@@ -81,19 +90,33 @@ enum class mch_lcid {
   MCH_SCHED_INFO = 0b11110,
   PADDING        = 0b11111
 };
-const char* to_string(mch_lcid v);
+const char*    to_string(mch_lcid v);
+constexpr bool is_mac_ce(mch_lcid v)
+{
+  return v >= mch_lcid::MCH_SCHED_INFO;
+}
+constexpr bool is_sdu(mch_lcid v)
+{
+  return v < mch_lcid::MCH_SCHED_INFO;
+}
 
 /* Common LCID type */
 struct lcid_t {
-  enum class sch_type { dl_sch, ul_sch, mch } type;
+  enum class ch_type { dl_sch, ul_sch, mch } type;
   union {
     uint32_t    lcid;
     dl_sch_lcid dl_sch;
     ul_sch_lcid ul_sch;
     mch_lcid    mch;
   };
+  lcid_t(ch_type t, uint32_t lcid_) : type(t), lcid(lcid_) {}
+  lcid_t(dl_sch_lcid lcid_) : type(ch_type::dl_sch), dl_sch(lcid_) {}
+  lcid_t(ul_sch_lcid lcid_) : type(ch_type::ul_sch), ul_sch(lcid_) {}
+  lcid_t(mch_lcid lcid_) : type(ch_type::mch), mch(lcid_) {}
   const char* to_string() const;
-  bool        is_sch() const { return type == sch_type::dl_sch or type == sch_type::ul_sch; }
+  bool        is_sch() const { return type == ch_type::dl_sch or type == ch_type::ul_sch; }
+  bool        is_sdu() const;
+  bool        operator==(lcid_t t) const { return type == t.type and lcid == t.lcid; }
 };
 
 template <class SubH>
@@ -269,42 +292,20 @@ public:
 
   virtual ~sch_subh() {}
 
-  /* 3GPP 36.321 (R.10) Combined Tables 6.2.1-1, 6.2.1-2, 6.2.1-4 */
-  typedef enum {
-    /* Values of LCID for DL-SCH */
-    SCELL_ACTIVATION = 0b11011,
-    CON_RES_ID       = 0b11100,
-    TA_CMD           = 0b11101,
-    DRX_CMD          = 0b11110,
-
-    /* Values of LCID for UL-SCH */
-    PHR_REPORT_EXT = 0b11001,
-    PHR_REPORT     = 0b11010,
-    CRNTI          = 0b11011,
-    TRUNC_BSR      = 0b11100,
-    SHORT_BSR      = 0b11101,
-    LONG_BSR       = 0b11110,
-
-    /* Values of LCID for MCH */
-    MTCH_MAX_LCID  = 0b11100,
-    MCH_SCHED_INFO = 0b11110,
-
-    /*MTCH STOP Value*/
-    MTCH_STOP_EMPTY = 0b11111111111,
-    /* Common */
-    PADDING = 0b11111,
-    SDU     = 0b00000
-  } cetype;
-
   // Size of MAC CEs
-  const static int MAC_CE_CONTRES_LEN = 6;
+  const static int      MAC_CE_CONTRES_LEN = 6;
+  const static uint32_t MTCH_STOP_EMPTY    = 0b11111111111;
+  const static uint32_t SDU                = 0b00000;
 
   // Reading functions
-  bool     is_sdu();
-  bool     is_var_len_ce();
-  cetype   ce_type();
-  uint32_t size_plus_header();
-  void     set_payload_size(uint32_t size);
+  bool        is_sdu();
+  bool        is_var_len_ce();
+  uint32_t    lcid_value() { return lcid; }
+  ul_sch_lcid ul_sch_ce_type();
+  dl_sch_lcid dl_sch_ce_type();
+  mch_lcid    mch_ce_type();
+  uint32_t    size_plus_header();
+  void        set_payload_size(uint32_t size);
 
   bool read_subheader(uint8_t** ptr);
   void read_payload(uint8_t** ptr);
@@ -330,7 +331,7 @@ public:
   int  set_sdu(uint32_t lcid, uint32_t nof_bytes, uint8_t* payload);
   int  set_sdu(uint32_t lcid, uint32_t requested_bytes, read_pdu_interface* sdu_itf);
   bool set_c_rnti(uint16_t crnti);
-  bool set_bsr(uint32_t buff_size[4], sch_subh::cetype format);
+  bool set_bsr(uint32_t buff_size[4], ul_sch_lcid format);
   bool set_con_res_id(uint64_t con_res_id);
   bool set_ta_cmd(uint8_t ta_cmd);
   bool set_scell_activation_cmd(const std::array<bool, SRSLTE_MAX_CARRIERS>& active_scell_idxs);

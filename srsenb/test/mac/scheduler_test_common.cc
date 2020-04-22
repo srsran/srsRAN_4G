@@ -450,7 +450,7 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
         if (dl_result.data[i].dci.rnti == rnti) {
           CONDERROR(tic < userinfo.msg3_tic, "Msg4 cannot be scheduled without Msg3 being tx\n");
           for (uint32_t j = 0; j < dl_result.data[i].nof_pdu_elems[0]; ++j) {
-            if (dl_result.data[i].pdu[0][j].lcid == srslte::sch_subh::CON_RES_ID) {
+            if (dl_result.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
               // ConRes found
               CONDERROR(dl_result.data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
               CONDERROR(userinfo.msg4_tic.is_valid(), "Duplicate ConRes CE for the same rnti\n");

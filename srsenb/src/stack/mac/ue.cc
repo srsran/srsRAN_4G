@@ -352,14 +352,14 @@ bool ue::process_ce(srslte::sch_subh* subh)
   int32_t  idx          = 0;
   uint16_t old_rnti     = 0;
   bool     is_bsr       = false;
-  switch (subh->ce_type()) {
-    case srslte::sch_subh::PHR_REPORT:
+  switch (subh->ul_sch_ce_type()) {
+    case srslte::ul_sch_lcid::PHR_REPORT:
       phr = subh->get_phr();
       Info("CE:    Received PHR from rnti=0x%x, value=%.0f\n", rnti, phr);
       sched->ul_phr(rnti, (int)phr);
       metrics_phr(phr);
       break;
-    case srslte::sch_subh::CRNTI:
+    case srslte::ul_sch_lcid::CRNTI:
       old_rnti = subh->get_c_rnti();
       Info("CE:    Received C-RNTI from temp_rnti=0x%x, rnti=0x%x\n", rnti, old_rnti);
       if (sched->ue_exists(old_rnti)) {
@@ -369,8 +369,8 @@ bool ue::process_ce(srslte::sch_subh* subh)
         Error("Updating user C-RNTI: rnti=0x%x already released\n", old_rnti);
       }
       break;
-    case srslte::sch_subh::TRUNC_BSR:
-    case srslte::sch_subh::SHORT_BSR:
+    case srslte::ul_sch_lcid::TRUNC_BSR:
+    case srslte::ul_sch_lcid::SHORT_BSR:
       idx = subh->get_bsr(buff_size);
       if (idx == -1) {
         Error("Invalid Index Passed to lc groups\n");
@@ -381,13 +381,13 @@ bool ue::process_ce(srslte::sch_subh* subh)
         sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
       }
       Info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d\n",
-           subh->ce_type() == srslte::sch_subh::SHORT_BSR ? "Short" : "Trunc",
+           subh->ul_sch_ce_type() == srslte::ul_sch_lcid::SHORT_BSR ? "Short" : "Trunc",
            rnti,
            idx,
            buff_size[idx]);
       is_bsr = true;
       break;
-    case srslte::sch_subh::LONG_BSR:
+    case srslte::ul_sch_lcid::LONG_BSR:
       subh->get_bsr(buff_size);
       for (idx = 0; idx < 4; idx++) {
         for (uint32_t i = 0; i < lc_groups[idx].size(); i++) {
@@ -402,11 +402,11 @@ bool ue::process_ce(srslte::sch_subh* subh)
            buff_size[2],
            buff_size[3]);
       break;
-    case srslte::sch_subh::PADDING:
+    case srslte::ul_sch_lcid::PADDING:
       Debug("CE:    Received padding for rnti=0x%x\n", rnti);
       break;
     default:
-      Error("CE:    Invalid lcid=0x%x\n", subh->ce_type());
+      Error("CE:    Invalid lcid=0x%x\n", (int)subh->ul_sch_ce_type());
       break;
   }
   return is_bsr;
@@ -443,8 +443,8 @@ void ue::allocate_sdu(srslte::sch_pdu* pdu, uint32_t lcid, uint32_t total_sdu_le
 
 void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
 {
-  switch ((srslte::sch_subh::cetype)lcid) {
-    case srslte::sch_subh::TA_CMD:
+  switch ((srslte::dl_sch_lcid)lcid) {
+    case srslte::dl_sch_lcid::TA_CMD:
       if (pdu->new_subh()) {
         uint32_t ta_cmd = 31;
         pending_ta_commands.try_pop(&ta_cmd);
@@ -457,7 +457,7 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
         Error("CE:    Setting TA CMD CE. No space for a subheader\n");
       }
       break;
-    case srslte::sch_subh::CON_RES_ID:
+    case srslte::dl_sch_lcid::CON_RES_ID:
       if (pdu->new_subh()) {
         if (pdu->get()->set_con_res_id(conres_id)) {
           Info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
@@ -468,7 +468,7 @@ void ue::allocate_ce(srslte::sch_pdu* pdu, uint32_t lcid)
         Error("CE:    Setting Contention Resolution ID CE. No space for a subheader\n");
       }
       break;
-    case srslte::sch_subh::SCELL_ACTIVATION:
+    case srslte::dl_sch_lcid::SCELL_ACTIVATION:
       if (pdu->new_subh()) {
         std::array<int, SRSLTE_MAX_CARRIERS>  enb_ue_cc_map     = sched->get_enb_ue_cc_map(rnti);
         std::array<bool, SRSLTE_MAX_CARRIERS> active_scell_list = {};
@@ -515,7 +515,7 @@ uint8_t* ue::generate_pdu(uint32_t                        ue_cc_idx,
       tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx]->clear();
       mac_msg_dl.init_tx(tx_payload_buffer[ue_cc_idx][harq_pid][tb_idx].get(), grant_size, false);
       for (uint32_t i = 0; i < nof_pdu_elems; i++) {
-        if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
+        if (pdu[i].lcid <= (uint32_t)srslte::ul_sch_lcid::PHR_REPORT) {
           allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
         } else {
           allocate_ce(&mac_msg_dl, pdu[i].lcid);
@@ -543,13 +543,13 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
   mch_mac_msg_dl.init_tx(tx_payload_buffer[0][harq_pid][0].get(), grant_size);
 
   for (uint32_t i = 0; i < nof_pdu_elems; i++) {
-    if (sched.pdu[i].lcid == srslte::sch_subh::MCH_SCHED_INFO) {
+    if (sched.pdu[i].lcid == (uint32_t)srslte::mch_lcid::MCH_SCHED_INFO) {
       mch_mac_msg_dl.new_subh();
       mch_mac_msg_dl.get()->set_next_mch_sched_info(sched.mtch_sched[i].lcid, sched.mtch_sched[i].stop);
     } else if (sched.pdu[i].lcid == 0) {
       mch_mac_msg_dl.new_subh();
       mch_mac_msg_dl.get()->set_sdu(0, sched.pdu[i].nbytes, sched.mcch_payload);
-    } else if (sched.pdu[i].lcid <= srslte::sch_subh::MTCH_MAX_LCID) {
+    } else if (sched.pdu[i].lcid <= (uint32_t)srslte::mch_lcid::MTCH_MAX_LCID) {
       mch_mac_msg_dl.new_subh();
       mch_mac_msg_dl.get()->set_sdu(sched.pdu[i].lcid, sched.pdu[i].nbytes, sched.mtch_sched[i].mtch_payload);
     }

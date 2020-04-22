@@ -151,16 +151,16 @@ void mux::print_logical_channel_state(const std::string& info)
   log_h->debug("%s\n", logline.c_str());
 }
 
-srslte::sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format)
+srslte::ul_sch_lcid bsr_format_convert(bsr_proc::bsr_format_t format)
 {
   switch (format) {
     case bsr_proc::LONG_BSR:
-      return srslte::sch_subh::LONG_BSR;
+      return srslte::ul_sch_lcid::LONG_BSR;
     case bsr_proc::TRUNC_BSR:
-      return srslte::sch_subh::TRUNC_BSR;
+      return srslte::ul_sch_lcid::TRUNC_BSR;
     case bsr_proc::SHORT_BSR:
     default:
-      return srslte::sch_subh::SHORT_BSR;
+      return srslte::ul_sch_lcid::SHORT_BSR;
   }
 }
 

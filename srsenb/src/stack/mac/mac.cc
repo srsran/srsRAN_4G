@@ -264,12 +264,12 @@ int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_c
   srslte::rwlock_read_guard lock(rwlock);
   if (temp_crnti == crnti) {
     // if RNTI is maintained, Msg3 contained a RRC Setup Request
-    scheduler.dl_mac_buffer_state(crnti, srslte::sch_subh::CON_RES_ID);
+    scheduler.dl_mac_buffer_state(crnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
   } else {
     // C-RNTI corresponds to older user. Handover scenario.
     phy_h->rem_rnti(crnti);
     phy_h->add_rnti(crnti, cfg->supported_cc_list[0].enb_cc_idx, false);
-    scheduler.dl_mac_buffer_state(crnti, srslte::sch_subh::CON_RES_ID);
+    scheduler.dl_mac_buffer_state(crnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
   }
   return ret;
 }
@@ -448,7 +448,7 @@ int mac::ta_info(uint32_t tti, uint16_t rnti, float ta_us)
   if (ue_db.count(rnti)) {
     uint32_t nof_ta_count = ue_db[rnti]->set_ta_us(ta_us);
     if (nof_ta_count) {
-      scheduler.dl_mac_buffer_state(rnti, srslte::sch_subh::TA_CMD, nof_ta_count);
+      scheduler.dl_mac_buffer_state(rnti, (uint32_t)srslte::dl_sch_lcid::TA_CMD, nof_ta_count);
     }
   }
   return SRSLTE_SUCCESS;
@@ -728,7 +728,7 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
          tti);
     phy_h->set_mch_period_stop(mch.mtch_sched[mch.num_mtch_sched - 1].stop);
     for (uint32_t i = 0; i < mch.num_mtch_sched; i++) {
-      mch.pdu[i].lcid = srslte::sch_subh::MCH_SCHED_INFO;
+      mch.pdu[i].lcid = (uint32_t)srslte::mch_lcid::MCH_SCHED_INFO;
       // m1u.mtch_sched[i].lcid = 1+i;
     }
 
@@ -817,7 +817,7 @@ int mac::get_ul_sched(uint32_t tti_tx_ul, ul_sched_list_t& ul_sched_res_list)
   for (auto& ue : ue_db) {
     uint32_t nof_ta_count = ue.second->tick_ta_fsm();
     if (nof_ta_count) {
-      scheduler.dl_mac_buffer_state(ue.first, srslte::sch_subh::TA_CMD, nof_ta_count);
+      scheduler.dl_mac_buffer_state(ue.first, (uint32_t)srslte::dl_sch_lcid::TA_CMD, nof_ta_count);
     }
   }
 

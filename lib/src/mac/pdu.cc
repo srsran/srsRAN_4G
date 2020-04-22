@@ -118,6 +118,24 @@ const char* to_string(ul_sch_lcid v)
   }
 }
 
+uint32_t ce_size(ul_sch_lcid v)
+{
+  switch (v) {
+    case ul_sch_lcid::PHR_REPORT:
+      return 1;
+    case ul_sch_lcid::CRNTI:
+      return 2;
+    case ul_sch_lcid::TRUNC_BSR:
+      return 1;
+    case ul_sch_lcid::SHORT_BSR:
+      return 1;
+    case ul_sch_lcid::LONG_BSR:
+      return 3;
+    default:
+      return 0;
+  }
+}
+
 const char* to_string(mch_lcid v)
 {
   switch (v) {
@@ -135,14 +153,28 @@ const char* to_string(mch_lcid v)
 const char* lcid_t::to_string() const
 {
   switch (type) {
-    case sch_type::dl_sch:
+    case ch_type::dl_sch:
       return srslte::to_string(dl_sch);
-    case sch_type::ul_sch:
+    case ch_type::ul_sch:
       return srslte::to_string(ul_sch);
-    case sch_type::mch:
+    case ch_type::mch:
       return srslte::to_string(mch);
     default:
       return "unrecognized lcid type\n";
+  }
+}
+
+bool lcid_t::is_sdu() const
+{
+  switch (type) {
+    case ch_type::dl_sch:
+      return srslte::is_sdu(dl_sch);
+    case ch_type::ul_sch:
+      return srslte::is_sdu(ul_sch);
+    case ch_type::mch:
+      return srslte::is_sdu(mch);
+    default:
+      return false;
   }
 }
 
@@ -443,15 +475,22 @@ void sch_subh::init()
   cur_mch_sched_ce = 0;
 }
 
-sch_subh::cetype sch_subh::ce_type()
+ul_sch_lcid sch_subh::ul_sch_ce_type()
 {
-  if (lcid >= PHR_REPORT && type == SCH_SUBH_TYPE) {
-    return (cetype)lcid;
-  }
-  if (lcid >= MCH_SCHED_INFO && type == MCH_SUBH_TYPE) {
-    return (cetype)lcid;
-  }
-  return (cetype)SDU;
+  auto ret = static_cast<ul_sch_lcid>(lcid);
+  return is_mac_ce(ret) ? ret : static_cast<ul_sch_lcid>(SDU);
+}
+
+dl_sch_lcid sch_subh::dl_sch_ce_type()
+{
+  auto ret = static_cast<dl_sch_lcid>(lcid);
+  return is_mac_ce(ret) ? ret : static_cast<dl_sch_lcid>(SDU);
+}
+
+mch_lcid sch_subh::mch_ce_type()
+{
+  auto ret = static_cast<mch_lcid>(lcid);
+  return is_mac_ce(ret) ? ret : static_cast<mch_lcid>(SDU);
 }
 
 void sch_subh::set_payload_size(uint32_t size)
@@ -472,40 +511,18 @@ uint32_t sch_subh::sizeof_ce(uint32_t lcid, bool is_ul)
 {
   if (type == SCH_SUBH_TYPE) {
     if (is_ul) {
-      switch (lcid) {
-        case PHR_REPORT:
-          return 1;
-        case CRNTI:
-          return 2;
-        case TRUNC_BSR:
-          return 1;
-        case SHORT_BSR:
-          return 1;
-        case LONG_BSR:
-          return 3;
-        case PADDING:
-          return 0;
-      }
+      return ce_size(static_cast<ul_sch_lcid>(lcid));
     } else {
-      switch (lcid) {
-        case CON_RES_ID:
-          return 6;
-        case TA_CMD:
-          return 1;
-        case DRX_CMD:
-          return 0;
-        case PADDING:
-          return 0;
-        case SCELL_ACTIVATION:
-          return 1;
-      }
+      return ce_size(static_cast<dl_sch_lcid>(lcid));
     }
   }
   if (type == MCH_SUBH_TYPE) {
-    switch (lcid) {
-      case MCH_SCHED_INFO:
+    switch (static_cast<mch_lcid>(lcid)) {
+      case mch_lcid::MCH_SCHED_INFO:
         return nof_mch_sched_ce * 2;
-      case PADDING:
+      case mch_lcid::PADDING:
+        return 0;
+      default:
         return 0;
     }
   }
@@ -514,12 +531,12 @@ uint32_t sch_subh::sizeof_ce(uint32_t lcid, bool is_ul)
 
 bool sch_subh::is_sdu()
 {
-  return ce_type() == SDU;
+  return lcid_t{type == MCH_SUBH_TYPE ? lcid_t::ch_type::mch : lcid_t::ch_type::ul_sch, lcid}.is_sdu();
 }
 
 bool sch_subh::is_var_len_ce()
 {
-  return (MCH_SCHED_INFO == ce_type()) && (MCH_SUBH_TYPE == type);
+  return (mch_lcid::MCH_SCHED_INFO == mch_ce_type()) && (MCH_SUBH_TYPE == type);
 }
 
 uint16_t sch_subh::get_c_rnti()
@@ -557,7 +574,7 @@ int sch_subh::get_bsr(uint32_t buff_size[4])
 {
   if (payload) {
     uint32_t nonzero_lcg = 0;
-    if (ce_type() == LONG_BSR) {
+    if (ul_sch_ce_type() == ul_sch_lcid::LONG_BSR) {
       buff_size[0] = (payload[0] & 0xFC) >> 2;
       buff_size[1] = (payload[0] & 0x03) << 4 | (payload[1] & 0xF0) >> 4;
       buff_size[2] = (payload[1] & 0x0F) << 4 | (payload[1] & 0xC0) >> 6;
@@ -630,7 +647,7 @@ uint32_t sch_subh::get_payload_size()
 uint32_t sch_subh::get_header_size(bool is_last)
 {
   if (!is_last) {
-    if (is_sdu() || (lcid == MCH_SCHED_INFO && type == MCH_SUBH_TYPE)) {
+    if (is_sdu() || (lcid == (uint32_t)mch_lcid::MCH_SCHED_INFO && type == MCH_SUBH_TYPE)) {
       return sch_pdu::size_header_sdu(nof_bytes);
     }
     return 1; // All others are 1-byte
@@ -646,7 +663,7 @@ uint8_t* sch_subh::get_sdu_ptr()
 
 void sch_subh::set_padding(uint32_t padding_len)
 {
-  lcid      = PADDING;
+  lcid      = (uint32_t)dl_sch_lcid::PADDING;
   nof_bytes = padding_len;
 }
 
@@ -660,7 +677,7 @@ void sch_subh::set_padding()
   set_padding(0);
 }
 
-bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
+bool sch_subh::set_bsr(uint32_t buff_size[4], ul_sch_lcid format)
 {
   uint32_t nonzero_lcg = 0;
   for (int i = 0; i < 4; i++) {
@@ -668,16 +685,16 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
       nonzero_lcg = i;
     }
   }
-  uint32_t ce_size = format == LONG_BSR ? 3 : 1;
+  uint32_t ce_size = format == ul_sch_lcid::LONG_BSR ? 3 : 1;
   if (((sch_pdu*)parent)->has_space_ce(ce_size)) {
-    if (format == LONG_BSR) {
+    if (format == ul_sch_lcid::LONG_BSR) {
       w_payload_ce[0] = ((buff_size_table(buff_size[0]) & 0x3f) << 2) | ((buff_size_table(buff_size[1]) & 0x30) >> 4);
       w_payload_ce[1] = ((buff_size_table(buff_size[1]) & 0xf) << 4) | ((buff_size_table(buff_size[2]) & 0x3c) >> 2);
       w_payload_ce[2] = ((buff_size_table(buff_size[2]) & 0x3) << 6) | ((buff_size_table(buff_size[3]) & 0x3f));
     } else {
       w_payload_ce[0] = (nonzero_lcg & 0x3) << 6 | (buff_size_table(buff_size[nonzero_lcg]) & 0x3f);
     }
-    lcid = format;
+    lcid = (uint32_t)format;
     ((sch_pdu*)parent)->update_space_ce(ce_size);
     nof_bytes = ce_size;
     return true;
@@ -691,7 +708,7 @@ bool sch_subh::set_c_rnti(uint16_t crnti)
   if (((sch_pdu*)parent)->has_space_ce(2)) {
     w_payload_ce[0] = (uint8_t)((crnti & 0xff00) >> 8);
     w_payload_ce[1] = (uint8_t)((crnti & 0x00ff));
-    lcid            = CRNTI;
+    lcid            = (uint32_t)ul_sch_lcid::CRNTI;
     ((sch_pdu*)parent)->update_space_ce(2);
     nof_bytes = 2;
     return true;
@@ -708,7 +725,7 @@ bool sch_subh::set_con_res_id(uint64_t con_res_id)
     w_payload_ce[3] = (uint8_t)((con_res_id & 0x000000ff0000) >> 16);
     w_payload_ce[4] = (uint8_t)((con_res_id & 0x00000000ff00) >> 8);
     w_payload_ce[5] = (uint8_t)((con_res_id & 0x0000000000ff));
-    lcid            = CON_RES_ID;
+    lcid            = (uint32_t)dl_sch_lcid::CON_RES_ID;
     ((sch_pdu*)parent)->update_space_ce(6);
     nof_bytes = 6;
     return true;
@@ -720,7 +737,7 @@ bool sch_subh::set_phr(float phr)
 {
   if (((sch_pdu*)parent)->has_space_ce(1)) {
     w_payload_ce[0] = phr_report_table(phr) & 0x3f;
-    lcid            = PHR_REPORT;
+    lcid            = (uint32_t)ul_sch_lcid::PHR_REPORT;
     ((sch_pdu*)parent)->update_space_ce(1);
     nof_bytes = 1;
     return true;
@@ -733,7 +750,7 @@ bool sch_subh::set_ta_cmd(uint8_t ta_cmd)
 {
   if (((sch_pdu*)parent)->has_space_ce(1)) {
     w_payload_ce[0] = ta_cmd & 0x3f;
-    lcid            = TA_CMD;
+    lcid            = (uint32_t)dl_sch_lcid::TA_CMD;
     ((sch_pdu*)parent)->update_space_ce(1);
     nof_bytes = 1;
     return true;
@@ -753,7 +770,7 @@ bool sch_subh::set_scell_activation_cmd(const std::array<bool, SRSLTE_MAX_CARRIE
   for (uint8_t i = 1; i < SRSLTE_MAX_CARRIERS; ++i) {
     w_payload_ce[0] |= (static_cast<uint8_t>(active_scell_idxs[i]) << i);
   }
-  lcid = SCELL_ACTIVATION;
+  lcid = (uint32_t)dl_sch_lcid::SCELL_ACTIVATION;
   ((sch_pdu*)parent)->update_space_ce(nof_octets);
   nof_bytes = nof_octets;
   return true;
@@ -766,7 +783,7 @@ bool sch_subh::set_next_mch_sched_info(uint8_t lcid_, uint16_t mtch_stop)
     w_payload_ce[nof_mch_sched_ce * 2]     = (lcid_ & 0x1F) << 3 | (uint8_t)((mtch_stop_ce & 0x0700) >> 8);
     w_payload_ce[nof_mch_sched_ce * 2 + 1] = (uint8_t)(mtch_stop_ce & 0xff);
     nof_mch_sched_ce++;
-    lcid = MCH_SCHED_INFO;
+    lcid = (uint32_t)mch_lcid::MCH_SCHED_INFO;
     ((sch_pdu*)parent)->update_space_ce(2, true);
     nof_bytes += 2;
     return true;
@@ -893,47 +910,57 @@ void sch_subh::fprint(FILE* stream)
     fprintf(stream, "SDU LCHID=%d, SDU nof_bytes=%d\n", lcid, nof_bytes);
   } else if (type == SCH_SUBH_TYPE) {
     if (parent->is_ul()) {
-      switch (lcid) {
-        case CRNTI:
+      switch ((ul_sch_lcid)lcid) {
+        case ul_sch_lcid::CRNTI:
           fprintf(stream, "C-RNTI CE\n");
           break;
-        case PHR_REPORT:
+        case ul_sch_lcid::PHR_REPORT:
           fprintf(stream, "PHR\n");
           break;
-        case TRUNC_BSR:
+        case ul_sch_lcid::TRUNC_BSR:
           fprintf(stream, "Truncated BSR CE\n");
           break;
-        case SHORT_BSR:
+        case ul_sch_lcid::SHORT_BSR:
           fprintf(stream, "Short BSR CE\n");
           break;
-        case LONG_BSR:
+        case ul_sch_lcid::LONG_BSR:
           fprintf(stream, "Long BSR CE\n");
           break;
-        case PADDING:
+        case ul_sch_lcid::PADDING:
           fprintf(stream, "PADDING\n");
+          break;
+        default:
+          // do nothing
+          break;
       }
     } else {
-      switch (lcid) {
-        case CON_RES_ID:
+      switch ((dl_sch_lcid)lcid) {
+        case dl_sch_lcid::CON_RES_ID:
           fprintf(stream, "Contention Resolution ID CE: 0x%" PRIx64 "\n", get_con_res_id());
           break;
-        case TA_CMD:
+        case dl_sch_lcid::TA_CMD:
           fprintf(stream, "Time Advance Command CE: %d\n", get_ta_cmd());
           break;
-        case DRX_CMD:
+        case dl_sch_lcid::DRX_CMD:
           fprintf(stream, "DRX Command CE: Not implemented\n");
           break;
-        case PADDING:
+        case dl_sch_lcid::PADDING:
           fprintf(stream, "PADDING\n");
+          break;
+        default:
+          break;
       }
     }
   } else if (type == MCH_SUBH_TYPE) {
-    switch (lcid) {
-      case MCH_SCHED_INFO:
+    switch ((mch_lcid)lcid) {
+      case mch_lcid::MCH_SCHED_INFO:
         fprintf(stream, "MCH Scheduling Info CE\n");
         break;
-      case PADDING:
+      case mch_lcid::PADDING:
         fprintf(stream, "PADDING\n");
+        break;
+      default:
+        break;
     }
   }
 }
