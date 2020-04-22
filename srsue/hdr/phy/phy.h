@@ -61,8 +61,6 @@ public:
 
   void enable_pregen_signals(bool enable) final;
 
-  void set_earfcn(std::vector<uint32_t> earfcns) final;
-
   void radio_overflow() final;
   void radio_failure() final;
 

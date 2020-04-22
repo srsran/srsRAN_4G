@@ -168,6 +168,15 @@ public:
   bool is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t tti);
   void set_mch_period_stop(uint32_t stop);
 
+  /**
+   * Deduces the UL EARFCN from a DL EARFCN. If the UL-EARFCN was defined in the UE PHY arguments it will use the
+   * corresponding UL-EARFCN to the DL-EARFCN. Otherwise, it will use default.
+   *
+   * @param dl_earfcn
+   * @return the deduced UL EARFCN
+   */
+  uint32_t get_ul_earfcn(uint32_t dl_earfcn);
+
 private:
   bool                    have_mtch_stop = false;
   std::mutex              mtch_mutex;

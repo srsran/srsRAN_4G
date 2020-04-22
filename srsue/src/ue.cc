@@ -173,23 +173,42 @@ int ue::parse_args(const all_args_t& args_)
   args.phy.nof_rx_ant   = args.rf.nof_antennas;
   args.phy.agc_enable   = args.rf.rx_gain < 0.0f;
 
-  // populate EARFCN list
+  // populate DL EARFCN list
   if (!args.phy.dl_earfcn.empty()) {
-    args.phy.earfcn_list.clear();
+    args.phy.dl_earfcn_list.clear();
     std::stringstream ss(args.phy.dl_earfcn);
     uint32_t          idx = 0;
     while (ss.good()) {
       std::string substr;
       getline(ss, substr, ',');
-      auto earfcn                         = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
+      uint32_t earfcn                     = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
       args.stack.rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
       args.stack.rrc.nof_supported_bands  = ++idx;
-      args.phy.earfcn_list.push_back(earfcn);
+      args.phy.dl_earfcn_list.push_back(earfcn);
     }
   } else {
     log.error("Error: dl_earfcn list is empty\n");
     log.console("Error: dl_earfcn list is empty\n");
     return SRSLTE_ERROR;
+  }
+
+  // populate UL EARFCN list
+  if (!args.phy.ul_earfcn.empty()) {
+    args.phy.ul_earfcn_map.clear();
+    std::stringstream ss(args.phy.ul_earfcn);
+    uint32_t          idx = 0;
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      uint32_t ul_earfcn = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
+
+      if (idx < args.phy.dl_earfcn_list.size()) {
+        // If it can be matched with a DL EARFCN, otherwise ignore entry
+        uint32_t dl_earfcn                = args.phy.dl_earfcn_list[idx];
+        args.phy.ul_earfcn_map[dl_earfcn] = ul_earfcn;
+        idx++;
+      }
+    }
   }
 
   // Set UE category

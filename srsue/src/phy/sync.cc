@@ -185,7 +185,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   ret.last_freq = phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS;
 
   // Move state to IDLE
-  Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, earfcn.size());
+  Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, worker_com->args->dl_earfcn_list.size());
   phy_state.go_idle();
   worker_com->reset();
 
@@ -200,8 +200,8 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   }
 
   try {
-    if (current_earfcn != (int)earfcn.at(cellsearch_earfcn_index)) {
-      current_earfcn = (int)earfcn[cellsearch_earfcn_index];
+    if (current_earfcn != (int)worker_com->args->dl_earfcn_list.at(cellsearch_earfcn_index)) {
+      current_earfcn = (int)worker_com->args->dl_earfcn_list[cellsearch_earfcn_index];
       Info("Cell Search: changing frequency to EARFCN=%d\n", current_earfcn);
       set_frequency();
     }
@@ -236,7 +236,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   }
 
   cellsearch_earfcn_index++;
-  if (cellsearch_earfcn_index >= earfcn.size()) {
+  if (cellsearch_earfcn_index >= worker_com->args->dl_earfcn_list.size()) {
     Info("Cell Search: No more frequencies in the current EARFCN set\n");
     cellsearch_earfcn_index = 0;
     ret.last_freq           = phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS;
@@ -735,11 +735,6 @@ bool sync::set_cell(float cfo)
   return true;
 }
 
-void sync::set_earfcn(std::vector<uint32_t> earfcn_)
-{
-  earfcn = earfcn_;
-}
-
 void sync::force_freq(float dl_freq_, float ul_freq_)
 {
   dl_freq = dl_freq_;
@@ -759,7 +754,7 @@ bool sync::set_frequency()
     if (srslte_band_is_tdd(srslte_band_get_band(current_earfcn))) {
       set_ul_freq = set_dl_freq;
     } else {
-      set_ul_freq = 1e6 * srslte_band_fu(srslte_band_ul_earfcn(current_earfcn));
+      set_ul_freq = 1e6 * srslte_band_fu(worker_com->get_ul_earfcn(current_earfcn));
     }
   }
   if (set_dl_freq > 0 && set_ul_freq > 0) {

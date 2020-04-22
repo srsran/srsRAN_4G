@@ -36,7 +36,7 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
   return init(args_);
 }
 
-int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, radio_interface_phy* radio_)
+int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, srslte::radio_interface_phy* radio_)
 {
 
   return init(args_);
@@ -53,10 +53,6 @@ int lte_ttcn3_phy::init(const phy_args_t& args_)
 
 void lte_ttcn3_phy::stop(){};
 
-void lte_ttcn3_phy::set_earfcn(std::vector<uint32_t> earfcns) {}
-
-void lte_ttcn3_phy::force_freq(float dl_freq, float ul_freq) {}
-
 void lte_ttcn3_phy::wait_initialize() {}
 
 void lte_ttcn3_phy::start_plot() {}
@@ -70,22 +66,7 @@ void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)
   cells = cells_;
 }
 
-uint32_t lte_ttcn3_phy::get_current_earfcn()
-{
-  return pcell.earfcn;
-}
-
-uint32_t lte_ttcn3_phy::get_current_pci()
-{
-  return pcell.info.id;
-}
-
 void lte_ttcn3_phy::set_config_tdd(srslte_tdd_config_t& tdd_config) {}
-
-void lte_ttcn3_phy::set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config)
-{
-  log.debug("%s not implemented.\n", __FUNCTION__);
-}
 
 void lte_ttcn3_phy::enable_pregen_signals(bool enable)
 {
@@ -104,16 +85,6 @@ void lte_ttcn3_phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint3
 
 // Measurements interface
 void lte_ttcn3_phy::meas_stop(){};
-
-int lte_ttcn3_phy::meas_start(uint32_t earfcn, int pci)
-{
-  return 0;
-}
-
-int lte_ttcn3_phy::meas_stop(uint32_t earfcn, int pci)
-{
-  return 0;
-};
 
 /* Cell search and selection procedures */
 phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* found_cell)
@@ -236,7 +207,6 @@ int lte_ttcn3_phy::sr_last_tx_tti()
 /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
 void lte_ttcn3_phy::set_crnti(uint16_t rnti)
 {
-  current_temp_rnti = rnti;
   log.info("Set Temp-RNTI=%d\n", rnti);
 }
 

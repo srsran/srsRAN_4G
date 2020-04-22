@@ -126,8 +126,6 @@ int phy::init(const phy_args_t& args_)
 
   args = args_;
 
-  set_earfcn(args.earfcn_list);
-
   // Force frequency if given as argument
   if (args.dl_freq > 0 && args.ul_freq > 0) {
     sfsync.force_freq(args.dl_freq, args.ul_freq);
@@ -382,11 +380,6 @@ int phy::sr_last_tx_tti()
   return common.sr_last_tx_tti;
 }
 
-void phy::set_earfcn(vector<uint32_t> earfcns)
-{
-  sfsync.set_earfcn(earfcns);
-}
-
 void phy::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti)
 {
   common.set_rar_grant(grant_payload, rnti, tdd_config);
@@ -454,7 +447,7 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
       // Change frequency only if the earfcn was modified
       if (common.scell_cfg[cc_idx].earfcn != earfcn) {
         double dl_freq = srslte_band_fd(earfcn) * 1e6;
-        double ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6;
+        double ul_freq = srslte_band_fu(common.get_ul_earfcn(earfcn)) * 1e6;
         radio->set_rx_freq(cc_idx, dl_freq);
         radio->set_tx_freq(cc_idx, ul_freq);
       }

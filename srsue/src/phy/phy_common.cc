@@ -742,6 +742,21 @@ void phy_common::set_mch_period_stop(uint32_t stop)
   mtch_cvar.notify_one();
 }
 
+uint32_t phy_common::get_ul_earfcn(uint32_t dl_earfcn)
+{
+  // Set default UL-EARFCN
+  uint32_t ul_earfcn = srslte_band_ul_earfcn(dl_earfcn);
+
+  // Try to find current DL-EARFCN in the map
+  auto it = args->ul_earfcn_map.find(dl_earfcn);
+  if (it != args->ul_earfcn_map.end()) {
+    // If found UL EARFCN in the map, use it
+    ul_earfcn = it->second;
+  }
+
+  return ul_earfcn;
+}
+
 bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 {
   uint32_t sfn; // System Frame Number

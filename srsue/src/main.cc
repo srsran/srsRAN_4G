@@ -72,6 +72,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("ue.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte]")
 
     ("rf.dl_earfcn",    bpo::value<string>(&args->phy.dl_earfcn)->default_value("3400"), "Downlink EARFCN list")
+    ("rf.ul_earfcn",    bpo::value<string>(&args->phy.ul_earfcn), "Uplink EARFCN list. Optional.")
     ("rf.freq_offset",  bpo::value<float>(&args->rf.freq_offset)->default_value(0), "(optional) Frequency offset")
     ("rf.dl_freq",      bpo::value<float>(&args->phy.dl_freq)->default_value(-1),      "Downlink Frequency (if positive overrides EARFCN)")
     ("rf.ul_freq",      bpo::value<float>(&args->phy.ul_freq)->default_value(-1),      "Uplink Frequency (if positive overrides EARFCN)")

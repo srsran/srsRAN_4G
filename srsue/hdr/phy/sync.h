@@ -83,7 +83,6 @@ public:
 
   // From UE configuration
   void set_agc_enable(bool enable);
-  void set_earfcn(std::vector<uint32_t> earfcn);
   void force_freq(float dl_freq, float ul_freq);
 
   // Other functions
@@ -154,8 +153,6 @@ private:
   /* TODO: Intra-freq measurements can be improved by capturing 200 ms length signal and run cell search +
    * measurements offline using sync object and finding multiple cells for each N_id_2
    */
-
-  std::vector<uint32_t> earfcn;
 
   void  reset();
   void  radio_error();
