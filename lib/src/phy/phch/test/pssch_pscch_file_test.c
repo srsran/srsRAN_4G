@@ -357,7 +357,6 @@ int main(int argc, char** argv)
               num_decoded_sci++;
 
               // Decode PSSCH
-
               uint32_t sub_channel_start_idx = 0;
               uint32_t L_subCH               = 0;
               srslte_ra_sl_type0_from_riv(
@@ -393,6 +392,13 @@ int main(int argc, char** argv)
                 if (srslte_pssch_decode(&pssch, equalized_sf_buffer, tb, SRSLTE_SL_SCH_MAX_TB_LEN) == SRSLTE_SUCCESS) {
                   srslte_vec_fprint_byte(stdout, tb, pssch.sl_sch_tb_len);
                   num_decoded_tb++;
+                }
+
+                if (SRSLTE_VERBOSE_ISDEBUG()) {
+                  char filename[64];
+                  snprintf(filename, 64, "pssch_rx_syms_sf%d.bin", num_subframes);
+                  printf("Saving PSSCH symbols (%d) to %s\n", pssch.G / pssch.Qm, filename);
+                  srslte_vec_save_file(filename, pssch.symbols, pssch.G / pssch.Qm * sizeof(cf_t));
                 }
               }
             }
