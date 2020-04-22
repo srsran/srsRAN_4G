@@ -413,7 +413,7 @@ uint32_t sched_ue::allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint
 
   int rem_tbs = total_tbs;
   while (not pending_ces.empty()) {
-    int toalloc = srslte::ce_tot_size(pending_ces.front());
+    int toalloc = srslte::ce_total_size(pending_ces.front());
     if (rem_tbs < toalloc) {
       break;
     }
@@ -895,7 +895,7 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   // Add pending CEs
   if (ue_cc_idx == 0) {
     for (const auto& ce : pending_ces) {
-      sum_ce_data += srslte::ce_tot_size(ce);
+      sum_ce_data += srslte::ce_total_size(ce);
     }
   }
   // Add pending data in remaining RLC buffers
@@ -910,11 +910,11 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   /* Set Minimum boundary */
   min_data = srb0_data;
   if (pending_ces.front() == ce_cmd::CON_RES_ID) {
-    min_data += srslte::ce_tot_size(pending_ces.front());
+    min_data += srslte::ce_total_size(pending_ces.front());
   }
   if (min_data == 0) {
     if (sum_ce_data > 0) {
-      min_data = srslte::ce_tot_size(pending_ces.front());
+      min_data = srslte::ce_total_size(pending_ces.front());
     } else if (rb_data > 0) {
       min_data = min_alloc_bytes;
     }
@@ -940,7 +940,7 @@ uint32_t sched_ue::get_pending_dl_new_data()
     }
   }
   for (auto& ce : pending_ces) {
-    pending_data += srslte::ce_tot_size(ce);
+    pending_data += srslte::ce_total_size(ce);
   }
   return pending_data;
 }

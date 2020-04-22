@@ -85,9 +85,65 @@ uint32_t ce_subheader_size(dl_sch_lcid v)
   return 1;
 }
 
-uint32_t ce_tot_size(dl_sch_lcid v)
+uint32_t ce_total_size(dl_sch_lcid v)
 {
   return ce_subheader_size(v) + ce_size(v);
+}
+
+/*************************
+ *       UL-SCH LCID
+ *************************/
+
+const char* to_string(ul_sch_lcid v)
+{
+  switch (v) {
+    case ul_sch_lcid::CCCH:
+      return "CCCH";
+    case ul_sch_lcid::PHR_REPORT_EXT:
+      return "Extended Power Headroom Report";
+    case ul_sch_lcid::PHR_REPORT:
+      return "Power Headroom Report";
+    case ul_sch_lcid::CRNTI:
+      return "C-RNTI";
+    case ul_sch_lcid::TRUNC_BSR:
+      return "Truncated BSR";
+    case ul_sch_lcid::SHORT_BSR:
+      return "Short BSR";
+    case ul_sch_lcid::LONG_BSR:
+      return "Long BSR";
+    case ul_sch_lcid::PADDING:
+      return "Padding";
+    default:
+      return "Unrecognized LCID";
+  }
+}
+
+const char* to_string(mch_lcid v)
+{
+  switch (v) {
+    case mch_lcid::MCCH:
+      return "MCCH";
+    case mch_lcid::MCH_SCHED_INFO:
+      return "MCH Scheduling Information";
+    case mch_lcid::PADDING:
+      return "Padding";
+    default:
+      return "Unrecognized MCH LCID";
+  }
+}
+
+const char* lcid_t::to_string() const
+{
+  switch (type) {
+    case sch_type::dl_sch:
+      return srslte::to_string(dl_sch);
+    case sch_type::ul_sch:
+      return srslte::to_string(ul_sch);
+    case sch_type::mch:
+      return srslte::to_string(mch);
+    default:
+      return "unrecognized lcid type\n";
+  }
 }
 
 /*************************

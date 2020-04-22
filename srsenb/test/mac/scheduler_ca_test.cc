@@ -186,7 +186,7 @@ int test_scell_activation(test_scell_activation_params params)
       if (tester.tti_info.dl_sched_result[params.pcell_idx].data[0].nof_pdu_elems[0] > 0) {
         // it is a new DL tx
         TESTASSERT(tester.tti_info.dl_sched_result[params.pcell_idx].data[0].pdu[0][0].lcid ==
-                   srslte::sch_subh::cetype::SCELL_ACTIVATION);
+                   (uint32_t)srslte::dl_sch_lcid::SCELL_ACTIVATION);
         break;
       }
     }

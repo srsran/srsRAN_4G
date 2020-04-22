@@ -35,7 +35,8 @@ namespace srslte {
 
 /* 3GPP 36.321 Table 6.2.1-1 */
 enum class dl_sch_lcid {
-  CCCH = 0b00000,
+  CCCH     = 0b00000,
+  RESERVED = 0b10001,
   //...
   SCELL_ACTIVATION_4_OCTET = 0b11000,
   SCELL_ACTIVATION         = 0b11011,
@@ -47,7 +48,53 @@ enum class dl_sch_lcid {
 const char* to_string(dl_sch_lcid v);
 uint32_t    ce_size(dl_sch_lcid v);
 uint32_t    ce_subheader_size(dl_sch_lcid v);
-uint32_t    ce_tot_size(dl_sch_lcid v);
+uint32_t    ce_total_size(dl_sch_lcid v);
+bool        is_mac_ce(dl_sch_lcid v)
+{
+  return v > dl_sch_lcid::RESERVED;
+}
+
+/* 3GPP 36.321 Table 6.2.1-2 */
+enum class ul_sch_lcid {
+  CCCH     = 0b00000,
+  RESERVED = 0b10001,
+  //...
+  PHR_REPORT_EXT = 0b11001,
+  PHR_REPORT     = 0b11010,
+  CRNTI          = 0b11011,
+  TRUNC_BSR      = 0b11100,
+  SHORT_BSR      = 0b11101,
+  LONG_BSR       = 0b11110,
+  PADDING        = 0b11111
+};
+const char* to_string(ul_sch_lcid v);
+bool        is_mac_ce(ul_sch_lcid v)
+{
+  return v >= ul_sch_lcid::RESERVED;
+}
+
+/* 3GPP 36.321 Table 6.2.1-4 */
+enum class mch_lcid {
+  MCCH = 0b00000,
+  //...
+  MTCH_MAX_LCID  = 0b11100,
+  MCH_SCHED_INFO = 0b11110,
+  PADDING        = 0b11111
+};
+const char* to_string(mch_lcid v);
+
+/* Common LCID type */
+struct lcid_t {
+  enum class sch_type { dl_sch, ul_sch, mch } type;
+  union {
+    uint32_t    lcid;
+    dl_sch_lcid dl_sch;
+    ul_sch_lcid ul_sch;
+    mch_lcid    mch;
+  };
+  const char* to_string() const;
+  bool        is_sch() const { return type == sch_type::dl_sch or type == sch_type::ul_sch; }
+};
 
 template <class SubH>
 class pdu
