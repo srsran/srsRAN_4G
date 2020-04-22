@@ -36,6 +36,7 @@ add_executable(scheduler_test_rand scheduler_test_rand.cc)
 target_link_libraries(scheduler_test_rand srsenb_mac
         srsenb_phy
         srslte_common
+        srslte_mac
         scheduler_test_common
         srslte_phy
         rrc_asn1
@@ -48,6 +49,7 @@ add_executable(scheduler_ca_test scheduler_ca_test.cc scheduler_test_common.cc)
 target_link_libraries(scheduler_ca_test srsenb_mac
         srsenb_phy
         srslte_common
+        srslte_mac
         srslte_phy
         scheduler_test_common
         rrc_asn1

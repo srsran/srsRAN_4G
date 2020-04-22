@@ -24,6 +24,7 @@
 
 #include "scheduler_common.h"
 #include "srslte/common/log.h"
+#include "srslte/mac/pdu.h"
 #include <map>
 #include <vector>
 
@@ -271,15 +272,7 @@ private:
   std::vector<sched_ue_carrier> carriers; ///< map of UE CellIndex to carrier configuration
 
   // Control Element Command queue
-  struct ce_cmd {
-    int cetype = 0;
-
-    explicit ce_cmd(int lcid) : cetype(lcid) {}
-    int get_sdu_size(const sched_interface::ue_cfg_t& c) const;
-    // considers both MAC CE and subheader
-    int         get_req_bytes(const sched_interface::ue_cfg_t& c) const;
-    std::string to_string() const;
-  };
+  using ce_cmd = srslte::dl_sch_lcid;
   std::deque<ce_cmd> pending_ces;
 };
 } // namespace srsenb

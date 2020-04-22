@@ -36,6 +36,64 @@ static uint32_t btable[64] = {
 
 namespace srslte {
 
+/*************************
+ *       DL-SCH LCID
+ *************************/
+
+const char* to_string(dl_sch_lcid v)
+{
+  switch (v) {
+    case dl_sch_lcid::CCCH:
+      return "CCCH";
+    case dl_sch_lcid::SCELL_ACTIVATION_4_OCTET:
+      return "Activation/Deactivation (4 octets)";
+    case dl_sch_lcid::SCELL_ACTIVATION:
+      return "Activation/Deactivation (1 octet)";
+    case dl_sch_lcid::CON_RES_ID:
+      return "UE Contention Resolution Identity";
+    case dl_sch_lcid::TA_CMD:
+      return "Timing Advance Command";
+    case dl_sch_lcid::DRX_CMD:
+      return "DRX Command";
+    case dl_sch_lcid::PADDING:
+      return "Padding";
+    default:
+      return "Unrecognized LCID";
+  }
+}
+
+uint32_t ce_size(dl_sch_lcid v)
+{
+  switch (v) {
+    case dl_sch_lcid::SCELL_ACTIVATION_4_OCTET:
+      return 4;
+    case dl_sch_lcid::SCELL_ACTIVATION:
+      return 1;
+    case dl_sch_lcid::CON_RES_ID:
+      return 6;
+    case dl_sch_lcid::TA_CMD:
+      return 1;
+    case dl_sch_lcid::DRX_CMD:
+      return 0;
+    default:
+      return 0;
+  }
+}
+
+uint32_t ce_subheader_size(dl_sch_lcid v)
+{
+  return 1;
+}
+
+uint32_t ce_tot_size(dl_sch_lcid v)
+{
+  return ce_subheader_size(v) + ce_size(v);
+}
+
+/*************************
+ *       SCH PDU
+ *************************/
+
 void sch_pdu::fprint(FILE* stream)
 {
   fprintf(stream, "MAC SDU for UL/DL-SCH. ");

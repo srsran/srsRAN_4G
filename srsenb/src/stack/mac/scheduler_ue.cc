@@ -149,7 +149,7 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
     scell_activation_state_changed |= carriers[ue_idx].is_active() != cc_cfg.active and ue_idx > 0;
   }
   if (scell_activation_state_changed) {
-    pending_ces.emplace_back(srslte::sch_subh::SCELL_ACTIVATION);
+    pending_ces.emplace_back(srslte::dl_sch_lcid::SCELL_ACTIVATION);
     log_h->info("SCHED: Enqueueing SCell Activation CMD for rnti=0x%x\n", rnti);
   }
 }
@@ -224,15 +224,15 @@ void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_q
 
 void sched_ue::mac_buffer_state(uint32_t ce_code, uint32_t nof_cmds)
 {
-  ce_cmd cmd{(int)ce_code};
+  auto cmd = (ce_cmd)ce_code;
   for (uint32_t i = 0; i < nof_cmds; ++i) {
-    if (static_cast<srslte::sch_subh::cetype>(cmd.cetype) == srslte::sch_subh::CON_RES_ID) {
+    if (cmd == ce_cmd::CON_RES_ID) {
       pending_ces.push_front(cmd);
     } else {
       pending_ces.push_back(cmd);
     }
   }
-  Info("SCHED: %s for rnti=0x%x needs to be scheduled\n", cmd.to_string().c_str(), rnti);
+  Info("SCHED: %s for rnti=0x%x needs to be scheduled\n", to_string(cmd), rnti);
 }
 
 void sched_ue::set_sr()
@@ -413,14 +413,14 @@ uint32_t sched_ue::allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint
 
   int rem_tbs = total_tbs;
   while (not pending_ces.empty()) {
-    int toalloc = pending_ces.front().get_req_bytes(cfg);
+    int toalloc = srslte::ce_tot_size(pending_ces.front());
     if (rem_tbs < toalloc) {
       break;
     }
-    data->pdu[0][data->nof_pdu_elems[0]].lcid = pending_ces.front().cetype;
+    data->pdu[0][data->nof_pdu_elems[0]].lcid = (uint32_t)pending_ces.front();
     data->nof_pdu_elems[0]++;
     rem_tbs -= toalloc;
-    Info("SCHED: Added a MAC %s CE for rnti=0x%x\n", pending_ces.front().to_string().c_str(), rnti);
+    Info("SCHED: Added a MAC %s CE for rnti=0x%x\n", srslte::to_string(pending_ces.front()), rnti);
     pending_ces.pop_front();
   }
   return total_tbs - rem_tbs;
@@ -895,7 +895,7 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   // Add pending CEs
   if (ue_cc_idx == 0) {
     for (const auto& ce : pending_ces) {
-      sum_ce_data += ce.get_req_bytes(cfg);
+      sum_ce_data += srslte::ce_tot_size(ce);
     }
   }
   // Add pending data in remaining RLC buffers
@@ -909,12 +909,12 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
 
   /* Set Minimum boundary */
   min_data = srb0_data;
-  if (pending_ces.front().cetype == srslte::sch_subh::CON_RES_ID) {
-    min_data += pending_ces.front().get_req_bytes(cfg);
+  if (pending_ces.front() == ce_cmd::CON_RES_ID) {
+    min_data += srslte::ce_tot_size(pending_ces.front());
   }
   if (min_data == 0) {
     if (sum_ce_data > 0) {
-      min_data = pending_ces.front().get_req_bytes(cfg);
+      min_data = srslte::ce_tot_size(pending_ces.front());
     } else if (rb_data > 0) {
       min_data = min_alloc_bytes;
     }
@@ -940,7 +940,7 @@ uint32_t sched_ue::get_pending_dl_new_data()
     }
   }
   for (auto& ce : pending_ces) {
-    pending_data += ce.get_req_bytes(cfg);
+    pending_data += srslte::ce_tot_size(ce);
   }
   return pending_data;
 }
@@ -1400,50 +1400,6 @@ void sched_ue_carrier::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
       active = cfg->supported_cc_list[ue_cc_idx].active;
       log_h->info("SCell index=%d is now %s\n", ue_cc_idx, active ? "active" : "inactive");
     }
-  }
-}
-
-/*******************************************************
- *                   MAC CE Command
- ******************************************************/
-
-int sched_ue::ce_cmd::get_sdu_size(const sched_interface::ue_cfg_t& c) const
-{
-  // TS 36.321 Sec. 6.1.3 - MAC Control Elements
-  switch (cetype) {
-    case srslte::sch_subh::cetype::TA_CMD:
-      return 1;
-    case srslte::sch_subh::cetype::SCELL_ACTIVATION:
-      // TS 36.321 Sec. 6.1.3.8 - Number of SDU octets is 4 if there are more than 7 Scells (or 8 cells including PCell)
-      return c.supported_cc_list.size() > 8 ? 4 : 1;
-    case srslte::sch_subh::cetype::CON_RES_ID:
-      return 6;
-    default:
-      srslte::logmap::get("MAC ")->error("MAC CE not recognized\n");
-      return 0;
-  }
-}
-
-int sched_ue::ce_cmd::get_req_bytes(const sched_interface::ue_cfg_t& c) const
-{
-  // 36.321 Sec. 6.1.2 - CE subheader format is R/F2/E/LCID (1 octet) for fixed-size MAC CEs.
-  return get_sdu_size(c) + 1;
-}
-
-std::string sched_ue::ce_cmd::to_string() const
-{
-  switch (cetype) {
-    case srslte::sch_subh::cetype::SCELL_ACTIVATION:
-      return "SCell Activation";
-    case srslte::sch_subh::cetype::CON_RES_ID:
-      return "ContentionResolution";
-    case srslte::sch_subh::cetype::TA_CMD:
-      return "Timing Advance";
-    case srslte::sch_subh::cetype::DRX_CMD:
-      return "DRX";
-    default:
-      srslte::logmap::get("MAC ")->error("MAC CE not recognized\n");
-      return "";
   }
 }
 

@@ -33,6 +33,22 @@ class subh;
 
 namespace srslte {
 
+/* 3GPP 36.321 Table 6.2.1-1 */
+enum class dl_sch_lcid {
+  CCCH = 0b00000,
+  //...
+  SCELL_ACTIVATION_4_OCTET = 0b11000,
+  SCELL_ACTIVATION         = 0b11011,
+  CON_RES_ID               = 0b11100,
+  TA_CMD                   = 0b11101,
+  DRX_CMD                  = 0b11110,
+  PADDING                  = 0b11111
+};
+const char* to_string(dl_sch_lcid v);
+uint32_t    ce_size(dl_sch_lcid v);
+uint32_t    ce_subheader_size(dl_sch_lcid v);
+uint32_t    ce_tot_size(dl_sch_lcid v);
+
 template <class SubH>
 class pdu
 {
@@ -48,8 +64,7 @@ public:
     last_sdu_idx(-1),
     pdu_is_ul(false),
     buffer_tx(nullptr)
-  {
-  }
+  {}
 
   void fprint(FILE* stream)
   {
