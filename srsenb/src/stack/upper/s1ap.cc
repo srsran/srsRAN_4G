@@ -360,7 +360,10 @@ bool s1ap::user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_r
   cause_c cause;
   cause.set_radio_network().value = cause_radio.value;
 
-  return u->send_uectxtreleaserequest(cause);
+  if (u->ctxt.mme_ue_s1ap_id_present) {
+    return u->send_uectxtreleaserequest(cause);
+  }
+  return true;
 }
 
 bool s1ap::user_exists(uint16_t rnti)
@@ -851,8 +854,13 @@ bool s1ap::ue::send_uectxtreleaserequest(const cause_c& cause)
   if (!s1ap_ptr->mme_connected) {
     return false;
   }
-  release_requested = true;
 
+  if (!ctxt.mme_ue_s1ap_id_present) {
+    s1ap_log->error("Cannot send UE context release request without a MME-UE-S1AP-Id allocated.\n");
+    return false;
+  }
+
+  release_requested = true;
   s1ap_pdu_c tx_pdu;
   tx_pdu.set_init_msg().load_info_obj(ASN1_S1AP_ID_UE_CONTEXT_RELEASE_REQUEST);
   ue_context_release_request_ies_container& container =
