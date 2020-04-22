@@ -413,13 +413,22 @@ public:
 class rrc_interface_s1ap
 {
 public:
-  virtual void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)                                  = 0;
-  virtual void release_complete(uint16_t rnti)                                                                 = 0;
-  virtual bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg)               = 0;
-  virtual bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)                  = 0;
-  virtual bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)                      = 0;
-  virtual bool release_erabs(uint32_t rnti)                                                                    = 0;
-  virtual void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id)                    = 0;
+  virtual void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)                    = 0;
+  virtual void release_complete(uint16_t rnti)                                                   = 0;
+  virtual bool setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_request_s& msg) = 0;
+  virtual bool modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)    = 0;
+  virtual bool setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)        = 0;
+  virtual bool release_erabs(uint32_t rnti)                                                      = 0;
+  virtual void add_paging_id(uint32_t ueid, const asn1::s1ap::ue_paging_id_c& ue_paging_id)      = 0;
+
+  /**
+   * Reports the reception of S1 HandoverCommand / HandoverPreparationFailure or abnormal conditions during
+   * S1 Handover preparation back to RRC.
+   *
+   * @param rnti user
+   * @param is_success true if ho cmd was received
+   * @param container TargeteNB RRCConnectionReconfiguration message with MobilityControlInfo
+   */
   virtual void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t container) = 0;
 };
 
@@ -457,16 +466,36 @@ public:
                           uint32_t                              m_tmsi,
                           uint8_t                               mmec) = 0;
 
-  virtual void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)                                        = 0;
-  virtual bool user_exists(uint16_t rnti)                                                                        = 0;
-  virtual bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)                        = 0;
-  virtual void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res)           = 0;
-  virtual void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res)                   = 0;
-  virtual bool is_mme_connected()                                                                                = 0;
+  virtual void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)                              = 0;
+  virtual bool user_exists(uint16_t rnti)                                                              = 0;
+  virtual bool user_release(uint16_t rnti, asn1::s1ap::cause_radio_network_e cause_radio)              = 0;
+  virtual void ue_ctxt_setup_complete(uint16_t rnti, const asn1::s1ap::init_context_setup_resp_s& res) = 0;
+  virtual void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res)         = 0;
+  virtual bool is_mme_connected()                                                                      = 0;
+
+  /**
+   * Command the s1ap to transmit a HandoverRequired message to MME.
+   * This message initiates the S1 handover preparation procedure at the Source eNB
+   *
+   * @param rnti user to perform S1 handover
+   * @param target_eci eNB Id + Cell Id of the target eNB
+   * @param target_plmn PLMN of the target eNB
+   * @param rrc_container RRC container with SourceENBToTargetENBTransparentContainer message.
+   * @return true if successful
+   */
   virtual bool send_ho_required(uint16_t                     rnti,
                                 uint32_t                     target_eci,
                                 srslte::plmn_id_t            target_plmn,
-                                srslte::unique_byte_buffer_t rrc_container)                                      = 0;
+                                srslte::unique_byte_buffer_t rrc_container) = 0;
+
+  /**
+   * Command the s1ap to transmit eNBStatusTransfer message to MME. This message passes the PDCP context of the UE
+   * performing S1 handover from source eNB to target eNB.
+   *
+   * @param rnti user to perform S1 handover
+   * @param bearer_status_list PDCP SN and HFN status of the bearers to be preserved at target eNB
+   * @return true if successful
+   */
   virtual bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) = 0;
 };
 
