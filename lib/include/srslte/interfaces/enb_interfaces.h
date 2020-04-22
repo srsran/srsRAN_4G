@@ -273,8 +273,17 @@ public:
   virtual void reset()                                                            = 0;
 
   /* Manages UE configuration context */
-  virtual int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)                             = 0;
-  virtual int ue_rem(uint16_t rnti)                                                             = 0;
+  virtual int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) = 0;
+  virtual int ue_rem(uint16_t rnti)                                 = 0;
+
+  /**
+   * Called after Msg3 reception to set the UE C-RNTI, resolve contention, and alter the UE's configuration in the
+   * scheduler and phy.
+   *
+   * @param temp_crnti temporary C-RNTI of the UE
+   * @param crnti chosen C-RNTI for the UE
+   * @param cfg new UE scheduler configuration
+   */
   virtual int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg) = 0;
 
   /* Manages UE bearers and associated configuration */
@@ -284,7 +293,10 @@ public:
   virtual void
   write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) = 0;
 
-  /* Allocation of C-RNTI during HO */
+  /**
+   * Allocate a C-RNTI for a new user, without adding it to the phy layer and scheduler yet
+   * @return value of the allocated C-RNTI
+   */
   virtual uint16_t allocate_rnti() = 0;
 };
 

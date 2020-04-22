@@ -1643,6 +1643,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure MAC
   if (is_setup) {
+    // In case of RRC Connection Setup message (Msg4), we need to resolve the contention by sending a ConRes CE
     parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
   } else {
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);

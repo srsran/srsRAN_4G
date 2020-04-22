@@ -254,9 +254,27 @@ public:
   virtual uint32_t get_dl_buffer(uint16_t rnti) = 0;
 
   /******************* Scheduling Interface ***********************/
-  /* DL buffer status report */
+
+  /**
+   * Update the current RLC buffer state for a given user and bearer.
+   *
+   * @param rnti user rnti
+   * @param lc_id logical channel id for which the buffer update is concerned
+   * @param tx_queue number of pending bytes for new DL RLC transmissions
+   * @param retx_queue number of pending bytes concerning RLC retransmissions
+   * @return error code
+   */
   virtual int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) = 0;
-  virtual int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmds)                    = 0;
+
+  /**
+   * Enqueue MAC CEs for DL transmission
+   *
+   * @param rnti user rnti
+   * @param ce_code lcid of the MAC CE
+   * @param nof_cmds how many repetitions of the same MAC CE should be scheduled
+   * @return error code
+   */
+  virtual int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code, uint32_t nof_cmds) = 0;
 
   /* DL information */
   virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack) = 0;
