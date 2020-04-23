@@ -53,6 +53,8 @@ SRSLTE_API void srslte_dft_precoding_free(srslte_dft_precoding_t* q);
 
 SRSLTE_API bool srslte_dft_precoding_valid_prb(uint32_t nof_prb);
 
+SRSLTE_API uint32_t srslte_dft_precoding_get_valid_prb(uint32_t nof_prb);
+
 SRSLTE_API int
 srslte_dft_precoding(srslte_dft_precoding_t* q, cf_t* input, cf_t* output, uint32_t nof_prb, uint32_t nof_symbols);
 

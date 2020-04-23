@@ -102,6 +102,15 @@ bool srslte_dft_precoding_valid_prb(uint32_t nof_prb)
   return false;
 }
 
+/* Return largest integer that fulfills the DFT precoding PRB criterion (TS 36.213 Section 14.1.1.4C) */
+uint32_t srslte_dft_precoding_get_valid_prb(uint32_t nof_prb)
+{
+  while (srslte_dft_precoding_valid_prb(nof_prb) == false) {
+    nof_prb--;
+  }
+  return nof_prb;
+}
+
 int srslte_dft_precoding(srslte_dft_precoding_t* q, cf_t* input, cf_t* output, uint32_t nof_prb, uint32_t nof_symbols)
 {
 
