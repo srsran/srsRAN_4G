@@ -55,6 +55,7 @@ static srslte_ofdm_t                  fft                   = {};
 static srslte_sl_comm_resource_pool_t sl_comm_resource_pool = {};
 static uint32_t                       size_sub_channel      = 10;
 static uint32_t                       num_sub_channel       = 5;
+static uint32_t                       current_sf_idx        = 0;
 
 static srslte_chest_sl_cfg_t pscch_chest_sl_cfg = {};
 static srslte_chest_sl_cfg_t pssch_chest_sl_cfg = {};
@@ -69,6 +70,7 @@ void usage(char* prog)
   printf("\t-p nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-s size_sub_channel [Default for 50 prbs %d]\n", size_sub_channel);
   printf("\t-n num_sub_channel [Default for 50 prbs %d]\n", num_sub_channel);
+  printf("\t-m Subframe index [Default for %d]\n", current_sf_idx);
   printf("\t-e Extended CP [Default normal]\n");
   printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell.tm + 1));
   printf("\t-d use_standard_lte_rates [Default %i]\n", use_standard_lte_rates);
@@ -78,7 +80,7 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "deinopstv")) != -1) {
+  while ((opt = getopt(argc, argv, "deinmopstv")) != -1) {
     switch (opt) {
       case 'd':
         use_standard_lte_rates = true;
@@ -97,6 +99,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'n':
         num_sub_channel = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'm':
+        current_sf_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
         cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -248,7 +253,6 @@ int main(int argc, char** argv)
   int nread             = 0;
 
   uint32_t period_sf_idx        = 0;
-  uint32_t pssch_sf_idx         = 0;
   uint32_t allowed_pssch_sf_idx = 0;
 
   if (file_offset > 0) {
@@ -307,7 +311,7 @@ int main(int argc, char** argv)
       }
 
       if ((sl_comm_resource_pool.pssch_sf_bitmap[period_sf_idx] == 1) && (sci_decoded == true)) {
-        if (srslte_ra_sl_pssch_allowed_sf(pssch_sf_idx, sci.trp_idx, SRSLTE_SL_DUPLEX_MODE_FDD, 0)) {
+        if (srslte_ra_sl_pssch_allowed_sf(current_sf_idx, sci.trp_idx, SRSLTE_SL_DUPLEX_MODE_FDD, 0)) {
 
           // Redundancy version
           uint32_t rv_idx = allowed_pssch_sf_idx % 4;
@@ -319,14 +323,14 @@ int main(int argc, char** argv)
 
           // PSSCH Channel estimation
           pssch_chest_sl_cfg.N_x_id        = sci.N_sa_id;
-          pssch_chest_sl_cfg.sf_idx        = pssch_sf_idx;
+          pssch_chest_sl_cfg.sf_idx        = current_sf_idx;
           pssch_chest_sl_cfg.prb_start_idx = pssch_prb_start_idx;
           pssch_chest_sl_cfg.nof_prb       = nof_prb_pssch;
           srslte_chest_sl_set_cfg(&pssch_chest, pssch_chest_sl_cfg);
           srslte_chest_sl_ls_estimate_equalize(&pssch_chest, sf_buffer, equalized_sf_buffer);
 
           srslte_pssch_cfg_t pssch_cfg = {
-              pssch_prb_start_idx, nof_prb_pssch, sci.N_sa_id, sci.mcs_idx, rv_idx, pssch_sf_idx};
+              pssch_prb_start_idx, nof_prb_pssch, sci.N_sa_id, sci.mcs_idx, rv_idx, current_sf_idx};
           if (srslte_pssch_set_cfg(&pssch, pssch_cfg) == SRSLTE_SUCCESS) {
             if (srslte_pssch_decode(&pssch, equalized_sf_buffer, tb, SRSLTE_SL_SCH_MAX_TB_LEN) == SRSLTE_SUCCESS) {
               srslte_vec_fprint_byte(stdout, tb, pssch.sl_sch_tb_len);
@@ -336,7 +340,7 @@ int main(int argc, char** argv)
           }
           allowed_pssch_sf_idx++;
         }
-        pssch_sf_idx++;
+        current_sf_idx++;
       }
     } else if (cell.tm == SRSLTE_SIDELINK_TM3 || cell.tm == SRSLTE_SIDELINK_TM4) {
       for (int sub_channel_idx = 0; sub_channel_idx < sl_comm_resource_pool.num_sub_channel; sub_channel_idx++) {
@@ -368,6 +372,9 @@ int main(int argc, char** argv)
               uint32_t nof_prb_pssch = ((L_subCH + sub_channel_idx) * sl_comm_resource_pool.size_sub_channel) -
                                        pssch_prb_start_idx + sl_comm_resource_pool.start_prb_sub_channel;
 
+              // make sure PRBs are valid for DFT precoding
+              nof_prb_pssch = srslte_dft_precoding_get_valid_prb(nof_prb_pssch);
+
               uint32_t N_x_id = 0;
               for (int j = 0; j < SRSLTE_SCI_CRC_LEN; j++) {
                 N_x_id += pscch.sci_crc[j] * exp2(SRSLTE_SCI_CRC_LEN - 1 - j);
@@ -380,14 +387,14 @@ int main(int argc, char** argv)
 
               // PSSCH Channel estimation
               pssch_chest_sl_cfg.N_x_id        = N_x_id;
-              pssch_chest_sl_cfg.sf_idx        = pssch_sf_idx;
+              pssch_chest_sl_cfg.sf_idx        = current_sf_idx;
               pssch_chest_sl_cfg.prb_start_idx = pssch_prb_start_idx;
               pssch_chest_sl_cfg.nof_prb       = nof_prb_pssch;
               srslte_chest_sl_set_cfg(&pssch_chest, pssch_chest_sl_cfg);
               srslte_chest_sl_ls_estimate_equalize(&pssch_chest, sf_buffer, equalized_sf_buffer);
 
               srslte_pssch_cfg_t pssch_cfg = {
-                  pssch_prb_start_idx, nof_prb_pssch, N_x_id, sci.mcs_idx, rv_idx, pssch_sf_idx};
+                  pssch_prb_start_idx, nof_prb_pssch, N_x_id, sci.mcs_idx, rv_idx, current_sf_idx};
               if (srslte_pssch_set_cfg(&pssch, pssch_cfg) == SRSLTE_SUCCESS) {
                 if (srslte_pssch_decode(&pssch, equalized_sf_buffer, tb, SRSLTE_SL_SCH_MAX_TB_LEN) == SRSLTE_SUCCESS) {
                   srslte_vec_fprint_byte(stdout, tb, pssch.sl_sch_tb_len);
@@ -397,7 +404,10 @@ int main(int argc, char** argv)
                 if (SRSLTE_VERBOSE_ISDEBUG()) {
                   char filename[64];
                   snprintf(filename, 64, "pssch_rx_syms_sf%d.bin", num_subframes);
-                  printf("Saving PSSCH symbols (%d) to %s\n", pssch.G / pssch.Qm, filename);
+                  printf("Saving PSSCH symbols (%d) to %s (current_sf_idx=%d)\n",
+                         pssch.G / pssch.Qm,
+                         filename,
+                         current_sf_idx);
                   srslte_vec_save_file(filename, pssch.symbols, pssch.G / pssch.Qm * sizeof(cf_t));
                 }
               }
@@ -416,7 +426,7 @@ int main(int argc, char** argv)
           }
         }
       }
-      pssch_sf_idx++;
+      current_sf_idx = (current_sf_idx + 1) % 10;
     }
     num_subframes++;
     period_sf_idx++;
