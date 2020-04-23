@@ -28,6 +28,7 @@
 #include <strings.h>
 #include <unistd.h>
 
+#include "srslte/common/pcap.h"
 #include "srslte/phy/ch_estimation/chest_sl.h"
 #include "srslte/phy/common/phy_common_sl.h"
 #include "srslte/phy/dft/ofdm.h"
@@ -37,23 +38,60 @@
 #include "srslte/phy/phch/sci.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/ue/ue_sync.h"
+#include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-uint32_t         nof_ports    = 1;
-static bool      keep_running = true;
-char*            output_file_name;
-static char      rf_devname[64] = "";
-static char      rf_args[64]    = "auto";
-float            rf_gain = 60.0, rf_freq = -1.0;
-int              nof_rx_antennas = 1;
-srslte_cell_sl_t cell_sl         = {.nof_prb = 50, .tm = SRSLTE_SIDELINK_TM4, .cp = SRSLTE_CP_NORM, .N_sl_id = 0};
+#define PCAP_FILENAME "/tmp/pssch.pcap"
 
-bool use_standard_lte_rates = false;
-bool disable_plots          = false;
+static bool      keep_running = true;
+
+static srslte_cell_sl_t cell_sl = {.nof_prb = 50, .tm = SRSLTE_SIDELINK_TM4, .cp = SRSLTE_CP_NORM, .N_sl_id = 0};
+
+typedef struct {
+  bool     use_standard_lte_rates;
+  bool     disable_plots;
+  char*    input_file_name;
+  uint32_t file_start_sf_idx;
+  uint32_t nof_ports;
+  char*    rf_dev;
+  char*    rf_args;
+  double   rf_freq;
+  float    rf_gain;
+
+  // Sidelink specific args
+  uint32_t size_sub_channel;
+  uint32_t num_sub_channel;
+} prog_args_t;
+
+void args_default(prog_args_t* args)
+{
+  args->disable_plots          = false;
+  args->use_standard_lte_rates = false;
+  args->input_file_name        = NULL;
+  args->file_start_sf_idx      = 0;
+  args->nof_ports              = 1;
+  args->rf_dev                 = "";
+  args->rf_args                = "";
+  args->rf_dev                 = "";
+  args->rf_args                = "";
+  args->rf_freq                = 5.92e6;
+  args->rf_gain                = 50;
+  args->nof_ports              = 1;
+  args->size_sub_channel       = 10;
+  args->num_sub_channel        = 5;
+}
 
 static srslte_pscch_t pscch = {}; // Defined global for plotting thread
 static srslte_pssch_t pssch = {};
+
+#ifndef DISABLE_RF
+srslte_rf_t rf;
+#endif // DISABLE_RF
+
+static prog_args_t prog_args;
+
+static srslte_filesource_t fsrc = {};
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
@@ -72,70 +110,107 @@ void sig_int_handler(int signo)
   }
 }
 
-void usage(char* prog)
+void pcap_pack_and_write(FILE*    pcap_file,
+                         uint8_t* pdu,
+                         uint32_t pdu_len_bytes,
+                         uint8_t  reTX,
+                         bool     crc_ok,
+                         uint32_t tti,
+                         uint16_t crnti,
+                         uint8_t  direction,
+                         uint8_t  rnti_type)
+{
+  MAC_Context_Info_t context = {.radioType      = FDD_RADIO,
+                                .direction      = direction,
+                                .rntiType       = rnti_type,
+                                .rnti           = crnti,
+                                .ueid           = 1,
+                                .isRetx         = reTX,
+                                .crcStatusOK    = crc_ok,
+                                .sysFrameNumber = (uint16_t)(tti / 10),
+                                .subFrameNumber = (uint16_t)(tti % 10),
+                                .nbiotMode      = 0};
+  if (pdu) {
+    LTE_PCAP_MAC_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
+  }
+}
+
+void usage(prog_args_t* args, char* prog)
 {
   printf("Usage: %s [agrnv] -f rx_frequency_hz\n", prog);
-  printf("\t-a RF args [Default %s]\n", rf_args);
-  printf("\t-d RF devicename [Default %s]\n", rf_devname);
-  printf("\t-g RF Gain [Default %.2f dB]\n", rf_gain);
-  printf("\t-A nof_rx_antennas [Default %d]\n", nof_rx_antennas);
+  printf("\t-a RF args [Default %s]\n", args->rf_args);
+  printf("\t-d RF devicename [Default %s]\n", args->rf_dev);
+  printf("\t-i input_file_name\n");
+  printf("\t-s Start subframe_idx [Default %d]\n", args->file_start_sf_idx);
+  printf("\t-g RF Gain [Default %.2f dB]\n", args->rf_gain);
+  printf("\t-A nof_rx_antennas [Default %d]\n", args->nof_ports);
   printf("\t-c N_sl_id [Default %d]\n", cell_sl.N_sl_id);
   printf("\t-p nof_prb [Default %d]\n", cell_sl.nof_prb);
-  printf("\t-r use_standard_lte_rates [Default %i]\n", use_standard_lte_rates);
+  printf("\t-s size_sub_channel [Default for 50 prbs %d]\n", args->size_sub_channel);
+  printf("\t-n num_sub_channel [Default for 50 prbs %d]\n", args->num_sub_channel);
+  printf("\t-t Sidelink transmission mode {1,2,3,4} [Default %d]\n", (cell_sl.tm + 1));
+  printf("\t-r use_standard_lte_rates [Default %i]\n", args->use_standard_lte_rates);
 #ifdef ENABLE_GUI
   printf("\t-w disable plots [Default enabled]\n");
 #endif
   printf("\t-v srslte_verbose\n");
 }
 
-void parse_args(int argc, char** argv)
+void parse_args(prog_args_t* args, int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "acdgpvwrxfA")) != -1) {
+  args_default(args);
+
+  while ((opt = getopt(argc, argv, "acdimgpvwrxfA")) != -1) {
     switch (opt) {
       case 'a':
-        strncpy(rf_args, argv[optind], 63);
-        rf_args[63] = '\0';
+        args->rf_args = argv[optind];
         break;
       case 'c':
         cell_sl.N_sl_id = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
-        strncpy(rf_devname, argv[optind], 63);
-        rf_devname[63] = '\0';
+        args->rf_dev = argv[optind];
+        break;
+      case 'i':
+        args->input_file_name = argv[optind];
+        break;
+      case 'm':
+        args->file_start_sf_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'g':
-        rf_gain = strtof(argv[optind], NULL);
+        args->rf_gain = strtof(argv[optind], NULL);
         break;
       case 'p':
         cell_sl.nof_prb = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'f':
-        rf_freq = strtof(argv[optind], NULL);
+        args->rf_freq = strtof(argv[optind], NULL);
         break;
       case 'A':
-        nof_rx_antennas = (int32_t)strtol(argv[optind], NULL, 10);
+        args->nof_ports = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;
         break;
       case 'w':
-        disable_plots = true;
+        args->disable_plots = true;
         break;
       case 'r':
-        use_standard_lte_rates = true;
+        args->use_standard_lte_rates = true;
         break;
       default:
-        usage(argv[0]);
+        usage(args, argv[0]);
         exit(-1);
     }
   }
-  if (rf_freq < 0) {
-    usage(argv[0]);
+  if (args->rf_freq < 0 && args->input_file_name == NULL) {
+    usage(args, argv[0]);
     exit(-1);
   }
 }
 
+#ifndef DISABLE_RF
 int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
@@ -145,6 +220,7 @@ int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamp
   }
   return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, &t->full_secs, &t->frac_secs);
 }
+#endif // DISABLE_RF
 
 int main(int argc, char** argv)
 {
@@ -154,9 +230,11 @@ int main(int argc, char** argv)
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  parse_args(argc, argv);
+  parse_args(&prog_args, argc, argv);
 
-  srslte_use_standard_symbol_size(use_standard_lte_rates);
+  FILE* pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, PCAP_FILENAME);
+
+  srslte_use_standard_symbol_size(prog_args.use_standard_lte_rates);
 
   srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
   if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell_sl) != SRSLTE_SUCCESS) {
@@ -164,28 +242,39 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  printf("Opening RF device...\n");
-  srslte_rf_t rf;
-  if (srslte_rf_open_multi(&rf, rf_args, nof_rx_antennas)) {
-    ERROR("Error opening rf\n");
-    exit(-1);
+  if (prog_args.input_file_name) {
+    if (srslte_filesource_init(&fsrc, prog_args.input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
+      printf("Error opening file %s\n", prog_args.input_file_name);
+      return SRSLTE_ERROR;
+    }
   }
 
-  printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
-  int srate = srslte_sampling_freq_hz(cell_sl.nof_prb);
+#ifndef DISABLE_RF
+  if (!prog_args.input_file_name) {
+    printf("Opening RF device...\n");
 
-  if (srate != -1) {
-    printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-    float srate_rf = srslte_rf_set_rx_srate(&rf, (double)srate);
-    if (srate_rf != srate) {
-      ERROR("Could not set sampling rate\n");
+    if (srslte_rf_open_multi(&rf, prog_args.rf_args, prog_args.nof_ports)) {
+      ERROR("Error opening rf\n");
       exit(-1);
     }
-  } else {
-    ERROR("Invalid number of PRB %d\n", cell_sl.nof_prb);
-    exit(-1);
+
+    printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, prog_args.nof_ports, prog_args.rf_freq) / 1000000);
+    printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, prog_args.rf_gain));
+    int srate = srslte_sampling_freq_hz(cell_sl.nof_prb);
+
+    if (srate != -1) {
+      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
+      float srate_rf = srslte_rf_set_rx_srate(&rf, (double)srate);
+      if (srate_rf != srate) {
+        ERROR("Could not set sampling rate\n");
+        exit(-1);
+      }
+    } else {
+      ERROR("Invalid number of PRB %d\n", cell_sl.nof_prb);
+      exit(-1);
+    }
   }
+#endif // DISABLE_RF
 
   // allocate Rx buffers for 1ms worth of samples
   uint32_t sf_len = SRSLTE_SF_LEN_PRB(cell_sl.nof_prb);
@@ -194,7 +283,7 @@ int main(int argc, char** argv)
   cf_t* rx_buffer[SRSLTE_MAX_CHANNELS] = {};     //< For radio to receive samples
   cf_t* sf_buffer[SRSLTE_MAX_PORTS] = {NULL}; ///< For OFDM object to store subframe after FFT
 
-  for (int i = 0; i < nof_rx_antennas; i++) {
+  for (int i = 0; i < prog_args.nof_ports; i++) {
     rx_buffer[i] = srslte_vec_cf_malloc(sf_len);
     if (!rx_buffer[i]) {
       perror("malloc");
@@ -211,13 +300,23 @@ int main(int argc, char** argv)
   cf_t*    equalized_sf_buffer = srslte_vec_malloc(sizeof(cf_t) * sf_n_re);
 
   // RX
-  srslte_ofdm_t fft;
-  if (srslte_ofdm_rx_init(&fft, cell_sl.cp, rx_buffer[0], sf_buffer[0], cell_sl.nof_prb)) {
-    fprintf(stderr, "Error creating FFT object\n");
-    return SRSLTE_ERROR;
+  srslte_ofdm_t     fft[SRSLTE_MAX_PORTS];
+  srslte_ofdm_cfg_t ofdm_cfg = {};
+  ofdm_cfg.nof_prb           = cell_sl.nof_prb;
+  ofdm_cfg.cp                = SRSLTE_CP_NORM;
+  ofdm_cfg.rx_window_offset  = 0.0f;
+  ofdm_cfg.normalize         = true;
+  ofdm_cfg.sf_type           = SRSLTE_SF_NORM;
+  ofdm_cfg.freq_shift_f      = -0.5;
+  for (int i = 0; i < prog_args.nof_ports; i++) {
+    ofdm_cfg.in_buffer  = rx_buffer[0];
+    ofdm_cfg.out_buffer = sf_buffer[0];
+
+    if (srslte_ofdm_rx_init_cfg(&fft[i], &ofdm_cfg)) {
+      ERROR("Error initiating FFT\n");
+      goto clean_exit;
+    }
   }
-  srslte_ofdm_set_normalize(&fft, true);
-  srslte_ofdm_set_freq_shift(&fft, -0.5);
 
   // SCI
   srslte_sci_t sci;
@@ -258,62 +357,94 @@ int main(int argc, char** argv)
 
   uint32_t num_decoded_tb               = 0;
   uint8_t  tb[SRSLTE_SL_SCH_MAX_TB_LEN] = {};
-  uint32_t pssch_sf_idx                 = 0;
+  uint8_t  packed_tb[SRSLTE_SL_SCH_MAX_TB_LEN / 8] = {};
 
-  srslte_ue_sync_t sync;
-  if (srslte_ue_sync_init_multi_decim_mode(
-          &sync, SRSLTE_MAX_PRB, false, srslte_rf_recv_wrapper, nof_rx_antennas, (void*)&rf, 1.0, SYNC_MODE_GNSS)) {
-    fprintf(stderr, "Error initiating sync_gnss\n");
-    exit(-1);
-  }
+#ifndef DISABLE_RF
+  srslte_ue_sync_t sync = {};
+  if (!prog_args.input_file_name) {
+    if (srslte_ue_sync_init_multi_decim_mode(&sync,
+                                             SRSLTE_MAX_PRB,
+                                             false,
+                                             srslte_rf_recv_wrapper,
+                                             prog_args.nof_ports,
+                                             (void*)&rf,
+                                             1.0,
+                                             SYNC_MODE_GNSS)) {
+      fprintf(stderr, "Error initiating sync_gnss\n");
+      exit(-1);
+    }
 
-  srslte_cell_t cell = {};
-  cell.nof_prb       = cell_sl.nof_prb;
-  if (srslte_ue_sync_set_cell(&sync, cell)) {
-    ERROR("Error initiating ue_sync\n");
-    exit(-1);
+    srslte_cell_t cell = {};
+    cell.nof_prb       = cell_sl.nof_prb;
+    if (srslte_ue_sync_set_cell(&sync, cell)) {
+      ERROR("Error initiating ue_sync\n");
+      exit(-1);
+    }
   }
+#endif
 
 #ifdef ENABLE_GUI
-  if (!disable_plots) {
+  if (!prog_args.disable_plots) {
     init_plots(&pscch);
     sleep(1);
   }
 #endif
 
-  // after configuring RF params and before starting streamer, set device to GPS time
-  srslte_rf_sync(&rf);
+#ifndef DISABLE_RF
+  if (!prog_args.input_file_name) {
+    // after configuring RF params and before starting streamer, set device to GPS time
+    srslte_rf_sync(&rf);
 
-  // start streaming
-  srslte_rf_start_rx_stream(&rf, false);
+    // start streaming
+    srslte_rf_start_rx_stream(&rf, false);
+  }
+#endif // DISABLE_RF
 
   uint32_t num_decoded_sci = 0;
   uint32_t subframe_count  = 0;
-
   uint32_t pscch_prb_start_idx = 0;
 
+  uint32_t current_sf_idx = 0;
+  if (prog_args.input_file_name) {
+    current_sf_idx = prog_args.file_start_sf_idx;
+  }
+
   while (keep_running) {
-    // receive subframe
-    int ret = srslte_ue_sync_zerocopy(&sync, rx_buffer, sf_len);
-    if (ret < 0) {
-      ERROR("Error calling srslte_ue_sync_work()\n");
+    if (prog_args.input_file_name) {
+      // read subframe from file
+      int nread = srslte_filesource_read(&fsrc, rx_buffer[0], sf_len);
+      if (nread < 0) {
+        fprintf(stderr, "Error reading from file\n");
+        goto clean_exit;
+      } else if (nread == 0) {
+        goto clean_exit;
+      } else if (nread < sf_len) {
+        fprintf(stderr, "Couldn't read entire subframe. Still processing ..\n");
+        nread = -1;
+      }
+    } else {
+      // receive subframe from radio
+      int ret = srslte_ue_sync_zerocopy(&sync, rx_buffer, sf_len);
+      if (ret < 0) {
+        ERROR("Error calling srslte_ue_sync_work()\n");
+      }
+
+      if (subframe_count == 0) {
+        // print timestamp of the first samples
+        srslte_timestamp_t ts_rx;
+        srslte_ue_sync_get_last_timestamp(&sync, &ts_rx);
+        printf("Received samples start at %ld + %.10f. TTI=%d.%d\n",
+               ts_rx.full_secs,
+               ts_rx.frac_secs,
+               srslte_ue_sync_get_sfn(&sync),
+               srslte_ue_sync_get_sfidx(&sync));
+
+        current_sf_idx = (srslte_ue_sync_get_sfn(&sync) * 10) + srslte_ue_sync_get_sfidx(&sync);
+      }
     }
 
-    if (subframe_count == 0) {
-      // print timestamp of the first samples
-      srslte_timestamp_t ts_rx;
-      srslte_ue_sync_get_last_timestamp(&sync, &ts_rx);
-      printf("Received samples start at %ld + %.10f. TTI=%d.%d\n",
-             ts_rx.full_secs,
-             ts_rx.frac_secs,
-             srslte_ue_sync_get_sfn(&sync),
-             srslte_ue_sync_get_sfidx(&sync));
-
-      pssch_sf_idx = (srslte_ue_sync_get_sfn(&sync) * 10) + srslte_ue_sync_get_sfidx(&sync);
-    }
-
-    // do FFT
-    srslte_ofdm_rx_sf(&fft);
+    // do FFT (on first port)
+    srslte_ofdm_rx_sf(&fft[0]);
 
     for (int sub_channel_idx = 0; sub_channel_idx < sl_comm_resource_pool.num_sub_channel; sub_channel_idx++) {
       pscch_prb_start_idx = sub_channel_idx * sl_comm_resource_pool.size_sub_channel;
@@ -335,13 +466,12 @@ int main(int argc, char** argv)
 
             // plot PSCCH
 #ifdef ENABLE_GUI
-            if (!disable_plots) {
+            if (!prog_args.disable_plots) {
               sem_post(&plot_sem);
             }
 #endif
 
             // Decode PSSCH
-
             uint32_t sub_channel_start_idx = 0;
             uint32_t L_subCH               = 0;
             srslte_ra_sl_type0_from_riv(
@@ -352,6 +482,9 @@ int main(int argc, char** argv)
                                            pscch.pscch_nof_prb + sl_comm_resource_pool.start_prb_sub_channel;
             uint32_t nof_prb_pssch = ((L_subCH + sub_channel_idx) * sl_comm_resource_pool.size_sub_channel) -
                                      pssch_prb_start_idx + sl_comm_resource_pool.start_prb_sub_channel;
+
+            // make sure PRBs are valid for DFT precoding
+            nof_prb_pssch = srslte_dft_precoding_get_valid_prb(nof_prb_pssch);
 
             uint32_t N_x_id = 0;
             for (int j = 0; j < SRSLTE_SCI_CRC_LEN; j++) {
@@ -365,19 +498,36 @@ int main(int argc, char** argv)
 
             // PSSCH Channel estimation
             pssch_chest_sl_cfg.N_x_id        = N_x_id;
-            pssch_chest_sl_cfg.sf_idx        = pssch_sf_idx;
+            pssch_chest_sl_cfg.sf_idx        = current_sf_idx;
             pssch_chest_sl_cfg.prb_start_idx = pssch_prb_start_idx;
             pssch_chest_sl_cfg.nof_prb       = nof_prb_pssch;
             srslte_chest_sl_set_cfg(&pssch_chest, pssch_chest_sl_cfg);
             srslte_chest_sl_ls_estimate_equalize(&pssch_chest, sf_buffer[0], equalized_sf_buffer);
 
             srslte_pssch_cfg_t pssch_cfg = {
-                pssch_prb_start_idx, nof_prb_pssch, N_x_id, sci.mcs_idx, rv_idx, pssch_sf_idx};
+                pssch_prb_start_idx, nof_prb_pssch, N_x_id, sci.mcs_idx, rv_idx, current_sf_idx};
             if (srslte_pssch_set_cfg(&pssch, pssch_cfg) == SRSLTE_SUCCESS) {
               if (srslte_pssch_decode(&pssch, equalized_sf_buffer, tb, SRSLTE_SL_SCH_MAX_TB_LEN) == SRSLTE_SUCCESS) {
-                srslte_vec_fprint_byte(stdout, tb, pssch.sl_sch_tb_len);
                 num_decoded_tb++;
-                printf("PSSCH num_decoded_tb: %d\n", num_decoded_tb);
+
+                // pack bit sand write to PCAP
+                srslte_bit_pack_vector(tb, packed_tb, pssch.sl_sch_tb_len);
+                pcap_pack_and_write(pcap_file,
+                                    packed_tb,
+                                    pssch.sl_sch_tb_len / 8,
+                                    0,
+                                    true,
+                                    current_sf_idx,
+                                    0x1001,
+                                    DIRECTION_UPLINK,
+                                    SL_RNTI);
+
+#ifdef ENABLE_GUI
+                // plot PSSCH
+                if (!prog_args.disable_plots) {
+                  sem_post(&plot_sem);
+                }
+#endif
               }
             }
           }
@@ -395,14 +545,20 @@ int main(int argc, char** argv)
         }
       }
     }
-    pssch_sf_idx++;
+    current_sf_idx = (current_sf_idx + 1) % 10;
     subframe_count++;
   }
 
-  printf("Processed %d subframes.\n", subframe_count);
+clean_exit:
+  printf("num_decoded_sci=%d num_decoded_tb=%d\n", num_decoded_sci, num_decoded_tb);
+
+  if (pcap_file != NULL) {
+    printf("Saving PCAP file to %s\n", PCAP_FILENAME);
+    LTE_PCAP_Close(pcap_file);
+  }
 
 #ifdef ENABLE_GUI
-  if (!disable_plots) {
+  if (!prog_args.disable_plots) {
     sem_post(&plot_sem);
     usleep(1000);
     if (!pthread_kill(plot_thread, 0)) {
@@ -413,14 +569,17 @@ int main(int argc, char** argv)
   sdrgui_exit();
 #endif
 
+#ifndef DISABLE_RF
   srslte_rf_stop_rx_stream(&rf);
   srslte_rf_close(&rf);
+#endif // DISABLE_RF
+
   srslte_ue_sync_free(&sync);
   srslte_sci_free(&sci);
   srslte_pscch_free(&pscch);
   srslte_chest_sl_free(&pscch_chest);
 
-  for (int i = 0; i < nof_rx_antennas; i++) {
+  for (int i = 0; i < prog_args.nof_ports; i++) {
     if (rx_buffer[i]) {
       free(rx_buffer[i]);
     }
@@ -440,6 +599,7 @@ int main(int argc, char** argv)
 #ifdef ENABLE_GUI
 
 plot_scatter_t pscatequal_pscch;
+plot_scatter_t pscatequal_pssch;
 
 void* plot_thread_run(void* arg)
 {
@@ -450,11 +610,20 @@ void* plot_thread_run(void* arg)
   plot_scatter_setXAxisScale(&pscatequal_pscch, -4, 4);
   plot_scatter_setYAxisScale(&pscatequal_pscch, -4, 4);
 
+  plot_scatter_init(&pscatequal_pssch);
+  plot_scatter_setTitle(&pscatequal_pssch, "PSSCH - Equalized Symbols");
+  plot_scatter_setXAxisScale(&pscatequal_pssch, -4, 4);
+  plot_scatter_setYAxisScale(&pscatequal_pssch, -4, 4);
+
   plot_scatter_addToWindowGrid(&pscatequal_pscch, (char*)"pssch_ue", 0, 0);
+  plot_scatter_addToWindowGrid(&pscatequal_pssch, (char*)"pssch_ue", 0, 1);
 
   while (keep_running) {
     sem_wait(&plot_sem);
-    plot_scatter_setNewData(&pscatequal_pscch, pscch.mod_symbols, pscch.nof_tx_re);
+    plot_scatter_setNewData(&pscatequal_pscch, pscch.mod_symbols, pscch.E / SRSLTE_PSCCH_QM);
+    if (pssch.G > 0 && pssch.Qm > 0) {
+      plot_scatter_setNewData(&pscatequal_pssch, pssch.symbols, pssch.G / pssch.Qm);
+    }
   }
 
   return NULL;
