@@ -461,7 +461,17 @@ static int dci_format0_pack(srslte_cell_t*      cell,
   srslte_bit_unpack(dci->n_dmrs, &y, 3);
 
   // CQI request
-  *y++ = dci->cqi_request;
+  if (cfg->multiple_csi_request_enabled) {
+    *y++ = dci->cqi_request;
+    *y++ = 0;
+  } else {
+    *y++ = dci->cqi_request;
+  }
+
+  // SRS request
+  if (cfg->srs_request_enabled) {
+    *y++ = dci->srs_request && dci->srs_request_present;
+  }
 
   // Padding with zeros
   uint32_t n = srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT0);

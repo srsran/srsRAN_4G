@@ -771,6 +771,11 @@ public:
     sf_len    = static_cast<uint32_t>(SRSLTE_SF_LEN_PRB(cell_list[0].cell.nof_prb));
     rnti      = rnti_;
 
+    // Enable Extended CSI request bits in DCI format 0 according to 3GPP 36.212 R10 5.3.3.1.1
+    for (auto& e : phy_rrc_cfg) {
+      e.phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (phy_rrc_cfg.size() > 1);
+    }
+
     log_h.set_level(std::move(log_level));
 
     // Initialise one buffer per eNb

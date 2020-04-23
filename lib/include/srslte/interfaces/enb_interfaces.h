@@ -48,7 +48,6 @@ public:
    */
   typedef struct {
     srslte_dci_dl_t         dci;
-    srslte_dci_cfg_t        dci_cfg;
     uint8_t*                data[SRSLTE_MAX_TB];
     srslte_softbuffer_tx_t* softbuffer_tx[SRSLTE_MAX_TB];
   } dl_sched_grant_t;
@@ -77,7 +76,6 @@ public:
    */
   typedef struct {
     srslte_dci_ul_t         dci;
-    srslte_dci_cfg_t        dci_cfg;
     uint32_t                current_tx_nb;
     uint8_t*                data;
     bool                    needs_pdcch;

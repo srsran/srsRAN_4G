@@ -255,6 +255,9 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
   // Get UE by reference
   common_ue& ue = ue_db[rnti];
 
+  // Number of configured serving cells
+  uint32_t nof_configured_scell = 0;
+
   // Iterate PHY RRC configuration for each UE cell/carrier
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < phy_rrc_dedicated_list.size() && ue_cc_idx < SRSLTE_MAX_CARRIERS;
        ue_cc_idx++) {
@@ -274,6 +277,9 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
       if (cell_info.state != cell_state_primary) {
         cell_info.state = cell_state_secondary_inactive;
       }
+
+      // Count Serving cell
+      nof_configured_scell++;
     } else {
       // Cell without configuration (except PCell)
       cell_info.state = cell_state_none;
@@ -283,6 +289,13 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
   // Make sure remaining cells are set to none
   for (uint32_t cell_idx = phy_rrc_dedicated_list.size(); cell_idx < SRSLTE_MAX_CARRIERS; cell_idx++) {
     ue.cell_info[cell_idx].state = cell_state_none;
+  }
+
+  // Enable/Disable extended CSI field in DCI according to 3GPP 36.212 R10 5.3.3.1.1 Format 0
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
+    if (ue.cell_info[ue_cc_idx].state != cell_state_none) {
+      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 1);
+    }
   }
 }
 

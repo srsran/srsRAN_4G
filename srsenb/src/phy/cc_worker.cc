@@ -432,7 +432,8 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
     if (grants[i].needs_pdcch) {
-      if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &grants[i].dci_cfg, &grants[i].dci)) {
+      srslte_dci_cfg_t dci_cfg = phy->ue_db.get_config(grants[i].dci.rnti, cc_idx).dl_cfg.dci;
+      if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &dci_cfg, &grants[i].dci)) {
         ERROR("Error putting PUSCH %d\n", i);
         return SRSLTE_ERROR;
       }
@@ -453,7 +454,8 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t rnti = grants[i].dci.rnti;
     if (rnti) {
-      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &grants[i].dci_cfg, &grants[i].dci)) {
+      srslte_dci_cfg_t dci_cfg = phy->ue_db.get_config(rnti, cc_idx).dl_cfg.dci;
+      if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &dci_cfg, &grants[i].dci)) {
         ERROR("Error putting PDCCH %d\n", i);
         return SRSLTE_ERROR;
       }
