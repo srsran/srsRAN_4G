@@ -457,12 +457,11 @@ void srslte_ofdm_rx_slot_zerocopy(srslte_ofdm_t* q, cf_t* input, cf_t* output)
 
 void srslte_ofdm_rx_sf(srslte_ofdm_t* q)
 {
-  uint32_t n;
   if (isnormal(q->cfg.freq_shift_f)) {
     srslte_vec_prod_ccc(q->cfg.in_buffer, q->shift_buffer, q->cfg.in_buffer, q->sf_sz);
   }
   if (!q->mbsfn_subframe) {
-    for (n = 0; n < SRSLTE_NOF_SLOTS_PER_SF; n++) {
+    for (uint32_t n = 0; n < SRSLTE_NOF_SLOTS_PER_SF; n++) {
       ofdm_rx_slot(q, n);
     }
   } else {
