@@ -144,18 +144,21 @@ int base_init()
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
+  srslte_vec_cf_zero(sf_buffer, sf_n_re);
 
   equalized_sf_buffer = srslte_vec_cf_malloc(sf_n_re);
   if (!equalized_sf_buffer) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
+  srslte_vec_cf_zero(equalized_sf_buffer, sf_n_re);
 
   input_buffer = srslte_vec_cf_malloc(sf_n_samples);
   if (!input_buffer) {
     ERROR("Error allocating memory\n");
     return SRSLTE_ERROR;
   }
+  srslte_vec_cf_zero(input_buffer, sf_n_samples);
 
   srslte_sci_init(&sci, cell, sl_comm_resource_pool);
 

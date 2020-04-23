@@ -109,6 +109,11 @@ int main(int argc, char** argv)
   uint32_t N_x_id    = 255;
   uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
   cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);
+  if (!sf_buffer) {
+    ERROR("Error allocating memory\n");
+    return SRSLTE_ERROR;
+  }
+  srslte_vec_cf_zero(sf_buffer, sf_n_re);
 
   // Transport block buffer
   uint8_t tb[SRSLTE_SL_SCH_MAX_TB_LEN] = {};
