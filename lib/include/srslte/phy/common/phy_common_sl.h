@@ -138,7 +138,7 @@ typedef enum SRSLTE_API {
 #define SRSLTE_PSSCH_MAX_QM 6
 #define SRSLTE_PSSCH_CRC_LEN 24
 #define SRSLTE_MAX_CODEWORD_LEN 168000   // 12 subcarriers * 100 PRB * 14 symbols * 10 bits, assuming 1024QAM
-#define SRSLTE_SL_SCH_MAX_TB_LEN 1000000 // Must be checked in 3GPP
+#define SRSLTE_SL_SCH_MAX_TB_LEN (48936) // 3GPP 36.306 v15.4.0 Table 4.1B-1
 #define SRSLTE_PSSCH_MAX_CODED_BITS (3 * SRSLTE_TCOD_MAX_LEN_CB + SRSLTE_TCOD_TOTALTAIL)
 
 #define SRSLTE_PSSCH_TM12_NUM_DATA_SYMBOLS (12) // PSSCH is in 12 OFDM symbols (but only 11 are tx'ed)
