@@ -126,7 +126,7 @@ set_property(TEST pssch_pscch_file_test_ideal_tm2_p100 PROPERTY PASS_REGULAR_EXP
 
 # TM4 file tests (first SF is sf_idx = 6 such that the PSSCH sf_idx=0)
 add_test(pssch_pscch_file_test_ideal_tm4_p100 pssch_pscch_file_test -p 100 -t 4 -s 10 -n 10 -d -m 6 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_size10_num10_cshift0_s30.72e6.dat)
-set_property(TEST pssch_pscch_file_test_ideal_tm4_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1 num_decoded_tb=1")
+set_property(TEST pssch_pscch_file_test_ideal_tm4_p100 PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1")
 
 add_test(pssch_pscch_test_tm4_p50_qc pssch_pscch_file_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_qc9150_f5.92e9_s15.36e6_50prb_20offset.dat)
 set_property(TEST pssch_pscch_test_tm4_p50_qc PROPERTY PASS_REGULAR_EXPRESSION "num_decoded_sci=1 num_decoded_tb=1")
@@ -145,15 +145,15 @@ set_property(TEST pssch_pscch_test_tm4_p50_uxm1 PROPERTY PASS_REGULAR_EXPRESSION
 
 # 100 PRB startOffset 1 MCS12 MAC padding, first SF is index 0
 add_test(pssch_pscch_test_tm4_p100_uxm2 pssch_pscch_file_test -p 100 -t 4 -s 10 -n 10 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s23.04e6_100prb_1prb_offset_mcs12_padding.dat)
-set_property(TEST pssch_pscch_test_tm4_p100_uxm2 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=4 num_decoded_tb=4")
+set_property(TEST pssch_pscch_test_tm4_p100_uxm2 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=4")
 
 # 100 PRB LTE sampling rate, startOffset1 MCS12 ITS data, first SF is index 6
 add_test(pssch_pscch_test_tm4_p100_uxm3 pssch_pscch_file_test -p 100 -d -t 4 -s 10 -n 10 -m 6 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s30.72e6_100prb_1prb_offset_mcs12_its.dat)
-set_property(TEST pssch_pscch_test_tm4_p100_uxm3 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=1 num_decoded_tb=1")
+set_property(TEST pssch_pscch_test_tm4_p100_uxm3 PROPERTY PASS_REGULAR_EXPRESSION "mcs=12.*num_decoded_sci=1")
 
 # 50 PRB LTE sampling rate, startOffset0 MCS28 MAC padding, first SF is index 1
 add_test(pssch_pscch_test_tm4_p50_uxm4 pssch_pscch_file_test -p 50 -d -t 4 -s 5 -n 10 -m 1 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_uxm_s15.36e6_50prb_0prb_offset_mcs28_padding_5ms.dat)
-set_property(TEST pssch_pscch_test_tm4_p50_uxm4 PROPERTY PASS_REGULAR_EXPRESSION "mcs=28.*num_decoded_sci=5 num_decoded_tb=5")
+set_property(TEST pssch_pscch_test_tm4_p50_uxm4 PROPERTY PASS_REGULAR_EXPRESSION "mcs=28.*num_decoded_sci=5")
 
 ########################################################################
 # NPBCH TEST
