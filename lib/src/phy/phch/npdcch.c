@@ -165,7 +165,7 @@ int srslte_npdcch_set_cell(srslte_npdcch_t* q, srslte_nbiot_cell_t cell)
         q->i_n_start = 0;
       }
 
-      // FIXME: Add case for LTE cell with 4 ports
+      // TODO: Add case for LTE cell with 4 ports
       if (q->cell.nof_ports == 1) {
         q->nof_nbiot_refs = 2;
       } else {
@@ -629,7 +629,7 @@ int srslte_npdcch_cp(srslte_npdcch_t* q, cf_t* input, cf_t* output, bool put, sr
         offset = q->cell.n_id_ncell % 3;
         delta  = (q->cell.n_id_ncell + ((q->cell.n_id_ncell >= 5) ? 0 : 3)) % 6 == 5 ? 1 : 0;
       } else {
-        // FIXME: not handled right now
+        // TODO: not handled right now
         return SRSLTE_ERROR;
       }
 
@@ -644,7 +644,7 @@ int srslte_npdcch_cp(srslte_npdcch_t* q, cf_t* input, cf_t* output, bool put, sr
           }
           break;
         case SRSLTE_NPDCCH_FORMAT0_UPPER_HALF:
-          // FIXME: this causes valgrind to detect an invalid memory access
+          // TODO: this causes valgrind to detect an invalid memory access
 #if 0
           // skip lower half
           if (put) {
@@ -670,7 +670,7 @@ int srslte_npdcch_cp(srslte_npdcch_t* q, cf_t* input, cf_t* output, bool put, sr
           return SRSLTE_ERROR;
       }
     } else if ((l == 0 || l == 4 || l == 7 || l == 11) && skip_crs) {
-      // skip LTE's CRS (FIXME: use base cell ID?)
+      // skip LTE's CRS (TODO: use base cell ID?)
       if (q->nof_lte_refs == 2) {
         if (l == 0 || l == 7) {
           offset = q->cell.base.id % 6;
