@@ -275,18 +275,13 @@ bool s1ap_ctx_mngmt_proc::handle_ue_context_release_request(const asn1::s1ap::ue
     // No ECM Context to release
     m_s1ap_log->info("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
     m_s1ap_log->console("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
-    // Make sure E-RABS are merked as DEACTIVATED.
-    for (int i = 0; i < MAX_ERABS_PER_UE; i++) {
-      nas_ctx->m_esm_ctx[i].state = ERAB_DEACTIVATED;
+    // Make sure E-RABS are marked as DEACTIVATED.
+    for (esm_ctx_t& esm_ctx : nas_ctx->m_esm_ctx) {
+      esm_ctx.state = ERAB_DEACTIVATED;
     }
   }
 
-  // Set UE context to ECM Idle
-  ecm_ctx->state          = ECM_STATE_IDLE;
-  ecm_ctx->enb_ue_s1ap_id = 0;
-  ecm_ctx->mme_ue_s1ap_id = 0;
-  m_s1ap_log->info("UE is ECM IDLE.\n");
-  m_s1ap_log->console("UE is ECM IDLE.\n");
+  // Set UE context will be cleared upon reception of UE Context Release Complete
   return true;
 }
 
