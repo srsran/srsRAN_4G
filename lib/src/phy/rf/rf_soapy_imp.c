@@ -227,8 +227,10 @@ int rf_soapy_start_tx_stream(void* h)
 {
   rf_soapy_handler_t* handler = (rf_soapy_handler_t*)h;
   if (handler->tx_stream_active == false) {
-    if (SoapySDRDevice_activateStream(handler->device, handler->txStream, 0, 0, 0) != 0)
+    if (SoapySDRDevice_activateStream(handler->device, handler->txStream, 0, 0, 0) != 0) {
+      printf("Error starting Tx streaming.\n");
       return SRSLTE_ERROR;
+    }
     handler->tx_stream_active = true;
   }
   return SRSLTE_SUCCESS;
@@ -237,8 +239,10 @@ int rf_soapy_start_tx_stream(void* h)
 int rf_soapy_stop_rx_stream(void* h)
 {
   rf_soapy_handler_t* handler = (rf_soapy_handler_t*)h;
-  if (SoapySDRDevice_deactivateStream(handler->device, handler->rxStream, 0, 0) != 0)
+  if (SoapySDRDevice_deactivateStream(handler->device, handler->rxStream, 0, 0) != 0) {
+    printf("Error deactivating Rx streaming.\n");
     return SRSLTE_ERROR;
+  }
 
   handler->rx_stream_active = false;
   return SRSLTE_SUCCESS;
@@ -247,8 +251,10 @@ int rf_soapy_stop_rx_stream(void* h)
 int rf_soapy_stop_tx_stream(void* h)
 {
   rf_soapy_handler_t* handler = (rf_soapy_handler_t*)h;
-  if (SoapySDRDevice_deactivateStream(handler->device, handler->txStream, 0, 0) != 0)
+  if (SoapySDRDevice_deactivateStream(handler->device, handler->txStream, 0, 0) != 0) {
+    printf("Error deactivating Tx streaming.\n");
     return SRSLTE_ERROR;
+  }
 
   handler->tx_stream_active = false;
   return SRSLTE_SUCCESS;
