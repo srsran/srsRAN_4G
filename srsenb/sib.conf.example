@@ -9,7 +9,7 @@ sib1 =
     (
         {
             si_periodicity = 16;
-            si_mapping_info = [7]; // comma-separated array of SIB-indexes (from 3 to 13). 
+            si_mapping_info = []; // comma-separated array of SIB-indexes (from 3 to 13). 
             // Leave empty or commented to just scheduler sib2
         }
     );
