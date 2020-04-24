@@ -42,19 +42,20 @@ using namespace srslte;
 static char radios_args[SRSLTE_MAX_RADIOS][64] = {"auto", "auto", "auto"};
 static char radio_device[64];
 
-log_filter  log_h;
-std::string file_pattern = "radio%d.dat";
-double      freq         = 2630e6;
-uint32_t    nof_radios   = 1;
-uint32_t    nof_ports    = 1;
-double      srate        = 1.92e6; /* Hz */
-double      duration     = 0.01;   /* in seconds, 10 ms by default */
-cf_t*       buffers[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS];
-bool        tx_enable     = false;
-bool        measure_delay = false;
-bool        capture       = false;
-bool        agc_enable    = true;
-float       rf_gain       = -1.0;
+static log_filter  log_h;
+static std::string file_pattern = "radio%d.dat";
+static double      freq         = 2630e6;
+static uint32_t    nof_radios   = 1;
+static uint32_t    nof_ports    = 1;
+static double      srate        = 1.92e6; /* Hz */
+static double      duration     = 0.01;   /* in seconds, 10 ms by default */
+static cf_t*       buffers[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS];
+static bool        tx_enable       = false;
+static bool        sim_rate_change = false;
+static bool        measure_delay   = false;
+static bool        capture         = false;
+static bool        agc_enable      = true;
+static float       rf_gain         = -1.0;
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
@@ -86,6 +87,7 @@ void usage(char* prog)
   printf("\t-t duration in seconds [Default %.3f]\n", duration);
   printf("\t-m measure delay [Default %s]\n", (measure_delay) ? "enabled" : "disabled");
   printf("\t-x enable transmit [Default %s]\n", (tx_enable) ? "enabled" : "disabled");
+  printf("\t-y simulate rate changes [Default %s]\n", (sim_rate_change) ? "enabled" : "disabled");
   printf("\t-w capture [Default %s]\n", (capture) ? "enabled" : "disabled");
   printf("\t-o Output file pattern [Default %s]\n", file_pattern.c_str());
   printf("\t-F Display spectrum [Default %s]\n", (fft_plot_enable) ? "enabled" : "disabled");
@@ -96,7 +98,7 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "foabcderpsStvhmFxwg")) != -1) {
+  while ((opt = getopt(argc, argv, "foabcderpsStvhmFxywg")) != -1) {
     switch (opt) {
       case 'f':
         freq = strtof(argv[optind], NULL);
@@ -141,6 +143,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'x':
         tx_enable ^= true;
+        break;
+      case 'y':
+        sim_rate_change ^= true;
         break;
       case 'w':
         capture ^= true;
@@ -388,6 +393,21 @@ int main(int argc, char** argv)
   }
 
   for (uint32_t i = 0; i < nof_frames; i++) {
+    if (sim_rate_change) {
+      if (i % 1000 == 0) {
+        // toggle rate between cell search rate and configured rate every second
+        static bool srate_is_cell_search = false;
+        double      new_rate             = (srate_is_cell_search = !srate_is_cell_search) ? srate : 1.92e6;
+        printf("Changing sampling rate to %.2f Msamps/s\n", new_rate / 1e6);
+        for (uint32_t r = 0; r < nof_radios; r++) {
+          radio_h[r]->set_rx_srate(new_rate);
+          if (tx_enable) {
+            radio_h[r]->set_tx_srate(new_rate);
+          }
+        }
+      }
+    }
+
     int gap    = 0;
     frame_size = SRSLTE_MIN(frame_size, nof_samples);
 
