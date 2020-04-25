@@ -30,8 +30,9 @@
 
 srslte_cell_sl_t cell = {.nof_prb = 6, .N_sl_id = 0, .tm = SRSLTE_SIDELINK_TM2, .cp = SRSLTE_CP_NORM};
 
-uint32_t mcs_idx       = 4;
-uint32_t prb_start_idx = 0;
+static uint32_t        mcs_idx       = 4;
+static uint32_t        prb_start_idx = 0;
+static srslte_random_t random_gen    = NULL;
 
 void usage(char* prog)
 {
@@ -90,7 +91,7 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  srslte_pssch_t pssch;
+  srslte_pssch_t pssch = {};
   if (srslte_pssch_init(&pssch, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
     ERROR("Error initializing PSSCH\n");
     return SRSLTE_ERROR;
@@ -130,9 +131,9 @@ int main(int argc, char** argv)
   // Randomize data to fill the transport block
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  srslte_random_t random = srslte_random_init(tv.tv_usec);
+  random_gen = srslte_random_init(tv.tv_usec);
   for (int i = 0; i < pssch.sl_sch_tb_len; i++) {
-    tb[i] = srslte_random_uniform_int_dist(random, 0, 1);
+    tb[i] = srslte_random_uniform_int_dist(random_gen, 0, 1);
   }
 
   // PSSCH encoding
@@ -154,7 +155,12 @@ int main(int argc, char** argv)
   }
 
 clean_exit:
-  free(sf_buffer);
+  if (random_gen) {
+    srslte_random_free(random_gen);
+  }
+  if (sf_buffer) {
+    free(sf_buffer);
+  }
   srslte_pssch_free(&pssch);
 
   printf("%s", ret == SRSLTE_SUCCESS ? "SUCCESS\n" : "FAILED\n");
