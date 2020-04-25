@@ -3,7 +3,7 @@ sudo: required
 
 before_script:
    - sudo apt-get -qq update
-   - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build clang-format-8
+   - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev libczmq-dev libpcsclite-dev rapidjson-dev colordiff ninja-build clang-format-8
 
 language: cpp
         
