@@ -113,6 +113,8 @@ public:
     }
     return *this;
   }
+
+  rf_buffer_t(const rf_buffer_t& other) = delete;
   cf_t* get(const uint32_t& channel_idx) const override { return sample_buffer.at(channel_idx); }
   void  set(const uint32_t& channel_idx, cf_t* ptr) override { sample_buffer.at(channel_idx) = ptr; }
   cf_t* get(const uint32_t& logical_ch, const uint32_t& port_idx, const uint32_t& nof_antennas) const override

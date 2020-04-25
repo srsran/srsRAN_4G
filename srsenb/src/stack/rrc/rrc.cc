@@ -805,7 +805,7 @@ uint32_t rrc::generate_sibs()
   sched_info_list_l& sched_info   = cfg.sib1.sched_info_list;
 
   // Store in cell_ctxt_list, the SIB cfg of each carrier
-  for (uint8_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
+  for (uint32_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
     cell_ctxt_list.push_back(std::unique_ptr<cell_ctxt_t>(new cell_ctxt_t{cc_idx, cfg.cell_list[cc_idx]}));
     cell_ctxt_t& cell_ctxt = *cell_ctxt_list.back();
 
@@ -834,7 +834,7 @@ uint32_t rrc::generate_sibs()
   }
 
   // generate and pack into SIB buffers
-  for (uint8_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
+  for (uint32_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
     cell_ctxt_t& cell_ctxt = *cell_ctxt_list[cc_idx];
     // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
     // all SIBs in a SI message msg[i] share the same periodicity

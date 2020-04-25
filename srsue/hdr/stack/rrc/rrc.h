@@ -113,22 +113,24 @@ public:
     }
   }
 
-  cell_t() { cell_t({0, 0, 0}); }
-
-  explicit cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell_)
-  {
+  cell_t() {
     gettimeofday(&last_update, nullptr);
     has_valid_sib1  = false;
     has_valid_sib2  = false;
     has_valid_sib3  = false;
     has_valid_sib13 = false;
-    phy_cell        = phy_cell_;
+    phy_cell        = {0,0,0};
     rsrp            = NAN;
     rsrq            = NAN;
     sib1            = {};
     sib2            = {};
     sib3            = {};
     sib13           = {};
+  }
+
+  cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell_) : cell_t()
+  {
+    phy_cell = phy_cell_;
   }
 
   uint32_t get_earfcn() { return phy_cell.earfcn; }
