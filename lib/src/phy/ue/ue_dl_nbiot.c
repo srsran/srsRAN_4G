@@ -880,7 +880,7 @@ int srslte_nbiot_ue_dl_decode_npdsch_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* data
         // decoding failed, check for possible repetitions
         if (q->npdsch_cfg.rep_idx == 0) {
           // store soft-bits of first repetition
-          memcpy(q->llr, q->npdsch.llr, q->npdsch_cfg.grant.nof_sf * q->npdsch_cfg.nbits.nof_bits);
+          srs_vec_f_copy(q->llr, q->npdsch.llr, q->npdsch_cfg.grant.nof_sf * q->npdsch_cfg.nbits.nof_bits);
         } else {
           INFO("Soft-combining NPDSCH repetition %d\n", q->npdsch_cfg.rep_idx);
           srslte_vec_sum_fff(q->llr, q->npdsch.llr, q->llr, q->npdsch_cfg.grant.nof_sf * q->npdsch_cfg.nbits.nof_bits);
