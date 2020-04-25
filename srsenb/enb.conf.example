@@ -74,6 +74,9 @@ rx_gain = 40
 #device_args = auto
 #time_adv_nsamples = auto
 
+# Example for ZMQ-based operation with TCP transport for I/Q samples
+#device_name = zmq
+#device_args = fail_on_disconnect=true,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001,id=enb,base_srate=23.04e6
 
 #####################################################################
 # Packet capture configuration

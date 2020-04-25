@@ -46,6 +46,9 @@ tx_gain = 80
 #time_adv_nsamples = auto
 #continuous_tx     = auto
 
+# Example for ZMQ-based operation with TCP transport for I/Q samples
+#device_name = zmq
+#device_args = tx_port=tcp://*:2001,rx_port=tcp://localhost:2000,id=ue,base_srate=23.04e6
 
 #####################################################################
 # Packet capture configuration
