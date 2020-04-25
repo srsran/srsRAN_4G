@@ -3,22 +3,13 @@ sudo: required
 
 before_script:
    - sudo apt-get -qq update
-   - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build
+   - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build clang-format-8
 
 language: cpp
         
 compiler:
   - gcc
   - clang
-
-addons:
-  apt:
-    sources:
-      - llvm-toolchain-trusty-8
-      - key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
-    packages:
-      - clang-format-8
-      - clang-8
 
 script:
  - sudo ln -s /usr/bin/clang-format-diff-8 /usr/bin/clang-format-diff
