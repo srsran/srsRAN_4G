@@ -358,7 +358,7 @@ void srslte_nbiot_ue_dl_get_sib1_grant(srslte_nbiot_ue_dl_t* q, uint32_t sfn, sr
 }
 
 // Calculate next SIB window as in 5.2.3a in TS 36.331
-// FIXME: get rid of this brute-force calculation
+// TODO: get rid of this brute-force calculation
 void srslte_nbiot_ue_dl_get_next_si_sfn(uint32_t                 current_hfn,
                                         uint32_t                 current_sfn,
                                         srslte_nbiot_si_params_t params,
@@ -523,7 +523,7 @@ int srslte_nbiot_ue_dl_decode_fft_estimate(srslte_nbiot_ue_dl_t* q, uint32_t sf_
     if (q->cell.nof_ports == 0) {
       sf_has_nrs = srslte_ra_nbiot_dl_has_ref_signal(sf_idx);
     } else if (q->cell.mode == SRSLTE_NBIOT_MODE_STANDALONE || q->cell.mode == SRSLTE_NBIOT_MODE_GUARDBAND) {
-      // FIXME: differentiate between before and after SIB reception
+      // TODO: differentiate between before and after SIB reception
       sf_has_nrs = srslte_ra_nbiot_dl_has_ref_signal_standalone(sf_idx);
     } else {
       sf_has_nrs = srslte_ra_nbiot_dl_has_ref_signal_inband(sf_idx);
