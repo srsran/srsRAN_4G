@@ -156,7 +156,8 @@ int srslte_sci_format1_unpack(srslte_sci_t* q, uint8_t* input)
   q->riv      = srslte_bit_pack(&input, (uint32_t)ceil(log2(((q->num_sub_channel) * (q->num_sub_channel + 1) / 2))));
   q->time_gap = srslte_bit_pack(&input, 4);
   q->mcs_idx  = srslte_bit_pack(&input, 5);
-  q->retransmission = srslte_bit_pack(&input, 1);
+  q->retransmission      = srslte_bit_pack(&input, 1);
+  q->transmission_format = srslte_bit_pack(&input, 1);
 
   // Sanity check
   if (q->mcs_idx >= 29) {
@@ -184,11 +185,12 @@ void srslte_sci_info(const srslte_sci_t* q, char* str, uint32_t len)
     n = srslte_print_check(str,
                            SRSLTE_SCI_MSG_MAX_LEN,
                            n,
-                           ", priority=%i, res_rsrv=%i, t_gap=%i, rtx=%i\n",
+                           ", priority=%i, res_rsrv=%i, t_gap=%i, rtx=%i, txformat=%d\n",
                            q->priority,
                            q->resource_reserv,
                            q->time_gap,
-                           q->retransmission);
+                           q->retransmission,
+                           q->transmission_format);
   }
 }
 

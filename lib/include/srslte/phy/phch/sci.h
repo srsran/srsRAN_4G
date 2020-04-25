@@ -92,6 +92,11 @@ typedef struct SRSLTE_API {
   // Retransmission index (1 bit)
   bool retransmission;
 
+  // Transmission format (1 bit)
+  // 1 means transmission format including rate-matching and TBS scaling
+  // 0 means transmission format including puncturing and no TBS-scaling
+  uint32_t transmission_format;
+
 } srslte_sci_t;
 
 SRSLTE_API int
