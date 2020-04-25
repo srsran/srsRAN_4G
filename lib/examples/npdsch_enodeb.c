@@ -64,14 +64,14 @@ srslte_nbiot_cell_t cell = {
     .nof_ports  = 1,
     .mode       = SRSLTE_NBIOT_MODE_STANDALONE};
 
-uint32_t i_tbs_val = 1, last_i_tbs_val = 1;
-int      nof_frames = -1;
-uint32_t i_sf_val   = 0;
-uint32_t i_rep_val  = 0;
+static uint32_t i_tbs_val = 1, last_i_tbs_val = 1;
+static int      nof_frames = -1;
+static uint32_t i_sf_val   = 0;
+static uint32_t i_rep_val  = 0;
 
-char* rf_args = "";
-float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 0;
-float snr = -100.0;
+static char* rf_args = "";
+static float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 0;
+static float file_snr = -100.0;
 
 bool                     null_file_sink = false;
 srslte_random_t*         random_gen;
@@ -107,7 +107,7 @@ void usage(char* prog)
   printf("\t   RF is disabled.\n");
 #endif
   printf("\t-o output_file [Default use RF board]\n");
-  printf("\t-s SNR-10 (only if output to file) [Default %f]\n", snr);
+  printf("\t-s SNR-10 (only if output to file) [Default %f]\n", file_snr);
   printf("\t-t Value of schedulingInfoSIB1-NB-r13 [Default %d]\n", sched_info_tag);
   printf("\t-m Value of i_tbs (translates to MCS) [Default %d]\n", i_tbs_val);
   printf("\t-i Value of i_sf [Default %d]\n", i_sf_val);
@@ -139,7 +139,7 @@ void parse_args(int argc, char** argv)
         output_file_name = argv[optind];
         break;
       case 's':
-        snr = strtof(argv[optind], NULL);
+        file_snr = strtof(argv[optind], NULL);
         break;
       case 't':
         sched_info_tag = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -420,9 +420,9 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
 
   // adjust SNR input to allow for negative values
-  if (output_file_name && snr != -100.0) {
-    snr -= 10.0;
-    printf("Target SNR: %.2fdB\n", snr);
+  if (output_file_name && file_snr != -100.0) {
+    file_snr -= 10.0;
+    printf("Target SNR: %.2fdB\n", file_snr);
   }
 
   sf_n_re      = 2 * SRSLTE_CP_NORM_NSYMB * cell.base.nof_prb * SRSLTE_NRE;
@@ -679,12 +679,12 @@ int main(int argc, char** argv)
       /* Transform to OFDM symbols */
       srslte_ofdm_tx_sf(&ifft);
 
-      if (output_file_name && snr != -100.0) {
+      if (output_file_name && file_snr != -100.0) {
         // compute average energy per symbol
         float abs_avg = srslte_vec_avg_power_cf(output_buffer, sf_n_samples);
 
         // find the noise spectral density
-        float snr_lin = srslte_convert_dB_to_power(snr);
+        float snr_lin = srslte_convert_dB_to_power(file_snr);
         float n0      = abs_avg / snr_lin;
         float nstd    = sqrtf(n0 / 2);
 
@@ -701,7 +701,7 @@ int main(int argc, char** argv)
         usleep(1000);
       } else {
 #ifndef DISABLE_RF
-        // FIXME: output scaling needed?
+        // TODO: output scaling needed?
         srslte_rf_send2(&radio, output_buffer, sf_n_samples, true, start_of_burst, false);
         start_of_burst = false;
 #endif
