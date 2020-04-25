@@ -50,7 +50,7 @@ const uint8_t dummy_sib1_payload[] = {0x43, 0x4d, 0xd0, 0x92, 0x22, 0x06, 0x04, 
 
 #ifndef DISABLE_RF
 #include "srslte/phy/rf/rf.h"
-srslte_rf_t rf;
+static srslte_rf_t radio;
 #else
 #pragma message "Compiling npdsch_ue with no RF support"
 #endif
@@ -212,7 +212,7 @@ void base_init()
   } else {
 #ifndef DISABLE_RF
     printf("Opening RF device...\n");
-    if (srslte_rf_open(&rf, rf_args)) {
+    if (srslte_rf_open(&radio, rf_args)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
@@ -301,7 +301,7 @@ void base_free()
     }
   } else {
 #ifndef DISABLE_RF
-    srslte_rf_close(&rf);
+    srslte_rf_close(&radio);
 #endif
   }
 }
@@ -495,7 +495,7 @@ int main(int argc, char** argv)
     int srate = srslte_sampling_freq_hz(cell.base.nof_prb);
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-      float srate_rf = srslte_rf_set_tx_srate(&rf, (double)srate);
+      float srate_rf = srslte_rf_set_tx_srate(&radio, (double)srate);
       if (srate_rf != srate) {
         fprintf(stderr, "Could not set sampling rate\n");
         exit(-1);
@@ -504,8 +504,8 @@ int main(int argc, char** argv)
       fprintf(stderr, "Invalid number of PRB %d\n", cell.base.nof_prb);
       exit(-1);
     }
-    printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&rf, rf_gain));
-    printf("Set TX freq: %.2f MHz\n", srslte_rf_set_tx_freq(&rf, 0, rf_freq) / 1000000);
+    printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&radio, rf_gain));
+    printf("Set TX freq: %.2f MHz\n", srslte_rf_set_tx_freq(&radio, 0, rf_freq) / 1000000);
   }
 #endif
 
@@ -702,7 +702,7 @@ int main(int argc, char** argv)
       } else {
 #ifndef DISABLE_RF
         // FIXME: output scaling needed?
-        srslte_rf_send2(&rf, output_buffer, sf_n_samples, true, start_of_burst, false);
+        srslte_rf_send2(&radio, output_buffer, sf_n_samples, true, start_of_burst, false);
         start_of_burst = false;
 #endif
       }

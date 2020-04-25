@@ -38,7 +38,7 @@
 #ifndef DISABLE_RF
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/rf/rf.h"
-srslte_rf_t rf;
+srslte_rf_t radio;
 #else
 #pragma message "Compiling pdsch_ue with no RF support"
 #endif
@@ -282,7 +282,7 @@ static void base_init()
   } else {
 #ifndef DISABLE_RF
     printf("Opening RF device...\n");
-    if (srslte_rf_open_devname(&rf, rf_dev, rf_args, cell.nof_ports)) {
+    if (srslte_rf_open_devname(&radio, rf_dev, rf_args, cell.nof_ports)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
@@ -431,7 +431,7 @@ static void base_free()
     }
   } else {
 #ifndef DISABLE_RF
-    srslte_rf_close(&rf);
+    srslte_rf_close(&radio);
 #endif
   }
 
@@ -770,7 +770,7 @@ int main(int argc, char** argv)
     int srate = srslte_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-      float srate_rf = srslte_rf_set_tx_srate(&rf, (double)srate);
+      float srate_rf = srslte_rf_set_tx_srate(&radio, (double)srate);
       if (srate_rf != srate) {
         ERROR("Could not set sampling rate\n");
         exit(-1);
@@ -779,8 +779,8 @@ int main(int argc, char** argv)
       ERROR("Invalid number of PRB %d\n", cell.nof_prb);
       exit(-1);
     }
-    printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&rf, rf_gain));
-    printf("Set TX freq: %.2f MHz\n", srslte_rf_set_tx_freq(&rf, cell.nof_ports, rf_freq) / 1000000);
+    printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&radio, rf_gain));
+    printf("Set TX freq: %.2f MHz\n", srslte_rf_set_tx_freq(&radio, cell.nof_ports, rf_freq) / 1000000);
   }
 #endif
 
@@ -994,7 +994,7 @@ int main(int argc, char** argv)
           srslte_vec_sc_prod_cfc(
               output_buffer[i], rf_amp * norm_factor, output_buffer[i], SRSLTE_SF_LEN_PRB(cell.nof_prb));
         }
-        srslte_rf_send_multi(&rf, (void**)output_buffer, sf_n_samples, true, start_of_burst, false);
+        srslte_rf_send_multi(&radio, (void**)output_buffer, sf_n_samples, true, start_of_burst, false);
         start_of_burst = false;
 #endif
       }
