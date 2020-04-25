@@ -312,8 +312,8 @@ static uint32_t rsrp_num_plot    = RSRP_TABLE_MAX_IDX;
 #endif // HAVE_RSRP_PLOT
 #endif // ENABLE_GUI
 
-uint32_t sfn = 0; // system frame number
-uint32_t hfn = 0; // Hyper frame number
+static uint32_t system_frame_number = 0;
+static uint32_t hyper_frame_number  = 0;
 
 int main(int argc, char** argv)
 {
@@ -544,7 +544,7 @@ int main(int argc, char** argv)
               srslte_npbch_mib_unpack(bch_payload, &mib);
 
               // update SFN and set deployment mode
-              sfn       = (mib.sfn + sfn_offset) % 1024;
+              system_frame_number = (mib.sfn + sfn_offset) % 1024;
               cell.mode = mib.mode;
 
               // set number of ports of base cell to that of NB-IoT cell (FIXME: read eutra-NumCRS-Ports-r13)
@@ -584,11 +584,18 @@ int main(int argc, char** argv)
 
 #if HAVE_PCAP
               // write to PCAP
-              pcap_pack_and_write(
-                  pcap_file, data, SRSLTE_MIB_NB_CRC_LEN, 0, true, sfn * 10, 0, DIRECTION_DOWNLINK, NO_RNTI);
+              pcap_pack_and_write(pcap_file,
+                                  data,
+                                  SRSLTE_MIB_NB_CRC_LEN,
+                                  0,
+                                  true,
+                                  system_frame_number * 10,
+                                  0,
+                                  DIRECTION_DOWNLINK,
+                                  NO_RNTI);
 #endif
               // activate SIB1 decoding
-              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, sfn);
+              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
               state = DECODE_SIB;
             }
           }
@@ -599,14 +606,14 @@ int main(int argc, char** argv)
             int dec_ret = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                            &buff_ptrs[0][prog_args.time_offset],
                                                            data,
-                                                           sfn,
+                                                           system_frame_number,
                                                            srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                            SRSLTE_SIRNTI);
             if (dec_ret == SRSLTE_SUCCESS) {
               printf("SIB1 received\n");
               srslte_sys_info_block_type_1_nb_t sib = {};
               srslte_npdsch_sib1_unpack(data, &sib);
-              hfn = sib.hyper_sfn;
+              hyper_frame_number = sib.hyper_sfn;
 
               have_sib1 = true;
 
@@ -621,14 +628,15 @@ int main(int argc, char** argv)
               get_sib2_params(data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, &sib2_params);
 
               // Activate SIB2 decoding
-              srslte_nbiot_ue_dl_decode_sib(&ue_dl, hfn, sfn, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
+              srslte_nbiot_ue_dl_decode_sib(
+                  &ue_dl, hyper_frame_number, system_frame_number, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
 #if HAVE_PCAP
               pcap_pack_and_write(pcap_file,
                                   data,
                                   ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8,
                                   0,
                                   true,
-                                  sfn * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                  system_frame_number * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                   SRSLTE_SIRNTI,
                                   DIRECTION_DOWNLINK,
                                   SI_RNTI);
@@ -638,16 +646,16 @@ int main(int argc, char** argv)
             } else if (dec_ret == SRSLTE_ERROR) {
               // reactivate SIB1 grant
               if (srslte_nbiot_ue_dl_has_grant(&ue_dl) == false) {
-                srslte_nbiot_ue_dl_decode_sib1(&ue_dl, sfn);
+                srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
               }
             }
-          } else if (!have_sib2 &&
-                     !srslte_nbiot_ue_dl_is_sib1_sf(&ue_dl, sfn, srslte_ue_sync_nbiot_get_sfidx(&ue_sync))) {
+          } else if (!have_sib2 && !srslte_nbiot_ue_dl_is_sib1_sf(
+                                       &ue_dl, system_frame_number, srslte_ue_sync_nbiot_get_sfidx(&ue_sync))) {
             // SIB2 is transmitted over multiple subframes, so this needs to be called more than once ..
             int dec_ret = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                            &buff_ptrs[0][prog_args.time_offset],
                                                            data,
-                                                           sfn,
+                                                           system_frame_number,
                                                            srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                            SRSLTE_SIRNTI);
             if (dec_ret == SRSLTE_SUCCESS) {
@@ -667,7 +675,7 @@ int main(int argc, char** argv)
                                   ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8,
                                   0,
                                   true,
-                                  sfn * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
+                                  system_frame_number * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                   SRSLTE_SIRNTI,
                                   DIRECTION_DOWNLINK,
                                   SI_RNTI);
@@ -675,14 +683,15 @@ int main(int argc, char** argv)
             } else {
               // reactivate SIB2 grant
               if (srslte_nbiot_ue_dl_has_grant(&ue_dl) == false) {
-                srslte_nbiot_ue_dl_decode_sib(&ue_dl, hfn, sfn, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
+                srslte_nbiot_ue_dl_decode_sib(
+                    &ue_dl, hyper_frame_number, system_frame_number, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
               }
             }
           }
 
           if (have_sib1 && have_sib2) {
             if (prog_args.rnti == SRSLTE_SIRNTI)
-              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, sfn);
+              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
             state = DECODE_NPDSCH;
           }
           break;
@@ -693,7 +702,7 @@ int main(int argc, char** argv)
               n = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                    &buff_ptrs[0][prog_args.time_offset],
                                                    data,
-                                                   sfn,
+                                                   system_frame_number,
                                                    srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                    prog_args.rnti);
               if (n == SRSLTE_SUCCESS) {
@@ -704,7 +713,7 @@ int main(int argc, char** argv)
               srslte_dci_msg_t dci_msg;
               n = srslte_nbiot_ue_dl_decode_npdcch(&ue_dl,
                                                    &buff_ptrs[0][prog_args.time_offset],
-                                                   sfn,
+                                                   system_frame_number,
                                                    srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                    prog_args.rnti,
                                                    &dci_msg);
@@ -717,7 +726,7 @@ int main(int argc, char** argv)
                                                      prog_args.rnti,
                                                      &dci_unpacked,
                                                      &grant,
-                                                     sfn,
+                                                     system_frame_number,
                                                      srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                      64 /* TODO: remove */,
                                                      cell.mode)) {
@@ -733,7 +742,7 @@ int main(int argc, char** argv)
             n = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                  &buff_ptrs[0][prog_args.time_offset],
                                                  data,
-                                                 sfn,
+                                                 system_frame_number,
                                                  srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                  prog_args.rnti);
 
@@ -748,7 +757,7 @@ int main(int argc, char** argv)
 
             // reactivate SIB1 grant
             if (srslte_nbiot_ue_dl_has_grant(&ue_dl) == false) {
-              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, sfn);
+              srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
             }
           }
 
@@ -774,26 +783,28 @@ int main(int argc, char** argv)
             if (gain < 0) {
               gain = 10 * log10(srslte_agc_get_gain(&ue_sync.agc));
             }
-            printf("CFO: %+6.2f kHz, RSRP: %4.1f dBm "
-                   "SNR: %4.1f dB, RSRQ: %4.1f dB, "
-                   "NPDCCH detected: %d, NPDSCH-BLER: %5.2f%% (%d of total %d), NPDSCH-Rate: %5.2f kbit/s\r",
-                   srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000,
-                   10 * log10(rsrp),
-                   10 * log10(rsrp / noise),
-                   10 * log10(rsrq),
-                   ue_dl.nof_detected,
-                   (float)100 * ue_dl.pkt_errors / ue_dl.pkts_total,
-                   ue_dl.pkt_errors,
-                   ue_dl.pkts_total,
-                   (ue_dl.bits_total / ((sfn * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync)) / 1000.0)) / 1000.0);
+            printf(
+                "CFO: %+6.2f kHz, RSRP: %4.1f dBm "
+                "SNR: %4.1f dB, RSRQ: %4.1f dB, "
+                "NPDCCH detected: %d, NPDSCH-BLER: %5.2f%% (%d of total %d), NPDSCH-Rate: %5.2f kbit/s\r",
+                srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000,
+                10 * log10(rsrp),
+                10 * log10(rsrp / noise),
+                10 * log10(rsrq),
+                ue_dl.nof_detected,
+                (float)100 * ue_dl.pkt_errors / ue_dl.pkts_total,
+                ue_dl.pkt_errors,
+                ue_dl.pkts_total,
+                (ue_dl.bits_total / ((system_frame_number * 10 + srslte_ue_sync_nbiot_get_sfidx(&ue_sync)) / 1000.0)) /
+                    1000.0);
           }
           break;
       }
       if (srslte_ue_sync_nbiot_get_sfidx(&ue_sync) == 9) {
-        sfn++;
-        if (sfn == 1024) {
-          sfn = 0;
-          hfn++;
+        system_frame_number++;
+        if (system_frame_number == 1024) {
+          system_frame_number = 0;
+          hyper_frame_number++;
           printf("\n");
 
           // don't reset counter when reading from file to maintain complete stats
@@ -809,7 +820,7 @@ int main(int argc, char** argv)
 
 #ifdef ENABLE_GUI
       if (!prog_args.disable_plots) {
-        if ((sfn % 4) == 0) {
+        if ((system_frame_number % 4) == 0) {
           plot_sf_idx = srslte_ue_sync_nbiot_get_sfidx(&ue_sync);
           plot_track  = true;
           sem_post(&plot_sem);
@@ -1030,7 +1041,7 @@ void* plot_thread_run(void* arg)
 
       key_value_setValueText(&mode_label, srslte_nbiot_mode_string(cell.mode));
 
-      snprintf(lable_buf, LABLE_MAX_LEN, "%d / %d", hfn, sfn);
+      snprintf(lable_buf, LABLE_MAX_LEN, "%d / %d", hyper_frame_number, system_frame_number);
       key_value_setValueText(&hfn_label, lable_buf);
     }
 
