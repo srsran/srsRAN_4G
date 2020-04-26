@@ -175,6 +175,7 @@ private:
     class rrc_mobility;
 
     ue(rrc* outer_rrc, uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg);
+    ~ue();
     bool is_connected();
     bool is_idle();
 
@@ -232,15 +233,11 @@ private:
     void notify_s1ap_ue_ctxt_setup_complete();
     void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
 
-    int  sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr);
-    void sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr);
-    int  sr_free();
-
-    int  cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch);
-    void cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
-    int  cqi_free();
-
-    int ri_get(uint32_t m_ri, uint16_t* ri_idx);
+    // Getters for PUCCH resources
+    int get_sr(uint8_t* I_sr, uint16_t* N_pucch_sr);
+    int get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
+    int get_ri(uint32_t m_ri, uint16_t* ri_idx);
+    int get_n_pucch_cs(uint16_t* N_pucch_cs);
 
     bool select_security_algorithms();
     void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
@@ -303,6 +300,8 @@ private:
     uint32_t                  sr_N_pucch       = 0;
     uint32_t                  sr_I             = 0;
     bool                      cqi_allocated    = false;
+    uint16_t                  n_pucch_cs_idx   = 0;
+    bool                      n_pucch_cs_alloc = false;
 
     std::map<uint8_t, srslte::unique_byte_buffer_t> erab_info_list;
 
@@ -324,6 +323,13 @@ private:
 
     ///< Helper to fill SCell struct for RRR Connection Reconfig
     void fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
+
+    void sr_allocate(uint32_t period);
+    void sr_free();
+    void cqi_allocate(uint32_t period);
+    void cqi_free();
+    void n_pucch_cs_allocate();
+    void n_pucch_cs_free();
 
     ///< UE's Physical layer dedicated configuration
     phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list = {};
@@ -405,12 +411,16 @@ private:
   static const int             RRC_THREAD_PRIO = 65;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
-  struct sr_sched_t {
+  struct pucch_idx_sched_t {
     uint32_t nof_users[100][80];
   };
 
-  sr_sched_t             sr_sched  = {};
-  sr_sched_t             cqi_sched = {};
+  const static uint32_t             N_PUCCH_MAX_PRB = 4; // Maximum number of PRB to use for PUCCH ACK/NACK in CS mode
+  const static uint32_t             N_PUCCH_MAX_RES = 3 * SRSLTE_NRE * N_PUCCH_MAX_PRB;
+  pucch_idx_sched_t                 sr_sched        = {};
+  pucch_idx_sched_t                 cqi_sched       = {};
+  std::array<bool, N_PUCCH_MAX_RES> n_pucch_cs_used = {};
+
   asn1::rrc::mcch_msg_s  mcch;
   bool                   enable_mbms     = false;
   rrc_cfg_t              cfg             = {};

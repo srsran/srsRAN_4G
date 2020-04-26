@@ -378,6 +378,8 @@ SRSLTE_API int srslte_symbol_sz_power2(uint32_t nof_prb);
 
 SRSLTE_API int srslte_nof_prb(uint32_t symbol_sz);
 
+SRSLTE_API uint32_t srslte_max_cce(uint32_t nof_prb);
+
 SRSLTE_API int srslte_sampling_freq_hz(uint32_t nof_prb);
 
 SRSLTE_API void srslte_use_standard_symbol_size(bool enabled);

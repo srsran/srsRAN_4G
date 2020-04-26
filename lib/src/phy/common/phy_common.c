@@ -420,6 +420,25 @@ bool srslte_symbol_sz_isvalid(uint32_t symbol_sz)
   }
 }
 
+// Returns maximum number of CCE assuming CFI 3 and PHICH 1/6
+uint32_t srslte_max_cce(uint32_t nof_prb)
+{
+  switch (nof_prb) {
+    case 6:
+      return 6;
+    case 15:
+      return 12;
+    case 25:
+      return 21;
+    case 50:
+      return 43;
+    case 75:
+      return 65;
+    default:
+      return 87;
+  }
+}
+
 uint32_t srslte_voffset(uint32_t symbol_id, uint32_t cell_id, uint32_t nof_ports)
 {
   if (nof_ports == 1 && symbol_id == 0) {
