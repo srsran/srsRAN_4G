@@ -301,6 +301,9 @@ configure_file(
 )
 install(PROGRAMS ${CMAKE_BINARY_DIR}/srslte_install_configs.sh DESTINATION ${RUNTIME_DIR})
 
+# Disables the project to build when calling "make install"
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+
 ########################################################################
 # Compiler specific setup
 ########################################################################
