@@ -194,6 +194,8 @@ int param_test(const char* args_param, const int num_channels)
     return SRSLTE_ERROR;
   }
 
+  srslte_rf_close(&enb_radio);
+
   return SRSLTE_SUCCESS;
 }
 
