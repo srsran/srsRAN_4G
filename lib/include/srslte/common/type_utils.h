@@ -30,6 +30,21 @@
 
 namespace srslte {
 
+#if defined(__cpp_exceptions) && (1 == __cpp_exceptions)
+class bad_type_access : public std::runtime_error
+{
+public:
+  explicit bad_type_access(const std::string& what_arg) : runtime_error(what_arg) {}
+  explicit bad_type_access(const char* what_arg) : runtime_error(what_arg) {}
+};
+
+#define THROW_BAD_ACCESS(msg) throw bad_type_access{msg};
+#else
+#define THROW_BAD_ACCESS(msg)                                                                                          \
+  fprintf(stderr, "ERROR: exception thrown at %s", msg);                                                               \
+  std::abort()
+#endif
+
 //! Helper to print the name of a type for logging
 /**
  * @brief Helper function that returns a type name string
@@ -156,13 +171,6 @@ struct visit_impl<F, TypeList, First> {
 
 } // namespace type_utils_details
 
-class bad_type_access : public std::runtime_error
-{
-public:
-  explicit bad_type_access(const std::string& what_arg) : runtime_error(what_arg) {}
-  explicit bad_type_access(const char* what_arg) : runtime_error(what_arg) {}
-};
-
 //! Get index of T in Types...
 template <typename T, typename... Types>
 constexpr size_t get_type_index()
@@ -201,7 +209,7 @@ T& get(TypeContainer& c)
   if (c.template is<T>()) {
     return c.template get_unchecked<T>();
   }
-  throw bad_type_access{"in get<T>"};
+  THROW_BAD_ACCESS("in get<T>");
 }
 
 template <typename T, typename TypeContainer>
@@ -210,7 +218,7 @@ const T& get(const TypeContainer& c)
   if (c.template is<T>()) {
     return c.template get_unchecked<T>();
   }
-  throw bad_type_access{"in get<T>"};
+  THROW_BAD_ACCESS("in get<T>");
 }
 
 template <size_t I,

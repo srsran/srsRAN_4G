@@ -104,7 +104,6 @@ int test_tagged_union()
 
 int test_choice()
 {
-  using srslte::bad_type_access;
   using srslte::choice_t;
 
   TESTASSERT(C::counter == 0);
@@ -123,15 +122,6 @@ int test_choice()
 
     // TEST: Invalid member access. get<>() should throw
     TESTASSERT(srslte::get_if<char>(c2) == nullptr);
-    bool catched = false;
-    try {
-      char n = '1';
-      n      = srslte::get<char>(c2);
-      TESTASSERT(n == '1');
-    } catch (bad_type_access& e) {
-      catched = true;
-    }
-    TESTASSERT(catched);
 
     // TEST: simple emplace after construction
     c2 = 'c';

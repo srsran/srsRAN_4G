@@ -519,7 +519,7 @@ protected:
     if (is_success()) {
       return result;
     }
-    throw bad_type_access{"in proc_fsm_t::get_result"};
+    THROW_BAD_ACCESS("in proc_fsm_t::get_result");
   }
 
 private:

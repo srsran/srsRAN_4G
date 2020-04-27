@@ -26,6 +26,14 @@
 #include <functional>
 #include <type_traits>
 
+#if defined(__cpp_exceptions) && (1 == __cpp_exceptions)
+#define THROW_BAD_FUNCTION_CALL(const char* cause) throw std::bad_function_call{};
+#else
+#define THROW_BAD_FUNCTION_CALL(cause)                                                                                 \
+  fprintf(stderr, "ERROR: exception thrown due to bad function call (cause: %s)\n", cause);                            \
+  std::abort()
+#endif
+
 namespace srslte {
 
 //! Size of the buffer used by "move_callback<R(Args...)>" to store functors without calling "new"
@@ -54,7 +62,7 @@ class empty_table_t : public oper_table_t<R, Args...>
 {
 public:
   constexpr empty_table_t() = default;
-  R         call(void* src, Args&&... args) const final { throw std::bad_function_call(); }
+  R         call(void* src, Args&&... args) const final { THROW_BAD_FUNCTION_CALL("function ptr is empty"); }
   void      move(void* src, void* dest) const final {}
   void      dtor(void* src) const final {}
   bool      is_in_small_buffer() const final { return true; }
