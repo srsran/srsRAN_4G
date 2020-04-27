@@ -28,26 +28,28 @@ SET(CTEST_OUTPUT_ON_FAILURE TRUE)
 # - we generate 512 DL frames
 # - schedulingInfoSIB1-NB-r13 is 2, so 16 SIB repetitions are used
 # - each frame contains a NPDCCH and NPDSCH with TBS=24 for RNTI 0x1234
-set(ARG "-o;/tmp/test.bin;-n;512;-t;2") 
+set(ARG "-o;/tmp/enbtest1.bin;-n;512;-t;2")
 add_test(NAME enb1
          COMMAND ${CMAKE_COMMAND} -DCMD=$<TARGET_FILE:npdsch_enodeb> "-DARG=${ARG}" -V -P ${CMAKE_CURRENT_SOURCE_DIR}/iqtests.cmake)
 
 # Run npdsch_npdcch file tests
 
 # Try to decode SIB (-k)
-set(ARG "-i;/tmp/test.bin;-m;512;-t;2;-w;0;-k") 
+set(ARG "-i;/tmp/enbtest1.bin;-m;512;-t;2;-w;0;-k")
 add_test(NAME npdsch_npdcch_file1
          COMMAND ${CMAKE_COMMAND} -DCMD=$<TARGET_FILE:npdsch_npdcch_file_test> "-DARG=${ARG}" -V -P ${CMAKE_CURRENT_SOURCE_DIR}/iqtests.cmake)
 # Specify test, SIB1 should be decoded once
-set_tests_properties (npdsch_npdcch_file1 PROPERTIES PASS_REGULAR_EXPRESSION "pkt_ok=1")
+set_property(TEST npdsch_npdcch_file1 PROPERTY PASS_REGULAR_EXPRESSION "pkt_ok=1")
+set_property(TEST npdsch_npdcch_file1 APPEND PROPERTY DEPENDS enb1)
 
 
 # Try to decode NPDCCH+NPDSCH for user
-set(ARG "-i;/tmp/test.bin;-m;512;-t;2;-w;0;-r;0x1234") 
+set(ARG "-i;/tmp/enbtest1.bin;-m;512;-t;2;-w;0;-r;0x1234")
 add_test(NAME npdsch_npdcch_file2
          COMMAND ${CMAKE_COMMAND} -DCMD=$<TARGET_FILE:npdsch_npdcch_file_test> "-DARG=${ARG}" -V -P ${CMAKE_CURRENT_SOURCE_DIR}/iqtests.cmake)
 # Specify test
 set_property(TEST npdsch_npdcch_file2 PROPERTY PASS_REGULAR_EXPRESSION "pkt_ok=512")
+set_property(TEST npdsch_npdcch_file2 APPEND PROPERTY DEPENDS enb1)
 
 # Run eNB and generate DL signal
 # - we generate 10 DL frames
@@ -58,13 +60,14 @@ set_property(TEST npdsch_npdcch_file2 PROPERTY PASS_REGULAR_EXPRESSION "pkt_ok=5
 # - each NPDSCH lasts over 8 subframes in total, starting in sf_idx,
 #   so in total, two frames are needed for NPDCCH+NPDSCH, hence, 10/2=5 frames
 #   should be received
-set(ARG "-o;/tmp/test.bin;-n;10;-t;0;-i;1;-m;4;-r;2") 
+set(ARG "-o;/tmp/enbtest2.bin;-n;10;-t;0;-i;1;-m;4;-r;2")
 add_test(NAME enb2
          COMMAND ${CMAKE_COMMAND} -DCMD=$<TARGET_FILE:npdsch_enodeb> "-DARG=${ARG}" -V -P ${CMAKE_CURRENT_SOURCE_DIR}/iqtests.cmake)
 
 # Try to decode NPDCCH+NPDSCH for user
-set(ARG "-i;/tmp/test.bin;-m;512;-w;0;-r;0x1234") 
+set(ARG "-i;/tmp/enbtest2.bin;-m;512;-w;0;-r;0x1234")
 add_test(NAME npdsch_npdcch_file3
          COMMAND ${CMAKE_COMMAND} -DCMD=$<TARGET_FILE:npdsch_npdcch_file_test> "-DARG=${ARG}" -V -P ${CMAKE_CURRENT_SOURCE_DIR}/iqtests.cmake)
 # Specify test
 set_property(TEST npdsch_npdcch_file3 PROPERTY PASS_REGULAR_EXPRESSION "pkt_ok=5")
+set_property(TEST npdsch_npdcch_file3 APPEND PROPERTY DEPENDS enb2)
