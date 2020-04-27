@@ -1236,6 +1236,7 @@ public:
     enb_phy->init(phy_args, phy_cfg, radio.get(), stack.get());
     enb_phy->add_rnti(args.rnti, args.ue_cell_list[0], false);
     enb_phy->set_config_dedicated(args.rnti, phy_rrc_cfg);
+    enb_phy->complete_config_dedicated(args.rnti);
     enb_phy->set_activation_deactivation_scell(args.rnti, activation);
 
     /// Create dummy UE instance
