@@ -262,6 +262,13 @@ public:
    * @param dedicated_list Physical layer configuration for the indicated eNb cell
    */
   virtual void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) = 0;
+
+  /**
+   * Instructs the physical layer the configuration has been complete from upper layers for a given RNTI
+   *
+   * @param rnti the given UE identifier (RNTI)
+   */
+  virtual void complete_config_dedicated(uint16_t rnti) = 0;
 };
 
 class mac_interface_rrc

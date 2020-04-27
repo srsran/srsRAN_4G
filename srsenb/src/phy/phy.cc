@@ -247,6 +247,12 @@ void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& de
   }
 }
 
+void phy::complete_config_dedicated(uint16_t rnti)
+{
+  // Forwards call to the UE Database
+  workers_common.ue_db.complete_config(rnti);
+}
+
 void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, const mcch_msg_s& mcch)
 {
   if (sib2->mbsfn_sf_cfg_list_present) {

@@ -51,7 +51,7 @@ inline void phy_ue_db::_add_rnti(uint16_t rnti)
   ue.cell_info[0].phy_cfg.set_defaults();
 
   // Set constant configuration fields
-  _set_common_config_rnti(rnti);
+  _set_common_config_rnti(rnti, ue.cell_info[0].phy_cfg);
 
   // Configure as PCell
   ue.cell_info[0].state = cell_state_primary;
@@ -88,27 +88,20 @@ inline void phy_ue_db::_clear_tti_pending_rnti(uint32_t tti, uint16_t rnti)
   pdsch_ack.simul_cqi_ack          = ue.cell_info[0].phy_cfg.ul_cfg.pucch.simul_cqi_ack;
 }
 
-inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti)
+inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti, srslte::phy_cfg_t& phy_cfg) const
 {
-  // Private function not mutexed, no need to assert RNTI or TTI
-
-  // Get UE
-  common_ue& ue = ue_db[rnti];
-
-  // Iterate all cells/carriers
-  for (auto& scell_info : ue.cell_info) {
-    scell_info.phy_cfg.dl_cfg.pdsch.rnti                          = rnti;
-    scell_info.phy_cfg.ul_cfg.pucch.rnti                          = rnti;
-    scell_info.phy_cfg.ul_cfg.pusch.rnti                          = rnti;
-    scell_info.phy_cfg.ul_cfg.pusch.meas_time_en                  = true;
-    scell_info.phy_cfg.ul_cfg.pusch.meas_epre_en                  = phy_args->pusch_meas_epre;
-    scell_info.phy_cfg.ul_cfg.pusch.meas_ta_en                    = phy_args->pusch_meas_ta;
-    scell_info.phy_cfg.ul_cfg.pusch.meas_evm_en                   = phy_args->pusch_meas_evm;
-    scell_info.phy_cfg.ul_cfg.pucch.threshold_format1             = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
-    scell_info.phy_cfg.ul_cfg.pucch.threshold_data_valid_format1a = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1A;
-    scell_info.phy_cfg.ul_cfg.pucch.threshold_data_valid_format2  = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT2;
-    scell_info.phy_cfg.ul_cfg.pucch.threshold_dmrs_detection      = SRSLTE_PUCCH_DEFAULT_THRESHOLD_DMRS;
-  }
+  // Set common parameters
+  phy_cfg.dl_cfg.pdsch.rnti                          = rnti;
+  phy_cfg.ul_cfg.pucch.rnti                          = rnti;
+  phy_cfg.ul_cfg.pusch.rnti                          = rnti;
+  phy_cfg.ul_cfg.pusch.meas_time_en                  = true;
+  phy_cfg.ul_cfg.pusch.meas_epre_en                  = phy_args->pusch_meas_epre;
+  phy_cfg.ul_cfg.pusch.meas_ta_en                    = phy_args->pusch_meas_ta;
+  phy_cfg.ul_cfg.pusch.meas_evm_en                   = phy_args->pusch_meas_evm;
+  phy_cfg.ul_cfg.pucch.threshold_format1             = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
+  phy_cfg.ul_cfg.pucch.threshold_data_valid_format1a = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1A;
+  phy_cfg.ul_cfg.pucch.threshold_data_valid_format2  = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT2;
+  phy_cfg.ul_cfg.pucch.threshold_dmrs_detection      = SRSLTE_PUCCH_DEFAULT_THRESHOLD_DMRS;
 }
 
 inline uint32_t phy_ue_db::_get_ue_cc_idx(uint16_t rnti, uint32_t enb_cc_idx) const
@@ -116,7 +109,7 @@ inline uint32_t phy_ue_db::_get_ue_cc_idx(uint16_t rnti, uint32_t enb_cc_idx) co
   uint32_t         ue_cc_idx = 0;
   const common_ue& ue        = ue_db.at(rnti);
 
-  for (ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
+  for (; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
     const cell_info_t& scell_info = ue.cell_info[ue_cc_idx];
     if (scell_info.enb_cc_idx == enb_cc_idx and scell_info.state != cell_state_secondary_inactive) {
       return ue_cc_idx;
@@ -232,6 +225,35 @@ inline int phy_ue_db::_assert_cell_list_cfg() const
   return SRSLTE_SUCCESS;
 }
 
+inline srslte::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx, bool stashed) const
+{
+  srslte::phy_cfg_t default_cfg = {};
+  default_cfg.set_defaults();
+  default_cfg.dl_cfg.pdsch.rnti = rnti;
+  default_cfg.ul_cfg.pucch.rnti = rnti;
+  default_cfg.ul_cfg.pusch.rnti = rnti;
+
+  // Use default configuration for non-user C-RNTI
+  if (not SRSLTE_RNTI_ISUSER(rnti)) {
+    return default_cfg;
+  }
+
+  // Make sure the C-RNTI exists and the cell is active for the user
+  if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
+    return default_cfg;
+  }
+
+  uint32_t ue_cc_idx = _get_ue_cc_idx(rnti, enb_cc_idx);
+
+  // Return Stashed configuration if PCell and stashed is true
+  if (ue_cc_idx == 0 and stashed) {
+    return ue_db.at(rnti).pcell_cfg_stash;
+  }
+
+  // Otherwise return current configuration
+  return ue_db.at(rnti).cell_info[ue_cc_idx].phy_cfg;
+}
+
 void phy_ue_db::clear_tti_pending_ack(uint32_t tti)
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -262,16 +284,21 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < phy_rrc_dedicated_list.size() && ue_cc_idx < SRSLTE_MAX_CARRIERS;
        ue_cc_idx++) {
     auto& phy_rrc_dedicated = phy_rrc_dedicated_list[ue_cc_idx];
-    // Configured, add/modify entry in the scell_info map
-    auto& cell_info = ue.cell_info[ue_cc_idx];
+    // Configured, add/modify entry in the cell_info map
+    cell_info_t& cell_info = ue.cell_info[ue_cc_idx];
 
     if (phy_rrc_dedicated.configured or cell_info.state == cell_state_primary) {
       // Set cell information
       cell_info.enb_cc_idx = phy_rrc_dedicated.enb_cc_idx;
-      cell_info.phy_cfg    = phy_rrc_dedicated.phy_cfg;
 
-      // Set constant configuration fields
-      _set_common_config_rnti(rnti);
+      // Apply PCell configuration is stash
+      if (cell_info.state == cell_state_primary) {
+        ue.pcell_cfg_stash = phy_rrc_dedicated.phy_cfg;
+        _set_common_config_rnti(rnti, ue.pcell_cfg_stash);
+      } else {
+        ue.cell_info[ue_cc_idx].phy_cfg = phy_rrc_dedicated.phy_cfg;
+        _set_common_config_rnti(rnti, ue.cell_info[ue_cc_idx].phy_cfg);
+      }
 
       // Set Cell state, all inactive by default except PCell
       if (cell_info.state != cell_state_primary) {
@@ -293,10 +320,26 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
 
   // Enable/Disable extended CSI field in DCI according to 3GPP 36.212 R10 5.3.3.1.1 Format 0
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
-    if (ue.cell_info[ue_cc_idx].state != cell_state_none) {
+    if (ue.cell_info[ue_cc_idx].state == cell_state_secondary_inactive ||
+        ue.cell_info[ue_cc_idx].state == cell_state_secondary_active) {
       ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 1);
+    } else if (ue.cell_info[ue_cc_idx].state == cell_state_primary) {
+      ue.pcell_cfg_stash.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 1);
     }
   }
+
+  // Copy necessary PCell configuration for receiving Configuration Completion from UE
+  srslte::phy_cfg_t& pcell_cfg = ue.cell_info[0].phy_cfg;
+
+  // Setup Temporal PUCCH configuration
+  srslte_pucch_cfg_t tmp_pucch_cfg = ue.pcell_cfg_stash.ul_cfg.pucch;
+  tmp_pucch_cfg.N_pucch_1          = pcell_cfg.ul_cfg.pucch.N_pucch_1; ///< Used for ACK
+
+  // Load new UL configuration
+  pcell_cfg.ul_cfg = ue.pcell_cfg_stash.ul_cfg;
+
+  // Overwrite PUCCH with tenporal PUCCH
+  pcell_cfg.ul_cfg.pucch = tmp_pucch_cfg;
 }
 
 void phy_ue_db::rem_rnti(uint16_t rnti)
@@ -306,6 +349,19 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
   if (ue_db.count(rnti)) {
     ue_db.erase(rnti);
   }
+}
+
+void phy_ue_db::complete_config(uint16_t rnti)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  // Makes sure the RNTI exists
+  if (_assert_rnti(rnti) != SRSLTE_SUCCESS) {
+    return;
+  }
+
+  // Apply stashed configuration
+  ue_db[rnti].cell_info[0].phy_cfg = ue_db[rnti].pcell_cfg_stash;
 }
 
 void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate)
@@ -327,27 +383,28 @@ void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, boo
   cell_info.state = (activate) ? cell_state_secondary_active : cell_state_secondary_inactive;
 }
 
-srslte::phy_cfg_t phy_ue_db::get_config(uint16_t rnti, uint32_t enb_cc_idx) const
+srslte_dl_cfg_t phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
+  return _get_rnti_config(rnti, enb_cc_idx, false).dl_cfg;
+}
 
-  srslte::phy_cfg_t default_cfg = {};
-  default_cfg.set_defaults();
-  default_cfg.dl_cfg.pdsch.rnti = rnti;
-  default_cfg.ul_cfg.pusch.rnti = rnti;
-  default_cfg.ul_cfg.pucch.rnti = rnti;
+srslte_dci_cfg_t phy_ue_db::get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  return _get_rnti_config(rnti, enb_cc_idx, false).dl_cfg.dci;
+}
 
-  // Use default configuration for non-user C-RNTI
-  if (not SRSLTE_RNTI_ISUSER(rnti)) {
-    return default_cfg;
-  }
+srslte_ul_cfg_t phy_ue_db::get_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  return _get_rnti_config(rnti, enb_cc_idx, false).ul_cfg;
+}
 
-  // Make sure the C-RNTI exists and the cell is active for the user
-  if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
-    return default_cfg;
-  }
-
-  return ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].phy_cfg;
+srslte_dci_cfg_t phy_ue_db::get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  return _get_rnti_config(rnti, enb_cc_idx, true).dl_cfg.dci;
 }
 
 void phy_ue_db::set_ack_pending(uint32_t tti, uint32_t enb_cc_idx, const srslte_dci_dl_t& dci)

@@ -115,6 +115,7 @@ public:
                        const asn1::rrc::mcch_msg_s& mcch) override
   {}
   void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) override {}
+  void complete_config_dedicated(uint16_t rnti) override{};
 };
 
 class gtpu_dummy : public gtpu_interface_rrc

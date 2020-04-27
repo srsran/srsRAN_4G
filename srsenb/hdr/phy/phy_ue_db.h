@@ -34,11 +34,30 @@ class phy_ue_db
 {
 private:
   /**
-   * SCell Configuration state indicates whether the SCell has been configured from the RRC set and activated from the
-   * MAC layer.
+   * Primary serving cell configuration flow
+   * ----------------------------------------
+   * Initially UEs are created with a default configuration. When it receives a new configuration for a UE from the
+   * stack, it does not apply the primary serving cell straightforward. The primary cell configuration is stashed and
+   * not applied. However, some parameters are copied to the actual configuration order to allow PHY transmitting the
+   * upper layers messages and receiving the messages before applying the full configuration.
    *
-   * Initially the the state is default and it goes to deactivated as soon as it is configured from RRC, then it can
-   * transition to active as soon as the MAC indicates so.
+   * The stashed primary cell configuration is applied as soon as the stack indicates the completion of the
+   * configuration procedure.
+   *
+   * +---------+ Stack set config +--------------+ Stack Config complete +--------------------+
+   * | Default |----------------->| Stash config |---------------------->| Full configuration |
+   * +---------+                  +--------------+                       +--------------------+
+   *                                     ^                                          |
+   *                                     |           User reconfiguration           |
+   *                                     +------------------------------------------+
+   *
+   * Secondary serving cell configuration flow
+   * ------------------------------------------
+   * Secondary serving cell configuration uses the cell_state attribute for indicating whether the they have been
+   * configured from the stack set and activated/deactivated.
+   *
+   * Initially the the state is default (none) and it goes to inactive as soon as it is configured from the stack, then
+   * it can transition to active as soon as the stack indicates so.
    *
    *  +---------+   Set SCell Configuration   +-------------+   SCell activation   +--------+
    *  | Default | --------------------------->| Deactivated |--------------------->| Active |
@@ -62,19 +81,20 @@ private:
    * Cell information for the UE database
    */
   typedef struct {
-    cell_state_t      state                         = cell_state_none; ///< Configuration state
-    uint32_t          enb_cc_idx                    = 0;               ///< Corresponding eNb cell/carrier index
-    uint8_t           last_ri                       = 0;               ///< Last reported rank indicator
-    srslte_ra_tb_t    last_tb[SRSLTE_MAX_HARQ_PROC] = {};              ///< Stores last PUSCH Resource allocation
-    srslte::phy_cfg_t phy_cfg;                                         ///< Configuration, it has a default constructor
+    cell_state_t                                     state      = cell_state_none; ///< Configuration state
+    uint32_t                                         enb_cc_idx = 0;  ///< Corresponding eNb cell/carrier index
+    uint8_t                                          last_ri    = 0;  ///< Last reported rank indicator
+    std::array<srslte_ra_tb_t, SRSLTE_MAX_HARQ_PROC> last_tb    = {}; ///< Stores last PUSCH Resource allocation
+    srslte::phy_cfg_t                                phy_cfg;         ///< Configuration, it has a default constructor
   } cell_info_t;
 
   /**
    * UE object stored in the PHY common database
    */
   struct common_ue {
-    srslte_pdsch_ack_t pdsch_ack[TTIMOD_SZ] = {};      ///< Pending acknowledgements for this Cell
-    cell_info_t        cell_info[SRSLTE_MAX_CARRIERS]; ///< Cell information, indexed by cell_idx
+    std::array<srslte_pdsch_ack_t, TTIMOD_SZ>    pdsch_ack       = {}; ///< Pending acknowledgements for this Cell
+    std::array<cell_info_t, SRSLTE_MAX_CARRIERS> cell_info       = {}; ///< Cell information, indexed by ue_cell_idx
+    srslte::phy_cfg_t                            pcell_cfg_stash = {}; ///< Stashed Cell information
   };
 
   /**
@@ -118,11 +138,13 @@ private:
   inline void _clear_tti_pending_rnti(uint32_t tti, uint16_t rnti);
 
   /**
-   * Helper method to set the constant attributes of a given RNTI after the configuration is set
+   * Helper method to set the constant attributes of a given RNTI after the configuration is set, it does not modify
+   * internal states.
    *
    * @param rnti identifier of the UE (requires assertion prior to call)
+   * @param phy_cfg points to the PHY configuration for a given cell/carrier
    */
-  inline void _set_common_config_rnti(uint16_t rnti);
+  inline void _set_common_config_rnti(uint16_t rnti, srslte::phy_cfg_t& phy_cfg) const;
 
   /**
    * Gets the SCell index for a given RNTI and a eNb cell/carrier. It returns the SCell index (0 if PCell) if the cc_idx
@@ -193,6 +215,16 @@ private:
    */
   inline int _assert_cell_list_cfg() const;
 
+  /**
+   * Internal eNb general configuration getter, returns default configuration if the UE does not exist in the given cell
+   *
+   * @param rnti provides UE identifier
+   * @param enb_cc_idx eNb cell index
+   * @param stashed if it is true, it returns the stashed configuration. Otherwise, it return the current configuration.
+   * @return The PHY configuration of the indicated UE for the indicated eNb carrier/call index.
+   */
+  inline srslte::phy_cfg_t _get_rnti_config(uint16_t rnti, uint32_t enb_cc_idx, bool stashed) const;
+
 public:
   /**
    * Initialises the UE database with the stack and cell list
@@ -219,8 +251,16 @@ public:
   void rem_rnti(uint16_t rnti);
 
   /**
-   * Activates or deactivates configured SCells for a given RNTI and SCell index (UE SCell index), index 0 is reserved
-   * for PCell
+   * Stack callback for indicating the completion of the configuration process and apply the stashed configuration in
+   * the primary cell.
+   *
+   * @param rnti identifier of the user
+   */
+  void complete_config(uint16_t rnti);
+
+  /**
+   * Activates or deactivates configured secondary cells for a given RNTI and SCell index (UE SCell index), index 0 is
+   * reserved for primary cell
    * @param rnti identifier of the UE
    * @param scell_idx
    * @param activate
@@ -228,12 +268,36 @@ public:
   void activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate);
 
   /**
-   * Get the current physical layer configuration for an RNTI and an eNb cell/carrier
+   * Get the current down-link physical layer configuration for an RNTI and an eNb cell/carrier
    *
    * @param rnti identifier of the UE
    * @param cc_idx the eNb cell/carrier identifier
    */
-  srslte::phy_cfg_t get_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+  srslte_dl_cfg_t get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Get the current DCI configuration for PDSCH physical layer configuration for an RNTI and an eNb cell/carrier
+   *
+   * @param rnti identifier of the UE
+   * @param cc_idx the eNb cell/carrier identifier
+   */
+  srslte_dci_cfg_t get_dci_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Get the current PUCCH physical layer configuration for an RNTI and an eNb cell/carrier.
+   *
+   * @param rnti identifier of the UE
+   * @param cc_idx the eNb cell/carrier identifier
+   */
+  srslte_ul_cfg_t get_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Get the current DCI configuration for PUSCH physical layer configuration for an RNTI and an eNb cell/carrier
+   *
+   * @param rnti identifier of the UE
+   * @param cc_idx the eNb cell/carrier identifier
+   */
+  srslte_dci_cfg_t get_dci_ul_config(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
    * Removes all the pending ACKs of all the RNTIs for a given TTI

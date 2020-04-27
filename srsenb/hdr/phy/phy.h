@@ -64,6 +64,7 @@ public:
 
   void start_plot() override;
   void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) override;
+  void complete_config_dedicated(uint16_t rnti) override;
 
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]) override;
 

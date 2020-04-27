@@ -285,17 +285,16 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
     if (rnti && ue_db.count(rnti)) {
       // Get UE configuration
-      srslte::phy_cfg_t phy_cfg = phy->ue_db.get_config(rnti, cc_idx);
-      srslte_ul_cfg_t&  ul_cfg  = phy_cfg.ul_cfg;
+      srslte_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
 
       // mark this tti as having an ul dci to avoid pucch
       ue_db[rnti]->is_grant_available = true;
 
       // Fill UCI configuration
-      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, grants->dci.cqi_request, true, phy_cfg.ul_cfg.pusch.uci_cfg);
+      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, grants->dci.cqi_request, true, ul_cfg.pusch.uci_cfg);
 
       // Compute UL grant
-      srslte_pusch_grant_t& grant = phy_cfg.ul_cfg.pusch.grant;
+      srslte_pusch_grant_t& grant = ul_cfg.pusch.grant;
       if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
         Error("Computing PUSCH dci\n");
         return SRSLTE_ERROR;
@@ -378,7 +377,7 @@ int cc_worker::decode_pucch()
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
     if (SRSLTE_RNTI_ISUSER(rnti) && !ue_db[rnti]->is_grant_available && ue_db[rnti]->is_pcell()) {
-      srslte_ul_cfg_t ul_cfg = phy->ue_db.get_config(rnti, cc_idx).ul_cfg;
+      srslte_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
 
       // Check if user needs to receive PUCCH
       if (phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, false, false, ul_cfg.pucch.uci_cfg)) {
@@ -402,9 +401,11 @@ int cc_worker::decode_pucch()
         phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pucch.uci_cfg, pucch_res.uci_data);
 
         // Logging
-        char str[512];
-        srslte_pucch_rx_info(&ul_cfg.pucch, &pucch_res, str, 512);
-        Info("PUCCH: cc=%d; %s\n", cc_idx, str);
+        if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+          char str[512];
+          srslte_pucch_rx_info(&ul_cfg.pucch, &pucch_res, str, sizeof(str));
+          log_h->info("PUCCH: cc=%d; %s\n", cc_idx, str);
+        }
       }
     }
   }
@@ -432,7 +433,7 @@ int cc_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
     if (grants[i].needs_pdcch) {
-      srslte_dci_cfg_t dci_cfg = phy->ue_db.get_config(grants[i].dci.rnti, cc_idx).dl_cfg.dci;
+      srslte_dci_cfg_t dci_cfg = phy->ue_db.get_dci_ul_config(grants[i].dci.rnti, cc_idx);
       if (srslte_enb_dl_put_pdcch_ul(&enb_dl, &dci_cfg, &grants[i].dci)) {
         ERROR("Error putting PUSCH %d\n", i);
         return SRSLTE_ERROR;
@@ -454,7 +455,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t rnti = grants[i].dci.rnti;
     if (rnti) {
-      srslte_dci_cfg_t dci_cfg = phy->ue_db.get_config(rnti, cc_idx).dl_cfg.dci;
+      srslte_dci_cfg_t dci_cfg = phy->ue_db.get_dci_dl_config(grants[i].dci.rnti, cc_idx);
       if (srslte_enb_dl_put_pdcch_dl(&enb_dl, &dci_cfg, &grants[i].dci)) {
         ERROR("Error putting PDCCH %d\n", i);
         return SRSLTE_ERROR;
@@ -508,7 +509,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
     uint16_t rnti = grants[i].dci.rnti;
 
     if (rnti && ue_db.count(rnti)) {
-      srslte_dl_cfg_t dl_cfg = phy->ue_db.get_config(rnti, cc_idx).dl_cfg;
+      srslte_dl_cfg_t dl_cfg = phy->ue_db.get_dl_config(rnti, cc_idx);
 
       // Compute DL grant
       if (srslte_ra_dl_dci_to_grant(
