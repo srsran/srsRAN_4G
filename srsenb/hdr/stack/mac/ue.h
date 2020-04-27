@@ -78,7 +78,7 @@ public:
 
   bool     process_pdus();
   uint8_t* request_buffer(const uint32_t ue_cc_idx, const uint32_t tti, const uint32_t len);
-  void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel);
+  void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel) override;
   void     push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len);
   void     deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti);
 

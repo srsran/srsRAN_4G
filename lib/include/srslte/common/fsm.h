@@ -199,7 +199,8 @@ struct fsm_helper {
       fsm_helper::handle_state_change(f, &target_state, &s);
       return true;
     }
-    bool call_react(...)
+    template <typename... Args>
+    bool call_react(Args...)
     {
       f->log_fsm_activity(
           "FSM \"%s\": Unhandled event caught: \"%s\"\n", get_type_name<FSM>().c_str(), get_type_name<Event>().c_str());
