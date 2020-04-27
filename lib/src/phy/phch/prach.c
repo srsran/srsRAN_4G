@@ -468,7 +468,7 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     p->N_roots = 0;
     srslte_prach_gen_seqs(p);
     // Ensure num_ra_preambles is valid, if not assign default value
-    if (p->num_ra_preambles < 4 || p->num_ra_preambles > 64) {
+    if (p->num_ra_preambles < 4 || p->num_ra_preambles > p->N_roots) {
       p->num_ra_preambles = p->N_roots;
     }
     // Generate sequence FFTs
