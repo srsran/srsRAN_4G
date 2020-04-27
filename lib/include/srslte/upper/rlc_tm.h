@@ -40,27 +40,27 @@ public:
          srsue::rrc_interface_rlc*  rrc_,
          srslte::timer_handler*     timers_,
          uint32_t                   queue_len = 16);
-  ~rlc_tm();
+  ~rlc_tm() override;
   bool configure(const rlc_config_t& cnfg) override;
-  void stop();
-  void reestablish();
-  void empty_queue();
+  void stop() override;
+  void reestablish() override;
+  void empty_queue() override;
 
-  rlc_mode_t get_mode();
-  uint32_t   get_bearer();
+  rlc_mode_t get_mode() override;
+  uint32_t   get_bearer() override;
 
-  rlc_bearer_metrics_t get_metrics();
-  void                 reset_metrics();
+  rlc_bearer_metrics_t get_metrics() override;
+  void                 reset_metrics() override;
 
   // PDCP interface
-  void write_sdu(unique_byte_buffer_t sdu, bool blocking);
-  void discard_sdu(uint32_t discard_sn);
+  void write_sdu(unique_byte_buffer_t sdu, bool blocking) override;
+  void discard_sdu(uint32_t discard_sn) override;
 
   // MAC interface
-  bool     has_data();
-  uint32_t get_buffer_state();
-  int      read_pdu(uint8_t* payload, uint32_t nof_bytes);
-  void     write_pdu(uint8_t* payload, uint32_t nof_bytes);
+  bool     has_data() override;
+  uint32_t get_buffer_state() override;
+  int      read_pdu(uint8_t* payload, uint32_t nof_bytes) override;
+  void     write_pdu(uint8_t* payload, uint32_t nof_bytes) override;
 
 private:
   byte_buffer_pool*          pool = nullptr;

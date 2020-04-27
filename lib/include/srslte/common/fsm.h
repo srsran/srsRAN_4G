@@ -243,6 +243,7 @@ protected:
   template <typename SubFSM>
   using subfsm_t = nested_fsm_t<SubFSM, Derived>;
 
+public:
   //! get access to derived protected members from the base
   class derived_view : public Derived
   {
@@ -257,7 +258,6 @@ protected:
     using Derived::states;
   };
 
-public:
   static const bool is_nested = false;
   template <typename NextState>
   using to_state = srslte::to_state<NextState>;
