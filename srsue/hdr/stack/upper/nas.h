@@ -41,6 +41,7 @@ class nas : public nas_interface_rrc, public nas_interface_ue, public srslte::ti
 {
 public:
   explicit nas(srslte::task_handler_interface* task_handler_);
+  virtual ~nas() = default;
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
   void run_tti();
@@ -285,8 +286,7 @@ private:
     struct connection_request_completed_t {
       bool outcome;
     };
-    struct attach_timeout {
-    };
+    struct attach_timeout {};
 
     explicit rrc_connect_proc(nas* nas_ptr_);
     srslte::proc_outcome_t init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu);

@@ -139,7 +139,7 @@ int phy::init(const phy_args_t& args_)
     mylog->init(tmp, logger, true);
     mylog->set_level(args.log.phy_level);
     mylog->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(std::move(std::unique_ptr<srslte::log_filter>(mylog)));
+    log_vec.push_back(std::unique_ptr<srslte::log_filter>(mylog));
   }
 
   // Add PHY lib log
@@ -150,7 +150,7 @@ int phy::init(const phy_args_t& args_)
     lib_log->init(tmp, logger, true);
     lib_log->set_level(args.log.phy_lib_level);
     lib_log->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(std::move(std::unique_ptr<srslte::log_filter>(lib_log)));
+    log_vec.push_back(std::unique_ptr<srslte::log_filter>(lib_log));
   } else {
     log_vec.push_back(nullptr);
   }

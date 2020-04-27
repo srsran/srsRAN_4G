@@ -135,6 +135,7 @@ public:
     pdu_is_ul(false),
     buffer_tx(nullptr)
   {}
+  virtual ~pdu() = default;
 
   void fprint(FILE* stream)
   {

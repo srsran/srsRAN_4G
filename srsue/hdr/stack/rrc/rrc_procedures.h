@@ -248,8 +248,6 @@ private:
 
   rrc*                                rrc_ptr;
   srslte::timer_handler::unique_timer rlc_flush_timer;
-
-  bool wait = false;
 };
 
 class rrc::cell_reselection_proc
