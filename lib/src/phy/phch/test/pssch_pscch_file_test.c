@@ -380,7 +380,7 @@ int main(int argc, char** argv)
 
               uint32_t N_x_id = 0;
               for (int j = 0; j < SRSLTE_SCI_CRC_LEN; j++) {
-                N_x_id += pscch.sci_crc[j] * exp2(SRSLTE_SCI_CRC_LEN - 1 - j);
+                N_x_id += pscch.sci_crc[j] * (1 << (SRSLTE_SCI_CRC_LEN - 1 - j));
               }
 
               uint32_t rv_idx = 0;

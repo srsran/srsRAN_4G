@@ -97,16 +97,7 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  // FIXME: Due to srslte_dft_precoding, many values give error
-  uint32_t nof_prb_pssch = cell.nof_prb;
-  while (srslte_dft_precoding_valid_prb(nof_prb_pssch) == false) {
-    nof_prb_pssch--;
-    if (nof_prb_pssch == 0) {
-      ERROR("Invalid parameters");
-      exit(-1);
-    }
-  }
-
+  uint32_t nof_prb_pssch = srslte_dft_precoding_get_valid_prb(cell.nof_prb);
   uint32_t N_x_id    = 255;
   uint32_t sf_n_re   = SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp);
   cf_t*    sf_buffer = srslte_vec_cf_malloc(sf_n_re);

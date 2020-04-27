@@ -127,8 +127,8 @@ void pcap_pack_and_write(FILE*    pcap_file,
                                 .ueid           = 1,
                                 .isRetx         = reTX,
                                 .crcStatusOK    = crc_ok,
-                                .sysFrameNumber = (uint16_t)(tti / 10),
-                                .subFrameNumber = (uint16_t)(tti % 10),
+                                .sysFrameNumber = (uint16_t)(tti / SRSLTE_NOF_SF_X_FRAME),
+                                .subFrameNumber = (uint16_t)(tti % SRSLTE_NOF_SF_X_FRAME),
                                 .nbiotMode      = 0};
   if (pdu) {
     LTE_PCAP_MAC_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
