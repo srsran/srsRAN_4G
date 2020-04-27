@@ -71,16 +71,6 @@ public:
 
 protected:
   // enter/exit
-  template <typename State>
-  void enter(State& s)
-  {
-    log_h->info("%s::enter called\n", srslte::get_type_name(s).c_str());
-  }
-  template <typename State>
-  void exit(State& s)
-  {
-    log_h->info("%s::exit called\n", srslte::get_type_name(s).c_str());
-  }
   void enter(idle_st& s);
   void enter(state1& s);
 
