@@ -40,6 +40,7 @@ public:
   const static uint32_t preallocated_log_str_size = 1024;
 
   logger() : pool(16 * 1024) {}
+  virtual ~logger() = default;
 
   class log_str
   {

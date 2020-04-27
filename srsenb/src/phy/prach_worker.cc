@@ -24,8 +24,6 @@
 
 namespace srsenb {
 
-prach_worker::~prach_worker() = default;
-
 int prach_worker::init(const srslte_cell_t&      cell_,
                        const srslte_prach_cfg_t& prach_cfg_,
                        stack_interface_phy_lte*  stack_,

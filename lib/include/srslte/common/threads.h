@@ -47,7 +47,6 @@ void threads_print_self();
 #include <string>
 
 namespace srslte {
-;
 
 class thread
 {
@@ -63,6 +62,8 @@ public:
     other._thread = 0;
     other.name    = "";
   }
+
+  virtual ~thread() = default;
 
   thread& operator=(const thread&) = delete;
 

@@ -39,7 +39,7 @@ namespace srsue {
 
 typedef _Complex float cf_t;
 
-class phy : public ue_lte_phy_base, public srslte::thread
+class phy final : public ue_lte_phy_base, public srslte::thread
 {
 public:
   explicit phy(srslte::logger* logger_) : logger(logger_), workers_pool(MAX_WORKERS), common(), thread("PHY"){};
