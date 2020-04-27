@@ -66,7 +66,7 @@ private:                                                                        
     received_##NAME = true;                                                                                            \
   }
 
-class dummy_radio : public srslte::radio_interface_phy
+class dummy_radio final : public srslte::radio_interface_phy
 {
 private:
   std::mutex                        mutex;

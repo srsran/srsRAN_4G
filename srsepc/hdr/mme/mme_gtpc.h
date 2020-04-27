@@ -66,9 +66,8 @@ private:
   virtual ~mme_gtpc();
   static mme_gtpc* m_instance;
 
-  srslte::log_filter*       m_mme_gtpc_log;
-  srslte::byte_buffer_pool* m_pool;
-  s1ap*                     m_s1ap;
+  srslte::log_filter* m_mme_gtpc_log;
+  s1ap*               m_s1ap;
 
   uint32_t                            m_next_ctrl_teid;
   std::map<uint32_t, uint64_t>        m_mme_ctr_teid_to_imsi;

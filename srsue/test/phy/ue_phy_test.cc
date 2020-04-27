@@ -62,7 +62,7 @@ class phy_test_bench : public srslte::thread
 {
 private:
   // Dummy classes
-  class dummy_stack : public srsue::stack_interface_phy_lte
+  class dummy_stack final : public srsue::stack_interface_phy_lte
   {
   private:
     srslte::log_filter      log_h;
