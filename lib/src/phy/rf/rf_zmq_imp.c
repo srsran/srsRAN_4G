@@ -673,7 +673,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
     }
 
     // copy from rx buffer as many samples as requested into provided buffer
-    bool    completed               = false;
+    bool    completed                  = false;
     int32_t count[SRSLTE_MAX_CHANNELS] = {};
     while (!completed) {
       uint32_t completed_count = 0;
@@ -805,7 +805,7 @@ int rf_zmq_send_timed_multi(void*  h,
   int ret = SRSLTE_ERROR;
 
   if (h && data && nsamples > 0) {
-    rf_zmq_handler_t* handler           = (rf_zmq_handler_t*)h;
+    rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
 
     // Map ports to data buffers according to the selected frequencies
     pthread_mutex_lock(&handler->tx_config_mutex);

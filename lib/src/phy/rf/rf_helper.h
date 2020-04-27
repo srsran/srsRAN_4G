@@ -100,7 +100,12 @@ static inline int parse_double(char* args, const char* config_arg_base, int chan
 {
   char tmp_value[RF_PARAM_LEN] = {0};
   int  ret                     = parse_string(args, config_arg_base, channel_index, tmp_value);
-  *value                       = strtod(tmp_value, NULL);
+
+  // Copy parsed value only if was found, otherwise it keeps the default
+  if (ret == SRSLTE_SUCCESS) {
+    *value = strtod(tmp_value, NULL);
+  }
+
   return ret;
 }
 
@@ -108,7 +113,11 @@ static inline int parse_uint32(char* args, const char* config_arg_base, int chan
 {
   double tmp_value;
   int    ret = parse_double(args, config_arg_base, channel_index, &tmp_value);
-  *value     = tmp_value;
+
+  // Copy parsed value only if was found, otherwise it keeps the default
+  if (ret == SRSLTE_SUCCESS) {
+    *value = tmp_value;
+  }
 
   return ret;
 }
