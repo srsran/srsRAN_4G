@@ -234,6 +234,7 @@ private:
     void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
 
     // Getters for PUCCH resources
+    int allocate_scell_pucch(uint32_t cc_idx);
     int get_sr(uint8_t* I_sr, uint16_t* N_pucch_sr);
     int get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
     int get_ri(uint32_t m_ri, uint16_t* ri_idx);
@@ -322,13 +323,13 @@ private:
     cell_ctxt_t* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
     ///< Helper to fill SCell struct for RRR Connection Reconfig
-    void fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
+    int fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
 
-    void sr_allocate(uint32_t period);
+    int  sr_allocate(uint32_t period);
     void sr_free();
-    void cqi_allocate(uint32_t period);
+    int  cqi_allocate(uint32_t period, uint32_t ue_cc_idx);
     void cqi_free();
-    void n_pucch_cs_allocate();
+    int  n_pucch_cs_allocate();
     void n_pucch_cs_free();
 
     ///< UE's Physical layer dedicated configuration
