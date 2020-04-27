@@ -157,7 +157,6 @@ private:
   ss_srb_interface* syssim = nullptr;
   byte_buffer_pool* pool   = nullptr;
 
-  int srb_fd = 0;
   // struct sctp_sndrcvinfo sri = {};
   // struct sockaddr_in client_addr;
 };

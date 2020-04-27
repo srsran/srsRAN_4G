@@ -598,9 +598,8 @@ private:
     }
   }
 
-  phy_interface_syssim* phy    = nullptr;
-  ss_sys_interface*     syssim = nullptr;
-  byte_buffer_pool*     pool   = nullptr;
+  ss_sys_interface* syssim = nullptr;
+  byte_buffer_pool* pool   = nullptr;
 };
 
 #endif // SRSUE_TTCN3_SYS_INTERFACE_H

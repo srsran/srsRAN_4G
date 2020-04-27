@@ -92,8 +92,6 @@ private:
 
   ss_srb_interface* syssim = nullptr;
   byte_buffer_pool* pool   = nullptr;
-
-  int drb_fd = 0;
 };
 
 #endif // SRSUE_TTCN3_DRB_INTERFACE_H

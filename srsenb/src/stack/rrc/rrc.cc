@@ -1287,7 +1287,7 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
                            .rrc_conn_recfg_r8()
                            .rr_cfg_ded.drb_to_add_mod_list[0]
                            .lc_ch_cfg.ul_specific_params.lc_ch_group;
-    for (const std::pair<uint8_t, erab_t>& erab_pair : erabs) {
+    for (const std::pair<const uint8_t, erab_t>& erab_pair : erabs) {
       parent->mac->bearer_ue_cfg(rnti, erab_pair.second.id - 2, &bearer_cfg);
     }
 
@@ -1883,7 +1883,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 
   // Configure all DRBs
   uint8_t vec_idx = 0;
-  for (const std::pair<uint8_t, erab_t>& erab_id_pair : erabs) {
+  for (const std::pair<const uint8_t, erab_t>& erab_id_pair : erabs) {
     const erab_t& erab   = erab_id_pair.second;
     uint8_t       drb_id = erab.id - 4;
     uint8_t       lcid   = erab.id - 2;

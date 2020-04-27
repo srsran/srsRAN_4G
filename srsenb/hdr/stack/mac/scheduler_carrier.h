@@ -33,6 +33,7 @@ class sched::carrier_sched
 {
 public:
   explicit carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t enb_cc_idx_);
+  ~carrier_sched();
   void                   reset();
   void                   carrier_cfg(const sched_cell_params_t& sched_params_);
   void                   set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);

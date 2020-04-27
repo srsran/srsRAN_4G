@@ -268,6 +268,8 @@ sched::carrier_sched::carrier_sched(rrc_interface_mac*            rrc_,
   sf_dl_mask.resize(1, 0);
 }
 
+sched::carrier_sched::~carrier_sched() {}
+
 void sched::carrier_sched::reset()
 {
   ra_sched_ptr.reset();

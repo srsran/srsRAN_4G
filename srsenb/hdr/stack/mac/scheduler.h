@@ -69,6 +69,7 @@ public:
   class metric_dl
   {
   public:
+    virtual ~metric_dl() = default;
     /* Virtual methods for user metric calculation */
     virtual void set_params(const sched_cell_params_t& cell_params_)                          = 0;
     virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_sf_sched_itf* tti_sched) = 0;
@@ -77,6 +78,7 @@ public:
   class metric_ul
   {
   public:
+    virtual ~metric_ul() = default;
     /* Virtual methods for user metric calculation */
     virtual void set_params(const sched_cell_params_t& cell_params_)                          = 0;
     virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_sf_sched_itf* tti_sched) = 0;

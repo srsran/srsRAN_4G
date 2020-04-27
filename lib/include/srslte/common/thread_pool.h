@@ -50,9 +50,10 @@ public:
   {
   public:
     worker();
-    void         setup(uint32_t id, thread_pool* parent, uint32_t prio = 0, uint32_t mask = 255);
-    uint32_t     get_id();
-    void         release();
+    ~worker() = default;
+    void     setup(uint32_t id, thread_pool* parent, uint32_t prio = 0, uint32_t mask = 255);
+    uint32_t get_id();
+    void     release();
 
   protected:
     virtual void work_imp() = 0;
@@ -61,9 +62,9 @@ public:
     uint32_t     my_id     = 0;
     thread_pool* my_parent = nullptr;
 
-    void         run_thread();
-    void         wait_to_start();
-    void         finished();
+    void run_thread();
+    void wait_to_start();
+    void finished();
   };
 
   thread_pool(uint32_t nof_workers);
