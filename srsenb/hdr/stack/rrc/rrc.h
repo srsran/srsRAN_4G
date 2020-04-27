@@ -234,11 +234,15 @@ private:
     void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
 
     // Getters for PUCCH resources
-    int allocate_scell_pucch(uint32_t cc_idx);
-    int get_sr(uint8_t* I_sr, uint16_t* N_pucch_sr);
-    int get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
-    int get_ri(uint32_t m_ri, uint16_t* ri_idx);
-    int get_n_pucch_cs(uint16_t* N_pucch_cs);
+    int  allocate_scell_pucch(uint32_t cc_idx);
+    int  get_sr(uint8_t* I_sr, uint16_t* N_pucch_sr);
+    int  get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
+    int  get_ri(uint32_t m_ri, uint16_t* ri_idx);
+    int  get_n_pucch_cs(uint16_t* N_pucch_cs);
+    bool is_allocated() const
+    {
+      return cqi_allocated and sr_allocated and (parent->cfg.cell_list.size() <= 1 or n_pucch_cs_alloc);
+    }
 
     bool select_security_algorithms();
     void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);

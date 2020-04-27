@@ -173,10 +173,15 @@ void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 {
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
-    rlc->add_user(rnti);
-    pdcp->add_user(rnti);
-    rrc_log->info("Added new user rnti=0x%x\n", rnti);
+    auto p = users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
+    if (p.second and p.first->second->is_allocated()) {
+      rlc->add_user(rnti);
+      pdcp->add_user(rnti);
+      rrc_log->info("Added new user rnti=0x%x\n", rnti);
+    } else {
+      mac->bearer_ue_rem(rnti, 0);
+      rrc_log->error("Adding user rnti=0x%x - Fail to allocate user resources\n", rnti);
+    }
   } else {
     rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
   }
@@ -1029,8 +1034,15 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
 
   // Allocate PUCCH resources
-  cqi_allocate(parent->cfg.cqi_cfg.period, 0);
-  sr_allocate(parent->cfg.cqi_cfg.period);
+  if (cqi_allocate(parent->cfg.cqi_cfg.period, UE_PCELL_CC_IDX) != SRSLTE_SUCCESS) {
+    return;
+  }
+  if (sr_allocate(parent->cfg.cqi_cfg.period) != SRSLTE_SUCCESS) {
+    return;
+  }
+  if (parent->cfg.cell_list.size() > 1) {
+    n_pucch_cs_allocate();
+  }
 }
 
 rrc::ue::~ue()
