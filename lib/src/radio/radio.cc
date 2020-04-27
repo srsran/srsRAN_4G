@@ -289,10 +289,11 @@ bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples_, const 
       }
 
       // Update transmission parameters
-      tx_time = end_of_burst_time;
-      nof_samples -= past_nsamples;
       sample_offset = (uint32_t)past_nsamples;
     }
+    // this aligns with the next packet for the case where the nof_samples was not the amount requested, removing the gap between packets by adding samples
+    tx_time = end_of_burst_time;
+    nof_samples -= past_nsamples;
   }
 
   // Save possible end of burst time
