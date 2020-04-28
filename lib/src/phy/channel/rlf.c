@@ -34,11 +34,19 @@ void srslte_channel_rlf_execute(srslte_channel_rlf_t*     q,
                                 uint32_t                  nsamples,
                                 const srslte_timestamp_t* ts)
 {
-  uint32_t period_ms    = q->t_on_ms + q->t_off_ms;
-  double   full_secs_ms = (ts->full_secs * 1000) % period_ms;
-  double   frac_secs_ms = (ts->frac_secs * 1000);
-  double   time_ms      = full_secs_ms + frac_secs_ms;
+  // Caulculate full period in MS
+  uint64_t period_ms = q->t_on_ms + q->t_off_ms;
 
+  // Convert seconds to ms and reduce it into 32 bit
+  uint32_t full_secs_ms = (uint32_t)((ts->full_secs * 1000UL) % period_ms);
+
+  // Convert Fractional seconds into ms and convert it to integer
+  uint32_t frac_secs_ms = (uint32_t)round(ts->frac_secs * 1000);
+
+  // Add full seconds and fractional performing period module
+  uint32_t time_ms = (full_secs_ms + frac_secs_ms) % period_ms;
+
+  // Decide whether enables or disables channel
   if (time_ms < q->t_on_ms) {
     srslte_vec_sc_prod_cfc(in, 1.0f, out, nsamples);
   } else {

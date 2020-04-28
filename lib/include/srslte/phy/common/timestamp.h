@@ -58,7 +58,7 @@ SRSLTE_API int srslte_timestamp_add(srslte_timestamp_t* t, time_t full_secs, dou
 
 SRSLTE_API int srslte_timestamp_sub(srslte_timestamp_t* t, time_t full_secs, double frac_secs);
 
-SRSLTE_API double srslte_timestamp_real(srslte_timestamp_t* t);
+SRSLTE_API double srslte_timestamp_real(const srslte_timestamp_t* t);
 
 SRSLTE_API bool srslte_timestamp_iszero(const srslte_timestamp_t* t);
 

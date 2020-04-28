@@ -103,7 +103,7 @@ int srslte_timestamp_sub(srslte_timestamp_t* t, time_t full_secs, double frac_se
   return ret;
 }
 
-double srslte_timestamp_real(srslte_timestamp_t* t)
+double srslte_timestamp_real(const srslte_timestamp_t* t)
 {
   return t->frac_secs + t->full_secs;
 }
