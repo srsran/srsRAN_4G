@@ -61,12 +61,17 @@ public:
     void exit(state_inner2& s) { log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(s).c_str()); }
 
     // FSM2 transitions
-    auto react(state_inner& s, ev1 e) -> to_state<state_inner>;
-    auto react(state_inner& s, ev2 e) -> to_state<state_inner2>;
-    auto react(state_inner2& s, ev2 e) -> to_state<state1>;
+    void inner_action1(state_inner& s, state_inner& d, const ev1& e);
+
+    void inner_action2(state_inner& s, state_inner2& d, const ev2& e);
+
+    void inner_action3(state_inner2& s, state1& d, const ev2& e);
 
     // list of states
     state_list<state_inner, state_inner2> states{this};
+    using transitions = transition_table<row<state_inner, state_inner, ev1, &fsm2::inner_action1>,
+                                         row<state_inner, state_inner2, ev2, &fsm2::inner_action2>,
+                                         row<state_inner2, state1, ev2, &fsm2::inner_action3> >;
   };
 
 protected:
@@ -74,15 +79,20 @@ protected:
   void enter(idle_st& s);
   void enter(state1& s);
 
-  // transitions
-  auto react(idle_st& s, ev1 e) -> srslte::to_state<state1>;
-  auto react(state1& s, ev1 e) -> srslte::to_state<fsm2>;
-  auto react(state1& s, ev2 e) -> srslte::to_states<idle_st, fsm2>;
+  void action1(idle_st& s, state1& d, const ev1& e);
+
+  void action2(state1& s, fsm2& d, const ev1& e);
+
+  void action3(state1& s, idle_st& d, const ev2& e);
 
   void foo(ev1 e) { foo_counter++; }
 
-  // list of states
+  // list of states + transitions
   state_list<idle_st, state1, fsm2> states = {this, idle_st{}, state1{}, fsm2{this}};
+
+  using transitions = transition_table<row<idle_st, state1, ev1, &fsm1::action1>,
+                                       row<state1, fsm2, ev1, &fsm1::action2>,
+                                       row<state1, idle_st, ev2, &fsm1::action3> >;
 };
 
 void fsm1::enter(idle_st& s)
@@ -97,39 +107,35 @@ void fsm1::enter(state1& s)
 }
 
 // FSM event handlers
-auto fsm1::fsm2::react(state_inner& s, ev1) -> to_state<state_inner>
+void fsm1::fsm2::inner_action1(state_inner& s, state_inner& d, const ev1& e)
 {
   log_h->info("fsm2::state_inner::react called\n");
-  return {};
 }
 
-auto fsm1::fsm2::react(state_inner& s, ev2) -> to_state<state_inner2>
+void fsm1::fsm2::inner_action2(state_inner& s, state_inner2& d, const ev2& e)
 {
   log_h->info("fsm2::state_inner::react called\n");
-  return {};
 }
 
-auto fsm1::fsm2::react(state_inner2& s, ev2) -> to_state<state1>
+void fsm1::fsm2::inner_action3(state_inner2& s, state1& d, const ev2& e)
 {
-  log_h->info("fsm2::state_inner::react called\n");
-  return {};
+  log_h->info("fsm2::state_inner2::react called\n");
 }
 
-auto fsm1::react(idle_st& s, ev1 e) -> to_state<state1>
+void fsm1::action1(idle_st& s, state1& d, const ev1& e)
 {
   log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
   foo(e);
-  return {};
 }
-auto fsm1::react(state1& s, ev1) -> to_state<fsm2>
+
+void fsm1::action2(state1& s, fsm2& d, const ev1& ev)
 {
   log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
-  return {};
 }
-auto fsm1::react(state1& s, ev2) -> srslte::to_states<idle_st, fsm2>
+
+void fsm1::action3(state1& s, idle_st& d, const ev2& ev)
 {
   log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
-  return srslte::to_state<idle_st>{};
 }
 
 // Static Checks
@@ -139,6 +145,9 @@ namespace fsm_details {
 
 static_assert(is_fsm<fsm1>(), "invalid metafunction\n");
 static_assert(is_subfsm<fsm1::fsm2>(), "invalid metafunction\n");
+static_assert(
+    type_list_size(typename filter_transition_type<ev1, fsm1::idle_st, fsm_helper::fsm_transitions<fsm1> >::type{}) > 0,
+    "invalid filter metafunction\n");
 static_assert(std::is_same<fsm_helper::fsm_state_list_type<fsm1>,
                            fsm1::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
               "get state list failed\n");
@@ -218,8 +227,9 @@ int test_hsm()
 
 /////////////////////////////
 
-struct procevent1 {};
-struct procevent2 {};
+struct procevent1 {
+  bool is_success;
+};
 
 struct proc1 : public srslte::proc_fsm_t<proc1, int> {
 public:
@@ -229,44 +239,40 @@ public:
 
 protected:
   // Transitions
-  auto react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> to_state<procstate1>;
-  auto react(procstate1& s, procevent1 ev) -> to_state<complete_st>;
-  auto react(procstate1& s, procevent2 ev) -> to_state<complete_st>;
-  auto react(complete_st& s, reset_ev ev) -> to_state<idle_st>;
+  void init(idle_st& s, procstate1& d, const srslte::proc_launch_ev<int*>& ev);
 
-  // example of uncaught event handling
-  template <typename State>
-  to_state<State> react(State& s, int e)
-  {
-    log_h->info("I dont know how to handle an \"int\" event\n");
-    return {};
-  }
+  void handle_success(procstate1& s, idle_st& d, const procevent1& ev);
 
-  state_list<idle_st, procstate1, complete_st> states{this, idle_st{}, procstate1{}, complete_st{}};
+  void handle_failure(procstate1& s, idle_st& d, const procevent1& ev);
+
+  bool is_success(procstate1& s, const procevent1& ev) const { return ev.is_success; }
+
+  bool is_failure(procstate1& s, const procevent1& ev) const { return not ev.is_success; }
+
+  state_list<idle_st, procstate1> states{this, idle_st{}, procstate1{}};
+  using transitions =
+      transition_table<row<idle_st, procstate1, srslte::proc_launch_ev<int*>, &proc1::init>,
+                       row<procstate1, idle_st, procevent1, &proc1::handle_success, &proc1::is_success>,
+                       row<procstate1, idle_st, procevent1, &proc1::handle_failure, &proc1::is_failure> >;
 };
 
-auto proc1::react(idle_st& s, srslte::proc_launch_ev<int*> ev) -> to_state<procstate1>
+void proc1::init(idle_st& s, procstate1& d, const srslte::proc_launch_ev<int*>& ev)
 {
   log_h->info("started!\n");
-  return {};
 }
-auto proc1::react(procstate1& s, procevent1 ev) -> to_state<complete_st>
+
+void proc1::handle_success(procstate1& s, idle_st& d, const procevent1& ev)
 {
   log_h->info("success!\n");
-  return set_success(5);
+  d.success = true;
+  d.result  = 5;
 }
-auto proc1::react(procstate1& s, procevent2 ev) -> to_state<complete_st>
+
+void proc1::handle_failure(procstate1& s, idle_st& d, const procevent1& ev)
 {
   log_h->info("failure!\n");
-  return set_failure();
-}
-auto proc1::react(complete_st& s, reset_ev ev) -> to_state<idle_st>
-{
-  log_h->info("propagate results %s\n", is_success() ? "success" : "failure");
-  if (is_success()) {
-    log_h->info("result was %d\n", get_result());
-  }
-  return {};
+  d.success = false;
+  d.result  = 3;
 }
 
 int test_fsm_proc()
@@ -274,13 +280,23 @@ int test_fsm_proc()
   proc1 proc{srslte::logmap::get("PROC")};
   proc.get_log()->set_level(srslte::LOG_LEVEL_INFO);
   proc.set_fsm_event_log_level(srslte::LOG_LEVEL_INFO);
+
   int v = 2;
+  TESTASSERT(proc.current_state_name() == "idle_st");
   proc.launch(&v);
+  TESTASSERT(proc.current_state_name() == "procstate1");
   proc.launch(&v);
+  TESTASSERT(proc.current_state_name() == "procstate1");
   proc.trigger(5);
-  proc.trigger(procevent1{});
+  TESTASSERT(proc.current_state_name() == "procstate1");
+  proc.trigger(procevent1{true});
+  TESTASSERT(proc.current_state_name() == "idle_st");
+  TESTASSERT(proc.get_state<proc1::idle_st>()->success);
   proc.launch(&v);
-  proc.trigger(procevent2{});
+  TESTASSERT(proc.current_state_name() == "procstate1");
+  proc.trigger(procevent1{false});
+  TESTASSERT(proc.current_state_name() == "idle_st");
+  TESTASSERT(not proc.get_state<proc1::idle_st>()->success);
 
   return SRSLTE_SUCCESS;
 }
@@ -317,22 +333,6 @@ public:
   nas_fsm(srslte::log_ref log_) : fsm_t<nas_fsm>(log_) {}
 
 protected:
-  auto react(emm_null_st& s, const enable_s1_ev& ev) -> to_state<emm_deregistered>;
-  auto react(emm_deregistered& s, disable_s1_ev ev) -> to_state<emm_null_st>;
-  auto react(emm_deregistered& s, attach_request_ev ev) -> to_state<emm_registered_initiated>;
-  auto react(emm_registered_initiated& s, emm_registr_fail_ev ev) -> to_state<emm_deregistered>;
-  auto react(emm_registered_initiated& s, attach_accept_ev ev) -> to_state<emm_registered>;
-  auto react(emm_registered& s, sr_initiated_ev ev) -> to_state<emm_service_req_initiated>;
-  auto react(emm_service_req_initiated& s, sr_outcome_ev) -> to_state<emm_registered>;
-  auto react(emm_registered& s, tau_request_ev ev) -> to_state<emm_ta_updating_initiated>;
-  auto react(emm_registered& s, detach_request_ev ev) -> to_state<emm_deregistered_initiated>;
-  auto react(emm_ta_updating_initiated& s, tau_outcome_ev ev) -> to_state<emm_registered>;
-  auto react(emm_ta_updating_initiated& s, tau_reject_other_cause_ev ev) -> to_state<emm_deregistered>;
-  auto react(emm_deregistered_initiated& s, detach_accept_ev ev) -> to_state<emm_deregistered>;
-  // on power-off go to deregistered state. Disable react if we are already in deregistered
-  template <typename AnyState>
-  auto react(AnyState& s, power_off_ev ev) -> to_state<emm_deregistered>;
-
   state_list<emm_null_st,
              emm_deregistered,
              emm_registered_initiated,
@@ -341,81 +341,20 @@ protected:
              emm_ta_updating_initiated,
              emm_deregistered_initiated>
       states{nullptr};
+  using transitions = transition_table<row<emm_null_st, emm_deregistered, enable_s1_ev>,
+                                       row<emm_deregistered, emm_null_st, disable_s1_ev>,
+                                       row<emm_deregistered, emm_registered_initiated, attach_request_ev>,
+                                       row<emm_registered_initiated, emm_deregistered, emm_registr_fail_ev>,
+                                       row<emm_registered_initiated, emm_registered, attach_accept_ev>,
+                                       row<emm_registered, emm_service_req_initiated, sr_initiated_ev>,
+                                       row<emm_service_req_initiated, emm_registered, sr_outcome_ev>,
+                                       row<emm_registered, emm_ta_updating_initiated, tau_request_ev>,
+                                       row<emm_registered, emm_deregistered_initiated, detach_request_ev>,
+                                       row<emm_ta_updating_initiated, emm_registered, tau_outcome_ev>,
+                                       row<emm_ta_updating_initiated, emm_deregistered, tau_reject_other_cause_ev>,
+                                       row<emm_deregistered_initiated, emm_deregistered, detach_accept_ev>,
+                                       from_any_state<emm_deregistered, power_off_ev> >;
 };
-
-#define LOGEVENT() log_h->info("Received an \"%s\" event\n", srslte::get_type_name(ev).c_str())
-
-auto nas_fsm::react(emm_null_st& s, const enable_s1_ev& ev) -> to_state<emm_deregistered>
-{
-  LOGEVENT();
-  return {};
-}
-
-auto nas_fsm::react(emm_deregistered& s, disable_s1_ev ev) -> to_state<emm_null_st>
-{
-  LOGEVENT();
-  return {};
-}
-
-auto nas_fsm::react(emm_deregistered& s, attach_request_ev ev) -> to_state<emm_registered_initiated>
-{
-  LOGEVENT();
-  return {};
-}
-
-auto nas_fsm::react(emm_registered_initiated& s, emm_registr_fail_ev ev) -> to_state<emm_deregistered>
-{
-  LOGEVENT();
-  return {};
-}
-
-auto nas_fsm::react(emm_registered_initiated& s, attach_accept_ev ev) -> to_state<emm_registered>
-{
-  LOGEVENT();
-  return {};
-}
-
-auto nas_fsm::react(emm_registered& s, sr_initiated_ev ev) -> to_state<emm_service_req_initiated>
-{
-  LOGEVENT();
-  return {};
-}
-auto nas_fsm::react(emm_service_req_initiated& s, sr_outcome_ev ev) -> to_state<emm_registered>
-{
-  LOGEVENT();
-  return {};
-}
-auto nas_fsm::react(emm_registered& s, tau_request_ev ev) -> to_state<emm_ta_updating_initiated>
-{
-  LOGEVENT();
-  return {};
-}
-auto nas_fsm::react(emm_registered& s, detach_request_ev ev) -> to_state<emm_deregistered_initiated>
-{
-  LOGEVENT();
-  return {};
-}
-auto nas_fsm::react(emm_ta_updating_initiated& s, tau_outcome_ev ev) -> to_state<emm_registered>
-{
-  LOGEVENT();
-  return {};
-}
-auto nas_fsm::react(emm_ta_updating_initiated& s, tau_reject_other_cause_ev ev) -> to_state<emm_deregistered>
-{
-  LOGEVENT();
-  return {};
-}
-auto nas_fsm::react(emm_deregistered_initiated& s, detach_accept_ev ev) -> to_state<emm_deregistered>
-{
-  LOGEVENT();
-  return {};
-}
-template <typename AnyState>
-auto nas_fsm::react(AnyState& s, power_off_ev ev) -> to_state<emm_deregistered>
-{
-  LOGEVENT();
-  return {};
-}
 
 int test_nas_fsm()
 {

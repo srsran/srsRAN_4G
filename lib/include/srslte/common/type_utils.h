@@ -45,6 +45,10 @@ public:
   std::abort()
 #endif
 
+/************************************
+ *       get_type_name methods
+ ***********************************/
+
 //! Helper to print the name of a type for logging
 /**
  * @brief Helper function that returns a type name string
@@ -97,9 +101,26 @@ std::string get_type_name(const T& t)
   return get_type_name<T>();
 }
 
+/************************************
+ *        type_list<Args...>
+ ***********************************/
+
 constexpr size_t invalid_type_index = std::numeric_limits<size_t>::max();
 
-namespace type_utils_details {
+template <typename... Args>
+struct type_list {};
+
+template <typename... Args>
+constexpr size_t type_list_size(type_list<Args...> t)
+{
+  return sizeof...(Args);
+}
+
+/************************************
+ *   get_index_type/get_type_index
+ ***********************************/
+
+namespace type_utils {
 
 //! Get Index of a type in a list of types (in reversed order)
 template <typename T, typename... Types>
@@ -131,6 +152,70 @@ struct get_type_reverse<I> {
   using type = void;
 };
 
+} // namespace type_utils
+
+//! Get index of T in Types...
+template <typename T, typename... Types>
+constexpr size_t get_type_index()
+{
+  using namespace type_utils;
+  return (type_list_reverse_index<T, Types...>::index == invalid_type_index)
+             ? invalid_type_index
+             : sizeof...(Types) - type_list_reverse_index<T, Types...>::index - 1;
+}
+
+//! If T is in Types...
+template <typename T, typename... Types>
+constexpr bool type_list_contains()
+{
+  return get_type_index<T, Types...>() != invalid_type_index;
+}
+
+//! Get type of index I in Types...
+template <size_t I, typename... Types>
+struct get_index_type {
+  using type = typename type_utils::get_type_reverse<sizeof...(Types) - I - 1, Types...>::type;
+};
+
+/**************************
+ *     Filter utils
+ *************************/
+
+namespace type_utils {
+
+//! pushes type to front of type_list
+template <class...>
+struct push_front;
+template <class T, class... Types>
+struct push_front<T, type_list<Types...> > {
+  using type = type_list<T, Types...>;
+};
+template <>
+struct push_front<> {
+  using type = type_list<>;
+};
+
+//! Creates a type_list with the "Types..." for which Predicate<Type>::value is true
+template <template <typename> class Predicate, class...>
+struct filter;
+template <template <typename> class Predicate, class First, class... Types>
+struct filter<Predicate, First, Types...> {
+  using type = typename std::conditional<Predicate<First>::value,
+                                         typename push_front<First, typename filter<Predicate, Types...>::type>::type,
+                                         typename filter<Predicate, Types...>::type>::type;
+};
+template <template <typename> class Predicate>
+struct filter<Predicate> {
+  using type = type_list<>;
+};
+
+} // namespace type_utils
+
+/************************************
+ *          static_visit
+ ***********************************/
+
+namespace type_utils {
 template <typename F, typename... Types>
 struct static_visit_impl;
 
@@ -185,26 +270,14 @@ struct visit_impl<F, TypeList, First> {
   static void apply(const TypeList& c, F&& f) { f(c.template get_unchecked<First>()); }
 };
 
-} // namespace type_utils_details
+/**************************
+ *    Invocable utils
+ *************************/
 
-//! Get index of T in Types...
-template <typename T, typename... Types>
-constexpr size_t get_type_index()
-{
-  using namespace type_utils_details;
-  return (type_list_reverse_index<T, Types...>::index == invalid_type_index)
-             ? invalid_type_index
-             : sizeof...(Types) - type_list_reverse_index<T, Types...>::index - 1;
-}
-template <typename T, typename... Types>
-constexpr bool type_list_contains()
-{
-  return get_type_index<T, Types...>() != invalid_type_index;
-}
-template <size_t I, typename... Types>
-struct get_index_type {
-  using type = typename type_utils_details::get_type_reverse<sizeof...(Types) - I - 1, Types...>::type;
-};
+template <class F, class... Args>
+using invoke_result_t = typename std::result_of<F && (Args && ...)>::type;
+
+} // namespace type_utils
 
 //! srslte::get<Type> access methods
 template <typename T, typename TypeContainer>
@@ -259,8 +332,7 @@ const T& get(const TypeContainer<Args...>& c)
 template <typename Visitor, typename... Args>
 void static_visit(Visitor&& f, size_t current_idx)
 {
-  type_utils_details::static_visit_impl<Visitor, Args...>::apply(sizeof...(Args) - current_idx - 1,
-                                                                 std::forward<Visitor>(f));
+  type_utils::static_visit_impl<Visitor, Args...>::apply(sizeof...(Args) - current_idx - 1, std::forward<Visitor>(f));
 }
 template <typename Visitor, template <typename...> class TypeSet, typename... Args>
 void static_visit(Visitor&& f, const TypeSet<Args...>& tset)
@@ -272,13 +344,13 @@ void static_visit(Visitor&& f, const TypeSet<Args...>& tset)
 template <typename Visitor, template <typename...> class TypeSet, typename... Args>
 void visit(Visitor&& f, TypeSet<Args...>& tset)
 {
-  using namespace type_utils_details;
+  using namespace type_utils;
   visit_impl<Visitor, TypeSet<Args...>, Args...>::apply(tset, std::forward<Visitor>(f));
 }
 template <typename Visitor, template <typename...> class TypeSet, typename... Args>
 void visit(Visitor&& f, const TypeSet<Args...>& tset)
 {
-  using namespace type_utils_details;
+  using namespace type_utils;
   visit_impl<Visitor, TypeSet<Args...>, Args...>::apply(tset, std::forward<Visitor>(f));
 }
 
