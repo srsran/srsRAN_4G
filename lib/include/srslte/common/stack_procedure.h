@@ -335,7 +335,7 @@ public:
   {
     if (is_busy()) {
       fut->clear();
-      return fut;
+      return false;
     }
     proc_state              = proc_base_t::proc_status_t::on_going;
     *fut                    = get_future();

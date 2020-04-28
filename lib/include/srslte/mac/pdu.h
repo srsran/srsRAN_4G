@@ -271,7 +271,6 @@ template <class SubH>
 class subh
 {
 public:
-  subh() {}
   virtual ~subh() {}
 
   virtual bool read_subheader(uint8_t** ptr)                = 0;
@@ -280,7 +279,7 @@ public:
   virtual void write_payload(uint8_t** ptr)                 = 0;
   virtual void fprint(FILE* stream)                         = 0;
 
-  pdu<SubH>* parent;
+  pdu<SubH>* parent = nullptr;
 
 private:
   virtual void init() = 0;

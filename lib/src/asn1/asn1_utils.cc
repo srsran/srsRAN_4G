@@ -244,7 +244,7 @@ SRSASN_CODE bit_ref_impl<Ptr>::unpack_bytes(uint8_t* buf, uint32_t n_bytes)
     ptr += n_bytes;
   } else {
     for (uint32_t i = 0; i < n_bytes; ++i) {
-      unpack(buf[i], 8);
+      HANDLE_CODE(unpack(buf[i], 8));
     }
   }
   return SRSASN_SUCCESS;
@@ -1177,7 +1177,7 @@ void from_number(uint8_t* ptr, uint64_t number, uint32_t nbits)
     log_error("bitstring of size=%d does not fit in an uint64_t\n", nbits);
     return;
   }
-  uint32_t nof_bytes = (uint32_t)ceilf(nbits / 8.0f);
+  uint32_t nof_bytes = ceil_frac(nbits, 8u);
   for (uint32_t i = 0; i < nof_bytes; ++i) {
     ptr[i] = (number >> (i * 8u)) & 0xFFu;
   }
@@ -1198,14 +1198,14 @@ std::string to_string(const uint8_t* ptr, uint32_t nbits)
 
 uint64_t to_number(const uint8_t* ptr, uint32_t nbits)
 {
-  if (nbits > 64) {
+  if (nbits > 64u) {
     log_error("bitstring of size=%d does not fit in an uint64_t\n", nbits);
     return 0;
   }
   uint64_t val       = 0;
-  uint32_t nof_bytes = (uint32_t)ceilf(nbits / 8.0f);
+  uint32_t nof_bytes = ceil_frac(nbits, 8u);
   for (uint32_t i = 0; i < nof_bytes; ++i) {
-    val += ptr[i] << (i * 8);
+    val += ptr[i] << (i * 8u);
   }
   return val;
 }

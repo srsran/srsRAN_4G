@@ -136,7 +136,7 @@ public:
     /* ue capabilities, etc */
     uint32_t                            maxharq_tx = 5;
     bool                                continuous_pusch;
-    srslte_uci_offset_cfg_t             uci_offset;
+    srslte_uci_offset_cfg_t             uci_offset           = {};
     srslte_pucch_cfg_t                  pucch_cfg            = {};
     uint32_t                            aperiodic_cqi_period = 0; // if 0 is periodic CQI
     srslte_dl_cfg_t                     dl_cfg;
