@@ -65,12 +65,12 @@ void usage(char* prog)
 
 int main(int argc, char** argv)
 {
-  FILE*       fd;
+  FILE*       fd       = NULL;
   SRSASN_CODE err_code = SRSASN_ERROR_DECODE_FAIL;
 
-  uint8_t* rrc_msg;
+  uint8_t* rrc_msg = NULL;
   int      verbose = 0;
-  char*    file;
+  char*    file    = NULL;
   int      type = -1;
 
   if (argc < 2) {
