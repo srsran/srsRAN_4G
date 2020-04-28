@@ -639,6 +639,7 @@ int main(int argc, char* argv[])
   pthread_cancel(input);
   pthread_join(input, nullptr);
   metricshub.stop();
+  metrics_file.stop();
   ue.stop();
   cout << "---  exiting  ---" << endl;
 
