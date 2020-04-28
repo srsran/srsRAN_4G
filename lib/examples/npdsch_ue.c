@@ -235,7 +235,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
 }
 /**********************************************************************/
 
-static uint8_t data[20000]; // Byte buffer for rx'ed transport blocks
+static uint8_t rx_tb[SRSLTE_MAX_DL_BITS_CAT_NB1]; // Byte buffer for rx'ed transport blocks
 
 bool go_exit = false;
 void sig_int_handler(int signo)
@@ -264,8 +264,8 @@ void pcap_pack_and_write(FILE*    pcap_file,
                                 .ueid           = 1,
                                 .isRetx         = reTX,
                                 .crcStatusOK    = crc_ok,
-                                .sysFrameNumber = (uint16_t)(tti / 10),
-                                .subFrameNumber = (uint16_t)(tti % 10),
+                                .sysFrameNumber = (uint16_t)(tti / SRSLTE_NOF_SF_X_FRAME),
+                                .subFrameNumber = (uint16_t)(tti % SRSLTE_NOF_SF_X_FRAME),
                                 .nbiotMode      = 1};
   if (pdu) {
     LTE_PCAP_MAC_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
@@ -574,10 +574,10 @@ int main(int argc, char** argv)
               srslte_nbiot_ue_dl_set_rnti(&ue_dl, prog_args.rnti);
 
               // Pretty-print MIB
-              srslte_bit_pack_vector(bch_payload, data, SRSLTE_MIB_NB_CRC_LEN);
+              srslte_bit_pack_vector(bch_payload, rx_tb, SRSLTE_MIB_NB_CRC_LEN);
 #ifdef ENABLE_GUI
               if (bcch_bch_to_pretty_string(
-                      data, SRSLTE_MIB_NB_CRC_LEN, mib_buffer_decode, sizeof(mib_buffer_decode))) {
+                      rx_tb, SRSLTE_MIB_NB_CRC_LEN, mib_buffer_decode, sizeof(mib_buffer_decode))) {
                 fprintf(stderr, "Error decoding MIB\n");
               }
 #endif
@@ -585,11 +585,11 @@ int main(int argc, char** argv)
 #if HAVE_PCAP
               // write to PCAP
               pcap_pack_and_write(pcap_file,
-                                  data,
+                                  rx_tb,
                                   SRSLTE_MIB_NB_CRC_LEN,
                                   0,
                                   true,
-                                  system_frame_number * 10,
+                                  system_frame_number * SRSLTE_NOF_SF_X_FRAME,
                                   0,
                                   DIRECTION_DOWNLINK,
                                   NO_RNTI);
@@ -605,34 +605,34 @@ int main(int argc, char** argv)
           if (!have_sib1) {
             int dec_ret = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                            &buff_ptrs[0][prog_args.time_offset],
-                                                           data,
+                                                           rx_tb,
                                                            system_frame_number,
                                                            srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                            SRSLTE_SIRNTI);
             if (dec_ret == SRSLTE_SUCCESS) {
               printf("SIB1 received\n");
               srslte_sys_info_block_type_1_nb_t sib = {};
-              srslte_npdsch_sib1_unpack(data, &sib);
+              srslte_npdsch_sib1_unpack(rx_tb, &sib);
               hyper_frame_number = sib.hyper_sfn;
 
               have_sib1 = true;
 
 #ifdef ENABLE_GUI
               if (bcch_dl_sch_to_pretty_string(
-                      data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib1_buffer_decode, sizeof(sib1_buffer_decode))) {
+                      rx_tb, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib1_buffer_decode, sizeof(sib1_buffer_decode))) {
                 fprintf(stderr, "Error decoding SIB1\n");
               }
 #endif
 
               // Decode SIB1 and extract SIB2 scheduling params
-              get_sib2_params(data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, &sib2_params);
+              get_sib2_params(rx_tb, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, &sib2_params);
 
               // Activate SIB2 decoding
               srslte_nbiot_ue_dl_decode_sib(
                   &ue_dl, hyper_frame_number, system_frame_number, SRSLTE_NBIOT_SI_TYPE_SIB2, sib2_params);
 #if HAVE_PCAP
               pcap_pack_and_write(pcap_file,
-                                  data,
+                                  rx_tb,
                                   ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8,
                                   0,
                                   true,
@@ -654,7 +654,7 @@ int main(int argc, char** argv)
             // SIB2 is transmitted over multiple subframes, so this needs to be called more than once ..
             int dec_ret = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                            &buff_ptrs[0][prog_args.time_offset],
-                                                           data,
+                                                           rx_tb,
                                                            system_frame_number,
                                                            srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                            SRSLTE_SIRNTI);
@@ -664,14 +664,14 @@ int main(int argc, char** argv)
 
 #ifdef ENABLE_GUI
               if (bcch_dl_sch_to_pretty_string(
-                      data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib2_buffer_decode, sizeof(sib2_buffer_decode))) {
+                      rx_tb, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib2_buffer_decode, sizeof(sib2_buffer_decode))) {
                 fprintf(stderr, "Error decoding SIB2\n");
               }
 #endif
 
 #if HAVE_PCAP
               pcap_pack_and_write(pcap_file,
-                                  data,
+                                  rx_tb,
                                   ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8,
                                   0,
                                   true,
@@ -701,7 +701,7 @@ int main(int argc, char** argv)
               // attempt to decode NPDSCH
               n = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                    &buff_ptrs[0][prog_args.time_offset],
-                                                   data,
+                                                   rx_tb,
                                                    system_frame_number,
                                                    srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                    prog_args.rnti);
@@ -741,7 +741,7 @@ int main(int argc, char** argv)
             // decode SIB1 over and over again
             n = srslte_nbiot_ue_dl_decode_npdsch(&ue_dl,
                                                  &buff_ptrs[0][prog_args.time_offset],
-                                                 data,
+                                                 rx_tb,
                                                  system_frame_number,
                                                  srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                                                  prog_args.rnti);
@@ -749,7 +749,7 @@ int main(int argc, char** argv)
 #ifdef ENABLE_GUI
             if (n == SRSLTE_SUCCESS) {
               if (bcch_dl_sch_to_pretty_string(
-                      data, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib1_buffer_decode, sizeof(sib1_buffer_decode))) {
+                      rx_tb, ue_dl.npdsch_cfg.grant.mcs[0].tbs / 8, sib1_buffer_decode, sizeof(sib1_buffer_decode))) {
                 fprintf(stderr, "Error decoding SIB1\n");
               }
             }

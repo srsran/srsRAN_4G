@@ -340,6 +340,8 @@ typedef struct SRSLTE_API {
 #define SRSLTE_NBIOT_NPBCH_NOF_BITS_SF                                                                                 \
   (SRSLTE_NBIOT_NPBCH_NOF_TOTAL_BITS / 8) ///< The NPBCH is transmitted in 8 blocks (See 36.211 Sec 10.2.4.4)
 
+#define SRSLTE_MAX_DL_BITS_CAT_NB1 (680) ///< TS 36.306 v15.4.0 Table 4.1C-1
+
 ///< PHY common function declarations
 
 SRSLTE_API bool srslte_cell_isvalid(srslte_cell_t* cell);

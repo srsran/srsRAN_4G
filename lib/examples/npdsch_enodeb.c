@@ -45,8 +45,9 @@
 #define HAVE_NPDSCH 1
 #define NPDCCH_SF_IDX 1
 
-const uint8_t dummy_sib1_payload[] = {0x43, 0x4d, 0xd0, 0x92, 0x22, 0x06, 0x04, 0x30, 0x28, 0x6e, 0x87, 0xd0, 0x4b,
-                                      0x13, 0x90, 0xb4, 0x12, 0xa1, 0x02, 0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+static const uint8_t dummy_sib1_payload[] = {0x43, 0x4d, 0xd0, 0x92, 0x22, 0x06, 0x04, 0x30, 0x28,
+                                             0x6e, 0x87, 0xd0, 0x4b, 0x13, 0x90, 0xb4, 0x12, 0xa1,
+                                             0x02, 0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 #ifndef DISABLE_RF
 #include "srslte/phy/rf/rf.h"
@@ -55,7 +56,7 @@ static srslte_rf_t radio;
 #pragma message "Compiling npdsch_ue with no RF support"
 #endif
 
-char* output_file_name = NULL;
+static char* output_file_name = NULL;
 
 srslte_nbiot_cell_t cell = {
     .base       = {.nof_ports = 1, .nof_prb = SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL, .cp = SRSLTE_CP_NORM, .id = 0},
@@ -73,27 +74,28 @@ static char* rf_args = "";
 static float rf_amp = 0.8, rf_gain = 70.0, rf_freq = 0;
 static float file_snr = -100.0;
 
-bool                     null_file_sink = false;
-srslte_random_t*         random_gen;
-srslte_filesink_t        fsink;
-srslte_ofdm_t            ifft;
-srslte_npss_synch_t      npss_sync;
-srslte_nsss_synch_t      nsss_sync;
-srslte_npbch_t           npbch;
-srslte_npdcch_t          npdcch;
-srslte_npdsch_t          npdsch;
-srslte_npdsch_cfg_t      sib1_npdsch_cfg;
-srslte_npdsch_cfg_t      npdsch_cfg;
-srslte_nbiot_ue_dl_t     ue_dl;
-srslte_softbuffer_tx_t   softbuffer;
-srslte_ra_nbiot_dl_dci_t ra_dl;
-srslte_ra_nbiot_dl_dci_t ra_dl_sib1;
-srslte_chest_dl_nbiot_t  est;
-srslte_mib_nb_t          mib_nb;
-uint32_t sched_info_tag = 0; // according to Table 16.4.1.3-3 in 36.213, 0 means 4 NPDSCH repetitions with TBS 208
+static bool                     null_file_sink = false;
+static srslte_random_t*         random_gen;
+static srslte_filesink_t        fsink;
+static srslte_ofdm_t            ifft;
+static srslte_npss_synch_t      npss_sync;
+static srslte_nsss_synch_t      nsss_sync;
+static srslte_npbch_t           npbch;
+static srslte_npdcch_t          npdcch;
+static srslte_npdsch_t          npdsch;
+static srslte_npdsch_cfg_t      sib1_npdsch_cfg;
+static srslte_npdsch_cfg_t      npdsch_cfg;
+static srslte_nbiot_ue_dl_t     ue_dl;
+static srslte_softbuffer_tx_t   softbuffer;
+static srslte_ra_nbiot_dl_dci_t ra_dl;
+static srslte_ra_nbiot_dl_dci_t ra_dl_sib1;
+static srslte_chest_dl_nbiot_t  ch_est;
+static srslte_mib_nb_t          mib_nb;
+static uint32_t                 sched_info_tag =
+    0; // according to Table 16.4.1.3-3 in 36.213, 0 means 4 NPDSCH repetitions with TBS 208
 
-cf_t *sf_buffer = NULL, *output_buffer = NULL;
-int   sf_n_re = 0, sf_n_samples = 0;
+static cf_t *sf_buffer = NULL, *output_buffer = NULL;
+static int   sf_n_re = 0, sf_n_samples = 0;
 
 void usage(char* prog)
 {
@@ -284,7 +286,7 @@ void base_free()
   srslte_npdsch_free(&npdsch);
   srslte_npdcch_free(&npdcch);
   srslte_npbch_free(&npbch);
-  srslte_chest_dl_nbiot_free(&est);
+  srslte_chest_dl_nbiot_free(&ch_est);
   srslte_npss_synch_free(&npss_sync);
   srslte_nsss_synch_free(&nsss_sync);
   srslte_ofdm_tx_free(&ifft);
@@ -474,11 +476,11 @@ int main(int argc, char** argv)
 #endif
 
   /* Generate CRS+NRS signals */
-  if (srslte_chest_dl_nbiot_init(&est, SRSLTE_NBIOT_MAX_PRB)) {
+  if (srslte_chest_dl_nbiot_init(&ch_est, SRSLTE_NBIOT_MAX_PRB)) {
     fprintf(stderr, "Error initializing equalizer\n");
     exit(-1);
   }
-  if (srslte_chest_dl_nbiot_set_cell(&est, cell) != SRSLTE_SUCCESS) {
+  if (srslte_chest_dl_nbiot_set_cell(&ch_est, cell) != SRSLTE_SUCCESS) {
     fprintf(stderr, "Error setting channel estimator's cell configuration\n");
     return -1;
   }
@@ -557,7 +559,7 @@ int main(int argc, char** argv)
       } else {
         // NRS in all other subframes (using CSR signal intentionally)
         // DEBUG("%d.%d: Putting %d NRS pilots\n", sfn, sf_idx, SRSLTE_REFSIGNAL_NUM_SF(1, cell.nof_ports));
-        srslte_refsignal_nrs_put_sf(cell, 0, est.nrs_signal.pilots[0][sf_idx], sf_buffer);
+        srslte_refsignal_nrs_put_sf(cell, 0, ch_est.nrs_signal.pilots[0][sf_idx], sf_buffer);
       }
 
 #if HAVE_NPDSCH
