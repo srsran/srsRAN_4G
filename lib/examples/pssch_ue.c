@@ -230,6 +230,9 @@ int main(int argc, char** argv)
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
+  uint32_t num_decoded_sci = 0;
+  uint32_t num_decoded_tb  = 0;
+
   parse_args(&prog_args, argc, argv);
 
   FILE* pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, PCAP_FILENAME);
@@ -355,7 +358,6 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  uint32_t num_decoded_tb               = 0;
   uint8_t  tb[SRSLTE_SL_SCH_MAX_TB_LEN] = {};
   uint8_t  packed_tb[SRSLTE_SL_SCH_MAX_TB_LEN / 8] = {};
 
@@ -400,7 +402,6 @@ int main(int argc, char** argv)
   }
 #endif // DISABLE_RF
 
-  uint32_t num_decoded_sci = 0;
   uint32_t subframe_count  = 0;
   uint32_t pscch_prb_start_idx = 0;
 
