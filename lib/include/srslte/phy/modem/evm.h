@@ -130,13 +130,35 @@ static inline void srslte_evm_buffer_resize(srslte_evm_buffer_t* q, uint32_t nof
 /**
  * Template for hard decision taking
  */
-#define HARD_DECISION(SOFTBITS, HARDBITS, NOF_SOFTBITS)                                                                \
+#define HARD_DECISION(LLR_T, SOFTBITS, HARDBITS, NOF_SOFTBITS)                                                         \
   do {                                                                                                                 \
-    for (uint32_t i = 0, k = 0; k < NOF_SOFTBITS; i++) {                                                               \
-      uint8_t w = 0;                                                                                                   \
-      for (int j = 0; j < 8 && k < NOF_SOFTBITS; j++, k++) {                                                           \
-        w |= (SOFTBITS[k] > 0) ? ((uint32_t)1 << (uint32_t)(7 - j)) : 0;                                               \
-      }                                                                                                                \
+    /* Typecasts pointer type to minimum width */                                                                      \
+    uint8_t* ptr = (uint8_t*)SOFTBITS;                                                                                 \
+                                                                                                                       \
+    /* Big endian compensation, ptr needs to point at the MSB */                                                       \
+    ptr += sizeof(LLR_T) - 1UL;                                                                                        \
+                                                                                                                       \
+    for (uint32_t i = 0; i < NOF_SOFTBITS / 8; i++) {                                                                  \
+      /* Default mask */                                                                                               \
+      uint8_t w = 0xff;                                                                                                \
+                                                                                                                       \
+      /* For each soft bit, take MSB ad collocate in right position */                                                 \
+      w ^= (*ptr & 0x80);                                                                                              \
+      ptr += sizeof(LLR_T);                                                                                            \
+      w ^= (*ptr & 0x80) >> 1;                                                                                         \
+      ptr += sizeof(LLR_T);                                                                                            \
+      w ^= (*ptr & 0x80) >> 2;                                                                                         \
+      ptr += sizeof(LLR_T);                                                                                            \
+      w ^= (*ptr & 0x80) >> 3;                                                                                         \
+      ptr += sizeof(LLR_T);                                                                                            \
+      w ^= (*ptr & 0x80) >> 4;                                                                                         \
+      ptr += sizeof(LLR_T);                                                                                            \
+      w ^= (*ptr & 0x80) >> 5;                                                                                         \
+      ptr += sizeof(LLR_T);                                                                                            \
+      w ^= (*ptr & 0x80) >> 6;                                                                                         \
+      ptr += sizeof(LLR_T);                                                                                            \
+      w ^= (*ptr & 0x80) >> 7;                                                                                         \
+      ptr += sizeof(LLR_T);                                                                                            \
       HARDBITS[i] = w;                                                                                                 \
     }                                                                                                                  \
   } while (false)
@@ -166,7 +188,7 @@ static inline void srslte_evm_buffer_resize(srslte_evm_buffer_t* q, uint32_t nof
     uint32_t nsymbols = nof_bits / modem_table->nbits_x_symbol;                                                        \
                                                                                                                        \
     /* Hard decision */                                                                                                \
-    HARD_DECISION(llr, q->hard_bits, nof_bits);                                                                        \
+    HARD_DECISION(LLR_T, llr, q->hard_bits, nof_bits);                                                                 \
                                                                                                                        \
     /* Modulate */                                                                                                     \
     srslte_mod_modulate_bytes(modem_table, q->hard_bits, q->symbols, nof_bits);                                        \
