@@ -362,9 +362,9 @@ int main(int argc, char** argv)
   uint8_t  packed_tb[SRSLTE_SL_SCH_MAX_TB_LEN / 8] = {};
 
 #ifndef DISABLE_RF
-  srslte_ue_sync_t sync = {};
+  srslte_ue_sync_t ue_sync = {};
   if (!prog_args.input_file_name) {
-    if (srslte_ue_sync_init_multi_decim_mode(&sync,
+    if (srslte_ue_sync_init_multi_decim_mode(&ue_sync,
                                              SRSLTE_MAX_PRB,
                                              false,
                                              srslte_rf_recv_wrapper,
@@ -378,7 +378,7 @@ int main(int argc, char** argv)
 
     srslte_cell_t cell = {};
     cell.nof_prb       = cell_sl.nof_prb;
-    if (srslte_ue_sync_set_cell(&sync, cell)) {
+    if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
       ERROR("Error initiating ue_sync\n");
       exit(-1);
     }
@@ -424,8 +424,9 @@ int main(int argc, char** argv)
         nread = -1;
       }
     } else {
+#ifndef DISABLE_RF
       // receive subframe from radio
-      int ret = srslte_ue_sync_zerocopy(&sync, rx_buffer, sf_len);
+      int ret = srslte_ue_sync_zerocopy(&ue_sync, rx_buffer, sf_len);
       if (ret < 0) {
         ERROR("Error calling srslte_ue_sync_work()\n");
       }
@@ -433,15 +434,16 @@ int main(int argc, char** argv)
       if (subframe_count == 0) {
         // print timestamp of the first samples
         srslte_timestamp_t ts_rx;
-        srslte_ue_sync_get_last_timestamp(&sync, &ts_rx);
+        srslte_ue_sync_get_last_timestamp(&ue_sync, &ts_rx);
         printf("Received samples start at %ld + %.10f. TTI=%d.%d\n",
                ts_rx.full_secs,
                ts_rx.frac_secs,
-               srslte_ue_sync_get_sfn(&sync),
-               srslte_ue_sync_get_sfidx(&sync));
+               srslte_ue_sync_get_sfn(&ue_sync),
+               srslte_ue_sync_get_sfidx(&ue_sync));
 
-        current_sf_idx = (srslte_ue_sync_get_sfn(&sync) * 10) + srslte_ue_sync_get_sfidx(&sync);
+        current_sf_idx = (srslte_ue_sync_get_sfn(&ue_sync) * 10) + srslte_ue_sync_get_sfidx(&ue_sync);
       }
+#endif // DISABLE_RF
     }
 
     // do FFT (on first port)
@@ -573,9 +575,9 @@ clean_exit:
 #ifndef DISABLE_RF
   srslte_rf_stop_rx_stream(&rf);
   srslte_rf_close(&rf);
+  srslte_ue_sync_free(&ue_sync);
 #endif // DISABLE_RF
 
-  srslte_ue_sync_free(&sync);
   srslte_sci_free(&sci);
   srslte_pscch_free(&pscch);
   srslte_chest_sl_free(&pscch_chest);
