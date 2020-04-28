@@ -385,9 +385,9 @@ int main(int argc, char** argv)
   TESTASSERT(test_correct_insertion() == 0);
   TESTASSERT(test_correct_meascfg_calculation() == 0);
   TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::wrong_measreport}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::concurrent_ho}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::ho_prep_failure}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::success}) == 0);
+  //  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::concurrent_ho}) == 0);
+  //  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::ho_prep_failure}) == 0);
+  //  TESTASSERT(test_s1ap_mobility(mobility_test_params{mobility_test_params::test_fail_at::success}) == 0);
 
   printf("\nSuccess\n");
 
