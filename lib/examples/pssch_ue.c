@@ -24,7 +24,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <strings.h>
 #include <unistd.h>
 
@@ -86,7 +85,7 @@ static srslte_pscch_t pscch = {}; // Defined global for plotting thread
 static srslte_pssch_t pssch = {};
 
 #ifndef DISABLE_RF
-srslte_rf_t rf;
+static srslte_rf_t radio;
 #endif // DISABLE_RF
 
 static prog_args_t prog_args;
@@ -96,8 +95,8 @@ static srslte_filesource_t fsrc = {};
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 void      init_plots();
-pthread_t plot_thread;
-sem_t     plot_sem;
+static pthread_t plot_thread;
+static sem_t     plot_sem;
 #endif // ENABLE_GUI
 
 void sig_int_handler(int signo)
@@ -256,18 +255,18 @@ int main(int argc, char** argv)
   if (!prog_args.input_file_name) {
     printf("Opening RF device...\n");
 
-    if (srslte_rf_open_multi(&rf, prog_args.rf_args, prog_args.nof_ports)) {
+    if (srslte_rf_open_multi(&radio, prog_args.rf_args, prog_args.nof_ports)) {
       ERROR("Error opening rf\n");
       exit(-1);
     }
 
-    printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, prog_args.nof_ports, prog_args.rf_freq) / 1000000);
-    printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, prog_args.rf_gain));
+    printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&radio, prog_args.nof_ports, prog_args.rf_freq) / 1000000);
+    printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&radio, prog_args.rf_gain));
     int srate = srslte_sampling_freq_hz(cell_sl.nof_prb);
 
     if (srate != -1) {
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-      float srate_rf = srslte_rf_set_rx_srate(&rf, (double)srate);
+      float srate_rf = srslte_rf_set_rx_srate(&radio, (double)srate);
       if (srate_rf != srate) {
         ERROR("Could not set sampling rate\n");
         exit(-1);
@@ -369,7 +368,7 @@ int main(int argc, char** argv)
                                              false,
                                              srslte_rf_recv_wrapper,
                                              prog_args.nof_ports,
-                                             (void*)&rf,
+                                             (void*)&radio,
                                              1.0,
                                              SYNC_MODE_GNSS)) {
       fprintf(stderr, "Error initiating sync_gnss\n");
@@ -395,10 +394,10 @@ int main(int argc, char** argv)
 #ifndef DISABLE_RF
   if (!prog_args.input_file_name) {
     // after configuring RF params and before starting streamer, set device to GPS time
-    srslte_rf_sync(&rf);
+    srslte_rf_sync(&radio);
 
     // start streaming
-    srslte_rf_start_rx_stream(&rf, false);
+    srslte_rf_start_rx_stream(&radio, false);
   }
 #endif // DISABLE_RF
 
@@ -573,8 +572,8 @@ clean_exit:
 #endif
 
 #ifndef DISABLE_RF
-  srslte_rf_stop_rx_stream(&rf);
-  srslte_rf_close(&rf);
+  srslte_rf_stop_rx_stream(&radio);
+  srslte_rf_close(&radio);
   srslte_ue_sync_free(&ue_sync);
 #endif // DISABLE_RF
 
