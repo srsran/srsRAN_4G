@@ -795,7 +795,7 @@ SRSASN_CODE pack_integer(bit_ref& bref, IntType n, IntType lb, IntType ub, bool 
     log_error("The condition lb <= n <= ub (%ld <= %ld <= %ld) was not met\n", (long)lb, (long)n, (long)ub);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
-  bool lower_bounded = lb != std::numeric_limits<IntType>::min() or lb == 0;
+  bool lower_bounded = lb != std::numeric_limits<IntType>::min() or std::is_unsigned<IntType>::value;
   bool upper_bounded = ub != std::numeric_limits<IntType>::max();
 
   if (within_bounds and lower_bounded and upper_bounded) {
@@ -855,7 +855,7 @@ SRSASN_CODE unpack_integer(IntType& n, cbit_ref& bref, IntType lb, IntType ub, b
     HANDLE_CODE(bref.unpack(within_bounds, 1));
     within_bounds = not within_bounds;
   }
-  bool lower_bounded = lb != std::numeric_limits<IntType>::min() or lb == 0;
+  bool lower_bounded = lb != std::numeric_limits<IntType>::min() or std::is_unsigned<IntType>::value;
   bool upper_bounded = ub != std::numeric_limits<IntType>::max();
 
   if (within_bounds and lower_bounded and upper_bounded) {
@@ -913,8 +913,7 @@ integer_packer<IntType>::integer_packer(IntType lb_, IntType ub_, bool has_ext_,
   ub(ub_),
   has_ext(has_ext_),
   aligned(aligned_)
-{
-}
+{}
 
 template <class IntType>
 SRSASN_CODE integer_packer<IntType>::pack(bit_ref& bref, IntType n)

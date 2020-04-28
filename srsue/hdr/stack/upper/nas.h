@@ -328,7 +328,7 @@ private:
 
   private:
     nas* nas_ptr;
-    enum class state_t { plmn_search, rrc_connect } state;
+    enum class state_t { plmn_search, rrc_connect } state = state_t::plmn_search;
   };
   srslte::proc_manager_list_t      callbacks;
   srslte::proc_t<plmn_search_proc> plmn_searcher;

@@ -526,7 +526,7 @@ protected:
 private:
   int    launch_counter = 0;
   bool   success        = false;
-  Result result;
+  Result result         = {};
 };
 
 } // namespace srslte

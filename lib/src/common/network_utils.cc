@@ -113,6 +113,7 @@ int open_socket(net_utils::addr_family ip_type, net_utils::socket_type socket_ty
   if (fd == -1) {
     srslte::logmap::get("COMMON")->error("Failed to open %s socket.\n", net_utils::protocol_to_string(protocol));
     perror("Could not create socket\n");
+    return -1;
   }
 
   if (protocol == protocol_type::SCTP) {

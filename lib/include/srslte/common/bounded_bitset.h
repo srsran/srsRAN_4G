@@ -294,9 +294,10 @@ private:
 
   void sanitize_()
   {
-    size_t n = size() % bits_per_word;
-    if (n != 0) {
-      buffer[nof_words_() - 1] &= ~((~static_cast<word_t>(0)) << n);
+    size_t n      = size() % bits_per_word;
+    size_t nwords = nof_words_();
+    if (n != 0 and nwords > 0) {
+      buffer[nwords - 1] &= ~((~static_cast<word_t>(0)) << n);
     }
   }
 

@@ -246,6 +246,7 @@ public:
   {
     if (current_size >= MAX_N) {
       log_error("Maximum size %d achieved for bounded_array.\n", MAX_N);
+      return;
     }
     data_[current_size++] = elem;
   }

@@ -1910,7 +1910,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
         rnti, lcid, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].rlc_cfg));
 
     // Configure DRB1 in PDCP
-    srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb_id, false, conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].pdcp_cfg);
+    srslte::pdcp_config_t pdcp_cnfg_drb =
+        srslte::make_drb_pdcp_config_t(drb_id, false, conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].pdcp_cfg);
     parent->pdcp->add_bearer(rnti, lcid, pdcp_cnfg_drb);
     parent->pdcp->config_security(rnti, lcid, sec_cfg);
     parent->pdcp->enable_integrity(rnti, lcid);
@@ -2341,7 +2342,10 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-    dl_ccch_msg->pack(bref);
+    if (dl_ccch_msg->pack(bref) != asn1::SRSASN_SUCCESS) {
+      parent->rrc_log->error_hex(pdu->msg, pdu->N_bytes, "Failed to pack DL-CCCH-Msg:\n");
+      return;
+    }
     pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
 
     char buf[32] = {};

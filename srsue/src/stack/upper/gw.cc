@@ -626,9 +626,8 @@ void gw::del_ipv6_addr(struct in6_addr* in6p)
   }
 
 out:
-  if (fd < 0) {
+  if (fd >= 0) {
     close(fd);
   }
-  return;
 }
 } // namespace srsue
