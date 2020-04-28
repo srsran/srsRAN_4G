@@ -55,7 +55,7 @@ struct phy_args_t {
   float       estimator_fil_w     = 1.0f;
   bool        pregenerate_signals = false;
   bool        pusch_meas_epre     = true;
-  bool        pusch_meas_evm      = true;
+  bool        pusch_meas_evm      = false;
   bool        pusch_meas_ta       = true;
 
   srslte::channel::args_t dl_channel_args;
