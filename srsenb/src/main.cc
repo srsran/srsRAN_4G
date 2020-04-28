@@ -52,6 +52,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 {
   string mcc;
   string mnc;
+  string enb_id;
 
   // Command line only options
   bpo::options_description general("General options");
@@ -65,7 +66,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   bpo::options_description common("Configuration options");
   common.add_options()
 
-    ("enb.enb_id",        bpo::value<string>(&args->enb.enb_id)->default_value("0x0"),                       "eNodeB ID")
+    ("enb.enb_id",        bpo::value<string>(&enb_id)->default_value("0x0"),                       "eNodeB ID")
     ("enb.name",          bpo::value<string>(&args->stack.s1ap.enb_name)->default_value("srsenb01"), "eNodeB Name")
     ("enb.mcc",           bpo::value<string>(&mcc)->default_value("001"),                          "Mobile Country Code")
     ("enb.mnc",           bpo::value<string>(&mnc)->default_value("01"),                           "Mobile Network Code")
@@ -271,6 +272,19 @@ void parse_args(all_args_t* args, int argc, char* argv[])
               args->stack.mac.sched.max_nof_ctrl_symbols);
       exit(1);
     }
+  }
+
+  // Covert eNB Id
+  std::size_t pos = {};
+  try {
+    args->enb.enb_id = std::stoi(enb_id, &pos, 0);
+  } catch (...) {
+    cout << "Error parsing enb.enb_id: " << enb_id << "." << endl;
+    exit(1);
+  }
+  if (pos != enb_id.size()) {
+    cout << "Error parsing enb.enb_id: " << enb_id << "." << endl;
+    exit(1);
   }
 
   // Apply all_level to any unset layers
