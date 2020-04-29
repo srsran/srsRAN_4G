@@ -304,7 +304,6 @@ private:
     bool                      sr_allocated     = false;
     uint32_t                  sr_N_pucch       = 0;
     uint32_t                  sr_I             = 0;
-    bool                      cqi_allocated    = false;
     uint16_t                  n_pucch_cs_idx   = 0;
     bool                      n_pucch_cs_alloc = false;
 
@@ -312,14 +311,15 @@ private:
 
     const static uint32_t UE_PCELL_CC_IDX = 0;
 
-    typedef struct {
-      uint32_t idx;
-      uint32_t pucch_res;
-      uint32_t prb_idx;
-      uint32_t sf_idx;
-    } cqi_res_t;
-
-    std::map<uint32_t, cqi_res_t> cqi_res = {};
+    // Struct to store the cell resources allocated to a user
+    struct cell_res_ded_t {
+      const cell_ctxt_t* cell_common = nullptr;
+      uint32_t           pmi_idx     = 0;
+      uint32_t           pucch_res   = 0;
+      uint32_t           prb_idx     = 0;
+      uint32_t           sf_idx      = 0;
+    };
+    std::map<uint32_t, cell_res_ded_t> cell_res_list = {};
 
     int get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
 
@@ -332,6 +332,7 @@ private:
     int  sr_allocate(uint32_t period);
     void sr_free();
     int  cqi_allocate(uint32_t period, uint32_t ue_cc_idx);
+    void cqi_free(uint32_t ue_cc_idx);
     void cqi_free();
     int  n_pucch_cs_allocate();
     void n_pucch_cs_free();

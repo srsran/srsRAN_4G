@@ -1279,23 +1279,18 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   parent->phy->complete_config_dedicated(rnti);
 
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
-    // Finally, add secondary carriers
-    // TODO: For now the ue supports all cc
-    using cc_cfg_t   = sched_interface::ue_cfg_t::cc_cfg_t;
-    auto& list       = current_sched_ue_cfg.supported_cc_list;
-    auto& scell_list = parent->cfg.cell_list[current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx].scell_list;
-    for (uint32_t i = 0; i < parent->cfg.cell_list.size(); ++i) {
-      auto& c        = parent->cfg.cell_list[i];
-      auto  it       = std::find_if(list.begin(), list.end(), [i](const cc_cfg_t& u) { return u.enb_cc_idx == i; });
-      auto  scell_it = std::find_if(
-          scell_list.begin(), scell_list.end(), [&c](const scell_cfg_t& s) { return s.cell_id == c.cell_id; });
-      if (it == list.end() and scell_it != scell_list.end()) {
-        list.emplace_back();
-        list.back().active     = true;
-        list.back().enb_cc_idx = i;
-      }
-    }
+    // Finally, add secondary carriers to MAC
+    auto& list = current_sched_ue_cfg.supported_cc_list;
+    for (const auto& id_cell_pair : cell_res_list) {
+      uint32_t ue_cc_idx  = id_cell_pair.first;
+      uint32_t enb_cc_idx = id_cell_pair.second.cell_common->enb_cc_idx;
 
+      if (ue_cc_idx >= list.size()) {
+        list.resize(ue_cc_idx + 1);
+      }
+      list[ue_cc_idx].active     = true;
+      list[ue_cc_idx].enb_cc_idx = enb_cc_idx;
+    }
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
     // Finally, add SRB2 and DRB1 and any dedicated DRBs to the scheduler
@@ -1768,7 +1763,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
 
   phy_cfg->cqi_report_cfg_present = true;
-  if (cqi_allocated) {
+  if (not cell_res_list.empty()) {
     phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
     phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
@@ -1863,7 +1858,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   }
 
   // Add SCells
-  if (fill_scell_to_addmod_list(conn_reconf)) {
+  if (fill_scell_to_addmod_list(conn_reconf) != SRSLTE_SUCCESS) {
     parent->rrc_log->warning("Could not create configuration for Scell\n");
     // Should disable R10 extension and not activate SCell??
     return;
@@ -1972,7 +1967,16 @@ rrc::cell_ctxt_t* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
 {
   const cell_ctxt_t* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
-  if (pcell_cfg->cell_cfg.scell_list.size() == 0) {
+  if (pcell_cfg->cell_cfg.scell_list.empty()) {
+    return SRSLTE_SUCCESS;
+  }
+
+  // Allocate CQI + PUCCH for SCells.
+  for (size_t scell_idx = 0; scell_idx < pcell_cfg->cell_cfg.scell_list.size(); ++scell_idx) {
+    allocate_scell_pucch(scell_idx + 1);
+  }
+  if (cell_res_list.size() == 1) {
+    // No SCell could be allocated. Fallback to single cell mode.
     return SRSLTE_SUCCESS;
   }
 
@@ -1982,20 +1986,13 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present = true;
   auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
 
-  // Add all SCells configured for the current PCell
-  uint32_t scell_idx = 1; // SCell start with 1, zero reserved for PCell
-  for (auto& scell : pcell_cfg->cell_cfg.scell_list) {
-
-    // Allocate PUCCH resources
-    if (allocate_scell_pucch(scell_idx)) {
-      return SRSLTE_ERROR;
-    }
-
-    // get corresponding eNB cell context for this scell
-    const cell_ctxt_t* cc_cfg = parent->find_cell_ctxt(scell.cell_id);
-    if (cc_cfg == nullptr) {
+  // Add all SCells configured+allocated for the current PCell
+  for (auto& p : cell_res_list) {
+    if (p.first == UE_PCELL_CC_IDX) {
       continue;
     }
+    uint32_t           scell_idx = p.first;
+    const cell_ctxt_t* cc_cfg    = p.second.cell_common;
     const sib_type1_s& cell_sib1 = cc_cfg->sib1;
     const sib_type2_s& cell_sib2 = cc_cfg->sib2;
 
@@ -2097,8 +2094,6 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
 
     // Append to PHY RRC config dedicated which will be applied further down
     phy_rrc_dedicated_list.push_back(scell_phy_rrc_ded);
-
-    scell_idx++;
   }
 
   // Set DL HARQ Feedback mode
@@ -2566,24 +2561,26 @@ int rrc::ue::sr_allocate(uint32_t period)
   return SRSLTE_SUCCESS;
 }
 
+void rrc::ue::cqi_free(uint32_t ue_cc_idx)
+{
+  auto it = cell_res_list.find(ue_cc_idx);
+  if (it != cell_res_list.end()) {
+    auto& cell = it->second;
+    if (parent->cqi_sched.nof_users[cell.prb_idx][cell.sf_idx] > 0) {
+      parent->cqi_sched.nof_users[cell.prb_idx][cell.sf_idx]--;
+      parent->rrc_log->info("Deallocated CQI resources for time-frequency slot (%d, %d)\n", cell.prb_idx, cell.sf_idx);
+    } else {
+      parent->rrc_log->warning(
+          "Removing CQI resources: no users in time-frequency slot (%d, %d)\n", cell.prb_idx, cell.sf_idx);
+    }
+    cell_res_list.erase(ue_cc_idx);
+  }
+}
+
 void rrc::ue::cqi_free()
 {
-  if (cqi_allocated) {
-    for (uint32_t cc_idx = 0; cc_idx < parent->cfg.cell_list.size(); cc_idx++) {
-      if (cqi_res.count(cc_idx) > 0) {
-        if (parent->cqi_sched.nof_users[cqi_res[cc_idx].prb_idx][cqi_res[cc_idx].sf_idx] > 0) {
-          parent->cqi_sched.nof_users[cqi_res[cc_idx].prb_idx][cqi_res[cc_idx].sf_idx]--;
-        } else {
-          parent->rrc_log->warning("Removing CQI resources: no users in time-frequency slot (%d, %d)\n",
-                                   cqi_res[cc_idx].prb_idx,
-                                   cqi_res[cc_idx].sf_idx);
-        }
-        parent->rrc_log->info("Deallocated CQI resources for time-frequency slot (%d, %d)\n",
-                              cqi_res[cc_idx].prb_idx,
-                              cqi_res[cc_idx].sf_idx);
-      }
-    }
-    cqi_allocated = false;
+  for (uint32_t cc_idx = 0; cc_idx < parent->cfg.cell_list.size(); cc_idx++) {
+    cqi_free(cc_idx);
   }
 }
 
@@ -2598,9 +2595,10 @@ void rrc::ue::n_pucch_cs_free()
 
 int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 {
-  if (cqi_res.count(ue_cc_idx)) {
-    *pmi_idx = cqi_res[ue_cc_idx].idx;
-    *n_pucch = cqi_res[ue_cc_idx].pucch_res;
+  auto it = cell_res_list.find(ue_cc_idx);
+  if (it != cell_res_list.end()) {
+    *pmi_idx = it->second.pmi_idx;
+    *n_pucch = it->second.pucch_res;
     return SRSLTE_SUCCESS;
   } else {
     parent->rrc_log->error("CQI resources for ue_cc_idx=%d have not been allocated\n", ue_cc_idx);
@@ -2709,11 +2707,15 @@ int rrc::ue::cqi_allocate(uint32_t period, uint32_t ue_cc_idx)
   }
   // Allocate user
   parent->cqi_sched.nof_users[i_min][j_min]++;
-  cqi_allocated                = true;
-  cqi_res[ue_cc_idx].idx       = pmi_idx;
-  cqi_res[ue_cc_idx].pucch_res = n_pucch;
-  cqi_res[ue_cc_idx].prb_idx   = i_min;
-  cqi_res[ue_cc_idx].sf_idx    = j_min;
+  cell_res_list[ue_cc_idx].pmi_idx   = pmi_idx;
+  cell_res_list[ue_cc_idx].pucch_res = n_pucch;
+  cell_res_list[ue_cc_idx].prb_idx   = i_min;
+  cell_res_list[ue_cc_idx].sf_idx    = j_min;
+  const auto& l                      = parent->cell_ctxt_list;
+  uint32_t    cell_id                = get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list[ue_cc_idx].cell_id;
+  auto        it                     = std::find_if(
+      l.begin(), l.end(), [cell_id](const std::unique_ptr<cell_ctxt_t>& c) { return c->cell_cfg.cell_id == cell_id; });
+  cell_res_list[ue_cc_idx].cell_common = it->get();
 
   parent->rrc_log->info(
       "Allocated CQI resources for ue_cc_idx=%d, time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d\n",
