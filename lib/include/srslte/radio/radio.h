@@ -228,12 +228,15 @@ private:
   std::vector<double> cur_tx_freqs = {};
   std::vector<double> cur_rx_freqs = {};
 
+  constexpr static double tx_max_gap_zeros = 4e-3; ///< Maximum transmission gap to fill with zeros, otherwise the burst
+                                                   ///< shall be stopped
+
   // Define default values for known radios
   constexpr static double uhd_default_tx_adv_samples    = 98;
   constexpr static double uhd_default_tx_adv_offset_sec = 4 * 1e-6;
 
-  constexpr static double blade_default_tx_adv_samples     = 27;
-  constexpr static double blade_default_tx_adv_offset_sec  = 1e-6;
+  constexpr static int    blade_default_tx_adv_samples    = 27;
+  constexpr static double blade_default_tx_adv_offset_sec = 1e-6;
 
   /**
    * This class manages the mapping between logical and physical channels.

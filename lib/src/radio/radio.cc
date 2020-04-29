@@ -265,9 +265,12 @@ bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples_, const 
   uint32_t nof_samples   = nof_samples_;
   uint32_t sample_offset = 0;
 
+  // Return instantly if the radio module is not initialised
   if (!is_initialized) {
     return false;
   }
+
+  // Copy timestamp and add Tx time offset calibration
   srslte_timestamp_t tx_time = tx_time_;
   if (!tx_adv_negative) {
     srslte_timestamp_sub(&tx_time, 0, tx_adv_sec);
@@ -275,25 +278,55 @@ bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples_, const 
     srslte_timestamp_add(&tx_time, 0, tx_adv_sec);
   }
 
-  // Calculate Tx gap if it is not start of the burst
+  // Calculate transmission overlap/gap if it is not start of the burst
   if (not is_start_of_burst) {
-    srslte_timestamp_t tx_gap = end_of_burst_time;
-    srslte_timestamp_sub(&tx_gap, tx_time.full_secs, tx_time.frac_secs);
-    int32_t past_nsamples = (int32_t)round(cur_tx_srate * srslte_timestamp_real(&tx_gap));
+    // Calculates transmission time overlap with previous transmission
+    srslte_timestamp_t ts_overlap = end_of_burst_time;
+    srslte_timestamp_sub(&ts_overlap, tx_time.full_secs, tx_time.frac_secs);
 
-    // Negative gap, trimming first samples by setting a sample offset. Otherwise, ignore
+    // Calculates number of overlap samples with previous transmission
+    int32_t past_nsamples = (int32_t)round(cur_tx_srate * srslte_timestamp_real(&ts_overlap));
+
+    // if past_nsamples is positive, the current transmission overlaps with the previous transmission. If it is negative
+    // there is a gap between the previous transmission and the current transmission.
     if (past_nsamples > 0) {
-      // If the gap is larger than the amount of samples to transmit, return without doing anything else
+      // If the overlap length is greater than the current transmission length, it means the whole transmission is in
+      // the past and it shall be ignored
       if ((int32_t)nof_samples < past_nsamples) {
         return true;
       }
 
-      // Update transmission parameters
-      sample_offset = (uint32_t)past_nsamples;
+      // Trim the first past_nsamples
+      sample_offset = (uint32_t)past_nsamples;     // Sets an offset for moving first samples offset
+      tx_time       = end_of_burst_time;           // Keeps same transmission time
+      nof_samples   = nof_samples - past_nsamples; // Subtracts the number of trimmed samples
+
+    } else if (past_nsamples < 0) {
+      // if the gap is bigger than TX_MAX_GAP_ZEROS, stop burst
+      if (fabs(srslte_timestamp_real(&ts_overlap)) > tx_max_gap_zeros) {
+        tx_end();
+      } else {
+        // Otherwise, transmit zeros
+        uint32_t gap_nsamples = abs(past_nsamples);
+        while (gap_nsamples > 0) {
+          // Transmission cannot exceed SRSLTE_SF_LEN_MAX (zeros buffer size limitation)
+          uint32_t nzeros = SRSLTE_MIN(gap_nsamples, SRSLTE_SF_LEN_MAX);
+
+          // Zeros transmission
+          int ret = srslte_rf_send_timed2(
+              &rf_device, zeros, nzeros, end_of_burst_time.full_secs, end_of_burst_time.frac_secs, false, false);
+          if (ret < SRSLTE_SUCCESS) {
+            return false;
+          }
+
+          // Substract gap samples
+          gap_nsamples -= nzeros;
+
+          // Increase timestamp
+          srslte_timestamp_add(&end_of_burst_time, 0, (double)nzeros / cur_tx_srate);
+        }
+      }
     }
-    // this aligns with the next packet for the case where the nof_samples was not the amount requested, removing the gap between packets by adding samples
-    tx_time = end_of_burst_time;
-    nof_samples -= past_nsamples;
   }
 
   // Save possible end of burst time
@@ -561,11 +594,10 @@ void radio::set_tx_srate(const double& srate)
         log_h->console(
             "\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n",
             cur_tx_srate);
-        tx_adv_sec = blade_default_tx_adv_samples * (1 / cur_tx_srate) + blade_default_tx_adv_offset_sec;
+        nsamples = blade_default_tx_adv_samples + blade_default_tx_adv_offset_sec * cur_tx_srate;
       }
     } else if (!strcmp(srslte_rf_name(&rf_device), "zmq")) {
-      log_h->console("\nWarning TX/RX time offset has not been calibrated for device %s. Set a value manually\n\n",
-                     srslte_rf_name(&rf_device));
+      nsamples = 0;
     }
   } else {
     nsamples = tx_adv_nsamples;

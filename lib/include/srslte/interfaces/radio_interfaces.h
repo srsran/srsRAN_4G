@@ -92,7 +92,7 @@ public:
    * @param buffer Is the object that contains the pointers to all RF channels
    * @param nof_samples Number of samples to transmit on all carriers and antennas
    * @param tx_time Time to transmit all signals
-   * @return
+   * @return it returns true if the transmission was successful, otherwise it returns false
    */
   virtual bool tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) = 0;
 
