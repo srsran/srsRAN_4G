@@ -352,9 +352,16 @@ int mbsfn_area_info_list_parser::parse(Setting& root)
 
 int field_sf_mapping::parse(libconfig::Setting& root)
 {
-  *nof_subframes = root["subframe"].getLength();
-  for (uint32_t i = 0; i < *nof_subframes; i++) {
-    sf_mapping[i] = root["subframe"][i];
+  if (root.exists("subframe")) {
+    *nof_subframes = root["subframe"].getLength();
+    for (uint32_t i = 0; i < *nof_subframes; i++) {
+      sf_mapping[i] = root["subframe"][i];
+    }
+  } else {
+    *nof_subframes = root["period"];
+    for (uint32_t i = 0; i < *nof_subframes; ++i) {
+      sf_mapping[i] = i;
+    }
   }
   return 0;
 }
