@@ -483,6 +483,9 @@ static int receive_samples(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer[SRSLTE_
     ptr[i] = &input_buffer[i][q->next_rf_sample_offset];
   }
 
+  // assure  next_rf_sample_offset isn't larger than frame_len
+  q->next_rf_sample_offset = SRSLTE_MIN(q->next_rf_sample_offset, q->frame_len);
+
   if (q->recv_callback(q->stream, ptr, q->frame_len - q->next_rf_sample_offset, &q->last_timestamp) < 0) {
     return SRSLTE_ERROR;
   }
