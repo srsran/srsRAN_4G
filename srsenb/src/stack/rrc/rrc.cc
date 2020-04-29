@@ -2711,11 +2711,17 @@ int rrc::ue::cqi_allocate(uint32_t period, uint32_t ue_cc_idx)
   cell_res_list[ue_cc_idx].pucch_res = n_pucch;
   cell_res_list[ue_cc_idx].prb_idx   = i_min;
   cell_res_list[ue_cc_idx].sf_idx    = j_min;
-  const auto& l                      = parent->cell_ctxt_list;
-  uint32_t    cell_id                = get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list[ue_cc_idx].cell_id;
-  auto        it                     = std::find_if(
-      l.begin(), l.end(), [cell_id](const std::unique_ptr<cell_ctxt_t>& c) { return c->cell_cfg.cell_id == cell_id; });
-  cell_res_list[ue_cc_idx].cell_common = it->get();
+  if (ue_cc_idx == UE_PCELL_CC_IDX) {
+    cell_res_list[ue_cc_idx].cell_common = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+  } else {
+    const auto& l       = parent->cell_ctxt_list;
+    uint32_t    cell_id = get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list[ue_cc_idx - 1].cell_id;
+    // search for cell based on cell_id
+    auto it = std::find_if(l.begin(), l.end(), [cell_id](const std::unique_ptr<cell_ctxt_t>& c) {
+      return c->cell_cfg.cell_id == cell_id;
+    });
+    cell_res_list[ue_cc_idx].cell_common = it->get();
+  }
 
   parent->rrc_log->info(
       "Allocated CQI resources for ue_cc_idx=%d, time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d\n",
