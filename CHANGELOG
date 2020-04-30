@@ -1,5 +1,15 @@
 Change Log for Releases
-==============================
+=======================
+
+## 20.04
+  * Carrier Aggregation and Time Alignment in srsENB
+  * Complete Sidelink PHY layer (all transmission modes)
+  * Complete NB-IoT PHY downlink signals
+  * New S1AP packing/unpacking library
+  * EVM and EPRE measurements
+  * Remove system timers in srsUE and srsENB
+  * Refactor eNB to prepare for mobility support
+  * Other bug-fixes and improved stability and performance in all parts
 
 ## 19.12
   * Add 5G NR RRC and NGAP ASN1 packing/unpacking
