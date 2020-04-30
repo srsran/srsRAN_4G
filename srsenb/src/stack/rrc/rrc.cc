@@ -1860,7 +1860,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   // Add SCells
   if (fill_scell_to_addmod_list(conn_reconf) != SRSLTE_SUCCESS) {
     parent->rrc_log->warning("Could not create configuration for Scell\n");
-    // Should disable R10 extension and not activate SCell??
     return;
   }
 
