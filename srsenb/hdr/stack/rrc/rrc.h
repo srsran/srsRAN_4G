@@ -241,7 +241,7 @@ private:
     int  get_n_pucch_cs(uint16_t* N_pucch_cs);
     bool is_allocated() const
     {
-      return cqi_allocated and sr_allocated and (parent->cfg.cell_list.size() <= 1 or n_pucch_cs_alloc);
+      return not cell_res_list.empty() and sr_allocated and (parent->cfg.cell_list.size() <= 1 or n_pucch_cs_alloc);
     }
 
     bool select_security_algorithms();
