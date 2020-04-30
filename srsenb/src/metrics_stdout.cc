@@ -118,7 +118,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     } else {
       cout << float_to_string(0, 1, 6) << "";
     }
-    cout << std::setw(5) << metrics.stack.mac[i].tx_pkts;
+    cout << std::setw(5) << metrics.stack.mac[i].tx_pkts - metrics.stack.mac[i].tx_errors;
     cout << std::setw(5) << metrics.stack.mac[i].tx_errors;
     if (metrics.stack.mac[i].tx_pkts > 0 && metrics.stack.mac[i].tx_errors) {
       cout << float_to_string(
@@ -147,7 +147,7 @@ void metrics_stdout::set_metrics(const enb_metrics_t& metrics, const uint32_t pe
     } else {
       cout << float_to_string(0, 1) << "";
     }
-    cout << std::setw(5) << metrics.stack.mac[i].rx_pkts;
+    cout << std::setw(5) << metrics.stack.mac[i].rx_pkts - metrics.stack.mac[i].rx_errors;
     cout << std::setw(5) << metrics.stack.mac[i].rx_errors;
 
     if (metrics.stack.mac[i].rx_pkts > 0 && metrics.stack.mac[i].rx_errors > 0) {
