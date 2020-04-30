@@ -22,6 +22,9 @@
 #include <complex.h>
 #include <math.h>
 #include <memory.h>
+#include <srslte/phy/utils/vector.h>
+#include <srslte/phy/utils/vector_simd.h>
+#include <stdlib.h>
 
 #include "srslte/phy/utils/mat.h"
 
@@ -367,14 +370,14 @@ int srslte_matrix_NxN_inv_init(srslte_matrix_NxN_inv_t* q, uint32_t N)
 
     q->N = N;
 
-    q->row_buffer = srslte_vec_malloc(sizeof(cf_t) * N * 2);
+    q->row_buffer = srslte_vec_cf_malloc(N * 2);
     if (!q->row_buffer) {
       perror("malloc");
       ret = SRSLTE_ERROR;
     }
 
     if (!ret) {
-      q->matrix = srslte_vec_malloc(sizeof(cf_t) * N * N * 2);
+      q->matrix = srslte_vec_cf_malloc(N * N * 2);
       if (!q->matrix) {
         perror("malloc");
         ret = SRSLTE_ERROR;

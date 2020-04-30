@@ -55,6 +55,8 @@ SRSLTE_API void srslte_vec_sc_prod_fff_simd(const float* x, const float h, float
 
 SRSLTE_API void srslte_vec_sc_prod_ccc_simd(const cf_t* x, const cf_t h, cf_t* z, const int len);
 
+SRSLTE_API int srslte_vec_sc_prod_ccc_simd2(const cf_t* x, const cf_t h, cf_t* z, const int len);
+
 /* SIMD Vector Product */
 SRSLTE_API void srslte_vec_prod_ccc_split_simd(const float* a_re,
                                                const float* a_im,
