@@ -1296,31 +1296,6 @@ void srslte_vec_sc_prod_cfc_simd(const cf_t* x, const float h, cf_t* z, const in
   }
 }
 
-void srslte_vec_cp_simd(const cf_t* src, cf_t* dst, const int len)
-{
-  uint32_t i = 0;
-
-#if SRSLTE_SIMD_F_SIZE
-  if (SRSLTE_IS_ALIGNED(src) && SRSLTE_IS_ALIGNED(dst)) {
-    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
-      simd_f_t temp = srslte_simd_f_load((float*)&src[i]);
-
-      srslte_simd_f_store((float*)&dst[i], temp);
-    }
-  } else {
-    for (; i < len - SRSLTE_SIMD_F_SIZE / 2 + 1; i += SRSLTE_SIMD_F_SIZE / 2) {
-      simd_f_t temp = srslte_simd_f_loadu((float*)&src[i]);
-
-      srslte_simd_f_storeu((float*)&dst[i], temp);
-    }
-  }
-#endif
-
-  for (; i < len; i++) {
-    dst[i] = src[i];
-  }
-}
-
 uint32_t srslte_vec_max_fi_simd(const float* x, const int len)
 {
   int i = 0;

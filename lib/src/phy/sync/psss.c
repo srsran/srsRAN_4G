@@ -215,8 +215,8 @@ int srslte_psss_find(srslte_psss_t* q, cf_t* input, uint32_t nof_prb, srslte_cp_
     srslte_dft_run_c(&q->plan_out, q->dot_prod_output, q->dot_prod_output_time);
 
     srslte_vec_cf_zero(q->shifted_output, fft_size);
-    srs_vec_cf_copy(q->shifted_output, &q->dot_prod_output_time[fft_size / 2], fft_size / 2);
-    srs_vec_cf_copy(&q->shifted_output[fft_size / 2], q->dot_prod_output_time, fft_size / 2);
+    srslte_vec_cf_copy(q->shifted_output, &q->dot_prod_output_time[fft_size / 2], fft_size / 2);
+    srslte_vec_cf_copy(&q->shifted_output[fft_size / 2], q->dot_prod_output_time, fft_size / 2);
 
     // Peak detection
     q->corr_peak_pos = -1;

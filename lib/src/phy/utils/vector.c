@@ -210,17 +210,17 @@ void srslte_vec_f_zero(float* ptr, uint32_t nsamples)
   memset(ptr, 0, sizeof(float) * nsamples);
 }
 
-void srs_vec_cf_copy(cf_t* dst, const cf_t* src, uint32_t len)
+void srslte_vec_cf_copy(cf_t* dst, const cf_t* src, uint32_t len)
 {
-  srslte_vec_cp_simd(src, dst, len);
+  memcpy(dst, src, sizeof(cf_t) * len);
 }
 
-void srs_vec_f_copy(float* dst, const float* src, uint32_t len)
+void srslte_vec_f_copy(float* dst, const float* src, uint32_t len)
 {
   memcpy(dst, src, sizeof(float) * len);
 }
 
-void srs_vec_u8_copy(uint8_t* dst, const uint8_t* src, uint32_t len)
+void srslte_vec_u8_copy(uint8_t* dst, const uint8_t* src, uint32_t len)
 {
   memcpy(dst, src, sizeof(uint8_t) * len);
 }

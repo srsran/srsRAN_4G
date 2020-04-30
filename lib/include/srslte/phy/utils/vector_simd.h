@@ -122,8 +122,6 @@ SRSLTE_API void srslte_vec_convert_fi_simd(const float* x, int16_t* z, const flo
 
 SRSLTE_API void srslte_vec_convert_fb_simd(const float* x, int8_t* z, const float scale, const int len);
 
-SRSLTE_API void srslte_vec_cp_simd(const cf_t* src, cf_t* dst, int len);
-
 SRSLTE_API void srslte_vec_interleave_simd(const cf_t* x, const cf_t* y, cf_t* z, const int len);
 
 SRSLTE_API void srslte_vec_interleave_add_simd(const cf_t* x, const cf_t* y, cf_t* z, const int len);

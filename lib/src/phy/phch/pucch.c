@@ -670,7 +670,7 @@ static int encode_bits(srslte_pucch_cfg_t*   cfg,
                        uint8_t               pucch2_bits[SRSLTE_PUCCH_MAX_BITS])
 {
   if (format < SRSLTE_PUCCH_FORMAT_2) {
-    srs_vec_u8_copy(pucch_bits, uci_data->ack.ack_value, srslte_uci_cfg_total_ack(&cfg->uci_cfg));
+    srslte_vec_u8_copy(pucch_bits, uci_data->ack.ack_value, srslte_uci_cfg_total_ack(&cfg->uci_cfg));
   } else if (format >= SRSLTE_PUCCH_FORMAT_2 && format < SRSLTE_PUCCH_FORMAT_3) {
     /* Put RI (goes alone) */
     if (cfg->uci_cfg.cqi.ri_len) {

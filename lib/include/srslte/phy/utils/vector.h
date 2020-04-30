@@ -99,9 +99,9 @@ SRSLTE_API void srslte_vec_i16_zero(int16_t* ptr, uint32_t nsamples);
 SRSLTE_API void srslte_vec_u32_zero(uint32_t* ptr, uint32_t nsamples);
 
 /* Copy memory */
-SRSLTE_API void srs_vec_cf_copy(cf_t* dst, const cf_t* src, uint32_t len);
-SRSLTE_API void srs_vec_f_copy(float* dst, const float* src, uint32_t len);
-SRSLTE_API void srs_vec_u8_copy(uint8_t* dst, const uint8_t* src, uint32_t len);
+SRSLTE_API void srslte_vec_cf_copy(cf_t* dst, const cf_t* src, uint32_t len);
+SRSLTE_API void srslte_vec_f_copy(float* dst, const float* src, uint32_t len);
+SRSLTE_API void srslte_vec_u8_copy(uint8_t* dst, const uint8_t* src, uint32_t len);
 
 /* print vectors */
 SRSLTE_API void srslte_vec_fprint_c(FILE* stream, const cf_t* x, const uint32_t len);

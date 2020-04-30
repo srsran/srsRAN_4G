@@ -200,7 +200,7 @@ int srslte_psbch_encode(srslte_psbch_t* q, uint8_t* input, uint32_t input_len, c
   }
 
   // Copy into codeword buffer
-  srs_vec_u8_copy(q->c, input, input_len);
+  srslte_vec_u8_copy(q->c, input, input_len);
 
   // CRC Attachment
   srslte_crc_attach(&q->crc_mib_sl, q->c, input_len);
@@ -284,7 +284,7 @@ int srslte_psbch_decode(srslte_psbch_t* q, cf_t* equalized_sf_syms, uint8_t* out
   srslte_viterbi_decode_s(&q->dec, q->d_16, q->c, q->sl_bch_tb_crc_len);
 
   // Copy received crc to temp
-  srs_vec_u8_copy(q->crc_temp, &q->c[q->sl_bch_tb_len], SRSLTE_SL_BCH_CRC_LEN);
+  srslte_vec_u8_copy(q->crc_temp, &q->c[q->sl_bch_tb_len], SRSLTE_SL_BCH_CRC_LEN);
 
   // Re-attach crc
   srslte_crc_attach(&q->crc_mib_sl, q->c, q->sl_bch_tb_len);
@@ -295,7 +295,7 @@ int srslte_psbch_decode(srslte_psbch_t* q, cf_t* equalized_sf_syms, uint8_t* out
   }
 
   // Remove CRC and copy to output buffer
-  srs_vec_u8_copy(output, q->c, q->sl_bch_tb_len);
+  srslte_vec_u8_copy(output, q->c, q->sl_bch_tb_len);
 
   return SRSLTE_SUCCESS;
 }
@@ -326,7 +326,7 @@ int srslte_psbch_put(srslte_psbch_t* q, cf_t* symbols, cf_t* sf_buffer)
   // Mapping to physical resources
   for (uint32_t i = 0; i < srslte_sl_get_num_symbols(q->tm, q->cp); i++) {
     if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i, q->cp)) {
-      srs_vec_cf_copy(
+      srslte_vec_cf_copy(
           &sf_buffer[k + i * q->nof_prb * SRSLTE_NRE], &symbols[sample_pos], SRSLTE_NRE * SRSLTE_PSBCH_NOF_PRB);
       sample_pos += (SRSLTE_NRE * SRSLTE_PSBCH_NOF_PRB);
     }
@@ -343,7 +343,7 @@ int srslte_psbch_get(srslte_psbch_t* q, cf_t* sf_buffer, cf_t* symbols)
   // Get PSBCH REs
   for (uint32_t i = 0; i < srslte_sl_get_num_symbols(q->tm, q->cp); i++) {
     if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DATA_SYMBOL, q->tm, i, q->cp)) {
-      srs_vec_cf_copy(
+      srslte_vec_cf_copy(
           &symbols[sample_pos], &sf_buffer[k + i * q->nof_prb * SRSLTE_NRE], SRSLTE_NRE * SRSLTE_PSBCH_NOF_PRB);
       sample_pos += (SRSLTE_NRE * SRSLTE_PSBCH_NOF_PRB);
     }
