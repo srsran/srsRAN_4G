@@ -212,7 +212,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
   if (not ue_ptr->is_phy_added) {
     Info("Registering RNTI=0x%X to PHY...\n", rnti);
     // Register new user in PHY with first CC index
-    if (phy_h->add_rnti(rnti, cfg->supported_cc_list.front().enb_cc_idx, false) == SRSLTE_ERROR) {
+    if (phy_h->add_rnti(rnti, (SRSLTE_MRNTI) ? 0 : cfg->supported_cc_list.front().enb_cc_idx, false) == SRSLTE_ERROR) {
       Error("Registering new UE RNTI=0x%X to PHY\n", rnti);
     }
     Info("Done registering RNTI=0x%X to PHY...\n", rnti);

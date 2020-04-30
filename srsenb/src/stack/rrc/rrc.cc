@@ -173,14 +173,19 @@ void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
 {
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    auto p = users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
-    if (p.second and p.first->second->is_allocated()) {
+    bool rnti_added = true;
+    if (rnti != SRSLTE_MRNTI) {
+      // only non-eMBMS RNTIs are present in user map
+      auto p = users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
+      rnti_added = p.second and p.first->second->is_allocated();
+    }
+    if (rnti_added) {
       rlc->add_user(rnti);
       pdcp->add_user(rnti);
       rrc_log->info("Added new user rnti=0x%x\n", rnti);
     } else {
       mac->bearer_ue_rem(rnti, 0);
-      rrc_log->error("Adding user rnti=0x%x - Fail to allocate user resources\n", rnti);
+      rrc_log->error("Adding user rnti=0x%x - Failed to allocate user resources\n", rnti);
     }
   } else {
     rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
@@ -1021,7 +1026,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 {
   if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
     parent->rrc_log->warning("No PCell set. Picking eNBccIdx=0 as PCell\n");
-    current_sched_ue_cfg.supported_cc_list.resize(0);
+    current_sched_ue_cfg.supported_cc_list.resize(1);
     current_sched_ue_cfg.supported_cc_list[0].active     = true;
     current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = UE_PCELL_CC_IDX;
   }
