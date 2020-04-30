@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc.h"
+#include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srslte/asn1/asn1_utils.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
@@ -114,8 +115,8 @@ void rrc::get_metrics(rrc_metrics_t& m)
 
 uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index)
 {
-  if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < cell_ctxt_list.size()) {
-    return cell_ctxt_list.at(cc_idx)->sib_buffer.at(sib_index)->msg;
+  if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < cell_ctxt_list->nof_cells()) {
+    return &cell_ctxt_list->get_cc_idx(cc_idx)->sib_buffer.at(sib_index)[0];
   }
   return nullptr;
 }
@@ -687,15 +688,6 @@ void rrc::process_rl_failure(uint16_t rnti)
   }
 }
 
-///< Helper method to get cell ctxt based on id
-rrc::cell_ctxt_t* rrc::find_cell_ctxt(uint32_t cell_id)
-{
-  auto it = std::find_if(cell_ctxt_list.begin(),
-                         cell_ctxt_list.end(),
-                         [cell_id](const std::unique_ptr<cell_ctxt_t>& c) { return cell_id == c->cell_cfg.cell_id; });
-  return (it == cell_ctxt_list.end()) ? nullptr : it->get();
-}
-
 ///< User mutex must be hold by caller
 void rrc::process_release_complete(uint16_t rnti)
 {
@@ -750,7 +742,7 @@ void rrc::config_mac()
 
     // set sib/prach cfg
     for (uint32_t i = 0; i < nof_si_messages; i++) {
-      item.sibs[i].len = cell_ctxt_list.at(ccidx)->sib_buffer.at(i)->N_bytes;
+      item.sibs[i].len = cell_ctxt_list->get_cc_idx(ccidx)->sib_buffer.at(i).size();
       if (i == 0) {
         item.sibs[i].period_rf = 8; // SIB1 is always 8 rf
       } else {
@@ -810,44 +802,18 @@ uint32_t rrc::generate_sibs()
   uint32_t           nof_messages = 1 + cfg.sib1.sched_info_list.size();
   sched_info_list_l& sched_info   = cfg.sib1.sched_info_list;
 
-  // Store in cell_ctxt_list, the SIB cfg of each carrier
-  for (uint32_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
-    cell_ctxt_list.push_back(std::unique_ptr<cell_ctxt_t>(new cell_ctxt_t{cc_idx, cfg.cell_list[cc_idx]}));
-    cell_ctxt_t& cell_ctxt = *cell_ctxt_list.back();
-
-    // Set Cell MIB
-    asn1::number_to_enum(cell_ctxt.mib.dl_bw, cfg.cell.nof_prb);
-    cell_ctxt.mib.phich_cfg.phich_res.value = (phich_cfg_s::phich_res_opts::options)cfg.cell.phich_resources;
-    cell_ctxt.mib.phich_cfg.phich_dur.value = (phich_cfg_s::phich_dur_opts::options)cfg.cell.phich_length;
-
-    // Set Cell SIB1
-    cell_ctxt.sib1 = cfg.sib1;
-    // Update cellId
-    sib_type1_s::cell_access_related_info_s_* cell_access = &cell_ctxt.sib1.cell_access_related_info;
-    cell_access->cell_id.from_number((cfg.enb_id << 8u) + cell_ctxt.cell_cfg.cell_id);
-    cell_access->tac.from_number(cell_ctxt.cell_cfg.tac);
-    // Update DL EARFCN
-    cell_ctxt.sib1.freq_band_ind = (uint8_t)srslte_band_get_band(cell_ctxt.cell_cfg.dl_earfcn);
-
-    // Set Cell SIB2
-    // update PRACH root seq index for this cell
-    cell_ctxt.sib2                                      = cfg.sibs[1].sib2();
-    cell_ctxt.sib2.rr_cfg_common.prach_cfg.root_seq_idx = cell_ctxt.cell_cfg.root_seq_idx;
-    // update carrier freq
-    if (cell_ctxt.sib2.freq_info.ul_carrier_freq_present) {
-      cell_ctxt.sib2.freq_info.ul_carrier_freq = cell_ctxt.cell_cfg.ul_earfcn;
-    }
-  }
+  // Store configs,SIBs in common cell ctxt list
+  cell_ctxt_list.reset(new cell_ctxt_common_list{cfg});
 
   // generate and pack into SIB buffers
   for (uint32_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
-    cell_ctxt_t& cell_ctxt = *cell_ctxt_list[cc_idx];
+    cell_ctxt_common* cell_ctxt = cell_ctxt_list->get_cc_idx(cc_idx);
     // msg is array of SI messages, each SI message msg[i] may contain multiple SIBs
     // all SIBs in a SI message msg[i] share the same periodicity
     asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
 
     // Copy SIB1 to first SI message
-    msg[0].msg.set_c1().set_sib_type1() = cell_ctxt.sib1;
+    msg[0].msg.set_c1().set_sib_type1() = cell_ctxt->sib1;
 
     // Copy rest of SIBs
     for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages - 1; sched_info_elem++) {
@@ -860,7 +826,7 @@ uint32_t rrc::generate_sibs()
       // SIB2 always in second SI message
       if (msg_index == 1) {
         sib_info_item_c sibitem;
-        sibitem.set_sib2() = cell_ctxt.sib2;
+        sibitem.set_sib2() = cell_ctxt->sib2;
         sib_list.push_back(sibitem);
       }
 
@@ -872,22 +838,17 @@ uint32_t rrc::generate_sibs()
 
     // Pack payload for all messages
     for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-      srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
-      asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
+      srslte::unique_byte_buffer_t sib_buffer = srslte::allocate_unique_buffer(*pool);
+      asn1::bit_ref                bref(sib_buffer->msg, sib_buffer->get_tailroom());
       if (msg[msg_index].pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
         rrc_log->error("Failed to pack SIB message %d\n", msg_index);
       }
-      sib->N_bytes = bref.distance_bytes();
-
-      cell_ctxt.sib_buffer.push_back(std::move(sib));
+      sib_buffer->N_bytes = bref.distance_bytes();
+      cell_ctxt->sib_buffer.emplace_back(sib_buffer->msg, sib_buffer->msg + sib_buffer->N_bytes);
 
       // Log SIBs in JSON format
       std::string log_msg("CC" + std::to_string(cc_idx) + " SIB payload");
-      log_rrc_message(log_msg,
-                      Tx,
-                      cell_ctxt.sib_buffer.at(msg_index).get(),
-                      msg[msg_index],
-                      msg[msg_index].msg.c1().type().to_string());
+      log_rrc_message(log_msg, Tx, sib_buffer.get(), msg[msg_index], msg[msg_index].msg.c1().type().to_string());
     }
 
     if (cfg.sibs[6].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib7) {
@@ -1958,19 +1919,19 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 }
 
 //! Helper method to access Cell configuration based on UE Carrier Index
-rrc::cell_ctxt_t* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
+cell_ctxt_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 {
   if (ue_cc_idx >= current_sched_ue_cfg.supported_cc_list.size()) {
     return nullptr;
   }
   uint32_t enb_cc_idx = current_sched_ue_cfg.supported_cc_list[ue_cc_idx].enb_cc_idx;
-  return parent->cell_ctxt_list[enb_cc_idx].get();
+  return parent->cell_ctxt_list->get_cc_idx(enb_cc_idx);
 }
 
 //! Method to fill SCellToAddModList for SCell info
 int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
 {
-  const cell_ctxt_t* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+  const cell_ctxt_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
   if (pcell_cfg->cell_cfg.scell_list.empty()) {
     return SRSLTE_SUCCESS;
   }
@@ -1995,10 +1956,10 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
     if (p.first == UE_PCELL_CC_IDX) {
       continue;
     }
-    uint32_t           scell_idx = p.first;
-    const cell_ctxt_t* cc_cfg    = p.second.cell_common;
-    const sib_type1_s& cell_sib1 = cc_cfg->sib1;
-    const sib_type2_s& cell_sib2 = cc_cfg->sib2;
+    uint32_t                scell_idx = p.first;
+    const cell_ctxt_common* cc_cfg    = p.second.cell_common;
+    const sib_type1_s&      cell_sib1 = cc_cfg->sib1;
+    const sib_type2_s&      cell_sib2 = cc_cfg->sib2;
 
     scell_to_add_mod_r10_s cell;
     cell.scell_idx_r10                        = scell_idx;
@@ -2718,13 +2679,8 @@ int rrc::ue::cqi_allocate(uint32_t period, uint32_t ue_cc_idx)
   if (ue_cc_idx == UE_PCELL_CC_IDX) {
     cell_res_list[ue_cc_idx].cell_common = get_ue_cc_cfg(UE_PCELL_CC_IDX);
   } else {
-    const auto& l       = parent->cell_ctxt_list;
-    uint32_t    cell_id = get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list[ue_cc_idx - 1].cell_id;
-    // search for cell based on cell_id
-    auto it = std::find_if(l.begin(), l.end(), [cell_id](const std::unique_ptr<cell_ctxt_t>& c) {
-      return c->cell_cfg.cell_id == cell_id;
-    });
-    cell_res_list[ue_cc_idx].cell_common = it->get();
+    uint32_t cell_id                     = get_ue_cc_cfg(UE_PCELL_CC_IDX)->cell_cfg.scell_list[ue_cc_idx - 1].cell_id;
+    cell_res_list[ue_cc_idx].cell_common = parent->cell_ctxt_list->get_cell_id(cell_id);
   }
 
   parent->rrc_log->info(
@@ -2787,7 +2743,5 @@ int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)
 
   return ret;
 }
-
-rrc::cell_ctxt_t::cell_ctxt_t(uint32_t idx, const cell_cfg_t& cell_cfg_) : enb_cc_idx(idx), cell_cfg(cell_cfg_) {}
 
 } // namespace srsenb

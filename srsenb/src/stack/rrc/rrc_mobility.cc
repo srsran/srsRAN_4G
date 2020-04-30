@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
+#include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/common.h"
@@ -710,7 +711,7 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies
   }
 
   // Check if there has been any update in ue_var_meas
-  cell_ctxt_t*           pcell    = rrc_ue->get_ue_cc_cfg(UE_PCELL_CC_IDX);
+  cell_ctxt_common*      pcell    = rrc_ue->get_ue_cc_cfg(UE_PCELL_CC_IDX);
   asn1::rrc::meas_cfg_s& meas_cfg = conn_recfg->meas_cfg;
   conn_recfg->meas_cfg_present    = update_ue_var_meas_cfg(*ue_var_meas, pcell->enb_cc_idx, &meas_cfg);
   return conn_recfg->meas_cfg_present;

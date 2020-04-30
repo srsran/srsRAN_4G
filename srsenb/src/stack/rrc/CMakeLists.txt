@@ -18,5 +18,5 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES rrc.cc rrc_mobility.cc)
+set(SOURCES rrc.cc rrc_mobility.cc rrc_cell_cfg.cc)
 add_library(srsenb_rrc STATIC ${SOURCES})
