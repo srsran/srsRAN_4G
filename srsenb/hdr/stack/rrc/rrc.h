@@ -37,8 +37,10 @@
 
 namespace srsenb {
 
-class cell_ctxt_common;
+class cell_info_common;
 class cell_ctxt_common_list;
+class cell_ctxt_dedicated_list;
+class pucch_res_common;
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",
@@ -177,10 +179,7 @@ private:
     int  get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
     int  get_ri(uint32_t m_ri, uint16_t* ri_idx);
     int  get_n_pucch_cs(uint16_t* N_pucch_cs);
-    bool is_allocated() const
-    {
-      return not cell_res_list.empty() and sr_allocated and (parent->cfg.cell_list.size() <= 1 or n_pucch_cs_alloc);
-    }
+    bool is_allocated() const;
 
     bool select_security_algorithms();
     void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
@@ -249,29 +248,18 @@ private:
 
     const static uint32_t UE_PCELL_CC_IDX = 0;
 
-    // Struct to store the cell resources allocated to a user
-    struct cell_res_ded_t {
-      const cell_ctxt_common* cell_common = nullptr;
-      uint32_t                pmi_idx     = 0;
-      uint32_t                pucch_res   = 0;
-      uint32_t                prb_idx     = 0;
-      uint32_t                sf_idx      = 0;
-    };
-    std::map<uint32_t, cell_res_ded_t> cell_res_list = {};
+    std::unique_ptr<cell_ctxt_dedicated_list> cell_ded_list;
 
     int get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
 
     ///< Helper to access a cell cfg based on ue_cc_idx
-    cell_ctxt_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
+    cell_info_common* get_ue_cc_cfg(uint32_t ue_cc_idx);
 
     ///< Helper to fill SCell struct for RRR Connection Reconfig
     int fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
 
     int  sr_allocate(uint32_t period);
     void sr_free();
-    int  cqi_allocate(uint32_t period, uint32_t ue_cc_idx);
-    void cqi_free(uint32_t ue_cc_idx);
-    void cqi_free();
     int  n_pucch_cs_allocate();
     void n_pucch_cs_free();
 
@@ -316,7 +304,7 @@ private:
   srslte::log_ref           rrc_log;
 
   // derived params
-  std::unique_ptr<cell_ctxt_common_list> cell_ctxt_list;
+  std::unique_ptr<cell_ctxt_common_list> cell_common_list;
 
   // state
   std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
@@ -353,6 +341,7 @@ private:
   static const int             RRC_THREAD_PRIO = 65;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
+  std::unique_ptr<pucch_res_common> pucch_res;
   struct pucch_idx_sched_t {
     uint32_t nof_users[100][80];
   };
@@ -360,7 +349,6 @@ private:
   const static uint32_t             N_PUCCH_MAX_PRB = 4; // Maximum number of PRB to use for PUCCH ACK/NACK in CS mode
   const static uint32_t             N_PUCCH_MAX_RES = 3 * SRSLTE_NRE * N_PUCCH_MAX_PRB;
   pucch_idx_sched_t                 sr_sched        = {};
-  pucch_idx_sched_t                 cqi_sched       = {};
   std::array<bool, N_PUCCH_MAX_RES> n_pucch_cs_used = {};
 
   asn1::rrc::mcch_msg_s  mcch;

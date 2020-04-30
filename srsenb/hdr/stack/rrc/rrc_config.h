@@ -81,6 +81,8 @@ struct rrc_cfg_t {
   cell_list_t                         cell_list;
 };
 
+constexpr uint32_t UE_PCELL_CC_IDX = 0;
+
 } // namespace srsenb
 
 #endif // SRSLTE_RRC_CONFIG_H
