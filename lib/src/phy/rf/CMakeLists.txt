@@ -66,7 +66,7 @@ if(RF_FOUND)
     target_link_libraries(srslte_rf ${ZEROMQ_LIBRARIES})
     add_executable(rf_zmq_test rf_zmq_test.c)
     target_link_libraries(rf_zmq_test srslte_rf)
-    add_test(rf_zmq_test rf_zmq_test )
+    #add_test(rf_zmq_test rf_zmq_test)
   endif (ZEROMQ_FOUND)
 
   INSTALL(TARGETS srslte_rf DESTINATION ${LIBRARY_DIR})
