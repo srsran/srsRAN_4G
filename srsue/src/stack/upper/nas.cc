@@ -398,10 +398,14 @@ void nas::start_attach_proc(srslte::proc_state_t* result, srslte::establishment_
           }
           return;
         }
-        plmn_searcher.then([this, result](const proc_state_t& res) {
+        plmn_searcher.then([this, result, cause_](const proc_state_t& res) {
           nas_log->info("Attach Request from PLMN Search %s\n", res.is_success() ? "finished successfully" : "failed");
           if (result != nullptr) {
             *result = res;
+          }
+          if (!res.is_success()) {
+            // try again ..
+            task_handler->defer_callback(reattach_timer_duration_ms, [&]() { start_attach_proc(nullptr, cause_); });
           }
         });
       } else {
