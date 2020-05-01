@@ -156,12 +156,7 @@ void rlc::reset()
       delete (it->second);
     }
     rlc_array.clear();
-
-    for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
-      it->second->stop();
-      delete (it->second);
-    }
-    rlc_array_mrb.clear();
+    // the multicast bearer (MRB) is not removed here because eMBMS services continue to be streamed in idle mode (3GPP TS 23.246 version 14.1.0 Release 14 section 8)
   }
 
   // Add SRB0 again
@@ -433,9 +428,11 @@ void rlc::add_bearer_mrb(uint32_t lcid)
       rlc_log->error("Error configuring RLC entity\n.");
       goto delete_and_exit;
     }
-    if (not rlc_array_mrb.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
-      rlc_log->error("Error inserting RLC entity in to array\n.");
-      goto delete_and_exit;
+    if (rlc_array_mrb.count(lcid) == 0) {
+      if (not rlc_array_mrb.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
+        rlc_log->error("Error inserting RLC entity in to array\n.");
+        goto delete_and_exit;
+      }
     }
     rlc_log->warning("Added bearer MRB%d with mode RLC_UM\n", lcid);
     return;

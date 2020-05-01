@@ -774,6 +774,10 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res
     mch.current_sf_allocation_num++;
   }
 
+  // Count number of TTIs for all active users
+  for (auto& u : ue_db) {
+    u.second->metrics_cnt();
+  }
   return SRSLTE_SUCCESS;
 }
 
