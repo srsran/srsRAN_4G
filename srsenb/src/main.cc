@@ -195,6 +195,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")
     ("embms.m1u_multiaddr", bpo::value<string>(&args->stack.embms.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
     ("embms.m1u_if_addr", bpo::value<string>(&args->stack.embms.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
+    ("embms.mcs", bpo::value<uint16_t>(&args->stack.embms.mcs)->default_value(20), "Modulation and Coding scheme of MBMS traffic.")
     ;
 
   // Positional options - config file location
@@ -276,7 +277,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     }
   }
 
-  // Covert eNB Id
+  // Convert eNB Id
   std::size_t pos = {};
   try {
     args->enb.enb_id = std::stoi(enb_id, &pos, 0);

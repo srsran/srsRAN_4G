@@ -790,7 +790,15 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
            &byte[0],
            3); // TODO: Check if service is set to 1
   }
-  pmch_item->pmch_cfg_r9.data_mcs_r9         = 20;
+
+  uint16_t mbms_mcs = cfg.mbms_mcs;
+  if (mbms_mcs > 28){
+    mbms_mcs = 28; // TS 36.213, Table 8.6.1-1
+    rrc_log->warning("PMCH data MCS too high, setting it to 28\n");
+  }
+
+  rrc_log->debug("PMCH data MCS=%d\n", mbms_mcs);
+  pmch_item->pmch_cfg_r9.data_mcs_r9         = mbms_mcs;
   pmch_item->pmch_cfg_r9.mch_sched_period_r9 = pmch_cfg_r9_s::mch_sched_period_r9_e_::rf64;
   pmch_item->pmch_cfg_r9.sf_alloc_end_r9     = 64 * 6;
 

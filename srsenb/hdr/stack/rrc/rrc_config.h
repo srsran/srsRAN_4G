@@ -73,6 +73,7 @@ struct rrc_cfg_t {
   rrc_cfg_cqi_t                       cqi_cfg;
   rrc_cfg_qci_t                       qci_cfg[MAX_NOF_QCI];
   bool                                enable_mbsfn;
+  uint16_t                            mbms_mcs;
   uint32_t                            inactivity_timeout_ms;
   srslte::CIPHERING_ALGORITHM_ID_ENUM eea_preference_list[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS];
   srslte::INTEGRITY_ALGORITHM_ID_ENUM eia_preference_list[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS];
