@@ -79,7 +79,6 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   config_mac();
   enb_mobility_cfg.reset(new enb_mobility_handler(this));
 
-  bzero(&sr_sched, sizeof(pucch_idx_sched_t));
   running = true;
 }
 
@@ -2452,8 +2451,8 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
 void rrc::ue::sr_free()
 {
   if (sr_allocated) {
-    if (parent->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx] > 0) {
-      parent->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx]--;
+    if (parent->pucch_res->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx] > 0) {
+      parent->pucch_res->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx]--;
     } else {
       parent->rrc_log->warning(
           "Removing SR resources: no users in time-frequency slot (%d, %d)\n", sr_sched_prb_idx, sr_sched_sf_idx);
@@ -2488,15 +2487,15 @@ int rrc::ue::sr_allocate(uint32_t period)
   uint32_t min_users = std::numeric_limits<uint32_t>::max();
   for (uint32_t i = 0; i < parent->cfg.sr_cfg.nof_prb; i++) {
     for (uint32_t j = 0; j < parent->cfg.sr_cfg.nof_subframes; j++) {
-      if (parent->sr_sched.nof_users[i][j] < min_users) {
+      if (parent->pucch_res->sr_sched.nof_users[i][j] < min_users) {
         i_min     = i;
         j_min     = j;
-        min_users = parent->sr_sched.nof_users[i][j];
+        min_users = parent->pucch_res->sr_sched.nof_users[i][j];
       }
     }
   }
 
-  if (parent->sr_sched.nof_users[i_min][j_min] > max_users) {
+  if (parent->pucch_res->sr_sched.nof_users[i_min][j_min] > max_users) {
     parent->rrc_log->error("Not enough PUCCH resources to allocate Scheduling Request\n");
     return SRSLTE_ERROR;
   }
@@ -2515,13 +2514,13 @@ int rrc::ue::sr_allocate(uint32_t period)
   }
 
   // Compute N_pucch_sr
-  sr_N_pucch = i_min * max_users + parent->sr_sched.nof_users[i_min][j_min];
+  sr_N_pucch = i_min * max_users + parent->pucch_res->sr_sched.nof_users[i_min][j_min];
   if (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
     sr_N_pucch += get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
   }
 
   // Allocate user
-  parent->sr_sched.nof_users[i_min][j_min]++;
+  parent->pucch_res->sr_sched.nof_users[i_min][j_min]++;
   sr_sched_prb_idx = i_min;
   sr_sched_sf_idx  = j_min;
   sr_allocated     = true;
@@ -2537,8 +2536,8 @@ int rrc::ue::sr_allocate(uint32_t period)
 void rrc::ue::n_pucch_cs_free()
 {
   if (n_pucch_cs_alloc) {
-    parent->n_pucch_cs_used[n_pucch_cs_idx] = false;
-    n_pucch_cs_alloc                        = false;
+    parent->pucch_res->n_pucch_cs_used[n_pucch_cs_idx] = false;
+    n_pucch_cs_alloc                                   = false;
     parent->rrc_log->info("Deallocated N_pucch_cs=%d\n", n_pucch_cs_idx);
   }
 }
@@ -2578,12 +2577,12 @@ int rrc::ue::n_pucch_cs_allocate()
   const uint16_t     N_pucch_1 = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
   const uint32_t     max_cce   = srslte_max_cce(parent->cfg.cell.nof_prb);
   // Loop through all available resources
-  for (uint32_t i = 0; i < N_PUCCH_MAX_RES; i++) {
-    if (!parent->n_pucch_cs_used[i] && !(i >= N_pucch_1 && i < N_pucch_1 + max_cce)) {
+  for (uint32_t i = 0; i < pucch_res_common::N_PUCCH_MAX_RES; i++) {
+    if (!parent->pucch_res->n_pucch_cs_used[i] && !(i >= N_pucch_1 && i < N_pucch_1 + max_cce)) {
       // Allocate resource
-      parent->n_pucch_cs_used[i] = true;
-      n_pucch_cs_idx             = i;
-      n_pucch_cs_alloc           = true;
+      parent->pucch_res->n_pucch_cs_used[i] = true;
+      n_pucch_cs_idx                        = i;
+      n_pucch_cs_alloc                      = true;
       parent->rrc_log->info("Allocated N_pucch_cs=%d\n", n_pucch_cs_idx);
       return SRSLTE_SUCCESS;
     }

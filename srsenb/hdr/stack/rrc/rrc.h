@@ -342,14 +342,6 @@ private:
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
   std::unique_ptr<pucch_res_common> pucch_res;
-  struct pucch_idx_sched_t {
-    uint32_t nof_users[100][80];
-  };
-
-  const static uint32_t             N_PUCCH_MAX_PRB = 4; // Maximum number of PRB to use for PUCCH ACK/NACK in CS mode
-  const static uint32_t             N_PUCCH_MAX_RES = 3 * SRSLTE_NRE * N_PUCCH_MAX_PRB;
-  pucch_idx_sched_t                 sr_sched        = {};
-  std::array<bool, N_PUCCH_MAX_RES> n_pucch_cs_used = {};
 
   asn1::rrc::mcch_msg_s  mcch;
   bool                   enable_mbms     = false;
