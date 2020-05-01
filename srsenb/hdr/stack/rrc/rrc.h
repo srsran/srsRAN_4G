@@ -22,7 +22,7 @@
 #ifndef SRSENB_RRC_H
 #define SRSENB_RRC_H
 
-#include "rrc_config.h"
+#include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/common/block_queue.h"
@@ -36,11 +36,6 @@
 #include <queue>
 
 namespace srsenb {
-
-class cell_info_common;
-class cell_info_common_list;
-class cell_ctxt_dedicated_list;
-class freq_res_common_list;
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",
@@ -238,7 +233,7 @@ private:
 
     const static uint32_t UE_PCELL_CC_IDX = 0;
 
-    std::unique_ptr<cell_ctxt_dedicated_list> cell_ded_list;
+    cell_ctxt_dedicated_list cell_ded_list;
 
     int get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
 

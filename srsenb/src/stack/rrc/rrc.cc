@@ -985,7 +985,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   pool(srslte::byte_buffer_pool::get_instance()),
   current_sched_ue_cfg(sched_ue_cfg),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
-  cell_ded_list(new cell_ctxt_dedicated_list{parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list})
+  cell_ded_list(parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list)
 {
   if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
     parent->rrc_log->warning("No PCell set. Picking eNBccIdx=0 as PCell\n");
@@ -1002,7 +1002,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   apply_setup_phy_common(parent->cfg.sibs[1].sib2().rr_cfg_common);
 
   // Allocate cell and PUCCH resources
-  if (cell_ded_list->add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
+  if (cell_ded_list.add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
     return;
   }
 }
@@ -1237,7 +1237,7 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
     // Finally, add secondary carriers to MAC
     auto& list = current_sched_ue_cfg.supported_cc_list;
-    for (const auto& ue_cell : *cell_ded_list) {
+    for (const auto& ue_cell : cell_ded_list) {
       uint32_t ue_cc_idx = ue_cell.ue_cc_idx;
 
       if (ue_cc_idx >= list.size()) {
@@ -1542,8 +1542,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
   }
   phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
 
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)cell_ded_list->get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)cell_ded_list->get_sr_res()->sr_N_pucch;
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)cell_ded_list.get_sr_res()->sr_I;
+  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)cell_ded_list.get_sr_res()->sr_N_pucch;
 
   // Power control
   phy_cfg->ul_pwr_ctrl_ded_present              = true;
@@ -1598,8 +1598,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
     current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
   }
   current_sched_ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
-  current_sched_ue_cfg.pucch_cfg.I_sr              = cell_ded_list->get_sr_res()->sr_I;
-  current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = cell_ded_list->get_sr_res()->sr_N_pucch;
+  current_sched_ue_cfg.pucch_cfg.I_sr              = cell_ded_list.get_sr_res()->sr_I;
+  current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = cell_ded_list.get_sr_res()->sr_N_pucch;
   current_sched_ue_cfg.pucch_cfg.sr_configured     = true;
   const sib_type2_s& sib2                          = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2;
   current_sched_ue_cfg.pucch_cfg.delta_pucch_shift = sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
@@ -1712,7 +1712,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
 
   phy_cfg->cqi_report_cfg_present = true;
-  if (cell_ded_list->nof_cells() > 0) {
+  if (cell_ded_list.nof_cells() > 0) {
     phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
     phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
@@ -1737,8 +1737,8 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   }
   apply_reconf_phy_config(reconfig_r8);
 
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list->get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list->get_sr_res()->sr_N_pucch;
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list.get_sr_res()->sr_I;
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
 
   pdu->clear();
 
@@ -1923,9 +1923,9 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   // Allocate CQI + PUCCH for SCells.
   for (auto scell_idx : pcell_cfg->cell_cfg.scell_list) {
     uint32_t cell_id = scell_idx.cell_id;
-    cell_ded_list->add_cell(parent->cell_common_list->get_cell_id(cell_id)->enb_cc_idx);
+    cell_ded_list.add_cell(parent->cell_common_list->get_cell_id(cell_id)->enb_cc_idx);
   }
-  if (cell_ded_list->nof_cells() == 1) {
+  if (cell_ded_list.nof_cells() == 1) {
     // No SCell could be allocated. Fallback to single cell mode.
     return SRSLTE_SUCCESS;
   }
@@ -1937,7 +1937,7 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   auto& list = conn_reconf->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10;
 
   // Add all SCells configured+allocated for the current PCell
-  for (auto& p : *cell_ded_list) {
+  for (auto& p : cell_ded_list) {
     if (p.ue_cc_idx == UE_PCELL_CC_IDX) {
       continue;
     }
@@ -2048,8 +2048,8 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
 
   // Set DL HARQ Feedback mode
   conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.set_present(true);
-  conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.get()->pucch_format_r10_present = true;
-  conn_reconf->rr_cfg_ded.phys_cfg_ded.ext                                                 = true;
+  conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020->pucch_format_r10_present = true;
+  conn_reconf->rr_cfg_ded.phys_cfg_ded.ext                                           = true;
   auto pucch_format_r10                      = conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.get();
   pucch_format_r10->pucch_format_r10_present = true;
   auto& ch_sel_r10                           = pucch_format_r10->pucch_format_r10.set_ch_sel_r10();
@@ -2058,7 +2058,7 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   n1_pucch_an_cs_r10_l item0(4);
   // TODO: should we use a different n1PUCCH-AN-CS-List configuration?
   for (auto& it : item0) {
-    it = cell_ded_list->is_pucch_cs_allocated() ? *cell_ded_list->get_n_pucch_cs() : 0;
+    it = cell_ded_list.is_pucch_cs_allocated() ? *cell_ded_list.get_n_pucch_cs() : 0;
   }
   ch_sel_r10.n1_pucch_an_cs_r10.setup().n1_pucch_an_cs_list_r10.push_back(item0);
 
@@ -2428,7 +2428,7 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
 
 int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 {
-  cell_ctxt_dedicated* c = cell_ded_list->get_ue_cc_idx(ue_cc_idx);
+  cell_ctxt_dedicated* c = cell_ded_list.get_ue_cc_idx(ue_cc_idx);
   if (c != nullptr and c->cqi_res_present) {
     *pmi_idx = c->cqi_res.pmi_idx;
     *n_pucch = c->cqi_res.pucch_res;
@@ -2441,7 +2441,7 @@ int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 
 bool rrc::ue::is_allocated() const
 {
-  return cell_ded_list->is_allocated();
+  return cell_ded_list.is_allocated();
 }
 
 int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)

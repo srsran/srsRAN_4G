@@ -41,6 +41,7 @@ public:
   std::array<bool, N_PUCCH_MAX_RES> n_pucch_cs_used = {};
 };
 
+/** Storage of CQI/SR/PUCCH CS resources across multiple frequencies and for multiple users */
 class freq_res_common_list
 {
 public:
@@ -81,7 +82,7 @@ private:
   std::vector<cell_info_common> cell_list;
 };
 
-/** Struct to store the cell resources allocated to a user */
+/** Class used to store all the resources specific to a UE's cell */
 struct cell_ctxt_dedicated {
   uint32_t                ue_cc_idx;
   const cell_info_common& cell_common;
@@ -102,6 +103,7 @@ struct cell_ctxt_dedicated {
   cell_ctxt_dedicated& operator=(const cell_ctxt_dedicated&) = delete;
 };
 
+/** Class used to handle the allocation of a UE's resources across its cells */
 class cell_ctxt_dedicated_list
 {
 public:
