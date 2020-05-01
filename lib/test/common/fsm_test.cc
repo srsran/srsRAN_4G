@@ -51,6 +51,11 @@ public:
     explicit fsm2(fsm1* f_) : nested_fsm_t(f_) {}
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
 
+  private:
+    void inner_action1(state_inner& s, state_inner& d, const ev1& e);
+    void inner_action2(state_inner& s, state_inner2& d, const ev2& e);
+    void inner_action3(state_inner2& s, state1& d, const ev2& e);
+
   protected:
     void enter(state_inner& s)
     {
@@ -60,13 +65,6 @@ public:
     void enter(state_inner2& s) { log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(s).c_str()); }
     void exit(state_inner2& s) { log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(s).c_str()); }
 
-    // FSM2 transitions
-    void inner_action1(state_inner& s, state_inner& d, const ev1& e);
-
-    void inner_action2(state_inner& s, state_inner2& d, const ev2& e);
-
-    void inner_action3(state_inner2& s, state1& d, const ev2& e);
-
     // list of states
     state_list<state_inner, state_inner2> states{this};
     using transitions = transition_table<row<state_inner, state_inner, ev1, &fsm2::inner_action1>,
@@ -74,16 +72,16 @@ public:
                                          row<state_inner2, state1, ev2, &fsm2::inner_action3> >;
   };
 
+private:
+  void action1(idle_st& s, state1& d, const ev1& e);
+  void action2(state1& s, fsm2& d, const ev1& e);
+  void action3(state1& s, idle_st& d, const ev2& e);
+
 protected:
   // enter/exit
   void enter(idle_st& s);
   void enter(state1& s);
-
-  void action1(idle_st& s, state1& d, const ev1& e);
-
-  void action2(state1& s, fsm2& d, const ev1& e);
-
-  void action3(state1& s, idle_st& d, const ev2& e);
+  void exit(state1& s);
 
   void foo(ev1 e) { foo_counter++; }
 
@@ -104,6 +102,11 @@ void fsm1::enter(state1& s)
 {
   log_h->info("%s::enter custom called\n", srslte::get_type_name(s).c_str());
   state1_enter_counter++;
+}
+
+void fsm1::exit(state1& s)
+{
+  log_h->info("%s::exit custom called\n", srslte::get_type_name(s).c_str());
 }
 
 // FSM event handlers
@@ -145,16 +148,16 @@ namespace fsm_details {
 
 static_assert(is_fsm<fsm1>(), "invalid metafunction\n");
 static_assert(is_subfsm<fsm1::fsm2>(), "invalid metafunction\n");
+static_assert(type_list_size(typename filter_transition_type<ev1, fsm1::idle_st, fsm_transitions<fsm1> >::type{}) > 0,
+              "invalid filter metafunction\n");
 static_assert(
-    type_list_size(typename filter_transition_type<ev1, fsm1::idle_st, fsm_helper::fsm_transitions<fsm1> >::type{}) > 0,
-    "invalid filter metafunction\n");
-static_assert(std::is_same<fsm_helper::fsm_state_list_type<fsm1>,
-                           fsm1::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
-              "get state list failed\n");
+    std::is_same<fsm_state_list_type<fsm1>, fsm1::state_list<fsm1::idle_st, fsm1::state1, fsm1::fsm2> >::value,
+    "get state list failed\n");
 static_assert(fsm1::can_hold_state<fsm1::state1>(), "failed can_hold_state check\n");
 static_assert(std::is_same<enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value, "get state list failed\n");
 static_assert(std::is_same<disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value,
               "get state list failed\n");
+static_assert(type_utils::is_detected<state_enter_t, fsm1, fsm1::idle_st>::value, "Failed detection of enter method\n");
 
 } // namespace fsm_details
 } // namespace srslte
@@ -264,15 +267,13 @@ void proc1::init(idle_st& s, procstate1& d, const srslte::proc_launch_ev<int*>& 
 void proc1::handle_success(procstate1& s, idle_st& d, const procevent1& ev)
 {
   log_h->info("success!\n");
-  d.success = true;
-  d.result  = 5;
+  d = {true, 5};
 }
 
 void proc1::handle_failure(procstate1& s, idle_st& d, const procevent1& ev)
 {
   log_h->info("failure!\n");
-  d.success = false;
-  d.result  = 3;
+  d = {false, 3};
 }
 
 int test_fsm_proc()
@@ -291,12 +292,12 @@ int test_fsm_proc()
   TESTASSERT(proc.current_state_name() == "procstate1");
   proc.trigger(procevent1{true});
   TESTASSERT(proc.current_state_name() == "idle_st");
-  TESTASSERT(proc.get_state<proc1::idle_st>()->success);
+  TESTASSERT(proc.get_state<proc1::idle_st>()->is_success());
   proc.launch(&v);
   TESTASSERT(proc.current_state_name() == "procstate1");
   proc.trigger(procevent1{false});
   TESTASSERT(proc.current_state_name() == "idle_st");
-  TESTASSERT(not proc.get_state<proc1::idle_st>()->success);
+  TESTASSERT(not proc.get_state<proc1::idle_st>()->is_success());
 
   return SRSLTE_SUCCESS;
 }
