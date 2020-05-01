@@ -306,8 +306,6 @@ enable = false
 #
 # snr_to_cqi_offset:    Sets an offset in the SNR to CQI table. This is used to adjust the reported CQI.
 #
-# pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
-#
 # interpolate_subframe_enabled: Interpolates in the time domain the channel estimates within 1 subframe. Default is to average.
 #
 # pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
@@ -342,7 +340,6 @@ enable = false
 #estimator_fil_order  = 4
 #snr_to_cqi_offset   = 0.0
 #interpolate_subframe_enabled = false
-#pregenerate_signals = false
 #pdsch_csi_enabled  = true
 #pdsch_8bit_decoder = false
 #force_ul_amplitude = 0

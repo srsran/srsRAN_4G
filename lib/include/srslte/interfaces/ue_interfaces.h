@@ -509,7 +509,6 @@ typedef struct {
   bool        pdsch_8bit_decoder           = false;
   uint32_t    intra_freq_meas_len_ms       = 20;
   uint32_t    intra_freq_meas_period_ms    = 200;
-  bool        pregenerate_signals          = false;
   float       force_ul_amplitude           = 0.0f;
 
   float    in_sync_rsrp_dbm_th    = -130.0f;

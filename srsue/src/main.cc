@@ -218,10 +218,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<int>(&args->phy.sync_cpu_affinity)->default_value(-1),
      "index of the core used by the sync thread")
 
-    ("phy.pregenerate_signals",
-     bpo::value<bool>(&args->phy.pregenerate_signals)->default_value(false),
-     "Pregenerate uplink signals after attach. Improves CPU performance.")
-
     ("phy.rx_gain_offset",
      bpo::value<float>(&args->phy.rx_gain_offset)->default_value(62),
      "RX Gain offset to add to rx_gain to correct RSRP value")
