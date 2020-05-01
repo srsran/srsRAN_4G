@@ -291,7 +291,7 @@ public:
     using Derived::enter;
     using Derived::exit;
     using Derived::states;
-    using Derived::transitions;
+    using typename Derived::transitions;
   };
 
   //! Params of a state transition
