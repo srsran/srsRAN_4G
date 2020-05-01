@@ -35,8 +35,13 @@ public:
   uint32_t foo_counter = 0;
 
   // states
-  struct idle_st {};
-  struct state1 {};
+  struct idle_st {
+    void enter(fsm1* f);
+  };
+  struct state1 {
+    void enter(fsm1* f);
+    void exit(fsm1* f);
+  };
 
   explicit fsm1(srslte::log_ref log_) : srslte::fsm_t<fsm1>(log_) {}
 
@@ -45,8 +50,17 @@ public:
   {
   public:
     // states
-    struct state_inner {};
-    struct state_inner2 {};
+    struct state_inner {
+      void enter(fsm2* f)
+      {
+        f->log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(*this).c_str());
+        f->parent_fsm()->inner_enter_counter++;
+      }
+    };
+    struct state_inner2 {
+      void enter(fsm2* f) { f->log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(*this).c_str()); }
+      void exit(fsm2* f) { f->log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(*this).c_str()); }
+    };
 
     explicit fsm2(fsm1* f_) : nested_fsm_t(f_) {}
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
@@ -57,14 +71,6 @@ public:
     void inner_action3(state_inner2& s, state1& d, const ev2& e);
 
   protected:
-    void enter(state_inner& s)
-    {
-      log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(s).c_str());
-      parent_fsm()->inner_enter_counter++;
-    }
-    void enter(state_inner2& s) { log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(s).c_str()); }
-    void exit(state_inner2& s) { log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(s).c_str()); }
-
     // list of states
     state_list<state_inner, state_inner2> states{this};
     using transitions = transition_table<row<state_inner, state_inner, ev1, &fsm2::inner_action1>,
@@ -78,11 +84,6 @@ private:
   void action3(state1& s, idle_st& d, const ev2& e);
 
 protected:
-  // enter/exit
-  void enter(idle_st& s);
-  void enter(state1& s);
-  void exit(state1& s);
-
   void foo(ev1 e) { foo_counter++; }
 
   // list of states + transitions
@@ -93,20 +94,19 @@ protected:
                                        row<state1, idle_st, ev2, &fsm1::action3> >;
 };
 
-void fsm1::enter(idle_st& s)
+void fsm1::idle_st::enter(fsm1* f)
 {
-  log_h->info("%s::enter custom called\n", srslte::get_type_name(s).c_str());
-  idle_enter_counter++;
+  f->log_h->info("%s::enter custom called\n", srslte::get_type_name(*this).c_str());
+  f->idle_enter_counter++;
 }
-void fsm1::enter(state1& s)
+void fsm1::state1::enter(fsm1* f)
 {
-  log_h->info("%s::enter custom called\n", srslte::get_type_name(s).c_str());
-  state1_enter_counter++;
+  f->log_h->info("%s::enter custom called\n", srslte::get_type_name(*this).c_str());
+  f->state1_enter_counter++;
 }
-
-void fsm1::exit(state1& s)
+void fsm1::state1::exit(fsm1* f)
 {
-  log_h->info("%s::exit custom called\n", srslte::get_type_name(s).c_str());
+  f->log_h->info("%s::exit custom called\n", srslte::get_type_name(*this).c_str());
 }
 
 // FSM event handlers
@@ -157,7 +157,8 @@ static_assert(fsm1::can_hold_state<fsm1::state1>(), "failed can_hold_state check
 static_assert(std::is_same<enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value, "get state list failed\n");
 static_assert(std::is_same<disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value,
               "get state list failed\n");
-static_assert(type_utils::is_detected<state_enter_t, fsm1, fsm1::idle_st>::value, "Failed detection of enter method\n");
+static_assert(type_utils::is_detected<enter_op_t, fsm1::idle_st>::value, "Failed detection of enter method\n");
+static_assert(not type_utils::is_detected<exit_op_t, fsm1::idle_st>::value, "Failed detection of exit method\n");
 
 } // namespace fsm_details
 } // namespace srslte

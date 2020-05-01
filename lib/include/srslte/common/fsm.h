@@ -97,10 +97,10 @@ using fsm_state_list_type = decltype(std::declval<typename FSM::derived_view>().
 template <typename FSM>
 using fsm_transitions = typename FSM::derived_view::transitions;
 
-template <typename FSM, typename T>
-using state_enter_t = decltype(std::declval<typename FSM::derived_view>().enter(std::declval<T&>()));
-template <typename FSM, typename T>
-using state_exit_t = decltype(std::declval<typename FSM::derived_view>().exit(std::declval<T&>()));
+template <typename T>
+using enter_op_t = decltype(std::declval<T>().enter(nullptr));
+template <typename T>
+using exit_op_t = decltype(std::declval<T>().exit(nullptr));
 
 //! Find State in FSM recursively (e.g. find State in FSM,FSM::parentFSM,FSM::parentFSM::parentFSM,...)
 template <typename State, typename FSM>
@@ -109,24 +109,17 @@ static auto get_state_recursive(FSM* f) -> enable_if_fsm_state<FSM, State, State
   return &f->states.template get_unchecked<State>();
 }
 
-struct derived_access {
-  template <typename T>
-  static typename T::derived_view* get(T* f)
-  {
-    return f->derived();
-  }
-  template <typename T>
-  static typename T::parent_t::derived_view* get_parent(T* f)
-  {
-    return f->parent_fsm()->derived();
-  }
-};
+template <typename FSM>
+typename FSM::derived_view* get_derived(FSM* f)
+{
+  return static_cast<typename FSM::derived_view*>(f);
+}
 
 template <typename State, typename FSM>
 static auto get_state_recursive(FSM* f) -> disable_if_fsm_state<FSM, State, State*>
 {
   static_assert(FSM::is_nested, "State is not present in the FSM list of valid states");
-  return get_state_recursive<State>(derived_access::get_parent(f));
+  return get_state_recursive<State>(get_derived(f->parent_fsm()));
 }
 
 //! Helper type for FSM state-related operations
@@ -135,8 +128,8 @@ struct state_traits {
   static_assert(FSM::template can_hold_state<State>(), "FSM type does not hold provided State\n");
   using state_t   = State;
   using is_subfsm = std::integral_constant<bool, ::srslte::fsm_details::is_subfsm<State>()>;
-  using has_enter = type_utils::is_detected<state_enter_t, FSM, State>;
-  using has_exit  = type_utils::is_detected<state_exit_t, FSM, State>;
+  using has_enter = type_utils::is_detected<enter_op_t, State>;
+  using has_exit  = type_utils::is_detected<exit_op_t, State>;
 
   //! enter new state. enter is called recursively for subFSMs
   static void enter_state(FSM* f, State* s) { enter_(f, s, is_subfsm{}); }
@@ -151,9 +144,9 @@ struct state_traits {
   template <typename DestState>
   static disable_if_fsm_state<FSM, DestState> transit_state(FSM* f)
   {
+    using parent_state_traits = state_traits<typename FSM::parent_t::derived_view, typename FSM::derived_t>;
     exit_if_exists_(f, &f->states.template get_unchecked<State>(), has_exit{});
-    state_traits<typename FSM::parent_t::derived_view, typename FSM::derived_t>::template transit_state<DestState>(
-        derived_access::get_parent(f));
+    parent_state_traits::template transit_state<DestState>(get_derived(f->parent_fsm()));
   }
 
 private:
@@ -162,18 +155,18 @@ private:
   {
     using init_type = typename fsm_state_list_type<State>::init_state_t;
     // set default FSM type
-    derived_access::get(s)->states.template transit<init_type>();
+    get_derived(s)->states.template transit<init_type>();
     // call FSM enter function
     enter_if_exists_(f, s, has_enter{});
     // call initial substate enter
     state_traits<typename State::derived_view, init_type>::enter_state(
-        derived_access::get(s), &derived_access::get(s)->states.template get_unchecked<init_type>());
+        get_derived(s), &get_derived(s)->states.template get_unchecked<init_type>());
   }
   //! In case of State is basic state
   static void enter_(FSM* f, State* s, std::false_type) { enter_if_exists_(f, s, has_enter{}); }
-  static void enter_if_exists_(FSM* f, State* s, std::true_type) { f->enter(*s); }
+  static void enter_if_exists_(FSM* f, State* s, std::true_type) { s->enter(f); }
   static void enter_if_exists_(FSM* f, State* s, std::false_type) {}
-  static void exit_if_exists_(FSM* f, State* s, std::true_type) { f->exit(*s); }
+  static void exit_if_exists_(FSM* f, State* s, std::true_type) { s->exit(f); }
   static void exit_if_exists_(FSM* f, State* s, std::false_type) {}
 };
 
@@ -288,8 +281,6 @@ public:
   public:
     using derived_t = Derived;
     // propagate user fsm methods
-    using Derived::enter;
-    using Derived::exit;
     using Derived::states;
     using typename Derived::transitions;
   };
@@ -494,15 +485,10 @@ public:
   }
 
 protected:
-  friend struct fsm_details::derived_access;
-
   // Access to CRTP derived class
   derived_view* derived() { return static_cast<derived_view*>(this); }
 
   const derived_view* derived() const { return static_cast<const derived_view*>(this); }
-
-  void enter() {}
-  void exit() {}
 
   srslte::log_ref        log_h;
   srslte::LOG_LEVEL_ENUM fsm_event_log_level = LOG_LEVEL_INFO;
@@ -525,7 +511,6 @@ public:
 
 protected:
   using parent_fsm_t = ParentFSM;
-  using fsm_t<Derived>::exit;
 
   ParentFSM* fsm_ptr = nullptr;
 };
@@ -561,6 +546,28 @@ public:
     idle_st(bool success_, T&& r) : success(success_), result(std::forward<T>(r)), value_set(true)
     {}
 
+    void enter(Derived* f)
+    {
+      if (f->launch_counter > 0) {
+        f->log_h->info("FSM \"%s\": Finished run no. %d %s\n",
+                       get_type_name<Derived>().c_str(),
+                       f->launch_counter,
+                       is_success() ? "successfully" : "with an error");
+        if (not is_result_set()) {
+          f->log_h->error(
+              "FSM \"%s\": No result was set for run no. %d\n", get_type_name<Derived>().c_str(), f->launch_counter);
+        }
+      }
+    }
+
+    void exit(Derived* f)
+    {
+      value_set = false;
+      success   = false;
+      f->launch_counter++;
+      f->log_h->info("FSM \"%s\": Starting run no. %d\n", get_type_name<Derived>().c_str(), f->launch_counter);
+    }
+
     bool          is_result_set() const { return value_set; }
     bool          is_success() const { return value_set and success; }
     const Result& get_result() const { return result; }
@@ -588,28 +595,6 @@ public:
   void launch(Args&&... args)
   {
     trigger(proc_launch_ev<Args...>(std::forward<Args>(args)...));
-  }
-
-protected:
-  void enter(idle_st& s)
-  {
-    if (launch_counter > 0) {
-      log_h->info("FSM \"%s\": Finished run no. %d %s\n",
-                  get_type_name<Derived>().c_str(),
-                  launch_counter,
-                  s.is_success() ? "successfully" : "with an error");
-      if (not s.is_result_set()) {
-        log_h->error(
-            "FSM \"%s\": No result was set for run no. %d\n", get_type_name<Derived>().c_str(), launch_counter);
-      }
-    }
-  }
-
-  void exit(idle_st& s)
-  {
-    s = {};
-    launch_counter++;
-    log_h->info("FSM \"%s\": Starting run no. %d\n", get_type_name<Derived>().c_str(), launch_counter);
   }
 
 private:
