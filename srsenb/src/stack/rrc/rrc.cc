@@ -70,7 +70,7 @@ void rrc::init(const rrc_cfg_t&       cfg_,
     configure_mbsfn_sibs(&cfg.sibs[1].sib2(), &cfg.sibs[12].sib13_v920());
   }
 
-  pucch_res.reset(new pucch_res_common{});
+  pucch_res_list.reset(new freq_res_common_list{cfg});
 
   // Loads the PRACH root sequence
   cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx = cfg.cell_list[0].root_seq_idx;
@@ -781,7 +781,7 @@ void rrc::config_mac()
       scellcfg.enb_cc_idx               = it - cfg.cell_list.begin();
       scellcfg.ul_allowed               = scellitem.ul_allowed;
       scellcfg.cross_carrier_scheduling = scellitem.cross_carrier_sched;
-      sched_cfg[ccidx].scell_list.push_back(std::move(scellcfg));
+      sched_cfg[ccidx].scell_list.push_back(scellcfg);
     }
   }
 
@@ -804,7 +804,7 @@ uint32_t rrc::generate_sibs()
   sched_info_list_l& sched_info   = cfg.sib1.sched_info_list;
 
   // Store configs,SIBs in common cell ctxt list
-  cell_common_list.reset(new cell_ctxt_common_list{cfg});
+  cell_common_list.reset(new cell_info_common_list{cfg});
 
   // generate and pack into SIB buffers
   for (uint32_t cc_idx = 0; cc_idx < cfg.cell_list.size(); cc_idx++) {
@@ -985,7 +985,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   pool(srslte::byte_buffer_pool::get_instance()),
   current_sched_ue_cfg(sched_ue_cfg),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
-  cell_ded_list(new cell_ctxt_dedicated_list{parent->cfg, *parent->pucch_res, *outer_rrc->cell_common_list})
+  cell_ded_list(new cell_ctxt_dedicated_list{parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list})
 {
   if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
     parent->rrc_log->warning("No PCell set. Picking eNBccIdx=0 as PCell\n");
@@ -1005,23 +1005,9 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   if (cell_ded_list->add_cell(sched_ue_cfg.supported_cc_list[0].enb_cc_idx) == nullptr) {
     return;
   }
-  if (cell_ded_list->alloc_cqi_resources(UE_PCELL_CC_IDX, parent->cfg.cqi_cfg.period) != SRSLTE_SUCCESS) {
-    return;
-  }
-  if (sr_allocate(parent->cfg.cqi_cfg.period) != SRSLTE_SUCCESS) {
-    return;
-  }
-  if (parent->cfg.cell_list.size() > 1) {
-    n_pucch_cs_allocate();
-  }
 }
 
-rrc::ue::~ue()
-{
-  // And deallocate resources from RRC
-  sr_free();
-  n_pucch_cs_free();
-}
+rrc::ue::~ue() {}
 
 rrc_state_t rrc::ue::get_state()
 {
@@ -1556,15 +1542,9 @@ void rrc::ue::send_connection_setup(bool is_setup)
   }
   phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
 
-  if (is_setup) {
-    if (get_sr(&phy_cfg->sched_request_cfg.setup().sr_cfg_idx, &phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx)) {
-      parent->rrc_log->error("Allocating SR resources for rnti=0x%x\n", rnti);
-      return;
-    }
-  } else {
-    phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)sr_I;
-    phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)sr_N_pucch;
-  }
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)cell_ded_list->get_sr_res()->sr_I;
+  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)cell_ded_list->get_sr_res()->sr_N_pucch;
+
   // Power control
   phy_cfg->ul_pwr_ctrl_ded_present              = true;
   phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
@@ -1618,8 +1598,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
     current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
   }
   current_sched_ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
-  current_sched_ue_cfg.pucch_cfg.I_sr              = sr_I;
-  current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = sr_N_pucch;
+  current_sched_ue_cfg.pucch_cfg.I_sr              = cell_ded_list->get_sr_res()->sr_I;
+  current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = cell_ded_list->get_sr_res()->sr_N_pucch;
   current_sched_ue_cfg.pucch_cfg.sr_configured     = true;
   const sib_type2_s& sib2                          = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2;
   current_sched_ue_cfg.pucch_cfg.delta_pucch_shift = sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
@@ -1732,7 +1712,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
 
   phy_cfg->cqi_report_cfg_present = true;
-  if (cell_ded_list->nof_cell_with_cqi_res() > 0) {
+  if (cell_ded_list->nof_cells() > 0) {
     phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
     phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
@@ -1757,7 +1737,8 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   }
   apply_reconf_phy_config(reconfig_r8);
 
-  get_sr(&phy_cfg->sched_request_cfg.setup().sr_cfg_idx, &phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx);
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list->get_sr_res()->sr_I;
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list->get_sr_res()->sr_N_pucch;
 
   pdu->clear();
 
@@ -1940,14 +1921,11 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   }
 
   // Allocate CQI + PUCCH for SCells.
-  uint32_t nof_allocs = 0;
-  for (size_t scell_idx = 0; scell_idx < pcell_cfg->cell_cfg.scell_list.size(); ++scell_idx) {
-    uint32_t cell_id = pcell_cfg->cell_cfg.scell_list[scell_idx].cell_id;
-    if (cell_ded_list->add_cell(parent->cell_common_list->get_cell_id(cell_id)->enb_cc_idx) != nullptr) {
-      nof_allocs += allocate_scell_pucch(scell_idx + 1) == SRSLTE_SUCCESS ? 1 : 0;
-    }
+  for (auto scell_idx : pcell_cfg->cell_cfg.scell_list) {
+    uint32_t cell_id = scell_idx.cell_id;
+    cell_ded_list->add_cell(parent->cell_common_list->get_cell_id(cell_id)->enb_cc_idx);
   }
-  if (nof_allocs == 1) {
+  if (cell_ded_list->nof_cells() == 1) {
     // No SCell could be allocated. Fallback to single cell mode.
     return SRSLTE_SUCCESS;
   }
@@ -2080,7 +2058,7 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   n1_pucch_an_cs_r10_l item0(4);
   // TODO: should we use a different n1PUCCH-AN-CS-List configuration?
   for (auto& it : item0) {
-    get_n_pucch_cs(&it);
+    it = cell_ded_list->is_pucch_cs_allocated() ? *cell_ded_list->get_n_pucch_cs() : 0;
   }
   ch_sel_r10.n1_pucch_an_cs_r10.setup().n1_pucch_an_cs_list_r10.push_back(item0);
 
@@ -2448,100 +2426,6 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
   }
 }
 
-void rrc::ue::sr_free()
-{
-  if (sr_allocated) {
-    if (parent->pucch_res->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx] > 0) {
-      parent->pucch_res->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx]--;
-    } else {
-      parent->rrc_log->warning(
-          "Removing SR resources: no users in time-frequency slot (%d, %d)\n", sr_sched_prb_idx, sr_sched_sf_idx);
-    }
-    parent->rrc_log->info(
-        "Deallocated SR resources for time-frequency slot (%d, %d)\n", sr_sched_prb_idx, sr_sched_sf_idx);
-    sr_allocated = false;
-  }
-}
-
-int rrc::ue::get_sr(uint8_t* I_sr, uint16_t* N_pucch_sr)
-{
-  if (sr_allocated) {
-    *I_sr       = sr_I;
-    *N_pucch_sr = sr_N_pucch;
-    return SRSLTE_SUCCESS;
-  } else {
-    return SRSLTE_ERROR;
-  }
-}
-
-int rrc::ue::sr_allocate(uint32_t period)
-{
-  uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
-  uint32_t delta_pucch_shift =
-      get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
-
-  uint32_t max_users = 12 * c / delta_pucch_shift;
-
-  // Find freq-time resources with least number of users
-  int      i_min = 0, j_min = 0;
-  uint32_t min_users = std::numeric_limits<uint32_t>::max();
-  for (uint32_t i = 0; i < parent->cfg.sr_cfg.nof_prb; i++) {
-    for (uint32_t j = 0; j < parent->cfg.sr_cfg.nof_subframes; j++) {
-      if (parent->pucch_res->sr_sched.nof_users[i][j] < min_users) {
-        i_min     = i;
-        j_min     = j;
-        min_users = parent->pucch_res->sr_sched.nof_users[i][j];
-      }
-    }
-  }
-
-  if (parent->pucch_res->sr_sched.nof_users[i_min][j_min] > max_users) {
-    parent->rrc_log->error("Not enough PUCCH resources to allocate Scheduling Request\n");
-    return SRSLTE_ERROR;
-  }
-
-  // Compute I_sr
-  if (period != 5 && period != 10 && period != 20 && period != 40 && period != 80) {
-    parent->rrc_log->error("Invalid SchedulingRequest period %d ms\n", period);
-    return SRSLTE_ERROR;
-  }
-  if (parent->cfg.sr_cfg.sf_mapping[j_min] < period) {
-    sr_I = period - 5 + parent->cfg.sr_cfg.sf_mapping[j_min];
-  } else {
-    parent->rrc_log->error(
-        "Allocating SR: invalid sf_idx=%d for period=%d\n", parent->cfg.sr_cfg.sf_mapping[j_min], period);
-    return SRSLTE_ERROR;
-  }
-
-  // Compute N_pucch_sr
-  sr_N_pucch = i_min * max_users + parent->pucch_res->sr_sched.nof_users[i_min][j_min];
-  if (get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
-    sr_N_pucch += get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
-  }
-
-  // Allocate user
-  parent->pucch_res->sr_sched.nof_users[i_min][j_min]++;
-  sr_sched_prb_idx = i_min;
-  sr_sched_sf_idx  = j_min;
-  sr_allocated     = true;
-
-  parent->rrc_log->info("Allocated SR resources for time-frequency slot (%d, %d), N_pucch_sr=%d, I_sr=%d\n",
-                        sr_sched_prb_idx,
-                        sr_sched_sf_idx,
-                        sr_N_pucch,
-                        sr_I);
-  return SRSLTE_SUCCESS;
-}
-
-void rrc::ue::n_pucch_cs_free()
-{
-  if (n_pucch_cs_alloc) {
-    parent->pucch_res->n_pucch_cs_used[n_pucch_cs_idx] = false;
-    n_pucch_cs_alloc                                   = false;
-    parent->rrc_log->info("Deallocated N_pucch_cs=%d\n", n_pucch_cs_idx);
-  }
-}
-
 int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
 {
   cell_ctxt_dedicated* c = cell_ded_list->get_ue_cc_idx(ue_cc_idx);
@@ -2555,56 +2439,9 @@ int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
   }
 }
 
-int rrc::ue::allocate_scell_pucch(uint32_t ue_cc_idx)
-{
-  if (cell_ded_list->alloc_cqi_resources(ue_cc_idx, parent->cfg.cqi_cfg.period) != SRSLTE_SUCCESS) {
-    parent->rrc_log->error("Error allocating CQI resource for ue_cc_idx=%d\n", ue_cc_idx);
-    return SRSLTE_ERROR;
-  }
-  // Allocate resources for Format1b CS (will be optional PUCCH3/CS)
-  if (parent->cfg.cell_list.size() == 2 && ue_cc_idx == 1) {
-    if (n_pucch_cs_allocate()) {
-      parent->rrc_log->error("Error allocating PUCCH Format1b CS resource for ue_cc_idx=%d\n", ue_cc_idx);
-      return SRSLTE_ERROR;
-    }
-  }
-  return SRSLTE_SUCCESS;
-}
-
-int rrc::ue::n_pucch_cs_allocate()
-{
-  const sib_type2_s& sib2      = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2;
-  const uint16_t     N_pucch_1 = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
-  const uint32_t     max_cce   = srslte_max_cce(parent->cfg.cell.nof_prb);
-  // Loop through all available resources
-  for (uint32_t i = 0; i < pucch_res_common::N_PUCCH_MAX_RES; i++) {
-    if (!parent->pucch_res->n_pucch_cs_used[i] && !(i >= N_pucch_1 && i < N_pucch_1 + max_cce)) {
-      // Allocate resource
-      parent->pucch_res->n_pucch_cs_used[i] = true;
-      n_pucch_cs_idx                        = i;
-      n_pucch_cs_alloc                      = true;
-      parent->rrc_log->info("Allocated N_pucch_cs=%d\n", n_pucch_cs_idx);
-      return SRSLTE_SUCCESS;
-    }
-  }
-  parent->rrc_log->warning("Could not allocated N_pucch_cs\n");
-  return SRSLTE_ERROR;
-}
-
-int rrc::ue::get_n_pucch_cs(uint16_t* N_pucch_cs)
-{
-  if (n_pucch_cs_alloc) {
-    *N_pucch_cs = n_pucch_cs_idx;
-    return SRSLTE_SUCCESS;
-  } else {
-    return SRSLTE_ERROR;
-  }
-}
-
 bool rrc::ue::is_allocated() const
 {
-  return cell_ded_list->nof_cell_with_cqi_res() > 0 and sr_allocated and
-         (parent->cfg.cell_list.size() <= 1 or n_pucch_cs_alloc);
+  return cell_ded_list->is_allocated();
 }
 
 int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)

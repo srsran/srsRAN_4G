@@ -41,6 +41,18 @@ public:
   std::array<bool, N_PUCCH_MAX_RES> n_pucch_cs_used = {};
 };
 
+class freq_res_common_list
+{
+public:
+  explicit freq_res_common_list(const rrc_cfg_t& cfg_);
+
+  pucch_res_common* get_earfcn(uint32_t earfcn);
+
+private:
+  const rrc_cfg_t&                     cfg;
+  std::map<uint32_t, pucch_res_common> pucch_res_list;
+};
+
 /** Storage of cell-specific eNB config and derived params */
 struct cell_info_common {
   uint32_t                           enb_cc_idx = 0;
@@ -53,10 +65,10 @@ struct cell_info_common {
   cell_info_common(uint32_t idx_, const cell_cfg_t& cfg) : enb_cc_idx(idx_), cell_cfg(cfg) {}
 };
 
-class cell_ctxt_common_list
+class cell_info_common_list
 {
 public:
-  explicit cell_ctxt_common_list(const rrc_cfg_t& cfg_);
+  explicit cell_info_common_list(const rrc_cfg_t& cfg_);
 
   cell_info_common*       get_cc_idx(uint32_t enb_cc_idx) { return &cell_list[enb_cc_idx]; }
   const cell_info_common* get_cc_idx(uint32_t enb_cc_idx) const { return &cell_list[enb_cc_idx]; }
@@ -74,6 +86,7 @@ struct cell_ctxt_dedicated {
   uint32_t                ue_cc_idx;
   const cell_info_common& cell_common;
   bool                    cqi_res_present = false;
+  bool                    sr_res_present  = false;
   struct cqi_res_t {
     uint32_t pmi_idx   = 0;
     uint32_t pucch_res = 0;
@@ -93,13 +106,11 @@ class cell_ctxt_dedicated_list
 {
 public:
   explicit cell_ctxt_dedicated_list(const rrc_cfg_t&             cfg_,
-                                    pucch_res_common&            pucch_res_,
-                                    const cell_ctxt_common_list& enb_common_list);
+                                    freq_res_common_list&        pucch_res_list_,
+                                    const cell_info_common_list& enb_common_list);
   ~cell_ctxt_dedicated_list();
 
   cell_ctxt_dedicated* add_cell(uint32_t enb_cc_idx);
-  bool                 alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period);
-  bool                 dealloc_cqi_resources(uint32_t ue_cc_idx);
 
   cell_ctxt_dedicated* get_ue_cc_idx(uint32_t ue_cc_idx)
   {
@@ -107,18 +118,42 @@ public:
   }
   cell_ctxt_dedicated* get_enb_cc_idx(uint32_t enb_cc_idx);
   size_t               nof_cells() const { return cell_ded_list.size(); }
-  size_t               nof_cell_with_cqi_res() const;
+  bool                 is_allocated() const { return nof_cells() > 0; }
 
   using iterator = std::vector<cell_ctxt_dedicated>::iterator;
   iterator begin() { return cell_ded_list.begin(); }
   iterator end() { return cell_ded_list.end(); }
 
+  struct sr_res_t {
+    int      sr_sched_sf_idx  = 0;
+    int      sr_sched_prb_idx = 0;
+    uint32_t sr_N_pucch       = 0;
+    uint32_t sr_I             = 0;
+  };
+
+  const sr_res_t* get_sr_res() const { return sr_res_present ? &sr_res : nullptr; }
+  const uint16_t* get_n_pucch_cs() const { return n_pucch_cs_present ? &n_pucch_cs_idx : nullptr; }
+  bool            is_pucch_cs_allocated() const { return n_pucch_cs_present; }
+
 private:
-  srslte::log_ref                  log_h{"RRC"};
-  const rrc_cfg_t&                 cfg;
-  const cell_ctxt_common_list&     common_list;
-  pucch_res_common&                pucch_res;
+  bool alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period);
+  bool dealloc_cqi_resources(uint32_t ue_cc_idx);
+  bool alloc_sr_resources(uint32_t period);
+  bool dealloc_sr_resources();
+  bool alloc_pucch_cs_resources();
+  bool dealloc_pucch_cs_resources();
+
+  srslte::log_ref              log_h{"RRC"};
+  const rrc_cfg_t&             cfg;
+  const cell_info_common_list& common_list;
+  freq_res_common_list&        pucch_res_list;
+
+  pucch_res_common*                pucch_res = nullptr;
   std::vector<cell_ctxt_dedicated> cell_ded_list;
+  bool                             sr_res_present     = false;
+  bool                             n_pucch_cs_present = false;
+  sr_res_t                         sr_res             = {};
+  uint16_t                         n_pucch_cs_idx     = 0;
 };
 
 } // namespace srsenb

@@ -38,9 +38,9 @@
 namespace srsenb {
 
 class cell_info_common;
-class cell_ctxt_common_list;
+class cell_info_common_list;
 class cell_ctxt_dedicated_list;
-class pucch_res_common;
+class freq_res_common_list;
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",
@@ -174,11 +174,8 @@ private:
     void notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
 
     // Getters for PUCCH resources
-    int  allocate_scell_pucch(uint32_t cc_idx);
-    int  get_sr(uint8_t* I_sr, uint16_t* N_pucch_sr);
     int  get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx);
     int  get_ri(uint32_t m_ri, uint16_t* ri_idx);
-    int  get_n_pucch_cs(uint16_t* N_pucch_cs);
     bool is_allocated() const;
 
     bool select_security_algorithms();
@@ -228,21 +225,14 @@ private:
     asn1::rrc::ue_eutra_cap_s                  eutra_capabilities;
     srslte::rrc_ue_capabilities_t              ue_capabilities;
 
-    typedef struct {
+    struct erab_t {
       uint8_t                                     id;
       asn1::s1ap::erab_level_qos_params_s         qos_params;
       asn1::bounded_bitstring<1, 160, true, true> address;
       uint32_t                                    teid_out;
       uint32_t                                    teid_in;
-    } erab_t;
+    };
     std::map<uint8_t, erab_t> erabs;
-    int                       sr_sched_sf_idx  = 0;
-    int                       sr_sched_prb_idx = 0;
-    bool                      sr_allocated     = false;
-    uint32_t                  sr_N_pucch       = 0;
-    uint32_t                  sr_I             = 0;
-    uint16_t                  n_pucch_cs_idx   = 0;
-    bool                      n_pucch_cs_alloc = false;
 
     std::map<uint8_t, srslte::unique_byte_buffer_t> erab_info_list;
 
@@ -257,11 +247,6 @@ private:
 
     ///< Helper to fill SCell struct for RRR Connection Reconfig
     int fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
-
-    int  sr_allocate(uint32_t period);
-    void sr_free();
-    int  n_pucch_cs_allocate();
-    void n_pucch_cs_free();
 
     ///< UE's Physical layer dedicated configuration
     phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list = {};
@@ -304,9 +289,10 @@ private:
   srslte::log_ref           rrc_log;
 
   // derived params
-  std::unique_ptr<cell_ctxt_common_list> cell_common_list;
+  std::unique_ptr<cell_info_common_list> cell_common_list;
 
   // state
+  std::unique_ptr<freq_res_common_list>          pucch_res_list;
   std::map<uint16_t, std::unique_ptr<ue> >       users; // NOTE: has to have fixed addr
   std::map<uint32_t, asn1::rrc::paging_record_s> pending_paging;
 
@@ -340,8 +326,6 @@ private:
   bool                         running         = false;
   static const int             RRC_THREAD_PRIO = 65;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
-
-  std::unique_ptr<pucch_res_common> pucch_res;
 
   asn1::rrc::mcch_msg_s  mcch;
   bool                   enable_mbms     = false;
