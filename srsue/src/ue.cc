@@ -62,7 +62,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Validate arguments
   if (parse_args(args_)) {
-    log.console("Error processing arguments.\n");
+    log.console("Error processing arguments. Please check %s for more details.\n", args_.log.filename.c_str());
     return SRSLTE_ERROR;
   }
 
