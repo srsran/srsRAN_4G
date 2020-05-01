@@ -19,17 +19,13 @@
  *
  */
 
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <strings.h>
-#include <time.h>
 #include <unistd.h>
 
+#include "srslte/phy/utils/random.h"
 #include "srslte/srslte.h"
-#include <sys/time.h>
-#include <time.h>
 
 uint32_t long_cb = 0;
 
@@ -57,8 +53,8 @@ void parse_args(int argc, char** argv)
   }
 }
 
-uint8_t input_bytes[6144 / 8];
-uint8_t input_bits[6144];
+uint8_t input_bytes[6144 / 8 + 3];
+uint8_t input_bits[6144 + 24];
 uint8_t parity[3 * 6144 + 12];
 uint8_t parity_bits[3 * 6144 + 12];
 uint8_t output_bits[3 * 6144 + 12];
@@ -66,7 +62,7 @@ uint8_t output_bits2[3 * 6144 + 12];
 
 int main(int argc, char** argv)
 {
-
+  srslte_random_t random_gen = srslte_random_init(0);
   parse_args(argc, argv);
 
   srslte_tcod_t tcod;
@@ -82,7 +78,7 @@ int main(int argc, char** argv)
     long_cb = srslte_cbsegm_cbsize(len);
     printf("Checking long_cb=%d\n", long_cb);
     for (int i = 0; i < long_cb / 8; i++) {
-      input_bytes[i] = rand() % 256;
+      input_bytes[i] = srslte_random_uniform_int_dist(random_gen, 0, 256);
     }
 
     srslte_bit_unpack_vector(input_bytes, input_bits, long_cb);
@@ -127,6 +123,7 @@ int main(int argc, char** argv)
   }
 
   srslte_tcod_free(&tcod);
+  srslte_random_free(random_gen);
   printf("Done\n");
   exit(0);
 }

@@ -281,6 +281,8 @@ int main(int argc, char** argv)
   srslte_chest_ul_res_set_identity(&chest_res);
 
   cfg.enable_64qam = enable_64_qam;
+  uint64_t decode_us   = 0;
+  uint64_t decode_bits = 0;
 
   for (int n = 0; n < subframe; n++) {
     ret = SRSLTE_SUCCESS;
@@ -385,8 +387,11 @@ int main(int argc, char** argv)
            cfg.grant.tb.tbs,
            (float)cfg.grant.tb.tbs / 1000,
            (float)cfg.grant.tb.tbs / t[0].tv_usec);
+    decode_us += t[0].tv_usec;
+    decode_bits += cfg.grant.tb.tbs;
   }
 
+  printf("Decoded Rate: %f Mbps\n", (double)decode_bits / (double)decode_us);
 quit:
   srslte_chest_ul_res_free(&chest_res);
   srslte_pusch_free(&pusch_tx);

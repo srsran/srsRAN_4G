@@ -183,7 +183,7 @@ void cc_worker::set_tti(uint32_t tti_)
 int cc_worker::add_rnti(uint16_t rnti, bool is_pcell, bool is_temporal)
 {
 
-  if (!is_temporal && !ue_db.count(rnti)) {
+  if (not is_temporal) {
     if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
       return -1;
     }
@@ -359,9 +359,11 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
         ue_db[rnti]->metrics_ul(grants[i].dci.tb.mcs_idx, 0, snr_db, pusch_res.avg_iterations_block);
 
         // Logging
-        char str[512];
-        srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, &enb_ul.chest_res, str, 512);
-        Info("PUSCH: cc=%d, %s\n", cc_idx, str);
+        if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+          char str[512];
+          srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, &enb_ul.chest_res, str, sizeof(str));
+          log_h->info("PUSCH: cc=%d, %s\n", cc_idx, str);
+        }
       }
     }
   }
@@ -465,7 +467,7 @@ int cc_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants
         // Logging
         char str[512];
         srslte_dci_dl_info(&grants[i].dci, str, 512);
-        Info("PDCCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
+        log_h->info("PDCCH: cc=%d, %s, tti_tx_dl=%d\n", cc_idx, str, tti_tx_dl);
       }
     }
   }

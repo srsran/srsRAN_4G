@@ -34,7 +34,7 @@ typedef union {
   __m64          v;
 } decision_t;
 
-union branchtab27 {
+static union branchtab27 {
   unsigned char c[32];
   __m256i       v;
 } Branchtab37_sse2[3];

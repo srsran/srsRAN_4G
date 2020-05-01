@@ -1004,9 +1004,8 @@ int main(int argc, char** argv)
 plot_real_t    p_sync, pce;
 plot_scatter_t pscatequal, pscatequal_pdcch, pscatequal_pmch;
 
-float tmp_plot[110 * 15 * 2048];
-float tmp_plot2[110 * 15 * 2048];
-float tmp_plot3[110 * 15 * 2048];
+static float tmp_plot[110 * 15 * 2048];
+static float tmp_plot2[110 * 15 * 2048];
 
 void* plot_thread_run(void* arg)
 {
@@ -1062,7 +1061,9 @@ void* plot_thread_run(void* arg)
         }
       }
       int sz = srslte_symbol_sz(ue_dl.cell.nof_prb);
-      srslte_vec_f_zero(tmp_plot2, sz);
+      if (sz > 0) {
+        srslte_vec_f_zero(tmp_plot2, sz);
+      }
       int g = (sz - 12 * ue_dl.cell.nof_prb) / 2;
       for (i = 0; i < 12 * ue_dl.cell.nof_prb; i++) {
         tmp_plot2[g + i] = srslte_convert_amplitude_to_dB(cabsf(ue_dl.chest_res.ce[0][0][i]));

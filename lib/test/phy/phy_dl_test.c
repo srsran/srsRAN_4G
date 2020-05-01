@@ -218,7 +218,7 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
   ue_dl_cfg->cfg.pdsch.p_b         = (transmission_mode > SRSLTE_TM1) ? 1 : 0; // 0 dB
   ue_dl_cfg->cfg.pdsch.rnti        = dci_dl->rnti;
   ue_dl_cfg->cfg.pdsch.csi_enable  = false;
-  ue_dl_cfg->cfg.pdsch.meas_evm_en = true;
+  ue_dl_cfg->cfg.pdsch.meas_evm_en = false;
 
   if (srslte_verbose >= SRSLTE_VERBOSE_INFO) {
     char str[512];
