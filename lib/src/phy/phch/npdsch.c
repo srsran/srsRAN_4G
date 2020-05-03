@@ -570,16 +570,23 @@ int srslte_npdsch_encode_rnti(srslte_npdsch_t*        q,
                               cf_t*                   sf_symbols[SRSLTE_MAX_PORTS])
 {
   if (rnti != q->rnti) {
-    srslte_sequence_t seq;
     // TODO: skip sequence init if cfg->is_encoded==true
-    if (srslte_sequence_npdsch(&seq,
-                               rnti,
-                               0,
-                               cfg->grant.start_sfidx,
-                               2 * cfg->grant.start_sfidx,
-                               q->cell.n_id_ncell,
-                               cfg->nbits.nof_bits * cfg->grant.nof_sf)) {
-      return SRSLTE_ERROR;
+    srslte_sequence_t seq;
+    if (q->cell.is_r14 && rnti == SRSLTE_SIRNTI) {
+      if (srslte_sequence_npdsch_bcch_r14(
+              &seq, cfg->grant.start_sfn, q->cell.n_id_ncell, cfg->grant.nof_sf * cfg->nbits.nof_bits)) {
+        return SRSLTE_ERROR;
+      }
+    } else {
+      if (srslte_sequence_npdsch(&seq,
+                                 rnti,
+                                 0,
+                                 cfg->grant.start_sfidx,
+                                 2 * cfg->grant.start_sfidx,
+                                 q->cell.n_id_ncell,
+                                 cfg->nbits.nof_bits * cfg->grant.nof_sf)) {
+        return SRSLTE_ERROR;
+      }
     }
     int r = srslte_npdsch_encode_seq(q, cfg, softbuffer, data, &seq, sf_symbols);
     srslte_sequence_free(&seq);
