@@ -58,12 +58,13 @@ static srslte_rf_t radio;
 
 static char* output_file_name = NULL;
 
-srslte_nbiot_cell_t cell = {
+static srslte_nbiot_cell_t cell = {
     .base       = {.nof_ports = 1, .nof_prb = SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL, .cp = SRSLTE_CP_NORM, .id = 0},
     .nbiot_prb  = SRSLTE_NBIOT_DEFAULT_PRB_OFFSET,
     .n_id_ncell = 0,
     .nof_ports  = 1,
-    .mode       = SRSLTE_NBIOT_MODE_STANDALONE};
+    .mode       = SRSLTE_NBIOT_MODE_STANDALONE,
+    .is_r14     = true};
 
 static uint32_t i_tbs_val = 1, last_i_tbs_val = 1;
 static int      nof_frames = -1;
@@ -99,7 +100,7 @@ static int   sf_n_re = 0, sf_n_samples = 0;
 
 void usage(char* prog)
 {
-  printf("Usage: %s [agmiftleosncvrpu]\n", prog);
+  printf("Usage: %s [agmiftlReosncvrpu]\n", prog);
 #ifndef DISABLE_RF
   printf("\t-a RF args [Default %s]\n", rf_args);
   printf("\t-e RF amplitude [Default %.2f]\n", rf_amp);
@@ -116,6 +117,7 @@ void usage(char* prog)
   printf("\t-r Value of i_rep [Default %d]\n", i_rep_val);
   printf("\t-n number of frames [Default %d]\n", nof_frames);
   printf("\t-l n_id_ncell [Default %d]\n", cell.n_id_ncell);
+  printf("\t-R Is R14 cell [Default %s]\n", cell.is_r14 ? "Yes" : "No");
   printf("\t-p NB-IoT PRB id [Default %d]\n", cell.nbiot_prb);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
@@ -123,7 +125,7 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "aglfmiosncrtvpu")) != -1) {
+  while ((opt = getopt(argc, argv, "aglfmiosncrtvpuR")) != -1) {
     switch (opt) {
       case 'a':
         rf_args = argv[optind];
@@ -160,6 +162,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'l':
         cell.n_id_ncell = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'R':
+        cell.is_r14 = !cell.is_r14;
         break;
       case 'p':
         cell.nbiot_prb = (uint32_t)strtol(argv[optind], NULL, 10);

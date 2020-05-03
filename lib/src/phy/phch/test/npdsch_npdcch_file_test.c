@@ -34,11 +34,12 @@
 
 char* input_file_name = NULL;
 
-srslte_nbiot_cell_t cell = {.base       = {.nof_prb = 1, .nof_ports = 1, .cp = SRSLTE_CP_NORM, .id = 0},
-                            .nbiot_prb  = 0,
-                            .n_id_ncell = 0,
-                            .nof_ports  = 1,
-                            .mode       = SRSLTE_NBIOT_MODE_STANDALONE};
+static srslte_nbiot_cell_t cell = {.base       = {.nof_prb = 1, .nof_ports = 1, .cp = SRSLTE_CP_NORM, .id = 0},
+                                   .nbiot_prb  = 0,
+                                   .n_id_ncell = 0,
+                                   .nof_ports  = 1,
+                                   .mode       = SRSLTE_NBIOT_MODE_STANDALONE,
+                                   .is_r14     = true};
 
 int flen;
 
@@ -60,7 +61,7 @@ cf_t*                buff_ptrs[SRSLTE_MAX_PORTS] = {NULL, NULL, NULL, NULL};
 
 void usage(char* prog)
 {
-  printf("Usage: %s [rovcnwmpstx] -i input_file\n", prog);
+  printf("Usage: %s [rovcnwmpstRx] -i input_file\n", prog);
   printf("\t-o DCI format [Default %s]\n", srslte_dci_format_string(dci_format));
   printf("\t-c n_id_ncell [Default %d]\n", cell.n_id_ncell);
   printf("\t-s Start subframe_idx [Default %d]\n", sf_idx);
@@ -71,6 +72,7 @@ void usage(char* prog)
   printf("\t-p cell.nof_ports [Default %d]\n", cell.base.nof_ports);
   printf("\t-n cell.nof_prb [Default %d]\n", cell.base.nof_prb);
   printf("\t-m max_frames [Default %d]\n", max_frames);
+  printf("\t-R Is R14 cell [Default %s]\n", cell.is_r14 ? "Yes" : "No");
   printf("\t-x SNR-10 (apply noise to input file) [Default %f]\n", snr);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
@@ -85,6 +87,9 @@ void parse_args(int argc, char** argv)
         break;
       case 'c':
         cell.n_id_ncell = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'R':
+        cell.is_r14 = !cell.is_r14;
         break;
       case 's':
         sf_idx = (uint32_t)strtol(argv[optind], NULL, 10);

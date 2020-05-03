@@ -91,11 +91,7 @@ typedef struct {
   uint32_t time_offset;
   int      n_id_ncell;
   bool     is_r14;
-  int      sib2_periodicity;
-  int      sib2_radio_frame_offset;
-  int      sib2_repetition_pattern;
-  int      sib2_tb;
-  int      sib2_window_length;
+  bool     skip_sib2;
   uint16_t rnti;
   char*    input_file_name;
   int      file_offset_time;
@@ -156,6 +152,7 @@ void usage(prog_args_t* args, char* prog)
   printf("\t-R Is R14 cell [Default %s]\n", args->is_r14 ? "Yes" : "No");
   printf("\t-C Disable CFO correction [Default %s]\n", args->disable_cfo ? "Disabled" : "Enabled");
   printf("\t-t Add time offset [Default %d]\n", args->time_offset);
+  printf("\t-s Skip SIB2 decoding[Default %d]\n", args->skip_sib2);
 #ifdef ENABLE_GUI
   printf("\t-d disable plots [Default enabled]\n");
   printf("\t-D disable all but constellation plots [Default enabled]\n");
@@ -170,7 +167,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
 {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aogRBlipHPOCtdDnvrfqwzxc")) != -1) {
+  while ((opt = getopt(argc, argv, "aogRBlipHPOCtdDsnvrfqwzxc")) != -1) {
     switch (opt) {
       case 'i':
         args->input_file_name = argv[optind];
@@ -212,10 +209,13 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         args->n_id_ncell = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'R':
-        args->is_r14 = true;
+        args->is_r14 = !args->is_r14;
         break;
       case 'd':
         args->disable_plots = true;
+        break;
+      case 's':
+        args->skip_sib2 = !args->skip_sib2;
         break;
       case 'D':
         args->disable_plots_except_constellation = true;
@@ -689,9 +689,10 @@ int main(int argc, char** argv)
             }
           }
 
-          if (have_sib1 && have_sib2) {
-            if (prog_args.rnti == SRSLTE_SIRNTI)
+          if (have_sib1 && (have_sib2 || prog_args.skip_sib2)) {
+            if (prog_args.rnti == SRSLTE_SIRNTI) {
               srslte_nbiot_ue_dl_decode_sib1(&ue_dl, system_frame_number);
+            }
             state = DECODE_NPDSCH;
           }
           break;
