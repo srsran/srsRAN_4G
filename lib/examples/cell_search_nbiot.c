@@ -195,7 +195,7 @@ int main(int argc, char** argv)
       srslte_rf_set_rx_freq(&rf, 0, rf_freq);
       INFO("Set rf_freq to %.3f Hz\n", rf_freq);
 
-      printf("[%3d/%d]: EARFCN %d Freq. %.2f MHz looking for NPSS.\n", freq, nof_freqs, channels[freq].id, rf_freq);
+      printf("[%3d/%d]: EARFCN %d, %.2f MHz looking for NPSS.\n", freq, nof_freqs, channels[freq].id, rf_freq / 1e6);
       fflush(stdout);
 
       if (SRSLTE_VERBOSE_ISINFO()) {
