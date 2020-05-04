@@ -302,9 +302,16 @@ int output_sched_tester::test_all(const tti_params_t&                    tti_par
  *  User State Tester
  ***********************/
 
-ue_ctxt_test::ue_ctxt_test(uint16_t rnti_, uint32_t preamble_idx_, const sched::ue_cfg_t& ue_cfg_) :
+ue_ctxt_test::ue_ctxt_test(uint16_t                                      rnti_,
+                           uint32_t                                      preamble_idx_,
+                           srslte::tti_point                             prach_tti_,
+                           const sched::ue_cfg_t&                        ue_cfg_,
+                           const std::vector<srsenb::sched::cell_cfg_t>& cell_params_) :
   rnti(rnti_),
-  preamble_idx(preamble_idx_)
+  prach_tti(prach_tti_),
+  preamble_idx(preamble_idx_),
+  cell_params(cell_params_),
+  current_tti_rx(prach_tti_)
 {
   set_cfg(ue_cfg_);
 }
@@ -401,7 +408,118 @@ int ue_ctxt_test::test_sched_result(uint32_t                     enb_cc_idx,
 {
   cc_result result{enb_cc_idx, &dl_result, &ul_result};
   TESTASSERT(test_harqs(result) == SRSLTE_SUCCESS);
+  TESTASSERT(test_ra(result) == SRSLTE_SUCCESS);
   TESTASSERT(schedule_acks(result) == SRSLTE_SUCCESS);
+  return SRSLTE_SUCCESS;
+}
+
+/**
+ * Tests whether the RAR and Msg3 were scheduled within the expected windows. Individual tests:
+ * - No UL allocs before Msg3
+ * - No DL data allocs before Msg3 is correctly ACKed
+ * - RAR alloc falls within RAR window and is unique per user
+ * - Msg3 is allocated in expected TTI, without PDCCH, and correct rnti
+ * - First Data allocation happens after Msg3, and contains a ConRes
+ * - No RARs are allocated with wrong enb_cc_idx, preamble_idx or wrong user
+ * TODO:
+ * - check Msg3 PRBs match the ones advertised in the RAR
+ */
+int ue_ctxt_test::test_ra(cc_result result)
+{
+  if (result.enb_cc_idx != active_ccs[0].enb_cc_idx) {
+    // only check for RAR/Msg3 presence for a UE's PCell
+    return SRSLTE_SUCCESS;
+  }
+
+  /* TEST: RAR allocation */
+  uint32_t                         rar_win_size     = cell_params[result.enb_cc_idx].prach_rar_window;
+  std::array<srslte::tti_point, 2> rar_window       = {prach_tti + 3, prach_tti + 3 + rar_win_size};
+  srslte::tti_point                tti_tx_dl        = srslte::to_tx_dl(current_tti_rx);
+  srslte::tti_point                tti_tx_ul        = srslte::to_tx_ul(current_tti_rx);
+  bool                             is_in_rar_window = tti_tx_dl >= rar_window[0] and tti_tx_dl <= rar_window[1];
+
+  if (not is_in_rar_window) {
+    CONDERROR(not rar_tti.is_valid() and tti_tx_dl > rar_window[1],
+              "rnti=0x%x RAR not scheduled within the RAR Window\n",
+              rnti);
+    for (uint32_t i = 0; i < result.dl_result->nof_rar_elems; ++i) {
+      CONDERROR(result.dl_result->rar[i].dci.rnti == rnti, "No RAR allocations allowed outside of user RAR window\n");
+    }
+  } else {
+    // Inside RAR window
+    for (uint32_t i = 0; i < result.dl_result->nof_rar_elems; ++i) {
+      for (uint32_t j = 0; j < result.dl_result->rar[i].nof_grants; ++j) {
+        const auto& data = result.dl_result->rar[i].msg3_grant[j].data;
+        if (data.prach_tti == (uint32_t)prach_tti.to_uint() and data.preamble_idx == preamble_idx) {
+          CONDERROR(rar_tti.is_valid(), "There was more than one RAR for the same user\n");
+          CONDERROR(rnti != data.temp_crnti, "RAR grant C-RNTI does not match the expected.\n");
+          msg3_riv = result.dl_result->rar[i].msg3_grant[j].grant.rba;
+          rar_tti  = tti_tx_dl;
+        }
+      }
+    }
+  }
+
+  /* TEST: Check Msg3 */
+  if (rar_tti.is_valid() and not msg3_tti.is_valid()) {
+    // RAR scheduled, Msg3 not yet scheduled
+    srslte::tti_point expected_msg3_tti = rar_tti + FDD_HARQ_DELAY_DL_MS + MSG3_DELAY_MS;
+    CONDERROR(expected_msg3_tti < tti_tx_ul and not msg3_tti.is_valid(), "No UL msg3 alloc was made\n");
+
+    if (expected_msg3_tti == tti_tx_ul) {
+      // Msg3 should exist
+      for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
+        if (result.ul_result->pusch[i].dci.rnti == rnti) {
+          CONDERROR(msg3_tti.is_valid(), "Only one Msg3 allowed per user\n");
+          CONDERROR(result.ul_result->pusch[i].needs_pdcch, "Msg3 allocations do not require PDCCH\n");
+          CONDERROR(msg3_riv != result.ul_result->pusch[i].dci.type2_alloc.riv,
+                    "The Msg3 was not allocated in the expected PRBs.\n");
+          msg3_tti = tti_tx_ul;
+        }
+      }
+    }
+  }
+
+  /* TEST: Check Msg4 */
+  if (msg3_tti.is_valid() and not msg4_tti.is_valid()) {
+    // Msg3 scheduled, but Msg4 not yet scheduled
+    for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
+      if (result.dl_result->data[i].dci.rnti == rnti) {
+        CONDERROR(current_tti_rx < msg3_tti, "Msg4 cannot be scheduled without Msg3 being tx\n");
+        for (uint32_t j = 0; j < result.dl_result->data[i].nof_pdu_elems[0]; ++j) {
+          if (result.dl_result->data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
+            // ConRes found
+            CONDERROR(result.dl_result->data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
+            CONDERROR(msg4_tti.is_valid(), "Duplicate ConRes CE for the same rnti\n");
+            msg4_tti = tti_tx_dl;
+          }
+        }
+      }
+    }
+  }
+
+  /* TEST: Txs out of place */
+  if (not msg4_tti.is_valid()) {
+    // Msg4 not yet received by user
+    for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
+      CONDERROR(result.dl_result->data[i].dci.rnti == rnti, "No DL data allocs allowed before Msg4 is scheduled\n");
+    }
+    if (msg3_tti.is_valid() and msg3_tti != tti_tx_ul) {
+      // Msg3 scheduled. No UL alloc allowed unless it is a newtx (the Msg3 itself)
+      for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
+        // Needs PDCCH - filters out UL retxs
+        bool msg3_retx = ((tti_tx_ul - msg3_tti) % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)) == 0;
+        CONDERROR(result.ul_result->pusch[i].dci.rnti == rnti and not msg3_retx,
+                  "No UL txs allowed except for Msg3 before user received Msg4\n");
+      }
+    } else if (not msg3_tti.is_valid()) {
+      // No Msg3 sched TTI
+      for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
+        CONDERROR(result.ul_result->pusch[i].dci.rnti == rnti, "No UL newtxs allowed before user received Msg4\n");
+      }
+    }
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -573,8 +691,7 @@ int user_state_sched_tester::add_user(uint16_t                                 r
                 cell_params[ue_cfg.supported_cc_list[0].enb_cc_idx].prach_config, tic.tti_rx(), -1),
             "New user added in a non-PRACH TTI\n");
   TESTASSERT(users.count(rnti) == 0);
-  ue_ctxt_test ue{rnti, preamble_idx, ue_cfg};
-  ue.prach_tic = tic;
+  ue_ctxt_test ue{rnti, preamble_idx, srslte::tti_point{tic.tti_rx()}, ue_cfg, cell_params};
   users.insert(std::make_pair(rnti, ue));
   return SRSLTE_SUCCESS;
 }
@@ -608,138 +725,6 @@ void user_state_sched_tester::rem_user(uint16_t rnti)
 }
 
 /**
- * Tests whether the RAR and Msg3 were scheduled within the expected windows. Individual tests:
- * - No UL allocs before Msg3
- * - No DL data allocs before Msg3 is correctly ACKed
- * - RAR alloc falls within RAR window and is unique per user
- * - Msg3 is allocated in expected TTI, without PDCCH, and correct rnti
- * - First Data allocation happens after Msg3, and contains a ConRes
- * - No RARs are allocated with wrong enb_cc_idx, preamble_idx or wrong user
- * TODO:
- * - check Msg3 PRBs match the ones advertised in the RAR
- */
-int user_state_sched_tester::test_ra(uint32_t                               enb_cc_idx,
-                                     const sched_interface::dl_sched_res_t& dl_result,
-                                     const sched_interface::ul_sched_res_t& ul_result)
-{
-  uint32_t msg3_count = 0;
-
-  for (auto& iter : users) {
-    uint16_t      rnti     = iter.first;
-    ue_ctxt_test& userinfo = iter.second;
-
-    uint32_t primary_cc_idx = userinfo.user_cfg.supported_cc_list[0].enb_cc_idx;
-    if (enb_cc_idx != primary_cc_idx) {
-      // only check for RAR/Msg3 presence for a UE's PCell
-      continue;
-    }
-
-    /* TEST: RAR allocation */
-    std::array<tti_counter, 2> rar_window = {
-        userinfo.prach_tic + 3, userinfo.prach_tic + 3 + (int)cell_params[primary_cc_idx].prach_rar_window};
-    tti_counter tic_tx_dl        = tic.tic_tx_dl();
-    tti_counter tic_tx_ul        = tic.tic_tx_ul();
-    bool        is_in_rar_window = tic_tx_dl >= rar_window[0] and tic_tx_dl <= rar_window[1];
-
-    if (not is_in_rar_window) {
-      CONDERROR(not userinfo.rar_tic.is_valid() and tic_tx_dl > rar_window[1],
-                "RAR not scheduled within the RAR Window\n");
-      for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
-        CONDERROR(dl_result.rar[i].dci.rnti == rnti, "No RAR allocations allowed outside of user RAR window\n");
-      }
-    } else {
-      // Inside RAR window
-      for (uint32_t i = 0; i < dl_result.nof_rar_elems; ++i) {
-        for (uint32_t j = 0; j < dl_result.rar[i].nof_grants; ++j) {
-          auto& data = dl_result.rar[i].msg3_grant[j].data;
-          if (data.prach_tti == (uint32_t)userinfo.prach_tic.tti_rx() and data.preamble_idx == userinfo.preamble_idx) {
-            CONDERROR(userinfo.rar_tic.is_valid(), "There was more than one RAR for the same user\n");
-            CONDERROR(rnti != data.temp_crnti, "RAR grant C-RNTI does not match the expected.\n");
-            userinfo.msg3_riv = dl_result.rar[i].msg3_grant[j].grant.rba;
-            userinfo.rar_tic  = tic_tx_dl;
-          }
-        }
-      }
-    }
-
-    /* TEST: Check Msg3 */
-    if (userinfo.rar_tic.is_valid() and not userinfo.msg3_tic.is_valid()) {
-      // RAR scheduled, Msg3 not yet scheduled
-      tti_counter expected_msg3_tti = userinfo.rar_tic + FDD_HARQ_DELAY_DL_MS + MSG3_DELAY_MS;
-      CONDERROR(expected_msg3_tti < tic_tx_ul and not userinfo.msg3_tic.is_valid(), "No UL msg3 alloc was made\n");
-
-      if (expected_msg3_tti == tic_tx_ul) {
-        // Msg3 should exist
-        for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
-          if (ul_result.pusch[i].dci.rnti == rnti) {
-            CONDERROR(userinfo.msg3_tic.is_valid(), "Only one Msg3 allowed per user\n");
-            CONDERROR(ul_result.pusch[i].needs_pdcch, "Msg3 allocations do not require PDCCH\n");
-            CONDERROR(userinfo.msg3_riv != ul_result.pusch[i].dci.type2_alloc.riv,
-                      "The Msg3 was not allocated in the expected PRBs.\n");
-            userinfo.msg3_tic = tic_tx_ul;
-            msg3_count++;
-          }
-        }
-      }
-    }
-
-    /* TEST: Check Msg4 */
-    if (userinfo.msg3_tic.is_valid() and not userinfo.msg4_tic.is_valid()) {
-      // Msg3 scheduled, but Msg4 not yet scheduled
-      for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
-        if (dl_result.data[i].dci.rnti == rnti) {
-          CONDERROR(tic < userinfo.msg3_tic, "Msg4 cannot be scheduled without Msg3 being tx\n");
-          for (uint32_t j = 0; j < dl_result.data[i].nof_pdu_elems[0]; ++j) {
-            if (dl_result.data[i].pdu[0][j].lcid == (uint32_t)srslte::dl_sch_lcid::CON_RES_ID) {
-              // ConRes found
-              CONDERROR(dl_result.data[i].dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
-              CONDERROR(userinfo.msg4_tic.is_valid(), "Duplicate ConRes CE for the same rnti\n");
-              userinfo.msg4_tic = tic_tx_dl;
-            }
-          }
-        }
-      }
-    }
-
-    /* TEST: Txs out of place */
-    if (not userinfo.msg4_tic.is_valid()) {
-      // Msg4 not yet received by user
-      for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
-        CONDERROR(dl_result.data[i].dci.rnti == rnti, "No DL data allocs allowed before Msg4 is scheduled\n");
-      }
-      if (userinfo.msg3_tic.is_valid() and userinfo.msg3_tic != tic_tx_ul) {
-        // Msg3 scheduled. No UL alloc allowed unless it is a newtx (the Msg3 itself)
-        for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
-          // Needs PDCCH - filters out UL retxs
-          bool msg3_retx = ((tic_tx_ul - userinfo.msg3_tic) % (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS)) == 0;
-          CONDERROR(ul_result.pusch[i].dci.rnti == rnti and not msg3_retx,
-                    "No UL txs allowed except for Msg3 before user received Msg4\n");
-        }
-      } else if (not userinfo.msg3_tic.is_valid()) {
-        // Not Msg3 sched TTI
-        for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
-          CONDERROR(ul_result.pusch[i].dci.rnti == rnti, "No UL newtxs allowed before user received Msg4\n");
-        }
-      }
-    }
-  }
-
-  for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
-    auto& pusch_alloc = ul_result.pusch[i];
-    if (not pusch_alloc.needs_pdcch) {
-      // can be adaptive retx or msg3
-      auto& ue = users.at(pusch_alloc.dci.rnti);
-      if (tic.tic_tx_ul() == ue.msg3_tic) {
-        msg3_count--;
-      }
-    }
-  }
-  CONDERROR(msg3_count > 0, "There are pending msg3 that do not belong to any active UE\n");
-
-  return SRSLTE_SUCCESS;
-}
-
-/**
  * Individual tests:
  * - All RARs belong to a user that just PRACHed
  * - All DL/UL data allocs have a valid RNTI
@@ -754,7 +739,7 @@ int user_state_sched_tester::test_ctrl_info(uint32_t                            
       uint32_t prach_tti    = dl_result.rar[i].msg3_grant[j].data.prach_tti;
       uint32_t preamble_idx = dl_result.rar[i].msg3_grant[j].data.preamble_idx;
       auto     it           = std::find_if(users.begin(), users.end(), [&](const std::pair<uint16_t, ue_ctxt_test>& u) {
-        return u.second.preamble_idx == preamble_idx and ((uint32_t)u.second.prach_tic.tti_rx() == prach_tti);
+        return u.second.preamble_idx == preamble_idx and ((uint32_t)u.second.prach_tti.to_uint() == prach_tti);
       });
       CONDERROR(it == users.end(), "There was a RAR allocation with no associated user");
       CONDERROR(it->second.user_cfg.supported_cc_list[0].enb_cc_idx != enb_cc_idx,
@@ -830,7 +815,6 @@ int user_state_sched_tester::test_all(uint32_t                               enb
                                       const sched_interface::dl_sched_res_t& dl_result,
                                       const sched_interface::ul_sched_res_t& ul_result)
 {
-  TESTASSERT(test_ra(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
   TESTASSERT(test_ctrl_info(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
   TESTASSERT(test_scell_activation(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
 
@@ -988,7 +972,8 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
     auto* user = ue_tester->get_user_state(ue_ev.rnti);
 
-    if (user != nullptr and not user->msg4_tic.is_valid() and user->msg3_tic.is_valid() and user->msg3_tic <= tic) {
+    if (user != nullptr and not user->msg4_tti.is_valid() and user->msg3_tti.is_valid() and
+        user->msg3_tti.to_uint() <= tic.tti_rx()) {
       // Msg3 has been received but Msg4 has not been yet transmitted
       uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
       if (pending_dl_new_data == 0) {
@@ -1003,7 +988,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
     // push UL SRs and DL packets
     if (ue_ev.buffer_ev != nullptr) {
       CONDERROR(user == nullptr, "TESTER ERROR: Trying to schedule data for user that does not exist\n");
-      if (ue_ev.buffer_ev->dl_data > 0 and user->msg4_tic.is_valid()) {
+      if (ue_ev.buffer_ev->dl_data > 0 and user->msg4_tti.is_valid()) {
         // If Msg4 has already been tx and there DL data to transmit
         uint32_t lcid                = 2;
         uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();

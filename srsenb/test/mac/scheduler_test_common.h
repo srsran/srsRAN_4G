@@ -96,6 +96,10 @@ struct ue_ctxt_test {
   /* state */
   srslte::tti_point current_tti_rx;
 
+  // RA state
+  srslte::tti_point prach_tti, rar_tti, msg3_tti, msg4_tti;
+  uint32_t          msg3_riv = 0;
+
   struct cc_ue_ctxt_test {
     uint32_t ue_cc_idx  = 0;
     uint32_t enb_cc_idx = 0;
@@ -114,16 +118,18 @@ struct ue_ctxt_test {
   };
   std::vector<cc_ue_ctxt_test> active_ccs;
 
-  tti_counter                       prach_tic, rar_tic, msg3_tic, msg4_tic;
   bool                              drb_cfg_flag = false;
   srsenb::sched_interface::ue_cfg_t user_cfg;
-  uint32_t                          msg3_riv = 0;
-  bool is_msg3_rx(const tti_counter& tti_rx) const { return msg3_tic.is_valid() and msg3_tic <= tti_rx; }
 
-  ue_ctxt_test(uint16_t rnti_, uint32_t preamble_idx_, const sched::ue_cfg_t& ue_cfg_);
+  ue_ctxt_test(uint16_t                                      rnti_,
+               uint32_t                                      preamble_idx_,
+               srslte::tti_point                             prach_tti,
+               const sched::ue_cfg_t&                        ue_cfg_,
+               const std::vector<srsenb::sched::cell_cfg_t>& cell_params_);
 
   int              set_cfg(const sched::ue_cfg_t& ue_cfg_);
   cc_ue_ctxt_test* get_cc_state(uint32_t enb_cc_idx);
+  bool is_msg3_rx(const srslte::tti_point& tti_rx) const { return msg3_tti.is_valid() and msg3_tti <= tti_rx; }
 
   int new_tti(sched* sched_ptr, srslte::tti_point tti_rx);
   int test_sched_result(uint32_t                     enb_cc_idx,
@@ -138,8 +144,12 @@ private:
     const sched::dl_sched_res_t* dl_result;
     const sched::ul_sched_res_t* ul_result;
   };
+  //! Test the timing of RAR, Msg3, Msg4
+  int test_ra(cc_result result);
   int test_harqs(cc_result result);
   int schedule_acks(cc_result result);
+
+  const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
 
   struct pending_ack_t {
     srslte::tti_point tti_ack;
@@ -169,11 +179,6 @@ public:
   int  user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
   int  bearer_cfg(uint16_t rnti, uint32_t lcid, const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg);
   void rem_user(uint16_t rnti);
-
-  /* Test the timing of RAR, Msg3, Msg4 */
-  int test_ra(uint32_t                               enb_cc_idx,
-              const sched_interface::dl_sched_res_t& dl_result,
-              const sched_interface::ul_sched_res_t& ul_result);
 
   /* Test allocs control content */
   int test_ctrl_info(uint32_t                               enb_cc_idx,
