@@ -22,7 +22,8 @@
 #ifndef SRSLTE_IPV6_H
 #define SRSLTE_IPV6_H
 
-#ifdef USE_GLIBC_IPV6
+// as of glibc 2.19, the IPv6 issue seems to be fixed https://sourceware.org/bugzilla/show_bug.cgi?id=15850
+#if __GLIBC_PREREQ(2, 19)
 #include <linux/ipv6.h>
 #else
 // Some versions of glibc yield to a compile error with gcc
