@@ -89,8 +89,12 @@ tti_point harq_proc::get_tti() const
   return tti;
 }
 
-void harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
+int harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
 {
+  if (is_empty(tb_idx)) {
+    log_h->warning("Received ACK for inactive harq\n");
+    return SRSLTE_ERROR;
+  }
   ack_state[tb_idx] = ack_ ? ACK : NACK;
   log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
   if (!ack_ && (n_rtx[tb_idx] + 1 >= max_retx)) {
@@ -103,6 +107,7 @@ void harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
   } else if (ack_) {
     active[tb_idx] = false;
   }
+  return SRSLTE_SUCCESS;
 }
 
 void harq_proc::new_tx_common(uint32_t tb_idx, tti_point tti_, int mcs, int tbs)
@@ -188,9 +193,9 @@ void dl_harq_proc::new_retx(const rbgmask_t& new_mask,
   new_retx_common(tb_idx, tti_point{tti_}, mcs, tbs);
 }
 
-void dl_harq_proc::set_ack(uint32_t tb_idx, bool ack)
+int dl_harq_proc::set_ack(uint32_t tb_idx, bool ack)
 {
-  set_ack_common(tb_idx, ack);
+  return set_ack_common(tb_idx, ack);
 }
 
 uint32_t dl_harq_proc::get_n_cce() const
@@ -354,8 +359,10 @@ std::pair<uint32_t, int> harq_entity::set_ack_info(uint32_t tti_rx, uint32_t tb_
 {
   for (auto& h : dl_harqs) {
     if (h.get_tti() + FDD_HARQ_DELAY_DL_MS == tti_point{tti_rx}) {
-      h.set_ack(tb_idx, ack);
-      return {h.get_id(), h.get_tbs(tb_idx)};
+      if (h.set_ack(tb_idx, ack) == SRSLTE_SUCCESS) {
+        return {h.get_id(), h.get_tbs(tb_idx)};
+      }
+      return {h.get_id(), -1};
     }
   }
   return {dl_harqs.size(), -1};

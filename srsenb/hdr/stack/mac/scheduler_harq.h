@@ -50,7 +50,7 @@ protected:
   void new_tx_common(uint32_t tb_idx, srslte::tti_point tti, int mcs, int tbs);
   void new_retx_common(uint32_t tb_idx, srslte::tti_point tti, int* mcs, int* tbs);
   bool has_pending_retx_common(uint32_t tb_idx) const;
-  void set_ack_common(uint32_t tb_idx, bool ack);
+  int  set_ack_common(uint32_t tb_idx, bool ack);
   void reset_pending_data_common();
 
   enum ack_t { NULL_ACK, NACK, ACK };
@@ -75,7 +75,7 @@ public:
   dl_harq_proc();
   void      new_tx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint32_t n_cce_);
   void      new_retx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, uint32_t n_cce_);
-  void      set_ack(uint32_t tb_idx, bool ack);
+  int       set_ack(uint32_t tb_idx, bool ack);
   rbgmask_t get_rbgmask() const;
   bool      has_pending_retx(uint32_t tb_idx, uint32_t tti) const;
   int       get_tbs(uint32_t tb_idx) const;

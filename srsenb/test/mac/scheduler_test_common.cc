@@ -298,6 +298,180 @@ int output_sched_tester::test_all(const tti_params_t&                    tti_par
   return SRSLTE_SUCCESS;
 }
 
+/***********************
+ *  User State Tester
+ ***********************/
+
+ue_state::ue_state(uint16_t rnti_, const sched::ue_cfg_t& ue_cfg_) : rnti(rnti_)
+{
+  set_cfg(ue_cfg_);
+}
+
+int ue_state::set_cfg(const sched::ue_cfg_t& ue_cfg_)
+{
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < ue_cfg_.supported_cc_list.size(); ++ue_cc_idx) {
+    const auto& cc = ue_cfg_.supported_cc_list[ue_cc_idx];
+    if (ue_cc_idx >= active_ccs.size()) {
+      // new cell
+      active_ccs.emplace_back();
+      active_ccs.back().ue_cc_idx  = active_ccs.size() - 1;
+      active_ccs.back().enb_cc_idx = cc.enb_cc_idx;
+      for (size_t i = 0; i < active_ccs.back().dl_harqs.size(); ++i) {
+        active_ccs.back().dl_harqs[i].pid = i;
+      }
+    } else {
+      CONDERROR(cc.enb_cc_idx != active_ccs[ue_cc_idx].enb_cc_idx, "changing ccs not supported\n");
+    }
+  }
+
+  user_cfg = ue_cfg_;
+  return SRSLTE_SUCCESS;
+}
+
+ue_state::cc_state_t* ue_state::get_cc_state(uint32_t enb_cc_idx)
+{
+  auto it = std::find_if(
+      active_ccs.begin(), active_ccs.end(), [enb_cc_idx](const cc_state_t& c) { return c.enb_cc_idx == enb_cc_idx; });
+  return it == active_ccs.end() ? nullptr : &(*it);
+}
+
+int ue_state::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
+{
+  current_tti_rx = tti_rx;
+
+  TESTASSERT(fwd_pending_acks(sched_ptr) == SRSLTE_SUCCESS);
+
+  return SRSLTE_SUCCESS;
+}
+
+int ue_state::fwd_pending_acks(sched* sched_ptr)
+{
+  /* Ack DL HARQs */
+  // Checks:
+  // - Pending DL ACK {cc_idx,rnti,tb} exist in scheduler
+  while (not pending_dl_acks.empty()) {
+    auto& p = pending_dl_acks.top();
+    if (p.tti_ack > current_tti_rx) {
+      break;
+    }
+    auto& h = active_ccs[p.ue_cc_idx].dl_harqs[p.pid];
+    CONDERROR(not h.active, "The ACKed DL Harq pid=%d is not active\n", h.pid);
+    CONDERROR(sched_ptr->dl_ack_info(current_tti_rx.to_uint(), rnti, p.cc_idx, p.tb, p.ack) <= 0,
+              "The ACKed DL Harq pid=%d does not exist.\n",
+              p.pid);
+
+    if (p.ack) {
+      h.active = false;
+      log_h->info("DL ACK tti=%u rnti=0x%x pid=%d\n", current_tti_rx.to_uint(), rnti, p.pid);
+    }
+    pending_dl_acks.pop();
+  }
+
+  /* Ack UL HARQs */
+  auto& p2 = pending_ul_acks[current_tti_rx.to_uint() % pending_ul_acks.size()];
+  if (p2.tti_ack == current_tti_rx) {
+    TESTASSERT(sched_ptr->ul_crc_info(current_tti_rx.to_uint(), rnti, p2.cc_idx, p2.ack) == SRSLTE_SUCCESS);
+  }
+  return SRSLTE_SUCCESS;
+}
+
+int ue_state::process_sched_result(uint32_t                     enb_cc_idx,
+                                   const sched::dl_sched_res_t& dl_result,
+                                   const sched::ul_sched_res_t& ul_result)
+{
+  cc_result result{enb_cc_idx, &dl_result, &ul_result};
+  TESTASSERT(test_harqs(result) == SRSLTE_SUCCESS);
+  TESTASSERT(schedule_acks(result) == SRSLTE_SUCCESS);
+  return SRSLTE_SUCCESS;
+}
+
+/**
+ * Sanity checks of the DCI values in the scheduling result for a given user. Current checks:
+ * - invalid ue_cc_idx<->enb_cc_idx matching in dl_result
+ * - invalid pid value
+ * - invalid rv value (nof retxs is incorrect) and ndi value
+ */
+int ue_state::test_harqs(cc_result result)
+{
+  cc_state_t* cc = get_cc_state(result.enb_cc_idx);
+  if (cc == nullptr) {
+    // unsupported carrier
+    return SRSLTE_SUCCESS;
+  }
+  for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
+    const auto& data = result.dl_result->data[i];
+    if (data.dci.rnti != rnti) {
+      continue;
+    }
+
+    CONDERROR(data.dci.ue_cc_idx != cc->ue_cc_idx, "invalid ue_cc_idx=%d in sched result\n", data.dci.ue_cc_idx);
+    CONDERROR(data.dci.pid >= cc->dl_harqs.size(), "invalid pid\n");
+    auto&    h        = cc->dl_harqs[data.dci.pid];
+    uint32_t nof_retx = sched_utils::get_nof_retx(data.dci.tb[0].rv); // 0..3
+
+    if (h.nof_txs == 0 or h.ndi != data.dci.tb[0].ndi) {
+      // It is newtx
+      CONDERROR(nof_retx != 0, "Invalid rv index for new tx\n");
+
+      h.active    = true;
+      h.nof_retxs = 0;
+      h.ndi       = data.dci.tb[0].ndi;
+      h.tti_tx    = srslte::to_tx_dl(current_tti_rx);
+    } else {
+      // it is retx
+      CONDERROR(sched_utils::get_rvidx(h.nof_retxs + 1) != (uint32_t)data.dci.tb[0].rv, "Invalid rv index for retx\n");
+      CONDERROR(h.ndi != data.dci.tb[0].ndi, "Invalid ndi for retx\n");
+      CONDERROR(not h.active, "retx for inactive dl harq pid=%d\n", h.pid);
+      CONDERROR(h.tti_tx + FDD_HARQ_DELAY_UL_MS > current_tti_rx, "harq pid=%d reused too soon\n", h.pid);
+
+      h.nof_retxs++;
+      h.tti_tx = srslte::to_tx_dl(current_tti_rx);
+    }
+    h.nof_txs++;
+  }
+  return SRSLTE_SUCCESS;
+}
+
+int ue_state::schedule_acks(cc_result result)
+{
+  // schedule future DL Acks
+  for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
+    const auto& data = result.dl_result->data[i];
+    if (data.dci.rnti != rnti) {
+      continue;
+    }
+    pending_ack_t ack_data;
+    ack_data.tti_ack   = srslte::to_tx_dl_ack(current_tti_rx);
+    ack_data.cc_idx    = result.enb_cc_idx;
+    ack_data.tb        = 0;
+    ack_data.pid       = data.dci.pid;
+    ack_data.ue_cc_idx = data.dci.ue_cc_idx;
+    uint32_t nof_retx  = sched_utils::get_nof_retx(data.dci.tb[0].rv); // 0..3
+    ack_data.ack       = randf() < prob_dl_ack_mask[nof_retx % prob_dl_ack_mask.size()];
+
+    pending_dl_acks.push(ack_data);
+  }
+
+  //    /* Schedule UL ACKs */
+  //    for (uint32_t i = 0; i < tti_info.ul_sched_result[ccidx].nof_dci_elems; ++i) {
+  //      const auto&   pusch = tti_info.ul_sched_result[ccidx].pusch[i];
+  //      ul_ack_info_t ack_data;
+  //      ack_data.rnti       = pusch.dci.rnti;
+  //      ack_data.enb_cc_idx = ccidx;
+  //      ack_data.ue_cc_idx  = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
+  //      ack_data.ul_harq    = *ue_db[ack_data.rnti].get_ul_harq(tti_info.tti_params.tti_tx_ul, ack_data.ue_cc_idx);
+  //      ack_data.tti_tx_ul  = tti_info.tti_params.tti_tx_ul;
+  //      ack_data.tti_ack    = tti_info.tti_params.tti_tx_ul + FDD_HARQ_DELAY_UL_MS;
+  //      if (ack_data.ul_harq.nof_retx(0) == 0) {
+  //        ack_data.ack = randf() > sim_args0.P_retx;
+  //      } else {
+  //        ack_data.ack = ack_data.ul_harq.nof_retx(0) == 2;
+  //      }
+  //      to_ul_ack.insert(std::make_pair(ack_data.tti_tx_ul, ack_data));
+  //    }
+  return SRSLTE_SUCCESS;
+}
+
 int srsenb::extract_dl_prbmask(const srslte_cell_t&               cell,
                                const srslte_dci_dl_t&             dci,
                                srslte::bounded_bitset<100, true>* alloc_mask)
@@ -318,9 +492,12 @@ int srsenb::extract_dl_prbmask(const srslte_cell_t&               cell,
   return SRSLTE_SUCCESS;
 }
 
-void user_state_sched_tester::new_tti(uint32_t tti_rx)
+void user_state_sched_tester::new_tti(sched* sched_ptr, uint32_t tti_rx)
 {
   tic++;
+  for (auto& u : users) {
+    u.second.new_tti(sched_ptr, srslte::tti_point{tti_rx});
+  }
 }
 
 int user_state_sched_tester::add_user(uint16_t                                 rnti,
@@ -331,8 +508,7 @@ int user_state_sched_tester::add_user(uint16_t                                 r
                 cell_params[ue_cfg.supported_cc_list[0].enb_cc_idx].prach_config, tic.tti_rx(), -1),
             "New user added in a non-PRACH TTI\n");
   TESTASSERT(users.count(rnti) == 0);
-  ue_state ue;
-  ue.user_cfg     = ue_cfg;
+  ue_state ue{rnti, ue_cfg};
   ue.prach_tic    = tic;
   ue.preamble_idx = preamble_idx;
   users.insert(std::make_pair(rnti, ue));
@@ -342,7 +518,7 @@ int user_state_sched_tester::add_user(uint16_t                                 r
 int user_state_sched_tester::user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg)
 {
   TESTASSERT(users.count(rnti) > 0);
-  users[rnti].user_cfg = ue_cfg;
+  users.at(rnti).set_cfg(ue_cfg);
   return SRSLTE_SUCCESS;
 }
 
@@ -353,10 +529,10 @@ int user_state_sched_tester::bearer_cfg(uint16_t                                
   auto it = users.find(rnti);
   TESTASSERT(it != users.end());
   it->second.user_cfg.ue_bearers[lcid] = bearer_cfg;
-  users[rnti].drb_cfg_flag             = false;
+  users.at(rnti).drb_cfg_flag          = false;
   for (uint32_t i = 2; i < it->second.user_cfg.ue_bearers.size(); ++i) {
     if (it->second.user_cfg.ue_bearers[i].direction != sched_interface::ue_bearer_cfg_t::IDLE) {
-      users[rnti].drb_cfg_flag = true;
+      users.at(rnti).drb_cfg_flag = true;
     }
   }
   return SRSLTE_SUCCESS;
@@ -488,7 +664,7 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
     auto& pusch_alloc = ul_result.pusch[i];
     if (not pusch_alloc.needs_pdcch) {
       // can be adaptive retx or msg3
-      auto& ue = users[pusch_alloc.dci.rnti];
+      auto& ue = users.at(pusch_alloc.dci.rnti);
       if (tic.tic_tx_ul() == ue.msg3_tic) {
         msg3_count--;
       }
@@ -593,6 +769,11 @@ int user_state_sched_tester::test_all(uint32_t                               enb
   TESTASSERT(test_ra(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
   TESTASSERT(test_ctrl_info(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
   TESTASSERT(test_scell_activation(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
+
+  for (auto& u : users) {
+    TESTASSERT(u.second.process_sched_result(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
+  }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -700,8 +881,6 @@ void common_sched_tester::new_test_tti()
   tti_info.ul_sched_result.resize(sched_cell_params.size());
 
   tester_log->step(tti_info.tti_params.tti_rx);
-
-  ue_tester->new_tti(tti_info.tti_params.tti_rx);
 }
 
 int common_sched_tester::process_ack_txs()
@@ -711,38 +890,6 @@ int common_sched_tester::process_ack_txs()
            [this](std::pair<const uint32_t, ack_info_t>& elem) { return this->ue_db.count(elem.second.rnti) == 0; });
   erase_if(to_ul_ack,
            [this](std::pair<const uint32_t, ul_ack_info_t>& elem) { return this->ue_db.count(elem.second.rnti) == 0; });
-
-  /* Ack DL HARQs */
-  for (const auto& ack_it : to_ack) {
-    if (ack_it.second.tti != tti_info.tti_params.tti_rx) {
-      continue;
-    }
-    const ack_info_t& dl_ack = ack_it.second;
-
-    const srsenb::dl_harq_proc& h    = ue_db[dl_ack.rnti].get_dl_harq(ack_it.second.dl_harq.get_id(), dl_ack.ue_cc_idx);
-    const srsenb::dl_harq_proc& hack = dl_ack.dl_harq;
-    CONDERROR(hack.is_empty(), "The acked DL harq was not active\n");
-
-    bool ret = false;
-    for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; ++tb) {
-      if (dl_ack.dl_harq.is_empty(tb)) {
-        continue;
-      }
-      ret |= dl_ack_info(tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.enb_cc_idx, tb, dl_ack.ack) > 0;
-    }
-    CONDERROR(not ret, "The dl harq proc that was ACKed does not exist\n");
-
-    if (dl_ack.ack) {
-      CONDERROR(!h.is_empty(), "ACKed dl harq was not emptied\n");
-      CONDERROR(h.has_pending_retx(0, tti_info.tti_params.tti_tx_dl), "ACKed dl harq still has pending retx\n");
-      tester_log->info(
-          "DL ACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.dl_harq.get_id());
-    } else {
-      tester_log->info(
-          "DL NACK tti=%u rnti=0x%x pid=%d\n", tti_info.tti_params.tti_rx, dl_ack.rnti, dl_ack.dl_harq.get_id());
-      CONDERROR(h.is_empty() and hack.nof_retx(0) + 1 < hack.max_nof_retx(), "NACKed DL harq got emptied\n");
-    }
-  }
 
   /* Ack UL HARQs */
   for (const auto& ack_it : to_ul_ack) {
@@ -784,40 +931,6 @@ int common_sched_tester::process_ack_txs()
 int common_sched_tester::schedule_acks()
 {
   for (uint32_t ccidx = 0; ccidx < sched_cell_params.size(); ++ccidx) {
-    // schedule future acks
-    for (uint32_t i = 0; i < tti_info.dl_sched_result[ccidx].nof_data_elems; ++i) {
-      ack_info_t ack_data;
-      ack_data.rnti       = tti_info.dl_sched_result[ccidx].data[i].dci.rnti;
-      ack_data.tti        = FDD_HARQ_DELAY_DL_MS + tti_info.tti_params.tti_tx_dl;
-      ack_data.enb_cc_idx = ccidx;
-      ack_data.ue_cc_idx  = ue_db[ack_data.rnti].get_cell_index(ccidx).second;
-      const srsenb::dl_harq_proc& dl_h =
-          ue_db[ack_data.rnti].get_dl_harq(tti_info.dl_sched_result[ccidx].data[i].dci.pid, ack_data.ue_cc_idx);
-      ack_data.dl_harq = dl_h;
-      if (ack_data.dl_harq.nof_retx(0) == 0) {
-        ack_data.ack = randf() > sim_args0.P_retx;
-      } else { // always ack after three retxs
-        ack_data.ack = ack_data.dl_harq.nof_retx(0) == 3;
-      }
-
-      // Remove harq from the ack list if there was a harq rewrite
-      auto it = to_ack.begin();
-      while (it != to_ack.end() and it->first < ack_data.tti) {
-        if (it->second.rnti == ack_data.rnti and it->second.dl_harq.get_id() == ack_data.dl_harq.get_id() and
-            it->second.ue_cc_idx == ack_data.ue_cc_idx) {
-          CONDERROR(it->second.tti + FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS > ack_data.tti,
-                    "The retx dl harq id=%d was transmitted too soon\n",
-                    ack_data.dl_harq.get_id());
-          auto toerase_it = it++;
-          to_ack.erase(toerase_it);
-          continue;
-        }
-        ++it;
-      }
-      // add new ack to the list
-      to_ack.insert(std::make_pair(ack_data.tti, ack_data));
-    }
-
     /* Schedule UL ACKs */
     for (uint32_t i = 0; i < tti_info.ul_sched_result[ccidx].nof_dci_elems; ++i) {
       const auto&   pusch = tti_info.ul_sched_result[ccidx].pusch[i];
@@ -932,6 +1045,7 @@ int common_sched_tester::run_tti(const tti_ev& tti_events)
   new_test_tti();
   tester_log->info("---- tti=%u | nof_ues=%zd ----\n", tic.tti_rx(), ue_db.size());
 
+  ue_tester->new_tti(this, tti_info.tti_params.tti_rx);
   process_tti_events(tti_events);
   process_ack_txs();
   before_sched();

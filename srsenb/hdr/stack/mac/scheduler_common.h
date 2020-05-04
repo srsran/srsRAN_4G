@@ -119,6 +119,13 @@ inline uint32_t get_rvidx(uint32_t retx_idx)
   return rv_idx[retx_idx % 4];
 }
 
+//! Obtain nof retxs from rvidx.
+inline uint32_t get_nof_retx(uint32_t rv_idx)
+{
+  const static uint32_t nof_retxs[4] = {0, 3, 1, 2};
+  return nof_retxs[rv_idx % 4];
+}
+
 /**
  * Generate possible CCE locations a user can use to allocate DCIs
  * @param regs Regs data for the given cell configuration

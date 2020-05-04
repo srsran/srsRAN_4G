@@ -258,12 +258,12 @@ bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
 
 int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
-  int  ret = -1;
-  auto p   = get_cell_index(enb_cc_idx);
+  int  tbs_acked = -1;
+  auto p         = get_cell_index(enb_cc_idx);
   if (p.first) {
     std::pair<uint32_t, int> p2 = carriers[p.second].harq_ent.set_ack_info(tti_rx, tb_idx, ack);
-    ret                         = p2.second;
-    if (ret > 0) {
+    tbs_acked                   = p2.second;
+    if (tbs_acked > 0) {
       Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, p2.first, tb_idx, tti_rx);
     } else {
       Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti_rx);
@@ -271,7 +271,7 @@ int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx
   } else {
     log_h->warning("Received DL ACK for invalid cell index %d\n", enb_cc_idx);
   }
-  return ret;
+  return tbs_acked;
 }
 
 void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
@@ -909,7 +909,7 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
 
   /* Set Minimum boundary */
   min_data = srb0_data;
-  if (pending_ces.front() == ce_cmd::CON_RES_ID) {
+  if (not pending_ces.empty() and pending_ces.front() == ce_cmd::CON_RES_ID) {
     min_data += srslte::ce_total_size(pending_ces.front());
   }
   if (min_data == 0) {
