@@ -36,6 +36,17 @@
 
 namespace srslte {
 
+// NOTE: gcc 4.8.5 is missing std::max_align_t. Need to create a struct
+union max_alignment_t {
+  char        c;
+  float       f;
+  uint32_t    i;
+  uint64_t    i2;
+  double      d;
+  long double d2;
+  uint32_t*   ptr;
+};
+
 //! Size of the buffer used by "move_callback<R(Args...)>" to store functors without calling "new"
 constexpr size_t default_buffer_size = 32;
 
@@ -120,7 +131,7 @@ template <class R, class... Args, size_t Capacity>
 class move_callback<R(Args...), Capacity>
 {
   static constexpr size_t capacity = Capacity >= sizeof(void*) ? Capacity : sizeof(void*); ///< size of buffer
-  using storage_t                  = typename std::aligned_storage<capacity, alignof(std::max_align_t)>::type;
+  using storage_t                  = typename std::aligned_storage<capacity, alignof(max_alignment_t)>::type;
   using oper_table_t               = task_details::oper_table_t<R, Args...>;
   static constexpr task_details::empty_table_t<R, Args...> empty_table{};
 
