@@ -124,9 +124,10 @@ public:
 class gtpu_dummy : public gtpu_interface_rrc
 {
 public:
-  void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t* teid_in) override {}
-  void rem_bearer(uint16_t rnti, uint32_t lcid) override {}
-  void rem_user(uint16_t rnti) override {}
+  uint32_t add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out) override { return 0; }
+  void     rem_bearer(uint16_t rnti, uint32_t lcid) override {}
+  void     mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override {}
+  void     rem_user(uint16_t rnti) override {}
 };
 
 } // namespace srsenb

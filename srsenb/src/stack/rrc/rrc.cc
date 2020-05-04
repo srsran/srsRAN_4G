@@ -179,7 +179,7 @@ void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
       mac->ue_cfg(SRSLTE_MRNTI, NULL);
       rlc->add_bearer_mrb(SRSLTE_MRNTI, lcid);
       pdcp->add_bearer(SRSLTE_MRNTI, lcid, srslte::make_drb_pdcp_config_t(1, false));
-      gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1, &teid_in);
+      teid_in = gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1);
     }
   }
 }
@@ -456,8 +456,6 @@ void rrc::ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique
 
 void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
 {
-  uint16_t old_rnti = 0;
-
   if (pdu) {
     ul_ccch_msg_s  ul_ccch_msg;
     asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
@@ -479,41 +477,10 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
         }
         break;
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_request:
-        rrc_log->debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s\n",
-                       (uint32_t)ul_ccch_msg.msg.c1()
-                           .rrc_conn_reest_request()
-                           .crit_exts.rrc_conn_reest_request_r8()
-                           .ue_id.c_rnti.to_number(),
-                       ul_ccch_msg.msg.c1().rrc_conn_reest_request().crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
-                       (uint32_t)ul_ccch_msg.msg.c1()
-                           .rrc_conn_reest_request()
-                           .crit_exts.rrc_conn_reest_request_r8()
-                           .ue_id.short_mac_i.to_number(),
-                       ul_ccch_msg.msg.c1()
-                           .rrc_conn_reest_request()
-                           .crit_exts.rrc_conn_reest_request_r8()
-                           .reest_cause.to_string()
-                           .c_str());
-        if (user_it->second->is_idle()) {
-          old_rnti = (uint16_t)ul_ccch_msg.msg.c1()
-                         .rrc_conn_reest_request()
-                         .crit_exts.rrc_conn_reest_request_r8()
-                         .ue_id.c_rnti.to_number();
-          if (users.count(old_rnti)) {
-            rrc_log->error("Not supported: ConnectionReestablishment for rnti=0x%x. Sending Connection Reject\n",
-                           old_rnti);
-            user_it->second->send_connection_reest_rej();
-            s1ap->user_release(old_rnti, asn1::s1ap::cause_radio_network_opts::release_due_to_eutran_generated_reason);
-          } else {
-            rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
-            user_it->second->send_connection_reest_rej();
-          }
-          // remove temporal rnti
-          rrc_log->warning(
-              "Received ConnectionReestablishment for rnti=0x%x. Removing temporal rnti=0x%x\n", old_rnti, rnti);
-          rem_user_thread(rnti);
+        if (user_it != users.end()) {
+          user_it->second->handle_rrc_con_reest_req(&ul_ccch_msg.msg.c1().rrc_conn_reest_request());
         } else {
-          rrc_log->error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE\n", rnti);
+          rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context.\n", rnti);
         }
         break;
       default:

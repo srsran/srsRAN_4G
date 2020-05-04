@@ -51,7 +51,7 @@ public:
 
   rrc_state_t get_state();
 
-  void send_connection_setup(bool is_setup = true);
+  void send_connection_setup();
   void send_connection_reest();
   void send_connection_reject();
   void send_connection_release();
@@ -66,6 +66,8 @@ public:
   void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
   void handle_rrc_con_reest_req(asn1::rrc::rrc_conn_reest_request_r8_ies_s* msg);
   void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu);
+  void handle_rrc_con_reest_req(asn1::rrc::rrc_conn_reest_request_s* msg);
+  void handle_rrc_con_reest_complete(asn1::rrc::rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu);
   void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu);
   void handle_security_mode_complete(asn1::rrc::security_mode_complete_s* msg);
   void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
@@ -121,6 +123,7 @@ private:
   sched_interface::ue_cfg_t current_sched_ue_cfg = {};
   uint32_t                  rlf_cnt              = 0;
   uint8_t                   transaction_id       = 0;
+  uint16_t                  old_reest_rnti       = SRSLTE_INVALID_RNTI;
   rrc_state_t               state                = RRC_STATE_IDLE;
 
   asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
@@ -133,6 +136,12 @@ private:
   cell_ctxt_dedicated_list cell_ded_list;
   bearer_cfg_handler       bearer_list;
   security_cfg_handler     ue_security_cfg;
+
+  ///< Helper to add SRB to scheduler
+  void init_sched_ue_cfg(asn1::rrc::phys_cfg_ded_s* phy_cfg);
+
+  ///< Helper to fill RR config dedicated struct for RRR Connection Setup/Reestablish
+  void fill_rrc_setup_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* rr_cfg);
 
   ///< Helper to access a cell cfg based on ue_cc_idx
   cell_info_common* get_ue_cc_cfg(uint32_t ue_cc_idx);

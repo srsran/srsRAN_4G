@@ -42,7 +42,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   current_sched_ue_cfg(sched_ue_cfg),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
   cell_ded_list(parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list),
-  bearer_list(rnti_, parent->cfg, parent->gtpu),
+  bearer_list(rnti_, parent->cfg),
   ue_security_cfg(parent->cfg)
 {
   if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
@@ -173,6 +173,9 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete:
       handle_rrc_con_setup_complete(&ul_dcch_msg.msg.c1().rrc_conn_setup_complete(), std::move(pdu));
       break;
+    case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_reest_complete:
+      handle_rrc_con_reest_complete(&ul_dcch_msg.msg.c1().rrc_conn_reest_complete(), std::move(pdu));
+      break;
     case ul_dcch_msg_type_c::c1_c_::types::ul_info_transfer:
       pdu->N_bytes = ul_dcch_msg.msg.c1()
                          .ul_info_transfer()
@@ -227,6 +230,15 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   }
 }
 
+std::string rrc::ue::to_string(const activity_timeout_type_t& type)
+{
+  constexpr static const char* options[] = {"Msg3 reception", "UE response reception", "UE inactivity"};
+  return srslte::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
+}
+
+/*
+ *  Connection Setup
+ */
 void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 {
   if (not parent->s1ap->is_mme_connected()) {
@@ -249,16 +261,39 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
   set_activity_timeout(UE_RESPONSE_RX_TIMEOUT);
 }
 
-std::string rrc::ue::to_string(const activity_timeout_type_t& type)
+void rrc::ue::send_connection_setup()
 {
-  constexpr static const char* options[] = {"Msg3 reception", "UE response reception", "UE inactivity"};
-  return srslte::enum_to_text(options, (uint32_t)activity_timeout_type_t::nulltype, (uint32_t)type);
-}
+  // (Re-)Establish SRB1
+  bearer_list.add_srb(1);
 
-void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_r8_ies_s* msg)
-{
-  // TODO: Check Short-MAC-I value
-  parent->rrc_log->error("Not Supported: ConnectionReestablishment.\n");
+  dl_ccch_msg_s dl_ccch_msg;
+  dl_ccch_msg.msg.set_c1();
+
+  dl_ccch_msg.msg.c1().set_rrc_conn_setup();
+  dl_ccch_msg.msg.c1().rrc_conn_setup().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.set_c1().set_rrc_conn_setup_r8();
+  rr_cfg_ded_s* rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded;
+
+  // Fill RR config dedicated
+  fill_rrc_setup_rr_config_dedicated(rr_cfg);
+  phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
+
+  // Add SRB1 to Scheduler
+  init_sched_ue_cfg(phy_cfg);
+
+  // Configure MAC
+  // In case of RRC Connection Setup message (Msg4), we need to resolve the contention by sending a ConRes CE
+  parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
+
+  // Add SRBs/DRBs, and configure RLC+PDCP
+  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
+  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+
+  // Configure PHY layer
+  apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
+  parent->mac->phy_config_enabled(rnti, false);
+
+  send_dl_ccch(&dl_ccch_msg);
 }
 
 void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -289,6 +324,306 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
     parent->s1ap->initial_ue(rnti, s1ap_cause, std::move(pdu));
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+}
+
+void rrc::ue::send_connection_reject()
+{
+  dl_ccch_msg_s dl_ccch_msg;
+  dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
+  send_dl_ccch(&dl_ccch_msg);
+}
+
+/*
+ * Connection Reestablishment
+ */
+void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
+{
+  if (not parent->s1ap->is_mme_connected()) {
+    parent->rrc_log->error("MME isn't connected. Sending Connection Reject\n");
+    send_connection_reject();
+    return;
+  }
+  parent->rrc_log->debug("rnti=0x%x, phyid=0x%x, smac=0x%x, cause=%s\n",
+                         (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number(),
+                         msg->crit_exts.rrc_conn_reest_request_r8().ue_id.pci,
+                         (uint32_t)msg->crit_exts.rrc_conn_reest_request_r8().ue_id.short_mac_i.to_number(),
+                         msg->crit_exts.rrc_conn_reest_request_r8().reest_cause.to_string().c_str());
+  if (is_idle()) {
+    uint16_t old_rnti = msg->crit_exts.rrc_conn_reest_request_r8().ue_id.c_rnti.to_number();
+    if (parent->users.count(old_rnti)) {
+      parent->rrc_log->info("ConnectionReestablishmentRequest for rnti=0x%x. Sending Connection Reestablishment\n",
+                            old_rnti);
+      send_connection_reest();
+
+      // Setup security
+      const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
+      ue_security_cfg                   = parent->users[old_rnti]->ue_security_cfg;
+      ue_security_cfg.regenerate_keys_handover(pcell_cfg->cell_cfg.pci, pcell_cfg->cell_cfg.dl_earfcn);
+
+      // Modify GTP-U tunnel
+      parent->gtpu->mod_bearer_rnti(old_rnti, rnti);
+
+      old_reest_rnti = old_rnti;
+      state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
+      set_activity_timeout(UE_RESPONSE_RX_TIMEOUT);
+    } else {
+      parent->rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
+      send_connection_reest_rej();
+    }
+  } else {
+    parent->rrc_log->error("Received ReestablishmentRequest from an rnti=0x%x not in IDLE\n", rnti);
+  }
+  return;
+}
+
+void rrc::ue::send_connection_reest()
+{
+  // Re-Establish SRB1
+  bearer_list.add_srb(1);
+
+  dl_ccch_msg_s dl_ccch_msg;
+  dl_ccch_msg.msg.set_c1();
+
+  dl_ccch_msg.msg.c1().set_rrc_conn_reest();
+  dl_ccch_msg.msg.c1().rrc_conn_reest().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set_c1().set_rrc_conn_reest_r8();
+  rr_cfg_ded_s* rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded;
+
+  // Fill RR config dedicated
+  fill_rrc_setup_rr_config_dedicated(rr_cfg);
+  phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
+
+  // Add SRB1 to the scheduler
+  init_sched_ue_cfg(phy_cfg);
+
+  // Configure MAC
+  // In case of RRC Connection Setup message (Msg4), we need to resolve the contention by sending a ConRes CE
+  parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
+
+  // Add SRBs/DRBs, and configure RLC+PDCP
+  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
+  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+
+  // Configure PHY layer
+  apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
+  parent->mac->phy_config_enabled(rnti, false);
+
+  send_dl_ccch(&dl_ccch_msg);
+}
+
+void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu)
+{
+  // Inform PHY about the configuration completion
+  parent->phy->complete_config_dedicated(rnti);
+
+  parent->rrc_log->info("RRCConnectionReestablishComplete transaction ID: %d\n", msg->rrc_transaction_id);
+
+  // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
+  // TODO: if(msg->registered_mme_present) - the indicated MME should be used from a pool
+
+  // Acknowledge Dedicated Configuration
+  parent->mac->phy_config_enabled(rnti, true);
+
+  // Flag completion of RadioResource Configuration
+  bearer_list.rr_ded_cfg_complete();
+
+  // Activate security for SRB1
+  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
+  parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
+
+  // Reestablish current DRBs during ConnectionReconfiguration
+  for (const auto& erab_pair : parent->users[old_reest_rnti]->bearer_list.get_erabs()) {
+    const bearer_cfg_handler::erab_t& erab = erab_pair.second;
+    bearer_list.add_erab(erab.id, erab.qos_params, erab.address, erab.teid_out, nullptr);
+  }
+
+  // remove old RNTI
+  parent->rem_user_thread(old_reest_rnti);
+
+  state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+  send_connection_reconf(std::move(pdu));
+}
+
+void rrc::ue::send_connection_reest_rej()
+{
+  dl_ccch_msg_s dl_ccch_msg;
+  dl_ccch_msg.msg.set_c1().set_rrc_conn_reest_reject().crit_exts.set_rrc_conn_reest_reject_r8();
+  send_dl_ccch(&dl_ccch_msg);
+}
+
+/*
+ * Connection Reconfiguration
+ */
+void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
+{
+  // Setup SRB2
+  bearer_list.add_srb(2);
+
+  // Add re-establish DRBs
+  parent->rrc_log->debug("RRC state %d\n", state);
+  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
+  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+
+  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+
+  // Add DRBs/SRBs
+  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
+
+  conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
+  phys_cfg_ded_s* phy_cfg                      = &conn_reconf->rr_cfg_ded.phys_cfg_ded;
+
+  // Configure PHY layer
+  phy_cfg->ant_info_present              = true;
+  phy_cfg->ant_info.set_explicit_value() = parent->cfg.antenna_info;
+  phy_cfg->cqi_report_cfg_present        = true;
+  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
+    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
+    if (phy_cfg->ant_info_present and
+        phy_cfg->ant_info.explicit_value().tx_mode.value == ant_info_ded_s::tx_mode_e_::tm4) {
+      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm31;
+    } else {
+      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
+    }
+  } else {
+    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
+    auto& cqi_rep                                       = phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
+    get_cqi(&cqi_rep.cqi_pmi_cfg_idx, &cqi_rep.cqi_pucch_res_idx, UE_PCELL_CC_IDX);
+    cqi_rep.cqi_format_ind_periodic.set(
+        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
+    cqi_rep.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    if (phy_cfg->ant_info_present and
+        ((phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3) ||
+         (phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4))) {
+      uint16_t ri_idx = 0;
+      if (get_ri(parent->cfg.cqi_cfg.m_ri, &ri_idx) == SRSLTE_SUCCESS) {
+        phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
+        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
+        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = ri_idx;
+      } else {
+        parent->rrc_log->console("\nWarning: Configured wrong M_ri parameter.\n\n");
+      }
+    } else {
+      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
+    }
+  }
+  phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
+  // PDSCH
+  phy_cfg->pdsch_cfg_ded_present = true;
+  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
+
+  // Configure 256QAM
+  if (ue_capabilities.category_dl >= 11 && ue_capabilities.support_dl_256qam) {
+    phy_cfg->cqi_report_cfg_pcell_v1250.set_present(true);
+    cqi_report_cfg_v1250_s* cqi_report_cfg    = conn_reconf->rr_cfg_ded.phys_cfg_ded.cqi_report_cfg_pcell_v1250.get();
+    cqi_report_cfg->alt_cqi_table_r12_present = true;
+    cqi_report_cfg->alt_cqi_table_r12         = asn1::rrc::cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::all_sfs;
+    current_sched_ue_cfg.use_tbs_index_alt    = true;
+  }
+
+  // Add SCells
+  if (fill_scell_to_addmod_list(conn_reconf) != SRSLTE_SUCCESS) {
+    parent->rrc_log->warning("Could not create configuration for Scell\n");
+    return;
+  }
+
+  apply_reconf_phy_config(*conn_reconf);
+  current_sched_ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
+  parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
+  parent->mac->phy_config_enabled(rnti, false);
+
+  // setup SRB2/DRBs in PDCP and RLC
+  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
+  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+
+  // Add pending NAS info
+  bearer_list.fill_pending_nas_info(conn_reconf);
+
+  if (mobility_handler != nullptr) {
+    mobility_handler->fill_conn_recfg_msg(conn_reconf);
+  }
+  last_rrc_conn_recfg = dl_dcch_msg.msg.c1().rrc_conn_recfg();
+
+  // Reuse same PDU
+  pdu->clear();
+
+  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
+
+  state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+}
+
+void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
+{
+  dl_dcch_msg_s     dl_dcch_msg;
+  rrc_conn_recfg_s* rrc_conn_recfg   = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
+  rrc_conn_recfg->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
+
+  rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded_present = true;
+  auto&         reconfig_r8 = rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8();
+  rr_cfg_ded_s* rr_cfg      = &reconfig_r8.rr_cfg_ded;
+
+  rr_cfg->phys_cfg_ded_present       = true;
+  phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
+  phy_cfg->sched_request_cfg_present = true;
+  phy_cfg->sched_request_cfg.set_setup();
+  phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
+
+  phy_cfg->cqi_report_cfg_present = true;
+  if (cell_ded_list.nof_cells() > 0) {
+    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
+        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
+    get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
+            &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
+            UE_PCELL_CC_IDX);
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    if (parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm3 ||
+        parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
+      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
+      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx = 483; /* TODO: HARDCODED! Add to UL scheduler */
+    } else {
+      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
+    }
+  } else {
+    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
+    if (phy_cfg->ant_info_present && parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
+      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm31;
+    } else {
+      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
+    }
+  }
+  apply_reconf_phy_config(reconfig_r8);
+
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list.get_sr_res()->sr_I;
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
+
+  pdu->clear();
+
+  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
+
+  state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+}
+
+void rrc::ue::send_connection_reconf_new_bearer()
+{
+  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
+  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+
+  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
+
+  // Setup new bearer
+  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
+  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+  // Add pending NAS info
+  bearer_list.fill_pending_nas_info(conn_reconf);
+
+  if (conn_reconf->rr_cfg_ded_present or conn_reconf->ded_info_nas_list_present) {
+    send_dl_dcch(&dl_dcch_msg);
+  }
 }
 
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -324,6 +659,25 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   }
 }
 
+/*
+ * Security Mode command
+ */
+void rrc::ue::send_security_mode_command()
+{
+  // Setup SRB1 security/integrity. Encryption is set on completion
+  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
+
+  dl_dcch_msg_s        dl_dcch_msg;
+  security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
+  comm->rrc_transaction_id  = (uint8_t)((transaction_id++) % 4);
+
+  comm->crit_exts.set_c1().set_security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg =
+      ue_security_cfg.get_security_algorithm_cfg();
+
+  send_dl_dcch(&dl_dcch_msg);
+}
+
 void rrc::ue::handle_security_mode_complete(security_mode_complete_s* msg)
 {
   parent->rrc_log->info("SecurityModeComplete transaction ID: %d\n", msg->rrc_transaction_id);
@@ -334,6 +688,23 @@ void rrc::ue::handle_security_mode_complete(security_mode_complete_s* msg)
 void rrc::ue::handle_security_mode_failure(security_mode_fail_s* msg)
 {
   parent->rrc_log->info("SecurityModeFailure transaction ID: %d\n", msg->rrc_transaction_id);
+}
+
+/*
+ * UE capabilities info
+ */
+void rrc::ue::send_ue_cap_enquiry()
+{
+  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg.msg.set_c1().set_ue_cap_enquiry().crit_exts.set_c1().set_ue_cap_enquiry_r8();
+
+  ue_cap_enquiry_s* enq   = &dl_dcch_msg.msg.c1().ue_cap_enquiry();
+  enq->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
+
+  enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.resize(1);
+  enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[0].value = rat_type_e::eutra;
+
+  send_dl_dcch(&dl_dcch_msg);
 }
 
 bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
@@ -367,6 +738,28 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
   // parent->s1ap->ue_capabilities(rnti, &eutra_capabilities);
 }
 
+/*
+ * Connection Release
+ */
+void rrc::ue::send_connection_release()
+{
+  dl_dcch_msg_s dl_dcch_msg;
+  auto&         rrc_release          = dl_dcch_msg.msg.set_c1().set_rrc_conn_release();
+  rrc_release.rrc_transaction_id     = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_release_r8_ies_s& rel_ies = rrc_release.crit_exts.set_c1().set_rrc_conn_release_r8();
+  rel_ies.release_cause              = release_cause_e::other;
+  if (is_csfb) {
+    rel_ies.redirected_carrier_info_present = true;
+    rel_ies.redirected_carrier_info.set_geran();
+    rel_ies.redirected_carrier_info.geran() = parent->sib7.carrier_freqs_info_list[0].carrier_freqs;
+  }
+
+  send_dl_dcch(&dl_dcch_msg);
+}
+
+/*
+ * UE context
+ */
 void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg)
 {
   if (msg.protocol_ies.add_cs_fallback_ind_present) {
@@ -466,6 +859,23 @@ bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s&
   return true;
 }
 
+void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
+{
+  asn1::s1ap::init_context_setup_resp_s res;
+
+  res.protocol_ies.erab_setup_list_ctxt_su_res.value.resize(bearer_list.get_erabs().size());
+  uint32_t i = 0;
+  for (const auto& erab : bearer_list.get_erabs()) {
+    res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
+    auto& item   = res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
+    item.erab_id = erab.second.id;
+    srslte::uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
+    i++;
+  }
+
+  parent->s1ap->ue_ctxt_setup_complete(rnti, res);
+}
+
 void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates)
 {
   bitrates = rates;
@@ -490,6 +900,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
     srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
     bearer_list.add_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
+    bearer_list.add_gtpu_bearer(parent->gtpu, erab.erab_id);
   }
   return true;
 }
@@ -513,6 +924,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_
     srslte::uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     bearer_list.add_erab(
         erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
+    bearer_list.add_gtpu_bearer(parent->gtpu, erab.erab_id);
   }
 
   // Work in progress
@@ -525,23 +937,6 @@ bool rrc::ue::release_erabs()
 {
   bearer_list.release_erabs();
   return true;
-}
-
-void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
-{
-  asn1::s1ap::init_context_setup_resp_s res;
-
-  res.protocol_ies.erab_setup_list_ctxt_su_res.value.resize(bearer_list.get_erabs().size());
-  uint32_t i = 0;
-  for (const auto& erab : bearer_list.get_erabs()) {
-    res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
-    auto& item   = res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
-    item.erab_id = erab.second.id;
-    srslte::uint32_to_uint8(erab.second.teid_in, item.gtp_teid.data());
-    i++;
-  }
-
-  parent->s1ap->ue_ctxt_setup_complete(rnti, res);
 }
 
 void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
@@ -570,335 +965,6 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
   }
 
   parent->s1ap->ue_erab_setup_complete(rnti, res);
-}
-
-void rrc::ue::send_connection_reest_rej()
-{
-  dl_ccch_msg_s dl_ccch_msg;
-
-  dl_ccch_msg.msg.set_c1().set_rrc_conn_reest_reject().crit_exts.set_rrc_conn_reest_reject_r8();
-
-  send_dl_ccch(&dl_ccch_msg);
-}
-
-void rrc::ue::send_connection_reject()
-{
-  dl_ccch_msg_s dl_ccch_msg;
-
-  dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
-
-  send_dl_ccch(&dl_ccch_msg);
-}
-
-void rrc::ue::send_connection_setup(bool is_setup)
-{
-  // (Re-)Establish SRB1
-  bearer_list.add_srb(1);
-
-  dl_ccch_msg_s dl_ccch_msg;
-  dl_ccch_msg.msg.set_c1();
-
-  rr_cfg_ded_s* rr_cfg = nullptr;
-  if (is_setup) {
-    dl_ccch_msg.msg.c1().set_rrc_conn_setup();
-    dl_ccch_msg.msg.c1().rrc_conn_setup().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-    dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.set_c1().set_rrc_conn_setup_r8();
-    rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded;
-  } else {
-    dl_ccch_msg.msg.c1().set_rrc_conn_reest();
-    dl_ccch_msg.msg.c1().rrc_conn_reest().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-    dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set_c1().set_rrc_conn_reest_r8();
-    rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded;
-  }
-
-  // drbsToAddModList/srbsToAddModList/drbsToReleaseList
-  bearer_list.fill_rr_cfg_ded(*rr_cfg);
-
-  // mac-MainConfig
-  rr_cfg->mac_main_cfg_present  = true;
-  mac_main_cfg_s* mac_cfg       = &rr_cfg->mac_main_cfg.set_explicit_value();
-  mac_cfg->ul_sch_cfg_present   = true;
-  mac_cfg->ul_sch_cfg           = parent->cfg.mac_cnfg.ul_sch_cfg;
-  mac_cfg->phr_cfg_present      = true;
-  mac_cfg->phr_cfg              = parent->cfg.mac_cnfg.phr_cfg;
-  mac_cfg->time_align_timer_ded = parent->cfg.mac_cnfg.time_align_timer_ded;
-
-  // physicalConfigDedicated
-  rr_cfg->phys_cfg_ded_present       = true;
-  phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
-  phy_cfg->pusch_cfg_ded_present     = true;
-  phy_cfg->pusch_cfg_ded             = parent->cfg.pusch_cfg;
-  phy_cfg->sched_request_cfg_present = true;
-  phy_cfg->sched_request_cfg.set_setup();
-  phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
-
-  // set default antenna config
-  phy_cfg->ant_info_present = true;
-  phy_cfg->ant_info.set_explicit_value();
-  if (parent->cfg.cell.nof_ports == 1) {
-    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm1;
-  } else {
-    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm2;
-  }
-  phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
-
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)cell_ded_list.get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)cell_ded_list.get_sr_res()->sr_N_pucch;
-
-  // Power control
-  phy_cfg->ul_pwr_ctrl_ded_present              = true;
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
-  phy_cfg->ul_pwr_ctrl_ded.delta_mcs_enabled    = ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
-  phy_cfg->ul_pwr_ctrl_ded.accumulation_enabled = true;
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch = 0, phy_cfg->ul_pwr_ctrl_ded.psrs_offset = 3;
-
-  // PDSCH
-  phy_cfg->pdsch_cfg_ded_present = true;
-  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
-
-  // PUCCH
-  phy_cfg->pucch_cfg_ded_present = true;
-  phy_cfg->pucch_cfg_ded.ack_nack_repeat.set(pucch_cfg_ded_s::ack_nack_repeat_c_::types::release);
-
-  phy_cfg->cqi_report_cfg_present = true;
-  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic         = cqi_report_mode_aperiodic_e::rm30;
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (is_setup) {
-      if (get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-                  &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-                  UE_PCELL_CC_IDX)) {
-        parent->rrc_log->error("Allocating CQI resources for rnti=%d\n", rnti);
-        return;
-      }
-    } else {
-      get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-              &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-              UE_PCELL_CC_IDX);
-    }
-  }
-  phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
-
-  // Add SRB1 to Scheduler
-  current_sched_ue_cfg.maxharq_tx              = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
-  current_sched_ue_cfg.continuous_pusch        = false;
-  current_sched_ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  current_sched_ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    current_sched_ue_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.period;
-    current_sched_ue_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
-  } else {
-    get_cqi(&current_sched_ue_cfg.dl_cfg.cqi_report.pmi_idx, &current_sched_ue_cfg.pucch_cfg.n_pucch, UE_PCELL_CC_IDX);
-    current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
-  }
-  current_sched_ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
-  current_sched_ue_cfg.pucch_cfg.I_sr              = cell_ded_list.get_sr_res()->sr_I;
-  current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = cell_ded_list.get_sr_res()->sr_N_pucch;
-  current_sched_ue_cfg.pucch_cfg.sr_configured     = true;
-  const sib_type2_s& sib2                          = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2;
-  current_sched_ue_cfg.pucch_cfg.delta_pucch_shift = sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
-  current_sched_ue_cfg.pucch_cfg.N_cs              = sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
-  current_sched_ue_cfg.pucch_cfg.n_rb_2            = sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
-  current_sched_ue_cfg.pucch_cfg.N_pucch_1         = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
-  current_sched_ue_cfg.dl_ant_info                 = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
-
-  // Configure MAC
-  if (is_setup) {
-    // In case of RRC Connection Setup message (Msg4), we need to resolve the contention by sending a ConRes CE
-    parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
-  } else {
-    parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
-  }
-
-  // Add SRBs/DRBs, and configure RLC+PDCP
-  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
-  bearer_list.apply_rlc_bearer_updates(parent->rlc);
-
-  // Configure PHY layer
-  apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
-  parent->mac->phy_config_enabled(rnti, false);
-
-  rr_cfg->rlf_timers_and_consts_r9.set_present(false);
-  rr_cfg->sps_cfg_present = false;
-  //  rr_cfg->rlf_timers_and_constants_present = false;
-
-  send_dl_ccch(&dl_ccch_msg);
-}
-
-void rrc::ue::send_connection_reest()
-{
-  send_connection_setup(false);
-}
-
-void rrc::ue::send_connection_release()
-{
-  dl_dcch_msg_s dl_dcch_msg;
-  auto&         rrc_release          = dl_dcch_msg.msg.set_c1().set_rrc_conn_release();
-  rrc_release.rrc_transaction_id     = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_release_r8_ies_s& rel_ies = rrc_release.crit_exts.set_c1().set_rrc_conn_release_r8();
-  rel_ies.release_cause              = release_cause_e::other;
-  if (is_csfb) {
-    rel_ies.redirected_carrier_info_present = true;
-    rel_ies.redirected_carrier_info.set_geran();
-    rel_ies.redirected_carrier_info.geran() = parent->sib7.carrier_freqs_info_list[0].carrier_freqs;
-  }
-
-  send_dl_dcch(&dl_dcch_msg);
-}
-
-void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
-{
-  dl_dcch_msg_s     dl_dcch_msg;
-  rrc_conn_recfg_s* rrc_conn_recfg   = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
-  rrc_conn_recfg->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
-
-  rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded_present = true;
-  auto&         reconfig_r8 = rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8();
-  rr_cfg_ded_s* rr_cfg      = &reconfig_r8.rr_cfg_ded;
-
-  rr_cfg->phys_cfg_ded_present       = true;
-  phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
-  phy_cfg->sched_request_cfg_present = true;
-  phy_cfg->sched_request_cfg.set_setup();
-  phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
-
-  phy_cfg->cqi_report_cfg_present = true;
-  if (cell_ded_list.nof_cells() > 0) {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-            &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-            UE_PCELL_CC_IDX);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm3 ||
-        parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx = 483; /* TODO: HARDCODED! Add to UL scheduler */
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
-    }
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    if (phy_cfg->ant_info_present && parent->cfg.antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm31;
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
-    }
-  }
-  apply_reconf_phy_config(reconfig_r8);
-
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list.get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
-
-  pdu->clear();
-
-  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
-
-  state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
-}
-
-void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
-{
-  // Setup SRB2
-  bearer_list.add_srb(2);
-
-  dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-
-  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
-
-  // Add DRBs/SRBs
-  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
-
-  conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
-  phys_cfg_ded_s* phy_cfg                      = &conn_reconf->rr_cfg_ded.phys_cfg_ded;
-
-  // Configure PHY layer
-  phy_cfg->ant_info_present              = true;
-  phy_cfg->ant_info.set_explicit_value() = parent->cfg.antenna_info;
-  phy_cfg->cqi_report_cfg_present        = true;
-  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-    if (phy_cfg->ant_info_present and
-        phy_cfg->ant_info.explicit_value().tx_mode.value == ant_info_ded_s::tx_mode_e_::tm4) {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm31;
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic = cqi_report_mode_aperiodic_e::rm30;
-    }
-  } else {
-    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    auto& cqi_rep                                       = phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-    get_cqi(&cqi_rep.cqi_pmi_cfg_idx, &cqi_rep.cqi_pucch_res_idx, UE_PCELL_CC_IDX);
-    cqi_rep.cqi_format_ind_periodic.set(
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    cqi_rep.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
-    if (phy_cfg->ant_info_present and
-        ((phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3) ||
-         (phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4))) {
-      uint16_t ri_idx = 0;
-      if (get_ri(parent->cfg.cqi_cfg.m_ri, &ri_idx) == SRSLTE_SUCCESS) {
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
-        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = ri_idx;
-      } else {
-        parent->rrc_log->console("\nWarning: Configured wrong M_ri parameter.\n\n");
-      }
-    } else {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
-    }
-  }
-  phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
-  // PDSCH
-  phy_cfg->pdsch_cfg_ded_present = true;
-  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
-
-  // Configure 256QAM
-  if (ue_capabilities.category_dl >= 11 && ue_capabilities.support_dl_256qam) {
-    phy_cfg->cqi_report_cfg_pcell_v1250.set_present(true);
-    cqi_report_cfg_v1250_s* cqi_report_cfg    = conn_reconf->rr_cfg_ded.phys_cfg_ded.cqi_report_cfg_pcell_v1250.get();
-    cqi_report_cfg->alt_cqi_table_r12_present = true;
-    cqi_report_cfg->alt_cqi_table_r12         = asn1::rrc::cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::all_sfs;
-    current_sched_ue_cfg.use_tbs_index_alt    = true;
-  }
-
-  // Add SCells
-  if (fill_scell_to_addmod_list(conn_reconf) != SRSLTE_SUCCESS) {
-    parent->rrc_log->warning("Could not create configuration for Scell\n");
-    return;
-  }
-
-  apply_reconf_phy_config(*conn_reconf);
-  current_sched_ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
-  parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
-  parent->mac->phy_config_enabled(rnti, false);
-
-  // setup SRB2/DRBs in PDCP and RLC
-  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
-  bearer_list.apply_rlc_bearer_updates(parent->rlc);
-
-  // Add pending NAS info
-  bearer_list.fill_pending_nas_info(conn_reconf);
-
-  if (mobility_handler != nullptr) {
-    mobility_handler->fill_conn_recfg_msg(conn_reconf);
-  }
-  last_rrc_conn_recfg = dl_dcch_msg.msg.c1().rrc_conn_recfg();
-
-  // Reuse same PDU
-  pdu->clear();
-
-  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
-
-  state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
 //! Helper method to access Cell configuration based on UE Carrier Index
@@ -1064,56 +1130,6 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   return SRSLTE_SUCCESS;
 }
 
-void rrc::ue::send_connection_reconf_new_bearer()
-{
-  dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
-
-  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
-
-  // Setup new bearer
-  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
-  bearer_list.apply_rlc_bearer_updates(parent->rlc);
-  // Add pending NAS info
-  bearer_list.fill_pending_nas_info(conn_reconf);
-
-  if (conn_reconf->rr_cfg_ded_present or conn_reconf->ded_info_nas_list_present) {
-    send_dl_dcch(&dl_dcch_msg);
-  }
-}
-
-void rrc::ue::send_security_mode_command()
-{
-  // Setup SRB1 security/integrity. Encryption is set on completion
-  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
-  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
-
-  dl_dcch_msg_s        dl_dcch_msg;
-  security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
-  comm->rrc_transaction_id  = (uint8_t)((transaction_id++) % 4);
-
-  comm->crit_exts.set_c1().set_security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg =
-      ue_security_cfg.get_security_algorithm_cfg();
-
-  send_dl_dcch(&dl_dcch_msg);
-}
-
-void rrc::ue::send_ue_cap_enquiry()
-{
-  dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set_c1().set_ue_cap_enquiry().crit_exts.set_c1().set_ue_cap_enquiry_r8();
-
-  ue_cap_enquiry_s* enq   = &dl_dcch_msg.msg.c1().ue_cap_enquiry();
-  enq->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-
-  enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.resize(1);
-  enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[0].value = rat_type_e::eutra;
-
-  send_dl_dcch(&dl_dcch_msg);
-}
-
 /********************** Handover **************************/
 
 void rrc::ue::handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container)
@@ -1122,6 +1138,107 @@ void rrc::ue::handle_ho_preparation_complete(bool is_success, srslte::unique_byt
 }
 
 /********************** HELPERS ***************************/
+
+void rrc::ue::init_sched_ue_cfg(phys_cfg_ded_s* phy_cfg)
+{
+  // Add SRB1 to Scheduler
+  current_sched_ue_cfg.maxharq_tx              = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
+  current_sched_ue_cfg.continuous_pusch        = false;
+  current_sched_ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  current_sched_ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
+    current_sched_ue_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.period;
+    current_sched_ue_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
+  } else {
+    get_cqi(&current_sched_ue_cfg.dl_cfg.cqi_report.pmi_idx, &current_sched_ue_cfg.pucch_cfg.n_pucch, UE_PCELL_CC_IDX);
+    current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
+  }
+  current_sched_ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
+  current_sched_ue_cfg.pucch_cfg.I_sr              = cell_ded_list.get_sr_res()->sr_I;
+  current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = cell_ded_list.get_sr_res()->sr_N_pucch;
+  current_sched_ue_cfg.pucch_cfg.sr_configured     = true;
+  const sib_type2_s& sib2                          = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2;
+  current_sched_ue_cfg.pucch_cfg.delta_pucch_shift = sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  current_sched_ue_cfg.pucch_cfg.N_cs              = sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+  current_sched_ue_cfg.pucch_cfg.n_rb_2            = sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
+  current_sched_ue_cfg.pucch_cfg.N_pucch_1         = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+  current_sched_ue_cfg.dl_ant_info                 = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
+}
+
+// Helper method to fill in rr_config_dedicated
+void rrc::ue::fill_rrc_setup_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* rr_cfg)
+{
+  // Fill drbsToAddModList/srbsToAddModList/drbsToReleaseList
+  bearer_list.fill_rr_cfg_ded(*rr_cfg);
+
+  // Fill mac-MainConfig
+  rr_cfg->mac_main_cfg_present  = true;
+  mac_main_cfg_s* mac_cfg       = &rr_cfg->mac_main_cfg.set_explicit_value();
+  mac_cfg->ul_sch_cfg_present   = true;
+  mac_cfg->ul_sch_cfg           = parent->cfg.mac_cnfg.ul_sch_cfg;
+  mac_cfg->phr_cfg_present      = true;
+  mac_cfg->phr_cfg              = parent->cfg.mac_cnfg.phr_cfg;
+  mac_cfg->time_align_timer_ded = parent->cfg.mac_cnfg.time_align_timer_ded;
+
+  // Fill physicalConfigDedicated
+  rr_cfg->phys_cfg_ded_present       = true;
+  phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
+  phy_cfg->pusch_cfg_ded_present     = true;
+  phy_cfg->pusch_cfg_ded             = parent->cfg.pusch_cfg;
+  phy_cfg->sched_request_cfg_present = true;
+  phy_cfg->sched_request_cfg.set_setup();
+  phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
+
+  // set default antenna config
+  phy_cfg->ant_info_present = true;
+  phy_cfg->ant_info.set_explicit_value();
+  if (parent->cfg.cell.nof_ports == 1) {
+    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm1;
+  } else {
+    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm2;
+  }
+  phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
+
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)cell_ded_list.get_sr_res()->sr_I;
+  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)cell_ded_list.get_sr_res()->sr_N_pucch;
+
+  // Power control
+  phy_cfg->ul_pwr_ctrl_ded_present              = true;
+  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
+  phy_cfg->ul_pwr_ctrl_ded.delta_mcs_enabled    = ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
+  phy_cfg->ul_pwr_ctrl_ded.accumulation_enabled = true;
+  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch = 0, phy_cfg->ul_pwr_ctrl_ded.psrs_offset = 3;
+
+  // PDSCH
+  phy_cfg->pdsch_cfg_ded_present = true;
+  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
+
+  // PUCCH
+  phy_cfg->pucch_cfg_ded_present = true;
+  phy_cfg->pucch_cfg_ded.ack_nack_repeat.set(pucch_cfg_ded_s::ack_nack_repeat_c_::types::release);
+
+  phy_cfg->cqi_report_cfg_present = true;
+  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
+    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
+    phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic         = cqi_report_mode_aperiodic_e::rm30;
+  } else {
+    phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
+        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    if (get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
+                &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
+                UE_PCELL_CC_IDX)) {
+      parent->rrc_log->error("Allocating CQI resources for rnti=%d\n", rnti);
+      return;
+    }
+  }
+  phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
+
+  rr_cfg->rlf_timers_and_consts_r9.set_present(false);
+  rr_cfg->sps_cfg_present = false;
+}
 
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {

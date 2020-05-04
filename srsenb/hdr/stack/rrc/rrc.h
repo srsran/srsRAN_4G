@@ -122,7 +122,6 @@ public:
 
 private:
   class ue;
-
   // args
   srslte::timer_handler*    timers = nullptr;
   srslte::byte_buffer_pool* pool   = nullptr;

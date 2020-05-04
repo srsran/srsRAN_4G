@@ -49,9 +49,10 @@ public:
   void stop();
 
   // gtpu_interface_rrc
-  void add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out, uint32_t* teid_in) override;
-  void rem_bearer(uint16_t rnti, uint32_t lcid) override;
-  void rem_user(uint16_t rnti) override;
+  uint32_t add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid_out) override;
+  void     rem_bearer(uint16_t rnti, uint32_t lcid) override;
+  void     mod_bearer_rnti(uint16_t old_rnti, uint16_t new_rnti) override;
+  void     rem_user(uint16_t rnti) override;
 
   // gtpu_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
@@ -105,6 +106,12 @@ private:
   } bearer_map;
   std::map<uint16_t, bearer_map> rnti_bearers;
 
+  typedef struct {
+    uint16_t rnti;
+    uint16_t lcid;
+  } rnti_lcid_t;
+  std::map<uint32_t, rnti_lcid_t> teidin_to_rntilcid_map;
+
   // Socket file descriptor
   int fd = -1;
 
@@ -113,8 +120,12 @@ private:
   /****************************************************************************
    * TEID to RNIT/LCID helper functions
    ***************************************************************************/
-  void teidin_to_rntilcid(uint32_t teidin, uint16_t* rnti, uint16_t* lcid);
-  void rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t* teidin);
+  uint32_t    next_teid_in = 0;
+  uint32_t    allocate_teidin(uint16_t rnti, uint16_t lcid);
+  void        free_teidin(uint16_t rnti, uint16_t lcid);
+  void        free_teidin(uint16_t rnti);
+  rnti_lcid_t teidin_to_rntilcid(uint32_t teidin);
+  uint32_t    rntilcid_to_teidin(uint16_t rnti, uint16_t lcid);
 };
 
 } // namespace srsenb

@@ -138,14 +138,14 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                gw_interface_rrc*      gw_,
                const rrc_args_t&      args_)
 {
-  pool  = byte_buffer_pool::get_instance();
-  phy   = phy_;
-  mac   = mac_;
-  rlc   = rlc_;
-  pdcp  = pdcp_;
-  nas   = nas_;
-  usim  = usim_;
-  gw    = gw_;
+  pool = byte_buffer_pool::get_instance();
+  phy  = phy_;
+  mac  = mac_;
+  rlc  = rlc_;
+  pdcp = pdcp_;
+  nas  = nas_;
+  usim = usim_;
+  gw   = gw_;
 
   args = args_;
 
@@ -1818,6 +1818,7 @@ void rrc::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 
 void rrc::process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
+  rrc_log->debug("RX PDU, LCID: %d\n", lcid);
   switch (lcid) {
     case RB_ID_SRB0:
       parse_dl_ccch(std::move(pdu));
@@ -1827,7 +1828,7 @@ void rrc::process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       parse_dl_dcch(lcid, std::move(pdu));
       break;
     default:
-      rrc_log->error("RX PDU with invalid bearer id: %d", lcid);
+      rrc_log->error("RX PDU with invalid bearer id: %d\n", lcid);
       break;
   }
 }

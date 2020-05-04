@@ -214,7 +214,7 @@ void usim::generate_nas_keys(uint8_t*                    k_asme,
   RRC interface
 *******************************************************************************/
 
-void usim::generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t *sec_cfg)
+void usim::generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_security_config_t* sec_cfg)
 {
   // Generate K_enb
   security_generate_k_enb(k_asme, count_ul, k_enb);
@@ -238,6 +238,9 @@ void usim::generate_as_keys(uint8_t* k_asme, uint32_t count_ul, srslte::as_secur
 
 void usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::as_security_config_t* sec_cfg)
 {
+  usim_log->info("Generating AS Keys HO. PCI 0x%02x, DL-EARFCN %d, NCC %d\n", pci, earfcn, ncc);
+  usim_log->info_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "Original HO K_RCC_enc");
+  usim_log->info_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "Original HO K_RCC_int");
   uint8_t* enb_star_key = k_enb;
 
   if (ncc < 0) {
@@ -276,6 +279,9 @@ void usim::generate_as_keys_ho(uint32_t pci, uint32_t earfcn, int ncc, srslte::a
   // Generate K_up_enc and K_up_int
   security_generate_k_up(
       k_enb, sec_cfg->cipher_algo, sec_cfg->integ_algo, sec_cfg->k_up_enc.data(), sec_cfg->k_up_int.data());
+
+  usim_log->info_hex(sec_cfg->k_rrc_enc.data(), sec_cfg->k_rrc_enc.size(), "HO K_RCC_enc");
+  usim_log->info_hex(sec_cfg->k_rrc_int.data(), sec_cfg->k_rrc_int.size(), "HO K_RCC_int");
 }
 
 /*******************************************************************************

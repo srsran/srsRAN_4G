@@ -178,8 +178,6 @@ void security_cfg_handler::set_security_key(const asn1::fixed_bitstring<256, fal
 
 void security_cfg_handler::generate_as_keys()
 {
-  log_h->info("Selected security algorithms EEA: EEA%d EIA: EIA%d\n", sec_cfg.cipher_algo, sec_cfg.integ_algo);
-
   // Generate K_rrc_enc and K_rrc_int
   srslte::security_generate_k_rrc(
       k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_rrc_enc.data(), sec_cfg.k_rrc_int.data());
@@ -203,17 +201,18 @@ void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t n
   memcpy(k_enb, k_enb_star, 32);
 
   generate_as_keys();
+
+  log_h->info("Regenerating KeNB with PCI=0x%02x, DL-EARFCN=%d\n", new_pci, new_dl_earfcn);
+  log_h->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC Encryption Key (k_rrc_enc)");
+  log_h->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC Integrity Key (k_rrc_int)");
+  log_h->info_hex(sec_cfg.k_up_enc.data(), 32, "UP Encryption Key (k_up_enc)");
 }
 
 /*****************************
  *      Bearer Handler
  ****************************/
 
-bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_) :
-  rnti(rnti_),
-  cfg(&cfg_),
-  gtpu(gtpu_)
-{}
+bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_) : rnti(rnti_), cfg(&cfg_) {}
 
 void bearer_cfg_handler::add_srb(uint8_t srb_id)
 {
@@ -283,9 +282,6 @@ int bearer_cfg_handler::add_erab(uint8_t                                        
   drb_it->rlc_cfg_present                                  = true;
   drb_it->rlc_cfg                                          = cfg->qci_cfg[qos.qci].rlc_cfg;
 
-  // Initialize ERAB in GTPU right-away. DRBs are only created during RRC setup/reconf
-  uint32_t addr_ = addr.to_number();
-  gtpu->add_bearer(rnti, lcid, addr_, erabs[erab_id].teid_out, &(erabs[erab_id].teid_in));
   return SRSLTE_SUCCESS;
 }
 
@@ -316,15 +312,15 @@ void bearer_cfg_handler::release_erabs()
 void bearer_cfg_handler::reest_bearers()
 {
   // Re-add all SRBs/DRBs
-  srbs_to_add = last_srbs;
-  drbs_to_add = last_drbs;
+  srbs_to_add = current_srbs;
+  drbs_to_add = current_drbs;
 }
 
 void bearer_cfg_handler::rr_ded_cfg_complete()
 {
   // Apply changes in internal bearer_handler DRB/SRBtoAddModLists
-  srslte::apply_addmodlist_diff(last_srbs, srbs_to_add, last_srbs);
-  srslte::apply_addmodremlist_diff(last_drbs, drbs_to_add, drbs_to_release, last_drbs);
+  srslte::apply_addmodlist_diff(current_srbs, srbs_to_add, current_srbs);
+  srslte::apply_addmodremlist_diff(current_drbs, drbs_to_add, drbs_to_release, current_drbs);
 
   // Reset DRBs/SRBs to Add/mod/release
   srbs_to_add = {};
@@ -413,6 +409,19 @@ void bearer_cfg_handler::apply_rlc_bearer_updates(rlc_interface_rrc* rlc)
       log_h->warning("Default RLC DRB config not supported\n");
     }
     rlc->add_bearer(rnti, drb.lc_ch_id, srslte::make_rlc_config_t(drb.rlc_cfg));
+  }
+}
+
+void bearer_cfg_handler::add_gtpu_bearer(srsenb::gtpu_interface_rrc* gtpu, uint32_t erab_id)
+{
+  auto it = erabs.find(erab_id);
+  if (it != erabs.end()) {
+    erab_t& erab = it->second;
+    // Initialize ERAB in GTPU right-away. DRBs are only created during RRC setup/reconf
+    uint32_t addr_ = erab.address.to_number();
+    erab.teid_in   = gtpu->add_bearer(rnti, erab.id - 2, addr_, erab.teid_out);
+  } else {
+    log_h->error("Adding erab_id=%d to GTPU\n", erab_id);
   }
 }
 

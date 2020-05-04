@@ -528,10 +528,9 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
       continue;
     }
     meas_ev.meas_cell  = cell_it;
-    meas_ev.target_eci = std::find_if(meas_list_cfg.begin(),
-                                      meas_list_cfg.end(),
-                                      [pci](const meas_cell_cfg_t& c) { return c.pci == pci; })
-                             ->eci;
+    meas_ev.target_eci = std::find_if(meas_list_cfg.begin(), meas_list_cfg.end(), [pci](const meas_cell_cfg_t& c) {
+                           return c.pci == pci;
+                         })->eci;
 
     // eNB found the respective cell. eNB takes "HO Decision"
     // NOTE: From now we just choose the strongest.
@@ -968,7 +967,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f)
   }
 
   /* Freeze all DRBs. SRBs are needed for sending the HO Cmd */
-  for (const drb_to_add_mod_s& drb : f->rrc_ue->bearer_list.established_drbs()) {
+  for (const drb_to_add_mod_s& drb : f->rrc_ue->bearer_list.get_established_drbs()) {
     f->rrc_enb->pdcp->del_bearer(f->rrc_ue->rnti, drb.drb_id + 2);
     f->rrc_enb->mac->bearer_ue_rem(f->rrc_ue->rnti, drb.drb_id + 2);
   }

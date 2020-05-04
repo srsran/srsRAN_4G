@@ -36,21 +36,22 @@ public:
 
   bool set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps);
   void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
-  void regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_earfcn);
 
   asn1::rrc::security_algorithm_cfg_s get_security_algorithm_cfg();
   const srslte::as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
   bool                                is_as_sec_cfg_valid() const { return k_enb_present; }
 
+  void regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_earfcn);
+
 private:
   void generate_as_keys();
 
   srslte::log_ref               log_h{"RRC"};
-  const rrc_cfg_t*              cfg;
-  bool                          k_enb_present = false;
-  asn1::s1ap::ue_security_cap_s security_capabilities;
-  uint8_t                       k_enb[32] = {}; // Provided by MME
-  srslte::as_security_config_t  sec_cfg   = {};
+  const rrc_cfg_t*              cfg                   = nullptr;
+  bool                          k_enb_present         = false;
+  asn1::s1ap::ue_security_cap_s security_capabilities = {};
+  uint8_t                       k_enb[32]             = {}; // Provided by MME
+  srslte::as_security_config_t  sec_cfg               = {};
 };
 
 class bearer_cfg_handler
@@ -64,7 +65,7 @@ public:
     uint32_t                                    teid_in  = 0;
   };
 
-  bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_);
+  bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_);
 
   void add_srb(uint8_t srb_id);
   int  add_erab(uint8_t                                            erab_id,
@@ -83,24 +84,25 @@ public:
   void apply_mac_bearer_updates(mac_interface_rrc* mac, sched_interface::ue_cfg_t* sched_ue_cfg);
   void apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, const security_cfg_handler& ue_sec_cfg);
   void apply_rlc_bearer_updates(rlc_interface_rrc* rlc);
+  void add_gtpu_bearer(gtpu_interface_rrc* gtpu, uint32_t erab_id);
   void fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
   const std::map<uint8_t, erab_t>&        get_erabs() const { return erabs; }
-  const asn1::rrc::drb_to_add_mod_list_l& established_drbs() const { return last_drbs; }
-  const asn1::rrc::srb_to_add_mod_list_l& established_srbs() const { return last_srbs; }
-
-private:
-  srslte::log_ref     log_h{"RRC"};
-  uint16_t            rnti;
-  const rrc_cfg_t*    cfg;
-  gtpu_interface_rrc* gtpu;
+  const asn1::rrc::drb_to_add_mod_list_l& get_established_drbs() const { return current_drbs; }
+  const asn1::rrc::srb_to_add_mod_list_l& get_established_srbs() const { return current_srbs; }
+  const asn1::rrc::drb_to_add_mod_list_l& get_pending_addmod_drbs() const { return drbs_to_add; }
 
   std::map<uint8_t, std::vector<uint8_t> > erab_info_list;
   std::map<uint8_t, erab_t>                erabs;
 
+private:
+  srslte::log_ref  log_h{"RRC"};
+  uint16_t         rnti = 0;
+  const rrc_cfg_t* cfg  = nullptr;
+
   // last cfg
-  asn1::rrc::srb_to_add_mod_list_l last_srbs;
-  asn1::rrc::drb_to_add_mod_list_l last_drbs;
+  asn1::rrc::srb_to_add_mod_list_l current_srbs;
+  asn1::rrc::drb_to_add_mod_list_l current_drbs;
 
   // pending cfg updates
   asn1::rrc::srb_to_add_mod_list_l srbs_to_add;
