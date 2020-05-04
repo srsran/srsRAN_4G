@@ -302,12 +302,14 @@ int output_sched_tester::test_all(const tti_params_t&                    tti_par
  *  User State Tester
  ***********************/
 
-ue_state::ue_state(uint16_t rnti_, const sched::ue_cfg_t& ue_cfg_) : rnti(rnti_)
+ue_ctxt_test::ue_ctxt_test(uint16_t rnti_, uint32_t preamble_idx_, const sched::ue_cfg_t& ue_cfg_) :
+  rnti(rnti_),
+  preamble_idx(preamble_idx_)
 {
   set_cfg(ue_cfg_);
 }
 
-int ue_state::set_cfg(const sched::ue_cfg_t& ue_cfg_)
+int ue_ctxt_test::set_cfg(const sched::ue_cfg_t& ue_cfg_)
 {
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < ue_cfg_.supported_cc_list.size(); ++ue_cc_idx) {
     const auto& cc = ue_cfg_.supported_cc_list[ue_cc_idx];
@@ -329,14 +331,15 @@ int ue_state::set_cfg(const sched::ue_cfg_t& ue_cfg_)
   return SRSLTE_SUCCESS;
 }
 
-ue_state::cc_state_t* ue_state::get_cc_state(uint32_t enb_cc_idx)
+ue_ctxt_test::cc_ue_ctxt_test* ue_ctxt_test::get_cc_state(uint32_t enb_cc_idx)
 {
-  auto it = std::find_if(
-      active_ccs.begin(), active_ccs.end(), [enb_cc_idx](const cc_state_t& c) { return c.enb_cc_idx == enb_cc_idx; });
+  auto it = std::find_if(active_ccs.begin(), active_ccs.end(), [enb_cc_idx](const cc_ue_ctxt_test& c) {
+    return c.enb_cc_idx == enb_cc_idx;
+  });
   return it == active_ccs.end() ? nullptr : &(*it);
 }
 
-int ue_state::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
+int ue_ctxt_test::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
 {
   current_tti_rx = tti_rx;
 
@@ -345,7 +348,7 @@ int ue_state::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
   return SRSLTE_SUCCESS;
 }
 
-int ue_state::fwd_pending_acks(sched* sched_ptr)
+int ue_ctxt_test::fwd_pending_acks(sched* sched_ptr)
 {
   /* Ack DL HARQs */
   // Checks:
@@ -392,9 +395,9 @@ int ue_state::fwd_pending_acks(sched* sched_ptr)
   return SRSLTE_SUCCESS;
 }
 
-int ue_state::process_sched_result(uint32_t                     enb_cc_idx,
-                                   const sched::dl_sched_res_t& dl_result,
-                                   const sched::ul_sched_res_t& ul_result)
+int ue_ctxt_test::test_sched_result(uint32_t                     enb_cc_idx,
+                                    const sched::dl_sched_res_t& dl_result,
+                                    const sched::ul_sched_res_t& ul_result)
 {
   cc_result result{enb_cc_idx, &dl_result, &ul_result};
   TESTASSERT(test_harqs(result) == SRSLTE_SUCCESS);
@@ -405,12 +408,12 @@ int ue_state::process_sched_result(uint32_t                     enb_cc_idx,
 /**
  * Sanity checks of the DCI values in the scheduling result for a given user. Current checks:
  * - invalid ue_cc_idx<->enb_cc_idx matching in dl_result
- * - invalid pid value
+ * - reusing same pid too early (ACK still didn't arrive yet)
  * - invalid rv value (nof retxs is incorrect) and ndi value
  */
-int ue_state::test_harqs(cc_result result)
+int ue_ctxt_test::test_harqs(cc_result result)
 {
-  cc_state_t* cc = get_cc_state(result.enb_cc_idx);
+  cc_ue_ctxt_test* cc = get_cc_state(result.enb_cc_idx);
   if (cc == nullptr) {
     // unsupported carrier
     return SRSLTE_SUCCESS;
@@ -489,7 +492,7 @@ int ue_state::test_harqs(cc_result result)
   return SRSLTE_SUCCESS;
 }
 
-int ue_state::schedule_acks(cc_result result)
+int ue_ctxt_test::schedule_acks(cc_result result)
 {
   auto* cc = get_cc_state(result.enb_cc_idx);
   if (cc == nullptr) {
@@ -570,9 +573,8 @@ int user_state_sched_tester::add_user(uint16_t                                 r
                 cell_params[ue_cfg.supported_cc_list[0].enb_cc_idx].prach_config, tic.tti_rx(), -1),
             "New user added in a non-PRACH TTI\n");
   TESTASSERT(users.count(rnti) == 0);
-  ue_state ue{rnti, ue_cfg};
-  ue.prach_tic    = tic;
-  ue.preamble_idx = preamble_idx;
+  ue_ctxt_test ue{rnti, preamble_idx, ue_cfg};
+  ue.prach_tic = tic;
   users.insert(std::make_pair(rnti, ue));
   return SRSLTE_SUCCESS;
 }
@@ -623,8 +625,8 @@ int user_state_sched_tester::test_ra(uint32_t                               enb_
   uint32_t msg3_count = 0;
 
   for (auto& iter : users) {
-    uint16_t  rnti     = iter.first;
-    ue_state& userinfo = iter.second;
+    uint16_t      rnti     = iter.first;
+    ue_ctxt_test& userinfo = iter.second;
 
     uint32_t primary_cc_idx = userinfo.user_cfg.supported_cc_list[0].enb_cc_idx;
     if (enb_cc_idx != primary_cc_idx) {
@@ -751,7 +753,7 @@ int user_state_sched_tester::test_ctrl_info(uint32_t                            
     for (uint32_t j = 0; j < dl_result.rar[i].nof_grants; ++j) {
       uint32_t prach_tti    = dl_result.rar[i].msg3_grant[j].data.prach_tti;
       uint32_t preamble_idx = dl_result.rar[i].msg3_grant[j].data.preamble_idx;
-      auto     it           = std::find_if(users.begin(), users.end(), [&](const std::pair<uint16_t, ue_state>& u) {
+      auto     it           = std::find_if(users.begin(), users.end(), [&](const std::pair<uint16_t, ue_ctxt_test>& u) {
         return u.second.preamble_idx == preamble_idx and ((uint32_t)u.second.prach_tic.tti_rx() == prach_tti);
       });
       CONDERROR(it == users.end(), "There was a RAR allocation with no associated user");
@@ -790,8 +792,8 @@ int user_state_sched_tester::test_scell_activation(uint32_t                     
                                                    const sched_interface::ul_sched_res_t& ul_result)
 {
   for (auto& iter : users) {
-    uint16_t  rnti     = iter.first;
-    ue_state& userinfo = iter.second;
+    uint16_t      rnti     = iter.first;
+    ue_ctxt_test& userinfo = iter.second;
 
     auto it = std::find_if(userinfo.user_cfg.supported_cc_list.begin(),
                            userinfo.user_cfg.supported_cc_list.end(),
@@ -833,7 +835,7 @@ int user_state_sched_tester::test_all(uint32_t                               enb
   TESTASSERT(test_scell_activation(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
 
   for (auto& u : users) {
-    TESTASSERT(u.second.process_sched_result(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
+    TESTASSERT(u.second.test_sched_result(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
   }
 
   return SRSLTE_SUCCESS;

@@ -83,17 +83,20 @@ private:
 using dl_sched_res_list = std::vector<sched_interface::dl_sched_res_t>;
 using ul_sched_res_list = std::vector<sched_interface::ul_sched_res_t>;
 
-struct ue_state {
+struct ue_ctxt_test {
   // args
   srslte::log_ref log_h{"TEST"};
   uint32_t cqi_Npd = 10, cqi_Noffset = std::uniform_int_distribution<uint32_t>{0, 10}(get_rand_gen()); // CQI reporting
   std::vector<float> prob_dl_ack_mask{0.5, 0.5, 1}, prob_ul_ack_mask{0.5, 0.5, 1};
 
-  // state
-  uint16_t          rnti;
+  // prach args
+  uint16_t rnti;
+  uint32_t preamble_idx = 0;
+
+  /* state */
   srslte::tti_point current_tti_rx;
 
-  struct cc_state_t {
+  struct cc_ue_ctxt_test {
     uint32_t ue_cc_idx  = 0;
     uint32_t enb_cc_idx = 0;
     // Harq State
@@ -109,23 +112,23 @@ struct ue_state {
     std::array<harq_state_t, sched_ue_carrier::SCHED_MAX_HARQ_PROC> dl_harqs = {};
     std::array<harq_state_t, sched_ue_carrier::SCHED_MAX_HARQ_PROC> ul_harqs = {};
   };
-  std::vector<cc_state_t> active_ccs;
+  std::vector<cc_ue_ctxt_test> active_ccs;
 
   tti_counter                       prach_tic, rar_tic, msg3_tic, msg4_tic;
   bool                              drb_cfg_flag = false;
   srsenb::sched_interface::ue_cfg_t user_cfg;
-  uint32_t                          preamble_idx = 0;
-  uint32_t                          msg3_riv     = 0;
+  uint32_t                          msg3_riv = 0;
   bool is_msg3_rx(const tti_counter& tti_rx) const { return msg3_tic.is_valid() and msg3_tic <= tti_rx; }
 
-  ue_state(uint16_t rnti_, const sched::ue_cfg_t& ue_cfg_);
-  int         set_cfg(const sched::ue_cfg_t& ue_cfg_);
-  cc_state_t* get_cc_state(uint32_t enb_cc_idx);
+  ue_ctxt_test(uint16_t rnti_, uint32_t preamble_idx_, const sched::ue_cfg_t& ue_cfg_);
+
+  int              set_cfg(const sched::ue_cfg_t& ue_cfg_);
+  cc_ue_ctxt_test* get_cc_state(uint32_t enb_cc_idx);
 
   int new_tti(sched* sched_ptr, srslte::tti_point tti_rx);
-  int process_sched_result(uint32_t                     enb_cc_idx,
-                           const sched::dl_sched_res_t& dl_result,
-                           const sched::ul_sched_res_t& ul_result);
+  int test_sched_result(uint32_t                     enb_cc_idx,
+                        const sched::dl_sched_res_t& dl_result,
+                        const sched::ul_sched_res_t& ul_result);
 
 private:
   int fwd_pending_acks(sched* sched_ptr);
@@ -154,9 +157,9 @@ public:
     cell_params(cell_params_)
   {}
 
-  void            new_tti(sched* sched_ptr, uint32_t tti_rx);
-  bool            user_exists(uint16_t rnti) const { return users.find(rnti) != users.end(); }
-  const ue_state* get_user_state(uint16_t rnti) const
+  void                new_tti(sched* sched_ptr, uint32_t tti_rx);
+  bool                user_exists(uint16_t rnti) const { return users.find(rnti) != users.end(); }
+  const ue_ctxt_test* get_user_state(uint16_t rnti) const
   {
     return users.count(rnti) > 0 ? &users.find(rnti)->second : nullptr;
   }
@@ -189,8 +192,8 @@ public:
 private:
   const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
 
-  std::map<uint16_t, ue_state> users;
-  tti_counter                  tic;
+  std::map<uint16_t, ue_ctxt_test> users;
+  tti_counter                      tic;
 };
 
 class sched_result_stats
