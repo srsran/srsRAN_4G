@@ -6891,90 +6891,6 @@ uint8_t cdma2000_rat_type_opts::to_number() const
   return 0;
 }
 
-template <class valueT_>
-erab_ie_container_list_item_s<valueT_>::erab_ie_container_list_item_s(uint32_t id_, crit_e crit_) : id(id_), crit(crit_)
-
-{
-}
-template <class valueT_>
-SRSASN_CODE erab_ie_container_list_item_s<valueT_>::pack(bit_ref& bref) const
-{
-  HANDLE_CODE(pack_integer(bref, id, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.pack(bref));
-  {
-    varlength_field_pack_guard varlen_scope(bref, true);
-    HANDLE_CODE(value.pack(bref));
-  }
-  return SRSASN_SUCCESS;
-}
-template <class valueT_>
-SRSASN_CODE erab_ie_container_list_item_s<valueT_>::unpack(cbit_ref& bref)
-{
-  HANDLE_CODE(unpack_integer(id, bref, (uint32_t)0u, (uint32_t)65535u, false, true));
-  HANDLE_CODE(crit.unpack(bref));
-  {
-    varlength_field_unpack_guard varlen_scope(bref, true);
-    HANDLE_CODE(value.unpack(bref));
-  }
-  return SRSASN_SUCCESS;
-}
-template <class valueT_>
-void erab_ie_container_list_item_s<valueT_>::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_int("id", id);
-  j.write_str("criticality", crit.to_string());
-  j.end_obj();
-}
-
-erab_data_forwarding_item_ies_container::erab_data_forwarding_item_ies_container() :
-  erab_data_forwarding_item(14, crit_e::ignore)
-{
-}
-SRSASN_CODE erab_data_forwarding_item_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_data_forwarding_item.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_data_forwarding_item_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_data_forwarding_item_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 14) {
-      nof_mandatory_ies--;
-      erab_data_forwarding_item.id    = c.id;
-      erab_data_forwarding_item.crit  = c.crit;
-      erab_data_forwarding_item.value = c.value.erab_data_forwarding_item();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_data_forwarding_item_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_data_forwarding_item.to_json(j);
-  j.end_obj();
-}
-
 // DownlinkS1cdma2000tunnellingIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 uint32_t dl_s1cdma2000tunnelling_ies_o::idx_to_id(uint32_t idx)
 {
@@ -7070,10 +6986,11 @@ uint32_t& dl_s1cdma2000tunnelling_ies_o::value_c::enb_ue_s1ap_id()
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-erab_data_forwarding_item_ies_container& dl_s1cdma2000tunnelling_ies_o::value_c::erab_subjectto_data_forwarding_list()
+erab_ie_container_list_l<erab_data_forwarding_item_ies_o>&
+dl_s1cdma2000tunnelling_ies_o::value_c::erab_subjectto_data_forwarding_list()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_data_forwarding_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABDataForwardingItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >();
 }
 cdma2000_ho_status_e& dl_s1cdma2000tunnelling_ies_o::value_c::cdma2000_ho_status()
 {
@@ -7100,11 +7017,11 @@ const uint32_t& dl_s1cdma2000tunnelling_ies_o::value_c::enb_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-const erab_data_forwarding_item_ies_container&
+const erab_ie_container_list_l<erab_data_forwarding_item_ies_o>&
 dl_s1cdma2000tunnelling_ies_o::value_c::erab_subjectto_data_forwarding_list() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_data_forwarding_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABDataForwardingItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >();
 }
 const cdma2000_ho_status_e& dl_s1cdma2000tunnelling_ies_o::value_c::cdma2000_ho_status() const
 {
@@ -7125,7 +7042,7 @@ void dl_s1cdma2000tunnelling_ies_o::value_c::destroy_()
 {
   switch (type_) {
     case types::erab_subjectto_data_forwarding_list:
-      c.destroy<erab_data_forwarding_item_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >();
       break;
     case types::cdma2000_pdu:
       c.destroy<unbounded_octstring<true> >();
@@ -7144,7 +7061,7 @@ void dl_s1cdma2000tunnelling_ies_o::value_c::set(types::options e)
     case types::enb_ue_s1ap_id:
       break;
     case types::erab_subjectto_data_forwarding_list:
-      c.init<erab_data_forwarding_item_ies_container>();
+      c.init<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >();
       break;
     case types::cdma2000_ho_status:
       break;
@@ -7170,7 +7087,7 @@ dl_s1cdma2000tunnelling_ies_o::value_c::value_c(const dl_s1cdma2000tunnelling_ie
       c.init(other.c.get<uint32_t>());
       break;
     case types::erab_subjectto_data_forwarding_list:
-      c.init(other.c.get<erab_data_forwarding_item_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >());
       break;
     case types::cdma2000_ho_status:
       c.init(other.c.get<cdma2000_ho_status_e>());
@@ -7202,7 +7119,7 @@ dl_s1cdma2000tunnelling_ies_o::value_c& dl_s1cdma2000tunnelling_ies_o::value_c::
       c.set(other.c.get<uint32_t>());
       break;
     case types::erab_subjectto_data_forwarding_list:
-      c.set(other.c.get<erab_data_forwarding_item_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >());
       break;
     case types::cdma2000_ho_status:
       c.set(other.c.get<cdma2000_ho_status_e>());
@@ -7232,8 +7149,7 @@ void dl_s1cdma2000tunnelling_ies_o::value_c::to_json(json_writer& j) const
       j.write_int("INTEGER (0..16777215)", c.get<uint32_t>());
       break;
     case types::erab_subjectto_data_forwarding_list:
-      j.write_fieldname("");
-      c.get<erab_data_forwarding_item_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABDataForwardingItemIEs}}");
       break;
     case types::cdma2000_ho_status:
       j.write_str("Cdma2000HOStatus", c.get<cdma2000_ho_status_e>().to_string());
@@ -7260,7 +7176,8 @@ SRSASN_CODE dl_s1cdma2000tunnelling_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_subjectto_data_forwarding_list:
-      HANDLE_CODE(c.get<erab_data_forwarding_item_ies_container>().pack(bref));
+      HANDLE_CODE(
+          pack_dyn_seq_of(bref, c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >(), 1, 256, true));
       break;
     case types::cdma2000_ho_status:
       HANDLE_CODE(c.get<cdma2000_ho_status_e>().pack(bref));
@@ -7288,7 +7205,8 @@ SRSASN_CODE dl_s1cdma2000tunnelling_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_subjectto_data_forwarding_list:
-      HANDLE_CODE(c.get<erab_data_forwarding_item_ies_container>().unpack(bref));
+      HANDLE_CODE(
+          unpack_dyn_seq_of(c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >(), bref, 1, 256, true));
       break;
     case types::cdma2000_ho_status:
       HANDLE_CODE(c.get<cdma2000_ho_status_e>().unpack(bref));
@@ -7308,8 +7226,12 @@ SRSASN_CODE dl_s1cdma2000tunnelling_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string dl_s1cdma2000tunnelling_ies_o::value_c::types_opts::to_string() const
 {
-  static const char* options[] = {
-      "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "", "Cdma2000HOStatus", "Cdma2000RATType", "OCTET STRING"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "E-RAB-IE-ContainerList{{E-RABDataForwardingItemIEs}}",
+                                  "Cdma2000HOStatus",
+                                  "Cdma2000RATType",
+                                  "OCTET STRING"};
   return convert_enum_idx(options, 6, value, "dl_s1cdma2000tunnelling_ies_o::value_c::types");
 }
 
@@ -7965,51 +7887,6 @@ std::string erab_admitted_item_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "erab_admitted_item_ies_o::value_c::types");
 }
 
-erab_admitted_item_ies_container::erab_admitted_item_ies_container() : erab_admitted_item(20, crit_e::ignore) {}
-SRSASN_CODE erab_admitted_item_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_admitted_item.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_admitted_item_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_admitted_item_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 20) {
-      nof_mandatory_ies--;
-      erab_admitted_item.id    = c.id;
-      erab_admitted_item.crit  = c.crit;
-      erab_admitted_item.value = c.value.erab_admitted_item();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_admitted_item_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_admitted_item.to_json(j);
-  j.end_obj();
-}
-
 // E-RABFailedToResumeItemResumeReq ::= SEQUENCE
 SRSASN_CODE erab_failed_to_resume_item_resume_req_s::pack(bit_ref& bref) const
 {
@@ -8216,102 +8093,6 @@ std::string erab_failed_to_resume_item_resume_res_ies_o::value_c::types_opts::to
   return convert_enum_idx(options, 1, value, "erab_failed_to_resume_item_resume_res_ies_o::value_c::types");
 }
 
-erab_failed_to_resume_item_resume_req_ies_container::erab_failed_to_resume_item_resume_req_ies_container() :
-  erab_failed_to_resume_item_resume_req(236, crit_e::reject)
-{
-}
-SRSASN_CODE erab_failed_to_resume_item_resume_req_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_failed_to_resume_item_resume_req.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_failed_to_resume_item_resume_req_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_failed_to_resume_item_resume_req_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 236) {
-      nof_mandatory_ies--;
-      erab_failed_to_resume_item_resume_req.id    = c.id;
-      erab_failed_to_resume_item_resume_req.crit  = c.crit;
-      erab_failed_to_resume_item_resume_req.value = c.value.erab_failed_to_resume_item_resume_req();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_failed_to_resume_item_resume_req_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_failed_to_resume_item_resume_req.to_json(j);
-  j.end_obj();
-}
-
-erab_failed_to_resume_item_resume_res_ies_container::erab_failed_to_resume_item_resume_res_ies_container() :
-  erab_failed_to_resume_item_resume_res(238, crit_e::reject)
-{
-}
-SRSASN_CODE erab_failed_to_resume_item_resume_res_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_failed_to_resume_item_resume_res.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_failed_to_resume_item_resume_res_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_failed_to_resume_item_resume_res_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 238) {
-      nof_mandatory_ies--;
-      erab_failed_to_resume_item_resume_res.id    = c.id;
-      erab_failed_to_resume_item_resume_res.crit  = c.crit;
-      erab_failed_to_resume_item_resume_res.value = c.value.erab_failed_to_resume_item_resume_res();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_failed_to_resume_item_resume_res_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_failed_to_resume_item_resume_res.to_json(j);
-  j.end_obj();
-}
-
 // E-RABFailedToSetupItemHOReqAck ::= SEQUENCE
 SRSASN_CODE erab_failed_to_setup_item_ho_req_ack_s::pack(bit_ref& bref) const
 {
@@ -8413,54 +8194,6 @@ std::string erab_failedto_setup_item_ho_req_ack_ies_o::value_c::types_opts::to_s
 {
   static const char* options[] = {"E-RABFailedToSetupItemHOReqAck"};
   return convert_enum_idx(options, 1, value, "erab_failedto_setup_item_ho_req_ack_ies_o::value_c::types");
-}
-
-erab_failedto_setup_item_ho_req_ack_ies_container::erab_failedto_setup_item_ho_req_ack_ies_container() :
-  erab_failedto_setup_item_ho_req_ack(21, crit_e::ignore)
-{
-}
-SRSASN_CODE erab_failedto_setup_item_ho_req_ack_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_failedto_setup_item_ho_req_ack.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_failedto_setup_item_ho_req_ack_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_failedto_setup_item_ho_req_ack_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 21) {
-      nof_mandatory_ies--;
-      erab_failedto_setup_item_ho_req_ack.id    = c.id;
-      erab_failedto_setup_item_ho_req_ack.crit  = c.crit;
-      erab_failedto_setup_item_ho_req_ack.value = c.value.erab_failedto_setup_item_ho_req_ack();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_failedto_setup_item_ho_req_ack_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_failedto_setup_item_ho_req_ack.to_json(j);
-  j.end_obj();
 }
 
 // DL-Forwarding ::= ENUMERATED
@@ -9648,102 +9381,6 @@ std::string erab_to_be_modified_item_bearer_mod_ind_ies_o::value_c::types_opts::
   return convert_enum_idx(options, 1, value, "erab_to_be_modified_item_bearer_mod_ind_ies_o::value_c::types");
 }
 
-erab_not_to_be_modified_item_bearer_mod_ind_ies_container::erab_not_to_be_modified_item_bearer_mod_ind_ies_container() :
-  erab_not_to_be_modified_item_bearer_mod_ind(202, crit_e::reject)
-{
-}
-SRSASN_CODE erab_not_to_be_modified_item_bearer_mod_ind_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_not_to_be_modified_item_bearer_mod_ind.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_not_to_be_modified_item_bearer_mod_ind_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 202) {
-      nof_mandatory_ies--;
-      erab_not_to_be_modified_item_bearer_mod_ind.id    = c.id;
-      erab_not_to_be_modified_item_bearer_mod_ind.crit  = c.crit;
-      erab_not_to_be_modified_item_bearer_mod_ind.value = c.value.erab_not_to_be_modified_item_bearer_mod_ind();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_not_to_be_modified_item_bearer_mod_ind_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_not_to_be_modified_item_bearer_mod_ind.to_json(j);
-  j.end_obj();
-}
-
-erab_to_be_modified_item_bearer_mod_ind_ies_container::erab_to_be_modified_item_bearer_mod_ind_ies_container() :
-  erab_to_be_modified_item_bearer_mod_ind(200, crit_e::reject)
-{
-}
-SRSASN_CODE erab_to_be_modified_item_bearer_mod_ind_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_to_be_modified_item_bearer_mod_ind.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_to_be_modified_item_bearer_mod_ind_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_to_be_modified_item_bearer_mod_ind_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 200) {
-      nof_mandatory_ies--;
-      erab_to_be_modified_item_bearer_mod_ind.id    = c.id;
-      erab_to_be_modified_item_bearer_mod_ind.crit  = c.crit;
-      erab_to_be_modified_item_bearer_mod_ind.value = c.value.erab_to_be_modified_item_bearer_mod_ind();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_to_be_modified_item_bearer_mod_ind_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_to_be_modified_item_bearer_mod_ind.to_json(j);
-  j.end_obj();
-}
-
 // TunnelInformation ::= SEQUENCE
 SRSASN_CODE tunnel_info_s::pack(bit_ref& bref) const
 {
@@ -9886,17 +9523,17 @@ uint32_t& erab_mod_ind_ies_o::value_c::enb_ue_s1ap_id()
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-erab_to_be_modified_item_bearer_mod_ind_ies_container&
+erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o>&
 erab_mod_ind_ies_o::value_c::erab_to_be_modified_list_bearer_mod_ind()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_to_be_modified_item_bearer_mod_ind_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABToBeModifiedItemBearerModIndIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >();
 }
-erab_not_to_be_modified_item_bearer_mod_ind_ies_container&
+erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o>&
 erab_mod_ind_ies_o::value_c::erab_not_to_be_modified_list_bearer_mod_ind()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABNotToBeModifiedItemBearerModIndIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >();
 }
 csg_membership_info_s& erab_mod_ind_ies_o::value_c::csg_membership_info()
 {
@@ -9918,17 +9555,17 @@ const uint32_t& erab_mod_ind_ies_o::value_c::enb_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-const erab_to_be_modified_item_bearer_mod_ind_ies_container&
+const erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o>&
 erab_mod_ind_ies_o::value_c::erab_to_be_modified_list_bearer_mod_ind() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_to_be_modified_item_bearer_mod_ind_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABToBeModifiedItemBearerModIndIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >();
 }
-const erab_not_to_be_modified_item_bearer_mod_ind_ies_container&
+const erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o>&
 erab_mod_ind_ies_o::value_c::erab_not_to_be_modified_list_bearer_mod_ind() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABNotToBeModifiedItemBearerModIndIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >();
 }
 const csg_membership_info_s& erab_mod_ind_ies_o::value_c::csg_membership_info() const
 {
@@ -9944,10 +9581,10 @@ void erab_mod_ind_ies_o::value_c::destroy_()
 {
   switch (type_) {
     case types::erab_to_be_modified_list_bearer_mod_ind:
-      c.destroy<erab_to_be_modified_item_bearer_mod_ind_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >();
       break;
     case types::erab_not_to_be_modified_list_bearer_mod_ind:
-      c.destroy<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >();
       break;
     case types::csg_membership_info:
       c.destroy<csg_membership_info_s>();
@@ -9969,10 +9606,10 @@ void erab_mod_ind_ies_o::value_c::set(types::options e)
     case types::enb_ue_s1ap_id:
       break;
     case types::erab_to_be_modified_list_bearer_mod_ind:
-      c.init<erab_to_be_modified_item_bearer_mod_ind_ies_container>();
+      c.init<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >();
       break;
     case types::erab_not_to_be_modified_list_bearer_mod_ind:
-      c.init<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>();
+      c.init<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >();
       break;
     case types::csg_membership_info:
       c.init<csg_membership_info_s>();
@@ -9997,10 +9634,10 @@ erab_mod_ind_ies_o::value_c::value_c(const erab_mod_ind_ies_o::value_c& other)
       c.init(other.c.get<uint32_t>());
       break;
     case types::erab_to_be_modified_list_bearer_mod_ind:
-      c.init(other.c.get<erab_to_be_modified_item_bearer_mod_ind_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >());
       break;
     case types::erab_not_to_be_modified_list_bearer_mod_ind:
-      c.init(other.c.get<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >());
       break;
     case types::csg_membership_info:
       c.init(other.c.get<csg_membership_info_s>());
@@ -10028,10 +9665,10 @@ erab_mod_ind_ies_o::value_c& erab_mod_ind_ies_o::value_c::operator=(const erab_m
       c.set(other.c.get<uint32_t>());
       break;
     case types::erab_to_be_modified_list_bearer_mod_ind:
-      c.set(other.c.get<erab_to_be_modified_item_bearer_mod_ind_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >());
       break;
     case types::erab_not_to_be_modified_list_bearer_mod_ind:
-      c.set(other.c.get<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >());
       break;
     case types::csg_membership_info:
       c.set(other.c.get<csg_membership_info_s>());
@@ -10058,12 +9695,10 @@ void erab_mod_ind_ies_o::value_c::to_json(json_writer& j) const
       j.write_int("INTEGER (0..16777215)", c.get<uint32_t>());
       break;
     case types::erab_to_be_modified_list_bearer_mod_ind:
-      j.write_fieldname("");
-      c.get<erab_to_be_modified_item_bearer_mod_ind_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABToBeModifiedItemBearerModIndIEs}}");
       break;
     case types::erab_not_to_be_modified_list_bearer_mod_ind:
-      j.write_fieldname("");
-      c.get<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABNotToBeModifiedItemBearerModIndIEs}}");
       break;
     case types::csg_membership_info:
       j.write_fieldname("CSGMembershipInfo");
@@ -10089,10 +9724,12 @@ SRSASN_CODE erab_mod_ind_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_to_be_modified_list_bearer_mod_ind:
-      HANDLE_CODE(c.get<erab_to_be_modified_item_bearer_mod_ind_ies_container>().pack(bref));
+      HANDLE_CODE(pack_dyn_seq_of(
+          bref, c.get<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >(), 1, 256, true));
       break;
     case types::erab_not_to_be_modified_list_bearer_mod_ind:
-      HANDLE_CODE(c.get<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>().pack(bref));
+      HANDLE_CODE(pack_dyn_seq_of(
+          bref, c.get<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >(), 1, 256, true));
       break;
     case types::csg_membership_info:
       HANDLE_CODE(c.get<csg_membership_info_s>().pack(bref));
@@ -10117,10 +9754,12 @@ SRSASN_CODE erab_mod_ind_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_to_be_modified_list_bearer_mod_ind:
-      HANDLE_CODE(c.get<erab_to_be_modified_item_bearer_mod_ind_ies_container>().unpack(bref));
+      HANDLE_CODE(unpack_dyn_seq_of(
+          c.get<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >(), bref, 1, 256, true));
       break;
     case types::erab_not_to_be_modified_list_bearer_mod_ind:
-      HANDLE_CODE(c.get<erab_not_to_be_modified_item_bearer_mod_ind_ies_container>().unpack(bref));
+      HANDLE_CODE(unpack_dyn_seq_of(
+          c.get<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >(), bref, 1, 256, true));
       break;
     case types::csg_membership_info:
       HANDLE_CODE(c.get<csg_membership_info_s>().unpack(bref));
@@ -10137,8 +9776,12 @@ SRSASN_CODE erab_mod_ind_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string erab_mod_ind_ies_o::value_c::types_opts::to_string() const
 {
-  static const char* options[] = {
-      "INTEGER (0..4294967295)", "INTEGER (0..16777215)", "", "", "CSGMembershipInfo", "TunnelInformation"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "E-RAB-IE-ContainerList{{E-RABToBeModifiedItemBearerModIndIEs}}",
+                                  "E-RAB-IE-ContainerList{{E-RABNotToBeModifiedItemBearerModIndIEs}}",
+                                  "CSGMembershipInfo",
+                                  "TunnelInformation"};
   return convert_enum_idx(options, 6, value, "erab_mod_ind_ies_o::value_c::types");
 }
 
@@ -10470,55 +10113,6 @@ std::string erab_to_be_modify_item_bearer_mod_req_ext_ies_o::ext_c::types_opts::
   return convert_enum_idx(options, 1, value, "erab_to_be_modify_item_bearer_mod_req_ext_ies_o::ext_c::types");
 }
 
-template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_modify_item_bearer_mod_req_ext_ies_o>;
-
-erab_to_be_modify_item_bearer_mod_req_ext_ies_container::erab_to_be_modify_item_bearer_mod_req_ext_ies_container() :
-  transport_info(185, crit_e::reject)
-{
-}
-SRSASN_CODE erab_to_be_modify_item_bearer_mod_req_ext_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += transport_info_present ? 1 : 0;
-  pack_length(bref, nof_ies, 1u, 65535u, true);
-
-  if (transport_info_present) {
-    HANDLE_CODE(transport_info.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_to_be_modify_item_bearer_mod_req_ext_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ext_field_s<erab_to_be_modify_item_bearer_mod_req_ext_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 185) {
-      transport_info_present = true;
-      transport_info.id      = c.id;
-      transport_info.crit    = c.crit;
-      transport_info.ext     = c.ext_value.transport_info();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void erab_to_be_modify_item_bearer_mod_req_ext_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (transport_info_present) {
-    j.write_fieldname("");
-    transport_info.to_json(j);
-  }
-  j.end_obj();
-}
-
 // E-RABToBeModifiedItemBearerModReq ::= SEQUENCE
 SRSASN_CODE erab_to_be_modified_item_bearer_mod_req_s::pack(bit_ref& bref) const
 {
@@ -10529,7 +10123,7 @@ SRSASN_CODE erab_to_be_modified_item_bearer_mod_req_s::pack(bit_ref& bref) const
   HANDLE_CODE(erab_level_qos_params.pack(bref));
   HANDLE_CODE(nas_pdu.pack(bref));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.pack(bref));
+    HANDLE_CODE(pack_dyn_seq_of(bref, ie_exts, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -10543,7 +10137,7 @@ SRSASN_CODE erab_to_be_modified_item_bearer_mod_req_s::unpack(cbit_ref& bref)
   HANDLE_CODE(erab_level_qos_params.unpack(bref));
   HANDLE_CODE(nas_pdu.unpack(bref));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.unpack(bref));
+    HANDLE_CODE(unpack_dyn_seq_of(ie_exts, bref, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -10557,7 +10151,6 @@ void erab_to_be_modified_item_bearer_mod_req_s::to_json(json_writer& j) const
   j.write_str("nAS-PDU", nas_pdu.to_string());
   if (ie_exts_present) {
     j.write_fieldname("iE-Extensions");
-    ie_exts.to_json(j);
   }
   j.end_obj();
 }
@@ -15237,54 +14830,6 @@ std::string erab_to_be_setup_item_ho_req_ies_o::value_c::types_opts::to_string()
 
 template struct asn1::s1ap::protocol_ie_single_container_s<erab_to_be_setup_item_ctxt_su_req_ies_o>;
 
-erab_to_be_setup_item_ho_req_ies_container::erab_to_be_setup_item_ho_req_ies_container() :
-  erab_to_be_setup_item_ho_req(27, crit_e::reject)
-{
-}
-SRSASN_CODE erab_to_be_setup_item_ho_req_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_to_be_setup_item_ho_req.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_to_be_setup_item_ho_req_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_to_be_setup_item_ho_req_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 27) {
-      nof_mandatory_ies--;
-      erab_to_be_setup_item_ho_req.id    = c.id;
-      erab_to_be_setup_item_ho_req.crit  = c.crit;
-      erab_to_be_setup_item_ho_req.value = c.value.erab_to_be_setup_item_ho_req();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_to_be_setup_item_ho_req_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_to_be_setup_item_ho_req.to_json(j);
-  j.end_obj();
-}
-
 // E-RABToBeSwitchedDLItem ::= SEQUENCE
 SRSASN_CODE erab_to_be_switched_dl_item_s::pack(bit_ref& bref) const
 {
@@ -15389,54 +14934,6 @@ std::string erab_to_be_switched_dl_item_ies_o::value_c::types_opts::to_string() 
   return convert_enum_idx(options, 1, value, "erab_to_be_switched_dl_item_ies_o::value_c::types");
 }
 
-erab_to_be_switched_dl_item_ies_container::erab_to_be_switched_dl_item_ies_container() :
-  erab_to_be_switched_dl_item(23, crit_e::reject)
-{
-}
-SRSASN_CODE erab_to_be_switched_dl_item_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_to_be_switched_dl_item.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_to_be_switched_dl_item_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_to_be_switched_dl_item_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 23) {
-      nof_mandatory_ies--;
-      erab_to_be_switched_dl_item.id    = c.id;
-      erab_to_be_switched_dl_item.crit  = c.crit;
-      erab_to_be_switched_dl_item.value = c.value.erab_to_be_switched_dl_item();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_to_be_switched_dl_item_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_to_be_switched_dl_item.to_json(j);
-  j.end_obj();
-}
-
 // E-RABToBeSwitchedULItem ::= SEQUENCE
 SRSASN_CODE erab_to_be_switched_ul_item_s::pack(bit_ref& bref) const
 {
@@ -15539,54 +15036,6 @@ std::string erab_to_be_switched_ul_item_ies_o::value_c::types_opts::to_string() 
 {
   static const char* options[] = {"E-RABToBeSwitchedULItem"};
   return convert_enum_idx(options, 1, value, "erab_to_be_switched_ul_item_ies_o::value_c::types");
-}
-
-erab_to_be_switched_ul_item_ies_container::erab_to_be_switched_ul_item_ies_container() :
-  erab_to_be_switched_ul_item(94, crit_e::ignore)
-{
-}
-SRSASN_CODE erab_to_be_switched_ul_item_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 1u, 256u, true);
-
-  HANDLE_CODE(erab_to_be_switched_ul_item.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE erab_to_be_switched_ul_item_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 256u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_single_container_item_s<erab_to_be_switched_ul_item_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 94) {
-      nof_mandatory_ies--;
-      erab_to_be_switched_ul_item.id    = c.id;
-      erab_to_be_switched_ul_item.crit  = c.crit;
-      erab_to_be_switched_ul_item.value = c.value.erab_to_be_switched_ul_item();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void erab_to_be_switched_ul_item_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  erab_to_be_switched_ul_item.to_json(j);
-  j.end_obj();
 }
 
 // EHRPDMultiSectorLoadReportingResponseItem ::= SEQUENCE
@@ -16437,55 +15886,6 @@ std::string son_info_report_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "son_info_report_c::types");
 }
 
-template struct asn1::s1ap::protocol_ext_field_s<time_synchronisation_info_ext_ies_o>;
-
-time_synchronisation_info_ext_ies_container::time_synchronisation_info_ext_ies_container() :
-  muting_availability_ind(207, crit_e::ignore)
-{
-}
-SRSASN_CODE time_synchronisation_info_ext_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += muting_availability_ind_present ? 1 : 0;
-  pack_length(bref, nof_ies, 1u, 65535u, true);
-
-  if (muting_availability_ind_present) {
-    HANDLE_CODE(muting_availability_ind.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE time_synchronisation_info_ext_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ext_field_s<time_synchronisation_info_ext_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 207) {
-      muting_availability_ind_present = true;
-      muting_availability_ind.id      = c.id;
-      muting_availability_ind.crit    = c.crit;
-      muting_availability_ind.ext     = c.ext_value.muting_availability_ind();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void time_synchronisation_info_ext_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (muting_availability_ind_present) {
-    j.write_fieldname("");
-    muting_availability_ind.to_json(j);
-  }
-  j.end_obj();
-}
-
 // TimeSynchronisationInfo ::= SEQUENCE
 SRSASN_CODE time_synchronisation_info_s::pack(bit_ref& bref) const
 {
@@ -16495,7 +15895,7 @@ SRSASN_CODE time_synchronisation_info_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_integer(bref, stratum_level, (uint8_t)0u, (uint8_t)3u, true, true));
   HANDLE_CODE(synchronisation_status.pack(bref));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.pack(bref));
+    HANDLE_CODE(pack_dyn_seq_of(bref, ie_exts, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -16508,7 +15908,7 @@ SRSASN_CODE time_synchronisation_info_s::unpack(cbit_ref& bref)
   HANDLE_CODE(unpack_integer(stratum_level, bref, (uint8_t)0u, (uint8_t)3u, true, true));
   HANDLE_CODE(synchronisation_status.unpack(bref));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.unpack(bref));
+    HANDLE_CODE(unpack_dyn_seq_of(ie_exts, bref, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -16520,7 +15920,6 @@ void time_synchronisation_info_s::to_json(json_writer& j) const
   j.write_str("synchronisationStatus", synchronisation_status.to_string());
   if (ie_exts_present) {
     j.write_fieldname("iE-Extensions");
-    ie_exts.to_json(j);
   }
   j.end_obj();
 }
@@ -17226,52 +16625,6 @@ void global_enb_id_s::to_json(json_writer& j) const
 
 template struct asn1::s1ap::protocol_ie_single_container_s<son_info_ext_ie_o>;
 
-template struct asn1::s1ap::protocol_ext_field_s<son_info_reply_ext_ies_o>;
-
-son_info_reply_ext_ies_container::son_info_reply_ext_ies_container() : time_synchronisation_info(149, crit_e::ignore) {}
-SRSASN_CODE son_info_reply_ext_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += time_synchronisation_info_present ? 1 : 0;
-  pack_length(bref, nof_ies, 1u, 65535u, true);
-
-  if (time_synchronisation_info_present) {
-    HANDLE_CODE(time_synchronisation_info.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE son_info_reply_ext_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ext_field_s<son_info_reply_ext_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 149) {
-      time_synchronisation_info_present = true;
-      time_synchronisation_info.id      = c.id;
-      time_synchronisation_info.crit    = c.crit;
-      time_synchronisation_info.ext     = c.ext_value.time_synchronisation_info();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void son_info_reply_ext_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (time_synchronisation_info_present) {
-    j.write_fieldname("");
-    time_synchronisation_info.to_json(j);
-  }
-  j.end_obj();
-}
-
 // SONInformationReply ::= SEQUENCE
 SRSASN_CODE son_info_reply_s::pack(bit_ref& bref) const
 {
@@ -17283,7 +16636,7 @@ SRSASN_CODE son_info_reply_s::pack(bit_ref& bref) const
     HANDLE_CODE(x2_tnl_cfg_info.pack(bref));
   }
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.pack(bref));
+    HANDLE_CODE(pack_dyn_seq_of(bref, ie_exts, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -17298,7 +16651,7 @@ SRSASN_CODE son_info_reply_s::unpack(cbit_ref& bref)
     HANDLE_CODE(x2_tnl_cfg_info.unpack(bref));
   }
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.unpack(bref));
+    HANDLE_CODE(unpack_dyn_seq_of(ie_exts, bref, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -17312,7 +16665,6 @@ void son_info_reply_s::to_json(json_writer& j) const
   }
   if (ie_exts_present) {
     j.write_fieldname("iE-Extensions");
-    ie_exts.to_json(j);
   }
   j.end_obj();
 }
@@ -18005,64 +17357,18 @@ std::string enb_cfg_transfer_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "enb_cfg_transfer_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_field_s<enb_cfg_transfer_ies_o>;
-
-enb_cfg_transfer_ies_container::enb_cfg_transfer_ies_container() : son_cfg_transfer_ect(129, crit_e::ignore) {}
-SRSASN_CODE enb_cfg_transfer_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += son_cfg_transfer_ect_present ? 1 : 0;
-  pack_length(bref, nof_ies, 0u, 65535u, true);
-
-  if (son_cfg_transfer_ect_present) {
-    HANDLE_CODE(son_cfg_transfer_ect.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_cfg_transfer_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 0u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_field_s<enb_cfg_transfer_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 129) {
-      son_cfg_transfer_ect_present = true;
-      son_cfg_transfer_ect.id      = c.id;
-      son_cfg_transfer_ect.crit    = c.crit;
-      son_cfg_transfer_ect.value   = c.value.son_cfg_transfer_ect();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void enb_cfg_transfer_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (son_cfg_transfer_ect_present) {
-    j.write_fieldname("");
-    son_cfg_transfer_ect.to_json(j);
-  }
-  j.end_obj();
-}
-
 // ENBConfigurationTransfer ::= SEQUENCE
 SRSASN_CODE enb_cfg_transfer_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
+  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE enb_cfg_transfer_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
+  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
@@ -18070,7 +17376,6 @@ void enb_cfg_transfer_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -18142,52 +17447,6 @@ std::string supported_tas_item_ext_ies_o::ext_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "supported_tas_item_ext_ies_o::ext_c::types");
 }
 
-template struct asn1::s1ap::protocol_ext_field_s<supported_tas_item_ext_ies_o>;
-
-supported_tas_item_ext_ies_container::supported_tas_item_ext_ies_container() : rat_type(232, crit_e::reject) {}
-SRSASN_CODE supported_tas_item_ext_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += rat_type_present ? 1 : 0;
-  pack_length(bref, nof_ies, 1u, 65535u, true);
-
-  if (rat_type_present) {
-    HANDLE_CODE(rat_type.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE supported_tas_item_ext_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ext_field_s<supported_tas_item_ext_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 232) {
-      rat_type_present = true;
-      rat_type.id      = c.id;
-      rat_type.crit    = c.crit;
-      rat_type.ext     = c.ext_value.rat_type();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void supported_tas_item_ext_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (rat_type_present) {
-    j.write_fieldname("");
-    rat_type.to_json(j);
-  }
-  j.end_obj();
-}
-
 // SupportedTAs-Item ::= SEQUENCE
 SRSASN_CODE supported_tas_item_s::pack(bit_ref& bref) const
 {
@@ -18197,7 +17456,7 @@ SRSASN_CODE supported_tas_item_s::pack(bit_ref& bref) const
   HANDLE_CODE(tac.pack(bref));
   HANDLE_CODE(pack_dyn_seq_of(bref, broadcast_plmns, 1, 6, true));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.pack(bref));
+    HANDLE_CODE(pack_dyn_seq_of(bref, ie_exts, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -18210,7 +17469,7 @@ SRSASN_CODE supported_tas_item_s::unpack(cbit_ref& bref)
   HANDLE_CODE(tac.unpack(bref));
   HANDLE_CODE(unpack_dyn_seq_of(broadcast_plmns, bref, 1, 6, true));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.unpack(bref));
+    HANDLE_CODE(unpack_dyn_seq_of(ie_exts, bref, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -18226,7 +17485,6 @@ void supported_tas_item_s::to_json(json_writer& j) const
   j.end_array();
   if (ie_exts_present) {
     j.write_fieldname("iE-Extensions");
-    ie_exts.to_json(j);
   }
   j.end_obj();
 }
@@ -18764,64 +18022,18 @@ std::string enb_cfg_upd_ack_ies_o::value_c::types_opts::to_string() const
   return convert_enum_idx(options, 1, value, "enb_cfg_upd_ack_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_field_s<enb_cfg_upd_ack_ies_o>;
-
-enb_cfg_upd_ack_ies_container::enb_cfg_upd_ack_ies_container() : crit_diagnostics(58, crit_e::ignore) {}
-SRSASN_CODE enb_cfg_upd_ack_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += crit_diagnostics_present ? 1 : 0;
-  pack_length(bref, nof_ies, 0u, 65535u, true);
-
-  if (crit_diagnostics_present) {
-    HANDLE_CODE(crit_diagnostics.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 0u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_field_s<enb_cfg_upd_ack_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 58) {
-      crit_diagnostics_present = true;
-      crit_diagnostics.id      = c.id;
-      crit_diagnostics.crit    = c.crit;
-      crit_diagnostics.value   = c.value.crit_diagnostics();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void enb_cfg_upd_ack_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (crit_diagnostics_present) {
-    j.write_fieldname("");
-    crit_diagnostics.to_json(j);
-  }
-  j.end_obj();
-}
-
 // ENBConfigurationUpdateAcknowledge ::= SEQUENCE
 SRSASN_CODE enb_cfg_upd_ack_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
+  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE enb_cfg_upd_ack_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
+  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
@@ -18829,7 +18041,6 @@ void enb_cfg_upd_ack_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -19622,68 +18833,18 @@ std::string enb_direct_info_transfer_ies_o::value_c::types_opts::to_string() con
   return convert_enum_idx(options, 1, value, "enb_direct_info_transfer_ies_o::value_c::types");
 }
 
-template struct asn1::s1ap::protocol_ie_field_s<enb_direct_info_transfer_ies_o>;
-
-enb_direct_info_transfer_ies_container::enb_direct_info_transfer_ies_container() :
-  inter_sys_info_transfer_type_edt(121, crit_e::reject)
-{
-}
-SRSASN_CODE enb_direct_info_transfer_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 0u, 65535u, true);
-
-  HANDLE_CODE(inter_sys_info_transfer_type_edt.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE enb_direct_info_transfer_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 0u, 65535u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_field_s<enb_direct_info_transfer_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 121) {
-      nof_mandatory_ies--;
-      inter_sys_info_transfer_type_edt.id    = c.id;
-      inter_sys_info_transfer_type_edt.crit  = c.crit;
-      inter_sys_info_transfer_type_edt.value = c.value.inter_sys_info_transfer_type_edt();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void enb_direct_info_transfer_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  inter_sys_info_transfer_type_edt.to_json(j);
-  j.end_obj();
-}
-
 // ENBDirectInformationTransfer ::= SEQUENCE
 SRSASN_CODE enb_direct_info_transfer_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
+  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE enb_direct_info_transfer_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
+  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
@@ -19691,7 +18852,6 @@ void enb_direct_info_transfer_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -21587,10 +20747,10 @@ unbounded_octstring<true>& ho_cmd_ies_o::value_c::nas_security_paramsfrom_e_utra
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
   return c.get<unbounded_octstring<true> >();
 }
-erab_data_forwarding_item_ies_container& ho_cmd_ies_o::value_c::erab_subjectto_data_forwarding_list()
+erab_ie_container_list_l<erab_data_forwarding_item_ies_o>& ho_cmd_ies_o::value_c::erab_subjectto_data_forwarding_list()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_data_forwarding_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABDataForwardingItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >();
 }
 erab_list_l& ho_cmd_ies_o::value_c::erab_to_release_list_ho_cmd()
 {
@@ -21632,10 +20792,11 @@ const unbounded_octstring<true>& ho_cmd_ies_o::value_c::nas_security_paramsfrom_
   assert_choice_type("OCTET STRING", type_.to_string(), "Value");
   return c.get<unbounded_octstring<true> >();
 }
-const erab_data_forwarding_item_ies_container& ho_cmd_ies_o::value_c::erab_subjectto_data_forwarding_list() const
+const erab_ie_container_list_l<erab_data_forwarding_item_ies_o>&
+ho_cmd_ies_o::value_c::erab_subjectto_data_forwarding_list() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_data_forwarding_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABDataForwardingItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >();
 }
 const erab_list_l& ho_cmd_ies_o::value_c::erab_to_release_list_ho_cmd() const
 {
@@ -21664,7 +20825,7 @@ void ho_cmd_ies_o::value_c::destroy_()
       c.destroy<unbounded_octstring<true> >();
       break;
     case types::erab_subjectto_data_forwarding_list:
-      c.destroy<erab_data_forwarding_item_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >();
       break;
     case types::erab_to_release_list_ho_cmd:
       c.destroy<erab_list_l>();
@@ -21697,7 +20858,7 @@ void ho_cmd_ies_o::value_c::set(types::options e)
       c.init<unbounded_octstring<true> >();
       break;
     case types::erab_subjectto_data_forwarding_list:
-      c.init<erab_data_forwarding_item_ies_container>();
+      c.init<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >();
       break;
     case types::erab_to_release_list_ho_cmd:
       c.init<erab_list_l>();
@@ -21734,7 +20895,7 @@ ho_cmd_ies_o::value_c::value_c(const ho_cmd_ies_o::value_c& other)
       c.init(other.c.get<unbounded_octstring<true> >());
       break;
     case types::erab_subjectto_data_forwarding_list:
-      c.init(other.c.get<erab_data_forwarding_item_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >());
       break;
     case types::erab_to_release_list_ho_cmd:
       c.init(other.c.get<erab_list_l>());
@@ -21774,7 +20935,7 @@ ho_cmd_ies_o::value_c& ho_cmd_ies_o::value_c::operator=(const ho_cmd_ies_o::valu
       c.set(other.c.get<unbounded_octstring<true> >());
       break;
     case types::erab_subjectto_data_forwarding_list:
-      c.set(other.c.get<erab_data_forwarding_item_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >());
       break;
     case types::erab_to_release_list_ho_cmd:
       c.set(other.c.get<erab_list_l>());
@@ -21813,8 +20974,7 @@ void ho_cmd_ies_o::value_c::to_json(json_writer& j) const
       j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
       break;
     case types::erab_subjectto_data_forwarding_list:
-      j.write_fieldname("");
-      c.get<erab_data_forwarding_item_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABDataForwardingItemIEs}}");
       break;
     case types::erab_to_release_list_ho_cmd:
       j.start_array("E-RABList");
@@ -21855,7 +21015,8 @@ SRSASN_CODE ho_cmd_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
       break;
     case types::erab_subjectto_data_forwarding_list:
-      HANDLE_CODE(c.get<erab_data_forwarding_item_ies_container>().pack(bref));
+      HANDLE_CODE(
+          pack_dyn_seq_of(bref, c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >(), 1, 256, true));
       break;
     case types::erab_to_release_list_ho_cmd:
       HANDLE_CODE(pack_dyn_seq_of(bref, c.get<erab_list_l>(), 1, 256, true));
@@ -21892,7 +21053,8 @@ SRSASN_CODE ho_cmd_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
       break;
     case types::erab_subjectto_data_forwarding_list:
-      HANDLE_CODE(c.get<erab_data_forwarding_item_ies_container>().unpack(bref));
+      HANDLE_CODE(
+          unpack_dyn_seq_of(c.get<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> >(), bref, 1, 256, true));
       break;
     case types::erab_to_release_list_ho_cmd:
       HANDLE_CODE(unpack_dyn_seq_of(c.get<erab_list_l>(), bref, 1, 256, true));
@@ -21919,7 +21081,7 @@ std::string ho_cmd_ies_o::value_c::types_opts::to_string() const
                                   "INTEGER (0..16777215)",
                                   "HandoverType",
                                   "OCTET STRING",
-                                  "",
+                                  "E-RAB-IE-ContainerList{{E-RABDataForwardingItemIEs}}",
                                   "E-RABList",
                                   "OCTET STRING",
                                   "OCTET STRING",
@@ -24811,52 +23973,6 @@ std::string mdt_mode_c::types_opts::to_string() const
   return convert_enum_idx(options, 3, value, "mdt_mode_c::types");
 }
 
-template struct asn1::s1ap::protocol_ext_field_s<mdt_cfg_ext_ies_o>;
-
-mdt_cfg_ext_ies_container::mdt_cfg_ext_ies_container() : sig_based_mdtplmn_list(178, crit_e::ignore) {}
-SRSASN_CODE mdt_cfg_ext_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += sig_based_mdtplmn_list_present ? 1 : 0;
-  pack_length(bref, nof_ies, 1u, 65535u, true);
-
-  if (sig_based_mdtplmn_list_present) {
-    HANDLE_CODE(sig_based_mdtplmn_list.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mdt_cfg_ext_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ext_field_s<mdt_cfg_ext_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 178) {
-      sig_based_mdtplmn_list_present = true;
-      sig_based_mdtplmn_list.id      = c.id;
-      sig_based_mdtplmn_list.crit    = c.crit;
-      sig_based_mdtplmn_list.ext     = c.ext_value.sig_based_mdtplmn_list();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void mdt_cfg_ext_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (sig_based_mdtplmn_list_present) {
-    j.write_fieldname("");
-    sig_based_mdtplmn_list.to_json(j);
-  }
-  j.end_obj();
-}
-
 // MDT-Configuration ::= SEQUENCE
 SRSASN_CODE mdt_cfg_s::pack(bit_ref& bref) const
 {
@@ -24867,7 +23983,7 @@ SRSASN_CODE mdt_cfg_s::pack(bit_ref& bref) const
   HANDLE_CODE(area_scope_of_mdt.pack(bref));
   HANDLE_CODE(mdt_mode.pack(bref));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.pack(bref));
+    HANDLE_CODE(pack_dyn_seq_of(bref, ie_exts, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -24881,7 +23997,7 @@ SRSASN_CODE mdt_cfg_s::unpack(cbit_ref& bref)
   HANDLE_CODE(area_scope_of_mdt.unpack(bref));
   HANDLE_CODE(mdt_mode.unpack(bref));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.unpack(bref));
+    HANDLE_CODE(unpack_dyn_seq_of(ie_exts, bref, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -24896,7 +24012,6 @@ void mdt_cfg_s::to_json(json_writer& j) const
   mdt_mode.to_json(j);
   if (ie_exts_present) {
     j.write_fieldname("iE-Extensions");
-    ie_exts.to_json(j);
   }
   j.end_obj();
 }
@@ -25097,55 +24212,6 @@ std::string management_based_mdt_allowed_opts::to_string() const
   return convert_enum_idx(options, 1, value, "management_based_mdt_allowed_e");
 }
 
-template struct asn1::s1ap::protocol_ext_field_s<pro_se_authorized_ext_ies_o>;
-
-pro_se_authorized_ext_ies_container::pro_se_authorized_ext_ies_container() :
-  pro_se_ueto_network_relaying(216, crit_e::ignore)
-{
-}
-SRSASN_CODE pro_se_authorized_ext_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += pro_se_ueto_network_relaying_present ? 1 : 0;
-  pack_length(bref, nof_ies, 1u, 65535u, true);
-
-  if (pro_se_ueto_network_relaying_present) {
-    HANDLE_CODE(pro_se_ueto_network_relaying.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE pro_se_authorized_ext_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ext_field_s<pro_se_authorized_ext_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 216) {
-      pro_se_ueto_network_relaying_present = true;
-      pro_se_ueto_network_relaying.id      = c.id;
-      pro_se_ueto_network_relaying.crit    = c.crit;
-      pro_se_ueto_network_relaying.ext     = c.ext_value.pro_se_ueto_network_relaying();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void pro_se_authorized_ext_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (pro_se_ueto_network_relaying_present) {
-    j.write_fieldname("");
-    pro_se_ueto_network_relaying.to_json(j);
-  }
-  j.end_obj();
-}
-
 // ProSeAuthorized ::= SEQUENCE
 SRSASN_CODE pro_se_authorized_s::pack(bit_ref& bref) const
 {
@@ -25161,7 +24227,7 @@ SRSASN_CODE pro_se_authorized_s::pack(bit_ref& bref) const
     HANDLE_CODE(pro_se_direct_communication.pack(bref));
   }
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.pack(bref));
+    HANDLE_CODE(pack_dyn_seq_of(bref, ie_exts, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -25180,7 +24246,7 @@ SRSASN_CODE pro_se_authorized_s::unpack(cbit_ref& bref)
     HANDLE_CODE(pro_se_direct_communication.unpack(bref));
   }
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.unpack(bref));
+    HANDLE_CODE(unpack_dyn_seq_of(ie_exts, bref, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -25196,7 +24262,6 @@ void pro_se_authorized_s::to_json(json_writer& j) const
   }
   if (ie_exts_present) {
     j.write_fieldname("iE-Extensions");
-    ie_exts.to_json(j);
   }
   j.end_obj();
 }
@@ -25279,52 +24344,6 @@ void security_context_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::s1ap::protocol_ext_field_s<trace_activation_ext_ies_o>;
-
-trace_activation_ext_ies_container::trace_activation_ext_ies_container() : mdt_cfg(162, crit_e::ignore) {}
-SRSASN_CODE trace_activation_ext_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += mdt_cfg_present ? 1 : 0;
-  pack_length(bref, nof_ies, 1u, 65535u, true);
-
-  if (mdt_cfg_present) {
-    HANDLE_CODE(mdt_cfg.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE trace_activation_ext_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 1u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ext_field_s<trace_activation_ext_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 162) {
-      mdt_cfg_present = true;
-      mdt_cfg.id      = c.id;
-      mdt_cfg.crit    = c.crit;
-      mdt_cfg.ext     = c.ext_value.mdt_cfg();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void trace_activation_ext_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (mdt_cfg_present) {
-    j.write_fieldname("");
-    mdt_cfg.to_json(j);
-  }
-  j.end_obj();
-}
-
 // TraceActivation ::= SEQUENCE
 SRSASN_CODE trace_activation_s::pack(bit_ref& bref) const
 {
@@ -25336,7 +24355,7 @@ SRSASN_CODE trace_activation_s::pack(bit_ref& bref) const
   HANDLE_CODE(trace_depth.pack(bref));
   HANDLE_CODE(trace_collection_entity_ip_address.pack(bref));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.pack(bref));
+    HANDLE_CODE(pack_dyn_seq_of(bref, ie_exts, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -25351,7 +24370,7 @@ SRSASN_CODE trace_activation_s::unpack(cbit_ref& bref)
   HANDLE_CODE(trace_depth.unpack(bref));
   HANDLE_CODE(trace_collection_entity_ip_address.unpack(bref));
   if (ie_exts_present) {
-    HANDLE_CODE(ie_exts.unpack(bref));
+    HANDLE_CODE(unpack_dyn_seq_of(ie_exts, bref, 1, 65535, true));
   }
 
   return SRSASN_SUCCESS;
@@ -25365,7 +24384,6 @@ void trace_activation_s::to_json(json_writer& j) const
   j.write_str("traceCollectionEntityIPAddress", trace_collection_entity_ip_address.to_string());
   if (ie_exts_present) {
     j.write_fieldname("iE-Extensions");
-    ie_exts.to_json(j);
   }
   j.end_obj();
 }
@@ -25770,10 +24788,10 @@ ue_aggregate_maximum_bitrate_s& ho_request_ies_o::value_c::ueaggregate_maximum_b
   assert_choice_type("UEAggregateMaximumBitrate", type_.to_string(), "Value");
   return c.get<ue_aggregate_maximum_bitrate_s>();
 }
-erab_to_be_setup_item_ho_req_ies_container& ho_request_ies_o::value_c::erab_to_be_setup_list_ho_req()
+erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o>& ho_request_ies_o::value_c::erab_to_be_setup_list_ho_req()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_to_be_setup_item_ho_req_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABToBeSetupItemHOReqIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> >();
 }
 unbounded_octstring<true>& ho_request_ies_o::value_c::source_to_target_transparent_container()
 {
@@ -25910,10 +24928,11 @@ const ue_aggregate_maximum_bitrate_s& ho_request_ies_o::value_c::ueaggregate_max
   assert_choice_type("UEAggregateMaximumBitrate", type_.to_string(), "Value");
   return c.get<ue_aggregate_maximum_bitrate_s>();
 }
-const erab_to_be_setup_item_ho_req_ies_container& ho_request_ies_o::value_c::erab_to_be_setup_list_ho_req() const
+const erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o>&
+ho_request_ies_o::value_c::erab_to_be_setup_list_ho_req() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_to_be_setup_item_ho_req_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABToBeSetupItemHOReqIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> >();
 }
 const unbounded_octstring<true>& ho_request_ies_o::value_c::source_to_target_transparent_container() const
 {
@@ -26040,7 +25059,7 @@ void ho_request_ies_o::value_c::destroy_()
       c.destroy<ue_aggregate_maximum_bitrate_s>();
       break;
     case types::erab_to_be_setup_list_ho_req:
-      c.destroy<erab_to_be_setup_item_ho_req_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> >();
       break;
     case types::source_to_target_transparent_container:
       c.destroy<unbounded_octstring<true> >();
@@ -26107,7 +25126,7 @@ void ho_request_ies_o::value_c::set(types::options e)
       c.init<ue_aggregate_maximum_bitrate_s>();
       break;
     case types::erab_to_be_setup_list_ho_req:
-      c.init<erab_to_be_setup_item_ho_req_ies_container>();
+      c.init<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> >();
       break;
     case types::source_to_target_transparent_container:
       c.init<unbounded_octstring<true> >();
@@ -26193,7 +25212,7 @@ ho_request_ies_o::value_c::value_c(const ho_request_ies_o::value_c& other)
       c.init(other.c.get<ue_aggregate_maximum_bitrate_s>());
       break;
     case types::erab_to_be_setup_list_ho_req:
-      c.init(other.c.get<erab_to_be_setup_item_ho_req_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> >());
       break;
     case types::source_to_target_transparent_container:
       c.init(other.c.get<unbounded_octstring<true> >());
@@ -26290,7 +25309,7 @@ ho_request_ies_o::value_c& ho_request_ies_o::value_c::operator=(const ho_request
       c.set(other.c.get<ue_aggregate_maximum_bitrate_s>());
       break;
     case types::erab_to_be_setup_list_ho_req:
-      c.set(other.c.get<erab_to_be_setup_item_ho_req_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> >());
       break;
     case types::source_to_target_transparent_container:
       c.set(other.c.get<unbounded_octstring<true> >());
@@ -26388,8 +25407,7 @@ void ho_request_ies_o::value_c::to_json(json_writer& j) const
       c.get<ue_aggregate_maximum_bitrate_s>().to_json(j);
       break;
     case types::erab_to_be_setup_list_ho_req:
-      j.write_fieldname("");
-      c.get<erab_to_be_setup_item_ho_req_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABToBeSetupItemHOReqIEs}}");
       break;
     case types::source_to_target_transparent_container:
       j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
@@ -26496,7 +25514,8 @@ SRSASN_CODE ho_request_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(c.get<ue_aggregate_maximum_bitrate_s>().pack(bref));
       break;
     case types::erab_to_be_setup_list_ho_req:
-      HANDLE_CODE(c.get<erab_to_be_setup_item_ho_req_ies_container>().pack(bref));
+      HANDLE_CODE(
+          pack_dyn_seq_of(bref, c.get<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> >(), 1, 256, true));
       break;
     case types::source_to_target_transparent_container:
       HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
@@ -26590,7 +25609,8 @@ SRSASN_CODE ho_request_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(c.get<ue_aggregate_maximum_bitrate_s>().unpack(bref));
       break;
     case types::erab_to_be_setup_list_ho_req:
-      HANDLE_CODE(c.get<erab_to_be_setup_item_ho_req_ies_container>().unpack(bref));
+      HANDLE_CODE(unpack_dyn_seq_of(
+          c.get<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> >(), bref, 1, 256, true));
       break;
     case types::source_to_target_transparent_container:
       HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
@@ -26674,7 +25694,7 @@ std::string ho_request_ies_o::value_c::types_opts::to_string() const
                                   "HandoverType",
                                   "Cause",
                                   "UEAggregateMaximumBitrate",
-                                  "",
+                                  "E-RAB-IE-ContainerList{{E-RABToBeSetupItemHOReqIEs}}",
                                   "OCTET STRING",
                                   "UESecurityCapabilities",
                                   "HandoverRestrictionList",
@@ -27269,15 +26289,16 @@ uint32_t& ho_request_ack_ies_o::value_c::enb_ue_s1ap_id()
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-erab_admitted_item_ies_container& ho_request_ack_ies_o::value_c::erab_admitted_list()
+erab_ie_container_list_l<erab_admitted_item_ies_o>& ho_request_ack_ies_o::value_c::erab_admitted_list()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_admitted_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABAdmittedItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_admitted_item_ies_o> >();
 }
-erab_failedto_setup_item_ho_req_ack_ies_container& ho_request_ack_ies_o::value_c::erab_failed_to_setup_list_ho_req_ack()
+erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o>&
+ho_request_ack_ies_o::value_c::erab_failed_to_setup_list_ho_req_ack()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_failedto_setup_item_ho_req_ack_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABFailedtoSetupItemHOReqAckIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> >();
 }
 unbounded_octstring<true>& ho_request_ack_ies_o::value_c::target_to_source_transparent_container()
 {
@@ -27314,16 +26335,16 @@ const uint32_t& ho_request_ack_ies_o::value_c::enb_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-const erab_admitted_item_ies_container& ho_request_ack_ies_o::value_c::erab_admitted_list() const
+const erab_ie_container_list_l<erab_admitted_item_ies_o>& ho_request_ack_ies_o::value_c::erab_admitted_list() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_admitted_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABAdmittedItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_admitted_item_ies_o> >();
 }
-const erab_failedto_setup_item_ho_req_ack_ies_container&
+const erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o>&
 ho_request_ack_ies_o::value_c::erab_failed_to_setup_list_ho_req_ack() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_failedto_setup_item_ho_req_ack_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABFailedtoSetupItemHOReqAckIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> >();
 }
 const unbounded_octstring<true>& ho_request_ack_ies_o::value_c::target_to_source_transparent_container() const
 {
@@ -27354,10 +26375,10 @@ void ho_request_ack_ies_o::value_c::destroy_()
 {
   switch (type_) {
     case types::erab_admitted_list:
-      c.destroy<erab_admitted_item_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_admitted_item_ies_o> >();
       break;
     case types::erab_failed_to_setup_list_ho_req_ack:
-      c.destroy<erab_failedto_setup_item_ho_req_ack_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> >();
       break;
     case types::target_to_source_transparent_container:
       c.destroy<unbounded_octstring<true> >();
@@ -27382,10 +26403,10 @@ void ho_request_ack_ies_o::value_c::set(types::options e)
     case types::enb_ue_s1ap_id:
       break;
     case types::erab_admitted_list:
-      c.init<erab_admitted_item_ies_container>();
+      c.init<erab_ie_container_list_l<erab_admitted_item_ies_o> >();
       break;
     case types::erab_failed_to_setup_list_ho_req_ack:
-      c.init<erab_failedto_setup_item_ho_req_ack_ies_container>();
+      c.init<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> >();
       break;
     case types::target_to_source_transparent_container:
       c.init<unbounded_octstring<true> >();
@@ -27417,10 +26438,10 @@ ho_request_ack_ies_o::value_c::value_c(const ho_request_ack_ies_o::value_c& othe
       c.init(other.c.get<uint32_t>());
       break;
     case types::erab_admitted_list:
-      c.init(other.c.get<erab_admitted_item_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_admitted_item_ies_o> >());
       break;
     case types::erab_failed_to_setup_list_ho_req_ack:
-      c.init(other.c.get<erab_failedto_setup_item_ho_req_ack_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> >());
       break;
     case types::target_to_source_transparent_container:
       c.init(other.c.get<unbounded_octstring<true> >());
@@ -27457,10 +26478,10 @@ ho_request_ack_ies_o::value_c& ho_request_ack_ies_o::value_c::operator=(const ho
       c.set(other.c.get<uint32_t>());
       break;
     case types::erab_admitted_list:
-      c.set(other.c.get<erab_admitted_item_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_admitted_item_ies_o> >());
       break;
     case types::erab_failed_to_setup_list_ho_req_ack:
-      c.set(other.c.get<erab_failedto_setup_item_ho_req_ack_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> >());
       break;
     case types::target_to_source_transparent_container:
       c.set(other.c.get<unbounded_octstring<true> >());
@@ -27496,12 +26517,10 @@ void ho_request_ack_ies_o::value_c::to_json(json_writer& j) const
       j.write_int("INTEGER (0..16777215)", c.get<uint32_t>());
       break;
     case types::erab_admitted_list:
-      j.write_fieldname("");
-      c.get<erab_admitted_item_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABAdmittedItemIEs}}");
       break;
     case types::erab_failed_to_setup_list_ho_req_ack:
-      j.write_fieldname("");
-      c.get<erab_failedto_setup_item_ho_req_ack_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABFailedtoSetupItemHOReqAckIEs}}");
       break;
     case types::target_to_source_transparent_container:
       j.write_str("OCTET STRING", c.get<unbounded_octstring<true> >().to_string());
@@ -27535,10 +26554,11 @@ SRSASN_CODE ho_request_ack_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_admitted_list:
-      HANDLE_CODE(c.get<erab_admitted_item_ies_container>().pack(bref));
+      HANDLE_CODE(pack_dyn_seq_of(bref, c.get<erab_ie_container_list_l<erab_admitted_item_ies_o> >(), 1, 256, true));
       break;
     case types::erab_failed_to_setup_list_ho_req_ack:
-      HANDLE_CODE(c.get<erab_failedto_setup_item_ho_req_ack_ies_container>().pack(bref));
+      HANDLE_CODE(pack_dyn_seq_of(
+          bref, c.get<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> >(), 1, 256, true));
       break;
     case types::target_to_source_transparent_container:
       HANDLE_CODE(c.get<unbounded_octstring<true> >().pack(bref));
@@ -27572,10 +26592,11 @@ SRSASN_CODE ho_request_ack_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_admitted_list:
-      HANDLE_CODE(c.get<erab_admitted_item_ies_container>().unpack(bref));
+      HANDLE_CODE(unpack_dyn_seq_of(c.get<erab_ie_container_list_l<erab_admitted_item_ies_o> >(), bref, 1, 256, true));
       break;
     case types::erab_failed_to_setup_list_ho_req_ack:
-      HANDLE_CODE(c.get<erab_failedto_setup_item_ho_req_ack_ies_container>().unpack(bref));
+      HANDLE_CODE(unpack_dyn_seq_of(
+          c.get<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> >(), bref, 1, 256, true));
       break;
     case types::target_to_source_transparent_container:
       HANDLE_CODE(c.get<unbounded_octstring<true> >().unpack(bref));
@@ -27603,8 +26624,8 @@ std::string ho_request_ack_ies_o::value_c::types_opts::to_string() const
 {
   static const char* options[] = {"INTEGER (0..4294967295)",
                                   "INTEGER (0..16777215)",
-                                  "",
-                                  "",
+                                  "E-RAB-IE-ContainerList{{E-RABAdmittedItemIEs}}",
+                                  "E-RAB-IE-ContainerList{{E-RABFailedtoSetupItemHOReqAckIEs}}",
                                   "OCTET STRING",
                                   "BIT STRING",
                                   "CriticalityDiagnostics",
@@ -38663,10 +37684,11 @@ ue_aggregate_maximum_bitrate_s& path_switch_request_ack_ies_o::value_c::ueaggreg
   assert_choice_type("UEAggregateMaximumBitrate", type_.to_string(), "Value");
   return c.get<ue_aggregate_maximum_bitrate_s>();
 }
-erab_to_be_switched_ul_item_ies_container& path_switch_request_ack_ies_o::value_c::erab_to_be_switched_ul_list()
+erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o>&
+path_switch_request_ack_ies_o::value_c::erab_to_be_switched_ul_list()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_to_be_switched_ul_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABToBeSwitchedULItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >();
 }
 erab_list_l& path_switch_request_ack_ies_o::value_c::erab_to_be_released_list()
 {
@@ -38743,11 +37765,11 @@ const ue_aggregate_maximum_bitrate_s& path_switch_request_ack_ies_o::value_c::ue
   assert_choice_type("UEAggregateMaximumBitrate", type_.to_string(), "Value");
   return c.get<ue_aggregate_maximum_bitrate_s>();
 }
-const erab_to_be_switched_ul_item_ies_container&
+const erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o>&
 path_switch_request_ack_ies_o::value_c::erab_to_be_switched_ul_list() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_to_be_switched_ul_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABToBeSwitchedULItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >();
 }
 const erab_list_l& path_switch_request_ack_ies_o::value_c::erab_to_be_released_list() const
 {
@@ -38817,7 +37839,7 @@ void path_switch_request_ack_ies_o::value_c::destroy_()
       c.destroy<ue_aggregate_maximum_bitrate_s>();
       break;
     case types::erab_to_be_switched_ul_list:
-      c.destroy<erab_to_be_switched_ul_item_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >();
       break;
     case types::erab_to_be_released_list:
       c.destroy<erab_list_l>();
@@ -38854,7 +37876,7 @@ void path_switch_request_ack_ies_o::value_c::set(types::options e)
       c.init<ue_aggregate_maximum_bitrate_s>();
       break;
     case types::erab_to_be_switched_ul_list:
-      c.init<erab_to_be_switched_ul_item_ies_container>();
+      c.init<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >();
       break;
     case types::erab_to_be_released_list:
       c.init<erab_list_l>();
@@ -38906,7 +37928,7 @@ path_switch_request_ack_ies_o::value_c::value_c(const path_switch_request_ack_ie
       c.init(other.c.get<ue_aggregate_maximum_bitrate_s>());
       break;
     case types::erab_to_be_switched_ul_list:
-      c.init(other.c.get<erab_to_be_switched_ul_item_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >());
       break;
     case types::erab_to_be_released_list:
       c.init(other.c.get<erab_list_l>());
@@ -38968,7 +37990,7 @@ path_switch_request_ack_ies_o::value_c& path_switch_request_ack_ies_o::value_c::
       c.set(other.c.get<ue_aggregate_maximum_bitrate_s>());
       break;
     case types::erab_to_be_switched_ul_list:
-      c.set(other.c.get<erab_to_be_switched_ul_item_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >());
       break;
     case types::erab_to_be_released_list:
       c.set(other.c.get<erab_list_l>());
@@ -39029,8 +38051,7 @@ void path_switch_request_ack_ies_o::value_c::to_json(json_writer& j) const
       c.get<ue_aggregate_maximum_bitrate_s>().to_json(j);
       break;
     case types::erab_to_be_switched_ul_list:
-      j.write_fieldname("");
-      c.get<erab_to_be_switched_ul_item_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABToBeSwitchedULItemIEs}}");
       break;
     case types::erab_to_be_released_list:
       j.start_array("E-RABList");
@@ -39096,7 +38117,8 @@ SRSASN_CODE path_switch_request_ack_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(c.get<ue_aggregate_maximum_bitrate_s>().pack(bref));
       break;
     case types::erab_to_be_switched_ul_list:
-      HANDLE_CODE(c.get<erab_to_be_switched_ul_item_ies_container>().pack(bref));
+      HANDLE_CODE(
+          pack_dyn_seq_of(bref, c.get<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >(), 1, 256, true));
       break;
     case types::erab_to_be_released_list:
       HANDLE_CODE(pack_dyn_seq_of(bref, c.get<erab_list_l>(), 1, 256, true));
@@ -39154,7 +38176,8 @@ SRSASN_CODE path_switch_request_ack_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(c.get<ue_aggregate_maximum_bitrate_s>().unpack(bref));
       break;
     case types::erab_to_be_switched_ul_list:
-      HANDLE_CODE(c.get<erab_to_be_switched_ul_item_ies_container>().unpack(bref));
+      HANDLE_CODE(
+          unpack_dyn_seq_of(c.get<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >(), bref, 1, 256, true));
       break;
     case types::erab_to_be_released_list:
       HANDLE_CODE(unpack_dyn_seq_of(c.get<erab_list_l>(), bref, 1, 256, true));
@@ -39204,7 +38227,7 @@ std::string path_switch_request_ack_ies_o::value_c::types_opts::to_string() cons
   static const char* options[] = {"INTEGER (0..4294967295)",
                                   "INTEGER (0..16777215)",
                                   "UEAggregateMaximumBitrate",
-                                  "",
+                                  "E-RAB-IE-ContainerList{{E-RABToBeSwitchedULItemIEs}}",
                                   "E-RABList",
                                   "SecurityContext",
                                   "CriticalityDiagnostics",
@@ -39629,10 +38652,11 @@ uint32_t& path_switch_request_ies_o::value_c::enb_ue_s1ap_id()
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-erab_to_be_switched_dl_item_ies_container& path_switch_request_ies_o::value_c::erab_to_be_switched_dl_list()
+erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o>&
+path_switch_request_ies_o::value_c::erab_to_be_switched_dl_list()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_to_be_switched_dl_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABToBeSwitchedDLItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> >();
 }
 uint64_t& path_switch_request_ies_o::value_c::source_mme_ue_s1ap_id()
 {
@@ -39694,10 +38718,11 @@ const uint32_t& path_switch_request_ies_o::value_c::enb_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-const erab_to_be_switched_dl_item_ies_container& path_switch_request_ies_o::value_c::erab_to_be_switched_dl_list() const
+const erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o>&
+path_switch_request_ies_o::value_c::erab_to_be_switched_dl_list() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_to_be_switched_dl_item_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABToBeSwitchedDLItemIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> >();
 }
 const uint64_t& path_switch_request_ies_o::value_c::source_mme_ue_s1ap_id() const
 {
@@ -39758,7 +38783,7 @@ void path_switch_request_ies_o::value_c::destroy_()
 {
   switch (type_) {
     case types::erab_to_be_switched_dl_list:
-      c.destroy<erab_to_be_switched_dl_item_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> >();
       break;
     case types::eutran_cgi:
       c.destroy<eutran_cgi_s>();
@@ -39793,7 +38818,7 @@ void path_switch_request_ies_o::value_c::set(types::options e)
     case types::enb_ue_s1ap_id:
       break;
     case types::erab_to_be_switched_dl_list:
-      c.init<erab_to_be_switched_dl_item_ies_container>();
+      c.init<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> >();
       break;
     case types::source_mme_ue_s1ap_id:
       break;
@@ -39838,7 +38863,7 @@ path_switch_request_ies_o::value_c::value_c(const path_switch_request_ies_o::val
       c.init(other.c.get<uint32_t>());
       break;
     case types::erab_to_be_switched_dl_list:
-      c.init(other.c.get<erab_to_be_switched_dl_item_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> >());
       break;
     case types::source_mme_ue_s1ap_id:
       c.init(other.c.get<uint64_t>());
@@ -39891,7 +38916,7 @@ path_switch_request_ies_o::value_c& path_switch_request_ies_o::value_c::
       c.set(other.c.get<uint32_t>());
       break;
     case types::erab_to_be_switched_dl_list:
-      c.set(other.c.get<erab_to_be_switched_dl_item_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> >());
       break;
     case types::source_mme_ue_s1ap_id:
       c.set(other.c.get<uint64_t>());
@@ -39942,8 +38967,7 @@ void path_switch_request_ies_o::value_c::to_json(json_writer& j) const
       j.write_int("INTEGER (0..16777215)", c.get<uint32_t>());
       break;
     case types::erab_to_be_switched_dl_list:
-      j.write_fieldname("");
-      c.get<erab_to_be_switched_dl_item_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABToBeSwitchedDLItemIEs}}");
       break;
     case types::source_mme_ue_s1ap_id:
       j.write_int("INTEGER (0..4294967295)", c.get<uint64_t>());
@@ -39996,7 +39020,8 @@ SRSASN_CODE path_switch_request_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_to_be_switched_dl_list:
-      HANDLE_CODE(c.get<erab_to_be_switched_dl_item_ies_container>().pack(bref));
+      HANDLE_CODE(
+          pack_dyn_seq_of(bref, c.get<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> >(), 1, 256, true));
       break;
     case types::source_mme_ue_s1ap_id:
       HANDLE_CODE(pack_integer(bref, c.get<uint64_t>(), (uint64_t)0u, (uint64_t)4294967295u, false, true));
@@ -40045,7 +39070,8 @@ SRSASN_CODE path_switch_request_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_to_be_switched_dl_list:
-      HANDLE_CODE(c.get<erab_to_be_switched_dl_item_ies_container>().unpack(bref));
+      HANDLE_CODE(
+          unpack_dyn_seq_of(c.get<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> >(), bref, 1, 256, true));
       break;
     case types::source_mme_ue_s1ap_id:
       HANDLE_CODE(unpack_integer(c.get<uint64_t>(), bref, (uint64_t)0u, (uint64_t)4294967295u, false, true));
@@ -40090,7 +39116,7 @@ SRSASN_CODE path_switch_request_ies_o::value_c::unpack(cbit_ref& bref)
 std::string path_switch_request_ies_o::value_c::types_opts::to_string() const
 {
   static const char* options[] = {"INTEGER (0..16777215)",
-                                  "",
+                                  "E-RAB-IE-ContainerList{{E-RABToBeSwitchedDLItemIEs}}",
                                   "INTEGER (0..4294967295)",
                                   "EUTRAN-CGI",
                                   "TAI",
@@ -45585,11 +44611,11 @@ uint32_t& ue_context_resume_request_ies_o::value_c::enb_ue_s1ap_id()
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-erab_failed_to_resume_item_resume_req_ies_container&
+erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o>&
 ue_context_resume_request_ies_o::value_c::erab_failed_to_resume_list_resume_req()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_failed_to_resume_item_resume_req_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABFailedToResumeItemResumeReqIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >();
 }
 rrc_establishment_cause_e& ue_context_resume_request_ies_o::value_c::rrc_resume_cause()
 {
@@ -45606,11 +44632,11 @@ const uint32_t& ue_context_resume_request_ies_o::value_c::enb_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-const erab_failed_to_resume_item_resume_req_ies_container&
+const erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o>&
 ue_context_resume_request_ies_o::value_c::erab_failed_to_resume_list_resume_req() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_failed_to_resume_item_resume_req_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABFailedToResumeItemResumeReqIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >();
 }
 const rrc_establishment_cause_e& ue_context_resume_request_ies_o::value_c::rrc_resume_cause() const
 {
@@ -45621,7 +44647,7 @@ void ue_context_resume_request_ies_o::value_c::destroy_()
 {
   switch (type_) {
     case types::erab_failed_to_resume_list_resume_req:
-      c.destroy<erab_failed_to_resume_item_resume_req_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >();
       break;
     default:
       break;
@@ -45637,7 +44663,7 @@ void ue_context_resume_request_ies_o::value_c::set(types::options e)
     case types::enb_ue_s1ap_id:
       break;
     case types::erab_failed_to_resume_list_resume_req:
-      c.init<erab_failed_to_resume_item_resume_req_ies_container>();
+      c.init<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >();
       break;
     case types::rrc_resume_cause:
       break;
@@ -45658,7 +44684,7 @@ ue_context_resume_request_ies_o::value_c::value_c(const ue_context_resume_reques
       c.init(other.c.get<uint32_t>());
       break;
     case types::erab_failed_to_resume_list_resume_req:
-      c.init(other.c.get<erab_failed_to_resume_item_resume_req_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >());
       break;
     case types::rrc_resume_cause:
       c.init(other.c.get<rrc_establishment_cause_e>());
@@ -45684,7 +44710,7 @@ ue_context_resume_request_ies_o::value_c& ue_context_resume_request_ies_o::value
       c.set(other.c.get<uint32_t>());
       break;
     case types::erab_failed_to_resume_list_resume_req:
-      c.set(other.c.get<erab_failed_to_resume_item_resume_req_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >());
       break;
     case types::rrc_resume_cause:
       c.set(other.c.get<rrc_establishment_cause_e>());
@@ -45708,8 +44734,7 @@ void ue_context_resume_request_ies_o::value_c::to_json(json_writer& j) const
       j.write_int("INTEGER (0..16777215)", c.get<uint32_t>());
       break;
     case types::erab_failed_to_resume_list_resume_req:
-      j.write_fieldname("");
-      c.get<erab_failed_to_resume_item_resume_req_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABFailedToResumeItemResumeReqIEs}}");
       break;
     case types::rrc_resume_cause:
       j.write_str("RRC-Establishment-Cause", c.get<rrc_establishment_cause_e>().to_string());
@@ -45730,7 +44755,8 @@ SRSASN_CODE ue_context_resume_request_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_failed_to_resume_list_resume_req:
-      HANDLE_CODE(c.get<erab_failed_to_resume_item_resume_req_ies_container>().pack(bref));
+      HANDLE_CODE(pack_dyn_seq_of(
+          bref, c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >(), 1, 256, true));
       break;
     case types::rrc_resume_cause:
       HANDLE_CODE(c.get<rrc_establishment_cause_e>().pack(bref));
@@ -45752,7 +44778,8 @@ SRSASN_CODE ue_context_resume_request_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_failed_to_resume_list_resume_req:
-      HANDLE_CODE(c.get<erab_failed_to_resume_item_resume_req_ies_container>().unpack(bref));
+      HANDLE_CODE(unpack_dyn_seq_of(
+          c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >(), bref, 1, 256, true));
       break;
     case types::rrc_resume_cause:
       HANDLE_CODE(c.get<rrc_establishment_cause_e>().unpack(bref));
@@ -45766,7 +44793,10 @@ SRSASN_CODE ue_context_resume_request_ies_o::value_c::unpack(cbit_ref& bref)
 
 std::string ue_context_resume_request_ies_o::value_c::types_opts::to_string() const
 {
-  static const char* options[] = {"INTEGER (0..4294967295)", "INTEGER (0..16777215)", "", "RRC-Establishment-Cause"};
+  static const char* options[] = {"INTEGER (0..4294967295)",
+                                  "INTEGER (0..16777215)",
+                                  "E-RAB-IE-ContainerList{{E-RABFailedToResumeItemResumeReqIEs}}",
+                                  "RRC-Establishment-Cause"};
   return convert_enum_idx(options, 4, value, "ue_context_resume_request_ies_o::value_c::types");
 }
 
@@ -45865,11 +44895,11 @@ uint32_t& ue_context_resume_resp_ies_o::value_c::enb_ue_s1ap_id()
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-erab_failed_to_resume_item_resume_res_ies_container&
+erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o>&
 ue_context_resume_resp_ies_o::value_c::erab_failed_to_resume_list_resume_res()
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_failed_to_resume_item_resume_res_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABFailedToResumeItemResumeResIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >();
 }
 crit_diagnostics_s& ue_context_resume_resp_ies_o::value_c::crit_diagnostics()
 {
@@ -45896,11 +44926,11 @@ const uint32_t& ue_context_resume_resp_ies_o::value_c::enb_ue_s1ap_id() const
   assert_choice_type("INTEGER (0..16777215)", type_.to_string(), "Value");
   return c.get<uint32_t>();
 }
-const erab_failed_to_resume_item_resume_res_ies_container&
+const erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o>&
 ue_context_resume_resp_ies_o::value_c::erab_failed_to_resume_list_resume_res() const
 {
-  assert_choice_type("", type_.to_string(), "Value");
-  return c.get<erab_failed_to_resume_item_resume_res_ies_container>();
+  assert_choice_type("E-RAB-IE-ContainerList{{E-RABFailedToResumeItemResumeResIEs}}", type_.to_string(), "Value");
+  return c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >();
 }
 const crit_diagnostics_s& ue_context_resume_resp_ies_o::value_c::crit_diagnostics() const
 {
@@ -45921,7 +44951,7 @@ void ue_context_resume_resp_ies_o::value_c::destroy_()
 {
   switch (type_) {
     case types::erab_failed_to_resume_list_resume_res:
-      c.destroy<erab_failed_to_resume_item_resume_res_ies_container>();
+      c.destroy<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >();
       break;
     case types::crit_diagnostics:
       c.destroy<crit_diagnostics_s>();
@@ -45943,7 +44973,7 @@ void ue_context_resume_resp_ies_o::value_c::set(types::options e)
     case types::enb_ue_s1ap_id:
       break;
     case types::erab_failed_to_resume_list_resume_res:
-      c.init<erab_failed_to_resume_item_resume_res_ies_container>();
+      c.init<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >();
       break;
     case types::crit_diagnostics:
       c.init<crit_diagnostics_s>();
@@ -45970,7 +45000,7 @@ ue_context_resume_resp_ies_o::value_c::value_c(const ue_context_resume_resp_ies_
       c.init(other.c.get<uint32_t>());
       break;
     case types::erab_failed_to_resume_list_resume_res:
-      c.init(other.c.get<erab_failed_to_resume_item_resume_res_ies_container>());
+      c.init(other.c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >());
       break;
     case types::crit_diagnostics:
       c.init(other.c.get<crit_diagnostics_s>());
@@ -46002,7 +45032,7 @@ ue_context_resume_resp_ies_o::value_c& ue_context_resume_resp_ies_o::value_c::
       c.set(other.c.get<uint32_t>());
       break;
     case types::erab_failed_to_resume_list_resume_res:
-      c.set(other.c.get<erab_failed_to_resume_item_resume_res_ies_container>());
+      c.set(other.c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >());
       break;
     case types::crit_diagnostics:
       c.set(other.c.get<crit_diagnostics_s>());
@@ -46032,8 +45062,7 @@ void ue_context_resume_resp_ies_o::value_c::to_json(json_writer& j) const
       j.write_int("INTEGER (0..16777215)", c.get<uint32_t>());
       break;
     case types::erab_failed_to_resume_list_resume_res:
-      j.write_fieldname("");
-      c.get<erab_failed_to_resume_item_resume_res_ies_container>().to_json(j);
+      j.write_fieldname("E-RAB-IE-ContainerList{{E-RABFailedToResumeItemResumeResIEs}}");
       break;
     case types::crit_diagnostics:
       j.write_fieldname("CriticalityDiagnostics");
@@ -46062,7 +45091,8 @@ SRSASN_CODE ue_context_resume_resp_ies_o::value_c::pack(bit_ref& bref) const
       HANDLE_CODE(pack_integer(bref, c.get<uint32_t>(), (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_failed_to_resume_list_resume_res:
-      HANDLE_CODE(c.get<erab_failed_to_resume_item_resume_res_ies_container>().pack(bref));
+      HANDLE_CODE(pack_dyn_seq_of(
+          bref, c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >(), 1, 256, true));
       break;
     case types::crit_diagnostics:
       HANDLE_CODE(c.get<crit_diagnostics_s>().pack(bref));
@@ -46090,7 +45120,8 @@ SRSASN_CODE ue_context_resume_resp_ies_o::value_c::unpack(cbit_ref& bref)
       HANDLE_CODE(unpack_integer(c.get<uint32_t>(), bref, (uint32_t)0u, (uint32_t)16777215u, false, true));
       break;
     case types::erab_failed_to_resume_list_resume_res:
-      HANDLE_CODE(c.get<erab_failed_to_resume_item_resume_res_ies_container>().unpack(bref));
+      HANDLE_CODE(unpack_dyn_seq_of(
+          c.get<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >(), bref, 1, 256, true));
       break;
     case types::crit_diagnostics:
       HANDLE_CODE(c.get<crit_diagnostics_s>().unpack(bref));
@@ -46112,7 +45143,7 @@ std::string ue_context_resume_resp_ies_o::value_c::types_opts::to_string() const
 {
   static const char* options[] = {"INTEGER (0..4294967295)",
                                   "INTEGER (0..16777215)",
-                                  "",
+                                  "E-RAB-IE-ContainerList{{E-RABFailedToResumeItemResumeResIEs}}",
                                   "CriticalityDiagnostics",
                                   "SecurityContext",
                                   "PendingDataIndication"};
@@ -50213,64 +49244,18 @@ void mmecp_relocation_ind_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::s1ap::protocol_ie_field_s<mme_cfg_transfer_ies_o>;
-
-mme_cfg_transfer_ies_container::mme_cfg_transfer_ies_container() : son_cfg_transfer_mct(130, crit_e::ignore) {}
-SRSASN_CODE mme_cfg_transfer_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += son_cfg_transfer_mct_present ? 1 : 0;
-  pack_length(bref, nof_ies, 0u, 65535u, true);
-
-  if (son_cfg_transfer_mct_present) {
-    HANDLE_CODE(son_cfg_transfer_mct.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_cfg_transfer_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 0u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_field_s<mme_cfg_transfer_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 130) {
-      son_cfg_transfer_mct_present = true;
-      son_cfg_transfer_mct.id      = c.id;
-      son_cfg_transfer_mct.crit    = c.crit;
-      son_cfg_transfer_mct.value   = c.value.son_cfg_transfer_mct();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void mme_cfg_transfer_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (son_cfg_transfer_mct_present) {
-    j.write_fieldname("");
-    son_cfg_transfer_mct.to_json(j);
-  }
-  j.end_obj();
-}
-
 // MMEConfigurationTransfer ::= SEQUENCE
 SRSASN_CODE mme_cfg_transfer_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
+  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE mme_cfg_transfer_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
+  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
@@ -50278,7 +49263,6 @@ void mme_cfg_transfer_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -50401,64 +49385,18 @@ void mme_cfg_upd_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::s1ap::protocol_ie_field_s<mme_cfg_upd_ack_ies_o>;
-
-mme_cfg_upd_ack_ies_container::mme_cfg_upd_ack_ies_container() : crit_diagnostics(58, crit_e::ignore) {}
-SRSASN_CODE mme_cfg_upd_ack_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += crit_diagnostics_present ? 1 : 0;
-  pack_length(bref, nof_ies, 0u, 65535u, true);
-
-  if (crit_diagnostics_present) {
-    HANDLE_CODE(crit_diagnostics.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_cfg_upd_ack_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 0u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_field_s<mme_cfg_upd_ack_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 58) {
-      crit_diagnostics_present = true;
-      crit_diagnostics.id      = c.id;
-      crit_diagnostics.crit    = c.crit;
-      crit_diagnostics.value   = c.value.crit_diagnostics();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void mme_cfg_upd_ack_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (crit_diagnostics_present) {
-    j.write_fieldname("");
-    crit_diagnostics.to_json(j);
-  }
-  j.end_obj();
-}
-
 // MMEConfigurationUpdateAcknowledge ::= SEQUENCE
 SRSASN_CODE mme_cfg_upd_ack_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
+  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE mme_cfg_upd_ack_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
+  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
@@ -50466,7 +49404,6 @@ void mme_cfg_upd_ack_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -50575,68 +49512,18 @@ void mme_cfg_upd_fail_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::s1ap::protocol_ie_field_s<mme_direct_info_transfer_ies_o>;
-
-mme_direct_info_transfer_ies_container::mme_direct_info_transfer_ies_container() :
-  inter_sys_info_transfer_type_mdt(122, crit_e::reject)
-{
-}
-SRSASN_CODE mme_direct_info_transfer_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 0u, 65535u, true);
-
-  HANDLE_CODE(inter_sys_info_transfer_type_mdt.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE mme_direct_info_transfer_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 0u, 65535u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_field_s<mme_direct_info_transfer_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 122) {
-      nof_mandatory_ies--;
-      inter_sys_info_transfer_type_mdt.id    = c.id;
-      inter_sys_info_transfer_type_mdt.crit  = c.crit;
-      inter_sys_info_transfer_type_mdt.value = c.value.inter_sys_info_transfer_type_mdt();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void mme_direct_info_transfer_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  inter_sys_info_transfer_type_mdt.to_json(j);
-  j.end_obj();
-}
-
 // MMEDirectInformationTransfer ::= SEQUENCE
 SRSASN_CODE mme_direct_info_transfer_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
+  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE mme_direct_info_transfer_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
+  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
@@ -50644,7 +49531,6 @@ void mme_direct_info_transfer_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -51038,64 +49924,18 @@ void overload_start_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::s1ap::protocol_ie_field_s<overload_stop_ies_o>;
-
-overload_stop_ies_container::overload_stop_ies_container() : gummei_list(154, crit_e::ignore) {}
-SRSASN_CODE overload_stop_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 0;
-  nof_ies += gummei_list_present ? 1 : 0;
-  pack_length(bref, nof_ies, 0u, 65535u, true);
-
-  if (gummei_list_present) {
-    HANDLE_CODE(gummei_list.pack(bref));
-  }
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE overload_stop_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 0u, 65535u, true);
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_field_s<overload_stop_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 154) {
-      gummei_list_present = true;
-      gummei_list.id      = c.id;
-      gummei_list.crit    = c.crit;
-      gummei_list.value   = c.value.gummei_list();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-
-  return SRSASN_SUCCESS;
-}
-void overload_stop_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  if (gummei_list_present) {
-    j.write_fieldname("");
-    gummei_list.to_json(j);
-  }
-  j.end_obj();
-}
-
 // OverloadStop ::= SEQUENCE
 SRSASN_CODE overload_stop_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
+  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE overload_stop_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
+  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
@@ -51103,7 +49943,6 @@ void overload_stop_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 
@@ -52604,65 +51443,18 @@ void reset_ack_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-template struct asn1::s1ap::protocol_ie_field_s<retrieve_ue_info_ies_o>;
-
-retrieve_ue_info_ies_container::retrieve_ue_info_ies_container() : s_tmsi(96, crit_e::reject) {}
-SRSASN_CODE retrieve_ue_info_ies_container::pack(bit_ref& bref) const
-{
-  uint32_t nof_ies = 1;
-  pack_length(bref, nof_ies, 0u, 65535u, true);
-
-  HANDLE_CODE(s_tmsi.pack(bref));
-
-  return SRSASN_SUCCESS;
-}
-SRSASN_CODE retrieve_ue_info_ies_container::unpack(cbit_ref& bref)
-{
-  uint32_t nof_ies = 0;
-  unpack_length(nof_ies, bref, 0u, 65535u, true);
-
-  uint32_t nof_mandatory_ies = 1;
-
-  for (; nof_ies > 0; --nof_ies) {
-    protocol_ie_field_s<retrieve_ue_info_ies_o> c;
-    HANDLE_CODE(c.unpack(bref));
-    if (c.id == 96) {
-      nof_mandatory_ies--;
-      s_tmsi.id    = c.id;
-      s_tmsi.crit  = c.crit;
-      s_tmsi.value = c.value.s_tmsi();
-    } else {
-      asn1::log_error("Unpacked object ID=%d is not recognized\n", c.id);
-      return SRSASN_ERROR_DECODE_FAIL;
-    }
-  }
-  if (nof_mandatory_ies > 0) {
-    asn1::log_error("Mandatory fields are missing\n");
-
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  return SRSASN_SUCCESS;
-}
-void retrieve_ue_info_ies_container::to_json(json_writer& j) const
-{
-  j.start_obj();
-  j.write_fieldname("");
-  s_tmsi.to_json(j);
-  j.end_obj();
-}
-
 // RetrieveUEInformation ::= SEQUENCE
 SRSASN_CODE retrieve_ue_info_s::pack(bit_ref& bref) const
 {
   bref.pack(ext, 1);
-  HANDLE_CODE(protocol_ies.pack(bref));
+  HANDLE_CODE(pack_dyn_seq_of(bref, protocol_ies, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE retrieve_ue_info_s::unpack(cbit_ref& bref)
 {
   bref.unpack(ext, 1);
-  HANDLE_CODE(protocol_ies.unpack(bref));
+  HANDLE_CODE(unpack_dyn_seq_of(protocol_ies, bref, 0, 65535, true));
 
   return SRSASN_SUCCESS;
 }
@@ -52670,7 +51462,6 @@ void retrieve_ue_info_s::to_json(json_writer& j) const
 {
   j.start_obj();
   j.write_fieldname("protocolIEs");
-  protocol_ies.to_json(j);
   j.end_obj();
 }
 

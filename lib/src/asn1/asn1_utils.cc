@@ -1173,7 +1173,7 @@ SRSASN_CODE unpack_bitfield(uint8_t* buf, cbit_ref& bref, uint32_t n, uint32_t l
 
 void from_number(uint8_t* ptr, uint64_t number, uint32_t nbits)
 {
-  if (nbits > 64) {
+  if (nbits > 64u) {
     log_error("bitstring of size=%d does not fit in an uint64_t\n", nbits);
     return;
   }

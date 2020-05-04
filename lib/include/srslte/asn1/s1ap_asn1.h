@@ -477,7 +477,7 @@ struct private_ie_field_s {
 
 // PrivateIE-Container{S1AP-PRIVATE-IES : IEsSetParam} ::= SEQUENCE (SIZE (1..65535)) OF PrivateIE-Field
 template <class ies_set_paramT_>
-using private_ie_container_l = dyn_array<private_ie_field_s<ies_set_paramT_> >;
+using private_ie_container_l = dyn_seq_of<private_ie_field_s<ies_set_paramT_>, 1, 65535, true>;
 
 // ProtocolExtensionField{S1AP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-EXTENSION}}
 template <class ext_set_paramT_>
@@ -495,7 +495,7 @@ struct protocol_ext_field_s {
 // ProtocolExtensionContainer{S1AP-PROTOCOL-EXTENSION : ExtensionSetParam} ::= SEQUENCE (SIZE (1..65535)) OF
 // ProtocolExtensionField
 template <class ext_set_paramT_>
-using protocol_ext_container_l = dyn_array<protocol_ext_field_s<ext_set_paramT_> >;
+using protocol_ext_container_l = dyn_seq_of<protocol_ext_field_s<ext_set_paramT_>, 1, 65535, true>;
 
 // ProtocolIE-Field{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES}}
 template <class ies_set_paramT_>
@@ -512,7 +512,7 @@ struct protocol_ie_field_s {
 
 // ProtocolIE-Container{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-Field
 template <class ies_set_paramT_>
-using protocol_ie_container_l = dyn_array<protocol_ie_field_s<ies_set_paramT_> >;
+using protocol_ie_container_l = dyn_seq_of<protocol_ie_field_s<ies_set_paramT_>, 0, 65535, true>;
 
 // ProtocolIE-SingleContainer{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES}}
 template <class ies_set_paramT_>
@@ -526,11 +526,6 @@ struct protocol_ie_single_container_s {
   void        to_json(json_writer& j) const;
   bool        load_info_obj(const uint32_t& id_);
 };
-
-// ProtocolIE-ContainerList{INTEGER : lowerBound, INTEGER : upperBound, S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE
-// (SIZE (lowerBound..upperBound)) OF ProtocolIE-SingleContainer
-template <class ies_set_paramT_>
-using protocol_ie_container_list_l = dyn_array<protocol_ie_single_container_s<ies_set_paramT_> >;
 
 // ProtocolIE-FieldPair{S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES-PAIR}}
 template <class ies_set_paramT_>
@@ -549,12 +544,7 @@ struct protocol_ie_field_pair_s {
 
 // ProtocolIE-ContainerPair{S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE (SIZE (0..65535)) OF ProtocolIE-FieldPair
 template <class ies_set_paramT_>
-using protocol_ie_container_pair_l = dyn_array<protocol_ie_field_pair_s<ies_set_paramT_> >;
-
-// ProtocolIE-ContainerPairList{INTEGER : lowerBound, INTEGER : upperBound, S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::=
-// SEQUENCE (SIZE (lowerBound..upperBound)) OF ProtocolIE-ContainerPair
-template <class ies_set_paramT_>
-using protocol_ie_container_pair_list_l = dyn_array<protocol_ie_container_pair_l<ies_set_paramT_> >;
+using protocol_ie_container_pair_l = dyn_seq_of<protocol_ie_field_pair_s<ies_set_paramT_>, 0, 65535, true>;
 
 // ActivatedCellsList-Item ::= SEQUENCE
 struct activ_cells_list_item_s {
@@ -3009,7 +2999,7 @@ using protocol_ie_single_container_item_s = protocol_ie_single_container_s<ies_s
 // E-RAB-IE-ContainerList{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (1..256)) OF
 // ProtocolIE-SingleContainer{S1AP-PROTOCOL-IES : IEsSetParam}
 template <class ies_set_paramT_>
-using erab_ie_container_list_l = dyn_array<protocol_ie_single_container_item_s<ies_set_paramT_> >;
+using erab_ie_container_list_l = dyn_seq_of<protocol_ie_single_container_item_s<ies_set_paramT_>, 1, 256, true>;
 
 // E-RABDataForwardingItemIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 struct erab_data_forwarding_item_ies_o {
@@ -3061,33 +3051,6 @@ struct cdma2000_rat_type_opts {
 };
 typedef enumerated<cdma2000_rat_type_opts, true> cdma2000_rat_type_e;
 
-template <class valueT_>
-struct erab_ie_container_list_item_s {
-  uint32_t id = 0;
-  crit_e   crit;
-  valueT_  value;
-
-  // sequence methods
-  erab_ie_container_list_item_s(uint32_t id_, crit_e crit_);
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-struct erab_data_forwarding_item_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_data_forwarding_item_s> erab_data_forwarding_item;
-
-  // sequence methods
-  erab_data_forwarding_item_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // DownlinkS1cdma2000tunnellingIEs ::= OBJECT SET OF S1AP-PROTOCOL-IES
 struct dl_s1cdma2000tunnelling_ies_o {
   // Value ::= OPEN TYPE
@@ -3118,22 +3081,22 @@ struct dl_s1cdma2000tunnelling_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                                      mme_ue_s1ap_id();
-    uint32_t&                                      enb_ue_s1ap_id();
-    erab_data_forwarding_item_ies_container&       erab_subjectto_data_forwarding_list();
-    cdma2000_ho_status_e&                          cdma2000_ho_status();
-    cdma2000_rat_type_e&                           cdma2000_rat_type();
-    unbounded_octstring<true>&                     cdma2000_pdu();
-    const uint64_t&                                mme_ue_s1ap_id() const;
-    const uint32_t&                                enb_ue_s1ap_id() const;
-    const erab_data_forwarding_item_ies_container& erab_subjectto_data_forwarding_list() const;
-    const cdma2000_ho_status_e&                    cdma2000_ho_status() const;
-    const cdma2000_rat_type_e&                     cdma2000_rat_type() const;
-    const unbounded_octstring<true>&               cdma2000_pdu() const;
+    uint64_t&                                                        mme_ue_s1ap_id();
+    uint32_t&                                                        enb_ue_s1ap_id();
+    erab_ie_container_list_l<erab_data_forwarding_item_ies_o>&       erab_subjectto_data_forwarding_list();
+    cdma2000_ho_status_e&                                            cdma2000_ho_status();
+    cdma2000_rat_type_e&                                             cdma2000_rat_type();
+    unbounded_octstring<true>&                                       cdma2000_pdu();
+    const uint64_t&                                                  mme_ue_s1ap_id() const;
+    const uint32_t&                                                  enb_ue_s1ap_id() const;
+    const erab_ie_container_list_l<erab_data_forwarding_item_ies_o>& erab_subjectto_data_forwarding_list() const;
+    const cdma2000_ho_status_e&                                      cdma2000_ho_status() const;
+    const cdma2000_rat_type_e&                                       cdma2000_rat_type() const;
+    const unbounded_octstring<true>&                                 cdma2000_pdu() const;
 
   private:
-    types                                                                                type_;
-    choice_buffer_t<erab_data_forwarding_item_ies_container, unbounded_octstring<true> > c;
+    types                                                                                                  type_;
+    choice_buffer_t<erab_ie_container_list_l<erab_data_forwarding_item_ies_o>, unbounded_octstring<true> > c;
 
     void destroy_();
   };
@@ -3155,10 +3118,10 @@ struct dl_s1cdma2000tunnelling_ies_container {
   bool                                                       cdma2000_ho_status_present                  = false;
   ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
   ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
-  ie_field_s<erab_data_forwarding_item_ies_container>        erab_subjectto_data_forwarding_list;
-  ie_field_s<cdma2000_ho_status_e>                           cdma2000_ho_status;
-  ie_field_s<cdma2000_rat_type_e>                            cdma2000_rat_type;
-  ie_field_s<unbounded_octstring<true> >                     cdma2000_pdu;
+  ie_field_s<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> > erab_subjectto_data_forwarding_list;
+  ie_field_s<cdma2000_ho_status_e>                                       cdma2000_ho_status;
+  ie_field_s<cdma2000_rat_type_e>                                        cdma2000_rat_type;
+  ie_field_s<unbounded_octstring<true> >                                 cdma2000_pdu;
 
   // sequence methods
   dl_s1cdma2000tunnelling_ies_container();
@@ -3261,7 +3224,8 @@ using protocol_ie_container_pair_item_l = protocol_ie_container_pair_l<ies_set_p
 // E-RAB-IE-ContainerPairList{S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE (SIZE (1..256)) OF
 // ProtocolIE-ContainerPair{S1AP-PROTOCOL-IES-PAIR : IEsSetParam}
 template <class ies_set_paramT_>
-using erab_ie_container_pair_list_l = dyn_array<protocol_ie_container_pair_item_l<ies_set_paramT_> >;
+using erab_ie_container_pair_list_l =
+    dyn_seq_of<dyn_seq_of<protocol_ie_field_pair_s<ies_set_paramT_>, 0, 65535, true>, 1, 256>;
 
 // E-RABAdmittedItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 typedef s1ap_protocol_ext_empty_o erab_admitted_item_ext_ies_o;
@@ -3322,20 +3286,6 @@ struct erab_admitted_item_ies_o {
   static crit_e     get_crit(const uint32_t& id);
   static value_c    get_value(const uint32_t& id);
   static presence_e get_presence(const uint32_t& id);
-};
-
-struct erab_admitted_item_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_admitted_item_s> erab_admitted_item;
-
-  // sequence methods
-  erab_admitted_item_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
 };
 
 // E-RABFailedToResumeItemResumeReq-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
@@ -3442,34 +3392,6 @@ struct erab_failed_to_resume_item_resume_res_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-struct erab_failed_to_resume_item_resume_req_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_failed_to_resume_item_resume_req_s> erab_failed_to_resume_item_resume_req;
-
-  // sequence methods
-  erab_failed_to_resume_item_resume_req_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-struct erab_failed_to_resume_item_resume_res_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_failed_to_resume_item_resume_res_s> erab_failed_to_resume_item_resume_res;
-
-  // sequence methods
-  erab_failed_to_resume_item_resume_res_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // E-RABFailedToSetupItemHOReqAckExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 typedef s1ap_protocol_ext_empty_o erab_failed_to_setup_item_ho_req_ack_ext_ies_o;
 
@@ -3520,20 +3442,6 @@ struct erab_failedto_setup_item_ho_req_ack_ies_o {
   static crit_e     get_crit(const uint32_t& id);
   static value_c    get_value(const uint32_t& id);
   static presence_e get_presence(const uint32_t& id);
-};
-
-struct erab_failedto_setup_item_ho_req_ack_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_failed_to_setup_item_ho_req_ack_s> erab_failedto_setup_item_ho_req_ack;
-
-  // sequence methods
-  erab_failedto_setup_item_ho_req_ack_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
 };
 
 // DL-Forwarding ::= ENUMERATED
@@ -3968,34 +3876,6 @@ struct erab_to_be_modified_item_bearer_mod_ind_ies_o {
 // Tunnel-Information-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 typedef s1ap_protocol_ext_empty_o tunnel_info_ext_ies_o;
 
-struct erab_not_to_be_modified_item_bearer_mod_ind_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_not_to_be_modified_item_bearer_mod_ind_s> erab_not_to_be_modified_item_bearer_mod_ind;
-
-  // sequence methods
-  erab_not_to_be_modified_item_bearer_mod_ind_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
-struct erab_to_be_modified_item_bearer_mod_ind_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_to_be_modified_item_bearer_mod_ind_s> erab_to_be_modified_item_bearer_mod_ind;
-
-  // sequence methods
-  erab_to_be_modified_item_bearer_mod_ind_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 typedef protocol_ext_container_empty_l tunnel_info_ext_ies_container;
 
 // TunnelInformation ::= SEQUENCE
@@ -4044,16 +3924,18 @@ struct erab_mod_ind_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                                                    mme_ue_s1ap_id();
-    uint32_t&                                                    enb_ue_s1ap_id();
-    erab_to_be_modified_item_bearer_mod_ind_ies_container&       erab_to_be_modified_list_bearer_mod_ind();
-    erab_not_to_be_modified_item_bearer_mod_ind_ies_container&   erab_not_to_be_modified_list_bearer_mod_ind();
-    csg_membership_info_s&                                       csg_membership_info();
-    tunnel_info_s&                                               tunnel_info_for_bbf();
-    const uint64_t&                                              mme_ue_s1ap_id() const;
-    const uint32_t&                                              enb_ue_s1ap_id() const;
-    const erab_to_be_modified_item_bearer_mod_ind_ies_container& erab_to_be_modified_list_bearer_mod_ind() const;
-    const erab_not_to_be_modified_item_bearer_mod_ind_ies_container&
+    uint64_t&                                                                mme_ue_s1ap_id();
+    uint32_t&                                                                enb_ue_s1ap_id();
+    erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o>& erab_to_be_modified_list_bearer_mod_ind();
+    erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o>&
+                           erab_not_to_be_modified_list_bearer_mod_ind();
+    csg_membership_info_s& csg_membership_info();
+    tunnel_info_s&         tunnel_info_for_bbf();
+    const uint64_t&        mme_ue_s1ap_id() const;
+    const uint32_t&        enb_ue_s1ap_id() const;
+    const erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o>&
+    erab_to_be_modified_list_bearer_mod_ind() const;
+    const erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o>&
                                  erab_not_to_be_modified_list_bearer_mod_ind() const;
     const csg_membership_info_s& csg_membership_info() const;
     const tunnel_info_s&         tunnel_info_for_bbf() const;
@@ -4061,8 +3943,8 @@ struct erab_mod_ind_ies_o {
   private:
     types type_;
     choice_buffer_t<csg_membership_info_s,
-                    erab_not_to_be_modified_item_bearer_mod_ind_ies_container,
-                    erab_to_be_modified_item_bearer_mod_ind_ies_container,
+                    erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o>,
+                    erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o>,
                     tunnel_info_s>
         c;
 
@@ -4085,12 +3967,14 @@ struct erab_mod_ind_ies_container {
   bool erab_not_to_be_modified_list_bearer_mod_ind_present = false;
   bool csg_membership_info_present                         = false;
   bool tunnel_info_for_bbf_present                         = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >            mme_ue_s1ap_id;
-  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >              enb_ue_s1ap_id;
-  ie_field_s<erab_to_be_modified_item_bearer_mod_ind_ies_container>     erab_to_be_modified_list_bearer_mod_ind;
-  ie_field_s<erab_not_to_be_modified_item_bearer_mod_ind_ies_container> erab_not_to_be_modified_list_bearer_mod_ind;
-  ie_field_s<csg_membership_info_s>                                     csg_membership_info;
-  ie_field_s<tunnel_info_s>                                             tunnel_info_for_bbf;
+  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
+  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
+  ie_field_s<erab_ie_container_list_l<erab_to_be_modified_item_bearer_mod_ind_ies_o> >
+      erab_to_be_modified_list_bearer_mod_ind;
+  ie_field_s<erab_ie_container_list_l<erab_not_to_be_modified_item_bearer_mod_ind_ies_o> >
+                                    erab_not_to_be_modified_list_bearer_mod_ind;
+  ie_field_s<csg_membership_info_s> csg_membership_info;
+  ie_field_s<tunnel_info_s>         tunnel_info_for_bbf;
 
   // sequence methods
   erab_mod_ind_ies_container();
@@ -4212,29 +4096,14 @@ struct erab_to_be_modify_item_bearer_mod_req_ext_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-struct erab_to_be_modify_item_bearer_mod_req_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                         transport_info_present = false;
-  ie_field_s<transport_info_s> transport_info;
-
-  // sequence methods
-  erab_to_be_modify_item_bearer_mod_req_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // E-RABToBeModifiedItemBearerModReq ::= SEQUENCE
 struct erab_to_be_modified_item_bearer_mod_req_s {
-  bool                                                    ext             = false;
-  bool                                                    ie_exts_present = false;
-  uint8_t                                                 erab_id         = 0;
-  erab_level_qos_params_s                                 erab_level_qos_params;
-  unbounded_octstring<true>                               nas_pdu;
-  erab_to_be_modify_item_bearer_mod_req_ext_ies_container ie_exts;
+  bool                                                                      ext             = false;
+  bool                                                                      ie_exts_present = false;
+  uint8_t                                                                   erab_id         = 0;
+  erab_level_qos_params_s                                                   erab_level_qos_params;
+  unbounded_octstring<true>                                                 nas_pdu;
+  protocol_ext_container_l<erab_to_be_modify_item_bearer_mod_req_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -5451,20 +5320,6 @@ struct erab_to_be_setup_item_ho_req_ies_o {
 using erab_to_be_setup_list_ctxt_su_req_l =
     dyn_array<protocol_ie_single_container_s<erab_to_be_setup_item_ctxt_su_req_ies_o> >;
 
-struct erab_to_be_setup_item_ho_req_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_to_be_setup_item_ho_req_s> erab_to_be_setup_item_ho_req;
-
-  // sequence methods
-  erab_to_be_setup_item_ho_req_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // E-RABToBeSwitchedDLItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 typedef s1ap_protocol_ext_empty_o erab_to_be_switched_dl_item_ext_ies_o;
 
@@ -5518,20 +5373,6 @@ struct erab_to_be_switched_dl_item_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-struct erab_to_be_switched_dl_item_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_to_be_switched_dl_item_s> erab_to_be_switched_dl_item;
-
-  // sequence methods
-  erab_to_be_switched_dl_item_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // E-RABToBeSwitchedULItem-ExtIEs ::= OBJECT SET OF S1AP-PROTOCOL-EXTENSION
 typedef s1ap_protocol_ext_empty_o erab_to_be_switched_ul_item_ext_ies_o;
 
@@ -5583,20 +5424,6 @@ struct erab_to_be_switched_ul_item_ies_o {
   static crit_e     get_crit(const uint32_t& id);
   static value_c    get_value(const uint32_t& id);
   static presence_e get_presence(const uint32_t& id);
-};
-
-struct erab_to_be_switched_ul_item_ies_container {
-  template <class valueT_>
-  using ie_field_s = erab_ie_container_list_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<erab_to_be_switched_ul_item_s> erab_to_be_switched_ul_item;
-
-  // sequence methods
-  erab_to_be_switched_ul_item_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
 };
 
 // ECGI-List ::= SEQUENCE (SIZE (1..256)) OF EUTRAN-CGI
@@ -5916,28 +5743,13 @@ private:
   rlf_report_info_s c;
 };
 
-struct time_synchronisation_info_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                  muting_availability_ind_present = false;
-  ie_field_s<muting_availability_ind_e> muting_availability_ind;
-
-  // sequence methods
-  time_synchronisation_info_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // TimeSynchronisationInfo ::= SEQUENCE
 struct time_synchronisation_info_s {
-  bool                                        ext             = false;
-  bool                                        ie_exts_present = false;
-  uint8_t                                     stratum_level   = 0;
-  synchronisation_status_e                    synchronisation_status;
-  time_synchronisation_info_ext_ies_container ie_exts;
+  bool                                                          ext             = false;
+  bool                                                          ie_exts_present = false;
+  uint8_t                                                       stratum_level   = 0;
+  synchronisation_status_e                                      synchronisation_status;
+  protocol_ext_container_l<time_synchronisation_info_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -6225,28 +6037,13 @@ struct global_enb_id_s {
   void        to_json(json_writer& j) const;
 };
 
-struct son_info_reply_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                    time_synchronisation_info_present = false;
-  ie_field_s<time_synchronisation_info_s> time_synchronisation_info;
-
-  // sequence methods
-  son_info_reply_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // SONInformationReply ::= SEQUENCE
 struct son_info_reply_s {
-  bool                             ext                     = false;
-  bool                             x2_tnl_cfg_info_present = false;
-  bool                             ie_exts_present         = false;
-  x2_tnl_cfg_info_s                x2_tnl_cfg_info;
-  son_info_reply_ext_ies_container ie_exts;
+  bool                                               ext                     = false;
+  bool                                               x2_tnl_cfg_info_present = false;
+  bool                                               ie_exts_present         = false;
+  x2_tnl_cfg_info_s                                  x2_tnl_cfg_info;
+  protocol_ext_container_l<son_info_reply_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -6506,25 +6303,10 @@ struct enb_cfg_transfer_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-struct enb_cfg_transfer_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  bool                           son_cfg_transfer_ect_present = false;
-  ie_field_s<son_cfg_transfer_s> son_cfg_transfer_ect;
-
-  // sequence methods
-  enb_cfg_transfer_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // ENBConfigurationTransfer ::= SEQUENCE
 struct enb_cfg_transfer_s {
-  bool                           ext = false;
-  enb_cfg_transfer_ies_container protocol_ies;
+  bool                                            ext = false;
+  protocol_ie_container_l<enb_cfg_transfer_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -6573,28 +6355,13 @@ struct supported_tas_item_ext_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-struct supported_tas_item_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                   rat_type_present = false;
-  ie_field_s<rat_type_e> rat_type;
-
-  // sequence methods
-  supported_tas_item_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // SupportedTAs-Item ::= SEQUENCE
 struct supported_tas_item_s {
-  bool                                 ext             = false;
-  bool                                 ie_exts_present = false;
-  fixed_octstring<2, true>             tac;
-  bplmns_l                             broadcast_plmns;
-  supported_tas_item_ext_ies_container ie_exts;
+  bool                                                   ext             = false;
+  bool                                                   ie_exts_present = false;
+  fixed_octstring<2, true>                               tac;
+  bplmns_l                                               broadcast_plmns;
+  protocol_ext_container_l<supported_tas_item_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -6748,25 +6515,10 @@ struct enb_cfg_upd_ack_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-struct enb_cfg_upd_ack_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  bool                           crit_diagnostics_present = false;
-  ie_field_s<crit_diagnostics_s> crit_diagnostics;
-
-  // sequence methods
-  enb_cfg_upd_ack_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // ENBConfigurationUpdateAcknowledge ::= SEQUENCE
 struct enb_cfg_upd_ack_s {
-  bool                          ext = false;
-  enb_cfg_upd_ack_ies_container protocol_ies;
+  bool                                           ext = false;
+  protocol_ie_container_l<enb_cfg_upd_ack_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -7072,24 +6824,10 @@ struct enb_direct_info_transfer_ies_o {
   static presence_e get_presence(const uint32_t& id);
 };
 
-struct enb_direct_info_transfer_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<inter_sys_info_transfer_type_c> inter_sys_info_transfer_type_edt;
-
-  // sequence methods
-  enb_direct_info_transfer_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // ENBDirectInformationTransfer ::= SEQUENCE
 struct enb_direct_info_transfer_s {
-  bool                                   ext = false;
-  enb_direct_info_transfer_ies_container protocol_ies;
+  bool                                                    ext = false;
+  protocol_ie_container_l<enb_direct_info_transfer_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -7637,29 +7375,29 @@ struct ho_cmd_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                                      mme_ue_s1ap_id();
-    uint32_t&                                      enb_ue_s1ap_id();
-    handov_type_e&                                 handov_type();
-    unbounded_octstring<true>&                     nas_security_paramsfrom_e_utran();
-    erab_data_forwarding_item_ies_container&       erab_subjectto_data_forwarding_list();
-    erab_list_l&                                   erab_to_release_list_ho_cmd();
-    unbounded_octstring<true>&                     target_to_source_transparent_container();
-    unbounded_octstring<true>&                     target_to_source_transparent_container_secondary();
-    crit_diagnostics_s&                            crit_diagnostics();
-    const uint64_t&                                mme_ue_s1ap_id() const;
-    const uint32_t&                                enb_ue_s1ap_id() const;
-    const handov_type_e&                           handov_type() const;
-    const unbounded_octstring<true>&               nas_security_paramsfrom_e_utran() const;
-    const erab_data_forwarding_item_ies_container& erab_subjectto_data_forwarding_list() const;
-    const erab_list_l&                             erab_to_release_list_ho_cmd() const;
-    const unbounded_octstring<true>&               target_to_source_transparent_container() const;
-    const unbounded_octstring<true>&               target_to_source_transparent_container_secondary() const;
-    const crit_diagnostics_s&                      crit_diagnostics() const;
+    uint64_t&                                                        mme_ue_s1ap_id();
+    uint32_t&                                                        enb_ue_s1ap_id();
+    handov_type_e&                                                   handov_type();
+    unbounded_octstring<true>&                                       nas_security_paramsfrom_e_utran();
+    erab_ie_container_list_l<erab_data_forwarding_item_ies_o>&       erab_subjectto_data_forwarding_list();
+    erab_list_l&                                                     erab_to_release_list_ho_cmd();
+    unbounded_octstring<true>&                                       target_to_source_transparent_container();
+    unbounded_octstring<true>&                                       target_to_source_transparent_container_secondary();
+    crit_diagnostics_s&                                              crit_diagnostics();
+    const uint64_t&                                                  mme_ue_s1ap_id() const;
+    const uint32_t&                                                  enb_ue_s1ap_id() const;
+    const handov_type_e&                                             handov_type() const;
+    const unbounded_octstring<true>&                                 nas_security_paramsfrom_e_utran() const;
+    const erab_ie_container_list_l<erab_data_forwarding_item_ies_o>& erab_subjectto_data_forwarding_list() const;
+    const erab_list_l&                                               erab_to_release_list_ho_cmd() const;
+    const unbounded_octstring<true>&                                 target_to_source_transparent_container() const;
+    const unbounded_octstring<true>& target_to_source_transparent_container_secondary() const;
+    const crit_diagnostics_s&        crit_diagnostics() const;
 
   private:
     types type_;
     choice_buffer_t<crit_diagnostics_s,
-                    erab_data_forwarding_item_ies_container,
+                    erab_ie_container_list_l<erab_data_forwarding_item_ies_o>,
                     erab_list_l,
                     unbounded_octstring<true> >
         c;
@@ -7685,11 +7423,11 @@ struct ho_cmd_ies_container {
   bool erab_to_release_list_ho_cmd_present                      = false;
   bool target_to_source_transparent_container_secondary_present = false;
   bool crit_diagnostics_present                                 = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
-  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
-  ie_field_s<handov_type_e>                                  handov_type;
-  ie_field_s<unbounded_octstring<true> >                     nas_security_paramsfrom_e_utran;
-  ie_field_s<erab_data_forwarding_item_ies_container>        erab_subjectto_data_forwarding_list;
+  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >             mme_ue_s1ap_id;
+  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >               enb_ue_s1ap_id;
+  ie_field_s<handov_type_e>                                              handov_type;
+  ie_field_s<unbounded_octstring<true> >                                 nas_security_paramsfrom_e_utran;
+  ie_field_s<erab_ie_container_list_l<erab_data_forwarding_item_ies_o> > erab_subjectto_data_forwarding_list;
   ie_field_s<dyn_seq_of<protocol_ie_single_container_s<erab_item_ies_o>, 1, 256, true> > erab_to_release_list_ho_cmd;
   ie_field_s<unbounded_octstring<true> > target_to_source_transparent_container;
   ie_field_s<unbounded_octstring<true> > target_to_source_transparent_container_secondary;
@@ -8583,29 +8321,14 @@ private:
   void destroy_();
 };
 
-struct mdt_cfg_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                                           sig_based_mdtplmn_list_present = false;
-  ie_field_s<dyn_seq_of<fixed_octstring<3, true>, 1, 16, true> > sig_based_mdtplmn_list;
-
-  // sequence methods
-  mdt_cfg_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // MDT-Configuration ::= SEQUENCE
 struct mdt_cfg_s {
-  bool                      ext             = false;
-  bool                      ie_exts_present = false;
-  mdt_activation_e          mdt_activation;
-  area_scope_of_mdt_c       area_scope_of_mdt;
-  mdt_mode_c                mdt_mode;
-  mdt_cfg_ext_ies_container ie_exts;
+  bool                                        ext             = false;
+  bool                                        ie_exts_present = false;
+  mdt_activation_e                            mdt_activation;
+  area_scope_of_mdt_c                         area_scope_of_mdt;
+  mdt_mode_c                                  mdt_mode;
+  protocol_ext_container_l<mdt_cfg_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -8776,30 +8499,15 @@ struct management_based_mdt_allowed_opts {
 };
 typedef enumerated<management_based_mdt_allowed_opts, true> management_based_mdt_allowed_e;
 
-struct pro_se_authorized_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                                       pro_se_ueto_network_relaying_present = false;
-  ie_field_s<pro_se_ueto_network_relaying_e> pro_se_ueto_network_relaying;
-
-  // sequence methods
-  pro_se_authorized_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // ProSeAuthorized ::= SEQUENCE
 struct pro_se_authorized_s {
-  bool                                ext                                 = false;
-  bool                                pro_se_direct_discovery_present     = false;
-  bool                                pro_se_direct_communication_present = false;
-  bool                                ie_exts_present                     = false;
-  pro_se_direct_discovery_e           pro_se_direct_discovery;
-  pro_se_direct_communication_e       pro_se_direct_communication;
-  pro_se_authorized_ext_ies_container ie_exts;
+  bool                                                  ext                                 = false;
+  bool                                                  pro_se_direct_discovery_present     = false;
+  bool                                                  pro_se_direct_communication_present = false;
+  bool                                                  ie_exts_present                     = false;
+  pro_se_direct_discovery_e                             pro_se_direct_discovery;
+  pro_se_direct_communication_e                         pro_se_direct_communication;
+  protocol_ext_container_l<pro_se_authorized_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -8842,30 +8550,15 @@ struct security_context_s {
   void        to_json(json_writer& j) const;
 };
 
-struct trace_activation_ext_ies_container {
-  template <class extT_>
-  using ie_field_s = protocol_ext_container_item_s<extT_>;
-
-  // member variables
-  bool                  mdt_cfg_present = false;
-  ie_field_s<mdt_cfg_s> mdt_cfg;
-
-  // sequence methods
-  trace_activation_ext_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // TraceActivation ::= SEQUENCE
 struct trace_activation_s {
-  bool                                  ext             = false;
-  bool                                  ie_exts_present = false;
-  fixed_octstring<8, true>              e_utran_trace_id;
-  fixed_bitstring<8, false, true>       interfaces_to_trace;
-  trace_depth_e                         trace_depth;
-  bounded_bitstring<1, 160, true, true> trace_collection_entity_ip_address;
-  trace_activation_ext_ies_container    ie_exts;
+  bool                                                 ext             = false;
+  bool                                                 ie_exts_present = false;
+  fixed_octstring<8, true>                             e_utran_trace_id;
+  fixed_bitstring<8, false, true>                      interfaces_to_trace;
+  trace_depth_e                                        trace_depth;
+  bounded_bitstring<1, 160, true, true>                trace_collection_entity_ip_address;
+  protocol_ext_container_l<trace_activation_ext_ies_o> ie_exts;
   // ...
 
   // sequence methods
@@ -8986,67 +8679,67 @@ struct ho_request_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                                         mme_ue_s1ap_id();
-    handov_type_e&                                    handov_type();
-    cause_c&                                          cause();
-    ue_aggregate_maximum_bitrate_s&                   ueaggregate_maximum_bitrate();
-    erab_to_be_setup_item_ho_req_ies_container&       erab_to_be_setup_list_ho_req();
-    unbounded_octstring<true>&                        source_to_target_transparent_container();
-    ue_security_cap_s&                                ue_security_cap();
-    ho_restrict_list_s&                               ho_restrict_list();
-    trace_activation_s&                               trace_activation();
-    request_type_s&                                   request_type();
-    srvcc_operation_possible_e&                       srvcc_operation_possible();
-    security_context_s&                               security_context();
-    unbounded_octstring<true>&                        nas_security_paramsto_e_utran();
-    fixed_bitstring<27, false, true>&                 csg_id();
-    csg_membership_status_e&                          csg_membership_status();
-    gummei_s&                                         gummei_id();
-    uint64_t&                                         mme_ue_s1ap_id_minus2();
-    management_based_mdt_allowed_e&                   management_based_mdt_allowed();
-    mdtplmn_list_l&                                   management_based_mdtplmn_list();
-    fixed_bitstring<64, false, true>&                 masked_imeisv();
-    expected_ue_behaviour_s&                          expected_ue_behaviour();
-    pro_se_authorized_s&                              pro_se_authorized();
-    ueuser_plane_cio_tsupport_ind_e&                  ueuser_plane_cio_tsupport_ind();
-    v2xservices_authorized_s&                         v2xservices_authorized();
-    ue_sidelink_aggregate_maximum_bitrate_s&          ue_sidelink_aggregate_maximum_bitrate();
-    enhanced_coverage_restricted_e&                   enhanced_coverage_restricted();
-    ce_mode_brestricted_e&                            ce_mode_brestricted();
-    pending_data_ind_e&                               pending_data_ind();
-    const uint64_t&                                   mme_ue_s1ap_id() const;
-    const handov_type_e&                              handov_type() const;
-    const cause_c&                                    cause() const;
-    const ue_aggregate_maximum_bitrate_s&             ueaggregate_maximum_bitrate() const;
-    const erab_to_be_setup_item_ho_req_ies_container& erab_to_be_setup_list_ho_req() const;
-    const unbounded_octstring<true>&                  source_to_target_transparent_container() const;
-    const ue_security_cap_s&                          ue_security_cap() const;
-    const ho_restrict_list_s&                         ho_restrict_list() const;
-    const trace_activation_s&                         trace_activation() const;
-    const request_type_s&                             request_type() const;
-    const srvcc_operation_possible_e&                 srvcc_operation_possible() const;
-    const security_context_s&                         security_context() const;
-    const unbounded_octstring<true>&                  nas_security_paramsto_e_utran() const;
-    const fixed_bitstring<27, false, true>&           csg_id() const;
-    const csg_membership_status_e&                    csg_membership_status() const;
-    const gummei_s&                                   gummei_id() const;
-    const uint64_t&                                   mme_ue_s1ap_id_minus2() const;
-    const management_based_mdt_allowed_e&             management_based_mdt_allowed() const;
-    const mdtplmn_list_l&                             management_based_mdtplmn_list() const;
-    const fixed_bitstring<64, false, true>&           masked_imeisv() const;
-    const expected_ue_behaviour_s&                    expected_ue_behaviour() const;
-    const pro_se_authorized_s&                        pro_se_authorized() const;
-    const ueuser_plane_cio_tsupport_ind_e&            ueuser_plane_cio_tsupport_ind() const;
-    const v2xservices_authorized_s&                   v2xservices_authorized() const;
-    const ue_sidelink_aggregate_maximum_bitrate_s&    ue_sidelink_aggregate_maximum_bitrate() const;
-    const enhanced_coverage_restricted_e&             enhanced_coverage_restricted() const;
-    const ce_mode_brestricted_e&                      ce_mode_brestricted() const;
-    const pending_data_ind_e&                         pending_data_ind() const;
+    uint64_t&                                                           mme_ue_s1ap_id();
+    handov_type_e&                                                      handov_type();
+    cause_c&                                                            cause();
+    ue_aggregate_maximum_bitrate_s&                                     ueaggregate_maximum_bitrate();
+    erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o>&       erab_to_be_setup_list_ho_req();
+    unbounded_octstring<true>&                                          source_to_target_transparent_container();
+    ue_security_cap_s&                                                  ue_security_cap();
+    ho_restrict_list_s&                                                 ho_restrict_list();
+    trace_activation_s&                                                 trace_activation();
+    request_type_s&                                                     request_type();
+    srvcc_operation_possible_e&                                         srvcc_operation_possible();
+    security_context_s&                                                 security_context();
+    unbounded_octstring<true>&                                          nas_security_paramsto_e_utran();
+    fixed_bitstring<27, false, true>&                                   csg_id();
+    csg_membership_status_e&                                            csg_membership_status();
+    gummei_s&                                                           gummei_id();
+    uint64_t&                                                           mme_ue_s1ap_id_minus2();
+    management_based_mdt_allowed_e&                                     management_based_mdt_allowed();
+    mdtplmn_list_l&                                                     management_based_mdtplmn_list();
+    fixed_bitstring<64, false, true>&                                   masked_imeisv();
+    expected_ue_behaviour_s&                                            expected_ue_behaviour();
+    pro_se_authorized_s&                                                pro_se_authorized();
+    ueuser_plane_cio_tsupport_ind_e&                                    ueuser_plane_cio_tsupport_ind();
+    v2xservices_authorized_s&                                           v2xservices_authorized();
+    ue_sidelink_aggregate_maximum_bitrate_s&                            ue_sidelink_aggregate_maximum_bitrate();
+    enhanced_coverage_restricted_e&                                     enhanced_coverage_restricted();
+    ce_mode_brestricted_e&                                              ce_mode_brestricted();
+    pending_data_ind_e&                                                 pending_data_ind();
+    const uint64_t&                                                     mme_ue_s1ap_id() const;
+    const handov_type_e&                                                handov_type() const;
+    const cause_c&                                                      cause() const;
+    const ue_aggregate_maximum_bitrate_s&                               ueaggregate_maximum_bitrate() const;
+    const erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o>& erab_to_be_setup_list_ho_req() const;
+    const unbounded_octstring<true>&                                    source_to_target_transparent_container() const;
+    const ue_security_cap_s&                                            ue_security_cap() const;
+    const ho_restrict_list_s&                                           ho_restrict_list() const;
+    const trace_activation_s&                                           trace_activation() const;
+    const request_type_s&                                               request_type() const;
+    const srvcc_operation_possible_e&                                   srvcc_operation_possible() const;
+    const security_context_s&                                           security_context() const;
+    const unbounded_octstring<true>&                                    nas_security_paramsto_e_utran() const;
+    const fixed_bitstring<27, false, true>&                             csg_id() const;
+    const csg_membership_status_e&                                      csg_membership_status() const;
+    const gummei_s&                                                     gummei_id() const;
+    const uint64_t&                                                     mme_ue_s1ap_id_minus2() const;
+    const management_based_mdt_allowed_e&                               management_based_mdt_allowed() const;
+    const mdtplmn_list_l&                                               management_based_mdtplmn_list() const;
+    const fixed_bitstring<64, false, true>&                             masked_imeisv() const;
+    const expected_ue_behaviour_s&                                      expected_ue_behaviour() const;
+    const pro_se_authorized_s&                                          pro_se_authorized() const;
+    const ueuser_plane_cio_tsupport_ind_e&                              ueuser_plane_cio_tsupport_ind() const;
+    const v2xservices_authorized_s&                                     v2xservices_authorized() const;
+    const ue_sidelink_aggregate_maximum_bitrate_s&                      ue_sidelink_aggregate_maximum_bitrate() const;
+    const enhanced_coverage_restricted_e&                               enhanced_coverage_restricted() const;
+    const ce_mode_brestricted_e&                                        ce_mode_brestricted() const;
+    const pending_data_ind_e&                                           pending_data_ind() const;
 
   private:
     types type_;
     choice_buffer_t<cause_c,
-                    erab_to_be_setup_item_ho_req_ies_container,
+                    erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o>,
                     expected_ue_behaviour_s,
                     fixed_bitstring<64, false, true>,
                     gummei_s,
@@ -9079,54 +8772,54 @@ struct ho_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                           ho_restrict_list_present                      = false;
-  bool                                                           trace_activation_present                      = false;
-  bool                                                           request_type_present                          = false;
-  bool                                                           srvcc_operation_possible_present              = false;
-  bool                                                           nas_security_paramsto_e_utran_present         = false;
-  bool                                                           csg_id_present                                = false;
-  bool                                                           csg_membership_status_present                 = false;
-  bool                                                           gummei_id_present                             = false;
-  bool                                                           mme_ue_s1ap_id_minus2_present                 = false;
-  bool                                                           management_based_mdt_allowed_present          = false;
-  bool                                                           management_based_mdtplmn_list_present         = false;
-  bool                                                           masked_imeisv_present                         = false;
-  bool                                                           expected_ue_behaviour_present                 = false;
-  bool                                                           pro_se_authorized_present                     = false;
-  bool                                                           ueuser_plane_cio_tsupport_ind_present         = false;
-  bool                                                           v2xservices_authorized_present                = false;
-  bool                                                           ue_sidelink_aggregate_maximum_bitrate_present = false;
-  bool                                                           enhanced_coverage_restricted_present          = false;
-  bool                                                           ce_mode_brestricted_present                   = false;
-  bool                                                           pending_data_ind_present                      = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >     mme_ue_s1ap_id;
-  ie_field_s<handov_type_e>                                      handov_type;
-  ie_field_s<cause_c>                                            cause;
-  ie_field_s<ue_aggregate_maximum_bitrate_s>                     ueaggregate_maximum_bitrate;
-  ie_field_s<erab_to_be_setup_item_ho_req_ies_container>         erab_to_be_setup_list_ho_req;
-  ie_field_s<unbounded_octstring<true> >                         source_to_target_transparent_container;
-  ie_field_s<ue_security_cap_s>                                  ue_security_cap;
-  ie_field_s<ho_restrict_list_s>                                 ho_restrict_list;
-  ie_field_s<trace_activation_s>                                 trace_activation;
-  ie_field_s<request_type_s>                                     request_type;
-  ie_field_s<srvcc_operation_possible_e>                         srvcc_operation_possible;
-  ie_field_s<security_context_s>                                 security_context;
-  ie_field_s<unbounded_octstring<true> >                         nas_security_paramsto_e_utran;
-  ie_field_s<fixed_bitstring<27, false, true> >                  csg_id;
-  ie_field_s<csg_membership_status_e>                            csg_membership_status;
-  ie_field_s<gummei_s>                                           gummei_id;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >     mme_ue_s1ap_id_minus2;
-  ie_field_s<management_based_mdt_allowed_e>                     management_based_mdt_allowed;
-  ie_field_s<dyn_seq_of<fixed_octstring<3, true>, 1, 16, true> > management_based_mdtplmn_list;
-  ie_field_s<fixed_bitstring<64, false, true> >                  masked_imeisv;
-  ie_field_s<expected_ue_behaviour_s>                            expected_ue_behaviour;
-  ie_field_s<pro_se_authorized_s>                                pro_se_authorized;
-  ie_field_s<ueuser_plane_cio_tsupport_ind_e>                    ueuser_plane_cio_tsupport_ind;
-  ie_field_s<v2xservices_authorized_s>                           v2xservices_authorized;
-  ie_field_s<ue_sidelink_aggregate_maximum_bitrate_s>            ue_sidelink_aggregate_maximum_bitrate;
-  ie_field_s<enhanced_coverage_restricted_e>                     enhanced_coverage_restricted;
-  ie_field_s<ce_mode_brestricted_e>                              ce_mode_brestricted;
-  ie_field_s<pending_data_ind_e>                                 pending_data_ind;
+  bool                                                       ho_restrict_list_present                      = false;
+  bool                                                       trace_activation_present                      = false;
+  bool                                                       request_type_present                          = false;
+  bool                                                       srvcc_operation_possible_present              = false;
+  bool                                                       nas_security_paramsto_e_utran_present         = false;
+  bool                                                       csg_id_present                                = false;
+  bool                                                       csg_membership_status_present                 = false;
+  bool                                                       gummei_id_present                             = false;
+  bool                                                       mme_ue_s1ap_id_minus2_present                 = false;
+  bool                                                       management_based_mdt_allowed_present          = false;
+  bool                                                       management_based_mdtplmn_list_present         = false;
+  bool                                                       masked_imeisv_present                         = false;
+  bool                                                       expected_ue_behaviour_present                 = false;
+  bool                                                       pro_se_authorized_present                     = false;
+  bool                                                       ueuser_plane_cio_tsupport_ind_present         = false;
+  bool                                                       v2xservices_authorized_present                = false;
+  bool                                                       ue_sidelink_aggregate_maximum_bitrate_present = false;
+  bool                                                       enhanced_coverage_restricted_present          = false;
+  bool                                                       ce_mode_brestricted_present                   = false;
+  bool                                                       pending_data_ind_present                      = false;
+  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
+  ie_field_s<handov_type_e>                                  handov_type;
+  ie_field_s<cause_c>                                        cause;
+  ie_field_s<ue_aggregate_maximum_bitrate_s>                 ueaggregate_maximum_bitrate;
+  ie_field_s<erab_ie_container_list_l<erab_to_be_setup_item_ho_req_ies_o> > erab_to_be_setup_list_ho_req;
+  ie_field_s<unbounded_octstring<true> >                                    source_to_target_transparent_container;
+  ie_field_s<ue_security_cap_s>                                             ue_security_cap;
+  ie_field_s<ho_restrict_list_s>                                            ho_restrict_list;
+  ie_field_s<trace_activation_s>                                            trace_activation;
+  ie_field_s<request_type_s>                                                request_type;
+  ie_field_s<srvcc_operation_possible_e>                                    srvcc_operation_possible;
+  ie_field_s<security_context_s>                                            security_context;
+  ie_field_s<unbounded_octstring<true> >                                    nas_security_paramsto_e_utran;
+  ie_field_s<fixed_bitstring<27, false, true> >                             csg_id;
+  ie_field_s<csg_membership_status_e>                                       csg_membership_status;
+  ie_field_s<gummei_s>                                                      gummei_id;
+  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >                mme_ue_s1ap_id_minus2;
+  ie_field_s<management_based_mdt_allowed_e>                                management_based_mdt_allowed;
+  ie_field_s<dyn_seq_of<fixed_octstring<3, true>, 1, 16, true> >            management_based_mdtplmn_list;
+  ie_field_s<fixed_bitstring<64, false, true> >                             masked_imeisv;
+  ie_field_s<expected_ue_behaviour_s>                                       expected_ue_behaviour;
+  ie_field_s<pro_se_authorized_s>                                           pro_se_authorized;
+  ie_field_s<ueuser_plane_cio_tsupport_ind_e>                               ueuser_plane_cio_tsupport_ind;
+  ie_field_s<v2xservices_authorized_s>                                      v2xservices_authorized;
+  ie_field_s<ue_sidelink_aggregate_maximum_bitrate_s>                       ue_sidelink_aggregate_maximum_bitrate;
+  ie_field_s<enhanced_coverage_restricted_e>                                enhanced_coverage_restricted;
+  ie_field_s<ce_mode_brestricted_e>                                         ce_mode_brestricted;
+  ie_field_s<pending_data_ind_e>                                            pending_data_ind;
 
   // sequence methods
   ho_request_ies_container();
@@ -9188,30 +8881,31 @@ struct ho_request_ack_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                                                mme_ue_s1ap_id();
-    uint32_t&                                                enb_ue_s1ap_id();
-    erab_admitted_item_ies_container&                        erab_admitted_list();
-    erab_failedto_setup_item_ho_req_ack_ies_container&       erab_failed_to_setup_list_ho_req_ack();
-    unbounded_octstring<true>&                               target_to_source_transparent_container();
-    fixed_bitstring<27, false, true>&                        csg_id();
-    crit_diagnostics_s&                                      crit_diagnostics();
-    cell_access_mode_e&                                      cell_access_mode();
-    ce_mode_b_support_ind_e&                                 ce_mode_b_support_ind();
-    const uint64_t&                                          mme_ue_s1ap_id() const;
-    const uint32_t&                                          enb_ue_s1ap_id() const;
-    const erab_admitted_item_ies_container&                  erab_admitted_list() const;
-    const erab_failedto_setup_item_ho_req_ack_ies_container& erab_failed_to_setup_list_ho_req_ack() const;
-    const unbounded_octstring<true>&                         target_to_source_transparent_container() const;
-    const fixed_bitstring<27, false, true>&                  csg_id() const;
-    const crit_diagnostics_s&                                crit_diagnostics() const;
-    const cell_access_mode_e&                                cell_access_mode() const;
-    const ce_mode_b_support_ind_e&                           ce_mode_b_support_ind() const;
+    uint64_t&                                                            mme_ue_s1ap_id();
+    uint32_t&                                                            enb_ue_s1ap_id();
+    erab_ie_container_list_l<erab_admitted_item_ies_o>&                  erab_admitted_list();
+    erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o>& erab_failed_to_setup_list_ho_req_ack();
+    unbounded_octstring<true>&                                           target_to_source_transparent_container();
+    fixed_bitstring<27, false, true>&                                    csg_id();
+    crit_diagnostics_s&                                                  crit_diagnostics();
+    cell_access_mode_e&                                                  cell_access_mode();
+    ce_mode_b_support_ind_e&                                             ce_mode_b_support_ind();
+    const uint64_t&                                                      mme_ue_s1ap_id() const;
+    const uint32_t&                                                      enb_ue_s1ap_id() const;
+    const erab_ie_container_list_l<erab_admitted_item_ies_o>&            erab_admitted_list() const;
+    const erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o>&
+                                            erab_failed_to_setup_list_ho_req_ack() const;
+    const unbounded_octstring<true>&        target_to_source_transparent_container() const;
+    const fixed_bitstring<27, false, true>& csg_id() const;
+    const crit_diagnostics_s&               crit_diagnostics() const;
+    const cell_access_mode_e&               cell_access_mode() const;
+    const ce_mode_b_support_ind_e&          ce_mode_b_support_ind() const;
 
   private:
     types type_;
     choice_buffer_t<crit_diagnostics_s,
-                    erab_admitted_item_ies_container,
-                    erab_failedto_setup_item_ho_req_ack_ies_container,
+                    erab_ie_container_list_l<erab_admitted_item_ies_o>,
+                    erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o>,
                     fixed_bitstring<27, false, true>,
                     unbounded_octstring<true> >
         c;
@@ -9232,20 +8926,20 @@ struct ho_request_ack_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                          erab_failed_to_setup_list_ho_req_ack_present = false;
-  bool                                                          csg_id_present                               = false;
-  bool                                                          crit_diagnostics_present                     = false;
-  bool                                                          cell_access_mode_present                     = false;
-  bool                                                          ce_mode_b_support_ind_present                = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >    mme_ue_s1ap_id;
-  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >      enb_ue_s1ap_id;
-  ie_field_s<erab_admitted_item_ies_container>                  erab_admitted_list;
-  ie_field_s<erab_failedto_setup_item_ho_req_ack_ies_container> erab_failed_to_setup_list_ho_req_ack;
-  ie_field_s<unbounded_octstring<true> >                        target_to_source_transparent_container;
-  ie_field_s<fixed_bitstring<27, false, true> >                 csg_id;
-  ie_field_s<crit_diagnostics_s>                                crit_diagnostics;
-  ie_field_s<cell_access_mode_e>                                cell_access_mode;
-  ie_field_s<ce_mode_b_support_ind_e>                           ce_mode_b_support_ind;
+  bool                                                            erab_failed_to_setup_list_ho_req_ack_present = false;
+  bool                                                            csg_id_present                               = false;
+  bool                                                            crit_diagnostics_present                     = false;
+  bool                                                            cell_access_mode_present                     = false;
+  bool                                                            ce_mode_b_support_ind_present                = false;
+  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >      mme_ue_s1ap_id;
+  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >        enb_ue_s1ap_id;
+  ie_field_s<erab_ie_container_list_l<erab_admitted_item_ies_o> > erab_admitted_list;
+  ie_field_s<erab_ie_container_list_l<erab_failedto_setup_item_ho_req_ack_ies_o> > erab_failed_to_setup_list_ho_req_ack;
+  ie_field_s<unbounded_octstring<true> >        target_to_source_transparent_container;
+  ie_field_s<fixed_bitstring<27, false, true> > csg_id;
+  ie_field_s<crit_diagnostics_s>                crit_diagnostics;
+  ie_field_s<cell_access_mode_e>                cell_access_mode;
+  ie_field_s<ce_mode_b_support_ind_e>           ce_mode_b_support_ind;
 
   // sequence methods
   ho_request_ack_ies_container();
@@ -11891,44 +11585,44 @@ struct path_switch_request_ack_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                                        mme_ue_s1ap_id();
-    uint32_t&                                        enb_ue_s1ap_id();
-    ue_aggregate_maximum_bitrate_s&                  ueaggregate_maximum_bitrate();
-    erab_to_be_switched_ul_item_ies_container&       erab_to_be_switched_ul_list();
-    erab_list_l&                                     erab_to_be_released_list();
-    security_context_s&                              security_context();
-    crit_diagnostics_s&                              crit_diagnostics();
-    uint64_t&                                        mme_ue_s1ap_id_minus2();
-    csg_membership_status_e&                         csg_membership_status();
-    pro_se_authorized_s&                             pro_se_authorized();
-    ueuser_plane_cio_tsupport_ind_e&                 ueuser_plane_cio_tsupport_ind();
-    v2xservices_authorized_s&                        v2xservices_authorized();
-    ue_sidelink_aggregate_maximum_bitrate_s&         ue_sidelink_aggregate_maximum_bitrate();
-    enhanced_coverage_restricted_e&                  enhanced_coverage_restricted();
-    ce_mode_brestricted_e&                           ce_mode_brestricted();
-    pending_data_ind_e&                              pending_data_ind();
-    const uint64_t&                                  mme_ue_s1ap_id() const;
-    const uint32_t&                                  enb_ue_s1ap_id() const;
-    const ue_aggregate_maximum_bitrate_s&            ueaggregate_maximum_bitrate() const;
-    const erab_to_be_switched_ul_item_ies_container& erab_to_be_switched_ul_list() const;
-    const erab_list_l&                               erab_to_be_released_list() const;
-    const security_context_s&                        security_context() const;
-    const crit_diagnostics_s&                        crit_diagnostics() const;
-    const uint64_t&                                  mme_ue_s1ap_id_minus2() const;
-    const csg_membership_status_e&                   csg_membership_status() const;
-    const pro_se_authorized_s&                       pro_se_authorized() const;
-    const ueuser_plane_cio_tsupport_ind_e&           ueuser_plane_cio_tsupport_ind() const;
-    const v2xservices_authorized_s&                  v2xservices_authorized() const;
-    const ue_sidelink_aggregate_maximum_bitrate_s&   ue_sidelink_aggregate_maximum_bitrate() const;
-    const enhanced_coverage_restricted_e&            enhanced_coverage_restricted() const;
-    const ce_mode_brestricted_e&                     ce_mode_brestricted() const;
-    const pending_data_ind_e&                        pending_data_ind() const;
+    uint64_t&                                                          mme_ue_s1ap_id();
+    uint32_t&                                                          enb_ue_s1ap_id();
+    ue_aggregate_maximum_bitrate_s&                                    ueaggregate_maximum_bitrate();
+    erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o>&       erab_to_be_switched_ul_list();
+    erab_list_l&                                                       erab_to_be_released_list();
+    security_context_s&                                                security_context();
+    crit_diagnostics_s&                                                crit_diagnostics();
+    uint64_t&                                                          mme_ue_s1ap_id_minus2();
+    csg_membership_status_e&                                           csg_membership_status();
+    pro_se_authorized_s&                                               pro_se_authorized();
+    ueuser_plane_cio_tsupport_ind_e&                                   ueuser_plane_cio_tsupport_ind();
+    v2xservices_authorized_s&                                          v2xservices_authorized();
+    ue_sidelink_aggregate_maximum_bitrate_s&                           ue_sidelink_aggregate_maximum_bitrate();
+    enhanced_coverage_restricted_e&                                    enhanced_coverage_restricted();
+    ce_mode_brestricted_e&                                             ce_mode_brestricted();
+    pending_data_ind_e&                                                pending_data_ind();
+    const uint64_t&                                                    mme_ue_s1ap_id() const;
+    const uint32_t&                                                    enb_ue_s1ap_id() const;
+    const ue_aggregate_maximum_bitrate_s&                              ueaggregate_maximum_bitrate() const;
+    const erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o>& erab_to_be_switched_ul_list() const;
+    const erab_list_l&                                                 erab_to_be_released_list() const;
+    const security_context_s&                                          security_context() const;
+    const crit_diagnostics_s&                                          crit_diagnostics() const;
+    const uint64_t&                                                    mme_ue_s1ap_id_minus2() const;
+    const csg_membership_status_e&                                     csg_membership_status() const;
+    const pro_se_authorized_s&                                         pro_se_authorized() const;
+    const ueuser_plane_cio_tsupport_ind_e&                             ueuser_plane_cio_tsupport_ind() const;
+    const v2xservices_authorized_s&                                    v2xservices_authorized() const;
+    const ue_sidelink_aggregate_maximum_bitrate_s&                     ue_sidelink_aggregate_maximum_bitrate() const;
+    const enhanced_coverage_restricted_e&                              enhanced_coverage_restricted() const;
+    const ce_mode_brestricted_e&                                       ce_mode_brestricted() const;
+    const pending_data_ind_e&                                          pending_data_ind() const;
 
   private:
     types type_;
     choice_buffer_t<crit_diagnostics_s,
+                    erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o>,
                     erab_list_l,
-                    erab_to_be_switched_ul_item_ies_container,
                     pro_se_authorized_s,
                     security_context_s,
                     ue_aggregate_maximum_bitrate_s,
@@ -12030,36 +11724,36 @@ struct path_switch_request_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint32_t&                                        enb_ue_s1ap_id();
-    erab_to_be_switched_dl_item_ies_container&       erab_to_be_switched_dl_list();
-    uint64_t&                                        source_mme_ue_s1ap_id();
-    eutran_cgi_s&                                    eutran_cgi();
-    tai_s&                                           tai();
-    ue_security_cap_s&                               ue_security_cap();
-    fixed_bitstring<27, false, true>&                csg_id();
-    cell_access_mode_e&                              cell_access_mode();
-    gummei_s&                                        source_mme_gummei();
-    csg_membership_status_e&                         csg_membership_status();
-    tunnel_info_s&                                   tunnel_info_for_bbf();
-    unbounded_octstring<true>&                       lhn_id();
-    rrc_establishment_cause_e&                       rrc_resume_cause();
-    const uint32_t&                                  enb_ue_s1ap_id() const;
-    const erab_to_be_switched_dl_item_ies_container& erab_to_be_switched_dl_list() const;
-    const uint64_t&                                  source_mme_ue_s1ap_id() const;
-    const eutran_cgi_s&                              eutran_cgi() const;
-    const tai_s&                                     tai() const;
-    const ue_security_cap_s&                         ue_security_cap() const;
-    const fixed_bitstring<27, false, true>&          csg_id() const;
-    const cell_access_mode_e&                        cell_access_mode() const;
-    const gummei_s&                                  source_mme_gummei() const;
-    const csg_membership_status_e&                   csg_membership_status() const;
-    const tunnel_info_s&                             tunnel_info_for_bbf() const;
-    const unbounded_octstring<true>&                 lhn_id() const;
-    const rrc_establishment_cause_e&                 rrc_resume_cause() const;
+    uint32_t&                                                          enb_ue_s1ap_id();
+    erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o>&       erab_to_be_switched_dl_list();
+    uint64_t&                                                          source_mme_ue_s1ap_id();
+    eutran_cgi_s&                                                      eutran_cgi();
+    tai_s&                                                             tai();
+    ue_security_cap_s&                                                 ue_security_cap();
+    fixed_bitstring<27, false, true>&                                  csg_id();
+    cell_access_mode_e&                                                cell_access_mode();
+    gummei_s&                                                          source_mme_gummei();
+    csg_membership_status_e&                                           csg_membership_status();
+    tunnel_info_s&                                                     tunnel_info_for_bbf();
+    unbounded_octstring<true>&                                         lhn_id();
+    rrc_establishment_cause_e&                                         rrc_resume_cause();
+    const uint32_t&                                                    enb_ue_s1ap_id() const;
+    const erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o>& erab_to_be_switched_dl_list() const;
+    const uint64_t&                                                    source_mme_ue_s1ap_id() const;
+    const eutran_cgi_s&                                                eutran_cgi() const;
+    const tai_s&                                                       tai() const;
+    const ue_security_cap_s&                                           ue_security_cap() const;
+    const fixed_bitstring<27, false, true>&                            csg_id() const;
+    const cell_access_mode_e&                                          cell_access_mode() const;
+    const gummei_s&                                                    source_mme_gummei() const;
+    const csg_membership_status_e&                                     csg_membership_status() const;
+    const tunnel_info_s&                                               tunnel_info_for_bbf() const;
+    const unbounded_octstring<true>&                                   lhn_id() const;
+    const rrc_establishment_cause_e&                                   rrc_resume_cause() const;
 
   private:
     types type_;
-    choice_buffer_t<erab_to_be_switched_dl_item_ies_container,
+    choice_buffer_t<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o>,
                     eutran_cgi_s,
                     fixed_bitstring<27, false, true>,
                     gummei_s,
@@ -13070,18 +12764,19 @@ struct ue_context_resume_request_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                                                  mme_ue_s1ap_id();
-    uint32_t&                                                  enb_ue_s1ap_id();
-    erab_failed_to_resume_item_resume_req_ies_container&       erab_failed_to_resume_list_resume_req();
-    rrc_establishment_cause_e&                                 rrc_resume_cause();
-    const uint64_t&                                            mme_ue_s1ap_id() const;
-    const uint32_t&                                            enb_ue_s1ap_id() const;
-    const erab_failed_to_resume_item_resume_req_ies_container& erab_failed_to_resume_list_resume_req() const;
-    const rrc_establishment_cause_e&                           rrc_resume_cause() const;
+    uint64_t&                                                              mme_ue_s1ap_id();
+    uint32_t&                                                              enb_ue_s1ap_id();
+    erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o>& erab_failed_to_resume_list_resume_req();
+    rrc_establishment_cause_e&                                             rrc_resume_cause();
+    const uint64_t&                                                        mme_ue_s1ap_id() const;
+    const uint32_t&                                                        enb_ue_s1ap_id() const;
+    const erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o>&
+                                     erab_failed_to_resume_list_resume_req() const;
+    const rrc_establishment_cause_e& rrc_resume_cause() const;
 
   private:
-    types                                                                type_;
-    choice_buffer_t<erab_failed_to_resume_item_resume_req_ies_container> c;
+    types                                                                                   type_;
+    choice_buffer_t<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> > c;
 
     void destroy_();
   };
@@ -13124,22 +12819,26 @@ struct ue_context_resume_resp_ies_o {
     SRSASN_CODE unpack(cbit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint64_t&                                                  mme_ue_s1ap_id();
-    uint32_t&                                                  enb_ue_s1ap_id();
-    erab_failed_to_resume_item_resume_res_ies_container&       erab_failed_to_resume_list_resume_res();
-    crit_diagnostics_s&                                        crit_diagnostics();
-    security_context_s&                                        security_context();
-    pending_data_ind_e&                                        pending_data_ind();
-    const uint64_t&                                            mme_ue_s1ap_id() const;
-    const uint32_t&                                            enb_ue_s1ap_id() const;
-    const erab_failed_to_resume_item_resume_res_ies_container& erab_failed_to_resume_list_resume_res() const;
-    const crit_diagnostics_s&                                  crit_diagnostics() const;
-    const security_context_s&                                  security_context() const;
-    const pending_data_ind_e&                                  pending_data_ind() const;
+    uint64_t&                                                              mme_ue_s1ap_id();
+    uint32_t&                                                              enb_ue_s1ap_id();
+    erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o>& erab_failed_to_resume_list_resume_res();
+    crit_diagnostics_s&                                                    crit_diagnostics();
+    security_context_s&                                                    security_context();
+    pending_data_ind_e&                                                    pending_data_ind();
+    const uint64_t&                                                        mme_ue_s1ap_id() const;
+    const uint32_t&                                                        enb_ue_s1ap_id() const;
+    const erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o>&
+                              erab_failed_to_resume_list_resume_res() const;
+    const crit_diagnostics_s& crit_diagnostics() const;
+    const security_context_s& security_context() const;
+    const pending_data_ind_e& pending_data_ind() const;
 
   private:
-    types                                                                                                        type_;
-    choice_buffer_t<crit_diagnostics_s, erab_failed_to_resume_item_resume_res_ies_container, security_context_s> c;
+    types type_;
+    choice_buffer_t<crit_diagnostics_s,
+                    erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o>,
+                    security_context_s>
+        c;
 
     void destroy_();
   };
@@ -13906,25 +13605,10 @@ struct mmecp_relocation_ind_s {
   void        to_json(json_writer& j) const;
 };
 
-struct mme_cfg_transfer_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  bool                           son_cfg_transfer_mct_present = false;
-  ie_field_s<son_cfg_transfer_s> son_cfg_transfer_mct;
-
-  // sequence methods
-  mme_cfg_transfer_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // MMEConfigurationTransfer ::= SEQUENCE
 struct mme_cfg_transfer_s {
-  bool                           ext = false;
-  mme_cfg_transfer_ies_container protocol_ies;
+  bool                                            ext = false;
+  protocol_ie_container_l<mme_cfg_transfer_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -13966,25 +13650,10 @@ struct mme_cfg_upd_s {
   void        to_json(json_writer& j) const;
 };
 
-struct mme_cfg_upd_ack_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  bool                           crit_diagnostics_present = false;
-  ie_field_s<crit_diagnostics_s> crit_diagnostics;
-
-  // sequence methods
-  mme_cfg_upd_ack_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // MMEConfigurationUpdateAcknowledge ::= SEQUENCE
 struct mme_cfg_upd_ack_s {
-  bool                          ext = false;
-  mme_cfg_upd_ack_ies_container protocol_ies;
+  bool                                           ext = false;
+  protocol_ie_container_l<mme_cfg_upd_ack_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -14023,24 +13692,10 @@ struct mme_cfg_upd_fail_s {
   void        to_json(json_writer& j) const;
 };
 
-struct mme_direct_info_transfer_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<inter_sys_info_transfer_type_c> inter_sys_info_transfer_type_mdt;
-
-  // sequence methods
-  mme_direct_info_transfer_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // MMEDirectInformationTransfer ::= SEQUENCE
 struct mme_direct_info_transfer_s {
-  bool                                   ext = false;
-  mme_direct_info_transfer_ies_container protocol_ies;
+  bool                                                    ext = false;
+  protocol_ie_container_l<mme_direct_info_transfer_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -14163,25 +13818,10 @@ struct overload_start_s {
   void        to_json(json_writer& j) const;
 };
 
-struct overload_stop_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  bool                                            gummei_list_present = false;
-  ie_field_s<dyn_seq_of<gummei_s, 1, 256, true> > gummei_list;
-
-  // sequence methods
-  overload_stop_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // OverloadStop ::= SEQUENCE
 struct overload_stop_s {
-  bool                        ext = false;
-  overload_stop_ies_container protocol_ies;
+  bool                                         ext = false;
+  protocol_ie_container_l<overload_stop_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -14303,26 +13943,26 @@ struct path_switch_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                       csg_id_present                = false;
-  bool                                                       cell_access_mode_present      = false;
-  bool                                                       source_mme_gummei_present     = false;
-  bool                                                       csg_membership_status_present = false;
-  bool                                                       tunnel_info_for_bbf_present   = false;
-  bool                                                       lhn_id_present                = false;
-  bool                                                       rrc_resume_cause_present      = false;
-  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
-  ie_field_s<erab_to_be_switched_dl_item_ies_container>      erab_to_be_switched_dl_list;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > source_mme_ue_s1ap_id;
-  ie_field_s<eutran_cgi_s>                                   eutran_cgi;
-  ie_field_s<tai_s>                                          tai;
-  ie_field_s<ue_security_cap_s>                              ue_security_cap;
-  ie_field_s<fixed_bitstring<27, false, true> >              csg_id;
-  ie_field_s<cell_access_mode_e>                             cell_access_mode;
-  ie_field_s<gummei_s>                                       source_mme_gummei;
-  ie_field_s<csg_membership_status_e>                        csg_membership_status;
-  ie_field_s<tunnel_info_s>                                  tunnel_info_for_bbf;
-  ie_field_s<unbounded_octstring<true> >                     lhn_id;
-  ie_field_s<rrc_establishment_cause_e>                      rrc_resume_cause;
+  bool                                                                     csg_id_present                = false;
+  bool                                                                     cell_access_mode_present      = false;
+  bool                                                                     source_mme_gummei_present     = false;
+  bool                                                                     csg_membership_status_present = false;
+  bool                                                                     tunnel_info_for_bbf_present   = false;
+  bool                                                                     lhn_id_present                = false;
+  bool                                                                     rrc_resume_cause_present      = false;
+  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >                 enb_ue_s1ap_id;
+  ie_field_s<erab_ie_container_list_l<erab_to_be_switched_dl_item_ies_o> > erab_to_be_switched_dl_list;
+  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >               source_mme_ue_s1ap_id;
+  ie_field_s<eutran_cgi_s>                                                 eutran_cgi;
+  ie_field_s<tai_s>                                                        tai;
+  ie_field_s<ue_security_cap_s>                                            ue_security_cap;
+  ie_field_s<fixed_bitstring<27, false, true> >                            csg_id;
+  ie_field_s<cell_access_mode_e>                                           cell_access_mode;
+  ie_field_s<gummei_s>                                                     source_mme_gummei;
+  ie_field_s<csg_membership_status_e>                                      csg_membership_status;
+  ie_field_s<tunnel_info_s>                                                tunnel_info_for_bbf;
+  ie_field_s<unbounded_octstring<true> >                                   lhn_id;
+  ie_field_s<rrc_establishment_cause_e>                                    rrc_resume_cause;
 
   // sequence methods
   path_switch_request_ies_container();
@@ -14364,7 +14004,7 @@ struct path_switch_request_ack_ies_container {
   ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
   ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
   ie_field_s<ue_aggregate_maximum_bitrate_s>                 ueaggregate_maximum_bitrate;
-  ie_field_s<erab_to_be_switched_ul_item_ies_container>      erab_to_be_switched_ul_list;
+  ie_field_s<erab_ie_container_list_l<erab_to_be_switched_ul_item_ies_o> >               erab_to_be_switched_ul_list;
   ie_field_s<dyn_seq_of<protocol_ie_single_container_s<erab_item_ies_o>, 1, 256, true> > erab_to_be_released_list;
   ie_field_s<security_context_s>                                                         security_context;
   ie_field_s<crit_diagnostics_s>                                                         crit_diagnostics;
@@ -14554,24 +14194,10 @@ struct reset_ack_s {
   void        to_json(json_writer& j) const;
 };
 
-struct retrieve_ue_info_ies_container {
-  template <class valueT_>
-  using ie_field_s = protocol_ie_container_item_s<valueT_>;
-
-  // member variables
-  ie_field_s<s_tmsi_s> s_tmsi;
-
-  // sequence methods
-  retrieve_ue_info_ies_container();
-  SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack(cbit_ref& bref);
-  void        to_json(json_writer& j) const;
-};
-
 // RetrieveUEInformation ::= SEQUENCE
 struct retrieve_ue_info_s {
-  bool                           ext = false;
-  retrieve_ue_info_ies_container protocol_ies;
+  bool                                            ext = false;
+  protocol_ie_container_l<retrieve_ue_info_ies_o> protocol_ies;
   // ...
 
   // sequence methods
@@ -15069,12 +14695,13 @@ struct ue_context_resume_request_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                            erab_failed_to_resume_list_resume_req_present = false;
-  bool                                                            rrc_resume_cause_present                      = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >      mme_ue_s1ap_id;
-  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >        enb_ue_s1ap_id;
-  ie_field_s<erab_failed_to_resume_item_resume_req_ies_container> erab_failed_to_resume_list_resume_req;
-  ie_field_s<rrc_establishment_cause_e>                           rrc_resume_cause;
+  bool                                                       erab_failed_to_resume_list_resume_req_present = false;
+  bool                                                       rrc_resume_cause_present                      = false;
+  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
+  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
+  ie_field_s<erab_ie_container_list_l<erab_failed_to_resume_item_resume_req_ies_o> >
+                                        erab_failed_to_resume_list_resume_req;
+  ie_field_s<rrc_establishment_cause_e> rrc_resume_cause;
 
   // sequence methods
   ue_context_resume_request_ies_container();
@@ -15100,16 +14727,17 @@ struct ue_context_resume_resp_ies_container {
   using ie_field_s = protocol_ie_container_item_s<valueT_>;
 
   // member variables
-  bool                                                            erab_failed_to_resume_list_resume_res_present = false;
-  bool                                                            crit_diagnostics_present                      = false;
-  bool                                                            security_context_present                      = false;
-  bool                                                            pending_data_ind_present                      = false;
-  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> >      mme_ue_s1ap_id;
-  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >        enb_ue_s1ap_id;
-  ie_field_s<erab_failed_to_resume_item_resume_res_ies_container> erab_failed_to_resume_list_resume_res;
-  ie_field_s<crit_diagnostics_s>                                  crit_diagnostics;
-  ie_field_s<security_context_s>                                  security_context;
-  ie_field_s<pending_data_ind_e>                                  pending_data_ind;
+  bool                                                       erab_failed_to_resume_list_resume_res_present = false;
+  bool                                                       crit_diagnostics_present                      = false;
+  bool                                                       security_context_present                      = false;
+  bool                                                       pending_data_ind_present                      = false;
+  ie_field_s<integer<uint64_t, 0, 4294967295, false, true> > mme_ue_s1ap_id;
+  ie_field_s<integer<uint32_t, 0, 16777215, false, true> >   enb_ue_s1ap_id;
+  ie_field_s<erab_ie_container_list_l<erab_failed_to_resume_item_resume_res_ies_o> >
+                                 erab_failed_to_resume_list_resume_res;
+  ie_field_s<crit_diagnostics_s> crit_diagnostics;
+  ie_field_s<security_context_s> security_context;
+  ie_field_s<pending_data_ind_e> pending_data_ind;
 
   // sequence methods
   ue_context_resume_resp_ies_container();
@@ -16149,7 +15777,8 @@ using multi_cell_load_report_resp_l = dyn_array<multi_cell_load_report_resp_item
 // ProtocolError-IE-ContainerList{S1AP-PROTOCOL-IES : IEsSetParam} ::= SEQUENCE (SIZE (1..256)) OF
 // ProtocolIE-SingleContainer{S1AP-PROTOCOL-IES : IEsSetParam}
 template <class ies_set_paramT_>
-using protocol_error_ie_container_list_l = dyn_array<protocol_ie_single_container_item_s<ies_set_paramT_> >;
+using protocol_error_ie_container_list_l =
+    dyn_seq_of<protocol_ie_single_container_item_s<ies_set_paramT_>, 1, 256, true>;
 
 // ReportingCellList-Item ::= SEQUENCE
 struct report_cell_list_item_s {
