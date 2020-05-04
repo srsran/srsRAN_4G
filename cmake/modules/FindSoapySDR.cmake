@@ -12,7 +12,7 @@ if(NOT SOAPYSDR_FOUND)
 
   find_library(SOAPYSDR_LIBRARIES 
     NAMES SoapySDR
-    PATHS ${LIMESDR_PKG_LIBRARY_DIRS}
+    PATHS ${SOAPYSDR_PKG_LIBRARY_DIRS}
           /usr/lib
           /usr/local/lib
           /usr/lib/arm-linux-gnueabihf     
