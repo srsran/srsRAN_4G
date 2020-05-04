@@ -409,6 +409,7 @@ int ue_ctxt_test::test_sched_result(uint32_t                     enb_cc_idx,
   cc_result result{enb_cc_idx, &dl_result, &ul_result};
   TESTASSERT(test_harqs(result) == SRSLTE_SUCCESS);
   TESTASSERT(test_ra(result) == SRSLTE_SUCCESS);
+  TESTASSERT(test_scell_activation(result) == SRSLTE_SUCCESS);
   TESTASSERT(schedule_acks(result) == SRSLTE_SUCCESS);
   return SRSLTE_SUCCESS;
 }
@@ -516,6 +517,42 @@ int ue_ctxt_test::test_ra(cc_result result)
       // No Msg3 sched TTI
       for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
         CONDERROR(result.ul_result->pusch[i].dci.rnti == rnti, "No UL newtxs allowed before user received Msg4\n");
+      }
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+/**
+ * Tests whether the SCells are correctly activated. Individual tests:
+ * - no DL and UL allocations in inactive carriers
+ */
+int ue_ctxt_test::test_scell_activation(cc_result result)
+{
+  auto cc_it =
+      std::find_if(user_cfg.supported_cc_list.begin(),
+                   user_cfg.supported_cc_list.end(),
+                   [&result](const sched::ue_cfg_t::cc_cfg_t& cc) { return cc.enb_cc_idx == result.enb_cc_idx; });
+
+  if (cc_it == user_cfg.supported_cc_list.end() or not cc_it->active) {
+    // cell not active. Ensure data allocations are not made
+    for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
+      CONDERROR(result.dl_result->data[i].dci.rnti == rnti, "Allocated user in inactive carrier\n");
+    }
+    for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
+      CONDERROR(result.ul_result->pusch[i].dci.rnti == rnti, "Allocated user in inactive carrier\n");
+    }
+  } else {
+    uint32_t ue_cc_idx = std::distance(user_cfg.supported_cc_list.begin(), cc_it);
+    for (uint32_t i = 0; i < result.dl_result->nof_data_elems; ++i) {
+      if (result.dl_result->data[i].dci.rnti == rnti) {
+        CONDERROR(result.dl_result->data[i].dci.ue_cc_idx != ue_cc_idx, "User cell index was incorrectly set\n");
+      }
+    }
+    for (uint32_t i = 0; i < result.ul_result->nof_dci_elems; ++i) {
+      if (result.ul_result->pusch[i].dci.rnti == rnti) {
+        CONDERROR(result.ul_result->pusch[i].dci.ue_cc_idx != ue_cc_idx, "The user cell index was incorrectly set\n");
       }
     }
   }
@@ -768,55 +805,11 @@ int user_state_sched_tester::test_ctrl_info(uint32_t                            
   return SRSLTE_SUCCESS;
 }
 
-/**
- * Tests whether the SCells are correctly activated. Individual tests:
- * - no DL and UL allocations in inactive carriers
- */
-int user_state_sched_tester::test_scell_activation(uint32_t                               enb_cc_idx,
-                                                   const sched_interface::dl_sched_res_t& dl_result,
-                                                   const sched_interface::ul_sched_res_t& ul_result)
-{
-  for (auto& iter : users) {
-    uint16_t      rnti     = iter.first;
-    ue_ctxt_test& userinfo = iter.second;
-
-    auto it = std::find_if(userinfo.user_cfg.supported_cc_list.begin(),
-                           userinfo.user_cfg.supported_cc_list.end(),
-                           [enb_cc_idx](const sched::ue_cfg_t::cc_cfg_t& cc) { return cc.enb_cc_idx == enb_cc_idx; });
-
-    if (it == userinfo.user_cfg.supported_cc_list.end() or not it->active) {
-      // cell not active. Ensure data allocations are not made
-      for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
-        CONDERROR(dl_result.data[i].dci.rnti == rnti, "Allocated user in inactive carrier\n");
-      }
-      for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
-        CONDERROR(ul_result.pusch[i].needs_pdcch and ul_result.pusch[i].dci.rnti == rnti,
-                  "Allocated user in inactive carrier\n");
-      }
-    } else {
-      uint32_t ue_cc_idx = std::distance(userinfo.user_cfg.supported_cc_list.begin(), it);
-      for (uint32_t i = 0; i < dl_result.nof_data_elems; ++i) {
-        if (dl_result.data[i].dci.rnti == rnti) {
-          CONDERROR(dl_result.data[i].dci.ue_cc_idx != ue_cc_idx, "User cell index was incorrectly set\n");
-        }
-      }
-      for (uint32_t i = 0; i < ul_result.nof_dci_elems; ++i) {
-        if (ul_result.pusch[i].needs_pdcch and ul_result.pusch[i].dci.rnti == rnti) {
-          CONDERROR(ul_result.pusch[i].dci.ue_cc_idx != ue_cc_idx, "The user cell index was incorrectly set\n");
-        }
-      }
-    }
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
 int user_state_sched_tester::test_all(uint32_t                               enb_cc_idx,
                                       const sched_interface::dl_sched_res_t& dl_result,
                                       const sched_interface::ul_sched_res_t& ul_result)
 {
   TESTASSERT(test_ctrl_info(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
-  TESTASSERT(test_scell_activation(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
 
   for (auto& u : users) {
     TESTASSERT(u.second.test_sched_result(enb_cc_idx, dl_result, ul_result) == SRSLTE_SUCCESS);
@@ -824,6 +817,10 @@ int user_state_sched_tester::test_all(uint32_t                               enb
 
   return SRSLTE_SUCCESS;
 }
+
+/***********************
+ *  Sim Stats Storage
+ **********************/
 
 void sched_result_stats::process_results(const tti_params_t&                                 tti_params,
                                          const std::vector<sched_interface::dl_sched_res_t>& dl_result,

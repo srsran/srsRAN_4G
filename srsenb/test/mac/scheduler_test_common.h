@@ -147,6 +147,8 @@ private:
   //! Test the timing of RAR, Msg3, Msg4
   int test_ra(cc_result result);
   int test_harqs(cc_result result);
+  //! Test correct activation of SCells
+  int test_scell_activation(cc_result result);
   int schedule_acks(cc_result result);
 
   const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
@@ -184,11 +186,6 @@ public:
   int test_ctrl_info(uint32_t                               enb_cc_idx,
                      const sched_interface::dl_sched_res_t& dl_result,
                      const sched_interface::ul_sched_res_t& ul_result);
-
-  /* Test correct activation of SCells */
-  int test_scell_activation(uint32_t                               enb_cc_idx,
-                            const sched_interface::dl_sched_res_t& dl_result,
-                            const sched_interface::ul_sched_res_t& ul_result);
 
   int test_all(uint32_t                               enb_cc_idx,
                const sched_interface::dl_sched_res_t& dl_result,
