@@ -64,15 +64,19 @@ const char* x86_get_isa()
   // query basic features
   ret = __get_cpuid(X86_CPUID_BASIC_LEAF, &eax, &ebx, &ecx, &edx);
   if (ret) {
+#ifdef bit_SSE4_2
     has_sse42 = ecx & bit_SSE4_2;
+#endif
     has_avx   = ecx & bit_AVX;
   }
 
   // query advanced features
+#ifdef bit_AVX2
   ret = __get_cpuid_count_redef(X86_CPUID_ADVANCED_LEAF, 0, &eax, &ebx, &ecx, &edx);
   if (ret) {
     has_avx2 = ebx & bit_AVX2;
   }
+#endif
 
   if (has_avx2) {
     return "avx2";
