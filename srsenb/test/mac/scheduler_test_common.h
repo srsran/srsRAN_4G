@@ -104,8 +104,10 @@ struct ue_state {
       bool              ndi       = false;
       uint32_t          nof_retxs = 0;
       uint32_t          nof_txs   = 0;
+      uint32_t          riv       = 0;
     };
     std::array<harq_state_t, sched_ue_carrier::SCHED_MAX_HARQ_PROC> dl_harqs = {};
+    std::array<harq_state_t, sched_ue_carrier::SCHED_MAX_HARQ_PROC> ul_harqs = {};
   };
   std::vector<cc_state_t> active_ccs;
 
@@ -142,8 +144,7 @@ private:
     bool              ack;
     bool              operator<(const pending_ack_t& other) const { return tti_ack > other.tti_ack; }
   };
-  std::priority_queue<pending_ack_t>                               pending_dl_acks;
-  std::array<pending_ack_t, sched_ue_carrier::SCHED_MAX_HARQ_PROC> pending_ul_acks;
+  std::priority_queue<pending_ack_t> pending_dl_acks, pending_ul_acks;
 };
 
 class user_state_sched_tester
@@ -235,8 +236,6 @@ public:
   int          sim_cfg(sim_sched_args args);
   virtual int  add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_);
   virtual void rem_user(uint16_t rnti);
-  int          process_ack_txs();
-  int          schedule_acks();
   virtual int  process_results();
   int          process_tti_events(const tti_ev& tti_ev);
 
@@ -257,30 +256,8 @@ public:
   std::unique_ptr<sched_result_stats>      sched_stats;
 
 protected:
-  struct ack_info_t {
-    uint16_t             rnti;
-    uint32_t             tti;
-    uint32_t             enb_cc_idx;
-    uint32_t             ue_cc_idx;
-    bool                 ack        = false;
-    uint32_t             retx_delay = 0;
-    srsenb::dl_harq_proc dl_harq;
-  };
-  struct ul_ack_info_t {
-    uint16_t             rnti;
-    uint32_t             tti_ack, tti_tx_ul;
-    uint32_t             ue_cc_idx;
-    uint32_t             enb_cc_idx;
-    bool                 ack = false;
-    srsenb::ul_harq_proc ul_harq;
-  };
-
   virtual void new_test_tti();
   virtual void before_sched() {}
-
-  // control params
-  std::multimap<uint32_t, ack_info_t>    to_ack;
-  std::multimap<uint32_t, ul_ack_info_t> to_ul_ack;
 };
 
 } // namespace srsenb
