@@ -22,14 +22,14 @@
 #ifndef SRSLTE_SIMD_H
 #define SRSLTE_SIMD_H
 
-typedef _Complex float cf_t;
-
 #ifdef LV_HAVE_SSE /* AVX, AVX2, FMA, AVX512  are in this group */
 #ifndef __OPTIMIZE__
 #define __OPTIMIZE__
 #endif
 #include <immintrin.h>
 #endif /* LV_HAVE_SSE */
+
+#include "srslte/config.h"
 #include <stdio.h>
 
 #ifdef HAVE_NEON

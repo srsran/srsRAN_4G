@@ -79,6 +79,9 @@ public:
   // Note: Made const to forbid silent updates and enable comparison based on addr
   std::vector<std::shared_ptr<const var_meas_cfg_t> > cell_meas_cfg_list;
 
+  rrc *get_rrc() { return rrc_ptr; }
+  const rrc *get_rrc() const { return rrc_ptr; }
+
 private:
   // args
   rrc*             rrc_ptr = nullptr;

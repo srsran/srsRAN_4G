@@ -96,7 +96,6 @@ private:
   std::string imei_str;
 
   // Security variables
-  uint8_t rand[16]          = {};
   uint8_t ck[16]            = {};
   uint8_t ik[16]            = {};
   uint8_t ak[6]             = {};

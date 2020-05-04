@@ -339,7 +339,6 @@ private:
 
   // This is the primary cell
   srslte_cell_t                               cell              = {};
-  bool                                        started           = false;
   uint32_t                                    tti               = 0;
   srslte_timestamp_t                          tti_ts            = {};
   std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib               = {};

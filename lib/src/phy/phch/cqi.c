@@ -115,7 +115,7 @@ static int cqi_format2_subband_pack(srslte_cqi_cfg_t* cfg, srslte_cqi_format2_su
   uint8_t* body_ptr = buff;
   srslte_bit_unpack(msg->subband_cqi, &body_ptr, 4);
   srslte_bit_unpack(msg->subband_label, &body_ptr, cfg->subband_label_2_bits ? 2 : 1);
-  return 4 + (cfg->subband_label_2_bits) ? 2 : 1;
+  return 4 + ((cfg->subband_label_2_bits) ? 2 : 1);
 }
 
 int srslte_cqi_value_pack(srslte_cqi_cfg_t* cfg, srslte_cqi_value_t* value, uint8_t buff[SRSLTE_CQI_MAX_BITS])
@@ -211,7 +211,7 @@ static int cqi_format2_subband_unpack(srslte_cqi_cfg_t* cfg, uint8_t* buff, srsl
   uint8_t* body_ptr  = buff;
   msg->subband_cqi   = srslte_bit_pack(&body_ptr, 4);
   msg->subband_label = srslte_bit_pack(&body_ptr, cfg->subband_label_2_bits ? 2 : 1);
-  return 4 + (cfg->subband_label_2_bits) ? 2 : 1;
+  return 4 + ((cfg->subband_label_2_bits) ? 2 : 1);
 }
 
 int srslte_cqi_value_unpack(srslte_cqi_cfg_t* cfg, uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_value_t* value)
@@ -349,7 +349,7 @@ int srslte_cqi_size(srslte_cqi_cfg_t* cfg)
       }
       break;
     case SRSLTE_CQI_TYPE_SUBBAND:
-      size = 4 + (cfg->subband_label_2_bits) ? 2 : 1;
+      size = 4 + ((cfg->subband_label_2_bits) ? 2 : 1);
       break;
     case SRSLTE_CQI_TYPE_SUBBAND_UE:
       size = 4 + 2 + cfg->L;

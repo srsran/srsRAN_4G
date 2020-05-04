@@ -39,7 +39,6 @@ void write_to_file();
 srslte_nbiot_cell_t cell = {
     .base           = {.nof_prb = 1, .cp = SRSLTE_CP_NORM, .id = 0},
     .base.nof_ports = 1,
-    .base.nof_prb   = 1,
     .nbiot_prb      = 0,
 };
 

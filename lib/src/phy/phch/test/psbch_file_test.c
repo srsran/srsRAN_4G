@@ -159,6 +159,11 @@ int main(int argc, char** argv)
 
   // PSCBH DMRS
   srslte_sl_comm_resource_pool_t sl_comm_resource_pool;
+  if (srslte_sl_comm_resource_pool_get_default_config(&sl_comm_resource_pool, cell) != SRSLTE_SUCCESS) {
+    ERROR("Error initializing sl_comm_resource_pool\n");
+    return SRSLTE_ERROR;
+  }
+
   srslte_chest_sl_t              psbch_chest;
   if (srslte_chest_sl_init(&psbch_chest, SRSLTE_SIDELINK_PSBCH, cell, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
     ERROR("Error in chest PSBCH init\n");

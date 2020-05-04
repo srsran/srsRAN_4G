@@ -324,7 +324,7 @@ void sig_int_handler(int signo)
 }
 #endif
 
-int update_radl()
+static int update_radl(void)
 {
   bzero(&ra_dl_sib1, sizeof(srslte_ra_nbiot_dl_dci_t));
 
@@ -362,7 +362,7 @@ int update_radl()
 }
 
 /* Read new MCS from stdin */
-int update_control()
+static int update_control(void)
 {
   char input[128];
 
@@ -516,7 +516,7 @@ int main(int argc, char** argv)
   }
 #endif
 
-  if (update_radl(sf_idx)) {
+  if (update_radl()) {
     exit(-1);
   }
 
@@ -626,7 +626,7 @@ int main(int argc, char** argv)
       }
 
       // Update DL resource allocation from control port
-      if (update_control(sf_idx)) {
+      if (update_control()) {
         fprintf(stderr, "Error updating parameters from control port\n");
       }
 

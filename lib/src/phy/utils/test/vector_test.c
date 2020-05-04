@@ -115,7 +115,7 @@ TEST(srslte_vec_acc_ff, MALLOC(float, x); float z = 0;
 
          for (int i = 0; i < block_size; i++) { gold += x[i]; }
 
-     mse += fabs(gold - z) / gold;
+     mse += cabsf(gold - z) / gold;
 
      free(x);)
 
@@ -399,7 +399,7 @@ TEST(srslte_vec_convert_fi, MALLOC(float, x); MALLOC(short, z); float scale = 10
 
          for (int i = 0; i < block_size; i++) {
            gold       = (short)((x[i] * scale));
-           double err = cabsf((float)gold - (float)z[i]);
+           double err = fabsf((float)gold - (float)z[i]);
            if (err > mse) {
              mse = err;
            }
@@ -418,7 +418,7 @@ TEST(srslte_vec_convert_if, MALLOC(int16_t, x); MALLOC(float, z); float scale = 
 
          for (int i = 0; i < block_size; i++) {
            gold       = ((float)x[i]) * k;
-           double err = cabsf((float)gold - (float)z[i]);
+           double err = fabsf((float)gold - (float)z[i]);
            if (err > mse) {
              mse = err;
            }
@@ -482,7 +482,7 @@ TEST(srslte_vec_sc_prod_fff, MALLOC(float, x); MALLOC(float, z); float y = RANDO
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] * y;
-           mse += cabsf(gold - z[i]);
+           mse += fabsf(gold - z[i]);
          }
 
      free(x);
@@ -497,7 +497,7 @@ TEST(
 
         for (int i = 0; i < block_size; i++) {
           gold = sqrtf(crealf(x[i]) * crealf(x[i]) + cimagf(x[i]) * cimagf(x[i]));
-          mse += cabsf(gold - z[i]) / block_size;
+          mse += fabsf(gold - z[i]) / block_size;
         }
 
     free(x);
@@ -511,7 +511,7 @@ TEST(srslte_vec_abs_square_cf, MALLOC(cf_t, x); MALLOC(float, z); float gold;
 
          for (int i = 0; i < block_size; i++) {
            gold = crealf(x[i]) * crealf(x[i]) + cimagf(x[i]) * cimagf(x[i]);
-           mse += cabsf(gold - z[i]);
+           mse += fabsf(gold - z[i]);
          }
 
      free(x);

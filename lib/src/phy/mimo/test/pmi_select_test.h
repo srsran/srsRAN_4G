@@ -25,8 +25,7 @@
 #define PMI_SELECT_TEST_NOF_CASES 20
 
 #include <inttypes.h>
-
-typedef _Complex float cf_t;
+#include "srslte/config.h"
 
 typedef struct {
   cf_t     h[2][2];    /* Channel estimate */

@@ -1024,15 +1024,15 @@ void* plot_thread_run(void* arg)
 #endif
 
       // update MIB and SIB widget only if their content changed
-      if (memcmp(mib_buffer_disp, mib_buffer_decode, sizeof(mib_buffer_disp) != 0)) {
+      if (memcmp(mib_buffer_disp, mib_buffer_decode, sizeof(mib_buffer_disp)) != 0) {
         memcpy(mib_buffer_disp, mib_buffer_decode, sizeof(mib_buffer_disp));
         text_edit_setMessage(&miblog, mib_buffer_disp);
       }
-      if (memcmp(sib1_buffer_disp, sib1_buffer_decode, sizeof(sib1_buffer_disp) != 0)) {
+      if (memcmp(sib1_buffer_disp, sib1_buffer_decode, sizeof(sib1_buffer_disp)) != 0) {
         memcpy(sib1_buffer_disp, sib1_buffer_decode, sizeof(sib1_buffer_disp));
         text_edit_setMessage(&sib1log, sib1_buffer_disp);
       }
-      if (memcmp(sib2_buffer_disp, sib2_buffer_decode, sizeof(sib2_buffer_disp) != 0)) {
+      if (memcmp(sib2_buffer_disp, sib2_buffer_decode, sizeof(sib2_buffer_disp)) != 0) {
         memcpy(sib2_buffer_disp, sib2_buffer_decode, sizeof(sib2_buffer_disp));
         text_edit_setMessage(&sib2log, sib2_buffer_disp);
       }

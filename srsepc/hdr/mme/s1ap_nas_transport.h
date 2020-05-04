@@ -53,8 +53,6 @@ private:
   srslte::byte_buffer_pool* m_pool;
 
   s1ap*              m_s1ap;
-  hss_interface_nas* m_hss;
-  mme_gtpc*          m_mme_gtpc;
 
   nas_init_t m_nas_init;
   nas_if_t   m_nas_if;

@@ -105,7 +105,8 @@ private:
     void metrics_read(phy_metrics_t* metrics);
     void metrics_dl(uint32_t mcs);
     void metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters);
-    bool is_pcell() { return pcell; };
+    bool is_pcell() { return pcell; }
+    uint32_t get_rnit() const {return rnti; }
 
   private:
     uint32_t      rnti    = 0;

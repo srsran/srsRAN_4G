@@ -20,8 +20,7 @@
  */
 
 #include <inttypes.h>
-
-typedef _Complex float cf_t;
+#include "srslte/config.h"
 
 /* Thresholds for Demodulation */
 /* Assume perfect amplitude and phase alignment.

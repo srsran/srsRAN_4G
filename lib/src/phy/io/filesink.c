@@ -52,7 +52,7 @@ int srslte_filesink_write(srslte_filesink_t* q, void* buffer, int nsamples)
   float*          fbuf = (float*)buffer;
   _Complex float* cbuf = (_Complex float*)buffer;
   _Complex short* sbuf = (_Complex short*)buffer;
-  int             size;
+  int             size = 0;
 
   switch (q->type) {
     case SRSLTE_TEXT:
@@ -90,7 +90,6 @@ int srslte_filesink_write(srslte_filesink_t* q, void* buffer, int nsamples)
         size = sizeof(_Complex short);
       }
       return fwrite(buffer, size, nsamples, q->f);
-      break;
     default:
       i = -1;
       break;
@@ -104,7 +103,7 @@ int srslte_filesink_write_multi(srslte_filesink_t* q, void** buffer, int nsample
   float**          fbuf = (float**)buffer;
   _Complex float** cbuf = (_Complex float**)buffer;
   _Complex short** sbuf = (_Complex short**)buffer;
-  int              size;
+  int              size = 0;
 
   switch (q->type) {
     case SRSLTE_FLOAT:

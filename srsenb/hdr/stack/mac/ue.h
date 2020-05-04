@@ -152,8 +152,6 @@ private:
   srslte::log_ref          log_h;
   sched_interface*         sched = nullptr;
 
-  bool conres_id_available = false;
-
   // Mutexes
   std::mutex mutex;
 

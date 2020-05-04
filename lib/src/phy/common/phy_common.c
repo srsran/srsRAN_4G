@@ -91,13 +91,13 @@ void srslte_cell_fprint(FILE* stream, srslte_cell_t* cell, uint32_t sfn)
 // Internal type for srslte_tdd_sf_t
 typedef enum { D = 0, U = 1, S = 2 } tdd_sf_t;
 
-static srslte_tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
-                                        {D, S, U, U, D, D, S, U, U, D},
-                                        {D, S, U, D, D, D, S, U, D, D},
-                                        {D, S, U, U, U, D, D, D, D, D},
-                                        {D, S, U, U, D, D, D, D, D, D},
-                                        {D, S, U, D, D, D, D, D, D, D},
-                                        {D, S, U, U, U, D, S, U, U, D}};
+static tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
+                                 {D, S, U, U, D, D, S, U, U, D},
+                                 {D, S, U, D, D, D, S, U, D, D},
+                                 {D, S, U, U, U, D, D, D, D, D},
+                                 {D, S, U, U, D, D, D, D, D, D},
+                                 {D, S, U, D, D, D, D, D, D, D},
+                                 {D, S, U, U, U, D, S, U, U, D}};
 
 static uint32_t tdd_nof_sf_symbols[10][3] = {{3, 10, 1},
                                              {9, 4, 1},
@@ -113,7 +113,7 @@ static uint32_t tdd_nof_sf_symbols[10][3] = {{3, 10, 1},
 srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t sf_idx)
 {
   if (tdd_config.sf_config < 7 && sf_idx < 10 && tdd_config.configured) {
-    return tdd_sf[tdd_config.sf_config][sf_idx];
+    return (srslte_tdd_sf_t)tdd_sf[tdd_config.sf_config][sf_idx];
   } else {
     return SRSLTE_TDD_SF_D;
   }

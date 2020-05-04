@@ -252,7 +252,7 @@ public:
 
 typedef std::unique_ptr<dummy_radio> unique_dummy_radio_t;
 
-class dummy_stack : public srsenb::stack_interface_phy_lte
+class dummy_stack final : public srsenb::stack_interface_phy_lte
 {
 private:
   static constexpr float prob_dl_grant = 0.50f;

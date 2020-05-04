@@ -77,7 +77,7 @@ int srslte_filesource_read(srslte_filesource_t* q, void* buffer, int nsamples)
   float*          fbuf = (float*)buffer;
   _Complex float* cbuf = (_Complex float*)buffer;
   _Complex short* sbuf = (_Complex short*)buffer;
-  int             size;
+  int             size = 0;
 
   switch (q->type) {
     case SRSLTE_FLOAT:

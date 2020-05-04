@@ -105,9 +105,7 @@ public:
   uint16_t allocate_rnti() final;
 
 private:
-  static const int      MAX_LOCATIONS            = 20;
   static const uint32_t cfi                      = 3;
-  srslte_dci_location_t locations[MAX_LOCATIONS] = {};
 
   std::mutex rnti_mutex;
 

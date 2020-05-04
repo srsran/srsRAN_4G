@@ -101,7 +101,7 @@ void srslte_bit_interleaver_run(srslte_bit_interleaver_t* q, uint8_t* input, uin
 
 #ifdef LV_HAVE_SSE
   for (; i < (int)q->nof_bits - 15; i += 16) {
-    __m128i in128;
+    __m128i in128 = _mm_setzero_si128();
     in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x7);
     in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x6);
     in128 = _mm_insert_epi8(in128, input[*(byte_idx++)], 0x5);

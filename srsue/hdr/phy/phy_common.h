@@ -187,7 +187,6 @@ private:
   bool is_pending_tx_end = false;
 
   srslte::radio_interface_phy* radio_h    = nullptr;
-  float                        cfo        = 0.0f;
   srslte::log*                 log_h      = nullptr;
   srslte::channel_ptr          ul_channel = nullptr;
 
