@@ -87,7 +87,8 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   logger = logger_;
 
   // init own log
-  stack_log->set_level(srslte::LOG_LEVEL_INFO);
+  stack_log->set_level(args.log.stack_level);
+  stack_log->set_hex_limit(args.log.stack_hex_limit);
   pool_log->set_level(srslte::LOG_LEVEL_WARNING);
   byte_buffer_pool::get_instance()->set_log(pool_log.get());
 

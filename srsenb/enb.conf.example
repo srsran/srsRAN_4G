@@ -121,7 +121,7 @@ s1ap_filename = /tmp/enb_s1ap.pcap
 # configured.
 # Format: e.g. phy_hex_limit = 32
 #
-# Logging layers: rf, phy, phy_lib, mac, rlc, pdcp, rrc, gtpu, s1ap, all
+# Logging layers: rf, phy, phy_lib, mac, rlc, pdcp, rrc, gtpu, s1ap, stack, all
 # Logging levels: debug, info, warning, error, none
 #
 # filename: File path to use for log output. Can be set to stdout

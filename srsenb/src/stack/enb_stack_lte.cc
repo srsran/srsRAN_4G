@@ -30,10 +30,7 @@ using namespace srslte;
 namespace srsenb {
 
 enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
-  timers(128),
-  logger(logger_),
-  pdcp(this, "PDCP"),
-  thread("STACK")
+  timers(128), logger(logger_), pdcp(this, "PDCP"), thread("STACK")
 {
   enb_queue_id   = pending_tasks.add_queue();
   sync_queue_id  = pending_tasks.add_queue();
@@ -81,14 +78,14 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_log->set_level(args.log.rrc_level);
   gtpu_log->set_level(args.log.gtpu_level);
   s1ap_log->set_level(args.log.s1ap_level);
-  stack_log->set_level(LOG_LEVEL_INFO);
+  stack_log->set_level(args.log.stack_level);
 
   rlc_log->set_hex_limit(args.log.rlc_hex_limit);
   pdcp_log->set_hex_limit(args.log.pdcp_hex_limit);
   rrc_log->set_hex_limit(args.log.rrc_hex_limit);
   gtpu_log->set_hex_limit(args.log.gtpu_hex_limit);
   s1ap_log->set_hex_limit(args.log.s1ap_hex_limit);
-  stack_log->set_hex_limit(128);
+  stack_log->set_hex_limit(args.log.stack_hex_limit);
 
   // Set up pcap and trace
   if (args.mac_pcap.enable) {

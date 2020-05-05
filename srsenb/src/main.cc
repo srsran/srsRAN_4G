@@ -111,6 +111,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("log.gtpu_hex_limit",bpo::value<int>(&args->stack.log.gtpu_hex_limit), "GTPU log hex dump limit")
     ("log.s1ap_level",    bpo::value<string>(&args->stack.log.s1ap_level),  "S1AP log level")
     ("log.s1ap_hex_limit",bpo::value<int>(&args->stack.log.s1ap_hex_limit), "S1AP log hex dump limit")
+    ("log.stack_level",    bpo::value<string>(&args->stack.log.stack_level),  "Stack log level")
+    ("log.stack_hex_limit",bpo::value<int>(&args->stack.log.stack_hex_limit), "Stack log hex dump limit")
 
     ("log.all_level",     bpo::value<string>(&args->log.all_level)->default_value("info"),   "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log.all_hex_limit)->default_value(32),  "ALL log hex dump limit")
@@ -316,6 +318,9 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     if (!vm.count("log.s1ap_level")) {
       args->stack.log.s1ap_level = args->log.all_level;
     }
+    if (!vm.count("log.stack_level")) {
+      args->stack.log.stack_level = args->log.all_level;
+    }
   }
 
   // Apply all_hex_limit to any unset layers
@@ -340,6 +345,9 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     }
     if (!vm.count("log.s1ap_hex_limit")) {
       args->stack.log.s1ap_hex_limit = args->log.all_hex_limit;
+    }
+    if (!vm.count("log.stack_hex_limit")) {
+      args->stack.log.stack_hex_limit = args->log.all_hex_limit;
     }
   }
 

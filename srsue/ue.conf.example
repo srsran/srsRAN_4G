@@ -85,7 +85,7 @@ nas_filename = /tmp/nas.pcap
 # configured.
 # Format: e.g. phy_hex_limit = 32
 #
-# Logging layers: rf, phy, mac, rlc, pdcp, rrc, nas, gw, usim, all
+# Logging layers: rf, phy, mac, rlc, pdcp, rrc, nas, gw, usim, stack, all
 # Logging levels: debug, info, warning, error, none
 #
 # filename: File path to use for log output. Can be set to stdout

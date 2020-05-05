@@ -48,8 +48,8 @@ namespace bpo = boost::program_options;
  *  Local static variables
  ***********************************************************************/
 
-static bool                do_metrics     = false;
-static metrics_stdout*     metrics_screen = nullptr;
+static bool            do_metrics     = false;
+static metrics_stdout* metrics_screen = nullptr;
 
 /**********************************************************************
  *  Program arguments processing
@@ -150,6 +150,8 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     ("log.nas_hex_limit", bpo::value<int>(&args->stack.log.nas_hex_limit), "NAS log hex dump limit")
     ("log.usim_level", bpo::value<string>(&args->stack.log.usim_level), "USIM log level")
     ("log.usim_hex_limit", bpo::value<int>(&args->stack.log.usim_hex_limit), "USIM log hex dump limit")
+    ("log.stack_level", bpo::value<string>(&args->stack.log.stack_level), "Stack log level")
+    ("log.stack_hex_limit", bpo::value<int>(&args->stack.log.stack_hex_limit), "Stack log hex dump limit")
 
     ("log.all_level", bpo::value<string>(&args->log.all_level)->default_value("info"), "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log.all_hex_limit)->default_value(32), "ALL log hex dump limit")
@@ -508,6 +510,9 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     if (!vm.count("log.usim_level")) {
       args->stack.log.usim_level = args->log.all_level;
     }
+    if (!vm.count("log.stack_level")) {
+      args->stack.log.stack_level = args->log.all_level;
+    }
   }
 
   // Apply all_hex_limit to any unset layers
@@ -535,6 +540,9 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     }
     if (!vm.count("log.usim_hex_limit")) {
       args->stack.log.usim_hex_limit = args->log.all_hex_limit;
+    }
+    if (!vm.count("log.stack_hex_limit")) {
+      args->stack.log.stack_hex_limit = args->log.all_hex_limit;
     }
   }
 
@@ -584,7 +592,7 @@ int main(int argc, char* argv[])
 
   // Setup logging
   srslte::logger_stdout logger_stdout;
-  srslte::logger* logger = nullptr;
+  srslte::logger*       logger = nullptr;
   if (args.log.filename == "stdout") {
     logger = &logger_stdout;
   } else {
