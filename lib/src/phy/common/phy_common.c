@@ -88,32 +88,27 @@ void srslte_cell_fprint(FILE* stream, srslte_cell_t* cell, uint32_t sfn)
   fprintf(stream, " - SFN:             %d\n", sfn);
 }
 
-// Internal type for srslte_tdd_sf_t
-typedef enum { D = 0, U = 1, S = 2 } tdd_sf_t;
+// Initialize the matrix below with shorter symbols to improve readability.
+#define D SRSLTE_TDD_SF_D
+#define U SRSLTE_TDD_SF_U
+#define S SRSLTE_TDD_SF_S
 
-static tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
-                                 {D, S, U, U, D, D, S, U, U, D},
-                                 {D, S, U, D, D, D, S, U, D, D},
-                                 {D, S, U, U, U, D, D, D, D, D},
-                                 {D, S, U, U, D, D, D, D, D, D},
-                                 {D, S, U, D, D, D, D, D, D, D},
-                                 {D, S, U, U, U, D, S, U, U, D}};
+static srslte_tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
+                                        {D, S, U, U, D, D, S, U, U, D},
+                                        {D, S, U, D, D, D, S, U, D, D},
+                                        {D, S, U, U, U, D, D, D, D, D},
+                                        {D, S, U, U, D, D, D, D, D, D},
+                                        {D, S, U, D, D, D, D, D, D, D},
+                                        {D, S, U, U, U, D, S, U, U, D}};
 
-static uint32_t tdd_nof_sf_symbols[10][3] = {{3, 10, 1},
-                                             {9, 4, 1},
-                                             {10, 3, 1},
-                                             {11, 2, 1},
-                                             {12, 1, 1},
-                                             {3, 9, 2},
-                                             {9, 3, 2},
-                                             {10, 2, 2},
-                                             {11, 1, 1},
-                                             {6, 6, 2}};
+#undef D
+#undef U
+#undef S
 
 srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t sf_idx)
 {
   if (tdd_config.sf_config < 7 && sf_idx < 10 && tdd_config.configured) {
-    return (srslte_tdd_sf_t)tdd_sf[tdd_config.sf_config][sf_idx];
+    return tdd_sf[tdd_config.sf_config][sf_idx];
   } else {
     return SRSLTE_TDD_SF_D;
   }
@@ -136,6 +131,17 @@ uint32_t srslte_sfidx_tdd_nof_dw_slot(srslte_tdd_config_t tdd_config, uint32_t s
     }
   }
 }
+
+static uint32_t tdd_nof_sf_symbols[10][3] = {{3, 10, 1},
+                                             {9, 4, 1},
+                                             {10, 3, 1},
+                                             {11, 2, 1},
+                                             {12, 1, 1},
+                                             {3, 9, 2},
+                                             {9, 3, 2},
+                                             {10, 2, 2},
+                                             {11, 1, 1},
+                                             {6, 6, 2}};
 
 uint32_t srslte_sfidx_tdd_nof_dw(srslte_tdd_config_t tdd_config)
 {
