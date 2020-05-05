@@ -363,19 +363,25 @@ protected:
              emm_ta_updating_initiated,
              emm_deregistered_initiated>
       states{nullptr};
-  using transitions = transition_table<row<emm_null_st, emm_deregistered, enable_s1_ev>,
-                                       row<emm_deregistered, emm_null_st, disable_s1_ev>,
-                                       row<emm_deregistered, emm_registered_initiated, attach_request_ev>,
-                                       row<emm_registered_initiated, emm_deregistered, emm_registr_fail_ev>,
-                                       row<emm_registered_initiated, emm_registered, attach_accept_ev>,
-                                       row<emm_registered, emm_service_req_initiated, sr_initiated_ev>,
-                                       row<emm_service_req_initiated, emm_registered, sr_outcome_ev>,
-                                       row<emm_registered, emm_ta_updating_initiated, tau_request_ev>,
-                                       row<emm_registered, emm_deregistered_initiated, detach_request_ev>,
-                                       row<emm_ta_updating_initiated, emm_registered, tau_outcome_ev>,
-                                       row<emm_ta_updating_initiated, emm_deregistered, tau_reject_other_cause_ev>,
-                                       row<emm_deregistered_initiated, emm_deregistered, detach_accept_ev>,
-                                       from_any_state<emm_deregistered, power_off_ev> >;
+  // clang-format off
+  using transitions = transition_table<
+  //              Start                       Target                     Event
+  //  +-----------------------------+-------------------------+-----------------------------+
+    row< emm_null_st,                emm_deregistered,           enable_s1_ev              >,
+    row< emm_deregistered,           emm_null_st,                disable_s1_ev             >,
+    row< emm_deregistered,           emm_registered_initiated,   attach_request_ev         >,
+    row< emm_registered_initiated,   emm_deregistered,           emm_registr_fail_ev       >,
+    row< emm_registered_initiated,   emm_registered,             attach_accept_ev          >,
+    row< emm_registered,             emm_service_req_initiated,  sr_initiated_ev           >,
+    row< emm_service_req_initiated,  emm_registered,             sr_outcome_ev             >,
+    row< emm_registered,             emm_ta_updating_initiated,  tau_request_ev            >,
+    row< emm_registered,             emm_deregistered_initiated, detach_request_ev         >,
+    row< emm_ta_updating_initiated,  emm_registered,             tau_outcome_ev            >,
+    row< emm_ta_updating_initiated,  emm_deregistered,           tau_reject_other_cause_ev >,
+    row< emm_deregistered_initiated, emm_deregistered,           detach_accept_ev          >,
+    from_any_state<emm_deregistered, power_off_ev>
+  >;
+  // clang-format on
 };
 
 int test_nas_fsm()
