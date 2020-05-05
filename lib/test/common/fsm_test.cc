@@ -73,9 +73,16 @@ public:
   protected:
     // list of states
     state_list<state_inner, state_inner2> states{this};
-    using transitions = transition_table<row<state_inner, state_inner, ev1, &fsm2::inner_action1>,
-                                         row<state_inner, state_inner2, ev2, &fsm2::inner_action2>,
-                                         row<state_inner2, state1, ev2, &fsm2::inner_action3> >;
+    // clang-format off
+    using transitions = transition_table<
+      //      Start         Target    Event        Action
+      //  +------------+-------------+----+----------------------+
+      row<state_inner,  state_inner,  ev1, &fsm2::inner_action1  >,
+      row<state_inner,  state_inner2, ev2, &fsm2::inner_action2  >,
+      row<state_inner2, state1,       ev2, &fsm2::inner_action3  >
+      //  +------------+-------------+----+----------------------+
+    >;
+    // clang-format on
   };
 
 private:
@@ -89,9 +96,16 @@ protected:
   // list of states + transitions
   state_list<idle_st, state1, fsm2> states = {this, idle_st{}, state1{}, fsm2{this}};
 
-  using transitions = transition_table<row<idle_st, state1, ev1, &fsm1::action1>,
-                                       row<state1, fsm2, ev1, &fsm1::action2>,
-                                       row<state1, idle_st, ev2, &fsm1::action3> >;
+  // clang-format off
+  using transitions = transition_table<
+    //      Start         Target    Event        Action
+    //  +------------+-------------+----+------------------+
+    row< idle_st,     state1,       ev1,  &fsm1::action1>,
+    row< state1,      fsm2,         ev1,  &fsm1::action2>,
+    row< state1,      idle_st,      ev2,  &fsm1::action3>
+  //  +------------+-------------+----+--------------------+
+  >;
+  // clang-format on
 };
 
 void fsm1::idle_st::enter(fsm1* f)
@@ -254,10 +268,16 @@ protected:
   bool is_failure(procstate1& s, const procevent1& ev) const { return not ev.is_success; }
 
   state_list<idle_st, procstate1> states{this, idle_st{}, procstate1{}};
-  using transitions =
-      transition_table<row<idle_st, procstate1, srslte::proc_launch_ev<int*>, &proc1::init>,
-                       row<procstate1, idle_st, procevent1, &proc1::handle_success, &proc1::is_success>,
-                       row<procstate1, idle_st, procevent1, &proc1::handle_failure, &proc1::is_failure> >;
+  // clang-format off
+  using transitions = transition_table<
+    //      Start         Target             Event                        Action            Guard (optional)
+    //  +------------+-------------+----------------------------+------------------------+--------------------+
+    row< idle_st,      procstate1,  srslte::proc_launch_ev<int*>, &proc1::init                                >,
+    row< procstate1,   idle_st,     procevent1,                   &proc1::handle_success, &proc1::is_success  >,
+    row< procstate1,   idle_st,     procevent1,                   &proc1::handle_failure, &proc1::is_failure  >
+    //  +------------+-------------+----------------------------+------------------------+--------------------+
+  >;
+  // clang-format on
 };
 
 void proc1::init(idle_st& s, procstate1& d, const srslte::proc_launch_ev<int*>& ev)
