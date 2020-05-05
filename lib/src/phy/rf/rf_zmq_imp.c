@@ -240,8 +240,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // rx_type
       char tmp[RF_PARAM_LEN] = {0};
-      parse_string(args, "rx_type", -1, tmp);
-      if (strlen(tmp) > 0) {
+      if (parse_string(args, "rx_type", -1, tmp) == SRSLTE_SUCCESS) {
         if (!strcmp(tmp, "sub")) {
           rx_opts.socket_type = ZMQ_SUB;
         } else {
@@ -251,9 +250,8 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       }
 
       // rx_format
-      parse_string(args, "rx_format", -1, tmp);
       rx_opts.sample_format = ZMQ_TYPE_FC32;
-      if (strlen(tmp) > 0) {
+      if (parse_string(args, "rx_format", -1, tmp) == SRSLTE_SUCCESS) {
         if (!strcmp(tmp, "sc16")) {
           rx_opts.sample_format = ZMQ_TYPE_SC16;
         } else {
@@ -263,8 +261,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       }
 
       // tx_type
-      parse_string(args, "tx_type", -1, tmp);
-      if (strlen(tmp) > 0) {
+      if (parse_string(args, "tx_type", -1, tmp) == SRSLTE_SUCCESS) {
         if (!strcmp(tmp, "pub")) {
           tx_opts.socket_type = ZMQ_PUB;
         } else {
@@ -274,9 +271,8 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       }
 
       // tx_format
-      parse_string(args, "tx_format", -1, tmp);
       tx_opts.sample_format = ZMQ_TYPE_FC32;
-      if (strlen(tmp) > 0) {
+      if (parse_string(args, "tx_format", -1, tmp) == SRSLTE_SUCCESS) {
         if (!strcmp(tmp, "sc16")) {
           tx_opts.sample_format = ZMQ_TYPE_SC16;
         } else {
