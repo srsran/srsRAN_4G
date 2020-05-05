@@ -291,17 +291,6 @@ int sched_tester::test_harqs()
               h_id,
               tti_info.tti_params.tti_tx_dl);
     CONDERROR(h.get_n_cce() != data.dci.location.ncce, "Harq DCI location does not match with result\n");
-    if (tti_data.ue_data[rnti].dl_harqs[h_id].has_pending_retx(0, tti_info.tti_params.tti_tx_dl)) { // retx
-      CONDERROR(tti_data.ue_data[rnti].dl_harqs[h_id].nof_retx(0) + 1 != h.nof_retx(0),
-                "A dl harq of user rnti=0x%x was likely overwritten.\n",
-                rnti);
-      CONDERROR(h.nof_retx(0) >= sim_args0.default_ue_sim_cfg.ue_cfg.maxharq_tx,
-                "The number of retx=%d exceeded its max=%d\n",
-                h.nof_retx(0),
-                sim_args0.default_ue_sim_cfg.ue_cfg.maxharq_tx);
-    } else { // newtx
-      CONDERROR(h.nof_retx(0) != 0, "A new harq was scheduled but with invalid number of retxs\n");
-    }
   }
 
   for (uint32_t i = 0; i < tti_info.ul_sched_result[CARRIER_IDX].nof_dci_elems; ++i) {
@@ -452,9 +441,7 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sched_sim_event_generator generator;
 
   sim_gen.sim_args.cell_cfg                        = {generate_default_cell_cfg(nof_prb)};
-  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg       = generate_default_ue_cfg();
   sim_gen.sim_args.default_ue_sim_cfg.periodic_cqi = true;
-  sim_gen.sim_args.P_retx                          = 0.1;
   sim_gen.sim_args.start_tti                       = 0;
   sim_gen.sim_args.sim_log                         = log_global.get();
 

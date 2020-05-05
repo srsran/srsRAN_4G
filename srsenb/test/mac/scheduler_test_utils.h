@@ -83,7 +83,8 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
 struct ue_ctxt_test_cfg {
   bool                              periodic_cqi = false;
   uint32_t                          cqi_Npd = 10, cqi_Noffset = 5; // CQI reporting
-  srsenb::sched_interface::ue_cfg_t ue_cfg;
+  std::vector<float>                prob_dl_ack_mask{0.5, 0.5, 1}, prob_ul_ack_mask{0.5, 0.5, 1};
+  srsenb::sched_interface::ue_cfg_t ue_cfg = generate_default_ue_cfg();
 };
 
 // Struct that represents all the events that take place in a TTI
@@ -105,10 +106,9 @@ struct tti_ev {
 
 struct sim_sched_args {
   uint32_t                                         start_tti = 0;
-  float                                            P_retx;
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg;
   srslte::log*                                     sim_log = nullptr;
-  ue_ctxt_test_cfg                                 default_ue_sim_cfg;
+  ue_ctxt_test_cfg                                 default_ue_sim_cfg{};
 };
 
 // generate all events up front
@@ -164,9 +164,7 @@ struct sched_sim_event_generator {
     auto& user = user_updates.back();
     user.rnti  = next_rnti++;
     // creates a user with one supported CC (PRACH stage)
-    ue_ctxt_test_cfg ue_sim_cfg{};
-    ue_sim_cfg.ue_cfg = generate_default_ue_cfg();
-    user.ue_sim_cfg.reset(new ue_ctxt_test_cfg{ue_sim_cfg});
+    user.ue_sim_cfg.reset(new ue_ctxt_test_cfg{});
     auto& u        = current_users[user.rnti];
     u.rnti         = user.rnti;
     u.tti_start    = tti_counter;

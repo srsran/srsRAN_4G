@@ -55,10 +55,6 @@ sim_sched_args generate_default_sim_args(uint32_t nof_prb, uint32_t nof_ccs)
 {
   sim_sched_args sim_args;
 
-  sim_args.P_retx = 0.1;
-
-  sim_args.default_ue_sim_cfg.ue_cfg = generate_default_ue_cfg();
-
   // setup two cells
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg(nof_ccs, generate_default_cell_cfg(nof_prb));
   cell_cfg[0].scell_list.resize(1);

@@ -609,6 +609,10 @@ int ue_ctxt_test::test_harqs(cc_result result)
       CONDERROR(h.ndi != data.dci.tb[0].ndi, "Invalid ndi for retx\n");
       CONDERROR(not h.active, "retx for inactive dl harq pid=%d\n", h.pid);
       CONDERROR(h.tti_tx > current_tti_rx, "harq pid=%d reused too soon\n", h.pid);
+      CONDERROR(h.nof_retxs + 1 >= sim_cfg.ue_cfg.maxharq_tx,
+                "The number of retx=%d exceeded its max=%d\n",
+                h.nof_retxs + 1,
+                sim_cfg.ue_cfg.maxharq_tx);
 
       h.nof_retxs++;
       h.tti_tx = srslte::to_tx_dl(current_tti_rx);
@@ -675,7 +679,7 @@ int ue_ctxt_test::schedule_acks(cc_result result)
     ack_data.pid       = data.dci.pid;
     ack_data.ue_cc_idx = data.dci.ue_cc_idx;
     uint32_t nof_retx  = sched_utils::get_nof_retx(data.dci.tb[0].rv); // 0..3
-    ack_data.ack       = randf() < prob_dl_ack_mask[nof_retx % prob_dl_ack_mask.size()];
+    ack_data.ack       = randf() < sim_cfg.prob_dl_ack_mask[nof_retx % sim_cfg.prob_dl_ack_mask.size()];
 
     pending_dl_acks.push(ack_data);
   }
@@ -694,7 +698,7 @@ int ue_ctxt_test::schedule_acks(cc_result result)
     ack_data.tb        = 0;
     ack_data.pid       = srslte::to_tx_ul(current_tti_rx).to_uint() % cc->ul_harqs.size();
     uint32_t nof_retx  = sched_utils::get_nof_retx(pusch.dci.tb.rv); // 0..3
-    ack_data.ack       = randf() < prob_ul_ack_mask[nof_retx % prob_ul_ack_mask.size()];
+    ack_data.ack       = randf() < sim_cfg.prob_ul_ack_mask[nof_retx % sim_cfg.prob_ul_ack_mask.size()];
 
     pending_ul_acks.push(ack_data);
   }

@@ -85,16 +85,16 @@ using ul_sched_res_list = std::vector<sched_interface::ul_sched_res_t>;
 
 struct ue_ctxt_test {
   // args
-  srslte::log_ref    log_h{"TEST"};
-  std::vector<float> prob_dl_ack_mask{0.5, 0.5, 1}, prob_ul_ack_mask{0.5, 0.5, 1};
-  ue_ctxt_test_cfg   sim_cfg;
+  srslte::log_ref  log_h{"TEST"};
+  ue_ctxt_test_cfg sim_cfg;
 
   // prach args
   uint16_t rnti;
   uint32_t preamble_idx = 0;
 
   /* state */
-  srslte::tti_point current_tti_rx;
+  srsenb::sched_interface::ue_cfg_t user_cfg;
+  srslte::tti_point                 current_tti_rx;
 
   // RA state
   srslte::tti_point prach_tti, rar_tti, msg3_tti, msg4_tti;
@@ -118,8 +118,7 @@ struct ue_ctxt_test {
   };
   std::vector<cc_ue_ctxt_test> active_ccs;
 
-  bool                              drb_cfg_flag = false;
-  srsenb::sched_interface::ue_cfg_t user_cfg;
+  bool drb_cfg_flag = false;
 
   ue_ctxt_test(uint16_t                                      rnti_,
                uint32_t                                      preamble_idx_,

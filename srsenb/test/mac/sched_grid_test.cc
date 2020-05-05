@@ -24,8 +24,7 @@
 #include "srslte/common/test_common.h"
 
 using namespace srsenb;
-// const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
-const uint32_t seed = 3930373626;
+const uint32_t seed = std::chrono::system_clock::now().time_since_epoch().count();
 
 const uint32_t                PCell_IDX = 0;
 const std::array<uint32_t, 6> prb_list  = {6, 15, 25, 50, 75, 100};
@@ -97,6 +96,7 @@ int test_pdcch_one_ue()
     uint32_t        nof_dci_locs = dci_cce->nof_loc[aggr_idx];
     const uint32_t* dci_locs     = dci_cce->cce_start[aggr_idx];
 
+    // TEST: Check the first alloc of the pdcch result (e.g. rnti, valid cce mask, etc.)
     pdcch_grid_t::alloc_result_t pdcch_result;
     pdcch_mask_t                 pdcch_mask;
     pdcch.get_allocs(&pdcch_result, &pdcch_mask, 0);
@@ -148,6 +148,8 @@ int main()
 {
   srsenb::set_randseed(seed);
   printf("This is the chosen seed: %u\n", seed);
+  srslte::logmap::get("TEST")->set_level(srslte::LOG_LEVEL_INFO);
 
   TESTASSERT(test_pdcch_one_ue() == SRSLTE_SUCCESS);
+  printf("Success\n");
 }
