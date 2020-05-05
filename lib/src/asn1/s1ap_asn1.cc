@@ -520,8 +520,7 @@ std::string s1ap_protocol_ext_empty_o::ext_c::types_opts::to_string() const
 template <class extT_>
 protocol_ext_container_item_s<extT_>::protocol_ext_container_item_s(uint32_t id_, crit_e crit_) : id(id_), crit(crit_)
 
-{
-}
+{}
 template <class extT_>
 SRSASN_CODE protocol_ext_container_item_s<extT_>::pack(bit_ref& bref) const
 {
@@ -1959,8 +1958,7 @@ bearers_subject_to_status_transfer_item_ext_ies_container::bearers_subject_to_st
   ulcount_value_pdcp_snlen18(217, crit_e::ignore),
   dlcount_value_pdcp_snlen18(218, crit_e::ignore),
   receive_status_of_ulpdcpsdus_pdcp_snlen18(219, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE bearers_subject_to_status_transfer_item_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -4297,8 +4295,7 @@ std::string cell_traffic_trace_ies_o::value_c::types_opts::to_string() const
 template <class valueT_>
 protocol_ie_container_item_s<valueT_>::protocol_ie_container_item_s(uint32_t id_, crit_e crit_) : id(id_), crit(crit_)
 
-{
-}
+{}
 template <class valueT_>
 SRSASN_CODE protocol_ie_container_item_s<valueT_>::pack(bit_ref& bref) const
 {
@@ -4339,8 +4336,7 @@ cell_traffic_trace_ies_container::cell_traffic_trace_ies_container() :
   eutran_cgi(100, crit_e::ignore),
   trace_collection_entity_ip_address(131, crit_e::ignore),
   privacy_ind(166, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE cell_traffic_trace_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 5;
@@ -4903,8 +4899,7 @@ conn_establishment_ind_ies_container::conn_establishment_ind_ies_container() :
   enhanced_coverage_restricted(251, crit_e::ignore),
   dl_cp_security_info(253, crit_e::ignore),
   ce_mode_brestricted(271, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE conn_establishment_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -5410,8 +5405,7 @@ deactiv_trace_ies_container::deactiv_trace_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   e_utran_trace_id(86, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE deactiv_trace_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -6239,8 +6233,7 @@ dl_nas_transport_ies_container::dl_nas_transport_ies_container() :
   enhanced_coverage_restricted(251, crit_e::ignore),
   ce_mode_brestricted(271, crit_e::ignore),
   pending_data_ind(283, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE dl_nas_transport_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -6647,8 +6640,7 @@ template struct asn1::s1ap::protocol_ie_field_s<dl_non_ueassociated_lp_pa_transp
 dl_non_ueassociated_lp_pa_transport_ies_container::dl_non_ueassociated_lp_pa_transport_ies_container() :
   routing_id(148, crit_e::reject),
   lp_pa_pdu(147, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE dl_non_ueassociated_lp_pa_transport_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -7244,8 +7236,7 @@ dl_s1cdma2000tunnelling_ies_container::dl_s1cdma2000tunnelling_ies_container() :
   cdma2000_ho_status(83, crit_e::ignore),
   cdma2000_rat_type(71, crit_e::reject),
   cdma2000_pdu(70, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE dl_s1cdma2000tunnelling_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -7641,8 +7632,7 @@ dl_ueassociated_lp_pa_transport_ies_container::dl_ueassociated_lp_pa_transport_i
   enb_ue_s1ap_id(8, crit_e::reject),
   routing_id(148, crit_e::reject),
   lp_pa_pdu(147, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE dl_ueassociated_lp_pa_transport_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -9021,8 +9011,7 @@ erab_mod_confirm_ies_container::erab_mod_confirm_ies_container() :
   erab_to_be_released_list_bearer_mod_conf(210, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore),
   csg_membership_status(146, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE erab_mod_confirm_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -9794,8 +9783,7 @@ erab_mod_ind_ies_container::erab_mod_ind_ies_container() :
   erab_not_to_be_modified_list_bearer_mod_ind(201, crit_e::reject),
   csg_membership_info(226, crit_e::reject),
   tunnel_info_for_bbf(176, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE erab_mod_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -10542,8 +10530,7 @@ erab_modify_request_ies_container::erab_modify_request_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
   ueaggregate_maximum_bitrate(66, crit_e::reject),
   erab_to_be_modified_list_bearer_mod_req(30, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE erab_modify_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -10971,8 +10958,7 @@ erab_modify_resp_ies_container::erab_modify_resp_ies_container() :
   erab_modify_list_bearer_mod_res(31, crit_e::ignore),
   erab_failed_to_modify_list(32, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE erab_modify_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -11412,8 +11398,7 @@ erab_release_cmd_ies_container::erab_release_cmd_ies_container() :
   ueaggregate_maximum_bitrate(66, crit_e::reject),
   erab_to_be_released_list(33, crit_e::ignore),
   nas_pdu(26, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE erab_release_cmd_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -11850,8 +11835,7 @@ erab_release_ind_ies_container::erab_release_ind_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
   erab_released_list(110, crit_e::ignore),
   user_location_info(189, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE erab_release_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -12420,8 +12404,7 @@ erab_release_resp_ies_container::erab_release_resp_ies_container() :
   erab_failed_to_release_list(34, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore),
   user_location_info(189, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE erab_release_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -13016,8 +12999,7 @@ erab_to_be_setup_item_bearer_su_req_ext_ies_container::erab_to_be_setup_item_bea
   correlation_id(156, crit_e::ignore),
   sipto_correlation_id(183, crit_e::ignore),
   bearer_type(233, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE erab_to_be_setup_item_bearer_su_req_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -13486,8 +13468,7 @@ erab_setup_request_ies_container::erab_setup_request_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
   ueaggregate_maximum_bitrate(66, crit_e::reject),
   erab_to_be_setup_list_bearer_su_req(16, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE erab_setup_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -13914,8 +13895,7 @@ erab_setup_resp_ies_container::erab_setup_resp_ies_container() :
   erab_setup_list_bearer_su_res(28, crit_e::ignore),
   erab_failed_to_setup_list_bearer_su_res(29, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE erab_setup_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -14277,8 +14257,7 @@ erab_to_be_setup_item_ctxt_su_req_ext_ies_container::erab_to_be_setup_item_ctxt_
   correlation_id(156, crit_e::ignore),
   sipto_correlation_id(183, crit_e::ignore),
   bearer_type(233, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE erab_to_be_setup_item_ctxt_su_req_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -14659,8 +14638,7 @@ template struct asn1::s1ap::protocol_ext_field_s<erab_to_be_setup_item_ho_req_ex
 erab_to_be_setup_item_ho_req_ext_ies_container::erab_to_be_setup_item_ho_req_ext_ies_container() :
   data_forwarding_not_possible(143, crit_e::ignore),
   bearer_type(233, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE erab_to_be_setup_item_ho_req_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -15508,8 +15486,7 @@ enbcp_relocation_ind_ies_container::enbcp_relocation_ind_ies_container() :
   eutran_cgi(100, crit_e::ignore),
   tai(67, crit_e::ignore),
   ul_cp_security_info(254, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE enbcp_relocation_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 5;
@@ -16482,8 +16459,7 @@ template struct asn1::s1ap::protocol_ext_field_s<x2_tnl_cfg_info_ext_ies_o>;
 x2_tnl_cfg_info_ext_ies_container::x2_tnl_cfg_info_ext_ies_container() :
   enbx2_extended_transport_layer_addresses(153, crit_e::ignore),
   enb_indirect_x2_transport_layer_addresses(193, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE x2_tnl_cfg_info_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -17189,8 +17165,7 @@ template struct asn1::s1ap::protocol_ext_field_s<son_cfg_transfer_ext_ies_o>;
 son_cfg_transfer_ext_ies_container::son_cfg_transfer_ext_ies_container() :
   x2_tnl_cfg_info(152, crit_e::ignore),
   synchronisation_info(209, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE son_cfg_transfer_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -17834,8 +17809,7 @@ enb_cfg_upd_ies_container::enb_cfg_upd_ies_container() :
   csg_id_list(128, crit_e::reject),
   default_paging_drx(137, crit_e::ignore),
   nb_io_t_default_paging_drx(234, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE enb_cfg_upd_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -18297,8 +18271,7 @@ enb_cfg_upd_fail_ies_container::enb_cfg_upd_fail_ies_container() :
   cause(2, crit_e::ignore),
   time_to_wait(65, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE enb_cfg_upd_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 1;
@@ -19094,8 +19067,7 @@ enb_status_transfer_ies_container::enb_status_transfer_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   enb_status_transfer_transparent_container(90, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE enb_status_transfer_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -19485,8 +19457,7 @@ error_ind_ies_container::error_ind_ies_container() :
   enb_ue_s1ap_id(8, crit_e::ignore),
   cause(2, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE error_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -20196,8 +20167,7 @@ ho_cancel_ies_container::ho_cancel_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   cause(2, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_cancel_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -20520,8 +20490,7 @@ ho_cancel_ack_ies_container::ho_cancel_ack_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
   enb_ue_s1ap_id(8, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_cancel_ack_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -21101,8 +21070,7 @@ ho_cmd_ies_container::ho_cmd_ies_container() :
   target_to_source_transparent_container(123, crit_e::reject),
   target_to_source_transparent_container_secondary(139, crit_e::reject),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_cmd_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -21515,8 +21483,7 @@ ho_fail_ies_container::ho_fail_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
   cause(2, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -21964,8 +21931,7 @@ ho_notify_ies_container::ho_notify_ies_container() :
   tai(67, crit_e::ignore),
   tunnel_info_for_bbf(176, crit_e::ignore),
   lhn_id(186, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_notify_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -22366,8 +22332,7 @@ ho_prep_fail_ies_container::ho_prep_fail_ies_container() :
   enb_ue_s1ap_id(8, crit_e::ignore),
   cause(2, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_prep_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -23529,8 +23494,7 @@ immediate_mdt_ext_ies_container::immediate_mdt_ext_ies_container() :
   mdt_location_info(174, crit_e::ignore),
   m6_cfg(220, crit_e::ignore),
   m7_cfg(221, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE immediate_mdt_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -25752,8 +25716,7 @@ ho_request_ies_container::ho_request_ies_container() :
   enhanced_coverage_restricted(251, crit_e::ignore),
   ce_mode_brestricted(271, crit_e::ignore),
   pending_data_ind(283, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 8;
@@ -26646,8 +26609,7 @@ ho_request_ack_ies_container::ho_request_ack_ies_container() :
   crit_diagnostics(58, crit_e::ignore),
   cell_access_mode(145, crit_e::ignore),
   ce_mode_b_support_ind(242, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_request_ack_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -27641,8 +27603,7 @@ ho_required_ies_container::ho_required_ies_container() :
   csg_id(127, crit_e::reject),
   cell_access_mode(145, crit_e::reject),
   ps_service_not_available(150, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ho_required_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 6;
@@ -28455,8 +28416,7 @@ init_context_setup_fail_ies_container::init_context_setup_fail_ies_container() :
   enb_ue_s1ap_id(8, crit_e::ignore),
   cause(2, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE init_context_setup_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -29788,8 +29748,7 @@ init_context_setup_request_ies_container::init_context_setup_request_ies_contain
   enhanced_coverage_restricted(251, crit_e::ignore),
   ce_mode_brestricted(271, crit_e::ignore),
   pending_data_ind(283, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE init_context_setup_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 6;
@@ -30538,8 +30497,7 @@ init_context_setup_resp_ies_container::init_context_setup_resp_ies_container() :
   erab_setup_list_ctxt_su_res(51, crit_e::ignore),
   erab_failed_to_setup_list_ctxt_su_res(48, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE init_context_setup_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -31585,8 +31543,7 @@ init_ue_msg_ies_container::init_ue_msg_ies_container() :
   ce_mode_b_support_ind(242, crit_e::ignore),
   dcn_id(246, crit_e::ignore),
   coverage_level(250, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE init_ue_msg_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 5;
@@ -48631,8 +48588,7 @@ kill_request_ies_container::kill_request_ies_container() :
   serial_num(112, crit_e::reject),
   warning_area_list(113, crit_e::ignore),
   kill_all_warning_msgs(191, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE kill_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -48746,8 +48702,7 @@ kill_resp_ies_container::kill_resp_ies_container() :
   serial_num(112, crit_e::reject),
   broadcast_cancelled_area_list(141, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE kill_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -48862,8 +48817,7 @@ location_report_ies_container::location_report_ies_container() :
   eutran_cgi(100, crit_e::ignore),
   tai(67, crit_e::ignore),
   request_type(98, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE location_report_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 5;
@@ -48975,8 +48929,7 @@ location_report_ctrl_ies_container::location_report_ctrl_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   request_type(98, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE location_report_ctrl_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -49070,8 +49023,7 @@ location_report_fail_ind_ies_container::location_report_fail_ind_ies_container()
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   cause(2, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE location_report_fail_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -49164,8 +49116,7 @@ template struct asn1::s1ap::protocol_ie_field_s<mmecp_relocation_ind_ies_o>;
 mmecp_relocation_ind_ies_container::mmecp_relocation_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE mmecp_relocation_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -49273,8 +49224,7 @@ mme_cfg_upd_ies_container::mme_cfg_upd_ies_container() :
   served_gummeis(105, crit_e::reject),
   relative_mme_capacity(87, crit_e::reject),
   served_dcns(247, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE mme_cfg_upd_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -49413,8 +49363,7 @@ mme_cfg_upd_fail_ies_container::mme_cfg_upd_fail_ies_container() :
   cause(2, crit_e::ignore),
   time_to_wait(65, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE mme_cfg_upd_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 1;
@@ -49540,8 +49489,7 @@ mme_status_transfer_ies_container::mme_status_transfer_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   enb_status_transfer_transparent_container(90, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE mme_status_transfer_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -49634,8 +49582,7 @@ template struct asn1::s1ap::protocol_ie_field_s<nas_delivery_ind_ies_o>;
 nas_delivery_ind_ies_container::nas_delivery_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE nas_delivery_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -49721,8 +49668,7 @@ nas_non_delivery_ind_ies_container::nas_non_delivery_ind_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
   nas_pdu(26, crit_e::ignore),
   cause(2, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE nas_non_delivery_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -49825,8 +49771,7 @@ overload_start_ies_container::overload_start_ies_container() :
   overload_resp(101, crit_e::reject),
   gummei_list(154, crit_e::ignore),
   traffic_load_reduction_ind(161, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE overload_start_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 1;
@@ -49951,8 +49896,7 @@ template struct asn1::s1ap::protocol_ie_field_s<pws_fail_ind_ies_o>;
 pws_fail_ind_ies_container::pws_fail_ind_ies_container() :
   pw_sfailed_ecgi_list(222, crit_e::reject),
   global_enb_id(59, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE pws_fail_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -50038,8 +49982,7 @@ pws_restart_ind_ies_container::pws_restart_ind_ies_container() :
   global_enb_id(59, crit_e::reject),
   tai_list_for_restart(188, crit_e::reject),
   emergency_area_id_list_for_restart(190, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE pws_restart_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -50159,8 +50102,7 @@ paging_ies_container::paging_ies_container() :
   nb_io_t_ue_id_idx_value(244, crit_e::ignore),
   enhanced_coverage_restricted(251, crit_e::ignore),
   ce_mode_brestricted(271, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE paging_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -50427,8 +50369,7 @@ path_switch_request_ies_container::path_switch_request_ies_container() :
   tunnel_info_for_bbf(176, crit_e::ignore),
   lhn_id(186, crit_e::ignore),
   rrc_resume_cause(245, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE path_switch_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 6;
@@ -50660,8 +50601,7 @@ path_switch_request_ack_ies_container::path_switch_request_ack_ies_container() :
   enhanced_coverage_restricted(251, crit_e::ignore),
   ce_mode_brestricted(271, crit_e::ignore),
   pending_data_ind(283, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE path_switch_request_ack_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -50938,8 +50878,7 @@ path_switch_request_fail_ies_container::path_switch_request_fail_ies_container()
   enb_ue_s1ap_id(8, crit_e::ignore),
   cause(2, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE path_switch_request_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -51046,8 +50985,7 @@ private_ie_container_item_s<valueT_>::private_ie_container_item_s(private_ie_id_
   id(id_),
   crit(crit_)
 
-{
-}
+{}
 template <class valueT_>
 SRSASN_CODE private_ie_container_item_s<valueT_>::pack(bit_ref& bref) const
 {
@@ -51142,8 +51080,7 @@ reroute_nas_request_ies_container::reroute_nas_request_ies_container() :
   mme_group_id(223, crit_e::reject),
   add_guti(224, crit_e::ignore),
   ue_usage_type(230, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE reroute_nas_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -51359,8 +51296,7 @@ template struct asn1::s1ap::protocol_ie_field_s<reset_ack_ies_o>;
 reset_ack_ies_container::reset_ack_ies_container() :
   ue_associated_lc_s1_conn_list_res_ack(93, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE reset_ack_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -51471,8 +51407,7 @@ s1_setup_fail_ies_container::s1_setup_fail_ies_container() :
   cause(2, crit_e::ignore),
   time_to_wait(65, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE s1_setup_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 1;
@@ -51580,8 +51515,7 @@ s1_setup_request_ies_container::s1_setup_request_ies_container() :
   csg_id_list(128, crit_e::reject),
   ue_retention_info(228, crit_e::ignore),
   nb_io_t_default_paging_drx(234, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE s1_setup_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -51735,8 +51669,7 @@ s1_setup_resp_ies_container::s1_setup_resp_ies_container() :
   crit_diagnostics(58, crit_e::ignore),
   ue_retention_info(228, crit_e::ignore),
   served_dcns(247, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE s1_setup_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -51892,8 +51825,7 @@ trace_fail_ind_ies_container::trace_fail_ind_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
   e_utran_trace_id(86, crit_e::ignore),
   cause(2, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE trace_fail_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -51996,8 +51928,7 @@ trace_start_ies_container::trace_start_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   trace_activation(25, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE trace_start_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -52092,8 +52023,7 @@ ue_cap_info_ind_ies_container::ue_cap_info_ind_ies_container() :
   enb_ue_s1ap_id(8, crit_e::reject),
   ue_radio_cap(74, crit_e::ignore),
   ue_radio_cap_for_paging(198, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_cap_info_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -52202,8 +52132,7 @@ ue_context_mod_confirm_ies_container::ue_context_mod_confirm_ies_container() :
   enb_ue_s1ap_id(8, crit_e::ignore),
   csg_membership_status(146, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_mod_confirm_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -52317,8 +52246,7 @@ ue_context_mod_fail_ies_container::ue_context_mod_fail_ies_container() :
   enb_ue_s1ap_id(8, crit_e::ignore),
   cause(2, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_mod_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -52426,8 +52354,7 @@ ue_context_mod_ind_ies_container::ue_context_mod_ind_ies_container() :
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   csg_membership_info(226, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE ue_context_mod_ind_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -52538,8 +52465,7 @@ ue_context_mod_request_ies_container::ue_context_mod_request_ies_container() :
   srvcc_operation_not_possible(243, crit_e::ignore),
   v2xservices_authorized(240, crit_e::ignore),
   ue_sidelink_aggregate_maximum_bitrate(248, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_mod_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -52806,8 +52732,7 @@ ue_context_mod_resp_ies_container::ue_context_mod_resp_ies_container() :
   mme_ue_s1ap_id(0, crit_e::ignore),
   enb_ue_s1ap_id(8, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_mod_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -52905,8 +52830,7 @@ template struct asn1::s1ap::protocol_ie_field_s<ue_context_release_cmd_ies_o>;
 ue_context_release_cmd_ies_container::ue_context_release_cmd_ies_container() :
   ue_s1ap_ids(99, crit_e::reject),
   cause(2, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_release_cmd_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -52994,8 +52918,7 @@ ue_context_release_complete_ies_container::ue_context_release_complete_ies_conta
   user_location_info(189, crit_e::ignore),
   info_on_recommended_cells_and_enbs_for_paging(213, crit_e::ignore),
   cell_id_and_ce_level_for_ce_capable_ues(212, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_release_complete_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -53137,8 +53060,7 @@ ue_context_release_request_ies_container::ue_context_release_request_ies_contain
   enb_ue_s1ap_id(8, crit_e::reject),
   cause(2, crit_e::ignore),
   gw_context_release_ind(164, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE ue_context_release_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -53247,8 +53169,7 @@ ue_context_resume_fail_ies_container::ue_context_resume_fail_ies_container() :
   enb_ue_s1ap_id(8, crit_e::ignore),
   cause(2, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_resume_fail_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -53357,8 +53278,7 @@ ue_context_resume_request_ies_container::ue_context_resume_request_ies_container
   enb_ue_s1ap_id(8, crit_e::reject),
   erab_failed_to_resume_list_resume_req(235, crit_e::reject),
   rrc_resume_cause(245, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_resume_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -53474,8 +53394,7 @@ ue_context_resume_resp_ies_container::ue_context_resume_resp_ies_container() :
   crit_diagnostics(58, crit_e::ignore),
   security_context(40, crit_e::reject),
   pending_data_ind(283, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_resume_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -53617,8 +53536,7 @@ ue_context_suspend_request_ies_container::ue_context_suspend_request_ies_contain
   enb_ue_s1ap_id(8, crit_e::reject),
   info_on_recommended_cells_and_enbs_for_paging(213, crit_e::ignore),
   cell_id_and_ce_level_for_ce_capable_ues(212, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_context_suspend_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -53732,8 +53650,7 @@ ue_context_suspend_resp_ies_container::ue_context_suspend_resp_ies_container() :
   enb_ue_s1ap_id(8, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore),
   security_context(40, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE ue_context_suspend_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -53847,8 +53764,7 @@ ue_info_transfer_ies_container::ue_info_transfer_ies_container() :
   ue_level_qos_params(252, crit_e::ignore),
   ue_radio_cap(74, crit_e::ignore),
   pending_data_ind(283, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_info_transfer_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 1;
@@ -53966,8 +53882,7 @@ ue_radio_cap_match_request_ies_container::ue_radio_cap_match_request_ies_contain
   mme_ue_s1ap_id(0, crit_e::reject),
   enb_ue_s1ap_id(8, crit_e::reject),
   ue_radio_cap(74, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_radio_cap_match_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -54067,8 +53982,7 @@ ue_radio_cap_match_resp_ies_container::ue_radio_cap_match_resp_ies_container() :
   enb_ue_s1ap_id(8, crit_e::ignore),
   voice_support_match_ind(169, crit_e::reject),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ue_radio_cap_match_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 3;
@@ -54181,8 +54095,7 @@ ul_nas_transport_ies_container::ul_nas_transport_ies_container() :
   gw_transport_layer_address(155, crit_e::ignore),
   sipto_l_gw_transport_layer_address(184, crit_e::ignore),
   lhn_id(186, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ul_nas_transport_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 5;
@@ -54335,8 +54248,7 @@ template struct asn1::s1ap::protocol_ie_field_s<ul_non_ueassociated_lp_pa_transp
 ul_non_ueassociated_lp_pa_transport_ies_container::ul_non_ueassociated_lp_pa_transport_ies_container() :
   routing_id(148, crit_e::reject),
   lp_pa_pdu(147, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE ul_non_ueassociated_lp_pa_transport_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -54427,8 +54339,7 @@ ul_s1cdma2000tunnelling_ies_container::ul_s1cdma2000tunnelling_ies_container() :
   cdma2000_one_xrand(97, crit_e::reject),
   cdma2000_pdu(70, crit_e::reject),
   eutran_round_trip_delay_estimation_info(140, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE ul_s1cdma2000tunnelling_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 5;
@@ -54597,8 +54508,7 @@ ul_ueassociated_lp_pa_transport_ies_container::ul_ueassociated_lp_pa_transport_i
   enb_ue_s1ap_id(8, crit_e::reject),
   routing_id(148, crit_e::reject),
   lp_pa_pdu(147, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE ul_ueassociated_lp_pa_transport_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -54709,8 +54619,7 @@ write_replace_warning_request_ies_container::write_replace_warning_request_ies_c
   data_coding_scheme(118, crit_e::ignore),
   warning_msg_contents(119, crit_e::ignore),
   concurrent_warning_msg_ind(142, crit_e::reject)
-{
-}
+{}
 SRSASN_CODE write_replace_warning_request_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 4;
@@ -54912,8 +54821,7 @@ write_replace_warning_resp_ies_container::write_replace_warning_resp_ies_contain
   serial_num(112, crit_e::reject),
   broadcast_completed_area_list(120, crit_e::ignore),
   crit_diagnostics(58, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE write_replace_warning_resp_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 2;
@@ -58113,8 +58021,7 @@ template struct asn1::s1ap::protocol_ext_field_s<last_visited_eutran_cell_info_e
 last_visited_eutran_cell_info_ext_ies_container::last_visited_eutran_cell_info_ext_ies_container() :
   time_ue_stayed_in_cell_enhanced_granularity(167, crit_e::ignore),
   ho_cause(168, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE last_visited_eutran_cell_info_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
@@ -59747,8 +59654,7 @@ sourceenb_to_targetenb_transparent_container_ext_ies_container::
     sourceenb_to_targetenb_transparent_container_ext_ies_container() :
   mob_info(175, crit_e::ignore),
   ue_history_info_from_the_ue(194, crit_e::ignore)
-{
-}
+{}
 SRSASN_CODE sourceenb_to_targetenb_transparent_container_ext_ies_container::pack(bit_ref& bref) const
 {
   uint32_t nof_ies = 0;
