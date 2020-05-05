@@ -29,61 +29,6 @@
 #include <chrono>
 #include <unordered_map>
 
-struct tti_counter {
-  tti_counter() = default;
-  void         set_start_tti(uint32_t tti_) { counter = tti_; }
-  uint32_t     tti_rx() const { return counter % 10240u; }
-  tti_counter  tic_tx_dl() const { return tti_counter{counter + FDD_HARQ_DELAY_UL_MS}; }
-  tti_counter  tic_tx_ul() const { return tti_counter{counter + FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS}; }
-  bool         operator==(const tti_counter& other) const { return counter == other.counter; }
-  bool         operator!=(const tti_counter& other) const { return counter != other.counter; }
-  bool         operator<(const tti_counter& other) const { return counter < other.counter; }
-  bool         operator<=(const tti_counter& other) const { return counter <= other.counter; }
-  bool         operator>=(const tti_counter& other) const { return counter >= other.counter; }
-  bool         operator>(const tti_counter& other) const { return counter > other.counter; }
-  uint32_t     operator-(const tti_counter& other) const { return counter - other.counter; }
-  tti_counter& operator-=(uint32_t jump)
-  {
-    counter -= jump;
-    return *this;
-  }
-  tti_counter& operator+=(uint32_t jump)
-  {
-    counter += jump;
-    return *this;
-  }
-  tti_counter& operator+=(int32_t jump)
-  {
-    counter += jump;
-    return *this;
-  }
-  tti_counter& operator++() { return this->operator+=(1); }
-  tti_counter  operator+(int32_t jump) { return tti_counter{counter + jump}; }
-  tti_counter  operator++(int) { return tti_counter{++counter}; }
-  bool         is_valid() const { return counter != std::numeric_limits<uint32_t>::max(); }
-  uint32_t     total_count() const { return counter; }
-
-private:
-  explicit tti_counter(uint32_t c_) : counter(c_) {}
-  uint32_t counter = std::numeric_limits<uint32_t>::max();
-};
-
-/***************************
- *   Function helpers
- **************************/
-
-template <class MapContainer, class Predicate>
-void erase_if(MapContainer& c, Predicate should_remove)
-{
-  for (auto it = c.begin(); it != c.end();) {
-    if (should_remove(*it)) {
-      it = c.erase(it);
-    } else {
-      ++it;
-    }
-  }
-}
-
 /*****************************
  * Setup Sched Configuration
  ****************************/
@@ -134,6 +79,13 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
  *       Event Types
  ****************************/
 
+//! Struct with ue_cfg_t params used by the scheduler, and params used in its behavior simulation
+struct ue_ctxt_test_cfg {
+  bool                              periodic_cqi = false;
+  uint32_t                          cqi_Npd = 10, cqi_Noffset = 5; // CQI reporting
+  srsenb::sched_interface::ue_cfg_t ue_cfg;
+};
+
 // Struct that represents all the events that take place in a TTI
 struct tti_ev {
   struct user_buffer_ev {
@@ -143,7 +95,7 @@ struct tti_ev {
   };
   struct user_cfg_ev {
     uint16_t                                                  rnti;
-    std::unique_ptr<srsenb::sched_interface::ue_cfg_t>        ue_cfg;           ///< optional ue_cfg call
+    std::unique_ptr<ue_ctxt_test_cfg>                         ue_sim_cfg;       ///< optional ue_cfg call
     std::unique_ptr<srsenb::sched_interface::ue_bearer_cfg_t> bearer_cfg;       ///< optional bearer_cfg call
     std::unique_ptr<user_buffer_ev>                           buffer_ev;        ///< update of a user dl/ul buffer
     bool                                                      rem_user = false; ///< whether to remove a ue
@@ -154,10 +106,9 @@ struct tti_ev {
 struct sim_sched_args {
   uint32_t                                         start_tti = 0;
   float                                            P_retx;
-  srsenb::sched_interface::ue_cfg_t                ue_cfg;
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg;
-  srslte::log*                                     sim_log         = nullptr;
-  enum class cqi_gen_policy_t { none, periodic_random } cqi_policy = cqi_gen_policy_t::none;
+  srslte::log*                                     sim_log = nullptr;
+  ue_ctxt_test_cfg                                 default_ue_sim_cfg;
 };
 
 // generate all events up front
@@ -213,7 +164,9 @@ struct sched_sim_event_generator {
     auto& user = user_updates.back();
     user.rnti  = next_rnti++;
     // creates a user with one supported CC (PRACH stage)
-    user.ue_cfg.reset(new srsenb::sched_interface::ue_cfg_t{generate_default_ue_cfg()});
+    ue_ctxt_test_cfg ue_sim_cfg{};
+    ue_sim_cfg.ue_cfg = generate_default_ue_cfg();
+    user.ue_sim_cfg.reset(new ue_ctxt_test_cfg{ue_sim_cfg});
     auto& u        = current_users[user.rnti];
     u.rnti         = user.rnti;
     u.tti_start    = tti_counter;
@@ -249,9 +202,11 @@ struct sched_sim_event_generator {
       return nullptr;
     }
     tti_ev::user_cfg_ev* user = get_user_cfg(rnti);
-    user->ue_cfg.reset(new srsenb::sched_interface::ue_cfg_t{generate_default_ue_cfg()});
+    ue_ctxt_test_cfg     ue_sim_cfg{};
+    ue_sim_cfg.ue_cfg = generate_default_ue_cfg();
+    user->ue_sim_cfg.reset(new ue_ctxt_test_cfg{ue_sim_cfg});
     // it should by now have a DRB1. Add other DRBs manually
-    user->ue_cfg->ue_bearers[2].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    user->ue_sim_cfg->ue_cfg.ue_bearers[2].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
     return user;
   }
 

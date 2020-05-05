@@ -57,7 +57,7 @@ sim_sched_args generate_default_sim_args(uint32_t nof_prb, uint32_t nof_ccs)
 
   sim_args.P_retx = 0.1;
 
-  sim_args.ue_cfg = generate_default_ue_cfg();
+  sim_args.default_ue_sim_cfg.ue_cfg = generate_default_ue_cfg();
 
   // setup two cells
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg(nof_ccs, generate_default_cell_cfg(nof_prb));
@@ -71,10 +71,10 @@ sim_sched_args generate_default_sim_args(uint32_t nof_prb, uint32_t nof_ccs)
   sim_args.cell_cfg                                  = std::move(cell_cfg);
 
   /* Setup Derived Params */
-  sim_args.ue_cfg.supported_cc_list.resize(nof_ccs);
-  for (uint32_t i = 0; i < sim_args.ue_cfg.supported_cc_list.size(); ++i) {
-    sim_args.ue_cfg.supported_cc_list[i].active     = true;
-    sim_args.ue_cfg.supported_cc_list[i].enb_cc_idx = i;
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list.resize(nof_ccs);
+  for (uint32_t i = 0; i < sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list.size(); ++i) {
+    sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[i].active     = true;
+    sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[i].enb_cc_idx = i;
   }
 
   return sim_args;
@@ -125,9 +125,9 @@ int test_scell_activation(test_scell_activation_params params)
 
   // Event PRACH: PRACH takes place for "rnti1", and carrier "pcell_idx"
   generator.step_until(prach_tti);
-  tti_ev::user_cfg_ev* user                     = generator.add_new_default_user(duration);
-  user->ue_cfg->supported_cc_list[0].enb_cc_idx = cc_idxs[0];
-  user->rnti                                    = rnti1;
+  tti_ev::user_cfg_ev* user                                = generator.add_new_default_user(duration);
+  user->ue_sim_cfg->ue_cfg.supported_cc_list[0].enb_cc_idx = cc_idxs[0];
+  user->rnti                                               = rnti1;
   tester.test_next_ttis(generator.tti_events);
   TESTASSERT(tester.ue_tester->user_exists(rnti1));
 
@@ -166,12 +166,13 @@ int test_scell_activation(test_scell_activation_params params)
 
   // Event: Reconf Complete. Activate SCells. Check if CE correctly transmitted
   generator.step_tti();
-  user          = generator.user_reconf(rnti1);
-  *user->ue_cfg = *tester.get_current_ue_cfg(rnti1); // use current cfg as starting point, and add more supported ccs
-  user->ue_cfg->supported_cc_list.resize(nof_ccs);
-  for (uint32_t i = 0; i < user->ue_cfg->supported_cc_list.size(); ++i) {
-    user->ue_cfg->supported_cc_list[i].active     = true;
-    user->ue_cfg->supported_cc_list[i].enb_cc_idx = cc_idxs[i];
+  user = generator.user_reconf(rnti1);
+  user->ue_sim_cfg->ue_cfg =
+      *tester.get_current_ue_cfg(rnti1); // use current cfg as starting point, and add more supported ccs
+  user->ue_sim_cfg->ue_cfg.supported_cc_list.resize(nof_ccs);
+  for (uint32_t i = 0; i < user->ue_sim_cfg->ue_cfg.supported_cc_list.size(); ++i) {
+    user->ue_sim_cfg->ue_cfg.supported_cc_list[i].active     = true;
+    user->ue_sim_cfg->ue_cfg.supported_cc_list[i].enb_cc_idx = cc_idxs[i];
   }
   tester.test_next_ttis(generator.tti_events);
   auto activ_list = tester.get_enb_ue_cc_map(rnti1);

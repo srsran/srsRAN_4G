@@ -305,9 +305,8 @@ int output_sched_tester::test_all(const tti_params_t&                    tti_par
 ue_ctxt_test::ue_ctxt_test(uint16_t                                      rnti_,
                            uint32_t                                      preamble_idx_,
                            srslte::tti_point                             prach_tti_,
-                           const sched::ue_cfg_t&                        ue_cfg_,
-                           const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
-                           const ue_ctxt_test_cfg&                       cfg_) :
+                           const ue_ctxt_test_cfg&                       cfg_,
+                           const std::vector<srsenb::sched::cell_cfg_t>& cell_params_) :
   sim_cfg(cfg_),
   rnti(rnti_),
   prach_tti(prach_tti_),
@@ -315,7 +314,7 @@ ue_ctxt_test::ue_ctxt_test(uint16_t                                      rnti_,
   cell_params(cell_params_),
   current_tti_rx(prach_tti_)
 {
-  set_cfg(ue_cfg_);
+  set_cfg(cfg_.ue_cfg);
 }
 
 int ue_ctxt_test::set_cfg(const sched::ue_cfg_t& ue_cfg_)
@@ -730,17 +729,13 @@ void user_state_sched_tester::new_tti(sched* sched_ptr, uint32_t tti_rx)
   }
 }
 
-int user_state_sched_tester::add_user(uint16_t                                 rnti,
-                                      uint32_t                                 preamble_idx,
-                                      const srsenb::sched_interface::ue_cfg_t& ue_cfg,
-                                      const ue_ctxt_test_cfg&                  cfg_)
+int user_state_sched_tester::add_user(uint16_t rnti, uint32_t preamble_idx, const ue_ctxt_test_cfg& cfg_)
 {
   CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
-                cell_params[ue_cfg.supported_cc_list[0].enb_cc_idx].prach_config, tic.tti_rx(), -1),
+                cell_params[cfg_.ue_cfg.supported_cc_list[0].enb_cc_idx].prach_config, tic.to_uint(), -1),
             "New user added in a non-PRACH TTI\n");
   TESTASSERT(users.count(rnti) == 0);
-  ue_ctxt_test_cfg cfg;
-  ue_ctxt_test     ue{rnti, preamble_idx, srslte::tti_point{tic.tti_rx()}, ue_cfg, cell_params, cfg_};
+  ue_ctxt_test ue{rnti, preamble_idx, srslte::tti_point{tic.to_uint()}, cfg_, cell_params};
   users.insert(std::make_pair(rnti, ue));
   return SRSLTE_SUCCESS;
 }
@@ -890,9 +885,9 @@ int common_sched_tester::sim_cfg(sim_sched_args args)
   return SRSLTE_SUCCESS;
 }
 
-int common_sched_tester::add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_)
+int common_sched_tester::add_user(uint16_t rnti, const ue_ctxt_test_cfg& ue_cfg_)
 {
-  CONDERROR(ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
+  CONDERROR(ue_cfg(rnti, ue_cfg_.ue_cfg) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
   //        CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
   //            sched_cell_params[CARRIER_IDX].cfg.prach_config, tti_info.tti_params.tti_rx, -1),
   //                  "New user added in a non-PRACH TTI\n");
@@ -902,12 +897,10 @@ int common_sched_tester::add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_)
   rar_info.temp_crnti          = rnti;
   rar_info.msg3_size           = 7;
   rar_info.preamble_idx        = tti_info.nof_prachs++;
-  uint32_t pcell_idx           = ue_cfg_.supported_cc_list[0].enb_cc_idx;
+  uint32_t pcell_idx           = ue_cfg_.ue_cfg.supported_cc_list[0].enb_cc_idx;
   dl_rach_info(pcell_idx, rar_info);
 
-  ue_ctxt_test_cfg ue_sim_cfg{};
-  ue_sim_cfg.periodic_cqi = sim_args0.cqi_policy == sim_sched_args::cqi_gen_policy_t::periodic_random;
-  ue_tester->add_user(rnti, rar_info.preamble_idx, ue_cfg_, ue_sim_cfg);
+  ue_tester->add_user(rnti, rar_info.preamble_idx, ue_cfg_);
 
   tester_log->info("Adding user rnti=0x%x\n", rnti);
   return SRSLTE_SUCCESS;
@@ -923,12 +916,12 @@ void common_sched_tester::rem_user(uint16_t rnti)
 void common_sched_tester::new_test_tti()
 {
   if (not tic.is_valid()) {
-    tic.set_start_tti(sim_args0.start_tti);
+    tic = srslte::tti_point{sim_args0.start_tti};
   } else {
     tic++;
   }
 
-  tti_info.tti_params = tti_params_t{tic.tti_rx()};
+  tti_info.tti_params = tti_params_t{tic.to_uint()};
   tti_info.nof_prachs = 0;
   tti_info.dl_sched_result.clear();
   tti_info.ul_sched_result.clear();
@@ -954,14 +947,14 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 {
   for (const tti_ev::user_cfg_ev& ue_ev : tti_ev.user_updates) {
     // There is a new configuration
-    if (ue_ev.ue_cfg != nullptr) {
+    if (ue_ev.ue_sim_cfg != nullptr) {
       if (not ue_tester->user_exists(ue_ev.rnti)) {
         // new user
-        TESTASSERT(add_user(ue_ev.rnti, *ue_ev.ue_cfg) == SRSLTE_SUCCESS);
+        TESTASSERT(add_user(ue_ev.rnti, *ue_ev.ue_sim_cfg) == SRSLTE_SUCCESS);
       } else {
         // reconfiguration
-        TESTASSERT(ue_cfg(ue_ev.rnti, *ue_ev.ue_cfg) == SRSLTE_SUCCESS);
-        ue_tester->user_reconf(ue_ev.rnti, *ue_ev.ue_cfg);
+        TESTASSERT(ue_cfg(ue_ev.rnti, ue_ev.ue_sim_cfg->ue_cfg) == SRSLTE_SUCCESS);
+        ue_tester->user_reconf(ue_ev.rnti, ue_ev.ue_sim_cfg->ue_cfg);
       }
     }
 
@@ -979,8 +972,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 
     auto* user = ue_tester->get_user_ctxt(ue_ev.rnti);
 
-    if (user != nullptr and not user->msg4_tti.is_valid() and user->msg3_tti.is_valid() and
-        user->msg3_tti.to_uint() <= tic.tti_rx()) {
+    if (user != nullptr and not user->msg4_tti.is_valid() and user->msg3_tti.is_valid() and user->msg3_tti <= tic) {
       // Msg3 has been received but Msg4 has not been yet transmitted
       uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
       if (pending_dl_new_data == 0) {
@@ -1030,7 +1022,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
 int common_sched_tester::run_tti(const tti_ev& tti_events)
 {
   new_test_tti();
-  tester_log->info("---- tti=%u | nof_ues=%zd ----\n", tic.tti_rx(), ue_db.size());
+  tester_log->info("---- tti=%u | nof_ues=%zd ----\n", tic.to_uint(), ue_db.size());
 
   ue_tester->new_tti(this, tti_info.tti_params.tti_rx);
   process_tti_events(tti_events);
@@ -1047,15 +1039,14 @@ int common_sched_tester::run_tti(const tti_ev& tti_events)
   }
 
   process_results();
+  tti_count++;
   return SRSLTE_SUCCESS;
 }
 
 int common_sched_tester::test_next_ttis(const std::vector<tti_ev>& tti_events)
 {
-  uint32_t next_idx = tic.is_valid() ? tic.total_count() - sim_args0.start_tti + 1 : 0;
-
-  for (; next_idx < tti_events.size(); ++next_idx) {
-    TESTASSERT(run_tti(tti_events[next_idx]) == SRSLTE_SUCCESS);
+  while (tti_count < tti_events.size()) {
+    TESTASSERT(run_tti(tti_events[tti_count]) == SRSLTE_SUCCESS);
   }
   return SRSLTE_SUCCESS;
 }

@@ -83,11 +83,6 @@ private:
 using dl_sched_res_list = std::vector<sched_interface::dl_sched_res_t>;
 using ul_sched_res_list = std::vector<sched_interface::ul_sched_res_t>;
 
-struct ue_ctxt_test_cfg {
-  bool     periodic_cqi = false;
-  uint32_t cqi_Npd = 10, cqi_Noffset = std::uniform_int_distribution<uint32_t>{0, 10}(get_rand_gen()); // CQI reporting
-};
-
 struct ue_ctxt_test {
   // args
   srslte::log_ref    log_h{"TEST"};
@@ -129,9 +124,8 @@ struct ue_ctxt_test {
   ue_ctxt_test(uint16_t                                      rnti_,
                uint32_t                                      preamble_idx_,
                srslte::tti_point                             prach_tti,
-               const sched::ue_cfg_t&                        ue_cfg_,
-               const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
-               const ue_ctxt_test_cfg&                       cfg_);
+               const ue_ctxt_test_cfg&                       cfg_,
+               const std::vector<srsenb::sched::cell_cfg_t>& cell_params_);
 
   int              set_cfg(const sched::ue_cfg_t& ue_cfg_);
   cc_ue_ctxt_test* get_cc_state(uint32_t enb_cc_idx);
@@ -187,10 +181,7 @@ public:
   }
 
   /* Config users */
-  int  add_user(uint16_t                                 rnti,
-                uint32_t                                 preamble_idx,
-                const srsenb::sched_interface::ue_cfg_t& ue_cfg,
-                const ue_ctxt_test_cfg&                  cfg);
+  int  add_user(uint16_t rnti, uint32_t preamble_idx, const ue_ctxt_test_cfg& cfg);
   int  user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
   int  bearer_cfg(uint16_t rnti, uint32_t lcid, const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg);
   void rem_user(uint16_t rnti);
@@ -208,7 +199,7 @@ private:
   const std::vector<srsenb::sched::cell_cfg_t>& cell_params;
 
   std::map<uint16_t, ue_ctxt_test> users;
-  tti_counter                      tic;
+  srslte::tti_point                tic;
 };
 
 class sched_result_stats
@@ -252,7 +243,7 @@ public:
   const ue_cfg_t* get_current_ue_cfg(uint16_t rnti) const;
 
   int          sim_cfg(sim_sched_args args);
-  virtual int  add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_);
+  virtual int  add_user(uint16_t rnti, const ue_ctxt_test_cfg& ue_cfg_);
   virtual void rem_user(uint16_t rnti);
   virtual int  process_results();
   int          process_tti_events(const tti_ev& tti_ev);
@@ -265,8 +256,9 @@ public:
   srslte::log*   tester_log = nullptr;
 
   // tti specific params
-  tti_info_t  tti_info;
-  tti_counter tic;
+  tti_info_t        tti_info;
+  srslte::tti_point tic;
+  uint32_t          tti_count = 0;
 
   // testers
   std::vector<output_sched_tester>         output_tester;
