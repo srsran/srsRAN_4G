@@ -591,7 +591,7 @@ void demod_64qam_lte_b_neon(const cf_t* symbols, int8_t* llr, int nsymbols)
 
 #ifdef LV_HAVE_SSE
 
-void demod_64qam_lte_s_sse(const cf_t* symbols, short* llr, int nsymbols)
+static void demod_64qam_lte_s_sse(const cf_t* symbols, int16_t* llr, int nsymbols)
 {
   float*   symbolsPtr = (float*)symbols;
   __m128i* resultPtr  = (__m128i*)llr;
@@ -652,16 +652,19 @@ void demod_64qam_lte_s_sse(const cf_t* symbols, short* llr, int nsymbols)
     _mm_store_si128(resultPtr, _mm_or_si128(_mm_or_si128(result31, result32), result33));
     resultPtr++;
   }
+
+  const int16_t threshold1 = 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+  const int16_t threshold2 = 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
   for (int i = 4 * (nsymbols / 4); i < nsymbols; i++) {
-    float yre = (short)(SCALE_SHORT_CONV_QAM64 * crealf(symbols[i]));
-    float yim = (short)(SCALE_SHORT_CONV_QAM64 * cimagf(symbols[i]));
+    int16_t yre = SCALE_SHORT_CONV_QAM64 * crealf(symbols[i]);
+    int16_t yim = SCALE_SHORT_CONV_QAM64 * cimagf(symbols[i]);
 
     llr[6 * i + 0] = -yre;
     llr[6 * i + 1] = -yim;
-    llr[6 * i + 2] = fabs(yre) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
-    llr[6 * i + 3] = fabs(yim) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
-    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
-    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 2] = (int16_t)abs(yre) - threshold1;
+    llr[6 * i + 3] = (int16_t)abs(yim) - threshold1;
+    llr[6 * i + 4] = (int16_t)abs(llr[6 * i + 2]) - threshold2;
+    llr[6 * i + 5] = (int16_t)abs(llr[6 * i + 3]) - threshold2;
   }
 }
 
@@ -735,16 +738,19 @@ void demod_64qam_lte_b_sse(const cf_t* symbols, int8_t* llr, int nsymbols)
     _mm_store_si128(resultPtr, _mm_or_si128(_mm_or_si128(result31, result32), result33));
     resultPtr++;
   }
+
+  const int8_t threshold1 = 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+  const int8_t threshold2 = 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
   for (int i = 8 * (nsymbols / 8); i < nsymbols; i++) {
-    float yre = (int8_t)(SCALE_BYTE_CONV_QAM64 * crealf(symbols[i]));
-    float yim = (int8_t)(SCALE_BYTE_CONV_QAM64 * cimagf(symbols[i]));
+    int8_t yre = SCALE_BYTE_CONV_QAM64 * crealf(symbols[i]);
+    int8_t yim = SCALE_BYTE_CONV_QAM64 * cimagf(symbols[i]);
 
     llr[6 * i + 0] = -yre;
     llr[6 * i + 1] = -yim;
-    llr[6 * i + 2] = fabs(yre) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
-    llr[6 * i + 3] = fabs(yim) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
-    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
-    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 2] = (int8_t)abs(yre) - threshold1;
+    llr[6 * i + 3] = (int8_t)abs(yim) - threshold1;
+    llr[6 * i + 4] = (int8_t)abs(llr[6 * i + 2]) - threshold2;
+    llr[6 * i + 5] = (int8_t)abs(llr[6 * i + 3]) - threshold2;
   }
 }
 
