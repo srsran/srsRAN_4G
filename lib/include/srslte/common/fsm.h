@@ -97,10 +97,27 @@ using fsm_state_list_type = decltype(std::declval<typename FSM::derived_view>().
 template <typename FSM>
 using fsm_transitions = typename FSM::derived_view::transitions;
 
-template <typename T>
-using enter_op_t = decltype(std::declval<T>().enter(nullptr));
-template <typename T>
-using exit_op_t = decltype(std::declval<T>().exit(nullptr));
+//! Detection of enter/exit methods of a state.
+template <typename FSM, typename State>
+auto call_enter(FSM* f, State* s) -> decltype(s->enter(f), std::true_type{})
+{
+  s->enter(f);
+  return std::true_type{};
+}
+auto call_enter(...) -> std::false_type
+{
+  return {};
+}
+template <typename FSM, typename State>
+auto call_exit(FSM* f, State* s) -> decltype(s->exit(f), std::true_type{})
+{
+  s->exit(f);
+  return std::true_type{};
+}
+auto call_exit(...) -> std::false_type
+{
+  return {};
+}
 
 //! Find State in FSM recursively (e.g. find State in FSM,FSM::parentFSM,FSM::parentFSM::parentFSM,...)
 template <typename State, typename FSM>
@@ -128,8 +145,8 @@ struct state_traits {
   static_assert(FSM::template can_hold_state<State>(), "FSM type does not hold provided State\n");
   using state_t   = State;
   using is_subfsm = std::integral_constant<bool, ::srslte::fsm_details::is_subfsm<State>()>;
-  using has_enter = type_utils::is_detected<enter_op_t, State>;
-  using has_exit  = type_utils::is_detected<exit_op_t, State>;
+  using has_enter = decltype(fsm_details::call_enter((FSM*)nullptr, (State*)nullptr));
+  using has_exit  = decltype(fsm_details::call_exit((FSM*)nullptr, (State*)nullptr));
 
   //! enter new state. enter is called recursively for subFSMs
   static void enter_state(FSM* f, State* s) { enter_(f, s, is_subfsm{}); }
@@ -137,7 +154,7 @@ struct state_traits {
   template <typename DestState>
   static enable_if_fsm_state<FSM, DestState> transit_state(FSM* f)
   {
-    exit_if_exists_(f, &f->states.template get_unchecked<State>(), has_exit{});
+    call_exit(f, &f->states.template get_unchecked<State>());
     f->states.template transit<DestState>();
     state_traits<FSM, DestState>::enter_state(f, &f->states.template get_unchecked<DestState>());
   }
@@ -145,7 +162,7 @@ struct state_traits {
   static disable_if_fsm_state<FSM, DestState> transit_state(FSM* f)
   {
     using parent_state_traits = state_traits<typename FSM::parent_t::derived_view, typename FSM::derived_t>;
-    exit_if_exists_(f, &f->states.template get_unchecked<State>(), has_exit{});
+    call_exit(f, &f->states.template get_unchecked<State>());
     parent_state_traits::template transit_state<DestState>(get_derived(f->parent_fsm()));
   }
 
@@ -157,17 +174,13 @@ private:
     // set default FSM type
     get_derived(s)->states.template transit<init_type>();
     // call FSM enter function
-    enter_if_exists_(f, s, has_enter{});
+    call_enter(f, s);
     // call initial substate enter
     state_traits<typename State::derived_view, init_type>::enter_state(
         get_derived(s), &get_derived(s)->states.template get_unchecked<init_type>());
   }
   //! In case of State is basic state
-  static void enter_(FSM* f, State* s, std::false_type) { enter_if_exists_(f, s, has_enter{}); }
-  static void enter_if_exists_(FSM* f, State* s, std::true_type) { s->enter(f); }
-  static void enter_if_exists_(FSM* f, State* s, std::false_type) {}
-  static void exit_if_exists_(FSM* f, State* s, std::true_type) { s->exit(f); }
-  static void exit_if_exists_(FSM* f, State* s, std::false_type) {}
+  static void enter_(FSM* f, State* s, std::false_type) { call_enter(f, s); }
 };
 
 //! Trigger Event reaction for the first Row for which the Guard passes

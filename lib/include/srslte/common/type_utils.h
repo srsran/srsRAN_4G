@@ -209,37 +209,6 @@ struct filter<Predicate> {
   using type = type_list<>;
 };
 
-/**************************
- *    Detect Pattern
- *************************/
-
-template <typename...>
-using voider = void;
-
-template <class Default, class AlwaysVoid, template <class...> class Op, class... Args>
-struct detector {
-  using value_t = std::false_type;
-  using type    = Default;
-};
-
-template <class Default, template <class...> class Op, class... Args>
-struct detector<Default, voider<Op<Args...> >, Op, Args...> {
-  using value_t = std::true_type;
-  using type    = Op<Args...>;
-};
-
-template <template <class...> class Op, class... Args>
-using is_detected = typename detector<std::false_type, void, Op, Args...>::value_t;
-
-template <template <class...> class Op, class... Args>
-using detected_t = typename detector<std::false_type, void, Op, Args...>::type;
-
-template <class Default, template <class...> class Op, class... Args>
-using detected_or = detector<Default, void, Op, Args...>;
-
-template <bool Condition, typename T = void>
-using enable_if_t = typename std::enable_if<Condition, T>::type;
-
 } // namespace type_utils
 
 /************************************
