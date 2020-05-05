@@ -41,7 +41,7 @@ public:
 #define THROW_BAD_ACCESS(msg) throw bad_type_access{msg};
 #else
 #define THROW_BAD_ACCESS(msg)                                                                                          \
-  fprintf(stderr, "ERROR: exception thrown at %s", msg);                                                               \
+  fprintf(stderr, "ERROR: exception thrown with %s", msg);                                                             \
   std::abort()
 #endif
 

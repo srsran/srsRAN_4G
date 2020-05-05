@@ -22,12 +22,12 @@
 #ifndef SRSLTE_EXPECTED_H
 #define SRSLTE_EXPECTED_H
 
+#include "type_utils.h"
 #include <memory>
 
 namespace srslte {
 
-struct default_error_t {
-};
+struct default_error_t {};
 
 template <typename T, typename E = default_error_t>
 class expected
@@ -103,16 +103,64 @@ public:
       unexpected = std::forward<U>(other);
     }
   }
-            operator bool() const { return has_value(); }
-  bool      has_value() const { return has_val; }
-  const T&  value() const& { return val; }
-  T&        value() & { return val; }
-  T&&       value() && { return std::move(val); }
-  const T&& value() const&& { return std::move(val); }
-  const E&  error() const& { return unexpected; }
-  E&        error() & { return unexpected; }
-  E&&       error() && { return std::move(unexpected); }
-  const E&& error() const&& { return std::move(unexpected); }
+           operator bool() const { return has_value(); }
+  bool     has_value() const { return has_val; }
+  const T& value() const&
+  {
+    if (not has_val) {
+      THROW_BAD_ACCESS("Bad expected value access");
+    }
+    return val;
+  }
+  T& value() &
+  {
+    if (not has_val) {
+      THROW_BAD_ACCESS("Bad expected value access");
+    }
+    return val;
+  }
+  T&& value() &&
+  {
+    if (not has_val) {
+      THROW_BAD_ACCESS("Bad expected value access");
+    }
+    return std::move(val);
+  }
+  const T&& value() const&&
+  {
+    if (not has_val) {
+      THROW_BAD_ACCESS("Bad expected value access");
+    }
+    return std::move(val);
+  }
+  const E& error() const&
+  {
+    if (has_val) {
+      THROW_BAD_ACCESS("Bad expected error access");
+    }
+    return unexpected;
+  }
+  E& error() &
+  {
+    if (has_val) {
+      THROW_BAD_ACCESS("Bad expected error access");
+    }
+    return unexpected;
+  }
+  E&& error() &&
+  {
+    if (has_val) {
+      THROW_BAD_ACCESS("Bad expected error access");
+    }
+    return std::move(unexpected);
+  }
+  const E&& error() const&&
+  {
+    if (has_val) {
+      THROW_BAD_ACCESS("Bad expected error access");
+    }
+    return std::move(unexpected);
+  }
 
   void swap(expected& other) noexcept
   {
