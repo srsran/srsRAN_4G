@@ -307,7 +307,7 @@ private:
   void queue_tx_sdu(unique_byte_buffer_t sdu)
   {
     // Do not block ever
-    if (!tx_sdu_resume_queue.try_push(std::move(sdu)).first) {
+    if (not tx_sdu_resume_queue.try_push(std::move(sdu))) {
       srslte::logmap::get("RLC ")->warning("Dropping SDUs while bearer suspended.\n");
       return;
     }
