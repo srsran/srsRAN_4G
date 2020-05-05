@@ -171,7 +171,7 @@ public:
     } else if (not has_value() and not other.has_value()) {
       swap(unexpected, other.unexpected);
     } else if (has_value() and not other.has_value()) {
-      E err{std::move(other.unexpected)};
+      E err(std::move(other.unexpected));
       other.unexpected.~E();
       other.construct_val(std::move(val));
       val.~T();
