@@ -407,7 +407,7 @@ alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_m
   uint32_t    ue_cc_idx = user->get_cell_index(cc_cfg->enb_cc_idx).second;
   rbg_range_t r         = user->get_required_dl_rbgs(ue_cc_idx);
   if (r.rbg_min > user_mask.count()) {
-    log_h->error("The number of RBGs allocated will force segmentation\n");
+    log_h->warning("The number of RBGs allocated to rnti=0x%x will force segmentation\n", user->get_rnti());
     return alloc_outcome_t::NOF_RB_INVALID;
   }
 

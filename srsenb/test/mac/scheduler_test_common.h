@@ -171,9 +171,13 @@ public:
 
   void                new_tti(sched* sched_ptr, uint32_t tti_rx);
   bool                user_exists(uint16_t rnti) const { return users.find(rnti) != users.end(); }
-  const ue_ctxt_test* get_user_state(uint16_t rnti) const
+  const ue_ctxt_test* get_user_ctxt(uint16_t rnti) const
   {
     return users.count(rnti) > 0 ? &users.find(rnti)->second : nullptr;
+  }
+  const sched::ue_cfg_t* get_user_cfg(uint16_t rnti) const
+  {
+    return users.count(rnti) > 0 ? &users.find(rnti)->second.user_cfg : nullptr;
   }
 
   /* Config users */

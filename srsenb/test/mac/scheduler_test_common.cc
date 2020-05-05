@@ -351,6 +351,14 @@ int ue_ctxt_test::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
   current_tti_rx = tti_rx;
 
   TESTASSERT(fwd_pending_acks(sched_ptr) == SRSLTE_SUCCESS);
+  if ((tti_rx.to_uint() % cqi_Npd) == cqi_Noffset) {
+    for (auto& cc : active_ccs) {
+      sched_ptr->dl_cqi_info(
+          tti_rx.to_uint(), rnti, cc.enb_cc_idx, std::uniform_int_distribution<uint32_t>{5, 24}(get_rand_gen()));
+      sched_ptr->ul_cqi_info(
+          tti_rx.to_uint(), rnti, cc.enb_cc_idx, std::uniform_int_distribution<uint32_t>{5, 24}(get_rand_gen()), 0);
+    }
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -856,11 +864,7 @@ sched_result_stats::user_stats* sched_result_stats::get_user(uint16_t rnti)
 
 const sched::ue_cfg_t* common_sched_tester::get_current_ue_cfg(uint16_t rnti) const
 {
-  auto it = ue_db.find(rnti);
-  if (it == ue_db.end()) {
-    return nullptr;
-  }
-  return &it->second.get_ue_cfg();
+  return ue_tester->get_user_cfg(rnti);
 }
 
 int common_sched_tester::sim_cfg(sim_sched_args args)
@@ -967,7 +971,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       bearer_ue_cfg(ue_ev.rnti, 0, ue_ev.bearer_cfg.get());
     }
 
-    auto* user = ue_tester->get_user_state(ue_ev.rnti);
+    auto* user = ue_tester->get_user_ctxt(ue_ev.rnti);
 
     if (user != nullptr and not user->msg4_tti.is_valid() and user->msg3_tti.is_valid() and
         user->msg3_tti.to_uint() <= tic.tti_rx()) {
