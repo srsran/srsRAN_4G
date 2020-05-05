@@ -492,8 +492,6 @@ int main(int argc, char** argv)
   srsue::phy_interface_rrc_lte::phy_cell_t phy_cell;
   auto                                     cell_search_res = phy_test->get_phy_interface_rrc()->cell_search(&phy_cell);
   TESTASSERT(cell_search_res.found == srsue::phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND);
-  TESTASSERT(phy_test->get_stack()->wait_in_sync(default_timeout));
-  TESTASSERT(phy_cell.pci == cell.id);
 
   // 2. Cell select
   phy_test->get_phy_interface_rrc()->cell_select(&phy_cell);

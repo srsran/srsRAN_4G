@@ -43,7 +43,7 @@ target_link_libraries(ue_phy_test
         rrc_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
-#add_test(ue_phy_test ue_phy_test)
+add_test(ue_phy_test ue_phy_test)
 
 add_executable(scell_search_test scell_search_test.cc)
 target_link_libraries(scell_search_test
