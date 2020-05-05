@@ -306,7 +306,9 @@ ue_ctxt_test::ue_ctxt_test(uint16_t                                      rnti_,
                            uint32_t                                      preamble_idx_,
                            srslte::tti_point                             prach_tti_,
                            const sched::ue_cfg_t&                        ue_cfg_,
-                           const std::vector<srsenb::sched::cell_cfg_t>& cell_params_) :
+                           const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
+                           const ue_ctxt_test_cfg&                       cfg_) :
+  sim_cfg(cfg_),
   rnti(rnti_),
   prach_tti(prach_tti_),
   preamble_idx(preamble_idx_),
@@ -351,7 +353,7 @@ int ue_ctxt_test::new_tti(sched* sched_ptr, srslte::tti_point tti_rx)
   current_tti_rx = tti_rx;
 
   TESTASSERT(fwd_pending_acks(sched_ptr) == SRSLTE_SUCCESS);
-  if ((tti_rx.to_uint() % cqi_Npd) == cqi_Noffset) {
+  if (sim_cfg.periodic_cqi and (tti_rx.to_uint() % sim_cfg.cqi_Npd) == sim_cfg.cqi_Noffset) {
     for (auto& cc : active_ccs) {
       sched_ptr->dl_cqi_info(
           tti_rx.to_uint(), rnti, cc.enb_cc_idx, std::uniform_int_distribution<uint32_t>{5, 24}(get_rand_gen()));
@@ -730,13 +732,15 @@ void user_state_sched_tester::new_tti(sched* sched_ptr, uint32_t tti_rx)
 
 int user_state_sched_tester::add_user(uint16_t                                 rnti,
                                       uint32_t                                 preamble_idx,
-                                      const srsenb::sched_interface::ue_cfg_t& ue_cfg)
+                                      const srsenb::sched_interface::ue_cfg_t& ue_cfg,
+                                      const ue_ctxt_test_cfg&                  cfg_)
 {
   CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
                 cell_params[ue_cfg.supported_cc_list[0].enb_cc_idx].prach_config, tic.tti_rx(), -1),
             "New user added in a non-PRACH TTI\n");
   TESTASSERT(users.count(rnti) == 0);
-  ue_ctxt_test ue{rnti, preamble_idx, srslte::tti_point{tic.tti_rx()}, ue_cfg, cell_params};
+  ue_ctxt_test_cfg cfg;
+  ue_ctxt_test     ue{rnti, preamble_idx, srslte::tti_point{tic.tti_rx()}, ue_cfg, cell_params, cfg_};
   users.insert(std::make_pair(rnti, ue));
   return SRSLTE_SUCCESS;
 }
@@ -901,7 +905,9 @@ int common_sched_tester::add_user(uint16_t rnti, const ue_cfg_t& ue_cfg_)
   uint32_t pcell_idx           = ue_cfg_.supported_cc_list[0].enb_cc_idx;
   dl_rach_info(pcell_idx, rar_info);
 
-  ue_tester->add_user(rnti, rar_info.preamble_idx, ue_cfg_);
+  ue_ctxt_test_cfg ue_sim_cfg{};
+  ue_sim_cfg.periodic_cqi = sim_args0.cqi_policy == sim_sched_args::cqi_gen_policy_t::periodic_random;
+  ue_tester->add_user(rnti, rar_info.preamble_idx, ue_cfg_, ue_sim_cfg);
 
   tester_log->info("Adding user rnti=0x%x\n", rnti);
   return SRSLTE_SUCCESS;

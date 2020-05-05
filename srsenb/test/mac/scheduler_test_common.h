@@ -83,11 +83,16 @@ private:
 using dl_sched_res_list = std::vector<sched_interface::dl_sched_res_t>;
 using ul_sched_res_list = std::vector<sched_interface::ul_sched_res_t>;
 
+struct ue_ctxt_test_cfg {
+  bool     periodic_cqi = false;
+  uint32_t cqi_Npd = 10, cqi_Noffset = std::uniform_int_distribution<uint32_t>{0, 10}(get_rand_gen()); // CQI reporting
+};
+
 struct ue_ctxt_test {
   // args
-  srslte::log_ref log_h{"TEST"};
-  uint32_t cqi_Npd = 10, cqi_Noffset = std::uniform_int_distribution<uint32_t>{0, 10}(get_rand_gen()); // CQI reporting
+  srslte::log_ref    log_h{"TEST"};
   std::vector<float> prob_dl_ack_mask{0.5, 0.5, 1}, prob_ul_ack_mask{0.5, 0.5, 1};
+  ue_ctxt_test_cfg   sim_cfg;
 
   // prach args
   uint16_t rnti;
@@ -125,7 +130,8 @@ struct ue_ctxt_test {
                uint32_t                                      preamble_idx_,
                srslte::tti_point                             prach_tti,
                const sched::ue_cfg_t&                        ue_cfg_,
-               const std::vector<srsenb::sched::cell_cfg_t>& cell_params_);
+               const std::vector<srsenb::sched::cell_cfg_t>& cell_params_,
+               const ue_ctxt_test_cfg&                       cfg_);
 
   int              set_cfg(const sched::ue_cfg_t& ue_cfg_);
   cc_ue_ctxt_test* get_cc_state(uint32_t enb_cc_idx);
@@ -181,7 +187,10 @@ public:
   }
 
   /* Config users */
-  int  add_user(uint16_t rnti, uint32_t preamble_idx, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
+  int  add_user(uint16_t                                 rnti,
+                uint32_t                                 preamble_idx,
+                const srsenb::sched_interface::ue_cfg_t& ue_cfg,
+                const ue_ctxt_test_cfg&                  cfg);
   int  user_reconf(uint16_t rnti, const srsenb::sched_interface::ue_cfg_t& ue_cfg);
   int  bearer_cfg(uint16_t rnti, uint32_t lcid, const srsenb::sched_interface::ue_bearer_cfg_t& bearer_cfg);
   void rem_user(uint16_t rnti);

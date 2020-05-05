@@ -50,8 +50,7 @@ tti_params_t::tti_params_t(uint32_t tti_rx_) :
   tti_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS)),
   tti_tx_ul(TTI_ADD(tti_rx, (FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS))),
   sfn_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS) / 10)
-{
-}
+{}
 
 /*******************************************************
  *             PDCCH Allocation Methods
@@ -403,14 +402,6 @@ sf_grid_t::dl_ctrl_alloc_t sf_grid_t::alloc_dl_ctrl(uint32_t aggr_idx, alloc_typ
 //! Allocates CCEs and RBs for a user DL data alloc.
 alloc_outcome_t sf_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
 {
-  // Check if allocation would cause segmentation
-  uint32_t    ue_cc_idx = user->get_cell_index(cc_cfg->enb_cc_idx).second;
-  rbg_range_t r         = user->get_required_dl_rbgs(ue_cc_idx);
-  if (r.rbg_min > user_mask.count()) {
-    log_h->warning("The number of RBGs allocated to rnti=0x%x will force segmentation\n", user->get_rnti());
-    return alloc_outcome_t::NOF_RB_INVALID;
-  }
-
   srslte_dci_format_t dci_format = user->get_dci_format();
   uint32_t            nof_bits   = srslte_dci_format_sizeof(&cc_cfg->cfg.cell, nullptr, nullptr, dci_format);
   uint32_t            aggr_idx   = user->get_ue_carrier(cc_cfg->enb_cc_idx)->get_aggr_level(nof_bits);
@@ -645,6 +636,18 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   if (is_dl_alloc(user)) {
     log_h->warning("SCHED: Attempt to assign multiple harq pids to the same user rnti=0x%x\n", user->get_rnti());
     return alloc_outcome_t::ERROR;
+  }
+
+  // Check if allocation would cause segmentation
+  uint32_t            ue_cc_idx = user->get_cell_index(cc_cfg->enb_cc_idx).second;
+  const dl_harq_proc& h         = user->get_dl_harq(pid, ue_cc_idx);
+  if (h.is_empty()) {
+    // It is newTx
+    rbg_range_t r = user->get_required_dl_rbgs(ue_cc_idx);
+    if (r.rbg_min > user_mask.count()) {
+      log_h->warning("The number of RBGs allocated to rnti=0x%x will force segmentation\n", user->get_rnti());
+      return alloc_outcome_t::NOF_RB_INVALID;
+    }
   }
 
   // Try to allocate RBGs and DCI

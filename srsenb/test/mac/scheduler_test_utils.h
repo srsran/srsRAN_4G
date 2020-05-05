@@ -156,7 +156,8 @@ struct sim_sched_args {
   float                                            P_retx;
   srsenb::sched_interface::ue_cfg_t                ue_cfg;
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg;
-  srslte::log*                                     sim_log = nullptr;
+  srslte::log*                                     sim_log         = nullptr;
+  enum class cqi_gen_policy_t { none, periodic_random } cqi_policy = cqi_gen_policy_t::none;
 };
 
 // generate all events up front
