@@ -42,7 +42,7 @@ public:                                                                         
       expired = (cvar.wait_until(lock, expire_time) == std::cv_status::timeout);                                       \
     }                                                                                                                  \
     if (expired) {                                                                                                     \
-      log_h.info("Expired " #NAME " waiting\n");                                                                       \
+      log_h.debug("Expired " #NAME " waiting\n");                                                                      \
     }                                                                                                                  \
     return received_##NAME;                                                                                            \
   }                                                                                                                    \
@@ -54,7 +54,7 @@ private:                                                                        
   {                                                                                                                    \
     std::unique_lock<std::mutex> lock(mutex);                                                                          \
     cvar.notify_all();                                                                                                 \
-    log_h.info(#NAME " received\n");                                                                                   \
+    log_h.debug(#NAME " received\n");                                                                                  \
     received_##NAME = true;                                                                                            \
   }
 
@@ -111,7 +111,7 @@ private:
     void run_tti(const uint32_t tti, const uint32_t tti_jump) override
     {
       notify_run_tti();
-      log_h.info("Run TTI %d\n", tti);
+      log_h.debug("Run TTI %d\n", tti);
     }
   };
 

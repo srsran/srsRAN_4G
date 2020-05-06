@@ -40,7 +40,6 @@ target_link_libraries(ue_phy_test
         srslte_phy
         srslte_radio
         srslte_upper
-        rrc_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
 add_test(ue_phy_test ue_phy_test)
