@@ -156,85 +156,88 @@ void channel::run(cf_t*                     in[SRSLTE_MAX_CHANNELS],
                   uint32_t                  len,
                   const srslte_timestamp_t& t)
 {
-  // check input pointers
-  if (in != nullptr && out != nullptr) {
-    if (current_srate) {
-      for (uint32_t i = 0; i < nof_channels; i++) {
-        // Check buffers are not null
-        if (in[i] != nullptr && out[i] != nullptr) {
-          // Copy input buffer
-          memcpy(buffer_in, in[i], sizeof(cf_t) * len);
+  // Early return if pointers are not enabled
+  if (in == nullptr || out == nullptr) {
+    return;
+  }
 
-          if (hst) {
-            srslte_channel_hst_execute(hst, buffer_in, buffer_out, len, &t);
-            srslte_vec_sc_prod_ccc(buffer_out, local_cexpf(hst_init_phase), buffer_in, len);
-          }
-
-          if (awgn) {
-            srslte_channel_awgn_run_c(awgn, buffer_in, buffer_out, len);
-            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
-          }
-
-          if (fading[i]) {
-            srslte_channel_fading_execute(fading[i], buffer_in, buffer_out, len, t.full_secs + t.frac_secs);
-            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
-          }
-
-          if (delay[i]) {
-            srslte_channel_delay_execute(delay[i], buffer_in, buffer_out, len, &t);
-            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
-          }
-
-          if (rlf) {
-            srslte_channel_rlf_execute(rlf, buffer_in, buffer_out, len, &t);
-            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
-          }
-
-          // Copy output buffer
-          memcpy(out[i], buffer_in, sizeof(cf_t) * len);
-        }
-      }
-
-      if (hst) {
-        // Increment phase to keep it coherent between frames
-        hst_init_phase += (2 * M_PI * len * hst->fs_hz / hst->srate_hz);
-
-        // Positive Remainder
-        while (hst_init_phase > 2 * M_PI) {
-          hst_init_phase -= 2 * M_PI;
-        }
-
-        // Negative Remainder
-        while (hst_init_phase < -2 * M_PI) {
-          hst_init_phase += 2 * M_PI;
-        }
-      }
-
-      if (log_h) {
-        // Logging
-        std::stringstream str;
-
-        str << "t=" << t.full_secs + t.frac_secs << "s; ";
-
-        if (delay[0]) {
-          str << "delay=" << delay[0]->delay_us << "us; ";
-        }
-
-        if (hst) {
-          str << "hst=" << hst->fs_hz << "Hz; ";
-        }
-
-        log_h->debug("%s\n", str.str().c_str());
-      }
-
-    } else {
-      for (uint32_t i = 0; i < nof_channels; i++) {
-        // Check buffers are not null
-        if (in[i] != nullptr && out[i] != nullptr && in[i] != out[i]) {
-          memcpy(out[i], in[i], sizeof(cf_t) * len);
-        }
-      }
+  // For each channel
+  for (uint32_t i = 0; i < nof_channels; i++) {
+    // Skip iteration if any buffer is null
+    if (in[i] == nullptr || out[i] == nullptr) {
+      continue;
     }
+
+    // If sampling rate is not set, copy input and skip rest of channel
+    if (current_srate == 0) {
+      if (in[i] != out[i]) {
+        srslte_vec_cf_copy(out[i], in[i], len);
+      }
+      continue;
+    }
+
+    // Copy input buffer
+    srslte_vec_cf_copy(buffer_in, in[i], len);
+
+    if (hst) {
+      srslte_channel_hst_execute(hst, buffer_in, buffer_out, len, &t);
+      srslte_vec_sc_prod_ccc(buffer_out, local_cexpf(hst_init_phase), buffer_in, len);
+    }
+
+    if (awgn) {
+      srslte_channel_awgn_run_c(awgn, buffer_in, buffer_out, len);
+      srslte_vec_cf_copy(buffer_in, buffer_out, len);
+    }
+
+    if (fading[i]) {
+      srslte_channel_fading_execute(fading[i], buffer_in, buffer_out, len, t.full_secs + t.frac_secs);
+      srslte_vec_cf_copy(buffer_in, buffer_out, len);
+    }
+
+    if (delay[i]) {
+      srslte_channel_delay_execute(delay[i], buffer_in, buffer_out, len, &t);
+      srslte_vec_cf_copy(buffer_in, buffer_out, len);
+    }
+
+    if (rlf) {
+      srslte_channel_rlf_execute(rlf, buffer_in, buffer_out, len, &t);
+      srslte_vec_cf_copy(buffer_in, buffer_out, len);
+    }
+
+    // Copy output buffer
+    srslte_vec_cf_copy(out[i], buffer_in, len);
+  }
+
+  if (hst) {
+    // Increment phase to keep it coherent between frames
+    hst_init_phase += (2 * M_PI * len * hst->fs_hz / hst->srate_hz);
+
+    // Positive Remainder
+    while (hst_init_phase > 2 * M_PI) {
+      hst_init_phase -= 2 * M_PI;
+    }
+
+    // Negative Remainder
+    while (hst_init_phase < -2 * M_PI) {
+      hst_init_phase += 2 * M_PI;
+    }
+  }
+
+  if (log_h) {
+    // Logging
+    std::stringstream str;
+
+    str << "t=" << t.full_secs + t.frac_secs << "s; ";
+
+    if (delay[0]) {
+      str << "delay=" << delay[0]->delay_us << "us; ";
+    }
+
+    if (hst) {
+      str << "hst=" << hst->fs_hz << "Hz; ";
+    }
+
+    log_h->debug("%s\n", str.str().c_str());
   }
 }
 
