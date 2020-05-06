@@ -745,7 +745,12 @@ int srslte_nbiot_ue_dl_decode_npdsch(srslte_nbiot_ue_dl_t* q,
  */
 int srslte_nbiot_ue_dl_decode_npdsch_no_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* data, uint32_t tti, uint16_t rnti)
 {
-  int ret = SRSLTE_ERROR;
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q->npdsch_cfg.sf_idx >= SRSLTE_NPDSCH_MAX_NOF_SF) {
+    ERROR("Invalid npdsch_cfg.sf_idx=%d\n", q->npdsch_cfg.sf_idx);
+    return ret;
+  }
 
   INFO("%d.%d: NPDSCH processing sf_idx=%d/%d rep=%d/%d tot=%d/%d\n",
        tti / 10,
@@ -759,9 +764,9 @@ int srslte_nbiot_ue_dl_decode_npdsch_no_bcch(srslte_nbiot_ue_dl_t* q, uint8_t* d
 
   if (q->npdsch_cfg.num_sf % q->npdsch_cfg.grant.nof_rep == 0) {
     // copy data and ce symbols for first repetition of each subframe
-    memcpy(&q->sf_buffer[q->npdsch_cfg.sf_idx * CURRENT_SFLEN_RE], q->sf_symbols, CURRENT_SFLEN_RE * sizeof(cf_t));
+    srslte_vec_cf_copy(&q->sf_buffer[q->npdsch_cfg.sf_idx * CURRENT_SFLEN_RE], q->sf_symbols, CURRENT_SFLEN_RE);
     for (int i = 0; i < q->cell.nof_ports; i++) {
-      memcpy(&q->ce_buffer[i][q->npdsch_cfg.sf_idx * CURRENT_SFLEN_RE], q->ce[i], CURRENT_SFLEN_RE * sizeof(cf_t));
+      srslte_vec_cf_copy(&q->ce_buffer[i][q->npdsch_cfg.sf_idx * CURRENT_SFLEN_RE], q->ce[i], CURRENT_SFLEN_RE);
     }
   } else {
     // accumulate subframe samples and channel estimates
