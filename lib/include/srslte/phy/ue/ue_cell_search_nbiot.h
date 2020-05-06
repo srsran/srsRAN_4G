@@ -53,6 +53,7 @@ typedef struct SRSLTE_API {
  */
 typedef struct SRSLTE_API {
   srslte_nbiot_ue_sync_t ue_sync;
+  int32_t                sf_len;
 
   cf_t* rx_buffer[SRSLTE_MAX_CHANNELS];
   cf_t* nsss_buffer;

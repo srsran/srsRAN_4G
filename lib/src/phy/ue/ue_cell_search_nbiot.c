@@ -41,6 +41,11 @@ int srslte_ue_cellsearch_nbiot_init(srslte_ue_cellsearch_nbiot_t* q,
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_ue_cellsearch_nbiot_t));
 
+    q->sf_len = SRSLTE_SF_LEN_PRB_NBIOT;
+    if (q->sf_len < 0) {
+      return ret;
+    }
+
     if (srslte_ue_sync_nbiot_init_multi(
             &q->ue_sync, SRSLTE_NBIOT_MAX_PRB, recv_callback, SRSLTE_NBIOT_NUM_RX_ANTENNAS, stream_handler)) {
       fprintf(stderr, "Error initiating ue_sync\n");
@@ -48,7 +53,7 @@ int srslte_ue_cellsearch_nbiot_init(srslte_ue_cellsearch_nbiot_t* q,
     }
 
     for (uint32_t i = 0; i < SRSLTE_NBIOT_NUM_RX_ANTENNAS; i++) {
-      q->rx_buffer[i] = srslte_vec_cf_malloc(SRSLTE_NOF_SF_X_FRAME * SRSLTE_SF_LEN_PRB_NBIOT);
+      q->rx_buffer[i] = srslte_vec_cf_malloc(SRSLTE_NOF_SF_X_FRAME * q->sf_len);
       if (!q->rx_buffer[i]) {
         perror("malloc");
         goto clean_exit;
@@ -56,7 +61,7 @@ int srslte_ue_cellsearch_nbiot_init(srslte_ue_cellsearch_nbiot_t* q,
     }
 
     // buffer to hold subframes for NSSS detection
-    q->nsss_buffer = srslte_vec_cf_malloc(SRSLTE_NSSS_NUM_SF_DETECT * SRSLTE_SF_LEN_PRB_NBIOT);
+    q->nsss_buffer = srslte_vec_cf_malloc(SRSLTE_NSSS_NUM_SF_DETECT * q->sf_len);
     if (!q->nsss_buffer) {
       perror("malloc");
       goto clean_exit;
@@ -121,9 +126,7 @@ int srslte_ue_cellsearch_nbiot_scan(srslte_ue_cellsearch_nbiot_t* q)
         DEBUG("In tracking state sf_idx=%d\n", srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync));
         if (srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync) == 9) {
           // accumulate NSSS subframes for cell id detection
-          memcpy(&q->nsss_buffer[q->nsss_sf_counter * SRSLTE_SF_LEN_PRB_NBIOT],
-                 q->rx_buffer[0],
-                 SRSLTE_SF_LEN_PRB_NBIOT * sizeof(cf_t));
+          srslte_vec_cf_copy(&q->nsss_buffer[q->nsss_sf_counter * q->sf_len], q->rx_buffer[0], q->sf_len);
           q->nsss_sf_counter++;
           if (q->nsss_sf_counter == SRSLTE_NSSS_NUM_SF_DETECT) {
             DEBUG("Captured %d subframes for NSSS detection.\n", q->nsss_sf_counter);
