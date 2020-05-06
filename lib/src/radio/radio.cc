@@ -683,7 +683,14 @@ bool radio::map_channels(channel_mapping&           map,
       uint32_t physical_idx = map.get_carrier_idx(i);
       for (uint32_t j = 0; j < nof_antennas; j++) {
         if (physical_idx * nof_antennas + j < SRSLTE_MAX_CHANNELS) {
-          radio_buffers[physical_idx * nof_antennas + j] = buffer.get(i, j, nof_antennas) + sample_offset;
+          cf_t* ptr = buffer.get(i, j, nof_antennas);
+
+          // Add sample offset only if it is a valid pointer
+          if (ptr != nullptr) {
+            ptr += sample_offset;
+          }
+
+          radio_buffers[physical_idx * nof_antennas + j] = ptr;
         } else {
           return false;
         }
