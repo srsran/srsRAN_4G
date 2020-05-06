@@ -64,6 +64,7 @@ typedef struct SRSLTE_API {
   srslte_mib_nb_t        mib;
   bool                   mib_set;
 
+  int    nof_re;     // Number of RE per subframe
   cf_t*  sf_symbols; // this buffer holds the symbols of the current subframe
   cf_t*  sf_buffer;  // this buffer holds multiple subframes
   cf_t*  ce[SRSLTE_MAX_PORTS];
