@@ -338,8 +338,8 @@ int main(int argc, char** argv)
   }
 
   // PSCCH Channel estimation
-  srslte_chest_sl_cfg_t pscch_chest_sl_cfg;
-  srslte_chest_sl_t     pscch_chest;
+  srslte_chest_sl_cfg_t pscch_chest_sl_cfg = {};
+  srslte_chest_sl_t     pscch_chest        = {};
   if (srslte_chest_sl_init(&pscch_chest, SRSLTE_SIDELINK_PSCCH, cell_sl, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
     ERROR("Error in chest PSCCH init\n");
     return SRSLTE_ERROR;
@@ -350,8 +350,8 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  srslte_chest_sl_cfg_t pssch_chest_sl_cfg;
-  srslte_chest_sl_t     pssch_chest;
+  srslte_chest_sl_cfg_t pssch_chest_sl_cfg = {};
+  srslte_chest_sl_t     pssch_chest        = {};
   if (srslte_chest_sl_init(&pssch_chest, SRSLTE_SIDELINK_PSSCH, cell_sl, sl_comm_resource_pool) != SRSLTE_SUCCESS) {
     ERROR("Error in chest PSSCH init\n");
     return SRSLTE_ERROR;
