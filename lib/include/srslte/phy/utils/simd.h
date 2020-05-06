@@ -1548,9 +1548,25 @@ static inline simd_s_t srslte_simd_s_neg(simd_s_t a, simd_s_t b)
   return _mm_sign_epi16(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
-  simd_s_t res;
-  return res;
-  //#error sign instruction not available in Neon
+  /* Taken and modified from sse2neon.h licensed under MIT
+   * Source: https://github.com/DLTcollab/sse2neon
+   */
+  int16x8_t _a = vreinterpretq_s16_s32(a);
+  int16x8_t _b = vreinterpretq_s16_s32(b);
+
+  int16x8_t zero = vdupq_n_s16(0);
+  // signed shift right: faster than vclt
+  // (b < 0) ? 0xFFFF : 0
+  uint16x8_t ltMask = vreinterpretq_u16_s16(vshrq_n_s16(_b, 15));
+  // (b == 0) ? 0xFFFF : 0
+  int16x8_t zeroMask = vreinterpretq_s16_u16(vceqq_s16(_b, zero));
+  // -a
+  int16x8_t neg = vnegq_s16(_a);
+  // bitwise select either a or neg based on ltMask
+  int16x8_t masked = vbslq_s16(ltMask, _a, neg);
+  // res = masked & (~zeroMask)
+  int16x8_t res = vbicq_s16(masked, zeroMask);
+  return vreinterpretq_s32_s16(res);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */
@@ -2049,9 +2065,25 @@ static inline simd_s_t srslte_simd_b_neg(simd_b_t a, simd_b_t b)
   return _mm_sign_epi8(a, b);
 #else /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
-  simd_s_t res;
-  return res;
-  //#error sign instruction not available in Neon
+  /* Taken and modified from sse2neon.h licensed under MIT
+   * Source: https://github.com/DLTcollab/sse2neon
+   */
+  int8x16_t _a = vreinterpretq_s8_s64(a);
+  int8x16_t _b = vreinterpretq_s8_s64(b);
+
+  int8x16_t zero = vdupq_n_s8(0);
+  // signed shift right: faster than vclt
+  // (b < 0) ? 0xFF : 0
+  uint8x16_t ltMask = vreinterpretq_u8_s8(vshrq_n_s8(_b, 7));
+  // (b == 0) ? 0xFF : 0
+  int8x16_t zeroMask = vreinterpretq_s8_u8(vceqq_s8(_b, zero));
+  // -a
+  int8x16_t neg = vnegq_s8(_a);
+  // bitwise select either a or neg based on ltMask
+  int8x16_t masked = vbslq_s8(ltMask, _a, neg);
+  // res = masked & (~zeroMask)
+  int8x16_t res = vbicq_s8(masked, zeroMask);
+  return vreinterpretq_s64_s8(res);
 #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX2 */

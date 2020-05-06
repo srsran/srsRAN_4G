@@ -223,7 +223,6 @@ void srslte_vec_neg_sss_simd(const int16_t* x, const int16_t* y, int16_t* z, con
 {
   int i = 0;
 
-#ifndef HAVE_NEON
 #if SRSLTE_SIMD_S_SIZE
   if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
     for (; i < len - SRSLTE_SIMD_S_SIZE + 1; i += SRSLTE_SIMD_S_SIZE) {
@@ -245,7 +244,6 @@ void srslte_vec_neg_sss_simd(const int16_t* x, const int16_t* y, int16_t* z, con
     }
   }
 #endif /* SRSLTE_SIMD_S_SIZE */
-#endif /* NOT HAVE_NEON*/
 
   for (; i < len; i++) {
     z[i] = y[i] < 0 ? -x[i] : x[i];
