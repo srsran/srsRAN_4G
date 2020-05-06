@@ -69,7 +69,8 @@ bool txrx::init(srslte::radio_interface_phy* radio_h_,
 
   // Instantiate UL channel emulator
   if (worker_com->params.ul_channel_args.enable) {
-    ul_channel = srslte::channel_ptr(new srslte::channel(worker_com->params.ul_channel_args, 1));
+    ul_channel =
+        srslte::channel_ptr(new srslte::channel(worker_com->params.ul_channel_args, worker_com->get_nof_rf_channels()));
   }
 
   start(prio_);

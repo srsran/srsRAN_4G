@@ -89,9 +89,19 @@ public:
 
     return ret;
   };
+  uint32_t get_nof_rf_channels()
+  {
+    uint32_t count = 0;
+
+    for (auto& cell : cell_list) {
+      count += cell.cell.nof_ports;
+    }
+
+    return count;
+  }
   double get_ul_freq_hz(uint32_t cc_idx)
   {
-    double ret = 0.0f;
+    double ret = 0.0;
 
     if (cc_idx < cell_list.size()) {
       ret = cell_list[cc_idx].ul_freq_hz;
