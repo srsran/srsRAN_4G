@@ -221,8 +221,7 @@ phy_interface_mac_lte::prach_info_t prach::get_info()
 
 cf_t* prach::generate(float cfo, uint32_t* nof_sf, float* target_power)
 {
-
-  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx <= 64 && srslte_cell_isvalid(&cell) &&
+  if (cell_initiated && preamble_idx >= 0 && nof_sf && preamble_idx < 64 && srslte_cell_isvalid(&cell) &&
       len < MAX_LEN_SF * 30720 && len > 0) {
 
     uint32_t f_idx = 0;
