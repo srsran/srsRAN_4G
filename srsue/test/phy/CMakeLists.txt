@@ -42,7 +42,8 @@ target_link_libraries(ue_phy_test
         srslte_upper
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
-add_test(ue_phy_test ue_phy_test)
+# Test disabled, it is not 100 deterministic.
+#add_test(ue_phy_test ue_phy_test)
 
 add_executable(scell_search_test scell_search_test.cc)
 target_link_libraries(scell_search_test
