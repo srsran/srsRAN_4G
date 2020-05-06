@@ -145,8 +145,8 @@ int main(int argc, char** argv)
   cf_t* in = srslte_vec_cf_malloc(N);
   srslte_vec_cf_zero(in, N);
   for (int i = 1; i < N - 1; i++) {
-    float re = 100 * (float)rand() / RAND_MAX;
-    float im = 100 * (float)rand() / RAND_MAX;
+    float re = 100 * rand() / (float)RAND_MAX;
+    float im = 100 * rand() / (float)RAND_MAX;
     in[i]    = re + im * I;
   }
 
