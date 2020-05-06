@@ -163,10 +163,10 @@ SRSLTE_API bool srslte_slss_side_peak_value_is_valid(float side_peak_value, floa
 
 SRSLTE_API int srslte_sl_tm_to_cell_sl_tm_t(srslte_cell_sl_t* q, uint32_t tm);
 
-SRSLTE_API int  srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp);
-SRSLTE_API bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
-SRSLTE_API bool srslte_pscch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
-SRSLTE_API bool srslte_pssch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
+SRSLTE_API uint32_t srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp);
+SRSLTE_API bool     srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
+SRSLTE_API bool     srslte_pscch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
+SRSLTE_API bool     srslte_pssch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp);
 
 SRSLTE_API uint32_t srslte_sci_format0_sizeof(uint32_t nof_prb);
 

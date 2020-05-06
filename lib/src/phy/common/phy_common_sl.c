@@ -90,7 +90,13 @@ int srslte_sl_tm_to_cell_sl_tm_t(srslte_cell_sl_t* q, uint32_t tm)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp)
+/* Returns the number of OFDM symbols depending on the Sidelink transmission mode and the CP
+ *
+ * @param tm Sidelink transmission mode
+ * @cp Cyclic prefix
+ * @return Number of symbols (0 if invalid params where given)
+ */
+uint32_t srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp)
 {
   if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
     if (cp == SRSLTE_CP_NORM) {
@@ -102,13 +108,12 @@ int srslte_sl_get_num_symbols(srslte_sl_tm_t tm, srslte_cp_t cp)
     if (cp == SRSLTE_CP_NORM) {
       return SRSLTE_CP_NORM_SF_NSYMB;
     } else {
-      printf("Invalid CP\n");
-      return SRSLTE_ERROR;
+      ERROR("Invalid CP\n");
     }
   } else {
-    printf("Invalid TM\n");
-    return SRSLTE_ERROR;
+    ERROR("Invalid TM\n");
   }
+  return 0; // Calling function may use return value for loop termination
 }
 
 // Look-up tables for Sidelink channel symbols
