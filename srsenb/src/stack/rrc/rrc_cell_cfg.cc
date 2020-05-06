@@ -149,7 +149,7 @@ cell_ctxt_dedicated* cell_ctxt_dedicated_list::add_cell(uint32_t enb_cc_idx)
 
   // Allocate CQI, SR, and PUCCH CS resources. If failure, do not add new cell
   if (ue_cc_idx == UE_PCELL_CC_IDX) {
-    if (not alloc_sr_resources(cfg.cqi_cfg.period)) {
+    if (not alloc_sr_resources(cfg.sr_cfg.period)) {
       log_h->error("Failed to allocate SR resources for PCell\n");
       cell_ded_list.pop_back();
       return nullptr;
