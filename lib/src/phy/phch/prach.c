@@ -171,8 +171,8 @@ bool srslte_prach_tti_opportunity_config_tdd(uint32_t  config_idx,
                                              uint32_t  current_tti,
                                              uint32_t* prach_idx)
 {
-  if (config_idx >= 64 && tdd_ul_dl_config >= 7) {
-    ERROR("PRACH: Invalid parmeters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
+  if (config_idx >= 64 || tdd_ul_dl_config >= 7) {
+    ERROR("PRACH: Invalid parameters config_idx=%d, tdd_ul_config=%d\n", config_idx, tdd_ul_dl_config);
     return 0;
   }
 
