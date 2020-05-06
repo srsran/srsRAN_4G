@@ -661,6 +661,11 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t*     q,
     nof_msg = find_dl_dci_type_crnti(q, sf, dl_cfg, rnti, dci_msg);
   }
 
+  if (nof_msg < 0) {
+    ERROR("Invalid number of DCI messages\n");
+    return SRSLTE_ERROR;
+  }
+
   // Unpack DCI messages
   for (uint32_t i = 0; i < nof_msg; i++) {
     if (srslte_dci_msg_unpack_pdsch(&q->cell, sf, &dl_cfg->cfg.dci, &dci_msg[i], &dci_dl[i])) {
