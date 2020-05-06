@@ -650,10 +650,9 @@ int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t*     q,
                              uint16_t            rnti,
                              srslte_dci_dl_t     dci_dl[SRSLTE_MAX_DCI_MSG])
 {
-
   set_mi_value(q, sf, dl_cfg);
 
-  srslte_dci_msg_t dci_msg[SRSLTE_MAX_DCI_MSG];
+  srslte_dci_msg_t dci_msg[SRSLTE_MAX_DCI_MSG] = {};
 
   int nof_msg = 0;
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || SRSLTE_RNTI_ISRAR(rnti)) {
@@ -1401,7 +1400,7 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
 {
   int ret = SRSLTE_ERROR;
 
-  srslte_dci_dl_t    dci_dl;
+  srslte_dci_dl_t    dci_dl[SRSLTE_MAX_DCI_MSG] = {};
   srslte_pmch_cfg_t  pmch_cfg;
   srslte_pdsch_res_t pdsch_res[SRSLTE_MAX_CODEWORDS];
 
@@ -1416,7 +1415,6 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
   }
 
   // Blind search PHICH mi value
-  ZERO_OBJECT(dci_dl);
   ret = 0;
   for (uint32_t i = 0; i < mi_set_len && !ret; i++) {
 
@@ -1430,29 +1428,29 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
       return ret;
     }
 
-    ret = srslte_ue_dl_find_dl_dci(q, sf, cfg, pdsch_cfg->rnti, &dci_dl);
+    ret = srslte_ue_dl_find_dl_dci(q, sf, cfg, pdsch_cfg->rnti, dci_dl);
   }
 
   if (ret == 1) {
     // Logging
     if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO) {
       char str[512];
-      srslte_dci_dl_info(&dci_dl, str, 512);
+      srslte_dci_dl_info(&dci_dl[0], str, 512);
       INFO("PDCCH: %s, snr=%.1f dB\n", str, q->chest_res.snr_db);
     }
 
     // Force known MBSFN grant
     if (sf->sf_type == SRSLTE_SF_MBSFN) {
-      dci_dl.rnti                    = SRSLTE_MRNTI;
-      dci_dl.alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-      dci_dl.type0_alloc.rbg_bitmask = 0xffffffff;
-      dci_dl.tb[0].rv                = 0;
-      dci_dl.tb[0].mcs_idx           = 2;
-      dci_dl.format                  = SRSLTE_DCI_FORMAT1;
+      dci_dl[0].rnti                    = SRSLTE_MRNTI;
+      dci_dl[0].alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+      dci_dl[0].type0_alloc.rbg_bitmask = 0xffffffff;
+      dci_dl[0].tb[0].rv                = 0;
+      dci_dl[0].tb[0].mcs_idx           = 2;
+      dci_dl[0].format                  = SRSLTE_DCI_FORMAT1;
     }
 
     // Convert DCI message to DL grant
-    if (srslte_ue_dl_dci_to_pdsch_grant(q, sf, cfg, &dci_dl, &pdsch_cfg->grant)) {
+    if (srslte_ue_dl_dci_to_pdsch_grant(q, sf, cfg, &dci_dl[0], &pdsch_cfg->grant)) {
       ERROR("Error unpacking DCI\n");
       return SRSLTE_ERROR;
     }
@@ -1498,6 +1496,8 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
         acks[tb] = pdsch_res[tb].crc;
       }
     }
+  } else {
+    ERROR("Decoded %d DCIs\n", ret);
   }
   return ret;
 }
