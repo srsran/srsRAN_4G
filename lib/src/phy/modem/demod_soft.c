@@ -497,8 +497,8 @@ void demod_64qam_lte_s_neon(const cf_t* symbols, short* llr, int nsymbols)
 
     llr[6 * i + 0] = -yre;
     llr[6 * i + 1] = -yim;
-    llr[6 * i + 2] = abs(yre) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
-    llr[6 * i + 3] = abs(yim) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 2] = fabs(yre) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 3] = fabs(yim) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
     llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
     llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
   }
@@ -580,8 +580,8 @@ void demod_64qam_lte_b_neon(const cf_t* symbols, int8_t* llr, int nsymbols)
 
     llr[6 * i + 0] = -yre;
     llr[6 * i + 1] = -yim;
-    llr[6 * i + 2] = abs(yre) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
-    llr[6 * i + 3] = abs(yim) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 2] = fabs(yre) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 3] = fabs(yim) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
     llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
     llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
   }
