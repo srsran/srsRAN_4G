@@ -127,6 +127,7 @@ int spgw::gtpu::init_sgi(spgw_args_t* args)
   sgi_sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (ioctl(sgi_sock, SIOCGIFFLAGS, &ifr) < 0) {
     m_gtpu_log->error("Failed to bring up socket: %s\n", strerror(errno));
+    close(sgi_sock);
     close(m_sgi);
     return SRSLTE_ERROR_CANT_START;
   }
