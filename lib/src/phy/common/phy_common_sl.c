@@ -164,11 +164,12 @@ static const srslte_sl_symbol_t srslte_psbch_symbol_map_tm34[SRSLTE_CP_NORM_SF_N
 bool srslte_psbch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp)
 {
   if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
-    if (cp == SRSLTE_CP_EXT) {
+    if (cp == SRSLTE_CP_EXT && i < SRSLTE_CP_EXT_SF_NSYMB) {
       return srslte_psbch_symbol_map_tm12_ext[i] == type;
+    } else if (i < SRSLTE_CP_NORM_SF_NSYMB) {
+      return srslte_psbch_symbol_map_tm12[i] == type;
     }
-    return srslte_psbch_symbol_map_tm12[i] == type;
-  } else if (tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) {
+  } else if ((tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) && i < SRSLTE_CP_NORM_SF_NSYMB) {
     return srslte_psbch_symbol_map_tm34[i] == type;
   }
   return false;
@@ -221,11 +222,12 @@ static const srslte_sl_symbol_t srslte_pscch_symbol_map_tm34[SRSLTE_CP_NORM_SF_N
 bool srslte_pscch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp)
 {
   if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
-    if (cp == SRSLTE_CP_EXT) {
+    if (cp == SRSLTE_CP_EXT && i < SRSLTE_CP_EXT_SF_NSYMB) {
       return srslte_pscch_symbol_map_tm12_ext[i] == type;
+    } else if (i < SRSLTE_CP_NORM_SF_NSYMB) {
+      return srslte_pscch_symbol_map_tm12[i] == type;
     }
-    return srslte_pscch_symbol_map_tm12[i] == type;
-  } else if (tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) {
+  } else if ((tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) && i < SRSLTE_CP_NORM_SF_NSYMB) {
     return srslte_pscch_symbol_map_tm34[i] == type;
   }
   return false;
@@ -278,11 +280,12 @@ static const srslte_sl_symbol_t srslte_pssch_symbol_map_tm34[SRSLTE_CP_NORM_SF_N
 bool srslte_pssch_is_symbol(srslte_sl_symbol_t type, srslte_sl_tm_t tm, uint32_t i, srslte_cp_t cp)
 {
   if (tm == SRSLTE_SIDELINK_TM1 || tm == SRSLTE_SIDELINK_TM2) {
-    if (cp == SRSLTE_CP_EXT) {
+    if (cp == SRSLTE_CP_EXT && i < SRSLTE_CP_EXT_SF_NSYMB) {
       return srslte_pssch_symbol_map_tm12_ext[i] == type;
+    } else if (i < SRSLTE_CP_NORM_SF_NSYMB) {
+      return srslte_pssch_symbol_map_tm12[i] == type;
     }
-    return srslte_pssch_symbol_map_tm12[i] == type;
-  } else if (tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) {
+  } else if ((tm == SRSLTE_SIDELINK_TM3 || tm == SRSLTE_SIDELINK_TM4) && i < SRSLTE_CP_NORM_SF_NSYMB) {
     return srslte_pssch_symbol_map_tm34[i] == type;
   }
   return false;
