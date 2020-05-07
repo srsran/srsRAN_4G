@@ -85,9 +85,8 @@ private:
 /** Class used to store all the resources specific to a UE's cell */
 struct cell_ctxt_dedicated {
   uint32_t                ue_cc_idx;
-  const cell_info_common& cell_common;
+  const cell_info_common* cell_common;
   bool                    cqi_res_present = false;
-  bool                    sr_res_present  = false;
   struct cqi_res_t {
     uint32_t pmi_idx   = 0;
     uint32_t pucch_res = 0;
@@ -95,12 +94,13 @@ struct cell_ctxt_dedicated {
     uint32_t sf_idx    = 0;
   } cqi_res;
 
-  explicit cell_ctxt_dedicated(uint32_t i_, const cell_info_common& c_) : ue_cc_idx(i_), cell_common(c_) {}
+  explicit cell_ctxt_dedicated(uint32_t i_, const cell_info_common& c_) : ue_cc_idx(i_), cell_common(&c_) {}
 
   // forbid copying to not break counting of pucch allocated resources
   cell_ctxt_dedicated(const cell_ctxt_dedicated&)     = delete;
   cell_ctxt_dedicated(cell_ctxt_dedicated&&) noexcept = default;
   cell_ctxt_dedicated& operator=(const cell_ctxt_dedicated&) = delete;
+  cell_ctxt_dedicated& operator=(cell_ctxt_dedicated&&) noexcept = default;
 };
 
 /** Class used to handle the allocation of a UE's resources across its cells */
@@ -113,6 +113,8 @@ public:
   ~cell_ctxt_dedicated_list();
 
   cell_ctxt_dedicated* add_cell(uint32_t enb_cc_idx);
+  bool                 rem_last_cell();
+  bool                 set_cells(const std::vector<uint32_t>& enb_cc_idxs);
 
   cell_ctxt_dedicated* get_ue_cc_idx(uint32_t ue_cc_idx)
   {
@@ -138,6 +140,7 @@ public:
   bool            is_pucch_cs_allocated() const { return n_pucch_cs_present; }
 
 private:
+  bool alloc_cell_resources(uint32_t ue_cc_idx);
   bool alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t period);
   bool dealloc_cqi_resources(uint32_t ue_cc_idx);
   bool alloc_sr_resources(uint32_t period);

@@ -897,9 +897,9 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
   rrc_cfg_->cell = cell_cfg_;
 
   // Set S1AP related params from cell list
-  args_->stack.s1ap.enb_id = args_->enb.enb_id;
+  args_->stack.s1ap.enb_id  = args_->enb.enb_id;
   args_->stack.s1ap.cell_id = rrc_cfg_->cell_list.at(0).cell_id;
-  args_->stack.s1ap.tac = rrc_cfg_->cell_list.at(0).tac;
+  args_->stack.s1ap.tac     = rrc_cfg_->cell_list.at(0).tac;
 
   // Create dedicated cell configuration from RRC configuration
   for (auto& cfg : rrc_cfg_->cell_list) {

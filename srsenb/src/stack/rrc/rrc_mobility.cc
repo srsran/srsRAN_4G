@@ -466,7 +466,7 @@ void var_meas_cfg_t::compute_diff_cells(const meas_obj_eutra_s& target_it,
         return;
       case rrc_details::diff_outcome_t::id_removed:
         // case "entry with matching cellIndex exists in cellsToRemoveList
-        Info("UE can now cease to measure activity of cell %s.\n", rrc_details::to_string(*result.target_it).c_str());
+        Info("UE can now cease to measure activity of cell %s.\n", rrc_details::to_string(*result.src_it).c_str());
         eutra_obj->cells_to_rem_list_present = true;
         eutra_obj->cells_to_rem_list.push_back(result.src_it->cell_idx);
         break;

@@ -178,7 +178,7 @@ void rrc::add_user(uint16_t rnti, const sched_interface::ue_cfg_t& sched_ue_cfg)
     bool rnti_added = true;
     if (rnti != SRSLTE_MRNTI) {
       // only non-eMBMS RNTIs are present in user map
-      auto p = users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
+      auto p     = users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti, sched_ue_cfg})));
       rnti_added = p.second and p.first->second->is_allocated();
     }
     if (rnti_added) {
@@ -1244,7 +1244,7 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
         list.resize(ue_cc_idx + 1);
       }
       list[ue_cc_idx].active     = true;
-      list[ue_cc_idx].enb_cc_idx = ue_cell.cell_common.enb_cc_idx;
+      list[ue_cc_idx].enb_cc_idx = ue_cell.cell_common->enb_cc_idx;
     }
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
@@ -1253,12 +1253,15 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
     bearer_cfg.direction                                = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
     bearer_cfg.group                                    = 0;
     parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
+    current_sched_ue_cfg.ue_bearers[2] = bearer_cfg;
+
     bearer_cfg.group = last_rrc_conn_recfg.crit_exts.c1()
                            .rrc_conn_recfg_r8()
                            .rr_cfg_ded.drb_to_add_mod_list[0]
                            .lc_ch_cfg.ul_specific_params.lc_ch_group;
     for (const std::pair<const uint8_t, erab_t>& erab_pair : erabs) {
       parent->mac->bearer_ue_cfg(rnti, erab_pair.second.id - 2, &bearer_cfg);
+      current_sched_ue_cfg.ue_bearers[erab_pair.second.id - 2] = bearer_cfg;
     }
 
     // Acknowledge Dedicated Configuration
@@ -1942,7 +1945,7 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
       continue;
     }
     uint32_t                scell_idx = p.ue_cc_idx;
-    const cell_info_common* cc_cfg    = &p.cell_common;
+    const cell_info_common* cc_cfg    = p.cell_common;
     const sib_type1_s&      cell_sib1 = cc_cfg->sib1;
     const sib_type2_s&      cell_sib2 = cc_cfg->sib2;
 
@@ -2314,7 +2317,7 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   }
 }
 
-void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer_t pdu)
+bool rrc::ue::send_dl_dcch(const dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer_t pdu)
 {
   if (!pdu) {
     pdu = srslte::allocate_unique_buffer(*pool);
@@ -2323,7 +2326,7 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffe
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     if (dl_dcch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
       parent->rrc_log->error("Failed to encode DL-DCCH-Msg\n");
-      return;
+      return false;
     }
     pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
 
@@ -2338,7 +2341,9 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffe
     parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
   } else {
     parent->rrc_log->error("Allocating pdu\n");
+    return false;
   }
+  return true;
 }
 
 void rrc::ue::apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& config)
