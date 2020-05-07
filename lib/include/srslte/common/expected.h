@@ -207,10 +207,8 @@ private:
   };
 };
 
-struct success_t {};
-
 template <typename E>
-using error_type = expected<success_t, E>;
+using error_type = expected<std::true_type, E>;
 
 } // namespace srslte
 
