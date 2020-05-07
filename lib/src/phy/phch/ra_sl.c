@@ -130,7 +130,7 @@ int srslte_ra_sl_pssch_allowed_sf(uint32_t pssch_sf_idx, uint32_t trp_idx, uint3
 
 int srslte_sci_generate_trp_idx(uint32_t duplex_mode, uint32_t tdd_config, uint32_t k_TRP)
 {
-  uint8_t retval;
+  int retval = SRSLTE_ERROR;
   struct timeval tv;
   gettimeofday(&tv, NULL);
   srslte_random_t random = srslte_random_init(tv.tv_usec);
@@ -150,9 +150,6 @@ int srslte_sci_generate_trp_idx(uint32_t duplex_mode, uint32_t tdd_config, uint3
         break;
       case 8:
         retval = srslte_sl_N_TRP_8_k_8[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_8) - 1)];
-        break;
-      default:
-        retval = SRSLTE_ERROR;
         break;
     }
     // N_TRP = 7
@@ -179,9 +176,6 @@ int srslte_sci_generate_trp_idx(uint32_t duplex_mode, uint32_t tdd_config, uint3
       case 7:
         retval = srslte_sl_N_TRP_7_k_7[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_7) - 1)];
         break;
-      default:
-        retval = SRSLTE_ERROR;
-        break;
     }
     // N_TRP = 6
   } else if (tdd_config == 3 || tdd_config == 6) {
@@ -204,13 +198,9 @@ int srslte_sci_generate_trp_idx(uint32_t duplex_mode, uint32_t tdd_config, uint3
       case 6:
         retval = srslte_sl_N_TRP_6_k_6[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_6) - 1)];
         break;
-      default:
-        retval = SRSLTE_ERROR;
-        break;
     }
   }
-  else
-  {
+  else {
     retval = SRSLTE_SUCCESS;
   }
 
