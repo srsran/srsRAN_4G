@@ -232,7 +232,12 @@ private:
   void send_activate_test_mode_complete();
   void send_close_ue_test_loop_complete();
 
-  // Other internal helpers
+  // Airplane mode simulator helpers
+  void start_airplane_mode_sim();
+  void airplane_mode_sim_switch_off();
+  void airplane_mode_sim_switch_on();
+
+  // FSM Helpers
   void enter_state(emm_state_t state_);
   void enter_emm_null();
   void enter_emm_deregistered(emm_state_t::deregistered_substate_t substate);

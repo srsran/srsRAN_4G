@@ -154,16 +154,13 @@ public:
     nas = nas_;
     start(-1);
   }
-  bool switch_on()
-  {
-    return true;
-  }
+  bool switch_on() { return true; }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
 
-  bool is_attached(){return true;}
+  bool is_attached() { return true; }
 
-  bool start_service_request(){return true;}
+  bool start_service_request() { return true; }
 
   void run_thread()
   {
@@ -179,7 +176,7 @@ public:
     running = false;
     wait_thread_finish();
   }
-  srslte::log_ref stack_log{"STACK"};
+  srslte::log_ref    stack_log{"STCK"};
   pdcp_interface_gw* pdcp    = nullptr;
   srsue::nas*        nas     = nullptr;
   bool               running = false;
