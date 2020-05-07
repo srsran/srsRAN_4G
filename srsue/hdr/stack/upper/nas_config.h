@@ -19,18 +19,32 @@
  *
  */
 
-#ifndef SRSUE_NAS_METRICS_H
-#define SRSUE_NAS_METRICS_H
+#ifndef SRSUE_NAS_CONFIG_H
+#define SRSUE_NAS_CONFIG_H
 
-#include "nas_emm_state.h"
+#include <string>
 
 namespace srsue {
 
-struct nas_metrics_t {
-  uint32_t             nof_active_eps_bearer;
-  emm_state_t::state_t state;
+typedef struct {
+  int airplane_t_on_ms  = -1;
+  int airplane_t_off_ms = -1;
+} nas_sim_args_t;
+
+class nas_args_t
+{
+public:
+  nas_args_t() : force_imsi_attach(false) {}
+
+  std::string    apn_name;
+  std::string    apn_protocol;
+  std::string    apn_user;
+  std::string    apn_pass;
+  bool           force_imsi_attach;
+  std::string    eia;
+  std::string    eea;
+  nas_sim_args_t sim;
 };
 
 } // namespace srsue
-
-#endif // SRSUE_NAS_METRICS_H
+#endif // SRSUE_NAS_COMMON_H

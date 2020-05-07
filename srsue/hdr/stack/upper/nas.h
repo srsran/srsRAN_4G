@@ -31,7 +31,8 @@
 #include "srslte/common/stack_procedure.h"
 #include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srsue/hdr/stack/upper/nas_common.h"
+#include "srsue/hdr/stack/upper/nas_config.h"
+#include "srsue/hdr/stack/upper/nas_emm_state.h"
 #include "srsue/hdr/stack/upper/nas_metrics.h"
 
 using srslte::byte_buffer_t;
