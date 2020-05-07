@@ -43,7 +43,7 @@
 
 #define PCAP_FILENAME "/tmp/pssch.pcap"
 
-static bool      keep_running = true;
+static bool keep_running = true;
 
 static srslte_cell_sl_t cell_sl = {.nof_prb = 50, .tm = SRSLTE_SIDELINK_TM4, .cp = SRSLTE_CP_NORM, .N_sl_id = 0};
 
@@ -52,7 +52,7 @@ typedef struct {
   bool     disable_plots;
   char*    input_file_name;
   uint32_t file_start_sf_idx;
-  uint32_t nof_ports;
+  uint32_t nof_rx_antennas;
   char*    rf_dev;
   char*    rf_args;
   double   rf_freq;
@@ -69,14 +69,12 @@ void args_default(prog_args_t* args)
   args->use_standard_lte_rates = false;
   args->input_file_name        = NULL;
   args->file_start_sf_idx      = 0;
-  args->nof_ports              = 1;
+  args->nof_rx_antennas        = 1;
+  args->rf_dev                 = "";
   args->rf_dev                 = "";
   args->rf_args                = "";
-  args->rf_dev                 = "";
-  args->rf_args                = "";
-  args->rf_freq                = 5.92e6;
+  args->rf_freq                = 5.92e9;
   args->rf_gain                = 50;
-  args->nof_ports              = 1;
   args->size_sub_channel       = 10;
   args->num_sub_channel        = 5;
 }
@@ -94,7 +92,7 @@ static srslte_filesource_t fsrc = {};
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
-void      init_plots();
+void             init_plots();
 static pthread_t plot_thread;
 static sem_t     plot_sem;
 #endif // ENABLE_GUI
@@ -136,13 +134,13 @@ void pcap_pack_and_write(FILE*    pcap_file,
 
 void usage(prog_args_t* args, char* prog)
 {
-  printf("Usage: %s [agrnv] -f rx_frequency_hz\n", prog);
+  printf("Usage: %s [agrnmv] -f rx_frequency_hz\n", prog);
   printf("\t-a RF args [Default %s]\n", args->rf_args);
   printf("\t-d RF devicename [Default %s]\n", args->rf_dev);
   printf("\t-i input_file_name\n");
-  printf("\t-s Start subframe_idx [Default %d]\n", args->file_start_sf_idx);
+  printf("\t-m Start subframe_idx [Default %d]\n", args->file_start_sf_idx);
   printf("\t-g RF Gain [Default %.2f dB]\n", args->rf_gain);
-  printf("\t-A nof_rx_antennas [Default %d]\n", args->nof_ports);
+  printf("\t-A nof_rx_antennas [Default %d]\n", args->nof_rx_antennas);
   printf("\t-c N_sl_id [Default %d]\n", cell_sl.N_sl_id);
   printf("\t-p nof_prb [Default %d]\n", cell_sl.nof_prb);
   printf("\t-s size_sub_channel [Default for 50 prbs %d]\n", args->size_sub_channel);
@@ -187,7 +185,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         args->rf_freq = strtof(argv[optind], NULL);
         break;
       case 'A':
-        args->nof_ports = (int32_t)strtol(argv[optind], NULL, 10);
+        args->nof_rx_antennas = (int32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;
@@ -255,12 +253,13 @@ int main(int argc, char** argv)
   if (!prog_args.input_file_name) {
     printf("Opening RF device...\n");
 
-    if (srslte_rf_open_multi(&radio, prog_args.rf_args, prog_args.nof_ports)) {
+    if (srslte_rf_open_multi(&radio, prog_args.rf_args, prog_args.nof_rx_antennas)) {
       ERROR("Error opening rf\n");
       exit(-1);
     }
 
-    printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&radio, prog_args.nof_ports, prog_args.rf_freq) / 1000000);
+    printf("Set RX freq: %.6f MHz\n",
+           srslte_rf_set_rx_freq(&radio, prog_args.nof_rx_antennas, prog_args.rf_freq) / 1e6);
     printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&radio, prog_args.rf_gain));
     int srate = srslte_sampling_freq_hz(cell_sl.nof_prb);
 
@@ -283,9 +282,9 @@ int main(int argc, char** argv)
   printf("Using a SF len of %d samples\n", sf_len);
 
   cf_t* rx_buffer[SRSLTE_MAX_CHANNELS] = {};     //< For radio to receive samples
-  cf_t* sf_buffer[SRSLTE_MAX_PORTS] = {NULL}; ///< For OFDM object to store subframe after FFT
+  cf_t* sf_buffer[SRSLTE_MAX_PORTS]    = {NULL}; ///< For OFDM object to store subframe after FFT
 
-  for (int i = 0; i < prog_args.nof_ports; i++) {
+  for (int i = 0; i < prog_args.nof_rx_antennas; i++) {
     rx_buffer[i] = srslte_vec_cf_malloc(sf_len);
     if (!rx_buffer[i]) {
       perror("malloc");
@@ -310,7 +309,7 @@ int main(int argc, char** argv)
   ofdm_cfg.normalize         = true;
   ofdm_cfg.sf_type           = SRSLTE_SF_NORM;
   ofdm_cfg.freq_shift_f      = -0.5;
-  for (int i = 0; i < prog_args.nof_ports; i++) {
+  for (int i = 0; i < prog_args.nof_rx_antennas; i++) {
     ofdm_cfg.in_buffer  = rx_buffer[0];
     ofdm_cfg.out_buffer = sf_buffer[0];
 
@@ -357,30 +356,35 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
-  uint8_t  tb[SRSLTE_SL_SCH_MAX_TB_LEN] = {};
-  uint8_t  packed_tb[SRSLTE_SL_SCH_MAX_TB_LEN / 8] = {};
+  uint8_t tb[SRSLTE_SL_SCH_MAX_TB_LEN]            = {};
+  uint8_t packed_tb[SRSLTE_SL_SCH_MAX_TB_LEN / 8] = {};
 
 #ifndef DISABLE_RF
   srslte_ue_sync_t ue_sync = {};
   if (!prog_args.input_file_name) {
+    srslte_cell_t cell = {};
+    cell.nof_prb       = cell_sl.nof_prb;
+    cell.cp            = SRSLTE_CP_NORM;
+    cell.nof_ports     = 1;
+
     if (srslte_ue_sync_init_multi_decim_mode(&ue_sync,
-                                             SRSLTE_MAX_PRB,
+                                             cell.nof_prb,
                                              false,
                                              srslte_rf_recv_wrapper,
-                                             prog_args.nof_ports,
+                                             prog_args.nof_rx_antennas,
                                              (void*)&radio,
-                                             1.0,
+                                             1,
                                              SYNC_MODE_GNSS)) {
       fprintf(stderr, "Error initiating sync_gnss\n");
       exit(-1);
     }
 
-    srslte_cell_t cell = {};
-    cell.nof_prb       = cell_sl.nof_prb;
     if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
       ERROR("Error initiating ue_sync\n");
       exit(-1);
     }
+
+    srslte_rf_start_rx_stream(&radio, false);
   }
 #endif
 
@@ -391,17 +395,7 @@ int main(int argc, char** argv)
   }
 #endif
 
-#ifndef DISABLE_RF
-  if (!prog_args.input_file_name) {
-    // after configuring RF params and before starting streamer, set device to GPS time
-    srslte_rf_sync(&radio);
-
-    // start streaming
-    srslte_rf_start_rx_stream(&radio, false);
-  }
-#endif // DISABLE_RF
-
-  uint32_t subframe_count  = 0;
+  uint32_t subframe_count      = 0;
   uint32_t pscch_prb_start_idx = 0;
 
   uint32_t current_sf_idx = 0;
@@ -430,18 +424,8 @@ int main(int argc, char** argv)
         ERROR("Error calling srslte_ue_sync_work()\n");
       }
 
-      if (subframe_count == 0) {
-        // print timestamp of the first samples
-        srslte_timestamp_t ts_rx;
-        srslte_ue_sync_get_last_timestamp(&ue_sync, &ts_rx);
-        printf("Received samples start at %ld + %.10f. TTI=%d.%d\n",
-               ts_rx.full_secs,
-               ts_rx.frac_secs,
-               srslte_ue_sync_get_sfn(&ue_sync),
-               srslte_ue_sync_get_sfidx(&ue_sync));
-
-        current_sf_idx = (srslte_ue_sync_get_sfn(&ue_sync) * 10) + srslte_ue_sync_get_sfidx(&ue_sync);
-      }
+      // update SF index
+      current_sf_idx = srslte_ue_sync_get_sfidx(&ue_sync);
 #endif // DISABLE_RF
     }
 
@@ -529,6 +513,10 @@ int main(int argc, char** argv)
                 if (!prog_args.disable_plots) {
                   sem_post(&plot_sem);
                 }
+                if (prog_args.input_file_name) {
+                  printf("Press Enter to continue ...\n");
+                  getchar();
+                }
 #endif
               }
             }
@@ -547,6 +535,7 @@ int main(int argc, char** argv)
         }
       }
     }
+
     current_sf_idx = (current_sf_idx + 1) % 10;
     subframe_count++;
   }
@@ -580,14 +569,16 @@ clean_exit:
   srslte_sci_free(&sci);
   srslte_pscch_free(&pscch);
   srslte_chest_sl_free(&pscch_chest);
+  srslte_chest_sl_free(&pssch_chest);
 
-  for (int i = 0; i < prog_args.nof_ports; i++) {
+  for (int i = 0; i < prog_args.nof_rx_antennas; i++) {
     if (rx_buffer[i]) {
       free(rx_buffer[i]);
     }
     if (sf_buffer[i]) {
       free(sf_buffer[i]);
     }
+    srslte_ofdm_rx_free(&fft[i]);
   }
 
   if (equalized_sf_buffer) {
