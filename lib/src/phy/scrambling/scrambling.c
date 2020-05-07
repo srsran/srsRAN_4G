@@ -23,9 +23,6 @@
 #include "srslte/phy/utils/bit.h"
 #include "srslte/phy/utils/vector.h"
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 void srslte_scrambling_f(srslte_sequence_t* s, float* data)
 {
@@ -66,44 +63,24 @@ void srslte_scrambling_c_offset(srslte_sequence_t* s, cf_t* data, int offset, in
   srslte_vec_prod_cfc(data, &s->c_float[offset], data, len);
 }
 
-void scrambling_b(uint8_t* c, uint8_t* data, int len)
+static inline void scrambling_b(uint8_t* c, uint8_t* data, int len)
 {
-
   srslte_vec_xor_bbb((int8_t*)c, (int8_t*)data, (int8_t*)data, len);
-}
-
-void scrambling_b_word(uint8_t* c, uint8_t* data, int len)
-{
-  // Do XOR every 64 bits
-  // TODO: Use 32-bit in 32-bit machines
-  uint64_t* x = (uint64_t*)data;
-  uint64_t* y = (uint64_t*)c;
-  for (int i = 0; i < len / 8; i++) {
-    x[i] = (x[i] ^ y[i]);
-  }
-
-  // Do XOR every 8 bits
-  scrambling_b(&c[8 * (len / 8)], &data[8 * (len / 8)], len % 8);
 }
 
 void srslte_scrambling_b(srslte_sequence_t* s, uint8_t* data)
 {
-  scrambling_b_word(s->c, data, s->cur_len);
+  srslte_scrambling_b_offset(s, data, 0, s->cur_len);
 }
 
 void srslte_scrambling_b_offset(srslte_sequence_t* s, uint8_t* data, int offset, int len)
 {
-  if (offset % 8) {
-    // Do not load words if offset is not word-aligned
-    scrambling_b(&s->c[offset], data, len);
-  } else {
-    scrambling_b_word(&s->c[offset], data, len);
-  }
+  scrambling_b(&s->c[offset], data, len);
 }
 
 void srslte_scrambling_bytes(srslte_sequence_t* s, uint8_t* data, int len)
 {
-  scrambling_b_word(s->c_bytes, data, len / 8);
+  scrambling_b(s->c_bytes, data, len / 8);
   // Scramble last bits
   if (len % 8) {
     uint8_t tmp_bits[8];
