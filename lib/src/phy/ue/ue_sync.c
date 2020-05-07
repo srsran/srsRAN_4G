@@ -21,6 +21,7 @@
 
 #include "srslte/srslte.h"
 #include <assert.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
@@ -950,14 +951,12 @@ int srslte_ue_sync_run_find_gnss_mode(srslte_ue_sync_t* q,
   srslte_timestamp_sub(&ts_next_rx, q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
   srslte_timestamp_sub(&ts_next_rx, 0, 0.001); ///< account for samples that have already been rx'ed
 
-  uint32_t align_len = srslte_timestamp_uint64(&ts_next_rx, q->sf_len * 1000);
+  uint64_t align_len = srslte_timestamp_uint64(&ts_next_rx, q->sf_len * 1000);
 
-  DEBUG("Difference between first recv is %ld + %f or %d samples\n",
+  DEBUG("Difference between first recv is %ld + %f, realigning %" PRIu64 " samples\n",
         ts_next_rx.full_secs,
         ts_next_rx.frac_secs,
         align_len);
-
-  DEBUG("Realigning frame, reading %d samples\n", align_len);
 
   // receive align_len samples into dummy_buffer, make sure to not exceed buffer len
   uint32_t sample_count = 0;
@@ -976,6 +975,8 @@ int srslte_ue_sync_run_find_gnss_mode(srslte_ue_sync_t* q,
     return SRSLTE_ERROR;
   }
 
+  INFO("First aligned samples received start at %ld + %f\n", q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
+
   // switch to track state, from here on, samples should be ms aligned
   q->state = SF_TRACK;
 
@@ -993,6 +994,24 @@ int srslte_ue_sync_run_find_gnss_mode(srslte_ue_sync_t* q,
 ///< The track function in GNSS mode only needs to increment the system frame number
 int srslte_ue_sync_run_track_gnss_mode(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_CHANNELS])
 {
+  INFO("TRACK samples received at %ld + %.4f\n", q->last_timestamp.full_secs, q->last_timestamp.frac_secs);
+
+  // make sure the fractional receive time is ms-aligned
+  uint32_t rx_full_ms  = floor(q->last_timestamp.frac_secs * 1e3);
+  double   rx_frac_ms  = q->last_timestamp.frac_secs - (rx_full_ms / 1e3);
+  int32_t  offset_samp = round(rx_frac_ms / (1.0 / (q->sf_len * 1000)));
+  INFO("rx_full_ms=%d, rx_frac_ms=%f, offset_samp=%d\n", rx_full_ms, rx_frac_ms, offset_samp);
+  if (offset_samp != q->sf_len) {
+    q->next_rf_sample_offset = offset_samp;
+  }
+
+  if (q->next_rf_sample_offset) {
+    INFO("Time offset adjustment: %d samples\n", q->next_rf_sample_offset);
+  }
+
+  // update SF index
+  q->sf_idx = ((int)round(q->last_timestamp.frac_secs * 1e3)) % SRSLTE_NOF_SF_X_FRAME;
+
   INFO("SYNC TRACK: sfn=%d, sf_idx=%d, next_state=%d\n", q->frame_number, q->sf_idx, q->state);
 
   return 1; ///< 1 means subframe in sync
