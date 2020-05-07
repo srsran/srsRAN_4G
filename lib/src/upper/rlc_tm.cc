@@ -97,9 +97,9 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu, bool blocking)
                     ul_queue.size_bytes());
       ul_queue.write(std::move(sdu));
     } else {
-      uint8_t*                                     msg_ptr   = sdu->msg;
-      uint32_t                                     nof_bytes = sdu->N_bytes;
-      srslte::expected<bool, unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
+      uint8_t*                                 msg_ptr   = sdu->msg;
+      uint32_t                                 nof_bytes = sdu->N_bytes;
+      srslte::error_type<unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
       if (ret) {
         log->info_hex(msg_ptr,
                       nof_bytes,

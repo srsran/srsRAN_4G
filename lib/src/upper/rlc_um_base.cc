@@ -35,8 +35,7 @@ rlc_um_base::rlc_um_base(srslte::log_ref            log_,
   rrc(rrc_),
   timers(timers_),
   pool(byte_buffer_pool::get_instance())
-{
-}
+{}
 
 rlc_um_base::~rlc_um_base() {}
 
@@ -194,8 +193,7 @@ rlc_um_base::rlc_um_base_rx::rlc_um_base_rx(rlc_um_base* parent_) :
   cfg(parent_->cfg),
   metrics(parent_->metrics),
   lcid(parent_->lcid)
-{
-}
+{}
 
 rlc_um_base::rlc_um_base_rx::~rlc_um_base_rx() {}
 
@@ -254,9 +252,9 @@ void rlc_um_base::rlc_um_base_tx::write_sdu(unique_byte_buffer_t sdu)
 void rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
 {
   if (sdu) {
-    uint8_t*                                     msg_ptr   = sdu->msg;
-    uint32_t                                     nof_bytes = sdu->N_bytes;
-    srslte::expected<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
+    uint8_t*                                 msg_ptr   = sdu->msg;
+    uint32_t                                 nof_bytes = sdu->N_bytes;
+    srslte::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
     if (ret) {
       log->info_hex(
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name.c_str(), nof_bytes, tx_sdu_queue.size());

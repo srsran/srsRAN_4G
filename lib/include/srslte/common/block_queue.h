@@ -94,7 +94,7 @@ public:
 
   bool try_push(const myobj& value) { return push_(value, false); }
 
-  srslte::expected<bool, myobj> try_push(myobj&& value) { return push_(std::move(value), false); }
+  srslte::error_type<myobj> try_push(myobj&& value) { return push_(std::move(value), false); }
 
   bool try_pop(myobj* value) { return pop_(value, false); }
 
@@ -178,7 +178,7 @@ private:
     return true;
   }
 
-  srslte::expected<bool, myobj> push_(myobj&& value, bool block)
+  srslte::error_type<myobj> push_(myobj&& value, bool block)
   {
     if (!enable) {
       return std::move(value);
@@ -192,7 +192,7 @@ private:
       q.push(std::move(value));
       pthread_mutex_unlock(&mutex);
       pthread_cond_signal(&cv_empty);
-      return true;
+      return {};
     }
     pthread_mutex_unlock(&mutex);
     return std::move(value);

@@ -44,8 +44,7 @@ rlc_am_lte::rlc_am_lte(srslte::log_ref            log_,
   lcid(lcid_),
   tx(this),
   rx(this)
-{
-}
+{}
 
 // Applies new configuration. Must be just reestablished or initiated
 bool rlc_am_lte::configure(const rlc_config_t& cfg_)
@@ -354,9 +353,9 @@ void rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blockin
     tx_sdu_queue.write(std::move(sdu));
   } else {
     // non-blocking write
-    uint8_t*                                     msg_ptr   = sdu->msg;
-    uint32_t                                     nof_bytes = sdu->N_bytes;
-    srslte::expected<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
+    uint8_t*                                 msg_ptr   = sdu->msg;
+    uint32_t                                 nof_bytes = sdu->N_bytes;
+    srslte::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
     if (ret) {
       log->info_hex(
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)\n", RB_NAME, nof_bytes, tx_sdu_queue.size());

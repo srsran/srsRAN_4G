@@ -22,10 +22,25 @@
 #ifndef SRSLTE_EXPECTED_H
 #define SRSLTE_EXPECTED_H
 
-#include "type_utils.h"
 #include <memory>
+#include <system_error>
 
 namespace srslte {
+
+#if defined(__cpp_exceptions) && (1 == __cpp_exceptions)
+class bad_type_access : public std::runtime_error
+{
+public:
+  explicit bad_type_access(const std::string& what_arg) : runtime_error(what_arg) {}
+  explicit bad_type_access(const char* what_arg) : runtime_error(what_arg) {}
+};
+
+#define THROW_BAD_ACCESS(msg) throw bad_type_access{msg};
+#else
+#define THROW_BAD_ACCESS(msg)                                                                                          \
+  fprintf(stderr, "ERROR: exception thrown with %s", msg);                                                             \
+  std::abort()
+#endif
 
 struct default_error_t {};
 
@@ -103,63 +118,37 @@ public:
       unexpected = std::forward<U>(other);
     }
   }
-           operator bool() const { return has_value(); }
+
+  explicit operator bool() const { return has_value(); }
   bool     has_value() const { return has_val; }
-  const T& value() const&
+  bool     is_error() const { return not has_value(); }
+  const T& value() const
   {
     if (not has_val) {
       THROW_BAD_ACCESS("Bad expected value access");
     }
     return val;
   }
-  T& value() &
+  T& value()
   {
     if (not has_val) {
       THROW_BAD_ACCESS("Bad expected value access");
     }
     return val;
   }
-  T&& value() &&
-  {
-    if (not has_val) {
-      THROW_BAD_ACCESS("Bad expected value access");
-    }
-    return std::move(val);
-  }
-  const T&& value() const&&
-  {
-    if (not has_val) {
-      THROW_BAD_ACCESS("Bad expected value access");
-    }
-    return std::move(val);
-  }
-  const E& error() const&
+  const E& error() const
   {
     if (has_val) {
       THROW_BAD_ACCESS("Bad expected error access");
     }
     return unexpected;
   }
-  E& error() &
+  E& error()
   {
     if (has_val) {
       THROW_BAD_ACCESS("Bad expected error access");
     }
     return unexpected;
-  }
-  E&& error() &&
-  {
-    if (has_val) {
-      THROW_BAD_ACCESS("Bad expected error access");
-    }
-    return std::move(unexpected);
-  }
-  const E&& error() const&&
-  {
-    if (has_val) {
-      THROW_BAD_ACCESS("Bad expected error access");
-    }
-    return std::move(unexpected);
   }
 
   void swap(expected& other) noexcept
@@ -217,6 +206,11 @@ private:
     E unexpected;
   };
 };
+
+struct success_t {};
+
+template <typename E>
+using error_type = expected<success_t, E>;
 
 } // namespace srslte
 

@@ -22,6 +22,7 @@
 #ifndef SRSLTE_TYPE_UTILS_H
 #define SRSLTE_TYPE_UTILS_H
 
+#include "expected.h"
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -29,21 +30,6 @@
 #include <type_traits>
 
 namespace srslte {
-
-#if defined(__cpp_exceptions) && (1 == __cpp_exceptions)
-class bad_type_access : public std::runtime_error
-{
-public:
-  explicit bad_type_access(const std::string& what_arg) : runtime_error(what_arg) {}
-  explicit bad_type_access(const char* what_arg) : runtime_error(what_arg) {}
-};
-
-#define THROW_BAD_ACCESS(msg) throw bad_type_access{msg};
-#else
-#define THROW_BAD_ACCESS(msg)                                                                                          \
-  fprintf(stderr, "ERROR: exception thrown with %s", msg);                                                             \
-  std::abort()
-#endif
 
 /************************************
  *       get_type_name methods
