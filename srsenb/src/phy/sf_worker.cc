@@ -111,7 +111,7 @@ cf_t* sf_worker::get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx)
   return cc_workers[cc_idx]->get_buffer_rx(antenna_idx);
 }
 
-void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestamp_t tx_time_)
+void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srslte::rf_timestamp_t& tx_time_)
 {
   tti_rx    = tti_;
   tti_tx_dl = TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS);
@@ -122,7 +122,7 @@ void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestam
   t_tx_ul = TTIMOD(tti_tx_ul);
 
   tx_worker_cnt = tx_worker_cnt_;
-  srslte_timestamp_copy(&tx_time, &tx_time_);
+  tx_time.copy(tx_time_);
 
   for (auto& w : cc_workers) {
     w->set_tti(tti_);

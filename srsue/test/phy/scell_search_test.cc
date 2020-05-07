@@ -136,13 +136,13 @@ public:
     }
   }
 
-  int work(srslte_dl_sf_cfg_t*       dl_sf,
-           srslte_dci_cfg_t*         dci_cfg,
-           srslte_dci_dl_t*          dci,
-           srslte_softbuffer_tx_t**  softbuffer_tx,
-           uint8_t**                 data_tx,
-           cf_t*                     baseband_buffer,
-           const srslte_timestamp_t& ts)
+  int work(srslte_dl_sf_cfg_t*           dl_sf,
+           srslte_dci_cfg_t*             dci_cfg,
+           srslte_dci_dl_t*              dci,
+           srslte_softbuffer_tx_t**      softbuffer_tx,
+           uint8_t**                     data_tx,
+           cf_t*                         baseband_buffer,
+           const srslte::rf_timestamp_t& ts)
   {
 
     int      ret    = SRSLTE_SUCCESS;
@@ -189,7 +189,7 @@ public:
     srslte_enb_dl_gen_signal(&enb_dl);
 
     // Apply channel
-    channel->run(signal_buffer, signal_buffer, sf_len, ts);
+    channel->run(signal_buffer, signal_buffer, sf_len, ts.get(0));
 
     // Combine Tx ports
     for (uint32_t i = 1; i < enb_dl.cell.nof_ports; i++) {
@@ -417,7 +417,7 @@ int main(int argc, char** argv)
 
   // Common for simulation and over-the-air
   cf_t*                       baseband_buffer = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
-  srslte_timestamp_t          ts              = {};
+  srslte::rf_timestamp_t      ts              = {};
   srsue::scell::intra_measure intra_measure;
   srslte::log_filter          logger("intra_measure");
   dummy_rrc                   rrc;
@@ -567,7 +567,7 @@ int main(int argc, char** argv)
     if (radio) {
       // Receive radio
       srslte::rf_buffer_t radio_buffer(baseband_buffer);
-      radio->rx_now(radio_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb), &ts);
+      radio->rx_now(radio_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb), ts);
     } else {
       // Run eNb simulator
       bool put_pdsch = serving_cell_pdsch_enable;
@@ -594,9 +594,9 @@ int main(int argc, char** argv)
           dci.tb_cw_swap          = false;
           dci.pconf               = false;
           dci.power_offset        = false;
-          dci.tpc_pucch           = false;
-          dci.ra_preamble         = false;
-          dci.ra_mask_idx         = false;
+          dci.tpc_pucch           = 0;
+          dci.ra_preamble         = 0;
+          dci.ra_mask_idx         = 0;
           dci.srs_request         = false;
           dci.srs_request_present = false;
           dci.cif_present         = false;
@@ -653,7 +653,7 @@ int main(int argc, char** argv)
     }
 
     // Increase Time counter
-    srslte_timestamp_add(&ts, 0, 0.001f);
+    ts.add(0.001);
 
     // Give data to intra measure component
     intra_measure.write(sf_idx % 10240, baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));

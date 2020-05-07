@@ -138,8 +138,11 @@ public:
                           srslte_pdsch_ack_resource_t resource);
   bool get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srslte_pdsch_ack_cc_t* ack);
 
-  void
-  worker_end(void* h, bool tx_enable, srslte::rf_buffer_t& buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+  void worker_end(void*                   h,
+                  bool                    tx_enable,
+                  srslte::rf_buffer_t&    buffer,
+                  uint32_t                nof_samples,
+                  srslte::rf_timestamp_t& tx_time);
 
   void set_cell(const srslte_cell_t& c);
   void set_nof_workers(uint32_t nof_workers);

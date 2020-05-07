@@ -39,7 +39,7 @@ public:
   void init(phy_common* phy, srslte::log* log_h);
 
   cf_t* get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
-  void  set_time(uint32_t tti, uint32_t tx_worker_cnt, srslte_timestamp_t tx_time);
+  void  set_time(uint32_t tti_, uint32_t tx_worker_cnt_, const srslte::rf_timestamp_t& tx_time_);
 
   int      add_rnti(uint16_t rnti, uint32_t cc_idx);
   void     rem_rnti(uint16_t rnti);
@@ -65,10 +65,10 @@ private:
   bool         running   = false;
   std::mutex   work_mutex;
 
-  uint32_t           tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
-  uint32_t           t_rx = 0, t_tx_dl = 0, t_tx_ul = 0;
-  uint32_t           tx_worker_cnt = 0;
-  srslte_timestamp_t tx_time       = {};
+  uint32_t               tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
+  uint32_t               t_rx = 0, t_tx_dl = 0, t_tx_ul = 0;
+  uint32_t               tx_worker_cnt = 0;
+  srslte::rf_timestamp_t tx_time       = {};
 
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 

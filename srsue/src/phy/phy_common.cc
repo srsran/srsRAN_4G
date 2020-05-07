@@ -47,10 +47,7 @@ phy_common::phy_common()
   reset();
 }
 
-phy_common::~phy_common()
-{
-
-}
+phy_common::~phy_common() = default;
 
 void phy_common::set_nof_workers(uint32_t nof_workers_)
 {
@@ -101,8 +98,8 @@ void phy_common::set_ue_dl_cfg(srslte_ue_dl_cfg_t* ue_dl_cfg)
     chest_cfg->noise_alg = SRSLTE_NOISE_ALG_PSS;
   }
 
-  chest_cfg->rsrp_neighbour       = false;
-  chest_cfg->sync_error_enable    = args->correct_sync_error;
+  chest_cfg->rsrp_neighbour    = false;
+  chest_cfg->sync_error_enable = args->correct_sync_error;
   chest_cfg->estimator_alg =
       args->interpolate_subframe_enabled ? SRSLTE_ESTIMATOR_ALG_INTERPOLATE : SRSLTE_ESTIMATOR_ALG_AVERAGE;
   chest_cfg->cfo_estimate_enable  = args->cfo_ref_mask != 0;
@@ -524,23 +521,23 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(void*                tx_sem_id,
-                            bool                 tx_enable,
-                            srslte::rf_buffer_t& buffer,
-                            uint32_t             nof_samples,
-                            srslte_timestamp_t   tx_time)
+void phy_common::worker_end(void*                   tx_sem_id,
+                            bool                    tx_enable,
+                            srslte::rf_buffer_t&    buffer,
+                            uint32_t                nof_samples,
+                            srslte::rf_timestamp_t& tx_time)
 {
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
 
   // Add Time Alignment
-  srslte_timestamp_sub(&tx_time, 0, ta.get_sec());
+  tx_time.sub((double)ta.get_sec());
 
   // For each radio, transmit
-  if (tx_enable && !srslte_timestamp_iszero(&tx_time)) {
+  if (tx_enable) {
 
     if (ul_channel) {
-      ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), nof_samples, tx_time);
+      ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), nof_samples, tx_time.get(0));
     }
 
     radio_h->tx(buffer, nof_samples, tx_time);
@@ -552,9 +549,9 @@ void phy_common::worker_end(void*                tx_sem_id,
       } else {
         if (!radio_h->get_is_start_of_burst()) {
 
-          if (ul_channel && !srslte_timestamp_iszero(&tx_time)) {
+          if (ul_channel) {
             srslte_vec_cf_zero(zeros_multi.get(0), nof_samples);
-            ul_channel->run(zeros_multi.to_cf_t(), zeros_multi.to_cf_t(), nof_samples, tx_time);
+            ul_channel->run(zeros_multi.to_cf_t(), zeros_multi.to_cf_t(), nof_samples, tx_time.get(0));
           }
 
           radio_h->tx(zeros_multi, nof_samples, tx_time);
@@ -662,11 +659,11 @@ void phy_common::reset()
 {
   reset_radio();
 
-  sr_enabled      = false;
-  cur_pathloss    = 0;
-  cur_pusch_power = 0;
-  sr_last_tx_tti  = -1;
-  cur_pusch_power = 0;
+  sr_enabled          = false;
+  cur_pathloss        = 0;
+  cur_pusch_power     = 0;
+  sr_last_tx_tti      = -1;
+  cur_pusch_power     = 0;
   pcell_report_period = 20;
 
   ZERO_OBJECT(pathloss);

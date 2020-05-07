@@ -131,7 +131,7 @@ private:
     std::mutex                       mutex;
     std::condition_variable          cvar;
     srslte_rf_info_t                 rf_info    = {};
-    srslte_timestamp_t               tx_last_tx = {};
+    srslte::rf_timestamp_t           tx_last_tx = {};
     uint32_t                         count_late = 0;
 
     CALLBACK(rx_now)
@@ -191,8 +191,9 @@ private:
 
     uint32_t get_count_late() { return count_late; }
 
-    bool
-    tx(srslte::rf_buffer_interface& buffer, const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) override
+    bool tx(srslte::rf_buffer_interface&          buffer,
+            const uint32_t&                       nof_samples,
+            const srslte::rf_timestamp_interface& tx_time) override
     {
       bool ret = true;
       notify_tx();
@@ -201,18 +202,20 @@ private:
       if (!std::isnormal(tx_srate)) {
         count_late++;
       }
-      if (srslte_timestamp_compare(&tx_time, &tx_last_tx) < 0) {
+      if (srslte_timestamp_compare(&tx_time.get(0), tx_last_tx.get_ptr(0)) < 0) {
         ret = false;
       }
 
-      tx_last_tx = tx_time;
-      srslte_timestamp_add(&tx_last_tx, 0, (double)nof_samples / (double)tx_srate);
+      tx_last_tx.copy(tx_time);
+      tx_last_tx.add((double)nof_samples / (double)tx_srate);
 
       return ret;
     }
     void release_freq(const uint32_t& carrier_idx) override{};
     void tx_end() override {}
-    bool rx_now(srslte::rf_buffer_interface& buffer, const uint32_t& nof_samples, srslte_timestamp_t* rxd_time) override
+    bool rx_now(srslte::rf_buffer_interface&    buffer,
+                const uint32_t&                 nof_samples,
+                srslte::rf_timestamp_interface& rxd_time) override
     {
       notify_rx_now();
 
@@ -255,9 +258,7 @@ private:
       }
 
       // Set Rx timestamp
-      if (rxd_time) {
-        srslte_timestamp_init_uint64(rxd_time, rx_timestamp, (double)base_srate);
-      }
+      srslte_timestamp_init_uint64(rxd_time.get_ptr(0), rx_timestamp, (double)base_srate);
 
       // Update timestamp
       rx_timestamp += base_nsamples;

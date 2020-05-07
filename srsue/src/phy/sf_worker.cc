@@ -138,9 +138,9 @@ void sf_worker::set_tti(uint32_t tti_)
   }
 }
 
-void sf_worker::set_tx_time(srslte_timestamp_t tx_time_)
+void sf_worker::set_tx_time(const srslte::rf_timestamp_t& tx_time_)
 {
-  tx_time     = tx_time_;
+  tx_time.copy(tx_time_);
 }
 
 void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)

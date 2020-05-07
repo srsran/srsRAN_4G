@@ -265,19 +265,15 @@ private:
 
 int main(int argc, char** argv)
 {
-  int                ret                        = SRSLTE_ERROR;
-  radio*             radio_h[SRSLTE_MAX_RADIOS] = {NULL};
-  srslte_timestamp_t ts_prev[SRSLTE_MAX_RADIOS], ts_rx[SRSLTE_MAX_RADIOS], ts_tx;
-  uint32_t           nof_gaps                    = 0;
-  char               filename[256]               = {};
-  srslte_filesink_t  filesink[SRSLTE_MAX_RADIOS] = {};
-  srslte_dft_plan_t  dft_plan = {}, idft_plan = {};
-  srslte_agc_t       agc[SRSLTE_MAX_RADIOS] = {};
-  phy_dummy          phy;
-
-  bzero(&ts_prev, sizeof(ts_prev));
-  bzero(&ts_rx, sizeof(ts_rx));
-  bzero(&ts_tx, sizeof(ts_tx));
+  int                    ret                        = SRSLTE_ERROR;
+  radio*                 radio_h[SRSLTE_MAX_RADIOS] = {nullptr};
+  srslte::rf_timestamp_t ts_prev[SRSLTE_MAX_RADIOS], ts_rx[SRSLTE_MAX_RADIOS], ts_tx;
+  uint32_t               nof_gaps                    = 0;
+  char                   filename[256]               = {};
+  srslte_filesink_t      filesink[SRSLTE_MAX_RADIOS] = {};
+  srslte_dft_plan_t      dft_plan = {}, idft_plan = {};
+  srslte_agc_t           agc[SRSLTE_MAX_RADIOS] = {};
+  phy_dummy              phy;
 
   rf_buffer_t rf_buffers[SRSLTE_MAX_RADIOS] = {};
 
@@ -413,7 +409,7 @@ int main(int argc, char** argv)
 
     // receive each radio
     for (uint32_t r = 0; r < nof_radios; r++) {
-      radio_h[r]->rx_now(rf_buffers[r], frame_size, &ts_rx[r]);
+      radio_h[r]->rx_now(rf_buffers[r], frame_size, ts_rx[r]);
     }
 
     // run agc
@@ -426,8 +422,8 @@ int main(int argc, char** argv)
     // Transmit
     if (tx_enable) {
       for (uint32_t r = 0; r < nof_radios; r++) {
-        srslte_timestamp_copy(&ts_tx, &ts_rx[r]);
-        srslte_timestamp_add(&ts_tx, 0, 0.004);
+        ts_tx.copy(ts_rx[r]);
+        ts_tx.add(0.004);
         radio_h[r]->tx(rf_buffers[r], frame_size, ts_tx);
       }
     }
@@ -485,20 +481,19 @@ int main(int argc, char** argv)
     if (i != 0) {
       for (uint32_t r = 0; r < nof_radios; r++) {
         srslte_timestamp_t ts_diff;
-        bzero(&ts_diff, sizeof(ts_diff));
 
-        srslte_timestamp_copy(&ts_diff, &ts_rx[r]);
-        srslte_timestamp_sub(&ts_diff, ts_prev[r].full_secs, ts_prev[r].frac_secs);
-        gap = (int)round(srslte_timestamp_real(&ts_diff) * srate) - frame_size;
+        srslte_timestamp_copy(&ts_diff, ts_rx[r].get_ptr(0));
+        srslte_timestamp_sub(&ts_diff, ts_prev[r].get_ptr(0)->full_secs, ts_prev[r].get_ptr(0)->frac_secs);
+        gap = (int32_t)round(srslte_timestamp_real(&ts_diff) * srate) - (int32_t)frame_size;
 
-        if (gap) {
+        if (gap != 0) {
           INFO("Timestamp gap (%d samples) detected! Frame %d/%d. ts=%.9f+%.9f=%.9f\n",
                gap,
                i + 1,
                nof_frames,
-               srslte_timestamp_real(&ts_prev[r]),
+               srslte_timestamp_real(ts_prev[r].get_ptr(0)),
                srslte_timestamp_real(&ts_diff),
-               srslte_timestamp_real(&ts_rx[r]));
+               srslte_timestamp_real(ts_rx[r].get_ptr(0)));
           nof_gaps++;
         }
       }
@@ -506,7 +501,7 @@ int main(int argc, char** argv)
 
     /* Save timestamp */
     for (uint32_t r = 0; r < nof_radios; r++) {
-      srslte_timestamp_copy(&ts_prev[r], &ts_rx[r]);
+      ts_prev[r].copy(ts_rx[r]);
     }
 
     nof_samples -= frame_size;

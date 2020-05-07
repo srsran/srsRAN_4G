@@ -80,7 +80,7 @@ private:
   srslte::log_filter                log_h;
   std::vector<srslte_ringbuffer_t*> ringbuffers_tx;
   std::vector<srslte_ringbuffer_t*> ringbuffers_rx;
-  srslte_timestamp_t                ts_rx    = {};
+  srslte::rf_timestamp_t            ts_rx    = {};
   double                            rx_srate = 0.0;
   bool                              running  = true;
 
@@ -186,7 +186,9 @@ public:
     }
   }
 
-  bool tx(srslte::rf_buffer_interface& buffer, const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) override
+  bool tx(srslte::rf_buffer_interface&          buffer,
+          const uint32_t&                       nof_samples,
+          const srslte::rf_timestamp_interface& tx_time) override
   {
     int err = SRSLTE_SUCCESS;
 
@@ -207,7 +209,9 @@ public:
     return err >= SRSLTE_SUCCESS;
   }
   void tx_end() override {}
-  bool rx_now(srslte::rf_buffer_interface& buffer, const uint32_t& nof_samples, srslte_timestamp_t* rxd_time) override
+  bool rx_now(srslte::rf_buffer_interface&    buffer,
+              const uint32_t&                 nof_samples,
+              srslte::rf_timestamp_interface& rxd_time) override
   {
     int err = SRSLTE_SUCCESS;
 
@@ -224,13 +228,11 @@ public:
     }
 
     // Copy new timestamp
-    if (rxd_time) {
-      *rxd_time = ts_rx;
-    }
+    rxd_time = ts_rx;
 
     // Copy new timestamp
     if (std::isnormal(rx_srate)) {
-      srslte_timestamp_add(&ts_rx, 0, static_cast<double>(nof_samples) / rx_srate);
+      ts_rx.add(static_cast<double>(nof_samples) / rx_srate);
     }
 
     // Notify Rx

@@ -63,7 +63,7 @@ public:
    * @param nof_samples number of samples to transmit
    * @param tx_time timestamp to transmit samples
    */
-  void worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+  void worker_end(void* tx_sem_id, srslte::rf_buffer_t& buffer, uint32_t nof_samples, srslte::rf_timestamp_t& tx_time);
 
   // Common objects
   phy_args_t params = {};

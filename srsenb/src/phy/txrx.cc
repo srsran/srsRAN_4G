@@ -87,11 +87,10 @@ void txrx::stop()
 
 void txrx::run_thread()
 {
-  sf_worker*          worker  = nullptr;
-  srslte::rf_buffer_t buffer  = {};
-  srslte_timestamp_t  rx_time = {};
-  srslte_timestamp_t  tx_time = {};
-  uint32_t            sf_len  = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
+  sf_worker*             worker    = nullptr;
+  srslte::rf_buffer_t    buffer    = {};
+  srslte::rf_timestamp_t timestamp = {};
+  uint32_t               sf_len    = SRSLTE_SF_LEN_PRB(worker_com->get_nof_prb(0));
 
   float samp_rate = srslte_sampling_freq_hz(worker_com->get_nof_prb(0));
 
@@ -134,24 +133,23 @@ void txrx::run_thread()
         }
       }
 
-      radio_h->rx_now(buffer, sf_len, &rx_time);
+      radio_h->rx_now(buffer, sf_len, timestamp);
 
       if (ul_channel) {
-        ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), sf_len, rx_time);
+        ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), sf_len, timestamp.get(0));
       }
 
-      /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
-      srslte_timestamp_copy(&tx_time, &rx_time);
-      srslte_timestamp_add(&tx_time, 0, FDD_HARQ_DELAY_UL_MS * 1e-3);
+      // Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
+      timestamp.add(FDD_HARQ_DELAY_UL_MS * 1e-3);
 
       Debug("Setting TTI=%d, tx_mutex=%d, tx_time=%ld:%f to worker %d\n",
             tti,
             tx_worker_cnt,
-            tx_time.full_secs,
-            tx_time.frac_secs,
+            timestamp.get(0).full_secs,
+            timestamp.get(0).frac_secs,
             worker->get_id());
 
-      worker->set_time(tti, tx_worker_cnt, tx_time);
+      worker->set_time(tti, tx_worker_cnt, timestamp);
       tx_worker_cnt = (tx_worker_cnt + 1) % nof_workers;
 
       // Trigger phy worker execution

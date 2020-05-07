@@ -429,11 +429,6 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
     }
   }
 
-  // Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
-  srslte_timestamp_t tx_time;
-  srslte_ue_sync_get_last_timestamp(&ue_sync, &tx_time);          // Get Rx Timestamp
-  srslte_timestamp_add(&tx_time, 0, FDD_HARQ_DELAY_DL_MS * 1e-3); // Add Tx delay
-
   worker->set_prach(prach_ptr ? &prach_ptr[prach_sf_cnt * SRSLTE_SF_LEN_PRB(cell.nof_prb)] : nullptr, prach_power);
 
   // Set CFO for all Carriers
@@ -443,7 +438,10 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
   }
 
   worker->set_tti(tti);
-  worker->set_tx_time(tx_time);
+
+  // Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time
+  last_rx_time.add(FDD_HARQ_DELAY_DL_MS * 1e-3);
+  worker->set_tx_time(last_rx_time);
 
   // Advance/reset prach subframe pointer
   if (prach_ptr) {
@@ -807,15 +805,21 @@ void sync::get_current_cell(srslte_cell_t* cell_, uint32_t* earfcn_)
 
 int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
-  srslte_timestamp_t ts = {};
-
-  // Use local timestamp if timestamp is not provided
-  if (!rx_time) {
-    rx_time = &ts;
-  }
+  // This function is designed for being called from the UE sync object which will pass a null rx_time in case
+  // receive dummy samples. So, rf_timestamp points at dummy timestamp in case rx_time is not provided
+  srslte::rf_timestamp_t  dummy_ts     = {};
+  srslte::rf_timestamp_t& rf_timestamp = (rx_time == nullptr) ? dummy_ts : last_rx_time;
 
   // Receive
-  if (radio_h->rx_now(data, nsamples, rx_time)) {
+  if (radio_h->rx_now(data, nsamples, rf_timestamp)) {
+    srslte_timestamp_t dummy_flat_ts = {};
+
+    // Load flat timestamp
+    if (rx_time == nullptr) {
+      rx_time = &dummy_flat_ts;
+    }
+    *rx_time = rf_timestamp.get(0);
+
     // check timestamp reset
     if (forced_rx_time_init || srslte_timestamp_iszero(&tti_ts) || srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
       if (srslte_timestamp_compare(rx_time, &tti_ts) < 0) {

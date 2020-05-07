@@ -124,17 +124,17 @@ void phy_common::set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_s
  * Each worker uses this function to indicate that all processing is done and data is ready for transmission or
  * there is no transmission at all (tx_enable). In that case, the end of burst message will be sent to the radio
  */
-void phy_common::worker_end(void*                tx_sem_id,
-                            srslte::rf_buffer_t& buffer,
-                            uint32_t             nof_samples,
-                            srslte_timestamp_t   tx_time)
+void phy_common::worker_end(void*                   tx_sem_id,
+                            srslte::rf_buffer_t&    buffer,
+                            uint32_t                nof_samples,
+                            srslte::rf_timestamp_t& tx_time)
 {
   // Wait for the green light to transmit in the current TTI
   semaphore.wait(tx_sem_id);
 
   // Run DL channel emulator if created
   if (dl_channel) {
-    dl_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), nof_samples, tx_time);
+    dl_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), nof_samples, tx_time.get(0));
   }
 
   // Always transmit on single radio

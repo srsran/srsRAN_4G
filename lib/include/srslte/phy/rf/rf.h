@@ -29,6 +29,10 @@
 
 #include "srslte/config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define RF_PARAM_LEN (256)
 
 typedef struct {
@@ -163,5 +167,9 @@ SRSLTE_API int srslte_rf_send_multi(srslte_rf_t* rf,
                                     bool         blocking,
                                     bool         is_start_of_burst,
                                     bool         is_end_of_burst);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_RF_H

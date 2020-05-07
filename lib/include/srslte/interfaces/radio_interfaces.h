@@ -59,6 +59,35 @@ public:
 };
 
 /**
+ * Class used to pass RF devices timestamps to the radio instance
+ *
+ * The class provides an abstraction to store a number of timestamps underlying RF devices.
+ */
+class rf_timestamp_interface
+{
+public:
+  virtual const srslte_timestamp_t& get(uint32_t idx) const = 0;
+  virtual srslte_timestamp_t*       get_ptr(uint32_t idx)   = 0;
+  virtual void                      add(double secs)        = 0;
+  virtual void                      sub(double secs)        = 0;
+
+  void copy(const rf_timestamp_interface& other)
+  {
+    // Nothing to copy
+    if (this == &other) {
+      return;
+    }
+
+    // Copy timestamps
+    for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+      *this->get_ptr(i) = other.get(i);
+    }
+  }
+
+  srslte_timestamp_t& operator[](uint32_t idx) { return *this->get_ptr(idx); }
+};
+
+/**
  * Radio interface for the PHY.
  *
  * The main functionality is to allow TX and RX of samples to the radio.
@@ -94,7 +123,7 @@ public:
    * @param tx_time Time to transmit all signals
    * @return it returns true if the transmission was successful, otherwise it returns false
    */
-  virtual bool tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) = 0;
+  virtual bool tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const rf_timestamp_interface& tx_time) = 0;
 
   /**
    * Indicates the radio to receive from all antennas and carriers synchronously and store the samples
@@ -105,7 +134,7 @@ public:
    * @param tx_time Time at which the samples were received. Note the time is the same for all carriers
    * @return
    */
-  virtual bool rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, srslte_timestamp_t* rxd_time) = 0;
+  virtual bool rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, rf_timestamp_interface& rxd_time) = 0;
 
   /**
    * Sets the TX frequency for all antennas in the provided carrier index

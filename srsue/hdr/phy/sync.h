@@ -153,6 +153,7 @@ private:
   bool running     = false;
   bool is_overflow = false;
 
+  srslte::rf_timestamp_t last_rx_time;
   bool forced_rx_time_init = true; // Rx time sync after first receive from radio
 
   // Objects for internal use
