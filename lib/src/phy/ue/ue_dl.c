@@ -628,6 +628,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
 
   if (cfg->cfg.tm > SRSLTE_TM8) {
     ERROR("Searching DL CRNTI: Invalid TM=%d\n", cfg->cfg.tm + 1);
+    return SRSLTE_ERROR;
   }
 
   for (int f = 0; f < 2; f++) {
