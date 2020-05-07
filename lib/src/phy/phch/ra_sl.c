@@ -130,6 +130,7 @@ int srslte_ra_sl_pssch_allowed_sf(uint32_t pssch_sf_idx, uint32_t trp_idx, uint3
 
 int srslte_sci_generate_trp_idx(uint32_t duplex_mode, uint32_t tdd_config, uint32_t k_TRP)
 {
+  uint8_t retval;
   struct timeval tv;
   gettimeofday(&tv, NULL);
   srslte_random_t random = srslte_random_init(tv.tv_usec);
@@ -139,55 +140,81 @@ int srslte_sci_generate_trp_idx(uint32_t duplex_mode, uint32_t tdd_config, uint3
       tdd_config == 5) {
     switch (k_TRP) {
       case 1:
-        return srslte_sl_N_TRP_8_k_1[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_1) - 1)];
+        retval = srslte_sl_N_TRP_8_k_1[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_1) - 1)];
+        break;
       case 2:
-        return srslte_sl_N_TRP_8_k_2[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_2) - 1)];
+        retval = srslte_sl_N_TRP_8_k_2[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_2) - 1)];
+        break;
       case 4:
-        return srslte_sl_N_TRP_8_k_4[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_4) - 1)];
+        retval = srslte_sl_N_TRP_8_k_4[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_4) - 1)];
+        break;
       case 8:
-        return srslte_sl_N_TRP_8_k_8[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_8) - 1)];
+        retval = srslte_sl_N_TRP_8_k_8[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_8_k_8) - 1)];
+        break;
       default:
-        return SRSLTE_ERROR;
+        retval = SRSLTE_ERROR;
+        break;
     }
     // N_TRP = 7
   } else if (tdd_config == 0) {
     switch (k_TRP) {
       case 1:
-        return srslte_sl_N_TRP_7_k_1[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_1) - 1)];
+        retval = srslte_sl_N_TRP_7_k_1[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_1) - 1)];
+        break;
       case 2:
-        return srslte_sl_N_TRP_7_k_2[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_2) - 1)];
+        retval = srslte_sl_N_TRP_7_k_2[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_2) - 1)];
+        break;
       case 3:
-        return srslte_sl_N_TRP_7_k_3[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_3) - 1)];
+        retval = srslte_sl_N_TRP_7_k_3[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_3) - 1)];
+        break;
       case 4:
-        return srslte_sl_N_TRP_7_k_4[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_4) - 1)];
+        retval = srslte_sl_N_TRP_7_k_4[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_4) - 1)];
+        break;
       case 5:
-        return srslte_sl_N_TRP_7_k_5[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_5) - 1)];
+        retval = srslte_sl_N_TRP_7_k_5[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_5) - 1)];
+        break;
       case 6:
-        return srslte_sl_N_TRP_7_k_6[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_6) - 1)];
+        retval = srslte_sl_N_TRP_7_k_6[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_6) - 1)];
+        break;
       case 7:
-        return srslte_sl_N_TRP_7_k_7[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_7) - 1)];
+        retval = srslte_sl_N_TRP_7_k_7[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_7_k_7) - 1)];
+        break;
       default:
-        return SRSLTE_ERROR;
+        retval = SRSLTE_ERROR;
+        break;
     }
     // N_TRP = 6
   } else if (tdd_config == 3 || tdd_config == 6) {
     switch (k_TRP) {
       case 1:
-        return srslte_sl_N_TRP_6_k_1[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_1) - 1)];
+        retval = srslte_sl_N_TRP_6_k_1[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_1) - 1)];
+        break;
       case 2:
-        return srslte_sl_N_TRP_6_k_2[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_2) - 1)];
+        retval = srslte_sl_N_TRP_6_k_2[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_2) - 1)];
+        break;
       case 3:
-        return srslte_sl_N_TRP_6_k_3[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_3) - 1)];
+        retval = srslte_sl_N_TRP_6_k_3[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_3) - 1)];
+        break;
       case 4:
-        return srslte_sl_N_TRP_6_k_4[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_4) - 1)];
+        retval = srslte_sl_N_TRP_6_k_4[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_4) - 1)];
+        break;
       case 5:
-        return srslte_sl_N_TRP_6_k_5[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_5) - 1)];
+        retval = srslte_sl_N_TRP_6_k_5[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_5) - 1)];
+        break;
       case 6:
-        return srslte_sl_N_TRP_6_k_6[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_6) - 1)];
+        retval = srslte_sl_N_TRP_6_k_6[srslte_random_uniform_int_dist(random, 0, sizeof(srslte_sl_N_TRP_6_k_6) - 1)];
+        break;
       default:
-        return SRSLTE_ERROR;
+        retval = SRSLTE_ERROR;
+        break;
     }
   }
+  else
+  {
+    retval = SRSLTE_SUCCESS;
+  }
 
-  return SRSLTE_SUCCESS;
+  srslte_random_free(random);
+
+  return retval;
 }
