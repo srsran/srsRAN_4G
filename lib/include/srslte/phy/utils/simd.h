@@ -2044,7 +2044,7 @@ static inline simd_b_t srslte_simd_b_sub(simd_b_t a, simd_b_t b)
 #endif /* LV_HAVE_AVX512 */
 }
 
-static inline simd_s_t srslte_simd_b_neg(simd_b_t a, simd_b_t b)
+static inline simd_b_t srslte_simd_b_neg(simd_b_t a, simd_b_t b)
 {
 #ifdef LV_HAVE_AVX512
   __m256i a0 = _mm512_extracti64x4_epi64(a, 0);
