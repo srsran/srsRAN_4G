@@ -787,6 +787,9 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
     srslte::mbsfn_area_info_t& area_info  = mbsfn_config.mbsfn_area_info;
     offset                                = subfr_cnfg.radioframe_alloc_offset;
     period                                = srslte::enum_to_number(subfr_cnfg.radioframe_alloc_period);
+    if (period == (uint8_t)-1) {
+      return false;
+    }
 
     if (subfr_cnfg.nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame) {
       if ((sfn % period == offset) && (mch_table[sf] > 0)) {
