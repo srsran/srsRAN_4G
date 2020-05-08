@@ -1560,7 +1560,7 @@ static inline simd_s_t srslte_simd_s_neg(simd_s_t a, simd_s_t b)
   // -a
   int16x8_t neg = vnegq_s16(a);
   // bitwise select either a or neg based on ltMask
-  int16x8_t masked = vbslq_s16(ltMask, a, neg);
+  int16x8_t masked = vbslq_s16(ltMask, neg, a);
   // res = masked & (~zeroMask)
   int16x8_t res = vbicq_s16(masked, zeroMask);
   return res;
@@ -2074,7 +2074,7 @@ static inline simd_b_t srslte_simd_b_neg(simd_b_t a, simd_b_t b)
   // -a
   int8x16_t neg = vnegq_s8(a);
   // bitwise select either a or neg based on ltMask
-  int8x16_t masked = vbslq_s8(ltMask, a, neg);
+  int8x16_t masked = vbslq_s8(ltMask, neg, a);
   // res = masked & (~zeroMask)
   int8x16_t res = vbicq_s8(masked, zeroMask);
   return res;
