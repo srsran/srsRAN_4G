@@ -5,7 +5,7 @@ jobs:
     name: Build and test on x86 Ubuntu 18.04
     strategy:
         matrix:
-          cc: [ gcc ]
+          compiler: [gcc, clang]
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
@@ -19,7 +19,7 @@ jobs:
     name: Build and test on x86 Ubuntu 16.04
     strategy:
         matrix:
-          cc: [ gcc ]
+          compiler: [gcc, clang]
     runs-on: ubuntu-16.04
     steps:
       - uses: actions/checkout@v1
@@ -33,6 +33,9 @@ jobs:
   aarch64_ubuntu18_build:
     runs-on: ubuntu-18.04
     name: Build on aarch64
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
     steps:
     - uses: actions/checkout@v1
     - name: Build srsLTE on aarch64
