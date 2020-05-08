@@ -233,6 +233,12 @@ static void interpolate_pilots_sl_psbch(srslte_chest_sl_t* q)
     }
   }
 
+  // make sure l_idx is at least 2 to avoid accessing array at negative index below
+  if (l_idx < 2) {
+    ERROR("Couldn't interpolate PSBCH pilots. Invalid number of reference symbols.\n");
+    return;
+  }
+
   for (uint32_t n = 0; n < l_idx; n++) {
     ce_l[n] = SRSLTE_RE_IDX(q->cell.nof_prb, L[n], 0 * SRSLTE_NRE);
   }
@@ -282,7 +288,7 @@ static void chest_sl_psbch_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
 
   // Get Pilot Estimates
   // Use the known DMRS signal to compute least-squares estimates
-  bzero(q->ce, sizeof(cf_t) * sf_n_re);
+  srslte_vec_cf_zero(q->ce, sf_n_re);
   for (uint32_t i = 0; i < sf_nsymbols; i++) {
     if (srslte_psbch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, q->cell.tm, i, q->cell.cp)) {
       srslte_vec_prod_conj_ccc(&sf_buffer[i * q->cell.nof_prb * SRSLTE_NRE + k],
@@ -456,6 +462,12 @@ static void interpolate_pilots_sl_pscch(srslte_chest_sl_t* q)
     }
   }
 
+  // make sure l_idx is at least 2 to avoid accessing array at negative index below
+  if (l_idx < 2) {
+    ERROR("Couldn't interpolate PSCCH pilots. Invalid number of reference symbols.\n");
+    return;
+  }
+
   for (uint32_t n = 0; n < l_idx; n++) {
     ce_l[n] = SRSLTE_RE_IDX(q->cell.nof_prb, L[n], 0 * SRSLTE_NRE);
   }
@@ -499,7 +511,7 @@ static void chest_sl_pscch_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
 {
   // Get Pilot Estimates
   // Use the known DMRS signal to compute least-squares estimates
-  bzero(q->ce, sizeof(cf_t) * q->sf_n_re);
+  srslte_vec_cf_zero(q->ce, q->sf_n_re);
 
   uint32_t dmrs_idx = 0;
   for (uint32_t i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); i++) {
@@ -743,6 +755,12 @@ static void interpolate_pilots_sl_pssch(srslte_chest_sl_t* q)
     }
   }
 
+  // make sure l_idx is at least 2 to avoid accessing array at negative index below
+  if (l_idx < 2) {
+    ERROR("Couldn't interpolate PSSCH pilots. Invalid number of reference symbols.\n");
+    return;
+  }
+
   for (uint32_t n = 0; n < l_idx; n++) {
     ce_l[n] = SRSLTE_RE_IDX(q->cell.nof_prb, L[n], 0 * SRSLTE_NRE);
   }
@@ -906,7 +924,7 @@ static void chest_sl_pssch_ls_estimate(srslte_chest_sl_t* q, cf_t* sf_buffer)
   int      dmrs_idx = 0;
   uint32_t k        = q->chest_sl_cfg.prb_start_idx * SRSLTE_NRE;
 
-  bzero(q->ce, sizeof(cf_t) * q->sf_n_re);
+  srslte_vec_cf_zero(q->ce, q->sf_n_re);
   for (int i = 0; i < srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp); i++) {
     if (srslte_pssch_is_symbol(SRSLTE_SIDELINK_DMRS_SYMBOL, q->cell.tm, i, q->cell.cp)) {
 
@@ -980,9 +998,14 @@ static void get_subband_noise(srslte_chest_sl_t* q, uint32_t k_start, uint32_t k
 
 float srslte_chest_sl_estimate_noise(srslte_chest_sl_t* q)
 {
-  q->noise_estimated   = 0.0;
   uint32_t sf_nsymbols = srslte_sl_get_num_symbols(q->cell.tm, q->cell.cp);
-  bzero(q->ce_average, sizeof(cf_t) * q->sf_n_re);
+  if (sf_nsymbols == 0) {
+    ERROR("Error estimating channel noise. Invalid number of OFDM symbols.\n");
+    return SRSLTE_ERROR;
+  }
+
+  srslte_vec_cf_zero(q->ce_average, q->sf_n_re);
+  q->noise_estimated = 0.0;
 
   uint32_t k_start = 0;
   uint32_t k_end   = 0;
