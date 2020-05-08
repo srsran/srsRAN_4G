@@ -149,7 +149,7 @@ bool s1ap_mngmt_proc::unpack_s1_setup_request(const asn1::s1ap::s1_setup_request
     ((uint8_t*)&enb_ctx->tac[i])[1]  = tas.tac[1];
     enb_ctx->tac[i]                  = ntohs(enb_ctx->tac[i]);
     enb_ctx->nof_supported_bplmns[i] = tas.broadcast_plmns.size();
-    for (uint16_t j = 0; j < tas.broadcast_plmns.size(); j++) {
+    for (uint32_t j = 0; j < tas.broadcast_plmns.size(); j++) {
       // BPLMNs
       ((uint8_t*)&enb_ctx->bplmns[i][j])[1] = tas.broadcast_plmns[j][0];
       ((uint8_t*)&enb_ctx->bplmns[i][j])[2] = tas.broadcast_plmns[j][1];
