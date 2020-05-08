@@ -322,6 +322,9 @@ void nas::start_attach_request(srslte::establishment_cause_t cause_)
   }
 
   // Todo: stop T3402
+  if (t3402.is_running()) {
+    t3402.stop();
+  }
 
   // Start attach request
   unique_byte_buffer_t msg = srslte::allocate_unique_buffer(*pool, true);
