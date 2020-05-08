@@ -1175,7 +1175,7 @@ proc_outcome_t rrc::go_idle_proc::step()
 
 void rrc::go_idle_proc::then(const srslte::proc_state_t& result)
 {
-  if (rrc_ptr->nas->is_attached() and not rrc_ptr->cell_reselector.launch()) {
+  if (rrc_ptr->nas->is_registered() and not rrc_ptr->cell_reselector.launch()) {
     rrc_ptr->rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
     return;
   }
@@ -1245,7 +1245,7 @@ proc_outcome_t rrc::cell_reselection_proc::step()
 void rrc::cell_reselection_proc::then(const srslte::proc_state_t& result)
 {
   // Schedule cell reselection periodically, while rrc is idle
-  if (not rrc_ptr->is_connected() and rrc_ptr->nas->is_attached()) {
+  if (not rrc_ptr->is_connected() and rrc_ptr->nas->is_registered()) {
     if (cell_sel_result == cs_result_t::changed_cell) {
       // TS 36.304 5.2.4.6 - Intra-frequency and equal priority inter-frequency Cell Reselection criteria
       // the UE shall reselect a new cell if more than 1 second has elapsed since the UE camped

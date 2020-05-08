@@ -224,7 +224,7 @@ public:
   virtual void     left_rrc_connected()                                       = 0;
   virtual void     set_barring(srslte::barring_t barring)                     = 0;
   virtual bool     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
-  virtual bool     is_attached()                                              = 0;
+  virtual bool     is_registered()                                            = 0;
   virtual void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
   virtual uint32_t get_k_enb_count()                                          = 0;
   virtual bool     get_k_asme(uint8_t* k_asme_, uint32_t n)                   = 0;
@@ -240,9 +240,9 @@ public:
 class nas_interface_stack
 {
 public:
-  virtual bool switch_on() = 0;
-  virtual bool switch_off() = 0;
-  virtual bool enable_data() = 0;
+  virtual bool switch_on()    = 0;
+  virtual bool switch_off()   = 0;
+  virtual bool enable_data()  = 0;
   virtual bool disable_data() = 0;
 };
 
@@ -623,7 +623,7 @@ public:
 class stack_interface_gw : public pdcp_interface_gw
 {
 public:
-  virtual bool is_attached()           = 0;
+  virtual bool is_registered()         = 0;
   virtual bool start_service_request() = 0;
 };
 

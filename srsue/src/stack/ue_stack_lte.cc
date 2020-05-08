@@ -262,9 +262,9 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
  * Check whether nas is attached
  * @return bool wether NAS is in EMM_REGISTERED
  */
-bool ue_stack_lte::is_attached()
+bool ue_stack_lte::is_registered()
 {
-  return nas.is_attached();
+  return nas.is_registered();
 }
 
 /********************

@@ -72,7 +72,7 @@ public:
   void start_service_request(srslte::establishment_cause_t cause_);
 
   // Stack+RRC interface
-  bool is_attached() override;
+  bool is_registered() override;
 
   // timer callback
   void timer_expired(uint32_t timeout_id) override;

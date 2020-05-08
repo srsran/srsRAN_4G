@@ -221,8 +221,8 @@ void gw::run_thread()
     return;
   }
 
-  const static uint32_t ATTACH_WAIT_TOUT = 40, SERVICE_WAIT_TOUT = 40; // 4 sec
-  uint32_t              attach_wait = 0, service_wait = 0;
+  const static uint32_t REGISTER_WAIT_TOUT = 40, SERVICE_WAIT_TOUT = 40; // 4 sec
+  uint32_t              register_wait = 0, service_wait = 0;
 
   log.info("GW IP packet receiver thread run_enable\n");
 
@@ -264,31 +264,32 @@ void gw::run_thread()
       log.info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
       // Make sure UE is attached
-      while (run_enable && !stack->is_attached() && attach_wait < ATTACH_WAIT_TOUT) {
-        if (!attach_wait) {
-          log.info("UE is not attached, waiting for NAS attach (%d/%d)\n", attach_wait, ATTACH_WAIT_TOUT);
+      while (run_enable && !stack->is_registered() && register_wait < REGISTER_WAIT_TOUT) {
+        if (!register_wait) {
+          log.info("UE is not attached, waiting for NAS attach (%d/%d)\n", register_wait, REGISTER_WAIT_TOUT);
         }
         usleep(100000);
-        attach_wait++;
+        register_wait++;
       }
-      attach_wait = 0;
+      register_wait = 0;
 
       // If we are still not attached by this stage, drop packet
-      if (run_enable && !stack->is_attached()) {
+      if (run_enable && !stack->is_registered()) {
         continue;
       }
 
-      // Wait for service request if necessary   
+      // Wait for service request if necessary
       while (run_enable && !stack->is_lcid_enabled(default_lcid) && service_wait < SERVICE_WAIT_TOUT) {
         if (!service_wait) {
-          log.info("UE does not have service, waiting for NAS service request (%d/%d)\n", service_wait, SERVICE_WAIT_TOUT);
+          log.info(
+              "UE does not have service, waiting for NAS service request (%d/%d)\n", service_wait, SERVICE_WAIT_TOUT);
           stack->start_service_request();
         }
         usleep(100000);
         service_wait++;
       }
       service_wait = 0;
-      
+
       // Quit before writing packet if necessary
       if (!run_enable) {
         break;

@@ -158,7 +158,7 @@ public:
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
 
-  bool is_attached() { return true; }
+  bool is_registered() { return true; }
 
   bool start_service_request() { return true; }
 
@@ -310,7 +310,7 @@ int mme_attach_request_test()
 
     gw.init(gw_args, g_logger, &stack);
     stack.init(&nas);
-    usleep(1000); // Wait for stack to initialize before stoping it.
+    usleep(5000); // Wait for stack to initialize before stoping it.
     // trigger test
     stack.switch_on();
     stack.stop();

@@ -261,7 +261,7 @@ void nas::timer_expired(uint32_t timeout_id)
 /*******************************************************************************
  * UE Stack and RRC common Interface
  ******************************************************************************/
-bool nas::is_attached()
+bool nas::is_registered()
 {
   return state.get_state() == emm_state_t::state_t::registered;
 }

@@ -174,7 +174,7 @@ class nas_test : public srsue::nas
 {
 public:
   nas_test(srslte::task_sched_handle t) : srsue::nas(t) {}
-  bool is_attached() override { return false; }
+  bool is_registered() override { return false; }
 };
 
 class pdcp_test : public srslte::pdcp
