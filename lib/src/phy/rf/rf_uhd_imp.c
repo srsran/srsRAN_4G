@@ -823,7 +823,7 @@ double rf_uhd_set_rx_srate(void* h, double freq)
 
   // Set master clock rate
   if (fmod(handler->current_master_clock, freq)) {
-    rf_uhd_set_master_clock_rate(handler, 4 * freq);
+    rf_uhd_set_master_clock_rate(handler, freq);
   }
 
   if (handler->nof_rx_channels > 1) {
