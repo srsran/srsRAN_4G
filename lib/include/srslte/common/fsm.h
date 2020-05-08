@@ -99,25 +99,17 @@ using fsm_transitions = typename FSM::derived_view::transitions;
 
 //! Detection of enter/exit methods of a state.
 template <typename FSM, typename State>
-auto call_enter(FSM* f, State* s) -> decltype(s->enter(f), std::true_type{})
+auto call_enter(FSM* f, State* s) -> decltype(s->enter(f))
 {
   s->enter(f);
-  return std::true_type{};
 }
-auto call_enter(...) -> std::false_type
-{
-  return {};
-}
+void call_enter(...) {}
 template <typename FSM, typename State>
-auto call_exit(FSM* f, State* s) -> decltype(s->exit(f), std::true_type{})
+auto call_exit(FSM* f, State* s) -> decltype(s->exit(f))
 {
   s->exit(f);
-  return std::true_type{};
 }
-auto call_exit(...) -> std::false_type
-{
-  return {};
-}
+void call_exit(...) {}
 
 //! Find State in FSM recursively (e.g. find State in FSM,FSM::parentFSM,FSM::parentFSM::parentFSM,...)
 template <typename State, typename FSM>
@@ -145,8 +137,6 @@ struct state_traits {
   static_assert(FSM::template can_hold_state<State>(), "FSM type does not hold provided State\n");
   using state_t   = State;
   using is_subfsm = std::integral_constant<bool, ::srslte::fsm_details::is_subfsm<State>()>;
-  using has_enter = decltype(fsm_details::call_enter((FSM*)nullptr, (State*)nullptr));
-  using has_exit  = decltype(fsm_details::call_exit((FSM*)nullptr, (State*)nullptr));
 
   //! enter new state. enter is called recursively for subFSMs
   static void enter_state(FSM* f, State* s) { enter_(f, s, is_subfsm{}); }

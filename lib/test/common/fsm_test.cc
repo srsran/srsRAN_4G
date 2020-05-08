@@ -171,9 +171,6 @@ static_assert(fsm1::can_hold_state<fsm1::state1>(), "failed can_hold_state check
 static_assert(std::is_same<enable_if_fsm_state<fsm1, fsm1::idle_st>, void>::value, "get state list failed\n");
 static_assert(std::is_same<disable_if_fsm_state<fsm1, fsm1::fsm2::state_inner>, void>::value,
               "get state list failed\n");
-static_assert(fsm_details::state_traits<fsm1, fsm1::idle_st>::has_enter::value, "Failed detection of enter method\n");
-static_assert(fsm_details::state_traits<fsm1, fsm1::idle_st>::has_exit::value == false,
-              "Failed detection of exit method\n");
 
 } // namespace fsm_details
 } // namespace srslte
