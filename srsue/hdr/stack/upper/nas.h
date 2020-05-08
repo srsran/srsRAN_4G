@@ -39,7 +39,7 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
-class nas : public nas_interface_rrc, public nas_interface_stack, public srslte::timer_callback
+class nas : public nas_interface_rrc, public srslte::timer_callback
 {
 public:
   explicit nas(srslte::task_sched_handle task_sched_);

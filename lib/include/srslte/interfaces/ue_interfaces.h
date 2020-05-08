@@ -236,16 +236,6 @@ public:
   virtual bool connection_request_completed(bool outcome) = 0;
 };
 
-// NAS interface for the Stack
-class nas_interface_stack
-{
-public:
-  virtual bool switch_on()    = 0;
-  virtual bool switch_off()   = 0;
-  virtual bool enable_data()  = 0;
-  virtual bool disable_data() = 0;
-};
-
 // PDCP interface for RRC
 class pdcp_interface_rrc
 {
