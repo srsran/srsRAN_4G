@@ -679,8 +679,7 @@ static void* net_thread_fnc(void* arg)
       ERROR("Error receiving from network\n");
       exit(-1);
     }
-  } while (n >= 0);
-  return NULL;
+  } while (true);
 }
 
 int main(int argc, char** argv)
