@@ -187,7 +187,8 @@ bool cell_ctxt_dedicated_list::alloc_cqi_resources(uint32_t ue_cc_idx, uint32_t 
   const auto& pcell_pucch_cfg   = get_ue_cc_idx(UE_PCELL_CC_IDX)->cell_common.sib2.rr_cfg_common.pucch_cfg_common;
   uint32_t    c                 = SRSLTE_CP_ISNORM(cfg.cell.cp) ? 3 : 2;
   uint32_t    delta_pucch_shift = pcell_pucch_cfg.delta_pucch_shift.to_number();
-  uint32_t    max_users         = 12 * c / delta_pucch_shift;
+  delta_pucch_shift             = SRSLTE_MAX(1, delta_pucch_shift);
+  uint32_t max_users            = 12 * c / delta_pucch_shift;
 
   // Allocate all CQI resources for all carriers now
   // Find freq-time resources with least number of users
