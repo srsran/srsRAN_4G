@@ -254,7 +254,6 @@ void srslte_vec_neg_bbb_simd(const int8_t* x, const int8_t* y, int8_t* z, const 
 {
   int i = 0;
 
-#ifndef HAVE_NEON
 #if SRSLTE_SIMD_B_SIZE
   if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y) && SRSLTE_IS_ALIGNED(z)) {
     for (; i < len - SRSLTE_SIMD_B_SIZE + 1; i += SRSLTE_SIMD_B_SIZE) {
@@ -276,7 +275,6 @@ void srslte_vec_neg_bbb_simd(const int8_t* x, const int8_t* y, int8_t* z, const 
     }
   }
 #endif /* SRSLTE_SIMD_S_SIZE */
-#endif /* NOT HAVE_NEON*/
   for (; i < len; i++) {
     z[i] = y[i] < 0 ? -x[i] : x[i];
   }
