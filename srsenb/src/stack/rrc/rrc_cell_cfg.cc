@@ -292,6 +292,7 @@ bool cell_ctxt_dedicated_list::alloc_sr_resources(uint32_t period)
 
   uint32_t c                 = SRSLTE_CP_ISNORM(cfg.cell.cp) ? 3 : 2;
   uint32_t delta_pucch_shift = cell->cell_common.sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
+  delta_pucch_shift          = SRSLTE_MAX(1, delta_pucch_shift); // prevent div by zero
   uint32_t max_users         = 12 * c / delta_pucch_shift;
 
   // Find freq-time resources with least number of users
