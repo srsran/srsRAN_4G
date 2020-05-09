@@ -21,7 +21,7 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
-#include "srslte/rrc/rrc_cfg_utils.h"
+#include "srslte/rrc/bearer_cfg.h"
 
 namespace srsenb {
 
@@ -48,16 +48,12 @@ void bearer_handler::setup_srb(uint8_t srb_id)
     return;
   }
 
-  auto it = srslte::binary_find(current_srbs, srb_id);
-  if (it == current_srbs.end()) {
-    current_srbs.push_back({});
-    it         = current_srbs.end() - 1;
-    it->srb_id = srb_id;
-  }
-  it->lc_ch_cfg_present = true;
-  it->lc_ch_cfg.set(srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::default_value);
-  it->rlc_cfg_present = true;
-  it->rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types_opts::default_value);
+  // Set SRBtoAddMod
+  auto srb_it               = srslte::add_rrc_obj_id(srbs_to_add, srb_id);
+  srb_it->lc_ch_cfg_present = true;
+  srb_it->lc_ch_cfg.set(srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::default_value);
+  srb_it->rlc_cfg_present = true;
+  srb_it->rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types_opts::default_value);
 }
 
 int bearer_handler::setup_erab(uint8_t                                            erab_id,
@@ -93,13 +89,8 @@ int bearer_handler::setup_erab(uint8_t                                          
                     rnti);
   }
 
-  // Configure DRB
-  auto drb_it = srslte::binary_find(current_drbs, drbid);
-  if (drb_it == current_drbs.end()) {
-    current_drbs.push_back({});
-    drb_it         = current_drbs.end() - 1;
-    drb_it->drb_id = drbid;
-  }
+  // Set DRBtoAddMod
+  auto drb_it                                              = srslte::add_rrc_obj_id(drbs_to_add, drbid);
   drb_it->lc_ch_id_present                                 = true;
   drb_it->lc_ch_id                                         = (uint8_t)lcid;
   drb_it->eps_bearer_id_present                            = true;
@@ -121,28 +112,33 @@ int bearer_handler::setup_erab(uint8_t                                          
 
 void bearer_handler::fill_rrc_setup(asn1::rrc::rrc_conn_setup_r8_ies_s* msg)
 {
-  fill_srb_to_add_mod_list(&msg->rr_cfg_ded);
-  last_srbs = current_srbs;
-
-  // Config RLC/PDCP
-  apply_bearer_updates(msg->rr_cfg_ded);
+  fill_and_apply_bearer_updates(msg->rr_cfg_ded);
 }
 
 void bearer_handler::fill_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
 {
   msg->rr_cfg_ded_present = true;
-  fill_srb_to_add_mod_list(&msg->rr_cfg_ded);
-  fill_drb_to_add_mod_list(&msg->rr_cfg_ded);
-  fill_pending_nas_info(msg);
-  last_srbs = current_srbs;
-  last_drbs = current_drbs;
+  fill_and_apply_bearer_updates(msg->rr_cfg_ded);
 
   // Config RLC/PDCP
-  apply_bearer_updates(msg->rr_cfg_ded);
+  fill_pending_nas_info(msg);
 }
 
-void bearer_handler::apply_bearer_updates(const asn1::rrc::rr_cfg_ded_s& msg)
+void bearer_handler::fill_and_apply_bearer_updates(asn1::rrc::rr_cfg_ded_s& msg)
 {
+  // Add altered bearers to message
+  msg.srb_to_add_mod_list_present = srbs_to_add.size() > 0;
+  msg.srb_to_add_mod_list         = srbs_to_add;
+  msg.drb_to_add_mod_list_present = drbs_to_add.size() > 0;
+  msg.drb_to_add_mod_list         = drbs_to_add;
+  msg.drb_to_release_list_present = drbs_to_release.size() > 0;
+  msg.drb_to_release_list         = drbs_to_release;
+
+  // Apply changes in internal bearer_handler DRB/SRBtoAddModLists
+  srslte::apply_srb_diff(last_srbs, msg, last_srbs);
+  srslte::apply_drb_diff(last_drbs, msg, last_drbs);
+
+  // Apply SRB updates to PDCP and RLC
   if (msg.srb_to_add_mod_list_present) {
     for (const srb_to_add_mod_s& srb : msg.srb_to_add_mod_list) {
       // Configure SRB1 in RLC
@@ -152,53 +148,26 @@ void bearer_handler::apply_bearer_updates(const asn1::rrc::rr_cfg_ded_s& msg)
       pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
     }
   }
-}
 
-//! Update RadioConfigDedicated with the newly added/modified/removed SRBs
-bool bearer_handler::fill_srb_to_add_mod_list(rr_cfg_ded_s* msg)
-{
-  msg->srb_to_add_mod_list_present = false;
-  msg->srb_to_add_mod_list         = {};
+  // Apply DRB updates to PDCP and RLC
+  if (msg.drb_to_release_list_present) {
+    log_h->error("Removing DRBs not currently supported\n");
+  }
+  if (msg.drb_to_add_mod_list_present) {
+    for (const drb_to_add_mod_s& drb : msg.drb_to_add_mod_list) {
+      // Configure DRBs in RLC
+      rlc->add_bearer(rnti, drb.lc_ch_id, srslte::make_rlc_config_t(drb.rlc_cfg));
 
-  // Policies on Release/Add/Mod of each SRB
-  auto on_rem = [](const srb_to_add_mod_s* removed_srb) {
-    // Releasing SRBs not supported
-  };
-  auto on_add = [msg](const srb_to_add_mod_s* add_srb) {
-    msg->srb_to_add_mod_list_present = true;
-    msg->srb_to_add_mod_list.push_back(*add_srb);
-  };
-  auto on_update = [](const srb_to_add_mod_s* src_srb, const srb_to_add_mod_s* target_srb) {
-    // TODO: Check if there is an update
-  };
+      // Configure DRB1 in PDCP
+      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
+      pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
+    }
+  }
 
-  srslte::apply_cfg_list_updates(last_srbs, current_srbs, on_rem, on_add, on_update);
-  return msg->srb_to_add_mod_list_present;
-}
-
-//! Update RadioConfigDedicated with the newly added/modified/removed DRBs
-bool bearer_handler::fill_drb_to_add_mod_list(rr_cfg_ded_s* msg)
-{
-  msg->drb_to_add_mod_list_present = false;
-  msg->drb_to_release_list_present = false;
-  msg->drb_to_add_mod_list.resize(0);
-  msg->drb_to_release_list.resize(0);
-
-  // Policies on Release/Add/Mod of each DRB
-  auto on_release = [msg](const drb_to_add_mod_s* released_drb) {
-    msg->drb_to_release_list_present = true;
-    msg->drb_to_release_list.push_back(released_drb->drb_id);
-  };
-  auto on_add = [msg](const drb_to_add_mod_s* added_drb) {
-    msg->drb_to_add_mod_list_present = true;
-    msg->drb_to_add_mod_list.push_back(*added_drb);
-  };
-  auto on_update = [](const drb_to_add_mod_s* src_drb, const drb_to_add_mod_s* target_drb) {
-    // TODO: Check if there is an update
-  };
-
-  srslte::apply_cfg_list_updates(last_drbs, current_drbs, on_release, on_add, on_update);
-  return msg->drb_to_add_mod_list_present or msg->drb_to_release_list_present;
+  // Reset ToAdd state
+  srbs_to_add = {};
+  drbs_to_add = {};
+  drbs_to_release.resize(0);
 }
 
 void bearer_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)

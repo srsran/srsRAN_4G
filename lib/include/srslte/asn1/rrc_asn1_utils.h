@@ -39,6 +39,7 @@ struct s_tmsi_s;
 struct rlc_cfg_c;
 struct pdcp_cfg_s;
 struct srb_to_add_mod_s;
+struct drb_to_add_mod_s;
 // mac
 struct sched_request_cfg_c;
 struct mac_main_cfg_s;
@@ -145,12 +146,22 @@ namespace rrc {
 /***************************
  *      MeasConfig
  **************************/
-bool operator==(const asn1::rrc::cells_to_add_mod_s& lhs, const asn1::rrc::cells_to_add_mod_s& rhs);
-bool operator==(const asn1::rrc::meas_obj_to_add_mod_s& lhs, const asn1::rrc::meas_obj_to_add_mod_s& rhs);
-bool operator==(const asn1::rrc::report_cfg_eutra_s& lhs, const asn1::rrc::report_cfg_eutra_s& rhs);
-bool operator==(const asn1::rrc::report_cfg_to_add_mod_s& lhs, const asn1::rrc::report_cfg_to_add_mod_s& rhs);
-bool operator==(const asn1::rrc::meas_id_to_add_mod_s& lhs, const asn1::rrc::meas_id_to_add_mod_s& rhs);
-bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s& rhs);
+bool operator==(const cells_to_add_mod_s& lhs, const cells_to_add_mod_s& rhs);
+bool operator==(const meas_obj_to_add_mod_s& lhs, const meas_obj_to_add_mod_s& rhs);
+bool operator==(const report_cfg_eutra_s& lhs, const report_cfg_eutra_s& rhs);
+bool operator==(const report_cfg_to_add_mod_s& lhs, const report_cfg_to_add_mod_s& rhs);
+bool operator==(const meas_id_to_add_mod_s& lhs, const meas_id_to_add_mod_s& rhs);
+bool operator==(const quant_cfg_s& lhs, const quant_cfg_s& rhs);
+
+/**************************
+ *     RRC Obj Id
+ *************************/
+
+uint8_t get_rrc_obj_id(const srb_to_add_mod_s& srb);
+uint8_t get_rrc_obj_id(const drb_to_add_mod_s& srb);
+
+void set_rrc_obj_id(srb_to_add_mod_s& srb, uint8_t id);
+void set_rrc_obj_id(drb_to_add_mod_s& srb, uint8_t id);
 
 } // namespace rrc
 } // namespace asn1

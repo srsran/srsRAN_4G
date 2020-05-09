@@ -143,7 +143,7 @@ template <class T>
 class dyn_array
 {
 public:
-  typedef T item_type;
+  typedef T value_type;
   using iterator       = T*;
   using const_iterator = const T*;
 
@@ -209,6 +209,7 @@ public:
     resize(size() + 1, size() * 2);
     data_[size() - 1] = elem;
   }
+  void           clear() { resize(0); }
   T&             back() { return data_[size() - 1]; }
   const T&       back() const { return data_[size() - 1]; }
   T*             data() { return &data_[0]; }

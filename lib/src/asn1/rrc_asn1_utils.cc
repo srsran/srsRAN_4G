@@ -214,8 +214,8 @@ srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue
 
 srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue, const asn1::rrc::pdcp_cfg_s& pdcp_cfg)
 {
-  // TODO: complete config processing 
-  pdcp_discard_timer_t discard_timer =  pdcp_discard_timer_t::infinity;
+  // TODO: complete config processing
+  pdcp_discard_timer_t discard_timer = pdcp_discard_timer_t::infinity;
   if (pdcp_cfg.discard_timer_present) {
     switch (pdcp_cfg.discard_timer.to_number()) {
       case 10:
@@ -596,10 +596,7 @@ void set_phy_cfg_t_common_pdsch(phy_cfg_t* cfg, const asn1::rrc::pdsch_cfg_commo
   cfg->dl_cfg.pdsch.p_b      = asn1_type.p_b;
 }
 
-void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled)
-{
-  cfg->ul_cfg.pusch.enable_64qam = enabled;
-}
+void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled) { cfg->ul_cfg.pusch.enable_64qam = enabled; }
 
 void set_phy_cfg_t_common_pusch(phy_cfg_t* cfg, const asn1::rrc::pusch_cfg_common_s& asn1_type)
 {
@@ -1083,6 +1080,16 @@ bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s&
          lhs.quant_cfg_eutra.filt_coef_rsrq_present == rhs.quant_cfg_eutra.filt_coef_rsrq_present and
          lhs.quant_cfg_eutra.filt_coef_rsrq == rhs.quant_cfg_eutra.filt_coef_rsrq;
 }
+
+/**************************
+ *     RRC Obj Id
+ *************************/
+
+uint8_t get_rrc_obj_id(const srb_to_add_mod_s& srb) { return srb.srb_id; }
+uint8_t get_rrc_obj_id(const drb_to_add_mod_s& srb) { return srb.drb_id; }
+
+void set_rrc_obj_id(srb_to_add_mod_s& srb, uint8_t id) { srb.srb_id = id; }
+void set_rrc_obj_id(drb_to_add_mod_s& srb, uint8_t id) { srb.drb_id = id; }
 
 } // namespace rrc
 } // namespace asn1

@@ -12,7 +12,7 @@ AllowAllParametersOfDeclarationOnNextLine: false # Changed
 #AllowAllArgumentsOnNextLine: false # Changed
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: Inline #Changed
+AllowShortFunctionsOnASingleLine: All #Changed
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None

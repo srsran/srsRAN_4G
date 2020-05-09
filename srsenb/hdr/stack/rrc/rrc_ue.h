@@ -26,7 +26,6 @@
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
-#include <set>
 
 namespace srsenb {
 
@@ -58,9 +57,7 @@ public:
   void fill_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
 private:
-  bool fill_srb_to_add_mod_list(asn1::rrc::rr_cfg_ded_s* msg);
-  bool fill_drb_to_add_mod_list(asn1::rrc::rr_cfg_ded_s* msg);
-  void apply_bearer_updates(const asn1::rrc::rr_cfg_ded_s& msg);
+  void fill_and_apply_bearer_updates(asn1::rrc::rr_cfg_ded_s& msg);
   void fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
   srslte::log_ref           log_h{"RRC"};
@@ -73,12 +70,15 @@ private:
 
   std::map<uint8_t, srslte::unique_byte_buffer_t> erab_info_list;
   std::map<uint8_t, erab_t>                       erabs;
-  asn1::rrc::srb_to_add_mod_list_l                current_srbs;
-  asn1::rrc::drb_to_add_mod_list_l                current_drbs;
 
   // last cfg
   asn1::rrc::srb_to_add_mod_list_l last_srbs;
   asn1::rrc::drb_to_add_mod_list_l last_drbs;
+
+  // pending cfg updates
+  asn1::rrc::srb_to_add_mod_list_l srbs_to_add;
+  asn1::rrc::drb_to_add_mod_list_l drbs_to_add;
+  asn1::rrc::drb_to_release_list_l drbs_to_release;
 };
 
 } // namespace srsenb
