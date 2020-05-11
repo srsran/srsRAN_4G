@@ -156,11 +156,6 @@ private:
 
     bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
     bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
-    void setup_erab(uint8_t                                            id,
-                    const asn1::s1ap::erab_level_qos_params_s&         qos,
-                    const asn1::bounded_bitstring<1, 160, true, true>& addr,
-                    uint32_t                                           teid_out,
-                    const asn1::unbounded_octstring<true>*             nas_pdu);
     bool release_erabs();
 
     // handover
@@ -221,23 +216,10 @@ private:
     asn1::rrc::ue_eutra_cap_s                  eutra_capabilities;
     srslte::rrc_ue_capabilities_t              ue_capabilities;
 
-    struct erab_t {
-      uint8_t                                     id;
-      asn1::s1ap::erab_level_qos_params_s         qos_params;
-      asn1::bounded_bitstring<1, 160, true, true> address;
-      uint32_t                                    teid_out;
-      uint32_t                                    teid_in;
-    };
-    std::map<uint8_t, erab_t> erabs;
-
-    std::map<uint8_t, srslte::unique_byte_buffer_t> erab_info_list;
-
     const static uint32_t UE_PCELL_CC_IDX = 0;
 
     cell_ctxt_dedicated_list cell_ded_list;
     bearer_handler           bearer_list;
-
-    int get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
 
     ///< Helper to access a cell cfg based on ue_cc_idx
     cell_info_common* get_ue_cc_cfg(uint32_t ue_cc_idx);

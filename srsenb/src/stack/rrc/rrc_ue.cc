@@ -21,6 +21,7 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/interfaces/sched_interface.h"
 #include "srslte/rrc/bearer_cfg.h"
 
 namespace srsenb {
@@ -31,12 +32,16 @@ bearer_handler::bearer_handler(uint16_t            rnti_,
                                const rrc_cfg_t&    cfg_,
                                pdcp_interface_rrc* pdcp_,
                                rlc_interface_rrc*  rlc_,
-                               gtpu_interface_rrc* gtpu_) :
+                               mac_interface_rrc*  mac_,
+                               gtpu_interface_rrc* gtpu_,
+                               sched_interface::ue_cfg_t& ue_cfg_) :
   rnti(rnti_),
   cfg(&cfg_),
   pdcp(pdcp_),
   rlc(rlc_),
-  gtpu(gtpu_)
+  mac(mac_),
+  gtpu(gtpu_),
+  sched_ue_cfg(&ue_cfg_)
 {
   pool = srslte::byte_buffer_pool::get_instance();
 }
@@ -110,6 +115,30 @@ int bearer_handler::setup_erab(uint8_t                                          
   return SRSLTE_SUCCESS;
 }
 
+void bearer_handler::release_erab(uint8_t erab_id)
+{
+  auto it = erabs.find(erab_id);
+  if (it == erabs.end()) {
+    log_h->warning("The user rnti=0x%x does not contain ERAB-ID=%d\n", rnti, erab_id);
+    return;
+  }
+
+  uint8_t drb_id = erab_id - 4;
+  drbs_to_release.push_back(drb_id);
+
+  erabs.erase(it);
+  erab_info_list.erase(erab_id);
+}
+
+void bearer_handler::release_erabs()
+{
+  // TODO: notify GTPU layer for each ERAB
+  erabs.clear();
+  while (not erabs.empty()) {
+    release_erab(erabs.begin()->first);
+  }
+}
+
 void bearer_handler::handle_rrc_setup(asn1::rrc::rrc_conn_setup_r8_ies_s* msg)
 {
   fill_and_apply_bearer_updates(msg->rr_cfg_ded);
@@ -127,6 +156,37 @@ void bearer_handler::handle_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
 
   // Config RLC/PDCP
   fill_pending_nas_info(msg);
+}
+
+void bearer_handler::handle_rrc_reconf_complete()
+{
+  // Finally, add SRB2 and DRBs and any dedicated DRBs to the scheduler
+  srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg = {};
+  for (const srb_to_add_mod_s& srb : srbs_to_add) {
+    bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+    bearer_cfg.group     = 0;
+    mac->bearer_ue_cfg(rnti, srb.srb_id, &bearer_cfg);
+    sched_ue_cfg->ue_bearers[srb.srb_id] = bearer_cfg;
+  }
+  for (uint8_t drb_id : drbs_to_release) {
+    bearer_cfg.direction = sched_interface::ue_bearer_cfg_t::IDLE;
+    mac->bearer_ue_cfg(rnti, drb_id + 2, &bearer_cfg);
+    sched_ue_cfg->ue_bearers[drb_id + 2] = bearer_cfg;
+  }
+  for (const drb_to_add_mod_s& drb : drbs_to_add) {
+    bearer_cfg.direction = sched_interface::ue_bearer_cfg_t::BOTH;
+    bearer_cfg.group     = drb.lc_ch_cfg.ul_specific_params.lc_ch_group;
+    mac->bearer_ue_cfg(rnti, drb.lc_ch_id, &bearer_cfg);
+    sched_ue_cfg->ue_bearers[drb.lc_ch_id] = bearer_cfg;
+  }
+
+  // Acknowledge Dedicated Configuration
+  mac->phy_config_enabled(rnti, true);
+
+  // Reset ToAdd state
+  srbs_to_add = {};
+  drbs_to_add = {};
+  drbs_to_release.resize(0);
 }
 
 void bearer_handler::fill_and_apply_bearer_updates(asn1::rrc::rr_cfg_ded_s& msg)
@@ -164,15 +224,15 @@ void bearer_handler::fill_and_apply_bearer_updates(asn1::rrc::rr_cfg_ded_s& msg)
       rlc->add_bearer(rnti, drb.lc_ch_id, srslte::make_rlc_config_t(drb.rlc_cfg));
 
       // Configure DRB1 in PDCP
-      srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
-      pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
+      if (drb.pdcp_cfg_present) {
+        srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false, drb.pdcp_cfg);
+        pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
+      } else {
+        srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(drb.drb_id, false);
+        pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
+      }
     }
   }
-
-  // Reset ToAdd state
-  srbs_to_add = {};
-  drbs_to_add = {};
-  drbs_to_release.resize(0);
 }
 
 void bearer_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)

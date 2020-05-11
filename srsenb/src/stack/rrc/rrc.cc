@@ -974,7 +974,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   current_sched_ue_cfg(sched_ue_cfg),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
   cell_ded_list(parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list),
-  bearer_list(rnti_, parent->cfg, parent->pdcp, parent->rlc, parent->gtpu)
+  bearer_list(rnti_, parent->cfg, parent->pdcp, parent->rlc, parent->mac, parent->gtpu, current_sched_ue_cfg)
 {
   if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
     parent->rrc_log->warning("No PCell set. Picking eNBccIdx=0 as PCell\n");
@@ -1228,24 +1228,7 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
     }
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
-    // Finally, add SRB2 and DRB1 and any dedicated DRBs to the scheduler
-    srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg = {};
-    bearer_cfg.direction                                = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    bearer_cfg.group                                    = 0;
-    parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
-    current_sched_ue_cfg.ue_bearers[2] = bearer_cfg;
-
-    bearer_cfg.group = last_rrc_conn_recfg.crit_exts.c1()
-                           .rrc_conn_recfg_r8()
-                           .rr_cfg_ded.drb_to_add_mod_list[0]
-                           .lc_ch_cfg.ul_specific_params.lc_ch_group;
-    for (const std::pair<const uint8_t, erab_t>& erab_pair : erabs) {
-      parent->mac->bearer_ue_cfg(rnti, erab_pair.second.id - 2, &bearer_cfg);
-      current_sched_ue_cfg.ue_bearers[erab_pair.second.id - 2] = bearer_cfg;
-    }
-
-    // Acknowledge Dedicated Configuration
-    parent->mac->phy_config_enabled(rnti, true);
+    bearer_list.handle_rrc_reconf_complete();
   } else {
     parent->rrc_log->error("Expected RRCReconfigurationComplete with transaction ID: %d, got %d\n",
                            last_rrc_conn_recfg.rrc_transaction_id,
@@ -1346,7 +1329,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
     uint32_t teid_out;
     uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
-    setup_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
+    bearer_list.setup_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
   }
   return true;
 }
@@ -1368,7 +1351,8 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_
 
     uint32_t teid_out;
     uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    setup_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
+    bearer_list.setup_erab(
+        erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
   }
 
   // Work in progress
@@ -1377,38 +1361,9 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_
   return true;
 }
 
-void rrc::ue::setup_erab(uint8_t                                            id,
-                         const asn1::s1ap::erab_level_qos_params_s&         qos,
-                         const asn1::bounded_bitstring<1, 160, true, true>& addr,
-                         uint32_t                                           teid_out,
-                         const asn1::unbounded_octstring<true>*             nas_pdu)
-{
-  erabs[id].id         = id;
-  erabs[id].qos_params = qos;
-  erabs[id].address    = addr;
-  erabs[id].teid_out   = teid_out;
-
-  if (addr.length() > 32) {
-    parent->rrc_log->error("Only addresses with length <= 32 are supported\n");
-    return;
-  }
-  uint32_t addr_ = addr.to_number();
-  uint8_t  lcid  = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
-  parent->gtpu->add_bearer(rnti, lcid, addr_, erabs[id].teid_out, &(erabs[id].teid_in));
-
-  if (nas_pdu != nullptr) {
-    erab_info_list[id] = allocate_unique_buffer(*pool);
-    memcpy(erab_info_list[id]->msg, nas_pdu->data(), nas_pdu->size());
-    erab_info_list[id]->N_bytes = nas_pdu->size();
-    parent->rrc_log->info_hex(
-        erab_info_list[id]->msg, erab_info_list[id]->N_bytes, "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
-  }
-}
-
 bool rrc::ue::release_erabs()
 {
-  // TODO: notify GTPU layer for each ERAB
-  erabs.clear();
+  bearer_list.release_erabs();
   return true;
 }
 
@@ -1416,9 +1371,9 @@ void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 {
   asn1::s1ap::init_context_setup_resp_s res;
 
-  res.protocol_ies.erab_setup_list_ctxt_su_res.value.resize(erabs.size());
+  res.protocol_ies.erab_setup_list_ctxt_su_res.value.resize(bearer_list.get_erabs().size());
   uint32_t i = 0;
-  for (auto& erab : erabs) {
+  for (const auto& erab : bearer_list.get_erabs()) {
     res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_CTXT_SU_RES);
     auto& item   = res.protocol_ies.erab_setup_list_ctxt_su_res.value[i].value.erab_setup_item_ctxt_su_res();
     item.erab_id = erab.second.id;
@@ -1440,7 +1395,7 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
     item.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
     uint8_t id                                         = e[i].value.erab_to_be_setup_item_bearer_su_req().erab_id;
     item.value.erab_setup_item_bearer_su_res().erab_id = id;
-    uint32_to_uint8(erabs[id].teid_in, &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
+    uint32_to_uint8(bearer_list.get_erabs().at(id).teid_in, &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
   }
 
   parent->s1ap->ue_erab_setup_complete(rnti, res);
@@ -1621,43 +1576,6 @@ void rrc::ue::send_connection_release()
   send_dl_dcch(&dl_dcch_msg);
 }
 
-int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
-{
-  uint32_t lc_id   = (uint32_t)(drb_id + 2);
-  uint32_t erab_id = lc_id + 2;
-  uint32_t qci     = erabs[erab_id].qos_params.qci;
-
-  if (qci >= MAX_NOF_QCI) {
-    parent->rrc_log->error("Invalid QCI=%d for ERAB_id=%d, DRB_id=%d\n", qci, erab_id, drb_id);
-    return SRSLTE_ERROR;
-  }
-
-  if (!parent->cfg.qci_cfg[qci].configured) {
-    parent->rrc_log->error("QCI=%d not configured\n", qci);
-    return SRSLTE_ERROR;
-  }
-
-  // Add DRB1 to the message
-  drb->drb_id                = (uint8_t)drb_id;
-  drb->lc_ch_id_present      = true;
-  drb->lc_ch_id              = (uint8_t)lc_id;
-  drb->eps_bearer_id         = (uint8_t)erab_id;
-  drb->eps_bearer_id_present = true;
-
-  drb->lc_ch_cfg_present                                = true;
-  drb->lc_ch_cfg.ul_specific_params_present             = true;
-  drb->lc_ch_cfg.ul_specific_params.lc_ch_group_present = true;
-  drb->lc_ch_cfg.ul_specific_params                     = parent->cfg.qci_cfg[qci].lc_cfg;
-
-  drb->pdcp_cfg_present = true;
-  drb->pdcp_cfg         = parent->cfg.qci_cfg[qci].pdcp_cfg;
-
-  drb->rlc_cfg_present = true;
-  drb->rlc_cfg         = parent->cfg.qci_cfg[qci].rlc_cfg;
-
-  return SRSLTE_SUCCESS;
-}
-
 void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
 {
   dl_dcch_msg_s     dl_dcch_msg;
@@ -1793,57 +1711,10 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->pdcp->enable_integrity(rnti, 2);
   parent->pdcp->enable_encryption(rnti, 2);
 
-  // Add DRB Add/Mod list
-  conn_reconf->rr_cfg_ded.drb_to_add_mod_list_present = true;
-  conn_reconf->rr_cfg_ded.drb_to_add_mod_list.resize(erabs.size());
-
-  // Add space for NAS messages
-  uint8_t n_nas = erab_info_list.size();
-  if (n_nas > 0) {
-    conn_reconf->ded_info_nas_list_present = true;
-    conn_reconf->ded_info_nas_list.resize(n_nas);
-  }
-
-  // Configure all DRBs
-  uint8_t vec_idx = 0;
-  for (const std::pair<const uint8_t, erab_t>& erab_id_pair : erabs) {
-    const erab_t& erab   = erab_id_pair.second;
-    uint8_t       drb_id = erab.id - 4;
-    uint8_t       lcid   = erab.id - 2;
-
-    // Get DRB1 configuration
-    if (get_drbid_config(&conn_reconf->rr_cfg_ded.drb_to_add_mod_list[drb_id - 1], drb_id)) {
-      parent->rrc_log->error("Getting DRB1 configuration\n");
-      parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erab.qos_params.qci);
-      return;
-    }
-
-    // Configure DRBs in RLC
-    parent->rlc->add_bearer(
-        rnti, lcid, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].rlc_cfg));
-
-    // Configure DRB1 in PDCP
-    srslte::pdcp_config_t pdcp_cnfg_drb =
-        srslte::make_drb_pdcp_config_t(drb_id, false, conn_reconf->rr_cfg_ded.drb_to_add_mod_list[vec_idx].pdcp_cfg);
-    parent->pdcp->add_bearer(rnti, lcid, pdcp_cnfg_drb);
-    parent->pdcp->config_security(rnti, lcid, sec_cfg);
-    parent->pdcp->enable_integrity(rnti, lcid);
-    parent->pdcp->enable_encryption(rnti, lcid);
-
-    // DRBs have already been configured in GTPU through bearer setup
-    // Add E-RAB info message for the E-RABs
-    std::map<uint8_t, srslte::unique_byte_buffer_t>::const_iterator it = erab_info_list.find(erab.id);
-    if (it != erab_info_list.end()) {
-      const srslte::unique_byte_buffer_t& erab_info = it->second;
-      parent->rrc_log->info_hex(
-          erab_info->msg, erab_info->N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
-      conn_reconf->ded_info_nas_list[vec_idx].resize(erab_info->N_bytes);
-      memcpy(conn_reconf->ded_info_nas_list[vec_idx].data(), erab_info->msg, erab_info->N_bytes);
-      erab_info_list.erase(it);
-    } else {
-      parent->rrc_log->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d\n", erab.id);
-    }
-    vec_idx++;
+  for (const drb_to_add_mod_s& drb : conn_reconf->rr_cfg_ded.drb_to_add_mod_list) {
+    parent->pdcp->config_security(rnti, drb.lc_ch_id, sec_cfg);
+    parent->pdcp->enable_integrity(rnti, drb.lc_ch_id);
+    parent->pdcp->enable_encryption(rnti, drb.lc_ch_id);
   }
 
   if (mobility_handler != nullptr) {
@@ -2031,58 +1902,7 @@ void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_set
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
-  for (const auto& item : e) {
-    auto&   erab = item.value.erab_to_be_setup_item_bearer_su_req();
-    uint8_t id   = erab.erab_id;
-    uint8_t lcid = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
-
-    // Get DRB configuration
-    drb_to_add_mod_s drb_item;
-    if (get_drbid_config(&drb_item, lcid - 2)) {
-      parent->rrc_log->error("Getting DRB configuration\n");
-      parent->rrc_log->console("ERROR: The QCI %d is invalid or not configured.\n", erabs[id].qos_params.qci);
-      // TODO: send S1AP response indicating error?
-      return;
-    }
-
-    // Add DRB to the scheduler
-    srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
-    bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    parent->mac->bearer_ue_cfg(rnti, lcid, &bearer_cfg);
-    current_sched_ue_cfg.ue_bearers[lcid] = bearer_cfg;
-
-    // Configure DRB in RLC
-    parent->rlc->add_bearer(rnti, lcid, srslte::make_rlc_config_t(drb_item.rlc_cfg));
-
-    // Configure DRB in PDCP
-    // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
-    if (drb_item.pdcp_cfg_present) {
-      parent->pdcp->add_bearer(
-          rnti, lcid, srslte::make_drb_pdcp_config_t(drb_item.drb_id - 1, false, drb_item.pdcp_cfg));
-    } else {
-      // use default config
-      parent->pdcp->add_bearer(rnti, lcid, srslte::make_drb_pdcp_config_t(drb_item.drb_id - 1, false));
-    }
-
-    // DRB has already been configured in GTPU through bearer setup
-    conn_reconf->rr_cfg_ded.drb_to_add_mod_list.push_back(drb_item);
-
-    // Add NAS message
-    std::map<uint8_t, srslte::unique_byte_buffer_t>::const_iterator it = erab_info_list.find(id);
-    if (it != erab_info_list.end()) {
-      const srslte::unique_byte_buffer_t& erab_info = erab_info_list[id];
-      parent->rrc_log->info_hex(
-          erab_info->msg, erab_info->N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
-      asn1::dyn_octstring octstr(erab_info->N_bytes);
-      memcpy(octstr.data(), erab_info->msg, erab_info->N_bytes);
-      conn_reconf->ded_info_nas_list.push_back(octstr);
-      conn_reconf->ded_info_nas_list_present = true;
-      erab_info_list.erase(it);
-    }
-  }
-  conn_reconf->rr_cfg_ded_present                     = true;
-  conn_reconf->rr_cfg_ded.drb_to_add_mod_list_present = conn_reconf->rr_cfg_ded.drb_to_add_mod_list.size() > 0;
-  conn_reconf->ded_info_nas_list_present              = conn_reconf->ded_info_nas_list.size() > 0;
+  bearer_list.handle_rrc_reconf(conn_reconf);
 
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 }

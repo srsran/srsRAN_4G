@@ -40,11 +40,13 @@ public:
     uint32_t                                    teid_in;
   };
 
-  bearer_handler(uint16_t            rnti_,
-                 const rrc_cfg_t&    cfg_,
-                 pdcp_interface_rrc* pdcp_,
-                 rlc_interface_rrc*  rlc_,
-                 gtpu_interface_rrc* gtpu_);
+  bearer_handler(uint16_t                   rnti_,
+                 const rrc_cfg_t&           cfg_,
+                 pdcp_interface_rrc*        pdcp_,
+                 rlc_interface_rrc*         rlc_,
+                 mac_interface_rrc*         mac_,
+                 gtpu_interface_rrc*        gtpu_,
+                 sched_interface::ue_cfg_t& ue_cfg_);
 
   void setup_srb(uint8_t srb_id);
   int  setup_erab(uint8_t                                            id,
@@ -52,22 +54,29 @@ public:
                   const asn1::bounded_bitstring<1, 160, true, true>& addr,
                   uint32_t                                           teid_out,
                   const asn1::unbounded_octstring<true>*             nas_pdu);
+  void release_erab(uint8_t erab_id);
+  void release_erabs();
 
   void handle_rrc_setup(asn1::rrc::rrc_conn_setup_r8_ies_s* msg);
   void handle_rrc_reest(asn1::rrc::rrc_conn_reest_r8_ies_s* msg);
   void handle_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
+  void handle_rrc_reconf_complete();
+
+  const std::map<uint8_t, erab_t>& get_erabs() const { return erabs; }
 
 private:
   void fill_and_apply_bearer_updates(asn1::rrc::rr_cfg_ded_s& msg);
   void fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
-  srslte::log_ref           log_h{"RRC"};
-  uint16_t                  rnti;
-  const rrc_cfg_t*          cfg;
-  pdcp_interface_rrc*       pdcp;
-  rlc_interface_rrc*        rlc;
-  gtpu_interface_rrc*       gtpu;
-  srslte::byte_buffer_pool* pool = nullptr;
+  srslte::log_ref            log_h{"RRC"};
+  uint16_t                   rnti;
+  const rrc_cfg_t*           cfg;
+  pdcp_interface_rrc*        pdcp;
+  rlc_interface_rrc*         rlc;
+  mac_interface_rrc*         mac;
+  gtpu_interface_rrc*        gtpu;
+  sched_interface::ue_cfg_t* sched_ue_cfg;
+  srslte::byte_buffer_pool*  pool = nullptr;
 
   std::map<uint8_t, srslte::unique_byte_buffer_t> erab_info_list;
   std::map<uint8_t, erab_t>                       erabs;

@@ -738,11 +738,11 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     return;
   }
 
-  const meas_obj_to_add_mod_list_l&   objs       = ue_var_meas->meas_objs();
-  const report_cfg_to_add_mod_list_l& reps       = ue_var_meas->rep_cfgs();
-  auto                                obj_it     = rrc_details::binary_find(objs, measid_it->meas_obj_id);
-  auto                                rep_it     = rrc_details::binary_find(reps, measid_it->report_cfg_id);
-  const meas_result_list_eutra_l&     eutra_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
+  const meas_obj_to_add_mod_list_l& objs = ue_var_meas->meas_objs();
+  //  const report_cfg_to_add_mod_list_l& reps       = ue_var_meas->rep_cfgs();
+  auto obj_it = rrc_details::binary_find(objs, measid_it->meas_obj_id);
+  //  auto                                rep_it     = rrc_details::binary_find(reps, measid_it->report_cfg_id);
+  const meas_result_list_eutra_l& eutra_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
 
   // iterate from strongest to weakest cell
   // NOTE: From now we just look at the strongest.
@@ -967,10 +967,10 @@ bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const var_meas_cfg_t&  source
  */
 bool rrc::ue::rrc_mobility::start_enb_status_transfer()
 {
-  std::vector<s1ap_interface_rrc::bearer_status_info> bearer_list;
-  bearer_list.reserve(rrc_ue->erabs.size());
+  std::vector<s1ap_interface_rrc::bearer_status_info> s1ap_bearers;
+  s1ap_bearers.reserve(rrc_ue->bearer_list.get_erabs().size());
 
-  for (const auto& erab_pair : rrc_ue->erabs) {
+  for (const auto& erab_pair : rrc_ue->bearer_list.get_erabs()) {
     s1ap_interface_rrc::bearer_status_info b    = {};
     uint8_t                                lcid = erab_pair.second.id - 2u;
     b.erab_id                                   = erab_pair.second.id;
@@ -978,11 +978,11 @@ bool rrc::ue::rrc_mobility::start_enb_status_transfer()
       Error("PDCP bearer lcid=%d for rnti=0x%x was not found\n", lcid, rrc_ue->rnti);
       return false;
     }
-    bearer_list.push_back(b);
+    s1ap_bearers.push_back(b);
   }
 
   Info("PDCP Bearer list sent to S1AP to initiate the eNB Status Transfer\n");
-  return rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, bearer_list);
+  return rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, s1ap_bearers);
 }
 
 /*************************************************************************************************
