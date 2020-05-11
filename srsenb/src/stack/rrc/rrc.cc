@@ -37,7 +37,10 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc() : rrc_log("RRC") { pending_paging.clear(); }
+rrc::rrc() : rrc_log("RRC")
+{
+  pending_paging.clear();
+}
 
 rrc::~rrc() {}
 
@@ -137,7 +140,10 @@ void rrc::rem_user_thread(uint16_t rnti)
   rx_pdu_queue.push(std::move(p));
 }
 
-uint32_t rrc::get_nof_users() { return users.size(); }
+uint32_t rrc::get_nof_users()
+{
+  return users.size();
+}
 
 template <class T>
 void rrc::log_rrc_message(const std::string&           source,
@@ -904,9 +910,15 @@ void rrc::configure_security(uint16_t rnti, uint32_t lcid, srslte::as_security_c
   pdcp->config_security(rnti, lcid, sec_cfg);
 }
 
-void rrc::enable_integrity(uint16_t rnti, uint32_t lcid) { pdcp->enable_integrity(rnti, lcid); }
+void rrc::enable_integrity(uint16_t rnti, uint32_t lcid)
+{
+  pdcp->enable_integrity(rnti, lcid);
+}
 
-void rrc::enable_encryption(uint16_t rnti, uint32_t lcid) { pdcp->enable_encryption(rnti, lcid); }
+void rrc::enable_encryption(uint16_t rnti, uint32_t lcid)
+{
+  pdcp->enable_encryption(rnti, lcid);
+}
 
 /*******************************************************************************
   RRC run tti method
@@ -998,7 +1010,10 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 
 rrc::ue::~ue() {}
 
-rrc_state_t rrc::ue::get_state() { return state; }
+rrc_state_t rrc::ue::get_state()
+{
+  return state;
+}
 
 uint32_t rrc::ue::rl_failure()
 {
@@ -1067,9 +1082,15 @@ void rrc::ue::set_activity_timeout(const activity_timeout_type_t type)
   set_activity();
 }
 
-bool rrc::ue::is_connected() { return state == RRC_STATE_REGISTERED; }
+bool rrc::ue::is_connected()
+{
+  return state == RRC_STATE_REGISTERED;
+}
 
-bool rrc::ue::is_idle() { return state == RRC_STATE_IDLE; }
+bool rrc::ue::is_idle()
+{
+  return state == RRC_STATE_IDLE;
+}
 
 void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
@@ -1278,9 +1299,15 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
   // parent->s1ap->ue_capabilities(rnti, &eutra_capabilities);
 }
 
-void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates) { bitrates = rates; }
+void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates)
+{
+  bitrates = rates;
+}
 
-void rrc::ue::set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps) { security_capabilities = caps; }
+void rrc::ue::set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps)
+{
+  security_capabilities = caps;
+}
 
 void rrc::ue::set_security_key(const asn1::fixed_bitstring<256, false, true>& key)
 {
@@ -1567,7 +1594,10 @@ void rrc::ue::send_connection_setup(bool is_setup)
   send_dl_ccch(&dl_ccch_msg);
 }
 
-void rrc::ue::send_connection_reest() { send_connection_setup(false); }
+void rrc::ue::send_connection_reest()
+{
+  send_connection_setup(false);
+}
 
 void rrc::ue::send_connection_release()
 {
@@ -2229,7 +2259,10 @@ int rrc::ue::get_cqi(uint16_t* pmi_idx, uint16_t* n_pucch, uint32_t ue_cc_idx)
   }
 }
 
-bool rrc::ue::is_allocated() const { return cell_ded_list.is_allocated(); }
+bool rrc::ue::is_allocated() const
+{
+  return cell_ded_list.is_allocated();
+}
 
 int rrc::ue::get_ri(uint32_t m_ri, uint16_t* ri_idx)
 {
