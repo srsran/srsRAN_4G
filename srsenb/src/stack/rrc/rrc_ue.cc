@@ -110,12 +110,17 @@ int bearer_handler::setup_erab(uint8_t                                          
   return SRSLTE_SUCCESS;
 }
 
-void bearer_handler::fill_rrc_setup(asn1::rrc::rrc_conn_setup_r8_ies_s* msg)
+void bearer_handler::handle_rrc_setup(asn1::rrc::rrc_conn_setup_r8_ies_s* msg)
 {
   fill_and_apply_bearer_updates(msg->rr_cfg_ded);
 }
 
-void bearer_handler::fill_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
+void bearer_handler::handle_rrc_reest(asn1::rrc::rrc_conn_reest_r8_ies_s* msg)
+{
+  fill_and_apply_bearer_updates(msg->rr_cfg_ded);
+}
+
+void bearer_handler::handle_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
 {
   msg->rr_cfg_ded_present = true;
   fill_and_apply_bearer_updates(msg->rr_cfg_ded);

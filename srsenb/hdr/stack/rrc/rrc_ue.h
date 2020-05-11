@@ -53,8 +53,9 @@ public:
                   uint32_t                                           teid_out,
                   const asn1::unbounded_octstring<true>*             nas_pdu);
 
-  void fill_rrc_setup(asn1::rrc::rrc_conn_setup_r8_ies_s* msg);
-  void fill_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
+  void handle_rrc_setup(asn1::rrc::rrc_conn_setup_r8_ies_s* msg);
+  void handle_rrc_reest(asn1::rrc::rrc_conn_reest_r8_ies_s* msg);
+  void handle_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
 private:
   void fill_and_apply_bearer_updates(asn1::rrc::rr_cfg_ded_s& msg);

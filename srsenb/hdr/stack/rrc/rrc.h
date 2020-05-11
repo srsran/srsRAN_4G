@@ -24,6 +24,7 @@
 
 #include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
+#include "rrc_ue.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
@@ -234,6 +235,7 @@ private:
     const static uint32_t UE_PCELL_CC_IDX = 0;
 
     cell_ctxt_dedicated_list cell_ded_list;
+    bearer_handler           bearer_list;
 
     int get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
 
