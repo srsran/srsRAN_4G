@@ -93,14 +93,10 @@ int bearer_handler::setup_erab(uint8_t                                          
     return SRSLTE_ERROR;
   }
 
-  if (nas_pdu != nullptr) {
-    erab_info_list[erab_id] = allocate_unique_buffer(*pool);
-    memcpy(erab_info_list[erab_id]->msg, nas_pdu->data(), nas_pdu->size());
-    erab_info_list[erab_id]->N_bytes = nas_pdu->size();
-    log_h->info_hex(erab_info_list[erab_id]->msg,
-                    erab_info_list[erab_id]->N_bytes,
-                    "setup_erab nas_pdu -> erab_info rnti 0x%x",
-                    rnti);
+  if (nas_pdu != nullptr and nas_pdu->size() > 0) {
+    erab_info_list[erab_id].assign(nas_pdu->data(), nas_pdu->data() + nas_pdu->size());
+    log_h->info_hex(
+        &erab_info_list[erab_id][0], erab_info_list[erab_id].size(), "setup_erab nas_pdu -> erab_info rnti 0x%x", rnti);
   }
 
   // Set DRBtoAddMod
@@ -262,11 +258,10 @@ void bearer_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* m
       uint8_t erab_id = drb.drb_id + 4;
       auto    it      = erab_info_list.find(erab_id);
       if (it != erab_info_list.end()) {
-        const srslte::unique_byte_buffer_t& erab_info = it->second;
-        log_h->info_hex(
-            erab_info->msg, erab_info->N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
-        msg->ded_info_nas_list[idx].resize(erab_info->N_bytes);
-        memcpy(msg->ded_info_nas_list[idx].data(), erab_info->msg, erab_info->N_bytes);
+        const std::vector<uint8_t>& erab_info = it->second;
+        log_h->info_hex(&erab_info[0], erab_info.size(), "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+        msg->ded_info_nas_list[idx].resize(erab_info.size());
+        memcpy(msg->ded_info_nas_list[idx].data(), &erab_info[0], erab_info.size());
         erab_info_list.erase(it);
       } else {
         log_h->debug("Not adding NAS message to connection reconfiguration. E-RAB id %d\n", erab_id);

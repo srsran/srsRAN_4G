@@ -78,8 +78,8 @@ private:
   sched_interface::ue_cfg_t* sched_ue_cfg;
   srslte::byte_buffer_pool*  pool = nullptr;
 
-  std::map<uint8_t, srslte::unique_byte_buffer_t> erab_info_list;
-  std::map<uint8_t, erab_t>                       erabs;
+  std::map<uint8_t, std::vector<uint8_t> > erab_info_list;
+  std::map<uint8_t, erab_t>                erabs;
 
   // last cfg
   asn1::rrc::srb_to_add_mod_list_l last_srbs;
