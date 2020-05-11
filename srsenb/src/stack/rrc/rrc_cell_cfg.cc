@@ -215,9 +215,10 @@ bool cell_ctxt_dedicated_list::set_cells(const std::vector<uint32_t>& enb_cc_idx
     return true;
   }
 
-  const cell_info_common* prev_pcell         = cell_ded_list[UE_PCELL_CC_IDX].cell_common;
-  const cell_info_common* new_pcell          = common_list.get_cc_idx(enb_cc_idxs[0]);
-  bool                    pcell_freq_changed = prev_pcell->cell_cfg.dl_earfcn != new_pcell->cell_cfg.dl_earfcn;
+  const cell_info_common* prev_pcell            = cell_ded_list[UE_PCELL_CC_IDX].cell_common;
+  const cell_info_common* new_pcell             = common_list.get_cc_idx(enb_cc_idxs[0]);
+  bool                    pcell_freq_changed    = prev_pcell->cell_cfg.dl_earfcn != new_pcell->cell_cfg.dl_earfcn;
+  uint32_t                prev_pcell_enb_cc_idx = prev_pcell->enb_cc_idx;
 
   if (pcell_freq_changed) {
     // Need to clean all allocated resources if PCell earfcn changes
@@ -253,13 +254,13 @@ bool cell_ctxt_dedicated_list::set_cells(const std::vector<uint32_t>& enb_cc_idx
       break;
     }
   }
+  // Remove cells after the last successful insertion
   while (ue_cc_idx < cell_ded_list.size()) {
-    // Remove cells above the one that failed
     rem_last_cell();
   }
   if (cell_ded_list.empty()) {
     // We failed to allocate new PCell. Fallback to old PCell
-    add_cell(prev_pcell->enb_cc_idx);
+    add_cell(prev_pcell_enb_cc_idx);
   }
   return ue_cc_idx == enb_cc_idxs.size();
 }
