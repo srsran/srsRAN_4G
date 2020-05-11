@@ -48,11 +48,6 @@ int test_erab_setup(bool qci_exists)
   rrc_log->set_hex_limit(1024);
   rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers);
 
-  auto tic = [&timers, &rrc] {
-    timers.step_all();
-    rrc.tti_clock();
-  };
-
   uint16_t                  rnti = 0x46;
   sched_interface::ue_cfg_t ue_cfg;
   ue_cfg.supported_cc_list.resize(1);
@@ -102,9 +97,12 @@ int test_erab_setup(bool qci_exists)
   rrc.setup_ue_erabs(rnti, s1ap_pdu.init_msg().value.erab_setup_request());
 
   if (qci_exists) {
+    // NOTE: It does not add DRB1/ERAB-ID=5 bc that bearer already existed
+    TESTASSERT(s1ap.added_erab_ids.size() == 1);
     TESTASSERT(rrc_log->error_counter == 0);
   } else {
-    TESTASSERT(rrc_log->error_counter == 2);
+    TESTASSERT(s1ap.added_erab_ids.empty());
+    TESTASSERT(rrc_log->error_counter > 0);
   }
 
   return SRSLTE_SUCCESS;
@@ -123,8 +121,6 @@ int main(int argc, char** argv)
   TESTASSERT(test_erab_setup(false) == SRSLTE_SUCCESS);
 
   printf("\nSuccess\n");
-
-  srslte::byte_buffer_pool::get_instance()->cleanup();
 
   return SRSLTE_SUCCESS;
 }

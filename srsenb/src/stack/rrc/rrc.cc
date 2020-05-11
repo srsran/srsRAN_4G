@@ -1388,14 +1388,24 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
 {
   asn1::s1ap::erab_setup_resp_s res;
 
-  res.protocol_ies.erab_setup_list_bearer_su_res.value.resize(e.size());
-  for (uint32_t i = 0; i < e.size(); ++i) {
-    res.protocol_ies.erab_setup_list_bearer_su_res_present = true;
-    auto& item                                             = res.protocol_ies.erab_setup_list_bearer_su_res.value[i];
-    item.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
-    uint8_t id                                         = e[i].value.erab_to_be_setup_item_bearer_su_req().erab_id;
-    item.value.erab_setup_item_bearer_su_res().erab_id = id;
-    uint32_to_uint8(bearer_list.get_erabs().at(id).teid_in, &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
+  const auto& erabs = bearer_list.get_erabs();
+  for (const auto& erab : e) {
+    uint8_t id = erab.value.erab_to_be_setup_item_bearer_su_req().erab_id;
+    if (erabs.count(id)) {
+      res.protocol_ies.erab_setup_list_bearer_su_res_present = true;
+      res.protocol_ies.erab_setup_list_bearer_su_res.value.push_back({});
+      auto& item = res.protocol_ies.erab_setup_list_bearer_su_res.value.back();
+      item.load_info_obj(ASN1_S1AP_ID_ERAB_SETUP_ITEM_BEARER_SU_RES);
+      item.value.erab_setup_item_bearer_su_res().erab_id = id;
+      uint32_to_uint8(bearer_list.get_erabs().at(id).teid_in, &item.value.erab_setup_item_bearer_su_res().gtp_teid[0]);
+    } else {
+      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res_present = true;
+      res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.push_back({});
+      auto& item                     = res.protocol_ies.erab_failed_to_setup_list_bearer_su_res.value.back();
+      item.value.erab_item().erab_id = id;
+      item.value.erab_item().cause.set_radio_network().value =
+          asn1::s1ap::cause_radio_network_opts::invalid_qos_combination;
+    }
   }
 
   parent->s1ap->ue_erab_setup_complete(rnti, res);
@@ -1903,8 +1913,9 @@ void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_set
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   bearer_list.handle_rrc_reconf(conn_reconf);
-
-  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
+  if (conn_reconf->rr_cfg_ded_present or conn_reconf->ded_info_nas_list_present) {
+    send_dl_dcch(&dl_dcch_msg, std::move(pdu));
+  }
 }
 
 void rrc::ue::send_security_mode_command()

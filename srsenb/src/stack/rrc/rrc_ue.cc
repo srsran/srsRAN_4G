@@ -28,12 +28,12 @@ namespace srsenb {
 
 using namespace asn1::rrc;
 
-bearer_handler::bearer_handler(uint16_t            rnti_,
-                               const rrc_cfg_t&    cfg_,
-                               pdcp_interface_rrc* pdcp_,
-                               rlc_interface_rrc*  rlc_,
-                               mac_interface_rrc*  mac_,
-                               gtpu_interface_rrc* gtpu_,
+bearer_handler::bearer_handler(uint16_t                   rnti_,
+                               const rrc_cfg_t&           cfg_,
+                               pdcp_interface_rrc*        pdcp_,
+                               rlc_interface_rrc*         rlc_,
+                               mac_interface_rrc*         mac_,
+                               gtpu_interface_rrc*        gtpu_,
                                sched_interface::ue_cfg_t& ue_cfg_) :
   rnti(rnti_),
   cfg(&cfg_),
@@ -73,6 +73,15 @@ int bearer_handler::setup_erab(uint8_t                                          
   }
   uint8_t lcid  = erab_id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
   uint8_t drbid = erab_id - 4;
+
+  if (qos.qci >= MAX_NOF_QCI) {
+    log_h->error("Invalid QCI=%d for ERAB_id=%d, DRB_id=%d\n", qos.qci, erab_id, drbid);
+    return SRSLTE_ERROR;
+  }
+  if (not cfg->qci_cfg[qos.qci].configured) {
+    log_h->error("QCI=%d not configured\n", qos.qci);
+    return SRSLTE_ERROR;
+  }
 
   erabs[erab_id].id         = erab_id;
   erabs[erab_id].qos_params = qos;
@@ -151,8 +160,9 @@ void bearer_handler::handle_rrc_reest(asn1::rrc::rrc_conn_reest_r8_ies_s* msg)
 
 void bearer_handler::handle_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
 {
-  msg->rr_cfg_ded_present = true;
   fill_and_apply_bearer_updates(msg->rr_cfg_ded);
+  msg->rr_cfg_ded_present = msg->rr_cfg_ded.drb_to_add_mod_list_present or
+                            msg->rr_cfg_ded.srb_to_add_mod_list_present or msg->rr_cfg_ded.drb_to_release_list_present;
 
   // Config RLC/PDCP
   fill_pending_nas_info(msg);
