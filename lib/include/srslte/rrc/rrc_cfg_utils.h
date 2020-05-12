@@ -89,6 +89,33 @@ typename Container::const_iterator binary_find(const Container& c, IdType id)
 }
 
 /**
+ * Apply toAddModList changes
+ * @param src_list original list of rrc fields
+ * @param add_diff_list added/modified elements
+ * @param target_list resulting list. (Can be same as src_list)
+ */
+template <typename AddModList>
+void apply_addmodlist_diff(AddModList& src_list, AddModList& add_diff_list, AddModList& target_list)
+{
+  // Shortcut for empty case
+  if (add_diff_list.size() == 0) {
+    if (&target_list != &src_list) {
+      target_list = src_list;
+    }
+    return;
+  }
+  // Sort Lists by ID
+  auto id_cmp_op = rrc_obj_id_list_cmp<AddModList>{};
+  std::sort(src_list.begin(), src_list.end(), id_cmp_op);
+  std::sort(add_diff_list.begin(), add_diff_list.end(), id_cmp_op);
+
+  AddModList l;
+  std::set_union(
+      add_diff_list.begin(), add_diff_list.end(), src_list.begin(), src_list.end(), std::back_inserter(l), id_cmp_op);
+  target_list = l;
+}
+
+/**
  * Apply toAddModList/toRemoveList changes
  * @param src_list original list of rrc fields
  * @param add_diff_list added/modified elements
@@ -124,36 +151,6 @@ void apply_addmodremlist_diff(AddModList& src_list,
                  tmp_lst.end(),
                  std::back_inserter(target_list),
                  id_cmp_op);
-}
-
-/**
- * Apply toAddModList changes
- * @param src_list original list of rrc fields
- * @param add_diff_list added/modified elements
- * @param target_list resulting list. (Can be same as src_list)
- */
-template <typename AddModList>
-void apply_addmodlist_diff(AddModList& src_list, AddModList& add_diff_list, AddModList& target_list)
-{
-  // Sort Lists by ID
-  auto id_cmp_op = rrc_obj_id_list_cmp<AddModList>{};
-  std::sort(src_list.begin(), src_list.end(), id_cmp_op);
-  std::sort(add_diff_list.begin(), add_diff_list.end(), id_cmp_op);
-
-  if (&target_list != &src_list) {
-    target_list.resize(0);
-    std::set_union(add_diff_list.begin(),
-                   add_diff_list.end(),
-                   src_list.begin(),
-                   src_list.end(),
-                   std::back_inserter(target_list),
-                   id_cmp_op);
-  } else {
-    AddModList l;
-    std::set_union(
-        add_diff_list.begin(), add_diff_list.end(), src_list.begin(), src_list.end(), std::back_inserter(l), id_cmp_op);
-    target_list = l;
-  }
 }
 
 //! Update RRC field toAddModList

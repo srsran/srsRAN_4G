@@ -109,21 +109,21 @@ uint8_t security_generate_k_up(uint8_t*                    k_enb,
 /******************************************************************************
  * Integrity Protection
  *****************************************************************************/
-uint8_t security_128_eia1(uint8_t* key,
-                          uint32_t count,
-                          uint32_t bearer,
-                          uint8_t  direction,
-                          uint8_t* msg,
-                          uint32_t msg_len,
-                          uint8_t* mac);
+uint8_t security_128_eia1(const uint8_t* key,
+                          uint32_t       count,
+                          uint32_t       bearer,
+                          uint8_t        direction,
+                          uint8_t*       msg,
+                          uint32_t       msg_len,
+                          uint8_t*       mac);
 
-uint8_t security_128_eia2(uint8_t* key,
-                          uint32_t count,
-                          uint32_t bearer,
-                          uint8_t  direction,
-                          uint8_t* msg,
-                          uint32_t msg_len,
-                          uint8_t* mac);
+uint8_t security_128_eia2(const uint8_t* key,
+                          uint32_t       count,
+                          uint32_t       bearer,
+                          uint8_t        direction,
+                          uint8_t*       msg,
+                          uint32_t       msg_len,
+                          uint8_t*       mac);
 
 uint8_t security_128_eia3(uint8_t* key,
                           uint32_t count,

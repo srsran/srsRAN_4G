@@ -136,7 +136,7 @@ private:
     void send_connection_release();
     void send_connection_reest_rej();
     void send_connection_reconf(srslte::unique_byte_buffer_t sdu);
-    void send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
+    void send_connection_reconf_new_bearer();
     void send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu);
     void send_security_mode_command();
     void send_ue_cap_enquiry();
@@ -149,10 +149,10 @@ private:
     void handle_security_mode_complete(asn1::rrc::security_mode_complete_s* msg);
     void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
     bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
+    void handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg);
+    bool handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg);
 
     void set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates);
-    void set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps);
-    void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
 
     bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e);
     bool setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e);
@@ -169,7 +169,6 @@ private:
     int  get_ri(uint32_t m_ri, uint16_t* ri_idx);
     bool is_allocated() const;
 
-    bool select_security_algorithms();
     void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
     bool send_dl_dcch(const asn1::rrc::dl_dcch_msg_s* dl_dcch_msg,
                       srslte::unique_byte_buffer_t    pdu = srslte::unique_byte_buffer_t());
@@ -188,8 +187,7 @@ private:
     srslte::timer_handler::unique_timer activity_timer;
 
     // cached for ease of context transfer
-    asn1::rrc::rrc_conn_recfg_s         last_rrc_conn_recfg;
-    asn1::rrc::security_algorithm_cfg_s last_security_mode_cmd;
+    asn1::rrc::rrc_conn_recfg_s last_rrc_conn_recfg;
 
     asn1::rrc::establishment_cause_e establishment_cause;
 
@@ -207,11 +205,8 @@ private:
     std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
     std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
-    uint8_t                      k_enb[32]; // Provided by MME
-    srslte::as_security_config_t sec_cfg = {};
-
     asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
-    asn1::s1ap::ue_security_cap_s              security_capabilities;
+    security_cfg_handler                       ue_security_cfg;
     bool                                       eutra_capabilities_unpacked = false;
     asn1::rrc::ue_eutra_cap_s                  eutra_capabilities;
     srslte::rrc_ue_capabilities_t              ue_capabilities;
@@ -284,9 +279,6 @@ private:
   void config_mac();
   void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
-  void configure_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg);
-  void enable_integrity(uint16_t rnti, uint32_t lcid);
-  void enable_encryption(uint16_t rnti, uint32_t lcid);
 
   srslte::byte_buffer_t byte_buf_paging;
 

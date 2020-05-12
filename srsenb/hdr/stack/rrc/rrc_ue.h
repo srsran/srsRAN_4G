@@ -29,54 +29,63 @@
 
 namespace srsenb {
 
+class security_cfg_handler
+{
+public:
+  explicit security_cfg_handler(const rrc_cfg_t& cfg_) : cfg(&cfg_) {}
+
+  bool set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps);
+  void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
+
+  asn1::rrc::security_algorithm_cfg_s get_security_algorithm_cfg();
+  const srslte::as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
+
+private:
+  srslte::log_ref               log_h{"RRC"};
+  const rrc_cfg_t*              cfg;
+  asn1::s1ap::ue_security_cap_s security_capabilities;
+  uint8_t                       k_enb[32] = {}; // Provided by MME
+  srslte::as_security_config_t  sec_cfg   = {};
+};
+
 class bearer_handler
 {
 public:
   struct erab_t {
-    uint8_t                                     id;
+    uint8_t                                     id = 0;
     asn1::s1ap::erab_level_qos_params_s         qos_params;
     asn1::bounded_bitstring<1, 160, true, true> address;
-    uint32_t                                    teid_out;
-    uint32_t                                    teid_in;
+    uint32_t                                    teid_out = 0;
+    uint32_t                                    teid_in  = 0;
   };
 
-  bearer_handler(uint16_t                   rnti_,
-                 const rrc_cfg_t&           cfg_,
-                 pdcp_interface_rrc*        pdcp_,
-                 rlc_interface_rrc*         rlc_,
-                 mac_interface_rrc*         mac_,
-                 gtpu_interface_rrc*        gtpu_,
-                 sched_interface::ue_cfg_t& ue_cfg_);
+  bearer_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_);
 
-  void setup_srb(uint8_t srb_id);
-  int  setup_erab(uint8_t                                            id,
-                  const asn1::s1ap::erab_level_qos_params_s&         qos,
-                  const asn1::bounded_bitstring<1, 160, true, true>& addr,
-                  uint32_t                                           teid_out,
-                  const asn1::unbounded_octstring<true>*             nas_pdu);
+  void add_srb(uint8_t srb_id);
+  int  add_erab(uint8_t                                            erab_id,
+                const asn1::s1ap::erab_level_qos_params_s&         qos,
+                const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                uint32_t                                           teid_out,
+                const asn1::unbounded_octstring<true>*             nas_pdu);
   void release_erab(uint8_t erab_id);
   void release_erabs();
 
-  void handle_rrc_setup(asn1::rrc::rrc_conn_setup_r8_ies_s* msg);
-  void handle_rrc_reest(asn1::rrc::rrc_conn_reest_r8_ies_s* msg);
-  void handle_rrc_reconf(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
-  void handle_rrc_reconf_complete();
+  bool fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg);
+  void rr_ded_cfg_complete();
+
+  // Methods to apply bearer updates
+  void apply_mac_bearer_updates(mac_interface_rrc* mac, sched_interface::ue_cfg_t* sched_ue_cfg);
+  void apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, const security_cfg_handler& ue_sec_cfg);
+  void apply_rlc_bearer_updates(rlc_interface_rrc* rlc);
+  void fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
   const std::map<uint8_t, erab_t>& get_erabs() const { return erabs; }
 
 private:
-  void fill_and_apply_bearer_updates(asn1::rrc::rr_cfg_ded_s& msg);
-  void fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
-
-  srslte::log_ref            log_h{"RRC"};
-  uint16_t                   rnti;
-  const rrc_cfg_t*           cfg;
-  pdcp_interface_rrc*        pdcp;
-  rlc_interface_rrc*         rlc;
-  mac_interface_rrc*         mac;
-  gtpu_interface_rrc*        gtpu;
-  sched_interface::ue_cfg_t* sched_ue_cfg;
-  srslte::byte_buffer_pool*  pool = nullptr;
+  srslte::log_ref     log_h{"RRC"};
+  uint16_t            rnti;
+  const rrc_cfg_t*    cfg;
+  gtpu_interface_rrc* gtpu;
 
   std::map<uint8_t, std::vector<uint8_t> > erab_info_list;
   std::map<uint8_t, erab_t>                erabs;

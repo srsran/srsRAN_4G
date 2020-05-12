@@ -62,7 +62,7 @@ uint16_t compute_mac_i(uint16_t                            crnti,
                        uint32_t                            cellid,
                        uint16_t                            pci,
                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo,
-                       uint8_t*                            k_rrc_int)
+                       const uint8_t*                      k_rrc_int)
 {
   // Compute shortMAC-I
   uint8_t varShortMAC_packed[16] = {};
@@ -890,7 +890,7 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list_present = true;
   //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list.resize(1);
   //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list[0] = 1;
-  hoprep_r8.as_cfg.source_security_algorithm_cfg = rrc_ue->last_security_mode_cmd;
+  hoprep_r8.as_cfg.source_security_algorithm_cfg = rrc_ue->ue_security_cfg.get_security_algorithm_cfg();
   hoprep_r8.as_cfg.source_ue_id.from_number(rrc_ue->rnti);
   asn1::number_to_enum(hoprep_r8.as_cfg.source_mib.dl_bw, rrc_enb->cfg.cell.nof_prb);
   hoprep_r8.as_cfg.source_mib.phich_cfg.phich_dur.value =
@@ -911,8 +911,8 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
       rrc_details::compute_mac_i(rrc_ue->rnti,
                                  rrc_enb->cfg.sib1.cell_access_related_info.cell_id.to_number(),
                                  rrc_enb->cfg.cell_list.at(0).pci, // TODO: use actual PCI of source cell
-                                 rrc_ue->sec_cfg.integ_algo,
-                                 rrc_ue->sec_cfg.k_rrc_int.data()));
+                                 rrc_ue->ue_security_cfg.get_as_sec_cfg().integ_algo,
+                                 rrc_ue->ue_security_cfg.get_as_sec_cfg().k_rrc_int.data()));
 
   /*** pack HO Preparation Info into an RRC container buffer ***/
   srslte::unique_byte_buffer_t buffer = srslte::allocate_unique_buffer(*pool);

@@ -29,11 +29,11 @@ namespace srslte {
 
 //! Apply toAddModList/toRelease diffs to SRBs
 void apply_srb_diff(asn1::rrc::srb_to_add_mod_list_l& src,
-                    asn1::rrc::rr_cfg_ded_s&          diff,
+                    asn1::rrc::srb_to_add_mod_list_l& diff,
                     asn1::rrc::srb_to_add_mod_list_l& target)
 {
-  if (diff.srb_to_add_mod_list_present) {
-    apply_addmodlist_diff(src, diff.srb_to_add_mod_list, target);
+  if (diff.size() > 0) {
+    apply_addmodlist_diff(src, diff, target);
   } else if (&target != &src) {
     target = src;
   }

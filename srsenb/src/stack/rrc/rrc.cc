@@ -280,73 +280,12 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, const asn1::s1ap::init_context_setup_requ
     return false;
   }
 
-  if (msg.protocol_ies.add_cs_fallback_ind_present) {
-    rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
-  }
-  if (msg.protocol_ies.csg_membership_status_present) {
-    rrc_log->warning("Not handling CSGMembershipStatus\n");
-  }
-  if (msg.protocol_ies.gummei_id_present) {
-    rrc_log->warning("Not handling GUMMEI_ID\n");
-  }
-  if (msg.protocol_ies.ho_restrict_list_present) {
-    rrc_log->warning("Not handling HandoverRestrictionList\n");
-  }
-  if (msg.protocol_ies.management_based_mdt_allowed_present) {
-    rrc_log->warning("Not handling ManagementBasedMDTAllowed\n");
-  }
-  if (msg.protocol_ies.management_based_mdtplmn_list_present) {
-    rrc_log->warning("Not handling ManagementBasedMDTPLMNList\n");
-  }
-  if (msg.protocol_ies.mme_ue_s1ap_id_minus2_present) {
-    rrc_log->warning("Not handling MME_UE_S1AP_ID_2\n");
-  }
-  if (msg.protocol_ies.registered_lai_present) {
-    rrc_log->warning("Not handling RegisteredLAI\n");
-  }
-  if (msg.protocol_ies.srvcc_operation_possible_present) {
-    rrc_log->warning("Not handling SRVCCOperationPossible\n");
-  }
-  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
-  }
-  if (msg.protocol_ies.trace_activation_present) {
-    rrc_log->warning("Not handling TraceActivation\n");
-  }
-  if (msg.protocol_ies.ue_radio_cap_present) {
-    rrc_log->warning("Not handling UERadioCapability\n");
-  }
-
-  // UEAggregateMaximumBitrate
-  user_it->second->set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
-
-  // UESecurityCapabilities
-  user_it->second->set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
-
-  // SecurityKey
-  user_it->second->set_security_key(msg.protocol_ies.security_key.value);
-
-  // CSFB
-  if (msg.protocol_ies.cs_fallback_ind_present) {
-    if (msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required or
-        msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
-      user_it->second->is_csfb = true;
-    }
-  }
-
-  // Send RRC security mode command
-  user_it->second->send_security_mode_command();
-
-  // Setup E-RABs
-  user_it->second->setup_erabs(msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value);
-
+  user_it->second->handle_ue_init_ctxt_setup_req(msg);
   return true;
 }
 
 bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request_s& msg)
 {
-  bool err = false;
-
   rrc_log->info("Modifying context for 0x%x\n", rnti);
   auto user_it = users.find(rnti);
 
@@ -355,54 +294,7 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, const asn1::s1ap::ue_context_mod_request
     return false;
   }
 
-  if (msg.protocol_ies.cs_fallback_ind_present) {
-    if (msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required ||
-        msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
-      /* Remember that we are in a CSFB right now */
-      user_it->second->is_csfb = true;
-    }
-  }
-
-  if (msg.protocol_ies.add_cs_fallback_ind_present) {
-    rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
-    err = true;
-  }
-  if (msg.protocol_ies.csg_membership_status_present) {
-    rrc_log->warning("Not handling CSGMembershipStatus\n");
-    err = true;
-  }
-  if (msg.protocol_ies.registered_lai_present) {
-    rrc_log->warning("Not handling RegisteredLAI\n");
-  }
-  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
-    rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
-    err = true;
-  }
-
-  if (err) {
-    // maybe pass a cause value?
-    return false;
-  }
-
-  // UEAggregateMaximumBitrate
-  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
-    user_it->second->set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
-  }
-
-  // UESecurityCapabilities
-  if (msg.protocol_ies.ue_security_cap_present) {
-    user_it->second->set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
-  }
-
-  // SecurityKey
-  if (msg.protocol_ies.security_key_present) {
-    user_it->second->set_security_key(msg.protocol_ies.security_key.value);
-
-    // Send RRC security mode command ??
-    user_it->second->send_security_mode_command();
-  }
-
-  return true;
+  return user_it->second->handle_ue_ctxt_mod_req(msg);
 }
 
 bool rrc::setup_ue_erabs(uint16_t rnti, const asn1::s1ap::erab_setup_request_s& msg)
@@ -905,21 +797,6 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
   mac->write_mcch(sib2_, sib13_, &mcch);
 }
 
-void rrc::configure_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg)
-{
-  pdcp->config_security(rnti, lcid, sec_cfg);
-}
-
-void rrc::enable_integrity(uint16_t rnti, uint32_t lcid)
-{
-  pdcp->enable_integrity(rnti, lcid);
-}
-
-void rrc::enable_encryption(uint16_t rnti, uint32_t lcid)
-{
-  pdcp->enable_encryption(rnti, lcid);
-}
-
 /*******************************************************************************
   RRC run tti method
 *******************************************************************************/
@@ -986,7 +863,8 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   current_sched_ue_cfg(sched_ue_cfg),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
   cell_ded_list(parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list),
-  bearer_list(rnti_, parent->cfg, parent->pdcp, parent->rlc, parent->mac, parent->gtpu, current_sched_ue_cfg)
+  bearer_list(rnti_, parent->cfg, parent->gtpu),
+  ue_security_cfg(parent->cfg)
 {
   if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
     parent->rrc_log->warning("No PCell set. Picking eNBccIdx=0 as PCell\n");
@@ -1220,6 +1098,9 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   // Acknowledge Dedicated Configuration
   parent->mac->phy_config_enabled(rnti, true);
 
+  // Flag completion of RadioResource Configuration
+  bearer_list.rr_ded_cfg_complete();
+
   asn1::s1ap::rrc_establishment_cause_e s1ap_cause;
   s1ap_cause.value = (asn1::s1ap::rrc_establishment_cause_opts::options)establishment_cause.value;
   if (has_tmsi) {
@@ -1249,7 +1130,13 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
     }
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
 
-    bearer_list.handle_rrc_reconf_complete();
+    bearer_list.apply_mac_bearer_updates(parent->mac, &current_sched_ue_cfg);
+
+    // Acknowledge Dedicated Configuration
+    parent->mac->phy_config_enabled(rnti, true);
+
+    // Flag completion of RadioResource Configuration
+    bearer_list.rr_ded_cfg_complete();
   } else {
     parent->rrc_log->error("Expected RRCReconfigurationComplete with transaction ID: %d, got %d\n",
                            last_rrc_conn_recfg.rrc_transaction_id,
@@ -1260,7 +1147,8 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
 void rrc::ue::handle_security_mode_complete(security_mode_complete_s* msg)
 {
   parent->rrc_log->info("SecurityModeComplete transaction ID: %d\n", msg->rrc_transaction_id);
-  parent->enable_encryption(rnti, RB_ID_SRB1);
+
+  parent->pdcp->enable_encryption(rnti, RB_ID_SRB1);
 }
 
 void rrc::ue::handle_security_mode_failure(security_mode_fail_s* msg)
@@ -1299,43 +1187,108 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
   // parent->s1ap->ue_capabilities(rnti, &eutra_capabilities);
 }
 
+void rrc::ue::handle_ue_init_ctxt_setup_req(const asn1::s1ap::init_context_setup_request_s& msg)
+{
+  if (msg.protocol_ies.add_cs_fallback_ind_present) {
+    parent->rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
+  }
+  if (msg.protocol_ies.csg_membership_status_present) {
+    parent->rrc_log->warning("Not handling CSGMembershipStatus\n");
+  }
+  if (msg.protocol_ies.gummei_id_present) {
+    parent->rrc_log->warning("Not handling GUMMEI_ID\n");
+  }
+  if (msg.protocol_ies.ho_restrict_list_present) {
+    parent->rrc_log->warning("Not handling HandoverRestrictionList\n");
+  }
+  if (msg.protocol_ies.management_based_mdt_allowed_present) {
+    parent->rrc_log->warning("Not handling ManagementBasedMDTAllowed\n");
+  }
+  if (msg.protocol_ies.management_based_mdtplmn_list_present) {
+    parent->rrc_log->warning("Not handling ManagementBasedMDTPLMNList\n");
+  }
+  if (msg.protocol_ies.mme_ue_s1ap_id_minus2_present) {
+    parent->rrc_log->warning("Not handling MME_UE_S1AP_ID_2\n");
+  }
+  if (msg.protocol_ies.registered_lai_present) {
+    parent->rrc_log->warning("Not handling RegisteredLAI\n");
+  }
+  if (msg.protocol_ies.srvcc_operation_possible_present) {
+    parent->rrc_log->warning("Not handling SRVCCOperationPossible\n");
+  }
+  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
+    parent->rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
+  }
+  if (msg.protocol_ies.trace_activation_present) {
+    parent->rrc_log->warning("Not handling TraceActivation\n");
+  }
+  if (msg.protocol_ies.ue_radio_cap_present) {
+    parent->rrc_log->warning("Not handling UERadioCapability\n");
+  }
+
+  set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
+  ue_security_cfg.set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
+  ue_security_cfg.set_security_key(msg.protocol_ies.security_key.value);
+
+  // CSFB
+  if (msg.protocol_ies.cs_fallback_ind_present) {
+    if (msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required or
+        msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
+      is_csfb = true;
+    }
+  }
+
+  // Send RRC security mode command
+  send_security_mode_command();
+
+  // Setup E-RABs
+  setup_erabs(msg.protocol_ies.erab_to_be_setup_list_ctxt_su_req.value);
+}
+
+bool rrc::ue::handle_ue_ctxt_mod_req(const asn1::s1ap::ue_context_mod_request_s& msg)
+{
+  if (msg.protocol_ies.cs_fallback_ind_present) {
+    if (msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_required ||
+        msg.protocol_ies.cs_fallback_ind.value.value == asn1::s1ap::cs_fallback_ind_opts::cs_fallback_high_prio) {
+      /* Remember that we are in a CSFB right now */
+      is_csfb = true;
+    }
+  }
+
+  if (msg.protocol_ies.add_cs_fallback_ind_present) {
+    parent->rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
+  }
+  if (msg.protocol_ies.csg_membership_status_present) {
+    parent->rrc_log->warning("Not handling CSGMembershipStatus\n");
+  }
+  if (msg.protocol_ies.registered_lai_present) {
+    parent->rrc_log->warning("Not handling RegisteredLAI\n");
+  }
+  if (msg.protocol_ies.subscriber_profile_idfor_rfp_present) {
+    parent->rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
+  }
+
+  // UEAggregateMaximumBitrate
+  if (msg.protocol_ies.ueaggregate_maximum_bitrate_present) {
+    set_bitrates(msg.protocol_ies.ueaggregate_maximum_bitrate.value);
+  }
+
+  if (msg.protocol_ies.ue_security_cap_present) {
+    ue_security_cfg.set_security_capabilities(msg.protocol_ies.ue_security_cap.value);
+  }
+
+  if (msg.protocol_ies.security_key_present) {
+    ue_security_cfg.set_security_key(msg.protocol_ies.security_key.value);
+
+    send_security_mode_command();
+  }
+
+  return true;
+}
+
 void rrc::ue::set_bitrates(const asn1::s1ap::ue_aggregate_maximum_bitrate_s& rates)
 {
   bitrates = rates;
-}
-
-void rrc::ue::set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps)
-{
-  security_capabilities = caps;
-}
-
-void rrc::ue::set_security_key(const asn1::fixed_bitstring<256, false, true>& key)
-{
-  for (uint32_t i = 0; i < key.nof_octets(); ++i) {
-    k_enb[i] = key.data()[key.nof_octets() - 1 - i];
-  }
-  parent->rrc_log->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
-  // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences
-  select_security_algorithms();
-
-  parent->rrc_log->info(
-      "Selected security algorithms EEA: EEA%d EIA: EIA%d\n", sec_cfg.cipher_algo, sec_cfg.integ_algo);
-
-  // Generate K_rrc_enc and K_rrc_int
-  srslte::security_generate_k_rrc(
-      k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_rrc_enc.data(), sec_cfg.k_rrc_int.data());
-
-  // Generate K_up_enc and K_up_int
-  security_generate_k_up(
-      k_enb, sec_cfg.cipher_algo, sec_cfg.integ_algo, sec_cfg.k_up_enc.data(), sec_cfg.k_up_int.data());
-
-  parent->configure_security(rnti, RB_ID_SRB1, sec_cfg);
-
-  parent->enable_integrity(rnti, RB_ID_SRB1);
-
-  parent->rrc_log->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC Encryption Key (k_rrc_enc)");
-  parent->rrc_log->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC Integrity Key (k_rrc_int)");
-  parent->rrc_log->info_hex(sec_cfg.k_up_enc.data(), 32, "UP Encryption Key (k_up_enc)");
 }
 
 bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l& e)
@@ -1356,7 +1309,7 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_ctxt_su_req_l&
     uint32_t teid_out;
     uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
     const asn1::unbounded_octstring<true>* nas_pdu = erab.nas_pdu_present ? &erab.nas_pdu : nullptr;
-    bearer_list.setup_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
+    bearer_list.add_erab(erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, nas_pdu);
   }
   return true;
 }
@@ -1378,13 +1331,13 @@ bool rrc::ue::setup_erabs(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_
 
     uint32_t teid_out;
     uint8_to_uint32(erab.gtp_teid.data(), &teid_out);
-    bearer_list.setup_erab(
+    bearer_list.add_erab(
         erab.erab_id, erab.erab_level_qos_params, erab.transport_layer_address, teid_out, &erab.nas_pdu);
   }
 
   // Work in progress
   notify_s1ap_ue_erab_setup_response(e);
-  send_connection_reconf_new_bearer(e);
+  send_connection_reconf_new_bearer();
   return true;
 }
 
@@ -1459,7 +1412,7 @@ void rrc::ue::send_connection_reject()
 void rrc::ue::send_connection_setup(bool is_setup)
 {
   // (Re-)Establish SRB1
-  bearer_list.setup_srb(1);
+  bearer_list.add_srb(1);
 
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1();
@@ -1476,6 +1429,9 @@ void rrc::ue::send_connection_setup(bool is_setup)
     dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set_c1().set_rrc_conn_reest_r8();
     rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded;
   }
+
+  // drbsToAddModList/srbsToAddModList/drbsToReleaseList
+  bearer_list.fill_rr_cfg_ded(*rr_cfg);
 
   // mac-MainConfig
   rr_cfg->mac_main_cfg_present  = true;
@@ -1571,17 +1527,17 @@ void rrc::ue::send_connection_setup(bool is_setup)
   current_sched_ue_cfg.pucch_cfg.N_pucch_1         = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
   current_sched_ue_cfg.dl_ant_info                 = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
 
-  // Configure MAC + RLC + PDCP
+  // Configure MAC
   if (is_setup) {
     // In case of RRC Connection Setup message (Msg4), we need to resolve the contention by sending a ConRes CE
     parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
-
-    bearer_list.handle_rrc_setup(&dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.c1().rrc_conn_setup_r8());
   } else {
     parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
-
-    bearer_list.handle_rrc_reest(&dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.c1().rrc_conn_reest_r8());
   }
+
+  // Add SRBs/DRBs, and configure RLC+PDCP
+  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
+  bearer_list.apply_rlc_bearer_updates(parent->rlc);
 
   // Configure PHY layer
   apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
@@ -1602,12 +1558,11 @@ void rrc::ue::send_connection_reest()
 void rrc::ue::send_connection_release()
 {
   dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set_c1().set_rrc_conn_release();
-  dl_dcch_msg.msg.c1().rrc_conn_release().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.set_c1().set_rrc_conn_release_r8();
-  dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.c1().rrc_conn_release_r8().release_cause = release_cause_e::other;
+  auto&         rrc_release          = dl_dcch_msg.msg.set_c1().set_rrc_conn_release();
+  rrc_release.rrc_transaction_id     = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_release_r8_ies_s& rel_ies = rrc_release.crit_exts.set_c1().set_rrc_conn_release_r8();
+  rel_ies.release_cause              = release_cause_e::other;
   if (is_csfb) {
-    rrc_conn_release_r8_ies_s& rel_ies = dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.c1().rrc_conn_release_r8();
     rel_ies.redirected_carrier_info_present = true;
     rel_ies.redirected_carrier_info.set_geran();
     rel_ies.redirected_carrier_info.geran() = parent->sib7.carrier_freqs_info_list[0].carrier_freqs;
@@ -1672,14 +1627,16 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
 void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 {
   // Setup SRB2
-  bearer_list.setup_srb(2);
+  bearer_list.add_srb(2);
 
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
 
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
-  conn_reconf->rr_cfg_ded_present      = true;
+
+  // Add DRBs/SRBs
+  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
 
   conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
   phys_cfg_ded_s* phy_cfg                      = &conn_reconf->rr_cfg_ded.phys_cfg_ded;
@@ -1743,19 +1700,12 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
   parent->mac->phy_config_enabled(rnti, false);
 
-  // Fill Reconf message, and setup SRB2/DRBs in PDCP and RLC
-  bearer_list.handle_rrc_reconf(conn_reconf);
+  // setup SRB2/DRBs in PDCP and RLC
+  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
+  bearer_list.apply_rlc_bearer_updates(parent->rlc);
 
-  // Configure SRB2 security
-  parent->pdcp->config_security(rnti, 2, sec_cfg);
-  parent->pdcp->enable_integrity(rnti, 2);
-  parent->pdcp->enable_encryption(rnti, 2);
-
-  for (const drb_to_add_mod_s& drb : conn_reconf->rr_cfg_ded.drb_to_add_mod_list) {
-    parent->pdcp->config_security(rnti, drb.lc_ch_id, sec_cfg);
-    parent->pdcp->enable_integrity(rnti, drb.lc_ch_id);
-    parent->pdcp->enable_encryption(rnti, drb.lc_ch_id);
-  }
+  // Add pending NAS info
+  bearer_list.fill_pending_nas_info(conn_reconf);
 
   if (mobility_handler != nullptr) {
     mobility_handler->fill_conn_recfg_msg(conn_reconf);
@@ -1933,18 +1883,23 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   return SRSLTE_SUCCESS;
 }
 
-void rrc::ue::send_connection_reconf_new_bearer(const asn1::s1ap::erab_to_be_setup_list_bearer_su_req_l& e)
+void rrc::ue::send_connection_reconf_new_bearer()
 {
-  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
-
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
-  bearer_list.handle_rrc_reconf(conn_reconf);
+  conn_reconf->rr_cfg_ded_present = bearer_list.fill_rr_cfg_ded(conn_reconf->rr_cfg_ded);
+
+  // Setup new bearer
+  bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
+  bearer_list.apply_rlc_bearer_updates(parent->rlc);
+  // Add pending NAS info
+  bearer_list.fill_pending_nas_info(conn_reconf);
+
   if (conn_reconf->rr_cfg_ded_present or conn_reconf->ded_info_nas_list_present) {
-    send_dl_dcch(&dl_dcch_msg, std::move(pdu));
+    send_dl_dcch(&dl_dcch_msg);
   }
 }
 
@@ -1954,13 +1909,12 @@ void rrc::ue::send_security_mode_command()
   security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
   comm->rrc_transaction_id  = (uint8_t)((transaction_id++) % 4);
 
-  // TODO: select these based on UE capabilities and preference order
-  comm->crit_exts.set_c1().set_security_mode_cmd_r8();
-  comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg.ciphering_algorithm =
-      (ciphering_algorithm_r12_e::options)sec_cfg.cipher_algo;
-  comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm =
-      (security_algorithm_cfg_s::integrity_prot_algorithm_e_::options)sec_cfg.integ_algo;
-  last_security_mode_cmd = comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg;
+  comm->crit_exts.set_c1().set_security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg =
+      ue_security_cfg.get_security_algorithm_cfg();
+
+  // Setup SRB1 security/integrity. Encryption is set on completion
+  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
+  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
 
   send_dl_dcch(&dl_dcch_msg);
 }
@@ -1988,129 +1942,6 @@ void rrc::ue::handle_ho_preparation_complete(bool is_success, srslte::unique_byt
 
 /********************** HELPERS ***************************/
 
-bool rrc::ue::select_security_algorithms()
-{
-  // Each position in the bitmap represents an encryption algorithm:
-  // “all bits equal to 0” – UE supports no other algorithm than EEA0,
-  // “first bit” – 128-EEA1,
-  // “second bit” – 128-EEA2,
-  // “third bit” – 128-EEA3,
-  // other bits reserved for future use. Value ‘1’ indicates support and value
-  // ‘0’ indicates no support of the algorithm.
-  // Algorithms are defined in TS 33.401 [15].
-  // Note: information missing
-
-  bool enc_algo_found   = false;
-  bool integ_algo_found = false;
-
-  for (auto& cipher_item : parent->cfg.eea_preference_list) {
-    auto& v = security_capabilities.encryption_algorithms;
-    switch (cipher_item) {
-      case srslte::CIPHERING_ALGORITHM_ID_EEA0:
-        // “all bits equal to 0” – UE supports no other algorithm than EEA0,
-        // specification does not cover the case in which EEA0 is supported with other algorithms
-        // just assume that EEA0 is always supported even this can not be explicity signaled by S1AP
-        sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-        enc_algo_found      = true;
-        parent->rrc_log->info("Selected EEA0 as RRC encryption algorithm\n");
-        break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
-        // “first bit” – 128-EEA1,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA1)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
-          enc_algo_found      = true;
-          parent->rrc_log->info("Selected EEA1 as RRC encryption algorithm\n");
-          break;
-        } else {
-          parent->rrc_log->info("Failed to selected EEA1 as RRC encryption algorithm, due to unsupported algorithm\n");
-        }
-        break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
-        // “second bit” – 128-EEA2,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA2)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
-          enc_algo_found      = true;
-          parent->rrc_log->info("Selected EEA2 as RRC encryption algorithm\n");
-          break;
-        } else {
-          parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
-        }
-        break;
-      case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
-        // “third bit” – 128-EEA3,
-        if (v.get(v.length() - srslte::CIPHERING_ALGORITHM_ID_128_EEA3)) {
-          sec_cfg.cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
-          enc_algo_found      = true;
-          parent->rrc_log->info("Selected EEA3 as RRC encryption algorithm\n");
-          break;
-        } else {
-          parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
-        }
-        break;
-      default:
-        enc_algo_found = false;
-        break;
-    }
-    if (enc_algo_found) {
-      break;
-    }
-  }
-
-  for (auto& eia_enum : parent->cfg.eia_preference_list) {
-    auto& v = security_capabilities.integrity_protection_algorithms;
-    switch (eia_enum) {
-      case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
-        // Null integrity is not supported
-        parent->rrc_log->info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.\n");
-        break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
-        // “first bit” – 128-EIA1,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA1)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
-          integ_algo_found   = true;
-          parent->rrc_log->info("Selected EIA1 as RRC integrity algorithm.\n");
-        } else {
-          parent->rrc_log->info("Failed to selected EIA1 as RRC encryption algorithm, due to unsupported algorithm\n");
-        }
-        break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
-        // “second bit” – 128-EIA2,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA2)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
-          integ_algo_found   = true;
-          parent->rrc_log->info("Selected EIA2 as RRC integrity algorithm.\n");
-        } else {
-          parent->rrc_log->info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm\n");
-        }
-        break;
-      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
-        // “third bit” – 128-EIA3,
-        if (v.get(v.length() - srslte::INTEGRITY_ALGORITHM_ID_128_EIA3)) {
-          sec_cfg.integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
-          integ_algo_found   = true;
-          parent->rrc_log->info("Selected EIA3 as RRC integrity algorithm.\n");
-        } else {
-          parent->rrc_log->info("Failed to selected EIA3 as RRC encryption algorithm, due to unsupported algorithm\n");
-        }
-        break;
-      default:
-        integ_algo_found = false;
-        break;
-    }
-
-    if (integ_algo_found) {
-      break;
-    }
-  }
-
-  if (not integ_algo_found || not enc_algo_found) {
-    // TODO: if no security algorithm found abort radio connection and issue
-    // encryption-and-or-integrity-protection-algorithms-not-supported message
-    parent->rrc_log->error("Did not find a matching integrity or encryption algorithm with the UE\n");
-    return false;
-  }
-  return true;
-}
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
