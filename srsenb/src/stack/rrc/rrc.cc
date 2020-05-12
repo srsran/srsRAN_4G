@@ -1905,16 +1905,16 @@ void rrc::ue::send_connection_reconf_new_bearer()
 
 void rrc::ue::send_security_mode_command()
 {
+  // Setup SRB1 security/integrity. Encryption is set on completion
+  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
+  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
+
   dl_dcch_msg_s        dl_dcch_msg;
   security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
   comm->rrc_transaction_id  = (uint8_t)((transaction_id++) % 4);
 
   comm->crit_exts.set_c1().set_security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg =
       ue_security_cfg.get_security_algorithm_cfg();
-
-  // Setup SRB1 security/integrity. Encryption is set on completion
-  parent->pdcp->enable_integrity(rnti, RB_ID_SRB1);
-  parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
 
   send_dl_dcch(&dl_dcch_msg);
 }
