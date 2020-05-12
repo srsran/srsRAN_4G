@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_RRC_UE_H
-#define SRSLTE_RRC_UE_H
+#ifndef SRSLTE_RRC_UE_CFG_H
+#define SRSLTE_RRC_UE_CFG_H
 
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
 #include "srslte/common/logmap.h"
@@ -48,7 +48,7 @@ private:
   srslte::as_security_config_t  sec_cfg   = {};
 };
 
-class bearer_handler
+class bearer_cfg_handler
 {
 public:
   struct erab_t {
@@ -59,7 +59,7 @@ public:
     uint32_t                                    teid_in  = 0;
   };
 
-  bearer_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_);
+  bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_);
 
   void add_srb(uint8_t srb_id);
   int  add_erab(uint8_t                                            erab_id,
@@ -102,4 +102,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_RRC_UE_H
+#endif // SRSLTE_RRC_UE_CFG_H

@@ -24,7 +24,7 @@
 
 #include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
-#include "rrc_ue.h"
+#include "rrc_ue_cfg.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
@@ -202,11 +202,7 @@ private:
     uint8_t                   transaction_id       = 0;
     rrc_state_t               state                = RRC_STATE_IDLE;
 
-    std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
-    std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
-
     asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
-    security_cfg_handler                       ue_security_cfg;
     bool                                       eutra_capabilities_unpacked = false;
     asn1::rrc::ue_eutra_cap_s                  eutra_capabilities;
     srslte::rrc_ue_capabilities_t              ue_capabilities;
@@ -214,7 +210,8 @@ private:
     const static uint32_t UE_PCELL_CC_IDX = 0;
 
     cell_ctxt_dedicated_list cell_ded_list;
-    bearer_handler           bearer_list;
+    bearer_cfg_handler       bearer_list;
+    security_cfg_handler     ue_security_cfg;
 
     ///< Helper to access a cell cfg based on ue_cc_idx
     cell_info_common* get_ue_cc_cfg(uint32_t ue_cc_idx);

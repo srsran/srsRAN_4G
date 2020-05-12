@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsenb/hdr/stack/rrc/rrc_ue.h"
+#include "srsenb/hdr/stack/rrc/rrc_ue_cfg.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -191,13 +191,13 @@ void security_cfg_handler::set_security_key(const asn1::fixed_bitstring<256, fal
  *      Bearer Handler
  ****************************/
 
-bearer_handler::bearer_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_) :
+bearer_cfg_handler::bearer_cfg_handler(uint16_t rnti_, const rrc_cfg_t& cfg_, gtpu_interface_rrc* gtpu_) :
   rnti(rnti_),
   cfg(&cfg_),
   gtpu(gtpu_)
 {}
 
-void bearer_handler::add_srb(uint8_t srb_id)
+void bearer_cfg_handler::add_srb(uint8_t srb_id)
 {
   if (srb_id > 2 or srb_id == 0) {
     log_h->error("Invalid SRB id=%d\n", srb_id);
@@ -212,11 +212,11 @@ void bearer_handler::add_srb(uint8_t srb_id)
   srb_it->rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types_opts::default_value);
 }
 
-int bearer_handler::add_erab(uint8_t                                            erab_id,
-                             const asn1::s1ap::erab_level_qos_params_s&         qos,
-                             const asn1::bounded_bitstring<1, 160, true, true>& addr,
-                             uint32_t                                           teid_out,
-                             const asn1::unbounded_octstring<true>*             nas_pdu)
+int bearer_cfg_handler::add_erab(uint8_t                                            erab_id,
+                                 const asn1::s1ap::erab_level_qos_params_s&         qos,
+                                 const asn1::bounded_bitstring<1, 160, true, true>& addr,
+                                 uint32_t                                           teid_out,
+                                 const asn1::unbounded_octstring<true>*             nas_pdu)
 {
   if (erab_id < 5) {
     log_h->error("ERAB id=%d is invalid\n", erab_id);
@@ -271,7 +271,7 @@ int bearer_handler::add_erab(uint8_t                                            
   return SRSLTE_SUCCESS;
 }
 
-void bearer_handler::release_erab(uint8_t erab_id)
+void bearer_cfg_handler::release_erab(uint8_t erab_id)
 {
   auto it = erabs.find(erab_id);
   if (it == erabs.end()) {
@@ -286,7 +286,7 @@ void bearer_handler::release_erab(uint8_t erab_id)
   erab_info_list.erase(erab_id);
 }
 
-void bearer_handler::release_erabs()
+void bearer_cfg_handler::release_erabs()
 {
   // TODO: notify GTPU layer for each ERAB
   erabs.clear();
@@ -295,7 +295,7 @@ void bearer_handler::release_erabs()
   }
 }
 
-void bearer_handler::rr_ded_cfg_complete()
+void bearer_cfg_handler::rr_ded_cfg_complete()
 {
   // Apply changes in internal bearer_handler DRB/SRBtoAddModLists
   srslte::apply_addmodlist_diff(last_srbs, srbs_to_add, last_srbs);
@@ -307,7 +307,7 @@ void bearer_handler::rr_ded_cfg_complete()
   drbs_to_release.resize(0);
 }
 
-bool bearer_handler::fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg)
+bool bearer_cfg_handler::fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg)
 {
   // Add altered bearers to message
   msg.srb_to_add_mod_list_present = srbs_to_add.size() > 0;
@@ -319,7 +319,7 @@ bool bearer_handler::fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg)
   return msg.srb_to_add_mod_list_present or msg.drb_to_add_mod_list_present or msg.drb_to_release_list_present;
 }
 
-void bearer_handler::apply_mac_bearer_updates(mac_interface_rrc* mac, sched_interface::ue_cfg_t* sched_ue_cfg)
+void bearer_cfg_handler::apply_mac_bearer_updates(mac_interface_rrc* mac, sched_interface::ue_cfg_t* sched_ue_cfg)
 {
   srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg = {};
   for (const srb_to_add_mod_s& srb : srbs_to_add) {
@@ -341,7 +341,7 @@ void bearer_handler::apply_mac_bearer_updates(mac_interface_rrc* mac, sched_inte
   }
 }
 
-void bearer_handler::apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, const security_cfg_handler& ue_sec_cfg)
+void bearer_cfg_handler::apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, const security_cfg_handler& ue_sec_cfg)
 {
   for (const srb_to_add_mod_s& srb : srbs_to_add) {
     pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
@@ -374,7 +374,7 @@ void bearer_handler::apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, const s
   }
 }
 
-void bearer_handler::apply_rlc_bearer_updates(rlc_interface_rrc* rlc)
+void bearer_cfg_handler::apply_rlc_bearer_updates(rlc_interface_rrc* rlc)
 {
   for (const srb_to_add_mod_s& srb : srbs_to_add) {
     rlc->add_bearer(rnti, srb.srb_id, srslte::rlc_config_t::srb_config(srb.srb_id));
@@ -390,7 +390,7 @@ void bearer_handler::apply_rlc_bearer_updates(rlc_interface_rrc* rlc)
   }
 }
 
-void bearer_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
+void bearer_cfg_handler::fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg)
 {
   // Add space for NAS messages
   uint8_t n_nas = erab_info_list.size();
