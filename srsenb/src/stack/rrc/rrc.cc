@@ -117,7 +117,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
 uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index)
 {
   if (sib_index < ASN1_RRC_MAX_SIB && cc_idx < cell_common_list->nof_cells()) {
-    return &cell_common_list->get_cc_idx(cc_idx)->sib_buffer.at(sib_index)[0];
+    return cell_common_list->get_cc_idx(cc_idx)->sib_buffer.at(sib_index)->msg;
   }
   return nullptr;
 }
@@ -635,7 +635,7 @@ void rrc::config_mac()
 
     // set sib/prach cfg
     for (uint32_t i = 0; i < nof_si_messages; i++) {
-      item.sibs[i].len = cell_common_list->get_cc_idx(ccidx)->sib_buffer.at(i).size();
+      item.sibs[i].len = cell_common_list->get_cc_idx(ccidx)->sib_buffer.at(i)->N_bytes;
       if (i == 0) {
         item.sibs[i].period_rf = 8; // SIB1 is always 8 rf
       } else {
@@ -737,11 +737,12 @@ uint32_t rrc::generate_sibs()
         rrc_log->error("Failed to pack SIB message %d\n", msg_index);
       }
       sib_buffer->N_bytes = bref.distance_bytes();
-      cell_ctxt->sib_buffer.emplace_back(sib_buffer->msg, sib_buffer->msg + sib_buffer->N_bytes);
+      cell_ctxt->sib_buffer.push_back(std::move(sib_buffer));
 
       // Log SIBs in JSON format
       std::string log_msg("CC" + std::to_string(cc_idx) + " SIB payload");
-      log_rrc_message(log_msg, Tx, sib_buffer.get(), msg[msg_index], msg[msg_index].msg.c1().type().to_string());
+      log_rrc_message(
+          log_msg, Tx, cell_ctxt->sib_buffer.back().get(), msg[msg_index], msg[msg_index].msg.c1().type().to_string());
     }
 
     if (cfg.sibs[6].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib7) {

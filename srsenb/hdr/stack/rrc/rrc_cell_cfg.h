@@ -56,12 +56,12 @@ private:
 
 /** Storage of cell-specific eNB config and derived params */
 struct cell_info_common {
-  uint32_t                           enb_cc_idx = 0;
-  asn1::rrc::mib_s                   mib;
-  asn1::rrc::sib_type1_s             sib1;
-  asn1::rrc::sib_type2_s             sib2;
-  const cell_cfg_t&                  cell_cfg;
-  std::vector<std::vector<uint8_t> > sib_buffer; ///< Packed SIBs for given CC
+  uint32_t                                  enb_cc_idx = 0;
+  asn1::rrc::mib_s                          mib;
+  asn1::rrc::sib_type1_s                    sib1;
+  asn1::rrc::sib_type2_s                    sib2;
+  const cell_cfg_t&                         cell_cfg;
+  std::vector<srslte::unique_byte_buffer_t> sib_buffer; ///< Packed SIBs for given CC
 
   cell_info_common(uint32_t idx_, const cell_cfg_t& cfg) : enb_cc_idx(idx_), cell_cfg(cfg) {}
 };
@@ -71,15 +71,15 @@ class cell_info_common_list
 public:
   explicit cell_info_common_list(const rrc_cfg_t& cfg_);
 
-  cell_info_common*       get_cc_idx(uint32_t enb_cc_idx) { return &cell_list[enb_cc_idx]; }
-  const cell_info_common* get_cc_idx(uint32_t enb_cc_idx) const { return &cell_list[enb_cc_idx]; }
+  cell_info_common*       get_cc_idx(uint32_t enb_cc_idx) { return cell_list[enb_cc_idx].get(); }
+  const cell_info_common* get_cc_idx(uint32_t enb_cc_idx) const { return cell_list[enb_cc_idx].get(); }
   const cell_info_common* get_cell_id(uint32_t cell_id) const;
   const cell_info_common* get_pci(uint32_t pci) const;
   size_t                  nof_cells() const { return cell_list.size(); }
 
 private:
-  const rrc_cfg_t&              cfg;
-  std::vector<cell_info_common> cell_list;
+  const rrc_cfg_t&                                cfg;
+  std::vector<std::unique_ptr<cell_info_common> > cell_list;
 };
 
 /** Class used to store all the resources specific to a UE's cell */
