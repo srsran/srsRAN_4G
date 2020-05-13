@@ -22,9 +22,9 @@
 #ifndef SRSENB_RRC_H
 #define SRSENB_RRC_H
 
+#include "rrc_bearer_cfg.h"
 #include "rrc_cell_cfg.h"
 #include "rrc_metrics.h"
-#include "rrc_ue_cfg.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"

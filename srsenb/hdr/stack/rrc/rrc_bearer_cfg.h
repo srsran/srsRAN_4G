@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_RRC_UE_CFG_H
-#define SRSLTE_RRC_UE_CFG_H
+#ifndef SRSLTE_RRC_BEARER_CFG_H
+#define SRSLTE_RRC_BEARER_CFG_H
 
 #include "srsenb/hdr/stack/rrc/rrc_config.h"
 #include "srslte/common/logmap.h"
@@ -102,4 +102,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSLTE_RRC_UE_CFG_H
+#endif // SRSLTE_RRC_BEARER_CFG_H
