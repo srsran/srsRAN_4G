@@ -36,13 +36,18 @@ public:
 
   bool set_security_capabilities(const asn1::s1ap::ue_security_cap_s& caps);
   void set_security_key(const asn1::fixed_bitstring<256, false, true>& key);
+  void regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_earfcn);
 
   asn1::rrc::security_algorithm_cfg_s get_security_algorithm_cfg();
   const srslte::as_security_config_t& get_as_sec_cfg() const { return sec_cfg; }
+  bool                                is_as_sec_cfg_valid() const { return k_enb_present; }
 
 private:
+  void generate_as_keys();
+
   srslte::log_ref               log_h{"RRC"};
   const rrc_cfg_t*              cfg;
+  bool                          k_enb_present = false;
   asn1::s1ap::ue_security_cap_s security_capabilities;
   uint8_t                       k_enb[32] = {}; // Provided by MME
   srslte::as_security_config_t  sec_cfg   = {};
@@ -69,6 +74,7 @@ public:
                 const asn1::unbounded_octstring<true>*             nas_pdu);
   void release_erab(uint8_t erab_id);
   void release_erabs();
+  void reest_bearers();
 
   bool fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg);
   void rr_ded_cfg_complete();
@@ -79,7 +85,8 @@ public:
   void apply_rlc_bearer_updates(rlc_interface_rrc* rlc);
   void fill_pending_nas_info(asn1::rrc::rrc_conn_recfg_r8_ies_s* msg);
 
-  const std::map<uint8_t, erab_t>& get_erabs() const { return erabs; }
+  const std::map<uint8_t, erab_t>&        get_erabs() const { return erabs; }
+  const asn1::rrc::drb_to_add_mod_list_l& established_drbs() const { return last_drbs; }
 
 private:
   srslte::log_ref     log_h{"RRC"};

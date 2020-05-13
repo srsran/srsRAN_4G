@@ -206,7 +206,6 @@ void cc_worker::rem_rnti(uint16_t rnti)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (ue_db.count(rnti)) {
-
     delete ue_db[rnti];
     ue_db.erase(rnti);
 

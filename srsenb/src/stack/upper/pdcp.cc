@@ -28,8 +28,7 @@ pdcp::pdcp(srslte::task_handler_interface* task_executor_, const char* logname) 
   task_executor(task_executor_),
   log_h(logname),
   pool(srslte::byte_buffer_pool::get_instance())
-{
-}
+{}
 
 void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_)
 {
@@ -86,6 +85,13 @@ void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cfg)
     } else {
       users[rnti].pdcp->add_bearer_mrb(lcid, cfg);
     }
+  }
+}
+
+void pdcp::del_bearer(uint16_t rnti, uint32_t lcid)
+{
+  if (users.count(rnti)) {
+    users[rnti].pdcp->del_bearer(lcid);
   }
 }
 

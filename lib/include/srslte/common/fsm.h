@@ -103,13 +103,13 @@ auto call_enter(FSM* f, State* s) -> decltype(s->enter(f))
 {
   s->enter(f);
 }
-void call_enter(...) {}
+inline void call_enter(...) {}
 template <typename FSM, typename State>
 auto call_exit(FSM* f, State* s) -> decltype(s->exit(f))
 {
   s->exit(f);
 }
-void call_exit(...) {}
+inline void call_exit(...) {}
 
 //! Find State in FSM recursively (e.g. find State in FSM,FSM::parentFSM,FSM::parentFSM::parentFSM,...)
 template <typename State, typename FSM>
@@ -603,6 +603,11 @@ public:
 private:
   int launch_counter = 0;
 };
+
+// Generic events
+
+struct success_ev {};
+struct failure_ev {};
 
 } // namespace srslte
 

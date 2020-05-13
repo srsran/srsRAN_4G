@@ -167,11 +167,17 @@ bool security_cfg_handler::set_security_capabilities(const asn1::s1ap::ue_securi
 
 void security_cfg_handler::set_security_key(const asn1::fixed_bitstring<256, false, true>& key)
 {
+  k_enb_present = true;
   for (uint32_t i = 0; i < key.nof_octets(); ++i) {
     k_enb[i] = key.data()[key.nof_octets() - 1 - i];
   }
   log_h->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
 
+  generate_as_keys();
+}
+
+void security_cfg_handler::generate_as_keys()
+{
   log_h->info("Selected security algorithms EEA: EEA%d EIA: EIA%d\n", sec_cfg.cipher_algo, sec_cfg.integ_algo);
 
   // Generate K_rrc_enc and K_rrc_int
@@ -185,6 +191,18 @@ void security_cfg_handler::set_security_key(const asn1::fixed_bitstring<256, fal
   log_h->info_hex(sec_cfg.k_rrc_enc.data(), 32, "RRC Encryption Key (k_rrc_enc)");
   log_h->info_hex(sec_cfg.k_rrc_int.data(), 32, "RRC Integrity Key (k_rrc_int)");
   log_h->info_hex(sec_cfg.k_up_enc.data(), 32, "UP Encryption Key (k_up_enc)");
+}
+
+void security_cfg_handler::regenerate_keys_handover(uint32_t new_pci, uint32_t new_dl_earfcn)
+{
+  // Generate K_enb*
+  uint8_t k_enb_star[32];
+  srslte::security_generate_k_enb_star(k_enb, new_pci, new_dl_earfcn, k_enb_star);
+
+  // K_enb becomes K_enb*
+  memcpy(k_enb, k_enb_star, 32);
+
+  generate_as_keys();
 }
 
 /*****************************
@@ -295,6 +313,13 @@ void bearer_cfg_handler::release_erabs()
   }
 }
 
+void bearer_cfg_handler::reest_bearers()
+{
+  // Re-add all SRBs/DRBs
+  srbs_to_add = last_srbs;
+  drbs_to_add = last_drbs;
+}
+
 void bearer_cfg_handler::rr_ded_cfg_complete()
 {
   // Apply changes in internal bearer_handler DRB/SRBtoAddModLists
@@ -347,17 +372,16 @@ void bearer_cfg_handler::apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, con
     pdcp->add_bearer(rnti, srb.srb_id, srslte::make_srb_pdcp_config_t(srb.srb_id, false));
 
     // For SRB2, enable security/encryption/integrity
-    if (srb.srb_id > 1) {
+    if (ue_sec_cfg.is_as_sec_cfg_valid()) {
       pdcp->config_security(rnti, srb.srb_id, ue_sec_cfg.get_as_sec_cfg());
       pdcp->enable_integrity(rnti, srb.srb_id);
       pdcp->enable_encryption(rnti, srb.srb_id);
     }
   }
 
-  if (drbs_to_release.size() > 0) {
-    log_h->warning("Removing DRBs not currently supported\n");
+  for (uint8_t drb_id : drbs_to_release) {
+    pdcp->del_bearer(rnti, drb_id + 2);
   }
-
   for (const drb_to_add_mod_s& drb : drbs_to_add) {
     // Configure DRB1 in PDCP
     if (drb.pdcp_cfg_present) {
@@ -368,9 +392,11 @@ void bearer_cfg_handler::apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, con
       pdcp->add_bearer(rnti, drb.lc_ch_id, pdcp_cnfg_drb);
     }
 
-    pdcp->config_security(rnti, drb.lc_ch_id, ue_sec_cfg.get_as_sec_cfg());
-    pdcp->enable_integrity(rnti, drb.lc_ch_id);
-    pdcp->enable_encryption(rnti, drb.lc_ch_id);
+    if (ue_sec_cfg.is_as_sec_cfg_valid()) {
+      pdcp->config_security(rnti, drb.lc_ch_id, ue_sec_cfg.get_as_sec_cfg());
+      pdcp->enable_integrity(rnti, drb.lc_ch_id);
+      pdcp->enable_encryption(rnti, drb.lc_ch_id);
+    }
   }
 }
 

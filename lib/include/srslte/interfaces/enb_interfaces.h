@@ -369,6 +369,7 @@ public:
   virtual void rem_user(uint16_t rnti)                                                             = 0;
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)           = 0;
   virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg)                = 0;
+  virtual void del_bearer(uint16_t rnti, uint32_t lcid)                                            = 0;
   virtual void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t sec_cfg) = 0;
   virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                                      = 0;
   virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                                     = 0;

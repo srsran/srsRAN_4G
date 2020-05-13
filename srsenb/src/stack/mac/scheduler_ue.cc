@@ -140,7 +140,7 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
       // One carrier was added in the place of another
       carriers[ue_idx] = sched_ue_carrier{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
       if (ue_idx == 0) {
-        log_h->info("SCHED: PCell has changed for rnti=0x%x.\n", rnti);
+        log_h->info("SCHED: rnti=0x%x PCell is now %d.\n", rnti, cc_cfg.enb_cc_idx);
       }
     } else {
       // The SCell internal configuration may have changed

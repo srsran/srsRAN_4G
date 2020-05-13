@@ -76,6 +76,7 @@ public:
     srslte::unique_byte_buffer_t rrc_container;
   } last_ho_required = {};
   struct enb_status_transfer_info {
+    bool                            status_present;
     uint16_t                        rnti;
     std::vector<bearer_status_info> bearer_list;
   } last_enb_status = {};
@@ -87,6 +88,11 @@ public:
                         srslte::unique_byte_buffer_t rrc_container) final
   {
     last_ho_required = ho_req_data{rnti, target_eci, target_plmn, std::move(rrc_container)};
+    return true;
+  }
+  bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override
+  {
+    last_enb_status = {true, rnti, bearer_status_list};
     return true;
   }
   void ue_erab_setup_complete(uint16_t rnti, const asn1::s1ap::erab_setup_resp_s& res) override
@@ -129,6 +135,7 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   args.enb_files.drb_config = argparse::repository_dir + "/drb.conf.example";
   srslte::logmap::get("TEST")->debug("sib file path=%s\n", args.enb_files.sib_config.c_str());
 
+  args.enb.enb_id    = 0x19B;
   args.enb.dl_earfcn = 3400;
   args.enb.n_prb     = 50;
   TESTASSERT(srslte::string_to_mcc("001", &args.stack.s1ap.mcc));
