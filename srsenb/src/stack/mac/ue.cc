@@ -107,6 +107,15 @@ void ue::reset()
       srslte_softbuffer_tx_reset(&buffer);
     }
   }
+
+  for (auto& cc_buffers : pending_buffers) {
+    for (auto& harq_buffer : cc_buffers) {
+      if (harq_buffer) {
+        pdus.deallocate(harq_buffer);
+        harq_buffer = nullptr;
+      }
+    }
+  }
 }
 
 /**

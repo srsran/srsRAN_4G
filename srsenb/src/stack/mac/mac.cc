@@ -257,20 +257,19 @@ int mac::ue_rem(uint16_t rnti)
 // Called after Msg3
 int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg)
 {
+  srslte::rwlock_read_guard lock(rwlock);
+  if (temp_crnti != crnti) {
+    // if RNTI is maintained, Msg3 contained a RRC Setup Request
+    // C-RNTI corresponds to older user. Handover scenario.
+    phy_h->rem_rnti(crnti);
+    phy_h->add_rnti(crnti, cfg->supported_cc_list[0].enb_cc_idx, false);
+    ue_db[crnti]->reset();
+  }
   int ret = ue_cfg(crnti, cfg);
   if (ret != SRSLTE_SUCCESS) {
     return ret;
   }
-  srslte::rwlock_read_guard lock(rwlock);
-  if (temp_crnti == crnti) {
-    // if RNTI is maintained, Msg3 contained a RRC Setup Request
-    scheduler.dl_mac_buffer_state(crnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
-  } else {
-    // C-RNTI corresponds to older user. Handover scenario.
-    phy_h->rem_rnti(crnti);
-    phy_h->add_rnti(crnti, cfg->supported_cc_list[0].enb_cc_idx, false);
-    scheduler.dl_mac_buffer_state(crnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
-  }
+  scheduler.dl_mac_buffer_state(crnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
   return ret;
 }
 
