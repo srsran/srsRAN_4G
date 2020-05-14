@@ -738,11 +738,11 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     return;
   }
 
-  const meas_obj_to_add_mod_list_l& objs = ue_var_meas->meas_objs();
-  //  const report_cfg_to_add_mod_list_l& reps       = ue_var_meas->rep_cfgs();
-  auto obj_it = rrc_details::binary_find(objs, measid_it->meas_obj_id);
-  //  auto                                rep_it     = rrc_details::binary_find(reps, measid_it->report_cfg_id);
-  const meas_result_list_eutra_l& eutra_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
+  const meas_obj_to_add_mod_list_l&   objs       = ue_var_meas->meas_objs();
+  const report_cfg_to_add_mod_list_l& reps       = ue_var_meas->rep_cfgs();
+  auto                                obj_it     = rrc_details::binary_find(objs, measid_it->meas_obj_id);
+  auto                                rep_it     = rrc_details::binary_find(reps, measid_it->report_cfg_id);
+  const meas_result_list_eutra_l&     eutra_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
 
   // iterate from strongest to weakest cell
   // NOTE: From now we just look at the strongest.
@@ -755,7 +755,7 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     const cells_to_add_mod_s* cell_it =
         std::find_if(cells.begin(), cells.end(), [pci](const cells_to_add_mod_s& c) { return c.pci == pci; });
     if (cell_it == cells.end()) {
-      rrc_log->error("The PCI=%d inside the MeasReport is not recognized.\n", pci);
+      rrc_log->warning("The PCI=%d inside the MeasReport is not recognized.\n", pci);
       return;
     }
 
@@ -763,14 +763,13 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     // TODO: check what to do here to take the decision.
     // NOTE: for now just accept anything.
 
-    // NOTE: Handover disabled
     // Target cell to handover to was selected.
-    //    auto&    L = rrc_enb->cfg.cell_list[rrc_ue->get_ue_cc_cfg(UE_PCELL_CC_IDX)->enb_cc_idx].meas_cfg.meas_cells;
-    //    uint32_t target_eci = std::find_if(L.begin(), L.end(), [pci](meas_cell_cfg_t& c) { return c.pci == pci;
-    //    })->eci; if (not source_ho_proc.launch(*measid_it, *obj_it, *rep_it, *cell_it, eutra_list[i], target_eci)) {
-    //      Error("Failed to start HO procedure, as it is already on-going\n");
-    //      return;
-    //    }
+    auto&    L = rrc_enb->cfg.cell_list[rrc_ue->get_ue_cc_cfg(UE_PCELL_CC_IDX)->enb_cc_idx].meas_cfg.meas_cells;
+    uint32_t target_eci = std::find_if(L.begin(), L.end(), [pci](meas_cell_cfg_t& c) { return c.pci == pci; })->eci;
+    if (not source_ho_proc.launch(*measid_it, *obj_it, *rep_it, *cell_it, eutra_list[i], target_eci)) {
+      Error("Failed to start HO procedure, as it is already on-going\n");
+      return;
+    }
   }
 }
 
