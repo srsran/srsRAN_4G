@@ -23,7 +23,10 @@
 #define SRSLTE_MOVE_CALLBACK_H
 
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <functional>
+#include <stdint.h>
 #include <type_traits>
 
 #if defined(__cpp_exceptions) && (1 == __cpp_exceptions)

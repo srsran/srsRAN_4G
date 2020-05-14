@@ -43,7 +43,7 @@ union branchtab27 {
 
 } Branchtab37_sse2[3];
 
-int firstGo;
+int firstGo_16bit;
 /* State info for instance of Viterbi decoder */
 struct v37 {
   metric_t    metrics1;                  /* path metric buffer 1 */
@@ -85,7 +85,7 @@ int init_viterbi37_avx2_16bit(void* p, int starting_state)
     vp->metrics1.c[i] = 63;
 
   clear_v37_avx2_16bit(vp);
-  firstGo         = 1;
+  firstGo_16bit   = 1;
   vp->old_metrics = &vp->metrics1;
   vp->new_metrics = &vp->metrics2;
   vp->dp          = vp->decisions;
