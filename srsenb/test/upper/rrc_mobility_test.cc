@@ -187,15 +187,16 @@ int test_correct_meascfg_calculation()
     measid_item++;
     TESTASSERT(measid_item->meas_id == 2 and measid_item->meas_obj_id == 1 and measid_item->report_cfg_id == 2);
 
-    // TEST: if measCfg is empty if nothing was updated
+    // TEST 2: measConfig is empty if nothing was updated
     src_var = target_var;
     src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
-    TESTASSERT(not result_meascfg.meas_obj_to_add_mod_list_present);
+    TESTASSERT(not result_meascfg.meas_obj_to_add_mod_list_present and not result_meascfg.meas_obj_to_rem_list_present);
     TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 0);
-    TESTASSERT(not result_meascfg.report_cfg_to_rem_list_present);
+    TESTASSERT(not result_meascfg.report_cfg_to_add_mod_list_present and
+               not result_meascfg.report_cfg_to_rem_list_present);
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 0);
 
-    // TEST: Cell is added to cellsToAddModList if just a field was updated
+    // TEST 3: Cell is added to cellsToAddModList if just a field was updated
     cell1.pci = 3;
     src_var   = target_var;
     target_var.add_cell_cfg(cell1);
@@ -211,7 +212,7 @@ int test_correct_meascfg_calculation()
     cell_item = &eutra.cells_to_add_mod_list[0];
     TESTASSERT(is_cell_cfg_equal(cell1, *cell_item));
 
-    // TEST: Removal of cell/rep from target propagates to the resulting meas_cfg_s
+    // TEST 4: Removal of cell/rep from target propagates to the resulting meas_cfg_s
     src_var    = target_var;
     target_var = var_meas_cfg_t{};
     target_var.add_cell_cfg(cell2);

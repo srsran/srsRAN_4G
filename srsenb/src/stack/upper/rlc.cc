@@ -121,6 +121,15 @@ bool rlc::has_bearer(uint16_t rnti, uint32_t lcid)
   return result;
 }
 
+void rlc::del_bearer(uint16_t rnti, uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  if (users.count(rnti)) {
+    users[rnti].rlc->del_bearer(lcid);
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
 bool rlc::suspend_bearer(uint16_t rnti, uint32_t lcid)
 {
   pthread_rwlock_rdlock(&rwlock);

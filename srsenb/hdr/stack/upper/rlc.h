@@ -52,6 +52,7 @@ public:
   void rem_user(uint16_t rnti);
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg);
   void add_bearer_mrb(uint16_t rnti, uint32_t lcid);
+  void del_bearer(uint16_t rnti, uint32_t lcid);
   bool has_bearer(uint16_t rnti, uint32_t lcid);
   bool suspend_bearer(uint16_t rnti, uint32_t lcid);
   bool resume_bearer(uint16_t rnti, uint32_t lcid);

@@ -347,6 +347,7 @@ public:
   virtual void rem_user(uint16_t rnti)                                                   = 0;
   virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg)       = 0;
   virtual void add_bearer_mrb(uint16_t rnti, uint32_t lcid)                              = 0;
+  virtual void del_bearer(uint16_t rnti, uint32_t lcid)                                  = 0;
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
   virtual bool has_bearer(uint16_t rnti, uint32_t lcid)                                  = 0;
   virtual bool suspend_bearer(uint16_t rnti, uint32_t lcid)                              = 0;

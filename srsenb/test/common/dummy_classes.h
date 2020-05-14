@@ -52,6 +52,7 @@ public:
   void rem_user(uint16_t rnti) override {}
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg) override {}
   void add_bearer_mrb(uint16_t rnti, uint32_t lcid) override {}
+  void del_bearer(uint16_t rnti, uint32_t lcid) override {}
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override {}
   bool has_bearer(uint16_t rnti, uint32_t lcid) override { return false; }
   bool suspend_bearer(uint16_t rnti, uint32_t lcid) override { return true; }

@@ -596,7 +596,10 @@ void set_phy_cfg_t_common_pdsch(phy_cfg_t* cfg, const asn1::rrc::pdsch_cfg_commo
   cfg->dl_cfg.pdsch.p_b      = asn1_type.p_b;
 }
 
-void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled) { cfg->ul_cfg.pusch.enable_64qam = enabled; }
+void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled)
+{
+  cfg->ul_cfg.pusch.enable_64qam = enabled;
+}
 
 void set_phy_cfg_t_common_pusch(phy_cfg_t* cfg, const asn1::rrc::pusch_cfg_common_s& asn1_type)
 {
@@ -1085,11 +1088,55 @@ bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s&
  *     RRC Obj Id
  *************************/
 
-uint8_t get_rrc_obj_id(const srb_to_add_mod_s& srb) { return srb.srb_id; }
-uint8_t get_rrc_obj_id(const drb_to_add_mod_s& srb) { return srb.drb_id; }
+uint8_t get_rrc_obj_id(const srb_to_add_mod_s& srb)
+{
+  return srb.srb_id;
+}
+uint8_t get_rrc_obj_id(const drb_to_add_mod_s& drb)
+{
+  return drb.drb_id;
+}
+uint8_t get_rrc_obj_id(const cells_to_add_mod_s& obj)
+{
+  return obj.cell_idx;
+}
+uint8_t get_rrc_obj_id(const meas_obj_to_add_mod_s& obj)
+{
+  return obj.meas_obj_id;
+}
+uint8_t get_rrc_obj_id(const report_cfg_to_add_mod_s& obj)
+{
+  return obj.report_cfg_id;
+}
+uint8_t get_rrc_obj_id(const meas_id_to_add_mod_s& obj)
+{
+  return obj.meas_id;
+}
 
-void set_rrc_obj_id(srb_to_add_mod_s& srb, uint8_t id) { srb.srb_id = id; }
-void set_rrc_obj_id(drb_to_add_mod_s& srb, uint8_t id) { srb.drb_id = id; }
+void set_rrc_obj_id(srb_to_add_mod_s& srb, uint8_t id)
+{
+  srb.srb_id = id;
+}
+void set_rrc_obj_id(drb_to_add_mod_s& drb, uint8_t id)
+{
+  drb.drb_id = id;
+}
+void set_rrc_obj_id(cells_to_add_mod_s& obj, uint8_t id)
+{
+  obj.cell_idx = id;
+}
+void set_rrc_obj_id(meas_obj_to_add_mod_s& obj, uint8_t id)
+{
+  obj.meas_obj_id = id;
+}
+void set_rrc_obj_id(report_cfg_to_add_mod_s& obj, uint8_t id)
+{
+  obj.report_cfg_id = id;
+}
+void set_rrc_obj_id(meas_id_to_add_mod_s& obj, uint8_t id)
+{
+  obj.meas_id = id;
+}
 
 } // namespace rrc
 } // namespace asn1

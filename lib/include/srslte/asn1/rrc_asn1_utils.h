@@ -158,10 +158,18 @@ bool operator==(const quant_cfg_s& lhs, const quant_cfg_s& rhs);
  *************************/
 
 uint8_t get_rrc_obj_id(const srb_to_add_mod_s& srb);
-uint8_t get_rrc_obj_id(const drb_to_add_mod_s& srb);
+uint8_t get_rrc_obj_id(const drb_to_add_mod_s& drb);
+uint8_t get_rrc_obj_id(const cells_to_add_mod_s& obj);
+uint8_t get_rrc_obj_id(const meas_obj_to_add_mod_s& obj);
+uint8_t get_rrc_obj_id(const report_cfg_to_add_mod_s& obj);
+uint8_t get_rrc_obj_id(const meas_id_to_add_mod_s& obj);
 
 void set_rrc_obj_id(srb_to_add_mod_s& srb, uint8_t id);
-void set_rrc_obj_id(drb_to_add_mod_s& srb, uint8_t id);
+void set_rrc_obj_id(drb_to_add_mod_s& drb, uint8_t id);
+void set_rrc_obj_id(cells_to_add_mod_s& obj, uint8_t id);
+void set_rrc_obj_id(meas_obj_to_add_mod_s& obj, uint8_t id);
+void set_rrc_obj_id(report_cfg_to_add_mod_s& obj, uint8_t id);
+void set_rrc_obj_id(meas_id_to_add_mod_s& obj, uint8_t id);
 
 } // namespace rrc
 } // namespace asn1

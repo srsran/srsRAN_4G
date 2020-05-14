@@ -145,6 +145,8 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   args.general.eia_pref_list = "EIA2, EIA1, EIA0";
   args.general.eea_pref_list = "EEA0, EEA2, EEA1";
 
+  args.general.rrc_inactivity_timer = 60000;
+
   phy_cfg_t phy_cfg;
 
   return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &phy_cfg);
