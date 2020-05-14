@@ -24,6 +24,7 @@
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/common.h"
+#include "srslte/rrc/rrc_cfg_utils.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -110,24 +111,6 @@ uint16_t compute_mac_i(uint16_t                            crnti,
   return short_mac_i;
 }
 
-//! convenience function overload to extract Id from MeasObj/MeasId/ReportCfg/Cells
-constexpr uint8_t get_id(const cells_to_add_mod_s& obj)
-{
-  return obj.cell_idx;
-}
-constexpr uint8_t get_id(const meas_obj_to_add_mod_s& obj)
-{
-  return obj.meas_obj_id;
-}
-constexpr uint8_t get_id(const report_cfg_to_add_mod_s& obj)
-{
-  return obj.report_cfg_id;
-}
-constexpr uint8_t get_id(const meas_id_to_add_mod_s& obj)
-{
-  return obj.meas_id;
-}
-
 //! convenience function overload to print MeasObj/MeasId/etc. fields
 std::string to_string(const cells_to_add_mod_s& obj)
 {
@@ -135,39 +118,6 @@ std::string to_string(const cells_to_add_mod_s& obj)
   std::snprintf(
       buf, 128, "{cell_idx: %d, pci: %d, offset: %d}", obj.cell_idx, obj.pci, obj.cell_individual_offset.to_number());
   return {buf};
-}
-
-//! meas field comparison based on ID solely
-template <typename T>
-struct field_id_cmp {
-  bool operator()(const T& lhs, const T& rhs) const { return get_id(lhs) < get_id(rhs); }
-  template <typename IdType>
-  bool operator()(const T& lhs, IdType id) const
-  {
-    return get_id(lhs) < id;
-  }
-  template <typename IdType>
-  bool operator()(IdType id, const T& rhs) const
-  {
-    return id < get_id(rhs);
-  }
-};
-using cell_id_cmp     = field_id_cmp<cells_to_add_mod_s>;
-using meas_obj_id_cmp = field_id_cmp<meas_obj_to_add_mod_s>;
-using rep_cfg_id_cmp  = field_id_cmp<report_cfg_to_add_mod_s>;
-using meas_id_cmp     = field_id_cmp<meas_id_to_add_mod_s>;
-
-template <typename Container, typename IdType>
-typename Container::iterator binary_find(Container& c, IdType id)
-{
-  auto it = std::lower_bound(c.begin(), c.end(), id, field_id_cmp<decltype(*c.begin())>{});
-  return (it == c.end() or get_id(*it) != id) ? c.end() : it;
-}
-template <typename Container, typename IdType>
-typename Container::const_iterator binary_find(const Container& c, IdType id)
-{
-  auto it = std::lower_bound(c.begin(), c.end(), id, field_id_cmp<decltype(*c.begin())>{});
-  return (it == c.end() or get_id(*it) != id) ? c.end() : it;
 }
 
 //! Find MeasObj with same earfcn
@@ -196,12 +146,12 @@ find_cell(meas_obj_to_add_mod_list_l& l, uint32_t earfcn, uint8_t cell_id)
     return std::make_pair(obj, (cells_to_add_mod_s*)nullptr);
   }
   // find cell with same id
-  auto& cells = obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list;
-  auto  it    = binary_find(cells, cell_id);
-  if (it == cells.end()) {
-    it = nullptr;
+  auto& cells   = obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list;
+  auto  cell_it = srslte::find_rrc_obj_id(cells, cell_id);
+  if (cell_it == cells.end()) {
+    cell_it = nullptr;
   }
-  return std::make_pair(obj, it);
+  return std::make_pair(obj, cell_it);
 }
 
 /**
@@ -211,18 +161,12 @@ find_cell(meas_obj_to_add_mod_list_l& l, uint32_t earfcn, uint8_t cell_id)
 meas_obj_to_add_mod_s* meascfg_add_meas_obj(meas_cfg_s* meas_cfg, const meas_obj_to_add_mod_s& meas_obj)
 {
   meas_cfg->meas_obj_to_add_mod_list_present = true;
-  meas_obj_to_add_mod_list_l& l              = meas_cfg->meas_obj_to_add_mod_list;
 
   // search for meas_obj by obj_id to ensure uniqueness (assume sorted)
-  auto found_it = binary_find(l, meas_obj.meas_obj_id);
+  auto meas_obj_it = srslte::add_rrc_obj_id(meas_cfg->meas_obj_to_add_mod_list, meas_obj.meas_obj_id);
   // TODO: Assert dl_earfcn is the same
-  if (found_it == l.end()) {
-    l.push_back({});
-    found_it              = &l.back();
-    found_it->meas_obj_id = meas_obj.meas_obj_id;
-  }
 
-  auto& target_eutra               = found_it->meas_obj.set_meas_obj_eutra();
+  auto& target_eutra               = meas_obj_it->meas_obj.set_meas_obj_eutra();
   auto& src_eutra                  = meas_obj.meas_obj.meas_obj_eutra();
   target_eutra.carrier_freq        = src_eutra.carrier_freq;
   target_eutra.offset_freq_present = src_eutra.offset_freq_present;
@@ -232,69 +176,7 @@ meas_obj_to_add_mod_s* meascfg_add_meas_obj(meas_cfg_s* meas_cfg, const meas_obj
   target_eutra.neigh_cell_cfg      = src_eutra.neigh_cell_cfg;
   // do not add cellsToAddModList, blacCells, whiteCells, etc. according to (5.5.2.5 1|1|1)
 
-  return found_it;
-}
-
-/*
- * Algorithm to compare differences between Meas Fields. This is used for MeasObjs, Cells, ReportConfig, MeasId (and
- * more in the future)
- * Returns outcome==same_id, if two fields were spotted with same id, "id_removed" if an id was removed from the target
- * "id_added" if an id was added to the target, and complete when the iteration is over
- */
-enum class diff_outcome_t { same_id, id_removed, id_added, complete };
-template <typename Container>
-struct compute_diff_generator {
-  using const_iterator = typename Container::const_iterator;
-  struct result_t {
-    diff_outcome_t outcome;
-    const_iterator src_it;
-    const_iterator target_it;
-  };
-
-  compute_diff_generator(const Container& src, const Container& target) :
-    src_it(src.begin()),
-    src_end(src.end()),
-    target_it(target.begin()),
-    target_end(target.end())
-  {}
-
-  result_t next()
-  {
-    bool src_left    = src_it != src_end;
-    bool target_left = target_it != target_end;
-    if (not src_left and not target_left) {
-      return {diff_outcome_t::complete, nullptr, nullptr};
-    }
-    if (not target_left or (src_left and get_id(*src_it) < get_id(*target_it))) {
-      // an object has been removed from the target
-      return {diff_outcome_t::id_removed, src_it++, target_it};
-    }
-    if (not src_left or (target_left and get_id(*src_it) > get_id(*target_it))) {
-      // a new object has been added to target
-      return {diff_outcome_t::id_added, src_it, target_it++};
-    }
-    // Same ID
-    return {diff_outcome_t::same_id, src_it++, target_it++};
-  }
-
-private:
-  const_iterator src_it, src_end, target_it, target_end;
-};
-
-//! Find a Gap in Ids in a list of Meas Fields
-template <typename Container, typename IdType = decltype(get_id(*Container{}.begin()))>
-IdType find_id_gap(const Container& c)
-{
-  auto prev_it = c.begin();
-  if (prev_it != c.end() and get_id(*prev_it) == 1) {
-    auto it = prev_it;
-    for (++it; it != c.end(); prev_it = it, ++it) {
-      if (get_id(*it) > get_id(*prev_it) + 1) {
-        break;
-      }
-    }
-  }
-  return (prev_it == c.end()) ? 1 : get_id(*prev_it) + 1; // starts at 1.
+  return meas_obj_it;
 }
 
 } // namespace rrc_details
@@ -333,16 +215,12 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
       }
     } else {
       // eci not found. create new cell
-      auto& cell_list = ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list;
-      cell_list.push_back(new_cell);
-      std::sort(cell_list.begin(), cell_list.end(), rrc_details::cell_id_cmp{});
-      // find cell in new position
-      ret.second = std::lower_bound(cell_list.begin(), cell_list.end(), new_cell.cell_idx, rrc_details::cell_id_cmp{});
+      ret.second = srslte::add_rrc_obj(ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list, new_cell);
     }
   } else {
     // no measobj has been found with same earfcn, create a new one
     meas_obj_t new_obj;
-    new_obj.meas_obj_id                = rrc_details::find_id_gap(var_meas.meas_obj_list);
+    new_obj.meas_obj_id                = srslte::find_rrc_obj_id_gap(var_meas.meas_obj_list);
     asn1::rrc::meas_obj_eutra_s& eutra = new_obj.meas_obj.set_meas_obj_eutra();
     eutra.carrier_freq                 = cellcfg.earfcn;
     eutra.allowed_meas_bw.value        = asn1::rrc::allowed_meas_bw_e::mbw6; // TODO: What value to add here?
@@ -352,13 +230,7 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
     asn1::number_to_enum(eutra.offset_freq, cellcfg.q_offset);
     eutra.cells_to_add_mod_list_present = true;
     eutra.cells_to_add_mod_list.push_back(new_cell);
-    var_meas.meas_obj_list.push_back(new_obj);
-    std::sort(var_meas.meas_obj_list.begin(), var_meas.meas_obj_list.end(), rrc_details::meas_obj_id_cmp{});
-    // get measObj in new position
-    ret.first  = std::lower_bound(var_meas.meas_obj_list.begin(),
-                                 var_meas.meas_obj_list.end(),
-                                 new_obj.meas_obj_id,
-                                 rrc_details::meas_obj_id_cmp{});
+    ret.first  = srslte::add_rrc_obj(var_meas.meas_obj_list, new_obj);
     ret.second = &ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list.back();
   }
 
@@ -371,42 +243,34 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
 
 report_cfg_to_add_mod_s* var_meas_cfg_t::add_report_cfg(const report_cfg_eutra_s& reportcfg)
 {
-  rrc_details::field_id_cmp<report_cfg_to_add_mod_s> cmp{};
-  report_cfg_to_add_mod_s                            new_rep;
-  new_rep.report_cfg_id                     = rrc_details::find_id_gap(var_meas.report_cfg_list);
+  report_cfg_to_add_mod_s new_rep;
+  new_rep.report_cfg_id                     = srslte::find_rrc_obj_id_gap(var_meas.report_cfg_list);
   new_rep.report_cfg.set_report_cfg_eutra() = reportcfg;
 
   var_meas.report_cfg_list_present = true;
-  var_meas.report_cfg_list.push_back(new_rep);
-  std::sort(var_meas.report_cfg_list.begin(), var_meas.report_cfg_list.end(), cmp);
-  return std::lower_bound(var_meas.report_cfg_list.begin(), var_meas.report_cfg_list.end(), new_rep.report_cfg_id, cmp);
+  return srslte::add_rrc_obj(var_meas.report_cfg_list, new_rep);
 }
 
 meas_id_to_add_mod_s* var_meas_cfg_t::add_measid_cfg(uint8_t measobjid, uint8_t measrepid)
 {
   // ensure MeasObjId and ReportCfgId already exist
-  auto objit = std::lower_bound(
-      var_meas.meas_obj_list.begin(), var_meas.meas_obj_list.end(), measobjid, rrc_details::meas_obj_id_cmp{});
-  if (objit == var_meas.meas_obj_list.end() or objit->meas_obj_id != measobjid) {
+  auto objit = srslte::find_rrc_obj_id(var_meas.meas_obj_list, measobjid);
+  if (objit == var_meas.meas_obj_list.end()) {
     ERROR("Failed to add MeasId because MeasObjId=%d is not found.\n", measobjid);
     return nullptr;
   }
-  auto repit = std::lower_bound(
-      var_meas.report_cfg_list.begin(), var_meas.report_cfg_list.end(), measrepid, rrc_details::rep_cfg_id_cmp{});
-  if (repit == var_meas.report_cfg_list.end() or repit->report_cfg_id != measrepid) {
+  auto repit = srslte::find_rrc_obj_id(var_meas.report_cfg_list, measrepid);
+  if (repit == var_meas.report_cfg_list.end()) {
     ERROR("Failed to add MeasId because ReportCfgId=%d is not found.\n", measrepid);
     return nullptr;
   }
-  rrc_details::field_id_cmp<meas_id_to_add_mod_s> cmp{};
-  meas_id_to_add_mod_s                            new_measid;
+  meas_id_to_add_mod_s new_measid;
   new_measid.report_cfg_id = measrepid;
   new_measid.meas_obj_id   = measobjid;
-  new_measid.meas_id       = rrc_details::find_id_gap(var_meas.meas_id_list);
+  new_measid.meas_id       = srslte::find_rrc_obj_id_gap(var_meas.meas_id_list);
 
   var_meas.meas_id_list_present = true;
-  var_meas.meas_id_list.push_back(new_measid);
-  std::sort(var_meas.meas_id_list.begin(), var_meas.meas_id_list.end(), cmp);
-  return std::lower_bound(var_meas.meas_id_list.begin(), var_meas.meas_id_list.end(), new_measid.meas_id, cmp);
+  return srslte::add_rrc_obj(var_meas.meas_id_list, new_measid);
 }
 
 asn1::rrc::quant_cfg_s* var_meas_cfg_t::add_quant_cfg(const asn1::rrc::quant_cfg_eutra_s& quantcfg)
@@ -455,38 +319,13 @@ void var_meas_cfg_t::compute_diff_cells(const meas_obj_eutra_s& target_it,
                                         const meas_obj_eutra_s& src_it,
                                         meas_obj_to_add_mod_s*  added_obj) const
 {
-  rrc_details::compute_diff_generator<cells_to_add_mod_list_l> diffs{src_it.cells_to_add_mod_list,
-                                                                     target_it.cells_to_add_mod_list};
-
   meas_obj_eutra_s* eutra_obj = &added_obj->meas_obj.meas_obj_eutra();
-  while (true) {
-    auto result = diffs.next();
-    switch (result.outcome) {
-      case rrc_details::diff_outcome_t::complete:
-        return;
-      case rrc_details::diff_outcome_t::id_removed:
-        // case "entry with matching cellIndex exists in cellsToRemoveList
-        Info("UE can now cease to measure activity of cell %s.\n", rrc_details::to_string(*result.src_it).c_str());
-        eutra_obj->cells_to_rem_list_present = true;
-        eutra_obj->cells_to_rem_list.push_back(result.src_it->cell_idx);
-        break;
-      case rrc_details::diff_outcome_t::id_added:
-        // case "entry with matching cellIndex doesn't exist in cellsToAddModList"
-        Info("UE has now to measure activity of %s.\n", rrc_details::to_string(*result.target_it).c_str());
-        eutra_obj->cells_to_add_mod_list_present = true;
-        eutra_obj->cells_to_add_mod_list.push_back(*result.target_it);
-        break;
-      case rrc_details::diff_outcome_t::same_id:
-        if (not(*result.src_it == *result.target_it)) {
-          // case "entry with matching cellIndex exists in cellsToAddModList"
-          Info("UE has now to measure activity of %s with updated params.\n",
-               rrc_details::to_string(*result.target_it).c_str());
-          eutra_obj->cells_to_add_mod_list_present = true;
-          eutra_obj->cells_to_add_mod_list.push_back(*result.target_it);
-        }
-        break;
-    }
-  }
+  srslte::compute_cfg_diff(src_it.cells_to_add_mod_list,
+                           target_it.cells_to_add_mod_list,
+                           eutra_obj->cells_to_add_mod_list,
+                           eutra_obj->cells_to_rem_list);
+  eutra_obj->cells_to_add_mod_list_present = eutra_obj->cells_to_add_mod_list.size() > 0;
+  eutra_obj->cells_to_rem_list_present     = eutra_obj->cells_to_rem_list.size() > 0;
 }
 
 /**
@@ -496,50 +335,21 @@ void var_meas_cfg_t::compute_diff_cells(const meas_obj_eutra_s& target_it,
  */
 void var_meas_cfg_t::compute_diff_meas_objs(const var_meas_cfg_t& target_cfg, meas_cfg_s* meas_cfg) const
 {
-  if (not target_cfg.var_meas.meas_obj_list_present) {
-    return;
-  }
-  // TODO: black cells and white cells
-  rrc_details::compute_diff_generator<meas_obj_to_add_mod_list_l> diffs{var_meas.meas_obj_list,
-                                                                        target_cfg.var_meas.meas_obj_list};
-
-  while (true) {
-    auto result = diffs.next();
-    switch (result.outcome) {
-      case rrc_details::diff_outcome_t::complete:
-        return;
-      case rrc_details::diff_outcome_t::id_removed:
-        // case "entry with matching cellIndex exists in cellsToRemoveList
-        Info("UE can cease to measure activity in frequency earfcn=%d.\n",
-             result.src_it->meas_obj.meas_obj_eutra().carrier_freq);
-        meas_cfg->meas_obj_to_rem_list_present = true;
-        meas_cfg->meas_obj_to_rem_list.push_back(result.src_it->meas_obj_id);
-        break;
-      case rrc_details::diff_outcome_t::id_added: {
-        // case "entry with matching measObjectId doesn't exist in measObjToAddModList"
-        Info("UE has now to measure activity of new frequency earfcn=%d.\n",
-             result.target_it->meas_obj.meas_obj_eutra().carrier_freq);
-        auto& target_eutra = result.target_it->meas_obj.meas_obj_eutra();
-        auto& added_eutra  = rrc_details::meascfg_add_meas_obj(meas_cfg, *result.target_it)->meas_obj.meas_obj_eutra();
-        // add all cells in measCfg
-        for (const cells_to_add_mod_s& cell_it : target_eutra.cells_to_add_mod_list) {
-          added_eutra.cells_to_add_mod_list_present = true;
-          added_eutra.cells_to_add_mod_list.push_back(cell_it);
-        }
-      } break;
-      case rrc_details::diff_outcome_t::same_id:
-        // case "entry with matching measObjectId exists in measObjToAddModList"
-        bool are_equal = *result.src_it == *result.target_it;
-        if (not are_equal) {
-          // if we found a difference in obj IDs
-          meas_obj_to_add_mod_s* added_obj = rrc_details::meascfg_add_meas_obj(meas_cfg, *result.target_it);
-          // Add cells if there were changes.
-          compute_diff_cells(
-              result.target_it->meas_obj.meas_obj_eutra(), result.src_it->meas_obj.meas_obj_eutra(), added_obj);
-        }
-        break;
+  auto rem_func = [meas_cfg](const meas_obj_to_add_mod_s* it) {
+    meas_cfg->meas_obj_to_rem_list.push_back(it->meas_obj_id);
+  };
+  auto add_func = [meas_cfg](const meas_obj_to_add_mod_s* it) { meas_cfg->meas_obj_to_add_mod_list.push_back(*it); };
+  auto mod_func = [this, meas_cfg](const meas_obj_to_add_mod_s* src_it, const meas_obj_to_add_mod_s* target_it) {
+    if (not(*src_it == *target_it)) {
+      meas_obj_to_add_mod_s* added_obj = rrc_details::meascfg_add_meas_obj(meas_cfg, *target_it);
+      // Add cells if there were changes.
+      compute_diff_cells(target_it->meas_obj.meas_obj_eutra(), src_it->meas_obj.meas_obj_eutra(), added_obj);
     }
-  }
+  };
+  srslte::compute_cfg_diff(var_meas.meas_obj_list, target_cfg.var_meas.meas_obj_list, rem_func, add_func, mod_func);
+  meas_cfg->meas_obj_to_add_mod_list_present = meas_cfg->meas_obj_to_add_mod_list.size() > 0;
+  meas_cfg->meas_obj_to_rem_list_present     = meas_cfg->meas_obj_to_rem_list.size() > 0;
+  // TODO: black cells and white cells
 }
 
 /**
@@ -547,64 +357,22 @@ void var_meas_cfg_t::compute_diff_meas_objs(const var_meas_cfg_t& target_cfg, me
  */
 void var_meas_cfg_t::compute_diff_report_cfgs(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const
 {
-  if (not target_cfg.var_meas.report_cfg_list_present) {
-    return;
-  }
-  rrc_details::compute_diff_generator<report_cfg_to_add_mod_list_l> diffs{var_meas.report_cfg_list,
-                                                                          target_cfg.var_meas.report_cfg_list};
-
-  while (true) {
-    auto result = diffs.next();
-    switch (result.outcome) {
-      case rrc_details::diff_outcome_t::complete:
-        return;
-      case rrc_details::diff_outcome_t::id_removed:
-        meas_cfg->report_cfg_to_rem_list_present = true;
-        meas_cfg->report_cfg_to_rem_list.push_back(result.src_it->report_cfg_id);
-        break;
-      case rrc_details::diff_outcome_t::id_added:
-        meas_cfg->report_cfg_to_add_mod_list_present = true;
-        meas_cfg->report_cfg_to_add_mod_list.push_back(*result.target_it);
-        break;
-      case rrc_details::diff_outcome_t::same_id:
-        if (not(*result.src_it == *result.target_it)) {
-          meas_cfg->report_cfg_to_add_mod_list_present = true;
-          meas_cfg->report_cfg_to_add_mod_list.push_back(*result.target_it);
-        }
-        break;
-    }
-  }
+  srslte::compute_cfg_diff(var_meas.report_cfg_list,
+                           target_cfg.var_meas.report_cfg_list,
+                           meas_cfg->report_cfg_to_add_mod_list,
+                           meas_cfg->report_cfg_to_rem_list);
+  meas_cfg->report_cfg_to_add_mod_list_present = meas_cfg->report_cfg_to_add_mod_list.size() > 0;
+  meas_cfg->report_cfg_to_rem_list_present     = meas_cfg->report_cfg_to_rem_list.size() > 0;
 }
 
 void var_meas_cfg_t::compute_diff_meas_ids(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const
 {
-  if (not target_cfg.var_meas.meas_id_list_present) {
-    return;
-  }
-  rrc_details::compute_diff_generator<meas_id_to_add_mod_list_l> diffs{var_meas.meas_id_list,
-                                                                       target_cfg.var_meas.meas_id_list};
-
-  while (true) {
-    auto result = diffs.next();
-    switch (result.outcome) {
-      case rrc_details::diff_outcome_t::complete:
-        return;
-      case rrc_details::diff_outcome_t::id_removed:
-        meas_cfg->meas_id_to_rem_list_present = true;
-        meas_cfg->meas_id_to_rem_list.push_back(result.src_it->meas_id);
-        break;
-      case rrc_details::diff_outcome_t::id_added:
-        meas_cfg->meas_id_to_add_mod_list_present = true;
-        meas_cfg->meas_id_to_add_mod_list.push_back(*result.target_it);
-        break;
-      case rrc_details::diff_outcome_t::same_id:
-        if (not(*result.src_it == *result.target_it)) {
-          meas_cfg->meas_id_to_add_mod_list_present = true;
-          meas_cfg->meas_id_to_add_mod_list.push_back(*result.target_it);
-        }
-        break;
-    }
-  }
+  srslte::compute_cfg_diff(var_meas.meas_id_list,
+                           target_cfg.var_meas.meas_id_list,
+                           meas_cfg->meas_id_to_add_mod_list,
+                           meas_cfg->meas_id_to_rem_list);
+  meas_cfg->meas_id_to_add_mod_list_present = meas_cfg->meas_id_to_add_mod_list.size() > 0;
+  meas_cfg->meas_id_to_rem_list_present     = meas_cfg->meas_id_to_rem_list.size() > 0;
 }
 
 void var_meas_cfg_t::compute_diff_quant_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg_msg) const
@@ -720,14 +488,8 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies
 //! Method called whenever the eNB receives a MeasReport from the UE. In normal situations, an HO procedure is started
 void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
 {
+  // Check if meas_id is valid
   const meas_results_s& meas_res = msg.crit_exts.c1().meas_report_r8().meas_results;
-
-  const meas_id_to_add_mod_list_l& l         = ue_var_meas->meas_ids();
-  auto                             measid_it = rrc_details::binary_find(l, meas_res.meas_id);
-  if (measid_it == l.end()) {
-    Warning("The measurement ID %d provided by the UE does not exist.\n", meas_res.meas_id);
-    return;
-  }
   if (not meas_res.meas_result_neigh_cells_present) {
     Info("Received a MeasReport, but the UE did not detect any cell.\n");
     return;
@@ -737,12 +499,16 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
     Error("MeasReports regarding non-EUTRA are not supported!\n");
     return;
   }
+  auto measid_it = srslte::find_rrc_obj_id(ue_var_meas->meas_ids(), meas_res.meas_id);
+  if (measid_it == ue_var_meas->meas_ids().end()) {
+    Warning("The measurement ID %d provided by the UE does not exist.\n", meas_res.meas_id);
+    return;
+  }
+  const meas_result_list_eutra_l& eutra_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
 
-  const meas_obj_to_add_mod_list_l&   objs       = ue_var_meas->meas_objs();
-  const report_cfg_to_add_mod_list_l& reps       = ue_var_meas->rep_cfgs();
-  auto                                obj_it     = rrc_details::binary_find(objs, measid_it->meas_obj_id);
-  auto                                rep_it     = rrc_details::binary_find(reps, measid_it->report_cfg_id);
-  const meas_result_list_eutra_l&     eutra_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
+  // Find respective ReportCfg and MeasObj
+  auto obj_it = srslte::find_rrc_obj_id(ue_var_meas->meas_objs(), measid_it->meas_obj_id);
+  auto rep_it = srslte::find_rrc_obj_id(ue_var_meas->rep_cfgs(), measid_it->report_cfg_id);
 
   // iterate from strongest to weakest cell
   // NOTE: From now we just look at the strongest.
