@@ -121,12 +121,10 @@ int main(int argc, char** argv)
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   int srate = srslte_sampling_freq_hz(nof_prb);
   if (srate != -1) {
-    printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-    float srate_rf = srslte_rf_set_rx_srate(&rf, (double)srate);
-    if (srate_rf != srate) {
-      fprintf(stderr, "Could not set sampling rate\n");
-      exit(-1);
-    }
+    printf("Setting sampling rate %.2f MHz\n", (float)srate / 1e6);
+    double srate_rf = srslte_rf_set_rx_srate(&rf, srate);
+    printf("Actual sampling rate %.2f MHz\n", srate_rf / 1e6);
+    // We don't check the result rate with requested rate
   } else {
     fprintf(stderr, "Invalid number of PRB %d\n", nof_prb);
     exit(-1);

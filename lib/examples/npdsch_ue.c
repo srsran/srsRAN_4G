@@ -99,6 +99,7 @@ typedef struct {
   uint32_t file_nof_prb;
   uint32_t file_nof_ports;
   uint32_t file_cell_id;
+  char*    rf_dev;
   char*    rf_args;
   double   rf_freq;
   float    rf_gain;
@@ -120,6 +121,7 @@ void args_default(prog_args_t* args)
   args->file_cell_id                       = 0;
   args->file_offset_time                   = 0;
   args->file_offset_freq                   = 0;
+  args->rf_dev                             = "";
   args->rf_args                            = "";
   args->rf_freq                            = -1.0;
 #ifdef ENABLE_AGC_DEFAULT
@@ -133,7 +135,9 @@ void usage(prog_args_t* args, char* prog)
 {
   printf("Usage: %s [agpRPoOildtDnrBuHvqwzxc] -f rx_frequency (in Hz) | -i input_file\n", prog);
 #ifndef DISABLE_RF
+  printf("\t-I RF dev [Default %s]\n", args->rf_dev);
   printf("\t-a RF args [Default %s]\n", args->rf_args);
+
 #ifdef ENABLE_AGC_DEFAULT
   printf("\t-g RF fix RX gain [Default AGC]\n");
 #else
@@ -167,7 +171,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
 {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aogRBlipHPOCtdDsnvrfqwzxc")) != -1) {
+  while ((opt = getopt(argc, argv, "aogRBliIpHPOCtdDsnvrfqwzxc")) != -1) {
     switch (opt) {
       case 'i':
         args->input_file_name = argv[optind];
@@ -183,6 +187,9 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         break;
       case 'O':
         args->file_offset_time = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'I':
+        args->rf_dev = argv[optind];
         break;
       case 'a':
         args->rf_args = argv[optind];
@@ -350,7 +357,7 @@ int main(int argc, char** argv)
   if (!prog_args.input_file_name) {
 
     printf("Opening RF device...\n");
-    if (srslte_rf_open(&rf, prog_args.rf_args)) {
+    if (srslte_rf_open_devname(&rf, prog_args.rf_dev, prog_args.rf_args, 1)) {
       fprintf(stderr, "Error opening rf\n");
       exit(-1);
     }
@@ -373,12 +380,10 @@ int main(int argc, char** argv)
     // set sampling frequency
     int srate = srslte_sampling_freq_hz(cell.base.nof_prb);
     if (srate != -1) {
-      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
-      float srate_rf = srslte_rf_set_rx_srate(&rf, (double)srate);
-      if (srate_rf != srate) {
-        fprintf(stderr, "Could not set sampling rate\n");
-        exit(-1);
-      }
+      printf("Setting sampling rate %.2f MHz\n", (float)srate / 1e6);
+      double srate_rf = srslte_rf_set_rx_srate(&rf, srate);
+      printf("Actual sampling rate %.2f MHz\n", srate_rf / 1e6);
+      // We don't check the result rate with requested rate
     } else {
       fprintf(stderr, "Invalid number of PRB %d\n", cell.base.nof_prb);
       exit(-1);
