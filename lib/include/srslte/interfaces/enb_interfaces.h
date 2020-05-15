@@ -255,8 +255,14 @@ public:
   typedef std::vector<phy_rrc_dedicated_t> phy_rrc_dedicated_list_t;
 
   /**
-   * Sets the physical layer dedicated configuration for a given RNTI, a cell index and a secondary cell index.
-   * The cc_idx indicates the eNb cell to configure and the scell_idx is the UE's cell index
+   * Sets the physical layer dedicated configuration for a given RNTI. The dedicated configuration list shall provide
+   * all the required information configuration for the following cases:
+   * - Add an RNTI straight from RRC
+   * - Moving primary to another serving cell
+   * - Add/Remove secondary serving cells
+   *
+   * Remind this call will partially reconfigure the primary serving cell, `complete_config_dedicated``shall be called
+   * in order to complete the configuration.
    *
    * @param rnti the given RNTI
    * @param dedicated_list Physical layer configuration for the indicated eNb cell

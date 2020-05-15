@@ -161,7 +161,7 @@ int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
   }
 
   for (uint32_t i = 0; i < nof_workers; i++) {
-    if (workers[i].add_rnti(rnti, pcell_index, true, is_temporal)) {
+    if (workers[i].add_rnti(rnti, pcell_index, is_temporal) != SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
   }
@@ -234,14 +234,14 @@ void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& de
   workers_common.ue_db.addmod_rnti(rnti, dedicated_list);
 
   // Iterate over the list and add the RNTIs
-  for (uint32_t scell_idx = 0; scell_idx < dedicated_list.size(); scell_idx++) {
-    auto& config = dedicated_list[scell_idx];
-
-    // Configure only if active, ignore otherwise
-    if (scell_idx != 0 && config.configured) {
-      // Add RNTI to workers
+  for (const phy_rrc_dedicated_t& config : dedicated_list) {
+    // Add RNTI to eNb cell/carrier.
+    // - Do not ignore PCell, it could have changed
+    // - Do not remove RNTI from unused workers, it will be removed when the UE is released
+    if (config.configured) {
+      // Add RNTI to all SF workers
       for (uint32_t w = 0; w < nof_workers; w++) {
-        workers[w].add_rnti(rnti, config.enb_cc_idx, false, false);
+        workers[w].add_rnti(rnti, config.enb_cc_idx, false);
       }
     }
   }

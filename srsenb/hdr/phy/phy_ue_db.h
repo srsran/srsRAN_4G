@@ -185,7 +185,7 @@ private:
    * @param ue_cc_idx UE cell/carrier index that is asserted
    * @return SRSLTE_SUCCESS if the indicated cell/carrier index is valid, otherwise it returns SRSLTE_ERROR
    */
-  inline int _assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx);
+  inline int _assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const;
 
   /**
    * Checks if an RNTI is configured to use an specified UE cell/carrier as PCell or SCell and it is active
@@ -193,7 +193,7 @@ private:
    * @param ue_cc_idx UE cell/carrier index that is asserted
    * @return SRSLTE_SUCCESS if the indicated cell/carrier is active, otherwise it returns SRSLTE_ERROR
    */
-  inline int _assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx);
+  inline int _assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const;
 
   /**
    * Checks if an RNTI is configured to use an specified eNb cell/carrier as PCell or SCell and it is active
@@ -266,6 +266,14 @@ public:
    * @param activate
    */
   void activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate);
+
+  /**
+   * Asserts a given eNb cell is PCell of the given RNTI
+   * @param rnti identifier of the UE
+   * @param enb_cc_idx eNb cell/carrier index
+   * @return It returns true if it is the primmary cell, othwerwise it returns false
+   */
+  bool is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const;
 
   /**
    * Get the current down-link physical layer configuration for an RNTI and an eNb cell/carrier

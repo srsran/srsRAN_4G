@@ -127,14 +127,14 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
   }
 
   /* Setup SI-RNTI in PHY */
-  add_rnti(SRSLTE_SIRNTI, false, false);
+  add_rnti(SRSLTE_SIRNTI, false);
 
   /* Setup P-RNTI in PHY */
-  add_rnti(SRSLTE_PRNTI, false, false);
+  add_rnti(SRSLTE_PRNTI, false);
 
   /* Setup RA-RNTI in PHY */
   for (int i = SRSLTE_RARNTI_START; i <= SRSLTE_RARNTI_END; i++) {
-    add_rnti(i, false, false);
+    add_rnti(i, false);
   }
 
   if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, nof_prb)) {
@@ -180,7 +180,7 @@ void cc_worker::set_tti(uint32_t tti_)
   tti_tx_ul = TTI_RX_ACK(tti_rx);
 }
 
-int cc_worker::add_rnti(uint16_t rnti, bool is_pcell, bool is_temporal)
+int cc_worker::add_rnti(uint16_t rnti, bool is_temporal)
 {
 
   if (not is_temporal) {
@@ -194,8 +194,8 @@ int cc_worker::add_rnti(uint16_t rnti, bool is_pcell, bool is_temporal)
 
   mutex.lock();
   // Create user unless already exists
-  if (!ue_db.count(rnti)) {
-    ue_db[rnti] = new ue(rnti, is_pcell);
+  if (ue_db.count(rnti) == 0) {
+    ue_db[rnti] = new ue(rnti);
   }
   mutex.unlock();
 
@@ -377,7 +377,7 @@ int cc_worker::decode_pucch()
     uint16_t rnti = iter.first;
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
-    if (SRSLTE_RNTI_ISUSER(rnti) && !ue_db[rnti]->is_grant_available && ue_db[rnti]->is_pcell()) {
+    if (SRSLTE_RNTI_ISUSER(rnti) and not ue_db[rnti]->is_grant_available and phy->ue_db.is_pcell(rnti, cc_idx)) {
       srslte_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
 
       // Check if user needs to receive PUCCH

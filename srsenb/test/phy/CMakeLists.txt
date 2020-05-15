@@ -94,3 +94,11 @@ add_test(enb_phy_test_tm1_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION}
 #  - 6 PRB
 #  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
 add_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --nof_enb_cells=6 --ue_cell_list=1,5 --ack_mode=cs --cell.nof_prb=6 --tm=4)
+
+# Two carrier aggregation using Channel Selection and HO:
+#  - 3 eNb cell/carrier
+#  - Transmission Mode 1
+#  - 2 Aggregated carriers
+#  - 100 PRB
+#  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
+add_test(enb_phy_test_tm1_ca_cs_ho enb_phy_test --duration=1000 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=cs --cell.nof_prb=100 --tm=1 --rotation=100)

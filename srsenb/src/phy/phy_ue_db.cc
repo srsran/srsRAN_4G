@@ -138,7 +138,6 @@ inline int phy_ue_db::_assert_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) const
 
   // Check Component Carrier is part of UE SCell map
   if (_get_ue_cc_idx(rnti, enb_cc_idx) == SRSLTE_MAX_CARRIERS) {
-    ERROR("Trying to access cell/carrier index %d in RNTI 0x%X. It does not exist.\n", enb_cc_idx, rnti);
     return SRSLTE_ERROR;
   }
 
@@ -160,7 +159,7 @@ inline int phy_ue_db::_assert_enb_pcell(uint16_t rnti, uint32_t enb_cc_idx) cons
   return SRSLTE_SUCCESS;
 }
 
-inline int phy_ue_db::_assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx)
+inline int phy_ue_db::_assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const
 {
   if (_assert_rnti(rnti) != SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
@@ -175,14 +174,14 @@ inline int phy_ue_db::_assert_ue_cc(uint16_t rnti, uint32_t ue_cc_idx)
   return SRSLTE_SUCCESS;
 }
 
-inline int phy_ue_db::_assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx)
+inline int phy_ue_db::_assert_active_ue_cc(uint16_t rnti, uint32_t ue_cc_idx) const
 {
   if (_assert_ue_cc(rnti, ue_cc_idx) != SRSLTE_SUCCESS) {
     return SRSLTE_ERROR;
   }
 
   // Return error if not PCell or not Active SCell
-  auto& cell_info = ue_db.at(rnti).cell_info[ue_cc_idx];
+  const cell_info_t& cell_info = ue_db.at(rnti).cell_info[ue_cc_idx];
   if (cell_info.state != cell_state_primary and cell_info.state != cell_state_secondary_active) {
     ERROR("Failed to assert active UE cell/carrier %d for RNTI 0x%X", ue_cc_idx, rnti);
     return SRSLTE_ERROR;
@@ -198,7 +197,7 @@ inline int phy_ue_db::_assert_active_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) 
   }
 
   // Check SCell is active, ignore PCell state
-  auto& cell_info = ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)];
+  const cell_info_t& cell_info = ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)];
   if (cell_info.state != cell_state_primary and cell_info.state != cell_state_secondary_active) {
     ERROR("Failed to assert active eNb cell/carrier %d for RNTI 0x%X", enb_cc_idx, rnti);
     return SRSLTE_ERROR;
@@ -209,7 +208,7 @@ inline int phy_ue_db::_assert_active_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) 
 
 inline int phy_ue_db::_assert_stack() const
 {
-  if (not stack) {
+  if (stack == nullptr) {
     return SRSLTE_ERROR;
   }
 
@@ -218,7 +217,7 @@ inline int phy_ue_db::_assert_stack() const
 
 inline int phy_ue_db::_assert_cell_list_cfg() const
 {
-  if (not cell_cfg_list) {
+  if (cell_cfg_list == nullptr) {
     return SRSLTE_ERROR;
   }
 
@@ -238,8 +237,9 @@ inline srslte::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb
     return default_cfg;
   }
 
-  // Make sure the C-RNTI exists and the cell is active for the user
-  if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
+  // Make sure the C-RNTI exists and the cell/carrier is configured
+  if (_assert_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
+    ERROR("Trying to access cell/carrier %d in RNTI 0x%X. It is not active.\n", enb_cc_idx, rnti);
     return default_cfg;
   }
 
@@ -251,7 +251,7 @@ inline srslte::phy_cfg_t phy_ue_db::_get_rnti_config(uint16_t rnti, uint32_t enb
   }
 
   // Otherwise return current configuration
-  return ue_db.at(rnti).cell_info[ue_cc_idx].phy_cfg;
+  return ue_db.at(rnti).cell_info.at(ue_cc_idx).phy_cfg;
 }
 
 void phy_ue_db::clear_tti_pending_ack(uint32_t tti)
@@ -270,40 +270,42 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
   std::lock_guard<std::mutex> lock(mutex);
 
   // Create new user if did not exist
-  if (!ue_db.count(rnti)) {
+  if (ue_db.count(rnti) == 0) {
     _add_rnti(rnti);
   }
 
   // Get UE by reference
   common_ue& ue = ue_db[rnti];
 
-  // Number of configured serving cells
+  // Number of configured secondary serving cells
   uint32_t nof_configured_scell = 0;
 
   // Iterate PHY RRC configuration for each UE cell/carrier
-  for (uint32_t ue_cc_idx = 0; ue_cc_idx < phy_rrc_dedicated_list.size() && ue_cc_idx < SRSLTE_MAX_CARRIERS;
-       ue_cc_idx++) {
-    auto& phy_rrc_dedicated = phy_rrc_dedicated_list[ue_cc_idx];
+  uint32_t nof_cc = SRSLTE_MIN(phy_rrc_dedicated_list.size(), SRSLTE_MAX_CARRIERS);
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < nof_cc; ue_cc_idx++) {
+    const phy_interface_rrc_lte::phy_rrc_dedicated_t& phy_rrc_dedicated = phy_rrc_dedicated_list[ue_cc_idx];
+
     // Configured, add/modify entry in the cell_info map
     cell_info_t& cell_info = ue.cell_info[ue_cc_idx];
 
-    if (phy_rrc_dedicated.configured or cell_info.state == cell_state_primary) {
-      // Set cell information
-      cell_info.enb_cc_idx = phy_rrc_dedicated.enb_cc_idx;
-
-      // Apply PCell configuration is stash
-      if (cell_info.state == cell_state_primary) {
-        ue.pcell_cfg_stash = phy_rrc_dedicated.phy_cfg;
-        _set_common_config_rnti(rnti, ue.pcell_cfg_stash);
-      } else {
-        ue.cell_info[ue_cc_idx].phy_cfg = phy_rrc_dedicated.phy_cfg;
-        _set_common_config_rnti(rnti, ue.cell_info[ue_cc_idx].phy_cfg);
+    // Configure PHY
+    if (cell_info.state == cell_state_primary) {
+      // If primary serving cell's eNb cell/carrier index changed, it applies default current config
+      if (cell_info.enb_cc_idx != phy_rrc_dedicated.enb_cc_idx) {
+        cell_info.phy_cfg.set_defaults();
+        _set_common_config_rnti(rnti, cell_info.phy_cfg);
       }
 
-      // Set Cell state, all inactive by default except PCell
-      if (cell_info.state != cell_state_primary) {
-        cell_info.state = cell_state_secondary_inactive;
-      }
+      // Apply primmary serving cell configuration in stash
+      ue.pcell_cfg_stash = phy_rrc_dedicated.phy_cfg;
+      _set_common_config_rnti(rnti, ue.pcell_cfg_stash);
+    } else if (phy_rrc_dedicated.configured) {
+      //
+      cell_info.phy_cfg = phy_rrc_dedicated.phy_cfg;
+      _set_common_config_rnti(rnti, cell_info.phy_cfg);
+
+      // Set Cell state, all inactive by default
+      cell_info.state = cell_state_secondary_inactive;
 
       // Count Serving cell
       nof_configured_scell++;
@@ -311,34 +313,38 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
       // Cell without configuration (except PCell)
       cell_info.state = cell_state_none;
     }
+
+    // Set serving cell index
+    cell_info.enb_cc_idx = phy_rrc_dedicated.enb_cc_idx;
   }
 
-  // Make sure remaining cells are set to none
-  for (uint32_t cell_idx = phy_rrc_dedicated_list.size(); cell_idx < SRSLTE_MAX_CARRIERS; cell_idx++) {
-    ue.cell_info[cell_idx].state = cell_state_none;
+  // Disable the rest of potential serving cells
+  for (uint32_t i = nof_cc; i < SRSLTE_MAX_CARRIERS; i++) {
+    ue.cell_info[i].state = cell_state_none;
   }
 
   // Enable/Disable extended CSI field in DCI according to 3GPP 36.212 R10 5.3.3.1.1 Format 0
-  for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
-    if (ue.cell_info[ue_cc_idx].state == cell_state_secondary_inactive ||
-        ue.cell_info[ue_cc_idx].state == cell_state_secondary_active) {
-      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 1);
-    } else if (ue.cell_info[ue_cc_idx].state == cell_state_primary) {
-      ue.pcell_cfg_stash.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 1);
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < nof_cc; ue_cc_idx++) {
+    if (ue.cell_info[ue_cc_idx].state == cell_state_primary) {
+      // The primary cell applies changes in the stashed config
+      ue.pcell_cfg_stash.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 0);
+    } else {
+      // The rest apply changes directly
+      ue.cell_info[ue_cc_idx].phy_cfg.dl_cfg.dci.multiple_csi_request_enabled = (nof_configured_scell > 0);
     }
   }
 
   // Copy necessary PCell configuration for receiving Configuration Completion from UE
   srslte::phy_cfg_t& pcell_cfg = ue.cell_info[0].phy_cfg;
 
-  // Setup Temporal PUCCH configuration
+  // Setup temporal PUCCH configuration
   srslte_pucch_cfg_t tmp_pucch_cfg = ue.pcell_cfg_stash.ul_cfg.pucch;
   tmp_pucch_cfg.N_pucch_1          = pcell_cfg.ul_cfg.pucch.N_pucch_1; ///< Used for ACK
 
   // Load new UL configuration
   pcell_cfg.ul_cfg = ue.pcell_cfg_stash.ul_cfg;
 
-  // Overwrite PUCCH with tenporal PUCCH
+  // Overwrite PUCCH with temporal PUCCH
   pcell_cfg.ul_cfg.pucch = tmp_pucch_cfg;
 }
 
@@ -346,7 +352,7 @@ void phy_ue_db::rem_rnti(uint16_t rnti)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) != 0) {
     ue_db.erase(rnti);
   }
 }
@@ -366,6 +372,8 @@ void phy_ue_db::complete_config(uint16_t rnti)
 
 void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, bool activate)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   // Assert RNTI and SCell are valid
   if (_assert_ue_cc(rnti, ue_cc_idx) != SRSLTE_SUCCESS) {
     return;
@@ -381,6 +389,12 @@ void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, boo
 
   // Set scell state
   cell_info.state = (activate) ? cell_state_secondary_active : cell_state_secondary_inactive;
+}
+
+bool phy_ue_db::is_pcell(uint16_t rnti, uint32_t enb_cc_idx) const
+{
+  std::lock_guard<std::mutex> lock(mutex);
+  return _assert_enb_pcell(rnti, enb_cc_idx) == SRSLTE_SUCCESS;
 }
 
 srslte_dl_cfg_t phy_ue_db::get_dl_config(uint16_t rnti, uint32_t enb_cc_idx) const
@@ -481,6 +495,7 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
     const cell_info_t&     cell_info = ue.cell_info[cell_idx];
     const srslte_dl_cfg_t& dl_cfg    = cell_info.phy_cfg.dl_cfg;
 
+    // Check report for primary and active cells
     if (cell_info.state == cell_state_primary or cell_info.state == cell_state_secondary_active) {
       const srslte_cell_t& cell = cell_cfg_list->at(cell_info.enb_cc_idx).cell;
 
@@ -544,13 +559,13 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
   srslte_enb_dl_get_ack(&cell_cfg_list->at(ue.cell_info[0].enb_cc_idx).cell, &uci_cfg, &uci_value, &pdsch_ack);
 
   // Iterate over the ACK information
-  for (uint32_t scell_idx = 0; scell_idx < SRSLTE_MAX_CARRIERS; scell_idx++) {
-    const srslte_pdsch_ack_cc_t& pdsch_ack_cc = pdsch_ack.cc[scell_idx];
+  for (uint32_t ue_cc_idx = 0; ue_cc_idx < SRSLTE_MAX_CARRIERS; ue_cc_idx++) {
+    const srslte_pdsch_ack_cc_t& pdsch_ack_cc = pdsch_ack.cc[ue_cc_idx];
     for (uint32_t m = 0; m < pdsch_ack_cc.M; m++) {
       if (pdsch_ack_cc.m[m].present) {
         for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
           if (pdsch_ack_cc.m[m].value[tb] != 2) {
-            stack->ack_info(tti, rnti, ue.cell_info[scell_idx].enb_cc_idx, tb, pdsch_ack_cc.m[m].value[tb] == 1);
+            stack->ack_info(tti, rnti, ue.cell_info[ue_cc_idx].enb_cc_idx, tb, pdsch_ack_cc.m[m].value[tb] == 1);
           }
         }
       }
@@ -561,8 +576,8 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
   _assert_active_ue_cc(rnti, uci_cfg.cqi.scell_index);
 
   // Get CQI carrier index
-  auto&    cqi_scell_info = ue_db.at(rnti).cell_info[uci_cfg.cqi.scell_index];
-  uint32_t cqi_cc_idx     = cqi_scell_info.enb_cc_idx;
+  cell_info_t& cqi_scell_info = ue_db.at(rnti).cell_info[uci_cfg.cqi.scell_index];
+  uint32_t     cqi_cc_idx     = cqi_scell_info.enb_cc_idx;
 
   // Notify CQI only if CRC is valid
   if (uci_value.cqi.data_crc) {

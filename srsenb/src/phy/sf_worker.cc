@@ -129,12 +129,12 @@ void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestam
   }
 }
 
-int sf_worker::add_rnti(uint16_t rnti, uint32_t cc_idx, bool is_pcell, bool is_temporal)
+int sf_worker::add_rnti(uint16_t rnti, uint32_t cc_idx, bool is_temporal)
 {
   int ret = SRSLTE_ERROR;
 
   if (cc_idx < cc_workers.size()) {
-    cc_workers[cc_idx]->add_rnti(rnti, is_pcell, is_temporal);
+    cc_workers[cc_idx]->add_rnti(rnti, is_temporal);
     ret = SRSLTE_SUCCESS;
   }
 

@@ -163,31 +163,39 @@ void srslte_pucch_free_rnti(srslte_pucch_t* q, uint16_t rnti)
 
 int srslte_pucch_set_rnti(srslte_pucch_t* q, uint16_t rnti)
 {
-
   uint32_t rnti_idx = q->is_ue ? 0 : rnti;
-  if (!q->users[rnti_idx] || q->is_ue) {
+
+  // Decide whether re-generating the sequence
+  if (!q->users[rnti_idx]) {
+    // If the sequence is not allocated generate
+    q->users[rnti_idx] = calloc(1, sizeof(srslte_pdsch_user_t));
     if (!q->users[rnti_idx]) {
-      q->users[rnti_idx] = calloc(1, sizeof(srslte_pucch_user_t));
-      if (!q->users[rnti_idx]) {
-        perror("calloc");
-        return -1;
-      }
+      ERROR("Alocating PDSCH user\n");
+      return SRSLTE_ERROR;
     }
-    q->users[rnti_idx]->sequence_generated = false;
-    for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
-      // Precompute scrambling sequence for pucch format 2
-      if (srslte_sequence_pucch(&q->users[rnti_idx]->seq_f2[sf_idx], rnti, 2 * sf_idx, q->cell.id)) {
-        ERROR("Error computing PUCCH Format 2 scrambling sequence\n");
-        srslte_pucch_free_rnti(q, rnti);
-        return SRSLTE_ERROR;
-      }
-    }
-    q->ue_rnti                             = rnti;
-    q->users[rnti_idx]->cell_id            = q->cell.id;
-    q->users[rnti_idx]->sequence_generated = true;
-  } else {
-    ERROR("Error generating PUSCH sequence: rnti=0x%x already generated\n", rnti);
+  } else if (q->users[rnti_idx]->sequence_generated && q->users[rnti_idx]->cell_id == q->cell.id && !q->is_ue) {
+    // The sequence was generated, cell has not changed and it is eNb, save any efforts
+    return SRSLTE_SUCCESS;
   }
+
+  // Set sequence as not generated
+  q->users[rnti_idx]->sequence_generated = false;
+
+  // For each subframe
+  for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
+    if (srslte_sequence_pucch(
+            &q->users[rnti_idx]->seq_f2[sf_idx], rnti, SRSLTE_NOF_SLOTS_PER_SF * sf_idx, q->cell.id)) {
+      ERROR("Error initializing PUCCH scrambling sequence\n");
+      srslte_pucch_free_rnti(q, rnti);
+      return SRSLTE_ERROR;
+    }
+  }
+
+  // Save generation states
+  q->ue_rnti                             = rnti;
+  q->users[rnti_idx]->cell_id            = q->cell.id;
+  q->users[rnti_idx]->sequence_generated = true;
+
   return SRSLTE_SUCCESS;
 }
 

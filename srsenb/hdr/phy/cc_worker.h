@@ -42,7 +42,7 @@ public:
   cf_t* get_buffer_tx(uint32_t antenna_idx);
   void  set_tti(uint32_t tti);
 
-  int      add_rnti(uint16_t rnti, bool is_pcell, bool is_temporal);
+  int      add_rnti(uint16_t rnti, bool is_temporal);
   void     rem_rnti(uint16_t rnti);
   uint32_t get_nof_rnti();
 
@@ -94,7 +94,7 @@ private:
   class ue
   {
   public:
-    explicit ue(uint16_t rnti_, bool pcell_) : rnti(rnti_), pcell(pcell_)
+    explicit ue(uint16_t rnti_) : rnti(rnti_)
     {
       // Do nothing
     }
@@ -105,13 +105,11 @@ private:
     void metrics_read(phy_metrics_t* metrics);
     void metrics_dl(uint32_t mcs);
     void metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters);
-    bool is_pcell() { return pcell; }
     uint32_t get_rnti() const { return rnti; }
 
   private:
     uint32_t      rnti    = 0;
     phy_metrics_t metrics = {};
-    bool          pcell;
   };
 
   // Component carrier index

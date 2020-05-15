@@ -517,36 +517,44 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t* q, uint16_t rnti)
 {
   uint32_t rnti_idx = q->is_ue ? 0 : rnti;
 
-  if (!q->users[rnti_idx] || q->is_ue) {
+  // Decide whether re-generating the sequence
+  if (!q->users[rnti_idx]) {
+    // If the sequence is not allocated generate
+    q->users[rnti_idx] = calloc(1, sizeof(srslte_pdsch_user_t));
     if (!q->users[rnti_idx]) {
-      q->users[rnti_idx] = calloc(1, sizeof(srslte_pdsch_user_t));
-      if (!q->users[rnti_idx]) {
-        ERROR("calloc");
-        return -1;
-      }
+      ERROR("Alocating PDSCH user\n");
+      return SRSLTE_ERROR;
     }
-    q->users[rnti_idx]->sequence_generated = false;
-
-    for (int i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
-      for (int j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
-        if (srslte_sequence_pdsch(&q->users[rnti_idx]->seq[j][i],
-                                  rnti,
-                                  j,
-                                  2 * i,
-                                  q->cell.id,
-                                  q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM))) {
-          ERROR("Error initializing PDSCH scrambling sequence\n");
-          srslte_pdsch_free_rnti(q, rnti);
-          return SRSLTE_ERROR;
-        }
-      }
-    }
-    q->ue_rnti                             = rnti;
-    q->users[rnti_idx]->cell_id            = q->cell.id;
-    q->users[rnti_idx]->sequence_generated = true;
-  } else {
-    ERROR("Error generating PDSCH sequence: rnti=0x%x already generated\n", rnti);
+  } else if (q->users[rnti_idx]->sequence_generated && q->users[rnti_idx]->cell_id == q->cell.id && !q->is_ue) {
+    // The sequence was generated, cell has not changed and it is eNb, save any efforts
+    return SRSLTE_SUCCESS;
   }
+
+  // Set sequence as not generated
+  q->users[rnti_idx]->sequence_generated = false;
+
+  // For each subframe
+  for (int sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
+    // For each codeword
+    for (int j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
+      if (srslte_sequence_pdsch(&q->users[rnti_idx]->seq[j][sf_idx],
+                                rnti,
+                                j,
+                                SRSLTE_NOF_SLOTS_PER_SF * sf_idx,
+                                q->cell.id,
+                                q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM))) {
+        ERROR("Error initializing PDSCH scrambling sequence\n");
+        srslte_pdsch_free_rnti(q, rnti);
+        return SRSLTE_ERROR;
+      }
+    }
+  }
+
+  // Save generation states
+  q->ue_rnti                             = rnti;
+  q->users[rnti_idx]->cell_id            = q->cell.id;
+  q->users[rnti_idx]->sequence_generated = true;
+
   return SRSLTE_SUCCESS;
 }
 
