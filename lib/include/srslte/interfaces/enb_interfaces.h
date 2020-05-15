@@ -47,9 +47,9 @@ public:
    * DL grant structure per UE
    */
   typedef struct {
-    srslte_dci_dl_t         dci;
-    uint8_t*                data[SRSLTE_MAX_TB];
-    srslte_softbuffer_tx_t* softbuffer_tx[SRSLTE_MAX_TB];
+    srslte_dci_dl_t         dci                          = {};
+    uint8_t*                data[SRSLTE_MAX_TB]          = {};
+    srslte_softbuffer_tx_t* softbuffer_tx[SRSLTE_MAX_TB] = {};
   } dl_sched_grant_t;
 
   /**
