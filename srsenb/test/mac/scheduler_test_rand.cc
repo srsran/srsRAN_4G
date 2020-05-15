@@ -426,13 +426,14 @@ void test_scheduler_rand(sched_sim_events sim)
 
 sched_sim_events rand_sim_params(uint32_t nof_ttis)
 {
-  sched_sim_events                        sim_gen;
-  uint32_t                                max_conn_dur = 10000, min_conn_dur = 500;
-  float                                   P_ul_sr = srsenb::randf() * 0.5, P_dl = srsenb::randf() * 0.5;
-  float                                   P_prach        = 0.99f;  // 0.1f + randf()*0.3f;
-  float                                   ul_sr_exps[]   = {1, 4}; // log rand
-  float                                   dl_data_exps[] = {1, 4}; // log rand
-  uint32_t                                max_nof_users  = 5;
+  auto             boolean_dist = []() { return std::uniform_int_distribution<>{0, 1}(srsenb::get_rand_gen()); };
+  sched_sim_events sim_gen;
+  uint32_t         max_conn_dur = 10000, min_conn_dur = 500;
+  float            P_ul_sr = srsenb::randf() * 0.5, P_dl = srsenb::randf() * 0.5;
+  float            P_prach        = 0.99f;  // 0.1f + randf()*0.3f;
+  float            ul_sr_exps[]   = {1, 4}; // log rand
+  float            dl_data_exps[] = {1, 4}; // log rand
+  uint32_t         max_nof_users  = 5;
   std::uniform_int_distribution<>         connection_dur_dist(min_conn_dur, max_conn_dur);
   std::uniform_int_distribution<uint32_t> dist_prb_idx(0, 5);
   uint32_t                                prb_idx = dist_prb_idx(srsenb::get_rand_gen());
@@ -444,6 +445,10 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
   sim_gen.sim_args.default_ue_sim_cfg.periodic_cqi = true;
   sim_gen.sim_args.start_tti                       = 0;
   sim_gen.sim_args.sim_log                         = log_global.get();
+  sim_gen.sim_args.sched_args.pdsch_mcs =
+      boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
+  sim_gen.sim_args.sched_args.pusch_mcs =
+      boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
 
   generator.tti_events.resize(nof_ttis);
 

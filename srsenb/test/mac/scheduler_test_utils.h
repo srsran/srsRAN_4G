@@ -109,6 +109,7 @@ struct sim_sched_args {
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg;
   srslte::log*                                     sim_log = nullptr;
   ue_ctxt_test_cfg                                 default_ue_sim_cfg{};
+  srsenb::sched_interface::sched_args_t            sched_args = {};
 };
 
 // generate all events up front

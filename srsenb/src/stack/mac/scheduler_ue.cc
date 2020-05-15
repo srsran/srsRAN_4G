@@ -568,6 +568,7 @@ std::pair<int, int> sched_ue::compute_mcs_and_tbs(uint32_t               ue_cc_i
     tbs_bytes = carriers[ue_cc_idx].alloc_tbs_dl(nof_alloc_prbs, nof_re, req_bytes.second, &mcs);
   } else {
     // Fixed MCS
+    mcs       = carriers[ue_cc_idx].fixed_mcs_dl;
     tbs_bytes = sched_utils::get_tbs_bytes(
         (uint32_t)carriers[ue_cc_idx].fixed_mcs_dl, nof_alloc_prbs, cfg.use_tbs_index_alt, false);
   }

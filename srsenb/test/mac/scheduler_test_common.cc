@@ -875,6 +875,7 @@ int common_sched_tester::sim_cfg(sim_sched_args args)
   sim_args0 = std::move(args);
 
   sched::cell_cfg(sim_args0.cell_cfg); // call parent cfg
+  sched::set_sched_cfg(&sim_args0.sched_args);
 
   ue_tester.reset(new user_state_sched_tester{sim_args0.cell_cfg});
   output_tester.clear();
