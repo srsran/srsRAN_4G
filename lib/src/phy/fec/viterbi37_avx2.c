@@ -39,7 +39,7 @@ static union branchtab27 {
   __m256i       v;
 } Branchtab37_sse2[3];
 
-int firstGo;
+extern int firstGo;
 /* State info for instance of Viterbi decoder */
 struct v37 {
   metric_t    metrics1;                  /* path metric buffer 1 */
