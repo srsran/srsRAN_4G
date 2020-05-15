@@ -60,7 +60,7 @@ static inline int parse_string(char* args, const char* config_arg_base, int chan
   int ret = SRSLTE_ERROR;
 
   char  config_key[RF_PARAM_LEN] = {0};
-  char  config_str[RF_PARAM_LEN] = {0};
+  char  config_str[RF_PARAM_LEN-1] = {0};
   char* config_ptr               = NULL;
 
   // try to parse parameter without index as is
