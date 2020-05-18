@@ -40,11 +40,9 @@
 #include "srslte/common/s3g.h"
 #include "srslte/common/zuc.h"
 
-
 /*******************************************************************************
                               LOCAL FUNCTION PROTOTYPES
 *******************************************************************************/
-
 
 /*********************************************************************
     Name: zero_tailing_bits
@@ -339,7 +337,6 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_up(uint8*                          
   return (err);
 }
 
-
 LIBLTE_ERROR_ENUM liblte_security_128_eia1(uint8* key,
                                            uint32 count,
                                            uint8  bearer,
@@ -349,9 +346,9 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia1(uint8* key,
                                            uint8* mac)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
-  uint32_t msg_len_bits;
-  uint32_t i;
-  uint8_t* m_ptr;
+  uint32_t          msg_len_bits;
+  uint32_t          i;
+  uint8_t*          m_ptr;
 
   if (key != NULL && msg != NULL && mac != NULL) {
     msg_len_bits = msg_len * 8;
@@ -361,8 +358,8 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia1(uint8* key,
     }
     err = LIBLTE_SUCCESS;
   }
-  return(err);
-} 
+  return (err);
+}
 
 /*********************************************************************
     Name: liblte_security_128_eia2
