@@ -70,6 +70,8 @@ public:
 
   void timer_expired(uint32_t timeout_id);
 
+  void send_queued_data();
+
   void loop_back_pdu_with_tft(uint32_t input_lcid, srslte::unique_byte_buffer_t pdu);
 
 private:

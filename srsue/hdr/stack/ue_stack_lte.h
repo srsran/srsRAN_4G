@@ -72,7 +72,7 @@ public:
   void stop() final;
 
   bool get_metrics(stack_metrics_t* metrics) final;
-  bool is_rrc_connected();
+  bool is_rrc_connected() { return rrc.is_connected(); };
 
   // RRC interface for PHY
   void in_sync() final;
