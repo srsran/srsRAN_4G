@@ -41,7 +41,8 @@ set(SOURCES arch_select.cc
             tti_sync_cv.cc
             time_prof.cc
             version.c
-            zuc.cc)
+            zuc.cc
+            s3g.cc)
 
 if (ENABLE_5GNR)
   set(SOURCES ${SOURCES} mac_nr_pcap.cc)

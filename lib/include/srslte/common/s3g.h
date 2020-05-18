@@ -1,5 +1,34 @@
+/*
+ * Copyright 2013-2020 Software Radio Systems Limited
+ *
+ * This file is part of srsLTE.
+ *
+ * srsLTE is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * srsLTE is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * A copy of the GNU Affero General Public License can be found in
+ * the LICENSE file in the top-level directory of this distribution
+ * and at http://www.gnu.org/licenses/.
+ *
+ */
+#ifndef SRSLTE_S3G_H
+#define SRSLTE_S3G_H
+
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
 /*---------------------------------------------------------
- * snow_3g.h
+ * s3g.h
  *
  * Adapted from ETSI/SAGE specifications:
  * "Specification of the 3GPP Confidentiality and
@@ -9,17 +38,11 @@
  * and Integrity Algorithms UEA2 & UIA2.
  * Document 2: SNOW 3G Specification"
  *---------------------------------------------------------*/
-#ifndef SRSLTE_SNOW_3G_H
-#define SRSLTE_SNOW_3G_H
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-typedef unsigned char      u8;
-typedef unsigned int       u32;
-typedef unsigned long long u64;
+typedef struct {
+  uint32_t* lfsr;
+  uint32_t* fsm;
+} S3G_STATE;
 
 /* Initialization.
  * Input k[4]: Four 32-bit words making up 128-bit key.
@@ -28,7 +51,19 @@ typedef unsigned long long u64;
  * See Section 4.1.
  */
 
-void snow3g_initialize(u32 k[4], u32 IV[4]);
+void s3g_initialize(S3G_STATE* state, uint32_t k[4], uint32_t iv[4]);
+
+
+/*********************************************************************
+    Name: s3g_deinitialize
+
+    Description: Deinitialization.
+
+    Document Reference: Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D2 v1.1
+*********************************************************************/
+void s3g_deinitialize(S3G_STATE* state);
+
 
 /* Generation of Keystream.
  * input n: number of 32-bit words of keystream.
@@ -38,7 +73,8 @@ void snow3g_initialize(u32 k[4], u32 IV[4]);
  * See section 4.2.
  */
 
-void snow3g_generate_keystream(u32 n, u32* z);
+
+void s3g_generate_keystream(S3G_STATE* state, uint32_t n, uint32_t* ks);
 
 /* f8.
  * Input key: 128 bit Confidentiality Key.
@@ -54,7 +90,7 @@ void snow3g_generate_keystream(u32 n, u32* z);
  * defined in Section 3.
  */
 
-void snow3g_f8(u8* key, u32 count, u32 bearer, u32 dir, u8* data, u32 length);
+// void snow3g_f8(u8* key, u32 count, u32 bearer, u32 dir, u8* data, u32 length);
 
 /* f9.
  * Input key: 128 bit Integrity Key.
@@ -67,6 +103,6 @@ void snow3g_f8(u8* key, u32 count, u32 bearer, u32 dir, u8* data, u32 length);
  * Generates 32-bit MAC using UIA2 algorithm as defined in Section 4.
  */
 
-u8* snow3g_f9(u8* key, u32 count, u32 fresh, u32 dir, u8* data, u64 length);
+uint8_t* s3g_f9(uint8_t* key, uint32_t count, uint32_t fresh, uint32_t dir, uint8_t* data, uint64_t length);
 
-#endif // SRSLTE_SNOW_3G_H
+#endif // SRSLTE_S3G_H

@@ -21,7 +21,7 @@
 
 #include "srslte/common/security.h"
 #include "srslte/common/liblte_security.h"
-#include "srslte/common/snow_3g.h"
+#include "srslte/common/s3g.h"
 
 #ifdef HAVE_MBEDTLS
 #include "mbedtls/md5.h"
