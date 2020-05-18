@@ -179,6 +179,9 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_up(uint8*                          
 // Enums
 // Structs
 // Functions
+
+uint8_t* s3g_f9(uint8_t* key, uint32_t count, uint32_t fresh, uint32_t dir, uint8_t* data, uint64_t length);
+
 LIBLTE_ERROR_ENUM liblte_security_128_eia2(uint8* key,
                                            uint32 count,
                                            uint8  bearer,
