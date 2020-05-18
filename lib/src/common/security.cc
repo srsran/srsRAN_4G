@@ -113,16 +113,7 @@ uint8_t security_128_eia1(uint8_t* key,
                           uint32_t msg_len,
                           uint8_t* mac)
 {
-  uint32_t msg_len_bits;
-  uint32_t i;
-  uint8_t* m_ptr;
-
-  msg_len_bits = msg_len * 8;
-  m_ptr        = s3g_f9(key, count, bearer << 27, direction, msg, msg_len_bits);
-  for (i = 0; i < 4; i++) {
-    mac[i] = m_ptr[i];
-  }
-  return SRSLTE_SUCCESS;
+  return liblte_security_128_eia1(key, count, bearer, direction, msg, msg_len, mac);
 }
 
 uint8_t security_128_eia2(uint8_t* key,

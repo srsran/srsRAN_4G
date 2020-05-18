@@ -339,6 +339,31 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_up(uint8*                          
   return (err);
 }
 
+
+LIBLTE_ERROR_ENUM liblte_security_128_eia1(uint8* key,
+                                           uint32 count,
+                                           uint8  bearer,
+                                           uint8  direction,
+                                           uint8* msg,
+                                           uint32 msg_len,
+                                           uint8* mac)
+{
+  LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+  uint32_t msg_len_bits;
+  uint32_t i;
+  uint8_t* m_ptr;
+
+  if (key != NULL && msg != NULL && mac != NULL) {
+    msg_len_bits = msg_len * 8;
+    m_ptr        = s3g_f9(key, count, bearer << 27, direction, msg, msg_len_bits);
+    for (i = 0; i < 4; i++) {
+      mac[i] = m_ptr[i];
+    }
+    err = LIBLTE_SUCCESS;
+  }
+  return(err);
+} 
+
 /*********************************************************************
     Name: liblte_security_128_eia2
 
