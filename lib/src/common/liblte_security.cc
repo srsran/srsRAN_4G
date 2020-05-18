@@ -37,154 +37,14 @@
 #include "srslte/common/liblte_security.h"
 #include "math.h"
 #include "srslte/common/liblte_ssl.h"
-#include "srslte/common/zuc.h"
 #include "srslte/common/s3g.h"
-/*******************************************************************************
-                              DEFINES
-*******************************************************************************/
+#include "srslte/common/zuc.h"
 
-/*******************************************************************************
-                              TYPEDEFS
-*******************************************************************************/
-
-typedef struct {
-  uint8 rk[11][4][4];
-} ROUND_KEY_STRUCT;
-
-typedef struct {
-  uint8 state[4][4];
-} STATE_STRUCT;
-
-
-
-/*******************************************************************************
-                              GLOBAL VARIABLES
-*******************************************************************************/
-
-
-
-static const uint8_t S[256] = {
-    99,  124, 119, 123, 242, 107, 111, 197, 48,  1,   103, 43,  254, 215, 171, 118, 202, 130, 201, 125, 250, 89,
-    71,  240, 173, 212, 162, 175, 156, 164, 114, 192, 183, 253, 147, 38,  54,  63,  247, 204, 52,  165, 229, 241,
-    113, 216, 49,  21,  4,   199, 35,  195, 24,  150, 5,   154, 7,   18,  128, 226, 235, 39,  178, 117, 9,   131,
-    44,  26,  27,  110, 90,  160, 82,  59,  214, 179, 41,  227, 47,  132, 83,  209, 0,   237, 32,  252, 177, 91,
-    106, 203, 190, 57,  74,  76,  88,  207, 208, 239, 170, 251, 67,  77,  51,  133, 69,  249, 2,   127, 80,  60,
-    159, 168, 81,  163, 64,  143, 146, 157, 56,  245, 188, 182, 218, 33,  16,  255, 243, 210, 205, 12,  19,  236,
-    95,  151, 68,  23,  196, 167, 126, 61,  100, 93,  25,  115, 96,  129, 79,  220, 34,  42,  144, 136, 70,  238,
-    184, 20,  222, 94,  11,  219, 224, 50,  58,  10,  73,  6,   36,  92,  194, 211, 172, 98,  145, 149, 228, 121,
-    231, 200, 55,  109, 141, 213, 78,  169, 108, 86,  244, 234, 101, 122, 174, 8,   186, 120, 37,  46,  28,  166,
-    180, 198, 232, 221, 116, 31,  75,  189, 139, 138, 112, 62,  181, 102, 72,  3,   246, 14,  97,  53,  87,  185,
-    134, 193, 29,  158, 225, 248, 152, 17,  105, 217, 142, 148, 155, 30,  135, 233, 206, 85,  40,  223, 140, 161,
-    137, 13,  191, 230, 66,  104, 65,  153, 45,  15,  176, 84,  187, 22};
-
-static const uint8 X_TIME[256] = {
-    0,   2,   4,   6,   8,   10,  12,  14,  16,  18,  20,  22,  24,  26,  28,  30,  32,  34,  36,  38,  40,  42,
-    44,  46,  48,  50,  52,  54,  56,  58,  60,  62,  64,  66,  68,  70,  72,  74,  76,  78,  80,  82,  84,  86,
-    88,  90,  92,  94,  96,  98,  100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 126, 128, 130,
-    132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 166, 168, 170, 172, 174,
-    176, 178, 180, 182, 184, 186, 188, 190, 192, 194, 196, 198, 200, 202, 204, 206, 208, 210, 212, 214, 216, 218,
-    220, 222, 224, 226, 228, 230, 232, 234, 236, 238, 240, 242, 244, 246, 248, 250, 252, 254, 27,  25,  31,  29,
-    19,  17,  23,  21,  11,  9,   15,  13,  3,   1,   7,   5,   59,  57,  63,  61,  51,  49,  55,  53,  43,  41,
-    47,  45,  35,  33,  39,  37,  91,  89,  95,  93,  83,  81,  87,  85,  75,  73,  79,  77,  67,  65,  71,  69,
-    123, 121, 127, 125, 115, 113, 119, 117, 107, 105, 111, 109, 99,  97,  103, 101, 155, 153, 159, 157, 147, 145,
-    151, 149, 139, 137, 143, 141, 131, 129, 135, 133, 187, 185, 191, 189, 179, 177, 183, 181, 171, 169, 175, 173,
-    163, 161, 167, 165, 219, 217, 223, 221, 211, 209, 215, 213, 203, 201, 207, 205, 195, 193, 199, 197, 251, 249,
-    255, 253, 243, 241, 247, 245, 235, 233, 239, 237, 227, 225, 231, 229};
 
 /*******************************************************************************
                               LOCAL FUNCTION PROTOTYPES
 *******************************************************************************/
 
-/*********************************************************************
-    Name: compute_OPc
-
-    Description: Computes OPc from OP and K.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-// Defines
-// Enums
-// Structs
-// Functions
-void compute_OPc(ROUND_KEY_STRUCT* rk, uint8* op, uint8* op_c);
-
-/*********************************************************************
-    Name: rijndael_key_schedule
-
-    Description: Computes all Rijndael's internal subkeys from key.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-// Defines
-// Enums
-// Structs
-// Functions
-void rijndael_key_schedule(uint8* key, ROUND_KEY_STRUCT* rk);
-
-/*********************************************************************
-    Name: rijndael_encrypt
-
-    Description: Computes output using input and round keys.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-// Defines
-// Enums
-// Structs
-// Functions
-void rijndael_encrypt(uint8* input, ROUND_KEY_STRUCT* rk, uint8* output);
-
-/*********************************************************************
-    Name: key_add
-
-    Description: Round key addition function.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-// Defines
-// Enums
-// Structs
-// Functions
-void key_add(STATE_STRUCT* state, ROUND_KEY_STRUCT* rk, uint32 round);
-
-/*********************************************************************
-    Name: byte_sub
-
-    Description: Byte substitution transformation.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-// Defines
-// Enums
-// Structs
-// Functions
-void byte_sub(STATE_STRUCT* state);
-
-/*********************************************************************
-    Name: shift_row
-
-    Description: Row shift transformation.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-// Defines
-// Enums
-// Structs
-// Functions
-void shift_row(STATE_STRUCT* state);
-
-/*********************************************************************
-    Name: mix_column
-
-    Description: Mix column transformation.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-// Defines
-// Enums
-// Structs
-// Functions
-void mix_column(STATE_STRUCT* state);
 
 /*********************************************************************
     Name: zero_tailing_bits
@@ -194,8 +54,6 @@ void mix_column(STATE_STRUCT* state);
     Document Reference: -
 *********************************************************************/
 void zero_tailing_bits(uint8* data, uint32 length_bits);
-
-
 
 /*******************************************************************************
                               FUNCTIONS
@@ -1038,22 +896,22 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(uint8* key,
 LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8* k, uint8* op_c, uint8* rand, uint8* sqn, uint8* amf, uint8* mac_a)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
-  ROUND_KEY_STRUCT  round_keys;
   uint32            i;
+  aes_context       ctx;
   uint8             temp[16];
   uint8             in1[16];
   uint8             out1[16];
-  uint8             rijndael_input[16];
+  uint8             input[16];
 
   if (k != NULL && op_c != NULL && rand != NULL && sqn != NULL && amf != NULL && mac_a != NULL) {
     // Initialize the round keys
-    rijndael_key_schedule(k, &round_keys);
+    aes_setkey_enc(&ctx, k, 128);
 
     // Compute temp
     for (i = 0; i < 16; i++) {
-      rijndael_input[i] = rand[i] ^ op_c[i];
+      input[i] = rand[i] ^ op_c[i];
     }
-    rijndael_encrypt(rijndael_input, &round_keys, temp);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, temp);
 
     // Construct in1
     for (i = 0; i < 6; i++) {
@@ -1067,12 +925,12 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f1(uint8* k, uint8* op_c, uint8* rand
 
     // Compute out1
     for (i = 0; i < 16; i++) {
-      rijndael_input[(i + 8) % 16] = in1[i] ^ op_c[i];
+      input[(i + 8) % 16] = in1[i] ^ op_c[i];
     }
     for (i = 0; i < 16; i++) {
-      rijndael_input[i] ^= temp[i];
+      input[i] ^= temp[i];
     }
-    rijndael_encrypt(rijndael_input, &round_keys, out1);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out1);
     for (i = 0; i < 16; i++) {
       out1[i] ^= op_c[i];
     }
@@ -1102,23 +960,22 @@ LIBLTE_ERROR_ENUM
 liblte_security_milenage_f1_star(uint8* k, uint8* op_c, uint8* rand, uint8* sqn, uint8* amf, uint8* mac_s)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
-  ROUND_KEY_STRUCT  round_keys;
+  aes_context       ctx;
   uint32            i;
   uint8             temp[16];
   uint8             in1[16];
   uint8             out1[16];
-  uint8             rijndael_input[16];
+  uint8             input[16];
 
   if (k != NULL && op_c != NULL && rand != NULL && sqn != NULL && amf != NULL && mac_s != NULL) {
     // Initialize the round keys
-    rijndael_key_schedule(k, &round_keys);
+    aes_setkey_enc(&ctx, k, 128);
 
     // Compute temp
     for (i = 0; i < 16; i++) {
-      rijndael_input[i] = rand[i] ^ op_c[i];
+      input[i] = rand[i] ^ op_c[i];
     }
-    rijndael_encrypt(rijndael_input, &round_keys, temp);
-
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, temp);
     // Construct in1
     for (i = 0; i < 6; i++) {
       in1[i]     = sqn[i];
@@ -1131,12 +988,12 @@ liblte_security_milenage_f1_star(uint8* k, uint8* op_c, uint8* rand, uint8* sqn,
 
     // Compute out1
     for (i = 0; i < 16; i++) {
-      rijndael_input[(i + 8) % 16] = in1[i] ^ op_c[i];
+      input[(i + 8) % 16] = in1[i] ^ op_c[i];
     }
     for (i = 0; i < 16; i++) {
-      rijndael_input[i] ^= temp[i];
+      input[i] ^= temp[i];
     }
-    rijndael_encrypt(rijndael_input, &round_keys, out1);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out1);
     for (i = 0; i < 16; i++) {
       out1[i] ^= op_c[i];
     }
@@ -1166,28 +1023,26 @@ LIBLTE_ERROR_ENUM
 liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, uint8* ck, uint8* ik, uint8* ak)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
-  ROUND_KEY_STRUCT  round_keys;
   uint32            i;
   uint8             temp[16];
   uint8             out[16];
-  uint8             rijndael_input[16];
+  uint8             input[16];
+  aes_context       ctx;
 
   if (k != NULL && op_c != NULL && rand != NULL && res != NULL && ck != NULL && ik != NULL && ak != NULL) {
     // Initialize the round keys
-    rijndael_key_schedule(k, &round_keys);
-
+    aes_setkey_enc(&ctx, k, 128);
     // Compute temp
     for (i = 0; i < 16; i++) {
-      rijndael_input[i] = rand[i] ^ op_c[i];
+      input[i] = rand[i] ^ op_c[i];
     }
-    rijndael_encrypt(rijndael_input, &round_keys, temp);
-
+    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, temp);
     // Compute out for RES and AK
     for (i = 0; i < 16; i++) {
-      rijndael_input[i] = temp[i] ^ op_c[i];
+      input[i] = temp[i] ^ op_c[i];
     }
-    rijndael_input[15] ^= 1;
-    rijndael_encrypt(rijndael_input, &round_keys, out);
+    input[15] ^= 1;
+    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }
@@ -1204,10 +1059,10 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
 
     // Compute out for CK
     for (i = 0; i < 16; i++) {
-      rijndael_input[(i + 12) % 16] = temp[i] ^ op_c[i];
+      input[(i + 12) % 16] = temp[i] ^ op_c[i];
     }
-    rijndael_input[15] ^= 2;
-    rijndael_encrypt(rijndael_input, &round_keys, out);
+    input[15] ^= 2;
+    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }
@@ -1219,10 +1074,10 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
 
     // Compute out for IK
     for (i = 0; i < 16; i++) {
-      rijndael_input[(i + 8) % 16] = temp[i] ^ op_c[i];
+      input[(i + 8) % 16] = temp[i] ^ op_c[i];
     }
-    rijndael_input[15] ^= 4;
-    rijndael_encrypt(rijndael_input, &round_keys, out);
+    input[15] ^= 4;
+    mbedtls_aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }
@@ -1250,28 +1105,27 @@ liblte_security_milenage_f2345(uint8* k, uint8* op_c, uint8* rand, uint8* res, u
 LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8* k, uint8* op_c, uint8* rand, uint8* ak)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
-  ROUND_KEY_STRUCT  round_keys;
+  aes_context       ctx;
   uint32            i;
   uint8             temp[16];
   uint8             out[16];
-  uint8             rijndael_input[16];
+  uint8             input[16];
 
   if (k != NULL && op_c != NULL && rand != NULL && ak != NULL) {
     // Initialize the round keys
-    rijndael_key_schedule(k, &round_keys);
+    aes_setkey_enc(&ctx, k, 128);
 
     // Compute temp
     for (i = 0; i < 16; i++) {
-      rijndael_input[i] = rand[i] ^ op_c[i];
+      input[i] = rand[i] ^ op_c[i];
     }
-    rijndael_encrypt(rijndael_input, &round_keys, temp);
-
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, temp);
     // Compute out
     for (i = 0; i < 16; i++) {
-      rijndael_input[(i + 4) % 16] = temp[i] ^ op_c[i];
+      input[(i + 4) % 16] = temp[i] ^ op_c[i];
     }
-    rijndael_input[15] ^= 8;
-    rijndael_encrypt(rijndael_input, &round_keys, out);
+    input[15] ^= 8;
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, input, out);
     for (i = 0; i < 16; i++) {
       out[i] ^= op_c[i];
     }
@@ -1296,202 +1150,18 @@ LIBLTE_ERROR_ENUM liblte_security_milenage_f5_star(uint8* k, uint8* op_c, uint8*
 LIBLTE_ERROR_ENUM liblte_compute_opc(uint8* k, uint8* op, uint8* op_c)
 {
   uint32            i;
-  ROUND_KEY_STRUCT  round_keys;
+  aes_context       ctx;
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
   if (k != NULL && op != NULL && op_c != NULL) {
-
-    rijndael_key_schedule(k, &round_keys);
-    rijndael_encrypt(op, &round_keys, op_c);
+    aes_setkey_enc(&ctx, k, 128);
+    aes_crypt_ecb(&ctx, AES_ENCRYPT, op, op_c);
     for (i = 0; i < 16; i++) {
       op_c[i] ^= op[i];
     }
     err = LIBLTE_SUCCESS;
   }
   return err;
-}
-
-/*******************************************************************************
-                              LOCAL FUNCTIONS
-*******************************************************************************/
-
-/*********************************************************************
-    Name: rijndael_key_schedule
-
-    Description: Computes all Rijndael's internal subkeys from key.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-void rijndael_key_schedule(uint8* key, ROUND_KEY_STRUCT* rk)
-{
-  uint32 i;
-  uint32 j;
-  uint8  round_const;
-
-  // Set first round key to key
-  for (i = 0; i < 16; i++) {
-    rk->rk[0][i & 0x03][i >> 2] = key[i];
-  }
-
-  round_const = 1;
-
-  // Compute the remaining round keys
-  for (i = 1; i < 11; i++) {
-    rk->rk[i][0][0] = S[rk->rk[i - 1][1][3]] ^ rk->rk[i - 1][0][0] ^ round_const;
-    rk->rk[i][1][0] = S[rk->rk[i - 1][2][3]] ^ rk->rk[i - 1][1][0];
-    rk->rk[i][2][0] = S[rk->rk[i - 1][3][3]] ^ rk->rk[i - 1][2][0];
-    rk->rk[i][3][0] = S[rk->rk[i - 1][0][3]] ^ rk->rk[i - 1][3][0];
-
-    for (j = 0; j < 4; j++) {
-      rk->rk[i][j][1] = rk->rk[i - 1][j][1] ^ rk->rk[i][j][0];
-      rk->rk[i][j][2] = rk->rk[i - 1][j][2] ^ rk->rk[i][j][1];
-      rk->rk[i][j][3] = rk->rk[i - 1][j][3] ^ rk->rk[i][j][2];
-    }
-
-    round_const = X_TIME[round_const];
-  }
-}
-
-/*********************************************************************
-    Name: rijndael_encrypt
-
-    Description: Computes output using input and round keys.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-void rijndael_encrypt(uint8* input, ROUND_KEY_STRUCT* rk, uint8* output)
-{
-  STATE_STRUCT state;
-  uint32       i;
-  uint32       r;
-
-  // Initialize and perform round 0
-  for (i = 0; i < 16; i++) {
-    state.state[i & 0x03][i >> 2] = input[i];
-  }
-  key_add(&state, rk, 0);
-
-  // Perform rounds 1 through 9
-  for (r = 1; r <= 9; r++) {
-    byte_sub(&state);
-    shift_row(&state);
-    mix_column(&state);
-    key_add(&state, rk, r);
-  }
-
-  // Perform round 10
-  byte_sub(&state);
-  shift_row(&state);
-  key_add(&state, rk, r);
-
-  // Return output
-  for (i = 0; i < 16; i++) {
-    output[i] = state.state[i & 0x03][i >> 2];
-  }
-}
-
-/*********************************************************************
-    Name: key_add
-
-    Description: Round key addition function.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-void key_add(STATE_STRUCT* state, ROUND_KEY_STRUCT* rk, uint32 round)
-{
-  uint32 i;
-  uint32 j;
-
-  for (i = 0; i < 4; i++) {
-    for (j = 0; j < 4; j++) {
-      state->state[i][j] ^= rk->rk[round][i][j];
-    }
-  }
-}
-
-/*********************************************************************
-    Name: byte_sub
-
-    Description: Byte substitution transformation.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-void byte_sub(STATE_STRUCT* state)
-{
-  uint32 i;
-  uint32 j;
-
-  for (i = 0; i < 4; i++) {
-    for (j = 0; j < 4; j++) {
-      state->state[i][j] = S[state->state[i][j]];
-    }
-  }
-}
-
-/*********************************************************************
-    Name: shift_row
-
-    Description: Row shift transformation.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-void shift_row(STATE_STRUCT* state)
-{
-  uint8 temp;
-
-  // Left rotate row 1 by 1
-  temp               = state->state[1][0];
-  state->state[1][0] = state->state[1][1];
-  state->state[1][1] = state->state[1][2];
-  state->state[1][2] = state->state[1][3];
-  state->state[1][3] = temp;
-
-  // Left rotate row 2 by 2
-  temp               = state->state[2][0];
-  state->state[2][0] = state->state[2][2];
-  state->state[2][2] = temp;
-  temp               = state->state[2][1];
-  state->state[2][1] = state->state[2][3];
-  state->state[2][3] = temp;
-
-  // Left rotate row 3 by 3
-  temp               = state->state[3][0];
-  state->state[3][0] = state->state[3][3];
-  state->state[3][3] = state->state[3][2];
-  state->state[3][2] = state->state[3][1];
-  state->state[3][1] = temp;
-}
-
-/*********************************************************************
-    Name: mix_column
-
-    Description: Mix column transformation.
-
-    Document Reference: 35.206 v10.0.0 Annex 3
-*********************************************************************/
-void mix_column(STATE_STRUCT* state)
-{
-  uint32 i;
-  uint8  temp;
-  uint8  tmp0;
-  uint8  tmp;
-
-  for (i = 0; i < 4; i++) {
-    temp = state->state[0][i] ^ state->state[1][i] ^ state->state[2][i] ^ state->state[3][i];
-    tmp0 = state->state[0][i];
-
-    tmp = X_TIME[state->state[0][i] ^ state->state[1][i]];
-    state->state[0][i] ^= temp ^ tmp;
-
-    tmp = X_TIME[state->state[1][i] ^ state->state[2][i]];
-    state->state[1][i] ^= temp ^ tmp;
-
-    tmp = X_TIME[state->state[2][i] ^ state->state[3][i]];
-    state->state[2][i] ^= temp ^ tmp;
-
-    tmp = X_TIME[state->state[3][i] ^ tmp0];
-    state->state[3][i] ^= temp ^ tmp;
-  }
 }
 
 /*********************************************************************
