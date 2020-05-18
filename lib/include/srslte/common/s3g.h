@@ -18,6 +18,17 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
+/*
+ * Adapted from ETSI/SAGE specifications:
+ * "Specification of the 3GPP Confidentiality and
+ * Integrity Algorithms UEA2 & UIA2.
+ * Document 1: UEA2 and UIA2 Specification"
+ * "Specification of the 3GPP Confidentiality
+ * and Integrity Algorithms UEA2 & UIA2.
+ * Document 2: SNOW 3G Specification"
+ */
+
 #ifndef SRSLTE_S3G_H
 #define SRSLTE_S3G_H
 
@@ -26,18 +37,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-/*---------------------------------------------------------
- * s3g.h
- *
- * Adapted from ETSI/SAGE specifications:
- * "Specification of the 3GPP Confidentiality and
- * Integrity Algorithms UEA2 & UIA2.
- * Document 1: UEA2 and UIA2 Specification"
- * "Specification of the 3GPP Confidentiality
- * and Integrity Algorithms UEA2 & UIA2.
- * Document 2: SNOW 3G Specification"
- *---------------------------------------------------------*/
 
 typedef struct {
   uint32_t* lfsr;
