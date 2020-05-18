@@ -183,7 +183,7 @@ u32 F(zuc_state_t* state)
 
 /* initialize */
 
-void zuc_initialize(zuc_state_t* state, u8* k, u8* iv)
+void zuc_initialize(zuc_state_t* state, const u8* k, u8* iv)
 {
   u32 w, nCount;
 

@@ -42,7 +42,7 @@ typedef struct {
   u32 BRC_X3;
 } zuc_state_t;
 
-void zuc_initialize(zuc_state_t* state, u8* k, u8* iv);
+void zuc_initialize(zuc_state_t* state, const u8* k, u8* iv);
 void zuc_generate_keystream(zuc_state_t* state, int key_stream_len, u32* p_keystream);
 
 #endif // SRSLTE_ZUC_H

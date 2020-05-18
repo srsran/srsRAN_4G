@@ -35,13 +35,13 @@ set(SOURCES arch_select.cc
             rlc_pcap.cc
             s1ap_pcap.cc
             security.cc
-            snow_3g.cc
             thread_pool.cc
             threads.c
             tti_sync_cv.cc
             time_prof.cc
             version.c
-            zuc.cc)
+            zuc.cc
+            s3g.cc)
 
 if (ENABLE_5GNR)
   set(SOURCES ${SOURCES} mac_nr_pcap.cc)

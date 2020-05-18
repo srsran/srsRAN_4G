@@ -179,6 +179,13 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_up(uint8*                          
 // Enums
 // Structs
 // Functions
+LIBLTE_ERROR_ENUM liblte_security_128_eia1(const uint8* key,
+                                           uint32       count,
+                                           uint8        bearer,
+                                           uint8        direction,
+                                           uint8*       msg,
+                                           uint32       msg_len,
+                                           uint8*       mac);
 LIBLTE_ERROR_ENUM liblte_security_128_eia2(const uint8* key,
                                            uint32       count,
                                            uint8        bearer,
@@ -186,19 +193,26 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(const uint8* key,
                                            uint8*       msg,
                                            uint32       msg_len,
                                            uint8*       mac);
-LIBLTE_ERROR_ENUM liblte_security_128_eia2(uint8*                 key,
+LIBLTE_ERROR_ENUM liblte_security_128_eia2(const uint8* key,
+                                           uint32       count,
+                                           uint8        bearer,
+                                           uint8        direction,
+                                           uint8*       msg,
+                                           uint32       msg_len,
+                                           uint8*       mac);
+LIBLTE_ERROR_ENUM liblte_security_128_eia2(const uint8*           key,
                                            uint32                 count,
                                            uint8                  bearer,
                                            uint8                  direction,
                                            LIBLTE_BIT_MSG_STRUCT* msg,
                                            uint8*                 mac);
-LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key,
-                                           uint32 count,
-                                           uint8  bearer,
-                                           uint8  direction,
-                                           uint8* msg,
-                                           uint32 msg_len,
-                                           uint8* mac);
+LIBLTE_ERROR_ENUM liblte_security_128_eia3(const uint8* key,
+                                           uint32       count,
+                                           uint8        bearer,
+                                           uint8        direction,
+                                           uint8*       msg,
+                                           uint32       msg_len,
+                                           uint8*       mac);
 
 /*********************************************************************
     Name: liblte_security_encryption_eea1
