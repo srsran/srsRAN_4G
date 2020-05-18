@@ -22,10 +22,10 @@
 #define SRSLTE_S3G_H
 
 #include <math.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
 
 /*---------------------------------------------------------
  * s3g.h
@@ -53,7 +53,6 @@ typedef struct {
 
 void s3g_initialize(S3G_STATE* state, uint32_t k[4], uint32_t iv[4]);
 
-
 /*********************************************************************
     Name: s3g_deinitialize
 
@@ -64,7 +63,6 @@ void s3g_initialize(S3G_STATE* state, uint32_t k[4], uint32_t iv[4]);
 *********************************************************************/
 void s3g_deinitialize(S3G_STATE* state);
 
-
 /* Generation of Keystream.
  * input n: number of 32-bit words of keystream.
  * input z: space for the generated keystream, assumes
@@ -72,7 +70,6 @@ void s3g_deinitialize(S3G_STATE* state);
  * output: generated keystream which is filled in z
  * See section 4.2.
  */
-
 
 void s3g_generate_keystream(S3G_STATE* state, uint32_t n, uint32_t* ks);
 

@@ -21,7 +21,6 @@
 
 #include "srslte/common/s3g.h"
 
-
 /* S-box SQ */
 static const uint8_t SQ[256] = {
     0x25, 0x24, 0x73, 0x67, 0xD7, 0xAE, 0x5C, 0x30, 0xA4, 0xEE, 0x6E, 0xCB, 0x7D, 0xB5, 0x82, 0xDB, 0xE4, 0x8E, 0x48,
@@ -140,8 +139,6 @@ void s3g_clock_lfsr(S3G_STATE* state, uint32_t f);
 *********************************************************************/
 uint32_t s3g_clock_fsm(S3G_STATE* state);
 
-
-
 /*********************************************************************
     Name: s3g_deinitialize
 
@@ -162,12 +159,6 @@ void s3g_deinitialize(S3G_STATE* state);
                             Section 4.2
 *********************************************************************/
 void s3g_generate_keystream(S3G_STATE* state, uint32_t n, uint32_t* ks);
-
-
-
-
-
-
 
 /*********************************************************************
     Name: s3g_mul_x
@@ -301,8 +292,8 @@ uint32_t s3g_s2(uint32_t w)
 void s3g_clock_lfsr(S3G_STATE* state, uint32_t f)
 {
   uint32_t v = (((state->lfsr[0] << 8) & 0xffffff00) ^ (s3g_mul_alpha((uint8_t)((state->lfsr[0] >> 24) & 0xff))) ^
-              (state->lfsr[2]) ^ ((state->lfsr[11] >> 8) & 0x00ffffff) ^
-              (s3g_div_alpha((uint8_t)((state->lfsr[11]) & 0xff))) ^ (f));
+                (state->lfsr[2]) ^ ((state->lfsr[11] >> 8) & 0x00ffffff) ^
+                (s3g_div_alpha((uint8_t)((state->lfsr[11]) & 0xff))) ^ (f));
   uint8_t  i;
 
   for (i = 0; i < 15; i++) {
@@ -417,7 +408,6 @@ void s3g_generate_keystream(S3G_STATE* state, uint32_t n, uint32_t* ks)
   }
 }
 
-
 /* MUL64x.
  * Input V: a 64-bit input.
  * Input c: a 64-bit input.
@@ -462,7 +452,7 @@ uint64_t s3g_MUL64xPOW(uint64_t V, uint8_t i, uint64_t c)
 uint64_t s3g_MUL64(uint64_t V, uint64_t P, uint64_t c)
 {
   uint64_t result = 0;
-  int i      = 0;
+  int      i      = 0;
 
   for (i = 0; i < 64; i++) {
     if ((P >> i) & 0x1)
@@ -501,11 +491,11 @@ uint8_t* s3g_f9(uint8_t* key, uint32_t count, uint32_t fresh, uint32_t dir, uint
   uint64_t       P;
   uint64_t       Q;
   uint64_t       c;
-  S3G_STATE         state, *state_ptr;
+  S3G_STATE      state, *state_ptr;
 
   uint64_t M_D_2;
-  int rem_bits = 0;
-  state_ptr        = &state;
+  int      rem_bits = 0;
+  state_ptr         = &state;
   /* Load the Integrity Key for SNOW3G initialization as in section 4.4. */
   for (i = 0; i < 4; i++)
     K[3 - i] = (key[4 * i] << 24) ^ (key[4 * i + 1] << 16) ^ (key[4 * i + 2] << 8) ^ (key[4 * i + 3]);
@@ -536,9 +526,9 @@ uint8_t* s3g_f9(uint8_t* key, uint32_t count, uint32_t fresh, uint32_t dir, uint
 
   /* for 0 <= i <= D-3 */
   for (i = 0; i < D - 2; i++) {
-    V = EVAL ^
-        ((uint64_t)data[8 * i] << 56 | (uint64_t)data[8 * i + 1] << 48 | (uint64_t)data[8 * i + 2] << 40 | (uint64_t)data[8 * i + 3] << 32 |
-         (uint64_t)data[8 * i + 4] << 24 | (uint64_t)data[8 * i + 5] << 16 | (uint64_t)data[8 * i + 6] << 8 | (uint64_t)data[8 * i + 7]);
+    V    = EVAL ^ ((uint64_t)data[8 * i] << 56 | (uint64_t)data[8 * i + 1] << 48 | (uint64_t)data[8 * i + 2] << 40 |
+                (uint64_t)data[8 * i + 3] << 32 | (uint64_t)data[8 * i + 4] << 24 | (uint64_t)data[8 * i + 5] << 16 |
+                (uint64_t)data[8 * i + 6] << 8 | (uint64_t)data[8 * i + 7]);
     EVAL = s3g_MUL64(V, P, c);
   }
 
