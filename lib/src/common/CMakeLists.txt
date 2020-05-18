@@ -35,7 +35,6 @@ set(SOURCES arch_select.cc
             rlc_pcap.cc
             s1ap_pcap.cc
             security.cc
-            snow_3g.cc
             thread_pool.cc
             threads.c
             tti_sync_cv.cc
