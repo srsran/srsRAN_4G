@@ -115,12 +115,10 @@ public:
     running = false;
     while (nof_threads_waiting > 0) {
       uint32_t size = queues.size();
-      lock.unlock();
       cv_empty.notify_one();
       for (uint32_t i = 0; i < size; ++i) {
         queues[i].cv_full.notify_all();
       }
-      lock.lock();
       // wait for all threads to unblock
       cv_exit.wait(lock);
     }
