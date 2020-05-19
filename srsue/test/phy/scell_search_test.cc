@@ -24,6 +24,7 @@
 #include <iostream>
 #include <map>
 #include <memory>
+#include <srslte/common/string_helpers.h>
 #include <srslte/phy/channel/channel.h>
 #include <srslte/phy/utils/random.h>
 #include <srslte/srslte.h>
@@ -388,21 +389,13 @@ static void pci_list_parse_helper(std::string& list_str, std::set<uint32_t>& lis
     }
   } else if (list_str == "none") {
     // Do nothing
-  } else if (!list_str.empty()) {
+  } else if (not list_str.empty()) {
+
     // Remove spaces from neightbour cell list
-    std::size_t p1 = list_str.find(' ');
-    while (p1 != std::string::npos) {
-      list_str.erase(p1);
-      p1 = list_str.find(' ');
-    }
+    list_str = srslte::string_remove_char(list_str, ' ');
 
     // Add cell to known cells
-    std::stringstream ss(list_str);
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      list.insert((uint32_t)strtoul(substr.c_str(), nullptr, 10));
-    }
+    srslte::string_parse_list(list_str, ',', list);
   }
 }
 

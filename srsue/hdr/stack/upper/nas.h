@@ -265,20 +265,6 @@ private:
     return true;
   }
 
-  std::vector<uint8_t> split_string(const std::string input)
-  {
-    std::vector<uint8_t> list;
-    std::stringstream    ss(input);
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      if (not substr.empty()) {
-        list.push_back(strtol(substr.c_str(), nullptr, 10));
-      }
-    }
-    return list;
-  }
-
   class rrc_connect_proc
   {
   public:

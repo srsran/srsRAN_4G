@@ -20,6 +20,7 @@
  */
 
 #include "srslte/radio/radio.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/config.h"
 #include <list>
 #include <string>
@@ -44,18 +45,6 @@ radio::~radio()
   if (zeros) {
     free(zeros);
     zeros = nullptr;
-  }
-}
-
-static inline void split_string(const std::string& input, char delimiter, std::vector<std::string>& list)
-{
-  std::stringstream ss(input);
-  while (ss.good()) {
-    std::string substr;
-    getline(ss, substr, delimiter);
-    if (not substr.empty()) {
-      list.push_back(substr);
-    }
   }
 }
 
@@ -99,7 +88,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
 
   // Split multiple RF channels using `;` delimiter
   std::vector<std::string> device_args_list;
-  split_string(args.device_args, ';', device_args_list);
+  string_parse_list(args.device_args, ',', device_args_list);
 
   // Add auto if list is empty
   if (device_args_list.empty()) {

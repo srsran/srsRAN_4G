@@ -41,17 +41,17 @@
 
 #define SRSLTE_RRC_N_BANDS 43
 typedef struct {
-  std::string ue_category_str;
-  uint32_t    ue_category;
-  int         ue_category_ul;
-  int         ue_category_dl;
-  uint32_t    release;
-  uint32_t    feature_group;
-  uint8_t     supported_bands[SRSLTE_RRC_N_BANDS];
-  uint32_t    nof_supported_bands;
-  bool        support_ca;
-  int         mbms_service_id;
-  uint32_t    mbms_service_port;
+  std::string                             ue_category_str;
+  uint32_t                                ue_category;
+  int                                     ue_category_ul;
+  int                                     ue_category_dl;
+  uint32_t                                release;
+  uint32_t                                feature_group;
+  std::array<uint8_t, SRSLTE_RRC_N_BANDS> supported_bands;
+  uint32_t                                nof_supported_bands;
+  bool                                    support_ca;
+  int                                     mbms_service_id;
+  uint32_t                                mbms_service_port;
 } rrc_args_t;
 
 #define SRSLTE_UE_CATEGORY_DEFAULT "4"

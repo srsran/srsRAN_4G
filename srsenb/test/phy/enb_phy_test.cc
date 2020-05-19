@@ -24,6 +24,7 @@
 #include <iostream>
 #include <mutex>
 #include <srsenb/hdr/phy/phy.h>
+#include <srslte/common/string_helpers.h>
 #include <srslte/common/test_common.h>
 #include <srslte/common/threads.h>
 #include <srslte/interfaces/enb_interfaces.h>
@@ -1395,14 +1396,7 @@ int parse_args(int argc, char** argv, phy_test_bench::args_t& args)
 
   // populate UE Active cell list
   if (not args.ue_cell_list_str.empty()) {
-    args.ue_cell_list.clear();
-    std::stringstream ss(args.ue_cell_list_str);
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      auto pci = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
-      args.ue_cell_list.push_back(pci);
-    }
+    srslte::string_parse_list(args.ue_cell_list_str, ',', args.ue_cell_list);
   } else {
     return SRSLTE_ERROR;
   }

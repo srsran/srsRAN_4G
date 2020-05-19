@@ -21,15 +21,13 @@
 
 #include "srsue/hdr/ue.h"
 #include "srslte/build_info.h"
+#include "srslte/common/string_helpers.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include <algorithm>
 #include <iostream>
-#include <iterator>
-#include <pthread.h>
-#include <sstream>
 #include <string>
 
 using namespace srslte;
@@ -53,7 +51,7 @@ ue::~ue()
 int ue::init(const all_args_t& args_, srslte::logger* logger_)
 {
   int ret = SRSLTE_SUCCESS;
-  logger = logger_;
+  logger  = logger_;
 
   // Init UE log
   log.init("UE  ", logger);
@@ -174,17 +172,19 @@ int ue::parse_args(const all_args_t& args_)
   args.phy.agc_enable   = args.rf.rx_gain < 0.0f;
 
   // populate DL EARFCN list
-  if (!args.phy.dl_earfcn.empty()) {
-    args.phy.dl_earfcn_list.clear();
-    std::stringstream ss(args.phy.dl_earfcn);
-    uint32_t          idx = 0;
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      uint32_t earfcn                     = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
-      args.stack.rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
-      args.stack.rrc.nof_supported_bands  = ++idx;
-      args.phy.dl_earfcn_list.push_back(earfcn);
+  if (not args.phy.dl_earfcn.empty()) {
+    // Parse DL-EARFCN list
+    srslte::string_parse_list(args.phy.dl_earfcn, ',', args.phy.dl_earfcn_list);
+
+    // Populates supported bands
+    args.stack.rrc.nof_supported_bands = 0;
+    for (uint32_t& earfcn : args.phy.dl_earfcn_list) {
+      uint8_t band = srslte_band_get_band(earfcn);
+      // Try to find band, if not appends it
+      if (std::find(args.stack.rrc.supported_bands.begin(), args.stack.rrc.supported_bands.end(), band) ==
+          args.stack.rrc.supported_bands.end()) {
+        args.stack.rrc.supported_bands[args.stack.rrc.nof_supported_bands++] = band;
+      }
     }
   } else {
     log.error("Error: dl_earfcn list is empty\n");
@@ -193,21 +193,14 @@ int ue::parse_args(const all_args_t& args_)
   }
 
   // populate UL EARFCN list
-  if (!args.phy.ul_earfcn.empty()) {
-    args.phy.ul_earfcn_map.clear();
-    std::stringstream ss(args.phy.ul_earfcn);
-    uint32_t          idx = 0;
-    while (ss.good()) {
-      std::string substr;
-      getline(ss, substr, ',');
-      uint32_t ul_earfcn = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
+  if (not args.phy.ul_earfcn.empty()) {
+    std::vector<uint32_t> ul_earfcn_list;
+    srslte::string_parse_list(args.phy.ul_earfcn, ',', ul_earfcn_list);
 
-      if (idx < args.phy.dl_earfcn_list.size()) {
-        // If it can be matched with a DL EARFCN, otherwise ignore entry
-        uint32_t dl_earfcn                = args.phy.dl_earfcn_list[idx];
-        args.phy.ul_earfcn_map[dl_earfcn] = ul_earfcn;
-        idx++;
-      }
+    // For each parsed UL-EARFCN links it to the corresponding DL-EARFCN
+    args.phy.ul_earfcn_map.clear();
+    for (size_t i = 0; i < SRSLTE_MIN(ul_earfcn_list.size(), args.phy.dl_earfcn_list.size()); i++) {
+      args.phy.ul_earfcn_map[args.phy.dl_earfcn_list[i]] = ul_earfcn_list[i];
     }
   }
 

@@ -22,6 +22,7 @@
 #include "srsue/hdr/stack/upper/nas.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
+#include "srslte/common/string_helpers.h"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -261,7 +262,8 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   }
 
   // parse and sanity check EIA list
-  std::vector<uint8_t> cap_list = split_string(cfg_.eia);
+  std::vector<uint8_t> cap_list;
+  srslte::string_parse_list(cfg_.eia, ',', cap_list);
   if (cap_list.empty()) {
     nas_log->error("Empty EIA list. Select at least one EIA algorithm.\n");
   }
@@ -274,7 +276,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   }
 
   // parse and sanity check EEA list
-  cap_list = split_string(cfg_.eea);
+  srslte::string_parse_list(cfg_.eea, ',', cap_list);
   if (cap_list.empty()) {
     nas_log->error("Empty EEA list. Select at least one EEA algorithm.\n");
   }
