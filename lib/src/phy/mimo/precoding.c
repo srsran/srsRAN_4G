@@ -2822,9 +2822,11 @@ float srslte_precoding_2x2_cn_gen(cf_t* h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], u
     cf_t h10 = h[0][1][i];
     cf_t h11 = h[1][1][i];
 
-    cn_avg += srslte_mat_2x2_cn(h00, h01, h10, h11);
-
-    count++;
+    float cn = 0.0f;
+    if (srslte_mat_2x2_cn(h00, h01, h10, h11, &cn) == SRSLTE_SUCCESS) {
+      cn_avg += cn;
+      count++;
+    }
   }
 
   if (count) {

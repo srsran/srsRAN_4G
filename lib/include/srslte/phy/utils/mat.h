@@ -65,7 +65,7 @@ SRSLTE_API void srslte_mat_2x2_mmse_csi_gen(cf_t   y0,
                                             float  noise_estimate,
                                             float  norm);
 
-SRSLTE_API float srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11);
+SRSLTE_API int srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11, float* cn);
 
 #ifdef LV_HAVE_SSE
 

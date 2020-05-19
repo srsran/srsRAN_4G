@@ -124,7 +124,7 @@ void srslte_mat_2x2_mmse_gen(cf_t  y0,
   srslte_mat_2x2_mmse_csi_gen(y0, y1, h00, h01, h10, h11, x0, x1, &csi0, &csi1, noise_estimate, norm);
 }
 
-inline float srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11)
+int srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11, float* cn)
 {
   // 1. A = H * H' (A = A')
   float a00 =
@@ -142,16 +142,20 @@ inline float srslte_mat_2x2_cn(cf_t h00, cf_t h01, cf_t h10, cf_t h11)
   float xmax = b + sqr;
   float xmin = b - sqr;
 
-  // 4. Bound xmin and xmax
-  if (!isnormal(xmin) || xmin < 1e-9) {
-    xmin = 1e-9;
-  }
-  if (!isnormal(xmax) || xmax > 1e+9) {
-    xmax = 1e+9;
+  // 4. Make sure NAN or INF are not propagated
+  if (isnan(xmin) || isinf(xmin) || isnan(xmax) || isinf(xmax)) {
+    return SRSLTE_ERROR;
   }
 
-  // 5. κ = sqrt(λ_max / λ_min)
-  return 10.0f * log10f(xmax / xmin);
+  // 5. Bound xmin and xmax
+  xmin = SRSLTE_MAX(xmin, 1e-9f);
+  xmax = SRSLTE_MIN(xmax, 1e+9f);
+
+  // 6. κ = sqrt(λ_max / λ_min)
+  if (cn != NULL) {
+    *cn = 10.0f * log10f(xmax / xmin);
+  }
+  return SRSLTE_SUCCESS;
 }
 
 #ifdef LV_HAVE_SSE
@@ -288,8 +292,8 @@ inline void srslte_mat_2x2_zf_avx(__m256  y0,
   *x0 = _MM256_PROD_PS(_MM256_PROD_SUB_PS(h11, y0, _MM256_PROD_PS(h01, y1)), detrec);
   *x1 = _MM256_PROD_PS(_MM256_PROD_SUB_PS(h00, y1, _MM256_PROD_PS(h10, y0)), detrec);
 #else
-  *x0        = _MM256_PROD_PS(_mm256_sub_ps(_MM256_PROD_PS(h11, y0), _MM256_PROD_PS(h01, y1)), detrec);
-  *x1        = _MM256_PROD_PS(_mm256_sub_ps(_MM256_PROD_PS(h00, y1), _MM256_PROD_PS(h10, y0)), detrec);
+  *x0                = _MM256_PROD_PS(_mm256_sub_ps(_MM256_PROD_PS(h11, y0), _MM256_PROD_PS(h01, y1)), detrec);
+  *x1                = _MM256_PROD_PS(_mm256_sub_ps(_MM256_PROD_PS(h00, y1), _MM256_PROD_PS(h10, y0)), detrec);
 #endif /* LV_HAVE_FMA */
 }
 
@@ -353,8 +357,8 @@ inline void srslte_mat_2x2_mmse_avx(__m256  y0,
   *x0 = _MM256_PROD_PS(_MM256_PROD_ADD_PS(y0, w00, _MM256_PROD_PS(y1, w01)), _norm);
   *x1 = _MM256_PROD_PS(_MM256_PROD_ADD_PS(y0, w10, _MM256_PROD_PS(y1, w11)), _norm);
 #else
-  *x0        = _MM256_PROD_PS(_mm256_add_ps(_MM256_PROD_PS(y0, w00), _MM256_PROD_PS(y1, w01)), _norm);
-  *x1        = _MM256_PROD_PS(_mm256_add_ps(_MM256_PROD_PS(y0, w10), _MM256_PROD_PS(y1, w11)), _norm);
+  *x0                = _MM256_PROD_PS(_mm256_add_ps(_MM256_PROD_PS(y0, w00), _MM256_PROD_PS(y1, w01)), _norm);
+  *x1                = _MM256_PROD_PS(_mm256_add_ps(_MM256_PROD_PS(y0, w10), _MM256_PROD_PS(y1, w11)), _norm);
 #endif /* LV_HAVE_FMA */
 }
 
@@ -446,9 +450,8 @@ static inline void srslte_vec_sub_ccc_simd_inline(const cf_t* x, const cf_t* y, 
 
 static inline cf_t reciprocal(cf_t x)
 {
-  cf_t y = 0.0f;
-
-  float mod  = __real__ x * __real__ x + __imag__ x * __imag__ x;
+  cf_t  y   = 0.0f;
+  float mod = __real__ x * __real__ x + __imag__ x * __imag__ x;
 
   if (isnormal(mod)) {
     __real__ y = (__real__ x) / mod;
