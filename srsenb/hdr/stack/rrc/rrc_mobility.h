@@ -23,6 +23,7 @@
 #define SRSENB_RRC_MOBILITY_H
 
 #include "rrc.h"
+#include "rrc_ue.h"
 #include "srslte/common/logmap.h"
 #include <map>
 
