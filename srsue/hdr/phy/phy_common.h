@@ -141,7 +141,6 @@ public:
   void worker_end(void*                   h,
                   bool                    tx_enable,
                   srslte::rf_buffer_t&    buffer,
-                  uint32_t                nof_samples,
                   srslte::rf_timestamp_t& tx_time);
 
   void set_cell(const srslte_cell_t& c);

@@ -524,7 +524,6 @@ bool phy_common::get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srs
 void phy_common::worker_end(void*                   tx_sem_id,
                             bool                    tx_enable,
                             srslte::rf_buffer_t&    buffer,
-                            uint32_t                nof_samples,
                             srslte::rf_timestamp_t& tx_time)
 {
   // Wait for the green light to transmit in the current TTI
@@ -537,10 +536,10 @@ void phy_common::worker_end(void*                   tx_sem_id,
   if (tx_enable) {
 
     if (ul_channel) {
-      ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), nof_samples, tx_time.get(0));
+      ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
     }
 
-    radio_h->tx(buffer, nof_samples, tx_time);
+    radio_h->tx(buffer, tx_time);
   } else {
     if (radio_h->is_continuous_tx()) {
       if (is_pending_tx_end) {
@@ -550,11 +549,12 @@ void phy_common::worker_end(void*                   tx_sem_id,
         if (!radio_h->get_is_start_of_burst()) {
 
           if (ul_channel) {
-            srslte_vec_cf_zero(zeros_multi.get(0), nof_samples);
-            ul_channel->run(zeros_multi.to_cf_t(), zeros_multi.to_cf_t(), nof_samples, tx_time.get(0));
+            srslte_vec_cf_zero(zeros_multi.get(0), buffer.get_nof_samples());
+            ul_channel->run(zeros_multi.to_cf_t(), zeros_multi.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
           }
 
-          radio_h->tx(zeros_multi, nof_samples, tx_time);
+          zeros_multi.set_nof_samples(buffer.get_nof_samples());
+          radio_h->tx(zeros_multi, tx_time);
         }
       }
     } else {

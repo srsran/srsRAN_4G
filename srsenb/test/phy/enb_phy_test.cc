@@ -188,15 +188,14 @@ public:
   }
 
   bool tx(srslte::rf_buffer_interface&          buffer,
-          const uint32_t&                       nof_samples,
           const srslte::rf_timestamp_interface& tx_time) override
   {
     int err = SRSLTE_SUCCESS;
 
     // Get number of bytes to write
-    uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * nof_samples;
+    uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * buffer.get_nof_samples();
 
-    log_h.debug("tx %d\n", nof_samples);
+    log_h.debug("tx %d\n", buffer.get_nof_samples());
 
     // Write ring buffer
     for (uint32_t i = 0; i < ringbuffers_tx.size() and err >= SRSLTE_SUCCESS; i++) {
@@ -211,15 +210,14 @@ public:
   }
   void tx_end() override {}
   bool rx_now(srslte::rf_buffer_interface&    buffer,
-              const uint32_t&                 nof_samples,
               srslte::rf_timestamp_interface& rxd_time) override
   {
     int err = SRSLTE_SUCCESS;
 
-    log_h.info("rx_now %d\n", nof_samples);
+    log_h.info("rx_now %d\n", buffer.get_nof_samples());
 
     // Get number of bytes to read
-    uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * nof_samples;
+    uint32_t nbytes = static_cast<uint32_t>(sizeof(cf_t)) * buffer.get_nof_samples();
 
     // Write ring buffer
     for (uint32_t i = 0; i < ringbuffers_rx.size() and err >= SRSLTE_SUCCESS; i++) {
@@ -233,7 +231,7 @@ public:
 
     // Copy new timestamp
     if (std::isnormal(rx_srate)) {
-      ts_rx.add(static_cast<double>(nof_samples) / rx_srate);
+      ts_rx.add(static_cast<double>(buffer.get_nof_samples()) / rx_srate);
     }
 
     // Notify Rx

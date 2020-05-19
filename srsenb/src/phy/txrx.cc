@@ -133,7 +133,8 @@ void txrx::run_thread()
         }
       }
 
-      radio_h->rx_now(buffer, sf_len, timestamp);
+      buffer.set_nof_samples(sf_len);
+      radio_h->rx_now(buffer, timestamp);
 
       if (ul_channel) {
         ul_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), sf_len, timestamp.get(0));

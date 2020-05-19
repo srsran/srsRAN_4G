@@ -179,7 +179,7 @@ void sf_worker::work_imp()
   }
 
   if (!running) {
-    phy->worker_end(this, tx_buffer, 0, tx_time);
+    phy->worker_end(this, tx_buffer, tx_time);
     return;
   }
 
@@ -212,14 +212,14 @@ void sf_worker::work_imp()
   if (sf_type == SRSLTE_SF_NORM) {
     if (stack->get_dl_sched(tti_tx_dl, dl_grants) < 0) {
       Error("Getting DL scheduling from MAC\n");
-      phy->worker_end(this, tx_buffer, 0, tx_time);
+      phy->worker_end(this, tx_buffer, tx_time);
       return;
     }
   } else {
     dl_grants[0].cfi = mbsfn_cfg.non_mbsfn_region_length;
     if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, dl_grants)) {
       Error("Getting MCH packets from MAC\n");
-      phy->worker_end(this, tx_buffer, 0, tx_time);
+      phy->worker_end(this, tx_buffer, tx_time);
       return;
     }
   }
@@ -231,7 +231,7 @@ void sf_worker::work_imp()
   // Get UL scheduling for the TX TTI from MAC
   if (stack->get_ul_sched(tti_tx_ul, ul_grants_tx) < 0) {
     Error("Getting UL scheduling from MAC\n");
-    phy->worker_end(this, tx_buffer, 0, tx_time);
+    phy->worker_end(this, tx_buffer, tx_time);
     return;
   }
 
@@ -254,7 +254,8 @@ void sf_worker::work_imp()
   phy->set_ul_grants(t_rx, ul_grants);
 
   Debug("Sending to radio\n");
-  phy->worker_end(this, tx_buffer, SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)), tx_time);
+  tx_buffer.set_nof_samples(SRSLTE_SF_LEN_PRB(phy->get_nof_prb(0)));
+  phy->worker_end(this, tx_buffer, tx_time);
 
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);

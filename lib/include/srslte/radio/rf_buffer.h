@@ -57,17 +57,22 @@ public:
    * contain up to SRSLTE_MAX_CHANNELS pointers
    * @param data Flat array to use as initializer for the internal buffer pointers
    */
-  explicit rf_buffer_t(cf_t* data[SRSLTE_MAX_CHANNELS])
+  explicit rf_buffer_t(cf_t* data[SRSLTE_MAX_CHANNELS], uint32_t nof_samples_)
   {
     for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
       sample_buffer[i] = data[i];
     }
+    nof_samples = nof_samples_;
   }
   /**
    * Creates an object from a single array pointer. The rest of the channel pointers will be left to NULL
    * @param data Flat array to use as initializer for the internal buffer pointers
    */
-  explicit rf_buffer_t(cf_t* data) { sample_buffer[0] = data; }
+  explicit rf_buffer_t(cf_t* data, uint32_t nof_samples_)
+  {
+    sample_buffer[0] = data;
+    nof_samples      = nof_samples_;
+  }
   /**
    * Default constructor leaves the internal pointers to NULL
    */
@@ -119,11 +124,14 @@ public:
   void**   to_void() override { return (void**)sample_buffer.data(); }
   cf_t**   to_cf_t() override { return sample_buffer.data(); }
   uint32_t size() override { return nof_subframes * SRSLTE_SF_LEN_MAX; }
+  void     set_nof_samples(uint32_t n) override { nof_samples = n; }
+  uint32_t get_nof_samples() const override { return nof_samples; }
 
 private:
   std::array<cf_t*, SRSLTE_MAX_CHANNELS> sample_buffer = {};
   bool                                   allocated     = false;
   uint32_t                               nof_subframes = 0;
+  uint32_t                               nof_samples   = 0;
   void                                   free_all()
   {
     for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {

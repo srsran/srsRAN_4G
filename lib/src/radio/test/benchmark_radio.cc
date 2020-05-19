@@ -39,7 +39,7 @@ using namespace srslte;
 
 #define SRSLTE_MAX_RADIOS 3
 
-static char radios_args[SRSLTE_MAX_RADIOS][64] = {"auto", "auto", "auto"};
+static std::array<std::string, SRSLTE_MAX_RADIOS> radios_args = {"auto", "auto", "auto"};
 static char radio_device[64];
 
 static log_filter  log_h;
@@ -77,9 +77,9 @@ void usage(char* prog)
   printf("Usage: %s [foabcderpstvhmFxw]\n", prog);
   printf("\t-f Carrier frequency in Hz [Default %f]\n", freq);
   printf("\t-g RF gain [Default AGC]\n");
-  printf("\t-a Arguments for first radio [Default %s]\n", radios_args[0]);
-  printf("\t-b Arguments for second radio [Default %s]\n", radios_args[1]);
-  printf("\t-c Arguments for third radio [Default %s]\n", radios_args[2]);
+  printf("\t-a Arguments for first radio [Default %s]\n", radios_args[0].c_str());
+  printf("\t-b Arguments for second radio [Default %s]\n", radios_args[1].c_str());
+  printf("\t-c Arguments for third radio [Default %s]\n", radios_args[2].c_str());
   printf("\t-d Radio device [Default %s]\n", radio_device);
   printf("\t-r number of radios 1-%d [Default %d]\n", SRSLTE_MAX_RADIOS, nof_radios);
   printf("\t-p number of ports 1-%d [Default %d]\n", SRSLTE_MAX_PORTS, nof_ports);
@@ -111,16 +111,13 @@ void parse_args(int argc, char** argv)
         file_pattern = argv[optind];
         break;
       case 'a':
-        strncpy(radios_args[0], argv[optind], 63);
-        radios_args[0][63] = '\0';
+        radios_args[0] = std::string(argv[optind]);
         break;
       case 'b':
-        strncpy(radios_args[1], argv[optind], 63);
-        radios_args[1][63] = '\0';
+        radios_args[1] = std::string(argv[optind]);
         break;
       case 'c':
-        strncpy(radios_args[2], argv[optind], 63);
-        radios_args[2][63] = '\0';
+        radios_args[2] = std::string(argv[optind]);
         break;
       case 'd':
         strncpy(radio_device, argv[optind], 63);
@@ -409,7 +406,8 @@ int main(int argc, char** argv)
 
     // receive each radio
     for (uint32_t r = 0; r < nof_radios; r++) {
-      radio_h[r]->rx_now(rf_buffers[r], frame_size, ts_rx[r]);
+      rf_buffers[r].set_nof_samples(frame_size);
+      radio_h[r]->rx_now(rf_buffers[r], ts_rx[r]);
     }
 
     // run agc
@@ -424,7 +422,8 @@ int main(int argc, char** argv)
       for (uint32_t r = 0; r < nof_radios; r++) {
         ts_tx.copy(ts_rx[r]);
         ts_tx.add(0.004);
-        radio_h[r]->tx(rf_buffers[r], frame_size, ts_tx);
+        rf_buffers[r].set_nof_samples(frame_size);
+        radio_h[r]->tx(rf_buffers[r], ts_tx);
       }
     }
 

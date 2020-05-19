@@ -42,7 +42,7 @@ static inline std::string string_remove_char(const std::string& input, char c)
 
   while (p1 != std::string::npos) {
     ret.erase(p1);
-    p1 = ret.find(' ');
+    p1 = ret.find(c);
   }
 
   return ret;

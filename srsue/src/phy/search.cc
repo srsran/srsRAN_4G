@@ -39,8 +39,8 @@ namespace srsue {
 static int
 radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_CHANNELS], uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
-  srslte::rf_buffer_t x(data);
-  return ((search_callback*)obj)->radio_recv_fnc(x, nsamples, rx_time);
+  srslte::rf_buffer_t x(data, nsamples);
+  return ((search_callback*)obj)->radio_recv_fnc(x, rx_time);
 }
 
 static SRSLTE_AGC_CALLBACK(callback_set_rx_gain)

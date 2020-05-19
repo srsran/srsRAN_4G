@@ -56,6 +56,8 @@ public:
   virtual void**   to_void()                                                                                      = 0;
   virtual cf_t**   to_cf_t()                                                                                      = 0;
   virtual uint32_t size()                                                                                         = 0;
+  virtual void     set_nof_samples(uint32_t n)                                                                    = 0;
+  virtual uint32_t get_nof_samples() const                                                                        = 0;
 };
 
 /**
@@ -119,22 +121,20 @@ public:
    * the buffer object.
    *
    * @param buffer Is the object that contains the pointers to all RF channels
-   * @param nof_samples Number of samples to transmit on all carriers and antennas
    * @param tx_time Time to transmit all signals
    * @return it returns true if the transmission was successful, otherwise it returns false
    */
-  virtual bool tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const rf_timestamp_interface& tx_time) = 0;
+  virtual bool tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_time) = 0;
 
   /**
    * Indicates the radio to receive from all antennas and carriers synchronously and store the samples
    * in the buffer object
    *
    * @param buffer Is the object where the samples will be stored
-   * @param nof_samples Number of samples to receive from all carriers and antennas
    * @param tx_time Time at which the samples were received. Note the time is the same for all carriers
    * @return
    */
-  virtual bool rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, rf_timestamp_interface& rxd_time) = 0;
+  virtual bool rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time) = 0;
 
   /**
    * Sets the TX frequency for all antennas in the provided carrier index

@@ -60,8 +60,8 @@ public:
 
   // trx functions
   void tx_end() override;
-  bool tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const rf_timestamp_interface& tx_time) override;
-  bool rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, rf_timestamp_interface& rxd_time) override;
+  bool tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_time) override;
+  bool rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time) override;
 
   // setter
   void set_tx_freq(const uint32_t& carrier_idx, const double& freq) override;
@@ -165,7 +165,6 @@ private:
    */
   bool tx_dev(const uint32_t&           device_idx,
               rf_buffer_interface&      buffer,
-              const uint32_t&           nof_samples_,
               const srslte_timestamp_t& tx_time_);
 
   /**
@@ -174,13 +173,11 @@ private:
    *
    * @param device_idx Device index
    * @param buffer Common receive buffers
-   * @param nof_samples Number of samples to receive
    * @param rxd_time Points at the receive time (write only)
    * @return it returns true if the reception was successful, otherwise it returns false
    */
   bool rx_dev(const uint32_t&            device_idx,
               const rf_buffer_interface& buffer,
-              const uint32_t&            nof_samples,
               srslte_timestamp_t*        rxd_time);
 
   /**

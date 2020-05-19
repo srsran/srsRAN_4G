@@ -202,9 +202,9 @@ void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 void sf_worker::work_imp()
 {
 
-  srslte::rf_buffer_t         tx_signal_ptr = {};
+  srslte::rf_buffer_t tx_signal_ptr = {};
   if (!cell_initiated) {
-    phy->worker_end(this, false, tx_signal_ptr, 0, tx_time);
+    phy->worker_end(this, false, tx_signal_ptr, tx_time);
   }
 
   bool     rx_signal_ok    = false;
@@ -255,6 +255,7 @@ void sf_worker::work_imp()
       }
     }
   }
+  tx_signal_ptr.set_nof_samples(nof_samples);
 
   // Set PRACH buffer signal pointer
   if (prach_ptr) {
@@ -264,7 +265,7 @@ void sf_worker::work_imp()
   }
 
   // Call worker_end to transmit the signal
-  phy->worker_end(this, tx_signal_ready, tx_signal_ptr, nof_samples, tx_time);
+  phy->worker_end(this, tx_signal_ready, tx_signal_ptr, tx_time);
 
   if (rx_signal_ok) {
     update_measurements();

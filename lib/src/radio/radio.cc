@@ -88,7 +88,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
 
   // Split multiple RF channels using `;` delimiter
   std::vector<std::string> device_args_list;
-  string_parse_list(args.device_args, ',', device_args_list);
+  string_parse_list(args.device_args, ';', device_args_list);
 
   // Add auto if list is empty
   if (device_args_list.empty()) {
@@ -211,7 +211,7 @@ bool radio::start_agc(bool tx_gain_same_rx)
   return true;
 }
 
-bool radio::rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, rf_timestamp_interface& rxd_time)
+bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time)
 {
   bool ret = true;
 
@@ -223,7 +223,7 @@ bool radio::rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, rf_
   }
 
   for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_devices.size(); device_idx++) {
-    ret &= rx_dev(device_idx, buffer, nof_samples, rxd_time.get_ptr(device_idx));
+    ret &= rx_dev(device_idx, buffer, rxd_time.get_ptr(device_idx));
   }
 
   return ret;
@@ -231,7 +231,6 @@ bool radio::rx_now(rf_buffer_interface& buffer, const uint32_t& nof_samples, rf_
 
 bool radio::rx_dev(const uint32_t&            device_idx,
                    const rf_buffer_interface& buffer,
-                   const uint32_t&            nof_samples,
                    srslte_timestamp_t*        rxd_time)
 {
   if (!is_initialized) {
@@ -247,17 +246,17 @@ bool radio::rx_dev(const uint32_t&            device_idx,
     return false;
   }
 
-  int ret =
-      srslte_rf_recv_with_time_multi(&rf_devices[device_idx], radio_buffers, nof_samples, true, full_secs, frac_secs);
+  int ret = srslte_rf_recv_with_time_multi(
+      &rf_devices[device_idx], radio_buffers, buffer.get_nof_samples(), true, full_secs, frac_secs);
   return ret > 0;
 }
 
-bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples, const rf_timestamp_interface& tx_time)
+bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_time)
 {
   bool ret = true;
 
   for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_devices.size(); device_idx++) {
-    ret &= tx_dev(device_idx, buffer, nof_samples, tx_time.get(device_idx));
+    ret &= tx_dev(device_idx, buffer, tx_time.get(device_idx));
   }
 
   is_start_of_burst = false;
@@ -303,10 +302,9 @@ bool radio::open_dev(const uint32_t& device_idx, const std::string& device_name,
 
 bool radio::tx_dev(const uint32_t&           device_idx,
                    rf_buffer_interface&      buffer,
-                   const uint32_t&           nof_samples_,
                    const srslte_timestamp_t& tx_time_)
 {
-  uint32_t     nof_samples   = nof_samples_;
+  uint32_t     nof_samples   = buffer.get_nof_samples();
   uint32_t     sample_offset = 0;
   srslte_rf_t* rf_device     = &rf_devices[device_idx];
 

@@ -89,7 +89,7 @@ public:
 
   // Other functions
   void set_rx_gain(float gain) override;
-  int  radio_recv_fnc(srslte::rf_buffer_t&, uint32_t nsamples, srslte_timestamp_t* rx_time) override;
+  int  radio_recv_fnc(srslte::rf_buffer_t&, srslte_timestamp_t* rx_time) override;
 
   srslte::radio_interface_phy* get_radio() override { return radio_h; }
 

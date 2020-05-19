@@ -126,7 +126,6 @@ void phy_common::set_ul_grants(uint32_t tti, const stack_interface_phy_lte::ul_s
  */
 void phy_common::worker_end(void*                   tx_sem_id,
                             srslte::rf_buffer_t&    buffer,
-                            uint32_t                nof_samples,
                             srslte::rf_timestamp_t& tx_time)
 {
   // Wait for the green light to transmit in the current TTI
@@ -134,11 +133,11 @@ void phy_common::worker_end(void*                   tx_sem_id,
 
   // Run DL channel emulator if created
   if (dl_channel) {
-    dl_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), nof_samples, tx_time.get(0));
+    dl_channel->run(buffer.to_cf_t(), buffer.to_cf_t(), buffer.get_nof_samples(), tx_time.get(0));
   }
 
   // Always transmit on single radio
-  radio->tx(buffer, nof_samples, tx_time);
+  radio->tx(buffer, tx_time);
 
   // Trigger MAC clock
   stack->tti_clock();

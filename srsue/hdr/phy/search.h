@@ -31,7 +31,7 @@ namespace srsue {
 class search_callback
 {
 public:
-  virtual int  radio_recv_fnc(srslte::rf_buffer_t&, uint32_t nsamples, srslte_timestamp_t* rx_time) = 0;
+  virtual int                          radio_recv_fnc(srslte::rf_buffer_t&, srslte_timestamp_t* rx_time) = 0;
   virtual void set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)                                     = 0;
   virtual srslte::radio_interface_phy* get_radio()                                                  = 0;
   virtual void                         set_rx_gain(float gain)                                      = 0;

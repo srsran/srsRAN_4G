@@ -559,8 +559,8 @@ int main(int argc, char** argv)
 
     if (radio) {
       // Receive radio
-      srslte::rf_buffer_t radio_buffer(baseband_buffer);
-      radio->rx_now(radio_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb), ts);
+      srslte::rf_buffer_t radio_buffer(baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
+      radio->rx_now(radio_buffer, ts);
     } else {
       // Run eNb simulator
       bool put_pdsch = serving_cell_pdsch_enable;

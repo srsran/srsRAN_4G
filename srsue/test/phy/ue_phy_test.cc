@@ -191,9 +191,7 @@ private:
 
     uint32_t get_count_late() { return count_late; }
 
-    bool tx(srslte::rf_buffer_interface&          buffer,
-            const uint32_t&                       nof_samples,
-            const srslte::rf_timestamp_interface& tx_time) override
+    bool tx(srslte::rf_buffer_interface& buffer, const srslte::rf_timestamp_interface& tx_time) override
     {
       bool ret = true;
       notify_tx();
@@ -207,20 +205,20 @@ private:
       }
 
       tx_last_tx.copy(tx_time);
-      tx_last_tx.add((double)nof_samples / (double)tx_srate);
+      if (std::isnormal(tx_srate)) {
+        tx_last_tx.add((double)buffer.get_nof_samples() / (double)tx_srate);
+      }
 
       return ret;
     }
     void release_freq(const uint32_t& carrier_idx) override{};
     void tx_end() override {}
-    bool rx_now(srslte::rf_buffer_interface&    buffer,
-                const uint32_t&                 nof_samples,
-                srslte::rf_timestamp_interface& rxd_time) override
+    bool rx_now(srslte::rf_buffer_interface& buffer, srslte::rf_timestamp_interface& rxd_time) override
     {
       notify_rx_now();
 
       std::lock_guard<std::mutex> lock(mutex);
-      auto                        base_nsamples = (uint32_t)floorf(((float)nof_samples * base_srate) / rx_srate);
+      uint32_t base_nsamples = (uint32_t)floorf(((float)buffer.get_nof_samples() * base_srate) / rx_srate);
 
       for (uint32_t i = 0; i < ring_buffers.size(); i++) {
         cf_t* buf_ptr = ((buffer.get(i) != nullptr) && (base_srate == rx_srate)) ? buffer.get(i) : temp_buffer;
@@ -240,7 +238,7 @@ private:
             auto decimation = (uint32_t)roundf(base_srate / rx_srate);
 
             // Perform decimation
-            for (uint32_t j = 0, k = 0; j < nof_samples; j++, k += decimation) {
+            for (uint32_t j = 0, k = 0; j < buffer.get_nof_samples(); j++, k += decimation) {
               buffer.get(i)[j] = buf_ptr[k];
             }
           } else if (base_srate < rx_srate) {
@@ -248,7 +246,7 @@ private:
             auto interpolation = (uint32_t)roundf(rx_srate / base_srate);
 
             // Perform zero order hold interpolation
-            for (uint32_t j = 0, k = 0; j < nof_samples; k++) {
+            for (uint32_t j = 0, k = 0; j < buffer.get_nof_samples(); k++) {
               for (uint32_t c = 0; c < interpolation; c++, j++) {
                 buffer.get(i)[j] = buf_ptr[k];
               }

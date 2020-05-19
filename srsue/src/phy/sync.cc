@@ -45,8 +45,8 @@ namespace srsue {
 static int
 radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_CHANNELS], uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
-  srslte::rf_buffer_t x(data);
-  return ((sync*)obj)->radio_recv_fnc(x, nsamples, rx_time);
+  srslte::rf_buffer_t x(data, nsamples);
+  return ((sync*)obj)->radio_recv_fnc(x, rx_time);
 }
 
 static SRSLTE_AGC_CALLBACK(callback_set_rx_gain)
@@ -501,12 +501,13 @@ void sync::run_idle_state()
 {
   if (radio_h->is_init()) {
     uint32_t nsamples = 1920;
-    if (current_srate > 0) {
+    if (std::isnormal(current_srate) and current_srate > 0.0f) {
       nsamples = current_srate / 1000;
     }
     Debug("Discarding %d samples\n", nsamples);
     srslte_timestamp_t rx_time = {};
-    if (radio_recv_fnc(dummy_buffer, nsamples, &rx_time) == SRSLTE_SUCCESS) {
+    dummy_buffer.set_nof_samples(nsamples);
+    if (radio_recv_fnc(dummy_buffer, &rx_time) == SRSLTE_SUCCESS) {
       log_h->console("SYNC:  Receiving from radio while in IDLE_RX\n");
     }
     // If radio is in locked state returns immediately. In that case, do a 1 ms sleep
@@ -803,7 +804,7 @@ void sync::get_current_cell(srslte_cell_t* cell_, uint32_t* earfcn_)
   }
 }
 
-int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_timestamp_t* rx_time)
+int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
 {
   // This function is designed for being called from the UE sync object which will pass a null rx_time in case
   // receive dummy samples. So, rf_timestamp points at dummy timestamp in case rx_time is not provided
@@ -811,70 +812,70 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, uint32_t nsamples, srslte_ti
   srslte::rf_timestamp_t& rf_timestamp = (rx_time == nullptr) ? dummy_ts : last_rx_time;
 
   // Receive
-  if (radio_h->rx_now(data, nsamples, rf_timestamp)) {
-    srslte_timestamp_t dummy_flat_ts = {};
-
-    // Load flat timestamp
-    if (rx_time == nullptr) {
-      rx_time = &dummy_flat_ts;
-    }
-    *rx_time = rf_timestamp.get(0);
-
-    // check timestamp reset
-    if (forced_rx_time_init || srslte_timestamp_iszero(&tti_ts) || srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
-      if (srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
-        log_h->warning("SYNC:  radio time seems to be going backwards (rx_time=%f, tti_ts=%f)\n",
-                       srslte_timestamp_real(rx_time),
-                       srslte_timestamp_real(&tti_ts));
-        // time-stamp will be set to rx time below and run_tti() will be called with MIN_TTI_JUMP
-      }
-
-      // init tti_ts with last rx time
-      log_h->debug("SYNC:  Setting initial TTI time to %f\n", srslte_timestamp_real(rx_time));
-      srslte_timestamp_copy(&tti_ts, rx_time);
-      forced_rx_time_init = false;
-    }
-
-    // Advance stack in time
-    if (srslte_timestamp_compare(rx_time, &tti_ts) >= 0) {
-      srslte_timestamp_t temp = {};
-      srslte_timestamp_copy(&temp, rx_time);
-      srslte_timestamp_sub(&temp, tti_ts.full_secs, tti_ts.frac_secs);
-      int32_t tti_jump = static_cast<int32_t>(srslte_timestamp_uint64(&temp, 1e3));
-      tti_jump         = SRSLTE_MAX(tti_jump, MIN_TTI_JUMP);
-      if (tti_jump > MAX_TTI_JUMP) {
-        log_h->warning("SYNC:  TTI jump of %d limited to %d\n", tti_jump, MAX_TTI_JUMP);
-        tti_jump = SRSLTE_MIN(tti_jump, MAX_TTI_JUMP);
-      }
-
-      // Run stack
-      stack->run_tti(tti, tti_jump);
-    }
-
-    // update timestamp
-    srslte_timestamp_copy(&tti_ts, rx_time);
-
-    if (channel_emulator && rx_time) {
-      channel_emulator->set_srate((uint32_t)current_srate);
-      channel_emulator->run(data.to_cf_t(), data.to_cf_t(), nsamples, *rx_time);
-    }
-
-    // Save signal for Intra-frequency measurement
-    if (srslte_cell_isvalid(&cell)) {
-      for (uint32_t i = 0; (uint32_t)i < intra_freq_meas.size(); i++) {
-        intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), SRSLTE_SF_LEN_PRB(cell.nof_prb));
-
-        // Update RX gain
-        intra_freq_meas[i]->set_rx_gain_offset(worker_com->rx_gain_offset);
-      }
-    }
-
-    log_h->debug("SYNC:  received %d samples from radio\n", nsamples);
-
-    return nsamples;
-  } else {
-    return -1;
+  if (not radio_h->rx_now(data, rf_timestamp)) {
+    return SRSLTE_ERROR;
   }
+
+  srslte_timestamp_t dummy_flat_ts = {};
+
+  // Load flat timestamp
+  if (rx_time == nullptr) {
+    rx_time = &dummy_flat_ts;
+  }
+  *rx_time = rf_timestamp.get(0);
+
+  // check timestamp reset
+  if (forced_rx_time_init || srslte_timestamp_iszero(&tti_ts) || srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
+    if (srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
+      log_h->warning("SYNC:  radio time seems to be going backwards (rx_time=%f, tti_ts=%f)\n",
+                     srslte_timestamp_real(rx_time),
+                     srslte_timestamp_real(&tti_ts));
+      // time-stamp will be set to rx time below and run_tti() will be called with MIN_TTI_JUMP
+    }
+
+    // init tti_ts with last rx time
+    log_h->debug("SYNC:  Setting initial TTI time to %f\n", srslte_timestamp_real(rx_time));
+    srslte_timestamp_copy(&tti_ts, rx_time);
+    forced_rx_time_init = false;
+  }
+
+  // Advance stack in time
+  if (srslte_timestamp_compare(rx_time, &tti_ts) >= 0) {
+    srslte_timestamp_t temp = {};
+    srslte_timestamp_copy(&temp, rx_time);
+    srslte_timestamp_sub(&temp, tti_ts.full_secs, tti_ts.frac_secs);
+    int32_t tti_jump = static_cast<int32_t>(srslte_timestamp_uint64(&temp, 1e3));
+    tti_jump         = SRSLTE_MAX(tti_jump, MIN_TTI_JUMP);
+    if (tti_jump > MAX_TTI_JUMP) {
+      log_h->warning("SYNC:  TTI jump of %d limited to %d\n", tti_jump, MAX_TTI_JUMP);
+      tti_jump = SRSLTE_MIN(tti_jump, MAX_TTI_JUMP);
+    }
+
+    // Run stack
+    stack->run_tti(tti, tti_jump);
+  }
+
+  // update timestamp
+  srslte_timestamp_copy(&tti_ts, rx_time);
+
+  if (channel_emulator and rx_time) {
+    channel_emulator->set_srate((uint32_t)current_srate);
+    channel_emulator->run(data.to_cf_t(), data.to_cf_t(), data.get_nof_samples(), *rx_time);
+  }
+
+  // Save signal for Intra-frequency measurement
+  if (srslte_cell_isvalid(&cell)) {
+    for (uint32_t i = 0; (uint32_t)i < intra_freq_meas.size(); i++) {
+      intra_freq_meas[i]->write(tti, data.get(i, 0, worker_com->args->nof_rx_ant), SRSLTE_SF_LEN_PRB(cell.nof_prb));
+
+      // Update RX gain
+      intra_freq_meas[i]->set_rx_gain_offset(worker_com->rx_gain_offset);
+    }
+  }
+
+  log_h->debug("SYNC:  received %d samples from radio\n", data.get_nof_samples());
+
+  return data.get_nof_samples();
 }
 
 void sync::set_rx_gain(float gain)
