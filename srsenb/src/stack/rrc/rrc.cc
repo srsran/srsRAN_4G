@@ -195,7 +195,10 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
   // Send Reconfiguration to old_rnti if is RRC_CONNECT or RRC Release if already released here
   auto old_it = users.find(old_rnti);
   if (old_it != users.end()) {
-    if (old_it->second->is_connected()) {
+    auto ue_ptr = old_it->second.get();
+    if (ue_ptr->mobility_handler->is_ho_running()) {
+      ue_ptr->mobility_handler->trigger(ue::rrc_mobility::user_crnti_upd_ev{old_rnti, new_rnti});
+    } else if (ue_ptr->is_connected()) {
       old_it->second->send_connection_reconf_upd(srslte::allocate_unique_buffer(*pool));
     } else {
       old_it->second->send_connection_reject();

@@ -434,6 +434,64 @@ int test_s1ap_mobility(mobility_test_params test_params)
   return SRSLTE_SUCCESS;
 }
 
+int test_intraenb_mobility(mobility_test_params test_params)
+{
+  printf("\n===== TEST: test_intraenb_mobility() for event %s =====\n", test_params.to_string());
+  intraenb_mobility_tester     tester{test_params};
+  srslte::unique_byte_buffer_t pdu;
+
+  TESTASSERT(tester.generate_rrc_cfg() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
+  TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
+  tester.pdcp.last_sdu.sdu = nullptr;
+
+  /* Receive MeasReport from UE (correct if PCI=2) */
+  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x0D, 0xBC, 0x80}; // PCI == 3
+    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+  } else {
+    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
+    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+  }
+  tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
+  tester.tic();
+  TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
+
+  /* Test Case: the MeasReport is not valid */
+  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+    TESTASSERT(tester.rrc_log->warn_counter == 1);
+    TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
+    return SRSLTE_SUCCESS;
+  }
+  TESTASSERT(tester.pdcp.last_sdu.sdu != nullptr);
+  TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
+  TESTASSERT(not tester.s1ap.last_enb_status.status_present);
+
+  /* Test Case: Multiple concurrent MeasReports arrived. Only one HO procedure should be running */
+  if (test_params.fail_at == mobility_test_params::test_fail_at::concurrent_ho) {
+    tester.pdcp.last_sdu  = {};
+    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
+    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+    tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
+    tester.tic();
+    TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
+    return SRSLTE_SUCCESS;
+  }
+
+  /* Test Case: the HandoverCommand was sent to the lower layers */
+  TESTASSERT(tester.rrc_log->error_counter == 0);
+  TESTASSERT(tester.pdcp.last_sdu.rnti == tester.rnti);
+  TESTASSERT(tester.pdcp.last_sdu.lcid == 1); // SRB1
+  asn1::rrc::dl_dcch_msg_s ho_cmd;
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, tester.pdcp.last_sdu.sdu));
+  auto& recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(recfg_r8.mob_ctrl_info_present);
+  TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
+  TESTASSERT(recfg_r8.mob_ctrl_info.target_pci == 2);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
@@ -452,6 +510,11 @@ int main(int argc, char** argv)
   TESTASSERT(test_s1ap_mobility(mobility_test_params{fail_at::concurrent_ho}) == 0);
   TESTASSERT(test_s1ap_mobility(mobility_test_params{fail_at::ho_prep_failure}) == 0);
   TESTASSERT(test_s1ap_mobility(mobility_test_params{fail_at::success}) == 0);
+
+  // intraeNB Handover
+  TESTASSERT(test_intraenb_mobility(mobility_test_params{fail_at::wrong_measreport}) == 0);
+  TESTASSERT(test_intraenb_mobility(mobility_test_params{fail_at::concurrent_ho}) == 0);
+  TESTASSERT(test_intraenb_mobility(mobility_test_params{fail_at::success}) == 0);
 
   printf("\nSuccess\n");
 

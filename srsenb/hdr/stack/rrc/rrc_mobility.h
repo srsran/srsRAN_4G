@@ -24,6 +24,7 @@
 
 #include "rrc.h"
 #include "rrc_ue.h"
+#include "srslte/common/fsm.h"
 #include "srslte/common/logmap.h"
 #include <map>
 
@@ -71,6 +72,8 @@ private:
   srslte::log_ref           rrc_log;
 };
 
+enum class ho_interface_t { S1, X2, interSector };
+
 class rrc::enb_mobility_handler
 {
 public:
@@ -89,26 +92,34 @@ private:
   const rrc_cfg_t* cfg     = nullptr;
 };
 
-class rrc::ue::rrc_mobility
+class rrc::ue::rrc_mobility : public srslte::fsm_t<rrc::ue::rrc_mobility>
 {
 public:
+  // public events
+  struct user_crnti_upd_ev {
+    uint16_t crnti;
+    uint16_t temp_crnti;
+  };
+
   explicit rrc_mobility(srsenb::rrc::ue* outer_ue);
   bool fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
   void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
+  bool is_ho_running() const { return not is_in_state<idle_st>(); }
 
 private:
-  enum class ho_interface_t { S1, X2, interSector };
-
+  // Handover from source cell
   bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
   bool start_enb_status_transfer();
 
+  // Handover to target cell
   bool update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,
                               uint32_t                     target_enb_cc_idx,
                               asn1::rrc::meas_cfg_s*       diff_meas_cfg);
   bool update_ue_var_meas_cfg(const var_meas_cfg_t&  source_var_meas_cfg,
                               uint32_t               target_enb_cc_idx,
                               asn1::rrc::meas_cfg_s* diff_meas_cfg);
+  void fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s& msg, const cell_info_common& target_cell);
 
   rrc::ue*                   rrc_ue  = nullptr;
   rrc*                       rrc_enb = nullptr;
@@ -119,41 +130,87 @@ private:
   // vars
   std::shared_ptr<const var_meas_cfg_t> ue_var_meas;
 
-  class sourceenb_ho_proc_t
-  {
-  public:
-    struct ho_prep_result {
-      bool                         is_success;
-      srslte::unique_byte_buffer_t rrc_container;
+  // events
+  struct ho_meas_report_ev {
+    uint32_t                                target_eci = 0;
+    const asn1::rrc::cells_to_add_mod_s*    meas_cell  = nullptr;
+    const asn1::rrc::meas_obj_to_add_mod_s* meas_obj   = nullptr;
+  };
+  struct ho_req_rx_ev {
+    uint32_t target_cell_id;
+  };
+  using unsuccessful_outcome_ev = std::false_type;
+
+  // states
+  struct idle_st {};
+  struct intraenb_ho_st {
+    const cell_info_common*    target_cell      = nullptr;
+    const cell_ctxt_dedicated* source_cell_ctxt = nullptr;
+
+    void enter(rrc_mobility* f);
+  };
+  struct s1_target_ho_st {
+    uint32_t target_cell_id;
+  };
+  struct s1_source_ho_st : public subfsm_t<s1_source_ho_st> {
+    ho_meas_report_ev report;
+
+    struct wait_ho_req_ack_st {
+      void enter(s1_source_ho_st* f);
+    };
+    struct status_transfer_st {
+      void enter(s1_source_ho_st* f);
+
+      bool is_ho_cmd_sent = false;
     };
 
-    explicit sourceenb_ho_proc_t(rrc_mobility* ue_mobility_);
-    srslte::proc_outcome_t init(const asn1::rrc::meas_id_to_add_mod_s&    measid_,
-                                const asn1::rrc::meas_obj_to_add_mod_s&   measobj_,
-                                const asn1::rrc::report_cfg_to_add_mod_s& repcfg_,
-                                const asn1::rrc::cells_to_add_mod_s&      cell_,
-                                const asn1::rrc::meas_result_eutra_s&     meas_res_,
-                                uint32_t                                  target_eci_);
-    srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
-    srslte::proc_outcome_t react(ho_prep_result);
-    static const char*     name() { return "Handover"; }
+    explicit s1_source_ho_st(rrc_mobility* parent_) : base_t(parent_) {}
 
   private:
-    // args
-    rrc_mobility* parent = nullptr;
-    // run args
-    const asn1::rrc::meas_id_to_add_mod_s*    measid  = nullptr;
-    const asn1::rrc::meas_obj_to_add_mod_s*   measobj = nullptr;
-    const asn1::rrc::report_cfg_to_add_mod_s* repcfg  = nullptr;
-    const asn1::rrc::cells_to_add_mod_s*      cell    = nullptr;
-    asn1::rrc::meas_result_eutra_s            meas_res;
-    uint32_t                                  target_eci = 0;
+    void handle_ho_cmd(wait_ho_req_ack_st& s, status_transfer_st& d, const srslte::unique_byte_buffer_t& container);
 
-    enum class state_t { ho_preparation, ho_execution } state{};
-    ho_interface_t ho_interface{};
-    bool           fwd_direct_path_available = false;
+  protected:
+    using fsm = s1_source_ho_st;
+    state_list<wait_ho_req_ack_st, status_transfer_st> states{this};
+    // clang-format off
+    using transitions = transition_table<
+    //                    Start                 Target                   Event                      Action
+    //               +-------------------+------------------+------------------------------+---------------------------+
+      from_any_state< idle_st,                                srslte::failure_ev                                       >,
+                 row< wait_ho_req_ack_st, status_transfer_st, srslte::unique_byte_buffer_t, &fsm::handle_ho_cmd        >
+    //               +-------------------+------------------+------------------------------+--------- -----------------+
+    >;
+    // clang-format on
   };
-  srslte::proc_t<sourceenb_ho_proc_t> source_ho_proc;
+
+  // FSM guards
+  bool needs_s1_ho(idle_st& s, const ho_meas_report_ev& meas_report) const;
+  bool needs_intraenb_ho(idle_st& s, const ho_meas_report_ev& meas_report) const;
+
+  // FSM transition handlers
+  void handle_s1_meas_report(idle_st& s, s1_source_ho_st& d, const ho_meas_report_ev& meas_report);
+  void handle_intraenb_meas_report(idle_st& s, intraenb_ho_st& d, const ho_meas_report_ev& meas_report);
+  void handle_crnti_ce(intraenb_ho_st& s, idle_st& d, const user_crnti_upd_ev& ev);
+
+protected:
+  // states
+  state_list<idle_st, intraenb_ho_st, s1_target_ho_st, s1_source_ho_st> states{this,
+                                                                               idle_st{},
+                                                                               intraenb_ho_st{},
+                                                                               s1_target_ho_st{},
+                                                                               s1_source_ho_st{this}};
+
+  // transitions
+  using fsm = rrc_mobility;
+  // clang-format off
+  using transitions = transition_table<
+    //      Start        Target             Event                        Action            Guard (optional)
+    // +------------+---------------+--------------------+---------------------------------+---------------------------+
+    row< idle_st,    intraenb_ho_st,  ho_meas_report_ev, &fsm::handle_intraenb_meas_report,  &fsm::needs_intraenb_ho   >,
+    row< idle_st,    s1_source_ho_st, ho_meas_report_ev, &fsm::handle_s1_meas_report,        &fsm::needs_s1_ho         >,
+    row< intraenb_ho_st, idle_st,     user_crnti_upd_ev, &fsm::handle_crnti_ce                                         >
+  >;
+  // clang-format on
 };
 
 } // namespace srsenb
