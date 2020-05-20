@@ -604,22 +604,34 @@ void sync::set_cfo(float cfo)
 
 void sync::set_agc_enable(bool enable)
 {
-  if (enable) {
-    if (running && radio_h) {
-      srslte_rf_info_t* rf_info = radio_h->get_info();
-      if (rf_info) {
-        srslte_ue_sync_start_agc(
-            &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain());
-        search_p.set_agc_enable(true);
-      } else {
-        Error("Error: Radio does not provide RF information\n");
-      }
-    } else {
-      ERROR("Error setting AGC: PHY not initiated\n");
-    }
-  } else {
-    ERROR("Error stopping AGC: not implemented\n");
+  // If not enabled, make sure it is not used and return
+  if (not enable) {
+    ue_sync.do_agc = false;
+    return;
   }
+
+  // Early return if the AGC is enabled
+  if (ue_sync.do_agc) {
+    return;
+  }
+
+  // PHY and radio must have been initialised
+  if (not running or radio_h == nullptr) {
+    ERROR("Error setting AGC: PHY not initiated\n");
+    return;
+  }
+
+  // Get radio info and check it is valid
+  srslte_rf_info_t* rf_info = radio_h->get_info();
+  if (rf_info == nullptr) {
+    Error("Error: Radio does not provide RF information\n");
+    return;
+  }
+
+  // Enable AGC
+  srslte_ue_sync_start_agc(
+      &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain());
+  search_p.set_agc_enable(true);
 }
 
 float sync::get_tx_cfo()
