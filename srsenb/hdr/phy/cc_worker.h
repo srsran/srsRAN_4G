@@ -102,9 +102,9 @@ private:
     bool                 is_grant_available = false;
     srslte_phich_grant_t phich_grant        = {};
 
-    void metrics_read(phy_metrics_t* metrics);
-    void metrics_dl(uint32_t mcs);
-    void metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters);
+    void     metrics_read(phy_metrics_t* metrics);
+    void     metrics_dl(uint32_t mcs);
+    void     metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo_iters);
     uint32_t get_rnti() const { return rnti; }
 
   private:

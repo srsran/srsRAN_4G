@@ -198,7 +198,7 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
     if (old_it->second->is_connected()) {
       old_it->second->send_connection_reconf_upd(srslte::allocate_unique_buffer(*pool));
     } else {
-      old_it->second->send_connection_release();
+      old_it->second->send_connection_reject();
     }
   }
 }

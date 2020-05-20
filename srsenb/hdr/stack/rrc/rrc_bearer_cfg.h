@@ -87,6 +87,7 @@ public:
 
   const std::map<uint8_t, erab_t>&        get_erabs() const { return erabs; }
   const asn1::rrc::drb_to_add_mod_list_l& established_drbs() const { return last_drbs; }
+  const asn1::rrc::srb_to_add_mod_list_l& established_srbs() const { return last_srbs; }
 
 private:
   srslte::log_ref     log_h{"RRC"};

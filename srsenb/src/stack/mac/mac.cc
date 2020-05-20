@@ -259,10 +259,7 @@ int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_c
 {
   srslte::rwlock_read_guard lock(rwlock);
   if (temp_crnti != crnti) {
-    // if RNTI is maintained, Msg3 contained a RRC Setup Request
-    // C-RNTI corresponds to older user. Handover scenario.
-    phy_h->rem_rnti(crnti);
-    phy_h->add_rnti(crnti, cfg->supported_cc_list[0].enb_cc_idx, false);
+    // if C-RNTI is changed, it corresponds to older user. Handover scenario.
     ue_db[crnti]->reset();
   }
   int ret = ue_cfg(crnti, cfg);
