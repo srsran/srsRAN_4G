@@ -30,16 +30,18 @@
 
 namespace srsue {
 
+// Forward-declare ra_proc
+class ra_proc;
+
 class sr_proc
 {
 public:
   sr_proc();
-  void init(phy_interface_mac_lte* phy_h, rrc_interface_mac* rrc, srslte::log_ref log_h);
+  void init(ra_proc* ra, phy_interface_mac_lte* phy_h, rrc_interface_mac* rrc, srslte::log_ref log_h);
   void step(uint32_t tti);
   void set_config(srslte::sr_cfg_t& cfg);
   void reset();
   void start();
-  bool need_random_access();
 
 private:
   bool need_tx(uint32_t tti);
@@ -49,12 +51,12 @@ private:
 
   srslte::sr_cfg_t sr_cfg;
 
+  ra_proc*               ra;
   rrc_interface_mac*     rrc;
   phy_interface_mac_lte* phy_h;
   srslte::log_ref        log_h;
 
   bool initiated;
-  bool do_ra;
 };
 
 } // namespace srsue

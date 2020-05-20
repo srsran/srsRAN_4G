@@ -175,7 +175,6 @@ dl_harq_entity::dl_harq_process::dl_tb_process::dl_tb_process()
   n_retx       = 0;
   bzero(&cur_grant, sizeof(mac_interface_phy_lte::mac_grant_dl_t));
   payload_buffer_ptr = NULL;
-  pthread_mutex_init(&mutex, NULL);
 }
 
 dl_harq_entity::dl_harq_process::dl_tb_process::~dl_tb_process()
@@ -211,7 +210,7 @@ bool dl_harq_entity::dl_harq_process::dl_tb_process::init(int pid, dl_harq_entit
 void dl_harq_entity::dl_harq_process::dl_tb_process::reset(bool lock)
 {
   if (lock) {
-    pthread_mutex_lock(&mutex);
+    mutex.lock();
   }
 
   bzero(&cur_grant, sizeof(mac_interface_phy_lte::mac_grant_dl_t));
@@ -231,7 +230,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::reset(bool lock)
   }
 
   if (lock) {
-    pthread_mutex_unlock(&mutex);
+    mutex.unlock();
   }
 }
 
@@ -244,7 +243,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
                                                                   mac_interface_phy_lte::tb_action_dl_t* action)
 {
 
-  pthread_mutex_lock(&mutex);
+  mutex.lock();
 
   // Compute RV for BCCH when not specified in PDCCH format
   if (is_bcch && grant.tb[tid].rv == -1) {
@@ -369,7 +368,7 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_ph
          cur_grant.tb[tid].ndi);
   }
 
-  pthread_mutex_unlock(&mutex);
+  mutex.unlock();
 
   if (ack && is_bcch) {
     reset();

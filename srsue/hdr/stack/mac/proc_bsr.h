@@ -25,6 +25,7 @@
 #include <map>
 #include <stdint.h>
 
+#include "proc_sr.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -55,7 +56,8 @@ class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
 {
 public:
   bsr_proc();
-  void init(rlc_interface_mac* rlc, srslte::log_ref log_h, srslte::task_handler_interface* task_handler_);
+  void
+       init(sr_proc* sr_proc, rlc_interface_mac* rlc, srslte::log_ref log_h, srslte::task_handler_interface* task_handler_);
   void step(uint32_t tti);
   void reset();
   void set_config(srslte::bsr_cfg_t& bsr_cfg);
@@ -65,18 +67,16 @@ public:
   uint32_t get_buffer_state();
   bool     need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr);
   bool     generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr);
-  bool     need_to_send_sr(uint32_t tti);
-  bool     need_to_reset_sr();
 
 private:
   const static int QUEUE_STATUS_PERIOD_MS = 1000;
 
-  pthread_mutex_t mutex;
+  std::mutex mutex;
 
-  bool                            reset_sr;
   srslte::task_handler_interface* task_handler;
   srslte::log_ref                 log_h;
   rlc_interface_mac*              rlc;
+  sr_proc*                        sr;
 
   srslte::bsr_cfg_t bsr_cfg;
 
@@ -96,7 +96,6 @@ private:
   typedef enum { NONE, REGULAR, PADDING, PERIODIC } triggered_bsr_type_t;
   triggered_bsr_type_t triggered_bsr_type;
 
-  bool     sr_is_sent;
   uint32_t current_tti;
   uint32_t trigger_tti;
 

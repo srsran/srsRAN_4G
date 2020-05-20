@@ -85,7 +85,7 @@ private:
       // Determine if it's a new transmission 5.3.2.2
       bool calc_is_new_transmission(mac_interface_phy_lte::mac_grant_dl_t grant);
 
-      pthread_mutex_t mutex;
+      std::mutex mutex;
 
       bool            is_initiated;
       dl_harq_entity* harq_entity;

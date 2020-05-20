@@ -31,14 +31,16 @@ bsr_proc::bsr_proc()
   current_tti        = 0;
   trigger_tti        = 0;
   triggered_bsr_type = NONE;
-
-  pthread_mutex_init(&mutex, NULL);
 }
 
-void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log_ref log_h_, srslte::task_handler_interface* task_handler_)
+void bsr_proc::init(sr_proc*                        sr_,
+                    rlc_interface_mac*              rlc_,
+                    srslte::log_ref                 log_h_,
+                    srslte::task_handler_interface* task_handler_)
 {
   log_h        = log_h_;
   rlc          = rlc_;
+  sr           = sr_;
   task_handler = task_handler_;
 
   timer_periodic           = task_handler->get_unique_timer();
@@ -77,8 +79,6 @@ void bsr_proc::reset()
   timer_periodic.stop();
   timer_retx.stop();
 
-  reset_sr           = false;
-  sr_is_sent         = false;
   triggered_bsr_type = NONE;
 
   trigger_tti = 0;
@@ -86,7 +86,7 @@ void bsr_proc::reset()
 
 void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg_)
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
 
   bsr_cfg = bsr_cfg_;
 
@@ -98,13 +98,13 @@ void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg_)
     timer_retx.set(bsr_cfg_.retx_timer, [this](uint32_t tid) { timer_expired(tid); });
     Info("BSR:   Configured timer reTX %d ms\n", bsr_cfg_.retx_timer);
   }
-  pthread_mutex_unlock(&mutex);
 }
 
 /* Process Periodic BSR */
 void bsr_proc::timer_expired(uint32_t timer_id)
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
+
   // periodicBSR-Timer
   if (timer_id == timer_periodic.id()) {
     if (triggered_bsr_type == NONE) {
@@ -119,10 +119,8 @@ void bsr_proc::timer_expired(uint32_t timer_id)
     if (check_any_channel()) {
       set_trigger(REGULAR);
       Debug("BSR:   Triggering BSR reTX\n");
-      sr_is_sent = false;
     }
   }
-  pthread_mutex_unlock(&mutex);
 }
 
 uint32_t bsr_proc::get_buffer_state()
@@ -275,11 +273,11 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes)
 // Periodic BSR is triggered by the expiration of the timers
 void bsr_proc::step(uint32_t tti)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   if (!initiated) {
     return;
   }
-
-  pthread_mutex_lock(&mutex);
 
   current_tti = tti;
 
@@ -292,7 +290,12 @@ void bsr_proc::step(uint32_t tti)
 
   update_buffer_state();
 
-  pthread_mutex_unlock(&mutex);
+  // Trigger SR if Regular BSR is triggered
+  if (triggered_bsr_type == REGULAR) {
+    set_trigger(NONE);
+    Debug("BSR:   Triggering SR procedure: tti=%d, trigger_tti=%d\n", tti, trigger_tti);
+    sr->start();
+  }
 }
 
 char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type)
@@ -325,9 +328,9 @@ char* bsr_proc::bsr_format_tostring(bsr_format_t format)
 
 bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
 {
-  bool bsr_included = false;
+  std::lock_guard<std::mutex> lock(mutex);
 
-  pthread_mutex_lock(&mutex);
+  bool bsr_included = false;
 
   uint32_t bsr_sz = 0;
   if (triggered_bsr_type == PERIODIC || triggered_bsr_type == REGULAR) {
@@ -362,22 +365,22 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
   }
 
   // Cancel SR if an Uplink grant is received
-  reset_sr = true;
+  Debug("BSR:   Cancelling SR procedure due to uplink grant\n");
+  sr->reset();
 
   // Restart or Start ReTX timer upon indication of a grant
   if (timer_retx.duration()) {
     timer_retx.run();
     Debug("BSR:   Started retxBSR-Timer\n");
   }
-  pthread_mutex_unlock(&mutex);
   return bsr_included;
 }
 
 bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
 {
-  bool ret = false;
+  std::lock_guard<std::mutex> lock(mutex);
 
-  pthread_mutex_lock(&mutex);
+  bool ret = false;
 
   // This function is called by MUX only if Regular BSR has not been triggered before
   if (nof_padding_bytes >= 2) {
@@ -387,43 +390,15 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
     set_trigger(NONE);
     ret = true;
   }
-  pthread_mutex_unlock(&mutex);
 
-  return ret;
-}
-
-bool bsr_proc::need_to_reset_sr()
-{
-  bool ret = false;
-  pthread_mutex_lock(&mutex);
-  if (reset_sr) {
-    reset_sr   = false;
-    sr_is_sent = false;
-    Debug("BSR:   SR reset. sr_is_sent and reset_rs false\n");
-    ret = true;
-  }
-  pthread_mutex_unlock(&mutex);
-  return ret;
-}
-
-bool bsr_proc::need_to_send_sr(uint32_t tti)
-{
-  bool ret = false;
-  pthread_mutex_lock(&mutex);
-  if (!sr_is_sent && triggered_bsr_type == REGULAR) {
-    reset_sr   = false;
-    sr_is_sent = true;
-    Debug("BSR:   Need to send sr: sr_is_sent=true, reset_sr=false, tti=%d, trigger_tti=%d\n", tti, trigger_tti);
-    ret = true;
-  }
-  pthread_mutex_unlock(&mutex);
   return ret;
 }
 
 void bsr_proc::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   if (new_lcg < NOF_LCG) {
-    pthread_mutex_lock(&mutex);
     // First see if it already exists and eliminate it
     for (int i = 0; i < NOF_LCG; i++) {
       if (lcgs[i].count(lcid)) {
@@ -433,7 +408,6 @@ void bsr_proc::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
     // Now add it
     lcgs[new_lcg][lcid].priority   = priority;
     lcgs[new_lcg][lcid].old_buffer = 0;
-    pthread_mutex_unlock(&mutex);
   } else {
     Error("BSR:   Invalid lcg=%d for lcid=%d\n", new_lcg, lcid);
   }
