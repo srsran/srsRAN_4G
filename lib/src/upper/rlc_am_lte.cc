@@ -797,15 +797,10 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     return 0;
 #endif
   }
-  rlc_amd_pdu_header_t header;
+  rlc_amd_pdu_header_t header = {};
   header.dc   = RLC_DC_FIELD_DATA_PDU;
-  header.rf   = 0;
-  header.p    = 0;
   header.fi   = RLC_FI_FIELD_START_AND_END_ALIGNED;
   header.sn   = vt_s;
-  header.lsf  = 0;
-  header.so   = 0;
-  header.N_li = 0;
 
   uint32_t head_len  = rlc_am_packed_length(&header);
   uint32_t to_move   = 0;

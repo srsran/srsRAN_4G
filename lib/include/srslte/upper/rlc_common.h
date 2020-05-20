@@ -108,30 +108,11 @@ typedef struct {
 } rlc_um_nr_pdu_header_t;
 
 // AMD PDU Header
-struct rlc_amd_pdu_header_t {
-  rlc_dc_field_t dc;                     // Data or control
-  uint8_t        rf;                     // Resegmentation flag
-  uint8_t        p;                      // Polling bit
-  uint8_t        fi;                     // Framing info
-  uint16_t       sn;                     // Sequence number
-  uint8_t        lsf;                    // Last segment flag
-  uint16_t       so;                     // Segment offset
-  uint32_t       N_li;                   // Number of length indicators
-  uint16_t       li[RLC_AM_WINDOW_SIZE]; // Array of length indicators
+class rlc_amd_pdu_header_t
+{
+public:
+  rlc_amd_pdu_header_t() {}
 
-  rlc_amd_pdu_header_t()
-  {
-    dc   = RLC_DC_FIELD_CONTROL_PDU;
-    rf   = 0;
-    p    = 0;
-    fi   = 0;
-    sn   = 0;
-    lsf  = 0;
-    so   = 0;
-    N_li = 0;
-    for (int i = 0; i < RLC_AM_WINDOW_SIZE; i++)
-      li[i] = 0;
-  }
   rlc_amd_pdu_header_t(const rlc_amd_pdu_header_t& h) { copy(h); }
   rlc_amd_pdu_header_t& operator=(const rlc_amd_pdu_header_t& h)
   {
@@ -152,6 +133,16 @@ struct rlc_amd_pdu_header_t {
       li[i] = h.li[i];
     }
   }
+
+  rlc_dc_field_t dc                     = RLC_DC_FIELD_CONTROL_PDU;           // Data or control
+  uint8_t        rf                     = 0;                                  // Resegmentation flag
+  uint8_t        p                      = 0;                                  // Polling bit
+  uint8_t        fi                     = RLC_FI_FIELD_START_AND_END_ALIGNED; // Framing info
+  uint16_t       sn                     = 0;                                  // Sequence number
+  uint8_t        lsf                    = 0;                                  // Last segment flag
+  uint16_t       so                     = 0;                                  // Segment offset
+  uint32_t       N_li                   = 0;                                  // Number of length indicators
+  uint16_t       li[RLC_AM_WINDOW_SIZE] = {0};                                // Array of length indicators
 };
 
 // NACK helper (for LTE and NR)
