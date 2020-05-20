@@ -113,6 +113,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   for (uint32_t device_idx = 0; device_idx < (uint32_t)device_args_list.size(); device_idx++) {
     if (not open_dev(device_idx, args.device_name, device_args_list[device_idx])) {
       log_h->error("Error opening RF device %d\n", device_idx);
+      return SRSLTE_ERROR;
     }
   }
 
