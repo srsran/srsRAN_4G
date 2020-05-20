@@ -59,6 +59,27 @@ void to_asn1(asn1::rrc::plmn_id_s* asn1_type, const plmn_id_t& cfg)
   std::copy(&cfg.mnc[0], &cfg.mnc[cfg.nof_mnc_digits], &asn1_type->mnc[0]);
 }
 
+plmn_id_t make_plmn_id_t(const asn1::fixed_octstring<3, true>& asn1_type) // used for NGAP/S1AP
+{
+  plmn_id_t plmn;
+  uint16_t  mcc, mnc;
+  uint32_t  encoded_plmn = asn1_type.to_number();
+  //  uint32_t encoded_plmn = (asn1_type[0] << 16u) + (asn1_type[1] << 8u) + (asn1_type[2] << 0u);
+  s1ap_plmn_to_mccmnc(encoded_plmn, &mcc, &mnc);
+  plmn.from_number(mcc, mnc);
+  return plmn;
+}
+
+void to_asn1(asn1::fixed_octstring<3, true>* asn1_type, const plmn_id_t& cfg)
+{
+  uint16_t mcc, mnc;
+  cfg.to_number(&mcc, &mnc);
+  uint32_t encoded_plmn;
+  s1ap_mccmnc_to_plmn(mcc, mnc, &encoded_plmn);
+  //  uint32_t tmp32        = htonl(encoded_plmn);
+  asn1_type->from_number(encoded_plmn);
+}
+
 /***************************
  *        s-TMSI
  **************************/

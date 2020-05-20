@@ -104,6 +104,12 @@ struct plmn_id_t {
     }
     return from_number(mcc_num, mnc_num);
   }
+  int to_number(uint16_t* mcc_num, uint16_t* mnc_num) const
+  {
+    srslte::bytes_to_mcc(&mcc[0], mcc_num);
+    srslte::bytes_to_mnc(&mnc[0], mnc_num, nof_mnc_digits);
+    return SRSLTE_SUCCESS;
+  }
   std::string to_string() const
   {
     std::string mcc_str, mnc_str;

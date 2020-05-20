@@ -71,7 +71,7 @@ int main(int argc, char** argv)
   uint8_t* rrc_msg = NULL;
   int      verbose = 0;
   char*    file    = NULL;
-  int      type = -1;
+  int      type    = -1;
 
   if (argc < 2) {
     printf("Please only call me with one parameter\n");

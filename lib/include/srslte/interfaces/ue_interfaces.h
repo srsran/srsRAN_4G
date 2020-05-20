@@ -163,10 +163,10 @@ public:
   const static int MAX_FOUND_PLMNS = 16;
 
   virtual ~rrc_interface_nas()                                                           = default;
-  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                       = 0;
-  virtual uint16_t    get_mcc()                                                         = 0;
-  virtual uint16_t    get_mnc()                                                         = 0;
-  virtual void        enable_capabilities()                                             = 0;
+  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                        = 0;
+  virtual uint16_t    get_mcc()                                                          = 0;
+  virtual uint16_t    get_mnc()                                                          = 0;
+  virtual void        enable_capabilities()                                              = 0;
   virtual bool        plmn_search()                                                     = 0;
   virtual void        plmn_select(srslte::plmn_id_t plmn_id)                            = 0;
   virtual bool        connection_request(srslte::establishment_cause_t cause,

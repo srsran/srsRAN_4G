@@ -24,6 +24,7 @@
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/interfaces/rrc_interface_types.h"
+#include <arpa/inet.h> //for inet_ntop()
 #include <iostream>
 
 using namespace asn1::rrc;
@@ -92,9 +93,11 @@ int rrc_plmn_test()
 
 int s1ap_plmn_test()
 {
-  uint16_t mcc = 0xF123;
-  uint16_t mnc = 0xFF45;
-  uint32_t plmn;
+  uint16_t                       mcc = 0xF123;
+  uint16_t                       mnc = 0xFF45;
+  uint32_t                       plmn;
+  srslte::plmn_id_t              srslte_plmn, srslte_plmn2;
+  asn1::fixed_octstring<3, true> s1ap_plmn{};
 
   // 2-digit MNC test
   srslte::s1ap_mccmnc_to_plmn(mcc, mnc, &plmn);
@@ -103,13 +106,34 @@ int s1ap_plmn_test()
   TESTASSERT(mcc == 0xF123);
   TESTASSERT(mnc == 0xFF45);
 
+  // Test MCC/MNC --> S1AP
+  srslte_plmn.from_number(mcc, mnc);
+  TESTASSERT(srslte_plmn.to_string() == "12345");
+  srslte::to_asn1(&s1ap_plmn, srslte_plmn);
+  TESTASSERT(s1ap_plmn[0] == ((uint8_t*)&plmn)[2]);
+  TESTASSERT(s1ap_plmn[1] == ((uint8_t*)&plmn)[1]);
+  TESTASSERT(s1ap_plmn[2] == ((uint8_t*)&plmn)[0]);
+  srslte_plmn2 = srslte::make_plmn_id_t(s1ap_plmn);
+  TESTASSERT(srslte_plmn2 == srslte_plmn);
+
   // 3-digit MNC test
   mnc = 0xF456;
   srslte::s1ap_mccmnc_to_plmn(mcc, mnc, &plmn);
-  TESTASSERT(plmn == 0x216354);
+  TESTASSERT(plmn == 0x214365);
   srslte::s1ap_plmn_to_mccmnc(plmn, &mcc, &mnc);
   TESTASSERT(mcc == 0xF123);
   TESTASSERT(mnc == 0xF456);
+
+  // Test MCC/MNC --> S1AP
+  srslte_plmn.from_number(mcc, mnc);
+  TESTASSERT(srslte_plmn.to_string() == "123456");
+  srslte::to_asn1(&s1ap_plmn, srslte_plmn);
+  TESTASSERT(s1ap_plmn[0] == ((uint8_t*)&plmn)[2]);
+  TESTASSERT(s1ap_plmn[1] == ((uint8_t*)&plmn)[1]);
+  TESTASSERT(s1ap_plmn[2] == ((uint8_t*)&plmn)[0]);
+  srslte_plmn2 = srslte::make_plmn_id_t(s1ap_plmn);
+  TESTASSERT(srslte_plmn2 == srslte_plmn);
+
   return 0;
 }
 

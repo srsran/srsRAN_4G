@@ -32,6 +32,10 @@
  * Forward declarations
  ***********************/
 namespace asn1 {
+
+template <uint32_t N, bool aligned>
+class fixed_octstring;
+
 namespace rrc {
 
 struct plmn_id_s;
@@ -81,6 +85,8 @@ namespace srslte {
 
 plmn_id_t make_plmn_id_t(const asn1::rrc::plmn_id_s& asn1_type);
 void      to_asn1(asn1::rrc::plmn_id_s* asn1_type, const plmn_id_t& cfg);
+plmn_id_t make_plmn_id_t(const asn1::fixed_octstring<3, true>& asn1_type);
+void      to_asn1(asn1::fixed_octstring<3, true>* asn1_type, const plmn_id_t& cfg);
 
 s_tmsi_t make_s_tmsi_t(const asn1::rrc::s_tmsi_s& asn1_type);
 void     to_asn1(asn1::rrc::s_tmsi_s* asn1_type, const s_tmsi_t& cfg);

@@ -64,8 +64,6 @@ public:
   void info_hex(const uint8_t* hex, int size, const char* message, ...) __attribute__((format(printf, 4, 5)));
   void debug_hex(const uint8_t* hex, int size, const char* message, ...) __attribute__((format(printf, 4, 5)));
 
-  srslte::LOG_LEVEL_ENUM get_level(std::string l);
-
   class time_itf
   {
   public:

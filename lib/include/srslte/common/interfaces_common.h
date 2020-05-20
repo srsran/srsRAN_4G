@@ -90,6 +90,9 @@ public:
   virtual void                                   notify_background_task_result(srslte::move_task_t task)          = 0;
 };
 
+class stack_interface_phy_nr
+{};
+
 } // namespace srslte
 
 #endif // SRSLTE_INTERFACES_COMMON_H

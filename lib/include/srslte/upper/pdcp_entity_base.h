@@ -52,10 +52,6 @@ typedef enum {
 } pdcp_d_c_t;
 static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PDU"};
 
-// Specifies in which direction security (integrity and ciphering) are enabled for PDCP
-typedef enum { DIRECTION_NONE = 0, DIRECTION_TX, DIRECTION_RX, DIRECTION_TXRX, DIRECTION_N_ITEMS } srslte_direction_t;
-static const char srslte_direction_text[DIRECTION_N_ITEMS][6] = {"none", "tx", "rx", "tx/rx"};
-
 /****************************************************************************
  * PDCP Entity interface
  * Common interface for LTE and NR PDCP entities
@@ -64,6 +60,7 @@ class pdcp_entity_base
 {
 public:
   pdcp_entity_base(srslte::task_handler_interface* task_executor_, srslte::log_ref log_);
+  pdcp_entity_base(pdcp_entity_base&&) = default;
   virtual ~pdcp_entity_base();
   virtual void reset()       = 0;
   virtual void reestablish() = 0;

@@ -138,6 +138,10 @@ public:
   // bool do_rohc;
 };
 
+// Specifies in which direction security (integrity and ciphering) are enabled for PDCP
+enum srslte_direction_t { DIRECTION_NONE = 0, DIRECTION_TX, DIRECTION_RX, DIRECTION_TXRX, DIRECTION_N_ITEMS };
+static const char* srslte_direction_text[DIRECTION_N_ITEMS] = {"none", "tx", "rx", "tx/rx"};
+
 } // namespace srslte
 
 #endif // SRSLTE_PDCP_INTERFACE_TYPES_H
