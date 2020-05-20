@@ -72,6 +72,12 @@ void bsr_proc::set_trigger(srsue::bsr_proc::triggered_bsr_type_t new_trigger)
 {
   triggered_bsr_type = new_trigger;
   trigger_tti        = current_tti;
+
+  // Trigger SR always when Regular BSR is triggered in the current TTI. Will be cancelled if a grant is received
+  if (triggered_bsr_type == REGULAR) {
+    Debug("BSR:   Triggering SR procedure\n");
+    sr->start();
+  }
 }
 
 void bsr_proc::reset()
@@ -285,17 +291,11 @@ void bsr_proc::step(uint32_t tti)
 
   // Regular BSR triggered if new data arrives or channel with high priority has new data
   if (check_new_data() || check_highest_channel()) {
+    Debug("BSR:   Triggering Regular BSR tti=%d\n", tti);
     set_trigger(REGULAR);
   }
 
   update_buffer_state();
-
-  // Trigger SR if Regular BSR is triggered
-  if (triggered_bsr_type == REGULAR) {
-    set_trigger(NONE);
-    Debug("BSR:   Triggering SR procedure: tti=%d, trigger_tti=%d\n", tti, trigger_tti);
-    sr->start();
-  }
 }
 
 char* bsr_proc::bsr_type_tostring(triggered_bsr_type_t type)
