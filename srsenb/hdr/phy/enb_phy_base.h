@@ -27,7 +27,7 @@
 #ifndef SRSENB_PHY_BASE_H
 #define SRSENB_PHY_BASE_H
 
-#include "srsue/hdr/phy/phy_metrics.h"
+#include "srsenb/hdr/phy/phy_metrics.h"
 
 namespace srsenb {
 
