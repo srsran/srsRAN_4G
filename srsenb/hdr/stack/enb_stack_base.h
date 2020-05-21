@@ -22,6 +22,7 @@
 #ifndef SRSLTE_ENB_STACK_BASE_H
 #define SRSLTE_ENB_STACK_BASE_H
 
+#include "srslte/interfaces/enb_interfaces.h"
 #include <string>
 
 namespace srsenb {

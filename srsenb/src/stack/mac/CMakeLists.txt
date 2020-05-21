@@ -18,5 +18,10 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.cc")
+set(SOURCES mac.cc ue.cc scheduler.cc scheduler_carrier.cc scheduler_grid.cc scheduler_harq.cc scheduler_metric.cc scheduler_ue.cc)
 add_library(srsenb_mac STATIC ${SOURCES})
+
+if(ENABLE_5GNR)
+    set(SOURCES mac_nr.cc)
+    add_library(srsgnb_mac STATIC ${SOURCES})
+endif()
