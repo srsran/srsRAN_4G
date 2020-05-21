@@ -81,7 +81,9 @@ public:
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
 };
 
-/* PDCP Interfaces */
+/*****************************
+ *      PDCP INTERFACES
+ ****************************/
 class pdcp_interface_rlc_nr
 {
 public:
@@ -106,14 +108,6 @@ public:
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
 };
 
-class s1ap_interface_rrc_nr
-{};
-class gtpu_interface_sdap_nr
-{
-public:
-  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
-};
-
 /*****************************
  *      SDAP INTERFACES
  ****************************/
@@ -134,6 +128,12 @@ public:
 class gtpu_interface_rrc_nr
 {
 public:
+};
+
+class gtpu_interface_sdap_nr
+{
+public:
+  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
 };
 
 /*****************************

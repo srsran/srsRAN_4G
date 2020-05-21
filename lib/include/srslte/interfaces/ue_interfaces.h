@@ -162,11 +162,11 @@ public:
 
   const static int MAX_FOUND_PLMNS = 16;
 
-  virtual ~rrc_interface_nas()                                                           = default;
-  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                        = 0;
-  virtual uint16_t    get_mcc()                                                          = 0;
-  virtual uint16_t    get_mnc()                                                          = 0;
-  virtual void        enable_capabilities()                                              = 0;
+  virtual ~rrc_interface_nas()                                                          = default;
+  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                       = 0;
+  virtual uint16_t    get_mcc()                                                         = 0;
+  virtual uint16_t    get_mnc()                                                         = 0;
+  virtual void        enable_capabilities()                                             = 0;
   virtual bool        plmn_search()                                                     = 0;
   virtual void        plmn_select(srslte::plmn_id_t plmn_id)                            = 0;
   virtual bool        connection_request(srslte::establishment_cause_t cause,
@@ -613,8 +613,7 @@ public:
 };
 
 class gw_interface_stack : public gw_interface_nas, public gw_interface_rrc, public gw_interface_pdcp
-{
-};
+{};
 
 // STACK interface for RRC
 class stack_interface_rrc : public srslte::task_handler_interface
@@ -635,8 +634,7 @@ public:
 
 // Combined interface for stack (MAC and RRC) to access PHY
 class phy_interface_stack_lte : public phy_interface_mac_lte, public phy_interface_rrc_lte
-{
-};
+{};
 
 } // namespace srsue
 
