@@ -51,8 +51,9 @@ public:
   std::string get_type() override { return "lte"; };
 
   /* MAC->PHY interface */
-  int  add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal) override;
+  int  add_rnti(uint16_t rnti, uint32_t pcell_index) override;
   void rem_rnti(uint16_t rnti) final;
+  int  pregen_sequences(uint16_t rnti) override;
   void set_mch_period_stop(uint32_t stop) final;
   void set_activation_deactivation_scell(uint16_t                                     rnti,
                                          const std::array<bool, SRSLTE_MAX_CARRIERS>& activation) override;

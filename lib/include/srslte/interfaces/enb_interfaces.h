@@ -199,15 +199,22 @@ public:
    *
    * @param rnti identifier of the user
    * @param pcell_index Primary cell (PCell) index
-   * @param is_temporal Indicates whether the UE is temporal
    */
-  virtual int add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal) = 0;
+  virtual int add_rnti(uint16_t rnti, uint32_t pcell_index) = 0;
 
   /**
    * Removes an RNTI context from all the physical layer components, including secondary cells
    * @param rnti identifier of the user
    */
   virtual void rem_rnti(uint16_t rnti) = 0;
+
+  /**
+   * Pregenerates the scrambling sequences for a given RNTI.
+   * WARNING: This function make take several ms to complete.
+   *
+   * @param rnti identifier of the user
+   */
+  virtual int pregen_sequences(uint16_t rnti) = 0;
 
   /**
    *

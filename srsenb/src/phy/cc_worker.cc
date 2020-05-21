@@ -127,14 +127,14 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
   }
 
   /* Setup SI-RNTI in PHY */
-  add_rnti(SRSLTE_SIRNTI, false);
+  add_rnti(SRSLTE_SIRNTI);
 
   /* Setup P-RNTI in PHY */
-  add_rnti(SRSLTE_PRNTI, false);
+  add_rnti(SRSLTE_PRNTI);
 
   /* Setup RA-RNTI in PHY */
   for (int i = SRSLTE_RARNTI_START; i <= SRSLTE_RARNTI_END; i++) {
-    add_rnti(i, false);
+    add_rnti(i);
   }
 
   if (srslte_softbuffer_tx_init(&temp_mbsfn_softbuffer, nof_prb)) {
@@ -180,25 +180,25 @@ void cc_worker::set_tti(uint32_t tti_)
   tti_tx_ul = TTI_RX_ACK(tti_rx);
 }
 
-int cc_worker::add_rnti(uint16_t rnti, bool is_temporal)
+int cc_worker::pregen_sequences(uint16_t rnti)
 {
-
-  if (not is_temporal) {
-    if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
-      return -1;
-    }
-    if (srslte_enb_ul_add_rnti(&enb_ul, rnti)) {
-      return -1;
-    }
+  if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
+    return -1;
   }
+  if (srslte_enb_ul_add_rnti(&enb_ul, rnti)) {
+    return -1;
+  }
+  return SRSLTE_SUCCESS;
+}
 
-  mutex.lock();
+int cc_worker::add_rnti(uint16_t rnti)
+{
+  std::unique_lock<std::mutex> lock(mutex);
+
   // Create user unless already exists
   if (ue_db.count(rnti) == 0) {
     ue_db[rnti] = new ue(rnti);
   }
-  mutex.unlock();
-
   return SRSLTE_SUCCESS;
 }
 

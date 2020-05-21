@@ -41,8 +41,9 @@ public:
   cf_t* get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
   void  set_time(uint32_t tti, uint32_t tx_worker_cnt, srslte_timestamp_t tx_time);
 
-  int      add_rnti(uint16_t rnti, uint32_t cc_idx, bool is_temporal);
+  int      add_rnti(uint16_t rnti, uint32_t cc_idx);
   void     rem_rnti(uint16_t rnti);
+  int      pregen_sequences(uint16_t rnti);
   uint32_t get_nof_rnti();
 
   /* These are used by the GUI plotting tools */

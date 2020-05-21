@@ -150,7 +150,7 @@ void phy::stop()
 }
 
 /***** MAC->PHY interface **********/
-int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
+int phy::add_rnti(uint16_t rnti, uint32_t pcell_index)
 {
   if (SRSLTE_RNTI_ISUSER(rnti)) {
     // Create default PHY configuration with the desired PCell index
@@ -161,7 +161,7 @@ int phy::add_rnti(uint16_t rnti, uint32_t pcell_index, bool is_temporal)
   }
 
   for (uint32_t i = 0; i < nof_workers; i++) {
-    if (workers[i].add_rnti(rnti, pcell_index, is_temporal) != SRSLTE_SUCCESS) {
+    if (workers[i].add_rnti(rnti, pcell_index) != SRSLTE_SUCCESS) {
       return SRSLTE_ERROR;
     }
   }
@@ -181,6 +181,16 @@ void phy::rem_rnti(uint16_t rnti)
     workers_common.ue_db.rem_rnti(rnti);
     workers_common.clear_grants(rnti);
   }
+}
+
+int phy::pregen_sequences(uint16_t rnti)
+{
+  for (uint32_t i = 0; i < nof_workers; i++) {
+    if (workers[i].pregen_sequences(rnti) != SRSLTE_SUCCESS) {
+      return SRSLTE_ERROR;
+    }
+  }
+  return SRSLTE_SUCCESS;
 }
 
 void phy::set_mch_period_stop(uint32_t stop)
@@ -241,7 +251,7 @@ void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& de
     if (config.configured) {
       // Add RNTI to all SF workers
       for (uint32_t w = 0; w < nof_workers; w++) {
-        workers[w].add_rnti(rnti, config.enb_cc_idx, false);
+        workers[w].add_rnti(rnti, config.enb_cc_idx);
       }
     }
   }

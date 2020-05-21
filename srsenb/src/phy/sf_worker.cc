@@ -129,12 +129,22 @@ void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestam
   }
 }
 
-int sf_worker::add_rnti(uint16_t rnti, uint32_t cc_idx, bool is_temporal)
+int sf_worker::pregen_sequences(uint16_t rnti)
+{
+  for (auto& w : cc_workers) {
+    if (w->pregen_sequences(rnti)) {
+      return SRSLTE_ERROR;
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
+int sf_worker::add_rnti(uint16_t rnti, uint32_t cc_idx)
 {
   int ret = SRSLTE_ERROR;
 
   if (cc_idx < cc_workers.size()) {
-    cc_workers[cc_idx]->add_rnti(rnti, is_temporal);
+    cc_workers[cc_idx]->add_rnti(rnti);
     ret = SRSLTE_SUCCESS;
   }
 

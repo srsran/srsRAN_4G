@@ -212,8 +212,8 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
   if (not ue_ptr->is_phy_added) {
     Info("Registering RNTI=0x%X to PHY...\n", rnti);
     // Register new user in PHY with first CC index
-    if (phy_h->add_rnti(rnti, (SRSLTE_MRNTI) ? 0 : cfg->supported_cc_list.front().enb_cc_idx, false) == SRSLTE_ERROR) {
-      Error("Registering new UE RNTI=0x%X to PHY\n", rnti);
+    if (phy_h->pregen_sequences(rnti) == SRSLTE_ERROR) {
+      Error("Generating sequences for UE RNTI=0x%X\n", rnti);
     }
     Info("Done registering RNTI=0x%X to PHY...\n", rnti);
     ue_ptr->is_phy_added = true;
@@ -524,7 +524,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     rrc_h->add_user(rnti, ue_cfg);
 
     // Add temporal rnti to the PHY
-    if (phy_h->add_rnti(rnti, enb_cc_idx, true) != SRSLTE_SUCCESS) {
+    if (phy_h->add_rnti(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
       Error("Registering temporal-rnti=0x%x to PHY\n", rnti);
       return;
     }
