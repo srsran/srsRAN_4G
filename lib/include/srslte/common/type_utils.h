@@ -44,15 +44,14 @@ namespace srslte {
 template <typename T>
 std::string get_type_name()
 {
-  static const char*       funcname = __PRETTY_FUNCTION__;
-  static const std::string s        = []() {
+  static const std::string s = [](const char* funcname) {
     static const char* pos1 = strchr(funcname, '=') + 2;
     static const char* pos2 = strchr(pos1, ';');
     std::string        s2{pos1, pos2};
     size_t             colon_pos = s2.rfind(':');
     std::string        s3        = colon_pos == std::string::npos ? s2 : s2.substr(colon_pos + 1, s2.size());
     return s3.find('>') == std::string::npos ? s3 : s2;
-  }();
+  }(__PRETTY_FUNCTION__);
   return s;
 }
 
