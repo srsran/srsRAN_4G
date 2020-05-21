@@ -520,7 +520,6 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
   const cell_ctxt_dedicated*     pcell         = rrc_ue->cell_ded_list.get_ue_cc_idx(UE_PCELL_CC_IDX);
   const auto&                    meas_list_cfg = pcell->cell_common->cell_cfg.meas_cfg.meas_cells;
   const cells_to_add_mod_s*      cell_it       = nullptr;
-  //  const meas_result_eutra_s* chosen_meas = nullptr;
   for (const meas_result_eutra_s& e : eutra_list) {
     uint16_t pci = e.pci;
     cell_it = std::find_if(cells.begin(), cells.end(), [pci](const cells_to_add_mod_s& c) { return c.pci == pci; });

@@ -72,7 +72,7 @@ private:
   srslte::log_ref           rrc_log;
 };
 
-enum class ho_interface_t { S1, X2, interSector };
+enum class ho_interface_t { S1, X2, intra_enb };
 
 class rrc::enb_mobility_handler
 {
