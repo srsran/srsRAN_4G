@@ -57,6 +57,8 @@ public:
 
   void set_tti(uint32_t tti);
 
+  uint16_t get_rnti() { return rnti; }
+
   uint32_t set_ta(int ta) override;
 
   void     start_ta() { ta_fsm.start(); };

@@ -37,7 +37,6 @@ using namespace asn1::rrc;
 namespace srsenb {
 
 mac::mac() :
-  last_rnti(0),
   rar_pdu_msg(sched_interface::MAX_RAR_LIST),
   rar_payload(),
   common_buffers(SRSLTE_MAX_CARRIERS)
@@ -92,6 +91,9 @@ bool mac::init(const mac_args_t&        args_,
     }
 
     reset();
+
+    // Pre-alloc UE objects for first attaching users
+    prealloc_ue(10);
 
     started = true;
   }
@@ -483,10 +485,12 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
   log_h->step(tti);
   auto rach_tprof_meas = rach_tprof.start();
 
-  uint16_t rnti = allocate_rnti();
-
-  // Create new UE
-  std::unique_ptr<ue> ue_ptr{new ue(rnti, args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, cells.size())};
+  // Get pre-allocated UE object
+  if (ue_pool.empty()) {
+    Error("Ignoring RACH attempt. UE pool empty.\n");
+  }
+  auto     ue_ptr = ue_pool.wait_pop();
+  uint16_t rnti = ue_ptr->get_rnti();
 
   // Set PCAP if available
   if (pcap != nullptr) {
@@ -535,6 +539,18 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     log_h->info("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
     log_h->console("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
   });
+
+  // Allocate one new UE object in advance
+  prealloc_ue(1);
+}
+
+void mac::prealloc_ue(uint32_t nof_ue)
+{
+  for (uint32_t i = 0; i < nof_ue; i++) {
+    std::unique_ptr<ue> ptr = std::unique_ptr<ue>(
+        new ue(allocate_rnti(), args.nof_prb, &scheduler, rrc_h, rlc_h, phy_h, log_h, cells.size()));
+    ue_pool.push(std::move(ptr));
+  }
 }
 
 int mac::get_dl_sched(uint32_t tti_tx_dl, dl_sched_list_t& dl_sched_res_list)
