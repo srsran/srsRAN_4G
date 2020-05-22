@@ -264,7 +264,7 @@ int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx
     std::pair<uint32_t, int> p2 = carriers[p.second].harq_ent.set_ack_info(tti_rx, tb_idx, ack);
     tbs_acked                   = p2.second;
     if (tbs_acked > 0) {
-      Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, p2.first, tb_idx, tti_rx);
+      Debug("SCHED: Set DL ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, p2.first, tb_idx, tti_rx);
     } else {
       Warning("SCHED: Received ACK info for unknown TTI=%d\n", tti_rx);
     }

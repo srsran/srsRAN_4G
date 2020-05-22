@@ -431,6 +431,8 @@ bool cell_ctxt_dedicated_list::alloc_sr_resources(uint32_t period)
   sr_res.sr_sched_sf_idx  = j_min;
   sr_res_present          = true;
 
+  log_h->info("Allocated SR resources in time-freq slot (%d, %d)\n", sr_res.sr_sched_prb_idx, sr_res.sr_sched_sf_idx);
+
   return true;
 }
 
@@ -446,6 +448,10 @@ bool cell_ctxt_dedicated_list::dealloc_sr_resources()
     }
     log_h->info(
         "Deallocated SR resources for time-frequency slot (%d, %d)\n", sr_res.sr_sched_prb_idx, sr_res.sr_sched_sf_idx);
+    log_h->debug("Remaining SR allocations for slot (%d, %d): %d\n",
+                 sr_res.sr_sched_prb_idx,
+                 sr_res.sr_sched_sf_idx,
+                 pucch_res->sr_sched.nof_users[sr_res.sr_sched_prb_idx][sr_res.sr_sched_sf_idx]);
     sr_res_present = false;
     return true;
   }
