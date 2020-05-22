@@ -46,6 +46,11 @@ public:
             srsue::rrc_interface_rlc*  rrc_,
             srslte::timer_handler*     timers_,
             uint32_t                   lcid_);
+  void init(srsue::pdcp_interface_rlc* pdcp_,
+            srsue::rrc_interface_rlc*  rrc_,
+            srslte::timer_handler*     timers_,
+            uint32_t                   lcid_,
+            bsr_callback_t             bsr_callback_);
   void stop();
 
   void get_metrics(rlc_metrics_t& m);
@@ -101,11 +106,16 @@ private:
 
   uint32_t default_lcid = 0;
 
+  bsr_callback_t bsr_callback = nullptr;
+
   // Timer needed for metrics calculation
   struct timeval metrics_time[3] = {};
 
   bool valid_lcid(uint32_t lcid);
   bool valid_lcid_mrb(uint32_t lcid);
+
+  void update_bsr(uint32_t lcid);
+  void update_bsr_mch(uint32_t lcid);
 };
 
 } // namespace srslte

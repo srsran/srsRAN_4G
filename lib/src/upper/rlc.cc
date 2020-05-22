@@ -72,6 +72,16 @@ void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
   add_bearer(default_lcid, rlc_config_t());
 }
 
+void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
+               srslte::timer_handler*     timers_,
+               uint32_t                   lcid_,
+               bsr_callback_t             bsr_callback_)
+{
+  init(pdcp_, rrc_, timers_, lcid_);
+  bsr_callback = bsr_callback_;
+}
+
 void rlc::reset_metrics()
 {
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
@@ -140,7 +150,7 @@ void rlc::reestablish(uint32_t lcid)
     rlc_log->info("Reestablishing LCID %d\n", lcid);
     rlc_array.at(lcid)->reestablish();
   } else {
-    rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
+    rlc_log->warning("RLC LCID %d doesn't exist.\n", lcid);
   }
 }
 
@@ -185,6 +195,7 @@ void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 
   if (valid_lcid(lcid)) {
     rlc_array.at(lcid)->write_sdu_s(std::move(sdu), blocking);
+    update_bsr(lcid);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
   }
@@ -194,6 +205,7 @@ void rlc::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   if (valid_lcid_mrb(lcid)) {
     rlc_array_mrb.at(lcid)->write_sdu(std::move(sdu), false); // write in non-blocking mode by default
+    update_bsr_mch(lcid);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
   }
@@ -216,6 +228,7 @@ void rlc::discard_sdu(uint32_t lcid, uint32_t discard_sn)
 {
   if (valid_lcid(lcid)) {
     rlc_array.at(lcid)->discard_sdu(discard_sn);
+    update_bsr(lcid);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Ignoring discard SDU\n", lcid);
   }
@@ -281,6 +294,7 @@ int rlc::read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   rwlock_read_guard lock(rwlock);
   if (valid_lcid(lcid)) {
     ret = rlc_array.at(lcid)->read_pdu(payload, nof_bytes);
+    update_bsr(lcid);
   } else {
     rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
@@ -295,6 +309,7 @@ int rlc::read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   rwlock_read_guard lock(rwlock);
   if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->read_pdu(payload, nof_bytes);
+    update_bsr_mch(lcid);
   } else {
     rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
@@ -306,6 +321,7 @@ void rlc::write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   if (valid_lcid(lcid)) {
     rlc_array.at(lcid)->write_pdu_s(payload, nof_bytes);
+    update_bsr(lcid);
   } else {
     rlc_log->warning("LCID %d doesn't exist. Dropping PDU.\n", lcid);
   }
@@ -355,7 +371,7 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
 {
   rwlock_write_guard lock(rwlock);
 
-  rlc_common* rlc_entity = NULL;
+  rlc_common* rlc_entity = nullptr;
 
   if (not valid_lcid(lcid)) {
     if (cnfg.rat == srslte_rat_t::lte) {
@@ -372,6 +388,9 @@ void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
         default:
           rlc_log->error("Cannot add RLC entity - invalid mode\n");
           return;
+      }
+      if (rlc_entity != nullptr) {
+        rlc_entity->set_bsr_callback(bsr_callback);
       }
 #ifdef HAVE_5GNR
     } else if (cnfg.rat == srslte_rat_t::nr) {
@@ -568,6 +587,24 @@ bool rlc::valid_lcid_mrb(uint32_t lcid)
   }
 
   return true;
+}
+
+void rlc::update_bsr(uint32_t lcid)
+{
+  if (bsr_callback) {
+    uint32_t tx_queue   = get_buffer_state(lcid);
+    uint32_t retx_queue = 0; // todo: separate tx_queue and retx_queue
+    bsr_callback(lcid, tx_queue, retx_queue);
+  }
+}
+
+void rlc::update_bsr_mch(uint32_t lcid)
+{
+  if (bsr_callback) {
+    uint32_t tx_queue   = get_total_mch_buffer_state(lcid);
+    uint32_t retx_queue = 0; // todo: separate tx_queue and retx_queue
+    bsr_callback(lcid, tx_queue, retx_queue);
+  }
 }
 
 } // namespace srslte

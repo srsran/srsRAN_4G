@@ -66,6 +66,8 @@ public:
   rlc_bearer_metrics_t get_metrics();
   void                 reset_metrics();
 
+  void set_bsr_callback(bsr_callback_t callback) {}
+
 protected:
   // Transmitter sub-class base
   class rlc_um_base_tx

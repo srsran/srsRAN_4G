@@ -195,6 +195,8 @@ typedef struct {
   rlc_status_nack_t nacks[RLC_AM_WINDOW_SIZE];
 } rlc_am_nr_status_pdu_t;
 
+typedef std::function<void(uint32_t, uint32_t, uint32_t)> bsr_callback_t;
+
 /****************************************************************************
  * RLC Common interface
  * Common interface for all RLC entities
@@ -275,6 +277,8 @@ public:
   virtual uint32_t get_buffer_state()                              = 0;
   virtual int      read_pdu(uint8_t* payload, uint32_t nof_bytes)  = 0;
   virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
+
+  virtual void set_bsr_callback(bsr_callback_t callback) = 0;
 
 private:
   bool suspended = false;

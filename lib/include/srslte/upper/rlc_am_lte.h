@@ -91,6 +91,8 @@ public:
   rlc_bearer_metrics_t get_metrics();
   void                 reset_metrics();
 
+  void set_bsr_callback(bsr_callback_t callback);
+
 private:
   // Transmitter sub-class
   class rlc_am_lte_tx : public timer_callback
@@ -119,6 +121,8 @@ private:
 
     // Interface for Rx subclass
     void handle_control_pdu(uint8_t* payload, uint32_t nof_bytes);
+
+    void set_bsr_callback(bsr_callback_t callback);
 
   private:
     int build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
@@ -177,6 +181,9 @@ private:
 
     srslte::timer_handler::unique_timer poll_retx_timer;
     srslte::timer_handler::unique_timer status_prohibit_timer;
+
+    // Callback function for buffer status report
+    bsr_callback_t bsr_callback;
 
     // Tx windows
     std::map<uint32_t, rlc_amd_tx_pdu_t> tx_window;

@@ -77,6 +77,11 @@ bool rlc_am_lte::configure(const rlc_config_t& cfg_)
   return true;
 }
 
+void rlc_am_lte::set_bsr_callback(bsr_callback_t callback)
+{
+  tx.set_bsr_callback(callback);
+}
+
 void rlc_am_lte::empty_queue()
 {
   // Drop all messages in TX SDU queue
@@ -173,6 +178,11 @@ rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
 rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
 {
   pthread_mutex_destroy(&mutex);
+}
+
+void rlc_am_lte::rlc_am_lte_tx::set_bsr_callback(bsr_callback_t callback)
+{
+  bsr_callback = callback;
 }
 
 bool rlc_am_lte::rlc_am_lte_tx::configure(const rlc_config_t& cfg_)
@@ -434,6 +444,10 @@ void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
     }
   }
   pthread_mutex_unlock(&mutex);
+
+  if (bsr_callback) {
+    bsr_callback(parent->lcid, get_buffer_state(), 0);
+  }
 }
 
 void rlc_am_lte::rlc_am_lte_tx::retransmit_random_pdu()
