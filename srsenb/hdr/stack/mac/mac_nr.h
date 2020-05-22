@@ -24,7 +24,7 @@
 
 #include "srslte/common/logmap.h"
 #include "srslte/common/mac_nr_pcap.h"
-#include "srslte/common/mac_nr_pdu.h"
+#include "srslte/mac/mac_nr_pdu.h"
 
 #include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
@@ -48,7 +48,7 @@ struct mac_nr_args_t {
 class mac_nr : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
 public:
-  mac_nr(srslte::logger* logger_);
+  mac_nr();
   ~mac_nr();
 
   int  init(const mac_nr_args_t&    args_,

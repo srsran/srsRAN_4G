@@ -46,7 +46,7 @@ using namespace srslte;
 
 #if PCAP
 #include "srslte/common/mac_nr_pcap.h"
-#include "srslte/common/mac_nr_pdu.h"
+#include "srslte/mac/mac_nr_pdu.h"
 static std::unique_ptr<srslte::mac_nr_pcap> pcap_handle = nullptr;
 #endif
 

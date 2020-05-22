@@ -33,7 +33,7 @@
 
 namespace srsenb {
 
-mac_nr::mac_nr(srslte::logger* logger_) : pool(srslte::byte_buffer_pool::get_instance()), log_h("MAC")
+mac_nr::mac_nr() : pool(srslte::byte_buffer_pool::get_instance()), log_h("MAC")
 {
   bcch_bch_payload = srslte::allocate_unique_buffer(*pool);
 

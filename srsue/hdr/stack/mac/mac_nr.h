@@ -25,8 +25,8 @@
 #include "srslte/common/block_queue.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/mac_nr_pcap.h"
-#include "srslte/common/mac_nr_pdu.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
+#include "srslte/mac/mac_nr_pdu.h"
 #include "srsue/hdr/stack/mac/mux.h"
 #include "srsue/hdr/stack/ue_stack_base.h"
 
