@@ -95,6 +95,8 @@ private:
     std::array<srslte_pdsch_ack_t, TTIMOD_SZ>    pdsch_ack       = {}; ///< Pending acknowledgements for this Cell
     std::array<cell_info_t, SRSLTE_MAX_CARRIERS> cell_info       = {}; ///< Cell information, indexed by ue_cell_idx
     srslte::phy_cfg_t                            pcell_cfg_stash = {}; ///< Stashed Cell information
+    int ue_qci;
+    common_ue().ue_qci(0);  /// add qci field for each ue and initialize it to 0
   };
 
   /**

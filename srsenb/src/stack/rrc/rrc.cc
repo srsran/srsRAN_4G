@@ -1663,6 +1663,10 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
   uint32_t erab_id = lc_id + 2;
   uint32_t qci     = erabs[erab_id].qos_params.qci;
 
+  // pass qci to mac via a mac interface function
+
+  mac->ue_qci_value(rnti, qci);
+
   if (qci >= MAX_NOF_QCI) {
     parent->rrc_log->error("Invalid QCI=%d for ERAB_id=%d, DRB_id=%d\n", qci, erab_id, drb_id);
     return SRSLTE_ERROR;

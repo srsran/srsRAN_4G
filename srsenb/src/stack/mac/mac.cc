@@ -126,6 +126,20 @@ void mac::reset()
   scheduler.reset();
 }
 
+
+int mac::ue_qci_value(uint16_t rnti, uint32_t qci)
+{
+  int                                  ret = -1;
+  if (ue_db.count(rnti)) {
+    ue_db.at(rnti).ue_qci = qci;
+    ret = 0;
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+  }
+  return ret;
+}
+
+
 void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
   pcap = pcap_;

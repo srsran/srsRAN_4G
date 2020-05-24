@@ -101,6 +101,9 @@ public:
   void
   write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override;
 
+  // ADD INTERFACE FUNCTION TO INCLUDE QCI with RNTI MAPPING TOWARDS MAC
+  int  ue_qci_value(uint16_t rnti, uint32_t qci) override;
+
   /* Allocate C-RNTI */
   uint16_t allocate_rnti() final;
 

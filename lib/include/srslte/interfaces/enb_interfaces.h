@@ -303,6 +303,9 @@ public:
    * Allocate a C-RNTI for a new user, without adding it to the phy layer and scheduler yet
    * @return value of the allocated C-RNTI
    */
+  // ADD INTERFACE FUNCTION TO INCLUDE QCI with RNTI MAPPING TOWARDS MAC
+  virtual int  ue_qci_value(uint16_t rnti, uint32_t qci)                                        = 0;
+  
   virtual uint16_t allocate_rnti() = 0;
 };
 
