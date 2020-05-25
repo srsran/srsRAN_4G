@@ -20,3 +20,8 @@
 
 set(SOURCES rrc.cc rrc_procedures.cc rrc_meas.cc)
 add_library(srsue_rrc STATIC ${SOURCES})
+
+if(ENABLE_5GNR)
+    set(SOURCES rrc_nr.cc)
+    add_library(srsgnb_rrc STATIC ${SOURCES})
+endif()
