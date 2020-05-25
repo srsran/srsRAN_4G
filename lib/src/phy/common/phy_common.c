@@ -93,13 +93,15 @@ void srslte_cell_fprint(FILE* stream, srslte_cell_t* cell, uint32_t sfn)
 #define U SRSLTE_TDD_SF_U
 #define S SRSLTE_TDD_SF_S
 
-static srslte_tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
-                                        {D, S, U, U, D, D, S, U, U, D},
-                                        {D, S, U, D, D, D, S, U, D, D},
-                                        {D, S, U, U, U, D, D, D, D, D},
-                                        {D, S, U, U, D, D, D, D, D, D},
-                                        {D, S, U, D, D, D, D, D, D, D},
-                                        {D, S, U, U, U, D, S, U, U, D}};
+// TDD uplink-downlink configurations.
+// TS 36.211 v8.9.0 Table 4.2-2.
+static const srslte_tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
+                                              {D, S, U, U, D, D, S, U, U, D},
+                                              {D, S, U, D, D, D, S, U, D, D},
+                                              {D, S, U, U, U, D, D, D, D, D},
+                                              {D, S, U, U, D, D, D, D, D, D},
+                                              {D, S, U, D, D, D, D, D, D, D},
+                                              {D, S, U, U, U, D, S, U, U, D}};
 
 #undef D
 #undef U
@@ -109,9 +111,9 @@ srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t s
 {
   if (tdd_config.sf_config < 7 && sf_idx < 10 && tdd_config.configured) {
     return tdd_sf[tdd_config.sf_config][sf_idx];
-  } else {
-    return SRSLTE_TDD_SF_D;
   }
+
+  return SRSLTE_TDD_SF_D;
 }
 
 uint32_t srslte_sfidx_tdd_nof_dw_slot(srslte_tdd_config_t tdd_config, uint32_t slot, srslte_cp_t cp)

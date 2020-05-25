@@ -369,6 +369,14 @@ SRSLTE_API bool srslte_cellid_isvalid(uint32_t cell_id);
 
 SRSLTE_API bool srslte_nofprb_isvalid(uint32_t nof_prb);
 
+/**
+ * Returns the subframe type for a given subframe number and a TDD configuration.
+ * Check TS 36.211 v8.9.0 Table 4.2-2.
+ *
+ * @param tdd_config TDD configuration.
+ * @param sf_idx Subframe number, must be in range [0,9].
+ * @return Returns the subframe type.
+ */
 SRSLTE_API srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t sf_idx);
 
 SRSLTE_API uint32_t srslte_tdd_nof_harq(srslte_tdd_config_t tdd_config);
