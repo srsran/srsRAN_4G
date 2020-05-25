@@ -174,10 +174,9 @@ uint32_t srslte_sfidx_tdd_nof_up(srslte_tdd_config_t tdd_config)
   return 0;
 }
 
-static const uint32_t tdd_nof_harq[7] = {7, 4, 2, 3, 2, 1, 6};
-
 uint32_t srslte_tdd_nof_harq(srslte_tdd_config_t tdd_config)
 {
+  static const uint32_t tdd_nof_harq[7] = {7, 4, 2, 3, 2, 1, 6};
   return tdd_nof_harq[tdd_config.sf_config];
 }
 
