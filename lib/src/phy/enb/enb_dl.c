@@ -513,12 +513,10 @@ static void enb_dl_get_ack_fdd_all_spatial_bundling(const srslte_uci_value_t* uc
 {
   for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
     if (pdsch_ack->cc[cc_idx].m[0].present) {
-      if (uci_value->ack.ack_value[cc_idx] == 1) {
-        for (uint32_t tb = 0; tb < nof_tb; tb++) {
-          // Check that TB was transmitted
-          if (pdsch_ack->cc[cc_idx].m[0].value[tb] != 2) {
-            pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx];
-          }
+      for (uint32_t tb = 0; tb < nof_tb; tb++) {
+        // Check that TB was transmitted
+        if (pdsch_ack->cc[cc_idx].m[0].value[tb] != 2) {
+          pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx];
         }
       }
     }
@@ -528,13 +526,12 @@ static void enb_dl_get_ack_fdd_all_spatial_bundling(const srslte_uci_value_t* uc
 static void
 enb_dl_get_ack_fdd_pcell_skip_drx(const srslte_uci_value_t* uci_value, srslte_pdsch_ack_t* pdsch_ack, uint32_t nof_tb)
 {
+  uint32_t ack_idx = 0;
   if (pdsch_ack->cc[0].m[0].present) {
-    if (uci_value->ack.ack_value[0] == 1) {
-      for (uint32_t tb = 0; tb < nof_tb; tb++) {
-        // Check that TB was transmitted
-        if (pdsch_ack->cc[0].m[0].value[tb] != 2) {
-          pdsch_ack->cc[0].m[0].value[tb] = uci_value->ack.ack_value[0];
-        }
+    for (uint32_t tb = 0; tb < nof_tb; tb++) {
+      // Check that TB was transmitted
+      if (pdsch_ack->cc[0].m[0].value[tb] != 2) {
+        pdsch_ack->cc[0].m[0].value[tb] = uci_value->ack.ack_value[ack_idx++];
       }
     }
   }
@@ -545,12 +542,10 @@ enb_dl_get_ack_fdd_all_keep_drx(const srslte_uci_value_t* uci_value, srslte_pdsc
 {
   for (uint32_t cc_idx = 0; cc_idx < pdsch_ack->nof_cc; cc_idx++) {
     if (pdsch_ack->cc[cc_idx].m[0].present) {
-      if (uci_value->ack.ack_value[cc_idx] == 1) {
-        for (uint32_t tb = 0; tb < nof_tb; tb++) {
-          // Check that TB was transmitted
-          if (pdsch_ack->cc[cc_idx].m[0].value[tb] != 2) {
-            pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx * nof_tb + tb];
-          }
+      for (uint32_t tb = 0; tb < nof_tb; tb++) {
+        // Check that TB was transmitted
+        if (pdsch_ack->cc[cc_idx].m[0].value[tb] != 2) {
+          pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx * nof_tb + tb];
         }
       }
     }

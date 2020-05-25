@@ -217,7 +217,8 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
 
       // Get PUCCH Format 1b with channel selection if used
       if (uci_cfg_total_ack > 0 && cfg->format == SRSLTE_PUCCH_FORMAT_1B &&
-          cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+          cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS &&
+          !cfg->uci_cfg.is_scheduling_request_tti) {
         uint8_t b[2] = {pucch_res.uci_data.ack.ack_value[0], pucch_res.uci_data.ack.ack_value[1]};
         srslte_pucch_cs_get_ack(cfg, &cfg->uci_cfg, i, b, &pucch_res.uci_data);
       }

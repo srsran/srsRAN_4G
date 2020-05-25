@@ -32,6 +32,11 @@
 #include <srslte/phy/utils/random.h>
 #include <srslte/srslte.h>
 
+static inline bool dl_ack_value(uint32_t ue_cc_idx, uint32_t tti)
+{
+  return (tti % SRSLTE_MAX_CARRIERS) != ue_cc_idx;
+}
+
 #define CALLBACK(NAME)                                                                                                 \
 private:                                                                                                               \
   bool received_##NAME = false;                                                                                        \
@@ -494,7 +499,7 @@ public:
     dl_sched_res[0].cfi = cfi;
 
     // Iterate for each carrier
-    uint32_t scell_idx = 0;
+    uint32_t ue_cc_idx = 0;
     for (uint32_t& cc_idx : active_cell_list) {
       auto& dl_sched = dl_sched_res[cc_idx];
 
@@ -507,7 +512,7 @@ public:
       sched_tb[0] = srslte_random_bool(random_gen, prob_dl_grant);
 
       // Schedule second TB for TM3 or TM4
-      if (phy_rrc[scell_idx].phy_cfg.dl_cfg.tm == SRSLTE_TM3 or phy_rrc[scell_idx].phy_cfg.dl_cfg.tm == SRSLTE_TM4) {
+      if (phy_rrc[ue_cc_idx].phy_cfg.dl_cfg.tm == SRSLTE_TM3 or phy_rrc[ue_cc_idx].phy_cfg.dl_cfg.tm == SRSLTE_TM4) {
         sched_tb[1] = srslte_random_bool(random_gen, prob_dl_grant);
       }
 
@@ -556,7 +561,7 @@ public:
         tti_dl_info.tti           = tti;
         tti_dl_info.cc_idx        = cc_idx;
         tti_dl_info.tb_idx        = 0;
-        tti_dl_info.ack           = true;
+        tti_dl_info.ack           = dl_ack_value(ue_cc_idx, tti);
 
         // Schedule TB
         uint32_t cw_count = 0;
@@ -585,7 +590,7 @@ public:
         dl_sched.nof_grants = 0;
       }
 
-      scell_idx++;
+      ue_cc_idx++;
     }
 
     return 0;
@@ -900,12 +905,12 @@ public:
     TESTASSERT(radio->read_tx(buffers, sf_len) >= SRSLTE_SUCCESS);
 
     // Get grants DL/UL, we do not care about Decoding PDSCH
-    for (uint32_t i = 0; i < phy_rrc_cfg.size(); i++) {
-      uint32_t           cc_idx    = phy_rrc_cfg[i].enb_cc_idx;
-      srslte::phy_cfg_t& dedicated = phy_rrc_cfg[i].phy_cfg;
+    for (uint32_t ue_cc_idx = 0; ue_cc_idx < phy_rrc_cfg.size(); ue_cc_idx++) {
+      uint32_t           cc_idx    = phy_rrc_cfg[ue_cc_idx].enb_cc_idx;
+      srslte::phy_cfg_t& dedicated = phy_rrc_cfg[ue_cc_idx].phy_cfg;
 
       /// Set UCI configuration from PCell only
-      if (i == 0) {
+      if (ue_cc_idx == 0) {
         uci_data.cfg = dedicated.ul_cfg.pucch.uci_cfg;
 
         pdsch_ack.ack_nack_feedback_mode = dedicated.ul_cfg.pucch.ack_nack_feedback_mode;
@@ -921,8 +926,8 @@ public:
       ue_dl_cfg.cfg.pdsch.rnti                      = rnti;
 
       int report_ri_cc_idx = -1;
-      if (last_ri.count(i)) {
-        ue_dl_cfg.last_ri = last_ri[i];
+      if (last_ri.count(ue_cc_idx)) {
+        ue_dl_cfg.last_ri = last_ri[ue_cc_idx];
       }
 
       srslte_ue_dl_decode_fft_estimate(ue_dl_v[cc_idx], &sf_dl_cfg, &ue_dl_cfg);
@@ -945,25 +950,25 @@ public:
 
         srslte_pdsch_tx_info(&ue_dl_cfg.cfg.pdsch, str, 512);
 
-        log_h.info("[DL PDSCH %d] cc=%d, %s\n", i, cc_idx, str);
+        log_h.info("[DL PDSCH %d] cc=%d, %s\n", sf_dl_cfg.tti, cc_idx, str);
 
-        pdsch_ack.cc[i].M                           = 1;
-        pdsch_ack.cc[i].m[0].present                = true;
-        pdsch_ack.cc[i].m[0].resource.v_dai_dl      = dci_dl->dai;
-        pdsch_ack.cc[i].m[0].resource.n_cce         = dci_dl->location.ncce;
-        pdsch_ack.cc[i].m[0].resource.grant_cc_idx  = i;
-        pdsch_ack.cc[i].m[0].resource.tpc_for_pucch = dci_dl->tpc_pucch;
+        pdsch_ack.cc[ue_cc_idx].M                           = 1;
+        pdsch_ack.cc[ue_cc_idx].m[0].present                = true;
+        pdsch_ack.cc[ue_cc_idx].m[0].resource.v_dai_dl      = dci_dl->dai;
+        pdsch_ack.cc[ue_cc_idx].m[0].resource.n_cce         = dci_dl->location.ncce;
+        pdsch_ack.cc[ue_cc_idx].m[0].resource.grant_cc_idx  = ue_cc_idx;
+        pdsch_ack.cc[ue_cc_idx].m[0].resource.tpc_for_pucch = dci_dl->tpc_pucch;
 
         for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
           if (ue_dl_cfg.cfg.pdsch.grant.tb[tb_idx].enabled) {
-            pdsch_ack.cc[i].m[0].value[tb_idx] = 1;
+            pdsch_ack.cc[ue_cc_idx].m[0].value[tb_idx] = dl_ack_value(ue_cc_idx, sf_dl_cfg.tti);
           } else {
-            pdsch_ack.cc[i].m[0].value[tb_idx] = 2;
+            pdsch_ack.cc[ue_cc_idx].m[0].value[tb_idx] = 2;
           }
         }
       } else {
-        pdsch_ack.cc[i].M            = 1;
-        pdsch_ack.cc[i].m[0].present = false;
+        pdsch_ack.cc[ue_cc_idx].M            = 1;
+        pdsch_ack.cc[ue_cc_idx].m[0].present = false;
       }
 
       // Generate CQI periodic if required
@@ -971,7 +976,7 @@ public:
 
       if (srslte_cqi_periodic_ri_send(&ue_dl_cfg.cfg.cqi_report, sf_ul_cfg.tti, ue_dl_v[cc_idx]->cell.frame_type) &&
           uci_data.cfg.cqi.ri_len) {
-        uci_data.cfg.cqi.scell_index = i;
+        uci_data.cfg.cqi.scell_index = ue_cc_idx;
       }
     }
 
@@ -1275,8 +1280,6 @@ public:
   int run_tti()
   {
     int ret = SRSLTE_SUCCESS;
-
-    stack->tti_clock();
 
     // If no assertion enabled, clear radio link failure to avoid errors in cell transitions
     if (change_state != change_state_assert) {
