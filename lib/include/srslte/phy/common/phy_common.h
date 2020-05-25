@@ -180,17 +180,34 @@ typedef enum SRSLTE_API {
   SRSLTE_PHICH_R_2
 } srslte_phich_r_t;
 
-typedef enum SRSLTE_API { SRSLTE_FDD = 0, SRSLTE_TDD = 1 } srslte_frame_type_t;
+/// LTE duplex modes.
+typedef enum SRSLTE_API
+{
+  /// FDD uses frame structure type 1.
+  SRSLTE_FDD = 0,
+  /// TDD uses frame structure type 2.
+  SRSLTE_TDD = 1
+} srslte_frame_type_t;
 
+/// Configuration fields for operating in TDD mode.
 typedef struct SRSLTE_API {
+  /// Uplink-downlink configuration, valid range is [0,6].
+  /// TS 36.211 v8.9.0 Table 4.2-2.
   uint32_t sf_config;
+  /// Special subframe symbol length configuration, valid range is [0,8].
+  /// TS 36.211 v8.9.0 Table 4.2-1.
   uint32_t ss_config;
+  /// Set to true when the fields have been configured, otherwise false.
   bool     configured;
 } srslte_tdd_config_t;
 
+/// TDD uplink-downlink subframe types.
 typedef enum SRSLTE_API {
+  /// Subframe is reserved for downlink transmissions.
   SRSLTE_TDD_SF_D = 0,
+  /// Subframe is reserved for uplink transmissions.
   SRSLTE_TDD_SF_U = 1,
+  /// Special subframe.
   SRSLTE_TDD_SF_S = 2,
 } srslte_tdd_sf_t;
 
