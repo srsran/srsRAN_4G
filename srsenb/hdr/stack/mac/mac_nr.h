@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSGNB_MAC_NR_H
-#define SRSGNB_MAC_NR_H
+#ifndef SRSENB_MAC_NR_H
+#define SRSENB_MAC_NR_H
 
 #include "srslte/common/logmap.h"
 #include "srslte/common/mac_nr_pcap.h"
@@ -107,4 +107,4 @@ private:
 
 } // namespace srsenb
 
-#endif // SRSGNB_MAC_NR_H
+#endif // SRSENB_MAC_NR_H
