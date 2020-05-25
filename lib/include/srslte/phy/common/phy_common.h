@@ -194,8 +194,8 @@ typedef struct SRSLTE_API {
   /// Uplink-downlink configuration, valid range is [0,6].
   /// TS 36.211 v8.9.0 Table 4.2-2.
   uint32_t sf_config;
-  /// Special subframe symbol length configuration, valid range is [0,8].
-  /// TS 36.211 v8.9.0 Table 4.2-1.
+  /// Special subframe symbol length configuration, valid range is [0,9].
+  /// TS 36.211 v13.13.0 Table 4.2-1.
   uint32_t ss_config;
   /// Set to true when the fields have been configured, otherwise false.
   bool     configured;
@@ -379,13 +379,34 @@ SRSLTE_API bool srslte_nofprb_isvalid(uint32_t nof_prb);
  */
 SRSLTE_API srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t sf_idx);
 
-SRSLTE_API uint32_t srslte_tdd_nof_harq(srslte_tdd_config_t tdd_config);
-
+/**
+ * Returns the number of UpPTS symbols in a subframe.
+ * Check TS 36.211 v13.13.0 Table 4.2-1.
+ *
+ * @param tdd_config TDD configuration.
+ * @return Returns the number of UpPTS symbols.
+ */
 SRSLTE_API uint32_t srslte_sfidx_tdd_nof_up(srslte_tdd_config_t tdd_config);
 
+/**
+ * Returns the number of GP symbols in a subframe.
+ * Check TS 36.211 v13.13.0 Table 4.2-1.
+ *
+ * @param tdd_config TDD configuration.
+ * @return Returns the number of GP symbols.
+ */
 SRSLTE_API uint32_t srslte_sfidx_tdd_nof_gp(srslte_tdd_config_t tdd_config);
 
+/**
+ * Returns the number of DwPTS symbols in a subframe.
+ * Check TS 36.211 v13.13.0 Table 4.2-1.
+ *
+ * @param tdd_config TDD configuration.
+ * @return Returns the number of DwPTS symbols.
+ */
 SRSLTE_API uint32_t srslte_sfidx_tdd_nof_dw(srslte_tdd_config_t tdd_config);
+
+SRSLTE_API uint32_t srslte_tdd_nof_harq(srslte_tdd_config_t tdd_config);
 
 SRSLTE_API uint32_t srslte_sfidx_tdd_nof_dw_slot(srslte_tdd_config_t tdd_config, uint32_t slot, srslte_cp_t cp);
 

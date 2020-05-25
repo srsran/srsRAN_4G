@@ -134,49 +134,51 @@ uint32_t srslte_sfidx_tdd_nof_dw_slot(srslte_tdd_config_t tdd_config, uint32_t s
   }
 }
 
-static uint32_t tdd_nof_sf_symbols[10][3] = {{3, 10, 1},
-                                             {9, 4, 1},
-                                             {10, 3, 1},
-                                             {11, 2, 1},
-                                             {12, 1, 1},
-                                             {3, 9, 2},
-                                             {9, 3, 2},
-                                             {10, 2, 2},
-                                             {11, 1, 1},
-                                             {6, 6, 2}};
+// Length of DwPTS / GP / UpPTS symbols.
+// TS 36.211 v13.13.0 Table 4.2-2.
+static const uint32_t tdd_nof_sf_symbols[10][3] = {{3, 10, 1},
+                                                   {9, 4, 1},
+                                                   {10, 3, 1},
+                                                   {11, 2, 1},
+                                                   {12, 1, 1},
+                                                   {3, 9, 2},
+                                                   {9, 3, 2},
+                                                   {10, 2, 2},
+                                                   {11, 1, 1},
+                                                   {6, 6, 2}};
 
 uint32_t srslte_sfidx_tdd_nof_dw(srslte_tdd_config_t tdd_config)
 {
   if (tdd_config.ss_config < 10) {
     return tdd_nof_sf_symbols[tdd_config.ss_config][0];
-  } else {
-    return 0;
   }
+
+  return 0;
 }
 
 uint32_t srslte_sfidx_tdd_nof_gp(srslte_tdd_config_t tdd_config)
 {
   if (tdd_config.ss_config < 10) {
     return tdd_nof_sf_symbols[tdd_config.ss_config][1];
-  } else {
-    return 0;
   }
-}
 
-const static uint32_t tdd_nof_harq[7] = {7, 4, 2, 3, 2, 1, 6};
-
-uint32_t srslte_tdd_nof_harq(srslte_tdd_config_t tdd_config)
-{
-  return tdd_nof_harq[tdd_config.sf_config];
+  return 0;
 }
 
 uint32_t srslte_sfidx_tdd_nof_up(srslte_tdd_config_t tdd_config)
 {
   if (tdd_config.ss_config < 10) {
     return tdd_nof_sf_symbols[tdd_config.ss_config][2];
-  } else {
-    return 0;
   }
+
+  return 0;
+}
+
+static const uint32_t tdd_nof_harq[7] = {7, 4, 2, 3, 2, 1, 6};
+
+uint32_t srslte_tdd_nof_harq(srslte_tdd_config_t tdd_config)
+{
+  return tdd_nof_harq[tdd_config.sf_config];
 }
 
 bool srslte_sfidx_isvalid(uint32_t sf_idx)
