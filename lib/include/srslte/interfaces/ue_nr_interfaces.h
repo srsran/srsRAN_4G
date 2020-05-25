@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -22,9 +22,8 @@
 #ifndef SRSLTE_UE_NR_INTERFACES_H
 #define SRSLTE_UE_NR_INTERFACES_H
 
-#include <string>
-
 #include "srslte/common/interfaces_common.h"
+#include <string>
 
 namespace srsue {
 
