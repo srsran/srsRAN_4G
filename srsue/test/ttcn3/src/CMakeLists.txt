@@ -18,7 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_executable(ttcn3_dut ttcn3_dut.cc lte_ttcn3_phy.cc)
+set(SOURCES ttcn3_ue.cc ttcn3_syssim.cc)
+add_executable(ttcn3_dut ttcn3_dut.cc lte_ttcn3_phy.cc ${SOURCES})
 target_link_libraries(ttcn3_dut srsue_stack
                                 srsue_upper
                                 srsue_rrc

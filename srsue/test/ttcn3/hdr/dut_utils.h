@@ -28,6 +28,7 @@
 
 #include <set>
 #include <sstream>
+#include <vector>
 
 std::string get_filename_with_tc_name(const std::string& str, const uint32_t run_id, const std::string tc_name)
 {
