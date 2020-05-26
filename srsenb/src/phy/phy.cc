@@ -174,8 +174,10 @@ void phy::rem_rnti(uint16_t rnti)
   // Remove the RNTI when the TTI finishes, this has a delay up to the pipeline length (3 ms)
   for (uint32_t i = 0; i < nof_workers; i++) {
     sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
-    w->rem_rnti(rnti);
-    w->release();
+    if (w) {
+      w->rem_rnti(rnti);
+      w->release();
+    }
   }
   if (SRSLTE_RNTI_ISUSER(rnti)) {
     workers_common.ue_db.rem_rnti(rnti);

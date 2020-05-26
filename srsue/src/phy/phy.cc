@@ -390,8 +390,10 @@ void phy::set_crnti(uint16_t rnti)
   // set_crnti() is an operation that takes time, apply asynrhonously with processing
   for (uint32_t i = 0; i < nof_workers; i++) {
     sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
-    w->set_crnti(rnti);
-    w->release();
+    if (w) {
+      w->set_crnti(rnti);
+      w->release();
+    }
   }
 }
 
@@ -429,8 +431,10 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
       if (cell_info) {
         // set_cell() is an operation that takes time, apply asynrhonously with processing
         sf_worker* w = (sf_worker*)workers_pool.wait_worker_id(i);
-        w->set_cell(cc_idx, *cell_info);
-        w->release();
+        if (w) {
+          w->set_cell(cc_idx, *cell_info);
+          w->release();
+        }
       }
       // set_config() is just a memcpy
       workers[i]->set_config(cc_idx, config_);

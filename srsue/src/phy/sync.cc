@@ -708,8 +708,10 @@ bool sync::set_cell(float cfo)
   bool success = true;
   for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
     sf_worker* w = (sf_worker*)workers_pool->wait_worker_id(i);
-    success &= w->set_cell(0, cell);
-    w->release();
+    if (w) {
+      success &= w->set_cell(0, cell);
+      w->release();
+    }
   }
   if (!success) {
     Error("SYNC:  Setting cell: initiating PHCH worker\n");
