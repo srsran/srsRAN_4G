@@ -770,14 +770,31 @@ void rrc::ue::rrc_mobility::fill_mobility_reconf_common(asn1::rrc::dl_dcch_msg_s
 
   recfg_r8.rr_cfg_ded_present              = true;
   recfg_r8.rr_cfg_ded.phys_cfg_ded_present = true;
+  phys_cfg_ded_s& phy_cfg                  = recfg_r8.rr_cfg_ded.phys_cfg_ded;
 
-  // Allocate SR in new CC
-  recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg_present = true;
-  auto& sr_setup         = recfg_r8.rr_cfg_ded.phys_cfg_ded.sched_request_cfg.set_setup();
-  sr_setup.dsr_trans_max = rrc_enb->cfg.sr_cfg.dsr_max;
+  // Set SR in new CC
+  phy_cfg.sched_request_cfg_present = true;
+  auto& sr_setup                    = phy_cfg.sched_request_cfg.set_setup();
+  sr_setup.dsr_trans_max            = rrc_enb->cfg.sr_cfg.dsr_max;
   // TODO: For intra-freq handover, SR resources do not get updated. Update for inter-freq case
   sr_setup.sr_cfg_idx       = rrc_ue->cell_ded_list.get_sr_res()->sr_I;
   sr_setup.sr_pucch_res_idx = rrc_ue->cell_ded_list.get_sr_res()->sr_N_pucch;
+
+  // Set CQI in new CC
+  phy_cfg.cqi_report_cfg_present = true;
+  if (rrc_enb->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
+    phy_cfg.cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
+    phy_cfg.cqi_report_cfg.cqi_report_mode_aperiodic         = cqi_report_mode_aperiodic_e::rm30;
+  } else {
+    phy_cfg.cqi_report_cfg.cqi_report_periodic_present = true;
+    phy_cfg.cqi_report_cfg.cqi_report_periodic.set_setup();
+    phy_cfg.cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
+        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
+    phy_cfg.cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = rrc_enb->cfg.cqi_cfg.simultaneousAckCQI;
+    rrc_ue->get_cqi(&phy_cfg.cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
+                    &phy_cfg.cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
+                    UE_PCELL_CC_IDX);
+  }
 
   // Antenna info - start at TM1
   recfg_r8.rr_cfg_ded.phys_cfg_ded.ant_info_present = true;

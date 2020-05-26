@@ -677,8 +677,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
         return;
       }
     } else {
-      get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-              &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
+      get_cqi(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
+              &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
               UE_PCELL_CC_IDX);
     }
   }
