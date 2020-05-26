@@ -228,7 +228,7 @@ void ttcn3_ue::timer_expired(uint32_t timeout_id)
     log.info("Testmode B PDU delay timer expired\n");
     for (auto& bearer_pdu_queue : pdu_queue) {
       log.info("Delivering %zd buffered PDUs for LCID=%d\n", bearer_pdu_queue.second.size(), bearer_pdu_queue.first);
-      while (not pdu_queue.empty()) {
+      while (not bearer_pdu_queue.second.empty()) {
         srslte::unique_byte_buffer_t pdu;
         bearer_pdu_queue.second.try_pop(&pdu);
         loop_back_pdu_with_tft(bearer_pdu_queue.first, std::move(pdu));
