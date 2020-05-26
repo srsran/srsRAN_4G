@@ -189,12 +189,18 @@ typedef enum SRSLTE_API
   SRSLTE_TDD = 1
 } srslte_frame_type_t;
 
+/// Maximum number of TDD special subframe configurations.
+#define SRSLTE_MAX_TDD_SS_CONFIGS (10u)
+
+/// Maximum number of TDD uplink-downlink subframe configurations.
+#define SRSLTE_MAX_TDD_SF_CONFIGS (7u)
+
 /// Configuration fields for operating in TDD mode.
 typedef struct SRSLTE_API {
-  /// Uplink-downlink configuration, valid range is [0,6].
+  /// Uplink-downlink configuration, valid range is [0,SRSLTE_MAX_TDD_SF_CONFIGS[.
   /// TS 36.211 v8.9.0 Table 4.2-2.
   uint32_t sf_config;
-  /// Special subframe symbol length configuration, valid range is [0,9].
+  /// Special subframe symbol length configuration, valid range is [0,SRSLTE_MAX_TDD_SS_CONFIGS[.
   /// TS 36.211 v13.13.0 Table 4.2-1.
   uint32_t ss_config;
   /// Set to true when the fields have been configured, otherwise false.
@@ -374,7 +380,7 @@ SRSLTE_API bool srslte_nofprb_isvalid(uint32_t nof_prb);
  * Check TS 36.211 v8.9.0 Table 4.2-2.
  *
  * @param tdd_config TDD configuration.
- * @param sf_idx Subframe number, must be in range [0,9].
+ * @param sf_idx Subframe number, must be in range [0,SRSLTE_NOF_SF_X_FRAME[.
  * @return Returns the subframe type.
  */
 SRSLTE_API srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t sf_idx);

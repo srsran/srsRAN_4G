@@ -95,13 +95,14 @@ void srslte_cell_fprint(FILE* stream, srslte_cell_t* cell, uint32_t sfn)
 
 // TDD uplink-downlink configurations.
 // TS 36.211 v8.9.0 Table 4.2-2.
-static const srslte_tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
-                                              {D, S, U, U, D, D, S, U, U, D},
-                                              {D, S, U, D, D, D, S, U, D, D},
-                                              {D, S, U, U, U, D, D, D, D, D},
-                                              {D, S, U, U, D, D, D, D, D, D},
-                                              {D, S, U, D, D, D, D, D, D, D},
-                                              {D, S, U, U, U, D, S, U, U, D}};
+static const srslte_tdd_sf_t tdd_sf[SRSLTE_MAX_TDD_SF_CONFIGS][SRSLTE_NOF_SF_X_FRAME] =
+    {{D, S, U, U, U, D, S, U, U, U},
+     {D, S, U, U, D, D, S, U, U, D},
+     {D, S, U, D, D, D, S, U, D, D},
+     {D, S, U, U, U, D, D, D, D, D},
+     {D, S, U, U, D, D, D, D, D, D},
+     {D, S, U, D, D, D, D, D, D, D},
+     {D, S, U, U, U, D, S, U, U, D}};
 
 #undef D
 #undef U
@@ -109,7 +110,7 @@ static const srslte_tdd_sf_t tdd_sf[7][10] = {{D, S, U, U, U, D, S, U, U, U},
 
 srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t sf_idx)
 {
-  if (tdd_config.sf_config < 7 && sf_idx < 10 && tdd_config.configured) {
+  if (tdd_config.sf_config < SRSLTE_MAX_TDD_SF_CONFIGS && sf_idx < SRSLTE_NOF_SF_X_FRAME && tdd_config.configured) {
     return tdd_sf[tdd_config.sf_config][sf_idx];
   }
 
@@ -134,22 +135,23 @@ uint32_t srslte_sfidx_tdd_nof_dw_slot(srslte_tdd_config_t tdd_config, uint32_t s
   }
 }
 
-// Length of DwPTS / GP / UpPTS symbols.
+// Number of DwPTS / GP / UpPTS symbols per subframe.
 // TS 36.211 v13.13.0 Table 4.2-2.
-static const uint32_t tdd_nof_sf_symbols[10][3] = {{3, 10, 1},
-                                                   {9, 4, 1},
-                                                   {10, 3, 1},
-                                                   {11, 2, 1},
-                                                   {12, 1, 1},
-                                                   {3, 9, 2},
-                                                   {9, 3, 2},
-                                                   {10, 2, 2},
-                                                   {11, 1, 1},
-                                                   {6, 6, 2}};
+static const uint32_t tdd_nof_sf_symbols[SRSLTE_MAX_TDD_SS_CONFIGS][3] =
+    {{3, 10, 1},
+     {9, 4, 1},
+     {10, 3, 1},
+     {11, 2, 1},
+     {12, 1, 1},
+     {3, 9, 2},
+     {9, 3, 2},
+     {10, 2, 2},
+     {11, 1, 1},
+     {6, 6, 2}};
 
 uint32_t srslte_sfidx_tdd_nof_dw(srslte_tdd_config_t tdd_config)
 {
-  if (tdd_config.ss_config < 10) {
+  if (tdd_config.ss_config < SRSLTE_MAX_TDD_SS_CONFIGS) {
     return tdd_nof_sf_symbols[tdd_config.ss_config][0];
   }
 
@@ -158,7 +160,7 @@ uint32_t srslte_sfidx_tdd_nof_dw(srslte_tdd_config_t tdd_config)
 
 uint32_t srslte_sfidx_tdd_nof_gp(srslte_tdd_config_t tdd_config)
 {
-  if (tdd_config.ss_config < 10) {
+  if (tdd_config.ss_config < SRSLTE_MAX_TDD_SS_CONFIGS) {
     return tdd_nof_sf_symbols[tdd_config.ss_config][1];
   }
 
@@ -167,7 +169,7 @@ uint32_t srslte_sfidx_tdd_nof_gp(srslte_tdd_config_t tdd_config)
 
 uint32_t srslte_sfidx_tdd_nof_up(srslte_tdd_config_t tdd_config)
 {
-  if (tdd_config.ss_config < 10) {
+  if (tdd_config.ss_config < SRSLTE_MAX_TDD_SS_CONFIGS) {
     return tdd_nof_sf_symbols[tdd_config.ss_config][2];
   }
 
