@@ -48,12 +48,7 @@ float save_corr[4096];
 
 int srslte_prach_set_cell_(srslte_prach_t*      p,
                            uint32_t             N_ifft_ul,
-                           uint32_t             config_idx,
-                           uint32_t             root_seq_index,
-                           bool                 high_speed_flag,
-                           uint32_t             zero_corr_zone_config,
-                           srslte_tdd_config_t* tdd_config,
-                           uint32_t             num_ra_preambles);
+                           srslte_prach_cfg_t*  cfg);
 
 uint32_t srslte_prach_get_preamble_format(uint32_t config_idx)
 {
@@ -331,12 +326,7 @@ int srslte_prach_set_cfg(srslte_prach_t* p, srslte_prach_cfg_t* cfg, uint32_t no
 {
   return srslte_prach_set_cell_(p,
                                 srslte_symbol_sz(nof_prb),
-                                cfg->config_idx,
-                                cfg->root_seq_idx,
-                                cfg->hs_flag,
-                                cfg->zero_corr_zone,
-                                &cfg->tdd_config,
-                                cfg->num_ra_preambles);
+                                cfg);
 }
 
 int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
@@ -400,30 +390,26 @@ int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul)
 
 int srslte_prach_set_cell_(srslte_prach_t*      p,
                            uint32_t             N_ifft_ul,
-                           uint32_t             config_idx,
-                           uint32_t             root_seq_index,
-                           bool                 high_speed_flag,
-                           uint32_t             zero_corr_zone_config,
-                           srslte_tdd_config_t* tdd_config,
-                           uint32_t             num_ra_preambles)
+                           srslte_prach_cfg_t*  cfg)
 {
   int ret = SRSLTE_ERROR;
-  if (p != NULL && N_ifft_ul < 2049 && config_idx < 64 && root_seq_index < MAX_ROOTS) {
+  if (p != NULL && N_ifft_ul < 2049 && cfg->config_idx < 64 && cfg->root_seq_idx < MAX_ROOTS) {
     if (N_ifft_ul > p->max_N_ifft_ul) {
       ERROR("PRACH: Error in set_cell(): N_ifft_ul must be lower or equal max_N_ifft_ul in init()\n");
       return -1;
     }
 
-    uint32_t preamble_format = srslte_prach_get_preamble_format(config_idx);
-    p->config_idx            = config_idx;
-    p->f                     = preamble_format;
-    p->rsi                   = root_seq_index;
-    p->hs                    = high_speed_flag;
-    p->zczc                  = zero_corr_zone_config;
-    p->detect_factor         = PRACH_DETECT_FACTOR;
-    p->num_ra_preambles      = num_ra_preambles;
-    if (tdd_config) {
-      p->tdd_config = *tdd_config;
+    uint32_t preamble_format = srslte_prach_get_preamble_format(cfg->config_idx);
+    p->config_idx              = cfg->config_idx;
+    p->f                       = preamble_format;
+    p->rsi                     = cfg->root_seq_idx;
+    p->hs                      = cfg->hs_flag;
+    p->zczc                    = cfg->zero_corr_zone;
+    p->detect_factor           = PRACH_DETECT_FACTOR;
+    p->num_ra_preambles        = cfg->num_ra_preambles;
+    p->successive_cancellation = cfg->enable_successive_cancellation;
+    if (&cfg->tdd_config) {
+      p->tdd_config = cfg->tdd_config;
     }
 
     // Determine N_zc and N_cs
@@ -508,6 +494,11 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     p->T_seq = prach_Tseq[p->f] * SRSLTE_LTE_TS;
     p->T_tot = (prach_Tseq[p->f] + prach_Tcp[p->f]) * SRSLTE_LTE_TS;
 
+    if (p->successive_cancellation) {
+      for (int i = 0; i < 64; i++) {
+        p->td_signals[i]  = srslte_vec_malloc(sizeof(cf_t) * (p->N_seq + p->N_cp));
+      }
+    }
     ret = SRSLTE_SUCCESS;
   } else {
     ERROR("Invalid parameters\n");
@@ -552,7 +543,9 @@ int srslte_prach_gen(srslte_prach_t* p, uint32_t seq_index, uint32_t freq_offset
     for (int i = 0; i < p->N_seq; i++) {
       signal[p->N_cp + i] = p->ifft_out[i % p->N_ifft_prach];
     }
-
+    if (p->td_signals[seq_index]) {
+      memcpy(p->td_signals[seq_index], signal, (p->N_seq + p->N_cp)*sizeof(cf_t));
+    }
     ret = SRSLTE_SUCCESS;
   }
 
@@ -573,6 +566,36 @@ int srslte_prach_detect(srslte_prach_t* p,
 {
   return srslte_prach_detect_offset(p, freq_offset, signal, sig_len, indices, NULL, NULL, n_indices);
 }
+void srslte_prach_cancellation (srslte_prach_t* p, cf_t *signal, uint32_t begin, int sig_len, srslte_prach_cancellation_t prach_cancel)
+{
+  cf_t sub[sig_len];
+  memcpy(sub,&p->td_signals[p->root_seqs_idx[prach_cancel.idx]][p->N_cp], sig_len*sizeof(cf_t));
+  srslte_vec_sc_prod_cfc(sub, prach_cancel.factor, sub, p->N_seq);
+  int offset = (int) (prach_cancel.offset*sig_len*DELTA_F_RA);
+  srslte_vec_sub_ccc(&signal[offset], sub, &signal[offset], sig_len);
+  srslte_dft_run(&p->fft, signal, p->signal_fft);
+  memcpy(p->prach_bins, &p->signal_fft[begin], p->N_zc * sizeof(cf_t));
+}
+
+bool srslte_prach_have_stored(srslte_prach_t* p,int current_idx, uint32_t* indices, uint32_t n_indices) {
+  for(int i = 0; i < n_indices; i++) {
+    if (indices[i] == current_idx) {
+      return true;
+    }
+  }
+  return false;
+}
+
+float srslte_prach_set_offset(srslte_prach_t* p, int n_win) {
+  float corr = 1.0;
+  if (p->peak_offsets[n_win] > 30) {
+    corr = 1.9;
+  }
+  if (p->peak_offsets[n_win] > 250) {
+    corr = 1.91;
+  }
+  return corr * p->peak_offsets[n_win] / (DELTA_F_RA * p->N_zc);
+}
 
 int srslte_prach_detect_offset(srslte_prach_t* p,
                                uint32_t        freq_offset,
@@ -590,6 +613,8 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
       ERROR("srslte_prach_detect: Signal length is %d and should be %d\n", sig_len, p->N_ifft_prach);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
+    int cancellation_idx =  -2;
+    srslte_prach_cancellation_t prach_cancel;
 
     // FFT incoming signal
     srslte_dft_run(&p->fft, signal, p->signal_fft);
@@ -603,70 +628,81 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
     uint32_t begin   = PHI + (K * k_0) + (K / 2);
 
     memcpy(p->prach_bins, &p->signal_fft[begin], p->N_zc * sizeof(cf_t));
+    int loops = (p->successive_cancellation)?p->num_ra_preambles:1;
+    for (int l = 0; l < loops; l++) {
+      float max_to_cancel = 0;
+      cancellation_idx = -1;
+      for (int i = 0; i < p->num_ra_preambles; i++) {
+        cf_t* root_spec = p->dft_seqs[p->root_seqs_idx[i]];
 
-    for (int i = 0; i < p->num_ra_preambles; i++) {
-      cf_t* root_spec = p->dft_seqs[p->root_seqs_idx[i]];
+        srslte_vec_prod_conj_ccc(p->prach_bins, root_spec, p->corr_spec, p->N_zc);
 
-      srslte_vec_prod_conj_ccc(p->prach_bins, root_spec, p->corr_spec, p->N_zc);
+        srslte_dft_run(&p->zc_ifft, p->corr_spec, p->corr_spec);
 
-      srslte_dft_run(&p->zc_ifft, p->corr_spec, p->corr_spec);
+        srslte_vec_abs_square_cf(p->corr_spec, p->corr, p->N_zc);
 
-      srslte_vec_abs_square_cf(p->corr_spec, p->corr, p->N_zc);
+        float corr_ave = srslte_vec_acc_ff(p->corr, p->N_zc) / p->N_zc;
 
-      float corr_ave = srslte_vec_acc_ff(p->corr, p->N_zc) / p->N_zc;
-
-      uint32_t winsize = 0;
-      if (p->N_cs != 0) {
-        winsize = p->N_cs;
-      } else {
-        winsize = p->N_zc;
-      }
-      uint32_t n_wins = p->N_zc / winsize;
-
-      float max_peak = 0;
-      for (int j = 0; j < n_wins; j++) {
-        uint32_t start = (p->N_zc - (j * p->N_cs)) % p->N_zc;
-        uint32_t end   = start + winsize;
-        if (end > p->deadzone) {
-          end -= p->deadzone;
+        uint32_t winsize = 0;
+        if (p->N_cs != 0) {
+          winsize = p->N_cs;
+        } else {
+          winsize = p->N_zc;
         }
-        start += p->deadzone;
-        p->peak_values[j] = 0;
-        for (int k = start; k < end; k++) {
-          if (p->corr[k] > p->peak_values[j]) {
-            p->peak_values[j]  = p->corr[k];
-            p->peak_offsets[j] = k - start;
-            if (p->peak_values[j] > max_peak) {
-              max_peak = p->peak_values[j];
-            }
-          }
-        }
-      }
-      if (max_peak > p->detect_factor * corr_ave) {
+        uint32_t n_wins = p->N_zc / winsize;
+
+        float max_peak = 0;
         for (int j = 0; j < n_wins; j++) {
-          if (p->peak_values[j] > p->detect_factor * corr_ave) {
-            // printf("saving prach correlation\n");
-            // memcpy(save_corr, p->corr, p->N_zc*sizeof(float));
-            if (indices) {
-              indices[*n_indices] = (i * n_wins) + j;
-            }
-            if (peak_to_avg) {
-              peak_to_avg[*n_indices] = p->peak_values[j] / corr_ave;
-            }
-            if (t_offsets) {
-              float corr = 1.8;
-              if (p->peak_offsets[j] > 30) {
-                corr = 1.9;
+          uint32_t start = (p->N_zc - (j * p->N_cs)) % p->N_zc;
+          uint32_t end   = start + winsize;
+          if (end > p->deadzone) {
+            end -= p->deadzone;
+          }
+          start += p->deadzone;
+          p->peak_values[j] = 0;
+          for (int k = start; k < end; k++) {
+            if (p->corr[k] > p->peak_values[j]) {
+              p->peak_values[j]  = p->corr[k];
+              p->peak_offsets[j] = k - start;
+              if (p->peak_values[j] > max_peak) {
+                max_peak = p->peak_values[j];
               }
-              if (p->peak_offsets[j] > 250) {
-                corr = 1.91;
-              }
-
-              t_offsets[*n_indices] = corr * p->peak_offsets[j] / (DELTA_F_RA * p->N_zc);
             }
-            (*n_indices)++;
           }
         }
+        if (max_peak > p->detect_factor * corr_ave) {
+          for (int j = 0; j < n_wins; j++) {
+            if (p->peak_values[j] > p->detect_factor * corr_ave) {
+              if (indices) {
+                if (p->successive_cancellation) {
+                  if (max_peak > max_to_cancel) {
+                    cancellation_idx = (i * n_wins) + j;
+                    max_to_cancel = max_peak;
+                    prach_cancel.idx       = cancellation_idx;
+                    prach_cancel.offset    = srslte_prach_set_offset(p,j);
+                    prach_cancel.factor    = sqrt((max_peak/2)/((sig_len/2)*p->N_zc*p->N_zc));
+                  }
+                  if (srslte_prach_have_stored(p,((i * n_wins) + j),indices, *n_indices)) {
+                    break;
+                  }
+                }
+                indices[*n_indices] = (i * n_wins) + j;
+              }
+              if (peak_to_avg) {
+                peak_to_avg[*n_indices] = p->peak_values[j] / corr_ave;
+              }
+              if (t_offsets) {
+                t_offsets[*n_indices] = srslte_prach_set_offset(p,j);
+              }
+              (*n_indices)++;
+            }
+          }
+        }
+      }
+      if (cancellation_idx != -1) {
+        srslte_prach_cancellation(p, signal, begin, sig_len, prach_cancel);
+      } else {
+        break;
       }
     }
 

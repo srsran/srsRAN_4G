@@ -71,7 +71,7 @@ typedef struct SRSLTE_API {
   cf_t     dft_seqs[64][839]; // DFT-precoded seqs
   uint32_t root_seqs_idx[64]; // Indices of root seqs in seqs table
   uint32_t N_roots;           // Number of root sequences used in this configuration
-
+  cf_t*    td_signals[64];
   // Containers
   cf_t*  ifft_in;
   cf_t*  ifft_out;
@@ -94,6 +94,7 @@ typedef struct SRSLTE_API {
   float    peak_values[65];
   uint32_t peak_offsets[65];
   uint32_t            num_ra_preambles;
+  bool                successive_cancellation;
   srslte_tdd_config_t tdd_config;
   uint32_t            current_prach_idx;
 
@@ -117,7 +118,14 @@ typedef struct {
   uint32_t            num_ra_preambles;
   bool                hs_flag;
   srslte_tdd_config_t tdd_config;
+  bool                enable_successive_cancellation;
 } srslte_prach_cfg_t;
+
+typedef struct {
+  int   idx;
+  float   offset;
+  float factor;
+} srslte_prach_cancellation_t;
 
 typedef struct SRSLTE_API {
   uint32_t f;
