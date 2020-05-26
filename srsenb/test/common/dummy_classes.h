@@ -57,6 +57,7 @@ public:
   bool has_bearer(uint16_t rnti, uint32_t lcid) override { return false; }
   bool suspend_bearer(uint16_t rnti, uint32_t lcid) override { return true; }
   bool resume_bearer(uint16_t rnti, uint32_t lcid) override { return true; }
+  void reestablish(uint16_t rnti) override {}
 };
 
 class pdcp_dummy : public pdcp_interface_rrc

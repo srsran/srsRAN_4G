@@ -160,6 +160,15 @@ bool rlc::resume_bearer(uint16_t rnti, uint32_t lcid)
   return result;
 }
 
+void rlc::reestablish(uint16_t rnti)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  if (users.count(rnti)) {
+    users[rnti].rlc->reestablish();
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
 // In the eNodeB, there is no polling for buffer state from the scheduler.
 // This function is called by UE RLC instance every time the tx/retx buffers are updated
 void rlc::update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue)

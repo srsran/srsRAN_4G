@@ -365,6 +365,7 @@ public:
   virtual bool has_bearer(uint16_t rnti, uint32_t lcid)                                  = 0;
   virtual bool suspend_bearer(uint16_t rnti, uint32_t lcid)                              = 0;
   virtual bool resume_bearer(uint16_t rnti, uint32_t lcid)                               = 0;
+  virtual void reestablish(uint16_t rnti)                                                = 0;
 };
 
 // PDCP interface for GTPU

@@ -977,10 +977,9 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, idle_st& d, const
   rrc_log->info("UE performing handover updated its temp-crnti=0x%x to rnti=0x%x\n", ev.temp_crnti, ev.crnti);
 
   // Need to reset SNs of bearers.
-  rrc_enb->rlc->rem_user(rrc_ue->rnti);
   rrc_enb->pdcp->rem_user(rrc_ue->rnti);
-  rrc_enb->rlc->add_user(rrc_ue->rnti);
   rrc_enb->pdcp->add_user(rrc_ue->rnti);
+  rrc_enb->rlc->reestablish(rrc_ue->rnti);
 
   // Change PCell in MAC/Scheduler
   rrc_ue->current_sched_ue_cfg.supported_cc_list[0].active     = true;
@@ -990,7 +989,6 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, idle_st& d, const
 
   rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
   rrc_ue->bearer_list.reest_bearers();
-  rrc_ue->bearer_list.apply_rlc_bearer_updates(rrc_enb->rlc);
   rrc_ue->bearer_list.apply_pdcp_bearer_updates(rrc_enb->pdcp, rrc_ue->ue_security_cfg);
 
   rrc_log->info("new rnti=0x%x PCell is %d\n", ev.crnti, s.target_cell->enb_cc_idx);
