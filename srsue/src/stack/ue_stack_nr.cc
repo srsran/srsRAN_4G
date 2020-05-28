@@ -218,12 +218,9 @@ void ue_stack_nr::run_tti(uint32_t tti)
 
 void ue_stack_nr::run_tti_impl(uint32_t tti)
 {
-#if 0
   mac->run_tti(tti);
   rrc->run_tti(tti);
-  nas->run_tti(tti);
-  timers->step_all();
-#endif
+  timers.step_all();
 }
 
 /********************
