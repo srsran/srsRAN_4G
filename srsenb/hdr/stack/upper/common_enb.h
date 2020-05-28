@@ -51,8 +51,11 @@ enum rb_id_t {
   RB_ID_DRB8,
   RB_ID_N_ITEMS,
 };
-static const char* rb_id_text[] =
-    {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};
+inline const char* to_string(rb_id_t rb_id)
+{
+  const static char* names[] = {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};
+  return (rb_id < RB_ID_N_ITEMS) ? names[rb_id] : "invalid bearer id";
+}
 
 // Cat 3 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1

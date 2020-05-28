@@ -531,7 +531,7 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
     if (user_it != users.end()) {
       user_it->second->parse_ul_dcch(lcid, std::move(pdu));
     } else {
-      rrc_log->error("Processing %s: Unknown rnti=0x%x\n", rb_id_text[lcid], rnti);
+      rrc_log->error("Processing %s: Unknown rnti=0x%x\n", srsenb::to_string((rb_id_t)lcid), rnti);
     }
   }
 }
@@ -797,7 +797,7 @@ void rrc::tti_clock()
   while (rx_pdu_queue.try_pop(&p)) {
     // print Rx PDU
     if (p.pdu != nullptr) {
-      rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
+      rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", to_string((rb_id_t)p.lcid));
     }
 
     // check if user exists

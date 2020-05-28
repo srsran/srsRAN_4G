@@ -161,7 +161,8 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     return;
   }
 
-  parent->log_rrc_message(rb_id_text[lcid], Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
+  parent->log_rrc_message(
+      srsenb::to_string((rb_id_t)lcid), Rx, pdu.get(), ul_dcch_msg, ul_dcch_msg.msg.c1().type().to_string());
 
   // reuse PDU
   pdu->clear(); // TODO: name collision with byte_buffer reset

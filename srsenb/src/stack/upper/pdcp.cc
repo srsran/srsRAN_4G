@@ -193,7 +193,7 @@ void pdcp::user_interface_rrc::write_pdu_pcch(srslte::unique_byte_buffer_t pdu)
 
 std::string pdcp::user_interface_rrc::get_rb_name(uint32_t lcid)
 {
-  return std::string(rb_id_text[lcid]);
+  return to_string((rb_id_t)lcid);
 }
 
 } // namespace srsenb

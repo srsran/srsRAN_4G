@@ -184,7 +184,7 @@ void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 
 int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
-  int      ret;
+  int ret;
 
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
@@ -273,7 +273,7 @@ void rlc::user_interface::write_pdu_pcch(srslte::unique_byte_buffer_t sdu)
 
 std::string rlc::user_interface::get_rb_name(uint32_t lcid)
 {
-  return std::string(rb_id_text[lcid]);
+  return to_string((rb_id_t)lcid);
 }
 
 } // namespace srsenb

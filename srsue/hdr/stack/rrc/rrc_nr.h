@@ -25,6 +25,7 @@
 #include "srslte/asn1/rrc_nr_asn1.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/interfaces/nr_common_interface_types.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
 #include "srsue/hdr/stack/upper/gw.h"
@@ -134,17 +135,7 @@ private:
   // RRC constants and timers
   srslte::timer_handler* timers = nullptr;
 
-  // Radio bearers
-  std::map<int, std::string> rb_id_t = {{0, "SRB0"}, {1, "SRB1"}, {2, "SRB2"}, {3, "SRB3"}, {4, "DRB1"}};
-
-  std::string get_rb_name(uint32_t lcid) final
-  {
-    if (lcid < rb_id_t.size()) {
-      return rb_id_t.at(lcid);
-    } else {
-      return "INVALID_RB";
-    }
-  }
+  std::string get_rb_name(uint32_t lcid) final { return srslte::to_string((srslte::rb_id_nr_t)lcid); }
 
   bool initiated = false;
 };
