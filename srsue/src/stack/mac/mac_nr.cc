@@ -30,9 +30,6 @@ mac_nr::mac_nr() : pool(srslte::byte_buffer_pool::get_instance()), log_h("MAC")
 {
   tx_buffer  = srslte::allocate_unique_buffer(*pool);
   rlc_buffer = srslte::allocate_unique_buffer(*pool);
-
-  log_h->set_level(args.log_level);
-  log_h->set_hex_limit(args.log_hex_limit);
 }
 
 mac_nr::~mac_nr()

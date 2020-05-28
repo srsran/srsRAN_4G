@@ -23,5 +23,5 @@ add_library(srsue_rrc STATIC ${SOURCES})
 
 if(ENABLE_5GNR)
     set(SOURCES rrc_nr.cc)
-    add_library(srsgnb_rrc STATIC ${SOURCES})
+    add_library(srsue_nr_rrc STATIC ${SOURCES})
 endif()

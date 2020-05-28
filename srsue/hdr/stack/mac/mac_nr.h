@@ -34,10 +34,6 @@ namespace srsue {
 
 struct mac_nr_args_t {
   srsue::pcap_args_t pcap;
-
-  // Add args
-  std::string log_level;
-  uint32_t    log_hex_limit;
 };
 
 class mac_nr : public mac_interface_phy_nr, public mac_interface_rrc_nr
