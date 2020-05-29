@@ -113,13 +113,14 @@ public:
     }
   }
 
-  cell_t() {
+  cell_t()
+  {
     gettimeofday(&last_update, nullptr);
     has_valid_sib1  = false;
     has_valid_sib2  = false;
     has_valid_sib3  = false;
     has_valid_sib13 = false;
-    phy_cell        = {0,0,0};
+    phy_cell        = {0, 0, 0};
     rsrp            = NAN;
     rsrq            = NAN;
     sib1            = {};
@@ -128,14 +129,11 @@ public:
     sib13           = {};
   }
 
-  cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell_) : cell_t()
-  {
-    phy_cell = phy_cell_;
-  }
+  cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell_) : cell_t() { phy_cell = phy_cell_; }
 
-  uint32_t get_earfcn() { return phy_cell.earfcn; }
+  uint32_t get_earfcn() const { return phy_cell.earfcn; }
 
-  uint32_t get_pci() { return phy_cell.pci; }
+  uint32_t get_pci() const { return phy_cell.pci; }
 
   void set_rsrp(float rsrp_)
   {
@@ -157,9 +155,9 @@ public:
     }
   }
 
-  float get_rsrp() { return rsrp; }
-  float get_rsrq() { return rsrq; }
-  float get_cfo_hz() { return phy_cell.cfo_hz; }
+  float get_rsrp() const { return rsrp; }
+  float get_rsrq() const { return rsrq; }
+  float get_cfo_hz() const { return phy_cell.cfo_hz; }
 
   void set_sib1(asn1::rrc::sib_type1_s* sib1_);
   void set_sib2(asn1::rrc::sib_type2_s* sib2_);
@@ -181,7 +179,7 @@ public:
   asn1::rrc::sib_type3_s*     sib3ptr() { return &sib3; }
   asn1::rrc::sib_type13_r9_s* sib13ptr() { return &sib13; }
 
-  uint32_t get_cell_id() { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
+  uint32_t get_cell_id() const { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
 
   bool has_sib1() { return has_valid_sib1; }
   bool has_sib2() { return has_valid_sib2; }
@@ -239,7 +237,7 @@ public:
     return 0;
   }
 
-  std::string to_string()
+  std::string to_string() const
   {
     char buf[256];
     snprintf(buf,
@@ -370,16 +368,16 @@ private:
 
   void process_pcch(srslte::unique_byte_buffer_t pdu);
 
-  stack_interface_rrc*      stack   = nullptr;
-  srslte::byte_buffer_pool* pool    = nullptr;
-  srslte::log_ref             rrc_log;
-  phy_interface_rrc_lte*    phy     = nullptr;
-  mac_interface_rrc*        mac     = nullptr;
-  rlc_interface_rrc*        rlc     = nullptr;
-  pdcp_interface_rrc*       pdcp    = nullptr;
-  nas_interface_rrc*        nas     = nullptr;
-  usim_interface_rrc*       usim    = nullptr;
-  gw_interface_rrc*         gw      = nullptr;
+  stack_interface_rrc*      stack = nullptr;
+  srslte::byte_buffer_pool* pool  = nullptr;
+  srslte::log_ref           rrc_log;
+  phy_interface_rrc_lte*    phy  = nullptr;
+  mac_interface_rrc*        mac  = nullptr;
+  rlc_interface_rrc*        rlc  = nullptr;
+  pdcp_interface_rrc*       pdcp = nullptr;
+  nas_interface_rrc*        nas  = nullptr;
+  usim_interface_rrc*       usim = nullptr;
+  gw_interface_rrc*         gw   = nullptr;
 
   srslte::unique_byte_buffer_t dedicated_info_nas;
 
@@ -407,8 +405,8 @@ private:
   srslte::phy_cfg_t           current_phy_cfg, previous_phy_cfg = {};
   srslte::mac_cfg_t           current_mac_cfg, previous_mac_cfg = {};
   bool                        current_scell_configured[SRSLTE_MAX_CARRIERS] = {};
-  bool                        pending_mob_reconf = false;
-  asn1::rrc::rrc_conn_recfg_s mob_reconf         = {};
+  bool                        pending_mob_reconf                            = false;
+  asn1::rrc::rrc_conn_recfg_s mob_reconf                                    = {};
 
   srslte::as_security_config_t sec_cfg = {};
 
@@ -516,6 +514,7 @@ private:
   enum class cs_result_t { changed_cell, same_cell, no_cell };
 
   // RRC procedures (fwd declared)
+  class phy_cell_select_proc;
   class cell_search_proc;
   class si_acquire_proc;
   class serving_cell_config_proc;
@@ -526,6 +525,8 @@ private:
   class go_idle_proc;
   class cell_reselection_proc;
   class connection_reest_proc;
+  class ho_prep_proc;
+  srslte::proc_t<phy_cell_select_proc>                                       phy_cell_selector;
   srslte::proc_t<cell_search_proc, phy_interface_rrc_lte::cell_search_ret_t> cell_searcher;
   srslte::proc_t<si_acquire_proc>                                            si_acquirer;
   srslte::proc_t<serving_cell_config_proc>                                   serv_cell_cfg;
@@ -536,6 +537,7 @@ private:
   srslte::proc_t<plmn_search_proc>                                           plmn_searcher;
   srslte::proc_t<cell_reselection_proc>                                      cell_reselector;
   srslte::proc_t<connection_reest_proc>                                      connection_reest;
+  srslte::proc_t<ho_prep_proc>                                               ho_prep_proc;
 
   srslte::proc_manager_list_t callback_list;
 
@@ -572,9 +574,7 @@ private:
   bool con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig);
   void con_reconfig_failed();
   bool con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig);
-  bool ho_prepare();
   void ho_failed();
-  void start_ho();
   void start_go_idle();
   void rrc_connection_release(const std::string& cause);
   void radio_link_failure();

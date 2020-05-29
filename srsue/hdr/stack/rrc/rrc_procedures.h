@@ -35,13 +35,29 @@ namespace srsue {
 
 // background workers use this event to signal the result of a cell select phy procedure
 struct cell_select_event_t {
-  cell_select_event_t(bool c_) : cs_ret(c_) {}
+  explicit cell_select_event_t(bool c_) : cs_ret(c_) {}
   bool cs_ret;
 };
 
 /********************************
  *         Procedures
  *******************************/
+
+class rrc::phy_cell_select_proc
+{
+public:
+  explicit phy_cell_select_proc(rrc* parent_);
+  srslte::proc_outcome_t init(const cell_t& target_cell);
+  srslte::proc_outcome_t react(cell_select_event_t ev);
+  void                   then(const srslte::proc_state_t& result);
+  srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+  static const char*     name() { return "PHY Cell Select"; }
+
+private:
+  // args
+  rrc*          rrc_ptr;
+  const cell_t* target_cell;
+};
 
 class rrc::cell_search_proc
 {
@@ -85,8 +101,7 @@ public:
   struct si_acq_timer_expired {
     uint32_t timer_id;
   };
-  struct sib_received_ev {
-  };
+  struct sib_received_ev {};
 
   explicit si_acquire_proc(rrc* parent_);
   srslte::proc_outcome_t init(uint32_t sib_index_);
@@ -285,6 +300,31 @@ private:
   srslte::proc_outcome_t step_cell_reselection();
   srslte::proc_outcome_t step_cell_configuration();
   srslte::proc_outcome_t cell_criteria();
+};
+
+class rrc::ho_prep_proc
+{
+public:
+  struct t304_expiry {};
+
+  explicit ho_prep_proc(rrc* rrc_);
+  srslte::proc_outcome_t init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf);
+  srslte::proc_outcome_t react(cell_select_event_t ev);
+  srslte::proc_outcome_t react(t304_expiry ev);
+  srslte::proc_outcome_t step();
+  void                   then(const srslte::proc_state_t& result);
+  static const char*     name() { return "Handover Preparation"; }
+
+private:
+  rrc* rrc_ptr = nullptr;
+
+  // args
+  asn1::rrc::rrc_conn_recfg_r8_ies_s recfg_r8;
+  cell_t                             ho_src_cell;
+  uint16_t                           ho_src_rnti = 0;
+
+  // state
+  uint32_t target_earfcn;
 };
 
 } // namespace srsue

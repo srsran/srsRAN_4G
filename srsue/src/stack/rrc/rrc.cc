@@ -89,6 +89,7 @@ rrc::rrc(stack_interface_rrc* stack_) :
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
   rrc_log("RRC"),
+  phy_cell_selector(this),
   cell_searcher(this),
   si_acquirer(this),
   serv_cell_cfg(this),
@@ -99,6 +100,7 @@ rrc::rrc(stack_interface_rrc* stack_) :
   plmn_searcher(this),
   cell_reselector(this),
   connection_reest(this),
+  ho_prep_proc(this),
   serving_cell(unique_cell_t(new cell_t()))
 {
   measurements = std::unique_ptr<rrc_meas>(new rrc_meas());
@@ -1042,103 +1044,6 @@ void rrc::send_rrc_con_reconfig_complete()
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-bool rrc::ho_prepare()
-{
-  if (pending_mob_reconf) {
-    rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &mob_reconf.crit_exts.c1().rrc_conn_recfg_r8();
-    mob_ctrl_info_s*         mob_ctrl_info = &mob_reconf_r8->mob_ctrl_info;
-    rrc_log->info("Processing HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
-
-    uint32_t target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
-                                                                   : serving_cell->get_earfcn();
-
-    if (not has_neighbour_cell(target_earfcn, mob_ctrl_info->target_pci)) {
-      rrc_log->console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
-      rrc_log->error(
-          "Could not find target cell earfcn=%d, pci=%d\n", serving_cell->get_earfcn(), mob_ctrl_info->target_pci);
-      return false;
-    }
-
-    // Section 5.3.5.4
-    t310.stop();
-    t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { timer_expired(tid); });
-
-    // Save serving cell and current configuration
-    ho_src_cell = *serving_cell;
-    mac_interface_rrc::ue_rnti_t uernti;
-    mac->get_rntis(&uernti);
-    ho_src_rnti = uernti.crnti;
-
-    // Reset/Reestablish stack
-    pdcp->reestablish();
-    rlc->reestablish();
-    mac->wait_uplink();
-    mac->clear_rntis();
-    mac->reset();
-    phy->reset();
-
-    mac->set_ho_rnti(mob_ctrl_info->new_ue_id.to_number(), mob_ctrl_info->target_pci);
-
-    // Apply common config, but do not send to lower layers if Dedicated is present (to avoid sending twice)
-    apply_rr_config_common(&mob_ctrl_info->rr_cfg_common, !mob_reconf_r8->rr_cfg_ded_present);
-
-    if (mob_reconf_r8->rr_cfg_ded_present) {
-      apply_rr_config_dedicated(&mob_reconf_r8->rr_cfg_ded);
-    }
-
-    cell_t* target_cell = get_neighbour_cell_handle(target_earfcn, mob_ctrl_info->target_pci);
-    if (not phy->cell_select(&target_cell->phy_cell)) {
-      rrc_log->error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
-                     target_cell->to_string().c_str(),
-                     serving_cell->to_string().c_str());
-
-      // Remove cell from list to avoid cell re-selection, picking the same cell
-      target_cell->set_rsrp(-INFINITY);
-
-      return false;
-    }
-
-    set_serving_cell(target_cell->phy_cell, false);
-
-    // Extract and apply scell config if any
-    apply_scell_config(mob_reconf_r8);
-
-    if (mob_ctrl_info->rach_cfg_ded_present) {
-      rrc_log->info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
-                    mob_ctrl_info->rach_cfg_ded.ra_preamb_idx,
-                    mob_ctrl_info->rach_cfg_ded.ra_prach_mask_idx);
-      mac->start_noncont_ho(mob_ctrl_info->rach_cfg_ded.ra_preamb_idx, mob_ctrl_info->rach_cfg_ded.ra_prach_mask_idx);
-    } else {
-      rrc_log->info("Starting contention-based RA\n");
-      mac->start_cont_ho();
-    }
-
-    int ncc = -1;
-    if (mob_reconf_r8->security_cfg_ho_present) {
-      ncc = mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count;
-      if (mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().key_change_ind) {
-        rrc_log->console("keyChangeIndicator in securityConfigHO not supported\n");
-        return false;
-      }
-      if (mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().security_algorithm_cfg_present) {
-        sec_cfg.cipher_algo = (CIPHERING_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.handov_type.intra_lte()
-                                  .security_algorithm_cfg.ciphering_algorithm.to_number();
-        sec_cfg.integ_algo = (INTEGRITY_ALGORITHM_ID_ENUM)mob_reconf_r8->security_cfg_ho.handov_type.intra_lte()
-                                 .security_algorithm_cfg.integrity_prot_algorithm.to_number();
-        rrc_log->info("Changed Ciphering to %s and Integrity to %s\n",
-                      ciphering_algorithm_id_text[sec_cfg.cipher_algo],
-                      integrity_algorithm_id_text[sec_cfg.integ_algo]);
-      }
-    }
-
-    usim->generate_as_keys_ho(mob_ctrl_info->target_pci, serving_cell->get_earfcn(), ncc, &sec_cfg);
-
-    pdcp->config_security_all(sec_cfg);
-    send_rrc_con_reconfig_complete();
-  }
-  return true;
-}
-
 void rrc::ho_ra_completed(bool ra_successful)
 {
   cmd_msg_t msg;
@@ -1170,39 +1075,17 @@ void rrc::process_ho_ra_completed(bool ra_successful)
 
 bool rrc::con_reconfig_ho(rrc_conn_recfg_s* reconfig)
 {
-  rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
-  if (mob_reconf_r8->mob_ctrl_info.target_pci == serving_cell->get_pci()) {
-    rrc_log->console("Warning: Received HO command to own cell\n");
-    rrc_log->warning("Received HO command to own cell\n");
-    return false;
-  }
-
-  rrc_log->info("Received HO command to target PCell=%d\n", mob_reconf_r8->mob_ctrl_info.target_pci);
-  rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
-                   mob_reconf_r8->mob_ctrl_info.target_pci,
-                   mob_reconf_r8->security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
-
   // store mobilityControlInfo
   mob_reconf         = *reconfig;
   pending_mob_reconf = true;
 
-  start_ho();
-  return true;
-}
+  if (not ho_prep_proc.launch(*reconfig)) {
+    rrc_log->error("Unable to launch Handover Preparation procedure\n");
+    return false;
+  }
+  callback_list.add_proc(ho_prep_proc);
 
-void rrc::start_ho()
-{
-  callback_list.add_task([this]() {
-    if (state != RRC_STATE_CONNECTED) {
-      rrc_log->info("HO interrupted, since RRC is no longer in connected state\n");
-      return srslte::proc_outcome_t::success;
-    }
-    if (not ho_prepare()) {
-      con_reconfig_failed();
-      return srslte::proc_outcome_t::error;
-    }
-    return srslte::proc_outcome_t::success;
-  });
+  return true;
 }
 
 void rrc::start_go_idle()
@@ -1275,6 +1158,7 @@ bool rrc::con_reconfig(rrc_conn_recfg_s* reconfig)
 // HO failure from T304 expiry 5.3.5.6
 void rrc::ho_failed()
 {
+  ho_prep_proc.trigger(ho_prep_proc::t304_expiry{});
   start_con_restablishment(reest_cause_e::ho_fail);
 }
 
@@ -1304,9 +1188,7 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, rrc_conn_recfg_s* reconfig)
 
   rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
   if (reconfig_r8->mob_ctrl_info_present) {
-    if (!con_reconfig_ho(reconfig)) {
-      con_reconfig_failed();
-    }
+    con_reconfig_ho(reconfig);
   } else {
     if (!con_reconfig(reconfig)) {
       con_reconfig_failed();
@@ -1401,9 +1283,7 @@ void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& 
 
 void rrc::cell_select_completed(bool cs_ret)
 {
-  cell_select_event_t ev{cs_ret};
-  cell_searcher.trigger(ev);
-  cell_selector.trigger(ev);
+  phy_cell_selector.trigger(cell_select_event_t{cs_ret});
 }
 
 /*******************************************************************************

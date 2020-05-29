@@ -20,6 +20,7 @@
  */
 
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
+#include "srslte/common/security.h"
 #include "srslte/common/tti_point.h"
 #include <inttypes.h> // for printing uint64_t
 
@@ -32,6 +33,36 @@ namespace srsue {
 
 using srslte::proc_outcome_t;
 using srslte::tti_point;
+
+/**************************************
+ *    PHY Cell Select Procedure
+ *************************************/
+
+rrc::phy_cell_select_proc::phy_cell_select_proc(rrc* parent_) : rrc_ptr(parent_) {}
+
+srslte::proc_outcome_t rrc::phy_cell_select_proc::init(const cell_t& target_cell_)
+{
+  target_cell = &target_cell_;
+  Info("Starting for %s\n", target_cell->to_string().c_str());
+  rrc_ptr->stack->start_cell_select(&target_cell->phy_cell);
+  return proc_outcome_t::yield;
+}
+
+srslte::proc_outcome_t rrc::phy_cell_select_proc::react(cell_select_event_t ev)
+{
+  if (not ev.cs_ret) {
+    Error("Couldn't select new serving cell\n");
+    return proc_outcome_t::error;
+  }
+  return proc_outcome_t::success;
+}
+
+void rrc::phy_cell_select_proc::then(const srslte::proc_state_t& result)
+{
+  // Warn other procedures that depend on this procedure
+  rrc_ptr->cell_searcher.trigger(cell_select_event_t{result.is_success()});
+  rrc_ptr->cell_selector.trigger(cell_select_event_t{result.is_success()});
+}
 
 /**************************************
  *       Cell Search Procedure
@@ -92,7 +123,10 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
 
   // set new serving cell in PHY
   state = state_t::phy_cell_select;
-  rrc_ptr->stack->start_cell_select(&rrc_ptr->serving_cell->phy_cell);
+  if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
+    Error("Couldn't start phy cell selection\n");
+    return proc_outcome_t::error;
+  }
   return proc_outcome_t::yield;
 }
 
@@ -366,8 +400,7 @@ proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
 rrc::serving_cell_config_proc::serving_cell_config_proc(rrc* parent_) :
   rrc_ptr(parent_),
   log_h(srslte::logmap::get("RRC"))
-{
-}
+{}
 
 /*
  * Retrieves all required SIB or configures them if already retrieved before
@@ -508,7 +541,10 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
       Info("Selected cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
 
       state = search_state_t::cell_selection;
-      rrc_ptr->stack->start_cell_select(&rrc_ptr->serving_cell->phy_cell);
+      if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
+        Error("Failed to launch PHY Cell Selection\n");
+        return proc_outcome_t::error;
+      }
       return proc_outcome_t::yield;
     }
   }
@@ -735,8 +771,7 @@ void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
 rrc::connection_request_proc::connection_request_proc(rrc* parent_) :
   rrc_ptr(parent_),
   log_h(srslte::logmap::get("RRC"))
-{
-}
+{}
 
 proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t cause_,
                                                   srslte::unique_byte_buffer_t  dedicated_info_nas_)
@@ -1290,6 +1325,160 @@ proc_outcome_t rrc::connection_reest_proc::step()
   }
 
   return ret;
+}
+
+/**************************************
+ *    Handover Preparation Procedure
+ *************************************/
+
+rrc::ho_prep_proc::ho_prep_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
+
+srslte::proc_outcome_t rrc::ho_prep_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
+{
+  Info("Starting...\n");
+  recfg_r8                                  = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
+  asn1::rrc::mob_ctrl_info_s* mob_ctrl_info = &recfg_r8.mob_ctrl_info;
+
+  if (recfg_r8.mob_ctrl_info.target_pci == rrc_ptr->serving_cell->get_pci()) {
+    rrc_ptr->rrc_log->console("Warning: Received HO command to own cell\n");
+    Warning("Received HO command to own cell\n");
+    return proc_outcome_t::error;
+  }
+
+  Info("Received HO command to target PCell=%d\n", recfg_r8.mob_ctrl_info.target_pci);
+  rrc_ptr->rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
+                            recfg_r8.mob_ctrl_info.target_pci,
+                            recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
+
+  target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
+                                                        : rrc_ptr->serving_cell->get_earfcn();
+
+  if (not rrc_ptr->has_neighbour_cell(target_earfcn, mob_ctrl_info->target_pci)) {
+    rrc_ptr->rrc_log->console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
+    Error("Could not find target cell earfcn=%d, pci=%d\n",
+          rrc_ptr->serving_cell->get_earfcn(),
+          mob_ctrl_info->target_pci);
+    return proc_outcome_t::error;
+  }
+
+  // Section 5.3.5.4
+  rrc_ptr->t310.stop();
+  rrc_ptr->t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { rrc_ptr->timer_expired(tid); });
+
+  // Save serving cell and current configuration
+  ho_src_cell = *rrc_ptr->serving_cell;
+  mac_interface_rrc::ue_rnti_t uernti;
+  rrc_ptr->mac->get_rntis(&uernti);
+  ho_src_rnti = uernti.crnti;
+
+  // Reset/Reestablish stack
+  rrc_ptr->pdcp->reestablish();
+  rrc_ptr->rlc->reestablish();
+  rrc_ptr->mac->wait_uplink();
+  rrc_ptr->mac->clear_rntis();
+  rrc_ptr->mac->reset();
+  rrc_ptr->phy->reset();
+
+  rrc_ptr->mac->set_ho_rnti(mob_ctrl_info->new_ue_id.to_number(), mob_ctrl_info->target_pci);
+
+  // Apply common config, but do not send to lower layers if Dedicated is present (to avoid sending twice)
+  rrc_ptr->apply_rr_config_common(&mob_ctrl_info->rr_cfg_common, !recfg_r8.rr_cfg_ded_present);
+
+  if (recfg_r8.rr_cfg_ded_present) {
+    rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded);
+  }
+
+  cell_t* target_cell = rrc_ptr->get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
+  if (not rrc_ptr->phy_cell_selector.launch(*target_cell)) {
+    Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
+    return proc_outcome_t::error;
+  }
+  return proc_outcome_t::yield;
+}
+
+srslte::proc_outcome_t rrc::ho_prep_proc::react(srsue::cell_select_event_t ev)
+{
+  // Check if cell has not been deleted in the meantime
+  cell_t* target_cell = rrc_ptr->get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
+  if (target_cell == nullptr) {
+    Error("Cell removed from list of neighbours. Aborting handover preparation\n");
+    return proc_outcome_t::error;
+  }
+
+  if (not ev.cs_ret) {
+    Error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
+          target_cell->to_string().c_str(),
+          rrc_ptr->serving_cell->to_string().c_str());
+
+    // Remove cell from list to avoid cell re-selection, picking the same cell
+    target_cell->set_rsrp(-INFINITY);
+    return proc_outcome_t::error;
+  }
+
+  rrc_ptr->set_serving_cell(target_cell->phy_cell, false);
+
+  // Extract and apply scell config if any
+  rrc_ptr->apply_scell_config(&recfg_r8);
+
+  if (recfg_r8.mob_ctrl_info.rach_cfg_ded_present) {
+    Info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
+         recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
+         recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
+    rrc_ptr->mac->start_noncont_ho(recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_preamb_idx,
+                                   recfg_r8.mob_ctrl_info.rach_cfg_ded.ra_prach_mask_idx);
+  } else {
+    Info("Starting contention-based RA\n");
+    rrc_ptr->mac->start_cont_ho();
+  }
+
+  int ncc = -1;
+  if (recfg_r8.security_cfg_ho_present) {
+    auto& sec_intralte = recfg_r8.security_cfg_ho.handov_type.intra_lte();
+    ncc                = sec_intralte.next_hop_chaining_count;
+    if (sec_intralte.key_change_ind) {
+      rrc_ptr->rrc_log->console("keyChangeIndicator in securityConfigHO not supported\n");
+      return proc_outcome_t::error;
+    }
+    if (sec_intralte.security_algorithm_cfg_present) {
+      rrc_ptr->sec_cfg.cipher_algo =
+          (srslte::CIPHERING_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.ciphering_algorithm.to_number();
+      rrc_ptr->sec_cfg.integ_algo =
+          (srslte::INTEGRITY_ALGORITHM_ID_ENUM)sec_intralte.security_algorithm_cfg.integrity_prot_algorithm.to_number();
+      Info("Changed Ciphering to %s and Integrity to %s\n",
+           srslte::ciphering_algorithm_id_text[rrc_ptr->sec_cfg.cipher_algo],
+           srslte::integrity_algorithm_id_text[rrc_ptr->sec_cfg.integ_algo]);
+    }
+  }
+
+  rrc_ptr->usim->generate_as_keys_ho(
+      recfg_r8.mob_ctrl_info.target_pci, rrc_ptr->serving_cell->get_earfcn(), ncc, &rrc_ptr->sec_cfg);
+
+  rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
+  return proc_outcome_t::success;
+}
+
+srslte::proc_outcome_t rrc::ho_prep_proc::step()
+{
+  if (rrc_ptr->state != RRC_STATE_CONNECTED) {
+    Info("HO interrupted, since RRC is no longer in connected state\n");
+    return srslte::proc_outcome_t::error;
+  }
+  return proc_outcome_t::success;
+}
+
+srslte::proc_outcome_t rrc::ho_prep_proc::react(t304_expiry ev)
+{
+  Info("HO preparation timed out.\n");
+  return proc_outcome_t::error;
+}
+
+void rrc::ho_prep_proc::then(const srslte::proc_state_t& result)
+{
+  if (result.is_error()) {
+    rrc_ptr->con_reconfig_failed();
+  } else {
+    rrc_ptr->send_rrc_con_reconfig_complete();
+  }
 }
 
 } // namespace srsue
