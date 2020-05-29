@@ -22,6 +22,7 @@
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
 #include "srslte/common/security.h"
 #include "srslte/common/tti_point.h"
+#include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include <inttypes.h> // for printing uint64_t
 
 #define Error(fmt, ...) rrc_ptr->rrc_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
@@ -66,7 +67,7 @@ void rrc::phy_cell_select_proc::then(const srslte::proc_state_t& result)
   } else if (rrc_ptr->cell_selector.is_busy()) {
     rrc_ptr->cell_selector.trigger(cell_select_event_t{result.is_success()});
   } else {
-    rrc_ptr->ho_prep_proc.trigger(cell_select_event_t{result.is_success()});
+    rrc_ptr->ho_handler.trigger(cell_select_event_t{result.is_success()});
   }
 }
 
@@ -1337,9 +1338,9 @@ proc_outcome_t rrc::connection_reest_proc::step()
  *    Handover Preparation Procedure
  *************************************/
 
-rrc::ho_prep_proc::ho_prep_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
+rrc::ho_proc::ho_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
 
-srslte::proc_outcome_t rrc::ho_prep_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
+srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf)
 {
   Info("Starting...\n");
   recfg_r8                                  = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
@@ -1381,8 +1382,12 @@ srslte::proc_outcome_t rrc::ho_prep_proc::init(const asn1::rrc::rrc_conn_recfg_s
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::ho_prep_proc::react(srsue::cell_select_event_t ev)
+srslte::proc_outcome_t rrc::ho_proc::react(srsue::cell_select_event_t ev)
 {
+  if (state != wait_phy_cell_select_complete) {
+    Warning("Received unexpected PHY Cell Selection event\n");
+    return proc_outcome_t::yield;
+  }
   // Check if cell has not been deleted in the meantime
   cell_t* target_cell = rrc_ptr->get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
   if (target_cell == nullptr) {
@@ -1439,10 +1444,12 @@ srslte::proc_outcome_t rrc::ho_prep_proc::react(srsue::cell_select_event_t ev)
       recfg_r8.mob_ctrl_info.target_pci, rrc_ptr->serving_cell->get_earfcn(), ncc, &rrc_ptr->sec_cfg);
 
   rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
-  return proc_outcome_t::success;
+
+  state = wait_ra_completion;
+  return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::ho_prep_proc::step()
+srslte::proc_outcome_t rrc::ho_proc::step()
 {
   if (rrc_ptr->state != RRC_STATE_CONNECTED) {
     Info("HO interrupted, since RRC is no longer in connected state\n");
@@ -1476,13 +1483,33 @@ srslte::proc_outcome_t rrc::ho_prep_proc::step()
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::ho_prep_proc::react(t304_expiry ev)
+srslte::proc_outcome_t rrc::ho_proc::react(t304_expiry ev)
 {
   Info("HO preparation timed out.\n");
   return proc_outcome_t::error;
 }
 
-void rrc::ho_prep_proc::then(const srslte::proc_state_t& result)
+srslte::proc_outcome_t rrc::ho_proc::react(ra_completed_ev ev)
+{
+  if (state != wait_ra_completion) {
+    Warning("Received unexpected RA Complete Event\n");
+    return proc_outcome_t::yield;
+  }
+
+  rrc_ptr->t304.stop();
+  if (ev.success) {
+    if (not rrc_ptr->measurements->parse_meas_config(&recfg_r8, true, rrc_ptr->ho_src_cell.get_earfcn())) {
+      Error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
+    }
+  }
+
+  Info("HO %ssuccessful\n", ev.success ? "" : "un");
+  rrc_ptr->rrc_log->console("HO %ssuccessful\n", ev.success ? "" : "un");
+
+  return ev.success ? proc_outcome_t::success : proc_outcome_t::error;
+}
+
+void rrc::ho_proc::then(const srslte::proc_state_t& result)
 {
   Info("Finished HO Preparation %s\n", result.is_success() ? "successfully" : "with error");
   if (result.is_error()) {

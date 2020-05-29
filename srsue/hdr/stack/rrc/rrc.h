@@ -330,13 +330,13 @@ public:
   void new_cell_meas(const std::vector<phy_meas_t>& meas);
 
   // MAC interface
-  void ho_ra_completed(bool ra_successful);
+  void ho_ra_completed(bool ra_successful) final;
   void release_pucch_srs();
   void run_tti();
   void ra_problem();
 
   // GW interface
-  bool is_connected(); // this is also NAS interface
+  bool is_connected() final; // this is also NAS interface
   bool have_drb();
 
   // PDCP interface
@@ -405,8 +405,6 @@ private:
   srslte::phy_cfg_t           current_phy_cfg, previous_phy_cfg = {};
   srslte::mac_cfg_t           current_mac_cfg, previous_mac_cfg = {};
   bool                        current_scell_configured[SRSLTE_MAX_CARRIERS] = {};
-  bool                        pending_mob_reconf                            = false;
-  asn1::rrc::rrc_conn_recfg_s mob_reconf                                    = {};
 
   srslte::as_security_config_t sec_cfg = {};
 
@@ -473,9 +471,6 @@ private:
   bool                     reestablishment_started    = false;
   bool                     reestablishment_successful = false;
 
-  // Process HO completition in the background
-  void process_ho_ra_completed(bool ra_successful);
-
   // Measurements private subclass
   class rrc_meas;
   std::unique_ptr<rrc_meas> measurements;
@@ -525,7 +520,7 @@ private:
   class go_idle_proc;
   class cell_reselection_proc;
   class connection_reest_proc;
-  class ho_prep_proc;
+  class ho_proc;
   srslte::proc_t<phy_cell_select_proc>                                       phy_cell_selector;
   srslte::proc_t<cell_search_proc, phy_interface_rrc_lte::cell_search_ret_t> cell_searcher;
   srslte::proc_t<si_acquire_proc>                                            si_acquirer;
@@ -537,7 +532,7 @@ private:
   srslte::proc_t<plmn_search_proc>                                           plmn_searcher;
   srslte::proc_t<cell_reselection_proc>                                      cell_reselector;
   srslte::proc_t<connection_reest_proc>                                      connection_reest;
-  srslte::proc_t<ho_prep_proc>                                               ho_prep_proc;
+  srslte::proc_t<ho_proc>                                                    ho_handler;
 
   srslte::proc_manager_list_t callback_list;
 

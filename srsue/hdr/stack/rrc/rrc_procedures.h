@@ -302,18 +302,22 @@ private:
   srslte::proc_outcome_t cell_criteria();
 };
 
-class rrc::ho_prep_proc
+class rrc::ho_proc
 {
 public:
   struct t304_expiry {};
+  struct ra_completed_ev {
+    bool success;
+  };
 
-  explicit ho_prep_proc(rrc* rrc_);
+  explicit ho_proc(rrc* rrc_);
   srslte::proc_outcome_t init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf);
   srslte::proc_outcome_t react(cell_select_event_t ev);
   srslte::proc_outcome_t react(t304_expiry ev);
+  srslte::proc_outcome_t react(ra_completed_ev ev);
   srslte::proc_outcome_t step();
   void                   then(const srslte::proc_state_t& result);
-  static const char*     name() { return "Handover Preparation"; }
+  static const char*     name() { return "Handover"; }
 
 private:
   rrc* rrc_ptr = nullptr;
@@ -325,7 +329,7 @@ private:
 
   // state
   uint32_t target_earfcn;
-  enum state_t { launch_phy_cell_select, wait_phy_cell_select_complete } state;
+  enum state_t { launch_phy_cell_select, wait_phy_cell_select_complete, wait_ra_completion } state;
 };
 
 } // namespace srsue

@@ -100,7 +100,7 @@ rrc::rrc(stack_interface_rrc* stack_) :
   plmn_searcher(this),
   cell_reselector(this),
   connection_reest(this),
-  ho_prep_proc(this),
+  ho_handler(this),
   serving_cell(unique_cell_t(new cell_t()))
 {
   measurements = std::unique_ptr<rrc_meas>(new rrc_meas());
@@ -168,8 +168,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   transaction_id = 0;
 
   cell_clean_cnt = 0;
-
-  pending_mob_reconf = false;
 
   // Set default values for RRC. MAC and PHY are set to default themselves
   set_rrc_default();
@@ -275,7 +273,7 @@ void rrc::run_tti()
           radio_link_failure();
           break;
         case cmd_msg_t::HO_COMPLETE:
-          process_ho_ra_completed(msg.lcid > 0);
+          ho_handler.trigger(ho_proc::ra_completed_ev{msg.lcid > 0});
           break;
         case cmd_msg_t::STOP:
           return;
@@ -793,6 +791,7 @@ void rrc::radio_link_failure()
   // TODO: Generate and store failure report
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
+
   if (state == RRC_STATE_CONNECTED) {
     start_con_restablishment(reest_cause_e::other_fail);
   }
@@ -1052,38 +1051,13 @@ void rrc::ho_ra_completed(bool ra_successful)
   cmd_q.push(std::move(msg));
 }
 
-void rrc::process_ho_ra_completed(bool ra_successful)
-{
-  if (pending_mob_reconf) {
-    if (ra_successful) {
-      if (!measurements->parse_meas_config(
-              &mob_reconf.crit_exts.c1().rrc_conn_recfg_r8(), true, ho_src_cell.get_earfcn())) {
-        rrc_log->error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
-      }
-      t304.stop();
-    }
-    // T304 will expiry and send ho_failure
-
-    rrc_log->info("HO %ssuccessful\n", ra_successful ? "" : "un");
-    rrc_log->console("HO %ssuccessful\n", ra_successful ? "" : "un");
-
-    pending_mob_reconf = false;
-  } else {
-    rrc_log->error("Received HO random access completed but no pending mobility reconfiguration info\n");
-  }
-}
-
 bool rrc::con_reconfig_ho(rrc_conn_recfg_s* reconfig)
 {
-  // store mobilityControlInfo
-  mob_reconf         = *reconfig;
-  pending_mob_reconf = true;
-
-  if (not ho_prep_proc.launch(mob_reconf)) {
+  if (not ho_handler.launch(*reconfig)) {
     rrc_log->error("Unable to launch Handover Preparation procedure\n");
     return false;
   }
-  callback_list.add_proc(ho_prep_proc);
+  callback_list.add_proc(ho_handler);
   return true;
 }
 
@@ -1157,7 +1131,7 @@ bool rrc::con_reconfig(rrc_conn_recfg_s* reconfig)
 // HO failure from T304 expiry 5.3.5.6
 void rrc::ho_failed()
 {
-  ho_prep_proc.trigger(ho_prep_proc::t304_expiry{});
+  ho_handler.trigger(ho_proc::t304_expiry{});
   start_con_restablishment(reest_cause_e::ho_fail);
 }
 
