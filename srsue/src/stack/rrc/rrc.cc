@@ -1079,12 +1079,11 @@ bool rrc::con_reconfig_ho(rrc_conn_recfg_s* reconfig)
   mob_reconf         = *reconfig;
   pending_mob_reconf = true;
 
-  if (not ho_prep_proc.launch(*reconfig)) {
+  if (not ho_prep_proc.launch(mob_reconf)) {
     rrc_log->error("Unable to launch Handover Preparation procedure\n");
     return false;
   }
   callback_list.add_proc(ho_prep_proc);
-
   return true;
 }
 

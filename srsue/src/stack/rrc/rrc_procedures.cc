@@ -129,7 +129,7 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
 
   // set new serving cell in PHY
   state = state_t::phy_cell_select;
-  if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
+  if (not rrc_ptr->phy_cell_selector.launch(*rrc_ptr->serving_cell)) {
     Error("Couldn't start phy cell selection\n");
     return proc_outcome_t::error;
   }
@@ -1367,38 +1367,17 @@ srslte::proc_outcome_t rrc::ho_prep_proc::init(const asn1::rrc::rrc_conn_recfg_s
     return proc_outcome_t::error;
   }
 
-  // Section 5.3.5.4
-  rrc_ptr->t310.stop();
-  rrc_ptr->t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { rrc_ptr->timer_expired(tid); });
-
   // Save serving cell and current configuration
   ho_src_cell = *rrc_ptr->serving_cell;
   mac_interface_rrc::ue_rnti_t uernti;
   rrc_ptr->mac->get_rntis(&uernti);
   ho_src_rnti = uernti.crnti;
 
-  // Reset/Reestablish stack
-  rrc_ptr->pdcp->reestablish();
-  rrc_ptr->rlc->reestablish();
-  rrc_ptr->mac->wait_uplink();
-  rrc_ptr->mac->clear_rntis();
-  rrc_ptr->mac->reset();
-  rrc_ptr->phy->reset();
+  // Section 5.3.5.4
+  rrc_ptr->t310.stop();
+  rrc_ptr->t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { rrc_ptr->timer_expired(tid); });
 
-  rrc_ptr->mac->set_ho_rnti(mob_ctrl_info->new_ue_id.to_number(), mob_ctrl_info->target_pci);
-
-  // Apply common config, but do not send to lower layers if Dedicated is present (to avoid sending twice)
-  rrc_ptr->apply_rr_config_common(&mob_ctrl_info->rr_cfg_common, !recfg_r8.rr_cfg_ded_present);
-
-  if (recfg_r8.rr_cfg_ded_present) {
-    rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded);
-  }
-
-  cell_t* target_cell = rrc_ptr->get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
-  if (not rrc_ptr->phy_cell_selector.launch(*target_cell)) {
-    Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
-    return proc_outcome_t::error;
-  }
+  state = launch_phy_cell_select;
   return proc_outcome_t::yield;
 }
 
@@ -1469,6 +1448,31 @@ srslte::proc_outcome_t rrc::ho_prep_proc::step()
     Info("HO interrupted, since RRC is no longer in connected state\n");
     return srslte::proc_outcome_t::error;
   }
+  if (state == launch_phy_cell_select) {
+    // Reset/Reestablish stack
+    rrc_ptr->pdcp->reestablish();
+    rrc_ptr->rlc->reestablish();
+    rrc_ptr->mac->wait_uplink();
+    rrc_ptr->mac->clear_rntis();
+    rrc_ptr->mac->reset();
+    rrc_ptr->phy->reset();
+
+    rrc_ptr->mac->set_ho_rnti(recfg_r8.mob_ctrl_info.new_ue_id.to_number(), recfg_r8.mob_ctrl_info.target_pci);
+
+    // Apply common config, but do not send to lower layers if Dedicated is present (to avoid sending twice)
+    rrc_ptr->apply_rr_config_common(&recfg_r8.mob_ctrl_info.rr_cfg_common, !recfg_r8.rr_cfg_ded_present);
+
+    if (recfg_r8.rr_cfg_ded_present) {
+      rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded);
+    }
+
+    cell_t* target_cell = rrc_ptr->get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
+    if (not rrc_ptr->phy_cell_selector.launch(*target_cell)) {
+      Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
+      return proc_outcome_t::error;
+    }
+    state = wait_phy_cell_select_complete;
+  }
   return proc_outcome_t::yield;
 }
 
@@ -1480,6 +1484,7 @@ srslte::proc_outcome_t rrc::ho_prep_proc::react(t304_expiry ev)
 
 void rrc::ho_prep_proc::then(const srslte::proc_state_t& result)
 {
+  Info("Finished HO Preparation %s\n", result.is_success() ? "successfully" : "with error");
   if (result.is_error()) {
     rrc_ptr->con_reconfig_failed();
   } else {

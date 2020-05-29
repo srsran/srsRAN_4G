@@ -325,6 +325,7 @@ private:
 
   // state
   uint32_t target_earfcn;
+  enum state_t { launch_phy_cell_select, wait_phy_cell_select_complete } state;
 };
 
 } // namespace srsue
