@@ -59,9 +59,15 @@ srslte::proc_outcome_t rrc::phy_cell_select_proc::react(cell_select_event_t ev)
 
 void rrc::phy_cell_select_proc::then(const srslte::proc_state_t& result)
 {
+  Info("Finished %s\n", result.is_success() ? "successfully" : "with error");
   // Warn other procedures that depend on this procedure
-  rrc_ptr->cell_searcher.trigger(cell_select_event_t{result.is_success()});
-  rrc_ptr->cell_selector.trigger(cell_select_event_t{result.is_success()});
+  if (rrc_ptr->cell_searcher.is_busy()) {
+    rrc_ptr->cell_searcher.trigger(cell_select_event_t{result.is_success()});
+  } else if (rrc_ptr->cell_selector.is_busy()) {
+    rrc_ptr->cell_selector.trigger(cell_select_event_t{result.is_success()});
+  } else {
+    rrc_ptr->ho_prep_proc.trigger(cell_select_event_t{result.is_success()});
+  }
 }
 
 /**************************************
@@ -1463,7 +1469,7 @@ srslte::proc_outcome_t rrc::ho_prep_proc::step()
     Info("HO interrupted, since RRC is no longer in connected state\n");
     return srslte::proc_outcome_t::error;
   }
-  return proc_outcome_t::success;
+  return proc_outcome_t::yield;
 }
 
 srslte::proc_outcome_t rrc::ho_prep_proc::react(t304_expiry ev)
