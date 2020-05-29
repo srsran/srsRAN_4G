@@ -252,12 +252,6 @@ void ttcn3_ue::send_queued_data()
 
 void ttcn3_ue::loop_back_pdu_with_tft(uint32_t input_lcid, srslte::unique_byte_buffer_t pdu)
 {
-  uint8_t output_lcid = tft_matcher.check_tft_filter_match(pdu);
-  log.info_hex(pdu->msg,
-               pdu->N_bytes,
-               "Rx PDU (%d B) on lcid=%d, looping back to lcid=%d\n",
-               pdu->N_bytes,
-               input_lcid,
-               output_lcid);
+  log.info_hex(pdu->msg, pdu->N_bytes, "Rx PDU (%d B) on lcid=%d, looping back\n", pdu->N_bytes, input_lcid);
   stack->write_sdu(input_lcid, std::move(pdu), false);
 }
