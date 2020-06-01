@@ -108,12 +108,12 @@ private:
   bool                           running = false;
   srslte::block_queue<cmd_msg_t> cmd_q;
 
-  phy_interface_rrc_nr* phy   = nullptr;
-  mac_interface_rrc*    mac   = nullptr;
-  rlc_interface_rrc*    rlc   = nullptr;
-  pdcp_interface_rrc*   pdcp  = nullptr;
-  gw_interface_rrc*     gw    = nullptr;
-  stack_interface_rrc*  stack = nullptr;
+  phy_interface_rrc_nr* phy = nullptr;
+  //  mac_interface_rrc*    mac   = nullptr;
+  rlc_interface_rrc*   rlc   = nullptr;
+  pdcp_interface_rrc*  pdcp  = nullptr;
+  gw_interface_rrc*    gw    = nullptr;
+  stack_interface_rrc* stack = nullptr;
 
   srslte::log_ref log_h;
 
@@ -126,7 +126,7 @@ private:
   };
   const static char* rrc_nr_state_text[RRC_NR_STATE_N_ITEMS];
 
-  rrc_nr_state_t state = RRC_NR_STATE_IDLE;
+  //  rrc_nr_state_t state = RRC_NR_STATE_IDLE;
 
   rrc_nr_args_t args = {};
 
