@@ -199,7 +199,6 @@ inline int phy_ue_db::_assert_active_enb_cc(uint16_t rnti, uint32_t enb_cc_idx) 
   // Check SCell is active, ignore PCell state
   const cell_info_t& cell_info = ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)];
   if (cell_info.state != cell_state_primary and cell_info.state != cell_state_secondary_active) {
-    ERROR("Failed to assert active eNb cell/carrier %d for RNTI 0x%X", enb_cc_idx, rnti);
     return SRSLTE_ERROR;
   }
 

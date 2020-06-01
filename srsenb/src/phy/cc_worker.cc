@@ -208,13 +208,11 @@ void cc_worker::rem_rnti(uint16_t rnti)
   if (ue_db.count(rnti)) {
     delete ue_db[rnti];
     ue_db.erase(rnti);
-
-    srslte_enb_dl_rem_rnti(&enb_dl, rnti);
-    srslte_enb_ul_rem_rnti(&enb_ul, rnti);
-
-  } else {
-    Error("Removing user: rnti=0x%x does not exist\n", rnti);
   }
+
+  // Always try to remove from PHY-lib
+  srslte_enb_dl_rem_rnti(&enb_dl, rnti);
+  srslte_enb_ul_rem_rnti(&enb_ul, rnti);
 }
 
 uint32_t cc_worker::get_nof_rnti()
