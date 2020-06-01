@@ -47,10 +47,10 @@ struct rrc_nr_args_t {
 
 struct rrc_nr_metrics_t {};
 
-class rrc_nr : public rrc_interface_phy_nr,
-               public rrc_interface_pdcp,
-               public rrc_interface_rlc,
-               public srslte::timer_callback
+class rrc_nr final : public rrc_interface_phy_nr,
+                     public rrc_interface_pdcp,
+                     public rrc_interface_rlc,
+                     public srslte::timer_callback
 {
 public:
   rrc_nr();
