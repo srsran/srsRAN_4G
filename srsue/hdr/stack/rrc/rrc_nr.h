@@ -108,13 +108,12 @@ private:
   bool                           running = false;
   srslte::block_queue<cmd_msg_t> cmd_q;
 
-  srslte::byte_buffer_pool* pool  = nullptr;
-  phy_interface_rrc_nr*     phy   = nullptr;
-  mac_interface_rrc*        mac   = nullptr;
-  rlc_interface_rrc*        rlc   = nullptr;
-  pdcp_interface_rrc*       pdcp  = nullptr;
-  gw_interface_rrc*         gw    = nullptr;
-  stack_interface_rrc*      stack = nullptr;
+  phy_interface_rrc_nr* phy   = nullptr;
+  mac_interface_rrc*    mac   = nullptr;
+  rlc_interface_rrc*    rlc   = nullptr;
+  pdcp_interface_rrc*   pdcp  = nullptr;
+  gw_interface_rrc*     gw    = nullptr;
+  stack_interface_rrc*  stack = nullptr;
 
   srslte::log_ref log_h;
 
@@ -127,8 +126,7 @@ private:
   };
   const static char* rrc_nr_state_text[RRC_NR_STATE_N_ITEMS];
 
-  rrc_nr_state_t state = RRC_NR_STATE_IDLE, last_state = RRC_NR_STATE_IDLE;
-  uint8_t        transaction_id = 0;
+  rrc_nr_state_t state = RRC_NR_STATE_IDLE;
 
   rrc_nr_args_t args = {};
 
@@ -136,8 +134,6 @@ private:
   srslte::timer_handler* timers = nullptr;
 
   std::string get_rb_name(uint32_t lcid) final { return srslte::to_string((srslte::rb_id_nr_t)lcid); }
-
-  bool initiated = false;
 };
 
 } // namespace srsue

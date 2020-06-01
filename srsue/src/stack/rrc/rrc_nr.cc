@@ -61,9 +61,14 @@ void rrc_nr::init(phy_interface_rrc_nr*  phy_,
                                   srslte::pdcp_discard_timer_t ::ms100};
 
   pdcp->add_bearer(args.coreless.drb_lcid, pdcp_cnfg);
+
+  running = true;
 }
 
-void rrc_nr::stop() {}
+void rrc_nr::stop()
+{
+  running = false;
+}
 
 void rrc_nr::get_metrics(rrc_nr_metrics_t& m) {}
 
