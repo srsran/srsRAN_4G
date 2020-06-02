@@ -966,10 +966,15 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f)
     return;
   }
 
-  /* Freeze all DRBs. SRBs are needed for sending the HO Cmd */
+  /* Freeze all DRBs. SRBs DL are needed for sending the HO Cmd */
   for (const drb_to_add_mod_s& drb : f->rrc_ue->bearer_list.get_established_drbs()) {
     f->rrc_enb->pdcp->del_bearer(f->rrc_ue->rnti, drb.drb_id + 2);
     f->rrc_enb->mac->bearer_ue_rem(f->rrc_ue->rnti, drb.drb_id + 2);
+  }
+  sched_interface::ue_bearer_cfg_t bcfg = {};
+  bcfg.direction                        = sched_interface::ue_bearer_cfg_t::DL;
+  for (uint32_t srb_id = 0; srb_id < 3; ++srb_id) {
+    f->rrc_enb->mac->bearer_ue_cfg(f->rrc_ue->rnti, srb_id, &bcfg);
   }
 
   /* Prepare RRC Reconf Message with mobility info */

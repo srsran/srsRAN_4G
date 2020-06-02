@@ -959,14 +959,17 @@ uint32_t sched_ue::get_pending_ul_old_data(uint32_t cc_idx)
 // Private lock-free implementation
 uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
 {
-  uint32_t pending_data = 0;
+  // Note: If there are no active bearers, scheduling requests are also ignored.
+  uint32_t pending_data     = 0;
+  bool     ul_bearers_found = false;
   for (int i = 0; i < sched_interface::MAX_LC; i++) {
     if (bearer_is_ul(&lch[i])) {
       pending_data += lch[i].bsr;
+      ul_bearers_found = true;
     }
   }
   if (pending_data == 0) {
-    if (is_sr_triggered()) {
+    if (is_sr_triggered() and ul_bearers_found) {
       return 512;
     }
     for (uint32_t cc_idx = 0; cc_idx < carriers.size(); ++cc_idx) {
