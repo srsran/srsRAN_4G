@@ -360,8 +360,9 @@ void ue_stack_lte::start_cell_search()
 
 void ue_stack_lte::start_cell_select(const phy_interface_rrc_lte::phy_cell_t* phy_cell)
 {
-  background_tasks.push_task([this, phy_cell](uint32_t worker_id) {
-    bool ret = phy->cell_select(phy_cell);
+  phy_interface_rrc_lte::phy_cell_t cell_copy = *phy_cell;
+  background_tasks.push_task([this, cell_copy](uint32_t worker_id) {
+    bool ret = phy->cell_select(&cell_copy);
     // notify back RRC
     pending_tasks.push(background_queue_id, [this, ret]() { rrc.cell_select_completed(ret); });
   });
