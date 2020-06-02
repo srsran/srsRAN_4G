@@ -349,6 +349,7 @@ protected:
 
   void run_then(bool is_success) final
   {
+    proc_state = proc_status_t::idle;
     proc_result_type result;
     // update result state
     if (is_success) {
@@ -367,7 +368,6 @@ protected:
     complete_callbacks(std::move(result));
     // back to inactive
     proc_detail::optional_clear(proc_ptr.get());
-    proc_state = proc_status_t::idle;
   }
 
   std::unique_ptr<T>                proc_ptr;
