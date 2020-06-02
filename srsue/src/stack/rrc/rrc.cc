@@ -1534,14 +1534,14 @@ void rrc::paging_completed(bool outcome)
 void rrc::process_pcch(unique_byte_buffer_t pdu)
 {
   if (pdu->N_bytes <= 0 or pdu->N_bytes >= SRSLTE_MAX_BUFFER_SIZE_BITS) {
-    rrc_log->error_hex(pdu->buffer, pdu->N_bytes, "Dropping PCCH message with %d B\n", pdu->N_bytes);
+    rrc_log->error_hex(pdu->msg, pdu->N_bytes, "Dropping PCCH message with %d B\n", pdu->N_bytes);
     return;
   }
 
   pcch_msg_s     pcch_msg;
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
   if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or pcch_msg.msg.type().value != pcch_msg_type_c::types_opts::c1) {
-    rrc_log->error_hex(pdu->buffer, pdu->N_bytes, "Failed to unpack PCCH message (%d B)\n", pdu->N_bytes);
+    rrc_log->error_hex(pdu->msg, pdu->N_bytes, "Failed to unpack PCCH message (%d B)\n", pdu->N_bytes);
     return;
   }
 
