@@ -562,7 +562,10 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
       Info("Serving cell %s is in-sync but not camping. Selecting it...\n", rrc_ptr->serving_cell->to_string().c_str());
 
       state = search_state_t::serv_cell_camp;
-      rrc_ptr->stack->start_cell_select(&rrc_ptr->serving_cell->phy_cell);
+      if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
+        Error("Failed to launch PHY Cell Selection\n");
+        return proc_outcome_t::error;
+      }
       return proc_outcome_t::yield;
     }
     cs_result = cs_result_t::same_cell;
