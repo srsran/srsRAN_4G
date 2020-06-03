@@ -21,16 +21,8 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_nr.h"
 #include "srsenb/test/common/dummy_nr_classes.h"
-#include "srslte/common/log_filter.h"
+#include "srslte/common/test_common.h"
 #include <iostream>
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
 
 using namespace asn1::rrc_nr;
 
@@ -67,14 +59,14 @@ int test_sib_generation()
 
   rrc_obj.init(rrc_cfg, nullptr, &mac_obj, &rlc_obj, &pdcp_obj, nullptr, nullptr);
 
-  TESTASSERT(test_cell_cfg(mac_obj.cellcfgobj) == SRSLTE_SUCCESS)
+  TESTASSERT(test_cell_cfg(mac_obj.cellcfgobj) == SRSLTE_SUCCESS);
   // TEMP tests
-  TESTASSERT(mac_obj.cellcfgobj.sibs[1].len > 0)
-  TESTASSERT(mac_obj.cellcfgobj.sibs[1].period_rf == sched_elem.si_periodicity.to_number())
+  TESTASSERT(mac_obj.cellcfgobj.sibs[1].len > 0);
+  TESTASSERT(mac_obj.cellcfgobj.sibs[1].period_rf == sched_elem.si_periodicity.to_number());
   for (int i = 2; i < 16; ++i) {
-    TESTASSERT(mac_obj.cellcfgobj.sibs[i].len == 0)
+    TESTASSERT(mac_obj.cellcfgobj.sibs[i].len == 0);
   }
-  TESTASSERT(mac_obj.cellcfgobj.cell.nof_prb == 25)
+  TESTASSERT(mac_obj.cellcfgobj.cell.nof_prb == 25);
 
   return SRSLTE_SUCCESS;
 }
