@@ -188,6 +188,8 @@ void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
     if (cc_idx > 0) {
       // Update DCI config for PCell
       srslte_dci_cfg_t dci_cfg = phy_cfg.dl_cfg.dci;
+      // Search common SS in PCell only
+      dci_cfg.search_in_common = true;
       cc_workers[0]->upd_config_dci(dci_cfg);
     }
   } else {

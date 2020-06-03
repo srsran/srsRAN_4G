@@ -55,6 +55,7 @@ typedef struct {
   bool cif_present;
   bool srs_request_enabled;
   bool ra_format_enabled;
+  bool search_in_common;
 } srslte_dci_cfg_t;
 
 typedef struct SRSLTE_API {

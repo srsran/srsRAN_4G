@@ -489,6 +489,63 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
   return nof_dci;
 }
 
+static int find_dci_ue_ss(srslte_ue_dl_t*            q,
+                          srslte_dl_sf_cfg_t*        sf,
+                          srslte_ue_dl_cfg_t*        cfg,
+                          uint16_t                   rnti,
+                          srslte_dci_msg_t           dci_msg[SRSLTE_MAX_DCI_MSG],
+                          const srslte_dci_format_t* formats,
+                          uint32_t                   nof_formats,
+                          bool                       is_ue)
+{
+  int                 ret          = SRSLTE_SUCCESS;
+  dci_blind_search_t  search_space = {};
+  dci_blind_search_t* current_ss   = &search_space;
+
+  uint32_t         sf_idx  = sf->tti % 10;
+  uint32_t         cfi     = sf->cfi;
+  srslte_dci_cfg_t dci_cfg = cfg->cfg.dci;
+
+  // Generate Search Space
+  if (is_ue) {
+    if (q->pregen_rnti == rnti) {
+      current_ss = &q->current_ss_ue[MI_IDX(sf_idx)][cfi - 1][sf_idx];
+    } else {
+      // If locations are not pre-generated, generate them now
+      current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, sf, current_ss->loc, MAX_CANDIDATES_UE, rnti);
+    }
+  } else {
+    // Disable extended CSI request and SRS request in common SS
+    dci_cfg.multiple_csi_request_enabled = false;
+    dci_cfg.srs_request_enabled          = false;
+
+    if (q->pregen_rnti == rnti) {
+      current_ss = &q->current_ss_common[MI_IDX(sf_idx)][cfi - 1];
+    } else {
+      // If locations are not pre-generated, generate them now
+      current_ss->nof_locations = srslte_pdcch_common_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_COM, cfi);
+    }
+  }
+
+  // Search for DCI in the SS
+  if (current_ss->nof_locations > 0) {
+    for (int f = 0; f < nof_formats; f++) {
+      srslte_dci_format_t format = formats[f];
+
+      INFO("Searching DCI format=%s in %d locations in %s SS\n",
+           srslte_dci_format_string(format),
+           current_ss->nof_locations,
+           is_ue ? "ue" : "common");
+
+      current_ss->format = format;
+      if ((ret = dci_blind_search(q, sf, rnti, current_ss, &dci_cfg, dci_msg))) {
+        return ret;
+      }
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
 int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
                              srslte_dl_sf_cfg_t* sf,
                              srslte_ue_dl_cfg_t* dl_cfg,
@@ -497,6 +554,7 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
 {
   srslte_dci_msg_t dci_msg[SRSLTE_MAX_DCI_MSG];
   uint32_t         nof_msg = 0;
+  int              ret     = 0;
 
   if (rnti) {
     /* Do not search if an UL DCI is already pending */
@@ -506,25 +564,23 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
       memcpy(dci_msg, q->pending_ul_dci_msg, sizeof(srslte_dci_msg_t) * nof_msg);
     } else {
 
-      uint32_t sf_idx = sf->tti % 10;
-      uint32_t cfi    = sf->cfi;
-
       set_mi_value(q, sf, dl_cfg);
 
-      // Configure and run DCI blind search
-      dci_blind_search_t search_space;
-      search_space.nof_locations     = 0;
-      dci_blind_search_t* current_ss = &search_space;
-      if (q->pregen_rnti == rnti) {
-        current_ss = &q->current_ss_ue[MI_IDX(sf_idx)][cfi - 1][sf_idx];
-      } else {
-        // If locations are not pre-generated, generate them now
-        current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, sf, current_ss->loc, MAX_CANDIDATES_UE, rnti);
+      srslte_dci_format_t ul_format = SRSLTE_DCI_FORMAT0;
+
+      // Search first on the UE-specific SS to avoid ambiguity on DCI sizes
+      // Search UE-specific search space
+      if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, &ul_format, 1, true)) < 0) {
+        return SRSLTE_ERROR;
       }
 
-      current_ss->format = SRSLTE_DCI_FORMAT0;
-      INFO("Searching UL C-RNTI in %d ue locations\n", search_space.nof_locations);
-      nof_msg = dci_blind_search(q, sf, rnti, current_ss, &dl_cfg->cfg.dci, dci_msg);
+      // Search common SS if no DCI present in UE SS
+      if (ret == 0 && dl_cfg->cfg.dci.search_in_common) {
+        if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, &ul_format, 1, false)) < 0) {
+          return SRSLTE_ERROR;
+        }
+      }
+      nof_msg = (uint32_t)ret;
     }
 
     // Unpack DCI messages
@@ -549,95 +605,33 @@ static int find_dl_dci_type_siprarnti(srslte_ue_dl_t*     q,
                                       uint16_t            rnti,
                                       srslte_dci_msg_t    dci_msg[SRSLTE_MAX_DCI_MSG])
 {
-  int ret = 0;
-
-  srslte_dci_cfg_t dci_cfg = dl_cfg->cfg.dci;
-
-  // Configure and run DCI blind search
-  dci_blind_search_t search_space;
-  search_space.nof_locations = srslte_pdcch_common_locations(&q->pdcch, search_space.loc, MAX_CANDIDATES_COM, sf->cfi);
-  INFO("Searching SI/P/RA-RNTI in %d common locations, %d formats, tti=%d, cfi=%d, rnti=0x%x\n",
-       search_space.nof_locations,
-       nof_common_formats,
-       sf->tti,
-       sf->cfi,
-       rnti);
-
-  // Disable extended CSI request and SRS request for non C-RNTI
-  dci_cfg.multiple_csi_request_enabled = false;
-  dci_cfg.srs_request_enabled          = false;
-
-  // Search for RNTI only if there is room for the common search space
-  if (search_space.nof_locations > 0) {
-    for (uint32_t f = 0; f < nof_common_formats; f++) {
-      search_space.format = common_formats[f];
-      if ((ret = dci_blind_search(q, sf, rnti, &search_space, &dci_cfg, dci_msg))) {
-        return ret;
-      }
-    }
-  }
-  return SRSLTE_SUCCESS;
+  return find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, common_formats, nof_common_formats, false);
 }
 
 // Blind search for C-RNTI
 static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
                                   srslte_dl_sf_cfg_t* sf,
-                                  srslte_ue_dl_cfg_t* cfg,
+                                  srslte_ue_dl_cfg_t* dl_cfg,
                                   uint16_t            rnti,
                                   srslte_dci_msg_t    dci_msg[SRSLTE_MAX_DCI_MSG])
 {
-  int                 ret = SRSLTE_SUCCESS;
-  dci_blind_search_t  search_space;
-  dci_blind_search_t* current_ss = &search_space;
+  int ret = SRSLTE_SUCCESS;
 
-  uint32_t         sf_idx  = sf->tti % 10;
-  uint32_t         cfi     = sf->cfi;
-  srslte_dci_cfg_t dci_cfg = cfg->cfg.dci;
-
-  // Search first Common SS
-
-  // Disable extended CSI request and SRS request in common SS
-  dci_cfg.multiple_csi_request_enabled = false;
-  dci_cfg.srs_request_enabled          = false;
-
-  // Search Format 1A in the Common SS also
-  if (q->pregen_rnti == rnti) {
-    current_ss = &q->current_ss_common[MI_IDX(sf_idx)][cfi - 1];
-  } else {
-    // If locations are not pre-generated, generate them now
-    current_ss->nof_locations = srslte_pdcch_common_locations(&q->pdcch, current_ss->loc, MAX_CANDIDATES_COM, cfi);
-  }
-
-  // Search for RNTI only if there is room for the common search space
-  if (current_ss->nof_locations > 0) {
-    current_ss->format = SRSLTE_DCI_FORMAT1A;
-    INFO("Searching DL C-RNTI in %d ue locations, format 1A\n", current_ss->nof_locations);
-    if ((ret = dci_blind_search(q, sf, rnti, current_ss, &dci_cfg, dci_msg))) {
-      return ret;
-    }
-  }
-
-  // Search UE-specific search space
-  dci_cfg = cfg->cfg.dci;
-  if (q->pregen_rnti == rnti) {
-    current_ss = &q->current_ss_ue[MI_IDX(sf_idx)][cfi - 1][sf_idx];
-  } else {
-    // If locations are not pre-generated, generate them now
-    current_ss->nof_locations = srslte_pdcch_ue_locations(&q->pdcch, sf, current_ss->loc, MAX_CANDIDATES_UE, rnti);
-  }
-
-  if (cfg->cfg.tm > SRSLTE_TM8) {
-    ERROR("Searching DL CRNTI: Invalid TM=%d\n", cfg->cfg.tm + 1);
+  if (dl_cfg->cfg.tm > SRSLTE_TM8) {
+    ERROR("Searching DL CRNTI: Invalid TM=%d\n", dl_cfg->cfg.tm + 1);
     return SRSLTE_ERROR;
   }
 
-  for (int f = 0; f < 2; f++) {
-    srslte_dci_format_t format = ue_dci_formats[cfg->cfg.tm][f];
+  // Search first on the UE-specific SS to avoid ambiguity on DCI sizes
+  // Search UE-specific search space
+  if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, ue_dci_formats[dl_cfg->cfg.tm], 2, true))) {
+    return ret;
+  }
 
-    INFO("Searching DL C-RNTI %s in %d ue locations\n", srslte_dci_format_string(format), current_ss->nof_locations);
-
-    current_ss->format = format;
-    if ((ret = dci_blind_search(q, sf, rnti, current_ss, &dci_cfg, dci_msg))) {
+  // Search common SS if no DCI present in UE SS
+  if (dl_cfg->cfg.dci.search_in_common) {
+    srslte_dci_format_t common_format = SRSLTE_DCI_FORMAT1A;
+    if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, &common_format, 1, false))) {
       return ret;
     }
   }
