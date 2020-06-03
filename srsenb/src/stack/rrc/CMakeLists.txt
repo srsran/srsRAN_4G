@@ -21,3 +21,7 @@
 set(SOURCES rrc.cc rrc_ue.cc rrc_mobility.cc rrc_cell_cfg.cc rrc_bearer_cfg.cc)
 add_library(srsenb_rrc STATIC ${SOURCES})
 
+if (ENABLE_5GNR)
+    set(SOURCES rrc_nr.cc)
+    add_library(srsgnb_rrc STATIC ${SOURCES})
+endif ()

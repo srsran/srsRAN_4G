@@ -22,6 +22,7 @@
 #ifndef SRSLTE_RRC_CONFIG_H
 #define SRSLTE_RRC_CONFIG_H
 
+#include "rrc_config_common.h"
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
@@ -35,20 +36,6 @@ struct rrc_cfg_sr_t {
   uint32_t                                                   sf_mapping[80];
   uint32_t                                                   nof_subframes;
 };
-
-enum rrc_cfg_cqi_mode_t { RRC_CFG_CQI_MODE_PERIODIC = 0, RRC_CFG_CQI_MODE_APERIODIC, RRC_CFG_CQI_MODE_N_ITEMS };
-
-static const char rrc_cfg_cqi_mode_text[RRC_CFG_CQI_MODE_N_ITEMS][20] = {"periodic", "aperiodic"};
-
-typedef struct {
-  uint32_t           sf_mapping[80];
-  uint32_t           nof_subframes;
-  uint32_t           nof_prb;
-  uint32_t           period;
-  uint32_t           m_ri;
-  bool               simultaneousAckCQI;
-  rrc_cfg_cqi_mode_t mode;
-} rrc_cfg_cqi_t;
 
 typedef struct {
   bool                                          configured;

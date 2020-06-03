@@ -54,11 +54,11 @@ public:
   class field_enum_str : public field_itf
   {
   public:
-    field_enum_str(const char* name_,
-                   T*          store_ptr_,
-                   const char (*value_str_)[20],
-                   uint32_t nof_items_,
-                   bool*    enabled_value_ = NULL)
+    field_enum_str(const char*  name_,
+                   T*           store_ptr_,
+                   const char** value_str_,
+                   uint32_t     nof_items_,
+                   bool*        enabled_value_ = NULL)
     {
       name          = name_;
       store_ptr     = store_ptr_;
@@ -111,11 +111,11 @@ public:
     }
 
   private:
-    const char* name;
-    T*          store_ptr;
-    const char (*value_str)[20];
-    uint32_t nof_items;
-    bool*    enabled_value;
+    const char*  name;
+    T*           store_ptr;
+    const char** value_str;
+    uint32_t     nof_items;
+    bool*        enabled_value;
   };
 
   template <class T, class S>

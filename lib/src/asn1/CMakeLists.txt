@@ -47,7 +47,7 @@ target_link_libraries(s1ap_asn1 asn1_utils srslte_common)
 
 if (ENABLE_5GNR)
     # RRC NR ASN1
-    add_library(rrc_nr_asn1 STATIC rrc_nr_asn1.cc)
+    add_library(rrc_nr_asn1 STATIC rrc_nr_asn1.cc rrc_nr_asn1_utils.cc)
     target_compile_options(rrc_nr_asn1 PRIVATE "-Os")
     target_link_libraries(rrc_nr_asn1 asn1_utils srslte_common)
 

@@ -16590,8 +16590,7 @@ struct rlc_cfg_v1510_s {
 
 // RLC-Config-v1530 ::= CHOICE
 struct rlc_cfg_v1530_c {
-  struct setup_s_ {
-  };
+  struct setup_s_ {};
   typedef setup_e types;
 
   // choice methods
