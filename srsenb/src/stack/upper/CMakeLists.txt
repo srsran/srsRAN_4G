@@ -18,5 +18,11 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.cc")
+set(SOURCES gtpu.cc pdcp.cc rlc.cc s1ap.cc)
 add_library(srsenb_upper STATIC ${SOURCES})
+
+if (ENABLE_5GNR)
+set(SOURCES pdcp_nr.cc)
+add_library(srsgnb_upper STATIC ${SOURCES})
+endif (ENABLE_5GNR)
+
