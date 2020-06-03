@@ -22,7 +22,7 @@ set(SOURCES gtpu.cc pdcp.cc rlc.cc s1ap.cc)
 add_library(srsenb_upper STATIC ${SOURCES})
 
 if(ENABLE_5GNR)
-    set(SOURCES pdcp_nr.cc rlc_nr.cc)
+    set(SOURCES pdcp_nr.cc rlc_nr.cc sdap.cc)
     add_library(srsgnb_upper STATIC ${SOURCES})
 endif()
 
