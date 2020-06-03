@@ -113,6 +113,7 @@ typedef struct SRSLTE_API {
   srslte_pdsch_cfg_t      pdsch;
   srslte_dci_cfg_t        dci;
   srslte_tm_t             tm;
+  bool                    dci_common_ss;
 } srslte_dl_cfg_t;
 
 typedef struct SRSLTE_API {

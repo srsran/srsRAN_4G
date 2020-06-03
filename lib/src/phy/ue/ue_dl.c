@@ -575,7 +575,7 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
       }
 
       // Search common SS if no DCI present in UE SS
-      if (ret == 0 && dl_cfg->cfg.dci.search_in_common) {
+      if (ret == 0 && dl_cfg->cfg.dci_common_ss) {
         if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, &ul_format, 1, false)) < 0) {
           return SRSLTE_ERROR;
         }
@@ -629,7 +629,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
   }
 
   // Search common SS if no DCI present in UE SS
-  if (dl_cfg->cfg.dci.search_in_common) {
+  if (dl_cfg->cfg.dci_common_ss) {
     srslte_dci_format_t common_format = SRSLTE_DCI_FORMAT1A;
     if ((ret = find_dci_ue_ss(q, sf, dl_cfg, rnti, dci_msg, &common_format, 1, false))) {
       return ret;
