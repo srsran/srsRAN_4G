@@ -18,11 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(mac)
-add_subdirectory(phy)
-add_subdirectory(upper)
-add_subdirectory(rrc)
-
-add_executable(enb_metrics_test enb_metrics_test.cc ../src/metrics_stdout.cc ../src/metrics_csv.cc)
-target_link_libraries(enb_metrics_test srslte_phy srslte_common)
-add_test(enb_metrics_test enb_metrics_test -o ${CMAKE_CURRENT_BINARY_DIR}/enb_metrics.csv)
+if (ENABLE_5GNR)
+    add_executable(rrc_nr_test rrc_nr_test.cc)
+    target_link_libraries(rrc_nr_test srsgnb_rrc srslte_common rrc_nr_asn1)
+    add_test(rrc_nr_test rrc_nr_test)
+endif ()
