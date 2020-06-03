@@ -418,7 +418,7 @@ bool nowhitespace_string_to_enum(EnumType& e, const std::string& s)
 template <class EnumType>
 int str_to_enum(EnumType& enum_val, Setting& root)
 {
-  std::string val   = root;
+  std::string val   = root.c_str();
   bool        found = nowhitespace_string_to_enum(enum_val, val);
   if (not found) {
     fprintf(stderr, "PARSER ERROR: Invalid option: \"%s\" for asn1 enum type\n", val.c_str());
@@ -464,7 +464,7 @@ int number_to_enum(EnumType& enum_val, Setting& root)
     }
     return found ? 0 : -1;
   } else {
-    std::string str_val = root;
+    std::string str_val = root.c_str();
     fprintf(stderr, "Expected a number for enum field %s but received a string %s\n", root.getName(), str_val.c_str());
   }
   return -1;
