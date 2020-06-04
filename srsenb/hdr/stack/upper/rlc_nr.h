@@ -38,7 +38,7 @@ typedef struct {
   uint8_t* payload;
 } mch_service_t;
 
-class rlc_nr : public rlc_interface_mac_nr, public rlc_interface_rrc_nr, public rlc_interface_pdcp_nr
+class rlc_nr final : public rlc_interface_mac_nr, public rlc_interface_rrc_nr, public rlc_interface_pdcp_nr
 {
 public:
   explicit rlc_nr(const char* logname);

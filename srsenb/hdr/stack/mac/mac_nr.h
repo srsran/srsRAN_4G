@@ -45,7 +45,7 @@ struct mac_nr_args_t {
   uint32_t    tb_size = 64;
 };
 
-class mac_nr : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
+class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr, public mac_interface_rlc_nr
 {
 public:
   mac_nr();

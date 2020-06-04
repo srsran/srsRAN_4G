@@ -29,7 +29,7 @@
 
 namespace srsenb {
 
-class sdap : public sdap_interface_pdcp_nr, public sdap_interface_gtpu_nr
+class sdap final : public sdap_interface_pdcp_nr, public sdap_interface_gtpu_nr
 {
 public:
   explicit sdap();
