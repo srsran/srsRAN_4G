@@ -408,7 +408,7 @@ public:
   }
 
   static std::string
-  get_drb_common_ind_for_pdu(uint32_t lcid, const std::string cell_, srslte::unique_byte_buffer_t drbpdu)
+  get_drb_common_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srslte::unique_byte_buffer_t drbpdu)
   {
     Document resp;
     resp.SetObject();
@@ -425,9 +425,6 @@ public:
     routing_info.AddMember("RadioBearerId", radiobearer_id, resp.GetAllocator());
 
     // TimingInfo
-    // FIXME: Use real TTI
-    uint32_t tti = 10;
-
     // SFN
     uint32_t sfn = tti / 10;
     Value    sfn_key(kObjectType);
