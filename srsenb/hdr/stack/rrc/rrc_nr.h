@@ -115,14 +115,12 @@ public:
     // setters
 
   private:
-    enum class progress_state_t { WAIT_FOR_CON_SETUP_COMPLETE, NONE };
-    srslte::byte_buffer_pool* pool;
+    srslte::byte_buffer_pool* pool = nullptr;
     rrc_nr*                   parent;
     uint16_t                  rnti;
 
     // state
     rrc_nr_state_t                      state          = rrc_nr_state_t::RRC_IDLE;
-    progress_state_t                    prog_state     = progress_state_t::NONE;
     uint8_t                             transaction_id = 0;
     srslte::timer_handler::unique_timer rrc_setup_periodic_timer;
   };
