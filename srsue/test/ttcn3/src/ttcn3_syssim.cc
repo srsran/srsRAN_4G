@@ -124,7 +124,7 @@ int ttcn3_syssim::init(const all_args_t& args_)
   // Init SS layers
   pdus.init(this, log);
   rlc.init(&pdcp, this, &stack.timers, 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, this, nullptr);
+  pdcp.init(&rlc, this, this);
 
   return SRSLTE_SUCCESS;
 }

@@ -45,6 +45,7 @@ class ttcn3_syssim : public syssim_interface_phy,
                      public rrc_interface_rlc,
                      public rlc_interface_pdcp,
                      public rrc_interface_pdcp,
+                     public gw_interface_pdcp,
                      public srslte::pdu_queue::process_callback
 {
 public:
