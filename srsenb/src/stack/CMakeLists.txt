@@ -26,3 +26,8 @@ set(SOURCES enb_stack_lte.cc)
 
 add_library(srsenb_stack STATIC ${SOURCES})
 target_link_libraries(srsenb_stack)
+
+if(ENABLE_5GNR)
+    add_library(srsgnb_stack STATIC gnb_stack_nr.cc)
+    target_link_libraries(srsgnb_stack)
+endif()

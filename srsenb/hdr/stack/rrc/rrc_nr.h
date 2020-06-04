@@ -33,7 +33,6 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/gnb_interfaces.h"
-#include "srsue/hdr/stack/upper/gw.h"
 #include <map>
 #include <queue>
 
@@ -48,13 +47,6 @@ struct rrc_nr_cfg_sr_t {
   uint32_t nof_prb;
   uint32_t sf_mapping[80];
   uint32_t nof_subframes;
-};
-// Expert arguments to create GW without core NW
-struct core_less_args_t {
-  std::string      ip_addr;
-  srsue::gw_args_t gw_args;
-  uint8_t          drb_lcid;
-  uint16_t         rnti;
 };
 
 struct rrc_nr_cfg_t {
