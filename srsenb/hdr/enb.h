@@ -147,7 +147,7 @@ private:
   srslte::logger_stdout logger_stdout;
   srslte::logger_file   logger_file;
   srslte::logger*       logger = nullptr;
-  srslte::log_filter    log; // Own logger for eNB
+  srslte::log_ref       log; // Own logger for eNB
 
   srslte::log_filter pool_log;
 

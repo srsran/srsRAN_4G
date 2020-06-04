@@ -33,11 +33,11 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
   timers(128), logger(logger_), pdcp(this, "PDCP"), thread("STACK")
 {
   enb_queue_id   = pending_tasks.add_queue();
-  sync_queue_id  = pending_tasks.add_queue();
   mme_queue_id   = pending_tasks.add_queue();
   gtpu_queue_id  = pending_tasks.add_queue();
   mac_queue_id   = pending_tasks.add_queue();
   stack_queue_id = pending_tasks.add_queue();
+  // sync_queue is added in init()
 
   pool = byte_buffer_pool::get_instance();
 }
@@ -99,6 +99,9 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 
   // Init Rx socket handler
   rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", stack_log));
+
+  // add sync queue
+  sync_queue_id = pending_tasks.add_queue(args.sync_queue_size);
 
   // Init all layers
   mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, this, mac_log);

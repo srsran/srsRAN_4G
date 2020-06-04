@@ -68,6 +68,7 @@ typedef struct {
 
 typedef struct {
   std::string      type;
+  uint32_t         sync_queue_size; // Max allowed difference between PHY and Stack clocks (in TTI)
   mac_args_t       mac;
   s1ap_args_t      s1ap;
   pcap_args_t      mac_pcap;

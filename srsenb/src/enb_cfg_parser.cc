@@ -23,6 +23,7 @@
 #include "srsenb/hdr/cfg_parser.h"
 #include "srsenb/hdr/enb.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/common/multiqueue.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/srslte.h"
 #include <boost/algorithm/string.hpp>
@@ -1063,6 +1064,15 @@ int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_
 
   // RRC needs eNB id for SIB1 packing
   rrc_cfg_->enb_id = args_->stack.s1ap.enb_id;
+
+  // Set sync queue capacity to 1 for ZMQ
+  if (args_->rf.device_name == "zmq") {
+    srslte::logmap::get("ENB")->info("Using sync queue size of one for ZMQ based radio.");
+    args_->stack.sync_queue_size = 1;
+  } else {
+    // use default size
+    args_->stack.sync_queue_size = MULTIQUEUE_DEFAULT_CAPACITY;
+  }
 
   return SRSLTE_SUCCESS;
 }

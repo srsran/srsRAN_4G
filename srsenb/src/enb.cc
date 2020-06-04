@@ -45,14 +45,15 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   int ret = SRSLTE_SUCCESS;
   logger = logger_;
 
-  // Init UE log
-  log.init("ENB ", logger);
-  log.set_level(srslte::LOG_LEVEL_INFO);
-  log.info("%s", get_build_string().c_str());
+  // Init eNB log
+  srslte::logmap::set_default_logger(logger);
+  log = srslte::logmap::get("ENB");
+  log->set_level(srslte::LOG_LEVEL_INFO);
+  log->info("%s", get_build_string().c_str());
 
   // Validate arguments
   if (parse_args(args_)) {
-    log.console("Error processing arguments.\n");
+    log->console("Error processing arguments.\n");
     return SRSLTE_ERROR;
   }
 
@@ -63,32 +64,32 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   // Create layers
   std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger));
   if (!lte_stack) {
-    log.console("Error creating eNB stack.\n");
+    log->console("Error creating eNB stack.\n");
     return SRSLTE_ERROR;
   }
 
   std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
   if (!lte_radio) {
-    log.console("Error creating radio multi instance.\n");
+    log->console("Error creating radio multi instance.\n");
     return SRSLTE_ERROR;
   }
 
   std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(logger));
   if (!lte_phy) {
-    log.console("Error creating LTE PHY instance.\n");
+    log->console("Error creating LTE PHY instance.\n");
     return SRSLTE_ERROR;
   }
 
   // Init Radio
   if (lte_radio->init(args.rf, lte_phy.get())) {
-    log.console("Error initializing radio.\n");
+    log->console("Error initializing radio.\n");
     ret = SRSLTE_ERROR;
   }
 
   // Only Init PHY if radio couldn't be initialized
   if (ret == SRSLTE_SUCCESS) {
     if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
-      log.console("Error initializing PHY.\n");
+      log->console("Error initializing PHY.\n");
       ret = SRSLTE_ERROR;
     }
   }
@@ -96,7 +97,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   // Only init Stack if both radio and PHY could be initialized
   if (ret == SRSLTE_SUCCESS) {
     if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get())) {
-      log.console("Error initializing stack.\n");
+      log->console("Error initializing stack.\n");
       ret = SRSLTE_ERROR;
     }
   }
@@ -108,8 +109,8 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   started = true; // set to true in any case to allow stopping the eNB if an error happened
 
   if (ret == SRSLTE_SUCCESS) {
-    log.console("\n==== eNodeB started ===\n");
-    log.console("Type <t> to view trace\n");
+    log->console("\n==== eNodeB started ===\n");
+    log->console("Type <t> to view trace\n");
   } else {
     // if any of the layers failed to start, make sure the rest is stopped in a controlled manner
     stop();
