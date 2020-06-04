@@ -79,6 +79,156 @@ valid_num_prb()
     esac
 }
 
+check_ping()
+{
+  loss_rate=$(cat ./${nof_prb}prb_screenlog_ping_ul.log | grep -oP '\d+(?=% packet loss)')
+  if [ "$loss_rate" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $loss_rate per-cent loss rate in UL ping."
+    exit 1
+  fi
+
+  loss_rate=$(cat ./${nof_prb}prb_screenlog_ping_dl.log | grep -oP '\d+(?=% packet loss)')
+  if [ "$loss_rate" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $loss_rate per-cent loss rate in DL ping."
+    exit 1
+  fi
+}
+
+check_ue()
+{
+  # check that all log files have "Closing log" as last line
+  last_line=$(cat ./${nof_prb}prb_ue.log | tail -n1)
+  if [ "$last_line" != "Closing log" ]; then
+    echo "Error. srsUE didn't seem to have exited properly."
+    exit 1
+  fi
+
+  # Check UE logs don't contain Error from any layer
+  num_error=$(cat ./${nof_prb}prb_ue.log | grep "\[E\]" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error error messages in UE logs. We should finish without any error."
+    exit 1
+  fi
+
+  # Check UE logs don't contain Warning from any layer
+  num_warning=$(cat ./${nof_prb}prb_ue.log | grep "\[W\]" | wc -l)
+  if [ "$num_warning" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_warning warning messages in UE logs. We should finish without any."
+    exit 1
+  fi
+
+  # Check PDSCH
+  num_error=$(cat ./${nof_prb}prb_ue.log | grep "KO" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error PDSCH errors in UE logs. We should finish without any error."
+    exit 1
+  fi
+
+  # Check PUCCH ack
+  num_error=$(cat ./${nof_prb}prb_ue.log | grep "PUCCH" | grep "ack=0" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error PUCCH errors in UE logs. We should finish without any error."
+    exit 1
+  fi
+
+  # Check PHICH
+  num_error=$(cat ./${nof_prb}prb_ue.log | grep "hi=0" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error PHICH errors in UE logs. We should finish without any error."
+    exit 1
+  fi
+
+  # Check CQI is 15
+  num_error=$(cat ./${nof_prb}prb_ue.log | grep "PUCCH" | grep "cqi=" | grep -v "cqi=15" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error CQI != 15 in UE logs. We should finish with all qci=15."
+    exit 1
+  fi
+
+  # Check number of PRACHs
+  num_prach=$(cat ./${nof_prb}prb_ue.log | grep "preamble=" | wc -l)
+  if [ "$num_prach" != "1" ] 2>/dev/null; then
+    echo "Error. Detected $num_prach PRACH(s). But should be only 1."
+    exit 1
+  fi
+
+  # Check duplicate TB at MAC
+  num_error=$(cat ./${nof_prb}prb_ue.log | grep "duplicate" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error duplicate TBs in UE logs. We should finish without any duplicate."
+    exit 1
+  fi
+}
+
+check_enb()
+{
+  # check that all log files have "Closing log" as last line
+  last_line=$(cat ./${nof_prb}prb_enb.log | tail -n1)
+  if [ "$last_line" != "Closing log" ]; then
+    echo "Error. srsENB didn't seem to have exited properly."
+    exit 1
+  fi
+
+  # Check PRACH results
+  num_prach=$(cat ./${nof_prb}prb_screenlog_srsenb.log | grep RACH: | wc -l)
+  if [ "$num_prach" != "1" ] 2>/dev/null; then
+    echo "Error. Detected $num_prach PRACH(s). But should be only 1."
+    exit 1
+  fi
+
+  # check [E]
+  num_error=$(cat ./${nof_prb}prb_enb.log | grep "\[E\]" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error error messages in eNB logs. We should finish without any error."
+    exit 1
+  fi
+
+  # Check [W]
+  num_warning=$(cat ./${nof_prb}prb_enb.log | grep "\[W\]" | wc -l)
+  if [ "$num_warning" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_warning warning messages in eNB logs. We should finish without any."
+    exit 1
+  fi
+
+  # Check for PUSCH errors
+  num_error=$(cat ./${nof_prb}prb_enb.log | grep "KO" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error PUSCH errors in eNB logs. We should finish without any error."
+    exit 1
+  fi
+
+  # Check PUCCH ack
+  num_error=$(cat ./${nof_prb}prb_enb.log | grep "PUCCH" | grep "ack=0" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error PUCCH errors in eNB logs. We should finish without any error."
+    exit 1
+  fi
+
+  # Check CQI is 15
+  num_error=$(cat ./${nof_prb}prb_enb.log | grep "PUCCH" | grep "cqi=" | grep -v "cqi=15" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error CQI != 15 in eNB logs. We should finish with all qci=15."
+    exit 1
+  fi
+}
+
+check_epc()
+{
+  # check that log has "Closing log" as last line
+  last_line=$(cat ./${nof_prb}prb_epc.log | tail -n1)
+  if [ "$last_line" != "Closing log" ]; then
+    echo "Error. srsEPC didn't seem to have exited properly."
+    exit 1
+  fi
+
+  # check [E]
+  num_error=$(cat ./${nof_prb}prb_epc.log | grep "\[E\]" | wc -l)
+  if [ "$num_error" != "0" ] 2>/dev/null; then
+    echo "Error. Detected $num_error error messages in EPC logs. We should finish without any error."
+    exit 1
+  fi
+}
+
 # check if build path has been passed
 if ([ ! $1 ])
 then
@@ -151,6 +301,7 @@ enb_args="$build_path/../srsenb/enb.conf.example \
           --enb_files.sib_config=$build_path/../srsenb/sib.conf.example \
           --enb_files.drb_config=$build_path/../srsenb/drb.conf.example \
           --rf.device_name=zmq \
+          --log.all_level=info \
           --expert.nof_phy_threads=1 \
           --expert.rrc_inactivity_timer=5000 \
           --enb.n_prb=$nof_prb \
@@ -160,6 +311,7 @@ ue_args="$build_path/../srsue/ue.conf.example \
          --rf.device_name=zmq \
          --phy.nof_phy_threads=1  \
          --gw.netns=$ue_netns \
+         --log.all_level=info \
          --log.filename=./${nof_prb}prb_ue.log \
          --pcap.enable=true \
          --pcap.filename=./${nof_prb}prb_ue.pcap"
@@ -253,8 +405,9 @@ mme_ip=$baseip".1"
 
 echo "MME IP is $mme_ip"
 
-# show UE console trace
+# show UE/eNB console trace
 screen -S srsue -X stuff "t$(printf \\r)"
+screen -S srsenb -X stuff "t$(printf \\r)"
 
 # Run tests now
 
@@ -276,44 +429,11 @@ sleep 3
 # Stop all running LTE components and remove netns
 kill_lte
 
-# check ping results
-loss_rate=$(cat ./${nof_prb}prb_screenlog_ping_ul.log | grep -oP '\d+(?=% packet loss)')
-if [ "$loss_rate" != "0" ] 2>/dev/null; then
-  echo "Error. Detected $loss_rate per-cent loss rate in UL ping."
-  exit 1
-fi
-
-loss_rate=$(cat ./${nof_prb}prb_screenlog_ping_dl.log | grep -oP '\d+(?=% packet loss)')
-if [ "$loss_rate" != "0" ] 2>/dev/null; then
-  echo "Error. Detected $loss_rate per-cent loss rate in DL ping."
-  exit 1
-fi
-
-# check that all log files have "Closing log" as last line
-last_line=$(cat ./${nof_prb}prb_ue.log | tail -n1)
-if [ "$last_line" != "Closing log" ]; then
-  echo "Error. srsUE didn't seem to have exited properly."
-  exit 1
-fi
-
-last_line=$(cat ./${nof_prb}prb_enb.log | tail -n1)
-if [ "$last_line" != "Closing log" ]; then
-  echo "Error. srsENB didn't seem to have exited properly."
-  exit 1
-fi
-
-last_line=$(cat ./${nof_prb}prb_epc.log | tail -n1)
-if [ "$last_line" != "Closing log" ]; then
-  echo "Error. srsEPC didn't seem to have exited properly."
-  exit 1
-fi
-
-# Check PRACH results
-num_prach=$(cat ./${nof_prb}prb_screenlog_srsenb.log | grep RACH: | wc -l)
-if [ "$num_prach" != "1" ] 2>/dev/null; then
-  echo "Error. Detected $num_prach PRACH(s). But should be only 1."
-  exit 1
-fi
+# check results
+check_ping
+check_ue
+check_enb
+check_epc
 
 echo "All tests passed!"
 
