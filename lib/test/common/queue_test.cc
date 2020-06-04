@@ -96,6 +96,28 @@ int test_multiqueue()
   TESTASSERT(multiqueue.size(qid2) == 5)
   TESTASSERT(multiqueue.wait_pop(&number) == qid2 and number == 30)
 
+  // remove existing queues
+  multiqueue.erase_queue(qid1);
+  multiqueue.erase_queue(qid2);
+  TESTASSERT(multiqueue.nof_queues() == 0)
+
+  // check that adding a queue of different capacity works
+  {
+    int qid1 = multiqueue.add_queue();
+    int qid2 = multiqueue.add_queue();
+
+    // remove first queue again
+    multiqueue.erase_queue(qid1);
+    TESTASSERT(multiqueue.nof_queues() == 1)
+
+    // add queue with non-default capacity
+    int qid3 = multiqueue.add_queue(10);
+
+    // make sure neither a new queue index is returned
+    TESTASSERT(qid1 != qid3)
+    TESTASSERT(qid2 != qid3)
+  }
+
   std::cout << "outcome: Success\n";
   std::cout << "===========================================\n";
 

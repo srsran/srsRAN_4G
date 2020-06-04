@@ -38,6 +38,8 @@
 
 namespace srslte {
 
+#define MULTIQUEUE_DEFAULT_CAPACITY (8192) // Default per-queue capacity
+
 template <typename myobj>
 class multiqueue_handler
 {
@@ -106,7 +108,7 @@ public:
     int                        queue_id = -1;
   };
 
-  explicit multiqueue_handler(uint32_t capacity_ = 8192) : capacity(capacity_) {}
+  explicit multiqueue_handler(uint32_t capacity_ = MULTIQUEUE_DEFAULT_CAPACITY) : capacity(capacity_) {}
   ~multiqueue_handler() { reset(); }
 
   void reset()
@@ -125,7 +127,12 @@ public:
     queues.clear();
   }
 
-  int add_queue()
+  /**
+   * Adds a new queue with fixed capacity
+   * @param capacity_ The capacity of the queue.
+   * @return The index of the newly created (or reused) queue within the vector of queues.
+   */
+  int add_queue(uint32_t capacity_)
   {
     uint32_t                    qidx = 0;
     std::lock_guard<std::mutex> lock(mutex);
@@ -134,14 +141,23 @@ public:
     }
     for (; qidx < queues.size() and queues[qidx].active; ++qidx)
       ;
-    if (qidx == queues.size()) {
+
+    // check if there is a free queue of the required size
+    if (qidx == queues.size() || queues[qidx].capacity() != capacity_) {
       // create new queue
-      queues.emplace_back(capacity);
+      queues.emplace_back(capacity_);
+      qidx = queues.size() - 1; // update qidx to the last element
     } else {
       queues[qidx].active = true;
     }
     return (int)qidx;
   }
+
+  /**
+   * Add queue using the default capacity of the underlying multiqueue
+   * @return The queue index
+   */
+  int add_queue() { return add_queue(capacity); }
 
   int nof_queues()
   {
@@ -245,6 +261,12 @@ public:
   {
     std::lock_guard<std::mutex> lck(mutex);
     return queues[qidx].size();
+  }
+
+  size_t max_size(int qidx)
+  {
+    std::lock_guard<std::mutex> lck(mutex);
+    return queues[qidx].capacity();
   }
 
   const myobj& front(int qidx)
