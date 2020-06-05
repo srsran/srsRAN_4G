@@ -958,6 +958,7 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f)
     f->trigger(srslte::failure_ev{});
     return;
   }
+  last_temp_crnti = SRSLTE_INVALID_RNTI;
 
   /* Allocate Resources in Target Cell */
   // NOTE: for intra-eNB Handover only CQI resources will change
@@ -993,26 +994,36 @@ void rrc::ue::rrc_mobility::intraenb_ho_st::enter(rrc_mobility* f)
   }
 }
 
-void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, idle_st& d, const user_crnti_upd_ev& ev)
+void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, intraenb_ho_st& d, const user_crnti_upd_ev& ev)
 {
   rrc_log->info("UE performing handover updated its temp-crnti=0x%x to rnti=0x%x\n", ev.temp_crnti, ev.crnti);
+  bool is_first_crnti_ce = s.last_temp_crnti == SRSLTE_INVALID_RNTI;
+  s.last_temp_crnti      = ev.temp_crnti;
 
-  // Need to reset SNs of bearers.
-  rrc_enb->pdcp->rem_user(rrc_ue->rnti);
-  rrc_enb->pdcp->add_user(rrc_ue->rnti);
-  rrc_enb->rlc->reestablish(rrc_ue->rnti);
+  if (is_first_crnti_ce) {
+    // Need to reset SNs of bearers.
+    rrc_enb->pdcp->rem_user(rrc_ue->rnti);
+    rrc_enb->pdcp->add_user(rrc_ue->rnti);
+    rrc_enb->rlc->reestablish(rrc_ue->rnti);
 
-  // Change PCell in MAC/Scheduler
-  rrc_ue->current_sched_ue_cfg.supported_cc_list[0].active     = true;
-  rrc_ue->current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = s.target_cell->enb_cc_idx;
-  rrc_ue->apply_setup_phy_common(s.target_cell->sib2.rr_cfg_common);
-  rrc_enb->mac->ue_set_crnti(ev.temp_crnti, ev.crnti, &rrc_ue->current_sched_ue_cfg);
+    // Change PCell in MAC/Scheduler
+    rrc_ue->current_sched_ue_cfg.supported_cc_list[0].active     = true;
+    rrc_ue->current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = s.target_cell->enb_cc_idx;
+    rrc_ue->apply_setup_phy_common(s.target_cell->sib2.rr_cfg_common);
+    rrc_enb->mac->ue_set_crnti(ev.temp_crnti, ev.crnti, &rrc_ue->current_sched_ue_cfg);
 
-  rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
-  rrc_ue->bearer_list.reest_bearers();
-  rrc_ue->bearer_list.apply_pdcp_bearer_updates(rrc_enb->pdcp, rrc_ue->ue_security_cfg);
+    rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
+    rrc_ue->bearer_list.reest_bearers();
+    rrc_ue->bearer_list.apply_pdcp_bearer_updates(rrc_enb->pdcp, rrc_ue->ue_security_cfg);
+  } else {
+    rrc_log->info("Received duplicate C-RNTI CE during rnti=0x%x handover.\n", rrc_ue->rnti);
+  }
+}
 
-  rrc_log->info("new rnti=0x%x PCell is %d\n", ev.crnti, s.target_cell->enb_cc_idx);
+void rrc::ue::rrc_mobility::handle_recfg_complete(intraenb_ho_st& s, idle_st& d, const recfg_complete_ev& ev)
+{
+  rrc_log->info(
+      "User rnti=0x%x successfully handovered to cell_id=0x%x\n", rrc_ue->rnti, s.target_cell->cell_cfg.cell_id);
 }
 
 } // namespace srsenb

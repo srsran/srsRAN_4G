@@ -652,6 +652,9 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
 
     // Flag completion of RadioResource Configuration
     bearer_list.rr_ded_cfg_complete();
+
+    // If performing handover, signal its completion
+    mobility_handler->trigger(*msg);
   } else {
     parent->rrc_log->error("Expected RRCReconfigurationComplete with transaction ID: %d, got %d\n",
                            last_rrc_conn_recfg.rrc_transaction_id,

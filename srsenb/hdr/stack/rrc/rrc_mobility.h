@@ -83,8 +83,8 @@ public:
   // Note: Made const to forbid silent updates and enable comparison based on addr
   std::vector<std::shared_ptr<const var_meas_cfg_t> > cell_meas_cfg_list;
 
-  rrc *get_rrc() { return rrc_ptr; }
-  const rrc *get_rrc() const { return rrc_ptr; }
+  rrc*       get_rrc() { return rrc_ptr; }
+  const rrc* get_rrc() const { return rrc_ptr; }
 
 private:
   // args
@@ -140,12 +140,14 @@ private:
     uint32_t target_cell_id;
   };
   using unsuccessful_outcome_ev = std::false_type;
+  using recfg_complete_ev       = asn1::rrc::rrc_conn_recfg_complete_s;
 
   // states
   struct idle_st {};
   struct intraenb_ho_st {
     const cell_info_common*    target_cell      = nullptr;
     const cell_ctxt_dedicated* source_cell_ctxt = nullptr;
+    uint16_t                   last_temp_crnti  = SRSLTE_INVALID_RNTI;
 
     void enter(rrc_mobility* f);
   };
@@ -190,7 +192,8 @@ private:
   // FSM transition handlers
   void handle_s1_meas_report(idle_st& s, s1_source_ho_st& d, const ho_meas_report_ev& meas_report);
   void handle_intraenb_meas_report(idle_st& s, intraenb_ho_st& d, const ho_meas_report_ev& meas_report);
-  void handle_crnti_ce(intraenb_ho_st& s, idle_st& d, const user_crnti_upd_ev& ev);
+  void handle_crnti_ce(intraenb_ho_st& s, intraenb_ho_st& d, const user_crnti_upd_ev& ev);
+  void handle_recfg_complete(intraenb_ho_st& s, idle_st& d, const recfg_complete_ev& ev);
 
 protected:
   // states
@@ -204,11 +207,12 @@ protected:
   using fsm = rrc_mobility;
   // clang-format off
   using transitions = transition_table<
-    //      Start        Target             Event                        Action            Guard (optional)
-    // +------------+---------------+--------------------+---------------------------------+---------------------------+
-    row< idle_st,    intraenb_ho_st,  ho_meas_report_ev, &fsm::handle_intraenb_meas_report,  &fsm::needs_intraenb_ho   >,
-    row< idle_st,    s1_source_ho_st, ho_meas_report_ev, &fsm::handle_s1_meas_report,        &fsm::needs_s1_ho         >,
-    row< intraenb_ho_st, idle_st,     user_crnti_upd_ev, &fsm::handle_crnti_ce                                         >
+  //      Start        Target             Event              Action                            Guard (optional)
+  // +---------------+----------------+--------------------+---------------------------------+-------------------------+
+  row< idle_st,        s1_source_ho_st, ho_meas_report_ev, &fsm::handle_s1_meas_report,        &fsm::needs_s1_ho       >,
+  row< idle_st,        intraenb_ho_st,  ho_meas_report_ev, &fsm::handle_intraenb_meas_report,  &fsm::needs_intraenb_ho >,
+  row< intraenb_ho_st, intraenb_ho_st,  user_crnti_upd_ev, &fsm::handle_crnti_ce                                       >,
+  row< intraenb_ho_st, idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                                 >
   >;
   // clang-format on
 };
