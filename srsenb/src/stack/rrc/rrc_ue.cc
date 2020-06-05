@@ -596,8 +596,8 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   }
   apply_reconf_phy_config(reconfig_r8);
 
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list.get_sr_res()->sr_I;
-  phy_cfg->sched_request_cfg.setup().sr_cfg_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
+  phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = cell_ded_list.get_sr_res()->sr_I;
+  phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
 
   pdu->clear();
 

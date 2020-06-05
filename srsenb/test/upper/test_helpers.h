@@ -122,6 +122,44 @@ public:
   }
 };
 
+class rlc_mobility_dummy : public rlc_dummy
+{
+public:
+  struct ue_ctxt {
+    int                          nof_pdcp_sdus = 0, reest_sdu_counter = 0;
+    uint32_t                     last_lcid = 0;
+    srslte::unique_byte_buffer_t last_sdu;
+  };
+  std::map<uint16_t, ue_ctxt> ue_db;
+
+  void test_reset_all()
+  {
+    for (auto& u : ue_db) {
+      u.second = {};
+    }
+  }
+
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override
+  {
+    ue_db[rnti].nof_pdcp_sdus++;
+    ue_db[rnti].reest_sdu_counter++;
+    ue_db[rnti].last_lcid = lcid;
+    ue_db[rnti].last_sdu  = std::move(sdu);
+  }
+  void reestablish(uint16_t rnti) final { ue_db[rnti].reest_sdu_counter = 0; }
+};
+
+class mac_mobility_dummy : public mac_dummy
+{
+public:
+  int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override
+  {
+    ue_db[rnti] = *cfg;
+    return 0;
+  }
+  std::map<uint16_t, sched_interface::ue_cfg_t> ue_db;
+};
+
 } // namespace test_dummies
 
 namespace test_helpers {

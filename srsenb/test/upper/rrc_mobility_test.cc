@@ -238,20 +238,29 @@ int test_correct_meascfg_calculation()
 }
 
 struct mobility_test_params {
-  enum class test_fail_at { success, wrong_measreport, concurrent_ho, ho_prep_failure, recover } fail_at;
+  enum class test_event {
+    success,
+    wrong_measreport,
+    concurrent_ho,
+    ho_prep_failure,
+    duplicate_crnti_ce,
+    recover
+  } fail_at;
   const char* to_string()
   {
     switch (fail_at) {
-      case test_fail_at::success:
+      case test_event::success:
         return "success";
-      case test_fail_at::wrong_measreport:
+      case test_event::wrong_measreport:
         return "wrong measreport";
-      case test_fail_at::concurrent_ho:
+      case test_event::concurrent_ho:
         return "measreport while in handover";
-      case test_fail_at::ho_prep_failure:
+      case test_event::ho_prep_failure:
         return "ho preparation failure";
-      case test_fail_at::recover:
+      case test_event::recover:
         return "fail and success";
+      case test_event::duplicate_crnti_ce:
+        return "duplicate CRNTI CE";
       default:
         return "none";
     }
@@ -282,8 +291,8 @@ struct mobility_tester {
   rrc_cfg_t                                   cfg;
 
   srsenb::rrc                       rrc;
-  mac_dummy                         mac;
-  rlc_dummy                         rlc;
+  test_dummies::mac_mobility_dummy  mac;
+  test_dummies::rlc_mobility_dummy  rlc;
   test_dummies::pdcp_mobility_dummy pdcp;
   phy_dummy                         phy;
   test_dummies::s1ap_mobility_dummy s1ap;
@@ -364,7 +373,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
   test_dummies::s1ap_mobility_dummy& s1ap = tester.s1ap;
 
   /* Receive MeasReport from UE (correct if PCI=2) */
-  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x0D, 0xBC, 0x80}; // PCI == 3
     test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
   } else {
@@ -375,7 +384,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
   tester.tic();
 
   /* Test Case: the MeasReport is not valid */
-  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
     TESTASSERT(tester.rrc_log->warn_counter == 1);
     return SRSLTE_SUCCESS;
@@ -383,7 +392,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
   TESTASSERT(s1ap.last_ho_required.rrc_container != nullptr);
 
   /* Test Case: Multiple concurrent MeasReports arrived. Only one HO procedure should be running */
-  if (test_params.fail_at == mobility_test_params::test_fail_at::concurrent_ho) {
+  if (test_params.fail_at == mobility_test_params::test_event::concurrent_ho) {
     s1ap.last_ho_required = {};
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
     test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
@@ -409,7 +418,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
   }
 
   /* Test Case: HandoverPreparation has failed */
-  if (test_params.fail_at == mobility_test_params::test_fail_at::ho_prep_failure) {
+  if (test_params.fail_at == mobility_test_params::test_event::ho_prep_failure) {
     tester.rrc.ho_preparation_complete(tester.rnti, false, nullptr);
     //    TESTASSERT(rrc_log->error_counter == 1);
     TESTASSERT(not s1ap.last_enb_status.status_present);
@@ -444,9 +453,10 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.setup_rrc() == SRSLTE_SUCCESS);
   TESTASSERT(tester.run_preamble() == SRSLTE_SUCCESS);
   tester.pdcp.last_sdu.sdu = nullptr;
+  tester.rlc.test_reset_all();
 
   /* Receive MeasReport from UE (correct if PCI=2) */
-  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x0D, 0xBC, 0x80}; // PCI == 3
     test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
   } else {
@@ -458,7 +468,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
 
   /* Test Case: the MeasReport is not valid */
-  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+  if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     TESTASSERT(tester.rrc_log->warn_counter == 1);
     TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
     return SRSLTE_SUCCESS;
@@ -468,7 +478,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(not tester.s1ap.last_enb_status.status_present);
 
   /* Test Case: Multiple concurrent MeasReports arrived. Only one HO procedure should be running */
-  if (test_params.fail_at == mobility_test_params::test_fail_at::concurrent_ho) {
+  if (test_params.fail_at == mobility_test_params::test_event::concurrent_ho) {
     tester.pdcp.last_sdu  = {};
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
     test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
@@ -488,6 +498,54 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(recfg_r8.mob_ctrl_info_present);
   TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
   TESTASSERT(recfg_r8.mob_ctrl_info.target_pci == 2);
+  TESTASSERT(recfg_r8.rr_cfg_ded_present);
+  TESTASSERT(recfg_r8.rr_cfg_ded.phys_cfg_ded_present);
+  const asn1::rrc::phys_cfg_ded_s& phy_cfg_ded = recfg_r8.rr_cfg_ded.phys_cfg_ded;
+  TESTASSERT(phy_cfg_ded.sched_request_cfg_present);
+  TESTASSERT(phy_cfg_ded.cqi_report_cfg_present);
+
+  /* Test Case: The UE sends a C-RNTI CE. Bearers are reestablished */
+  tester.pdcp.last_sdu.sdu = nullptr;
+  tester.rrc.upd_user(tester.rnti + 1, tester.rnti);
+  TESTASSERT(tester.rlc.ue_db[tester.rnti].reest_sdu_counter == 0);
+  TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
+
+  /* Test Case: The UE receives a duplicate C-RNTI CE. Nothing should happen */
+  if (test_params.fail_at == mobility_test_params::test_event::duplicate_crnti_ce) {
+    TESTASSERT(tester.rlc.ue_db[tester.rnti].reest_sdu_counter == 0);
+    tester.rrc.upd_user(tester.rnti + 2, tester.rnti);
+    TESTASSERT(tester.rlc.ue_db[tester.rnti].reest_sdu_counter == 0);
+    TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
+    TESTASSERT(tester.rlc.ue_db[tester.rnti].last_sdu == nullptr); // No Reject sent
+  }
+
+  /* Test Case: Terminate first Handover. No extra messages should be sent DL. SR/CQI resources match recfg message */
+  uint8_t recfg_complete[] = {0x10, 0x00};
+  test_helpers::copy_msg_to_buffer(pdu, recfg_complete, sizeof(recfg_complete));
+  tester.rrc.write_pdu(tester.rnti, rb_id_t::RB_ID_SRB2, std::move(pdu));
+  TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
+  sched_interface::ue_cfg_t& ue_cfg = tester.mac.ue_db[tester.rnti];
+  TESTASSERT(ue_cfg.pucch_cfg.sr_configured);
+  TESTASSERT(ue_cfg.pucch_cfg.n_pucch_sr == phy_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
+  TESTASSERT(ue_cfg.pucch_cfg.I_sr == phy_cfg_ded.sched_request_cfg.setup().sr_cfg_idx);
+  TESTASSERT(ue_cfg.dl_cfg.cqi_report.pmi_idx ==
+             phy_cfg_ded.cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx);
+  TESTASSERT(ue_cfg.pucch_cfg.n_pucch == phy_cfg_ded.cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx);
+
+  /* Test Case: The RRC should be able to start a new handover */
+  uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x05, 0xBC, 0x80}; // PCI == 1
+  test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+  tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
+  tester.tic();
+  TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
+  TESTASSERT(tester.pdcp.last_sdu.sdu != nullptr);
+  TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);
+  TESTASSERT(not tester.s1ap.last_enb_status.status_present);
+  TESTASSERT(test_helpers::unpack_asn1(ho_cmd, tester.pdcp.last_sdu.sdu));
+  recfg_r8 = ho_cmd.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
+  TESTASSERT(recfg_r8.mob_ctrl_info_present);
+  TESTASSERT(recfg_r8.mob_ctrl_info.new_ue_id.to_number() == tester.rnti);
+  TESTASSERT(recfg_r8.mob_ctrl_info.target_pci == 1);
 
   return SRSLTE_SUCCESS;
 }
@@ -495,7 +553,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
 int main(int argc, char** argv)
 {
   srslte::logmap::set_default_log_level(srslte::LOG_LEVEL_INFO);
-  using fail_at = mobility_test_params::test_fail_at;
+  using event = mobility_test_params::test_event;
 
   if (argc < 3) {
     argparse::usage(argv[0]);
@@ -506,15 +564,16 @@ int main(int argc, char** argv)
   TESTASSERT(test_correct_meascfg_calculation() == 0);
 
   // S1AP Handover
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{fail_at::wrong_measreport}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{fail_at::concurrent_ho}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{fail_at::ho_prep_failure}) == 0);
-  TESTASSERT(test_s1ap_mobility(mobility_test_params{fail_at::success}) == 0);
+  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::wrong_measreport}) == 0);
+  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::concurrent_ho}) == 0);
+  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::ho_prep_failure}) == 0);
+  TESTASSERT(test_s1ap_mobility(mobility_test_params{event::success}) == 0);
 
   // intraeNB Handover
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{fail_at::wrong_measreport}) == 0);
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{fail_at::concurrent_ho}) == 0);
-  TESTASSERT(test_intraenb_mobility(mobility_test_params{fail_at::success}) == 0);
+  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::wrong_measreport}) == 0);
+  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::concurrent_ho}) == 0);
+  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::duplicate_crnti_ce}) == 0);
+  TESTASSERT(test_intraenb_mobility(mobility_test_params{event::success}) == 0);
 
   printf("\nSuccess\n");
 
