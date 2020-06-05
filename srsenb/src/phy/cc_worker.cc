@@ -121,7 +121,7 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
     return;
   }
 
-  if (srslte_enb_ul_set_cell(&enb_ul, cell, &phy->dmrs_pusch_cfg)) {
+  if (srslte_enb_ul_set_cell(&enb_ul, cell, &phy->dmrs_pusch_cfg, nullptr)) {
     ERROR("Error initiating ENB UL\n");
     return;
   }

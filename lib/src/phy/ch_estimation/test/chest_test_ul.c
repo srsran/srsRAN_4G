@@ -164,7 +164,7 @@ int main(int argc, char** argv)
               }
               pusch_cfg.group_hopping_en    = group_hopping_en;
               pusch_cfg.sequence_hopping_en = sequence_hopping_en;
-              srslte_chest_ul_pregen(&est, &pusch_cfg);
+              srslte_chest_ul_pregen(&est, &pusch_cfg, NULL);
 
               // Loop through subframe idx and cyclic shifts
 

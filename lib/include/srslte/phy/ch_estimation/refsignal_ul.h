@@ -86,6 +86,7 @@ typedef struct SRSLTE_API {
 } srslte_refsignal_ul_t;
 
 typedef struct {
+  uint32_t max_prb;
   cf_t** r[SRSLTE_NOF_CSHIFT][SRSLTE_NOF_SF_X_FRAME];
 } srslte_refsignal_ul_dmrs_pregen_t;
 
@@ -168,6 +169,12 @@ SRSLTE_API int srslte_refsignal_srs_gen(srslte_refsignal_ul_t*             q,
                                         cf_t*                              r_srs);
 
 SRSLTE_API int srslte_refsignal_srs_put(srslte_refsignal_ul_t*      q,
+                                        srslte_refsignal_srs_cfg_t* cfg,
+                                        uint32_t                    tti,
+                                        cf_t*                       r_srs,
+                                        cf_t*                       sf_symbols);
+
+SRSLTE_API int srslte_refsignal_srs_get(srslte_refsignal_ul_t*      q,
                                         srslte_refsignal_srs_cfg_t* cfg,
                                         uint32_t                    tti,
                                         cf_t*                       r_srs,

@@ -107,7 +107,10 @@ void srslte_enb_ul_free(srslte_enb_ul_t* q)
   }
 }
 
-int srslte_enb_ul_set_cell(srslte_enb_ul_t* q, srslte_cell_t cell, srslte_refsignal_dmrs_pusch_cfg_t* pusch_cfg)
+int srslte_enb_ul_set_cell(srslte_enb_ul_t*                   q,
+                           srslte_cell_t                      cell,
+                           srslte_refsignal_dmrs_pusch_cfg_t* pusch_cfg,
+                           srslte_refsignal_srs_cfg_t*        srs_cfg)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -136,7 +139,7 @@ int srslte_enb_ul_set_cell(srslte_enb_ul_t* q, srslte_cell_t cell, srslte_refsig
       }
 
       // SRS is a dedicated configuration
-      srslte_chest_ul_pregen(&q->chest, pusch_cfg);
+      srslte_chest_ul_pregen(&q->chest, pusch_cfg, srs_cfg);
 
       ret = SRSLTE_SUCCESS;
     }

@@ -63,6 +63,9 @@ typedef struct {
   srslte_refsignal_ul_dmrs_pregen_t dmrs_pregen;
   bool                              dmrs_signal_configured;
 
+  srslte_refsignal_srs_pregen_t srs_pregen;
+  bool                          srs_signal_configured;
+
   cf_t* pilot_estimates;
   cf_t* pilot_estimates_tmp[4];
   cf_t* pilot_recv_signal;
@@ -92,7 +95,9 @@ SRSLTE_API void srslte_chest_ul_res_free(srslte_chest_ul_res_t* q);
 
 SRSLTE_API int srslte_chest_ul_set_cell(srslte_chest_ul_t* q, srslte_cell_t cell);
 
-SRSLTE_API void srslte_chest_ul_pregen(srslte_chest_ul_t* q, srslte_refsignal_dmrs_pusch_cfg_t* cfg);
+SRSLTE_API void srslte_chest_ul_pregen(srslte_chest_ul_t*                 q,
+                                       srslte_refsignal_dmrs_pusch_cfg_t* cfg,
+                                       srslte_refsignal_srs_cfg_t*        srs_cfg);
 
 SRSLTE_API int srslte_chest_ul_estimate_pusch(srslte_chest_ul_t*     q,
                                               srslte_ul_sf_cfg_t*    sf,
@@ -105,5 +110,12 @@ SRSLTE_API int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t*     q,
                                               srslte_pucch_cfg_t*    cfg,
                                               cf_t*                  input,
                                               srslte_chest_ul_res_t* res);
+
+SRSLTE_API int srslte_chest_ul_estimate_srs(srslte_chest_ul_t*                 q,
+                                            srslte_ul_sf_cfg_t*                sf,
+                                            srslte_refsignal_srs_cfg_t*        cfg,
+                                            srslte_refsignal_dmrs_pusch_cfg_t* pusch_cfg,
+                                            cf_t*                              input,
+                                            srslte_chest_ul_res_t*             res);
 
 #endif // SRSLTE_CHEST_UL_H

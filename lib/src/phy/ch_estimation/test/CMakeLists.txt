@@ -46,7 +46,18 @@ target_link_libraries(refsignal_ul_test_all srslte_phy srslte_common)
 
 add_test(chest_test_ul_cellid0 chest_test_ul -c 0 -r 50) 
 add_test(chest_test_ul_cellid1 chest_test_ul -c 1 -r 50) 
-add_test(chest_test_ul_cellid1 chest_test_ul -c 2 -r 50) 
+add_test(chest_test_ul_cellid1 chest_test_ul -c 2 -r 50)
+
+########################################################################
+# Uplink Sounding Reference Signals Channel Estimation TEST
+########################################################################
+
+add_executable(chest_test_srs chest_test_srs.c)
+target_link_libraries(chest_test_srs srslte_phy srslte_common)
+
+foreach (cell_n_prb 6 15 25 50 75 100)
+  add_test(chest_test_srs_${cell_n_prb} chest_test_srs -c 2 -r ${cell_n_prb})
+endforeach(cell_n_prb 6 15 25 50 75 100)
 
 
 ########################################################################

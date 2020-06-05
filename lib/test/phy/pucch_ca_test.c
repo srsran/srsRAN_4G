@@ -91,7 +91,7 @@ static int test_pucch_ca(srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode,
 
   // Init eNb
   TESTASSERT(!srslte_enb_ul_init(&enb_ul, buffer, cell.nof_prb));
-  TESTASSERT(!srslte_enb_ul_set_cell(&enb_ul, cell, &dmrs_pusch_cfg));
+  TESTASSERT(!srslte_enb_ul_set_cell(&enb_ul, cell, &dmrs_pusch_cfg, NULL));
   TESTASSERT(!srslte_enb_ul_add_rnti(&enb_ul, rnti));
 
   // The test itself starts here

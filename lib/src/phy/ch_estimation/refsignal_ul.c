@@ -33,7 +33,6 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-
 // n_dmrs_2 table 5.5.2.1.1-1 from 36.211
 uint32_t n_dmrs_2[8] = {0, 6, 3, 4, 2, 8, 10, 9};
 
@@ -354,6 +353,8 @@ static void compute_r(srslte_refsignal_ul_t*             q,
 
 int srslte_refsignal_dmrs_pusch_pregen_init(srslte_refsignal_ul_dmrs_pregen_t* pregen, uint32_t max_prb)
 {
+  pregen->max_prb = max_prb;
+
   for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
     for (uint32_t cs = 0; cs < SRSLTE_NOF_CSHIFT; cs++) {
       pregen->r[cs][sf_idx] = (cf_t**)calloc(sizeof(cf_t*), max_prb + 1);
@@ -405,11 +406,9 @@ void srslte_refsignal_dmrs_pusch_pregen_free(srslte_refsignal_ul_t* q, srslte_re
   for (uint32_t sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME; sf_idx++) {
     for (uint32_t cs = 0; cs < SRSLTE_NOF_CSHIFT; cs++) {
       if (pregen->r[cs][sf_idx]) {
-        for (uint32_t n = 0; n <= q->cell.nof_prb; n++) {
-          if (srslte_dft_precoding_valid_prb(n)) {
-            if (pregen->r[cs][sf_idx][n]) {
-              free(pregen->r[cs][sf_idx][n]);
-            }
+        for (uint32_t n = 0; n <= pregen->max_prb; n++) {
+          if (pregen->r[cs][sf_idx][n]) {
+            free(pregen->r[cs][sf_idx][n]);
           }
         }
         free(pregen->r[cs][sf_idx]);
@@ -1005,11 +1004,29 @@ int srslte_refsignal_srs_put(srslte_refsignal_ul_t*      q,
                              cf_t*                       sf_symbols)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  if (r_srs && q) {
+  if (r_srs && q && sf_symbols && cfg) {
     uint32_t M_sc = srslte_refsignal_srs_M_sc(q, cfg);
     uint32_t k0   = srs_k0_ue(cfg, q->cell.nof_prb, tti);
     for (int i = 0; i < M_sc; i++) {
       sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, 2 * SRSLTE_CP_NSYMB(q->cell.cp) - 1, k0 + 2 * i)] = r_srs[i];
+    }
+    ret = SRSLTE_SUCCESS;
+  }
+  return ret;
+}
+
+int srslte_refsignal_srs_get(srslte_refsignal_ul_t*      q,
+                             srslte_refsignal_srs_cfg_t* cfg,
+                             uint32_t                    tti,
+                             cf_t*                       r_srs,
+                             cf_t*                       sf_symbols)
+{
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+  if (r_srs && q && sf_symbols && cfg) {
+    uint32_t M_sc = srslte_refsignal_srs_M_sc(q, cfg);
+    uint32_t k0   = srs_k0_ue(cfg, q->cell.nof_prb, tti);
+    for (int i = 0; i < M_sc; i++) {
+      r_srs[i] = sf_symbols[SRSLTE_RE_IDX(q->cell.nof_prb, 2 * SRSLTE_CP_NSYMB(q->cell.cp) - 1, k0 + 2 * i)];
     }
     ret = SRSLTE_SUCCESS;
   }
