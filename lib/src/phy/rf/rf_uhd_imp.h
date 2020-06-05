@@ -24,6 +24,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/rf/rf.h"
@@ -32,6 +36,7 @@
 #define DEVNAME_X300 "uhd_x300"
 #define DEVNAME_N300 "uhd_n300"
 #define DEVNAME_E3X0 "uhd_e3x0"
+#define DEVNAME_UNKNOWN "uhd_unknown"
 
 SRSLTE_API int rf_uhd_open(char* args, void** handler);
 
@@ -42,8 +47,6 @@ SRSLTE_API const char* rf_uhd_devname(void* h);
 SRSLTE_API int rf_uhd_close(void* h);
 
 SRSLTE_API int rf_uhd_start_rx_stream(void* h, bool now);
-
-SRSLTE_API int rf_uhd_start_rx_stream_nsamples(void* h, uint32_t nsamples);
 
 SRSLTE_API int rf_uhd_stop_rx_stream(void* h);
 
@@ -104,5 +107,9 @@ SRSLTE_API int rf_uhd_send_timed_multi(void*  h,
                                        bool   blocking,
                                        bool   is_start_of_burst,
                                        bool   is_end_of_burst);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRSLTE_RF_UHD_IMP_H_ */

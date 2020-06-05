@@ -29,7 +29,12 @@ if(RF_FOUND)
 
   if (UHD_FOUND)
     add_definitions(-DENABLE_UHD)
-    list(APPEND SOURCES_RF rf_uhd_imp.c uhd_c_api.cpp)
+    list(APPEND SOURCES_RF rf_uhd_imp.cc)
+
+    # If found, add a macro to inform the UHD driver about the available feature
+    if (UHD_ENABLE_X300_FW_RESET)
+      add_definitions(-DENABLE_UHD_X300_FW_RESET)
+    endif(UHD_ENABLE_X300_FW_RESET)
   endif (UHD_FOUND)
 
   if (BLADERF_FOUND)

@@ -483,7 +483,14 @@ void sync::run_camping_state()
       break;
     case 0:
       Warning("SYNC:  Out-of-sync detected in PSS/SSS\n");
+
+      // End transmission burst, avoid Tx Underflow
+      radio_h->tx_end();
+
+      // Inform about the out-of-synch to upper layer
       out_of_sync();
+
+      // Releases assigned worker
       worker->release();
 
       // Force decoding MIB, for making sure that the TTI will be right
@@ -784,7 +791,6 @@ void sync::set_sampling_rate()
 
     srate_mode = SRATE_CAMP;
     radio_h->set_rx_srate(current_srate);
-    radio_h->set_tx_srate(current_srate);
   } else {
     Error("Error setting sampling rate for cell with %d PRBs\n", cell.nof_prb);
   }
