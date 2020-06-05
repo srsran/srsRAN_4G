@@ -272,99 +272,121 @@ void cc_worker::work_dl(const srslte_dl_sf_cfg_t&            dl_sf_cfg,
   srslte_enb_dl_gen_signal(&enb_dl);
 }
 
-int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch)
+void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_grant,
+                                  srslte_ul_cfg_t&                           ul_cfg,
+                                  srslte_pusch_res_t&                        pusch_res)
 {
-  srslte_pusch_res_t pusch_res;
-  for (uint32_t i = 0; i < nof_pusch; i++) {
-    // Get grant itself and RNTI
-    auto&    ul_grant = grants[i];
-    uint16_t rnti     = ul_grant.dci.rnti;
+  uint16_t rnti = ul_grant.dci.rnti;
 
-    if (rnti && ue_db.count(rnti)) {
-      // Get UE configuration
-      srslte_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
+  // Invalid RNTI
+  if (rnti == 0) {
+    return;
+  }
 
-      // mark this tti as having an ul dci to avoid pucch
-      ue_db[rnti]->is_grant_available = true;
+  // RNTI does not exist
+  if (ue_db.count(rnti) == 0) {
+    return;
+  }
 
-      // Fill UCI configuration
-      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, grants->dci.cqi_request, true, ul_cfg.pusch.uci_cfg);
+  // Get UE configuration
+  ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
 
-      // Compute UL grant
-      srslte_pusch_grant_t& grant = ul_cfg.pusch.grant;
-      if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
-        Error("Computing PUSCH dci\n");
-        return SRSLTE_ERROR;
-      }
+  // mark this tti as having an ul dci to avoid pucch
+  ue_db[rnti]->is_grant_available = true;
 
-      uint32_t ul_pid = TTI_RX(ul_sf.tti) % SRSLTE_FDD_NOF_HARQ;
+  // Fill UCI configuration
+  phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, ul_grant.dci.cqi_request, true, ul_cfg.pusch.uci_cfg);
 
-      // Handle Format0 adaptive retx
-      // Use last TBS for this TB in case of mcs>28
-      if (ul_grant.dci.tb.mcs_idx > 28) {
-        grant.tb = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_pid);
-        Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", grants[i].dci.tb.mcs_idx, grant.tb.tbs, ul_pid);
-      }
-      phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_pid, grant.tb);
+  // Compute UL grant
+  srslte_pusch_grant_t& grant = ul_cfg.pusch.grant;
+  if (srslte_ra_ul_dci_to_grant(&enb_ul.cell, &ul_sf, &ul_cfg.hopping, &ul_grant.dci, &grant)) {
+    Error("Computing PUSCH dci for RNTI %x\n", rnti);
+    return;
+  }
 
-      // Run PUSCH decoder
-      pusch_res                   = {};
-      ul_cfg.pusch.softbuffers.rx = grants[i].softbuffer_rx;
-      pusch_res.data              = grants[i].data;
-      if (pusch_res.data) {
-        if (srslte_enb_ul_get_pusch(&enb_ul, &ul_sf, &ul_cfg.pusch, &pusch_res)) {
-          Error("Decoding PUSCH\n");
-          return SRSLTE_ERROR;
-        }
-      }
+  uint32_t ul_pid = TTI_RX(ul_sf.tti) % SRSLTE_FDD_NOF_HARQ;
 
-      // Save PHICH scheduling for this user. Each user can have just 1 PUSCH dci per TTI
-      ue_db[rnti]->phich_grant.n_prb_lowest = grant.n_prb_tilde[0];
-      ue_db[rnti]->phich_grant.n_dmrs       = grants[i].dci.n_dmrs;
+  // Handle Format0 adaptive retx
+  // Use last TBS for this TB in case of mcs>28
+  if (ul_grant.dci.tb.mcs_idx > 28) {
+    grant.tb = phy->ue_db.get_last_ul_tb(rnti, cc_idx, ul_pid);
+    Info("RETX: mcs=%d, old_tbs=%d pid=%d\n", ul_grant.dci.tb.mcs_idx, grant.tb.tbs, ul_pid);
+  }
+  phy->ue_db.set_last_ul_tb(rnti, cc_idx, ul_pid, grant.tb);
 
-      float snr_db = enb_ul.chest_res.snr_db;
+  // Run PUSCH decoder
+  ul_cfg.pusch.softbuffers.rx = ul_grant.softbuffer_rx;
+  pusch_res.data              = ul_grant.data;
+  if (pusch_res.data) {
+    if (srslte_enb_ul_get_pusch(&enb_ul, &ul_sf, &ul_cfg.pusch, &pusch_res)) {
+      Error("Decoding PUSCH for RNTI %x\n", rnti);
+      return;
+    }
+  }
+  // Save PHICH scheduling for this user. Each user can have just 1 PUSCH dci per TTI
+  ue_db[rnti]->phich_grant.n_prb_lowest = grant.n_prb_tilde[0];
+  ue_db[rnti]->phich_grant.n_dmrs       = ul_grant.dci.n_dmrs;
 
-      // Notify MAC of RL status
-      if (snr_db >= PUSCH_RL_SNR_DB_TH) {
-        // Notify MAC UL channel quality
-        phy->stack->snr_info(ul_sf.tti, rnti, cc_idx, snr_db);
+  float snr_db = enb_ul.chest_res.snr_db;
 
-        if (grants[i].dci.tb.rv == 0) {
-          if (!pusch_res.crc) {
-            Debug("PUSCH: Radio-Link failure snr=%.1f dB\n", snr_db);
-            phy->stack->rl_failure(rnti);
-          } else {
-            phy->stack->rl_ok(rnti);
+  // Notify MAC of RL status
+  if (snr_db >= PUSCH_RL_SNR_DB_TH) {
+    // Notify MAC UL channel quality
+    phy->stack->snr_info(ul_sf.tti, rnti, cc_idx, snr_db);
 
-            // Notify MAC of Time Alignment only if it enabled and valid measurement, ignore value otherwise
-            if (ul_cfg.pusch.meas_ta_en and not std::isnan(enb_ul.chest_res.ta_us) and
-                not std::isinf(enb_ul.chest_res.ta_us)) {
-              phy->stack->ta_info(ul_sf.tti, rnti, enb_ul.chest_res.ta_us);
-            }
-          }
-        }
-      }
+    if (ul_grant.dci.tb.rv == 0) {
+      if (!pusch_res.crc) {
+        Debug("PUSCH: Radio-Link failure snr=%.1f dB\n", snr_db);
+        phy->stack->rl_failure(rnti);
+      } else {
+        phy->stack->rl_ok(rnti);
 
-      // Send UCI data to MAC
-      phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pusch.uci_cfg, pusch_res.uci);
-
-      // Notify MAC new received data and HARQ Indication value
-      if (pusch_res.data) {
-        phy->stack->crc_info(tti_rx, rnti, cc_idx, grant.tb.tbs / 8, pusch_res.crc);
-
-        // Save metrics stats
-        ue_db[rnti]->metrics_ul(grants[i].dci.tb.mcs_idx, 0, snr_db, pusch_res.avg_iterations_block);
-
-        // Logging
-        if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
-          char str[512];
-          srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, &enb_ul.chest_res, str, sizeof(str));
-          log_h->info("PUSCH: cc=%d, %s\n", cc_idx, str);
+        // Notify MAC of Time Alignment only if it enabled and valid measurement, ignore value otherwise
+        if (ul_cfg.pusch.meas_ta_en and not std::isnan(enb_ul.chest_res.ta_us) and
+            not std::isinf(enb_ul.chest_res.ta_us)) {
+          phy->stack->ta_info(ul_sf.tti, rnti, enb_ul.chest_res.ta_us);
         }
       }
     }
   }
-  return SRSLTE_SUCCESS;
+
+  // Send UCI data to MAC
+  phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pusch.uci_cfg, pusch_res.uci);
+
+  // Save statistics only if data was provided
+  if (ul_grant.data != nullptr) {
+    // Save metrics stats
+    ue_db[rnti]->metrics_ul(ul_grant.dci.tb.mcs_idx, 0, enb_ul.chest_res.snr_db, pusch_res.avg_iterations_block);
+  }
+}
+
+void cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch)
+{
+  // Iterate over all the grants, all the grants need to report MAC the CRC status
+  for (uint32_t i = 0; i < nof_pusch; i++) {
+    // Get grant itself and RNTI
+    stack_interface_phy_lte::ul_sched_grant_t& ul_grant = grants[i];
+    uint16_t                                   rnti     = ul_grant.dci.rnti;
+
+    srslte_pusch_res_t pusch_res = {};
+    srslte_ul_cfg_t    ul_cfg    = {};
+
+    // Decodes PUSCH for the given grant
+    decode_pusch_rnti(ul_grant, ul_cfg, pusch_res);
+
+    // Notify MAC new received data and HARQ Indication value
+    if (ul_grant.data != nullptr) {
+      // Inform MAC about the CRC result
+      phy->stack->crc_info(tti_rx, rnti, cc_idx, ul_cfg.pusch.grant.tb.tbs / 8, pusch_res.crc);
+
+      // Logging
+      if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {
+        char str[512];
+        srslte_pusch_rx_info(&ul_cfg.pusch, &pusch_res, &enb_ul.chest_res, str, sizeof(str));
+        log_h->info("PUSCH: cc=%d, %s\n", cc_idx, str);
+      }
+    }
+  }
 }
 
 int cc_worker::decode_pucch()
