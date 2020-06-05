@@ -132,7 +132,8 @@ private:
   std::map<uint16_t, sched_ue>* ue_db  = nullptr;
 
   std::deque<sf_sched::pending_rar_t> pending_rars;
-  uint32_t                            rar_aggr_level = 2;
+  uint32_t                            rar_aggr_level   = 2;
+  static const uint32_t               PRACH_RAR_OFFSET = 3; // TS 36.321 Sec. 5.1.4
 };
 
 } // namespace srsenb

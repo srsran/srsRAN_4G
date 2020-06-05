@@ -154,16 +154,20 @@ void ra_sched::dl_sched(sf_sched* tti_sched)
     uint32_t                 prach_tti = rar.prach_tti;
 
     // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
-    if (not sched_utils::is_in_tti_interval(tti_tx_dl, prach_tti + 3, prach_tti + 3 + cc_cfg->cfg.prach_rar_window)) {
-      if (tti_tx_dl >= prach_tti + 3 + cc_cfg->cfg.prach_rar_window) {
-        log_h->console("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
-                       prach_tti,
-                       cc_cfg->cfg.prach_rar_window,
-                       tti_tx_dl);
-        log_h->error("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
-                     prach_tti,
-                     cc_cfg->cfg.prach_rar_window,
-                     tti_tx_dl);
+    if (not sched_utils::is_in_tti_interval(
+            tti_tx_dl, prach_tti + PRACH_RAR_OFFSET, prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window)) {
+      if (tti_tx_dl >= prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window) {
+        char error_msg[128];
+        int  len       = snprintf(error_msg,
+                           sizeof(error_msg),
+                           "SCHED: Could not transmit RAR within the window (RA=%d, Window=[%d..%d], RAR=%d)\n",
+                           prach_tti,
+                           prach_tti + PRACH_RAR_OFFSET,
+                           prach_tti + PRACH_RAR_OFFSET + cc_cfg->cfg.prach_rar_window,
+                           tti_tx_dl);
+        error_msg[len] = '\0';
+        log_h->console("%s", error_msg);
+        log_h->error("%s", error_msg);
         // Remove from pending queue and get next one if window has passed already
         pending_rars.pop_front();
         continue;
