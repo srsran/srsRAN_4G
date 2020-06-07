@@ -2474,24 +2474,38 @@ void rrc::add_drb(const drb_to_add_mod_s& drb_cnfg)
   }
   mac->setup_lcid(lcid, log_chan_group, priority, prioritized_bit_rate, bucket_size_duration);
 
-  drbs[lcid] = drb_cnfg;
-  drb_up     = true;
-  rrc_log->info("Added radio bearer %s (LCID=%d)\n", get_rb_name(lcid).c_str(), lcid);
+  drbs[drb_cnfg.drb_id] = drb_cnfg;
+  drb_up                = true;
+  rrc_log->info("Added DRB Id %d (LCID=%d)\n", drb_cnfg.drb_id, lcid);
 }
 
 void rrc::release_drb(uint32_t drb_id)
 {
-  uint32_t lcid = RB_ID_SRB2 + drb_id;
-
   if (drbs.find(drb_id) != drbs.end()) {
-    rrc_log->info("Releasing radio bearer %s\n", get_rb_name(lcid).c_str());
-    drbs.erase(lcid);
+    rrc_log->info("Releasing DRB Id %d\n", drb_id);
+    drbs.erase(drb_id);
   } else {
-    rrc_log->error("Couldn't release radio bearer %s. Doesn't exist.\n", get_rb_name(lcid).c_str());
+    rrc_log->error("Couldn't release DRB Id %d. Doesn't exist.\n", drb_id);
   }
 }
 
 uint32_t rrc::get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)
+{
+  // check if this bearer id exists and return it's LCID
+  uint32_t lcid                        = 0;
+  uint32_t drb_id                      = 0;
+  drb_id                               = get_drb_id_for_eps_bearer(eps_bearer_id);
+  asn1::rrc::drb_to_add_mod_s drb_cnfg = drbs[drb_id];
+  if (drb_cnfg.lc_ch_id_present) {
+    lcid = drb_cnfg.lc_ch_id;
+  } else {
+    lcid = RB_ID_SRB2 + drb_cnfg.drb_id;
+    rrc_log->warning("LCID not present, using %d\n", lcid);
+  }
+  return lcid;
+}
+
+uint32_t rrc::get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id)
 {
   // check if this bearer id exists and return it's LCID
   for (auto& drb : drbs) {

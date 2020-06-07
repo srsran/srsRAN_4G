@@ -399,6 +399,7 @@ private:
   void     add_drb(const asn1::rrc::drb_to_add_mod_s& drb_cnfg);
   void     release_drb(uint32_t drb_id);
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id);
+  uint32_t get_drb_id_for_eps_bearer(const uint32_t& eps_bearer_id);
   void     add_mrb(uint32_t lcid, uint32_t port);
 
   // Helpers for setting default values
