@@ -111,9 +111,9 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
     if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
       gtpu_log->error("IP Len and PDU N_bytes mismatch\n");
     }
-    gtpu_log->debug("S1-U PDU -- IP version %d, Total length %d\n", ip_pkt->version, ntohs(ip_pkt->tot_len));
-    gtpu_log->debug("S1-U PDU -- IP src addr %s\n", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
-    gtpu_log->debug("S1-U PDU -- IP dst addr %s\n", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
+    gtpu_log->debug("Tx S1-U PDU -- IP version %d, Total length %d\n", ip_pkt->version, ntohs(ip_pkt->tot_len));
+    gtpu_log->debug("Tx S1-U PDU -- IP src addr %s\n", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
+    gtpu_log->debug("Tx S1-U PDU -- IP dst addr %s\n", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
   }
 
   gtpu_header_t header;
@@ -266,6 +266,18 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       gtpu_log->info_hex(
           pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
 
+      struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
+      if (ip_pkt->version != 4 && ip_pkt->version != 6) {
+        gtpu_log->error("Invalid IP version to SPGW\n");
+        return;
+      } else if (ip_pkt->version == 4) {
+        if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
+          gtpu_log->error("IP Len and PDU N_bytes mismatch\n");
+        }
+        gtpu_log->debug("Rx S1-U PDU -- IP version %d, Total length %d\n", ip_pkt->version, ntohs(ip_pkt->tot_len));
+        gtpu_log->debug("Rx S1-U PDU -- IP src addr %s\n", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
+        gtpu_log->debug("Rx S1-U PDU -- IP dst addr %s\n", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
+      }
       pdcp->write_sdu(rnti, lcid, std::move(pdu));
     } break;
     default:
