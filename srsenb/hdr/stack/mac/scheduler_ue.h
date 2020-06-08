@@ -33,13 +33,13 @@
 
 namespace srsenb {
 
-struct sched_ue_carrier {
+struct cc_sched_ue {
   const static int SCHED_MAX_HARQ_PROC = FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS;
 
-  sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
-                   const sched_cell_params_t&       cell_cfg_,
-                   uint16_t                         rnti_,
-                   uint32_t                         ue_cc_idx);
+  cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
+              const sched_cell_params_t&       cell_cfg_,
+              uint16_t                         rnti_,
+              uint32_t                         ue_cc_idx);
   void reset();
   void set_cfg(const sched_interface::ue_cfg_t& cfg); ///< reconfigure ue carrier
 
@@ -174,7 +174,7 @@ public:
 
   srslte_dci_format_t get_dci_format();
   sched_dci_cce_t*    get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx);
-  sched_ue_carrier*   get_ue_carrier(uint32_t enb_cc_idx);
+  cc_sched_ue*        get_ue_carrier(uint32_t enb_cc_idx);
 
   bool     needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_send = false);
   uint32_t get_max_retx();
@@ -269,7 +269,7 @@ private:
 
   bool phy_config_dedicated_enabled = false;
 
-  std::vector<sched_ue_carrier> carriers; ///< map of UE CellIndex to carrier configuration
+  std::vector<cc_sched_ue> carriers; ///< map of UE CellIndex to carrier configuration
 
   // Control Element Command queue
   using ce_cmd = srslte::dl_sch_lcid;

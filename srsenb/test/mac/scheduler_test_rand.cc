@@ -112,7 +112,7 @@ struct sched_tester : public srsenb::common_sched_tester {
     bool                 has_ul_retx         = false;
     bool                 has_ul_newtx        = false; ///< *no* retx, but has tx
     bool                 ul_retx_got_delayed = false;
-    srsenb::dl_harq_proc dl_harqs[srsenb::sched_ue_carrier::SCHED_MAX_HARQ_PROC];
+    srsenb::dl_harq_proc dl_harqs[srsenb::cc_sched_ue::SCHED_MAX_HARQ_PROC];
     srsenb::ul_harq_proc ul_harq;
   };
   struct sched_tti_data {
@@ -175,7 +175,7 @@ void sched_tester::before_sched()
     tti_data.total_ues.has_dl_tx |= d.has_dl_tx;
     tti_data.total_ues.has_ul_newtx |= d.has_ul_newtx;
 
-    for (uint32_t i = 0; i < srsenb::sched_ue_carrier::SCHED_MAX_HARQ_PROC; ++i) {
+    for (uint32_t i = 0; i < srsenb::cc_sched_ue::SCHED_MAX_HARQ_PROC; ++i) {
       const srsenb::dl_harq_proc& h      = user->get_dl_harq(i, CARRIER_IDX);
       tti_data.ue_data[rnti].dl_harqs[i] = h;
     }
@@ -349,7 +349,7 @@ int sched_tester::test_harqs()
   // Check whether some pids got old
   if (check_old_pids) {
     for (auto& user : ue_db) {
-      for (int i = 0; i < srsenb::sched_ue_carrier::SCHED_MAX_HARQ_PROC; i++) {
+      for (int i = 0; i < srsenb::cc_sched_ue::SCHED_MAX_HARQ_PROC; i++) {
         if (not user.second.get_dl_harq(i, CARRIER_IDX).is_empty(0)) {
           if (tti_point{tti_info.tti_params.tti_tx_dl} > user.second.get_dl_harq(i, CARRIER_IDX).get_tti() + 49) {
             TESTERROR(

@@ -138,7 +138,7 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
       carriers.emplace_back(cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx);
     } else if (cc_cfg.enb_cc_idx != prev_supported_cc_list[ue_idx].enb_cc_idx) {
       // One carrier was added in the place of another
-      carriers[ue_idx] = sched_ue_carrier{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
+      carriers[ue_idx] = cc_sched_ue{cfg, (*cell_params_list)[cc_cfg.enb_cc_idx], rnti, ue_idx};
       if (ue_idx == 0) {
         log_h->info("SCHED: rnti=0x%x PCell is now %d.\n", rnti, cc_cfg.enb_cc_idx);
       }
@@ -190,7 +190,7 @@ void sched_ue::rem_bearer(uint32_t lc_id)
 
 void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
 {
-  for (sched_ue_carrier& c : carriers) {
+  for (cc_sched_ue& c : carriers) {
     c.dl_cqi_tti = tti;
   }
   phy_config_dedicated_enabled = enabled;
@@ -930,7 +930,7 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
  */
 uint32_t sched_ue::get_pending_dl_new_data()
 {
-  if (std::count_if(carriers.begin(), carriers.end(), [](const sched_ue_carrier& cc) { return cc.is_active(); }) == 0) {
+  if (std::count_if(carriers.begin(), carriers.end(), [](const cc_sched_ue& cc) { return cc.is_active(); }) == 0) {
     return 0;
   }
 
@@ -1133,7 +1133,7 @@ sched_dci_cce_t* sched_ue::get_locations(uint32_t enb_cc_idx, uint32_t cfi, uint
   }
 }
 
-sched_ue_carrier* sched_ue::get_ue_carrier(uint32_t enb_cc_idx)
+cc_sched_ue* sched_ue::get_ue_carrier(uint32_t enb_cc_idx)
 {
   auto p = get_cell_index(enb_cc_idx);
   if (not p.first) {
@@ -1203,10 +1203,10 @@ int sched_ue::cqi_to_tbs(uint32_t  cqi,
  *                                sched_ue::sched_ue_carrier
  ***********************************************************************************************/
 
-sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
-                                   const sched_cell_params_t&       cell_cfg_,
-                                   uint16_t                         rnti_,
-                                   uint32_t                         ue_cc_idx_) :
+cc_sched_ue::cc_sched_ue(const sched_interface::ue_cfg_t& cfg_,
+                         const sched_cell_params_t&       cell_cfg_,
+                         uint16_t                         rnti_,
+                         uint32_t                         ue_cc_idx_) :
   cell_params(&cell_cfg_),
   rnti(rnti_),
   log_h(srslte::logmap::get("MAC ")),
@@ -1239,7 +1239,7 @@ sched_ue_carrier::sched_ue_carrier(const sched_interface::ue_cfg_t& cfg_,
   set_cfg(cfg_);
 }
 
-void sched_ue_carrier::reset()
+void cc_sched_ue::reset()
 {
   dl_ri      = 0;
   dl_ri_tti  = 0;
@@ -1252,7 +1252,7 @@ void sched_ue_carrier::reset()
   harq_ent.reset();
 }
 
-void sched_ue_carrier::set_cfg(const sched_interface::ue_cfg_t& cfg_)
+void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
   if (cfg != nullptr and cfg->maxharq_tx == cfg_.maxharq_tx) {
     // nothing changed
@@ -1264,7 +1264,7 @@ void sched_ue_carrier::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 }
 
 /* Find lowest DCI aggregation level supported by the UE spectral efficiency */
-uint32_t sched_ue_carrier::get_aggr_level(uint32_t nof_bits)
+uint32_t cc_sched_ue::get_aggr_level(uint32_t nof_bits)
 {
   uint32_t l            = 0;
   float    max_coderate = srslte_cqi_to_coderate(dl_cqi);
@@ -1292,7 +1292,7 @@ uint32_t sched_ue_carrier::get_aggr_level(uint32_t nof_bits)
 /* In this scheduler we tend to use all the available bandwidth and select the MCS
  * that approximates the minimum between the capacity and the requested rate
  */
-int sched_ue_carrier::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs)
+int cc_sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs)
 {
   uint32_t sel_mcs = 0;
 
@@ -1328,17 +1328,17 @@ int sched_ue_carrier::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_
   return tbs_bytes;
 }
 
-int sched_ue_carrier::alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
+int cc_sched_ue::alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
 {
   return alloc_tbs(nof_prb, nof_re, req_bytes, false, mcs);
 }
 
-int sched_ue_carrier::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
+int cc_sched_ue::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
 {
   return alloc_tbs(nof_prb, nof_re, req_bytes, true, mcs);
 }
 
-int sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
+int cc_sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
 {
   int      mcs    = 0;
   uint32_t nof_re = 0;
@@ -1363,7 +1363,7 @@ int sched_ue_carrier::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_
   return (nbytes >= req_bytes) ? n : -1;
 }
 
-uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
+uint32_t cc_sched_ue::get_required_prb_ul(uint32_t req_bytes)
 {
   int      mcs    = 0;
   uint32_t nbytes = 0;
@@ -1394,7 +1394,7 @@ uint32_t sched_ue_carrier::get_required_prb_ul(uint32_t req_bytes)
   return n;
 }
 
-void sched_ue_carrier::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
+void cc_sched_ue::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
 {
   dl_cqi     = dl_cqi_;
   dl_cqi_tti = tti_tx_dl;

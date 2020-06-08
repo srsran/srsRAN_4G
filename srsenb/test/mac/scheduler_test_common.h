@@ -113,8 +113,8 @@ struct ue_ctxt_test {
       uint32_t          nof_txs   = 0;
       uint32_t          riv       = 0;
     };
-    std::array<harq_state_t, sched_ue_carrier::SCHED_MAX_HARQ_PROC> dl_harqs = {};
-    std::array<harq_state_t, sched_ue_carrier::SCHED_MAX_HARQ_PROC> ul_harqs = {};
+    std::array<harq_state_t, cc_sched_ue::SCHED_MAX_HARQ_PROC> dl_harqs = {};
+    std::array<harq_state_t, cc_sched_ue::SCHED_MAX_HARQ_PROC> ul_harqs = {};
   };
   std::vector<cc_ue_ctxt_test> active_ccs;
 
