@@ -26,6 +26,7 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
+#include <array>
 
 namespace srsenb {
 
@@ -62,8 +63,8 @@ struct rrc_cfg_t {
   bool                                enable_mbsfn;
   uint16_t                            mbms_mcs;
   uint32_t                            inactivity_timeout_ms;
-  srslte::CIPHERING_ALGORITHM_ID_ENUM eea_preference_list[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS];
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM eia_preference_list[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS];
+  std::array<srslte::CIPHERING_ALGORITHM_ID_ENUM, srslte::CIPHERING_ALGORITHM_ID_N_ITEMS> eea_preference_list;
+  std::array<srslte::INTEGRITY_ALGORITHM_ID_ENUM, srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS> eia_preference_list;
   bool                                meas_cfg_present = false;
   srslte_cell_t                       cell;
   cell_list_t                         cell_list;
