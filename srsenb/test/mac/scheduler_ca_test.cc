@@ -121,9 +121,11 @@ int test_scell_activation(test_scell_activation_params params)
 
   // Event PRACH: PRACH takes place for "rnti1", and carrier "pcell_idx"
   generator.step_until(prach_tti);
-  tti_ev::user_cfg_ev* user                                = generator.add_new_default_user(duration);
-  user->ue_sim_cfg->ue_cfg.supported_cc_list[0].enb_cc_idx = cc_idxs[0];
-  user->rnti                                               = rnti1;
+  tti_ev::user_cfg_ev* user                                      = generator.add_new_default_user(duration);
+  user->ue_sim_cfg->ue_cfg.supported_cc_list[0].enb_cc_idx       = cc_idxs[0];
+  user->rnti                                                     = rnti1;
+  user->ue_sim_cfg->ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
+  user->ue_sim_cfg->ue_cfg.dl_cfg.cqi_report.pmi_idx             = 0;
   tester.test_next_ttis(generator.tti_events);
   TESTASSERT(tester.ue_tester->user_exists(rnti1));
 
