@@ -99,8 +99,8 @@ static const double RF_UHD_IMP_ASYNCH_MSG_TIMEOUT_S = 0.1;
 static const uint32_t RF_UHD_IMP_MAX_RX_TRIALS = 100;
 
 struct rf_uhd_handler_t {
-  std::string            devname;
-  rf_uhd_safe_interface* uhd = nullptr;
+  std::string                            devname;
+  std::shared_ptr<rf_uhd_safe_interface> uhd = nullptr;
 
   srslte_rf_info_t info;
   size_t           rx_nof_samples      = 0;
@@ -677,13 +677,13 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   // If RFNOC is accessible
 #ifdef SRSLTE_RF_UHD_RFNOC_H
   if (rf_uhd_rfnoc::is_required(device_addr)) {
-    handler->uhd = new rf_uhd_rfnoc;
+    handler->uhd = std::make_shared<rf_uhd_rfnoc>();
   }
 #endif // SRSLTE_RF_UHD_RFNOC_H
 
   // If UHD was not instanced, instance generic
   if (handler->uhd == nullptr) {
-    handler->uhd = new rf_uhd_generic;
+    handler->uhd = std::make_shared<rf_uhd_generic>();
   }
 
   // Make USRP

@@ -21,6 +21,12 @@
 #ifndef SRSLTE_RF_UHD_SAFE_H
 #define SRSLTE_RF_UHD_SAFE_H
 
+#include <uhd/utils/log.hpp>
+#define Warning(message) UHD_LOG_WARNING("UHD RF", message)
+#define Info(message) UHD_LOG_INFO("UHD RF", message)
+#define Debug(message) UHD_LOG_DEBUG("UHD RF", message)
+#define Trace(message) UHD_LOG_TRACE("UHD RF", message)
+
 #ifdef ENABLE_UHD_X300_FW_RESET
 #include <uhd/transport/udp_simple.hpp>
 
@@ -29,14 +35,50 @@ uhd::wb_iface::sptr x300_make_ctrl_iface_enet(uhd::transport::udp_simple::sptr u
 
 class rf_uhd_safe_interface
 {
+private:
+#ifdef ENABLE_UHD_X300_FW_RESET
+  const double X300_SLEEP_TIME_S = 5.0;
+#endif /* ENABLE_UHD_X300_FW_RESET */
+
+  virtual uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) = 0;
+
+#ifdef ENABLE_UHD_X300_FW_RESET
+  uhd_error try_usrp_x300_reset(const uhd::device_addr_t& dev_addr)
+  {
+    UHD_SAFE_C_SAVE_ERROR(
+        this,
+        // It is not possible to reset device if IP address is not provided
+        if (not dev_addr.has_key("addr")) { return UHD_ERROR_NONE; }
+
+        Warning("Reseting X300 in address " << dev_addr["addr"]);
+
+        { // Reset Scope
+          // Create UDP connection
+          uhd::transport::udp_simple::sptr udp_simple =
+              uhd::transport::udp_simple::make_connected(dev_addr["addr"], "49152");
+
+          // Create X300 control
+          uhd::wb_iface::sptr x300_ctrl = x300_make_ctrl_iface_enet(udp_simple, true);
+
+          // Reset FPGA firmware
+          x300_ctrl->poke32(0x100058, 1);
+
+          Info("Reset Done!");
+          x300_ctrl  = nullptr;
+          udp_simple = nullptr;
+        }
+
+        return UHD_ERROR_NONE;)
+  }
+#endif /* ENABLE_UHD_X300_FW_RESET */
+
 protected:
   // List of errors that can happen in the USRP make that need to restart the device
   const std::set<uhd_error> USRP_MAKE_RESET_ERR = {UHD_ERROR_IO};
 
   // UHD pointers
-  uhd::usrp::multi_usrp::sptr usrp      = nullptr;
-  uhd::rx_streamer::sptr      rx_stream = nullptr;
-  uhd::tx_streamer::sptr      tx_stream = nullptr;
+  uhd::rx_streamer::sptr rx_stream = nullptr;
+  uhd::tx_streamer::sptr tx_stream = nullptr;
 
   uhd_error usrp_multi_make(const uhd::device_addr_t& dev_addr)
   {
@@ -55,7 +97,9 @@ protected:
       return err;
     }
 
-    sleep(5);
+    // Sleep for some time
+    Info("Wait " << std::to_string(X300_SLEEP_TIME_S) << " seconds");
+    std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(1000 * X300_SLEEP_TIME_S)));
 
     // Try opening the device one more time
     return usrp_make_internal(dev_addr);
@@ -64,110 +108,56 @@ protected:
 #endif /* ENABLE_UHD_X300_FW_RESET */
   }
 
-private:
-  uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr)
-  {
-    // Destroy any previous USRP instance
-    usrp = nullptr;
-
-    UHD_SAFE_C_SAVE_ERROR(this, usrp = uhd::usrp::multi_usrp::make(dev_addr);)
-  }
-
-#ifdef ENABLE_UHD_X300_FW_RESET
-  uhd_error try_usrp_x300_reset(const uhd::device_addr_t& dev_addr)
-  {
-    UHD_SAFE_C_SAVE_ERROR(this,
-                          // Destroy any previous USRP instance
-                          usrp = nullptr;
-
-                          // It is not possible to reset device if IP address is not provided
-                          if (not dev_addr.has_key("addr")) { return UHD_ERROR_NONE; }
-
-                          printf("Reseting X300 in address %s\n", dev_addr["addr"].c_str());
-
-                          { // Reset Scope
-                            // Create UDP connection
-                            uhd::transport::udp_simple::sptr udp_simple =
-                                uhd::transport::udp_simple::make_connected(dev_addr["addr"], "49152");
-
-                            // Create X300 control
-                            uhd::wb_iface::sptr x300_ctrl = x300_make_ctrl_iface_enet(udp_simple, true);
-
-                            // Reset FPGA firmware
-                            x300_ctrl->poke32(0x100058, 1);
-
-                            printf("Reset Done!\n");
-                            x300_ctrl  = nullptr;
-                            udp_simple = nullptr;
-                          }
-
-                          return UHD_ERROR_NONE;)
-  }
-#endif /* ENABLE_UHD_X300_FW_RESET */
-
 public:
   std::string last_error;
 
-  virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr) = 0;
-  virtual uhd_error set_tx_subdev(const std::string& string)      = 0;
-  virtual uhd_error set_rx_subdev(const std::string& string)      = 0;
-  inline uhd_error  get_mboard_name(std::string& mboard_name)
+  virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr)                                    = 0;
+  virtual uhd_error set_tx_subdev(const std::string& string)                                         = 0;
+  virtual uhd_error set_rx_subdev(const std::string& string)                                         = 0;
+  virtual uhd_error get_mboard_name(std::string& mboard_name)                                        = 0;
+  virtual uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)                       = 0;
+  virtual uhd_error get_rx_sensor_names(std::vector<std::string>& sensors)                           = 0;
+  virtual uhd_error get_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value)    = 0;
+  virtual uhd_error get_rx_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value) = 0;
+  virtual uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec)                           = 0;
+  virtual uhd_error get_time_now(uhd::time_spec_t& timespec)                                         = 0;
+  virtual uhd_error start_rx_stream(double delay)
   {
-    UHD_SAFE_C_SAVE_ERROR(this, mboard_name = usrp->get_mboard_name();)
-  }
-  inline uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)
-  {
-    UHD_SAFE_C_SAVE_ERROR(this, sensors = usrp->get_mboard_sensor_names();)
-  }
-  inline uhd_error get_rx_sensor_names(std::vector<std::string>& sensors)
-  {
-    UHD_SAFE_C_SAVE_ERROR(this, sensors = usrp->get_rx_sensor_names();)
-  }
-  inline uhd_error get_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value)
-  {
-    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_mboard_sensor(sensor_name);)
-  }
-  inline uhd_error get_rx_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value)
-  {
-    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_rx_sensor(sensor_name);)
-  }
-  virtual uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec) = 0;
-  virtual uhd_error set_time_now(const uhd::time_spec_t& timespec)         = 0;
-  virtual uhd_error get_time_now(uhd::time_spec_t& timespec)               = 0;
-  inline uhd_error  start_rx_stream(double delay)
-  {
+    uhd::time_spec_t time_spec;
+    uhd_error        err = get_time_now(time_spec);
+    if (err != UHD_ERROR_NONE) {
+      return err;
+    }
+
     UHD_SAFE_C_SAVE_ERROR(this, uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
-                          stream_cmd.time_spec = usrp->get_time_now();
+                          stream_cmd.time_spec = time_spec;
                           stream_cmd.time_spec += 0.1;
                           stream_cmd.stream_now = false;
 
                           rx_stream->issue_stream_cmd(stream_cmd);)
   }
-  inline uhd_error stop_rx_stream()
+  virtual uhd_error stop_rx_stream()
   {
     UHD_SAFE_C_SAVE_ERROR(this, uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
                           rx_stream->issue_stream_cmd(stream_cmd);)
   }
-  virtual uhd_error set_sync_source(const std::string& source) = 0;
-  uhd_error         get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range)
-  {
-    UHD_SAFE_C_SAVE_ERROR(this, tx_gain_range = usrp->get_tx_gain_range(); rx_gain_range = usrp->get_rx_gain_range();)
-  }
-  virtual uhd_error set_master_clock_rate(double rate)                                   = 0;
-  virtual uhd_error set_rx_rate(double rate)                                             = 0;
-  virtual uhd_error set_tx_rate(double rate)                                             = 0;
-  virtual uhd_error set_command_time(const uhd::time_spec_t& timespec)                   = 0;
-  virtual uhd_error get_rx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) = 0;
-  inline uhd_error  destroy_rx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
+  virtual uhd_error set_sync_source(const std::string& source)                                         = 0;
+  virtual uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) = 0;
+  virtual uhd_error set_master_clock_rate(double rate)                                                 = 0;
+  virtual uhd_error set_rx_rate(double rate)                                                           = 0;
+  virtual uhd_error set_tx_rate(double rate)                                                           = 0;
+  virtual uhd_error set_command_time(const uhd::time_spec_t& timespec)                                 = 0;
+  virtual uhd_error get_rx_stream(const uhd::stream_args_t& args, size_t& max_num_samps)               = 0;
+  virtual uhd_error destroy_rx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
   virtual uhd_error get_tx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) = 0;
-  inline uhd_error  destroy_tx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
+  virtual uhd_error destroy_tx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
   virtual uhd_error set_tx_gain(size_t ch, double gain)                               = 0;
   virtual uhd_error set_rx_gain(size_t ch, double gain)                               = 0;
   virtual uhd_error get_rx_gain(double& gain)                                         = 0;
   virtual uhd_error get_tx_gain(double& gain)                                         = 0;
   virtual uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq) = 0;
   virtual uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq) = 0;
-  inline uhd_error  receive(void**              buffs,
+  virtual uhd_error receive(void**              buffs,
                             const size_t        nsamps_per_buff,
                             uhd::rx_metadata_t& metadata,
                             const double        timeout,
@@ -177,23 +167,21 @@ public:
     UHD_SAFE_C_SAVE_ERROR(this, uhd::rx_streamer::buffs_type buffs_cpp(buffs, rx_stream->get_num_channels());
                           nof_rxd_samples = rx_stream->recv(buffs_cpp, nsamps_per_buff, metadata, timeout, one_packet);)
   }
-  inline uhd_error recv_async_msg(uhd::async_metadata_t& async_metadata, double timeout, bool& valid)
+  virtual uhd_error recv_async_msg(uhd::async_metadata_t& async_metadata, double timeout, bool& valid)
   {
-    UHD_SAFE_C_SAVE_ERROR(this, valid = tx_stream->recv_async_msg(async_metadata, timeout); if (valid) {
-      return UHD_ERROR_NONE;
-    } valid = usrp.get()->get_device()->recv_async_msg(async_metadata);)
+    UHD_SAFE_C_SAVE_ERROR(this, valid = tx_stream->recv_async_msg(async_metadata, timeout);)
   }
-  inline uhd_error send(void**                    buffs,
-                        const size_t              nsamps_per_buff,
-                        const uhd::tx_metadata_t& metadata,
-                        const double              timeout,
-                        size_t&                   nof_txd_samples)
+  virtual uhd_error send(void**                    buffs,
+                         const size_t              nsamps_per_buff,
+                         const uhd::tx_metadata_t& metadata,
+                         const double              timeout,
+                         size_t&                   nof_txd_samples)
   {
     UHD_SAFE_C_SAVE_ERROR(this, uhd::tx_streamer::buffs_type buffs_cpp(buffs, tx_stream->get_num_channels());
                           nof_txd_samples = tx_stream->send(buffs_cpp, nsamps_per_buff, metadata, timeout);)
   }
-  inline bool is_rx_ready() { return rx_stream != nullptr; }
-  inline bool is_tx_ready() { return tx_stream != nullptr; }
+  virtual bool is_rx_ready() { return rx_stream != nullptr; }
+  virtual bool is_tx_ready() { return tx_stream != nullptr; }
 };
 
 #endif // SRSLTE_RF_UHD_SAFE_H

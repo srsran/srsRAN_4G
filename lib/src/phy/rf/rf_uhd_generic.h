@@ -26,6 +26,17 @@
 
 class rf_uhd_generic : public rf_uhd_safe_interface
 {
+private:
+  uhd::usrp::multi_usrp::sptr usrp = nullptr;
+
+  uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) override
+  {
+    // Destroy any previous USRP instance
+    usrp = nullptr;
+
+    UHD_SAFE_C_SAVE_ERROR(this, usrp = uhd::usrp::multi_usrp::make(dev_addr);)
+  }
+
 public:
   uhd_error usrp_make(const uhd::device_addr_t& dev_addr) override { return usrp_multi_make(dev_addr); }
 
@@ -37,13 +48,29 @@ public:
   {
     UHD_SAFE_C_SAVE_ERROR(this, usrp->set_rx_subdev_spec(string);)
   }
+  uhd_error get_mboard_name(std::string& mboard_name) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, mboard_name = usrp->get_mboard_name();)
+  }
+  uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, sensors = usrp->get_mboard_sensor_names();)
+  }
+  uhd_error get_rx_sensor_names(std::vector<std::string>& sensors) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, sensors = usrp->get_rx_sensor_names();)
+  }
+  uhd_error get_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_mboard_sensor(sensor_name);)
+  }
+  uhd_error get_rx_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, sensor_value = usrp->get_rx_sensor(sensor_name);)
+  }
   uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec) override
   {
     UHD_SAFE_C_SAVE_ERROR(this, usrp->set_time_unknown_pps(timespec);)
-  }
-  uhd_error set_time_now(const uhd::time_spec_t& timespec) override
-  {
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_time_now(timespec);)
   }
   uhd_error get_time_now(uhd::time_spec_t& timespec) override
   {
@@ -56,6 +83,10 @@ public:
 #else
     UHD_SAFE_C_SAVE_ERROR(this, usrp->set_sync_source(source, source);)
 #endif
+  }
+  uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, tx_gain_range = usrp->get_tx_gain_range(); rx_gain_range = usrp->get_rx_gain_range();)
   }
   uhd_error set_master_clock_rate(double rate) override
   {

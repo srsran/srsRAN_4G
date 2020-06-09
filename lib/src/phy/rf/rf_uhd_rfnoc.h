@@ -22,7 +22,7 @@
 #include <uhd/version.hpp>
 
 // RF-NOC is only available for UHD 3.15 LTS
-#if UHD_VERSION == 3150000
+#if UHD_VERSION >= 3150000 && UHD_VERSION < 3160000
 
 #ifndef SRSLTE_RF_UHD_RFNOC_H
 #define SRSLTE_RF_UHD_RFNOC_H
@@ -37,16 +37,20 @@
 #include <uhd/device3.hpp>
 #include <uhd/error.h>
 #include <uhd/rfnoc/block_ctrl.hpp>
-#include <uhd/rfnoc/ddc_block_ctrl.hpp>
 #include <uhd/rfnoc/dma_fifo_block_ctrl.hpp>
-#include <uhd/rfnoc/duc_block_ctrl.hpp>
 #include <uhd/rfnoc/graph.hpp>
 #include <uhd/rfnoc/radio_ctrl.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/utils/safe_main.hpp>
 
-#include <uhd/utils/log.hpp>
-#define Debug(message) UHD_LOG_DEBUG("UHD RF", message)
+// Load custom RFNOC blocks if available
+#ifdef UHD_ENABLE_CUSTOM_RFNOC
+#include <uhd/rfnoc/ddc_ch2_block_ctrl.hpp>
+#include <uhd/rfnoc/duc_ch2_block_ctrl.hpp>
+#else // UHD_ENABLE_CUSTOM_RFNOC
+#include <uhd/rfnoc/ddc_block_ctrl.hpp>
+#include <uhd/rfnoc/duc_block_ctrl.hpp>
+#endif // UHD_ENABLE_CUSTOM_RFNOC
 
 #include "rf_uhd_safe.h"
 
@@ -58,11 +62,23 @@ private:
   uhd::rfnoc::graph::sptr rx_graph;
 
   // Constant parameters
-  const std::string RADIO_BLOCK_NAME    = "Radio";
-  const std::string DDC_BLOCK_NAME      = "DDC";
-  const std::string DUC_BLOCK_NAME      = "DUC";
-  const std::string DMA_FIFO_BLOCK_NAME = "DmaFIFO";
-  const double      SETUP_TIME_S        = 1;
+  const std::string RADIO_BLOCK_NAME = "Radio";
+#ifdef UHD_ENABLE_CUSTOM_RFNOC
+  const std::string                      DDC_BLOCK_NAME = "DDCch2";
+  const std::string                      DUC_BLOCK_NAME = "DUCch2";
+  typedef uhd::rfnoc::ddc_ch2_block_ctrl ddc_ctrl_t;
+  typedef uhd::rfnoc::duc_ch2_block_ctrl duc_ctrl_t;
+#else  // UHD_ENABLE_CUSTOM_RFNOC
+  const std::string                        DDC_BLOCK_NAME = "DDC";
+  const std::string                        DUC_BLOCK_NAME = "DUC";
+  typedef uhd::rfnoc::ddc_block_ctrl::sptr ddc_ctrl_t;
+  typedef uhd::rfnoc::duc_block_ctrl::sptr duc_ctrl_t;
+#endif // UHD_ENABLE_CUSTOM_RFNOC
+
+  const std::string  DMA_FIFO_BLOCK_NAME = "DmaFIFO";
+  const double       SETUP_TIME_S        = 1.0;
+  const uhd::fs_path TREE_MBOARD_SENSORS = "/mboards/0/sensors";
+  const uhd::fs_path TREE_RX_SENSORS     = "/mboards/0/dboards/A/rx_frontends/0/sensors";
 
   // Primary parameters
   double              master_clock_rate = 184.32e6;
@@ -74,23 +90,33 @@ private:
   double              tx_gain_db        = 5.0;
   std::vector<double> rx_freq_hz;
   std::vector<double> tx_freq_hz;
-  std::string         sync_source = "internal";
+  std::string         sync_source            = "internal";
+  size_t              nof_samples_per_packet = 0;
+  size_t              dma_fifo_depth         = 8192UL * 4096UL;
 
   // Radio control
-  std::vector<uhd::rfnoc::radio_ctrl::sptr> radio_ctrl    = {};
-  std::vector<uhd::rfnoc::block_id_t>       radio_ctrl_id = {};
+  std::vector<uhd::rfnoc::radio_ctrl::sptr> radio_ctrl = {};
+  std::vector<uhd::rfnoc::block_id_t>       radio_id   = {};
 
   // DDC Control
-  std::vector<uhd::rfnoc::ddc_block_ctrl::sptr> ddc_ctrl    = {};
-  std::vector<uhd::rfnoc::block_id_t>           ddc_ctrl_id = {};
+  std::vector<ddc_ctrl_t::sptr>       ddc_ctrl = {};
+  std::vector<uhd::rfnoc::block_id_t> ddc_id   = {};
 
   // DUC Control
-  std::vector<uhd::rfnoc::duc_block_ctrl::sptr> duc_ctrl    = {};
-  std::vector<uhd::rfnoc::block_id_t>           duc_ctrl_id = {};
+  std::vector<duc_ctrl_t::sptr>       duc_ctrl = {};
+  std::vector<uhd::rfnoc::block_id_t> duc_id   = {};
 
   // DMA FIFO Control
-  uhd::rfnoc::dma_fifo_block_ctrl::sptr dma_fifo_ctrl    = {};
-  uhd::rfnoc::block_id_t                dma_fifo_ctrl_id = {};
+  uhd::rfnoc::dma_fifo_block_ctrl::sptr dma_ctrl = {};
+  uhd::rfnoc::block_id_t                dma_id   = {};
+
+  uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) override
+  {
+    // Destroy any previous USRP instance
+    device3 = nullptr;
+
+    UHD_SAFE_C_SAVE_ERROR(this, device3 = uhd::device3::make(dev_addr);)
+  }
 
   template <class T>
   uhd_error parse_param(uhd::device_addr_t& args, const std::string& param, T& value)
@@ -172,34 +198,34 @@ private:
         this,
         // Create Radio control
         radio_ctrl.resize(nof_radios);
-        radio_ctrl_id.resize(nof_radios);
+        radio_id.resize(nof_radios);
         for (size_t i = 0; i < nof_radios; i++) {
           // Create handle for radio object
-          radio_ctrl_id[i] = uhd::rfnoc::block_id_t(0, RADIO_BLOCK_NAME, i);
+          radio_id[i] = uhd::rfnoc::block_id_t(0, RADIO_BLOCK_NAME, i);
           // This next line will fail if the radio is not actually available
-          radio_ctrl[i] = device3->get_block_ctrl<uhd::rfnoc::radio_ctrl>(radio_ctrl_id[i]);
+          radio_ctrl[i] = device3->get_block_ctrl<uhd::rfnoc::radio_ctrl>(radio_id[i]);
           Debug("Using radio " << i);
         }
 
         // Create DDC control
         ddc_ctrl.resize(nof_radios);
-        ddc_ctrl_id.resize(nof_radios);
+        ddc_id.resize(nof_radios);
         for (size_t i = 0; i < nof_radios; i++) {
-          ddc_ctrl_id[i] = uhd::rfnoc::block_id_t(0, DDC_BLOCK_NAME, i);
-          ddc_ctrl[i]    = device3->get_block_ctrl<uhd::rfnoc::ddc_block_ctrl>(ddc_ctrl_id[i]);
+          ddc_id[i]   = uhd::rfnoc::block_id_t(0, DDC_BLOCK_NAME, i);
+          ddc_ctrl[i] = device3->get_block_ctrl<ddc_ctrl_t>(ddc_id[i]);
         }
 
         // Create DUC control
         duc_ctrl.resize(nof_radios);
-        duc_ctrl_id.resize(nof_radios);
+        duc_id.resize(nof_radios);
         for (size_t i = 0; i < nof_radios; i++) {
-          duc_ctrl_id[i] = uhd::rfnoc::block_id_t(0, DUC_BLOCK_NAME, i);
-          duc_ctrl[i]    = device3->get_block_ctrl<uhd::rfnoc::duc_block_ctrl>(duc_ctrl_id[i]);
+          duc_id[i]   = uhd::rfnoc::block_id_t(0, DUC_BLOCK_NAME, i);
+          duc_ctrl[i] = device3->get_block_ctrl<duc_ctrl_t>(duc_id[i]);
         }
 
         // Create DMA FIFO control
-        dma_fifo_ctrl_id = uhd::rfnoc::block_id_t(0, DMA_FIFO_BLOCK_NAME);
-        dma_fifo_ctrl    = device3->get_block_ctrl<uhd::rfnoc::dma_fifo_block_ctrl>(dma_fifo_ctrl_id);)
+        dma_id   = uhd::rfnoc::block_id_t(0, DMA_FIFO_BLOCK_NAME);
+        dma_ctrl = device3->get_block_ctrl<uhd::rfnoc::dma_fifo_block_ctrl>(dma_id);)
   }
 
   uhd_error configure()
@@ -223,37 +249,37 @@ private:
 
         // Configure radios
         for (size_t i = 0; i < nof_radios; ++i) {
-          Debug(boost::format("Setting radio %i...") % i);
+          Debug("Setting radio " << i << "...");
           // Lock mboard clocks
           Debug("Setting sync source to " << sync_source) radio_ctrl[i]->set_clock_source(sync_source);
           radio_ctrl[i]->set_time_source(sync_source);
 
           // Set sample rate
-          Debug(boost::format("Setting TX/RX Rate: %f Msps...") % (master_clock_rate / 1e6));
+          Debug("Setting TX/RX Rate: " << master_clock_rate / 1e6 << " Msps...");
           radio_ctrl[i]->set_rate(master_clock_rate);
-          Debug(boost::format("Actual TX/RX Rate: %f Msps...") % (radio_ctrl[i]->get_rate() / 1e6));
+          Debug("Actual TX/RX Rate:" << radio_ctrl[i]->get_rate() / 1e6 << " Msps...");
 
           // Set tx freq
-          Debug(boost::format("Setting TX Freq: %f MHz...") % (tx_center_freq_hz[i] / 1e6));
+          Debug("Setting TX Freq: " << tx_center_freq_hz[i] / 1e6 << " MHz...");
           radio_ctrl[i]->set_tx_frequency(tx_center_freq_hz[i], 0);
           tx_center_freq_hz[i] = radio_ctrl[i]->get_tx_frequency(0);
-          Debug(boost::format("Actual TX Freq: %f MHz...") % (tx_center_freq_hz[i] / 1e6));
+          Debug("Actual TX Freq: " << tx_center_freq_hz[i] / 1e6 << " MHz...");
 
           // Set rx freq
-          Debug(boost::format("Setting RX Freq: %f MHz...") % (rx_center_freq_hz[i] / 1e6));
+          Debug("Setting RX Freq: " << rx_center_freq_hz[i] / 1e6 << " MHz...");
           radio_ctrl[i]->set_rx_frequency(rx_center_freq_hz[i], 0);
           rx_center_freq_hz[i] = radio_ctrl[i]->get_rx_frequency(0);
-          Debug(boost::format("Actual RX Freq: %f MHz...") % (rx_center_freq_hz[i] / 1e6));
+          Debug("Actual RX Freq: " << rx_center_freq_hz[i] / 1e6 << " MHz...");
 
           // set the IF filter bandwidth
-          Debug(boost::format("Setting RX Bandwidth: %f MHz...") % (bw_hz / 1e6));
+          Debug("Setting RX Bandwidth: " << bw_hz / 1e6 << " MHz...");
           radio_ctrl[i]->set_rx_bandwidth(bw_hz, 0);
-          Debug(boost::format("Actual RX Bandwidth: %f MHz...") % (radio_ctrl[i]->get_rx_bandwidth(0) / 1e6));
+          Debug("Actual RX Bandwidth: " << radio_ctrl[i]->get_rx_bandwidth(0) / 1e6 << " MHz...");
 
           // set the rf gain
-          Debug(boost::format("Setting RX Gain: %f dB...") % (rx_gain_db));
+          Debug("Setting RX Gain: " << rx_gain_db << " dB...");
           radio_ctrl[i]->set_rx_gain(rx_gain_db, 0);
-          Debug(boost::format("Actual RX Gain: %f dB...") % (radio_ctrl[i]->get_rx_gain(0)));
+          Debug("Actual RX Gain: " << radio_ctrl[i]->get_rx_gain(0) << " dB...");
 
           // set the antenna
           radio_ctrl[i]->set_rx_antenna("TX/RX", 0);
@@ -265,36 +291,43 @@ private:
         // Setup DDCs and DUCs
         for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
           for (size_t channel_idx = 0; channel_idx < nof_channels; channel_idx++) {
-            uhd::device_addr_t ddc_args;
-            ddc_args.set("input_rate", std::to_string(master_clock_rate));
-            ddc_args.set(
-                "freq",
-                std::to_string(rx_freq_hz[nof_channels * radio_idx + channel_idx] - rx_center_freq_hz[radio_idx]));
-            ddc_args.set("fullscale", "1.0");
-            ddc_args.set("output_rate", std::to_string(srate_hz));
-            Debug("Configure " << ddc_ctrl_id[radio_idx] << ":" << channel_idx << "with args " << ddc_args.to_string());
+            size_t rf_channel_idx = nof_channels * radio_idx + channel_idx;
 
-            ddc_ctrl[radio_idx]->set_args(ddc_args, channel_idx);
+            { // Setup DDC
+              uhd::device_addr_t ddc_args;
+              ddc_args.set("output_rate", std::to_string(srate_hz));
+              ddc_args.set("input_rate", std::to_string(master_clock_rate));
+              ddc_args.set("freq", std::to_string(rx_freq_hz[rf_channel_idx] - rx_center_freq_hz[radio_idx]));
+              ddc_args.set("fullscale", "1.0");
 
-            uhd::device_addr_t duc_args;
-            duc_args.set("input_rate", std::to_string(srate_hz));
-            duc_args.set(
-                "freq",
-                std::to_string(tx_freq_hz[nof_channels * radio_idx + channel_idx] - tx_center_freq_hz[radio_idx]));
-            duc_args.set("fullscale", "1.0");
-            duc_args.set("output_rate", std::to_string(master_clock_rate));
+              Debug("Configure " << ddc_id[radio_idx] << ":" << channel_idx << " with args " << ddc_args.to_string());
 
-            Debug("Configure " << duc_ctrl_id[radio_idx] << ":" << channel_idx << "with args " << duc_args.to_string());
+              ddc_ctrl[radio_idx]->set_args(ddc_args, channel_idx);
+            }
 
-            duc_ctrl[radio_idx]->set_args(duc_args, channel_idx);
+            { // Setup DUC
+              uhd::device_addr_t duc_args;
+              duc_args.set("output_rate", std::to_string(master_clock_rate));
+              duc_args.set("input_rate", std::to_string(srate_hz));
+              duc_args.set("freq", std::to_string(tx_freq_hz[rf_channel_idx] - tx_center_freq_hz[radio_idx]));
+              duc_args.set("fullscale", "1.0");
 
-            // Setup DMA FIFO
-            uhd::device_addr_t dma_fifo_args;
-            Debug("Configure " << dma_fifo_ctrl_id << ":" << nof_channels * radio_idx + channel_idx << " with args "
-                               << dma_fifo_args.to_string());
+              Debug("Configure " << duc_id[radio_idx] << ":" << channel_idx << " with args " << duc_args.to_string());
 
-            dma_fifo_ctrl->set_args(dma_fifo_args, nof_channels * radio_idx + channel_idx);
+              duc_ctrl[radio_idx]->set_args(duc_args, channel_idx);
+            }
+
+            { // Setup DMA FIFO
+              uhd::device_addr_t dma_fifo_args;
+              dma_fifo_args.set("base_addr", std::to_string(dma_fifo_depth * rf_channel_idx));
+              dma_fifo_args.set("depth", std::to_string(dma_fifo_depth));
+
+              Debug("Configure " << dma_id << ":" << rf_channel_idx << " with args " << dma_fifo_args.to_string());
+
+              dma_ctrl->set_args(dma_fifo_args, rf_channel_idx);
+            }
           }
+          Debug("Configuration done!")
         })
   }
 
@@ -302,19 +335,18 @@ private:
   {
     UHD_SAFE_C_SAVE_ERROR(this, for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
       // Radio -> DDC
-      Debug("Connecting " << radio_ctrl_id[radio_idx] << " -> " << ddc_ctrl_id[radio_idx]);
-      rx_graph->connect(radio_ctrl_id[radio_idx], 0, ddc_ctrl_id[radio_idx], 0);
+      Debug("Connecting " << radio_id[radio_idx] << ":0 -> " << ddc_id[radio_idx] << ":0");
+      rx_graph->connect(radio_id[radio_idx], 0, ddc_id[radio_idx], 0, nof_samples_per_packet);
 
       // DUC -> Radio
-      Debug("Connecting " << duc_ctrl_id[radio_idx] << " -> " << radio_ctrl_id[radio_idx]);
-      tx_graph->connect(duc_ctrl_id[radio_idx], 0, radio_ctrl_id[radio_idx], 0);
+      Debug("Connecting " << duc_id[radio_idx] << ":0 -> " << radio_id[radio_idx] << ":0");
+      tx_graph->connect(duc_id[radio_idx], 0, radio_id[radio_idx], 0, nof_samples_per_packet);
 
       // DMA FIFO -> DUC
       for (size_t channel_idx = 0; channel_idx < nof_channels; channel_idx++) {
-        Debug("Connecting " << dma_fifo_ctrl_id << ":" << radio_idx * nof_channels + channel_idx << " -> "
-                            << radio_ctrl_id[radio_idx] << ":" << channel_idx);
-        tx_graph->connect(
-            dma_fifo_ctrl_id, radio_idx * nof_channels + channel_idx, duc_ctrl_id[radio_idx], channel_idx);
+        size_t dma_port = radio_idx * nof_channels + channel_idx;
+        Debug("Connecting " << dma_id << ":" << dma_port << " -> " << duc_id[radio_idx] << ":" << channel_idx);
+        tx_graph->connect(dma_id, dma_port, duc_id[radio_idx], channel_idx, nof_samples_per_packet);
       }
     })
   }
@@ -343,21 +375,11 @@ private:
           }
         }
 
+        Debug("Getting Tx Stream with arguments " << tx_stream_args.args.to_pp_string());
         tx_stream = device3->get_tx_stream(tx_stream_args);
+
+        Debug("Getting Rx Stream with arguments " << rx_stream_args.args.to_pp_string());
         rx_stream = device3->get_rx_stream(rx_stream_args);)
-  }
-
-  uhd_error usrp_get_device3()
-  {
-    UHD_SAFE_C_SAVE_ERROR(this,
-                          // Check if device is RF-NOC compatible
-                          if (not usrp->is_device3()) {
-                            last_error = "The selected device is not compatible with RF-NOC";
-                            return UHD_ERROR_INVALID_DEVICE;
-                          }
-
-                          // Get device 3 shared pointer
-                          device3 = usrp->get_device3();)
   }
 
 public:
@@ -394,11 +416,6 @@ public:
       return err;
     }
 
-    err = usrp_get_device3();
-    if (err != UHD_ERROR_NONE) {
-      return err;
-    }
-
     // Reset blocks after a stream
     device3->clear();
 
@@ -413,12 +430,52 @@ public:
 
   uhd_error set_tx_subdev(const std::string& string) override { return UHD_ERROR_NONE; }
   uhd_error set_rx_subdev(const std::string& string) override { return UHD_ERROR_NONE; }
-  uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec) override { return UHD_ERROR_NONE; }
-  uhd_error set_time_now(const uhd::time_spec_t& timespec) override { return UHD_ERROR_NONE; }
-  uhd_error get_time_now(uhd::time_spec_t& timespec) override { return UHD_ERROR_NONE; }
+  uhd_error get_mboard_name(std::string& mboard_name) override
+  {
+    mboard_name = "X300";
+    return UHD_ERROR_NONE;
+  };
+  uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, if (device3->get_tree()->exists(TREE_MBOARD_SENSORS)) {
+      sensors = device3->get_tree()->list(TREE_MBOARD_SENSORS);
+    })
+  }
+  uhd_error get_rx_sensor_names(std::vector<std::string>& sensors) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, if (device3->get_tree()->exists(TREE_RX_SENSORS)) {
+      sensors = device3->get_tree()->list(TREE_RX_SENSORS);
+    })
+  }
+  uhd_error get_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(
+        this, sensor_value = device3->get_tree()->access<uhd::sensor_value_t>(TREE_MBOARD_SENSORS / sensor_name).get();)
+  }
+  uhd_error get_rx_sensor(const std::string& sensor_name, uhd::sensor_value_t& sensor_value) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(
+        this, sensor_value = device3->get_tree()->access<uhd::sensor_value_t>(TREE_RX_SENSORS / sensor_name).get();)
+  }
+  uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this,
+                          for (size_t i = 0; i < nof_radios; i++) { radio_ctrl[i]->set_time_next_pps(timespec); });
+  }
+  uhd_error get_time_now(uhd::time_spec_t& timespec) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, timespec = radio_ctrl[0]->get_time_now(););
+  }
   uhd_error set_sync_source(const std::string& source) override
   {
     sync_source = source;
+    return UHD_ERROR_NONE;
+  }
+  uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) override
+  {
+    // Hard coded for X300
+    tx_gain_range = uhd::gain_range_t(.0, 30.0, .5);
+    rx_gain_range = uhd::gain_range_t(.0, 30.0, .5);
     return UHD_ERROR_NONE;
   }
   uhd_error set_master_clock_rate(double rate) override { return UHD_ERROR_NONE; }
