@@ -265,10 +265,12 @@ int main(int argc, char** argv)
   double   peak_avg     = 0.0;
   uint32_t count        = 0;
 
+  // First transmission shall be flagged as start of burst
+  bool is_start_of_burst = true;
+
   // Perform experiment for given a number of repetitions
   for (uint32_t rep = 0; rep < nof_repetitions; rep++) {
-    // First transmission shall be flagged as start of burst
-    bool is_start_of_burst = true;
+    is_start_of_burst |= !continous_tx;
 
     // For a the number of frames
     for (uint32_t nframe = 0; nframe < nof_frames; nframe++) {
