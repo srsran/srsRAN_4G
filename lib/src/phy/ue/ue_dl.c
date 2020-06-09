@@ -1496,8 +1496,6 @@ int srslte_ue_dl_find_and_decode(srslte_ue_dl_t*     q,
         acks[tb] = pdsch_res[tb].crc;
       }
     }
-  } else {
-    ERROR("Decoded %d DCIs\n", ret);
   }
   return ret;
 }
