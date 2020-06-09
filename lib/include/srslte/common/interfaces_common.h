@@ -64,6 +64,14 @@ typedef struct {
 
 } rf_args_t;
 
+struct vnf_args_t {
+  std::string type;
+  std::string bind_addr;
+  uint16_t    bind_port;
+  std::string log_level;
+  int         log_hex_limit;
+};
+
 class srslte_gw_config_t
 {
 public:

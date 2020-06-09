@@ -44,7 +44,7 @@ set(SOURCES arch_select.cc
             s3g.cc)
 
 if (ENABLE_5GNR)
-  set(SOURCES ${SOURCES} mac_nr_pcap.cc)
+  set(SOURCES ${SOURCES} mac_nr_pcap.cc basic_vnf.cc)
 endif(ENABLE_5GNR)
 
 # Avoid warnings caused by libmbedtls about deprecated functions
