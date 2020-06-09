@@ -40,6 +40,8 @@ const char* alloc_outcome_t::to_string() const
       return "error";
     case NOF_RB_INVALID:
       return "invalid nof prbs";
+    case PUCCH_COLLISION:
+      return "pucch_collision";
   }
   return "unknown error";
 }
@@ -58,6 +60,29 @@ cc_sched_result* sf_sched_result::new_cc(uint32_t enb_cc_idx)
     enb_cc_list.resize(enb_cc_idx + 1);
   }
   return &enb_cc_list[enb_cc_idx];
+}
+
+bool sf_sched_result::is_ul_alloc(uint16_t rnti) const
+{
+  for (uint32_t i = 0; i < enb_cc_list.size(); ++i) {
+    for (uint32_t j = 0; j < enb_cc_list[i].ul_sched_result.nof_dci_elems; ++j) {
+      if (enb_cc_list[i].ul_sched_result.pusch[j].dci.rnti == rnti) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+bool sf_sched_result::is_dl_alloc(uint16_t rnti) const
+{
+  for (uint32_t i = 0; i < enb_cc_list.size(); ++i) {
+    for (uint32_t j = 0; j < enb_cc_list[i].dl_sched_result.nof_data_elems; ++j) {
+      if (enb_cc_list[i].dl_sched_result.data[j].dci.rnti == rnti) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 sf_sched_result* sched_result_list::new_tti(srslte::tti_point tti_rx)
@@ -500,6 +525,42 @@ bool sf_grid_t::reserve_ul_prbs(const prbmask_t& prbmask, bool strict)
   return ret;
 }
 
+/**
+ * Finds a range of L contiguous PRBs that are empty
+ * @param L Size of the requested UL allocation in PRBs
+ * @param alloc Found allocation. It is guaranteed that 0 <= alloc->L <= L
+ * @return true if the requested allocation of size L was strictly met
+ */
+bool sf_grid_t::find_ul_alloc(uint32_t L, ul_harq_proc::ul_alloc_t* alloc) const
+{
+  *alloc = {};
+  for (uint32_t n = 0; n < ul_mask.size() && alloc->L < L; n++) {
+    if (not ul_mask.test(n) && alloc->L == 0) {
+      alloc->RB_start = n;
+    }
+    if (not ul_mask.test(n)) {
+      alloc->L++;
+    } else if (alloc->L > 0) {
+      // avoid edges
+      if (n < 3) {
+        alloc->RB_start = 0;
+        alloc->L        = 0;
+      } else {
+        break;
+      }
+    }
+  }
+  if (alloc->L == 0) {
+    return false;
+  }
+
+  // Make sure L is allowed by SC-FDMA modulation
+  while (!srslte_dft_precoding_valid_prb(alloc->L)) {
+    alloc->L--;
+  }
+  return alloc->L == L;
+}
+
 /*******************************************************
  *          TTI resource Scheduling Methods
  *******************************************************/
@@ -688,6 +749,28 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
     if (r.rbg_min > user_mask.count()) {
       log_h->warning("The number of RBGs allocated to rnti=0x%x will force segmentation\n", user->get_rnti());
       return alloc_outcome_t::NOF_RB_INVALID;
+    }
+  }
+
+  // Check if there is space in the PUCCH for HARQ ACKs
+  const sched_interface::ue_cfg_t& ue_cfg     = user->get_ue_cfg();
+  bool                             has_scells = ue_cfg.supported_cc_list.size() > 1;
+  const srslte_cqi_report_cfg_t&   cqi_report = ue_cfg.dl_cfg.cqi_report;
+  if (has_scells and srslte_cqi_periodic_send(&cqi_report, get_tti_tx_ul(), SRSLTE_FDD)) {
+    bool has_pusch_grant = is_ul_alloc(user) or cc_results->is_ul_alloc(user->get_rnti());
+    bool has_dl_allocs   = cc_results->is_dl_alloc(user->get_rnti());
+    if (not has_pusch_grant and has_dl_allocs) {
+      // Try to allocate small PUSCH grant, if there are no pending UL retxs
+      ul_harq_proc* hul      = user->get_ul_harq(get_tti_tx_ul(), ue_cc_idx);
+      bool          has_retx = hul->has_pending_retx();
+      if (not has_retx) {
+        ul_harq_proc::ul_alloc_t alloc = {};
+        uint32_t L = user->get_required_prb_ul(ue_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
+        tti_alloc.find_ul_alloc(L, &alloc);
+        if (alloc.L == 0 or not alloc_ul_user(user, alloc)) {
+          return alloc_outcome_t::PUCCH_COLLISION;
+        }
+      }
     }
   }
 

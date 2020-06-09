@@ -31,7 +31,7 @@ namespace srslte {
 
 constexpr uint32_t ceil_div(uint32_t x, uint32_t y)
 {
-  return (x > 0) ? (x - 1) / y + 1 : 0;
+  return (x + y - 1) / y;
 }
 
 template <size_t N, bool reversed = false>

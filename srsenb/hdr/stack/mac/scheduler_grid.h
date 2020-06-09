@@ -36,13 +36,13 @@ enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
 
 //! Result of alloc attempt
 struct alloc_outcome_t {
-  enum result_enum { SUCCESS, DCI_COLLISION, RB_COLLISION, ERROR, NOF_RB_INVALID };
+  enum result_enum { SUCCESS, DCI_COLLISION, RB_COLLISION, ERROR, NOF_RB_INVALID, PUCCH_COLLISION };
   result_enum result = ERROR;
   alloc_outcome_t()  = default;
   alloc_outcome_t(result_enum e) : result(e) {}
               operator result_enum() { return result; }
               operator bool() { return result == SUCCESS; }
-              const char* to_string() const;
+  const char* to_string() const;
 };
 
 //! Result of a Subframe sched computation
@@ -68,6 +68,8 @@ struct sf_sched_result {
   {
     return enb_cc_idx < enb_cc_list.size() ? &enb_cc_list[enb_cc_idx] : nullptr;
   }
+  bool is_ul_alloc(uint16_t rnti) const;
+  bool is_dl_alloc(uint16_t rnti) const;
 };
 
 struct sched_result_list {
@@ -168,6 +170,7 @@ public:
   bool            reserve_dl_rbgs(uint32_t start_rbg, uint32_t end_rbg);
   alloc_outcome_t alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, bool needs_pdcch);
   bool            reserve_ul_prbs(const prbmask_t& prbmask, bool strict);
+  bool            find_ul_alloc(uint32_t L, ul_harq_proc::ul_alloc_t* alloc) const;
 
   // getters
   const rbgmask_t&    get_dl_mask() const { return dl_mask; }
