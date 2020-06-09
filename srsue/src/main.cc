@@ -19,6 +19,7 @@
  *
  */
 
+#include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/logmap.h"
@@ -600,6 +601,7 @@ int main(int argc, char* argv[])
     logger = &logger_file;
   }
   srslte::logmap::set_default_logger(logger);
+  log_args(argc, argv, "UE");
 
   // Create UE instance
   srsue::ue ue;

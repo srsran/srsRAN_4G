@@ -24,6 +24,7 @@
 #include "srsepc/hdr/spgw/spgw.h"
 #include "srslte/build_info.h"
 #include "srslte/common/bcd_helpers.h"
+#include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/signal_handler.h"
@@ -399,6 +400,7 @@ int main(int argc, char* argv[])
     logger = &logger_file;
   }
   srslte::logmap::set_default_logger(logger);
+  log_args(argc, argv, "EPC");
 
   srslte::log_filter nas_log;
   nas_log.init("NAS ", logger);

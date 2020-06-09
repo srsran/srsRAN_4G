@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
 #include "srslte/common/signal_handler.h"
@@ -421,6 +422,7 @@ int main(int argc, char* argv[])
   }
   srslte::logmap::set_default_logger(logger);
   srslte::logmap::get("COMMON")->set_level(srslte::LOG_LEVEL_INFO);
+  log_args(argc, argv, "ENB");
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb};
