@@ -89,7 +89,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     // Init Radio
     if (lte_radio->init(args.rf, lte_phy.get())) {
       log->console("Error initializing radio.\n");
-      ret = SRSLTE_ERROR;
+      return SRSLTE_ERROR;
     }
 
     // Only Init PHY if radio couldn't be initialized
