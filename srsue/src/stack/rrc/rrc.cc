@@ -1075,10 +1075,20 @@ bool rrc::con_reconfig(rrc_conn_recfg_s* reconfig)
 {
   rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
 
+  // If first message after reestablishment, resume SRB2 and all DRB
+  if (reestablishment_successful) {
+    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
+      if (rlc->has_bearer(i)) {
+        rlc->resume_bearer(i);
+      }
+    }
+  }
+
   // If this is the first con_reconfig after a reestablishment
   if (reestablishment_successful) {
     // Reestablish PDCP and RLC for SRB2 and all DRB
     // TODO: Which is the maximum LCID?
+    reestablishment_successful = false;
     for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
       if (rlc->has_bearer(i)) {
         pdcp->reestablish(i);
@@ -1099,16 +1109,6 @@ bool rrc::con_reconfig(rrc_conn_recfg_s* reconfig)
   if (!measurements->parse_meas_config(
           reconfig_r8, reestablishment_successful, connection_reest.get()->get_source_earfcn())) {
     return false;
-  }
-
-  // If first message after reestablishment, resume SRB2 and all DRB
-  if (reestablishment_successful) {
-    reestablishment_successful = false;
-    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
-      if (rlc->has_bearer(i)) {
-        rlc->resume_bearer(i);
-      }
-    }
   }
 
   send_rrc_con_reconfig_complete();
