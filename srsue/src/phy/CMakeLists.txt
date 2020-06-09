@@ -24,3 +24,8 @@ add_library(srsue_phy STATIC ${SOURCES})
 if(ENABLE_GUI AND SRSGUI_FOUND)
   target_link_libraries(srsue_phy ${SRSGUI_LIBRARIES})
 endif(ENABLE_GUI AND SRSGUI_FOUND)
+
+if(ENABLE_5GNR)
+set(SOURCES_NR "../phy/vnf_phy_nr.cc")
+add_library(srsue_phy_nr STATIC ${SOURCES_NR})
+endif()

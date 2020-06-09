@@ -518,6 +518,8 @@ typedef struct {
 
   srslte::channel::args_t dl_channel_args;
   srslte::channel::args_t ul_channel_args;
+
+  srslte::vnf_args_t vnf_args;
 } phy_args_t;
 
 /* RAT agnostic Interface MAC -> PHY */
