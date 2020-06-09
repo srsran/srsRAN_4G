@@ -30,7 +30,7 @@
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
-#include "srsue/hdr/phy/ue_nr_phy_base.h"
+#include "srsue/hdr/phy/ue_phy_nr_base.h"
 
 namespace srsue {
 

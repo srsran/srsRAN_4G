@@ -34,11 +34,11 @@
 
 namespace srsue {
 
-class ue_nr_phy_base : public ue_phy_base, public phy_interface_stack_nr, public srslte::phy_interface_radio
+class ue_phy_nr_base : public ue_phy_base, public phy_interface_stack_nr, public srslte::phy_interface_radio
 {
 public:
-  ue_nr_phy_base(){};
-  virtual ~ue_nr_phy_base() {}
+  ue_phy_nr_base(){};
+  virtual ~ue_phy_nr_base() {}
 
   virtual std::string get_type() = 0;
 
