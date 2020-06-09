@@ -144,7 +144,7 @@ void sched::init(rrc_interface_mac* rrc_)
   rrc = rrc_;
 
   // Initialize first carrier scheduler
-  carrier_schedulers.emplace_back(new carrier_sched{rrc, &ue_db, 0});
+  carrier_schedulers.emplace_back(new carrier_sched{rrc, &ue_db, 0, &sched_results});
 
   reset();
 }
@@ -183,7 +183,7 @@ int sched::cell_cfg(const std::vector<sched_interface::cell_cfg_t>& cell_cfg)
   uint32_t prev_size = carrier_schedulers.size();
   carrier_schedulers.resize(sched_cell_params.size());
   for (uint32_t i = prev_size; i < sched_cell_params.size(); ++i) {
-    carrier_schedulers[i].reset(new carrier_sched{rrc, &ue_db, i});
+    carrier_schedulers[i].reset(new carrier_sched{rrc, &ue_db, i, &sched_results});
   }
 
   // setup all carriers cfg params
@@ -387,7 +387,7 @@ int sched::dl_sched(uint32_t tti_tx_dl, uint32_t cc_idx, sched_interface::dl_sch
 
   if (cc_idx < carrier_schedulers.size()) {
     // Compute scheduling Result for tti_rx
-    const sf_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    const cc_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
 
     // copy result
     sched_result = tti_sched.dl_sched_result;
@@ -408,7 +408,7 @@ int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_s
   uint32_t tti_rx = sched_utils::tti_subtract(tti, FDD_HARQ_DELAY_UL_MS + FDD_HARQ_DELAY_DL_MS);
 
   if (cc_idx < carrier_schedulers.size()) {
-    const sf_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    const cc_sched_result& tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
 
     // copy result
     sched_result = tti_sched.ul_sched_result;

@@ -52,6 +52,46 @@ tti_params_t::tti_params_t(uint32_t tti_rx_) :
   sfn_tx_dl(TTI_ADD(tti_rx, FDD_HARQ_DELAY_UL_MS) / 10)
 {}
 
+cc_sched_result* sf_sched_result::new_cc(uint32_t enb_cc_idx)
+{
+  if (enb_cc_idx >= enb_cc_list.size()) {
+    enb_cc_list.resize(enb_cc_idx + 1);
+  }
+  return &enb_cc_list[enb_cc_idx];
+}
+
+sf_sched_result* sched_result_list::new_tti(srslte::tti_point tti_rx)
+{
+  sf_sched_result* res = &results[tti_rx.to_uint() % results.size()];
+  res->tti_rx          = tti_rx;
+  res->enb_cc_list.clear();
+  return res;
+}
+
+sf_sched_result* sched_result_list::get_sf(srslte::tti_point tti_rx)
+{
+  sf_sched_result* res = &results[tti_rx.to_uint() % results.size()];
+  return (res->tti_rx != tti_rx) ? nullptr : res;
+}
+
+const sf_sched_result* sched_result_list::get_sf(srslte::tti_point tti_rx) const
+{
+  const sf_sched_result* res = &results[tti_rx.to_uint() % results.size()];
+  return (res->tti_rx != tti_rx) ? nullptr : res;
+}
+
+const cc_sched_result* sched_result_list::get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const
+{
+  const sf_sched_result* res = get_sf(tti_rx);
+  return res != nullptr ? res->get_cc(enb_cc_idx) : nullptr;
+}
+
+cc_sched_result* sched_result_list::get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx)
+{
+  sf_sched_result* res = get_sf(tti_rx);
+  return res != nullptr ? res->get_cc(enb_cc_idx) : nullptr;
+}
+
 /*******************************************************
  *             PDCCH Allocation Methods
  *******************************************************/
@@ -473,7 +513,7 @@ void sf_sched::init(const sched_cell_params_t& cell_params_)
   max_msg3_prb = std::max(6u, cc_cfg->cfg.cell.nof_prb - (uint32_t)cc_cfg->cfg.nrb_pucch);
 }
 
-void sf_sched::new_tti(uint32_t tti_rx_)
+void sf_sched::new_tti(uint32_t tti_rx_, sf_sched_result* cc_results_)
 {
   // reset internal state
   bc_allocs.clear();
@@ -483,6 +523,7 @@ void sf_sched::new_tti(uint32_t tti_rx_)
 
   tti_params = tti_params_t{tti_rx_};
   tti_alloc.new_tti(tti_params);
+  cc_results = cc_results_;
 
   // setup first prb to be used for msg3 alloc. Account for potential PRACH alloc
   last_msg3_prb           = cc_cfg->cfg.nrb_pucch;
@@ -988,29 +1029,31 @@ alloc_outcome_t sf_sched::alloc_msg3(sched_ue* user, const sched_interface::dl_s
   return ret;
 }
 
-void sf_sched::generate_sched_results(sf_sched_result* sf_result)
+void sf_sched::generate_sched_results()
 {
+  cc_sched_result* cc_result = cc_results->get_cc(cc_cfg->enb_cc_idx);
+
   /* Pick one of the possible DCI masks */
   pdcch_grid_t::alloc_result_t dci_result;
   //  tti_alloc.get_pdcch_grid().result_to_string();
-  tti_alloc.get_pdcch_grid().get_allocs(&dci_result, &sf_result->pdcch_mask);
+  tti_alloc.get_pdcch_grid().get_allocs(&dci_result, &cc_result->pdcch_mask);
 
   /* Register final CFI */
-  sf_result->dl_sched_result.cfi = tti_alloc.get_pdcch_grid().get_cfi();
+  cc_result->dl_sched_result.cfi = tti_alloc.get_pdcch_grid().get_cfi();
 
   /* Generate DCI formats and fill sched_result structs */
-  set_bc_sched_result(dci_result, &sf_result->dl_sched_result);
+  set_bc_sched_result(dci_result, &cc_result->dl_sched_result);
 
-  set_rar_sched_result(dci_result, &sf_result->dl_sched_result);
+  set_rar_sched_result(dci_result, &cc_result->dl_sched_result);
 
-  set_dl_data_sched_result(dci_result, &sf_result->dl_sched_result);
+  set_dl_data_sched_result(dci_result, &cc_result->dl_sched_result);
 
-  set_ul_sched_result(dci_result, &sf_result->ul_sched_result);
+  set_ul_sched_result(dci_result, &cc_result->ul_sched_result);
 
   /* Store remaining sf_sched results for this TTI */
-  sf_result->dl_mask    = tti_alloc.get_dl_mask();
-  sf_result->ul_mask    = tti_alloc.get_ul_mask();
-  sf_result->tti_params = tti_params;
+  cc_result->dl_mask    = tti_alloc.get_dl_mask();
+  cc_result->ul_mask    = tti_alloc.get_ul_mask();
+  cc_result->tti_params = tti_params;
 }
 
 uint32_t sf_sched::get_nof_ctrl_symbols() const

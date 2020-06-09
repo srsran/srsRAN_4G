@@ -259,11 +259,13 @@ void ra_sched::reset()
 
 sched::carrier_sched::carrier_sched(rrc_interface_mac*            rrc_,
                                     std::map<uint16_t, sched_ue>* ue_db_,
-                                    uint32_t                      enb_cc_idx_) :
+                                    uint32_t                      enb_cc_idx_,
+                                    sched_result_list*            sched_results_) :
   rrc(rrc_),
   ue_db(ue_db_),
   log_h(srslte::logmap::get("MAC ")),
-  enb_cc_idx(enb_cc_idx_)
+  enb_cc_idx(enb_cc_idx_),
+  prev_sched_results(sched_results_)
 {
   sf_dl_mask.resize(1, 0);
 }
@@ -311,20 +313,21 @@ void sched::carrier_sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
   sf_dl_mask.assign(tti_mask, tti_mask + nof_sfs);
 }
 
-const sf_sched_result& sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
+const cc_sched_result& sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
 {
-  sf_sched_result* sf_result = get_next_sf_result(tti_rx);
+  cc_sched_result* cc_result = prev_sched_results->get_cc(srslte::tti_point{tti_rx}, enb_cc_idx);
 
   // if it is the first time tti is run, reset vars
-  if (tti_rx != sf_result->tti_params.tti_rx) {
-    sf_sched* tti_sched = get_sf_sched(tti_rx);
-    *sf_result          = {};
+  if (cc_result == nullptr) {
+    sf_sched*        tti_sched = get_sf_sched(tti_rx);
+    sf_sched_result* sf_result = prev_sched_results->get_sf(srslte::tti_point{tti_rx});
+    cc_result                  = sf_result->new_cc(enb_cc_idx);
 
     bool dl_active = sf_dl_mask[tti_sched->get_tti_tx_dl() % sf_dl_mask.size()] == 0;
 
     /* Schedule PHICH */
     for (auto& ue_pair : *ue_db) {
-      tti_sched->alloc_phich(&ue_pair.second, &sf_result->ul_sched_result);
+      tti_sched->alloc_phich(&ue_pair.second, &cc_result->ul_sched_result);
     }
 
     /* Schedule DL control data */
@@ -353,15 +356,15 @@ const sf_sched_result& sched::carrier_sched::generate_tti_result(uint32_t tti_rx
     }
 
     /* Select the winner DCI allocation combination, store all the scheduling results */
-    tti_sched->generate_sched_results(sf_result);
+    tti_sched->generate_sched_results();
 
     /* Reset ue harq pending ack state, clean-up blocked pids */
     for (auto& user : *ue_db) {
-      user.second.finish_tti(sf_result->tti_params, enb_cc_idx);
+      user.second.finish_tti(cc_result->tti_params, enb_cc_idx);
     }
   }
 
-  return *sf_result;
+  return *cc_result;
 }
 
 void sched::carrier_sched::alloc_dl_users(sf_sched* tti_result)
@@ -405,20 +408,20 @@ sf_sched* sched::carrier_sched::get_sf_sched(uint32_t tti_rx)
 {
   sf_sched* ret = &sf_scheds[tti_rx % sf_scheds.size()];
   if (ret->get_tti_rx() != tti_rx) {
-    // start new TTI. Bind the struct where the result is going to be stored
-    ret->new_tti(tti_rx);
+    sf_sched_result* sf_res = prev_sched_results->get_sf(srslte::tti_point{tti_rx});
+    if (sf_res == nullptr) {
+      // Reset if tti_rx has not been yet set in the sched results
+      sf_res = prev_sched_results->new_tti(srslte::tti_point{tti_rx});
+    }
+    // start new TTI for the given CC.
+    ret->new_tti(tti_rx, sf_res);
   }
   return ret;
 }
 
-sf_sched_result* sched::carrier_sched::get_next_sf_result(uint32_t tti_rx)
+const sf_sched_result* sched::carrier_sched::get_sf_result(uint32_t tti_rx) const
 {
-  return &sf_sched_results[tti_rx % sf_sched_results.size()];
-}
-
-const sf_sched_result& sched::carrier_sched::get_sf_result(uint32_t tti_rx) const
-{
-  return sf_sched_results[tti_rx % sf_sched_results.size()];
+  return prev_sched_results->get_sf(srslte::tti_point{tti_rx});
 }
 
 int sched::carrier_sched::dl_rach_info(dl_sched_rar_info_t rar_info)

@@ -42,17 +42,44 @@ struct alloc_outcome_t {
   alloc_outcome_t(result_enum e) : result(e) {}
               operator result_enum() { return result; }
               operator bool() { return result == SUCCESS; }
-  const char* to_string() const;
+              const char* to_string() const;
 };
 
 //! Result of a Subframe sched computation
-struct sf_sched_result {
+struct cc_sched_result {
   tti_params_t                    tti_params{10241};
   sched_interface::dl_sched_res_t dl_sched_result = {};
   sched_interface::ul_sched_res_t ul_sched_result = {};
   rbgmask_t                       dl_mask         = {}; ///< Accumulation of all DL RBG allocations
   prbmask_t                       ul_mask         = {}; ///< Accumulation of all UL PRB allocations
   pdcch_mask_t                    pdcch_mask      = {}; ///< Accumulation of all CCE allocations
+};
+
+struct sf_sched_result {
+  srslte::tti_point            tti_rx;
+  std::vector<cc_sched_result> enb_cc_list;
+
+  cc_sched_result*       new_cc(uint32_t enb_cc_idx);
+  const cc_sched_result* get_cc(uint32_t enb_cc_idx) const
+  {
+    return enb_cc_idx < enb_cc_list.size() ? &enb_cc_list[enb_cc_idx] : nullptr;
+  }
+  cc_sched_result* get_cc(uint32_t enb_cc_idx)
+  {
+    return enb_cc_idx < enb_cc_list.size() ? &enb_cc_list[enb_cc_idx] : nullptr;
+  }
+};
+
+struct sched_result_list {
+public:
+  sf_sched_result*       new_tti(srslte::tti_point tti_rx);
+  sf_sched_result*       get_sf(srslte::tti_point tti_rx);
+  const sf_sched_result* get_sf(srslte::tti_point tti_rx) const;
+  const cc_sched_result* get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx) const;
+  cc_sched_result*       get_cc(srslte::tti_point tti_rx, uint32_t enb_cc_idx);
+
+private:
+  std::array<sf_sched_result, TTIMOD_SZ> results;
 };
 
 //! Class responsible for managing a PDCCH CCE grid, namely cce allocs, and avoid collisions.
@@ -207,8 +234,7 @@ public:
     sf_sched::ctrl_alloc_t          alloc_data;
     sched_interface::dl_sched_rar_t rar_grant;
     rar_alloc_t(const sf_sched::ctrl_alloc_t& c, const sched_interface::dl_sched_rar_t& r) : alloc_data(c), rar_grant(r)
-    {
-    }
+    {}
   };
   struct bc_alloc_t : public ctrl_alloc_t {
     uint32_t rv      = 0;
@@ -250,7 +276,7 @@ public:
   // Control/Configuration Methods
   sf_sched();
   void init(const sched_cell_params_t& cell_params_);
-  void new_tti(uint32_t tti_rx_);
+  void new_tti(uint32_t tti_rx_, sf_sched_result* cc_results);
 
   // DL alloc methods
   alloc_outcome_t                      alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
@@ -267,7 +293,7 @@ public:
   bool alloc_phich(sched_ue* user, sched_interface::ul_sched_res_t* ul_sf_result);
 
   // compute DCIs and generate dl_sched_result/ul_sched_result for a given TTI
-  void generate_sched_results(sf_sched_result* sf_result);
+  void generate_sched_results();
 
   // dl_tti_sched itf
   alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
@@ -302,6 +328,7 @@ private:
   // consts
   const sched_cell_params_t* cc_cfg = nullptr;
   srslte::log_ref            log_h;
+  sf_sched_result*           cc_results; ///< Results of other CCs for the same Subframe
 
   // internal state
   sf_grid_t                tti_alloc;

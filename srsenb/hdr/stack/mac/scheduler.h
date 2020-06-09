@@ -153,6 +153,9 @@ protected:
   // independent schedulers for each carrier
   std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;
 
+  // Storage of past scheduling results
+  sched_result_list sched_results;
+
   uint32_t   last_tti = 0;
   std::mutex sched_mutex;
   bool       configured = false;
