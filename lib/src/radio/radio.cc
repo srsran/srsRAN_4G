@@ -339,7 +339,6 @@ bool radio::tx(rf_buffer_interface& buffer, const uint32_t& nof_samples_, const 
     return false;
   }
 
-  log_h->debug("radio_tx: time=%ld:%f, is_start=%d\n", tx_time.full_secs, tx_time.frac_secs, is_start_of_burst);
   int ret = srslte_rf_send_timed_multi(
       &rf_device, radio_buffers, nof_samples, tx_time.full_secs, tx_time.frac_secs, true, is_start_of_burst, false);
   is_start_of_burst = false;
@@ -352,7 +351,6 @@ void radio::tx_end()
     return;
   }
   if (!is_start_of_burst) {
-    log_h->debug("radio_tx_end: time=%ld:%f\n", end_of_burst_time.full_secs, end_of_burst_time.frac_secs);
     srslte_rf_send_timed2(&rf_device, zeros, 0, end_of_burst_time.full_secs, end_of_burst_time.frac_secs, false, true);
     is_start_of_burst = true;
   }
@@ -426,7 +424,6 @@ void radio::set_rx_srate(const double& srate)
   if (!is_initialized) {
     return;
   }
-  log_h->debug("Setting RX sample rate=%f\n", srate);
   srslte_rf_set_rx_srate(&rf_device, srate);
 }
 
@@ -492,7 +489,6 @@ void radio::set_tx_srate(const double& srate)
   if (!is_initialized) {
     return;
   }
-  log_h->debug("Setting TX sample rate=%f\n", srate);
   cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
 
   int nsamples = 0;
