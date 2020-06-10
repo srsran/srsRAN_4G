@@ -759,21 +759,13 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   if (has_scells and srslte_cqi_periodic_send(&cqi_report, get_tti_tx_ul(), SRSLTE_FDD)) {
     bool has_pusch_grant = is_ul_alloc(user) or cc_results->is_ul_alloc(user->get_rnti());
     if (not has_pusch_grant) {
-      // Try to allocate small PUSCH grant, if there are no pending UL retxs for this TTI
-      alloc_outcome_t pusch_alloc_outcome = alloc_outcome_t::PUCCH_COLLISION;
-      ul_harq_proc*   hul                 = user->get_ul_harq(get_tti_tx_ul(), ue_cc_idx);
-      bool            has_retx            = hul->has_pending_retx();
-      if (not has_retx) {
-        ul_harq_proc::ul_alloc_t alloc = {};
-        uint32_t L = user->get_required_prb_ul(ue_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
-        tti_alloc.find_ul_alloc(L, &alloc);
-        if (alloc.L > 0 and alloc_ul_user(user, alloc)) {
-          pusch_alloc_outcome = alloc_outcome_t::SUCCESS;
-        }
-      }
-      // For SCells, if we can't allocate small PUSCH grant, abort DL allocation
-      if (ue_cc_idx != 0 and pusch_alloc_outcome != alloc_outcome_t::SUCCESS) {
-        return pusch_alloc_outcome;
+      // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet
+      ul_harq_proc::ul_alloc_t alloc = {};
+      uint32_t L = user->get_required_prb_ul(ue_cc_idx, srslte::ceil_div(SRSLTE_UCI_CQI_CODED_PUCCH_B + 2, 8));
+      tti_alloc.find_ul_alloc(L, &alloc);
+      if (ue_cc_idx != 0 and (alloc.L == 0 or not alloc_ul_user(user, alloc))) {
+        // For SCells, if we can't allocate small PUSCH grant, abort DL allocation
+        return alloc_outcome_t::PUCCH_COLLISION;
       }
     }
   }
