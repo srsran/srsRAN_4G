@@ -266,7 +266,7 @@ private:
   static constexpr uint32_t cfi        = 2;
 
   srsenb::phy_cell_cfg_list_t                             phy_cell_cfg;
-  srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc;
+  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t       phy_rrc;
   std::mutex                                              mutex;
   std::condition_variable                                 cvar;
   srslte::log_filter                                      log_h;
@@ -329,10 +329,10 @@ private:
   uint32_t              ul_riv                                                  = 0;
 
 public:
-  explicit dummy_stack(const srsenb::phy_cfg_t&                                       phy_cfg_,
-                       const srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t& phy_rrc_,
-                       const std::string&                                             log_level,
-                       uint16_t                                                       rnti_) :
+  explicit dummy_stack(const srsenb::phy_cfg_t&                                 phy_cfg_,
+                       const srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t& phy_rrc_,
+                       const std::string&                                       log_level,
+                       uint16_t                                                 rnti_) :
     log_h("STACK"),
     ue_rnti(rnti_),
     random_gen(srslte_random_init(rnti_)),
@@ -764,7 +764,7 @@ private:
   srslte_ul_sf_cfg_t                                      sf_ul_cfg     = {};
   srslte_softbuffer_tx_t                                  softbuffer_tx = {};
   uint8_t*                                                tx_data       = nullptr;
-  srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_cfg   = {};
+  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t       phy_rrc_cfg   = {};
   srslte::log_filter                                      log_h;
   std::map<uint32_t, uint32_t>                            last_ri = {};
 
@@ -888,7 +888,7 @@ public:
     srslte_softbuffer_tx_free(&softbuffer_tx);
   }
 
-  void reconfigure(const srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t& phy_rrc_cfg_)
+  void reconfigure(const srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t& phy_rrc_cfg_)
   {
     // Copy new configuration
     phy_rrc_cfg = phy_rrc_cfg_;
@@ -1149,7 +1149,7 @@ private:
   args_t                                                  args = {};   ///< Test arguments
   srsenb::phy_args_t                                      phy_args;    ///< PHY arguments
   srsenb::phy_cfg_t                                       phy_cfg;     ///< eNb Cell/Carrier configuration
-  srsenb::phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_cfg; ///< UE PHY configuration
+  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t       phy_rrc_cfg; ///< UE PHY configuration
 
   uint64_t tti_counter = 0;
   typedef enum {
@@ -1260,8 +1260,8 @@ public:
 
     /// Initiate eNb PHY with the given RNTI
     enb_phy->init(phy_args, phy_cfg, radio.get(), stack.get());
-    enb_phy->set_config_dedicated(args.rnti, phy_rrc_cfg);
-    enb_phy->complete_config_dedicated(args.rnti);
+    enb_phy->set_config(args.rnti, phy_rrc_cfg);
+    enb_phy->complete_config(args.rnti);
     enb_phy->set_activation_deactivation_scell(args.rnti, activation);
 
     /// Create dummy UE instance
@@ -1319,8 +1319,8 @@ public:
           }
 
           // Reconfigure eNb PHY
-          enb_phy->set_config_dedicated(args.rnti, phy_rrc_cfg);
-          enb_phy->complete_config_dedicated(args.rnti);
+          enb_phy->set_config(args.rnti, phy_rrc_cfg);
+          enb_phy->complete_config(args.rnti);
           enb_phy->set_activation_deactivation_scell(args.rnti, activation);
 
           // Reconfigure UE PHY

@@ -239,9 +239,9 @@ public:
    * first element of the list must be the PCell and the rest will be SCell in the order
    *
    * @param rnti identifier of the user
-   * @param phy_rrc_dedicated_list List of the eNb physical layer configuration coming for the RRC
+   * @param phy_cfg_list List of the eNb physical layer configuration coming for the RRC
    */
-  void addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_dedicated_list_t& phy_rrc_dedicated_list);
+  void addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_cfg_list_t& phy_cfg_list);
 
   /**
    * Removes a whole UE entry from the UE database

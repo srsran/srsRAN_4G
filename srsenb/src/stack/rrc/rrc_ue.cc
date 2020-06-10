@@ -299,7 +299,7 @@ void rrc::ue::send_connection_setup()
 void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
   // Inform PHY about the configuration completion
-  parent->phy->complete_config_dedicated(rnti);
+  parent->phy->complete_config(rnti);
 
   parent->rrc_log->info("RRCConnectionSetupComplete transaction ID: %d\n", msg->rrc_transaction_id);
   rrc_conn_setup_complete_r8_ies_s* msg_r8 = &msg->crit_exts.c1().rrc_conn_setup_complete_r8();
@@ -414,7 +414,7 @@ void rrc::ue::send_connection_reest()
 void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
   // Inform PHY about the configuration completion
-  parent->phy->complete_config_dedicated(rnti);
+  parent->phy->complete_config(rnti);
 
   parent->rrc_log->info("RRCConnectionReestablishComplete transaction ID: %d\n", msg->rrc_transaction_id);
 
@@ -629,7 +629,7 @@ void rrc::ue::send_connection_reconf_new_bearer()
 void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
   // Inform PHY about the configuration completion
-  parent->phy->complete_config_dedicated(rnti);
+  parent->phy->complete_config(rnti);
 
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
     // Finally, add secondary carriers to MAC
@@ -1103,7 +1103,7 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
     list.push_back(cell);
 
     // Create new PHY configuration structure for this SCell
-    phy_interface_rrc_lte::phy_rrc_dedicated_t scell_phy_rrc_ded = {};
+    phy_interface_rrc_lte::phy_rrc_cfg_t scell_phy_rrc_ded = {};
     srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, cell);
     scell_phy_rrc_ded.configured = true;
 
@@ -1315,7 +1315,7 @@ void rrc::ue::apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& confi
 
   // Send configuration to physical layer
   if (parent->phy != nullptr) {
-    parent->phy->set_config_dedicated(rnti, phy_rrc_dedicated_list);
+    parent->phy->set_config(rnti, phy_rrc_dedicated_list);
   }
 }
 
@@ -1336,7 +1336,7 @@ void rrc::ue::apply_setup_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& 
 
   // Send configuration to physical layer
   if (parent->phy != nullptr) {
-    parent->phy->set_config_dedicated(rnti, phy_rrc_dedicated_list);
+    parent->phy->set_config(rnti, phy_rrc_dedicated_list);
   }
 }
 
@@ -1374,7 +1374,7 @@ void rrc::ue::apply_reconf_phy_config(const asn1::rrc::rrc_conn_recfg_r8_ies_s& 
 
   // Send configuration to physical layer
   if (parent->phy != nullptr) {
-    parent->phy->set_config_dedicated(rnti, phy_rrc_dedicated_list);
+    parent->phy->set_config(rnti, phy_rrc_dedicated_list);
   }
 }
 

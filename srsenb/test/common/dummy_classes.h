@@ -117,8 +117,8 @@ public:
                        asn1::rrc::sib_type13_r9_s*  sib13,
                        const asn1::rrc::mcch_msg_s& mcch) override
   {}
-  void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) override {}
-  void complete_config_dedicated(uint16_t rnti) override{};
+  void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& dedicated_list) override {}
+  void complete_config(uint16_t rnti) override{};
 };
 
 class gtpu_dummy : public gtpu_interface_rrc

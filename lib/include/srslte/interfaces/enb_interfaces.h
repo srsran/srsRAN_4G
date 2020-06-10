@@ -245,10 +245,6 @@ public:
     asn1::rrc::mcch_msg_s           mcch;
   };
 
-  typedef struct {
-    phy_cfg_mbsfn_t mbsfn;
-  } phy_rrc_cfg_t;
-
   virtual void configure_mbsfn(asn1::rrc::sib_type2_s*      sib2,
                                asn1::rrc::sib_type13_r9_s*  sib13,
                                const asn1::rrc::mcch_msg_s& mcch) = 0;
@@ -257,9 +253,9 @@ public:
     bool              configured = false; ///< Indicates whether PHY shall consider configuring this cell/carrier
     uint32_t          enb_cc_idx = 0;     ///< eNb Cell index
     srslte::phy_cfg_t phy_cfg    = {};    ///< Dedicated physical layer configuration
-  } phy_rrc_dedicated_t;
+  } phy_rrc_cfg_t;
 
-  typedef std::vector<phy_rrc_dedicated_t> phy_rrc_dedicated_list_t;
+  typedef std::vector<phy_rrc_cfg_t> phy_rrc_cfg_list_t;
 
   /**
    * Sets the physical layer dedicated configuration for a given RNTI. The dedicated configuration list shall provide
@@ -268,20 +264,20 @@ public:
    * - Moving primary to another serving cell
    * - Add/Remove secondary serving cells
    *
-   * Remind this call will partially reconfigure the primary serving cell, `complete_config_dedicated``shall be called
+   * Remind this call will partially reconfigure the primary serving cell, `complete_config``shall be called
    * in order to complete the configuration.
    *
    * @param rnti the given RNTI
-   * @param dedicated_list Physical layer configuration for the indicated eNb cell
+   * @param phy_cfg_list Physical layer configuration for the indicated eNb cell
    */
-  virtual void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) = 0;
+  virtual void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list) = 0;
 
   /**
    * Instructs the physical layer the configuration has been complete from upper layers for a given RNTI
    *
    * @param rnti the given UE identifier (RNTI)
    */
-  virtual void complete_config_dedicated(uint16_t rnti) = 0;
+  virtual void complete_config(uint16_t rnti) = 0;
 };
 
 class mac_interface_rrc

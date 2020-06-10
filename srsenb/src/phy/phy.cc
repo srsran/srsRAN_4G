@@ -154,7 +154,7 @@ int phy::add_rnti(uint16_t rnti, uint32_t pcell_index)
 {
   if (SRSLTE_RNTI_ISUSER(rnti)) {
     // Create default PHY configuration with the desired PCell index
-    phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list(1);
+    phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc_dedicated_list(1);
     phy_rrc_dedicated_list[0].enb_cc_idx = pcell_index;
 
     workers_common.ue_db.addmod_rnti(rnti, phy_rrc_dedicated_list);
@@ -240,13 +240,13 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
 /***** RRC->PHY interface **********/
 
-void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list)
+void phy::set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list)
 {
   // Update UE Database
-  workers_common.ue_db.addmod_rnti(rnti, dedicated_list);
+  workers_common.ue_db.addmod_rnti(rnti, phy_cfg_list);
 
   // Iterate over the list and add the RNTIs
-  for (const phy_rrc_dedicated_t& config : dedicated_list) {
+  for (const phy_rrc_cfg_t& config : phy_cfg_list) {
     // Add RNTI to eNb cell/carrier.
     // - Do not ignore PCell, it could have changed
     // - Do not remove RNTI from unused workers, it will be removed when the UE is released
@@ -259,7 +259,7 @@ void phy::set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& de
   }
 }
 
-void phy::complete_config_dedicated(uint16_t rnti)
+void phy::complete_config(uint16_t rnti)
 {
   // Forwards call to the UE Database
   workers_common.ue_db.complete_config(rnti);
@@ -274,24 +274,24 @@ void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, const mcch_
       if (sib2->mbsfn_sf_cfg_list.size() > 1) {
         Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_sf_cfg_list.size());
       }
-      phy_rrc_config.mbsfn.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
+      mbsfn_config.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
     }
   } else {
     fprintf(stderr, "SIB2 has no MBSFN subframe config specified\n");
     return;
   }
 
-  phy_rrc_config.mbsfn.mbsfn_notification_cnfg = sib13->notif_cfg_r9;
+  mbsfn_config.mbsfn_notification_cnfg = sib13->notif_cfg_r9;
   if (sib13->mbsfn_area_info_list_r9.size() > 0) {
     if (sib13->mbsfn_area_info_list_r9.size() > 1) {
       Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9.size());
     }
-    phy_rrc_config.mbsfn.mbsfn_area_info = sib13->mbsfn_area_info_list_r9[0];
+    mbsfn_config.mbsfn_area_info = sib13->mbsfn_area_info_list_r9[0];
   }
 
-  phy_rrc_config.mbsfn.mcch = mcch;
+  mbsfn_config.mcch = mcch;
 
-  workers_common.configure_mbsfn(&phy_rrc_config.mbsfn);
+  workers_common.configure_mbsfn(&mbsfn_config);
 }
 
 // Start GUI

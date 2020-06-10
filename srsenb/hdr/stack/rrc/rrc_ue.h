@@ -150,7 +150,7 @@ private:
   int fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf);
 
   ///< UE's Physical layer dedicated configuration
-  phy_interface_rrc_lte::phy_rrc_dedicated_list_t phy_rrc_dedicated_list = {};
+  phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc_dedicated_list = {};
 
   /**
    * Setups the PCell physical layer common configuration of the UE from the SIB2 message. This methods is designed to

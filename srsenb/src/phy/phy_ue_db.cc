@@ -263,8 +263,7 @@ void phy_ue_db::clear_tti_pending_ack(uint32_t tti)
   }
 }
 
-void phy_ue_db::addmod_rnti(uint16_t                                               rnti,
-                            const phy_interface_rrc_lte::phy_rrc_dedicated_list_t& phy_rrc_dedicated_list)
+void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_cfg_list_t& phy_cfg_list)
 {
   std::lock_guard<std::mutex> lock(mutex);
 
@@ -280,9 +279,9 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
   uint32_t nof_configured_scell = 0;
 
   // Iterate PHY RRC configuration for each UE cell/carrier
-  uint32_t nof_cc = SRSLTE_MIN(phy_rrc_dedicated_list.size(), SRSLTE_MAX_CARRIERS);
+  uint32_t nof_cc = SRSLTE_MIN(phy_cfg_list.size(), SRSLTE_MAX_CARRIERS);
   for (uint32_t ue_cc_idx = 0; ue_cc_idx < nof_cc; ue_cc_idx++) {
-    const phy_interface_rrc_lte::phy_rrc_dedicated_t& phy_rrc_dedicated = phy_rrc_dedicated_list[ue_cc_idx];
+    const phy_interface_rrc_lte::phy_rrc_cfg_t& phy_rrc_dedicated = phy_cfg_list[ue_cc_idx];
 
     // Configured, add/modify entry in the cell_info map
     cell_info_t& cell_info = ue.cell_info[ue_cc_idx];

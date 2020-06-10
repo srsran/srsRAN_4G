@@ -64,8 +64,8 @@ public:
                        const asn1::rrc::mcch_msg_s& mcch) override;
 
   void start_plot() override;
-  void set_config_dedicated(uint16_t rnti, const phy_rrc_dedicated_list_t& dedicated_list) override;
-  void complete_config_dedicated(uint16_t rnti) override;
+  void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& phy_cfg_list) override;
+  void complete_config(uint16_t rnti) override;
 
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]) override;
 
@@ -73,8 +73,8 @@ public:
   void radio_failure() override{};
 
 private:
-  phy_rrc_cfg_t phy_rrc_config = {};
-  uint32_t      nof_workers    = 0;
+  phy_cfg_mbsfn_t mbsfn_config = {};
+  uint32_t        nof_workers  = 0;
 
   const static int MAX_WORKERS = 4;
 
