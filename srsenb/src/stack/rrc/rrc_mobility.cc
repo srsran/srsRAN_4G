@@ -709,7 +709,7 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srsl
     trigger(srslte::failure_ev{});
     return;
   }
-  trigger(container);
+  trigger(std::move(container));
 }
 
 bool rrc::ue::rrc_mobility::update_ue_var_meas_cfg(const asn1::rrc::meas_cfg_s& source_meas_cfg,

@@ -23,10 +23,11 @@
 #define SRSLTE_FSM_H
 
 #include "srslte/common/logmap.h"
+#include "srslte/common/move_callback.h"
 #include "type_utils.h"
 #include <cstdio>
-#include <functional>
 #include <limits>
+#include <list>
 #include <memory>
 #include <tuple>
 
@@ -370,6 +371,8 @@ public:
                                                                            &get_unchecked<init_state_t>());
       }
     }
+    state_list(state_list&&) noexcept = default;
+    state_list& operator=(state_list&&) noexcept = default;
 
     template <typename State>
     bool is() const
@@ -414,19 +417,21 @@ public:
   };
 
   explicit fsm_t(srslte::log_ref log_) : log_h(log_) {}
+  fsm_t(fsm_t&&) noexcept = default;
+  fsm_t& operator=(fsm_t&&) noexcept = default;
 
   // Push Events to FSM
   template <typename Ev>
   bool trigger(Ev&& e)
   {
     if (trigger_locked) {
-      pending_events.emplace_back([e](fsm_t<Derived>* d) { d->process_event(e); });
+      scheduled_event(std::forward<Ev>(e), typename std::is_lvalue_reference<Ev>::type{});
       return false;
     }
     trigger_locked = true;
     bool ret       = process_event(std::forward<Ev>(e));
     while (not pending_events.empty()) {
-      pending_events.front()(this);
+      pending_events.front()();
       pending_events.pop_front();
     }
     trigger_locked = false;
@@ -511,10 +516,21 @@ protected:
     return visitor.result;
   }
 
-  srslte::log_ref                                   log_h;
-  srslte::LOG_LEVEL_ENUM                            fsm_event_log_level = LOG_LEVEL_INFO;
-  bool                                              trigger_locked      = false;
-  std::deque<std::function<void(fsm_t<Derived>*)> > pending_events;
+  template <typename Ev>
+  void scheduled_event(Ev&& e, std::true_type)
+  {
+    pending_events.emplace_back([this, e]() { process_event(e); });
+  }
+  template <typename Ev>
+  void scheduled_event(Ev&& e, std::false_type)
+  {
+    pending_events.emplace_back(std::bind([this](Ev& e) { process_event(std::move(e)); }, std::move(e)));
+  }
+
+  srslte::log_ref                           log_h;
+  srslte::LOG_LEVEL_ENUM                    fsm_event_log_level = LOG_LEVEL_INFO;
+  bool                                      trigger_locked      = false;
+  std::list<srslte::move_callback<void()> > pending_events;
 };
 
 template <typename Derived, typename ParentFSM>
@@ -526,6 +542,8 @@ public:
   static const bool is_nested = true;
 
   explicit nested_fsm_t(ParentFSM* parent_fsm_) : fsm_t<Derived>(parent_fsm_->get_log()), fsm_ptr(parent_fsm_) {}
+  nested_fsm_t(nested_fsm_t&&) noexcept = default;
+  nested_fsm_t& operator=(nested_fsm_t&&) noexcept = default;
 
   // Get pointer to outer FSM in case of HSM
   const parent_t* parent_fsm() const { return fsm_ptr; }
