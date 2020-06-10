@@ -333,18 +333,8 @@ void phy_ue_db::addmod_rnti(uint16_t                                            
     }
   }
 
-  // Copy necessary PCell configuration for receiving Configuration Completion from UE
-  srslte::phy_cfg_t& pcell_cfg = ue.cell_info[0].phy_cfg;
-
-  // Setup temporal PUCCH configuration
-  srslte_pucch_cfg_t tmp_pucch_cfg = ue.pcell_cfg_stash.ul_cfg.pucch;
-  tmp_pucch_cfg.N_pucch_1          = pcell_cfg.ul_cfg.pucch.N_pucch_1; ///< Used for ACK
-
   // Load new UL configuration
-  pcell_cfg.ul_cfg = ue.pcell_cfg_stash.ul_cfg;
-
-  // Overwrite PUCCH with temporal PUCCH
-  pcell_cfg.ul_cfg.pucch = tmp_pucch_cfg;
+  ue.cell_info[0].phy_cfg.ul_cfg = ue.pcell_cfg_stash.ul_cfg;
 }
 
 void phy_ue_db::rem_rnti(uint16_t rnti)
