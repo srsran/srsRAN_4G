@@ -451,6 +451,46 @@ int test_nas_fsm()
   return SRSLTE_SUCCESS;
 }
 
+struct fsm3 : public srslte::fsm_t<fsm3> {
+  struct st1 {};
+  struct st2 {
+    int  counter = 0;
+    void enter(fsm3* fsm) { counter++; }
+  };
+
+  fsm3() : base_t(srslte::log_ref{"TEST"}) {}
+
+protected:
+  void handle_ev1(st1& s, st2& d, const ev1& ev) { trigger(ev2{}); }
+  void handle_ev2(st2& s, st1& d, const ev2& ev)
+  {
+    if (s.counter < 2) {
+      trigger(ev1{});
+    }
+  }
+
+  state_list<st1, st2> states{this};
+  // clang-format off
+  using transitions = transition_table<
+  //     Start                    Target                   Event               Action
+  //  +------------------------+-------------------------+-------------------+--------------------+
+  row<  st1,                      st2,                     ev1,                &fsm3::handle_ev1>,
+  row<  st2,                      st1,                     ev2,                &fsm3::handle_ev2>
+  >;
+  // clang-format on
+};
+
+int test_fsm_self_trigger()
+{
+  fsm3 fsm;
+
+  TESTASSERT(fsm.is_in_state<fsm3::st1>());
+  fsm.trigger(ev1{});
+  TESTASSERT(fsm.is_in_state<fsm3::st1>());
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   srslte::log_ref testlog{"TEST"};
@@ -461,6 +501,8 @@ int main()
   testlog->info("TEST \"proc\" finished successfully\n\n");
   TESTASSERT(test_nas_fsm() == SRSLTE_SUCCESS);
   testlog->info("TEST \"nas fsm\" finished successfully\n\n");
+  TESTASSERT(test_fsm_self_trigger() == SRSLTE_SUCCESS);
+  testlog->info("TEST \"fsm self trigger\" finished successfully\n\n");
 
   return SRSLTE_SUCCESS;
 }

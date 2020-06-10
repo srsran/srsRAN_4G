@@ -25,6 +25,7 @@
 #include "srslte/common/logmap.h"
 #include "type_utils.h"
 #include <cstdio>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <tuple>
@@ -418,9 +419,18 @@ public:
   template <typename Ev>
   bool trigger(Ev&& e)
   {
-    fsm_details::trigger_visitor<derived_view, Ev> visitor{derived(), std::forward<Ev>(e)};
-    srslte::visit(visitor, derived()->states);
-    return visitor.result;
+    if (trigger_locked) {
+      pending_events.emplace_back([e](fsm_t<Derived>* d) { d->process_event(e); });
+      return false;
+    }
+    trigger_locked = true;
+    bool ret       = process_event(std::forward<Ev>(e));
+    while (not pending_events.empty()) {
+      pending_events.front()(this);
+      pending_events.pop_front();
+    }
+    trigger_locked = false;
+    return ret;
   }
 
   template <typename State>
@@ -493,8 +503,18 @@ protected:
 
   const derived_view* derived() const { return static_cast<const derived_view*>(this); }
 
-  srslte::log_ref        log_h;
-  srslte::LOG_LEVEL_ENUM fsm_event_log_level = LOG_LEVEL_INFO;
+  template <typename Ev>
+  bool process_event(Ev&& e)
+  {
+    fsm_details::trigger_visitor<derived_view, Ev> visitor{derived(), std::forward<Ev>(e)};
+    srslte::visit(visitor, derived()->states);
+    return visitor.result;
+  }
+
+  srslte::log_ref                                   log_h;
+  srslte::LOG_LEVEL_ENUM                            fsm_event_log_level = LOG_LEVEL_INFO;
+  bool                                              trigger_locked      = false;
+  std::deque<std::function<void(fsm_t<Derived>*)> > pending_events;
 };
 
 template <typename Derived, typename ParentFSM>
