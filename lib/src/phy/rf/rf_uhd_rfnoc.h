@@ -79,18 +79,16 @@ private:
   const double       SETUP_TIME_S        = 1.0;
   const uhd::fs_path TREE_MBOARD_SENSORS = "/mboards/0/sensors";
   const uhd::fs_path TREE_RX_SENSORS     = "/mboards/0/dboards/A/rx_frontends/0/sensors";
+  const std::string  TX_ANTENNA_PORT     = "TX/RX";
+  const std::string  RX_ANTENNA_PORT     = "RX2";
 
   // Primary parameters
   double              master_clock_rate = 184.32e6;
-  double              srate_hz          = 0.0;
-  double              bw_hz             = 0.0;
-  size_t              nof_radios        = 1;
-  size_t              nof_channels      = 1;
-  double              rx_gain_db        = 10.0;
-  double              tx_gain_db        = 5.0;
+  double              bw_hz             = 100.0;
+  size_t              nof_radios        = 1; ///< Number of RF devices in the device
+  size_t              nof_channels      = 1; ///< Number of Channels per Radio
   std::vector<double> rx_freq_hz;
   std::vector<double> tx_freq_hz;
-  std::string         sync_source            = "internal";
   size_t              nof_samples_per_packet = 0;
   size_t              dma_fifo_depth         = 8192UL * 4096UL;
 
@@ -119,7 +117,7 @@ private:
   }
 
   template <class T>
-  uhd_error parse_param(uhd::device_addr_t& args, const std::string& param, T& value)
+  uhd_error parse_param(uhd::device_addr_t& args, const std::string& param, T& value, bool pop = true)
   {
     UHD_SAFE_C_SAVE_ERROR(this,
                           // Check if parameter exists
@@ -132,62 +130,32 @@ private:
                           value = args.cast(param, value);
 
                           // Remove parameter from list
-                          args.pop(param);)
+                          if (pop) args.pop(param);)
   }
 
   uhd_error parse_args(uhd::device_addr_t& args)
   {
-    uhd_error err;
+    // Parse master clock rate
+    parse_param(args, "master_clock_rate", master_clock_rate, false);
 
-    err = parse_param(args, "rfnoc_srate", srate_hz);
-    if (err != UHD_ERROR_NONE) {
-      return err;
-    }
-
+    // Parse number of radios
     parse_param(args, "rfnoc_nof_radios", nof_radios);
     if (nof_radios == 0) {
       last_error = "RF-NOC Number of radios cannot be zero";
       return UHD_ERROR_KEY;
     }
 
+    // Parse number of channels per radio
     parse_param(args, "rfnoc_nof_channels", nof_channels);
     if (nof_channels == 0) {
       last_error = "RF-NOC Number of channels cannot be zero";
       return UHD_ERROR_KEY;
     }
 
-    // Optional parameters, ignore error return
-    parse_param(args, "rfnoc_tx_gain", tx_gain_db);
-    parse_param(args, "rfnoc_rx_gain", tx_gain_db);
-
-    // Parse Rx frequencies
-    rx_freq_hz.resize(nof_radios * nof_channels);
-    for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
-      for (size_t channel_idx = 0; channel_idx < nof_channels; channel_idx++) {
-        std::stringstream ss;
-        ss << "rfnoc_rx_" << radio_idx << "_" << channel_idx << "_freq";
-        err = parse_param(args, ss.str(), rx_freq_hz[radio_idx * nof_channels + channel_idx]);
-        if (err != UHD_ERROR_NONE) {
-          return err;
-        }
-      }
-    }
-
-    // Parse Rx frequencies
+    // Set secondary parameters
+    bw_hz = master_clock_rate / 2.0;
     tx_freq_hz.resize(nof_radios * nof_channels);
-    for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
-      for (size_t channel_idx = 0; channel_idx < nof_channels; channel_idx++) {
-        std::stringstream ss;
-        ss << "rfnoc_tx_" << radio_idx << "_" << channel_idx << "_freq";
-        err = parse_param(args, ss.str(), tx_freq_hz[radio_idx * nof_channels + channel_idx]);
-        if (err != UHD_ERROR_NONE) {
-          return err;
-        }
-      }
-    }
-
-    // Secondary parameters
-    bw_hz = srate_hz * (1200.0 / 1536.0);
+    rx_freq_hz.resize(nof_radios * nof_channels);
 
     return UHD_ERROR_NONE;
   }
@@ -204,8 +172,28 @@ private:
           radio_id[i] = uhd::rfnoc::block_id_t(0, RADIO_BLOCK_NAME, i);
           // This next line will fail if the radio is not actually available
           radio_ctrl[i] = device3->get_block_ctrl<uhd::rfnoc::radio_ctrl>(radio_id[i]);
-          Debug("Using radio " << i);
+
+          // Set sample rate
+          UHD_LOG_DEBUG(radio_id[i], "Setting TX/RX Rate: " << master_clock_rate / 1e6 << " Msps...");
+          radio_ctrl[i]->set_rate(master_clock_rate);
+          UHD_LOG_DEBUG(radio_id[i], "Actual TX/RX Rate:" << radio_ctrl[i]->get_rate() / 1e6 << " Msps...");
+
+          // set the IF filter bandwidth
+          UHD_LOG_DEBUG(radio_id[i], "Setting RX Bandwidth: " << bw_hz / 1e6 << " MHz...");
+          radio_ctrl[i]->set_rx_bandwidth(bw_hz, 0);
+          UHD_LOG_DEBUG(radio_id[i], "Actual RX Bandwidth: " << radio_ctrl[i]->get_rx_bandwidth(0) / 1e6 << " MHz...");
+
+          // set Rx antenna
+          UHD_LOG_DEBUG(radio_id[i], "Setting RX antenna: " << RX_ANTENNA_PORT);
+          radio_ctrl[i]->set_rx_antenna(RX_ANTENNA_PORT, 0);
+
+          // set Tx antenna
+          UHD_LOG_DEBUG(radio_id[i], "Setting TX antenna: " << TX_ANTENNA_PORT);
+          radio_ctrl[i]->set_tx_antenna(TX_ANTENNA_PORT, 0);
         }
+
+        // Sleep for some time
+        std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(1000 * SETUP_TIME_S)));
 
         // Create DDC control
         ddc_ctrl.resize(nof_radios);
@@ -213,6 +201,17 @@ private:
         for (size_t i = 0; i < nof_radios; i++) {
           ddc_id[i]   = uhd::rfnoc::block_id_t(0, DDC_BLOCK_NAME, i);
           ddc_ctrl[i] = device3->get_block_ctrl<ddc_ctrl_t>(ddc_id[i]);
+
+          for (size_t j = 0; j < nof_channels; j++) {
+
+            uhd::device_addr_t args;
+            args.set("input_rate", std::to_string(master_clock_rate));
+            args.set("fullscale", "1.0");
+
+            UHD_LOG_DEBUG(ddc_id[i], "Configure channel " << j << " with args " << args.to_string());
+
+            ddc_ctrl[i]->set_args(args, j);
+          }
         }
 
         // Create DUC control
@@ -221,134 +220,61 @@ private:
         for (size_t i = 0; i < nof_radios; i++) {
           duc_id[i]   = uhd::rfnoc::block_id_t(0, DUC_BLOCK_NAME, i);
           duc_ctrl[i] = device3->get_block_ctrl<duc_ctrl_t>(duc_id[i]);
+
+          for (size_t j = 0; j < nof_channels; j++) {
+
+            uhd::device_addr_t args;
+            args.set("output_rate", std::to_string(master_clock_rate));
+            args.set("fullscale", "1.0");
+
+            UHD_LOG_DEBUG(duc_id[i], "Configure channel " << j << " with args " << args.to_string());
+
+            duc_ctrl[i]->set_args(args, j);
+          }
         }
 
         // Create DMA FIFO control
         dma_id   = uhd::rfnoc::block_id_t(0, DMA_FIFO_BLOCK_NAME);
-        dma_ctrl = device3->get_block_ctrl<uhd::rfnoc::dma_fifo_block_ctrl>(dma_id);)
-  }
+        dma_ctrl = device3->get_block_ctrl<uhd::rfnoc::dma_fifo_block_ctrl>(dma_id);
 
-  uhd_error configure()
-  {
-    UHD_SAFE_C_SAVE_ERROR(
-        this, std::vector<double> rx_center_freq_hz(nof_radios); std::vector<double> tx_center_freq_hz(nof_radios);
+        // Configure DMA Channels
+        for (size_t i = 0; i < nof_radios * nof_channels; i++) {
+          uhd::device_addr_t dma_fifo_args;
+          dma_fifo_args.set("base_addr", std::to_string(dma_fifo_depth * i));
+          dma_fifo_args.set("depth", std::to_string(dma_fifo_depth));
 
-        // Calculate center frequencies from averages
-        for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
-          double sum_tx = 0.0;
-          double sum_rx = 0.0;
+          UHD_LOG_DEBUG(dma_id, "Setting channel " << i << " args: " << dma_fifo_args.to_string());
 
-          for (size_t channel_idx = 0; channel_idx < nof_channels; channel_idx++) {
-            sum_tx += tx_freq_hz[radio_idx * nof_channels + channel_idx];
-            sum_rx += rx_freq_hz[radio_idx * nof_channels + channel_idx];
-          }
-
-          tx_center_freq_hz[radio_idx] = sum_tx / nof_channels;
-          rx_center_freq_hz[radio_idx] = sum_rx / nof_channels;
-        }
-
-        // Configure radios
-        for (size_t i = 0; i < nof_radios; ++i) {
-          Debug("Setting radio " << i << "...");
-          // Lock mboard clocks
-          Debug("Setting sync source to " << sync_source) radio_ctrl[i]->set_clock_source(sync_source);
-          radio_ctrl[i]->set_time_source(sync_source);
-
-          // Set sample rate
-          Debug("Setting TX/RX Rate: " << master_clock_rate / 1e6 << " Msps...");
-          radio_ctrl[i]->set_rate(master_clock_rate);
-          Debug("Actual TX/RX Rate:" << radio_ctrl[i]->get_rate() / 1e6 << " Msps...");
-
-          // Set tx freq
-          Debug("Setting TX Freq: " << tx_center_freq_hz[i] / 1e6 << " MHz...");
-          radio_ctrl[i]->set_tx_frequency(tx_center_freq_hz[i], 0);
-          tx_center_freq_hz[i] = radio_ctrl[i]->get_tx_frequency(0);
-          Debug("Actual TX Freq: " << tx_center_freq_hz[i] / 1e6 << " MHz...");
-
-          // Set rx freq
-          Debug("Setting RX Freq: " << rx_center_freq_hz[i] / 1e6 << " MHz...");
-          radio_ctrl[i]->set_rx_frequency(rx_center_freq_hz[i], 0);
-          rx_center_freq_hz[i] = radio_ctrl[i]->get_rx_frequency(0);
-          Debug("Actual RX Freq: " << rx_center_freq_hz[i] / 1e6 << " MHz...");
-
-          // set the IF filter bandwidth
-          Debug("Setting RX Bandwidth: " << bw_hz / 1e6 << " MHz...");
-          radio_ctrl[i]->set_rx_bandwidth(bw_hz, 0);
-          Debug("Actual RX Bandwidth: " << radio_ctrl[i]->get_rx_bandwidth(0) / 1e6 << " MHz...");
-
-          // set the rf gain
-          Debug("Setting RX Gain: " << rx_gain_db << " dB...");
-          radio_ctrl[i]->set_rx_gain(rx_gain_db, 0);
-          Debug("Actual RX Gain: " << radio_ctrl[i]->get_rx_gain(0) << " dB...");
-
-          // set the antenna
-          radio_ctrl[i]->set_rx_antenna("TX/RX", 0);
-        }
-
-        // Sleep for some time
-        std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(1000 * SETUP_TIME_S)));
-
-        // Setup DDCs and DUCs
-        for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
-          for (size_t channel_idx = 0; channel_idx < nof_channels; channel_idx++) {
-            size_t rf_channel_idx = nof_channels * radio_idx + channel_idx;
-
-            { // Setup DDC
-              uhd::device_addr_t ddc_args;
-              ddc_args.set("output_rate", std::to_string(srate_hz));
-              ddc_args.set("input_rate", std::to_string(master_clock_rate));
-              ddc_args.set("freq", std::to_string(rx_freq_hz[rf_channel_idx] - rx_center_freq_hz[radio_idx]));
-              ddc_args.set("fullscale", "1.0");
-
-              Debug("Configure " << ddc_id[radio_idx] << ":" << channel_idx << " with args " << ddc_args.to_string());
-
-              ddc_ctrl[radio_idx]->set_args(ddc_args, channel_idx);
-            }
-
-            { // Setup DUC
-              uhd::device_addr_t duc_args;
-              duc_args.set("output_rate", std::to_string(master_clock_rate));
-              duc_args.set("input_rate", std::to_string(srate_hz));
-              duc_args.set("freq", std::to_string(tx_freq_hz[rf_channel_idx] - tx_center_freq_hz[radio_idx]));
-              duc_args.set("fullscale", "1.0");
-
-              Debug("Configure " << duc_id[radio_idx] << ":" << channel_idx << " with args " << duc_args.to_string());
-
-              duc_ctrl[radio_idx]->set_args(duc_args, channel_idx);
-            }
-
-            { // Setup DMA FIFO
-              uhd::device_addr_t dma_fifo_args;
-              dma_fifo_args.set("base_addr", std::to_string(dma_fifo_depth * rf_channel_idx));
-              dma_fifo_args.set("depth", std::to_string(dma_fifo_depth));
-
-              Debug("Configure " << dma_id << ":" << rf_channel_idx << " with args " << dma_fifo_args.to_string());
-
-              dma_ctrl->set_args(dma_fifo_args, rf_channel_idx);
-            }
-          }
-          Debug("Configuration done!")
+          dma_ctrl->set_args(dma_fifo_args, i);
         })
   }
 
   uhd_error connect()
   {
-    UHD_SAFE_C_SAVE_ERROR(this, for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
-      // Radio -> DDC
-      Debug("Connecting " << radio_id[radio_idx] << ":0 -> " << ddc_id[radio_idx] << ":0");
-      rx_graph->connect(radio_id[radio_idx], 0, ddc_id[radio_idx], 0, nof_samples_per_packet);
+    UHD_SAFE_C_SAVE_ERROR(this,
 
-      // DUC -> Radio
-      Debug("Connecting " << duc_id[radio_idx] << ":0 -> " << radio_id[radio_idx] << ":0");
-      tx_graph->connect(duc_id[radio_idx], 0, radio_id[radio_idx], 0, nof_samples_per_packet);
+                          // Get Tx and Rx Graph
+                          rx_graph = device3->create_graph("rx_graph");
+                          tx_graph = device3->create_graph("tx_graph");
 
-      // DMA FIFO -> DUC
-      for (size_t channel_idx = 0; channel_idx < nof_channels; channel_idx++) {
-        size_t dma_port = radio_idx * nof_channels + channel_idx;
-        Debug("Connecting " << dma_id << ":" << dma_port << " -> " << duc_id[radio_idx] << ":" << channel_idx);
-        tx_graph->connect(dma_id, dma_port, duc_id[radio_idx], channel_idx, nof_samples_per_packet);
-      }
-    })
+                          for (size_t i = 0; i < nof_radios; i++) {
+                            // Radio -> DDC
+                            UHD_LOG_DEBUG(rx_graph->get_name(), "Connecting " << radio_id[i] << " -> " << ddc_id[i]);
+                            rx_graph->connect(radio_id[i], 0, ddc_id[i], 0, nof_samples_per_packet);
+
+                            // DUC -> Radio
+                            UHD_LOG_DEBUG(tx_graph->get_name(), "Connecting " << duc_id[i] << " -> " << radio_id[i]);
+                            tx_graph->connect(duc_id[i], 0, radio_id[i], 0, nof_samples_per_packet);
+
+                            // DMA FIFO -> DUC
+                            for (size_t j = 0; j < nof_channels; j++) {
+                              size_t dma_port = i * nof_channels + j;
+                              UHD_LOG_DEBUG(tx_graph->get_name(),
+                                            "Connecting " << dma_id << ":" << dma_port << " -> " << duc_id[i] << ":"
+                                                          << j);
+                              tx_graph->connect(dma_id, dma_port, duc_id[i], j, nof_samples_per_packet);
+                            }
+                          })
   }
 
   uhd_error get_streams()
@@ -425,6 +351,12 @@ public:
       return err;
     }
 
+    // Connect components
+    err = connect();
+    if (err != UHD_ERROR_NONE) {
+      return err;
+    }
+
     return UHD_ERROR_NONE;
   }
 
@@ -468,7 +400,11 @@ public:
   }
   uhd_error set_sync_source(const std::string& source) override
   {
-    sync_source = source;
+    Debug("Setting sync source to " << source);
+    for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
+      radio_ctrl[radio_idx]->set_clock_source(source);
+      radio_ctrl[radio_idx]->set_time_source(source);
+    }
     return UHD_ERROR_NONE;
   }
   uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) override
@@ -479,64 +415,212 @@ public:
     return UHD_ERROR_NONE;
   }
   uhd_error set_master_clock_rate(double rate) override { return UHD_ERROR_NONE; }
-  uhd_error set_rx_rate(double rate) override { return UHD_ERROR_NONE; }
-  uhd_error set_tx_rate(double rate) override { return UHD_ERROR_NONE; }
+  uhd_error set_rx_rate(double rate) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, for (size_t i = 0; i < nof_radios; i++) {
+      for (size_t j = 0; j < nof_channels; j++) {
+        UHD_LOG_DEBUG(ddc_id[i], "Setting channel " << j << " output rate to " << rate / 1e6 << " MHz");
+        ddc_ctrl[i]->set_arg("output_rate", std::to_string(rate), j);
+      }
+    })
+  }
+  uhd_error set_tx_rate(double rate) override
+  {
+    UHD_SAFE_C_SAVE_ERROR(this, for (size_t i = 0; i < nof_radios; i++) {
+      for (size_t j = 0; j < nof_channels; j++) {
+        UHD_LOG_DEBUG(duc_id[i], "Setting channel " << j << " input rate to " << rate / 1e6 << " MHz");
+        duc_ctrl[i]->set_arg("input_rate", std::to_string(rate), j);
+      }
+    })
+  }
   uhd_error set_command_time(const uhd::time_spec_t& timespec) override { return UHD_ERROR_NONE; }
   uhd_error get_rx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) override
   {
-    uhd_error err;
+    UHD_SAFE_C_SAVE_ERROR(
+        this, uhd::stream_args_t stream_args("fc32", "sc16");
 
-    // Get Tx and Rx Graph
-    tx_graph = device3->create_graph("tx_graph");
-    rx_graph = device3->create_graph("rx_graph");
+        stream_args.channels.resize(nof_radios * nof_channels);
 
-    // Configure components
-    err = configure();
-    if (err != UHD_ERROR_NONE) {
-      return err;
-    }
+        // Populate stream arguments with RF-NOC blocks interfaces
+        size_t channel_count = 0;
+        for (size_t i = 0; i < nof_radios; i++) {
+          for (size_t j = 0; j < nof_channels; j++, channel_count++) {
+            std::string channel_str = std::to_string(channel_count);
 
-    // Connect components
-    err = connect();
-    if (err != UHD_ERROR_NONE) {
-      return err;
-    }
+            stream_args.args["block_id" + channel_str]   = DDC_BLOCK_NAME + "_" + std::to_string(i);
+            stream_args.args["block_port" + channel_str] = std::to_string(j);
+            stream_args.channels[channel_count]          = channel_count;
+          }
+        }
 
-    // Get streams
-    err = get_streams();
-    if (err != UHD_ERROR_NONE) {
-      return err;
-    }
-
-    max_num_samps = rx_stream->get_max_num_samps();
-    return UHD_ERROR_NONE;
+        Debug("Getting Rx Stream with arguments " << stream_args.args.to_pp_string());
+        rx_stream     = device3->get_rx_stream(stream_args);
+        max_num_samps = rx_stream->get_max_num_samps();)
   }
   uhd_error get_tx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) override
   {
-    max_num_samps = tx_stream->get_max_num_samps();
-    return UHD_ERROR_NONE;
+    UHD_SAFE_C_SAVE_ERROR(
+        this, uhd::stream_args_t stream_args("fc32", "sc16");
+
+        stream_args.channels.resize(nof_radios * nof_channels);
+
+        // Populate stream arguments with RF-NOC blocks interfaces
+        size_t channel_count = 0;
+        for (size_t i = 0; i < nof_radios; i++) {
+          for (size_t j = 0; j < nof_channels; j++, channel_count++) {
+            std::string channel_str = std::to_string(channel_count);
+
+            stream_args.args["block_id" + channel_str]   = DMA_FIFO_BLOCK_NAME + "_0";
+            stream_args.args["block_port" + channel_str] = channel_str;
+            stream_args.channels[channel_count]          = channel_count;
+          }
+        }
+
+        Debug("Getting Tx Stream with arguments " << stream_args.args.to_pp_string());
+        tx_stream     = device3->get_tx_stream(stream_args);
+        max_num_samps = tx_stream->get_max_num_samps();)
   }
-  uhd_error set_tx_gain(size_t ch, double gain) override { return UHD_ERROR_NONE; }
-  uhd_error set_rx_gain(size_t ch, double gain) override { return UHD_ERROR_NONE; }
-  uhd_error get_rx_gain(double& gain) override { return UHD_ERROR_NONE; }
-  uhd_error get_tx_gain(double& gain) override { return UHD_ERROR_NONE; }
-  uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq) override
+  uhd_error set_tx_gain(size_t ch, double gain) override
   {
-    if (ch < tx_freq_hz.size()) {
-      tx_freq_hz[ch] = target_freq;
-      actual_freq    = tx_freq_hz[ch];
+    if (ch >= nof_channels * nof_radios) {
+      last_error = "Invalid channel index " + std::to_string(ch);
+      return UHD_ERROR_INDEX;
     }
 
-    return UHD_ERROR_NONE;
+    size_t radio_idx   = ch / nof_channels;
+    size_t channel_idx = ch % nof_channels;
+
+    // Set the gain for the channel zero only
+    if (channel_idx != 0) {
+      last_error = "None";
+      return UHD_ERROR_NONE;
+    }
+
+    UHD_SAFE_C_SAVE_ERROR(
+        this, UHD_LOG_DEBUG(radio_id[radio_idx], "Setting TX Gain: " << gain << " dB...");
+        radio_ctrl[radio_idx]->set_tx_gain(gain, 0);
+        UHD_LOG_DEBUG(radio_id[radio_idx], "Actual TX Gain: " << radio_ctrl[radio_idx]->get_rx_gain(0) << " dB...");)
+  }
+
+  uhd_error set_rx_gain(size_t ch, double gain) override
+  {
+    if (ch >= nof_channels * nof_radios) {
+      last_error = "Invalid channel index " + std::to_string(ch);
+      return UHD_ERROR_INDEX;
+    }
+
+    size_t radio_idx   = ch / nof_channels;
+    size_t channel_idx = ch % nof_channels;
+
+    // Set the gain for the channel zero only
+    if (channel_idx != 0) {
+      last_error = "None";
+      return UHD_ERROR_NONE;
+    }
+
+    UHD_SAFE_C_SAVE_ERROR(
+        this, UHD_LOG_DEBUG(radio_id[radio_idx], "Setting RX Gain: " << gain << " dB...");
+        radio_ctrl[radio_idx]->set_rx_gain(gain, 0);
+        UHD_LOG_DEBUG(radio_id[radio_idx], "Actual RX Gain: " << radio_ctrl[radio_idx]->get_rx_gain(0) << " dB...");)
+  }
+  uhd_error get_tx_gain(double& gain) override { UHD_SAFE_C_SAVE_ERROR(this, gain = radio_ctrl[0]->get_tx_gain(0);) }
+  uhd_error get_rx_gain(double& gain) override { UHD_SAFE_C_SAVE_ERROR(this, gain = radio_ctrl[0]->get_rx_gain(0);) }
+  uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq) override
+  {
+    if (ch >= tx_freq_hz.size()) {
+      last_error = "Invalid channel index " + std::to_string(ch);
+      return UHD_ERROR_INDEX;
+    }
+
+    if (not std::isnormal(target_freq)) {
+      last_error = "Invalid TX frequency value " + std::to_string(target_freq) + " for channel " + std::to_string(ch);
+      return UHD_ERROR_VALUE;
+    }
+
+    // Nothing to update
+    if (std::round(tx_freq_hz[ch]) == std::round(target_freq)) {
+      last_error = "None";
+      return UHD_ERROR_NONE;
+    }
+
+    // Update frequency
+    tx_freq_hz[ch] = target_freq;
+    actual_freq    = tx_freq_hz[ch];
+
+    UHD_SAFE_C_SAVE_ERROR(this,
+
+                          // For each radio...
+                          for (size_t i = 0; i < nof_radios; i++) {
+                            // Calculate center frequency from average
+                            double center_freq_hz = 0.0;
+                            for (size_t j = 0; j < nof_channels; j++) {
+                              if (not std::isnormal(tx_freq_hz[i * nof_channels + j])) {
+                                tx_freq_hz[i * nof_channels + j] = target_freq;
+                              }
+                              center_freq_hz += tx_freq_hz[i * nof_channels + j];
+                            }
+                            center_freq_hz /= nof_channels;
+
+                            // Set Radio Tx freq
+                            UHD_LOG_DEBUG(radio_id[i], "Setting TX Freq: " << center_freq_hz / 1e6 << " MHz...");
+                            radio_ctrl[i]->set_tx_frequency(center_freq_hz, 0);
+                            center_freq_hz = radio_ctrl[i]->get_tx_frequency(0);
+                            UHD_LOG_DEBUG(radio_id[i], "Actual TX Freq: " << center_freq_hz / 1e6 << " MHz...");
+
+                            // Setup DUC
+                            for (size_t j = 0; j < nof_channels; j++) {
+                              double freq_hz = tx_freq_hz[nof_channels * i + j] - center_freq_hz;
+                              UHD_LOG_DEBUG(duc_id[i], "Setting " << j << " freq: " << freq_hz / 1e6 << " MHz ...");
+                              duc_ctrl[i]->set_arg("freq", std::to_string(freq_hz), j);
+                            }
+                          })
   }
   uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq) override
   {
-    if (ch < rx_freq_hz.size()) {
-      rx_freq_hz[ch] = target_freq;
-      actual_freq    = rx_freq_hz[ch];
+    if (ch >= rx_freq_hz.size()) {
+      last_error = "Invalid channel index " + std::to_string(ch);
+      return UHD_ERROR_INDEX;
     }
 
-    return UHD_ERROR_NONE;
+    if (not std::isnormal(target_freq)) {
+      last_error = "Invalid TX frequency value " + std::to_string(target_freq) + " for channel " + std::to_string(ch);
+      return UHD_ERROR_VALUE;
+    }
+
+    // Nothing to update
+    if (std::round(rx_freq_hz[ch]) == std::round(target_freq)) {
+      last_error = "None";
+      return UHD_ERROR_NONE;
+    }
+
+    // Update frequency
+    rx_freq_hz[ch] = target_freq;
+    actual_freq    = rx_freq_hz[ch];
+
+    UHD_SAFE_C_SAVE_ERROR(this, for (size_t i = 0; i < nof_radios; i++) {
+      // Calculate center frequency from average
+      double center_freq_hz = 0.0;
+      for (size_t j = 0; j < nof_channels; j++) {
+        if (not std::isnormal(rx_freq_hz[i * nof_channels + j])) {
+          rx_freq_hz[i * nof_channels + j] = target_freq;
+        }
+        center_freq_hz += rx_freq_hz[i * nof_channels + j];
+      }
+      center_freq_hz /= nof_channels;
+
+      // Set Radio Tx freq
+      UHD_LOG_DEBUG(radio_id[i], "Setting RX Freq: " << center_freq_hz / 1e6 << " MHz...");
+      radio_ctrl[i]->set_rx_frequency(center_freq_hz, 0);
+      center_freq_hz = radio_ctrl[i]->get_rx_frequency(0);
+      UHD_LOG_DEBUG(radio_id[i], "Actual RX Freq: " << center_freq_hz / 1e6 << " MHz...");
+
+      // Setup DDC
+      for (size_t j = 0; j < nof_channels; j++) {
+        double freq_hz = rx_freq_hz[nof_channels * i + j] - center_freq_hz;
+        UHD_LOG_DEBUG(ddc_id[i], "Setting " << j << " freq: " << freq_hz / 1e6 << " MHz ...");
+        ddc_ctrl[i]->set_arg("freq", std::to_string(freq_hz), j);
+      }
+    })
   }
 };
 
