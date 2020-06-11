@@ -29,12 +29,8 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp*      rlc_,
                                  srsue::gw_interface_pdcp*       gw_,
                                  srslte::task_handler_interface* task_executor_,
                                  srslte::log_ref                 log_) :
-  pdcp_entity_base(task_executor_, log_),
-  rlc(rlc_),
-  rrc(rrc_),
-  gw(gw_)
-{
-}
+  pdcp_entity_base(task_executor_, log_), rlc(rlc_), rrc(rrc_), gw(gw_)
+{}
 
 pdcp_entity_lte::~pdcp_entity_lte()
 {
@@ -79,15 +75,15 @@ void pdcp_entity_lte::reestablish()
   log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // For SRBs
   if (is_srb()) {
-    tx_count           = 0;
-    rx_hfn             = 0;
-    next_pdcp_rx_sn    = 0;
+    tx_count        = 0;
+    rx_hfn          = 0;
+    next_pdcp_rx_sn = 0;
   } else {
     // Only reset counter in RLC-UM
     if (rlc->rb_is_um(lcid)) {
-      tx_count           = 0;
-      rx_hfn             = 0;
-      next_pdcp_rx_sn    = 0;
+      tx_count        = 0;
+      rx_hfn          = 0;
+      next_pdcp_rx_sn = 0;
     }
   }
 }
@@ -368,6 +364,22 @@ bool pdcp_entity_lte::check_valid_config()
     return false;
   }
   return true;
+}
+
+/****************************************************************************
+ * Internal state getters/setters
+ ***************************************************************************/
+pdcp_lte_state_t pdcp_entity_lte::get_state()
+{
+  return pdcp_lte_state_t{tx_count, rx_hfn, next_pdcp_rx_sn, last_submitted_pdcp_rx_sn};
+}
+
+void pdcp_entity_lte::set_state(const pdcp_lte_state_t& state)
+{
+  tx_count                  = state.tx_count;
+  rx_hfn                    = state.rx_hfn;
+  next_pdcp_rx_sn           = state.next_pdcp_rx_sn;
+  last_submitted_pdcp_rx_sn = state.last_submitted_pdcp_rx_sn;
 }
 
 } // namespace srslte

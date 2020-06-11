@@ -39,6 +39,13 @@ namespace srslte {
 
 #define PDCP_CONTROL_MAC_I 0x00000000
 
+struct pdcp_lte_state_t {
+  uint32_t tx_count;
+  uint32_t rx_hfn;
+  uint32_t next_pdcp_rx_sn;
+  uint32_t last_submitted_pdcp_rx_sn;
+};
+
 /****************************************************************************
  * LTE PDCP Entity
  * Class for LTE PDCP entities
@@ -57,8 +64,10 @@ public:
   void reestablish();
 
   // GW/RRC interface
-  void write_sdu(unique_byte_buffer_t sdu, bool blocking);
-  void get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn);
+  void             write_sdu(unique_byte_buffer_t sdu, bool blocking);
+  void             get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn);
+  pdcp_lte_state_t get_state();
+  void             set_state(const pdcp_lte_state_t& state);
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
