@@ -371,8 +371,6 @@ public:
                                                                            &get_unchecked<init_state_t>());
       }
     }
-    state_list(state_list&&) noexcept = default;
-    state_list& operator=(state_list&&) noexcept = default;
 
     template <typename State>
     bool is() const
@@ -417,8 +415,6 @@ public:
   };
 
   explicit fsm_t(srslte::log_ref log_) : log_h(log_) {}
-  fsm_t(fsm_t&&) noexcept = default;
-  fsm_t& operator=(fsm_t&&) noexcept = default;
 
   // Push Events to FSM
   template <typename Ev>
@@ -542,8 +538,8 @@ public:
   static const bool is_nested = true;
 
   explicit nested_fsm_t(ParentFSM* parent_fsm_) : fsm_t<Derived>(parent_fsm_->get_log()), fsm_ptr(parent_fsm_) {}
-  nested_fsm_t(nested_fsm_t&&) noexcept = default;
-  nested_fsm_t& operator=(nested_fsm_t&&) noexcept = default;
+  nested_fsm_t(nested_fsm_t&&) = default;
+  nested_fsm_t& operator=(nested_fsm_t&&) = default;
 
   // Get pointer to outer FSM in case of HSM
   const parent_t* parent_fsm() const { return fsm_ptr; }

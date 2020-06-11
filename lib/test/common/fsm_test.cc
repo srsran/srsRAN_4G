@@ -63,8 +63,8 @@ public:
     };
 
     explicit fsm2(fsm1* f_) : nested_fsm_t(f_) {}
-    fsm2(fsm2&&) noexcept = default;
-    fsm2& operator=(fsm2&&) noexcept = default;
+    fsm2(fsm2&&)  = default;
+    fsm2& operator=(fsm2&&) = default;
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
 
   private:
