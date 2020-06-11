@@ -1264,7 +1264,7 @@ proc_outcome_t rrc::connection_reest_proc::step_cell_configuration()
         return cell_criteria();
       } else {
         // Required SIBs are not available
-        Error("Failed to configure serving cell\n");
+        Error("Failed to configure serving cell. Couldn't acquire SIBs.\n");
         return proc_outcome_t::error;
       }
     } else {
