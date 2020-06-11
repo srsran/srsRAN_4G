@@ -19,11 +19,6 @@
  *
  */
 
-#include <uhd/version.hpp>
-
-// RF-NOC is only available for UHD 3.15 LTS
-#if UHD_VERSION >= 3150000 && UHD_VERSION < 3160000
-
 #ifndef SRSLTE_RF_UHD_RFNOC_H
 #define SRSLTE_RF_UHD_RFNOC_H
 
@@ -58,21 +53,20 @@ class rf_uhd_rfnoc : public rf_uhd_safe_interface
 {
 private:
   uhd::device3::sptr      device3;
-  uhd::rfnoc::graph::sptr tx_graph;
-  uhd::rfnoc::graph::sptr rx_graph;
+  uhd::rfnoc::graph::sptr graph;
 
   // Constant parameters
   const std::string RADIO_BLOCK_NAME = "Radio";
 #ifdef UHD_ENABLE_CUSTOM_RFNOC
-  const std::string                      DDC_BLOCK_NAME = "DDCch2";
-  const std::string                      DUC_BLOCK_NAME = "DUCch2";
-  typedef uhd::rfnoc::ddc_ch2_block_ctrl ddc_ctrl_t;
-  typedef uhd::rfnoc::duc_ch2_block_ctrl duc_ctrl_t;
+  const std::string                   DDC_BLOCK_NAME = "DDCch2";
+  const std::string                   DUC_BLOCK_NAME = "DUCch2";
+  typedef uhd::rfnoc::block_ctrl_base ddc_ctrl_t;
+  typedef uhd::rfnoc::block_ctrl_base duc_ctrl_t;
 #else  // UHD_ENABLE_CUSTOM_RFNOC
-  const std::string                        DDC_BLOCK_NAME = "DDC";
-  const std::string                        DUC_BLOCK_NAME = "DUC";
-  typedef uhd::rfnoc::ddc_block_ctrl::sptr ddc_ctrl_t;
-  typedef uhd::rfnoc::duc_block_ctrl::sptr duc_ctrl_t;
+  const std::string                  DDC_BLOCK_NAME = "DDC";
+  const std::string                  DUC_BLOCK_NAME = "DUC";
+  typedef uhd::rfnoc::ddc_block_ctrl ddc_ctrl_t;
+  typedef uhd::rfnoc::duc_block_ctrl duc_ctrl_t;
 #endif // UHD_ENABLE_CUSTOM_RFNOC
 
   const std::string  DMA_FIFO_BLOCK_NAME = "DmaFIFO";
@@ -81,6 +75,7 @@ private:
   const uhd::fs_path TREE_RX_SENSORS     = "/mboards/0/dboards/A/rx_frontends/0/sensors";
   const std::string  TX_ANTENNA_PORT     = "TX/RX";
   const std::string  RX_ANTENNA_PORT     = "RX2";
+  const size_t       spp                 = 246;
 
   // Primary parameters
   double              master_clock_rate = 184.32e6;
@@ -89,7 +84,7 @@ private:
   size_t              nof_channels      = 1; ///< Number of Channels per Radio
   std::vector<double> rx_freq_hz;
   std::vector<double> tx_freq_hz;
-  size_t              nof_samples_per_packet = 0;
+  size_t              nof_samples_per_packet = spp * 4 + 2 * sizeof(uint64_t);
   size_t              dma_fifo_depth         = 8192UL * 4096UL;
 
   // Radio control
@@ -190,6 +185,9 @@ private:
           // set Tx antenna
           UHD_LOG_DEBUG(radio_id[i], "Setting TX antenna: " << TX_ANTENNA_PORT);
           radio_ctrl[i]->set_tx_antenna(TX_ANTENNA_PORT, 0);
+
+          radio_ctrl[i]->enable_rx_timestamps(true, 0);
+          radio_ctrl[i]->set_arg("spp", spp);
         }
 
         // Sleep for some time
@@ -254,58 +252,26 @@ private:
     UHD_SAFE_C_SAVE_ERROR(this,
 
                           // Get Tx and Rx Graph
-                          rx_graph = device3->create_graph("rx_graph");
-                          tx_graph = device3->create_graph("tx_graph");
+                          graph = device3->create_graph("graph");
 
                           for (size_t i = 0; i < nof_radios; i++) {
                             // Radio -> DDC
-                            UHD_LOG_DEBUG(rx_graph->get_name(), "Connecting " << radio_id[i] << " -> " << ddc_id[i]);
-                            rx_graph->connect(radio_id[i], 0, ddc_id[i], 0, nof_samples_per_packet);
+                            UHD_LOG_DEBUG(graph->get_name(), "Connecting " << radio_id[i] << " -> " << ddc_id[i]);
+                            graph->connect(radio_id[i], 0, ddc_id[i], 0, nof_samples_per_packet);
 
                             // DUC -> Radio
-                            UHD_LOG_DEBUG(tx_graph->get_name(), "Connecting " << duc_id[i] << " -> " << radio_id[i]);
-                            tx_graph->connect(duc_id[i], 0, radio_id[i], 0, nof_samples_per_packet);
+                            UHD_LOG_DEBUG(graph->get_name(), "Connecting " << duc_id[i] << " -> " << radio_id[i]);
+                            graph->connect(duc_id[i], 0, radio_id[i], 0, nof_samples_per_packet);
 
                             // DMA FIFO -> DUC
                             for (size_t j = 0; j < nof_channels; j++) {
                               size_t dma_port = i * nof_channels + j;
-                              UHD_LOG_DEBUG(tx_graph->get_name(),
+                              UHD_LOG_DEBUG(graph->get_name(),
                                             "Connecting " << dma_id << ":" << dma_port << " -> " << duc_id[i] << ":"
                                                           << j);
-                              tx_graph->connect(dma_id, dma_port, duc_id[i], j, nof_samples_per_packet);
+                              graph->connect(dma_id, dma_port, duc_id[i], j, nof_samples_per_packet);
                             }
                           })
-  }
-
-  uhd_error get_streams()
-  {
-    UHD_SAFE_C_SAVE_ERROR(
-        this, uhd::stream_args_t tx_stream_args("fc32", "sc16"); uhd::stream_args_t rx_stream_args("fc32", "sc16");
-
-        tx_stream_args.channels.resize(nof_radios * nof_channels);
-        rx_stream_args.channels.resize(nof_radios * nof_channels);
-
-        // Populate stream arguments with RF-NOC blocks interfaces
-        size_t channel_count = 0;
-        for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
-          for (size_t channel_idx = 0; channel_idx < nof_channels; channel_idx++, channel_count++) {
-            std::string channel_str = std::to_string(channel_count);
-
-            tx_stream_args.args["block_id" + channel_str]   = DMA_FIFO_BLOCK_NAME + "_0";
-            tx_stream_args.args["block_port" + channel_str] = std::to_string(radio_idx * nof_channels + channel_idx);
-            tx_stream_args.channels[channel_count]          = channel_count;
-
-            rx_stream_args.args["block_id" + channel_str]   = DDC_BLOCK_NAME + "_" + std::to_string(radio_idx);
-            rx_stream_args.args["block_port" + channel_str] = std::to_string(channel_idx);
-            rx_stream_args.channels[channel_count]          = channel_count;
-          }
-        }
-
-        Debug("Getting Tx Stream with arguments " << tx_stream_args.args.to_pp_string());
-        tx_stream = device3->get_tx_stream(tx_stream_args);
-
-        Debug("Getting Rx Stream with arguments " << rx_stream_args.args.to_pp_string());
-        rx_stream = device3->get_rx_stream(rx_stream_args);)
   }
 
 public:
@@ -391,8 +357,8 @@ public:
   }
   uhd_error set_time_unknown_pps(const uhd::time_spec_t& timespec) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this,
-                          for (size_t i = 0; i < nof_radios; i++) { radio_ctrl[i]->set_time_next_pps(timespec); });
+    Info("Setting time " << timespec.get_real_secs() << " at next PPS...");
+    UHD_SAFE_C_SAVE_ERROR(this, for (auto& r : radio_ctrl) { r->set_time_next_pps(timespec); });
   }
   uhd_error get_time_now(uhd::time_spec_t& timespec) override
   {
@@ -440,6 +406,7 @@ public:
         this, uhd::stream_args_t stream_args("fc32", "sc16");
 
         stream_args.channels.resize(nof_radios * nof_channels);
+        stream_args.args["spp"] = std::to_string(spp);
 
         // Populate stream arguments with RF-NOC blocks interfaces
         size_t channel_count = 0;
@@ -447,7 +414,7 @@ public:
           for (size_t j = 0; j < nof_channels; j++, channel_count++) {
             std::string channel_str = std::to_string(channel_count);
 
-            stream_args.args["block_id" + channel_str]   = DDC_BLOCK_NAME + "_" + std::to_string(i);
+            stream_args.args["block_id" + channel_str]   = ddc_id[i];
             stream_args.args["block_port" + channel_str] = std::to_string(j);
             stream_args.channels[channel_count]          = channel_count;
           }
@@ -463,6 +430,7 @@ public:
         this, uhd::stream_args_t stream_args("fc32", "sc16");
 
         stream_args.channels.resize(nof_radios * nof_channels);
+        stream_args.args["spp"] = std::to_string(spp);
 
         // Populate stream arguments with RF-NOC blocks interfaces
         size_t channel_count = 0;
@@ -470,7 +438,7 @@ public:
           for (size_t j = 0; j < nof_channels; j++, channel_count++) {
             std::string channel_str = std::to_string(channel_count);
 
-            stream_args.args["block_id" + channel_str]   = DMA_FIFO_BLOCK_NAME + "_0";
+            stream_args.args["block_id" + channel_str]   = dma_id;
             stream_args.args["block_port" + channel_str] = channel_str;
             stream_args.channels[channel_count]          = channel_count;
           }
@@ -625,4 +593,3 @@ public:
 };
 
 #endif // SRSLTE_RF_UHD_RFNOC_H
-#endif // UHD_VERSION == 3150000

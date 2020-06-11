@@ -63,6 +63,26 @@ IF(UHD_FOUND)
   # Checks whether the UHD driver supports X300 custom RF-NOC devices
   check_cxx_source_compiles("#include <uhd.h>
     #include <uhd/device3.hpp>
+    #include <uhd/rfnoc/ddc_block_ctrl.hpp>
+
+    static uhd::device3::sptr device3;
+    static uhd::rfnoc::ddc_block_ctrl::sptr ddc_ctrl;
+
+    uhd_error try_device3_ddc_ctrl()
+    {
+      ddc_ctrl = device3->get_block_ctrl<uhd::rfnoc::ddc_block_ctrl>(uhd::rfnoc::block_id_t(\"DDC_0\"));
+      return UHD_ERROR_NONE;
+    }
+
+    int main(int argc, char** argv)
+    {
+      try_device3_ddc_ctrl();
+      return 0;
+    }" UHD_ENABLE_RFNOC)
+
+  # Checks whether the UHD driver supports X300 custom RF-NOC devices
+  check_cxx_source_compiles("#include <uhd.h>
+    #include <uhd/device3.hpp>
     #include <uhd/rfnoc/ddc_ch2_block_ctrl.hpp>
 
     static uhd::device3::sptr device3;

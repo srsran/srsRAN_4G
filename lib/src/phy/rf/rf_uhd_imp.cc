@@ -32,7 +32,10 @@
 
 #include "rf_uhd_generic.h"
 #include "rf_uhd_imp.h"
+
+#ifdef UHD_ENABLE_RFNOC
 #include "rf_uhd_rfnoc.h"
+#endif // UHD_ENABLE_RFNOC
 
 #define HAVE_ASYNC_THREAD 1
 
@@ -675,11 +678,11 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   printf("Opening USRP channels=%d, args: %s\n", nof_channels, device_addr.to_string().c_str());
 
   // If RFNOC is accessible
-#ifdef SRSLTE_RF_UHD_RFNOC_H
+#ifdef UHD_ENABLE_RFNOC
   if (rf_uhd_rfnoc::is_required(device_addr)) {
     handler->uhd = std::make_shared<rf_uhd_rfnoc>();
   }
-#endif // SRSLTE_RF_UHD_RFNOC_H
+#endif // UHD_ENABLE_RFNOC
 
   // If UHD was not instanced, instance generic
   if (handler->uhd == nullptr) {
