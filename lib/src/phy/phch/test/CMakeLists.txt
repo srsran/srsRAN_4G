@@ -582,8 +582,7 @@ add_test(prach_test_multi_n16 prach_test_multi -n 16)
 add_test(prach_test_multi_n8 prach_test_multi -n 8)
 add_test(prach_test_multi_n4 prach_test_multi -n 4)
 
-
-if(UHD_FOUND)
+if(RF_FOUND)
   add_executable(prach_test_usrp prach_test_usrp.c)
   target_link_libraries(prach_test_usrp srslte_rf srslte_phy pthread)
-endif(UHD_FOUND)
+endif(RF_FOUND)
