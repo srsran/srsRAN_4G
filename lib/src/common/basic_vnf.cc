@@ -150,6 +150,9 @@ int srslte_basic_vnf::handle_msg(const uint8_t* buffer, const uint32_t len)
     case basic_vnf_api::UL_IND:
       handle_ul_ind((basic_vnf_api::ul_ind_msg_t*)header);
       break;
+    case basic_vnf_api::RX_DATA_IND:
+      handle_rx_data_ind((basic_vnf_api::rx_data_ind_msg_t*)header);
+      break;
     default:
       printf("Unknown msg type.\n");
       break;
@@ -229,6 +232,31 @@ int srslte_basic_vnf::handle_ul_ind(basic_vnf_api::ul_ind_msg_t* msg)
   ul_grant.tbs                                              = msg->pdus.length;
   ul_grant.rnti                                             = msg->rnti;
   m_ue_stack->new_grant_ul(cc_idx, ul_grant);
+
+  return SRSLTE_SUCCESS;
+}
+
+int srslte_basic_vnf::handle_rx_data_ind(basic_vnf_api::rx_data_ind_msg_t* msg)
+{
+  m_log->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->sfn);
+
+  if (msg->nof_pdus != 1 || msg->pdus[0].type != basic_vnf_api::PUSCH) {
+    m_log->error("Received UL indication for wrong PDU type\n");
+    return SRSLTE_ERROR;
+  }
+
+  // fill struct
+  srsenb::stack_interface_phy_nr::rx_data_ind_t rx_data = {};
+  rx_data.tti                                           = msg->sfn;
+  rx_data.tb                                            = srslte::allocate_unique_buffer(*m_pool);
+  if (rx_data.tb->get_tailroom() >= msg->pdus[0].length) {
+    // copy actual data
+    memcpy(rx_data.tb->msg, msg->pdus[0].data, msg->pdus[0].length);
+    rx_data.tb->N_bytes = msg->pdus[0].length;
+    if (msg->pdus[0].type == basic_vnf_api::PUSCH) {
+      m_gnb_stack->rx_data_indication(rx_data);
+    }
+  }
 
   return SRSLTE_SUCCESS;
 }

@@ -61,6 +61,7 @@ private:
   int handle_sf_ind(basic_vnf_api::sf_ind_msg_t* msg);
   int handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg);
   int handle_ul_ind(basic_vnf_api::ul_ind_msg_t* msg);
+  int handle_rx_data_ind(basic_vnf_api::rx_data_ind_msg_t* msg);
 
   // senders
   int send_dl_config_request();
@@ -75,9 +76,6 @@ private:
   srslte::byte_buffer_pool*           m_pool      = nullptr;
 
   std::unique_ptr<basic_vnf_api::tx_request_msg_t> m_tx_req_msg;
-
-  //  std::unique_ptr<srsue::stack_interface_phy_nr::mac_nr_grant_dl_t> m_dl_grant; ///< Used by UE as temp buffer for
-  //  all DL indications
 
   bool running = false;
 

@@ -58,10 +58,19 @@ namespace basic_vnf_api {
 //          |               |
 
 // Primitive API messages for basic testing basic VNF/PNF interaction
-enum msg_type_t { SF_IND, DL_CONFIG, TX_REQUEST, DL_IND, UL_IND, MSG_TYPE_NITEMS };
+enum msg_type_t {
+  SF_IND,      ///< To signal start of new subframe (later slot) for both UE and gNB
+  DL_CONFIG,   ///< To configure the DL for gNB
+  TX_REQUEST,  ///< For DL data for gNB
+  RX_DATA_IND, ///< For UL Data for gNB
+  DL_IND,      ///< For the UE for DL data
+  UL_IND,      ///< For the UE for UL Data
+  MSG_TYPE_NITEMS
+};
 static const char* msg_type_text[MSG_TYPE_NITEMS] = {"SF Indication",
                                                      "DL_CONFIG.Request",
                                                      "TX.Request",
+                                                     "RX_Data.indication"
                                                      "DL_Indication",
                                                      "UL_Indication"};
 enum pdu_type_t { MAC_PBCH, PHY_PBCH, PDCCH, PDSCH, PUSCH };
@@ -111,6 +120,22 @@ struct tx_request_msg_t {
   uint32_t         tb_len; // actual TB len
   uint32_t         nof_pdus;
   tx_request_pdu_t pdus[MAX_NUM_PDUS];
+};
+
+struct rx_data_ind_pdu_t {
+  uint16_t   length;
+  pdu_type_t type; // physical chan of pdu/tb
+  uint8_t    data[MAX_PDU_SIZE];
+};
+
+struct rx_data_ind_msg_t {
+  msg_header_t      header;
+  uint32_t          t1;       // Timestamp taken at PNF
+  uint32_t          sfn;      ///< SFN (0-1023)
+  uint32_t          slot;     ///< Slot (0-319)
+  uint32_t          tb_len;   ///< actual TB len
+  uint32_t          nof_pdus; //
+  rx_data_ind_pdu_t pdus[MAX_NUM_PDUS];
 };
 
 // UE specific messages

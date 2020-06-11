@@ -211,10 +211,24 @@ public:
   virtual int tx_request(const tx_request_t& request)               = 0;
 };
 
+class stack_interface_mac
+{
+public:
+  ///< MAC calls stack to inform about new PDUs having arrived to be further processes in stack thread
+  virtual void process_pdus() = 0;
+};
+
 class stack_interface_phy_nr : public srslte::stack_interface_phy_nr
 {
 public:
-  virtual int sf_indication(const uint32_t tti) = 0;
+  struct rx_data_ind_t {
+    uint32_t                     tti;
+    uint16_t                     rnti;
+    srslte::unique_byte_buffer_t tb;
+  };
+
+  virtual int sf_indication(const uint32_t tti)        = 0;
+  virtual int rx_data_indication(rx_data_ind_t& grant) = 0;
 };
 
 class mac_interface_phy_nr
