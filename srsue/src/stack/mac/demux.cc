@@ -83,7 +83,7 @@ uint8_t* demux::request_buffer(uint32_t len)
 /* Demultiplexing of MAC PDU associated with a Temporal C-RNTI. The PDU will
  * remain in buffer until demultiplex_pending_pdu() is called.
  * This features is provided to enable the Random Access Procedure to decide
- * wether the PDU shall pass to upper layers or not, which depends on the
+ * whether the PDU shall pass to upper layers or not, which depends on the
  * Contention Resolution result.
  *
  * Warning: this function does some processing here assuming ACK deadline is not an
