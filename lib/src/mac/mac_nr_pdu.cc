@@ -262,6 +262,15 @@ void mac_nr_sch_pdu::init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool uls
   ulsch         = ulsch_;
 }
 
+void mac_nr_sch_pdu::init_rx(bool ulsch_)
+{
+  buffer = nullptr;
+  subpdus.clear();
+  pdu_len       = 0;
+  remaining_len = 0;
+  ulsch         = ulsch_;
+}
+
 uint32_t mac_nr_sch_pdu::size_header_sdu(const uint32_t lcid, const uint32_t nbytes)
 {
   if (ulsch && (lcid == mac_nr_sch_subpdu::CCCH_SIZE_48 || lcid == mac_nr_sch_subpdu::CCCH_SIZE_64)) {

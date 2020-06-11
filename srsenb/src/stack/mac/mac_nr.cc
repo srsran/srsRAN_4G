@@ -48,14 +48,16 @@ mac_nr::~mac_nr()
 
 int mac_nr::init(const mac_nr_args_t&    args_,
                  phy_interface_stack_nr* phy_,
+                 stack_interface_mac*    stack_,
                  rlc_interface_mac_nr*   rlc_,
                  rrc_interface_mac_nr*   rrc_)
 {
   args = args_;
 
-  phy_h = phy_;
-  rlc_h = rlc_;
-  rrc_h = rrc_;
+  phy_h   = phy_;
+  stack_h = stack_;
+  rlc_h   = rlc_;
+  rrc_h   = rrc_;
 
   log_h->set_level(args.log_level);
   log_h->set_hex_limit(args.log_hex_limit);
@@ -149,6 +151,11 @@ void mac_nr::get_dl_config(const uint32_t                               tti,
       ue_tx_pdu.add_sdu(4, ue_rlc_buffer->msg, ue_rlc_buffer->N_bytes);
       ue_tx_pdu.pack();
 
+      log_h->debug_hex(ue_tx_buffer.at(buffer_index)->msg,
+                       ue_tx_buffer.at(buffer_index)->N_bytes,
+                       "Generated MAC PDU (%d B)\n",
+                       ue_tx_buffer.at(buffer_index)->N_bytes);
+
       tx_request.pdus[tx_request.nof_pdus].data[0] = ue_tx_buffer.at(buffer_index)->msg;
       tx_request.pdus[tx_request.nof_pdus].length  = ue_tx_buffer.at(buffer_index)->N_bytes;
       tx_request.pdus[tx_request.nof_pdus].index   = tx_request.nof_pdus;
@@ -185,6 +192,56 @@ int mac_nr::sf_indication(const uint32_t tti)
   // send TX.request
   phy_h->tx_request(tx_request);
 
+  return SRSLTE_SUCCESS;
+}
+
+int mac_nr::rx_data_indication(stack_interface_phy_nr::rx_data_ind_t& rx_data)
+{
+  // push received PDU on queue
+  if (rx_data.tb != nullptr) {
+    if (pcap) {
+      pcap->write_ul_crnti(rx_data.tb->msg, rx_data.tb->N_bytes, rx_data.rnti, true, rx_data.tti);
+    }
+    ue_rx_pdu_queue.push(std::move(rx_data.tb));
+  }
+
+  // inform stack that new PDUs may have been received
+  stack_h->process_pdus();
+
+  return SRSLTE_SUCCESS;
+}
+
+/**
+ * Called from the main stack thread to process received PDUs
+ */
+void mac_nr::process_pdus()
+{
+  while (started and not ue_rx_pdu_queue.empty()) {
+    srslte::unique_byte_buffer_t pdu = ue_rx_pdu_queue.wait_pop();
+    /// TODO; delegate to demux class
+    handle_pdu(std::move(pdu));
+  }
+}
+
+int mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
+{
+  log_h->info_hex(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)\n", pdu->N_bytes);
+
+  ue_rx_pdu.init_rx(true);
+  ue_rx_pdu.unpack(pdu->msg, pdu->N_bytes);
+
+  for (uint32_t i = 0; i < ue_rx_pdu.get_num_subpdus(); ++i) {
+    srslte::mac_nr_sch_subpdu subpdu = ue_rx_pdu.get_subpdu(i);
+    log_h->info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d\n",
+                i,
+                ue_rx_pdu.get_num_subpdus(),
+                subpdu.get_lcid(),
+                subpdu.get_sdu_length());
+
+    if (subpdu.get_lcid() == args.drb_lcid) {
+      rlc_h->write_pdu(args.rnti, subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+    }
+  }
   return SRSLTE_SUCCESS;
 }
 

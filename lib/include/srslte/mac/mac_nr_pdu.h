@@ -101,6 +101,7 @@ public:
   bool                     is_ulsch();
 
   void init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool is_ulsch_ = false);
+  void init_rx(bool ulsch_ = false);
 
   uint32_t add_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_);
 

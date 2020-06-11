@@ -35,8 +35,13 @@ gnb_stack_nr::gnb_stack_nr(srslte::logger* logger_) : logger(logger_), timers(12
   m_gw.reset(new srsue::gw());
   //  m_gtpu.reset(new srsenb::gtpu());
 
+  ue_queue_id         = pending_tasks.add_queue();
   sync_queue_id       = pending_tasks.add_queue();
+  gw_queue_id         = pending_tasks.add_queue();
+  mac_queue_id        = pending_tasks.add_queue();
   background_queue_id = pending_tasks.add_queue();
+
+  background_tasks.start();
 }
 
 gnb_stack_nr::~gnb_stack_nr()
@@ -74,7 +79,8 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
   mac_args.pcap          = args.mac_pcap;
   mac_args.sched         = args.mac.sched;
   mac_args.rnti          = args.coreless.rnti;
-  m_mac->init(mac_args, phy, m_rlc.get(), m_rrc.get());
+  mac_args.drb_lcid      = args.coreless.drb_lcid;
+  m_mac->init(mac_args, phy, this, m_rlc.get(), m_rrc.get());
 
   m_rlc->init(m_pdcp.get(), m_rrc.get(), m_mac.get(), &timers);
 
@@ -142,13 +148,18 @@ void gnb_stack_nr::run_thread()
 void gnb_stack_nr::run_tti(uint32_t tti)
 {
   current_tti = tti;
-  pending_tasks.push(sync_queue_id, [this]() { run_tti_impl(); });
+  pending_tasks.push(sync_queue_id, [this, tti]() { run_tti_impl(tti); });
 }
 
-void gnb_stack_nr::run_tti_impl()
+void gnb_stack_nr::run_tti_impl(uint32_t tti)
 {
   //  m_ngap->run_tti();
   timers.step_all();
+}
+
+void gnb_stack_nr::process_pdus()
+{
+  pending_tasks.push(mac_queue_id, [this]() { m_mac->process_pdus(); });
 }
 
 /********************************************************
@@ -167,6 +178,11 @@ bool gnb_stack_nr::get_metrics(srsenb::stack_metrics_t* metrics)
 int gnb_stack_nr::sf_indication(const uint32_t tti)
 {
   return m_mac->sf_indication(tti);
+}
+
+int gnb_stack_nr::rx_data_indication(rx_data_ind_t& grant)
+{
+  return m_mac->rx_data_indication(grant);
 }
 
 // Temporary GW interface

@@ -49,6 +49,7 @@ namespace srsenb {
 
 class gnb_stack_nr final : public srsenb::enb_stack_base,
                            public stack_interface_phy_nr,
+                           public stack_interface_mac,
                            public srsue::stack_interface_gw,
                            public srslte::task_handler_interface,
                            public srslte::thread
@@ -67,12 +68,16 @@ public:
 
   // PHY->MAC interface
   int sf_indication(const uint32_t tti);
+  int rx_data_indication(rx_data_ind_t& grant);
 
   // Temporary GW interface
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking);
   bool is_lcid_enabled(uint32_t lcid);
   bool switch_on();
   void run_tti(uint32_t tti);
+
+  // MAC interface to trigger processing of received PDUs
+  void process_pdus() final;
 
   // Task Handling interface
   srslte::timer_handler::unique_timer    get_unique_timer() final { return timers.get_unique_timer(); }
@@ -84,14 +89,14 @@ public:
 
 private:
   void run_thread() final;
-  void run_tti_impl();
+  void run_tti_impl(uint32_t tti);
 
   // args
   srsenb::stack_args_t    args   = {};
   srslte::logger*         logger = nullptr;
   phy_interface_stack_nr* phy    = nullptr;
 
-  // timers
+  /* Functions for MAC Timers */
   srslte::timer_handler timers;
 
   // derived
@@ -113,7 +118,7 @@ private:
   srslte::task_multiqueue          pending_tasks;
   std::vector<srslte::move_task_t> deferred_stack_tasks; ///< enqueues stack tasks from within. Avoids locking
   srslte::task_thread_pool         background_tasks;     ///< Thread pool used for long, low-priority tasks
-  int                              sync_queue_id = -1, background_queue_id = -1;
+  int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
 };
 
 } // namespace srsenb
