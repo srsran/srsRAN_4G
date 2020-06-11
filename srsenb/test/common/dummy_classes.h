@@ -77,6 +77,7 @@ public:
   {
     return true;
   }
+  bool get_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) { return true; }
 };
 
 class s1ap_dummy : public s1ap_interface_rrc

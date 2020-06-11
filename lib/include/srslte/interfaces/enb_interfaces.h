@@ -385,7 +385,8 @@ public:
   virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                                      = 0;
   virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                                     = 0;
   virtual bool
-  get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn) = 0;
+               get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn) = 0;
+  virtual bool get_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) = 0;
 };
 
 // PDCP interface for RLC

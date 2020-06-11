@@ -25,9 +25,7 @@
 namespace srsenb {
 
 pdcp::pdcp(srslte::task_handler_interface* task_executor_, const char* logname) :
-  task_executor(task_executor_),
-  log_h(logname),
-  pool(srslte::byte_buffer_pool::get_instance())
+  task_executor(task_executor_), log_h(logname), pool(srslte::byte_buffer_pool::get_instance())
 {}
 
 void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_)
@@ -130,6 +128,14 @@ bool pdcp::get_bearer_status(uint16_t  rnti,
     return false;
   }
   return users[rnti].pdcp->get_bearer_status(lcid, dlsn, dlhfn, ulsn, ulhfn);
+}
+
+bool pdcp::get_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state)
+{
+  if (users.count(rnti) == 0) {
+    return false;
+  }
+  return users[rnti].pdcp->get_state(lcid, state);
 }
 
 void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)

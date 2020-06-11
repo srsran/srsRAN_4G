@@ -364,6 +364,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       // Modify GTP-U tunnel
       parent->gtpu->mod_bearer_rnti(old_rnti, rnti);
 
+      // Get PDCP entity state (required when using RLC AM)
+      parent->pdcp->get_state(old_rnti, 3, &old_reest_pdcp_state);
+
       old_reest_rnti = old_rnti;
       state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
       set_activity_timeout(UE_RESPONSE_RX_TIMEOUT);

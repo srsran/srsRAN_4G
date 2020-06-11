@@ -369,9 +369,9 @@ bool pdcp_entity_lte::check_valid_config()
 /****************************************************************************
  * Internal state getters/setters
  ***************************************************************************/
-pdcp_lte_state_t pdcp_entity_lte::get_state()
+void pdcp_entity_lte::get_state(pdcp_lte_state_t* state)
 {
-  return pdcp_lte_state_t{tx_count, rx_hfn, next_pdcp_rx_sn, last_submitted_pdcp_rx_sn};
+  *state = {tx_count, rx_hfn, next_pdcp_rx_sn, last_submitted_pdcp_rx_sn};
 }
 
 void pdcp_entity_lte::set_state(const pdcp_lte_state_t& state)

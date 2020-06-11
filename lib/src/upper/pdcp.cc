@@ -24,10 +24,8 @@
 namespace srslte {
 
 pdcp::pdcp(srslte::task_handler_interface* task_executor_, const char* logname) :
-  task_executor(task_executor_),
-  pdcp_log(logname)
-{
-}
+  task_executor(task_executor_), pdcp_log(logname)
+{}
 
 pdcp::~pdcp()
 {
@@ -227,6 +225,15 @@ bool pdcp::get_bearer_status(uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uin
     return false;
   }
   pdcp_array[lcid]->get_bearer_status(dlsn, dlhfn, ulsn, ulhfn);
+  return true;
+}
+
+bool pdcp::get_state(uint32_t lcid, srslte::pdcp_lte_state_t* state)
+{
+  if (not valid_lcid(lcid)) {
+    return false;
+  }
+  pdcp_array[lcid]->get_state(state);
   return true;
 }
 
