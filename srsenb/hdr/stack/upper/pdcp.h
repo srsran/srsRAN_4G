@@ -55,6 +55,7 @@ public:
   bool get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
       override;
   bool get_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state);
+  bool set_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state);
 
 private:
   class user_interface_rlc : public srsue::rlc_interface_pdcp

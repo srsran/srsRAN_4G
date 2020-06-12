@@ -138,6 +138,14 @@ bool pdcp::get_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* sta
   return users[rnti].pdcp->get_state(lcid, state);
 }
 
+bool pdcp::set_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state)
+{
+  if (users.count(rnti) == 0) {
+    return false;
+  }
+  return users[rnti].pdcp->set_state(lcid, state);
+}
+
 void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   if (users.count(rnti)) {

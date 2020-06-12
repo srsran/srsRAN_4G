@@ -237,6 +237,15 @@ bool pdcp::get_state(uint32_t lcid, srslte::pdcp_lte_state_t* state)
   return true;
 }
 
+bool pdcp::set_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state)
+{
+  if (not valid_lcid(lcid)) {
+    return false;
+  }
+  pdcp_array[lcid]->set_state(state);
+  return true;
+}
+
 /*******************************************************************************
   RLC interface
 *******************************************************************************/

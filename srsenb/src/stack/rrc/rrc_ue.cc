@@ -558,7 +558,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 
   // If reconf due to reestablishment, recover PDCP state
   if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
-    // parent->pdcp->set_state(rnti, 3, old_reest_pdcp_state);
+    parent->pdcp->set_state(rnti, 3, old_reest_pdcp_state);
   }
 
   // Reuse same PDU
