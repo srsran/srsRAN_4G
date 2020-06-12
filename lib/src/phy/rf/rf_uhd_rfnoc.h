@@ -69,13 +69,13 @@ private:
   typedef uhd::rfnoc::duc_block_ctrl duc_ctrl_t;
 #endif // UHD_ENABLE_CUSTOM_RFNOC
 
-  const std::string  DMA_FIFO_BLOCK_NAME = "DmaFIFO";
-  const double       SETUP_TIME_S        = 1.0;
-  const uhd::fs_path TREE_MBOARD_SENSORS = "/mboards/0/sensors";
-  const uhd::fs_path TREE_RX_SENSORS     = "/mboards/0/dboards/A/rx_frontends/0/sensors";
-  const std::string  TX_ANTENNA_PORT     = "TX/RX";
-  const std::string  RX_ANTENNA_PORT     = "RX2";
-  const size_t       spp                 = 246;
+  const std::string               DMA_FIFO_BLOCK_NAME = "DmaFIFO";
+  const std::chrono::milliseconds SETUP_TIME_MS       = std::chrono::milliseconds(1000UL);
+  const uhd::fs_path              TREE_MBOARD_SENSORS = "/mboards/0/sensors";
+  const uhd::fs_path              TREE_RX_SENSORS     = "/mboards/0/dboards/A/rx_frontends/0/sensors";
+  const std::string               TX_ANTENNA_PORT     = "TX/RX";
+  const std::string               RX_ANTENNA_PORT     = "RX2";
+  const size_t                    spp                 = 246;
 
   // Primary parameters
   double              master_clock_rate = 184.32e6;
@@ -191,7 +191,7 @@ private:
         }
 
         // Sleep for some time
-        std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(1000 * SETUP_TIME_S)));
+        std::this_thread::sleep_for(SETUP_TIME_MS);
 
         // Create DDC control
         ddc_ctrl.resize(nof_radios);

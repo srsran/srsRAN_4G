@@ -37,7 +37,7 @@ class rf_uhd_safe_interface
 {
 private:
 #ifdef ENABLE_UHD_X300_FW_RESET
-  const double X300_SLEEP_TIME_S = 5.0;
+  const std::chrono::milliseconds X300_SLEEP_TIME_MS = std::chrono::milliseconds(5000UL);
 #endif /* ENABLE_UHD_X300_FW_RESET */
 
   virtual uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) = 0;
@@ -98,8 +98,8 @@ protected:
     }
 
     // Sleep for some time
-    Info("Wait " << std::to_string(X300_SLEEP_TIME_S) << " seconds");
-    std::this_thread::sleep_for(std::chrono::milliseconds(int64_t(1000 * X300_SLEEP_TIME_S)));
+    Info("Wait " << X300_SLEEP_TIME_MS.count() << " ms");
+    std::this_thread::sleep_for(X300_SLEEP_TIME_MS);
 
     // Try opening the device one more time
     return usrp_make_internal(dev_addr);
