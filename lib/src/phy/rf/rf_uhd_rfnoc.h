@@ -32,7 +32,9 @@
 #include <uhd/device3.hpp>
 #include <uhd/error.h>
 #include <uhd/rfnoc/block_ctrl.hpp>
+#include <uhd/rfnoc/ddc_block_ctrl.hpp>
 #include <uhd/rfnoc/dma_fifo_block_ctrl.hpp>
+#include <uhd/rfnoc/duc_block_ctrl.hpp>
 #include <uhd/rfnoc/graph.hpp>
 #include <uhd/rfnoc/radio_ctrl.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
@@ -42,9 +44,6 @@
 #ifdef UHD_ENABLE_CUSTOM_RFNOC
 #include <uhd/rfnoc/ddc_ch2_block_ctrl.hpp>
 #include <uhd/rfnoc/duc_ch2_block_ctrl.hpp>
-#else // UHD_ENABLE_CUSTOM_RFNOC
-#include <uhd/rfnoc/ddc_block_ctrl.hpp>
-#include <uhd/rfnoc/duc_block_ctrl.hpp>
 #endif // UHD_ENABLE_CUSTOM_RFNOC
 
 #include "rf_uhd_safe.h"
@@ -57,16 +56,11 @@ private:
 
   // Constant parameters
   const std::string RADIO_BLOCK_NAME = "Radio";
-#ifdef UHD_ENABLE_CUSTOM_RFNOC
-  const std::string                   DDC_BLOCK_NAME = "DDCch2";
-  const std::string                   DUC_BLOCK_NAME = "DUCch2";
-  typedef uhd::rfnoc::block_ctrl_base ddc_ctrl_t;
-  typedef uhd::rfnoc::block_ctrl_base duc_ctrl_t;
-#else  // UHD_ENABLE_CUSTOM_RFNOC
   const std::string                  DDC_BLOCK_NAME = "DDC";
   const std::string                  DUC_BLOCK_NAME = "DUC";
-  typedef uhd::rfnoc::ddc_block_ctrl ddc_ctrl_t;
-  typedef uhd::rfnoc::duc_block_ctrl duc_ctrl_t;
+#ifdef UHD_ENABLE_CUSTOM_RFNOC
+  const std::string DDC_CUSTOM_BLOCK_NAME = "DDCch2";
+  const std::string DUC_CUSTOM_BLOCK_NAME = "DUCch2";
 #endif // UHD_ENABLE_CUSTOM_RFNOC
 
   const std::string               DMA_FIFO_BLOCK_NAME = "DmaFIFO";
@@ -92,12 +86,12 @@ private:
   std::vector<uhd::rfnoc::block_id_t>       radio_id   = {};
 
   // DDC Control
-  std::vector<ddc_ctrl_t::sptr>       ddc_ctrl = {};
-  std::vector<uhd::rfnoc::block_id_t> ddc_id   = {};
+  std::vector<uhd::rfnoc::block_ctrl_base::sptr> ddc_ctrl = {};
+  std::vector<uhd::rfnoc::block_id_t>            ddc_id   = {};
 
   // DUC Control
-  std::vector<duc_ctrl_t::sptr>       duc_ctrl = {};
-  std::vector<uhd::rfnoc::block_id_t> duc_id   = {};
+  std::vector<uhd::rfnoc::block_ctrl_base::sptr> duc_ctrl = {};
+  std::vector<uhd::rfnoc::block_id_t>            duc_id   = {};
 
   // DMA FIFO Control
   uhd::rfnoc::dma_fifo_block_ctrl::sptr dma_ctrl = {};
@@ -193,12 +187,28 @@ private:
         // Sleep for some time
         std::this_thread::sleep_for(SETUP_TIME_MS);
 
+    // Detect custom DDC
+#ifdef UHD_ENABLE_CUSTOM_RFNOC
+        std::vector<uhd::rfnoc::block_id_t> custom_ddc_list      = device3->find_blocks(DDC_CUSTOM_BLOCK_NAME);
+        bool                                available_custom_ddc = not custom_ddc_list.empty();
+#endif // UHD_ENABLE_CUSTOM_RFNOC
+
         // Create DDC control
         ddc_ctrl.resize(nof_radios);
         ddc_id.resize(nof_radios);
         for (size_t i = 0; i < nof_radios; i++) {
-          ddc_id[i]   = uhd::rfnoc::block_id_t(0, DDC_BLOCK_NAME, i);
-          ddc_ctrl[i] = device3->get_block_ctrl<ddc_ctrl_t>(ddc_id[i]);
+
+#ifdef UHD_ENABLE_CUSTOM_RFNOC
+          if (available_custom_ddc) {
+            ddc_id[i]   = uhd::rfnoc::block_id_t(0, DDC_CUSTOM_BLOCK_NAME, i);
+            ddc_ctrl[i] = device3->get_block_ctrl<uhd::rfnoc::ddc_ch2_block_ctrl>(ddc_id[i]);
+          }
+#endif // UHD_ENABLE_CUSTOM_RFNOC
+
+          if (ddc_ctrl[i] == nullptr) {
+            ddc_id[i]   = uhd::rfnoc::block_id_t(0, DDC_BLOCK_NAME, i);
+            ddc_ctrl[i] = device3->get_block_ctrl<uhd::rfnoc::ddc_block_ctrl>(ddc_id[i]);
+          }
 
           for (size_t j = 0; j < nof_channels; j++) {
 
@@ -212,12 +222,27 @@ private:
           }
         }
 
+    // Detect custom DUC
+#ifdef UHD_ENABLE_CUSTOM_RFNOC
+        std::vector<uhd::rfnoc::block_id_t> custom_duc_list      = device3->find_blocks(DUC_CUSTOM_BLOCK_NAME);
+        bool                                available_custom_duc = not custom_duc_list.empty();
+#endif // UHD_ENABLE_CUSTOM_RFNOC
+
         // Create DUC control
         duc_ctrl.resize(nof_radios);
         duc_id.resize(nof_radios);
         for (size_t i = 0; i < nof_radios; i++) {
-          duc_id[i]   = uhd::rfnoc::block_id_t(0, DUC_BLOCK_NAME, i);
-          duc_ctrl[i] = device3->get_block_ctrl<duc_ctrl_t>(duc_id[i]);
+#ifdef UHD_ENABLE_CUSTOM_RFNOC
+          if (available_custom_duc) {
+            duc_id[i]   = uhd::rfnoc::block_id_t(0, DUC_CUSTOM_BLOCK_NAME, i);
+            duc_ctrl[i] = device3->get_block_ctrl<uhd::rfnoc::duc_ch2_block_ctrl>(duc_id[i]);
+          }
+#endif // UHD_ENABLE_CUSTOM_RFNOC
+
+          if (duc_ctrl[i] == nullptr) {
+            duc_id[i]   = uhd::rfnoc::block_id_t(0, DUC_BLOCK_NAME, i);
+            duc_ctrl[i] = device3->get_block_ctrl<uhd::rfnoc::duc_block_ctrl>(duc_id[i]);
+          }
 
           for (size_t j = 0; j < nof_channels; j++) {
 
