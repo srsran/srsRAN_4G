@@ -101,5 +101,8 @@ add_test(expected_test expected_test)
 if(ENABLE_5GNR)
   add_executable(pnf_dummy pnf_dummy.cc)
   target_link_libraries(pnf_dummy ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+
+  add_executable(pnf_bridge pnf_bridge.cc)
+  target_link_libraries(pnf_bridge ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 endif()
 
