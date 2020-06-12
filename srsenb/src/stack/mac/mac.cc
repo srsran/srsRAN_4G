@@ -36,10 +36,7 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-mac::mac() :
-  rar_pdu_msg(sched_interface::MAX_RAR_LIST),
-  rar_payload(),
-  common_buffers(SRSLTE_MAX_CARRIERS)
+mac::mac() : rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload(), common_buffers(SRSLTE_MAX_CARRIERS)
 {
   pthread_rwlock_init(&rwlock, nullptr);
 }
@@ -268,7 +265,6 @@ int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_c
   if (ret != SRSLTE_SUCCESS) {
     return ret;
   }
-  scheduler.dl_mac_buffer_state(crnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
   return ret;
 }
 
@@ -490,7 +486,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     Error("Ignoring RACH attempt. UE pool empty.\n");
   }
   auto     ue_ptr = ue_pool.wait_pop();
-  uint16_t rnti = ue_ptr->get_rnti();
+  uint16_t rnti   = ue_ptr->get_rnti();
 
   // Set PCAP if available
   if (pcap != nullptr) {
@@ -517,7 +513,6 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     ue_cfg.supported_cc_list.emplace_back();
     ue_cfg.supported_cc_list.back().active     = true;
     ue_cfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
-    ue_cfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
     ue_cfg.dl_cfg.tm                           = SRSLTE_TM1;
     if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
       Error("Registering new user rnti=0x%x to SCHED\n", rnti);
@@ -535,6 +530,9 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
 
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
+
+    // Schedule ConRes Msg4
+    scheduler.dl_mac_buffer_state(rnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
 
     log_h->info("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
     log_h->console("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);

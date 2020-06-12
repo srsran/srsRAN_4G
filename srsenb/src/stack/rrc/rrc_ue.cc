@@ -328,6 +328,11 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
 void rrc::ue::send_connection_reject()
 {
+  // Activate SRB0 if not yet activated
+  sched_interface::ue_bearer_cfg_t srb0{};
+  srb0.direction = sched_interface::ue_bearer_cfg_t::DL;
+  parent->mac->bearer_ue_cfg(rnti, 0, &srb0);
+
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
   send_dl_ccch(&dl_ccch_msg);

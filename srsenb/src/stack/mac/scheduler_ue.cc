@@ -879,7 +879,6 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   // Ensure there is space for ConRes and RRC Setup
   // SRB0 is a special case due to being RLC TM (no segmentation possible)
   if (not bearer_is_dl(&lch[0])) {
-    log_h->error("SRB0 must always be activated for DL\n");
     return {0, 0};
   }
   if (not carriers[ue_cc_idx].is_active()) {
