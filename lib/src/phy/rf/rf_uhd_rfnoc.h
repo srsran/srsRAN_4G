@@ -366,12 +366,11 @@ public:
   }
   uhd_error set_sync_source(const std::string& source) override
   {
-    Debug("Setting sync source to " << source);
-    for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
+    UHD_SAFE_C_SAVE_ERROR(this, for (size_t radio_idx = 0; radio_idx < nof_radios; radio_idx++) {
+      UHD_LOG_DEBUG(radio_id[radio_idx], "Setting sync source to " << source);
       radio_ctrl[radio_idx]->set_clock_source(source);
       radio_ctrl[radio_idx]->set_time_source(source);
-    }
-    return UHD_ERROR_NONE;
+    })
   }
   uhd_error get_gain_range(uhd::gain_range_t& tx_gain_range, uhd::gain_range_t& rx_gain_range) override
   {
@@ -584,9 +583,9 @@ public:
 
       // Setup DDC
       for (size_t j = 0; j < nof_channels; j++) {
-        double freq_hz = rx_freq_hz[nof_channels * i + j] - center_freq_hz;
+        double freq_hz = center_freq_hz - rx_freq_hz[nof_channels * i + j];
         UHD_LOG_DEBUG(ddc_id[i], "Setting " << j << " freq: " << freq_hz / 1e6 << " MHz ...");
-        ddc_ctrl[i]->set_arg("freq", std::to_string(freq_hz), j);
+        ddc_ctrl[i]->set_arg("freq", freq_hz, j);
       }
     })
   }
