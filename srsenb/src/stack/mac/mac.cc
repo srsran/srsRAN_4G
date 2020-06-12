@@ -260,6 +260,9 @@ int mac::ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_c
   if (temp_crnti != crnti) {
     // if C-RNTI is changed, it corresponds to older user. Handover scenario.
     ue_db[crnti]->reset();
+  } else {
+    // Schedule ConRes Msg4
+    scheduler.dl_mac_buffer_state(crnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
   }
   int ret = ue_cfg(crnti, cfg);
   if (ret != SRSLTE_SUCCESS) {
@@ -513,6 +516,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     ue_cfg.supported_cc_list.emplace_back();
     ue_cfg.supported_cc_list.back().active     = true;
     ue_cfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
+    ue_cfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
     ue_cfg.dl_cfg.tm                           = SRSLTE_TM1;
     if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
       Error("Registering new user rnti=0x%x to SCHED\n", rnti);
@@ -530,9 +534,6 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
 
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
-
-    // Schedule ConRes Msg4
-    scheduler.dl_mac_buffer_state(rnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
 
     log_h->info("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);
     log_h->console("RACH:  tti=%d, preamble=%d, offset=%d, temp_crnti=0x%x\n", tti, preamble_idx, time_adv, rnti);

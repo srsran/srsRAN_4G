@@ -879,6 +879,7 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   // Ensure there is space for ConRes and RRC Setup
   // SRB0 is a special case due to being RLC TM (no segmentation possible)
   if (not bearer_is_dl(&lch[0])) {
+    log_h->error("SRB0 must always be activated for DL\n");
     return {0, 0};
   }
   if (not carriers[ue_cc_idx].is_active()) {
@@ -894,7 +895,11 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   }
   // Add pending CEs
   if (ue_cc_idx == 0) {
-    for (const auto& ce : pending_ces) {
+    if (srb0_data == 0 and not pending_ces.empty() and pending_ces.front() == srslte::dl_sch_lcid::CON_RES_ID) {
+      // Wait for SRB0 data to be available for Msg4 before scheduling the ConRes CE
+      return {0, 0};
+    }
+    for (const ce_cmd& ce : pending_ces) {
       sum_ce_data += srslte::ce_total_size(ce);
     }
   }
