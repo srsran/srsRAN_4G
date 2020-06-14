@@ -108,6 +108,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   // Allocate RF devices
   rf_devices.resize(device_args_list.size());
   rf_info.resize(device_args_list.size());
+  rx_offset_n.resize(device_args_list.size());
 
   // Init and start Radios
   for (uint32_t device_idx = 0; device_idx < (uint32_t)device_args_list.size(); device_idx++) {
@@ -247,8 +248,39 @@ bool radio::rx_dev(const uint32_t&            device_idx,
     return false;
   }
 
-  int ret = srslte_rf_recv_with_time_multi(
-      &rf_devices[device_idx], radio_buffers, buffer.get_nof_samples(), true, full_secs, frac_secs);
+  // Apply Rx offset into the number of samples and reset value
+  int      nof_samples_offset = rx_offset_n.at(device_idx);
+  uint32_t nof_samples        = buffer.get_nof_samples();
+
+  // Number of samples adjust from device time offset
+  if (nof_samples_offset < 0 and (uint32_t)(-nof_samples_offset) > nof_samples) {
+    // Avoid overflow subtraction
+    nof_samples = 0;
+  } else {
+    // Limit the number of samples to a maximum of 2 times the requested number of samples
+    nof_samples = SRSLTE_MIN(nof_samples + nof_samples_offset, 2 * nof_samples);
+  }
+
+  // Subtract number of offset samples
+  rx_offset_n.at(device_idx) = nof_samples_offset - ((int)nof_samples - (int)buffer.get_nof_samples());
+
+  int ret =
+      srslte_rf_recv_with_time_multi(&rf_devices[device_idx], radio_buffers, nof_samples, true, full_secs, frac_secs);
+
+  // If the number of received samples filled the buffer, there is nothing else to do
+  if (buffer.get_nof_samples() <= nof_samples) {
+    return ret > 0;
+  }
+
+  // Otherwise, set rest of buffer to zero
+  uint32_t nof_zeros = buffer.get_nof_samples() - nof_samples;
+  for (auto& b : radio_buffers) {
+    if (b != nullptr) {
+      cf_t* ptr = (cf_t*)b;
+      srslte_vec_cf_zero(&ptr[nof_samples], nof_zeros);
+    }
+  }
+
   return ret > 0;
 }
 
@@ -489,6 +521,26 @@ void radio::set_rx_srate(const double& srate)
   for (srslte_rf_t& rf_device : rf_devices) {
     srslte_rf_set_rx_srate(&rf_device, srate);
   }
+}
+
+void radio::set_channel_rx_offset(uint32_t ch, int32_t offset_samples)
+{
+  int physical_channel_idx = rx_channel_mapping.get_carrier_idx(ch);
+
+  // Return if invalid index
+  if (physical_channel_idx < SRSLTE_SUCCESS) {
+    return;
+  }
+
+  // Calculate device index
+  uint32_t device_idx = (nof_antennas * (uint32_t)physical_channel_idx) / nof_channels_x_dev;
+
+  // Bound device index
+  if (device_idx >= rx_offset_n.size()) {
+    return;
+  }
+
+  rx_offset_n[ch] = offset_samples;
 }
 
 void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)

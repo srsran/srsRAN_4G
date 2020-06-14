@@ -305,6 +305,7 @@ private:
       rx_srate = (float)srate;
       log_h.info("Set Rx sampling rate to %+.3f MHz.\n", srate * 1.0e-6);
     }
+    void  set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override{};
     float get_rx_gain() override
     {
       std::unique_lock<std::mutex> lock(mutex);

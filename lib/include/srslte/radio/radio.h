@@ -73,6 +73,7 @@ public:
   void set_rx_gain(const float& gain) override;
   void set_tx_srate(const double& srate) override;
   void set_rx_srate(const double& srate) override;
+  void set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override;
 
   // getter
   double            get_freq_offset() override;
@@ -90,14 +91,15 @@ public:
   static void rf_msg_callback(void* arg, srslte_rf_error_t error);
 
 private:
-  std::vector<srslte_rf_t>      rf_devices = {};
-  std::vector<srslte_rf_info_t> rf_info    = {};
-  rf_metrics_t                  rf_metrics = {};
-  log_filter                    log_local  = {};
-  log_filter*                   log_h      = nullptr;
-  srslte::logger*               logger     = nullptr;
-  phy_interface_radio*          phy        = nullptr;
-  cf_t*                         zeros      = nullptr;
+  std::vector<srslte_rf_t>      rf_devices  = {};
+  std::vector<srslte_rf_info_t> rf_info     = {};
+  std::vector<int32_t>          rx_offset_n = {};
+  rf_metrics_t                  rf_metrics  = {};
+  log_filter                    log_local   = {};
+  log_filter*                   log_h       = nullptr;
+  srslte::logger*               logger      = nullptr;
+  phy_interface_radio*          phy         = nullptr;
+  cf_t*                         zeros       = nullptr;
 
   rf_timestamp_t end_of_burst_time  = {};
   bool           is_start_of_burst  = false;
@@ -163,9 +165,7 @@ private:
    * @param tx_time_ Timestamp to transmit (read only)
    * @return it returns true if the transmission was successful, otherwise it returns false
    */
-  bool tx_dev(const uint32_t&           device_idx,
-              rf_buffer_interface&      buffer,
-              const srslte_timestamp_t& tx_time_);
+  bool tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, const srslte_timestamp_t& tx_time_);
 
   /**
    * Helper method for receiving over a single RF device. This function maps automatically the logical receive buffers
@@ -176,9 +176,7 @@ private:
    * @param rxd_time Points at the receive time (write only)
    * @return it returns true if the reception was successful, otherwise it returns false
    */
-  bool rx_dev(const uint32_t&            device_idx,
-              const rf_buffer_interface& buffer,
-              srslte_timestamp_t*        rxd_time);
+  bool rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer, srslte_timestamp_t* rxd_time);
 
   /**
    * Helper method for mapping logical channels into physical radio buffers.

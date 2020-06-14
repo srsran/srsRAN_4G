@@ -30,6 +30,7 @@
 #include "phy_common.h"
 #include "prach.h"
 #include "scell/intra_measure.h"
+#include "scell/scell_sync.h"
 #include "search.h"
 #include "sf_worker.h"
 #include "sfn_sync.h"
@@ -47,7 +48,7 @@ namespace srsue {
 
 typedef _Complex float cf_t;
 
-class sync : public srslte::thread, public chest_feedback_itf, public search_callback
+class sync : public srslte::thread, public chest_feedback_itf, public search_callback, public scell::sync_callback
 {
 public:
   sync() : thread("SYNC"), sf_buffer(sync_nof_rx_subframes), dummy_buffer(sync_nof_rx_subframes){};
@@ -93,6 +94,25 @@ public:
 
   srslte::radio_interface_phy* get_radio() override { return radio_h; }
 
+  /**
+   * Sets secondary serving cell for synchronization purposes
+   * @param cc_idx component carrier index
+   * @param _cell Cell information
+   */
+  void scell_sync_set(uint32_t cc_idx, const srslte_cell_t& _cell);
+
+  /**
+   * Stops all secondary serving cell synchronization
+   */
+  void scell_sync_stop();
+
+  /**
+   * Implements Secondary Serving cell feedback
+   * @param ch Feedback channel
+   * @param offset Number of samples to offset
+   */
+  void set_rx_channel_offset(uint32_t ch, int32_t offset) override { radio_h->set_channel_rx_offset(ch, offset); }
+
 private:
   void reset();
   void radio_error();
@@ -136,7 +156,7 @@ private:
    * - IDLE:          Receives and discards received samples. Does not maintain synchronization.
    *
    */
-  void  run_thread() final;
+  void run_thread() final;
 
   /**
    * Helper method, executed when the UE is camping and in-sync
@@ -154,7 +174,7 @@ private:
   bool is_overflow = false;
 
   srslte::rf_timestamp_t last_rx_time;
-  bool forced_rx_time_init = true; // Rx time sync after first receive from radio
+  bool                   forced_rx_time_init = true; // Rx time sync after first receive from radio
 
   // Objects for internal use
   search                                              search_p;
@@ -179,6 +199,9 @@ private:
 
   // Object for synchronization of the primary cell
   srslte_ue_sync_t ue_sync = {};
+
+  // Object for synchronization secondary serving cells
+  std::vector<std::unique_ptr<scell::sync> > scell_sync;
 
   // Buffer for primary and secondary cell samples
   const static uint32_t sync_nof_rx_subframes = 5;

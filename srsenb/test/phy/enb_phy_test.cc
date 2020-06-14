@@ -247,6 +247,7 @@ public:
   void              set_rx_gain(const float& gain) override {}
   void              set_tx_srate(const double& srate) override {}
   void              set_rx_srate(const double& srate) override { rx_srate = srate; }
+  void              set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override{};
   void              set_tx_gain(const float& gain) override {}
   float             get_rx_gain() override { return 0; }
   double            get_freq_offset() override { return 0; }
@@ -266,16 +267,16 @@ private:
   static constexpr float prob_ul_grant = 0.10f;
   static constexpr uint32_t cfi        = 2;
 
-  srsenb::phy_cell_cfg_list_t                             phy_cell_cfg;
-  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t       phy_rrc;
-  std::mutex                                              mutex;
-  std::condition_variable                                 cvar;
-  srslte::log_filter                                      log_h;
-  srslte_softbuffer_tx_t                                  softbuffer_tx                                           = {};
-  srslte_softbuffer_rx_t                                  softbuffer_rx[SRSLTE_MAX_CARRIERS][SRSLTE_FDD_NOF_HARQ] = {};
-  uint8_t*                                                data       = nullptr;
-  uint16_t                                                ue_rnti    = 0;
-  srslte_random_t                                         random_gen = nullptr;
+  srsenb::phy_cell_cfg_list_t                       phy_cell_cfg;
+  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc;
+  std::mutex                                        mutex;
+  std::condition_variable                           cvar;
+  srslte::log_filter                                log_h;
+  srslte_softbuffer_tx_t                            softbuffer_tx                                           = {};
+  srslte_softbuffer_rx_t                            softbuffer_rx[SRSLTE_MAX_CARRIERS][SRSLTE_FDD_NOF_HARQ] = {};
+  uint8_t*                                          data                                                    = nullptr;
+  uint16_t                                          ue_rnti                                                 = 0;
+  srslte_random_t                                   random_gen                                              = nullptr;
 
   CALLBACK(sr_detected);
   CALLBACK(rach_detected);
@@ -754,20 +755,20 @@ typedef std::unique_ptr<dummy_stack> unique_dummy_stack_t;
 class dummy_ue
 {
 private:
-  std::vector<srslte_ue_dl_t*>                            ue_dl_v       = {};
-  std::vector<srslte_ue_ul_t*>                            ue_ul_v       = {};
-  std::vector<cf_t*>                                      buffers       = {};
-  dummy_radio*                                            radio         = nullptr;
-  uint32_t                                                sf_len        = 0;
-  uint32_t                                                nof_ports     = 0;
-  uint16_t                                                rnti          = 0;
-  srslte_dl_sf_cfg_t                                      sf_dl_cfg     = {};
-  srslte_ul_sf_cfg_t                                      sf_ul_cfg     = {};
-  srslte_softbuffer_tx_t                                  softbuffer_tx = {};
-  uint8_t*                                                tx_data       = nullptr;
-  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t       phy_rrc_cfg   = {};
-  srslte::log_filter                                      log_h;
-  std::map<uint32_t, uint32_t>                            last_ri = {};
+  std::vector<srslte_ue_dl_t*>                      ue_dl_v       = {};
+  std::vector<srslte_ue_ul_t*>                      ue_ul_v       = {};
+  std::vector<cf_t*>                                buffers       = {};
+  dummy_radio*                                      radio         = nullptr;
+  uint32_t                                          sf_len        = 0;
+  uint32_t                                          nof_ports     = 0;
+  uint16_t                                          rnti          = 0;
+  srslte_dl_sf_cfg_t                                sf_dl_cfg     = {};
+  srslte_ul_sf_cfg_t                                sf_ul_cfg     = {};
+  srslte_softbuffer_tx_t                            softbuffer_tx = {};
+  uint8_t*                                          tx_data       = nullptr;
+  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc_cfg   = {};
+  srslte::log_filter                                log_h;
+  std::map<uint32_t, uint32_t>                      last_ri = {};
 
 public:
   dummy_ue(dummy_radio* _radio, const srsenb::phy_cell_cfg_list_t& cell_list, std::string log_level, uint16_t rnti_) :
@@ -1147,10 +1148,10 @@ private:
   srslte::log_filter    log_h;
   srslte::logger_stdout logger_stdout;
 
-  args_t                                                  args = {};   ///< Test arguments
-  srsenb::phy_args_t                                      phy_args;    ///< PHY arguments
-  srsenb::phy_cfg_t                                       phy_cfg;     ///< eNb Cell/Carrier configuration
-  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t       phy_rrc_cfg; ///< UE PHY configuration
+  args_t                                            args = {};   ///< Test arguments
+  srsenb::phy_args_t                                phy_args;    ///< PHY arguments
+  srsenb::phy_cfg_t                                 phy_cfg;     ///< eNb Cell/Carrier configuration
+  srsenb::phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc_cfg; ///< UE PHY configuration
 
   uint64_t tti_counter = 0;
   typedef enum {

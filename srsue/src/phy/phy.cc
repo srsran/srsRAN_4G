@@ -303,11 +303,13 @@ void phy::meas_stop()
 
 bool phy::cell_select(const phy_cell_t* cell)
 {
+  sfsync.scell_sync_stop();
   return sfsync.cell_select(cell);
 }
 
 phy_interface_rrc_lte::cell_search_ret_t phy::cell_search(phy_cell_t* cell)
 {
+  sfsync.scell_sync_stop();
   return sfsync.cell_search(cell);
 }
 
@@ -440,9 +442,12 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
       workers[i]->set_config(cc_idx, config_);
     }
 
-    // Set inter-frequency measurement primary cell
     if (cell_info) {
+      // Set inter-frequency measurement
       sfsync.set_inter_frequency_measurement(cc_idx, earfcn, *cell_info);
+
+      // Set secondary serving cell synchronization
+      sfsync.scell_sync_set(cc_idx, *cell_info);
     }
 
     if (cc_idx == 0) {

@@ -186,6 +186,14 @@ public:
    */
   virtual void set_rx_srate(const double& srate) = 0;
 
+  /**
+   * Sets relative offset between receiver channels. It does not guarantee that the offset is corrected by the radio
+   * implementation.
+   * @param ch logical channel index
+   * @param offset_samples Offset in samples, it can be negative
+   */
+  virtual void set_channel_rx_offset(uint32_t ch, int32_t offset_samples) = 0;
+
   // getter
   virtual double            get_freq_offset()       = 0;
   virtual float             get_rx_gain()           = 0;
