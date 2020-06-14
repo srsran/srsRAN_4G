@@ -537,10 +537,9 @@ void rrc::process_release_complete(uint16_t rnti)
     if (!user_it->second->is_idle()) {
       rlc->clear_buffer(rnti);
       user_it->second->send_connection_release();
-      // There is no RRCReleaseComplete message from UE thus wait ~50 subframes for tx
-      usleep(50000);
     }
-    rem_user_thread(rnti);
+    // delay user deletion for ~50 TTI (until RRC release is sent)
+    timers->defer_callback(50, [&]() { rem_user_thread(rnti); });
   } else {
     rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
   }
