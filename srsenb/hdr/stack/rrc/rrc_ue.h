@@ -120,12 +120,12 @@ private:
   uint8_t  mmec     = 0;
 
   // state
-  sched_interface::ue_cfg_t current_sched_ue_cfg = {};
-  uint32_t                  rlf_cnt              = 0;
-  uint8_t                   transaction_id       = 0;
-  rrc_state_t               state                = RRC_STATE_IDLE;
-  uint16_t                  old_reest_rnti       = SRSLTE_INVALID_RNTI;
-  srslte::pdcp_lte_state_t  old_reest_pdcp_state = {};
+  sched_interface::ue_cfg_t                    current_sched_ue_cfg = {};
+  uint32_t                                     rlf_cnt              = 0;
+  uint8_t                                      transaction_id       = 0;
+  rrc_state_t                                  state                = RRC_STATE_IDLE;
+  uint16_t                                     old_reest_rnti       = SRSLTE_INVALID_RNTI;
+  std::map<uint16_t, srslte::pdcp_lte_state_t> old_reest_pdcp_state = {};
 
   asn1::s1ap::ue_aggregate_maximum_bitrate_s bitrates;
   bool                                       eutra_capabilities_unpacked = false;

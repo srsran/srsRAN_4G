@@ -365,14 +365,19 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
       parent->gtpu->mod_bearer_rnti(old_rnti, rnti);
 
       // Get PDCP entity state (required when using RLC AM)
-      parent->pdcp->get_state(old_rnti, 3, &old_reest_pdcp_state);
+      for (const auto& erab_pair : parent->users[old_rnti]->bearer_list.get_erabs()) {
+        uint16_t lcid              = erab_pair.second.id - 2;
+        old_reest_pdcp_state[lcid] = {};
+        parent->pdcp->get_state(old_rnti, lcid, &old_reest_pdcp_state[lcid]);
 
-      parent->rrc_log->debug(
-          "Got PDCP state: TX COUNT %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, LAST_SUBMITTED_PDCP_RX_SN %d\n",
-          old_reest_pdcp_state.tx_count,
-          old_reest_pdcp_state.rx_hfn,
-          old_reest_pdcp_state.next_pdcp_rx_sn,
-          old_reest_pdcp_state.last_submitted_pdcp_rx_sn);
+        parent->rrc_log->debug("Getting PDCP state for E-RAB with LCID %d\n", lcid);
+        parent->rrc_log->debug(
+            "Got PDCP state: TX COUNT %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, LAST_SUBMITTED_PDCP_RX_SN %d\n",
+            old_reest_pdcp_state[lcid].tx_count,
+            old_reest_pdcp_state[lcid].rx_hfn,
+            old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
+            old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
+      }
 
       old_reest_rnti = old_rnti;
       state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
@@ -558,7 +563,20 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 
   // If reconf due to reestablishment, recover PDCP state
   if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
-    parent->pdcp->set_state(rnti, 3, old_reest_pdcp_state);
+    for (const auto& erab_pair : bearer_list.get_erabs()) {
+      uint16_t lcid  = erab_pair.second.id - 2;
+      bool     is_am = parent->cfg.qci_cfg[erab_pair.second.qos_params.qci].rlc_cfg.type().value ==
+                   asn1::rrc::rlc_cfg_c::types_opts::am;
+      if (is_am) {
+        parent->rrc_log->debug(
+            "Set PDCP state: TX COUNT %d, RX_HFN %d, NEXT_PDCP_RX_SN %d, LAST_SUBMITTED_PDCP_RX_SN %d\n",
+            old_reest_pdcp_state[lcid].tx_count,
+            old_reest_pdcp_state[lcid].rx_hfn,
+            old_reest_pdcp_state[lcid].next_pdcp_rx_sn,
+            old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
+        parent->pdcp->set_state(rnti, lcid, old_reest_pdcp_state[lcid]);
+      }
+    }
   }
 
   // Reuse same PDU
