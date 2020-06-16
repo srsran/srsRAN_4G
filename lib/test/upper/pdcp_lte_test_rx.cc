@@ -25,7 +25,7 @@
  * Genric function to test reception of in-sequence packets
  */
 int test_rx(std::vector<pdcp_test_event_t>      events,
-            const pdcp_lte_initial_state&       init_state,
+            const srslte::pdcp_lte_state_t&     init_state,
             uint8_t                             pdcp_sn_len,
             srslte::pdcp_rb_type_t              rb_type,
             uint32_t                            n_sdus_exp,
@@ -96,7 +96,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::iota(test1_counts.begin(), test1_counts.end(), 31); // Starting at COUNT 31
     std::vector<pdcp_test_event_t> test1_pdus = gen_expected_pdus_vector(
         tst_sdu1, test1_counts, srslte::PDCP_SN_LEN_5, srslte::PDCP_RB_IS_SRB, sec_cfg, pool, log);
-    pdcp_lte_initial_state test1_init_state = {
+    srslte::pdcp_lte_state_t test1_init_state = {
         .tx_count = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 31, .last_submitted_pdcp_rx_sn = 30};
     TESTASSERT(test_rx(std::move(test1_pdus),
                        test1_init_state,
@@ -118,7 +118,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::iota(test_counts.begin(), test_counts.end(), 4095); // Starting at COUNT 4095
     std::vector<pdcp_test_event_t> test_pdus = gen_expected_pdus_vector(
         tst_sdu1, test_counts, srslte::PDCP_SN_LEN_12, srslte::PDCP_RB_IS_DRB, sec_cfg, pool, log);
-    pdcp_lte_initial_state test_init_state = {
+    srslte::pdcp_lte_state_t test_init_state = {
         .tx_count = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 4095, .last_submitted_pdcp_rx_sn = 4094};
     TESTASSERT(test_rx(std::move(test_pdus),
                        test_init_state,
@@ -139,7 +139,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::iota(test_counts.begin(), test_counts.end(), 31); // Starting at COUNT 31
     std::vector<pdcp_test_event_t> test_pdus = gen_expected_pdus_vector(
         tst_sdu1, test_counts, srslte::PDCP_SN_LEN_12, srslte::PDCP_RB_IS_DRB, sec_cfg, pool, log);
-    pdcp_lte_initial_state test_init_state = {
+    srslte::pdcp_lte_state_t test_init_state = {
         .tx_count = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 32, .last_submitted_pdcp_rx_sn = 31};
     TESTASSERT(test_rx(std::move(test_pdus),
                        test_init_state,

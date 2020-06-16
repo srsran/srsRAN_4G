@@ -65,15 +65,6 @@ public:
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
 
-  // State variable setters (should be used only for testing)
-  void set_tx_count(uint32_t tx_count_) { tx_count = tx_count_; }
-  void set_rx_hfn(uint32_t rx_hfn_) { rx_hfn = rx_hfn_; }
-  void set_next_pdcp_rx_sn(uint32_t next_pdcp_rx_sn_) { next_pdcp_rx_sn = next_pdcp_rx_sn_; }
-  void set_last_submitted_pdcp_rx_sn(uint32_t last_submitted_pdcp_rx_sn_)
-  {
-    last_submitted_pdcp_rx_sn = last_submitted_pdcp_rx_sn_;
-  }
-
   // Config helpers
   bool check_valid_config();
 
@@ -82,13 +73,11 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  uint32_t tx_count = 0;
+  // State variables, as defined in TS 36 323, section 7.1
+  pdcp_lte_state_t st = {};
 
-  uint32_t rx_hfn                    = 0;
-  uint32_t next_pdcp_rx_sn           = 0;
-  uint32_t reordering_window         = 0;
-  uint32_t last_submitted_pdcp_rx_sn = 0;
-  uint32_t maximum_pdcp_sn           = 0;
+  uint32_t reordering_window = 0;
+  uint32_t maximum_pdcp_sn   = 0;
 
   void handle_srb_pdu(srslte::unique_byte_buffer_t pdu);
   void handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu);

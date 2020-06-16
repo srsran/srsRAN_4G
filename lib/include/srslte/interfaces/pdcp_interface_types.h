@@ -142,12 +142,13 @@ public:
 enum srslte_direction_t { DIRECTION_NONE = 0, DIRECTION_TX, DIRECTION_RX, DIRECTION_TXRX, DIRECTION_N_ITEMS };
 static const char* srslte_direction_text[DIRECTION_N_ITEMS] = {"none", "tx", "rx", "tx/rx"};
 
-// PDCP LTE internal state
+// PDCP LTE internal state variables, as defined in TS 36 323, section 7.1
 struct pdcp_lte_state_t {
   uint32_t tx_count;
   uint32_t rx_hfn;
   uint32_t next_pdcp_rx_sn;
   uint32_t last_submitted_pdcp_rx_sn;
+  uint32_t reordering_pdcp_rx_count;
 };
 
 } // namespace srslte

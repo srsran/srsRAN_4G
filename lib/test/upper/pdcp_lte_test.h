@@ -26,13 +26,6 @@
 #include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp_entity_lte.h"
 
-struct pdcp_lte_initial_state {
-  uint32_t tx_count;
-  uint32_t rx_hfn;
-  uint32_t next_pdcp_rx_sn;
-  uint32_t last_submitted_pdcp_rx_sn;
-};
-
 // Helper struct to hold a packet and the number of clock
 // ticks to run after writing the packet to test timeouts.
 struct pdcp_test_event_t {
@@ -66,7 +59,7 @@ uint8_t sdu1[] = {0x18, 0xe2};
 uint8_t sdu2[] = {0xde, 0xad};
 
 // This is the normal initial state. All state variables are set to zero
-pdcp_lte_initial_state normal_init_state = {};
+srslte::pdcp_lte_state_t normal_init_state = {};
 
 /*
  * Helper classes to reduce copy / pasting in setting up tests
@@ -76,10 +69,7 @@ class pdcp_lte_test_helper
 {
 public:
   pdcp_lte_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg, srslte::log_ref log) :
-    rlc(log),
-    rrc(log),
-    gw(log),
-    pdcp(&rlc, &rrc, &gw, &stack, log)
+    rlc(log), rrc(log), gw(log), pdcp(&rlc, &rrc, &gw, &stack, log)
   {
     pdcp.init(0, cfg);
     pdcp.config_security(sec_cfg);
@@ -87,13 +77,7 @@ public:
     pdcp.enable_encryption(srslte::DIRECTION_TXRX);
   }
 
-  void set_pdcp_initial_state(pdcp_lte_initial_state init_state)
-  {
-    pdcp.set_tx_count(init_state.tx_count);
-    pdcp.set_rx_hfn(init_state.rx_hfn);
-    pdcp.set_next_pdcp_rx_sn(init_state.next_pdcp_rx_sn);
-    pdcp.set_last_submitted_pdcp_rx_sn(init_state.last_submitted_pdcp_rx_sn);
-  }
+  void set_pdcp_initial_state(const srslte::pdcp_lte_state_t& init_state) { pdcp.set_state(init_state); }
 
   rlc_dummy               rlc;
   rrc_dummy               rrc;
@@ -123,8 +107,8 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
   srslte::pdcp_entity_lte* pdcp = &pdcp_hlp.pdcp;
   rlc_dummy*               rlc  = &pdcp_hlp.rlc;
 
-  pdcp_lte_initial_state init_state = {};
-  init_state.tx_count               = count;
+  srslte::pdcp_lte_state_t init_state = {};
+  init_state.tx_count                 = count;
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
   srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
