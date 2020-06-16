@@ -112,7 +112,7 @@ int main(int argc, char** argv)
              metrics.num_timing_errors,
              metrics.num_pdus,
              metrics.tb_size,
-             metrics.tb_size * 8 / 1e6);
+             metrics.tb_size * 8 / 1.0e6);
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
