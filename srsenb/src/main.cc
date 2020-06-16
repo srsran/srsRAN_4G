@@ -197,6 +197,23 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("embms.m1u_multiaddr", bpo::value<string>(&args->stack.embms.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
     ("embms.m1u_if_addr", bpo::value<string>(&args->stack.embms.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
     ("embms.mcs", bpo::value<uint16_t>(&args->stack.embms.mcs)->default_value(20), "Modulation and Coding scheme of MBMS traffic.")
+
+    // NR section
+    ("enb.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte]")
+    
+    // VNF params
+    ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("gnb"), "VNF instance type [gnb,ue]")
+    ("vnf.addr", bpo::value<string>(&args->phy.vnf_args.bind_addr)->default_value("localhost"), "Address to bind VNF interface")
+    ("vnf.port", bpo::value<uint16_t>(&args->phy.vnf_args.bind_port)->default_value(3333), "Bind port")
+    ("log.vnf_level",     bpo::value<string>(&args->phy.vnf_args.log_level),   "VNF log level")
+    ("log.vnf_hex_limit", bpo::value<int>(&args->phy.vnf_args.log_hex_limit),  "VNF log hex dump limit")
+
+    // Arguments for coreless operation
+    ("coreless.ip_devname", bpo::value<string>(&args->stack.coreless.gw_args.tun_dev_name)->default_value("tun0"), "Name of the TUN device")
+    ("coreless.ip_address", bpo::value<string>(&args->stack.coreless.ip_addr)->default_value("192.168.1.1"), "IP address of the TUN device")
+    ("coreless.ip_netmask", bpo::value<string>(&args->stack.coreless.gw_args.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the TUN device")
+    ("coreless.drb_lcid", bpo::value<uint8_t>(&args->stack.coreless.drb_lcid)->default_value(4), "LCID of the dummy DRB")
+    ("coreless.rnti", bpo::value<uint16_t >(&args->stack.coreless.rnti)->default_value(1234), "RNTI of the dummy user")
     ;
 
   // Positional options - config file location

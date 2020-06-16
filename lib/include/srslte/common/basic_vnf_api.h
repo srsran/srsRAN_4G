@@ -67,12 +67,8 @@ enum msg_type_t {
   UL_IND,      ///< For the UE for UL Data
   MSG_TYPE_NITEMS
 };
-static const char* msg_type_text[MSG_TYPE_NITEMS] = {"SF Indication",
-                                                     "DL_CONFIG.Request",
-                                                     "TX.Request",
-                                                     "RX_Data.indication"
-                                                     "DL_Indication",
-                                                     "UL_Indication"};
+static const char* msg_type_text[MSG_TYPE_NITEMS] =
+    {"SF Indication", "DL_CONFIG.Request", "TX.Request", "RX_Data.indication", "DL_Indication", "UL_Indication"};
 enum pdu_type_t { MAC_PBCH, PHY_PBCH, PDCCH, PDSCH, PUSCH };
 
 struct msg_header_t {

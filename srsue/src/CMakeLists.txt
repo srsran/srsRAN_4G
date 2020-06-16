@@ -36,12 +36,17 @@ target_link_libraries(srsue   srsue_phy
                               srsue_upper
                               srsue_mac
                               srsue_rrc
+                              srsue_nr_stack
+                              srsue_rrc_nr
+                              srsue_mac_nr
                               srslte_common
                               srslte_mac
                               srslte_phy
                               srslte_radio
                               srslte_upper
                               rrc_asn1
+                              rrc_nr_asn1
+                              ngap_nr_asn1
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES})
 

@@ -34,6 +34,8 @@ namespace srsue {
 
 struct mac_nr_args_t {
   srsue::pcap_args_t pcap;
+  // TODO: remove temp variable
+  uint32_t drb_lcid;
 };
 
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr
@@ -100,6 +102,9 @@ private:
       pdu_queue; ///< currently only DCH PDUs supported (add BCH, PCH, etc)
 
   mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
+
+  /// Rx buffer
+  srslte::mac_nr_sch_pdu rx_pdu;
 
   /// Tx buffer
   srslte::mac_nr_sch_pdu       tx_pdu;

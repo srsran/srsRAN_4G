@@ -20,9 +20,12 @@
  */
 
 #include "srsenb/hdr/enb.h"
+#include "srsenb/hdr/phy/vnf_phy_nr.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
+#include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srslte/build_info.h"
+#include "srslte/radio/radio_null.h"
 #include <iostream>
 
 namespace srsenb {
@@ -43,7 +46,7 @@ enb::~enb()
 int enb::init(const all_args_t& args_, srslte::logger* logger_)
 {
   int ret = SRSLTE_SUCCESS;
-  logger = logger_;
+  logger  = logger_;
 
   // Init eNB log
   srslte::logmap::set_default_logger(logger);
@@ -62,49 +65,85 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
   pool->set_log(&pool_log);
 
   // Create layers
-  std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger));
-  if (!lte_stack) {
-    log->console("Error creating eNB stack.\n");
-    return SRSLTE_ERROR;
-  }
+  if (args.stack.type == "lte") {
+    std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte(logger));
+    if (!lte_stack) {
+      log->console("Error creating eNB stack.\n");
+      return SRSLTE_ERROR;
+    }
 
-  std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
-  if (!lte_radio) {
-    log->console("Error creating radio multi instance.\n");
-    return SRSLTE_ERROR;
-  }
+    std::unique_ptr<srslte::radio> lte_radio = std::unique_ptr<srslte::radio>(new srslte::radio(logger));
+    if (!lte_radio) {
+      log->console("Error creating radio multi instance.\n");
+      return SRSLTE_ERROR;
+    }
 
-  std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(logger));
-  if (!lte_phy) {
-    log->console("Error creating LTE PHY instance.\n");
-    return SRSLTE_ERROR;
-  }
+    std::unique_ptr<srsenb::phy> lte_phy = std::unique_ptr<srsenb::phy>(new srsenb::phy(logger));
+    if (!lte_phy) {
+      log->console("Error creating LTE PHY instance.\n");
+      return SRSLTE_ERROR;
+    }
 
-  // Init Radio
-  if (lte_radio->init(args.rf, lte_phy.get())) {
-    log->console("Error initializing radio.\n");
-    ret = SRSLTE_ERROR;
-  }
+    // Init Radio
+    if (lte_radio->init(args.rf, lte_phy.get())) {
+      log->console("Error initializing radio.\n");
+      ret = SRSLTE_ERROR;
+    }
 
-  // Only Init PHY if radio couldn't be initialized
-  if (ret == SRSLTE_SUCCESS) {
-    if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
+    // Only Init PHY if radio couldn't be initialized
+    if (ret == SRSLTE_SUCCESS) {
+      if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
+        log->console("Error initializing PHY.\n");
+        ret = SRSLTE_ERROR;
+      }
+    }
+
+    // Only init Stack if both radio and PHY could be initialized
+    if (ret == SRSLTE_SUCCESS) {
+      if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get())) {
+        log->console("Error initializing stack.\n");
+        ret = SRSLTE_ERROR;
+      }
+    }
+
+    stack = std::move(lte_stack);
+    phy   = std::move(lte_phy);
+    radio = std::move(lte_radio);
+
+  } else if (args.stack.type == "nr") {
+
+    std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr(logger));
+    std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null(logger));
+    std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr(logger));
+
+    // Init layers
+    if (nr_radio->init(args.rf, nullptr)) {
+      log->console("Error initializing radio.\n");
+      return SRSLTE_ERROR;
+    }
+
+    // TODO: where do we put this?
+    srsenb::nr_phy_cfg_t nr_phy_cfg = {};
+
+    args.phy.vnf_args.type = "gnb";
+    if (nr_phy->init(args.phy, nr_phy_cfg, nr_stack.get())) {
       log->console("Error initializing PHY.\n");
-      ret = SRSLTE_ERROR;
+      return SRSLTE_ERROR;
     }
-  }
 
-  // Only init Stack if both radio and PHY could be initialized
-  if (ret == SRSLTE_SUCCESS) {
-    if (lte_stack->init(args.stack, rrc_cfg, lte_phy.get())) {
+    // Same here, where do we put this?
+    srsenb::rrc_nr_cfg_t rrc_nr_cfg = {};
+    rrc_nr_cfg.coreless             = args.stack.coreless;
+
+    if (nr_stack->init(args.stack, rrc_nr_cfg, nr_phy.get())) {
       log->console("Error initializing stack.\n");
-      ret = SRSLTE_ERROR;
+      return SRSLTE_ERROR;
     }
-  }
 
-  stack = std::move(lte_stack);
-  phy   = std::move(lte_phy);
-  radio = std::move(lte_radio);
+    stack = std::move(nr_stack);
+    phy   = std::move(nr_phy);
+    radio = std::move(nr_radio);
+  }
 
   started = true; // set to true in any case to allow stopping the eNB if an error happened
 

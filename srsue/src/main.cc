@@ -408,7 +408,13 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
     ("stack.have_tti_time_stats",
         bpo::value<bool>(&args->stack.have_tti_time_stats)->default_value(true),
-        "Calculate TTI execution statistics");
+        "Calculate TTI execution statistics")
+
+    // NR params
+    ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("ue"), "VNF instance type [gnb,ue]")
+    ("vnf.addr", bpo::value<string>(&args->phy.vnf_args.bind_addr)->default_value("localhost"), "Address to bind VNF interface")
+    ("vnf.port", bpo::value<uint16_t>(&args->phy.vnf_args.bind_port)->default_value(3334), "Bind port")
+    ;
 
   // Positional options - config file location
   bpo::options_description position("Positional options");

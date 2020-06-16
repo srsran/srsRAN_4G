@@ -19,7 +19,7 @@
 #
 
 if(RF_FOUND)
-  add_library(srslte_radio STATIC radio.cc channel_mapping.cc)
+  add_library(srslte_radio STATIC radio.cc radio_null.cc channel_mapping.cc)
   target_link_libraries(srslte_radio srslte_rf)
 endif(RF_FOUND)
 

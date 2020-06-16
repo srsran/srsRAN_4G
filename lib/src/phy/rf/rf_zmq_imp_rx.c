@@ -114,8 +114,8 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
       goto clean_exit;
     }
     q->socket_type        = opts.socket_type;
-    q->sample_format = opts.sample_format;
-    q->frequency_mhz = opts.frequency_mhz;
+    q->sample_format      = opts.sample_format;
+    q->frequency_mhz      = opts.frequency_mhz;
     q->fail_on_disconnect = opts.fail_on_disconnect;
 
     if (opts.socket_type == ZMQ_SUB) {

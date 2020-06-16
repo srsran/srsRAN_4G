@@ -84,8 +84,8 @@ public:
     mac->sf_indication(tti);
     return SRSLTE_SUCCESS;
   }
-  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) { mac->tb_decoded(cc_idx, grant); }
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) { mac->new_grant_ul(cc_idx, grant); }
+  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final;
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) final;
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final;

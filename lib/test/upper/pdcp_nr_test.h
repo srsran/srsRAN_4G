@@ -96,14 +96,13 @@ pdcp_initial_state near_wraparound_init_state = {.tx_next  = 4294967295,
 class pdcp_nr_test_helper
 {
 public:
-  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg, srslte::log_ref log) :
+  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, srslte::as_security_config_t sec_cfg_, srslte::log_ref log) :
     rlc(log),
     rrc(log),
     gw(log),
-    pdcp(&rlc, &rrc, &gw, &stack, log)
+    pdcp(&rlc, &rrc, &gw, &stack, log, 0, cfg)
   {
-    pdcp.init(0, cfg);
-    pdcp.config_security(sec_cfg);
+    pdcp.config_security(sec_cfg_);
     pdcp.enable_integrity(srslte::DIRECTION_TXRX);
     pdcp.enable_encryption(srslte::DIRECTION_TXRX);
   }

@@ -23,6 +23,7 @@
 #define SRSLTE_MAC_NR_PDU_H
 
 #include "srslte/common/common.h"
+#include "srslte/common/logmap.h"
 #include <memory>
 #include <stdint.h>
 #include <vector>
@@ -87,6 +88,7 @@ private:
   uint8_t* sdu           = nullptr;
 
   mac_nr_sch_pdu* parent = nullptr;
+  srslte::log_ref log_h;
 };
 
 class mac_nr_sch_pdu

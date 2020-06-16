@@ -20,6 +20,7 @@
  */
 
 #include "srslte/upper/pdcp.h"
+#include "srslte/upper/pdcp_entity_nr.h"
 
 namespace srslte {
 
@@ -101,14 +102,17 @@ void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_lcid(lcid)) {
-    if (not pdcp_array
-                .insert(std::make_pair(
-                    lcid, std::unique_ptr<pdcp_entity_lte>(new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log))))
-                .second) {
+    // create NR entity for 18bit SN length
+    std::unique_ptr<pdcp_entity_base> entity;
+    if (cfg.sn_len == srslte::PDCP_SN_LEN_18) {
+      entity.reset(new pdcp_entity_nr{rlc, rrc, gw, task_executor, pdcp_log, lcid, cfg});
+    } else {
+      entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_executor, pdcp_log, lcid, cfg});
+    }
+    if (not pdcp_array.insert(std::make_pair(lcid, std::move(entity))).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       return;
     }
-    pdcp_array.at(lcid)->init(lcid, cfg);
     pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
                    rrc->get_rb_name(lcid).c_str(),
                    lcid,
@@ -127,13 +131,13 @@ void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
   if (not valid_mch_lcid(lcid)) {
     if (not pdcp_array_mrb
-                .insert(std::make_pair(
-                    lcid, std::unique_ptr<pdcp_entity_lte>(new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log))))
+                .insert(std::make_pair(lcid,
+                                       std::unique_ptr<pdcp_entity_lte>(
+                                           new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log, lcid, cfg))))
                 .second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       return;
     }
-    pdcp_array_mrb.at(lcid)->init(lcid, cfg);
     pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
                    rrc->get_rb_name(lcid).c_str(),
                    lcid,
@@ -163,9 +167,9 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
   // make sure old LCID exists and new LCID is still free
   if (valid_lcid(old_lcid) && not valid_lcid(new_lcid)) {
     // insert old PDCP entity into new LCID
-    std::lock_guard<std::mutex>      lock(cache_mutex);
-    auto                             it          = pdcp_array.find(old_lcid);
-    std::unique_ptr<pdcp_entity_lte> pdcp_entity = std::move(it->second);
+    std::lock_guard<std::mutex>       lock(cache_mutex);
+    auto                              it          = pdcp_array.find(old_lcid);
+    std::unique_ptr<pdcp_entity_base> pdcp_entity = std::move(it->second);
     if (not pdcp_array.insert(std::make_pair(new_lcid, std::move(pdcp_entity))).second) {
       pdcp_log->error("Error inserting PDCP entity into array\n.");
       return;

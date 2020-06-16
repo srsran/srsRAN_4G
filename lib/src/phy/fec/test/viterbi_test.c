@@ -204,7 +204,7 @@ int main(int argc, char** argv)
   }
 
   for (uint32_t i = 0; i < snr_points; i++) {
-    frame_cnt = 0;
+    frame_cnt  = 0;
     errors_s   = 0;
     errors_c   = 0;
     errors_f   = 0;

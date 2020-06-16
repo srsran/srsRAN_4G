@@ -55,7 +55,7 @@ int mac_nr::init(const mac_nr_args_t&            args_,
   // Set up pcap
   if (args.pcap.enable) {
     pcap.reset(new srslte::mac_nr_pcap());
-    pcap->open(args.pcap.filename);
+    pcap->open(args.pcap.filename.c_str());
   }
 
   started = true;
@@ -110,7 +110,7 @@ void mac_nr::bch_decoded_ok(uint32_t tti, srslte::unique_byte_buffer_t payload)
 
 int mac_nr::sf_indication(const uint32_t tti)
 {
-
+  run_tti(tti);
   return SRSLTE_SUCCESS;
 }
 
@@ -173,7 +173,8 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr:
   while (tx_pdu.get_remaing_len() >= MIN_RLC_PDU_LEN) {
     // read RLC PDU
     rlc_buffer->clear();
-    int pdu_len = rlc->read_pdu(4, rlc_buffer->msg, tx_pdu.get_remaing_len() - 2);
+    uint8_t* rd      = rlc_buffer->msg;
+    int      pdu_len = rlc->read_pdu(args.drb_lcid, rd, tx_pdu.get_remaing_len() - 2);
 
     // Add SDU if RLC has something to tx
     if (pdu_len > 0) {
@@ -181,7 +182,7 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr:
       log_h->info_hex(rlc_buffer->msg, rlc_buffer->N_bytes, "Read %d B from RLC\n", rlc_buffer->N_bytes);
 
       // add to MAC PDU and pack
-      if (tx_pdu.add_sdu(4, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
+      if (tx_pdu.add_sdu(args.drb_lcid, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
         log_h->error("Error packing MAC PDU\n");
       }
     }
@@ -237,18 +238,32 @@ void mac_nr::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]) {}
  */
 void mac_nr::process_pdus()
 {
-  auto ret = stack_task_dispatch_queue.try_push([this]() {
-    while (started and not pdu_queue.empty()) {
-      srslte::unique_byte_buffer_t pdu = pdu_queue.wait_pop();
-      // TODO: delegate to demux class
-      handle_pdu(std::move(pdu));
-    }
-  });
+  while (started and not pdu_queue.empty()) {
+    srslte::unique_byte_buffer_t pdu = pdu_queue.wait_pop();
+    // TODO: delegate to demux class
+    handle_pdu(std::move(pdu));
+  }
 }
 
 void mac_nr::handle_pdu(srslte::unique_byte_buffer_t pdu)
 {
   log_h->info_hex(pdu->msg, pdu->N_bytes, "Handling MAC PDU (%d B)\n", pdu->N_bytes);
+
+  rx_pdu.init_rx();
+  rx_pdu.unpack(pdu->msg, pdu->N_bytes);
+
+  for (uint32_t i = 0; i < rx_pdu.get_num_subpdus(); ++i) {
+    srslte::mac_nr_sch_subpdu subpdu = rx_pdu.get_subpdu(i);
+    log_h->info("Handling subPDU %d/%d: lcid=%d, sdu_len=%d\n",
+                i,
+                rx_pdu.get_num_subpdus(),
+                subpdu.get_lcid(),
+                subpdu.get_sdu_length());
+
+    if (subpdu.get_lcid() == args.drb_lcid) {
+      rlc->write_pdu(subpdu.get_lcid(), subpdu.get_sdu(), subpdu.get_sdu_length());
+    }
+  }
 }
 
 } // namespace srsue

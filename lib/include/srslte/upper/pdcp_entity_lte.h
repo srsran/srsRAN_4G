@@ -50,22 +50,24 @@ public:
                   srsue::rrc_interface_pdcp*      rrc_,
                   srsue::gw_interface_pdcp*       gw_,
                   srslte::task_handler_interface* task_executor_,
-                  srslte::log_ref                 log_);
-  ~pdcp_entity_lte();
-  void init(uint32_t lcid_, pdcp_config_t cfg_);
-  void reset();
-  void reestablish();
+                  srslte::log_ref                 log_,
+                  uint32_t                        lcid_,
+                  pdcp_config_t                   cfg_);
+  ~pdcp_entity_lte() override;
+  void reset() override;
+  void reestablish() override;
 
   // GW/RRC interface
-  void write_sdu(unique_byte_buffer_t sdu, bool blocking);
-  void get_bearer_state(pdcp_lte_state_t* state);
-  void set_bearer_state(const pdcp_lte_state_t& state);
+  void write_sdu(unique_byte_buffer_t sdu, bool blocking) override;
 
   // RLC interface
-  void write_pdu(unique_byte_buffer_t pdu);
+  void write_pdu(unique_byte_buffer_t pdu) override;
 
   // Config helpers
   bool check_valid_config();
+
+  void get_bearer_state(pdcp_lte_state_t* state) override;
+  void set_bearer_state(const pdcp_lte_state_t& state) override;
 
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;

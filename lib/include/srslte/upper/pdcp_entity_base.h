@@ -114,10 +114,13 @@ public:
   void config_security(as_security_config_t sec_cfg_);
 
   // GW/SDAP/RRC interface
-  void write_sdu(unique_byte_buffer_t sdu, bool blocking);
+  virtual void write_sdu(unique_byte_buffer_t sdu, bool blocking) = 0;
 
   // RLC interface
-  void write_pdu(unique_byte_buffer_t pdu);
+  virtual void write_pdu(unique_byte_buffer_t pdu) = 0;
+
+  virtual void get_bearer_state(pdcp_lte_state_t* state) = 0;
+  virtual void set_bearer_state(const pdcp_lte_state_t& state) = 0;
 
   // COUNT, HFN and SN helpers
   uint32_t HFN(uint32_t count);

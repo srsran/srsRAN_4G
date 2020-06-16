@@ -87,6 +87,7 @@ int ue_stack_nr::init(const stack_args_t& args_)
 
   mac_nr_args_t mac_args = {};
   mac_args.pcap          = args.pcap;
+  mac_args.drb_lcid      = 4;
   mac->init(mac_args, phy, rlc.get(), &timers, this);
   rlc->init(pdcp.get(), rrc.get(), &timers, 0 /* RB_ID_SRB0 */);
   pdcp->init(rlc.get(), rrc.get(), gw);
@@ -235,6 +236,18 @@ void ue_stack_nr::start_cell_search()
 void ue_stack_nr::start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell)
 {
   // not implemented
+}
+
+void ue_stack_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
+{
+  pending_tasks.push(
+      mac_queue_id,
+      std::bind([this, cc_idx](mac_nr_grant_dl_t& grant) { mac->tb_decoded(cc_idx, grant); }, std::move(grant)));
+}
+
+void ue_stack_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant)
+{
+  pending_tasks.push(mac_queue_id, [this, cc_idx, grant]() { mac->new_grant_ul(cc_idx, grant); });
 }
 
 /***************************

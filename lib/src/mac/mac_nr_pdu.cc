@@ -23,7 +23,7 @@
 
 namespace srslte {
 
-mac_nr_sch_subpdu::mac_nr_sch_subpdu(mac_nr_sch_pdu* parent_) : parent(parent_) {}
+mac_nr_sch_subpdu::mac_nr_sch_subpdu(mac_nr_sch_pdu* parent_) : parent(parent_), log_h("MAC") {}
 
 mac_nr_sch_subpdu::nr_lcid_sch_t mac_nr_sch_subpdu::get_type()
 {
@@ -78,7 +78,7 @@ int32_t mac_nr_sch_subpdu::read_subheader(const uint8_t* ptr)
     }
     sdu = (uint8_t*)ptr;
   } else {
-    fprintf(stderr, "Invalid LCID (%d) in MAC PDU\n", lcid);
+    log_h->warning("Invalid LCID (%d) in MAC PDU\n", lcid);
     return SRSLTE_ERROR;
   }
   return header_length;
@@ -94,7 +94,7 @@ void mac_nr_sch_subpdu::set_sdu(const uint32_t lcid_, const uint8_t* payload_, c
     F_bit      = false;
     sdu_length = sizeof_ce(lcid, parent->is_ulsch());
     if (len_ != static_cast<uint32_t>(sdu_length)) {
-      fprintf(stderr, "Invalid SDU length of UL-SCH SDU (%d != %d)\n", len_, sdu_length);
+      log_h->warning("Invalid SDU length of UL-SCH SDU (%d != %d)\n", len_, sdu_length);
     }
   }
 
@@ -133,7 +133,7 @@ uint32_t mac_nr_sch_subpdu::write_subpdu(const uint8_t* start_)
   } else if (header_length == 1) {
     // do nothing
   } else {
-    fprintf(stderr, "Error while packing PDU. Unsupported header length (%d)\n", header_length);
+    log_h->warning("Error while packing PDU. Unsupported header length (%d)\n", header_length);
   }
 
   // copy SDU payload
@@ -232,6 +232,12 @@ void mac_nr_sch_pdu::unpack(const uint8_t* payload, const uint32_t& len)
       return;
     }
     offset += sch_pdu.get_total_length();
+    if (sch_pdu.get_lcid() == mac_nr_sch_subpdu::PADDING) {
+      // set SDU length to rest of PDU
+      sch_pdu.set_padding(len - offset + 1); // One byte for Padding header will be substracted again
+      // skip remaining bytes
+      offset = len;
+    }
     subpdus.push_back(sch_pdu);
   }
   if (offset != len) {
@@ -256,7 +262,8 @@ bool mac_nr_sch_pdu::is_ulsch()
 
 void mac_nr_sch_pdu::init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool ulsch_)
 {
-  buffer        = buffer_;
+  buffer = buffer_;
+  subpdus.clear();
   pdu_len       = pdu_len_;
   remaining_len = pdu_len_;
   ulsch         = ulsch_;

@@ -27,6 +27,8 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/rf/rf.h"
+#include "srslte/radio/radio_base.h"
+#include "srslte/srslte.h"
 #include <list>
 #include <string>
 
@@ -46,15 +48,16 @@ namespace srslte {
  * rf driver object. In the current implementation, the mapping between N carriers and P antennas is sequentially, eg:
  * [carrier_0_port_0, carrier_0_port_1, carrier_1_port_0, carrier_1_port_1, ..., carrier_N_port_N]
  */
-class radio : public radio_interface_phy
+class radio : public radio_interface_phy, public srslte::radio_base
 {
 public:
   radio(srslte::log_filter* log_h);
   radio(srslte::logger* logger_h);
   virtual ~radio();
 
-  int  init(const rf_args_t& args_, phy_interface_radio* phy_);
-  void stop();
+  int         init(const rf_args_t& args_, phy_interface_radio* phy_);
+  void        stop();
+  std::string get_type() override { return "radio"; }
 
   // ==== PHY interface ===
 

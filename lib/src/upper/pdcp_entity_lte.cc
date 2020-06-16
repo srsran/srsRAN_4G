@@ -28,21 +28,17 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp*      rlc_,
                                  srsue::rrc_interface_pdcp*      rrc_,
                                  srsue::gw_interface_pdcp*       gw_,
                                  srslte::task_handler_interface* task_executor_,
-                                 srslte::log_ref                 log_) :
-  pdcp_entity_base(task_executor_, log_), rlc(rlc_), rrc(rrc_), gw(gw_)
-{}
-
-pdcp_entity_lte::~pdcp_entity_lte()
+                                 srslte::log_ref                 log_,
+                                 uint32_t                        lcid_,
+                                 pdcp_config_t                   cfg_) :
+  pdcp_entity_base(task_executor_, log_),
+  rlc(rlc_),
+  rrc(rrc_),
+  gw(gw_)
 {
-  reset();
-}
-
-void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
-{
-  lcid   = lcid_;
-  cfg    = cfg_;
-  active = true;
-
+  lcid                 = lcid_;
+  cfg                  = cfg_;
+  active               = true;
   integrity_direction  = DIRECTION_NONE;
   encryption_direction = DIRECTION_NONE;
 
@@ -70,6 +66,11 @@ void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
   if (!check_valid_config()) {
     log->console("Warning: Invalid PDCP config.\n");
   }
+}
+
+pdcp_entity_lte::~pdcp_entity_lte()
+{
+  reset();
 }
 
 // Reestablishment procedure: 36.323 5.2

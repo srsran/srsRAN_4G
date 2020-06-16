@@ -110,7 +110,7 @@ public:
 private:
   // UE consists of a radio, a PHY and a stack element
   std::unique_ptr<ue_phy_base>        phy;
-  std::unique_ptr<srslte::radio>      radio;
+  std::unique_ptr<srslte::radio_base> radio;
   std::unique_ptr<ue_stack_base>      stack;
   std::unique_ptr<gw>                 gw_inst;
 

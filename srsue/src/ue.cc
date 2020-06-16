@@ -23,9 +23,12 @@
 #include "srslte/build_info.h"
 #include "srslte/common/string_helpers.h"
 #include "srslte/radio/radio.h"
+#include "srslte/radio/radio_null.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy.h"
+#include "srsue/hdr/phy/vnf_phy_nr.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
+#include "srsue/hdr/stack/ue_stack_nr.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -116,6 +119,38 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     gw_inst = std::move(gw_ptr);
     phy     = std::move(lte_phy);
     radio   = std::move(lte_radio);
+  } else if (args.stack.type == "nr") {
+    std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr(logger));
+    std::unique_ptr<srslte::radio_null> nr_radio(new srslte::radio_null(logger));
+    std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr(logger));
+    std::unique_ptr<gw>                 gw_ptr(new gw());
+
+    // Init layers
+    if (nr_radio->init(args.rf, nullptr)) {
+      log.console("Error initializing radio.\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (nr_phy->init(args.phy, nr_stack.get())) {
+      log.console("Error initializing PHY.\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (nr_stack->init(args.stack, nr_phy.get(), gw_ptr.get())) {
+      log.console("Error initializing stack.\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (gw_ptr->init(args.gw, logger, nr_stack.get())) {
+      log.console("Error initializing GW.\n");
+      return SRSLTE_ERROR;
+    }
+
+    // move ownership
+    stack   = std::move(nr_stack);
+    gw_inst = std::move(gw_ptr);
+    phy     = std::move(nr_phy);
+    radio   = std::move(nr_radio);
   } else {
     log.console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
     ret = SRSLTE_ERROR;

@@ -141,7 +141,7 @@ private:
 
   // eNB components
   std::unique_ptr<enb_stack_base>     stack = nullptr;
-  std::unique_ptr<srslte::radio>      radio = nullptr;
+  std::unique_ptr<srslte::radio_base> radio = nullptr;
   std::unique_ptr<enb_phy_base>       phy   = nullptr;
 
   srslte::logger_stdout logger_stdout;

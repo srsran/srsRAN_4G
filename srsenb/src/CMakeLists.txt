@@ -40,6 +40,11 @@ target_link_libraries(srsenb  srsenb_phy
                               srsenb_upper
                               srsenb_mac
                               srsenb_rrc
+                              srsgnb_phy
+                              srsgnb_stack
+                              srsgnb_upper
+                              srsgnb_mac
+                              srsgnb_rrc
                               srslte_common
                               srslte_mac
                               srslte_phy
@@ -48,6 +53,8 @@ target_link_libraries(srsenb  srsenb_phy
                               rrc_asn1
                               s1ap_asn1
                               enb_cfg_parser
+                              rrc_nr_asn1
+                              ngap_nr_asn1
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES} 
                               ${SEC_LIBRARIES}

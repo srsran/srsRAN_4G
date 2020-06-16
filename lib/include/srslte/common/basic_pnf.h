@@ -342,7 +342,7 @@ private:
     return 0;
   }
 
-  void send_rx_data_ind(const uint32_t tti)
+  void send_rx_data_ind(const uint32_t tti_)
   {
     // MAC PDU for UL-SCH with IPv6 router solicitation
     static uint8_t tv[] = {0x04, 0x38, 0x00, 0x80, 0x00, 0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x08, 0x3a, 0xff, 0xfe,
@@ -354,7 +354,7 @@ private:
 
     rx_ind.header.type    = basic_vnf_api::RX_DATA_IND;
     rx_ind.header.msg_len = sizeof(rx_ind) - sizeof(basic_vnf_api::msg_header_t);
-    rx_ind.sfn            = tti;
+    rx_ind.sfn            = tti_;
     rx_ind.t1             = 0;
 
     rx_ind.nof_pdus       = 1;
@@ -377,7 +377,7 @@ private:
     }
   }
 
-  void send_dl_ind(uint32_t tti)
+  void send_dl_ind(uint32_t tti_)
   {
 #if PING_REQUEST_PDU
     static uint8_t tv[] = {
@@ -408,7 +408,7 @@ private:
 
     dl_ind.header.type    = basic_vnf_api::DL_IND;
     dl_ind.header.msg_len = sizeof(dl_ind) - sizeof(basic_vnf_api::msg_header_t);
-    dl_ind.tti            = tti;
+    dl_ind.tti            = tti_;
     dl_ind.t1             = 0;
 
     dl_ind.nof_pdus       = 1;

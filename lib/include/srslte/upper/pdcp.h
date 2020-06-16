@@ -72,7 +72,7 @@ private:
   srslte::task_handler_interface* task_executor = nullptr;
   srslte::log_ref                 pdcp_log;
 
-  std::map<uint16_t, std::unique_ptr<pdcp_entity_lte> > pdcp_array, pdcp_array_mrb;
+  std::map<uint16_t, std::unique_ptr<pdcp_entity_base> > pdcp_array, pdcp_array_mrb;
 
   // cache valid lcids to be checked from separate thread
   std::mutex         cache_mutex;
