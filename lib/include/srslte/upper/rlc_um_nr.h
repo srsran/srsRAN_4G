@@ -118,6 +118,8 @@ private:
     // helper functions
     void reset();
     void debug_state();
+
+    std::mutex mutex;
   };
 };
 

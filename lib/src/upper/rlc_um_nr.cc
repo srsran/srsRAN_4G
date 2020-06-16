@@ -243,6 +243,7 @@ bool rlc_um_nr::rlc_um_nr_rx::configure()
 
 void rlc_um_nr::rlc_um_nr_rx::stop()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   reset();
   reassembly_timer.stop();
 }
@@ -274,6 +275,7 @@ void rlc_um_nr::rlc_um_nr_rx::reestablish()
 // TS 38.322 v15.003 Section 5.2.2.2.4
 void rlc_um_nr::rlc_um_nr_rx::timer_expired(uint32_t timeout_id)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (reassembly_timer.id() == timeout_id) {
     log->info("%s reassembly timeout expiry - updating RX_Next_Reassembly and reassembling\n", rb_name.c_str());
 
@@ -349,9 +351,7 @@ bool rlc_um_nr::rlc_um_nr_rx::has_missing_byte_segment(const uint32_t sn)
 {
   // is at least one missing byte segment of the RLC SDU associated with SN = RX_Next_Reassembly before the last byte of
   // all received segments of this RLC SDU
-  // TODO: check assumption
-  // if SN can be found in rx_window, it means that at least one segment is missing
-  return (rx_window.find(sn) != rx_window.end());
+  return true;
 }
 
 // Sect 5.2.2.2.3
@@ -491,6 +491,8 @@ inline void rlc_um_nr::rlc_um_nr_rx::update_total_sdu_length(rlc_umd_pdu_segment
 // Section 5.2.2.2.2
 void rlc_um_nr::rlc_um_nr_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   rlc_um_nr_pdu_header_t header = {};
   rlc_um_nr_read_data_pdu_header(payload, nof_bytes, cfg.um_nr.sn_field_length, &header);
   log->debug_hex(payload, nof_bytes, "RX %s Rx data PDU (%d B)", rb_name.c_str(), nof_bytes);
@@ -582,7 +584,7 @@ uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
     header->si = (rlc_nr_si_field_t)((*ptr >> 6) & 0x03); // 2 bits SI
     header->sn = *ptr & 0x3F;                             // 6 bits SN
     // sanity check
-    if (header->si == rlc_nr_si_field_t::full_sdu and !(header->sn == 0)) {
+    if (header->si == rlc_nr_si_field_t::full_sdu and not header->sn == 0) {
       fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
       return 0;
     }
