@@ -53,7 +53,7 @@ void rlc_nr::add_user(uint16_t rnti)
     user_itf.m_pdcp = m_pdcp;
     user_itf.m_rrc  = m_rrc;
     user_itf.parent = this;
-    user_itf.m_rlc.reset(new srslte::rlc("RLC"));
+    user_itf.m_rlc.reset(new srslte::rlc(m_log->get_service_name().c_str()));
     users[rnti] = std::move(user_itf);
     users[rnti].m_rlc->init(&users[rnti], &users[rnti], timers, (int)srslte::rb_id_nr_t::NR_SRB0);
   }

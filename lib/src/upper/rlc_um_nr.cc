@@ -32,8 +32,7 @@ rlc_um_nr::rlc_um_nr(srslte::log_ref            log_,
                      srsue::rrc_interface_rlc*  rrc_,
                      srslte::timer_handler*     timers_) :
   rlc_um_base(log_, lcid_, pdcp_, rrc_, timers_)
-{
-}
+{}
 
 rlc_um_nr::~rlc_um_nr()
 {
@@ -216,8 +215,7 @@ void rlc_um_nr::rlc_um_nr_tx::debug_state()
 rlc_um_nr::rlc_um_nr_rx::rlc_um_nr_rx(rlc_um_base* parent_) :
   rlc_um_base_rx(parent_),
   reassembly_timer(timers->get_unique_timer())
-{
-}
+{}
 
 bool rlc_um_nr::rlc_um_nr_rx::configure()
 {

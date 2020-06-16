@@ -39,6 +39,9 @@ void pdcp_nr::init(const pdcp_nr_args_t&   args_,
   m_rlc  = rlc_;
   m_rrc  = rrc_;
   m_sdap = sdap_;
+
+  m_log->set_level(m_args.log_level);
+  m_log->set_hex_limit(m_args.log_hex_limit);
 }
 
 void pdcp_nr::stop()

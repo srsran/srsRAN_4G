@@ -200,6 +200,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     // NR section
     ("enb.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte]")
+    ("scheduler.tb_len", bpo::value<int>(&args->stack.mac.nr_tb_size)->default_value(1520), "Default TB size")
     
     // VNF params
     ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("gnb"), "VNF instance type [gnb,ue]")
