@@ -1448,6 +1448,9 @@ srslte::proc_outcome_t rrc::ho_proc::react(srsue::cell_select_event_t ev)
 
   rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
 
+  // Have RRCReconfComplete message ready when Msg3 is sent
+  rrc_ptr->send_rrc_con_reconfig_complete();
+
   state = wait_ra_completion;
   return proc_outcome_t::yield;
 }
@@ -1517,8 +1520,6 @@ void rrc::ho_proc::then(const srslte::proc_state_t& result)
   Info("Finished HO Preparation %s\n", result.is_success() ? "successfully" : "with error");
   if (result.is_error()) {
     rrc_ptr->con_reconfig_failed();
-  } else {
-    rrc_ptr->send_rrc_con_reconfig_complete();
   }
 }
 
