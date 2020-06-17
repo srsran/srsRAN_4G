@@ -200,6 +200,16 @@ void rrc::stop()
 void rrc::get_metrics(rrc_metrics_t& m)
 {
   m.state = state;
+  // Save strongest cells metrics
+  for (auto& c : neighbour_cells) {
+    rrc_interface_phy_lte::phy_meas_t meas = {};
+    meas.cfo_hz                            = c->get_cfo_hz();
+    meas.earfcn                            = c->get_earfcn();
+    meas.rsrq                              = c->get_rsrq();
+    meas.rsrp                              = c->get_rsrp();
+    meas.pci                               = c->get_pci();
+    m.neighbour_cells.push_back(meas);
+  }
 }
 
 bool rrc::is_connected()
@@ -381,7 +391,7 @@ void rrc::new_cell_meas(const std::vector<phy_meas_t>& meas)
   cell_meas_q.push(meas);
 }
 
-/* Processes all pending PHY measurements in queue. Must be called from a mutexed function
+/* Processes all pending PHY measurements in queue.
  */
 void rrc::process_cell_meas()
 {
@@ -392,6 +402,7 @@ void rrc::process_cell_meas()
     }
     process_new_cell_meas(m);
   }
+  sort_neighbour_cells();
 }
 
 void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)

@@ -82,7 +82,8 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
 
   if (file.is_open() && ue != NULL) {
     if (n_reports == 0 && !file_exists) {
-      file << "time;cc;pci;earfcn;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
+      file << "time;cc;earfcn;pci;rsrp;pl;cfo;pci_neigh;rsrp_neigh;cfo_neigh;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;"
+              "ul_ta;ul_mcs;ul_buff;ul_brate;ul_"
               "bler;"
               "rf_o;rf_"
               "u;rf_l;is_attached\n";
@@ -93,13 +94,31 @@ void metrics_csv::set_metrics(const ue_metrics_t& metrics, const uint32_t period
 
       // CC and PCI
       file << r << ";";
-      file << metrics.phy.info[r].pci << ";";
       file << metrics.phy.info[r].dl_earfcn << ";";
+      file << metrics.phy.info[r].pci << ";";
 
       // Print PHY metrics for first CC
       file << float_to_string(metrics.phy.dl[r].rsrp, 2);
       file << float_to_string(metrics.phy.dl[r].pathloss, 2);
       file << float_to_string(metrics.phy.sync[r].cfo, 2);
+
+      // Find strongest neighbour for this EARFCN (cells are ordered)
+      bool has_neighbour = false;
+      for (auto& c : metrics.stack.rrc.neighbour_cells) {
+        if (c.earfcn == metrics.phy.info[r].dl_earfcn && c.pci != metrics.phy.info[r].pci) {
+          file << c.pci << ";";
+          file << float_to_string(c.rsrp, 2);
+          file << float_to_string(c.cfo_hz, 2);
+          has_neighbour = true;
+          break;
+        }
+      }
+      if (!has_neighbour) {
+        file << "n/a;";
+        file << "n/a;";
+        file << "n/a;";
+      }
+
       file << float_to_string(metrics.phy.dl[r].mcs, 2);
       file << float_to_string(metrics.phy.dl[r].sinr, 2);
       file << float_to_string(metrics.phy.dl[r].turbo_iters, 2);

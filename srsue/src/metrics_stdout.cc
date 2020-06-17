@@ -95,11 +95,25 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     return;
   }
 
+  bool display_neighbours = false;
+  if (metrics.phy.nof_active_cc > 1) {
+    display_neighbours = metrics.stack.rrc.neighbour_cells.size() > metrics.phy.nof_active_cc - 1;
+  } else {
+    display_neighbours = metrics.stack.rrc.neighbour_cells.size() > 0;
+  }
+
   if (++n_reports > 10) {
     n_reports = 0;
     cout << endl;
-    cout << "--------Signal--------------DL-------------------------------------UL----------------------" << endl;
-    cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
+    if (display_neighbours) {
+      cout << "--------Signal--------------Neighbor----DL-------------------------------------UL----------------------"
+           << endl;
+      cout << "cc pci  rsrp    pl    cfo  pci  rsrp  mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler"
+           << endl;
+    } else {
+      cout << "--------Signal--------------DL-------------------------------------UL----------------------" << endl;
+      cout << "cc pci  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
+    }
   }
   for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
     cout << std::setw(2) << r;
@@ -107,6 +121,24 @@ void metrics_stdout::set_metrics(const ue_metrics_t& metrics, const uint32_t per
     cout << float_to_string(metrics.phy.dl[r].rsrp, 2);
     cout << float_to_string(metrics.phy.dl[r].pathloss, 2);
     cout << float_to_eng_string(metrics.phy.sync[r].cfo, 2);
+
+    // Find strongest neighbour for this EARFCN (cells are ordered)
+    if (display_neighbours) {
+      bool has_neighbour = false;
+      for (auto& c : metrics.stack.rrc.neighbour_cells) {
+        if (c.earfcn == metrics.phy.info[r].dl_earfcn && c.pci != metrics.phy.info[r].pci) {
+          cout << std::setw(4) << c.pci << std::setw(0);
+          cout << float_to_string(c.rsrp, 2);
+          has_neighbour = true;
+          break;
+        }
+      }
+      if (!has_neighbour) {
+        cout << "  n/a";
+        cout << "  n/a";
+      }
+    }
+
     cout << float_to_string(metrics.phy.dl[r].mcs, 2);
     cout << float_to_string(metrics.phy.dl[r].sinr, 2);
     cout << float_to_string(metrics.phy.dl[r].turbo_iters, 2);

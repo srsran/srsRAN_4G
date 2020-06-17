@@ -23,11 +23,13 @@
 #define SRSUE_RRC_METRICS_H
 
 #include "rrc_common.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
 
 struct rrc_metrics_t {
-  rrc_state_t state;
+  rrc_state_t                                    state;
+  std::vector<rrc_interface_phy_lte::phy_meas_t> neighbour_cells;
 };
 
 } // namespace srsue
