@@ -582,7 +582,7 @@ uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
     header->si = (rlc_nr_si_field_t)((*ptr >> 6) & 0x03); // 2 bits SI
     header->sn = *ptr & 0x3F;                             // 6 bits SN
     // sanity check
-    if (header->si == rlc_nr_si_field_t::full_sdu and not header->sn == 0) {
+    if (header->si == rlc_nr_si_field_t::full_sdu and header->sn != 0) {
       fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
       return 0;
     }
