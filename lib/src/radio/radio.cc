@@ -540,7 +540,7 @@ void radio::set_channel_rx_offset(uint32_t ch, int32_t offset_samples)
     return;
   }
 
-  rx_offset_n[ch] = offset_samples;
+  rx_offset_n[device_idx] = offset_samples;
 }
 
 void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)

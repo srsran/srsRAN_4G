@@ -107,7 +107,7 @@ void sync::init(srslte::radio_interface_phy* _radio,
   // Allocate Secondary serving cell synchronization
   for (uint32_t i = 1; i < worker_com->args->nof_carriers; i++) {
     // Give the logical channel
-    scell_sync.push_back(std::unique_ptr<scell::sync>(new scell::sync(this, i * worker_com->args->nof_rx_ant)));
+    scell_sync[i] = std::unique_ptr<scell::sync>(new scell::sync(this, i * worker_com->args->nof_rx_ant));
   }
 
   reset();
@@ -388,7 +388,7 @@ void sync::run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& syn
 
   // Run secondary serving cell synchronization
   for (auto& e : scell_sync) {
-    e->run(tti, sync_buffer.get(e->get_channel(), 0, worker_com->args->nof_rx_ant));
+    e.second->run(tti, sync_buffer.get(e.first, 0, worker_com->args->nof_rx_ant));
   }
 
   if (is_overflow) {
@@ -940,27 +940,19 @@ void sync::meas_stop()
 
 void sync::scell_sync_set(uint32_t cc_idx, const srslte_cell_t& _cell)
 {
-  // Ignore if PCell
-  if (cc_idx == 0) {
-    return;
-  }
-
-  // Decrement to match SCell index
-  cc_idx--;
-
   // Ignore if out of range
-  if (cc_idx >= scell_sync.size()) {
+  if (scell_sync.count(cc_idx) == 0) {
     return;
   }
 
   // Set secondary serving cell
-  scell_sync[cc_idx]->set_cell(_cell);
+  scell_sync.at(cc_idx)->set_cell(_cell);
 }
 
 void sync::scell_sync_stop()
 {
   for (auto& e : scell_sync) {
-    e->stop();
+    e.second->stop();
   }
 }
 

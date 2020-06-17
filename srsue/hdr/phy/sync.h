@@ -201,7 +201,7 @@ private:
   srslte_ue_sync_t ue_sync = {};
 
   // Object for synchronization secondary serving cells
-  std::vector<std::unique_ptr<scell::sync> > scell_sync;
+  std::map<uint32_t, std::unique_ptr<scell::sync> > scell_sync;
 
   // Buffer for primary and secondary cell samples
   const static uint32_t sync_nof_rx_subframes = 5;
