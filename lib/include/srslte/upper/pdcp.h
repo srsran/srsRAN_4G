@@ -41,29 +41,29 @@ public:
   bool is_lcid_enabled(uint32_t lcid);
 
   // RRC interface
-  void reestablish();
-  void reestablish(uint32_t lcid);
-  void reset();
-  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking);
+  void reestablish() override;
+  void reestablish(uint32_t lcid) override;
+  void reset() override;
+  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking) override;
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
-  void add_bearer(uint32_t lcid, pdcp_config_t cnfg);
+  void add_bearer(uint32_t lcid, pdcp_config_t cnfg) override;
   void add_bearer_mrb(uint32_t lcid, pdcp_config_t cnfg);
   void del_bearer(uint32_t lcid);
-  void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
-  void config_security(uint32_t lcid, as_security_config_t sec_cfg);
-  void config_security_all(as_security_config_t sec_cfg);
-  void enable_integrity(uint32_t lcid, srslte_direction_t direction);
-  void enable_encryption(uint32_t lcid, srslte_direction_t direction);
+  void change_lcid(uint32_t old_lcid, uint32_t new_lcid) override;
+  void config_security(uint32_t lcid, as_security_config_t sec_cfg) override;
+  void config_security_all(as_security_config_t sec_cfg) override;
+  void enable_integrity(uint32_t lcid, srslte_direction_t direction) override;
+  void enable_encryption(uint32_t lcid, srslte_direction_t direction) override;
   void enable_security_timed(uint32_t lcid, srslte_direction_t direction, uint32_t sn);
   bool get_bearer_state(uint32_t lcid, srslte::pdcp_lte_state_t* state);
   bool set_bearer_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state);
 
   // RLC interface
-  void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu);
-  void write_pdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
-  void write_pdu_bcch_bch(unique_byte_buffer_t sdu);
-  void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu);
-  void write_pdu_pcch(unique_byte_buffer_t sdu);
+  void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu) override;
+  void write_pdu_mch(uint32_t lcid, unique_byte_buffer_t sdu) override;
+  void write_pdu_bcch_bch(unique_byte_buffer_t sdu) override;
+  void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) override;
+  void write_pdu_pcch(unique_byte_buffer_t sdu) override;
 
 private:
   srsue::rlc_interface_pdcp*      rlc           = nullptr;
