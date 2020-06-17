@@ -52,7 +52,8 @@ void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
     reordering_window = 2048;
   }
 
-  st.tx_count                  = 0;
+  st.next_pdcp_tx_sn           = 0;
+  st.tx_hfn                    = 0;
   st.rx_hfn                    = 0;
   st.next_pdcp_rx_sn           = 0;
   maximum_pdcp_sn              = (1 << cfg.sn_len) - 1;
@@ -77,13 +78,15 @@ void pdcp_entity_lte::reestablish()
   log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // For SRBs
   if (is_srb()) {
-    st.tx_count        = 0;
+    st.next_pdcp_tx_sn = 0;
+    st.tx_hfn          = 0;
     st.rx_hfn          = 0;
     st.next_pdcp_rx_sn = 0;
   } else {
     // Only reset counter in RLC-UM
     if (rlc->rb_is_um(lcid)) {
-      st.tx_count        = 0;
+      st.next_pdcp_tx_sn = 0;
+      st.tx_hfn          = 0;
       st.rx_hfn          = 0;
       st.next_pdcp_rx_sn = 0;
     }
@@ -102,8 +105,11 @@ void pdcp_entity_lte::reset()
 // GW/RRC interface
 void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
+  // Get COUNT to be used with this packet
+  uint32_t tx_count = COUNT(st.tx_hfn, st.next_pdcp_tx_sn);
+
   // check for pending security config in transmit direction
-  if (enable_security_tx_sn != -1 && enable_security_tx_sn == static_cast<int32_t>(st.tx_count)) {
+  if (enable_security_tx_sn != -1 && enable_security_tx_sn == static_cast<int32_t>(tx_count)) {
     enable_integrity(DIRECTION_TX);
     enable_encryption(DIRECTION_TX);
     enable_security_tx_sn = -1;
@@ -113,17 +119,17 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
                 sdu->N_bytes,
                 "TX %s SDU, SN=%d, integrity=%s, encryption=%s",
                 rrc->get_rb_name(lcid).c_str(),
-                st.tx_count,
+                tx_count,
                 srslte_direction_text[integrity_direction],
                 srslte_direction_text[encryption_direction]);
 
-  write_data_header(sdu, st.tx_count);
+  write_data_header(sdu, tx_count);
 
   // Append MAC (SRBs only)
   uint8_t mac[4]       = {};
   bool    do_integrity = integrity_direction == DIRECTION_TX || integrity_direction == DIRECTION_TXRX;
   if (do_integrity && is_srb()) {
-    integrity_generate(sdu->msg, sdu->N_bytes, st.tx_count, mac);
+    integrity_generate(sdu->msg, sdu->N_bytes, tx_count, mac);
   }
 
   if (is_srb()) {
@@ -132,10 +138,16 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 
   if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
     cipher_encrypt(
-        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, st.tx_count, &sdu->msg[cfg.hdr_len_bytes]);
+        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
     log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
   }
-  st.tx_count++;
+
+  // Incremente NEXT_PDCP_TX_SN and TX_HFN
+  st.next_pdcp_tx_sn++;
+  if (st.next_pdcp_tx_sn > maximum_pdcp_sn) {
+    st.tx_hfn++;
+    st.next_pdcp_tx_sn = 0;
+  }
 
   rlc->write_sdu(lcid, std::move(sdu), blocking);
 }
@@ -328,18 +340,8 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
  ***************************************************************************/
 void pdcp_entity_lte::get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
 {
-  if (cfg.rb_type == PDCP_RB_IS_DRB) {
-    if (12 == cfg.sn_len) {
-      *dlsn  = (uint16_t)(st.tx_count & 0xFFFu);
-      *dlhfn = (uint16_t)((st.tx_count - *dlsn) >> 12u);
-    } else {
-      *dlsn  = (uint16_t)(st.tx_count & 0x7Fu);
-      *dlhfn = (uint16_t)((st.tx_count - *dlsn) >> 7u);
-    }
-  } else { // is control
-    *dlsn  = (uint16_t)(st.tx_count & 0x1Fu);
-    *dlhfn = (uint16_t)((st.tx_count - *dlsn) >> 5u);
-  }
+  *dlsn  = (uint16_t)st.next_pdcp_tx_sn;
+  *dlhfn = (uint16_t)st.tx_hfn;
   *ulsn  = (uint16_t)st.next_pdcp_rx_sn;
   *ulhfn = (uint16_t)st.rx_hfn;
 }

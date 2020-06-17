@@ -97,7 +97,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::vector<pdcp_test_event_t> test1_pdus = gen_expected_pdus_vector(
         tst_sdu1, test1_counts, srslte::PDCP_SN_LEN_5, srslte::PDCP_RB_IS_SRB, sec_cfg, pool, log);
     srslte::pdcp_lte_state_t test1_init_state = {
-        .tx_count = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 31, .last_submitted_pdcp_rx_sn = 30};
+        .next_pdcp_tx_sn = 0, .tx_hfn = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 31, .last_submitted_pdcp_rx_sn = 30};
     TESTASSERT(test_rx(std::move(test1_pdus),
                        test1_init_state,
                        srslte::PDCP_SN_LEN_5,
@@ -119,7 +119,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::vector<pdcp_test_event_t> test_pdus = gen_expected_pdus_vector(
         tst_sdu1, test_counts, srslte::PDCP_SN_LEN_12, srslte::PDCP_RB_IS_DRB, sec_cfg, pool, log);
     srslte::pdcp_lte_state_t test_init_state = {
-        .tx_count = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 4095, .last_submitted_pdcp_rx_sn = 4094};
+        .next_pdcp_tx_sn = 0, .tx_hfn = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 4095, .last_submitted_pdcp_rx_sn = 4094};
     TESTASSERT(test_rx(std::move(test_pdus),
                        test_init_state,
                        srslte::PDCP_SN_LEN_12,
@@ -140,7 +140,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log_ref log)
     std::vector<pdcp_test_event_t> test_pdus = gen_expected_pdus_vector(
         tst_sdu1, test_counts, srslte::PDCP_SN_LEN_12, srslte::PDCP_RB_IS_DRB, sec_cfg, pool, log);
     srslte::pdcp_lte_state_t test_init_state = {
-        .tx_count = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 32, .last_submitted_pdcp_rx_sn = 31};
+        .next_pdcp_tx_sn = 0, .tx_hfn = 0, .rx_hfn = 0, .next_pdcp_rx_sn = 32, .last_submitted_pdcp_rx_sn = 31};
     TESTASSERT(test_rx(std::move(test_pdus),
                        test_init_state,
                        srslte::PDCP_SN_LEN_12,

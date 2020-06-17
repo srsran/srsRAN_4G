@@ -108,7 +108,8 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
   rlc_dummy*               rlc  = &pdcp_hlp.rlc;
 
   srslte::pdcp_lte_state_t init_state = {};
-  init_state.tx_count                 = count;
+  init_state.tx_hfn                   = pdcp->HFN(count);
+  init_state.next_pdcp_tx_sn          = pdcp->SN(count);
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
   srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
