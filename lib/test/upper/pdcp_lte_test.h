@@ -77,7 +77,7 @@ public:
     pdcp.enable_encryption(srslte::DIRECTION_TXRX);
   }
 
-  void set_pdcp_initial_state(const srslte::pdcp_lte_state_t& init_state) { pdcp.set_state(init_state); }
+  void set_pdcp_initial_state(const srslte::pdcp_lte_state_t& init_state) { pdcp.set_bearer_state(init_state); }
 
   rlc_dummy               rlc;
   rrc_dummy               rrc;

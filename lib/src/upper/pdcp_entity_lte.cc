@@ -336,17 +336,6 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 }
 
 /****************************************************************************
- * Security functions
- ***************************************************************************/
-void pdcp_entity_lte::get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
-{
-  *dlsn  = (uint16_t)st.next_pdcp_tx_sn;
-  *dlhfn = (uint16_t)st.tx_hfn;
-  *ulsn  = (uint16_t)st.next_pdcp_rx_sn;
-  *ulhfn = (uint16_t)st.rx_hfn;
-}
-
-/****************************************************************************
  * Config checking helper
  ***************************************************************************/
 bool pdcp_entity_lte::check_valid_config()
@@ -373,12 +362,12 @@ bool pdcp_entity_lte::check_valid_config()
 /****************************************************************************
  * Internal state getters/setters
  ***************************************************************************/
-void pdcp_entity_lte::get_state(pdcp_lte_state_t* state)
+void pdcp_entity_lte::get_bearer_state(pdcp_lte_state_t* state)
 {
   *state = st;
 }
 
-void pdcp_entity_lte::set_state(const pdcp_lte_state_t& state)
+void pdcp_entity_lte::set_bearer_state(const pdcp_lte_state_t& state)
 {
   st = state;
 }

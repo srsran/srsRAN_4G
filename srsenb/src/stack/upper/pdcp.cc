@@ -117,33 +117,20 @@ void pdcp::enable_encryption(uint16_t rnti, uint32_t lcid)
   users[rnti].pdcp->enable_encryption(lcid, srslte::DIRECTION_TXRX);
 }
 
-bool pdcp::get_bearer_status(uint16_t  rnti,
-                             uint32_t  lcid,
-                             uint16_t* dlsn,
-                             uint16_t* dlhfn,
-                             uint16_t* ulsn,
-                             uint16_t* ulhfn)
+bool pdcp::get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state)
 {
   if (users.count(rnti) == 0) {
     return false;
   }
-  return users[rnti].pdcp->get_bearer_status(lcid, dlsn, dlhfn, ulsn, ulhfn);
+  return users[rnti].pdcp->get_bearer_state(lcid, state);
 }
 
-bool pdcp::get_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state)
+bool pdcp::set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state)
 {
   if (users.count(rnti) == 0) {
     return false;
   }
-  return users[rnti].pdcp->get_state(lcid, state);
-}
-
-bool pdcp::set_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state)
-{
-  if (users.count(rnti) == 0) {
-    return false;
-  }
-  return users[rnti].pdcp->set_state(lcid, state);
+  return users[rnti].pdcp->set_bearer_state(lcid, state);
 }
 
 void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)

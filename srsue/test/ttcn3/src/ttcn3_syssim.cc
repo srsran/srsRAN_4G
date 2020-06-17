@@ -1140,9 +1140,12 @@ ttcn3_helpers::pdcp_count_map_t ttcn3_syssim::get_pdcp_count()
     if (pdcp.is_lcid_enabled(i)) {
       ttcn3_helpers::pdcp_count_t bearer;
       uint16_t                    tmp; // not handling HFN
-      pdcp.get_bearer_status(i, &bearer.dl_value, &tmp, &bearer.ul_value, &tmp);
+      srslte::pdcp_lte_state_t    pdcp_state;
+      pdcp.get_bearer_state(i, &pdcp_state);
       bearer.rb_is_srb = i <= 2;
       bearer.rb_id     = i;
+      bearer.dl_value  = pdcp_state.next_pdcp_tx_sn;
+      bearer.ul_value  = pdcp_state.next_pdcp_rx_sn;
       log->debug("PDCP count lcid=%d, dl=%d, ul=%d\n", bearer.rb_id, bearer.dl_value, bearer.ul_value);
       bearers.push_back(bearer);
     }

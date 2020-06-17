@@ -816,10 +816,15 @@ bool rrc::ue::rrc_mobility::start_enb_status_transfer()
     s1ap_interface_rrc::bearer_status_info b    = {};
     uint8_t                                lcid = erab_pair.second.id - 2u;
     b.erab_id                                   = erab_pair.second.id;
-    if (not rrc_enb->pdcp->get_bearer_status(rrc_ue->rnti, lcid, &b.pdcp_dl_sn, &b.dl_hfn, &b.pdcp_ul_sn, &b.ul_hfn)) {
+    srslte::pdcp_lte_state_t pdcp_state         = {};
+    if (not rrc_enb->pdcp->get_bearer_state(rrc_ue->rnti, lcid, &pdcp_state)) {
       Error("PDCP bearer lcid=%d for rnti=0x%x was not found\n", lcid, rrc_ue->rnti);
       return false;
     }
+    b.dl_hfn     = pdcp_state.tx_hfn;
+    b.pdcp_dl_sn = pdcp_state.next_pdcp_tx_sn;
+    b.ul_hfn     = pdcp_state.rx_hfn;
+    b.pdcp_ul_sn = pdcp_state.next_pdcp_rx_sn;
     s1ap_bearers.push_back(b);
   }
 

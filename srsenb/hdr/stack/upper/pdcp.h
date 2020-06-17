@@ -52,10 +52,8 @@ public:
   void config_security(uint16_t rnti, uint32_t lcid, srslte::as_security_config_t cfg_sec) override;
   void enable_integrity(uint16_t rnti, uint32_t lcid) override;
   void enable_encryption(uint16_t rnti, uint32_t lcid) override;
-  bool get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
-      override;
-  bool get_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state);
-  bool set_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state);
+  bool get_bearer_state(uint16_t rnti, uint32_t lcid, srslte::pdcp_lte_state_t* state) override;
+  bool set_bearer_state(uint16_t rnti, uint32_t lcid, const srslte::pdcp_lte_state_t& state) override;
 
 private:
   class user_interface_rlc : public srsue::rlc_interface_pdcp

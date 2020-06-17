@@ -219,30 +219,21 @@ void pdcp::enable_security_timed(uint32_t lcid, srslte_direction_t direction, ui
   }
 }
 
-bool pdcp::get_bearer_status(uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
+bool pdcp::get_bearer_state(uint32_t lcid, srslte::pdcp_lte_state_t* state)
 {
   if (not valid_lcid(lcid)) {
     return false;
   }
-  pdcp_array[lcid]->get_bearer_status(dlsn, dlhfn, ulsn, ulhfn);
+  pdcp_array[lcid]->get_bearer_state(state);
   return true;
 }
 
-bool pdcp::get_state(uint32_t lcid, srslte::pdcp_lte_state_t* state)
+bool pdcp::set_bearer_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state)
 {
   if (not valid_lcid(lcid)) {
     return false;
   }
-  pdcp_array[lcid]->get_state(state);
-  return true;
-}
-
-bool pdcp::set_state(uint32_t lcid, const srslte::pdcp_lte_state_t& state)
-{
-  if (not valid_lcid(lcid)) {
-    return false;
-  }
-  pdcp_array[lcid]->set_state(state);
+  pdcp_array[lcid]->set_bearer_state(state);
   return true;
 }
 

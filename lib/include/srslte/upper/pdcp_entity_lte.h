@@ -58,9 +58,8 @@ public:
 
   // GW/RRC interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
-  void get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn);
-  void get_state(pdcp_lte_state_t* state);
-  void set_state(const pdcp_lte_state_t& state);
+  void get_bearer_state(pdcp_lte_state_t* state);
+  void set_bearer_state(const pdcp_lte_state_t& state);
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
