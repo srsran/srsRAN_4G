@@ -53,10 +53,10 @@ class radio : public radio_interface_phy, public srslte::radio_base
 public:
   radio(srslte::log_filter* log_h);
   radio(srslte::logger* logger_h);
-  virtual ~radio();
+  ~radio();
 
-  int         init(const rf_args_t& args_, phy_interface_radio* phy_);
-  void        stop();
+  int         init(const rf_args_t& args_, phy_interface_radio* phy_) final;
+  void        stop() final;
   std::string get_type() override { return "radio"; }
 
   // ==== PHY interface ===
@@ -88,7 +88,7 @@ public:
   srslte_rf_info_t* get_info() override;
 
   // Other functions
-  bool get_metrics(rf_metrics_t* metrics);
+  bool get_metrics(rf_metrics_t* metrics) final;
 
   void        handle_rf_msg(srslte_rf_error_t error);
   static void rf_msg_callback(void* arg, srslte_rf_error_t error);
