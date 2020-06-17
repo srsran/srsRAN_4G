@@ -50,13 +50,15 @@ txrx::txrx() : thread("TXRX")
   /* Do nothing */
 }
 
-bool txrx::init(srslte::radio_interface_phy* radio_h_,
+bool txrx::init(stack_interface_phy_lte*     stack_,
+                srslte::radio_interface_phy* radio_h_,
                 srslte::thread_pool*         workers_pool_,
                 phy_common*                  worker_com_,
                 prach_worker_pool*           prach_,
                 srslte::log*                 log_h_,
                 uint32_t                     prio_)
 {
+  stack         = stack_;
   radio_h       = radio_h_;
   log_h         = log_h_;
   workers_pool  = workers_pool_;
@@ -161,6 +163,10 @@ void txrx::run_thread()
       for (uint32_t cc = 0; cc < worker_com->get_nof_carriers(); cc++) {
         prach->new_tti(cc, tti, buffer.get(worker_com->get_rf_port(cc), 0, worker_com->get_nof_ports(0)));
       }
+
+      // Advance stack in time
+      stack->tti_clock();
+
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
       running = false;
