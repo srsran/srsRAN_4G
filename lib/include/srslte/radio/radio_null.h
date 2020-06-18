@@ -117,8 +117,6 @@ public:
 
   void release_freq(const uint32_t& carrier_idx) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
-  void set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override { log.info("%s\n", __PRETTY_FUNCTION__); }
-
 protected:
   rf_args_t args = {};
 
