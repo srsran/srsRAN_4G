@@ -26,9 +26,11 @@
 #include "srslte/radio/radio_null.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy.h"
-#include "srsue/hdr/phy/vnf_phy_nr.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
+#ifdef ENABLE_5GNR
+#include "srsue/hdr/phy/vnf_phy_nr.h"
 #include "srsue/hdr/stack/ue_stack_nr.h"
+#endif
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -120,6 +122,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     phy     = std::move(lte_phy);
     radio   = std::move(lte_radio);
   } else if (args.stack.type == "nr") {
+#ifdef ENABLE_5GNR
     std::unique_ptr<srsue::ue_stack_nr> nr_stack(new srsue::ue_stack_nr(logger));
     std::unique_ptr<srslte::radio_null> nr_radio(new srslte::radio_null(logger));
     std::unique_ptr<srsue::vnf_phy_nr>  nr_phy(new srsue::vnf_phy_nr(logger));
@@ -151,6 +154,9 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     gw_inst = std::move(gw_ptr);
     phy     = std::move(nr_phy);
     radio   = std::move(nr_radio);
+#else
+    log.error("5G NR stack not compiled. Please, activate CMAKE ENABLE_5GNR flag.\n");
+#endif
   } else {
     log.console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
     ret = SRSLTE_ERROR;

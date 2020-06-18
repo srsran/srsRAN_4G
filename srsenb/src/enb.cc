@@ -20,12 +20,14 @@
  */
 
 #include "srsenb/hdr/enb.h"
-#include "srsenb/hdr/phy/vnf_phy_nr.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
-#include "srsenb/hdr/stack/gnb_stack_nr.h"
 #include "srsenb/src/enb_cfg_parser.h"
 #include "srslte/build_info.h"
 #include "srslte/radio/radio_null.h"
+#ifdef ENABLE_5GNR
+#include "srsenb/hdr/phy/vnf_phy_nr.h"
+#include "srsenb/hdr/stack/gnb_stack_nr.h"
+#endif
 #include <iostream>
 
 namespace srsenb {
@@ -111,7 +113,7 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     radio = std::move(lte_radio);
 
   } else if (args.stack.type == "nr") {
-
+#ifdef ENABLE_5GNR
     std::unique_ptr<srsenb::gnb_stack_nr> nr_stack(new srsenb::gnb_stack_nr(logger));
     std::unique_ptr<srslte::radio_null>   nr_radio(new srslte::radio_null(logger));
     std::unique_ptr<srsenb::vnf_phy_nr>   nr_phy(new srsenb::vnf_phy_nr(logger));
@@ -143,6 +145,9 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     stack = std::move(nr_stack);
     phy   = std::move(nr_phy);
     radio = std::move(nr_radio);
+#else
+    log->error("5G NR stack not compiled. Please, activate CMAKE ENABLE_5GNR flag.\n");
+#endif
   }
 
   started = true; // set to true in any case to allow stopping the eNB if an error happened
