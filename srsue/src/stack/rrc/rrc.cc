@@ -604,9 +604,9 @@ void rrc::log_neighbour_cells()
         }
       }
     }
-    rrc_log->info("Neighbours: %s]\n", ordered);
+    rrc_log->debug("Neighbours: %s]\n", ordered);
   } else {
-    rrc_log->info("Neighbours: Empty\n");
+    rrc_log->debug("Neighbours: Empty\n");
   }
 }
 
