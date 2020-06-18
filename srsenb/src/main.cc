@@ -67,6 +67,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   bpo::options_description common("Configuration options");
   common.add_options()
 
+    ("enb.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte, nr]")
     ("enb.enb_id",        bpo::value<string>(&enb_id)->default_value("0x0"),                       "eNodeB ID")
     ("enb.name",          bpo::value<string>(&args->stack.s1ap.enb_name)->default_value("srsenb01"), "eNodeB Name")
     ("enb.mcc",           bpo::value<string>(&mcc)->default_value("001"),                          "Mobile Country Code")
@@ -199,7 +200,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("embms.mcs", bpo::value<uint16_t>(&args->stack.embms.mcs)->default_value(20), "Modulation and Coding scheme of MBMS traffic.")
 
     // NR section
-    ("enb.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte]")
     ("scheduler.tb_len", bpo::value<int>(&args->stack.mac.nr_tb_size)->default_value(1520), "Default TB size")
     
     // VNF params

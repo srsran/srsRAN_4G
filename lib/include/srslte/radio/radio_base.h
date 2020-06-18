@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -19,10 +19,10 @@
  *
  */
 
-/******************************************************************************
- * File:        radio_base.h
- * Description: Base class for all eNB/UE radios.
- *****************************************************************************/
+/**
+ * @file radio_base.h
+ * @brief Base class for all eNB/UE radios.
+ */
 
 #ifndef SRSLTE_RADIO_BASE_H
 #define SRSLTE_RADIO_BASE_H

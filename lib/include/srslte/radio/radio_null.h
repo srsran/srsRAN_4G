@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -19,16 +19,17 @@
  *
  */
 
-/******************************************************************************
- * File:        radio_null.h
- * Description: Dummy radio class
- *****************************************************************************/
+/**
+ * @file radio_null.h
+ * @brief Dummy radio class
+ */
 
 #ifndef SRSLTE_RADIO_NULL_H
 #define SRSLTE_RADIO_NULL_H
 
 #include "radio_base.h"
 #include "srslte/common/logger.h"
+#include "srslte/common/logmap.h"
 #include "srslte/interfaces/radio_interfaces.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/radio/radio.h"
@@ -36,19 +37,17 @@
 
 namespace srslte {
 
-class radio_null : public radio_base, public radio_interface_phy
+class radio_null final : public radio_base, public radio_interface_phy
 {
 public:
   explicit radio_null(srslte::logger* logger_);
-  ~radio_null() = default;
+  ~radio_null() final = default;
 
   std::string get_type() override { return "null"; }
 
   int init(const rf_args_t& args_, phy_interface_radio* phy_) override
   {
-    log.init("RF  ", logger);
-    log.set_level(args.log_level);
-
+    log->set_level(args.log_level);
     running = true;
 
     return SRSLTE_SUCCESS;
@@ -68,62 +67,63 @@ public:
   bool is_continuous_tx() override { return false; }
   bool tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_time) override
   {
-    log.info("%s\n", __PRETTY_FUNCTION__);
+    log->info("%s\n", __PRETTY_FUNCTION__);
     return true;
   }
 
-  void tx_end() override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void tx_end() override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
   bool rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time) override
   {
-    log.info("%s\n", __PRETTY_FUNCTION__);
+    log->info("%s\n", __PRETTY_FUNCTION__);
     return true;
   }
 
-  void set_rx_gain(const float& gain) override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void set_rx_gain(const float& gain) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
-  void set_rx_gain_th(const float& gain) override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void set_rx_gain_th(const float& gain) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
   float get_rx_gain() override
   {
-    log.info("%s\n", __PRETTY_FUNCTION__);
+    log->info("%s\n", __PRETTY_FUNCTION__);
     return 0.0;
   }
 
-  void set_tx_gain(const float& gain) override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void set_tx_gain(const float& gain) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
-  void set_tx_freq(const uint32_t& channel_idx, const double& freq) override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void set_tx_freq(const uint32_t& channel_idx, const double& freq) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
-  void set_rx_freq(const uint32_t& channel_idx, const double& freq) override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void set_rx_freq(const uint32_t& channel_idx, const double& freq) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
   double get_freq_offset() override
   {
-    log.info("%s\n", __PRETTY_FUNCTION__);
+    log->info("%s\n", __PRETTY_FUNCTION__);
     return 0.0;
   }
 
-  void set_tx_srate(const double& srate) override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void set_tx_srate(const double& srate) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
-  void set_rx_srate(const double& srate) override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void set_rx_srate(const double& srate) override { log->info("%s\n", __PRETTY_FUNCTION__); }
+
+  void set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
   srslte_rf_info_t* get_info() override
   {
-    log.info("%s\n", __PRETTY_FUNCTION__);
+    log->info("%s\n", __PRETTY_FUNCTION__);
     return nullptr;
   }
 
   bool get_is_start_of_burst() override { return true; }
 
-  void release_freq(const uint32_t& carrier_idx) override { log.info("%s\n", __PRETTY_FUNCTION__); }
+  void release_freq(const uint32_t& carrier_idx) override { log->info("%s\n", __PRETTY_FUNCTION__); }
 
   void set_channel_rx_offset(uint32_t ch, int32_t offset_samples) override { log.info("%s\n", __PRETTY_FUNCTION__); }
 
 protected:
   rf_args_t args = {};
 
-  srslte::logger*    logger = nullptr;
-  srslte::log_filter log;
-  bool               running = false;
+  srslte::log_ref log;
+  bool            running = false;
 
   srslte::rf_metrics_t rf_metrics = {};
   phy_interface_radio* phy        = nullptr;

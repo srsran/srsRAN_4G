@@ -1,5 +1,5 @@
 /*
- * Copyright 2013-2019 Software Radio Systems Limited
+ * Copyright 2013-2020 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -24,6 +24,6 @@
 
 namespace srslte {
 
-radio_null::radio_null(srslte::logger* logger_) : logger(logger_), radio_base(logger_) {}
+radio_null::radio_null(srslte::logger* logger_) : log("RF"), radio_base(logger_) {}
 
 } // namespace srslte
