@@ -539,7 +539,7 @@ void rrc::process_release_complete(uint16_t rnti)
       user_it->second->send_connection_release();
     }
     // delay user deletion for ~50 TTI (until RRC release is sent)
-    timers->defer_callback(50, [&]() { rem_user_thread(rnti); });
+    timers->defer_callback(50, [this, rnti]() { rem_user_thread(rnti); });
   } else {
     rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
   }
