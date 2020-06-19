@@ -984,28 +984,48 @@ double rf_uhd_set_tx_srate(void* h, double freq)
   return freq;
 }
 
-double rf_uhd_set_rx_gain(void* h, double gain)
+int rf_uhd_set_rx_gain(void* h, double gain)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
   for (size_t i = 0; i < handler->nof_rx_channels; i++) {
-    if (handler->uhd.set_rx_gain(i, gain) != UHD_ERROR_NONE) {
+    if (rf_uhd_set_rx_gain_ch(h, i, gain)) {
       print_usrp_error(handler);
       return SRSLTE_ERROR;
     }
   }
-  return gain;
+  return SRSLTE_SUCCESS;
 }
 
-double rf_uhd_set_tx_gain(void* h, double gain)
+int rf_uhd_set_rx_gain_ch(void* h, uint32_t ch, double gain)
+{
+  rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
+  if (handler->uhd.set_rx_gain(ch, gain) != UHD_ERROR_NONE) {
+    print_usrp_error(handler);
+    return SRSLTE_ERROR;
+  }
+  return SRSLTE_SUCCESS;
+}
+
+int rf_uhd_set_tx_gain(void* h, double gain)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
   for (size_t i = 0; i < handler->nof_tx_channels; i++) {
-    if (handler->uhd.set_tx_gain(i, gain) != UHD_ERROR_NONE) {
+    if (rf_uhd_set_tx_gain_ch(h, i, gain)) {
       print_usrp_error(handler);
       return SRSLTE_ERROR;
     }
   }
-  return gain;
+  return SRSLTE_SUCCESS;
+}
+
+int rf_uhd_set_tx_gain_ch(void* h, uint32_t ch, double gain)
+{
+  rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
+  if (handler->uhd.set_tx_gain(ch, gain) != UHD_ERROR_NONE) {
+    print_usrp_error(handler);
+    return SRSLTE_ERROR;
+  }
+  return SRSLTE_SUCCESS;
 }
 
 double rf_uhd_get_rx_gain(void* h)

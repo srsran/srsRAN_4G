@@ -363,7 +363,8 @@ int main(int argc, char** argv)
     }
     /* Set receiver gain */
     if (prog_args.rf_gain > 0) {
-      printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, prog_args.rf_gain));
+      srslte_rf_set_rx_gain(&rf, prog_args.rf_gain);
+      printf("Set RX gain: %.1f dB\n", prog_args.rf_gain);
     } else {
       printf("Starting AGC thread...\n");
       if (srslte_rf_start_gain_thread(&rf, false)) {

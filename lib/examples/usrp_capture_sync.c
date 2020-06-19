@@ -161,8 +161,9 @@ int main(int argc, char** argv)
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
+  srslte_rf_set_rx_gain(&rf, rf_gain);
   printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
+  printf("Set RX gain: %.1f dB\n", srslte_rf_get_rx_gain(&rf));
   int srate = srslte_sampling_freq_hz(nof_prb);
   if (srate != -1) {
     printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);

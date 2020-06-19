@@ -282,28 +282,38 @@ double rf_blade_set_tx_srate(void* h, double freq)
   return (double)handler->tx_rate;
 }
 
-double rf_blade_set_rx_gain(void* h, double gain)
+int rf_blade_set_rx_gain(void* h, double gain)
 {
   int                 status;
   rf_blade_handler_t* handler = (rf_blade_handler_t*)h;
   status                      = bladerf_set_gain(handler->dev, BLADERF_RX_X1, (bladerf_gain)gain);
   if (status != 0) {
     ERROR("Failed to set RX gain: %s\n", bladerf_strerror(status));
-    return -1;
+    return SRSLTE_ERROR;
   }
-  return rf_blade_get_rx_gain(h);
+  return SRSLTE_SUCCESS;
 }
 
-double rf_blade_set_tx_gain(void* h, double gain)
+int rf_blade_set_rx_gain_ch(void* h, uint32_t ch, double gain)
+{
+  return rf_blade_set_rx_gain(h, gain);
+}
+
+int rf_blade_set_tx_gain(void* h, double gain)
 {
   int                 status;
   rf_blade_handler_t* handler = (rf_blade_handler_t*)h;
   status                      = bladerf_set_gain(handler->dev, BLADERF_TX_X1, (bladerf_gain)gain);
   if (status != 0) {
     ERROR("Failed to set TX gain: %s\n", bladerf_strerror(status));
-    return -1;
+    return SRSLTE_ERROR;
   }
-  return rf_blade_get_tx_gain(h);
+  return SRSLTE_SUCCESS;
+}
+
+int rf_blade_set_tx_gain_ch(void* h, uint32_t ch, double gain)
+{
+  return rf_blade_set_tx_gain(h, gain);
 }
 
 double rf_blade_get_rx_gain(void* h)

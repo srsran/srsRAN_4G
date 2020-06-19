@@ -58,7 +58,9 @@ SRSLTE_API float rf_uhd_get_rssi(void* h);
 
 SRSLTE_API double rf_uhd_set_rx_srate(void* h, double freq);
 
-SRSLTE_API double rf_uhd_set_rx_gain(void* h, double gain);
+SRSLTE_API int rf_uhd_set_rx_gain(void* h, double gain);
+
+SRSLTE_API int rf_uhd_set_rx_gain_ch(void* h, uint32_t ch, double gain);
 
 SRSLTE_API double rf_uhd_get_rx_gain(void* h);
 
@@ -80,7 +82,9 @@ rf_uhd_recv_with_time_multi(void* h, void** data, uint32_t nsamples, bool blocki
 
 SRSLTE_API double rf_uhd_set_tx_srate(void* h, double freq);
 
-SRSLTE_API double rf_uhd_set_tx_gain(void* h, double gain);
+SRSLTE_API int rf_uhd_set_tx_gain(void* h, double gain);
+
+SRSLTE_API int rf_uhd_set_tx_gain_ch(void* h, uint32_t ch, double gain);
 
 SRSLTE_API double rf_uhd_set_tx_freq(void* h, uint32_t ch, double freq);
 

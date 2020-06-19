@@ -35,7 +35,7 @@ int rf_get_available_devices(char** devnames, int max_strlen)
   return i;
 }
 
-double srslte_rf_set_rx_gain_th(srslte_rf_t* rf, double gain)
+int srslte_rf_set_rx_gain_th(srslte_rf_t* rf, double gain)
 {
   if (gain > rf->cur_rx_gain + 2 || gain < rf->cur_rx_gain - 2) {
     pthread_mutex_lock(&rf->mutex);
@@ -43,7 +43,7 @@ double srslte_rf_set_rx_gain_th(srslte_rf_t* rf, double gain)
     pthread_cond_signal(&rf->cond);
     pthread_mutex_unlock(&rf->mutex);
   }
-  return rf->cur_rx_gain;
+  return SRSLTE_SUCCESS;
 }
 
 void srslte_rf_set_tx_rx_gain_offset(srslte_rf_t* rf, double offset)
@@ -67,7 +67,6 @@ static void* thread_gain_fcn(void* h)
       rf->new_rx_gain = rf->cur_rx_gain;
     }
     if (rf->tx_gain_same_rx) {
-      printf("setting also tx\n");
       srslte_rf_set_tx_gain(h, rf->cur_rx_gain + rf->tx_rx_gain_offset);
     }
     pthread_mutex_unlock(&rf->mutex);
@@ -197,9 +196,14 @@ double srslte_rf_set_rx_srate(srslte_rf_t* rf, double freq)
   return ((rf_dev_t*)rf->dev)->srslte_rf_set_rx_srate(rf->handler, freq);
 }
 
-double srslte_rf_set_rx_gain(srslte_rf_t* rf, double gain)
+int srslte_rf_set_rx_gain(srslte_rf_t* rf, double gain)
 {
   return ((rf_dev_t*)rf->dev)->srslte_rf_set_rx_gain(rf->handler, gain);
+}
+
+int srslte_rf_set_rx_gain_ch(srslte_rf_t* rf, uint32_t ch, double gain)
+{
+  return ((rf_dev_t*)rf->dev)->srslte_rf_set_rx_gain_ch(rf->handler, ch, gain);
 }
 
 double srslte_rf_get_rx_gain(srslte_rf_t* rf)
@@ -256,9 +260,14 @@ int srslte_rf_recv_with_time_multi(srslte_rf_t* rf,
   return ((rf_dev_t*)rf->dev)->srslte_rf_recv_with_time_multi(rf->handler, data, nsamples, blocking, secs, frac_secs);
 }
 
-double srslte_rf_set_tx_gain(srslte_rf_t* rf, double gain)
+int srslte_rf_set_tx_gain(srslte_rf_t* rf, double gain)
 {
   return ((rf_dev_t*)rf->dev)->srslte_rf_set_tx_gain(rf->handler, gain);
+}
+
+int srslte_rf_set_tx_gain_ch(srslte_rf_t* rf, uint32_t ch, double gain)
+{
+  return ((rf_dev_t*)rf->dev)->srslte_rf_set_tx_gain_ch(rf->handler, ch, gain);
 }
 
 double srslte_rf_set_tx_srate(srslte_rf_t* rf, double freq)

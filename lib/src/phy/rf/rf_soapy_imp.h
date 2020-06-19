@@ -54,11 +54,15 @@ SRSLTE_API void rf_soapy_set_master_clock_rate(void* h, double rate);
 
 SRSLTE_API double rf_soapy_set_rx_srate(void* h, double freq);
 
-SRSLTE_API double rf_soapy_set_rx_gain(void* h, double gain);
+SRSLTE_API int rf_soapy_set_rx_gain(void* h, double gain);
+
+SRSLTE_API int rf_soapy_set_rx_gain_ch(void* h, uint32_t ch, double gain);
 
 SRSLTE_API double rf_soapy_get_rx_gain(void* h);
 
-SRSLTE_API double rf_soapy_set_tx_gain(void* h, double gain);
+SRSLTE_API int rf_soapy_set_tx_gain(void* h, double gain);
+
+SRSLTE_API int rf_soapy_set_tx_gain_ch(void* h, uint32_t ch, double gain);
 
 SRSLTE_API double rf_soapy_get_tx_gain(void* h);
 

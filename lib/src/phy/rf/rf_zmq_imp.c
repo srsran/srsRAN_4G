@@ -452,20 +452,28 @@ double rf_zmq_set_tx_srate(void* h, double srate)
   return ret;
 }
 
-double rf_zmq_set_rx_gain(void* h, double gain)
+int rf_zmq_set_rx_gain(void* h, double gain)
 {
-  double ret = 0.0;
   if (h) {
     rf_zmq_handler_t* handler = (rf_zmq_handler_t*)h;
     handler->rx_gain          = gain;
-    ret                       = gain;
   }
-  return ret;
+  return SRSLTE_SUCCESS;
 }
 
-double rf_zmq_set_tx_gain(void* h, double gain)
+int rf_zmq_set_rx_gain_ch(void* h, uint32_t ch, double gain)
 {
-  return 0.0;
+  return rf_zmq_set_rx_gain(h, gain);
+}
+
+int rf_zmq_set_tx_gain(void* h, double gain)
+{
+  return SRSLTE_SUCCESS;
+}
+
+int rf_zmq_set_tx_gain_ch(void* h, uint32_t ch, double gain)
+{
+  return rf_zmq_set_tx_gain(h, gain);
 }
 
 double rf_zmq_get_rx_gain(void* h)

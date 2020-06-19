@@ -169,9 +169,11 @@ static int         init_radio(uint32_t* buffer_len)
     ERROR("Error opening rf\n");
     return -1;
   }
+  srslte_rf_set_rx_gain(&radio, rf_gain);
+  srslte_rf_set_rx_freq(&radio, nof_rx_antennas, rf_freq);
 
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&radio, nof_rx_antennas, rf_freq) / 1000000);
-  printf("Set RX gain: %.2f dB\n", srslte_rf_set_rx_gain(&radio, rf_gain));
+  printf("Set RX freq: %.2f MHz\n", rf_freq / 1000000);
+  printf("Set RX gain: %.2f dB\n", rf_gain);
   float srate = srslte_rf_set_rx_srate(&radio, rf_rate);
   if (srate != rf_rate) {
     ERROR("Error setting samplign frequency %.2f MHz\n", rf_rate * 1e-6);

@@ -778,7 +778,8 @@ int main(int argc, char** argv)
       ERROR("Invalid number of PRB %d\n", cell.nof_prb);
       exit(-1);
     }
-    printf("Set TX gain: %.1f dB\n", srslte_rf_set_tx_gain(&radio, rf_gain));
+    srslte_rf_set_tx_gain(&radio, rf_gain);
+    printf("Set TX gain: %.1f dB\n", srslte_rf_get_tx_gain(&radio));
     printf("Set TX freq: %.2f MHz\n", srslte_rf_set_tx_freq(&radio, cell.nof_ports, rf_freq) / 1000000);
   }
 #endif

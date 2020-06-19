@@ -258,9 +258,11 @@ int main(int argc, char** argv)
       exit(-1);
     }
 
+    srslte_rf_set_rx_gain(&radio, prog_args.rf_gain);
+
     printf("Set RX freq: %.6f MHz\n",
            srslte_rf_set_rx_freq(&radio, prog_args.nof_rx_antennas, prog_args.rf_freq) / 1e6);
-    printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&radio, prog_args.rf_gain));
+    printf("Set RX gain: %.1f dB\n", prog_args.rf_gain);
     int srate = srslte_sampling_freq_hz(cell_sl.nof_prb);
 
     if (srate != -1) {

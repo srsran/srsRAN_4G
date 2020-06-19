@@ -145,12 +145,16 @@ int main(int argc, char** argv)
   srslte_rf_set_rx_srate(&rf, (double)srate);
   srslte_rf_set_tx_srate(&rf, (double)srate);
 
+  srslte_rf_set_rx_gain(&rf, rf_rx_gain);
+  srslte_rf_set_tx_gain(&rf, srslte_rf_tx_gain);
+  srslte_rf_set_rx_freq(&rf, 0, rf_freq);
+
   printf("Subframe len:   %d samples\n", flen);
   printf("Time advance:   %f us\n", time_adv_sec * 1e6);
   printf("Set TX/RX rate: %.2f MHz\n", (float)srate / 1000000);
-  printf("Set RX gain:    %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_rx_gain));
-  printf("Set TX gain:    %.1f dB\n", srslte_rf_set_tx_gain(&rf, srslte_rf_tx_gain));
-  printf("Set TX/RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
+  printf("Set RX gain:    %.1f dB\n", rf_rx_gain);
+  printf("Set TX gain:    %.1f dB\n", srslte_rf_tx_gain);
+  printf("Set TX/RX freq: %.2f MHz\n", rf_freq / 1000000);
   srslte_rf_set_tx_freq(&rf, 0, rf_freq);
 
   sleep(1);

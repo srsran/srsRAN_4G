@@ -95,11 +95,13 @@ SRSLTE_API float srslte_rf_get_rssi(srslte_rf_t* h);
 
 SRSLTE_API double srslte_rf_set_rx_srate(srslte_rf_t* h, double freq);
 
-SRSLTE_API double srslte_rf_set_rx_gain(srslte_rf_t* h, double gain);
+SRSLTE_API int srslte_rf_set_rx_gain(srslte_rf_t* h, double gain);
+
+SRSLTE_API int srslte_rf_set_rx_gain_ch(srslte_rf_t* h, uint32_t ch, double gain);
 
 SRSLTE_API void srslte_rf_set_tx_rx_gain_offset(srslte_rf_t* h, double offset);
 
-SRSLTE_API double srslte_rf_set_rx_gain_th(srslte_rf_t* h, double gain);
+SRSLTE_API int srslte_rf_set_rx_gain_th(srslte_rf_t* h, double gain);
 
 SRSLTE_API double srslte_rf_get_rx_gain(srslte_rf_t* h);
 
@@ -127,7 +129,9 @@ SRSLTE_API int srslte_rf_recv_with_time_multi(srslte_rf_t* h,
 
 SRSLTE_API double srslte_rf_set_tx_srate(srslte_rf_t* h, double freq);
 
-SRSLTE_API double srslte_rf_set_tx_gain(srslte_rf_t* h, double gain);
+SRSLTE_API int srslte_rf_set_tx_gain(srslte_rf_t* h, double gain);
+
+SRSLTE_API int srslte_rf_set_tx_gain_ch(srslte_rf_t* h, uint32_t ch, double gain);
 
 SRSLTE_API double srslte_rf_set_tx_freq(srslte_rf_t* h, uint32_t ch, double freq);
 

@@ -133,8 +133,10 @@ int main(int argc, char** argv)
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq) / 1000000);
-  printf("Set RX gain: %.2f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
+  srslte_rf_set_rx_gain(&rf, rf_gain);
+  srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq);
+  printf("Set RX freq: %.2f MHz\n", rf_freq / 1000000);
+  printf("Set RX gain: %.2f dB\n", rf_gain);
   float srate = srslte_rf_set_rx_srate(&rf, rf_rate);
   if (srate != rf_rate) {
     srate = srslte_rf_set_rx_srate(&rf, rf_rate);

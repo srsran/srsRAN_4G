@@ -139,8 +139,9 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
+  srslte_rf_set_rx_gain(&rf_device, rf_gain);
   printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf_device, srate) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf_device, rf_gain));
+  printf("Set RX gain: %.1f dB\n", srslte_rf_get_rx_gain(&rf_device));
   printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf_device, 0, rf_freq) / 1000000);
 
   srslte_ue_mib_sync_nbiot_t mib_sync;

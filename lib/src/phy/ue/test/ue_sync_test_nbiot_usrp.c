@@ -161,8 +161,9 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
+  srslte_rf_set_rx_gain(&rf, rf_gain);
   printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
-  printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
+  printf("Set RX gain: %.1f dB\n", srslte_rf_get_rx_gain(&rf));
   printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
 
   // Allocate memory for rx'ing samples (1 full frame)

@@ -139,12 +139,33 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   } else {
     set_rx_gain(args.rx_gain);
   }
+  // Set gain for all channels
   if (args.tx_gain > 0) {
     set_tx_gain(args.tx_gain);
   } else {
     // Set same gain than for RX until power control sets a gain
     set_tx_gain(args.rx_gain);
     log_h->console("\nWarning: TX gain was not set. Using open-loop power control (not working properly)\n\n");
+  }
+
+  // Set individual gains
+  for (uint32_t i = 0; i < args.nof_carriers; i++) {
+    if (args.tx_gain_ch[i] > 0) {
+      for (uint32_t j = 0; j < nof_antennas; i++) {
+        uint32_t phys_antenna_idx = i * nof_antennas + j;
+
+        // From channel number deduce RF device index and channel
+        uint32_t rf_device_idx  = phys_antenna_idx / nof_channels_x_dev;
+        uint32_t rf_channel_idx = phys_antenna_idx % nof_channels_x_dev;
+
+        log_h->info(
+            "Setting individual tx_gain=%.1f on dev=%d ch=%d\n", args.tx_gain_ch[i], rf_device_idx, rf_channel_idx);
+        if (srslte_rf_set_tx_gain_ch(&rf_devices[rf_device_idx], rf_channel_idx, args.tx_gain_ch[i]) < 0) {
+          log_h->error(
+              "Setting channel tx_gain=%.1f on dev=%d ch=%d\n", args.tx_gain_ch[i], rf_device_idx, rf_channel_idx);
+        }
+      }
+    }
   }
 
   // Frequency offset

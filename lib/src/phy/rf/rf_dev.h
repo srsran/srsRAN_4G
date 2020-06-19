@@ -37,8 +37,10 @@ typedef struct {
   int (*srslte_rf_open_multi)(char* args, void** h, uint32_t nof_channels);
   int (*srslte_rf_close)(void* h);
   double (*srslte_rf_set_rx_srate)(void* h, double freq);
-  double (*srslte_rf_set_rx_gain)(void* h, double gain);
-  double (*srslte_rf_set_tx_gain)(void* h, double gain);
+  int (*srslte_rf_set_rx_gain)(void* h, double gain);
+  int (*srslte_rf_set_rx_gain_ch)(void* h, uint32_t ch, double gain);
+  int (*srslte_rf_set_tx_gain)(void* h, double gain);
+  int (*srslte_rf_set_tx_gain_ch)(void* h, uint32_t ch, double gain);
   double (*srslte_rf_get_rx_gain)(void* h);
   double (*srslte_rf_get_tx_gain)(void* h);
   srslte_rf_info_t* (*srslte_rf_get_info)(void* h);
@@ -98,7 +100,9 @@ static rf_dev_t dev_uhd = {"UHD",
                            rf_uhd_close,
                            rf_uhd_set_rx_srate,
                            rf_uhd_set_rx_gain,
+                           rf_uhd_set_rx_gain_ch,
                            rf_uhd_set_tx_gain,
+                           rf_uhd_set_tx_gain_ch,
                            rf_uhd_get_rx_gain,
                            rf_uhd_get_tx_gain,
                            rf_uhd_get_info,
@@ -132,7 +136,9 @@ static rf_dev_t dev_blade = {"bladeRF",
                              rf_blade_close,
                              rf_blade_set_rx_srate,
                              rf_blade_set_rx_gain,
+                             rf_blade_set_rx_gain_ch,
                              rf_blade_set_tx_gain,
+                             rf_blade_set_tx_gain_ch,
                              rf_blade_get_rx_gain,
                              rf_blade_get_tx_gain,
                              rf_blade_get_info,
@@ -165,7 +171,9 @@ static rf_dev_t dev_soapy = {"soapy",
                              rf_soapy_close,
                              rf_soapy_set_rx_srate,
                              rf_soapy_set_rx_gain,
+                             rf_soapy_set_rx_gain_ch,
                              rf_soapy_set_tx_gain,
+                             rf_soapy_set_tx_gain_ch,
                              rf_soapy_get_rx_gain,
                              rf_soapy_get_tx_gain,
                              rf_soapy_get_info,
@@ -200,7 +208,9 @@ static rf_dev_t dev_zmq = {"zmq",
                            rf_zmq_close,
                            rf_zmq_set_rx_srate,
                            rf_zmq_set_rx_gain,
+                           rf_zmq_set_rx_gain_ch,
                            rf_zmq_set_tx_gain,
+                           rf_zmq_set_tx_gain_ch,
                            rf_zmq_get_rx_gain,
                            rf_zmq_get_tx_gain,
                            rf_zmq_get_info,
@@ -225,10 +235,10 @@ int dummy_rcv()
 }
 void dummy_fnc() {}
 
-static rf_dev_t dev_dummy = {"dummy",   dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc,
-                             dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc,
-                             dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc,
-                             dummy_fnc, dummy_fnc, dummy_rcv, dummy_fnc, dummy_fnc, dummy_fnc};
+static rf_dev_t dev_dummy = {"dummy",   dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc,
+                             dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc,
+                             dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_rcv,
+                             dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc};
 #endif
 
 static rf_dev_t* available_devices[] = {

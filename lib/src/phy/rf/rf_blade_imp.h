@@ -46,7 +46,9 @@ SRSLTE_API float rf_blade_get_rssi(void* h);
 
 SRSLTE_API double rf_blade_set_rx_srate(void* h, double freq);
 
-SRSLTE_API double rf_blade_set_rx_gain(void* h, double gain);
+SRSLTE_API int rf_blade_set_rx_gain(void* h, double gain);
+
+SRSLTE_API int rf_blade_set_rx_gain_ch(void* h, uint32_t ch, double gain);
 
 SRSLTE_API float rf_blade_get_rx_gain_offset(void* h);
 
@@ -70,7 +72,9 @@ rf_blade_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking, t
 
 SRSLTE_API double rf_blade_set_tx_srate(void* h, double freq);
 
-SRSLTE_API double rf_blade_set_tx_gain(void* h, double gain);
+SRSLTE_API int rf_blade_set_tx_gain(void* h, double gain);
+
+SRSLTE_API int rf_blade_set_tx_gain_ch(void* h, uint32_t ch, double gain);
 
 SRSLTE_API double rf_blade_set_tx_freq(void* h, uint32_t ch, double freq);
 
