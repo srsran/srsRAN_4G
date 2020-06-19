@@ -593,6 +593,35 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     clock_src = device_addr.pop("clock");
   }
 
+  // Samples-Per-Packet option, 0 means automatic
+  std::string spp = "0";
+  if (device_addr.has_key("spp")) {
+    spp = device_addr.pop("spp");
+  }
+
+  // Logging level
+  uhd::log::severity_level severity_level = uhd::log::severity_level::info;
+  if (device_addr.has_key("log_level")) {
+    std::string log_level = device_addr.pop("log_level");
+
+    for (auto& e : log_level) {
+      e = std::toupper(e);
+    }
+
+    if (log_level == "WARNING") {
+      severity_level = uhd::log::severity_level::warning;
+    } else if (log_level == "INFO") {
+      severity_level = uhd::log::severity_level::info;
+    } else if (log_level == "DEBUG") {
+      severity_level = uhd::log::severity_level::debug;
+    } else if (log_level == "TRACE") {
+      severity_level = uhd::log::severity_level::trace;
+    } else {
+      severity_level = uhd::log::severity_level::error;
+    }
+  }
+  uhd::log::set_console_level(severity_level);
+
 #if HAVE_ASYNC_THREAD
   bool start_async_thread = true;
   if (device_addr.has_key("silent")) {
@@ -780,6 +809,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   // Initialize TX/RX stream args
   handler->stream_args.cpu_format = "fc32";
   handler->stream_args.otw_format = otw_format;
+  handler->stream_args.args.set("spp", spp);
   handler->stream_args.channels.resize(nof_channels);
   for (size_t i = 0; i < (size_t)nof_channels; i++) {
     handler->stream_args.channels[i] = i;
@@ -1223,10 +1253,7 @@ int rf_uhd_recv_with_time_multi(void*    h,
     } else if (error_code == uhd::rx_metadata_t::ERROR_CODE_LATE_COMMAND) {
       log_late(handler, true);
     } else if (error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {
-      ERROR("Error in metadata '%s'. Recovering (%d/%d).\n",
-            md.to_pp_string(true).c_str(),
-            trials,
-            RF_UHD_IMP_MAX_RX_TRIALS);
+      ERROR("Error in metadata '%s'.\n", md.to_pp_string(true).c_str());
 
       if (handler->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
         handler->tx_state = RF_UHD_IMP_TX_STATE_END_OF_BURST;
@@ -1236,6 +1263,8 @@ int rf_uhd_recv_with_time_multi(void*    h,
         // Stop Rx stream
         rf_uhd_stop_rx_stream_unsafe(handler);
       }
+
+      return SRSLTE_ERROR;
     }
   }
 

@@ -318,9 +318,6 @@ public:
     // Copy device address
     uhd::device_addr_t device_addr = _device_addr;
 
-    // Set log level to debug
-    uhd::log::set_console_level(uhd::log::severity_level::trace);
-
     // Parse arguments, removes
     uhd_error err = parse_args(device_addr);
     if (err != UHD_ERROR_NONE) {

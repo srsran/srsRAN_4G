@@ -265,6 +265,13 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
       srslte_rf_start_rx_stream(&rf_device, false);
     }
     radio_is_streaming = true;
+
+    // Flush buffers to compensate settling time
+    if (rf_devices.size() > 1) {
+      for (srslte_rf_t& rf_device : rf_devices) {
+        srslte_rf_flush_buffer(&rf_device);
+      }
+    }
   }
 
   for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_devices.size(); device_idx++) {
