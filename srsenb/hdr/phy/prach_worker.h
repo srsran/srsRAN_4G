@@ -28,6 +28,13 @@
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/enb_interfaces.h"
 
+// Setting ENABLE_PRACH_GUI to non zero enables a GUI showing signal received in the PRACH window.
+#define ENABLE_PRACH_GUI 0
+
+#if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
+#include <srsgui/srsgui.h>
+#endif // defined(ENABLE_GUI) and ENABLE_PRACH_GUI
+
 namespace srsenb {
 
 class prach_worker : srslte::thread
@@ -54,6 +61,11 @@ private:
   srslte_cell_t      cell      = {};
   srslte_prach_cfg_t prach_cfg = {};
   srslte_prach_t     prach     = {};
+
+#if defined(ENABLE_GUI) and ENABLE_PRACH_GUI
+  plot_real_t                              plot_real;
+  std::array<float, 3 * SRSLTE_SF_LEN_MAX> plot_buffer;
+#endif // defined(ENABLE_GUI) and ENABLE_PRACH_GUI
 
   const static int sf_buffer_sz = 128 * 1024;
   class sf_buffer
