@@ -145,7 +145,7 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
       }
     }
 
-    process_pdus();
+    stack->defer_task([this]() { process_pdus(); });
   }
 }
 
@@ -185,6 +185,8 @@ void mac_nr::get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr:
       if (tx_pdu.add_sdu(args.drb_lcid, rlc_buffer->msg, rlc_buffer->N_bytes) != SRSLTE_SUCCESS) {
         log_h->error("Error packing MAC PDU\n");
       }
+    } else {
+      break;
     }
   }
 

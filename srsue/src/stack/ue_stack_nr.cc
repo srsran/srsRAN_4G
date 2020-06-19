@@ -214,7 +214,7 @@ void ue_stack_nr::out_of_sync()
 
 void ue_stack_nr::run_tti(uint32_t tti)
 {
-  // pending_tasks.push(sync_queue_id, task_t{[this, tti](task_t*) { run_tti_impl(tti); }});
+  pending_tasks.push(sync_queue_id, [this, tti]() { run_tti_impl(tti); });
 }
 
 void ue_stack_nr::run_tti_impl(uint32_t tti)
@@ -236,18 +236,6 @@ void ue_stack_nr::start_cell_search()
 void ue_stack_nr::start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell)
 {
   // not implemented
-}
-
-void ue_stack_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
-{
-  pending_tasks.push(
-      mac_queue_id,
-      std::bind([this, cc_idx](mac_nr_grant_dl_t& grant) { mac->tb_decoded(cc_idx, grant); }, std::move(grant)));
-}
-
-void ue_stack_nr::new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant)
-{
-  pending_tasks.push(mac_queue_id, [this, cc_idx, grant]() { mac->new_grant_ul(cc_idx, grant); });
 }
 
 /***************************

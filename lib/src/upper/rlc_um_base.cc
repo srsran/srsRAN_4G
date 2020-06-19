@@ -139,8 +139,10 @@ int rlc_um_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   if (tx && tx_enabled) {
     uint32_t len = tx->build_data_pdu(payload, nof_bytes);
-    metrics.num_tx_bytes += len;
-    metrics.num_tx_pdus++;
+    if (len > 0) {
+      metrics.num_tx_bytes += len;
+      metrics.num_tx_pdus++;
+    }
     return len;
   }
   return 0;

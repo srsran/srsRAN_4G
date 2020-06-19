@@ -81,11 +81,11 @@ public:
   // MAC interface for PHY
   int sf_indication(const uint32_t tti)
   {
-    mac->sf_indication(tti);
+    run_tti(tti);
     return SRSLTE_SUCCESS;
   }
-  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final;
-  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) final;
+  void tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant) final { mac->tb_decoded(cc_idx, grant); }
+  void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) final { mac->new_grant_ul(cc_idx, grant); }
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final;
