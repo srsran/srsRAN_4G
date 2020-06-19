@@ -98,12 +98,12 @@ void prach::stop()
   }
 }
 
-bool prach::set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg)
+bool prach::set_cell(srslte_cell_t cell_, srslte_prach_cfg_t prach_cfg)
 {
   if (mem_initiated) {
     // TODO: Check if other PRACH parameters changed
-    if (this->cell.id != cell.id || !cell_initiated) {
-      this->cell   = cell;
+    if (cell.id != cell_.id || !cell_initiated) {
+      cell         = cell_;
       preamble_idx = -1;
 
       if (6 + prach_cfg.freq_offset > cell.nof_prb) {
