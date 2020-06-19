@@ -139,6 +139,9 @@ void phy_common::worker_end(void*                   tx_sem_id,
   // Always transmit on single radio
   radio->tx(buffer, tx_time);
 
+  // Trigger MAC clock
+  stack->tti_clock();
+
   // Allow next TTI to transmit
   semaphore.release();
 }
