@@ -37,7 +37,8 @@ class txrx final : public srslte::thread
 {
 public:
   txrx();
-  bool init(srslte::radio_interface_phy* radio_handler,
+  bool init(stack_interface_phy_lte*     stack_,
+            srslte::radio_interface_phy* radio_handler,
             srslte::thread_pool*         _workers_pool,
             phy_common*                  worker_com,
             prach_worker_pool*           prach_,
@@ -48,6 +49,7 @@ public:
 private:
   void run_thread() override;
 
+  stack_interface_phy_lte*     stack        = nullptr;
   srslte::radio_interface_phy* radio_h      = nullptr;
   srslte::log*                 log_h        = nullptr;
   srslte::thread_pool*         workers_pool = nullptr;
