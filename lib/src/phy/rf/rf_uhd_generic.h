@@ -27,7 +27,9 @@
 class rf_uhd_generic : public rf_uhd_safe_interface
 {
 private:
-  uhd::usrp::multi_usrp::sptr usrp = nullptr;
+  uhd::usrp::multi_usrp::sptr     usrp                         = nullptr;
+  const uhd::fs_path              TREE_DBOARD_RX_FRONTEND_NAME = "/mboards/0/dboards/A/rx_frontends/A/name";
+  const std::chrono::milliseconds FE_RX_RESET_SLEEP_TIME_MS    = std::chrono::milliseconds(2000UL);
 
   uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) override
   {
@@ -38,7 +40,53 @@ private:
   }
 
 public:
-  uhd_error usrp_make(const uhd::device_addr_t& dev_addr) override { return usrp_multi_make(dev_addr); }
+  uhd_error usrp_make(const uhd::device_addr_t& dev_addr) override
+  { // Make USRP
+    uhd_error err = usrp_multi_make(dev_addr);
+    if (err != UHD_ERROR_NONE) {
+      return err;
+    }
+
+    std::string dboard_name = usrp->get_device()->get_tree()->access<std::string>(TREE_DBOARD_RX_FRONTEND_NAME).get();
+
+    // Detect if it a AD9361 based device
+    if (dboard_name.find("FE-RX") != std::string::npos) {
+      Info("The device is based on AD9361, get RX stream for checking LIBUSB_TRANSFER_ERROR");
+      uint32_t ntrials = 10;
+      do {
+        err = set_rx_rate(1.92e6);
+        if (err != UHD_ERROR_NONE) {
+          return err;
+        }
+
+        uhd::stream_args_t stream_args("fc32", "sc16");
+        stream_args.channels = {0};
+        size_t max_samp      = 0;
+        err                  = get_rx_stream(stream_args, max_samp);
+
+        // If no error getting RX stream, return
+        if (err == UHD_ERROR_NONE) {
+          return err;
+        }
+
+        // Close USRP
+        usrp = nullptr;
+
+        Warning("Failed to open Rx stream '" << last_error << "', trying to open device again. " << ntrials
+                                             << " trials left. Waiting for " << FE_RX_RESET_SLEEP_TIME_MS.count()
+                                             << " ms");
+
+        // Sleep
+        std::this_thread::sleep_for(FE_RX_RESET_SLEEP_TIME_MS);
+
+        // Try once more making the device
+        err = usrp_multi_make(dev_addr);
+
+      } while (err == UHD_ERROR_NONE and --ntrials != 0);
+    }
+
+    return err;
+  }
 
   uhd_error set_tx_subdev(const std::string& string) override
   {
