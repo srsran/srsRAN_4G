@@ -145,7 +145,7 @@ void mac_nr::tb_decoded(const uint32_t cc_idx, mac_nr_grant_dl_t& grant)
       }
     }
 
-    stack->defer_task([this]() { process_pdus(); });
+    stack_task_dispatch_queue.push([this]() { process_pdus(); });
   }
 }
 

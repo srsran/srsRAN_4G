@@ -60,7 +60,7 @@ void parse_args(pnf_args_t* args, int argc, char* argv[])
           ("vnf.ue_port", bpo::value<uint16_t>(&args->ue_vnf_port)->default_value(3334), "UE VNF port")
           ("sf_interval", bpo::value<uint32_t>(&args->sf_interval)->default_value(1000), "Interval between subframes in us")
           ("num_sf", bpo::value<int32_t>(&args->num_sf)->default_value(-1), "Number of subframes to signal (-1 infinity)")
-          ("tb_len", bpo::value<uint32_t>(&args->tb_len)->default_value(0), "TB lenth (0 for random size)");
+          ("tb_len", bpo::value<uint32_t>(&args->tb_len)->default_value(1600), "TB lenth (0 for random size)");
   // clang-format on
 
   // these options are allowed on the command line

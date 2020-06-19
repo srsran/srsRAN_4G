@@ -30,7 +30,7 @@ ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
   logger(logger_),
   timers(64),
   thread("STACK"),
-  pending_tasks(1024),
+  pending_tasks(64),
   background_tasks(2),
   rlc_log("RLC"),
   pdcp_log("PDCP"),
@@ -100,16 +100,6 @@ int ue_stack_nr::init(const stack_args_t& args_)
   rrc_args.coreless.ip_addr  = "192.168.1.3";
   rrc->init(phy, mac.get(), rlc.get(), pdcp.get(), gw, &timers, this, rrc_args);
 
-  // statically setup TUN (will be done through RRC later)
-  char* err_str = nullptr;
-  if (gw->setup_if_addr(rrc_args.coreless.drb_lcid,
-                        LIBLTE_MME_PDN_TYPE_IPV4,
-                        htonl(inet_addr(rrc_args.coreless.ip_addr.c_str())),
-                        nullptr,
-                        err_str)) {
-    printf("Error configuring TUN interface\n");
-  }
-
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
 
@@ -141,6 +131,11 @@ void ue_stack_nr::stop_impl()
 
 bool ue_stack_nr::switch_on()
 {
+  // statically setup TUN (will be done through RRC later)
+  char* err_str = nullptr;
+  if (gw->setup_if_addr(4, LIBLTE_MME_PDN_TYPE_IPV4, htonl(inet_addr("192.168.1.3")), nullptr, err_str)) {
+    printf("Error configuring TUN interface\n");
+  }
   return true;
 }
 
