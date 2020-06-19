@@ -47,10 +47,12 @@ public:
   uint32_t get_nof_rnti();
 
   /* These are used by the GUI plotting tools */
-  int  read_ce_abs(float* ce_abs);
-  int  read_ce_arg(float* ce_abs);
-  int  read_pusch_d(cf_t* pusch_d);
-  int  read_pucch_d(cf_t* pusch_d);
+  uint32_t get_nof_carriers();
+  int      get_carrier_pci(uint32_t cc_idx);
+  int      read_ce_abs(uint32_t cc_idx, float* ce_abs);
+  int      read_ce_arg(uint32_t cc_idx, float* ce_abs);
+  int      read_pusch_d(uint32_t cc_idx, cf_t* pusch_d);
+  int      read_pucch_d(uint32_t cc_idx, cf_t* pusch_d);
   void start_plot();
 
   uint32_t get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
