@@ -210,7 +210,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("log.vnf_hex_limit", bpo::value<int>(&args->phy.vnf_args.log_hex_limit),  "VNF log hex dump limit")
 
     // Arguments for coreless operation
-    ("coreless.ip_devname", bpo::value<string>(&args->stack.coreless.gw_args.tun_dev_name)->default_value("tun0"), "Name of the TUN device")
+    ("coreless.ip_devname", bpo::value<string>(&args->stack.coreless.gw_args.tun_dev_name)->default_value("tun1"), "Name of the TUN device")
     ("coreless.ip_address", bpo::value<string>(&args->stack.coreless.ip_addr)->default_value("192.168.1.1"), "IP address of the TUN device")
     ("coreless.ip_netmask", bpo::value<string>(&args->stack.coreless.gw_args.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the TUN device")
     ("coreless.drb_lcid", bpo::value<uint8_t>(&args->stack.coreless.drb_lcid)->default_value(4), "LCID of the dummy DRB")
