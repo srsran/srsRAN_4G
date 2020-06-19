@@ -70,7 +70,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
   common.add_options()
     ("ue.radio", bpo::value<string>(&args->rf.type)->default_value("multi"), "Type of the radio [multi]")
     ("ue.phy", bpo::value<string>(&args->phy.type)->default_value("lte"), "Type of the PHY [lte]")
-    ("ue.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte]")
+    ("ue.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte, nr]")
 
     ("rf.dl_earfcn",    bpo::value<string>(&args->phy.dl_earfcn)->default_value("3400"), "Downlink EARFCN list")
     ("rf.ul_earfcn",    bpo::value<string>(&args->phy.ul_earfcn), "Uplink EARFCN list. Optional.")
