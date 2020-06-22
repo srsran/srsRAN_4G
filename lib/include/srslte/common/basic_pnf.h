@@ -24,6 +24,10 @@
 
 #include "basic_vnf_api.h"
 #include "common.h"
+#include "srslte/common/block_queue.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/choice_type.h"
+#include "srslte/common/logmap.h"
 #include <arpa/inet.h>
 #include <atomic>
 #include <errno.h>
@@ -56,6 +60,11 @@ struct pnf_metrics_t {
 
 class srslte_basic_pnf
 {
+  using msg_header_t = basic_vnf_api::msg_header_t;
+  const static size_t buffer_size =
+      srslte::static_max<sizeof(basic_vnf_api::dl_conf_msg_t), sizeof(basic_vnf_api::tx_request_msg_t)>::value;
+  using msg_buffer_t = std::array<uint8_t, buffer_size>;
+
 public:
   srslte_basic_pnf(const std::string& type_,
                    const std::string& vnf_p5_addr,
@@ -72,7 +81,11 @@ public:
     num_sf(num_sf_),
     tb_len(tb_len_),
     rand_gen(RAND_SEED),
-    rand_dist(MIN_TB_LEN, MAX_TB_LEN){};
+    rand_dist(MIN_TB_LEN, MAX_TB_LEN)
+  {
+
+    log_h->set_level(srslte::LOG_LEVEL_INFO);
+  }
 
   ~srslte_basic_pnf() { stop(); };
 
@@ -106,10 +119,10 @@ public:
     running = true;
 
     if (type == "gnb") {
-      rx_thread = std::unique_ptr<std::thread>(new std::thread(&srslte_basic_pnf::rx_thread_function, this));
-      tx_thread = std::unique_ptr<std::thread>(new std::thread(&srslte_basic_pnf::tx_thread_function, this));
+      rx_thread = std::unique_ptr<std::thread>(new std::thread(&srslte_basic_pnf::dl_handler_thread, this));
+      tx_thread = std::unique_ptr<std::thread>(new std::thread(&srslte_basic_pnf::ul_handler_thread, this));
     } else {
-      tx_thread = std::unique_ptr<std::thread>(new std::thread(&srslte_basic_pnf::tx_thread_function_ue, this));
+      tx_thread = std::unique_ptr<std::thread>(new std::thread(&srslte_basic_pnf::ue_dl_handler_thread, this));
     }
 
     return true;
@@ -141,8 +154,12 @@ public:
     return tmp;
   }
 
+  void connect_out_rf_queue(srslte::block_queue<srslte::unique_byte_buffer_t>* rf_queue_) { rf_out_queue = rf_queue_; }
+  srslte::block_queue<srslte::unique_byte_buffer_t>* get_in_rf_queue() { return &rf_in_queue; }
+
 private:
-  void rx_thread_function()
+  //! Waits for DL Config or Tx Request Msg from VNF and forwards to RF
+  void dl_handler_thread()
   {
     pthread_setname_np(pthread_self(), rx_thread_name.c_str());
 
@@ -152,25 +169,26 @@ private:
     fd.fd     = sockfd;
     fd.events = POLLIN;
 
-    const uint32_t max_basic_api_pdu = sizeof(basic_vnf_api::dl_conf_msg_t) + 32; // larger than biggest message
-    std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> > rx_buffer =
-        std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> >(new std::array<uint8_t, max_basic_api_pdu>);
+    //    const uint32_t max_basic_api_pdu = sizeof(basic_vnf_api::dl_conf_msg_t) + 32; // larger than biggest message
+    //    std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> > rx_buffer =
+    //        std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> >(new std::array<uint8_t, max_basic_api_pdu>);
+    std::unique_ptr<msg_buffer_t> rx_buffer{new msg_buffer_t{}};
 
     while (running) {
       // receive response
       int ret = poll(&fd, 1, RX_TIMEOUT_MS);
       switch (ret) {
         case -1:
-          printf("Error occured.\n");
+          printf("Error occurred.\n");
           running = false;
           break;
         case 0:
           // Timeout
           printf("Error: Didn't receive response after %dms\n", RX_TIMEOUT_MS);
-          running = false;
+          //          running = false;
           break;
         default:
-          int recv_ret = recv(sockfd, rx_buffer->data(), rx_buffer->size(), 0);
+          int recv_ret = recv(sockfd, rx_buffer->data(), sizeof(*rx_buffer), 0);
           handle_msg(rx_buffer->data(), recv_ret);
           break;
       }
@@ -185,7 +203,7 @@ private:
     }
   };
 
-  void tx_thread_function()
+  void ul_handler_thread()
   {
     pthread_setname_np(pthread_self(), tx_thread_name.c_str());
 
@@ -199,7 +217,8 @@ private:
     std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> > rx_buffer =
         std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> >(new std::array<uint8_t, max_basic_api_pdu>);
 
-    int32_t sf_counter = 0;
+    int32_t sf_counter     = 0;
+    bool    using_rf_queue = false;
     while (running && (num_sf > 0 ? sf_counter < num_sf : true)) {
       {
         std::lock_guard<std::mutex> lock(mutex);
@@ -213,9 +232,14 @@ private:
         // Send request
         send_sf_ind(tti);
 
-        // provide UL data every 2nd TTI
-        if (tti % 2 == 0) {
+        if (not rf_in_queue.empty()) {
+          using_rf_queue = true;
           send_rx_data_ind(tti);
+        } else if (not using_rf_queue) {
+          // provide UL data every 2nd TTI
+          if (tti % 2 == 0) {
+            send_rx_data_ind(tti);
+          }
         }
 
         sf_counter++;
@@ -227,7 +251,7 @@ private:
     printf("Leaving Tx thread after %d subframes\n", sf_counter);
   };
 
-  void tx_thread_function_ue()
+  void ue_dl_handler_thread()
   {
     pthread_setname_np(pthread_self(), tx_thread_name.c_str());
 
@@ -241,7 +265,8 @@ private:
     std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> > rx_buffer =
         std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> >(new std::array<uint8_t, max_basic_api_pdu>);
 
-    int32_t sf_counter = 0;
+    int32_t sf_counter     = 0;
+    bool    using_rf_queue = false;
     while (running && (num_sf > 0 ? sf_counter < num_sf : true)) {
       {
         std::lock_guard<std::mutex> lock(mutex);
@@ -255,11 +280,17 @@ private:
         // Send SF indication
         send_sf_ind(tti);
 
-        // provide DL grant every even TTI, and UL grant every odd
-        if (tti % 2 == 0) {
-          send_dl_ind(tti);
-        } else {
-          send_ul_ind(tti);
+        if (not rf_in_queue.empty()) {
+          using_rf_queue                  = true;
+          srslte::unique_byte_buffer_t tb = rf_in_queue.wait_pop();
+          send_dl_ind(tti, std::move(tb));
+        } else if (not using_rf_queue) {
+          // provide DL grant every even TTI, and UL grant every odd
+          if (tti % 2 == 0) {
+            send_dl_ind(tti);
+          } else {
+            send_ul_ind(tti);
+          }
         }
 
         sf_counter++;
@@ -291,7 +322,7 @@ private:
   {
     basic_vnf_api::msg_header_t* header = (basic_vnf_api::msg_header_t*)buffer;
 
-    // printf("Received %s (%d B) in TTI\n", msg_type_text[header->type], len);
+    log_h->info("Received %s (%d B) in TTI\n", basic_vnf_api::msg_type_text[header->type], len);
 
     switch (header->type) {
       case basic_vnf_api::SF_IND:
@@ -330,7 +361,7 @@ private:
     if (msg->tti != tti) {
       metrics.num_timing_errors++;
       // printf("Received TX request for TTI=%d but current TTI is %d\n", msg->tti, tti.load());
-      return -1;
+      //      return -1;
     }
 
     for (uint32_t i = 0; i < msg->nof_pdus; ++i) {
@@ -338,6 +369,15 @@ private:
     }
 
     metrics.num_pdus += msg->nof_pdus;
+
+    if (rf_out_queue != nullptr) {
+      for (uint32_t i = 0; i < msg->nof_pdus; ++i) {
+        srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
+        pdu->N_bytes                     = msg->pdus[i].length;
+        memcpy(pdu->msg, msg->pdus[i].data, msg->pdus[i].length);
+        rf_out_queue->push(std::move(pdu));
+      }
+    }
 
     return 0;
   }
@@ -377,7 +417,7 @@ private:
     }
   }
 
-  void send_dl_ind(uint32_t tti_)
+  void send_dl_ind(uint32_t tti_, srslte::unique_byte_buffer_t tb = {})
   {
 #if PING_REQUEST_PDU
     static uint8_t tv[] = {
@@ -403,6 +443,8 @@ private:
         0x3f,
     };
 #endif // PING_REQUEST_PDU
+    uint8_t* data    = tb != nullptr ? tb->msg : tv;
+    uint32_t N_bytes = tb != nullptr ? tb->N_bytes : sizeof(tv);
 
     basic_vnf_api::dl_ind_msg_t dl_ind = {};
 
@@ -415,15 +457,17 @@ private:
     dl_ind.pdus[0].type   = basic_vnf_api::PDSCH;
     dl_ind.pdus[0].length = tb_len > 0 ? tb_len : rand_dist(rand_gen);
 
-    if (dl_ind.pdus[0].length >= sizeof(tv)) {
+    if (dl_ind.pdus[0].length >= N_bytes) {
       // copy TV
-      memcpy(dl_ind.pdus[0].data, tv, sizeof(tv));
+      memcpy(dl_ind.pdus[0].data, data, N_bytes);
       // set remaining bytes to zero
-      memset(dl_ind.pdus[0].data + sizeof(tv), 0xaa, dl_ind.pdus[0].length - sizeof(tv));
+      memset(dl_ind.pdus[0].data + N_bytes, 0xaa, dl_ind.pdus[0].length - N_bytes);
     } else {
       // just fill with dummy bytes
       memset(dl_ind.pdus[0].data, 0xab, dl_ind.pdus[0].length);
     }
+
+    log_h->info_hex(dl_ind.pdus[0].data, N_bytes, "Sending to UE a TB (%d bytes)\n", N_bytes);
 
     int n = 0;
     if ((n = sendto(sockfd, &dl_ind, sizeof(dl_ind), 0, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0) {
@@ -452,6 +496,8 @@ private:
   std::unique_ptr<std::thread> tx_thread, rx_thread;
   std::string                  tx_thread_name = "TX_PNF", rx_thread_name = "RX_PNF";
   bool                         running = false;
+  srslte::byte_buffer_pool*    pool    = srslte::byte_buffer_pool::get_instance();
+  srslte::log_ref              log_h{"PNF"};
 
   std::mutex                            mutex;
   std::atomic<std::uint32_t>            tti;
@@ -474,6 +520,9 @@ private:
   // For random number generation
   std::mt19937                            rand_gen;
   std::uniform_int_distribution<uint16_t> rand_dist;
+
+  srslte::block_queue<srslte::unique_byte_buffer_t>* rf_out_queue = nullptr;
+  srslte::block_queue<srslte::unique_byte_buffer_t>  rf_in_queue;
 };
 
 } // namespace srslte

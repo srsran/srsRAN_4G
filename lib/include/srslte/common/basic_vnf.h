@@ -24,7 +24,7 @@
 
 #include "basic_vnf_api.h"
 #include "common.h"
-#include "srslte/common/log_filter.h"
+#include "srslte/common/logmap.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/gnb_interfaces.h"
 #include "srslte/interfaces/ue_nr_interfaces.h"
@@ -69,11 +69,11 @@ private:
   // helpers
   uint32_t calc_full_msg_len(const basic_vnf_api::tx_request_msg_t& msg);
 
-  srslte::logger*                     m_logger    = nullptr;
-  std::unique_ptr<srslte::log_filter> m_log       = nullptr;
-  srsenb::stack_interface_phy_nr*     m_gnb_stack = nullptr;
-  srsue::stack_interface_phy_nr*      m_ue_stack  = nullptr;
-  srslte::byte_buffer_pool*           m_pool      = nullptr;
+  srslte::logger*                 m_logger = nullptr;
+  srslte::log_ref                 log_h;
+  srsenb::stack_interface_phy_nr* m_gnb_stack = nullptr;
+  srsue::stack_interface_phy_nr*  m_ue_stack  = nullptr;
+  srslte::byte_buffer_pool*       m_pool      = nullptr;
 
   std::unique_ptr<basic_vnf_api::tx_request_msg_t> m_tx_req_msg;
 

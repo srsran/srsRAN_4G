@@ -127,7 +127,9 @@ int enb::init(const all_args_t& args_, srslte::logger* logger_)
     // TODO: where do we put this?
     srsenb::nr_phy_cfg_t nr_phy_cfg = {};
 
-    args.phy.vnf_args.type = "gnb";
+    args.phy.vnf_args.type          = "gnb";
+    args.phy.vnf_args.log_level     = args.phy.log.phy_level;
+    args.phy.vnf_args.log_hex_limit = args.phy.log.phy_hex_limit;
     if (nr_phy->init(args.phy, nr_phy_cfg, nr_stack.get())) {
       log->console("Error initializing PHY.\n");
       return SRSLTE_ERROR;

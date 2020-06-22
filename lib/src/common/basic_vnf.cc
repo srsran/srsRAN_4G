@@ -41,12 +41,11 @@ srslte_basic_vnf::srslte_basic_vnf(const vnf_args_t& args_, srslte::logger* logg
   m_logger(logger_),
   thread("BASIC_VNF_P7"),
   m_tx_req_msg(new basic_vnf_api::tx_request_msg_t),
-  m_log(new srslte::log_filter),
+  log_h("VNF"),
   m_pool(srslte::byte_buffer_pool::get_instance())
 {
-  m_log->init("VNF ", m_logger);
-  m_log->set_level(m_args.log_level);
-  m_log->set_hex_limit(m_args.log_hex_limit);
+  log_h->set_level(m_args.log_level);
+  log_h->set_hex_limit(m_args.log_hex_limit);
 
   if (m_args.type == "gnb" || m_args.type == "ue") {
     if (m_args.type == "gnb") {
@@ -55,10 +54,10 @@ srslte_basic_vnf::srslte_basic_vnf(const vnf_args_t& args_, srslte::logger* logg
       m_ue_stack = (srsue::stack_interface_phy_nr*)stack_;
     }
 
-    m_log->info("Initializing VNF for gNB\n");
+    log_h->info("Initializing VNF for gNB\n");
     start();
   } else {
-    m_log->error("Unknown VNF type. Exiting\n.");
+    log_h->error("Unknown VNF type. Exiting\n.");
   }
 }
 
@@ -108,7 +107,7 @@ void srslte_basic_vnf::run_thread()
 
   running = true;
 
-  m_log->info("Started VNF handler listening on %s:%d\n", m_args.bind_addr.c_str(), m_args.bind_port);
+  log_h->info("Started VNF handler listening on %s:%d\n", m_args.bind_addr.c_str(), m_args.bind_port);
 
   while (running) {
     int ret = poll(&fd, 1, RX_TIMEOUT_MS);
@@ -128,14 +127,14 @@ void srslte_basic_vnf::run_thread()
         break;
     }
   }
-  m_log->info("VNF thread stopped\n");
+  log_h->info("VNF thread stopped\n");
 }
 
 int srslte_basic_vnf::handle_msg(const uint8_t* buffer, const uint32_t len)
 {
   basic_vnf_api::msg_header_t* header = (basic_vnf_api::msg_header_t*)buffer;
 
-  m_log->info("Received %s (%d B)\n", basic_vnf_api::msg_type_text[header->type], len);
+  log_h->info("Received %s (%d B)\n", basic_vnf_api::msg_type_text[header->type], len);
 
   switch (header->type) {
     case basic_vnf_api::SF_IND:
@@ -163,7 +162,7 @@ int srslte_basic_vnf::handle_msg(const uint8_t* buffer, const uint32_t len)
 int srslte_basic_vnf::handle_sf_ind(basic_vnf_api::sf_ind_msg_t* msg)
 {
   int ret = SRSLTE_SUCCESS;
-  m_log->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
+  log_h->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
 
   // store Rx timestamp
   last_sf_indication_time = msg->t1;
@@ -182,7 +181,7 @@ int srslte_basic_vnf::handle_sf_ind(basic_vnf_api::sf_ind_msg_t* msg)
 int srslte_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
 {
   int ret = SRSLTE_ERROR;
-  m_log->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
+  log_h->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
 
   uint32_t cc_idx = 0;
 
@@ -191,7 +190,7 @@ int srslte_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
   dl_grant.tti                                              = msg->tti;
 
   if (msg->nof_pdus > SRSLTE_MAX_TB) {
-    m_log->error("Too many TBs (%d > %d)\n", msg->nof_pdus, SRSLTE_MAX_TB);
+    log_h->error("Too many TBs (%d > %d)\n", msg->nof_pdus, SRSLTE_MAX_TB);
     goto exit;
   }
 
@@ -204,7 +203,7 @@ int srslte_basic_vnf::handle_dl_ind(basic_vnf_api::dl_ind_msg_t* msg)
         m_ue_stack->tb_decoded(cc_idx, dl_grant);
       }
     } else {
-      m_log->error("TB too big to fit into buffer (%d > %d)\n", msg->pdus[i].length, dl_grant.tb[i]->get_tailroom());
+      log_h->error("TB too big to fit into buffer (%d > %d)\n", msg->pdus[i].length, dl_grant.tb[i]->get_tailroom());
     }
   }
 
@@ -217,10 +216,10 @@ exit:
 
 int srslte_basic_vnf::handle_ul_ind(basic_vnf_api::ul_ind_msg_t* msg)
 {
-  m_log->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
+  log_h->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->tti);
 
   if (msg->pdus.type != basic_vnf_api::PUSCH) {
-    m_log->error("Received UL indication for wrong PDU type\n");
+    log_h->error("Received UL indication for wrong PDU type\n");
     return SRSLTE_ERROR;
   }
 
@@ -238,10 +237,10 @@ int srslte_basic_vnf::handle_ul_ind(basic_vnf_api::ul_ind_msg_t* msg)
 
 int srslte_basic_vnf::handle_rx_data_ind(basic_vnf_api::rx_data_ind_msg_t* msg)
 {
-  m_log->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->sfn);
+  log_h->info("Received %s for TTI=%d\n", basic_vnf_api::msg_type_text[msg->header.type], msg->sfn);
 
   if (msg->nof_pdus != 1 || msg->pdus[0].type != basic_vnf_api::PUSCH) {
-    m_log->error("Received UL indication for wrong PDU type\n");
+    log_h->error("Received UL indication for wrong PDU type\n");
     return SRSLTE_ERROR;
   }
 
@@ -277,10 +276,10 @@ int srslte_basic_vnf::dl_config_request(const srsenb::phy_interface_stack_nr::dl
   uint32_t len = sizeof(dl_conf);
 
   // Send it to PNF
-  m_log->info("Sending %s (%d B)\n", basic_vnf_api::msg_type_text[dl_conf.header.type], len);
+  log_h->info("Sending %s (%d B)\n", basic_vnf_api::msg_type_text[dl_conf.header.type], len);
   int n = 0;
   if ((n = sendto(sockfd, &dl_conf, len, MSG_CONFIRM, (struct sockaddr*)&client_addr, sizeof(client_addr))) < 0) {
-    m_log->error("sendto failed, ret=%d\n", n);
+    log_h->error("sendto failed, ret=%d\n", n);
   }
 
   return 0;
@@ -304,7 +303,7 @@ int srslte_basic_vnf::tx_request(const srsue::phy_interface_stack_nr::tx_request
     // copy data from TB0
     memcpy(m_tx_req_msg->pdus[0].data, request.data, request.tb_len);
   } else {
-    m_log->error("Trying to send %d B PDU. Maximum size is %d B\n", request.tb_len, MAX_PDU_SIZE);
+    log_h->error("Trying to send %d B PDU. Maximum size is %d B\n", request.tb_len, MAX_PDU_SIZE);
   }
 
   // calculate actual length of
@@ -314,11 +313,11 @@ int srslte_basic_vnf::tx_request(const srsue::phy_interface_stack_nr::tx_request
   m_tx_req_msg->header.msg_len = len - sizeof(basic_vnf_api::msg_header_t);
 
   // Send it to PNF
-  m_log->info("Sending %s (%d B)\n", basic_vnf_api::msg_type_text[m_tx_req_msg->header.type], len);
+  log_h->info("Sending %s (%d B)\n", basic_vnf_api::msg_type_text[m_tx_req_msg->header.type], len);
   int n = 0;
   if ((n = sendto(sockfd, m_tx_req_msg.get(), len, MSG_CONFIRM, (struct sockaddr*)&client_addr, sizeof(client_addr))) <
       0) {
-    m_log->error("sendto failed, ret=%d\n", n);
+    log_h->error("sendto failed, ret=%d\n", n);
   }
 
   return 0;
@@ -327,7 +326,7 @@ int srslte_basic_vnf::tx_request(const srsue::phy_interface_stack_nr::tx_request
 int srslte_basic_vnf::tx_request(const srsenb::phy_interface_stack_nr::tx_request_t& request)
 {
   if (request.nof_pdus > MAX_NUM_PDUS) {
-    m_log->error("Trying to send %d PDUs but only %d supported\n", request.nof_pdus, MAX_NUM_PDUS);
+    log_h->error("Trying to send %d PDUs but only %d supported\n", request.nof_pdus, MAX_NUM_PDUS);
     return SRSLTE_ERROR;
   }
 
@@ -346,7 +345,7 @@ int srslte_basic_vnf::tx_request(const srsenb::phy_interface_stack_nr::tx_reques
       // copy data from TB0
       memcpy(m_tx_req_msg->pdus[i].data, request.pdus[i].data[0], m_tx_req_msg->pdus[i].length);
     } else {
-      m_log->error("Trying to send %d B PDU. Maximum size is %d B\n", request.pdus[i].length, MAX_PDU_SIZE);
+      log_h->error("Trying to send %d B PDU. Maximum size is %d B\n", request.pdus[i].length, MAX_PDU_SIZE);
     }
   }
 
@@ -357,11 +356,21 @@ int srslte_basic_vnf::tx_request(const srsenb::phy_interface_stack_nr::tx_reques
   m_tx_req_msg->header.msg_len = len - sizeof(basic_vnf_api::msg_header_t);
 
   // Send it to PNF
-  m_log->info("Sending %s (%d B)\n", basic_vnf_api::msg_type_text[m_tx_req_msg->header.type], len);
+  log_h->info("Sending %s (%d B)\n", basic_vnf_api::msg_type_text[m_tx_req_msg->header.type], len);
+  if (log_h->get_level() == LOG_LEVEL_DEBUG) {
+    for (uint32_t i = 0; i < m_tx_req_msg->nof_pdus; ++i) {
+      log_h->debug_hex(m_tx_req_msg->pdus[i].data,
+                       m_tx_req_msg->pdus[i].length,
+                       "Sending PDU %s:%d (%d bytes)\n",
+                       basic_vnf_api::msg_type_text[m_tx_req_msg->header.type],
+                       m_tx_req_msg->pdus[i].index,
+                       m_tx_req_msg->pdus[i].length);
+    }
+  }
   int n = 0;
   if ((n = sendto(sockfd, m_tx_req_msg.get(), len, MSG_CONFIRM, (struct sockaddr*)&client_addr, sizeof(client_addr))) <
       0) {
-    m_log->error("sendto failed, ret=%d\n", n);
+    log_h->error("sendto failed, ret=%d\n", n);
   }
 
   return 0;

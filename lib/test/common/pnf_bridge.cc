@@ -100,6 +100,8 @@ int main(int argc, char** argv)
   srslte::srslte_basic_pnf gnb_pnf(
       "gnb", args.gnb_vnf_addr, args.gnb_vnf_port, args.sf_interval, args.num_sf, args.tb_len);
 
+  gnb_pnf.connect_out_rf_queue(ue_pnf.get_in_rf_queue());
+
   ue_pnf.start();
   gnb_pnf.start();
 
