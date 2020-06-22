@@ -49,11 +49,12 @@ public:
     return port_listen();
   }
 
-  void tx(unique_byte_buffer_t pdu)
+  void tx(std::string out)
   {
     if (initialized) {
-      log->info_hex(pdu->msg, pdu->N_bytes, "Sending %d B to Titan\n", pdu->N_bytes);
-      send(pdu->msg, pdu->N_bytes);
+      log->info_hex(
+          reinterpret_cast<const uint8_t*>(out.c_str()), out.length(), "Sending %ld B to Titan\n", out.length());
+      send(reinterpret_cast<const uint8_t*>(out.c_str()), out.length());
     } else {
       log->error("Trying to transmit but port not connected.\n");
     }

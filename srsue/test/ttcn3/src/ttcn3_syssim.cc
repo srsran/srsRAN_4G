@@ -1025,23 +1025,9 @@ void ttcn3_syssim::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // push content to Titan
   if (lcid <= 2) {
-    // check cell ID
-    if (cells[pcell_idx]->cell.id > 256) {
-      log->error("Cell ID too large to fit in single byte.\n");
-      return;
-    }
+    std::string out = ttcn3_helpers::get_rrc_pdu_ind_for_pdu(tti, lcid, cells[pcell_idx]->name, std::move(pdu));
 
-    // We don't handle RRC, prepend LCID
-    pdu->msg--;
-    *pdu->msg = lcid;
-    pdu->N_bytes++;
-
-    // prepend pcell PCID
-    pdu->msg--;
-    *pdu->msg = static_cast<uint8_t>(cells[pcell_idx]->cell.id);
-    pdu->N_bytes++;
-
-    srb.tx(std::move(pdu));
+    srb.tx(out);
   } else {
     std::string out = ttcn3_helpers::get_drb_common_ind_for_pdu(tti, lcid, cells[pcell_idx]->name, std::move(pdu));
     log->error("DRB send:\n%s", out.c_str());

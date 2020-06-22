@@ -408,6 +408,77 @@ public:
   }
 
   static std::string
+  get_rrc_pdu_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srslte::unique_byte_buffer_t pdubuf)
+  {
+    Document resp;
+    resp.SetObject();
+
+    // Create members of common object
+
+    // CellId
+    Value cell(cell_.c_str(), resp.GetAllocator());
+
+    // RoutingInfo
+    Value radiobearer_id(kObjectType);
+    radiobearer_id.AddMember("Srb", lcid, resp.GetAllocator());
+    Value routing_info(kObjectType);
+    routing_info.AddMember("RadioBearerId", radiobearer_id, resp.GetAllocator());
+
+    // TimingInfo
+    // SFN
+    uint32_t sfn = tti / 10;
+    Value    sfn_key(kObjectType);
+    sfn_key.AddMember("Number", sfn, resp.GetAllocator());
+
+    // Actual subframe index
+    uint32_t sf_idx = tti % 10;
+    Value    sf_idx_key(kObjectType);
+    sf_idx_key.AddMember("Number", sf_idx, resp.GetAllocator());
+
+    // Put it all together
+    Value subframe_key(kObjectType);
+    subframe_key.AddMember("SFN", sfn_key, resp.GetAllocator());
+    subframe_key.AddMember("Subframe", sf_idx_key, resp.GetAllocator());
+
+    Value timing_info(kObjectType);
+    timing_info.AddMember("SubFrame", subframe_key, resp.GetAllocator());
+
+    // Status
+    Value status(kObjectType);
+    status.AddMember("Ok", true, resp.GetAllocator());
+
+    // Now, create the common object itself and add members
+    Value common(kObjectType);
+    common.AddMember("CellId", cell, resp.GetAllocator());
+    common.AddMember("RoutingInfo", routing_info, resp.GetAllocator());
+    common.AddMember("TimingInfo", timing_info, resp.GetAllocator());
+    common.AddMember("Status", status, resp.GetAllocator());
+
+    resp.AddMember("Common", common, resp.GetAllocator());
+
+    // Add RRC PDU
+    std::string hexpdu = asn1::octstring_to_string(pdubuf->msg, pdubuf->N_bytes);
+    Value       pdu(hexpdu.c_str(), resp.GetAllocator());
+
+    Value rrcpdu(kObjectType);
+    if (lcid == 0) {
+      rrcpdu.AddMember("Ccch", pdu, resp.GetAllocator());
+    } else {
+      rrcpdu.AddMember("Dcch", pdu, resp.GetAllocator());
+    }
+
+    resp.AddMember("RrcPdu", rrcpdu, resp.GetAllocator());
+
+    // JSON-ize
+    StringBuffer         buffer;
+    Writer<StringBuffer> writer(buffer);
+    resp.Accept(writer);
+
+    // Return as std::string
+    return std::string(buffer.GetString());
+  }
+
+  static std::string
   get_drb_common_ind_for_pdu(uint32_t tti, uint32_t lcid, const std::string cell_, srslte::unique_byte_buffer_t drbpdu)
   {
     Document resp;
