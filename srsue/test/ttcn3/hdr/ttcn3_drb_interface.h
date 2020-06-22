@@ -50,12 +50,11 @@ public:
     return port_listen();
   }
 
-  void tx(std::string out)
+  void tx(const uint8_t* buffer, uint32_t len)
   {
     if (initialized) {
-      log->info_hex(
-          reinterpret_cast<const uint8_t*>(out.c_str()), out.length(), "Sending %ld B to Titan\n", out.length());
-      send(reinterpret_cast<const uint8_t*>(out.c_str()), out.length());
+      log->info_hex(buffer, len, "Sending %d B to Titan\n", len);
+      send(buffer, len);
     } else {
       log->error("Trying to transmit but port not connected.\n");
     }
