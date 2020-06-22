@@ -100,20 +100,18 @@ private:
     assert(uplane["SubframeDataList"].IsArray());
 
     uint32_t lcid = document["Common"]["RoutingInfo"]["RadioBearerId"]["Drb"].GetInt() + 2;
-
-    for (auto& sfdata : uplane["SubframeDataList"].GetArray()) {
-      assert(sfdata.HasMember("PduSduList"));
-      assert(sfdata["PduSduList"].IsObject());
-      assert(sfdata["PduSduList"].HasMember("PdcpSdu"));
-      assert(sfdata["PduSduList"]["PdcpSdu"].IsArray());
-
-      const Value& sdulist = sfdata["PduSduList"]["PdcpSdu"];
-      for (auto& sdu : sdulist.GetArray()) {
-        assert(sdu.IsString());
-        string              sdustr = sdu.GetString();
+    for (Value::ConstValueIterator itr = uplane["SubframeDataList"].Begin(); itr != uplane["SubframeDataList"].End();
+         ++itr) {
+      assert(itr->HasMember("PduSduList"));
+      assert((*itr)["PduSduList"].IsObject());
+      assert((*itr)["PduSduList"].HasMember("PdcpSdu"));
+      assert((*itr)["PduSduList"]["PdcpSdu"].IsArray());
+      const Value& sdulist = (*itr)["PduSduList"]["PdcpSdu"];
+      for (Value::ConstValueIterator sdu_itr = sdulist.Begin(); sdu_itr != sdulist.End(); ++sdu_itr) {
+        assert(sdu_itr->IsString());
+        string              sdustr = sdu_itr->GetString();
         asn1::dyn_octstring octstr(sdustr.size());
         octstr.from_string(sdustr);
-
         handle_sdu(document, lcid, octstr.data(), octstr.size(), ttcn3_helpers::get_follow_on_flag(document));
       }
     }
