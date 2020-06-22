@@ -312,9 +312,13 @@ static void chest_ul_estimate(srslte_chest_ul_t*     q,
     }
   }
 
-  // Average and store time aligment error
-  if (isnormal(ta_err)) {
-    res->ta_us = roundf(ta_err / 15e-2f) / (10.0f * (float)stride);
+  // Calculate actual time alignment error in micro-seconds
+  if (isnormal(ta_err) && stride > 0) {
+    ta_err /= (float)stride;                     // Divide by the pilot spacing
+    ta_err /= 15e3f;                             // Convert from normalized frequency to seconds
+    ta_err *= 1e6f;                              // Convert to micro-seconds
+    ta_err     = roundf(ta_err * 10.0f) / 10.0f; // Round to one tenth of micro-second
+    res->ta_us = ta_err;
   } else {
     res->ta_us = 0.0f;
   }
