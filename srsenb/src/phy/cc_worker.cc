@@ -335,19 +335,15 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
     phy->stack->snr_info(ul_sf.tti, rnti, cc_idx, snr_db);
 
     if (ul_grant.dci.tb.rv == 0) {
-      if (!pusch_res.crc) {
-        Debug("PUSCH: Radio-Link failure snr=%.1f dB\n", snr_db);
-        phy->stack->rl_failure(rnti);
-      } else {
-        phy->stack->rl_ok(rnti);
-
-        // Notify MAC of Time Alignment only if it enabled and valid measurement, ignore value otherwise
-        if (ul_cfg.pusch.meas_ta_en and not std::isnan(enb_ul.chest_res.ta_us) and
-            not std::isinf(enb_ul.chest_res.ta_us)) {
-          phy->stack->ta_info(ul_sf.tti, rnti, enb_ul.chest_res.ta_us);
-        }
+      // Notify MAC of Time Alignment only if it enabled and valid measurement, ignore value otherwise
+      if (ul_cfg.pusch.meas_ta_en and not std::isnan(enb_ul.chest_res.ta_us) and
+          not std::isinf(enb_ul.chest_res.ta_us)) {
+        phy->stack->ta_info(ul_sf.tti, rnti, enb_ul.chest_res.ta_us);
       }
     }
+    pusch_res.uci.ack.valid = true;
+  } else {
+    pusch_res.uci.ack.valid = false;
   }
 
   // Send UCI data to MAC
@@ -406,16 +402,6 @@ int cc_worker::decode_pucch()
         if (srslte_enb_ul_get_pucch(&enb_ul, &ul_sf, &ul_cfg.pucch, &pucch_res)) {
           ERROR("Error getting PUCCH\n");
           return SRSLTE_ERROR;
-        }
-
-        // Notify MAC of RL status (skip SR subframes)
-        if (!ul_cfg.pucch.uci_cfg.is_scheduling_request_tti) {
-          if (pucch_res.correlation < PUCCH_RL_CORR_TH) {
-            Debug("PUCCH: Radio-Link failure corr=%.1f\n", pucch_res.correlation);
-            phy->stack->rl_failure(rnti);
-          } else {
-            phy->stack->rl_ok(rnti);
-          }
         }
 
         // Send UCI data to MAC

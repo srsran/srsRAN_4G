@@ -122,12 +122,6 @@ uint8_t* rrc::read_pdu_bcch_dlsch(const uint8_t cc_idx, const uint32_t sib_index
   return nullptr;
 }
 
-void rrc::rl_failure(uint16_t rnti)
-{
-  rrc_pdu p = {rnti, LCID_RLF_USER, nullptr};
-  rx_pdu_queue.push(std::move(p));
-}
-
 void rrc::set_activity_user(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_ACT_USER, nullptr};
@@ -504,31 +498,6 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
 }
 
 ///< User mutex must be hold by caller
-void rrc::process_rl_failure(uint16_t rnti)
-{
-  auto user_it = users.find(rnti);
-  if (user_it != users.end()) {
-    uint32_t n_rfl = user_it->second->rl_failure();
-    if (n_rfl == 1) {
-      rrc_log->info("Radio-Link failure detected rnti=0x%x\n", rnti);
-      if (s1ap->user_exists(rnti)) {
-        if (!s1ap->user_release(rnti, asn1::s1ap::cause_radio_network_opts::radio_conn_with_ue_lost)) {
-          rrc_log->info("Removing rnti=0x%x\n", rnti);
-        }
-      } else {
-        rrc_log->warning("User rnti=0x%x context not existing in S1AP. Removing user\n", rnti);
-        // Remove user from separate thread to wait to close all resources
-        rem_user_thread(rnti);
-      }
-    } else {
-      rrc_log->info("%d Radio-Link failure detected rnti=0x%x\n", n_rfl, rnti);
-    }
-  } else {
-    rrc_log->error("Radio-Link failure detected for unknown rnti=0x%x\n", rnti);
-  }
-}
-
-///< User mutex must be hold by caller
 void rrc::process_release_complete(uint16_t rnti)
 {
   rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
@@ -787,9 +756,6 @@ void rrc::tti_clock()
         break;
       case LCID_REL_USER:
         process_release_complete(p.rnti);
-        break;
-      case LCID_RLF_USER:
-        process_rl_failure(p.rnti);
         break;
       case LCID_ACT_USER:
         user_it->second->set_activity();

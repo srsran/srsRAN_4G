@@ -182,10 +182,6 @@ public:
   virtual int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_list_t& dl_sched_res) = 0;
   virtual int  get_ul_sched(uint32_t tti, ul_sched_list_t& ul_sched_res)                = 0;
   virtual void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)               = 0;
-
-  // Radio-Link status
-  virtual void rl_failure(uint16_t rnti) = 0;
-  virtual void rl_ok(uint16_t rnti)      = 0;
 };
 
 /* Interface MAC -> PHY */
@@ -410,7 +406,6 @@ class rrc_interface_mac
 {
 public:
   /* Radio Link failure */
-  virtual void rl_failure(uint16_t rnti)                                             = 0;
   virtual void add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) = 0;
   virtual void upd_user(uint16_t new_rnti, uint16_t old_rnti)                        = 0;
   virtual void set_activity_user(uint16_t rnti)                                      = 0;
@@ -544,7 +539,6 @@ typedef struct {
 typedef struct {
   uint32_t                      nof_prb; ///< Needed to dimension MAC softbuffers for all cells
   sched_interface::sched_args_t sched;
-  int                           link_failure_nof_err;
   int                           nr_tb_size = -1;
 } mac_args_t;
 

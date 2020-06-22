@@ -69,7 +69,6 @@ public:
   void tti_clock();
 
   // rrc_interface_mac
-  void     rl_failure(uint16_t rnti) override;
   void     add_user(uint16_t rnti, const sched_interface::ue_cfg_t& init_ue_cfg) override;
   void     upd_user(uint16_t new_rnti, uint16_t old_rnti) override;
   void     set_activity_user(uint16_t rnti) override;
@@ -142,7 +141,6 @@ private:
   std::map<uint32_t, asn1::rrc::paging_record_s> pending_paging;
 
   void     process_release_complete(uint16_t rnti);
-  void     process_rl_failure(uint16_t rnti);
   void     rem_user(uint16_t rnti);
   uint32_t generate_sibs();
   void     configure_mbsfn_sibs(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13);
@@ -162,7 +160,6 @@ private:
   const static uint32_t LCID_EXIT     = 0xffff0000;
   const static uint32_t LCID_REM_USER = 0xffff0001;
   const static uint32_t LCID_REL_USER = 0xffff0002;
-  const static uint32_t LCID_RLF_USER = 0xffff0003;
   const static uint32_t LCID_ACT_USER = 0xffff0004;
 
   bool                         running         = false;

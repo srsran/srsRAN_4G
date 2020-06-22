@@ -531,7 +531,11 @@ enb_dl_get_ack_fdd_pcell_skip_drx(const srslte_uci_value_t* uci_value, srslte_pd
     for (uint32_t tb = 0; tb < nof_tb; tb++) {
       // Check that TB was transmitted
       if (pdsch_ack->cc[0].m[0].value[tb] != 2) {
-        pdsch_ack->cc[0].m[0].value[tb] = uci_value->ack.ack_value[ack_idx++];
+        if (uci_value->ack.valid) {
+          pdsch_ack->cc[0].m[0].value[tb] = uci_value->ack.ack_value[ack_idx++];
+        } else {
+          pdsch_ack->cc[0].m[0].value[tb] = 0;
+        }
       }
     }
   }
@@ -545,7 +549,11 @@ enb_dl_get_ack_fdd_all_keep_drx(const srslte_uci_value_t* uci_value, srslte_pdsc
       for (uint32_t tb = 0; tb < nof_tb; tb++) {
         // Check that TB was transmitted
         if (pdsch_ack->cc[cc_idx].m[0].value[tb] != 2) {
-          pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx * nof_tb + tb];
+          if (uci_value->ack.valid) {
+            pdsch_ack->cc[cc_idx].m[0].value[tb] = uci_value->ack.ack_value[cc_idx * nof_tb + tb];
+          } else {
+            pdsch_ack->cc[cc_idx].m[0].value[tb] = 0;
+          }
         }
       }
     }

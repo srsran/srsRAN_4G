@@ -293,31 +293,6 @@ void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
  *
  *******************************************************/
 
-void mac::rl_failure(uint16_t rnti)
-{
-  srslte::rwlock_read_guard lock(rwlock);
-  if (ue_db.count(rnti)) {
-    uint32_t nof_fails = ue_db[rnti]->rl_failure();
-    if (nof_fails >= (uint32_t)args.link_failure_nof_err && args.link_failure_nof_err > 0) {
-      Info("Detected Uplink failure for rnti=0x%x\n", rnti);
-      rrc_h->rl_failure(rnti);
-      ue_db[rnti]->rl_failure_reset();
-    }
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-  }
-}
-
-void mac::rl_ok(uint16_t rnti)
-{
-  srslte::rwlock_read_guard lock(rwlock);
-  if (ue_db.count(rnti)) {
-    ue_db[rnti]->rl_failure_reset();
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-  }
-}
-
 int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_idx, bool ack)
 {
   srslte::rwlock_read_guard lock(rwlock);
@@ -329,7 +304,7 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t tb_
     if (ack) {
       if (nof_bytes > 64) { // do not count RLC status messages only
         rrc_h->set_activity_user(rnti);
-        log_h->debug("DL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
+        log_h->info("DL activity rnti=0x%x, n_bytes=%d\n", rnti, nof_bytes);
       }
     }
   }

@@ -74,8 +74,6 @@ public:
     scheduler.set_dl_tti_mask(tti_mask, nof_sfs);
   }
   void build_mch_sched(uint32_t tbs);
-  void rl_failure(uint16_t rnti) override;
-  void rl_ok(uint16_t rnti) override;
 
   /******** Interface from RRC (RRC -> MAC) ****************/
   /* Provides cell configuration including SIB periodicity, etc. */

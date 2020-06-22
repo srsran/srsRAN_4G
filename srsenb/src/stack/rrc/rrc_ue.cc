@@ -72,12 +72,6 @@ rrc_state_t rrc::ue::get_state()
   return state;
 }
 
-uint32_t rrc::ue::rl_failure()
-{
-  rlf_cnt++;
-  return rlf_cnt;
-}
-
 void rrc::ue::set_activity()
 {
   // re-start activity timer with current timeout value

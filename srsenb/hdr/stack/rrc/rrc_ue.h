@@ -47,8 +47,6 @@ public:
   void        set_activity();
   void        activity_timer_expired();
 
-  uint32_t rl_failure();
-
   rrc_state_t get_state();
 
   void send_connection_setup();

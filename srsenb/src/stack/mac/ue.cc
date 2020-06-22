@@ -158,17 +158,6 @@ void ue::start_pcap(srslte::mac_pcap* pcap_)
   pcap = pcap_;
 }
 
-uint32_t ue::rl_failure()
-{
-  nof_failures++;
-  return nof_failures;
-}
-
-void ue::rl_failure_reset()
-{
-  nof_failures = 0;
-}
-
 void ue::set_lcg(uint32_t lcid, uint32_t lcg)
 {
   // find and remove if already exists

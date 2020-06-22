@@ -101,9 +101,6 @@ public:
   {
     mac.set_sched_dl_tti_mask(tti_mask, nof_sfs);
   }
-  // Radio-Link status
-  void rl_failure(uint16_t rnti) final { mac.rl_failure(rnti); }
-  void rl_ok(uint16_t rnti) final { mac.rl_ok(rnti); }
   void tti_clock() override;
 
   /* STACK-S1AP interface*/

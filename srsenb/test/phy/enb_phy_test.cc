@@ -291,8 +291,6 @@ private:
   CALLBACK(get_mch_sched);
   CALLBACK(get_ul_sched);
   CALLBACK(set_sched_dl_tti_mask);
-  CALLBACK(rl_failure);
-  CALLBACK(rl_ok);
   CALLBACK(tti_clock);
 
   typedef struct {
@@ -679,8 +677,6 @@ public:
     return SRSLTE_SUCCESS;
   }
   void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) override { notify_set_sched_dl_tti_mask(); }
-  void rl_failure(uint16_t rnti) override { notify_rl_failure(); }
-  void rl_ok(uint16_t rnti) override { notify_rl_ok(); }
   void tti_clock() override { notify_tti_clock(); }
   int  run_tti(bool enable_assert)
   {
@@ -1283,12 +1279,6 @@ public:
   {
     int ret = SRSLTE_SUCCESS;
 
-    // If no assertion enabled, clear radio link failure to avoid errors in cell transitions
-    if (change_state != change_state_assert) {
-      stack->clear_rl_failure();
-    }
-
-    TESTASSERT(not stack->get_received_rl_failure());
     TESTASSERT(ue_phy->run_tti() >= SRSLTE_SUCCESS);
     TESTASSERT(stack->run_tti(change_state == change_state_assert) >= SRSLTE_SUCCESS);
 

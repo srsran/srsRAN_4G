@@ -84,9 +84,6 @@ public:
   void     push_pdu(const uint32_t ue_cc_idx, const uint32_t tti, uint32_t len);
   void     deallocate_pdu(const uint32_t ue_cc_idx, const uint32_t tti);
 
-  uint32_t rl_failure();
-  void     rl_failure_reset();
-
   void set_lcg(uint32_t lcid, uint32_t lcg);
 
   void metrics_read(srsenb::mac_metrics_t* metrics);
