@@ -84,7 +84,7 @@ public:
     rand_dist(MIN_TB_LEN, MAX_TB_LEN)
   {
 
-    log_h->set_level(srslte::LOG_LEVEL_INFO);
+    log_h->set_level(srslte::LOG_LEVEL_WARNING);
   }
 
   ~srslte_basic_pnf() { stop(); };
@@ -286,8 +286,10 @@ private:
         send_sf_ind(tti);
 
         if (policy == bridge) {
-          srslte::unique_byte_buffer_t tb = rf_in_queue.wait_pop();
-          send_dl_ind(tti, std::move(tb));
+          srslte::unique_byte_buffer_t tb;
+          if (rf_in_queue.try_pop(&tb)) {
+            send_dl_ind(tti, std::move(tb));
+          }
         } else {
           // provide DL grant every even TTI, and UL grant every odd
           if (tti % 2 == 0) {
@@ -326,7 +328,7 @@ private:
   {
     basic_vnf_api::msg_header_t* header = (basic_vnf_api::msg_header_t*)buffer;
 
-    log_h->info("Received %s (%d B) in TTI\n", basic_vnf_api::msg_type_text[header->type], len);
+    //    log_h->info("Received %s (%d B) in TTI\n", basic_vnf_api::msg_type_text[header->type], len);
 
     switch (header->type) {
       case basic_vnf_api::SF_IND:
