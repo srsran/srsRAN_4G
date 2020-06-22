@@ -154,8 +154,16 @@ public:
     return tmp;
   }
 
-  void connect_out_rf_queue(srslte::block_queue<srslte::unique_byte_buffer_t>* rf_queue_) { rf_out_queue = rf_queue_; }
-  srslte::block_queue<srslte::unique_byte_buffer_t>* get_in_rf_queue() { return &rf_in_queue; }
+  void connect_out_rf_queue(srslte::block_queue<srslte::unique_byte_buffer_t>* rf_queue_)
+  {
+    rf_out_queue = rf_queue_;
+    policy       = bridge;
+  }
+  srslte::block_queue<srslte::unique_byte_buffer_t>* get_in_rf_queue()
+  {
+    policy = bridge;
+    return &rf_in_queue;
+  }
 
 private:
   //! Waits for DL Config or Tx Request Msg from VNF and forwards to RF
@@ -217,8 +225,7 @@ private:
     std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> > rx_buffer =
         std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> >(new std::array<uint8_t, max_basic_api_pdu>);
 
-    int32_t sf_counter     = 0;
-    bool    using_rf_queue = false;
+    int32_t sf_counter = 0;
     while (running && (num_sf > 0 ? sf_counter < num_sf : true)) {
       {
         std::lock_guard<std::mutex> lock(mutex);
@@ -232,10 +239,9 @@ private:
         // Send request
         send_sf_ind(tti);
 
-        if (not rf_in_queue.empty()) {
-          using_rf_queue = true;
-          send_rx_data_ind(tti);
-        } else if (not using_rf_queue) {
+        if (policy == bridge) {
+          //          send_rx_data_ind(tti);
+        } else {
           // provide UL data every 2nd TTI
           if (tti % 2 == 0) {
             send_rx_data_ind(tti);
@@ -265,8 +271,7 @@ private:
     std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> > rx_buffer =
         std::unique_ptr<std::array<uint8_t, max_basic_api_pdu> >(new std::array<uint8_t, max_basic_api_pdu>);
 
-    int32_t sf_counter     = 0;
-    bool    using_rf_queue = false;
+    int32_t sf_counter = 0;
     while (running && (num_sf > 0 ? sf_counter < num_sf : true)) {
       {
         std::lock_guard<std::mutex> lock(mutex);
@@ -280,11 +285,10 @@ private:
         // Send SF indication
         send_sf_ind(tti);
 
-        if (not rf_in_queue.empty()) {
-          using_rf_queue                  = true;
+        if (policy == bridge) {
           srslte::unique_byte_buffer_t tb = rf_in_queue.wait_pop();
           send_dl_ind(tti, std::move(tb));
-        } else if (not using_rf_queue) {
+        } else {
           // provide DL grant every even TTI, and UL grant every odd
           if (tti % 2 == 0) {
             send_dl_ind(tti);
@@ -371,12 +375,11 @@ private:
     metrics.num_pdus += msg->nof_pdus;
 
     if (rf_out_queue != nullptr) {
-      for (uint32_t i = 0; i < msg->nof_pdus; ++i) {
-        srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
-        pdu->N_bytes                     = msg->pdus[i].length;
-        memcpy(pdu->msg, msg->pdus[i].data, msg->pdus[i].length);
-        rf_out_queue->push(std::move(pdu));
-      }
+      uint32_t len = sizeof(*msg) - sizeof(msg->pdus->data) + msg->pdus->length;
+
+      srslte::unique_byte_buffer_t tx = srslte::allocate_unique_buffer(*pool);
+      memcpy(tx->msg, msg, len);
+      rf_out_queue->push(std::move(tx));
     }
 
     return 0;
@@ -443,9 +446,6 @@ private:
         0x3f,
     };
 #endif // PING_REQUEST_PDU
-    uint8_t* data    = tb != nullptr ? tb->msg : tv;
-    uint32_t N_bytes = tb != nullptr ? tb->N_bytes : sizeof(tv);
-
     basic_vnf_api::dl_ind_msg_t dl_ind = {};
 
     dl_ind.header.type    = basic_vnf_api::DL_IND;
@@ -453,21 +453,50 @@ private:
     dl_ind.tti            = tti_;
     dl_ind.t1             = 0;
 
-    dl_ind.nof_pdus       = 1;
-    dl_ind.pdus[0].type   = basic_vnf_api::PDSCH;
-    dl_ind.pdus[0].length = tb_len > 0 ? tb_len : rand_dist(rand_gen);
+    uint32_t tot_bytes = 0;
+    uint32_t tb_size   = tb_len > 0 ? tb_len : rand_dist(rand_gen);
 
-    if (dl_ind.pdus[0].length >= N_bytes) {
-      // copy TV
-      memcpy(dl_ind.pdus[0].data, data, N_bytes);
-      // set remaining bytes to zero
-      memset(dl_ind.pdus[0].data + N_bytes, 0xaa, dl_ind.pdus[0].length - N_bytes);
+    if (tb != nullptr) {
+      auto* header = (basic_vnf_api::msg_header_t*)tb->msg;
+
+      if (header->type == basic_vnf_api::TX_REQUEST) {
+        auto* tx_req    = (basic_vnf_api::tx_request_msg_t*)tb->msg;
+        dl_ind.nof_pdus = tx_req->nof_pdus;
+        //        dl_ind.tti = tx_req->tti;
+        for (uint32_t i = 0; i < dl_ind.nof_pdus; ++i) {
+          dl_ind.pdus[i].length = tx_req->pdus[i].length;
+          dl_ind.pdus[i].type   = tx_req->pdus[i].type;
+          memcpy(dl_ind.pdus[i].data, tx_req->pdus[i].data, dl_ind.pdus[i].length);
+          tot_bytes += dl_ind.pdus[i].length;
+          log_h->info_hex(
+              dl_ind.pdus[i].data, dl_ind.pdus[i].length, "Sending to UE a PDU (%d bytes)\n", dl_ind.pdus[i].length);
+        }
+      }
     } else {
-      // just fill with dummy bytes
-      memset(dl_ind.pdus[0].data, 0xab, dl_ind.pdus[0].length);
+      uint32_t N_bytes = sizeof(tv);
+
+      // Create default
+      dl_ind.nof_pdus       = 1;
+      dl_ind.pdus[0].type   = basic_vnf_api::PDSCH;
+      dl_ind.pdus[0].length = tb_size;
+
+      if (dl_ind.pdus[0].length >= N_bytes) {
+        // copy TV
+        memcpy(dl_ind.pdus[0].data, tv, N_bytes);
+        tot_bytes = N_bytes;
+      }
+
+      log_h->info_hex(dl_ind.pdus[0].data, N_bytes, "Sending to UE a TB (%d bytes)\n", N_bytes);
     }
 
-    log_h->info_hex(dl_ind.pdus[0].data, N_bytes, "Sending to UE a TB (%d bytes)\n", N_bytes);
+    if (tot_bytes > 0 and tot_bytes < tb_size) {
+      uint8_t* offset = &dl_ind.pdus[dl_ind.nof_pdus - 1].data[dl_ind.pdus[dl_ind.nof_pdus - 1].length];
+      memset(offset, 0xaa, tb_size - tot_bytes);
+    } else if (tot_bytes == 0) {
+      // just fill with dummy bytes
+      dl_ind.nof_pdus = 1;
+      memset(dl_ind.pdus[0].data, 0xab, tb_size);
+    }
 
     int n = 0;
     if ((n = sendto(sockfd, &dl_ind, sizeof(dl_ind), 0, (struct sockaddr*)&servaddr, sizeof(servaddr))) < 0) {
@@ -523,6 +552,7 @@ private:
 
   srslte::block_queue<srslte::unique_byte_buffer_t>* rf_out_queue = nullptr;
   srslte::block_queue<srslte::unique_byte_buffer_t>  rf_in_queue;
+  enum data_policy_t { self_gen, bridge } policy = self_gen;
 };
 
 } // namespace srslte

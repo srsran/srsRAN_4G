@@ -329,6 +329,9 @@ int srslte_basic_vnf::tx_request(const srsenb::phy_interface_stack_nr::tx_reques
     log_h->error("Trying to send %d PDUs but only %d supported\n", request.nof_pdus, MAX_NUM_PDUS);
     return SRSLTE_ERROR;
   }
+  if (request.nof_pdus == 0) {
+    return SRSLTE_SUCCESS;
+  }
 
   // Generate Tx request
   m_tx_req_msg->header.type    = basic_vnf_api::TX_REQUEST;
