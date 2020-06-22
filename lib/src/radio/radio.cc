@@ -95,6 +95,11 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
     device_args_list.emplace_back("auto");
   }
 
+  // Avoid opening more RF devices than necessary
+  if (nof_channels < device_args_list.size()) {
+    device_args_list.resize(nof_channels);
+  }
+
   // Makes sure it is possible to have the same number of RF channels in each RF device
   if (nof_channels % device_args_list.size() != 0) {
     log_h->console(
