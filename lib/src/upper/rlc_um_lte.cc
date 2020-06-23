@@ -369,7 +369,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
                        vr_ur);
         // Check if we received a middle or end segment
         if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-          log->warning("Dropping PDU %d due to lost start segment\n", vr_ur);
+          log->warning("Dropping PDU %d in reassembly due to lost start segment\n", vr_ur);
           // Advance data pointers and continue with next segment
           rx_window[vr_ur].buf->msg += len;
           rx_window[vr_ur].buf->N_bytes -= len;
@@ -558,7 +558,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
     // Handle last segment
     if (rx_sdu->N_bytes == 0 && rx_window[vr_ur].header.N_li == 0 &&
         !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
-      log->warning("Dropping PDU %d due to lost start segment\n", vr_ur);
+      log->warning("Dropping PDU %d during last segment handling due to lost start segment\n", vr_ur);
       rx_sdu->clear();
       goto clean_up_rx_window;
     }
