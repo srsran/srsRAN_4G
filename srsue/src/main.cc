@@ -558,6 +558,14 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
     }
   }
 
+  // Set sync queue capacity to 1 for ZMQ
+  if (args->rf.device_name == "zmq") {
+    args->stack.sync_queue_size = 1;
+  } else {
+    // use default size
+    args->stack.sync_queue_size = MULTIQUEUE_DEFAULT_CAPACITY;
+  }
+
   return SRSLTE_SUCCESS;
 }
 

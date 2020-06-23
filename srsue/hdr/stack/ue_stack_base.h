@@ -68,6 +68,7 @@ typedef struct {
   std::string      ue_category_str;
   nas_args_t       nas;
   gw_args_t        gw;
+  uint32_t         sync_queue_size; // Max allowed difference between PHY and Stack clocks (in TTI)
   bool             have_tti_time_stats;
 } stack_args_t;
 

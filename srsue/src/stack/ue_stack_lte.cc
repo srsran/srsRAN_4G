@@ -49,10 +49,10 @@ ue_stack_lte::ue_stack_lte() :
   tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)
 {
   ue_queue_id         = pending_tasks.add_queue();
-  sync_queue_id       = pending_tasks.add_queue();
   gw_queue_id         = pending_tasks.add_queue();
   stack_queue_id      = pending_tasks.add_queue();
   background_queue_id = pending_tasks.add_queue();
+  // sync_queue is added in init()
 
   background_tasks.start();
 }
@@ -124,6 +124,9 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
     usim_log->console("Failed to initialize USIM.\n");
     return SRSLTE_ERROR;
   }
+
+  // add sync queue
+  sync_queue_id = pending_tasks.add_queue(args.sync_queue_size);
 
   mac.init(phy, &rlc, &rrc, this);
   rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);

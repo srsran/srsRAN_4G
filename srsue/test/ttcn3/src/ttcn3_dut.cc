@@ -106,6 +106,8 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
   all_args.stack.log.gw_hex_limit   = args->log_hex_level;
   all_args.stack.log.usim_hex_limit = args->log_hex_level;
 
+  all_args.stack.sync_queue_size = 1;
+
   return all_args;
 }
 
