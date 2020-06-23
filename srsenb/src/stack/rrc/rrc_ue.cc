@@ -1156,16 +1156,27 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
   conn_reconf->rr_cfg_ded.phys_cfg_ded.ext                                           = true;
   auto pucch_format_r10                      = conn_reconf->rr_cfg_ded.phys_cfg_ded.pucch_cfg_ded_v1020.get();
   pucch_format_r10->pucch_format_r10_present = true;
-  auto& ch_sel_r10                           = pucch_format_r10->pucch_format_r10.set_ch_sel_r10();
-  ch_sel_r10.n1_pucch_an_cs_r10_present      = true;
-  ch_sel_r10.n1_pucch_an_cs_r10.set_setup();
-  n1_pucch_an_cs_r10_l item0(4);
-  // TODO: should we use a different n1PUCCH-AN-CS-List configuration?
-  for (auto& it : item0) {
-    it = cell_ded_list.is_pucch_cs_allocated() ? *cell_ded_list.get_n_pucch_cs() : 0;
+  if (cell_ded_list.nof_cells() <= 2) {
+    // Use PUCCH format 1b with channel selection for 2 serving cells
+    auto& ch_sel_r10                      = pucch_format_r10->pucch_format_r10.set_ch_sel_r10();
+    ch_sel_r10.n1_pucch_an_cs_r10_present = true;
+    ch_sel_r10.n1_pucch_an_cs_r10.set_setup();
+    n1_pucch_an_cs_r10_l item0(4);
+    // TODO: should we use a different n1PUCCH-AN-CS-List configuration?
+    for (auto& it : item0) {
+      it = cell_ded_list.is_pucch_cs_allocated() ? *cell_ded_list.get_n_pucch_cs() : 0;
+    }
+    ch_sel_r10.n1_pucch_an_cs_r10.setup().n1_pucch_an_cs_list_r10.push_back(item0);
+  } else {
+    // Use PUCCH format 3 for more than 2 serving cells
+    auto& format3_r10                        = pucch_format_r10->pucch_format_r10.set_format3_r10();
+    format3_r10.n3_pucch_an_list_r13_present = true;
+    format3_r10.n3_pucch_an_list_r13.resize(4);
+    for (auto& it : format3_r10.n3_pucch_an_list_r13) {
+      // Hard-coded resource, only one user is supported
+      it = 0;
+    }
   }
-  ch_sel_r10.n1_pucch_an_cs_r10.setup().n1_pucch_an_cs_list_r10.push_back(item0);
-
   return SRSLTE_SUCCESS;
 }
 
