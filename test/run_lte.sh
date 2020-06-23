@@ -141,7 +141,7 @@ check_ue()
   # Check CQI is 15
   num_error=$(cat ./${nof_prb}prb_ue.log | grep "PUCCH" | grep "cqi=" | grep -v "cqi=15" | wc -l)
   if [ "$num_error" != "0" ] 2>/dev/null; then
-    echo "Error. Detected $num_error CQI != 15 in UE logs. We should finish with all qci=15."
+    echo "Error. Detected $num_error CQI != 15 in UE logs. We should finish with all cqi=15."
     exit 1
   fi
 
