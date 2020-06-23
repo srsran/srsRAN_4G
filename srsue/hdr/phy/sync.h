@@ -171,7 +171,7 @@ private:
    * The PHY shall not call run_stack_tti when the PHY has reserved a worker.
    *
    * Since the sync thread has reserved a worker in camping state, the PHY shall not call the stack in this state.
-   * Otherwise, there a risk that the stack tries to reserve the same worker for configuration.
+   * Otherwise, there is a risk that the stack tries to reserve the same worker for configuration.
    */
   void run_stack_tti();
 
