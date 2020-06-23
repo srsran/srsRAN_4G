@@ -103,7 +103,9 @@ public:
   uint16_t allocate_rnti() final;
 
 private:
-  static const uint32_t cfi                      = 3;
+  static const uint32_t cfi = 3;
+
+  bool check_ue_exists(uint16_t rnti);
 
   std::mutex rnti_mutex;
 
@@ -133,7 +135,7 @@ private:
   sched_interface::dl_pdu_mch_t mch = {};
 
   /* Map of active UEs */
-  std::map<uint16_t, std::unique_ptr<ue> > ue_db;
+  std::map<uint16_t, std::unique_ptr<ue> > ue_db, ues_to_rem;
   uint16_t                                 last_rnti = 70;
 
   srslte::block_queue<std::unique_ptr<ue> > ue_pool; ///< Pool of pre-allocated UE objects
