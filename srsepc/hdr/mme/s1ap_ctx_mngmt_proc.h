@@ -45,7 +45,7 @@ public:
   bool handle_initial_context_setup_response(const asn1::s1ap::init_context_setup_resp_s& in_ctxt_resp);
   bool handle_ue_context_release_request(const asn1::s1ap::ue_context_release_request_s& ue_rel,
                                          struct sctp_sndrcvinfo*                         enb_sri);
-  bool send_ue_context_release_command(nas* nas_ctx);
+  bool send_ue_context_release_command(nas* nas_ctx, bool send_release_bearers);
   bool handle_ue_context_release_complete(const asn1::s1ap::ue_context_release_complete_s& rel_comp);
 
 private:
