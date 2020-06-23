@@ -506,6 +506,9 @@ void sync::run_camping_state()
       worker->release();
       break;
   }
+
+  // Run stack
+  run_stack_tti();
 }
 
 void sync::run_idle_state()
@@ -847,40 +850,15 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
   }
   *rx_time = rf_timestamp.get(0);
 
-  // check timestamp reset
-  if (forced_rx_time_init || srslte_timestamp_iszero(&tti_ts) || srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
-    if (srslte_timestamp_compare(rx_time, &tti_ts) < 0) {
-      log_h->warning("SYNC:  radio time seems to be going backwards (rx_time=%f, tti_ts=%f)\n",
-                     srslte_timestamp_real(rx_time),
-                     srslte_timestamp_real(&tti_ts));
-      // time-stamp will be set to rx time below and run_tti() will be called with MIN_TTI_JUMP
-    }
+  // Save RF timestamp for the stack
+  stack_tti_ts_new = rf_timestamp.get(0);
 
-    // init tti_ts with last rx time
-    log_h->debug("SYNC:  Setting initial TTI time to %f\n", srslte_timestamp_real(rx_time));
-    srslte_timestamp_copy(&tti_ts, rx_time);
-    forced_rx_time_init = false;
+  // Run stack if the sync state is not in camping
+  if (not phy_state.is_camping()) {
+    run_stack_tti();
   }
 
-  // Advance stack in time
-  if (srslte_timestamp_compare(rx_time, &tti_ts) >= 0) {
-    srslte_timestamp_t temp = {};
-    srslte_timestamp_copy(&temp, rx_time);
-    srslte_timestamp_sub(&temp, tti_ts.full_secs, tti_ts.frac_secs);
-    int32_t tti_jump = static_cast<int32_t>(srslte_timestamp_uint64(&temp, 1e3));
-    tti_jump         = SRSLTE_MAX(tti_jump, MIN_TTI_JUMP);
-    if (tti_jump > MAX_TTI_JUMP) {
-      log_h->warning("SYNC:  TTI jump of %d limited to %d\n", tti_jump, MAX_TTI_JUMP);
-      tti_jump = SRSLTE_MIN(tti_jump, MAX_TTI_JUMP);
-    }
-
-    // Run stack
-    stack->run_tti(tti, tti_jump);
-  }
-
-  // update timestamp
-  srslte_timestamp_copy(&tti_ts, rx_time);
-
+  // Execute channel DL emulator
   if (channel_emulator and rx_time) {
     channel_emulator->set_srate((uint32_t)current_srate);
     channel_emulator->run(data.to_cf_t(), data.to_cf_t(), data.get_nof_samples(), *rx_time);
@@ -899,6 +877,44 @@ int sync::radio_recv_fnc(srslte::rf_buffer_t& data, srslte_timestamp_t* rx_time)
   log_h->debug("SYNC:  received %d samples from radio\n", data.get_nof_samples());
 
   return data.get_nof_samples();
+}
+
+void sync::run_stack_tti()
+{
+  // check timestamp reset
+  if (forced_rx_time_init || srslte_timestamp_iszero(&stack_tti_ts) ||
+      srslte_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) < 0) {
+    if (srslte_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) < 0) {
+      log_h->warning("SYNC:  radio time seems to be going backwards (rx_time=%f, tti_ts=%f)\n",
+                     srslte_timestamp_real(&stack_tti_ts_new),
+                     srslte_timestamp_real(&stack_tti_ts));
+      // time-stamp will be set to rx time below and run_tti() will be called with MIN_TTI_JUMP
+    }
+
+    // init tti_ts with last rx time
+    log_h->debug("SYNC:  Setting initial TTI time to %f\n", srslte_timestamp_real(&stack_tti_ts_new));
+    srslte_timestamp_copy(&stack_tti_ts, &stack_tti_ts_new);
+    forced_rx_time_init = false;
+  }
+
+  // Advance stack in time
+  if (srslte_timestamp_compare(&stack_tti_ts_new, &stack_tti_ts) >= 0) {
+    srslte_timestamp_t temp = {};
+    srslte_timestamp_copy(&temp, &stack_tti_ts_new);
+    srslte_timestamp_sub(&temp, stack_tti_ts.full_secs, stack_tti_ts.frac_secs);
+    int32_t tti_jump = static_cast<int32_t>(srslte_timestamp_uint64(&temp, 1e3));
+    tti_jump         = SRSLTE_MAX(tti_jump, MIN_TTI_JUMP);
+    if (tti_jump > MAX_TTI_JUMP) {
+      log_h->warning("SYNC:  TTI jump of %d limited to %d\n", tti_jump, MAX_TTI_JUMP);
+      tti_jump = SRSLTE_MIN(tti_jump, MAX_TTI_JUMP);
+    }
+
+    // Run stack
+    stack->run_tti(tti, tti_jump);
+  }
+
+  // update timestamp
+  srslte_timestamp_copy(&stack_tti_ts, &stack_tti_ts_new);
 }
 
 void sync::set_rx_gain(float gain)

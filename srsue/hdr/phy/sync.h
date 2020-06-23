@@ -164,6 +164,17 @@ private:
    * @param sync_buffer Sub-frame buffer for the current TTI
    */
   void  run_camping_in_sync_state(sf_worker* worker, srslte::rf_buffer_t& sync_buffer);
+
+  /**
+   * Helper method, executed in a TTI basis for signaling to the stack a new TTI execution
+   *
+   * The PHY shall not call run_stack_tti when the PHY has reserved a worker.
+   *
+   * Since the sync thread has reserved a worker in camping state, the PHY shall not call the stack in this state.
+   * Otherwise, there a risk that the stack tries to reserve the same worker for configuration.
+   */
+  void run_stack_tti();
+
   float get_tx_cfo();
 
   void set_sampling_rate();
@@ -229,7 +240,8 @@ private:
   srslte_cell_t                               cell                   = {};
   bool                                        force_camping_sfn_sync = false;
   uint32_t                                    tti                    = 0;
-  srslte_timestamp_t                          tti_ts                 = {};
+  srslte_timestamp_t                          stack_tti_ts_new       = {};
+  srslte_timestamp_t                          stack_tti_ts           = {};
   std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib                    = {};
 
   uint32_t nof_workers             = 0;
