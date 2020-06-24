@@ -88,7 +88,7 @@ struct gui_args_t {
 };
 
 struct general_args_t {
-  uint32_t    rrc_inactivity_timer;
+  int32_t     rrc_inactivity_timer;
   float       metrics_period_secs;
   bool        metrics_csv_enable;
   std::string metrics_csv_filename;

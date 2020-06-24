@@ -79,6 +79,8 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   config_mac();
   enb_mobility_cfg.reset(new enb_mobility_handler(this));
 
+  rrc_log->info("Inactivity timeout: %d ms\n", cfg.inactivity_timeout_ms);
+
   running = true;
 }
 
