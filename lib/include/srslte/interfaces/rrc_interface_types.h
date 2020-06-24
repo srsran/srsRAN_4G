@@ -348,14 +348,14 @@ inline std::string to_string(const barring_t& b)
 /**
  * Flat UE capabilities
  */
-typedef struct {
+struct rrc_ue_capabilities_t {
   uint8_t release           = 8;
   uint8_t category          = 4;
   uint8_t category_dl       = 0;
   uint8_t category_ul       = 0;
   bool    support_dl_256qam = false;
   bool    support_ul_64qam  = false;
-} rrc_ue_capabilities_t;
+};
 
 } // namespace srslte
 

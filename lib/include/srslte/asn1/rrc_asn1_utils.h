@@ -132,7 +132,7 @@ void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled);
 /***************************
  *  EUTRA UE Capabilities
  **************************/
-void set_rrc_ue_capabilities_t(rrc_ue_capabilities_t& ue_cap, const asn1::rrc::ue_eutra_cap_s& eutra_cap_s);
+rrc_ue_capabilities_t make_rrc_ue_capabilities(const asn1::rrc::ue_eutra_cap_s& eutra_cap_s);
 
 // mbms
 mbms_notif_cfg_t  make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_type);

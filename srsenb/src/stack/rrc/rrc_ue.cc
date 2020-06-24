@@ -668,19 +668,20 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   parent->phy->complete_config(rnti);
 
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
-    // Finally, add secondary carriers to MAC
-    auto& list = current_sched_ue_cfg.supported_cc_list;
-    for (const auto& ue_cell : cell_ded_list) {
-      uint32_t ue_cc_idx = ue_cell.ue_cc_idx;
+    if (cell_ded_list.nof_cells() > 1) {
+      // Finally, add secondary carriers to MAC
+      auto& list = current_sched_ue_cfg.supported_cc_list;
+      for (const auto& ue_cell : cell_ded_list) {
+        uint32_t ue_cc_idx = ue_cell.ue_cc_idx;
 
-      if (ue_cc_idx >= list.size()) {
-        list.resize(ue_cc_idx + 1);
+        if (ue_cc_idx >= list.size()) {
+          list.resize(ue_cc_idx + 1);
+        }
+        list[ue_cc_idx].active     = true;
+        list[ue_cc_idx].enb_cc_idx = ue_cell.cell_common->enb_cc_idx;
       }
-      list[ue_cc_idx].active     = true;
-      list[ue_cc_idx].enb_cc_idx = ue_cell.cell_common->enb_cc_idx;
+      parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
     }
-    parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
-
     bearer_list.apply_mac_bearer_updates(parent->mac, &current_sched_ue_cfg);
 
     // Acknowledge Dedicated Configuration
@@ -763,7 +764,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
         return false;
       }
       eutra_capabilities_unpacked = true;
-      srslte::set_rrc_ue_capabilities_t(ue_capabilities, eutra_capabilities);
+      ue_capabilities             = srslte::make_rrc_ue_capabilities(eutra_capabilities);
 
       parent->rrc_log->info("UE rnti: 0x%x category: %d\n", rnti, eutra_capabilities.ue_category);
     }
@@ -1019,14 +1020,18 @@ cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 //! Method to fill SCellToAddModList for SCell info
 int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
 {
+  if (not eutra_capabilities_unpacked or ue_capabilities.release < 10 or ue_capabilities.category < 5) {
+    return SRSLTE_SUCCESS;
+  }
+
   const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
   if (pcell_cfg->cell_cfg.scell_list.empty()) {
     return SRSLTE_SUCCESS;
   }
 
   // Allocate CQI + PUCCH for SCells.
-  for (auto scell_idx : pcell_cfg->cell_cfg.scell_list) {
-    uint32_t cell_id = scell_idx.cell_id;
+  for (const scell_cfg_t& scell_cfg : pcell_cfg->cell_cfg.scell_list) {
+    uint32_t cell_id = scell_cfg.cell_id;
     cell_ded_list.add_cell(parent->cell_common_list->get_cell_id(cell_id)->enb_cc_idx);
   }
   if (cell_ded_list.nof_cells() == 1) {
