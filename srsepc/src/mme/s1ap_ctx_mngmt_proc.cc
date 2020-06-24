@@ -287,9 +287,18 @@ bool s1ap_ctx_mngmt_proc::send_ue_context_release_command(nas* nas_ctx, bool sen
     return false;
   }
 
+  // Detect weather there are active E-RABs
+  bool active_erabs = false;
+  for (esm_ctx_t& esm_ctx : nas_ctx->m_esm_ctx) {
+    if (esm_ctx.state != ERAB_DEACTIVATED) {
+      active_erabs = true;
+      break;
+    }
+  }
+
   // On some circumstances, such as the NAS Detach, the UE context has already been cleared from
   // the SPGW. In such cases, there is no need to send the GTP-C Release Access Bearers Request.
-  if (send_release_erabs) {
+  if (active_erabs) {
     // There are active E-RABs, send release access mearers request
     m_s1ap_log->console("There are active E-RABs, send release access bearers request\n");
     m_s1ap_log->info("There are active E-RABs, send release access bearers request\n");
@@ -299,7 +308,7 @@ bool s1ap_ctx_mngmt_proc::send_ue_context_release_command(nas* nas_ctx, bool sen
     m_mme_gtpc->send_release_access_bearers_request(emm_ctx->imsi);
   }
 
-  // Mark ECM state as IDLE
+  // Mark ECM state as IDLE and de-activate E-RABs
   ecm_ctx->state = ECM_STATE_IDLE;
   for (esm_ctx_t& esm_ctx : nas_ctx->m_esm_ctx) {
     esm_ctx.state = ERAB_DEACTIVATED;

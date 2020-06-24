@@ -759,6 +759,11 @@ bool nas::handle_detach_request(uint32_t                m_tmsi,
   emm_ctx->state = EMM_STATE_DEREGISTERED;
   sec_ctx->ul_nas_count++;
 
+  // Mark E-RABs as de-activated
+  for (esm_ctx_t& esm_ctx : nas_ctx->m_esm_ctx) {
+    esm_ctx.state = ERAB_DEACTIVATED;
+  }
+
   nas_log->console("Received. M-TMSI 0x%x\n", m_tmsi);
   // Received detach request as an initial UE message
   // eNB created new ECM context to send the detach request; this needs to be cleared.
@@ -1242,6 +1247,12 @@ bool nas::handle_detach_request(srslte::byte_buffer_t* nas_msg)
 
   m_gtpc->send_delete_session_request(m_emm_ctx.imsi);
   m_emm_ctx.state = EMM_STATE_DEREGISTERED;
+
+  // Mark E-RABs as de-activated
+  for (esm_ctx_t& esm_ctx : m_esm_ctx) {
+    esm_ctx.state = ERAB_DEACTIVATED;
+  }
+
   if (m_ecm_ctx.mme_ue_s1ap_id != 0) {
     m_s1ap->send_ue_context_release_command(m_ecm_ctx.mme_ue_s1ap_id);
   }
