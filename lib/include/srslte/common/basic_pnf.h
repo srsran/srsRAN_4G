@@ -357,12 +357,8 @@ private:
 
   int handle_tx_request(basic_vnf_api::tx_request_msg_t* msg)
   {
-    // printf("Received TX request config for TTI=%d\n", msg->tti);
-
     if (msg->tti != tti) {
       metrics.num_timing_errors++;
-      // printf("Received TX request for TTI=%d but current TTI is %d\n", msg->tti, tti.load());
-      //      return -1;
     }
 
     for (uint32_t i = 0; i < msg->nof_pdus; ++i) {
