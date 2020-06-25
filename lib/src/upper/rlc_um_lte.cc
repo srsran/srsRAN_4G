@@ -167,12 +167,18 @@ int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t*
   // Pull SDUs from queue
   while (pdu_space > head_len + 1 && tx_sdu_queue.size() > 0) {
     log->debug("pdu_space=%d, head_len=%d\n", pdu_space, head_len);
-    if (last_li > 0)
+    if (last_li > 0) {
       header.li[header.N_li++] = last_li;
+    }
     head_len       = rlc_um_packed_length(&header);
-    tx_sdu         = tx_sdu_queue.read();
     uint32_t space = pdu_space - head_len;
-    to_move        = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
+    if (space == 0) {
+      // we cannot even fit a single byte of the newly added SDU, remove it again
+      header.N_li--;
+      break;
+    }
+    tx_sdu  = tx_sdu_queue.read();
+    to_move = (space >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : space;
     log->debug("%s adding new SDU segment - %d bytes of %d remaining\n", rb_name.c_str(), to_move, tx_sdu->N_bytes);
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li = to_move;
@@ -200,13 +206,12 @@ int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t*
   // Add header and TX
   rlc_um_write_data_pdu_header(&header, pdu.get());
   memcpy(payload, pdu->msg, pdu->N_bytes);
-  uint32_t ret = pdu->N_bytes;
 
-  log->info_hex(payload, ret, "%s Tx PDU SN=%d (%d B)\n", rb_name.c_str(), header.sn, pdu->N_bytes);
+  log->info_hex(payload, pdu->N_bytes, "%s Tx PDU SN=%d (%d B)\n", rb_name.c_str(), header.sn, pdu->N_bytes);
 
   debug_state();
 
-  return ret;
+  return pdu->N_bytes;
 }
 
 void rlc_um_lte::rlc_um_lte_tx::debug_state()

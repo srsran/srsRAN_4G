@@ -289,7 +289,7 @@ int rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t nof_b
     std::lock_guard<std::mutex> lock(mutex);
     log->debug("MAC opportunity - %d bytes\n", nof_bytes);
 
-    if (!tx_sdu && tx_sdu_queue.size() == 0) {
+    if (tx_sdu == nullptr && tx_sdu_queue.is_empty()) {
       log->info("No data available to be sent\n");
       return 0;
     }
