@@ -374,6 +374,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
           rx_window[vr_ur].buf->msg += len;
           rx_window[vr_ur].buf->N_bytes -= len;
           rx_sdu->clear();
+          metrics.num_lost_pdus++;
           break;
         }
 
@@ -387,6 +388,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
                        vr_ur,
                        vr_ur_in_rx_sdu);
           rx_sdu->clear();
+          metrics.num_lost_pdus++;
         } else {
           log->info_hex(rx_sdu->msg,
                         rx_sdu->N_bytes,
@@ -423,6 +425,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
           if (pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
             log->warning("Dropping remainder of lost PDU (lower edge last segments)\n");
             rx_sdu->clear();
+            metrics.num_lost_pdus++;
           } else {
             log->info_hex(
                 rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", rb_name.c_str(), vr_ur);
@@ -486,6 +489,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
         rx_sdu->clear();
+        metrics.num_lost_pdus++;
 
         // Reset flag, it is safe to process all remaining segments of this PDU
         pdu_lost = false;
@@ -499,6 +503,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
                    rx_sdu->N_bytes,
                    len);
         rx_sdu->clear();
+        metrics.num_lost_pdus++;
         goto clean_up_rx_window;
       }
 
@@ -551,6 +556,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         // Advance data pointers and continue with next segment
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
+        metrics.num_lost_pdus++;
       }
       pdu_lost = false;
     }
@@ -560,6 +566,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
       log->warning("Dropping PDU %d during last segment handling due to lost start segment\n", vr_ur);
       rx_sdu->clear();
+      metrics.num_lost_pdus++;
       goto clean_up_rx_window;
     }
 
@@ -587,6 +594,7 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
       if (pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
         log->warning("Dropping remainder of lost PDU (update vr_ur last segments)\n");
         rx_sdu->clear();
+        metrics.num_lost_pdus++;
       } else {
         log->info_hex(
             rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", rb_name.c_str(), vr_ur);

@@ -34,8 +34,8 @@ typedef struct {
   uint64_t num_tx_bytes;
   uint64_t num_rx_bytes;
 
-  uint32_t num_lost_pdus;
-  uint32_t num_dropped_sdus;
+  uint32_t num_lost_pdus;    //< Lost PDUs registered at Rx
+  uint32_t num_dropped_sdus; //< Count dropped SDUs at Tx due to bearer inactivity or empty buffer
 } rlc_bearer_metrics_t;
 
 typedef struct {

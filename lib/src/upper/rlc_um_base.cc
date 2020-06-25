@@ -102,14 +102,16 @@ void rlc_um_base::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   if (blocking) {
     tx->write_sdu(std::move(sdu));
   } else {
-    tx->try_write_sdu(std::move(sdu));
+    if (tx->try_write_sdu(std::move(sdu)) != SRSLTE_SUCCESS) {
+      metrics.num_dropped_sdus++;
+    }
   }
 }
 
 void rlc_um_base::discard_sdu(uint32_t discard_sn)
 {
   if (not tx_enabled || not tx) {
-    log->debug("%s is currently deactivated. Ignoring SDU discard(SN %u)\n", rb_name.c_str(), discard_sn);
+    log->debug("%s is currently deactivated. Ignoring SDU discard (SN %u)\n", rb_name.c_str(), discard_sn);
     metrics.num_dropped_sdus++;
     return;
   }
@@ -251,7 +253,7 @@ void rlc_um_base::rlc_um_base_tx::write_sdu(unique_byte_buffer_t sdu)
   }
 }
 
-void rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
+int rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
 {
   if (sdu) {
     uint8_t*                                 msg_ptr   = sdu->msg;
@@ -260,6 +262,7 @@ void rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
     if (ret) {
       log->info_hex(
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name.c_str(), nof_bytes, tx_sdu_queue.size());
+      return SRSLTE_SUCCESS;
     } else {
       log->info_hex(ret.error()->msg,
                     ret.error()->N_bytes,
@@ -271,6 +274,7 @@ void rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");
   }
+  return SRSLTE_ERROR;
 }
 
 void rlc_um_base::rlc_um_base_tx::discard_sdu(uint32_t discard_sn)
