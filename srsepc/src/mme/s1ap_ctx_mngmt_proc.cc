@@ -261,7 +261,7 @@ bool s1ap_ctx_mngmt_proc::handle_ue_context_release_request(const asn1::s1ap::ue
 
   // Send release context command to eNB, so that it can release it's bearers
   if (ecm_ctx->state == ECM_STATE_CONNECTED) {
-    send_ue_context_release_command(nas_ctx, true);
+    send_ue_context_release_command(nas_ctx);
   } else {
     // No ECM Context to release
     m_s1ap_log->info("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
@@ -275,8 +275,7 @@ bool s1ap_ctx_mngmt_proc::handle_ue_context_release_request(const asn1::s1ap::ue
   return true;
 }
 
-// On some circusntan
-bool s1ap_ctx_mngmt_proc::send_ue_context_release_command(nas* nas_ctx, bool send_release_erabs)
+bool s1ap_ctx_mngmt_proc::send_ue_context_release_command(nas* nas_ctx)
 {
   emm_ctx_t* emm_ctx = &nas_ctx->m_emm_ctx;
   ecm_ctx_t* ecm_ctx = &nas_ctx->m_ecm_ctx;

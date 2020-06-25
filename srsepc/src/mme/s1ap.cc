@@ -625,7 +625,7 @@ bool s1ap::send_ue_context_release_command(uint32_t mme_ue_s1ap_id)
     m_s1ap_log->error("Error finding NAS context when sending UE Context Setup Release\n");
     return false;
   }
-  m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(nas_ctx, false);
+  m_s1ap_ctx_mngmt_proc->send_ue_context_release_command(nas_ctx);
   return true;
 }
 
