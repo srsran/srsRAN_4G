@@ -1021,7 +1021,11 @@ cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_reconf)
 {
   // Check whether UE supports CA
-  if (not eutra_capabilities_unpacked or ue_capabilities.release < 10 or ue_capabilities.category < 7) {
+  if (not eutra_capabilities.non_crit_ext_present or not eutra_capabilities.non_crit_ext.non_crit_ext_present or
+      not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext_present or
+      not eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020_present or
+      eutra_capabilities.non_crit_ext.non_crit_ext.non_crit_ext.rf_params_v1020.supported_band_combination_r10.size() ==
+          0) {
     return SRSLTE_SUCCESS;
   }
 
