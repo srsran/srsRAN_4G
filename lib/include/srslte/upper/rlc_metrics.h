@@ -23,19 +23,24 @@
 #define SRSLTE_RLC_METRICS_H
 
 #include "srslte/common/common.h"
+#include <iostream>
 
 namespace srslte {
 
 typedef struct {
+  // SDU metrics
   uint32_t num_tx_sdus;
   uint32_t num_rx_sdus;
+  uint64_t num_tx_sdu_bytes;
+  uint64_t num_rx_sdu_bytes;
+  uint32_t num_lost_sdus; //< Count dropped SDUs at Tx due to bearer inactivity or empty buffer
+
+  // PDU metrics
   uint32_t num_tx_pdus;
   uint32_t num_rx_pdus;
-  uint64_t num_tx_bytes;
-  uint64_t num_rx_bytes;
-
+  uint64_t num_tx_pdu_bytes;
+  uint64_t num_rx_pdu_bytes;
   uint32_t num_lost_pdus;    //< Lost PDUs registered at Rx
-  uint32_t num_dropped_sdus; //< Count dropped SDUs at Tx due to bearer inactivity or empty buffer
 } rlc_bearer_metrics_t;
 
 typedef struct {

@@ -95,15 +95,18 @@ void rlc_um_base::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   if (not tx_enabled || not tx) {
     log->debug("%s is currently deactivated. Dropping SDU (%d B)\n", rb_name.c_str(), sdu->N_bytes);
-    metrics.num_dropped_sdus++;
+    metrics.num_lost_sdus++;
     return;
   }
 
   if (blocking) {
+    metrics.num_tx_sdus++;
+    metrics.num_tx_sdu_bytes += sdu->N_bytes;
     tx->write_sdu(std::move(sdu));
+
   } else {
     if (tx->try_write_sdu(std::move(sdu)) != SRSLTE_SUCCESS) {
-      metrics.num_dropped_sdus++;
+      metrics.num_lost_sdus++;
     }
   }
 }
@@ -112,10 +115,10 @@ void rlc_um_base::discard_sdu(uint32_t discard_sn)
 {
   if (not tx_enabled || not tx) {
     log->debug("%s is currently deactivated. Ignoring SDU discard (SN %u)\n", rb_name.c_str(), discard_sn);
-    metrics.num_dropped_sdus++;
     return;
   }
   tx->discard_sdu(discard_sn);
+  metrics.num_lost_sdus++;
 }
 /****************************************************************************
  * MAC interface
@@ -142,7 +145,7 @@ int rlc_um_base::read_pdu(uint8_t* payload, uint32_t nof_bytes)
   if (tx && tx_enabled) {
     uint32_t len = tx->build_data_pdu(payload, nof_bytes);
     if (len > 0) {
-      metrics.num_tx_bytes += len;
+      metrics.num_tx_pdu_bytes += len;
       metrics.num_tx_pdus++;
     }
     return len;
@@ -154,7 +157,7 @@ void rlc_um_base::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   if (rx && rx_enabled) {
     metrics.num_rx_pdus++;
-    metrics.num_rx_bytes += nof_bytes;
+    metrics.num_rx_pdu_bytes += nof_bytes;
     rx->handle_data_pdu(payload, nof_bytes);
   }
 }

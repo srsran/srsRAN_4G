@@ -22,6 +22,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_stdout.h"
 #include "srslte/common/rlc_pcap.h"
+#include "srslte/common/test_common.h"
 #include "srslte/common/threads.h"
 #include "srslte/upper/rlc_am_lte.h"
 #include <assert.h>
@@ -35,6 +36,18 @@ using namespace srslte;
 
 srslte::log_ref rrc_log1("RLC_AM_1");
 srslte::log_ref rrc_log2("RLC_AM_2");
+
+bool rx_is_tx(const rlc_bearer_metrics_t& rlc1_metrics, const rlc_bearer_metrics_t& rlc2_metrics)
+{
+  if (rlc1_metrics.num_tx_pdu_bytes != rlc2_metrics.num_rx_pdu_bytes) {
+    return false;
+  }
+
+  if (rlc2_metrics.num_tx_pdu_bytes != rlc1_metrics.num_rx_pdu_bytes) {
+    return false;
+  }
+  return true;
+}
 
 class rlc_am_tester : public pdcp_interface_rlc, public rrc_interface_rlc
 {
@@ -178,18 +191,9 @@ bool meas_obj_test()
   }
 
   // Check statistics
-  rlc_bearer_metrics_t rlc1_metrics = rlc1.get_metrics();
-  rlc_bearer_metrics_t rlc2_metrics = rlc2.get_metrics();
+  TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
 
-  if (rlc1_metrics.num_tx_bytes != rlc2_metrics.num_rx_bytes) {
-    return -1;
-  }
-
-  if (rlc2_metrics.num_tx_bytes != rlc1_metrics.num_rx_bytes) {
-    return -1;
-  }
-
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 bool concat_test()
@@ -239,18 +243,9 @@ bool concat_test()
   }
 
   // Check statistics
-  rlc_bearer_metrics_t rlc1_metrics = rlc1.get_metrics();
-  rlc_bearer_metrics_t rlc2_metrics = rlc2.get_metrics();
+  TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
 
-  if (rlc1_metrics.num_tx_bytes != rlc2_metrics.num_rx_bytes) {
-    return -1;
-  }
-
-  if (rlc2_metrics.num_tx_bytes != rlc1_metrics.num_rx_bytes) {
-    return -1;
-  }
-
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 bool segment_test(bool in_seq_rx)
@@ -330,18 +325,9 @@ bool segment_test(bool in_seq_rx)
   }
 
   // Check statistics
-  rlc_bearer_metrics_t rlc1_metrics = rlc1.get_metrics();
-  rlc_bearer_metrics_t rlc2_metrics = rlc2.get_metrics();
+  TESTASSERT(rx_is_tx(rlc1.get_metrics(), rlc2.get_metrics()));
 
-  if (rlc1_metrics.num_tx_bytes != rlc2_metrics.num_rx_bytes) {
-    return -1;
-  }
-
-  if (rlc2_metrics.num_tx_bytes != rlc1_metrics.num_rx_bytes) {
-    return -1;
-  }
-
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 bool retx_test()

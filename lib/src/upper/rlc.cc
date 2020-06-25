@@ -113,8 +113,8 @@ void rlc::get_metrics(rlc_metrics_t& m)
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
     rlc_log->info("LCID=%d, RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
                   it->first,
-                  (metrics.num_rx_bytes * 8 / static_cast<double>(1e6)) / secs,
-                  (metrics.num_tx_bytes * 8 / static_cast<double>(1e6)) / secs);
+                  (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs,
+                  (metrics.num_tx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs);
     m.bearer[it->first] = metrics;
   }
 
@@ -123,7 +123,7 @@ void rlc::get_metrics(rlc_metrics_t& m)
     rlc_bearer_metrics_t metrics = it->second->get_metrics();
     rlc_log->info("MCH_LCID=%d, RX throughput: %4.6f Mbps\n",
                   it->first,
-                  (metrics.num_rx_bytes * 8 / static_cast<double>(1e6)) / secs);
+                  (metrics.num_rx_pdu_bytes * 8 / static_cast<double>(1e6)) / secs);
     m.bearer[it->first] = metrics;
   }
 
@@ -605,6 +605,20 @@ void rlc::update_bsr_mch(uint32_t lcid)
     uint32_t retx_queue = 0; // todo: separate tx_queue and retx_queue
     bsr_callback(lcid, tx_queue, retx_queue);
   }
+}
+
+void rlc_bearer_metrics_print(const rlc_bearer_metrics_t& metrics)
+{
+  std::cout << "num_tx_sdus=" << metrics.num_tx_sdus << "\n";
+  std::cout << "num_rx_sdus=" << metrics.num_rx_sdus << "\n";
+  std::cout << "num_tx_sdu_bytes=" << metrics.num_tx_sdu_bytes << "\n";
+  std::cout << "num_rx_sdu_bytes=" << metrics.num_rx_sdu_bytes << "\n";
+  std::cout << "num_tx_pdus=" << metrics.num_tx_pdus << "\n";
+  std::cout << "num_rx_pdus=" << metrics.num_rx_pdus << "\n";
+  std::cout << "num_tx_pdu_bytes=" << metrics.num_tx_pdu_bytes << "\n";
+  std::cout << "num_rx_pdu_bytes=" << metrics.num_rx_pdu_bytes << "\n";
+  std::cout << "num_lost_pdus=" << metrics.num_lost_pdus << "\n";
+  std::cout << "num_lost_sdus=" << metrics.num_lost_sdus << "\n";
 }
 
 } // namespace srslte

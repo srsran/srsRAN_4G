@@ -173,7 +173,7 @@ int rlc_tm::read_pdu(uint8_t* payload, uint32_t nof_bytes)
                   ul_queue.size(),
                   ul_queue.size_bytes());
 
-    metrics.num_tx_bytes += pdu_size;
+    metrics.num_tx_pdu_bytes += pdu_size;
     return pdu_size;
   } else {
     log->warning("Queue empty while trying to read\n");
@@ -192,7 +192,8 @@ void rlc_tm::write_pdu(uint8_t* payload, uint32_t nof_bytes)
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();
-    metrics.num_rx_bytes += nof_bytes;
+    metrics.num_rx_pdu_bytes += nof_bytes;
+    metrics.num_rx_pdus++;
     if (rrc->get_rb_name(lcid) == "SRB0") {
       rrc->write_pdu(lcid, std::move(buf));
     } else {

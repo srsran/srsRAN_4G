@@ -137,6 +137,7 @@ void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 void rlc_am_lte::discard_sdu(uint32_t discard_sn)
 {
   tx.discard_sdu(discard_sn);
+  metrics.num_lost_sdus++;
 }
 
 /****************************************************************************
@@ -155,12 +156,17 @@ uint32_t rlc_am_lte::get_buffer_state()
 
 int rlc_am_lte::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  return tx.read_pdu(payload, nof_bytes);
+  int read_bytes = tx.read_pdu(payload, nof_bytes);
+  metrics.num_tx_pdus++;
+  metrics.num_tx_pdu_bytes += read_bytes;
+  return read_bytes;
 }
 
 void rlc_am_lte::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   rx.write_pdu(payload, nof_bytes);
+  metrics.num_rx_pdus++;
+  metrics.num_rx_pdu_bytes += nof_bytes;
 }
 
 /****************************************************************************
@@ -1470,6 +1476,7 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
           log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", RB_NAME, rx_sdu->N_bytes);
           rx_sdu->set_timestamp();
           parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
+          parent->metrics.num_rx_sdus++;
 
           rx_sdu = allocate_unique_buffer(*pool, true);
           if (rx_sdu == nullptr) {
@@ -1513,6 +1520,8 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
       log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", RB_NAME, rx_sdu->N_bytes);
       rx_sdu->set_timestamp();
       parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
+      parent->metrics.num_rx_sdus++;
+
       rx_sdu = allocate_unique_buffer(*pool, true);
       if (rx_sdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG

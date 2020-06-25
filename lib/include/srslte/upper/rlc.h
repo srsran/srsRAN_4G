@@ -118,6 +118,8 @@ private:
   void update_bsr_mch(uint32_t lcid);
 };
 
+void rlc_bearer_metrics_print(const rlc_bearer_metrics_t& metrics);
+
 } // namespace srslte
 
 #endif // SRSLTE_RLC_H

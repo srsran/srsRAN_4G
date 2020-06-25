@@ -402,6 +402,8 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
                         vr_ur,
                         i);
           rx_sdu->set_timestamp();
+          metrics.num_rx_sdus++;
+          metrics.num_rx_sdu_bytes += rx_sdu->N_bytes;
           if (cfg.um.is_mrb) {
             pdcp->write_pdu_mch(lcid, std::move(rx_sdu));
           } else {
@@ -435,6 +437,8 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
             log->info_hex(
                 rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", rb_name.c_str(), vr_ur);
             rx_sdu->set_timestamp();
+            metrics.num_rx_sdus++;
+            metrics.num_rx_sdu_bytes += rx_sdu->N_bytes;
             if (cfg.um.is_mrb) {
               pdcp->write_pdu_mch(lcid, std::move(rx_sdu));
             } else {
@@ -544,6 +548,8 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
                       vr_ur,
                       i);
         rx_sdu->set_timestamp();
+        metrics.num_rx_sdus++;
+        metrics.num_rx_sdu_bytes += rx_sdu->N_bytes;
         if (cfg.um.is_mrb) {
           pdcp->write_pdu_mch(lcid, std::move(rx_sdu));
         } else {
@@ -604,6 +610,8 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
         log->info_hex(
             rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", rb_name.c_str(), vr_ur);
         rx_sdu->set_timestamp();
+        metrics.num_rx_sdus++;
+        metrics.num_rx_sdu_bytes += rx_sdu->N_bytes;
         if (cfg.um.is_mrb) {
           pdcp->write_pdu_mch(lcid, std::move(rx_sdu));
         } else {

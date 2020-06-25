@@ -533,18 +533,18 @@ void stress_test(stress_test_args_t args)
          tester1.get_nof_rx_pdus(),
          args.test_duration_sec,
          static_cast<double>(tester1.get_nof_rx_pdus() / args.test_duration_sec),
-         metrics.bearer[lcid].num_tx_bytes,
-         metrics.bearer[lcid].num_rx_bytes);
-  printf("rlc1_num_lost=%d\n", metrics.bearer[lcid].num_lost_pdus);
+         metrics.bearer[lcid].num_tx_pdu_bytes,
+         metrics.bearer[lcid].num_rx_pdu_bytes);
+  rlc_bearer_metrics_print(metrics.bearer[lcid]);
 
   rlc2.get_metrics(metrics);
   printf("RLC2 received %d SDUs in %ds (%.2f/s), Tx=%" PRIu64 " B, Rx=%" PRIu64 " B\n",
          tester2.get_nof_rx_pdus(),
          args.test_duration_sec,
          static_cast<double>(tester2.get_nof_rx_pdus() / args.test_duration_sec),
-         metrics.bearer[lcid].num_tx_bytes,
-         metrics.bearer[lcid].num_rx_bytes);
-  printf("rlc2_num_lost=%d\n", metrics.bearer[lcid].num_lost_pdus);
+         metrics.bearer[lcid].num_tx_pdu_bytes,
+         metrics.bearer[lcid].num_rx_pdu_bytes);
+  rlc_bearer_metrics_print(metrics.bearer[lcid]);
 }
 
 int main(int argc, char** argv)
