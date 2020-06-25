@@ -166,7 +166,8 @@ public:
     log("MAC  "),
     thread("MAC_DUMMY"),
     real_dist(0.0, 1.0),
-    mt19937(1234)
+    mt19937(1234),
+    pool(byte_buffer_pool::get_instance())
   {
     log.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
     log.set_hex_limit(LOG_HEX_LIMIT);
@@ -185,9 +186,6 @@ private:
   {
     // Generate A number of MAC PDUs
     for (uint32_t i = 0; i < args.nof_pdu_tti; i++) {
-      // Get PDU pool
-      byte_buffer_pool* pool = byte_buffer_pool::get_instance();
-
       // Create PDU unique buffer
       unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
       if (!pdu) {
@@ -246,11 +244,11 @@ private:
         rx_rlc->write_pdu(lcid, pdu->msg, pdu_len);
 
         // Write PCAP
-        write_pdu_to_pcap(is_dl, 4, pdu->msg, pdu_len);
+        write_pdu_to_pcap(is_dl, 4, pdu->msg, pdu_len); // Only handles NR rat
         if (is_dl) {
-          pcap->write_dl_am_ccch(pdu->msg, pdu_len);
+          pcap->write_dl_ccch(pdu->msg, pdu_len);
         } else {
-          pcap->write_ul_am_ccch(pdu->msg, pdu_len);
+          pcap->write_ul_ccch(pdu->msg, pdu_len);
         }
       } else {
         log.warning_hex(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)\n", pdu->N_bytes);
@@ -318,6 +316,7 @@ private:
 
   std::mt19937                          mt19937;
   std::uniform_real_distribution<float> real_dist;
+  byte_buffer_pool* pool = nullptr;
 };
 
 class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc, public thread
@@ -445,7 +444,7 @@ void stress_test(stress_test_args_t args)
 
 #if PCAP
     if (args.write_pcap) {
-      pcap.open("rlc_stress_test.pcap", 0);
+      pcap.open("rlc_stress_test.pcap", cnfg_);
     }
 #endif
 

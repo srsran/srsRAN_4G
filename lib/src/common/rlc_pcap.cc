@@ -30,12 +30,26 @@ void rlc_pcap::enable(bool en)
 {
   enable_write = true;
 }
-void rlc_pcap::open(const char* filename, uint32_t ue_id)
+
+void rlc_pcap::open(const char* filename, rlc_config_t config)
 {
   fprintf(stdout, "Opening RLC PCAP with DLT=%d\n", UDP_DLT);
   pcap_file    = LTE_PCAP_Open(UDP_DLT, filename);
-  this->ue_id  = ue_id;
   enable_write = true;
+
+  if (config.rlc_mode == rlc_mode_t::am) {
+    mode      = RLC_AM_MODE;
+    sn_length = AM_SN_LENGTH_10_BITS;
+  } else if (config.rlc_mode == rlc_mode_t::um) {
+    mode = RLC_UM_MODE;
+    if (config.um.rx_sn_field_length == rlc_umd_sn_size_t::size5bits) {
+      sn_length = UM_SN_LENGTH_5_BITS;
+    } else {
+      sn_length = UM_SN_LENGTH_10_BITS;
+    }
+  } else {
+    mode = RLC_TM_MODE;
+  }
 }
 void rlc_pcap::close()
 {
@@ -43,14 +57,14 @@ void rlc_pcap::close()
   LTE_PCAP_Close(pcap_file);
 }
 
-void rlc_pcap::set_ue_id(uint16_t ue_id)
+void rlc_pcap::set_ue_id(uint16_t ue_id_)
 {
-  this->ue_id = ue_id;
+  ue_id = ue_id_;
 }
 
 void rlc_pcap::pack_and_write(uint8_t* pdu,
                               uint32_t pdu_len_bytes,
-                              uint8_t  mode,
+                              uint8_t  mode_,
                               uint8_t  direction,
                               uint8_t  priority,
                               uint8_t  seqnumberlength,
@@ -60,7 +74,7 @@ void rlc_pcap::pack_and_write(uint8_t* pdu,
 {
   if (enable_write) {
     RLC_Context_Info_t context;
-    context.rlcMode              = mode;
+    context.rlcMode              = mode_;
     context.direction            = direction;
     context.priority             = priority;
     context.sequenceNumberLength = seqnumberlength;
@@ -74,36 +88,19 @@ void rlc_pcap::pack_and_write(uint8_t* pdu,
   }
 }
 
-void rlc_pcap::write_dl_am_ccch(uint8_t* pdu, uint32_t pdu_len_bytes)
+void rlc_pcap::write_dl_ccch(uint8_t* pdu, uint32_t pdu_len_bytes)
 {
-  uint8_t priority        = 0;
-  uint8_t seqnumberlength = 0; // normal length of 10bit
-  uint8_t channel_id      = 0;
-  pack_and_write(pdu,
-                 pdu_len_bytes,
-                 RLC_AM_MODE,
-                 DIRECTION_DOWNLINK,
-                 priority,
-                 seqnumberlength,
-                 ue_id,
-                 CHANNEL_TYPE_CCCH,
-                 channel_id);
+  uint8_t priority   = 0;
+  uint8_t channel_id = CHANNEL_TYPE_DRB;
+  pack_and_write(
+      pdu, pdu_len_bytes, mode, DIRECTION_DOWNLINK, priority, sn_length, ue_id, CHANNEL_TYPE_CCCH, channel_id);
 }
 
-void rlc_pcap::write_ul_am_ccch(uint8_t* pdu, uint32_t pdu_len_bytes)
+void rlc_pcap::write_ul_ccch(uint8_t* pdu, uint32_t pdu_len_bytes)
 {
-  uint8_t priority        = 0;
-  uint8_t seqnumberlength = 0; // normal length of 10bit
-  uint8_t channel_id      = 0;
-  pack_and_write(pdu,
-                 pdu_len_bytes,
-                 RLC_AM_MODE,
-                 DIRECTION_UPLINK,
-                 priority,
-                 seqnumberlength,
-                 ue_id,
-                 CHANNEL_TYPE_CCCH,
-                 channel_id);
+  uint8_t priority   = 0;
+  uint8_t channel_id = CHANNEL_TYPE_DRB;
+  pack_and_write(pdu, pdu_len_bytes, mode, DIRECTION_UPLINK, priority, sn_length, ue_id, CHANNEL_TYPE_CCCH, channel_id);
 }
 
 } // namespace srslte

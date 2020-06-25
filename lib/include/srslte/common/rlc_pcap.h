@@ -23,6 +23,7 @@
 #define RLCPCAP_H
 
 #include "srslte/common/pcap.h"
+#include "srslte/interfaces/rlc_interface_types.h"
 #include <stdint.h>
 
 namespace srslte {
@@ -30,25 +31,22 @@ namespace srslte {
 class rlc_pcap
 {
 public:
-  rlc_pcap()
-  {
-    enable_write = false;
-    ue_id        = 0;
-    pcap_file    = NULL;
-  };
+  rlc_pcap() {}
   void enable(bool en);
-  void open(const char* filename, uint32_t ue_id = 0);
+  void open(const char* filename, rlc_config_t config);
   void close();
 
   void set_ue_id(uint16_t ue_id);
 
-  void write_dl_am_ccch(uint8_t* pdu, uint32_t pdu_len_bytes);
-  void write_ul_am_ccch(uint8_t* pdu, uint32_t pdu_len_bytes);
+  void write_dl_ccch(uint8_t* pdu, uint32_t pdu_len_bytes);
+  void write_ul_ccch(uint8_t* pdu, uint32_t pdu_len_bytes);
 
 private:
-  bool     enable_write;
-  FILE*    pcap_file;
-  uint32_t ue_id;
+  bool     enable_write = false;
+  FILE*    pcap_file    = nullptr;
+  uint32_t ue_id        = 0;
+  uint8_t  mode         = 0;
+  uint8_t  sn_length    = 0;
   void     pack_and_write(uint8_t* pdu,
                           uint32_t pdu_len_bytes,
                           uint8_t  mode,

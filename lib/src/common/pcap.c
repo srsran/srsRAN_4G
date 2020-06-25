@@ -167,7 +167,7 @@ int LTE_PCAP_NAS_WritePDU(FILE* fd, NAS_Context_Info_t* context, const unsigned 
 int LTE_PCAP_RLC_WritePDU(FILE* fd, RLC_Context_Info_t* context, const unsigned char* PDU, unsigned int length)
 {
   pcaprec_hdr_t packet_header;
-  char          context_header[256];
+  char          context_header[256] = {};
   int           offset = 0;
   uint16_t      tmp16;
 
@@ -185,9 +185,12 @@ int LTE_PCAP_RLC_WritePDU(FILE* fd, RLC_Context_Info_t* context, const unsigned 
   context_header[offset++] = 0xbe;
   context_header[offset++] = 0xef;
   // length
-  tmp16 = length + 12;
-  memcpy(context_header + offset, &tmp16, 2);
-  offset += 2;
+  tmp16 = length + 30;
+  if (context->rlcMode == RLC_UM_MODE) {
+    tmp16 += 2; // RLC UM requires two bytes more for SN length (see below
+  }
+  context_header[offset++] = (tmp16 & 0xff00) >> 8;
+  context_header[offset++] = (tmp16 & 0xff);
   // dummy CRC
   context_header[offset++] = 0xde;
   context_header[offset++] = 0xad;
