@@ -81,7 +81,6 @@ public:
   void rr_ded_cfg_complete();
 
   // Methods to apply bearer updates
-  void apply_mac_bearer_updates(mac_interface_rrc* mac, sched_interface::ue_cfg_t* sched_ue_cfg);
   void apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, const security_cfg_handler& ue_sec_cfg);
   void apply_rlc_bearer_updates(rlc_interface_rrc* rlc);
   void add_gtpu_bearer(gtpu_interface_rrc* gtpu, uint32_t erab_id);

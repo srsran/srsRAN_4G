@@ -22,7 +22,6 @@
 #include "srsenb/hdr/stack/rrc/rrc_bearer_cfg.h"
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
-#include "srslte/interfaces/sched_interface.h"
 #include "srslte/rrc/rrc_cfg_utils.h"
 
 namespace srsenb {
@@ -338,28 +337,6 @@ bool bearer_cfg_handler::fill_rr_cfg_ded(asn1::rrc::rr_cfg_ded_s& msg)
   msg.drb_to_release_list_present = drbs_to_release.size() > 0;
   msg.drb_to_release_list         = drbs_to_release;
   return msg.srb_to_add_mod_list_present or msg.drb_to_add_mod_list_present or msg.drb_to_release_list_present;
-}
-
-void bearer_cfg_handler::apply_mac_bearer_updates(mac_interface_rrc* mac, sched_interface::ue_cfg_t* sched_ue_cfg)
-{
-  srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg = {};
-  for (const srb_to_add_mod_s& srb : srbs_to_add) {
-    bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    bearer_cfg.group     = 0;
-    mac->bearer_ue_cfg(rnti, srb.srb_id, &bearer_cfg);
-    sched_ue_cfg->ue_bearers[srb.srb_id] = bearer_cfg;
-  }
-  for (uint8_t drb_id : drbs_to_release) {
-    bearer_cfg.direction = sched_interface::ue_bearer_cfg_t::IDLE;
-    mac->bearer_ue_cfg(rnti, drb_id + 2, &bearer_cfg);
-    sched_ue_cfg->ue_bearers[drb_id + 2] = bearer_cfg;
-  }
-  for (const drb_to_add_mod_s& drb : drbs_to_add) {
-    bearer_cfg.direction = sched_interface::ue_bearer_cfg_t::BOTH;
-    bearer_cfg.group     = drb.lc_ch_cfg.ul_specific_params.lc_ch_group;
-    mac->bearer_ue_cfg(rnti, drb.lc_ch_id, &bearer_cfg);
-    sched_ue_cfg->ue_bearers[drb.lc_ch_id] = bearer_cfg;
-  }
 }
 
 void bearer_cfg_handler::apply_pdcp_bearer_updates(pdcp_interface_rrc* pdcp, const security_cfg_handler& ue_sec_cfg)
