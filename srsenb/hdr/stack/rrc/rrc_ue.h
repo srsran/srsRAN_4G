@@ -118,7 +118,6 @@ private:
   uint8_t  mmec     = 0;
 
   // state
-  sched_interface::ue_cfg_t                    current_sched_ue_cfg = {};
   uint32_t                                     rlf_cnt              = 0;
   uint8_t                                      transaction_id       = 0;
   rrc_state_t                                  state                = RRC_STATE_IDLE;
@@ -136,8 +135,8 @@ private:
   bearer_cfg_handler       bearer_list;
   security_cfg_handler     ue_security_cfg;
 
-  ///< Helper to add SRB to scheduler
-  void init_sched_ue_cfg(asn1::rrc::phys_cfg_ded_s* phy_cfg);
+  class mac_controller;
+  std::unique_ptr<mac_controller> mac_ctrl;
 
   ///< Helper to fill RR config dedicated struct for RRR Connection Setup/Reestablish
   void fill_rrc_setup_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* rr_cfg);

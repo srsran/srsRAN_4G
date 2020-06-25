@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_ue.h"
+#include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/int_helpers.h"
@@ -39,18 +40,12 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
   parent(outer_rrc),
   rnti(rnti_),
   pool(srslte::byte_buffer_pool::get_instance()),
-  current_sched_ue_cfg(sched_ue_cfg),
   phy_rrc_dedicated_list(sched_ue_cfg.supported_cc_list.size()),
   cell_ded_list(parent->cfg, *outer_rrc->pucch_res_list, *outer_rrc->cell_common_list),
   bearer_list(rnti_, parent->cfg),
   ue_security_cfg(parent->cfg)
 {
-  if (current_sched_ue_cfg.supported_cc_list.empty() or not current_sched_ue_cfg.supported_cc_list[0].active) {
-    parent->rrc_log->warning("No PCell set. Picking eNBccIdx=0 as PCell\n");
-    current_sched_ue_cfg.supported_cc_list.resize(1);
-    current_sched_ue_cfg.supported_cc_list[0].active     = true;
-    current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = UE_PCELL_CC_IDX;
-  }
+  mac_ctrl.reset(new mac_controller{this, sched_ue_cfg});
 
   activity_timer = outer_rrc->timers->get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
@@ -237,7 +232,6 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 {
   if (not parent->s1ap->is_mme_connected()) {
     parent->rrc_log->error("MME isn't connected. Sending Connection Reject\n");
-    parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
     send_connection_reject();
     return;
   }
@@ -266,19 +260,15 @@ void rrc::ue::send_connection_setup()
 
   dl_ccch_msg.msg.c1().set_rrc_conn_setup();
   dl_ccch_msg.msg.c1().rrc_conn_setup().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.set_c1().set_rrc_conn_setup_r8();
-  rr_cfg_ded_s* rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded;
+  rrc_conn_setup_r8_ies_s& setup  = dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.set_c1().set_rrc_conn_setup_r8();
+  rr_cfg_ded_s*            rr_cfg = &setup.rr_cfg_ded;
 
   // Fill RR config dedicated
   fill_rrc_setup_rr_config_dedicated(rr_cfg);
   phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
 
-  // Add SRB1 to Scheduler
-  init_sched_ue_cfg(phy_cfg);
-
-  // Configure MAC
-  // In case of RRC Connection Setup message (Msg4), we need to resolve the contention by sending a ConRes CE
-  parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
+  // Apply ConnectionSetup Configuration to MAC scheduler
+  mac_ctrl->handle_con_setup(setup);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
   bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
@@ -286,7 +276,6 @@ void rrc::ue::send_connection_setup()
 
   // Configure PHY layer
   apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
-  parent->mac->phy_config_enabled(rnti, false);
 
   send_dl_ccch(&dl_ccch_msg);
 }
@@ -305,11 +294,11 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   pdu->N_bytes = msg_r8->ded_info_nas.size();
   memcpy(pdu->msg, msg_r8->ded_info_nas.data(), pdu->N_bytes);
 
-  // Acknowledge Dedicated Configuration
-  parent->mac->phy_config_enabled(rnti, true);
-
   // Flag completion of RadioResource Configuration
   bearer_list.rr_ded_cfg_complete();
+
+  // Signal MAC scheduler that configuration was successful
+  mac_ctrl->handle_con_setup_complete();
 
   asn1::s1ap::rrc_establishment_cause_e s1ap_cause;
   s1ap_cause.value = (asn1::s1ap::rrc_establishment_cause_opts::options)establishment_cause.value;
@@ -323,6 +312,8 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
 
 void rrc::ue::send_connection_reject()
 {
+  mac_ctrl->handle_con_reject();
+
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
   send_dl_ccch(&dl_ccch_msg);
@@ -397,19 +388,15 @@ void rrc::ue::send_connection_reest()
 
   dl_ccch_msg.msg.c1().set_rrc_conn_reest();
   dl_ccch_msg.msg.c1().rrc_conn_reest().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set_c1().set_rrc_conn_reest_r8();
-  rr_cfg_ded_s* rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded;
+  rrc_conn_reest_r8_ies_s& reest  = dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set_c1().set_rrc_conn_reest_r8();
+  rr_cfg_ded_s*            rr_cfg = &reest.rr_cfg_ded;
 
   // Fill RR config dedicated
   fill_rrc_setup_rr_config_dedicated(rr_cfg);
   phys_cfg_ded_s* phy_cfg = &rr_cfg->phys_cfg_ded;
 
-  // Add SRB1 to the scheduler
-  init_sched_ue_cfg(phy_cfg);
-
-  // Configure MAC
-  // In case of RRC Connection Setup message (Msg4), we need to resolve the contention by sending a ConRes CE
-  parent->mac->ue_set_crnti(rnti, rnti, &current_sched_ue_cfg);
+  // Apply ConnectionReest Configuration to MAC scheduler
+  mac_ctrl->handle_con_reest(reest);
 
   // Add SRBs/DRBs, and configure RLC+PDCP
   bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
@@ -417,7 +404,6 @@ void rrc::ue::send_connection_reest()
 
   // Configure PHY layer
   apply_setup_phy_config_dedicated(*phy_cfg); // It assumes SCell has not been set before
-  parent->mac->phy_config_enabled(rnti, false);
 
   send_dl_ccch(&dl_ccch_msg);
 }
@@ -432,11 +418,11 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
   // TODO: msg->selected_plmn_id - used to select PLMN from SIB1 list
   // TODO: if(msg->registered_mme_present) - the indicated MME should be used from a pool
 
-  // Acknowledge Dedicated Configuration
-  parent->mac->phy_config_enabled(rnti, true);
-
   // Flag completion of RadioResource Configuration
   bearer_list.rr_ded_cfg_complete();
+
+  // Signal MAC scheduler that configuration was successful
+  mac_ctrl->handle_con_reest_complete();
 
   // Activate security for SRB1
   parent->pdcp->config_security(rnti, RB_ID_SRB1, ue_security_cfg.get_as_sec_cfg());
@@ -458,6 +444,8 @@ void rrc::ue::handle_rrc_con_reest_complete(rrc_conn_reest_complete_s* msg, srsl
 
 void rrc::ue::send_connection_reest_rej()
 {
+  mac_ctrl->handle_con_reject();
+
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1().set_rrc_conn_reest_reject().crit_exts.set_rrc_conn_reest_reject_r8();
   send_dl_ccch(&dl_ccch_msg);
@@ -530,7 +518,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     cqi_report_cfg_v1250_s* cqi_report_cfg    = conn_reconf->rr_cfg_ded.phys_cfg_ded.cqi_report_cfg_pcell_v1250.get();
     cqi_report_cfg->alt_cqi_table_r12_present = true;
     cqi_report_cfg->alt_cqi_table_r12         = asn1::rrc::cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::all_sfs;
-    current_sched_ue_cfg.use_tbs_index_alt    = true;
   }
 
   // Add SCells
@@ -540,9 +527,6 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   }
 
   apply_reconf_phy_config(*conn_reconf);
-  current_sched_ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
-  parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
-  parent->mac->phy_config_enabled(rnti, false);
 
   // setup SRB2/DRBs in PDCP and RLC
   bearer_list.apply_pdcp_bearer_updates(parent->pdcp, ue_security_cfg);
@@ -555,6 +539,9 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     mobility_handler->fill_conn_recfg_msg(conn_reconf);
   }
   last_rrc_conn_recfg = dl_dcch_msg.msg.c1().rrc_conn_recfg();
+
+  // Apply Reconf Msg configuration to MAC scheduler
+  mac_ctrl->handle_con_reconf(*conn_reconf);
 
   // If reconf due to reestablishment, recover PDCP state
   if (state == RRC_STATE_REESTABLISHMENT_COMPLETE) {
@@ -586,13 +573,12 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
 {
   dl_dcch_msg_s     dl_dcch_msg;
-  rrc_conn_recfg_s* rrc_conn_recfg   = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
-  rrc_conn_recfg->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
+  rrc_conn_recfg_s* rrc_conn_recfg     = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
+  rrc_conn_recfg->rrc_transaction_id   = (uint8_t)((transaction_id++) % 4);
+  rrc_conn_recfg_r8_ies_s& reconfig_r8 = rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
-  rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded_present = true;
-  auto&         reconfig_r8 = rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8();
-  rr_cfg_ded_s* rr_cfg      = &reconfig_r8.rr_cfg_ded;
+  reconfig_r8.rr_cfg_ded_present = true;
+  rr_cfg_ded_s* rr_cfg           = &reconfig_r8.rr_cfg_ded;
 
   rr_cfg->phys_cfg_ded_present       = true;
   phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
@@ -629,6 +615,9 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = cell_ded_list.get_sr_res()->sr_I;
   phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = cell_ded_list.get_sr_res()->sr_N_pucch;
 
+  // Apply Reconf Msg configuration to MAC scheduler
+  mac_ctrl->handle_con_reconf(reconfig_r8);
+
   pdu->clear();
 
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
@@ -662,27 +651,11 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   parent->phy->complete_config(rnti);
 
   if (last_rrc_conn_recfg.rrc_transaction_id == msg->rrc_transaction_id) {
-    if (cell_ded_list.nof_cells() > 1) {
-      // Finally, add secondary carriers to MAC
-      auto& list = current_sched_ue_cfg.supported_cc_list;
-      for (const auto& ue_cell : cell_ded_list) {
-        uint32_t ue_cc_idx = ue_cell.ue_cc_idx;
-
-        if (ue_cc_idx >= list.size()) {
-          list.resize(ue_cc_idx + 1);
-        }
-        list[ue_cc_idx].active     = true;
-        list[ue_cc_idx].enb_cc_idx = ue_cell.cell_common->enb_cc_idx;
-      }
-      parent->mac->ue_cfg(rnti, &current_sched_ue_cfg);
-    }
-    bearer_list.apply_mac_bearer_updates(parent->mac, &current_sched_ue_cfg);
-
-    // Acknowledge Dedicated Configuration
-    parent->mac->phy_config_enabled(rnti, true);
-
     // Flag completion of RadioResource Configuration
     bearer_list.rr_ded_cfg_complete();
+
+    // Activate SCells and bearers in the MAC scheduler that were advertised in the RRC Reconf message
+    mac_ctrl->handle_con_reconf_complete();
 
     // If performing handover, signal its completion
     mobility_handler->trigger(*msg);
@@ -1004,10 +977,10 @@ void rrc::ue::notify_s1ap_ue_erab_setup_response(const asn1::s1ap::erab_to_be_se
 //! Helper method to access Cell configuration based on UE Carrier Index
 cell_info_common* rrc::ue::get_ue_cc_cfg(uint32_t ue_cc_idx)
 {
-  if (ue_cc_idx >= current_sched_ue_cfg.supported_cc_list.size()) {
+  if (ue_cc_idx >= mac_ctrl->get_ue_sched_cfg().supported_cc_list.size()) {
     return nullptr;
   }
-  uint32_t enb_cc_idx = current_sched_ue_cfg.supported_cc_list[ue_cc_idx].enb_cc_idx;
+  uint32_t enb_cc_idx = mac_ctrl->get_ue_sched_cfg().supported_cc_list[ue_cc_idx].enb_cc_idx;
   return parent->cell_common_list->get_cc_idx(enb_cc_idx);
 }
 
@@ -1193,32 +1166,6 @@ void rrc::ue::handle_ho_preparation_complete(bool is_success, srslte::unique_byt
 
 /********************** HELPERS ***************************/
 
-void rrc::ue::init_sched_ue_cfg(phys_cfg_ded_s* phy_cfg)
-{
-  // Add SRB1 to Scheduler
-  current_sched_ue_cfg.maxharq_tx              = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
-  current_sched_ue_cfg.continuous_pusch        = false;
-  current_sched_ue_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  current_sched_ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
-    current_sched_ue_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.period;
-    current_sched_ue_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
-  } else {
-    get_cqi(&current_sched_ue_cfg.dl_cfg.cqi_report.pmi_idx, &current_sched_ue_cfg.pucch_cfg.n_pucch, UE_PCELL_CC_IDX);
-    current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
-  }
-  current_sched_ue_cfg.dl_cfg.tm                   = SRSLTE_TM1;
-  current_sched_ue_cfg.pucch_cfg.I_sr              = cell_ded_list.get_sr_res()->sr_I;
-  current_sched_ue_cfg.pucch_cfg.n_pucch_sr        = cell_ded_list.get_sr_res()->sr_N_pucch;
-  current_sched_ue_cfg.pucch_cfg.sr_configured     = true;
-  const sib_type2_s& sib2                          = get_ue_cc_cfg(UE_PCELL_CC_IDX)->sib2;
-  current_sched_ue_cfg.pucch_cfg.delta_pucch_shift = sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
-  current_sched_ue_cfg.pucch_cfg.N_cs              = sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
-  current_sched_ue_cfg.pucch_cfg.n_rb_2            = sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
-  current_sched_ue_cfg.pucch_cfg.N_pucch_1         = sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
-  current_sched_ue_cfg.dl_ant_info                 = srslte::make_ant_info_ded(phy_cfg->ant_info.explicit_value());
-}
-
 // Helper method to fill in rr_config_dedicated
 void rrc::ue::fill_rrc_setup_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* rr_cfg)
 {
@@ -1362,7 +1309,7 @@ void rrc::ue::apply_setup_phy_common(const asn1::rrc::rr_cfg_common_sib_s& confi
 
   // Set PCell index
   phy_rrc_dedicated_list[0].configured = true;
-  phy_rrc_dedicated_list[0].enb_cc_idx = current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx;
+  phy_rrc_dedicated_list[0].enb_cc_idx = get_ue_cc_cfg(UE_PCELL_CC_IDX)->enb_cc_idx;
 
   // Send configuration to physical layer
   if (parent->phy != nullptr) {

@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
+#include "srsenb/hdr/stack/rrc/mac_controller.h"
 #include "srsenb/hdr/stack/rrc/rrc_cell_cfg.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
@@ -1012,10 +1013,9 @@ void rrc::ue::rrc_mobility::handle_crnti_ce(intraenb_ho_st& s, intraenb_ho_st& d
     rrc_enb->rlc->reestablish(rrc_ue->rnti);
 
     // Change PCell in MAC/Scheduler
-    rrc_ue->current_sched_ue_cfg.supported_cc_list[0].active     = true;
-    rrc_ue->current_sched_ue_cfg.supported_cc_list[0].enb_cc_idx = s.target_cell->enb_cc_idx;
+    rrc_ue->mac_ctrl->handle_crnti_ce(ev.temp_crnti);
+
     rrc_ue->apply_setup_phy_common(s.target_cell->sib2.rr_cfg_common);
-    rrc_enb->mac->ue_set_crnti(ev.temp_crnti, ev.crnti, &rrc_ue->current_sched_ue_cfg);
 
     rrc_ue->ue_security_cfg.regenerate_keys_handover(s.target_cell->cell_cfg.pci, s.target_cell->cell_cfg.dl_earfcn);
     rrc_ue->bearer_list.reest_bearers();
