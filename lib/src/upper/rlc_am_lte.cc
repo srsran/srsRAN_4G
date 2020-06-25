@@ -129,7 +129,9 @@ void rlc_am_lte::reset_metrics()
 
 void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
-  tx.write_sdu(std::move(sdu), blocking);
+  if (tx.write_sdu(std::move(sdu), blocking) == SRSLTE_SUCCESS) {
+    metrics.num_tx_sdus++;
+  }
 }
 
 void rlc_am_lte::discard_sdu(uint32_t discard_sn)
@@ -345,15 +347,15 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
   return n_bytes;
 }
 
-void rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   if (!tx_enabled) {
-    return;
+    return SRSLTE_ERROR;
   }
 
   if (sdu.get() == nullptr) {
     log->warning("NULL SDU pointer in write_sdu()\n");
-    return;
+    return SRSLTE_ERROR;
   }
 
   if (blocking) {
@@ -378,7 +380,9 @@ void rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blockin
                     ret.error()->N_bytes,
                     tx_sdu_queue.size());
     }
+    return SRSLTE_ERROR;
   }
+  return SRSLTE_SUCCESS;
 }
 
 void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)

@@ -107,7 +107,7 @@ private:
     void reestablish();
     void stop();
 
-    void write_sdu(unique_byte_buffer_t sdu, bool blocking);
+    int  write_sdu(unique_byte_buffer_t sdu, bool blocking);
     int  read_pdu(uint8_t* payload, uint32_t nof_bytes);
     void discard_sdu(uint32_t discard_sn);
 
