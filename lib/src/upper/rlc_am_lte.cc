@@ -783,7 +783,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
 
 int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
-  if (tx_sdu == NULL && tx_sdu_queue.size() == 0) {
+  if (tx_sdu == NULL && tx_sdu_queue.is_empty()) {
     log->info("No data available to be sent\n");
     return 0;
   }
