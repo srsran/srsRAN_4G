@@ -230,7 +230,8 @@ private:
       unique_byte_buffer_t& pdu = *it;
 
       // Drop
-      if (((real_dist(mt19937) > args.pdu_drop_rate) || skip_action) && pdu->N_bytes > 0) {
+      float rnd = real_dist(mt19937);
+      if (std::isnan(rnd) || (((rnd > args.pdu_drop_rate) || skip_action) && pdu->N_bytes > 0)) {
         uint32_t pdu_len = pdu->N_bytes;
 
         // Cut
