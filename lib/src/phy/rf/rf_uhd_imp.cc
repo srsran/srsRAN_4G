@@ -594,7 +594,7 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   }
 
   // Samples-Per-Packet option, 0 means automatic
-  std::string spp = "0";
+  std::string spp;
   if (device_addr.has_key("spp")) {
     spp = device_addr.pop("spp");
   }
@@ -809,7 +809,13 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   // Initialize TX/RX stream args
   handler->stream_args.cpu_format = "fc32";
   handler->stream_args.otw_format = otw_format;
-  handler->stream_args.args.set("spp", spp);
+  if (not spp.empty()) {
+    if (spp == "0") {
+      Warning(
+          "The parameter spp is 0, some UHD versions do not handle it as default and receive method will overflow.");
+    }
+    handler->stream_args.args.set("spp", spp);
+  }
   handler->stream_args.channels.resize(nof_channels);
   for (size_t i = 0; i < (size_t)nof_channels; i++) {
     handler->stream_args.channels[i] = i;

@@ -149,12 +149,20 @@ public:
   uhd_error get_rx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) override
   {
     UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr; rx_stream = usrp->get_rx_stream(args);
-                          max_num_samps = rx_stream->get_max_num_samps();)
+                          max_num_samps = rx_stream->get_max_num_samps();
+                          if (max_num_samps == 0UL) {
+                            last_error = "The maximum number of receive samples is zero.";
+                            return UHD_ERROR_VALUE;
+                          })
   }
   uhd_error get_tx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) override
   {
     UHD_SAFE_C_SAVE_ERROR(this, tx_stream = nullptr; tx_stream = usrp->get_tx_stream(args);
-                          max_num_samps = tx_stream->get_max_num_samps();)
+                          max_num_samps = tx_stream->get_max_num_samps();
+                          if (max_num_samps == 0UL) {
+                            last_error = "The maximum number of transmit samples is zero.";
+                            return UHD_ERROR_VALUE;
+                          })
   }
   uhd_error set_tx_gain(size_t ch, double gain) override { UHD_SAFE_C_SAVE_ERROR(this, usrp->set_tx_gain(gain, ch);) }
   uhd_error set_rx_gain(size_t ch, double gain) override { UHD_SAFE_C_SAVE_ERROR(this, usrp->set_rx_gain(gain, ch);) }
