@@ -157,7 +157,19 @@ public:
     ue_db[rnti] = *cfg;
     return 0;
   }
+  int ue_set_crnti(uint16_t temp_crnti, uint16_t crnti, sched_interface::ue_cfg_t* cfg) override
+  {
+    ue_db[crnti] = *cfg;
+    return 0;
+  }
   std::map<uint16_t, sched_interface::ue_cfg_t> ue_db;
+};
+
+class phy_mobility_dummy : public phy_dummy
+{
+public:
+  void set_config(uint16_t rnti, const phy_rrc_cfg_list_t& dedicated_list) override { last_cfg = dedicated_list; }
+  phy_rrc_cfg_list_t last_cfg;
 };
 
 } // namespace test_dummies

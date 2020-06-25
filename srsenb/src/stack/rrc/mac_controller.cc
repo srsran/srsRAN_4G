@@ -135,10 +135,10 @@ void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_
   if (conn_recfg.mob_ctrl_info_present) {
     // Handover Command
     handle_con_reconf_with_mobility();
-  } else {
-    // First Reconf Message
-    mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
   }
+
+  // Apply changes to MAC scheduler
+  mac->ue_cfg(rrc_ue->rnti, &current_sched_ue_cfg);
   mac->phy_config_enabled(rrc_ue->rnti, false);
 }
 
@@ -170,15 +170,12 @@ void rrc::ue::mac_controller::handle_con_reconf_with_mobility()
 {
   // Temporarily freeze DL+UL grants for all DRBs.
   for (const drb_to_add_mod_s& drb : rrc_ue->bearer_list.get_established_drbs()) {
-    mac->bearer_ue_rem(rrc_ue->rnti, drb.drb_id + 2);
+    current_sched_ue_cfg.ue_bearers[drb.lc_ch_id].direction = sched_interface::ue_bearer_cfg_t::IDLE;
   }
 
   // Temporarily freeze UL grants for SRBs. DL is required to send HO Cmd
-  sched_interface::ue_bearer_cfg_t bcfg;
   for (uint32_t srb_id = 0; srb_id < 3; ++srb_id) {
-    bcfg           = current_sched_ue_cfg.ue_bearers[srb_id];
-    bcfg.direction = sched_interface::ue_bearer_cfg_t::DL;
-    mac->bearer_ue_cfg(rrc_ue->rnti, srb_id, &bcfg);
+    current_sched_ue_cfg.ue_bearers[srb_id].direction = sched_interface::ue_bearer_cfg_t::DL;
   }
 }
 

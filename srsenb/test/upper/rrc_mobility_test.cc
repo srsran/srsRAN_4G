@@ -294,7 +294,7 @@ struct mobility_tester {
   test_dummies::mac_mobility_dummy  mac;
   test_dummies::rlc_mobility_dummy  rlc;
   test_dummies::pdcp_mobility_dummy pdcp;
-  phy_dummy                         phy;
+  test_dummies::phy_mobility_dummy  phy;
   test_dummies::s1ap_mobility_dummy s1ap;
   gtpu_dummy                        gtpu;
 
@@ -509,6 +509,8 @@ int test_intraenb_mobility(mobility_test_params test_params)
   tester.rrc.upd_user(tester.rnti + 1, tester.rnti);
   TESTASSERT(tester.rlc.ue_db[tester.rnti].reest_sdu_counter == 0);
   TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
+  TESTASSERT(tester.phy.last_cfg.size() == 1 and tester.mac.ue_db[tester.rnti].supported_cc_list.size() == 1);
+  TESTASSERT(tester.phy.last_cfg[0].enb_cc_idx == tester.mac.ue_db[tester.rnti].supported_cc_list[0].enb_cc_idx);
 
   /* Test Case: The UE receives a duplicate C-RNTI CE. Nothing should happen */
   if (test_params.fail_at == mobility_test_params::test_event::duplicate_crnti_ce) {
