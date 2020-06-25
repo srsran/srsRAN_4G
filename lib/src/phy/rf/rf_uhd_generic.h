@@ -47,6 +47,9 @@ public:
       return err;
     }
 
+    if (not usrp->get_device()->get_tree()->exists(TREE_DBOARD_RX_FRONTEND_NAME)) {
+      return err;
+    }
     std::string dboard_name = usrp->get_device()->get_tree()->access<std::string>(TREE_DBOARD_RX_FRONTEND_NAME).get();
 
     // Detect if it a AD9361 based device
