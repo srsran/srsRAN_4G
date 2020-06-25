@@ -79,6 +79,17 @@ void rrc::init(const rrc_cfg_t&       cfg_,
   config_mac();
   enb_mobility_cfg.reset(new enb_mobility_handler(this));
 
+  // Check valid inactivity timeout config
+  uint32_t t310 = cfg.sibs[1].sib2().ue_timers_and_consts.t310.to_number();
+  uint32_t t311 = cfg.sibs[1].sib2().ue_timers_and_consts.t311.to_number();
+  uint32_t n310 = cfg.sibs[1].sib2().ue_timers_and_consts.n310.to_number();
+  rrc_log->info("T310 %d, T311 %d, N310 %d \n", t310, t311, n310);
+  if (cfg.inactivity_timeout_ms < t310 + t311 + n310) {
+    rrc_log->console("\nWarning: Inactivity timeout is smaller than the sum of t310, t311 and n310.\n"
+                     "This may break the UE's re-establishment procedure.\n");
+    rrc_log->warning("Inactivity timeout is smaller than the sum of t310, t311 and n310. This may break the UE's "
+                     "re-establishment procedure.\n");
+  }
   rrc_log->info("Inactivity timeout: %d ms\n", cfg.inactivity_timeout_ms);
 
   running = true;
