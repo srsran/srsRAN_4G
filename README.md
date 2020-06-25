@@ -22,12 +22,13 @@ Common Features
  * LTE Release 10 aligned
  * Tested bandwidths: 1.4, 3, 5, 10, 15 and 20 MHz
  * Transmission mode 1 (single antenna), 2 (transmit diversity), 3 (CCD) and 4 (closed-loop spatial multiplexing)
+ * Carrier Aggregation support
  * Frequency-based ZF and MMSE equalizer
  * Evolved multimedia broadcast and multicast service (eMBMS)
- * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX2 (+100 Mbps) and standard C (+25 Mbps)
+ * Highly optimized Turbo Decoder available in Intel SSE4.1/AVX2 (+150 Mbps)
  * MAC, RLC, PDCP, RRC, NAS, S1AP and GW layers
  * Detailed log system with per-layer log levels and hex dumps
- * MAC layer wireshark packet capture
+ * MAC layer Wireshark packet capture
  * Command-line trace metrics
  * Detailed input configuration files
  * Channel simulator for EPA, EVA, and ETU 3GPP channels
@@ -37,7 +38,6 @@ srsUE Features
 --------------
 
  * FDD and TDD configuration
- * Carrier Aggregation support
  * Cell search and synchronization procedure for the UE
  * Soft USIM supporting Milenage and XOR authentication
  * Hard USIM support using PCSC framework
@@ -84,14 +84,18 @@ srsEPC Features
 Hardware
 --------
 
-The library currently supports the Ettus Universal Hardware Driver (UHD) and the bladeRF driver. Thus, any hardware supported by UHD or bladeRF can be used. There is no sampling rate conversion, therefore the hardware should support 30.72 MHz clock in order to work correctly with LTE sampling frequencies and decode signals from live LTE base stations. 
+srsLTE has native support for the Ettus Universal Hardware Driver (UHD) and the bladeRF driver. We also support SoapySDR.
+Thus, any hardware supported by SoapySDR can be used. There is no sampling rate conversion, therefore the hardware should
+support 30.72 MHz clock in order to work correctly with LTE sampling frequencies and decode signals from live LTE base stations.
 
 We have tested the following hardware: 
- * USRP B210
+ * USRP B2x0
  * USRP B205mini
- * USRP X300 (recommended UHD version: 3.9.7)
- * limeSDR
+ * USRP X3x0
+ * LimeSDR
  * bladeRF
+
+For Ettus Research equipment we recommended the LTS version of UHD, i.e. either 3.9.7 or 3.15.
 
 Build Instructions
 ------------------
@@ -112,14 +116,15 @@ Build Instructions
     * lksctp:            http://lksctp.sourceforge.net/
     * config:            http://www.hyperrealm.com/libconfig/
 
-For example, on Ubuntu 17.04, one can install the required libraries with:
+For example, on Ubuntu, one can install the mandatory build dependencies with:
 ```
 sudo apt-get install cmake libfftw3-dev libmbedtls-dev libboost-program-options-dev libconfig++-dev libsctp-dev
 ```
 or on Fedora:
 ```
-dnf install cmake fftw3-devel polarssl-devel lksctp-tools-devel libconfig-devel boost-devel
+dnf install cmake fftw3-devel mbedtls-devel lksctp-tools-devel libconfig-devel boost-devel
 ```
+For CentOS, use the Fedora packages but replace `libconfig-devel` with just `libconfig`.
 
 Note that depending on your flavor and version of Linux, the actual package names may be different.
 
