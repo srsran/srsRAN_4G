@@ -111,9 +111,7 @@ protected:
 public:
   std::string last_error;
 
-  virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr)                                    = 0;
-  virtual uhd_error set_tx_subdev(const std::string& string)                                         = 0;
-  virtual uhd_error set_rx_subdev(const std::string& string)                                         = 0;
+  virtual uhd_error usrp_make(const uhd::device_addr_t& dev_addr, uint32_t nof_channels)             = 0;
   virtual uhd_error get_mboard_name(std::string& mboard_name)                                        = 0;
   virtual uhd_error get_mboard_sensor_names(std::vector<std::string>& sensors)                       = 0;
   virtual uhd_error get_rx_sensor_names(std::vector<std::string>& sensors)                           = 0;
@@ -147,9 +145,9 @@ public:
   virtual uhd_error set_rx_rate(double rate)                                                           = 0;
   virtual uhd_error set_tx_rate(double rate)                                                           = 0;
   virtual uhd_error set_command_time(const uhd::time_spec_t& timespec)                                 = 0;
-  virtual uhd_error get_rx_stream(const uhd::stream_args_t& args, size_t& max_num_samps)               = 0;
+  virtual uhd_error get_rx_stream(size_t& max_num_samps)                                               = 0;
   virtual uhd_error destroy_rx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
-  virtual uhd_error get_tx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) = 0;
+  virtual uhd_error get_tx_stream(size_t& max_num_samps) = 0;
   virtual uhd_error destroy_tx_stream() { UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr;) }
   virtual uhd_error set_tx_gain(size_t ch, double gain)                               = 0;
   virtual uhd_error set_rx_gain(size_t ch, double gain)                               = 0;

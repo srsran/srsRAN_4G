@@ -30,6 +30,7 @@ private:
   uhd::usrp::multi_usrp::sptr     usrp                         = nullptr;
   const uhd::fs_path              TREE_DBOARD_RX_FRONTEND_NAME = "/mboards/0/dboards/A/rx_frontends/A/name";
   const std::chrono::milliseconds FE_RX_RESET_SLEEP_TIME_MS    = std::chrono::milliseconds(2000UL);
+  uhd::stream_args_t              stream_args;
 
   uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) override
   {
@@ -39,12 +40,75 @@ private:
     UHD_SAFE_C_SAVE_ERROR(this, usrp = uhd::usrp::multi_usrp::make(dev_addr);)
   }
 
+  uhd_error set_tx_subdev(const std::string& string) { UHD_SAFE_C_SAVE_ERROR(this, usrp->set_tx_subdev_spec(string);) }
+  uhd_error set_rx_subdev(const std::string& string) { UHD_SAFE_C_SAVE_ERROR(this, usrp->set_rx_subdev_spec(string);) }
+
 public:
-  uhd_error usrp_make(const uhd::device_addr_t& dev_addr) override
-  { // Make USRP
+  uhd_error usrp_make(const uhd::device_addr_t& dev_addr_, uint32_t nof_channels) override
+  {
+    uhd::device_addr_t dev_addr = dev_addr_;
+
+    // Set transmitter subdevice spec string
+    std::string tx_subdev;
+    if (dev_addr.has_key("tx_subdev_spec")) {
+      tx_subdev = dev_addr.pop("tx_subdev_spec");
+    }
+
+    // Set receiver subdevice spec string
+    std::string rx_subdev;
+    if (dev_addr.has_key("rx_subdev_spec")) {
+      rx_subdev = dev_addr.pop("rx_subdev_spec");
+    }
+
+    // Set over the wire format
+    std::string otw_format = "sc16";
+    if (dev_addr.has_key("otw_format")) {
+      otw_format = dev_addr.pop("otw_format");
+    }
+
+    // Samples-Per-Packet option, 0 means automatic
+    std::string spp;
+    if (dev_addr.has_key("spp")) {
+      spp = dev_addr.pop("spp");
+    }
+
+    // Make USRP
     uhd_error err = usrp_multi_make(dev_addr);
     if (err != UHD_ERROR_NONE) {
       return err;
+    }
+
+    // Set transmitter subdev spec if specified
+    if (not tx_subdev.empty()) {
+      printf("Setting tx_subdev_spec to '%s'\n", tx_subdev.c_str());
+      err = set_tx_subdev(tx_subdev);
+      if (err != UHD_ERROR_NONE) {
+        return err;
+      }
+    }
+
+    // Set receiver subdev spec if specified
+    if (not rx_subdev.empty()) {
+      printf("Setting rx_subdev_spec to '%s'\n", rx_subdev.c_str());
+      err = set_rx_subdev(tx_subdev);
+      if (err != UHD_ERROR_NONE) {
+        return err;
+      }
+    }
+
+    // Initialize TX/RX stream args
+    stream_args.cpu_format = "fc32";
+    stream_args.otw_format = otw_format;
+    if (not spp.empty()) {
+      if (spp == "0") {
+        Warning(
+            "The parameter spp is 0, some UHD versions do not handle it as default and receive method will overflow.");
+      }
+      stream_args.args.set("spp", spp);
+    }
+    stream_args.channels.resize(nof_channels);
+    for (size_t i = 0; i < (size_t)nof_channels; i++) {
+      stream_args.channels[i] = i;
     }
 
     if (not usrp->get_device()->get_tree()->exists(TREE_DBOARD_RX_FRONTEND_NAME)) {
@@ -62,10 +126,8 @@ public:
           return err;
         }
 
-        uhd::stream_args_t stream_args("fc32", "sc16");
-        stream_args.channels = {0};
         size_t max_samp      = 0;
-        err                  = get_rx_stream(stream_args, max_samp);
+        err                  = get_rx_stream(max_samp);
 
         // If no error getting RX stream, return
         if (err == UHD_ERROR_NONE) {
@@ -91,14 +153,6 @@ public:
     return err;
   }
 
-  uhd_error set_tx_subdev(const std::string& string) override
-  {
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_tx_subdev_spec(string);)
-  }
-  uhd_error set_rx_subdev(const std::string& string) override
-  {
-    UHD_SAFE_C_SAVE_ERROR(this, usrp->set_rx_subdev_spec(string);)
-  }
   uhd_error get_mboard_name(std::string& mboard_name) override
   {
     UHD_SAFE_C_SAVE_ERROR(this, mboard_name = usrp->get_mboard_name();)
@@ -149,18 +203,18 @@ public:
   {
     UHD_SAFE_C_SAVE_ERROR(this, usrp->set_command_time(timespec);)
   }
-  uhd_error get_rx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) override
+  uhd_error get_rx_stream(size_t& max_num_samps) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr; rx_stream = usrp->get_rx_stream(args);
+    UHD_SAFE_C_SAVE_ERROR(this, rx_stream = nullptr; rx_stream = usrp->get_rx_stream(stream_args);
                           max_num_samps = rx_stream->get_max_num_samps();
                           if (max_num_samps == 0UL) {
                             last_error = "The maximum number of receive samples is zero.";
                             return UHD_ERROR_VALUE;
                           })
   }
-  uhd_error get_tx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) override
+  uhd_error get_tx_stream(size_t& max_num_samps) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, tx_stream = nullptr; tx_stream = usrp->get_tx_stream(args);
+    UHD_SAFE_C_SAVE_ERROR(this, tx_stream = nullptr; tx_stream = usrp->get_tx_stream(stream_args);
                           max_num_samps = tx_stream->get_max_num_samps();
                           if (max_num_samps == 0UL) {
                             last_error = "The maximum number of transmit samples is zero.";

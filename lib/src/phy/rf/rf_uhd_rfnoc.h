@@ -313,7 +313,7 @@ public:
     return false;
   }
 
-  uhd_error usrp_make(const uhd::device_addr_t& _device_addr) override
+  uhd_error usrp_make(const uhd::device_addr_t& _device_addr, uint32_t nof_channels_) override
   {
     // Copy device address
     uhd::device_addr_t device_addr = _device_addr;
@@ -323,6 +323,18 @@ public:
     if (err != UHD_ERROR_NONE) {
       return err;
     }
+
+    // Check number of channels
+    if (nof_channels_ % nof_channels != 0 or nof_channels_ / nof_channels > nof_radios) {
+      last_error = "Number of requested channels (" + std::to_string(nof_channels_) +
+                   ") is different than the RFNOC "
+                   "available channels (" +
+                   std::to_string(nof_radios * nof_channels) + ")";
+      return UHD_ERROR_VALUE;
+    }
+
+    // Re-calculate number of radios
+    nof_radios = nof_channels_ / nof_channels;
 
     // Make USRP
     err = usrp_multi_make(device_addr);
@@ -348,8 +360,6 @@ public:
     return UHD_ERROR_NONE;
   }
 
-  uhd_error set_tx_subdev(const std::string& string) override { return UHD_ERROR_NONE; }
-  uhd_error set_rx_subdev(const std::string& string) override { return UHD_ERROR_NONE; }
   uhd_error get_mboard_name(std::string& mboard_name) override
   {
     mboard_name = "X300";
@@ -421,7 +431,7 @@ public:
     })
   }
   uhd_error set_command_time(const uhd::time_spec_t& timespec) override { return UHD_ERROR_NONE; }
-  uhd_error get_rx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) override
+  uhd_error get_rx_stream(size_t& max_num_samps) override
   {
     UHD_SAFE_C_SAVE_ERROR(
         this, uhd::stream_args_t stream_args("fc32", "sc16");
@@ -445,7 +455,7 @@ public:
         rx_stream     = device3->get_rx_stream(stream_args);
         max_num_samps = rx_stream->get_max_num_samps();)
   }
-  uhd_error get_tx_stream(const uhd::stream_args_t& args, size_t& max_num_samps) override
+  uhd_error get_tx_stream(size_t& max_num_samps) override
   {
     UHD_SAFE_C_SAVE_ERROR(
         this, uhd::stream_args_t stream_args("fc32", "sc16");

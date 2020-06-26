@@ -120,7 +120,6 @@ struct rf_uhd_handler_t {
 
   double current_master_clock = 0.0;
 
-  uhd::stream_args_t stream_args;
   bool               rx_stream_enabled = false;
 
   std::mutex tx_mutex;
@@ -593,12 +592,6 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     clock_src = device_addr.pop("clock");
   }
 
-  // Samples-Per-Packet option, 0 means automatic
-  std::string spp;
-  if (device_addr.has_key("spp")) {
-    spp = device_addr.pop("spp");
-  }
-
   // Logging level
   uhd::log::severity_level severity_level = uhd::log::severity_level::info;
   if (device_addr.has_key("log_level")) {
@@ -629,24 +622,6 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     start_async_thread = false;
   }
 #endif
-
-  // Set over the wire format
-  std::string otw_format = "sc16";
-  if (device_addr.has_key("otw_format")) {
-    otw_format = device_addr.pop("otw_format");
-  }
-
-  // Set transmitter subdevice spec string
-  std::string tx_subdev;
-  if (device_addr.has_key("tx_subdev_spec")) {
-    tx_subdev = device_addr.pop("tx_subdev_spec");
-  }
-
-  // Set receiver subdevice spec string
-  std::string rx_subdev;
-  if (device_addr.has_key("rx_subdev_spec")) {
-    rx_subdev = device_addr.pop("rx_subdev_spec");
-  }
 
   // If device type or name not given in args, select device from found list
   if (not device_addr.has_key("type")) {
@@ -719,27 +694,9 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
   }
 
   // Make USRP
-  if (handler->uhd->usrp_make(device_addr) != UHD_ERROR_NONE) {
+  if (handler->uhd->usrp_make(device_addr, nof_channels) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
     return SRSLTE_ERROR;
-  }
-
-  // Set transmitter subdev spec if specified
-  if (not tx_subdev.empty()) {
-    printf("Setting tx_subdev_spec to '%s'\n", tx_subdev.c_str());
-    if (handler->uhd->set_tx_subdev(tx_subdev) != UHD_ERROR_NONE) {
-      print_usrp_error(handler);
-      return SRSLTE_ERROR;
-    }
-  }
-
-  // Set receiver subdev spec if specified
-  if (not rx_subdev.empty()) {
-    printf("Setting rx_subdev_spec to '%s'\n", rx_subdev.c_str());
-    if (handler->uhd->set_rx_subdev(rx_subdev) != UHD_ERROR_NONE) {
-      print_usrp_error(handler);
-      return SRSLTE_ERROR;
-    }
   }
 
   // Set device internal name, it sets the device name to B200 by default
@@ -806,21 +763,6 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     }
   }
 
-  // Initialize TX/RX stream args
-  handler->stream_args.cpu_format = "fc32";
-  handler->stream_args.otw_format = otw_format;
-  if (not spp.empty()) {
-    if (spp == "0") {
-      Warning(
-          "The parameter spp is 0, some UHD versions do not handle it as default and receive method will overflow.");
-    }
-    handler->stream_args.args.set("spp", spp);
-  }
-  handler->stream_args.channels.resize(nof_channels);
-  for (size_t i = 0; i < (size_t)nof_channels; i++) {
-    handler->stream_args.channels[i] = i;
-  }
-
   handler->nof_rx_channels = nof_channels;
   handler->nof_tx_channels = nof_channels;
 
@@ -837,12 +779,12 @@ int rf_uhd_open_multi(char* args, void** h, uint32_t nof_channels)
     handler->uhd->set_time_unknown_pps(uhd::time_spec_t());
   }
 
-  if (handler->uhd->get_rx_stream(handler->stream_args, handler->rx_nof_samples) != UHD_ERROR_NONE) {
+  if (handler->uhd->get_rx_stream(handler->rx_nof_samples) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
     return SRSLTE_ERROR;
   }
 
-  if (handler->uhd->get_tx_stream(handler->stream_args, handler->tx_nof_samples) != UHD_ERROR_NONE) {
+  if (handler->uhd->get_tx_stream(handler->tx_nof_samples) != UHD_ERROR_NONE) {
     print_usrp_error(handler);
     return SRSLTE_ERROR;
   }
@@ -973,7 +915,7 @@ double rf_uhd_set_rx_srate(void* h, double freq)
   }
 
   if (RH_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
-    if (handler->uhd->get_rx_stream(handler->stream_args, handler->rx_nof_samples) != UHD_ERROR_NONE) {
+    if (handler->uhd->get_rx_stream(handler->rx_nof_samples) != UHD_ERROR_NONE) {
       print_usrp_error(handler);
       return SRSLTE_ERROR;
     }
@@ -1027,7 +969,7 @@ double rf_uhd_set_tx_srate(void* h, double freq)
   }
 
   if (RH_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
-    if (handler->uhd->get_tx_stream(handler->stream_args, handler->tx_nof_samples) != UHD_ERROR_NONE) {
+    if (handler->uhd->get_tx_stream(handler->tx_nof_samples) != UHD_ERROR_NONE) {
       print_usrp_error(handler);
       return SRSLTE_ERROR;
     }
@@ -1243,7 +1185,6 @@ int rf_uhd_recv_with_time_multi(void*    h,
       print_usrp_error(handler);
       return SRSLTE_ERROR;
     }
-    rxd_samples = num_rx_samples;
 
     // Save timespec for first block
     if (rxd_samples_total == 0) {
