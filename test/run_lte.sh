@@ -38,7 +38,7 @@ kill_lte(){
   kill -SIGTERM $enb_pid
   sleep 4
   kill -SIGTERM $epc_pid
-  sleep 1
+  sleep 4
 
   # Force kill if they are still running
   if ps -p $ue_pid > /dev/null
@@ -303,13 +303,13 @@ enb_args="$build_path/../srsenb/enb.conf.example \
           --rf.device_name=zmq \
           --log.all_level=info \
           --expert.nof_phy_threads=1 \
-          --expert.rrc_inactivity_timer=5000 \
           --enb.n_prb=$nof_prb \
           --log.filename=./${nof_prb}prb_enb.log"
 
 ue_args="$build_path/../srsue/ue.conf.example \
          --rf.device_name=zmq \
          --phy.nof_phy_threads=1  \
+         --stack.have_tti_time_stats=false \
          --gw.netns=$ue_netns \
          --log.all_level=info \
          --log.filename=./${nof_prb}prb_ue.log \
