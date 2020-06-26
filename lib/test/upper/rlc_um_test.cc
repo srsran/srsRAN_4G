@@ -389,6 +389,56 @@ int reassmble_test2()
   return 0;
 }
 
+/* PDU pack test where 2nd SDU segment is added but no
+ * space is left in PDU to add data bytes of the newly added SDU.
+ * The test makes sure that a SDU header is removed again and that
+ * the SDU is in fact transmitted in the next PDU.
+ */
+int pdu_pack_no_space_test()
+{
+  rlc_um_lte_test_context1 ctxt;
+
+  const int32_t num_sdus = 2;
+
+  // Push 2 SDUs into RLC1
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
+  unique_byte_buffer_t sdu_bufs[num_sdus];
+  for (int i = 0; i < num_sdus; i++) {
+    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    *sdu_bufs[i]->msg    = i;  // Write the index into the buffer
+    sdu_bufs[i]->N_bytes = 10; // Give each buffer a size of 1 byte
+    ctxt.rlc1.write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  // Read 1 PDU from RLC1
+  byte_buffer_t pdu_bufs[num_sdus];
+  int           grant_size = 14; // Provide grant slightly bigger than the SDU
+  int           len        = ctxt.rlc1.read_pdu(pdu_bufs[0].msg, grant_size);
+  pdu_bufs[0].N_bytes      = len;
+
+  // the generated PDU is shorter than the MAC opportunity
+  TESTASSERT(len < grant_size);
+
+  // this PDU contains a full SDU
+  {
+    srslte::rlc_umd_pdu_header_t h;
+    rlc_um_read_data_pdu_header(&pdu_bufs[0], srslte::rlc_umd_sn_size_t::size10bits, &h);
+    TESTASSERT(h.fi == RLC_FI_FIELD_START_AND_END_ALIGNED);
+  }
+
+  // get the 2nd SDU
+  len                 = ctxt.rlc1.read_pdu(pdu_bufs[1].msg, grant_size);
+  pdu_bufs[1].N_bytes = len;
+
+  {
+    srslte::rlc_umd_pdu_header_t h;
+    rlc_um_read_data_pdu_header(&pdu_bufs[1], srslte::rlc_umd_sn_size_t::size10bits, &h);
+    TESTASSERT(h.fi == RLC_FI_FIELD_START_AND_END_ALIGNED);
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
   if (meas_obj_test()) {
@@ -414,5 +464,8 @@ int main(int argc, char** argv)
   if (reassmble_test2()) {
     return -1;
   }
+  byte_buffer_pool::get_instance()->cleanup();
+
+  TESTASSERT(pdu_pack_no_space_test() == 0);
   byte_buffer_pool::get_instance()->cleanup();
 }
