@@ -1415,7 +1415,7 @@ void lch_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx
 }
 
 /* Allocates first available RLC PDU */
-bool lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem_bytes)
+int lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem_bytes)
 {
   // TODO: Implement lcid priority (now lowest index is lowest priority)
   int alloc_bytes = 0;
@@ -1431,7 +1431,7 @@ bool lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int re
     rlc_pdu->lcid   = i - 1;
     Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", rlc_pdu->lcid, rlc_pdu->nbytes, rem_bytes);
   }
-  return alloc_bytes > 0;
+  return alloc_bytes;
 }
 
 int lch_manager::alloc_retx_bytes(uint8_t lcid, uint32_t rem_bytes)

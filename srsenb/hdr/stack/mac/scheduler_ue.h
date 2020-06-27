@@ -94,7 +94,7 @@ public:
   //  void ul_recv(uint8_t lcg_id, uint32_t len);
   void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue);
 
-  bool alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* lcid, int rem_bytes);
+  int alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* lcid, int rem_bytes);
 
   bool is_bearer_active(uint32_t lcid) const;
   bool is_bearer_ul(uint32_t lcid) const;
