@@ -120,8 +120,7 @@ public:
   int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi_value) final;
   int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, bool crc) final;
   int ul_sr_info(uint32_t tti, uint16_t rnti) override;
-  int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true) final;
-  int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len) final;
+  int ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr) final;
   int ul_phr(uint16_t rnti, int phr) final;
   int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code) final;
 
@@ -134,6 +133,7 @@ public:
   void                                 tpc_inc(uint16_t rnti);
   void                                 tpc_dec(uint16_t rnti);
   std::array<int, SRSLTE_MAX_CARRIERS> get_enb_ue_cc_map(uint16_t rnti) final;
+  int                                  ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes) final;
 
   class carrier_sched;
 

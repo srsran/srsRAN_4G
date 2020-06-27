@@ -69,10 +69,6 @@ ue::ue(uint16_t                 rnti_,
 
   // Allocate buffer for PCell
   allocate_cc_buffers();
-
-  // Set LCID group for SRB0 and SRB1
-  set_lcg(0, 0);
-  set_lcg(1, 0);
 }
 
 ue::~ue()
@@ -156,15 +152,6 @@ uint32_t ue::allocate_cc_buffers(const uint32_t num_cc)
 void ue::start_pcap(srslte::mac_pcap* pcap_)
 {
   pcap = pcap_;
-}
-
-void ue::set_lcg(uint32_t lcid, uint32_t lcg)
-{
-  // find and remove if already exists
-  for (int i = 0; i < 4; i++) {
-    lc_groups[lcg].erase(std::remove(lc_groups[lcg].begin(), lc_groups[lcg].end(), lcid), lc_groups[lcg].end());
-  }
-  lc_groups[lcg].push_back(lcid);
 }
 
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(const uint32_t ue_cc_idx, const uint32_t tti)
@@ -315,7 +302,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   // If BSR is not received means that new data has arrived and there is no space for BSR transmission
   if (!bsr_received && lcid_most_data > 2) {
     // Add BSR to the LCID for which most data was received
-    sched->ul_bsr(rnti, lcid_most_data, 256, false); // false adds BSR instead of setting
+    sched->ul_buffer_add(rnti, lcid_most_data, 256);
     Debug("BSR not received. Giving extra dci\n");
   }
 
@@ -374,10 +361,8 @@ bool ue::process_ce(srslte::sch_subh* subh)
         Error("Invalid Index Passed to lc groups\n");
         break;
       }
-      for (uint32_t i = 0; i < lc_groups[idx].size(); i++) {
-        // Indicate BSR to scheduler
-        sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
-      }
+      // Indicate BSR to scheduler
+      sched->ul_bsr(rnti, idx, buff_size[idx]);
       Info("CE:    Received %s BSR rnti=0x%x, lcg=%d, value=%d\n",
            subh->ul_sch_ce_type() == srslte::ul_sch_lcid::SHORT_BSR ? "Short" : "Trunc",
            rnti,
@@ -387,11 +372,7 @@ bool ue::process_ce(srslte::sch_subh* subh)
       break;
     case srslte::ul_sch_lcid::LONG_BSR:
       subh->get_bsr(buff_size);
-      for (idx = 0; idx < 4; idx++) {
-        for (uint32_t i = 0; i < lc_groups[idx].size(); i++) {
-          sched->ul_bsr(rnti, lc_groups[idx][i], buff_size[idx]);
-        }
-      }
+      sched->ul_bsr(rnti, idx, buff_size[idx]);
       is_bsr = true;
       Info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n",
            rnti,

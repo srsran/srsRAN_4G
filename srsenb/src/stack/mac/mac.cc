@@ -165,8 +165,6 @@ int mac::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer
   int                       ret = -1;
   srslte::rwlock_read_guard lock(rwlock);
   if (ue_db.count(rnti)) {
-    // configure BSR group in UE
-    ue_db[rnti]->set_lcg(lc_id, (uint32_t)cfg->group);
     ret = scheduler.bearer_ue_cfg(rnti, lc_id, cfg);
   } else {
     Error("User rnti=0x%x not found\n", rnti);

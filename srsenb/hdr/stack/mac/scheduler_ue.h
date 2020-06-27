@@ -82,6 +82,45 @@ private:
   bool                             active    = false;
 };
 
+const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir);
+
+class lch_manager
+{
+public:
+  void set_cfg(const sched_interface::ue_cfg_t& cfg_);
+  void config_lcid(uint32_t lcg_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg);
+  void ul_bsr(uint8_t lcg_id, uint32_t bsr);
+  void ul_buffer_add(uint8_t lcid, uint32_t bytes);
+  //  void ul_recv(uint8_t lcg_id, uint32_t len);
+  void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue);
+
+  bool alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* lcid, int rem_bytes);
+
+  bool is_bearer_active(uint32_t lcid) const;
+  bool is_bearer_ul(uint32_t lcid) const;
+  bool is_bearer_dl(uint32_t lcid) const;
+
+  int get_dl_tx(uint32_t lcid) const;
+  int get_dl_retx(uint32_t lcid) const;
+  int get_bsr(uint32_t lcid) const;
+
+  std::string get_bsr_text() const;
+
+private:
+  struct ue_bearer_t {
+    sched_interface::ue_bearer_cfg_t cfg      = {};
+    int                              buf_tx   = 0;
+    int                              buf_retx = 0;
+  };
+
+  int alloc_retx_bytes(uint8_t lcid, uint32_t rem_bytes);
+  int alloc_tx_bytes(uint8_t lcid, uint32_t rem_bytes);
+
+  srslte::log_ref                                  log_h{"MAC"};
+  std::array<ue_bearer_t, sched_interface::MAX_LC> lch     = {};
+  std::array<int, 4>                               lcg_bsr = {};
+};
+
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
  * higher layers and mac threads.
  */
@@ -103,10 +142,9 @@ public:
   void rem_bearer(uint32_t lc_id);
 
   void dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
-  void ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value = true);
+  void ul_buffer_state(uint8_t lcg_id, uint32_t bsr);
   void ul_phr(int phr);
   void mac_buffer_state(uint32_t ce_code, uint32_t nof_cmds);
-  void ul_recv_len(uint32_t lcid, uint32_t len);
 
   void set_ul_cqi(uint32_t tti, uint32_t enb_cc_idx, uint32_t cqi, uint32_t ul_ch_code);
   void set_dl_ri(uint32_t tti, uint32_t enb_cc_idx, uint32_t ri);
@@ -127,6 +165,7 @@ public:
   std::pair<bool, uint32_t>        get_cell_index(uint32_t enb_cc_idx) const;
   const sched_interface::ue_cfg_t& get_ue_cfg() const { return cfg; }
   uint32_t                         get_aggr_level(uint32_t ue_cc_idx, uint32_t nof_bits);
+  void                             ul_buffer_add(uint8_t lcid, uint32_t bytes);
 
   /*******************************************************
    * Functions used by scheduler metric objects
@@ -191,18 +230,8 @@ public:
                         uint32_t* mcs);
 
 private:
-  struct ue_bearer_t {
-    sched_interface::ue_bearer_cfg_t cfg      = {};
-    int                              buf_tx   = 0;
-    int                              buf_retx = 0;
-    int                              bsr      = 0;
-  };
-
-  void set_bearer_cfg_unlocked(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg_);
-
   bool is_sr_triggered();
 
-  int                 alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs);
   uint32_t            allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t tbidx);
   uint32_t            allocate_mac_ces(sched_interface::dl_sched_data_t* data, uint32_t total_tbs, uint32_t ue_cc_idx);
   std::pair<int, int> allocate_new_dl_mac_pdu(sched_interface::dl_sched_data_t* data,
@@ -219,9 +248,6 @@ private:
                                           uint32_t               nof_alloc_prbs,
                                           uint32_t               cfi,
                                           const srslte_dci_dl_t& dci);
-
-  static bool bearer_is_ul(const ue_bearer_t* lch);
-  static bool bearer_is_dl(const ue_bearer_t* lch);
 
   uint32_t get_pending_ul_old_data_unlocked(uint32_t cc_idx);
   uint32_t get_pending_ul_new_data_unlocked(uint32_t tti);
@@ -255,8 +281,8 @@ private:
   const sched_cell_params_t*              main_cc_params   = nullptr;
 
   /* Buffer states */
-  bool                                             sr  = false;
-  std::array<ue_bearer_t, sched_interface::MAX_LC> lch = {};
+  bool        sr = false;
+  lch_manager lch_handler;
 
   int      power_headroom  = 0;
   uint32_t cqi_request_tti = 0;

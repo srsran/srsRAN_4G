@@ -124,9 +124,7 @@ void sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
   cfg                                                           = cfg_;
 
   // update bearer cfgs
-  for (uint32_t i = 0; i < sched_interface::MAX_LC; ++i) {
-    set_bearer_cfg_unlocked(i, cfg.ue_bearers[i]);
-  }
+  lch_handler.set_cfg(cfg_);
 
   // either add a new carrier, or reconfigure existing one
   bool scell_activation_state_changed = false;
@@ -166,7 +164,7 @@ void sched_ue::reset()
 
   // erase all bearers
   for (uint32_t i = 0; i < cfg.ue_bearers.size(); ++i) {
-    set_bearer_cfg_unlocked(i, {});
+    lch_handler.config_lcid(i, {});
   }
 }
 
@@ -179,13 +177,13 @@ void sched_ue::reset()
 void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
 {
   cfg.ue_bearers[lc_id] = *cfg_;
-  set_bearer_cfg_unlocked(lc_id, *cfg_);
+  lch_handler.config_lcid(lc_id, *cfg_);
 }
 
 void sched_ue::rem_bearer(uint32_t lc_id)
 {
   cfg.ue_bearers[lc_id] = sched_interface::ue_bearer_cfg_t{};
-  set_bearer_cfg_unlocked(lc_id, sched_interface::ue_bearer_cfg_t{});
+  lch_handler.config_lcid(lc_id, sched_interface::ue_bearer_cfg_t{});
 }
 
 void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
@@ -196,16 +194,14 @@ void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
   phy_config_dedicated_enabled = enabled;
 }
 
-void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
+void sched_ue::ul_buffer_state(uint8_t lcg_id, uint32_t bsr)
 {
-  if (lc_id < sched_interface::MAX_LC) {
-    if (set_value) {
-      lch[lc_id].bsr = bsr;
-    } else {
-      lch[lc_id].bsr += bsr;
-    }
-  }
-  Debug("SCHED: bsr=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", bsr, lc_id, lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
+  lch_handler.ul_bsr(lcg_id, bsr);
+}
+
+void sched_ue::ul_buffer_add(uint8_t lcid, uint32_t bytes)
+{
+  lch_handler.ul_buffer_add(lcid, bytes);
 }
 
 void sched_ue::ul_phr(int phr)
@@ -215,11 +211,7 @@ void sched_ue::ul_phr(int phr)
 
 void sched_ue::dl_buffer_state(uint8_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
-  if (lc_id < sched_interface::MAX_LC) {
-    lch[lc_id].buf_retx = retx_queue;
-    lch[lc_id].buf_tx   = tx_queue;
-    Debug("SCHED: DL lcid=%d buffer_state=%d,%d\n", lc_id, tx_queue, retx_queue);
-  }
+  lch_handler.dl_buffer_state(lc_id, tx_queue, retx_queue);
 }
 
 void sched_ue::mac_buffer_state(uint32_t ce_code, uint32_t nof_cmds)
@@ -272,24 +264,6 @@ int sched_ue::set_ack_info(uint32_t tti_rx, uint32_t enb_cc_idx, uint32_t tb_idx
     log_h->warning("Received DL ACK for invalid cell index %d\n", enb_cc_idx);
   }
   return tbs_acked;
-}
-
-void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
-{
-  // Remove PDCP header??
-  if (len > 4) {
-    len -= 4;
-  }
-  if (lcid < sched_interface::MAX_LC) {
-    if (bearer_is_ul(&lch[lcid])) {
-      if (lch[lcid].bsr > (int)len) {
-        lch[lcid].bsr -= len;
-      } else {
-        lch[lcid].bsr = 0;
-      }
-    }
-  }
-  Debug("SCHED: recv_len=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", len, lcid, lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
 }
 
 void sched_ue::set_ul_crc(srslte::tti_point tti_rx, uint32_t enb_cc_idx, bool crc_res)
@@ -388,7 +362,7 @@ uint32_t sched_ue::allocate_mac_sdus(sched_interface::dl_sched_data_t* data, uin
   // if we do not have enough bytes to fit MAC subheader and RLC header, skip MAC SDU allocation
   while (rem_tbs >= min_mac_sdu_size) {
     uint32_t max_sdu_bytes   = rem_tbs - compute_subheader_size(rem_tbs - 2);
-    uint32_t alloc_sdu_bytes = alloc_rlc_pdu(&data->pdu[tbidx][data->nof_pdu_elems[tbidx]], max_sdu_bytes);
+    uint32_t alloc_sdu_bytes = lch_handler.alloc_rlc_pdu(&data->pdu[tbidx][data->nof_pdu_elems[tbidx]], max_sdu_bytes);
     if (alloc_sdu_bytes == 0) {
       break;
     }
@@ -764,18 +738,6 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
  *
  *******************************************************/
 
-bool sched_ue::bearer_is_ul(const ue_bearer_t* lch)
-{
-  return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::UL ||
-         lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
-}
-
-bool sched_ue::bearer_is_dl(const ue_bearer_t* lch)
-{
-  return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::DL ||
-         lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
-}
-
 uint32_t sched_ue::get_max_retx()
 {
   return cfg.maxharq_tx;
@@ -878,7 +840,7 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   /* Set Maximum boundary */
   // Ensure there is space for ConRes and RRC Setup
   // SRB0 is a special case due to being RLC TM (no segmentation possible)
-  if (not bearer_is_dl(&lch[0])) {
+  if (not lch_handler.is_bearer_dl(0)) {
     log_h->error("SRB0 must always be activated for DL\n");
     return {0, 0};
   }
@@ -889,9 +851,9 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   uint32_t max_data = 0, min_data = 0;
   uint32_t srb0_data = 0, rb_data = 0, sum_ce_data = 0;
   bool     is_dci_format1 = get_dci_format() == SRSLTE_DCI_FORMAT1;
-  if (is_dci_format1 and (lch[0].buf_tx > 0 or lch[0].buf_retx > 0)) {
-    srb0_data = compute_sdu_total_bytes(0, lch[0].buf_retx);
-    srb0_data += compute_sdu_total_bytes(0, lch[0].buf_tx);
+  if (is_dci_format1) {
+    srb0_data += compute_sdu_total_bytes(0, lch_handler.get_dl_retx(0));
+    srb0_data += compute_sdu_total_bytes(0, lch_handler.get_dl_tx(0));
   }
   // Add pending CEs
   if (ue_cc_idx == 0) {
@@ -905,9 +867,9 @@ std::pair<uint32_t, uint32_t> sched_ue::get_requested_dl_bytes(uint32_t ue_cc_id
   }
   // Add pending data in remaining RLC buffers
   for (int i = 1; i < sched_interface::MAX_LC; i++) {
-    if (bearer_is_dl(&lch[i])) {
-      rb_data += compute_sdu_total_bytes(i, lch[i].buf_retx);
-      rb_data += compute_sdu_total_bytes(i, lch[i].buf_tx);
+    if (lch_handler.is_bearer_dl(i)) {
+      rb_data += compute_sdu_total_bytes(i, lch_handler.get_dl_retx(i));
+      rb_data += compute_sdu_total_bytes(i, lch_handler.get_dl_tx(i));
     }
   }
   max_data = srb0_data + sum_ce_data + rb_data;
@@ -940,8 +902,8 @@ uint32_t sched_ue::get_pending_dl_new_data()
 
   uint32_t pending_data = 0;
   for (int i = 0; i < sched_interface::MAX_LC; i++) {
-    if (bearer_is_dl(&lch[i])) {
-      pending_data += lch[i].buf_retx + lch[i].buf_tx;
+    if (lch_handler.is_bearer_dl(i)) {
+      pending_data += lch_handler.get_dl_tx(i) + lch_handler.get_dl_retx(i);
     }
   }
   for (auto& ce : pending_ces) {
@@ -966,9 +928,9 @@ uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
   // Note: If there are no active bearers, scheduling requests are also ignored.
   uint32_t pending_data     = 0;
   bool     ul_bearers_found = false;
-  for (int i = 0; i < sched_interface::MAX_LC; i++) {
-    if (bearer_is_ul(&lch[i])) {
-      pending_data += lch[i].bsr;
+  for (int i = 0; i < sched_interface::MAX_LC_GROUP; i++) {
+    if (lch_handler.is_bearer_ul(i)) {
+      pending_data += lch_handler.get_bsr(i);
       ul_bearers_found = true;
     }
   }
@@ -991,13 +953,10 @@ uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
   pending_data = (pending_data > pending_ul_data) ? pending_data - pending_ul_data : 0;
 
   if (pending_data > 0) {
-    Debug("SCHED: pending_data=%d, pending_ul_data=%d, bsr={%d,%d,%d,%d}\n",
+    Debug("SCHED: pending_data=%d, pending_ul_data=%d, bsr=%s\n",
           pending_data,
           pending_ul_data,
-          lch[0].bsr,
-          lch[1].bsr,
-          lch[2].bsr,
-          lch[3].bsr);
+          lch_handler.get_bsr_text().c_str());
   }
   return pending_data;
 }
@@ -1015,22 +974,6 @@ uint32_t sched_ue::get_pending_ul_old_data_unlocked(uint32_t cc_idx)
 uint32_t sched_ue::get_required_prb_ul(uint32_t cc_idx, uint32_t req_bytes)
 {
   return carriers[cc_idx].get_required_prb_ul(req_bytes);
-}
-
-void sched_ue::set_bearer_cfg_unlocked(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& cfg_)
-{
-  if (lc_id < sched_interface::MAX_LC) {
-    bool is_idle   = lch[lc_id].cfg.direction == sched_interface::ue_bearer_cfg_t::IDLE;
-    bool is_equal  = memcmp(&cfg_, &lch[lc_id].cfg, sizeof(cfg_)) == 0;
-    lch[lc_id].cfg = cfg_;
-    if (lch[lc_id].cfg.direction != sched_interface::ue_bearer_cfg_t::IDLE) {
-      if (not is_equal) {
-        Info("SCHED: Set bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
-      }
-    } else if (not is_idle) {
-      Info("SCHED: Removed bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
-    }
-  }
 }
 
 bool sched_ue::is_sr_triggered()
@@ -1144,29 +1087,6 @@ cc_sched_ue* sched_ue::get_ue_carrier(uint32_t enb_cc_idx)
     return nullptr;
   }
   return &carriers[p.second];
-}
-
-/* Allocates first available RLC PDU */
-int sched_ue::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* mac_sdu, int rem_tbs)
-{
-  // TODO: Implement lcid priority (now lowest index is lowest priority)
-  int alloc_bytes = 0;
-  int i           = 0;
-  for (i = 0; i < sched_interface::MAX_LC and alloc_bytes == 0; i++) {
-    if (lch[i].buf_retx > 0) {
-      alloc_bytes = SRSLTE_MIN(lch[i].buf_retx, rem_tbs);
-      lch[i].buf_retx -= alloc_bytes;
-    } else if (lch[i].buf_tx > 0) {
-      alloc_bytes = SRSLTE_MIN(lch[i].buf_tx, rem_tbs);
-      lch[i].buf_tx -= alloc_bytes;
-    }
-  }
-  if (alloc_bytes > 0) {
-    mac_sdu->lcid   = i - 1;
-    mac_sdu->nbytes = alloc_bytes;
-    Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", mac_sdu->lcid, mac_sdu->nbytes, rem_tbs);
-  }
-  return alloc_bytes;
 }
 
 int sched_ue::cqi_to_tbs(uint32_t  cqi,
@@ -1409,6 +1329,158 @@ void cc_sched_ue::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
       log_h->info("SCell index=%d is now %s\n", ue_cc_idx, active ? "active" : "inactive");
     }
   }
+}
+
+/*******************************************************
+ *
+ *         Logical Channel Management
+ *
+ *******************************************************/
+
+const char* to_string(sched_interface::ue_bearer_cfg_t::direction_t dir)
+{
+  switch (dir) {
+    case sched_interface::ue_bearer_cfg_t::IDLE:
+      return "idle";
+    case sched_interface::ue_bearer_cfg_t::BOTH:
+      return "bi-dir";
+    case sched_interface::ue_bearer_cfg_t::DL:
+      return "DL";
+    case sched_interface::ue_bearer_cfg_t::UL:
+      return "UL";
+    default:
+      return "unrecognized direction";
+  }
+}
+
+void lch_manager::set_cfg(const sched_interface::ue_cfg_t& cfg)
+{
+  for (uint32_t lcid = 0; lcid < sched_interface::MAX_LC; lcid++) {
+    config_lcid(lcid, cfg.ue_bearers[lcid]);
+  }
+}
+
+void lch_manager::config_lcid(uint32_t lc_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg)
+{
+  if (lc_id >= sched_interface::MAX_LC) {
+    Warning("Adding bearer with invalid logical channel id=%d\n", lc_id);
+    return;
+  }
+  if (bearer_cfg.group >= sched_interface::MAX_LC_GROUP) {
+    Warning("Adding bearer with invalid logical channel group id=%d\n", bearer_cfg.group);
+    return;
+  }
+
+  // update bearer config
+  bool is_equal = memcmp(&bearer_cfg, &lch[lc_id].cfg, sizeof(bearer_cfg)) == 0;
+
+  if (not is_equal) {
+    lch[lc_id].cfg = bearer_cfg;
+    Info("SCHED: bearer configured: lc_id=%d, mode=%s, prio=%d\n",
+         lc_id,
+         to_string(lch[lc_id].cfg.direction),
+         lch[lc_id].cfg.priority);
+  }
+}
+
+void lch_manager::ul_bsr(uint8_t lcg_id, uint32_t bsr)
+{
+  if (lcg_id >= sched_interface::MAX_LC_GROUP) {
+    Warning("The provided logical channel group id=%d is not valid\n", lcg_id);
+    return;
+  }
+  lcg_bsr[lcg_id] = bsr;
+  Debug("SCHED: bsr=%d, lcg_id=%d, bsr=%s\n", bsr, lcg_id, get_bsr_text().c_str());
+}
+
+void lch_manager::ul_buffer_add(uint8_t lcid, uint32_t bytes)
+{
+  if (lcid >= sched_interface::MAX_LC) {
+    Warning("The provided lcid=%d is not valid\n", lcid);
+    return;
+  }
+  lcg_bsr[lch[lcid].cfg.group] += bytes;
+  Debug("SCHED: UL buffer update=%d, lcg_id=%d, bsr=%s\n", bytes, lch[lcid].cfg.group, get_bsr_text().c_str());
+}
+
+void lch_manager::dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue)
+{
+  if (lcid >= sched_interface::MAX_LC) {
+    Warning("The provided lcid=%d is not valid\n", lcid);
+    return;
+  }
+  lch[lcid].buf_retx = retx_queue;
+  lch[lcid].buf_tx   = tx_queue;
+  Debug("SCHED: DL lcid=%d buffer_state=%d,%d\n", lcid, tx_queue, retx_queue);
+}
+
+/* Allocates first available RLC PDU */
+bool lch_manager::alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* rlc_pdu, int rem_bytes)
+{
+  // TODO: Implement lcid priority (now lowest index is lowest priority)
+  int alloc_bytes = 0;
+  int i           = 0;
+  for (i = 0; i < sched_interface::MAX_LC and alloc_bytes == 0; i++) {
+    alloc_bytes = alloc_retx_bytes(i, rem_bytes);
+    if (alloc_bytes == 0) {
+      alloc_bytes = alloc_tx_bytes(i, rem_bytes);
+    }
+  }
+  if (alloc_bytes > 0) {
+    rlc_pdu->nbytes = alloc_bytes;
+    rlc_pdu->lcid   = i - 1;
+    Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", rlc_pdu->lcid, rlc_pdu->nbytes, rem_bytes);
+  }
+  return alloc_bytes > 0;
+}
+
+int lch_manager::alloc_retx_bytes(uint8_t lcid, uint32_t rem_bytes)
+{
+  int alloc = std::min((int)rem_bytes, get_dl_retx(lcid));
+  lch[lcid].buf_retx -= alloc;
+  return alloc;
+}
+
+int lch_manager::alloc_tx_bytes(uint8_t lcid, uint32_t rem_bytes)
+{
+  int alloc = std::min((int)rem_bytes, get_dl_tx(lcid));
+  lch[lcid].buf_tx -= alloc;
+  return alloc;
+}
+
+bool lch_manager::is_bearer_active(uint32_t lcid) const
+{
+  return lch[lcid].cfg.direction != sched_interface::ue_bearer_cfg_t::IDLE;
+}
+
+bool lch_manager::is_bearer_ul(uint32_t lcid) const
+{
+  return is_bearer_active(lcid) and lch[lcid].cfg.direction != sched_interface::ue_bearer_cfg_t::DL;
+}
+
+bool lch_manager::is_bearer_dl(uint32_t lcid) const
+{
+  return is_bearer_active(lcid) and lch[lcid].cfg.direction != sched_interface::ue_bearer_cfg_t::UL;
+}
+
+int lch_manager::get_dl_tx(uint32_t lcid) const
+{
+  return is_bearer_dl(lcid) ? lch[lcid].buf_tx : 0;
+}
+int lch_manager::get_dl_retx(uint32_t lcid) const
+{
+  return is_bearer_dl(lcid) ? lch[lcid].buf_retx : 0;
+}
+int lch_manager::get_bsr(uint32_t lcid) const
+{
+  return is_bearer_ul(lcid) ? lcg_bsr[lch[lcid].cfg.group] : 0;
+}
+
+std::string lch_manager::get_bsr_text() const
+{
+  std::stringstream ss;
+  ss << "{" << lcg_bsr[0] << ", " << lcg_bsr[1] << ", " << lcg_bsr[2] << ", " << lcg_bsr[3] << "}";
+  return ss.str();
 }
 
 } // namespace srsenb

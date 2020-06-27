@@ -21,6 +21,7 @@
 
 #include "scheduler_test_common.h"
 #include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/mac/pdu.h"
 
 #include "srslte/common/test_common.h"
@@ -981,7 +982,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       // Msg3 has been received but Msg4 has not been yet transmitted
       uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
       if (pending_dl_new_data == 0) {
-        uint32_t lcid = 0; // Use SRB0 to schedule Msg4
+        uint32_t lcid = RB_ID_SRB0; // Use SRB0 to schedule Msg4
         dl_rlc_buffer_state(ue_ev.rnti, lcid, 50, 0);
         dl_mac_buffer_state(ue_ev.rnti, (uint32_t)srslte::dl_sch_lcid::CON_RES_ID);
       } else {
@@ -994,16 +995,17 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       CONDERROR(user == nullptr, "TESTER ERROR: Trying to schedule data for user that does not exist\n");
       if (ue_ev.buffer_ev->dl_data > 0 and user->msg4_tti.is_valid()) {
         // If Msg4 has already been tx and there DL data to transmit
-        uint32_t lcid                = 2;
+        uint32_t lcid                = RB_ID_DRB1;
         uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
         if (user->drb_cfg_flag or pending_dl_new_data == 0) {
           // If RRCSetup finished
           if (not user->drb_cfg_flag) {
-            // setup lcid==2 bearer
+            // setup lcid==drb1 bearer
             sched::ue_bearer_cfg_t cfg = {};
             cfg.direction              = ue_bearer_cfg_t::BOTH;
-            ue_tester->bearer_cfg(ue_ev.rnti, 2, cfg);
-            bearer_ue_cfg(ue_ev.rnti, 2, &cfg);
+            cfg.group                  = 1;
+            ue_tester->bearer_cfg(ue_ev.rnti, lcid, cfg);
+            bearer_ue_cfg(ue_ev.rnti, lcid, &cfg);
           }
           // DRB is set. Update DL buffer
           uint32_t tot_dl_data = pending_dl_new_data + ue_ev.buffer_ev->dl_data; // TODO: derive pending based on rx
@@ -1016,8 +1018,8 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       if (ue_ev.buffer_ev->sr_data > 0 and user->drb_cfg_flag) {
         uint32_t tot_ul_data =
             ue_db[ue_ev.rnti].get_pending_ul_new_data(tti_info.tti_params.tti_tx_ul) + ue_ev.buffer_ev->sr_data;
-        uint32_t lcid = 2;
-        ul_bsr(ue_ev.rnti, lcid, tot_ul_data, true);
+        uint32_t lcg = 1;
+        ul_bsr(ue_ev.rnti, lcg, tot_ul_data);
       }
     }
   }

@@ -315,14 +315,14 @@ int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t enb_cc_idx, uint32_
   return ue_db_access(rnti, [&](sched_ue& ue) { ue.set_ul_cqi(tti, enb_cc_idx, cqi, ul_ch_code); });
 }
 
-int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
+int sched::ul_bsr(uint16_t rnti, uint32_t lcg_id, uint32_t bsr)
 {
-  return ue_db_access(rnti, [lcid, bsr, set_value](sched_ue& ue) { ue.ul_buffer_state(lcid, bsr, set_value); });
+  return ue_db_access(rnti, [lcg_id, bsr](sched_ue& ue) { ue.ul_buffer_state(lcg_id, bsr); });
 }
 
-int sched::ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)
+int sched::ul_buffer_add(uint16_t rnti, uint32_t lcid, uint32_t bytes)
 {
-  return ue_db_access(rnti, [lcid, len](sched_ue& ue) { ue.ul_recv_len(lcid, len); }, __PRETTY_FUNCTION__);
+  return ue_db_access(rnti, [lcid, bytes](sched_ue& ue) { ue.ul_buffer_add(lcid, bytes); });
 }
 
 int sched::ul_phr(uint16_t rnti, int phr)
