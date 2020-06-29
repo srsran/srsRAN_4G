@@ -101,4 +101,4 @@ add_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION}
 #  - 2 Aggregated carriers
 #  - 100 PRB
 #  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
-add_test(enb_phy_test_tm1_ca_cs_ho enb_phy_test --duration=1000 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=cs --cell.nof_prb=100 --tm=1 --rotation=100)
+add_test(long_enb_phy_test_tm1_ca_cs_ho enb_phy_test --duration=1000 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=cs --cell.nof_prb=100 --tm=1 --rotation=100)

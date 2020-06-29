@@ -59,4 +59,4 @@ target_link_libraries(scell_search_test
         rrc_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
-add_test(scell_search_test scell_search_test --duration=5 --cell.nof_prb=6 --active_cell_list=2,3,4,5,6 --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=10000)
+add_test(long_scell_search_test scell_search_test --duration=5 --cell.nof_prb=6 --active_cell_list=2,3,4,5,6 --simulation_cell_list=1,2,3,4,5,6 --channel_period_s=30 --channel.hst.fd=750 --channel.delay_max=10000)

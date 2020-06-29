@@ -71,7 +71,7 @@ if (ENABLE_5GNR)
 
   add_executable(pdcp_nr_test_tx pdcp_nr_test_tx.cc)
   target_link_libraries(pdcp_nr_test_tx srslte_upper srslte_common)
-  add_test(pdcp_nr_test_tx pdcp_nr_test_tx)
+  add_test(long_pdcp_nr_test_tx pdcp_nr_test_tx)
 
   add_executable(pdcp_nr_test_rx pdcp_nr_test_rx.cc)
   target_link_libraries(pdcp_nr_test_rx srslte_upper srslte_common)

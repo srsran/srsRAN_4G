@@ -59,5 +59,5 @@ endforeach (cell_n_prb)
 
 add_executable(pucch_ca_test pucch_ca_test.c)
 target_link_libraries(pucch_ca_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-add_test(pucch_ca_test pucch_ca_test)
+add_test(long_pucch_ca_test pucch_ca_test)
 
