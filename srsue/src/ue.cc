@@ -95,12 +95,13 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    // init layers (do not exit immedietly if something goes wrong as sub-layers may already use interfaces)
+    // init layers
     if (lte_radio->init(args.rf, lte_phy.get())) {
       log.console("Error initializing radio.\n");
-      ret = SRSLTE_ERROR;
+      return SRSLTE_ERROR;
     }
 
+    // from here onwards do not exit immediately if something goes wrong as sub-layers may already use interfaces
     if (lte_phy->init(args.phy, lte_stack.get(), lte_radio.get())) {
       log.console("Error initializing PHY.\n");
       ret = SRSLTE_ERROR;
