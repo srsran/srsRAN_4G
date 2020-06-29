@@ -56,7 +56,7 @@ add_executable(chest_test_srs chest_test_srs.c)
 target_link_libraries(chest_test_srs srslte_phy srslte_common)
 
 foreach (cell_n_prb 6 15 25 50 75 100)
-  add_test(chest_test_srs_${cell_n_prb} chest_test_srs -c 2 -r ${cell_n_prb})
+  add_test(long_chest_test_srs_${cell_n_prb} chest_test_srs -c 2 -r ${cell_n_prb})
 endforeach(cell_n_prb 6 15 25 50 75 100)
 
 

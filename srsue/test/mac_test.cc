@@ -23,6 +23,7 @@
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/test_common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/test/ue_test_interfaces.h"
 #include "srsue/hdr/stack/mac/mac.h"
@@ -37,14 +38,6 @@ using namespace srslte;
 #define HAVE_PCAP 0
 
 static std::unique_ptr<srslte::mac_pcap> pcap_handle = nullptr;
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return SRSLTE_ERROR;                                                                                             \
-    }                                                                                                                  \
-  }
 
 srslte::log_ref mac_log{"MAC"};
 
@@ -433,7 +426,6 @@ int mac_unpack_test()
   mac.tb_decoded(cc_idx, mac_grant, dl_ack);
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
@@ -495,7 +487,6 @@ int mac_ul_sch_pdu_test1()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
@@ -592,7 +583,6 @@ int mac_ul_logical_channel_prioritization_test1()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
@@ -701,7 +691,6 @@ int mac_ul_logical_channel_prioritization_test2()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
@@ -762,7 +751,6 @@ int mac_ul_logical_channel_prioritization_test3()
 
   // run TTI to setup Bj
   stack.run_tti(0);
-  sleep(1);
 
   // write dummy data for each LCID
   rlc.write_sdu(3, 50);
@@ -792,7 +780,6 @@ int mac_ul_logical_channel_prioritization_test3()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
@@ -876,7 +863,6 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(tti);
   mac.stop();
 
@@ -965,7 +951,6 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
@@ -1021,7 +1006,6 @@ int mac_ul_sch_pdu_one_byte_test()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
@@ -1077,7 +1061,6 @@ int mac_ul_sch_pdu_two_byte_test()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
@@ -1133,7 +1116,6 @@ int mac_ul_sch_pdu_three_byte_test()
   }
 
   // make sure MAC PDU thread picks up before stopping
-  sleep(1);
   stack.run_tti(0);
   mac.stop();
 
