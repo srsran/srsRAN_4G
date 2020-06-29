@@ -259,7 +259,7 @@ public:
   static const char*     name() { return "Go Idle"; }
 
 private:
-  static const uint32_t rlc_flush_timeout = 2000;
+  static const uint32_t rlc_flush_timeout_ms = 60; // TS 36.331 Sec 5.3.8.3
 
   rrc*                                rrc_ptr;
   srslte::timer_handler::unique_timer rlc_flush_timer;

@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <chrono>
 #include <numeric>
+#include <thread>
 
 using namespace srslte;
 
@@ -180,15 +181,13 @@ bool ue_stack_lte::switch_off()
   nas.detach_request(true);
 
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
-  const uint32_t RB_ID_SRB1 = 1;
-  int            cnt = 0, timeout = 5000;
-
-  while (rlc.has_data(RB_ID_SRB1) && ++cnt <= timeout) {
-    usleep(1000);
+  int cnt = 0, timeout_ms = 5000;
+  while (not rrc.srbs_flushed() && ++cnt <= timeout_ms) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
   bool detach_sent = true;
-  if (rlc.has_data(RB_ID_SRB1)) {
-    logmap::get("NAS ")->warning("Detach couldn't be sent after %ds.\n", timeout);
+  if (not rrc.srbs_flushed()) {
+    logmap::get("NAS ")->warning("Detach couldn't be sent after %dms.\n", timeout_ms);
     detach_sent = false;
   }
 

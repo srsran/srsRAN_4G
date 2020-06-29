@@ -1041,7 +1041,7 @@ proc_outcome_t rrc::process_pcch_proc::react(paging_complete e)
 rrc::go_idle_proc::go_idle_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_)
 {
   rlc_flush_timer = rrc_ptr->stack->get_unique_timer();
-  rlc_flush_timer.set(rlc_flush_timeout, [this](uint32_t tid) { rrc_ptr->idle_setter.trigger(true); });
+  rlc_flush_timer.set(rlc_flush_timeout_ms, [this](uint32_t tid) { rrc_ptr->idle_setter.trigger(true); });
 }
 
 proc_outcome_t rrc::go_idle_proc::init()
@@ -1066,14 +1066,13 @@ proc_outcome_t rrc::go_idle_proc::step()
     return proc_outcome_t::success;
   }
 
-  // If the RLC SRB1 is not suspended
-  // wait for max. 2s for RLC on SRB1 to be flushed
-  if (rrc_ptr->rlc->is_suspended(RB_ID_SRB1) || not rrc_ptr->rlc->has_data(RB_ID_SRB1)) {
+  // wait for RLC of SRB1 and SRB2 to be flushed
+  if (rrc_ptr->srbs_flushed()) {
     rrc_ptr->leave_connected();
     Info("Left connected state\n");
     return proc_outcome_t::success;
   } else {
-    Debug("Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_timer.time_elapsed(), rlc_flush_timeout);
+    Debug("Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_timer.time_elapsed(), rlc_flush_timeout_ms);
   }
   return proc_outcome_t::yield;
 }

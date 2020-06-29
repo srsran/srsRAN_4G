@@ -351,6 +351,8 @@ public:
                              const phy_interface_rrc_lte::phy_cell_t&        found_cell);
   void cell_select_completed(bool cs_ret);
 
+  bool srbs_flushed(); //< Check if data on SRBs still needs to be sent
+
 protected:
   // Moved to protected to be accessible by unit tests
   void set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving);

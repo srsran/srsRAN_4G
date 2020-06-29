@@ -1270,6 +1270,27 @@ void rrc::cell_select_completed(bool cs_ret)
   phy_cell_selector.trigger(cell_select_event_t{cs_ret});
 }
 
+/**
+ * Check whether data on SRB1 or SRB2 still needs to be sent.
+ * If the bearer is suspended it will not be considered.
+ *
+ * @return True if no further data needs to be sent on SRBs, False otherwise
+ */
+bool rrc::srbs_flushed()
+{
+  // Check SRB1
+  if (rlc->has_data(RB_ID_SRB1) && not rlc->is_suspended(RB_ID_SRB1)) {
+    return false;
+  }
+
+  // Check SRB2
+  if (rlc->has_data(RB_ID_SRB2) && not rlc->is_suspended(RB_ID_SRB2)) {
+    return false;
+  }
+
+  return true;
+}
+
 /*******************************************************************************
  *
  * Interface from RRC measurements class
