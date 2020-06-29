@@ -432,7 +432,7 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
   srslte_timestamp_add(&end_of_burst_time[device_idx], 0, (double)nof_samples / cur_tx_srate);
 
   void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
-  if (not map_channels(rx_channel_mapping, device_idx, sample_offset, buffer, radio_buffers)) {
+  if (not map_channels(tx_channel_mapping, device_idx, sample_offset, buffer, radio_buffers)) {
     log_h->error("Mapping logical channels to physical channels for transmission\n");
     return false;
   }
