@@ -372,7 +372,9 @@ bool ue::process_ce(srslte::sch_subh* subh)
       break;
     case srslte::ul_sch_lcid::LONG_BSR:
       subh->get_bsr(buff_size);
-      sched->ul_bsr(rnti, idx, buff_size[idx]);
+      for (idx = 0; idx < sched_interface::MAX_LC_GROUP; ++idx) {
+        sched->ul_bsr(rnti, idx, buff_size[idx]);
+      }
       is_bsr = true;
       Info("CE:    Received Long BSR rnti=0x%x, value=%d,%d,%d,%d\n",
            rnti,

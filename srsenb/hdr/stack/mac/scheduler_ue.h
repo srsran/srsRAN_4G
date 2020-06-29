@@ -91,7 +91,6 @@ public:
   void config_lcid(uint32_t lcg_id, const sched_interface::ue_bearer_cfg_t& bearer_cfg);
   void ul_bsr(uint8_t lcg_id, uint32_t bsr);
   void ul_buffer_add(uint8_t lcid, uint32_t bytes);
-  //  void ul_recv(uint8_t lcg_id, uint32_t len);
   void dl_buffer_state(uint8_t lcid, uint32_t tx_queue, uint32_t retx_queue);
 
   int alloc_rlc_pdu(sched_interface::dl_sched_pdu_t* lcid, int rem_bytes);
