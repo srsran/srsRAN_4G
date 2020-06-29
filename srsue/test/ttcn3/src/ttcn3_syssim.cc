@@ -1026,11 +1026,9 @@ void ttcn3_syssim::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   // push content to Titan
   if (lcid <= 2) {
     std::string out = ttcn3_helpers::get_rrc_pdu_ind_for_pdu(tti, lcid, cells[pcell_idx]->name, std::move(pdu));
-
-    srb.tx(out);
+    srb.tx(reinterpret_cast<const uint8_t*>(out.c_str()), out.length());
   } else {
     std::string out = ttcn3_helpers::get_drb_common_ind_for_pdu(tti, lcid, cells[pcell_idx]->name, std::move(pdu));
-    log->error("DRB send:\n%s", out.c_str());
     drb.tx(reinterpret_cast<const uint8_t*>(out.c_str()), out.length());
   }
 }
