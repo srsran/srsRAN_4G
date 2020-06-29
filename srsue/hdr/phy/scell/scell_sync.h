@@ -121,6 +121,8 @@ public:
     }
   }
 
+  ~sync() { srslte_sync_free(&find_pss); };
+
   /**
    * Sets the cell for the synchronizer
    */
