@@ -170,7 +170,7 @@ void ttcn3_ue::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       if (pdu_delay_timer.is_running()) {
         pdu_queue[lcid].push(std::move(pdu));
       } else {
-        if (pdu_delay_timer.is_valid()) {
+        if (pdu_delay_timer.is_set()) {
           pdu_queue[lcid].push(std::move(pdu));
           pdu_delay_timer.run(); // timer is already set
         } else {
@@ -210,9 +210,8 @@ void ttcn3_ue::set_test_loop_mode(const test_loop_mode_state_t mode, const uint3
       break;
     case TEST_LOOP_MODE_B_ACTIVE:
       log.info("Activating Test loop mode B with %d ms PDU delay\n", ip_pdu_delay_ms_);
-      // only create timer if needed
+      pdu_delay_timer = stack->get_unique_timer();
       if (ip_pdu_delay_ms_ > 0) {
-        pdu_delay_timer = stack->get_unique_timer();
         pdu_delay_timer.set(ip_pdu_delay_ms_, [this](uint32_t tid) { timer_expired(tid); });
       }
       break;
