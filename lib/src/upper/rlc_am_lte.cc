@@ -1675,7 +1675,10 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
           status->N_nack = 0;
         }
       } else {
-        log->error("Failed to generate small enough status PDU\n");
+        log->warning("Failed to generate small enough status PDU (packed_len=%d, max_pdu_size=%d, status->N_nack=%d)\n",
+                     rlc_am_packed_length(status),
+                     max_pdu_size,
+                     status->N_nack);
       }
       break;
     }
