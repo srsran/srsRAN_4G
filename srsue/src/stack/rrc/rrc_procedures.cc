@@ -503,10 +503,20 @@ proc_outcome_t rrc::cell_selection_proc::init()
 
   Info("Starting...\n");
   Info("Current neighbor cells: [%s]\n", rrc_ptr->print_neighbour_cells().c_str());
-  neigh_index     = 0;
-  cs_result       = cs_result_t::no_cell;
-  state           = search_state_t::cell_selection;
-  discard_serving = false;
+  Info("Current PHY state: %s\n", rrc_ptr->phy_sync_state == phy_in_sync ? "in-sync" : "out-of-sync");
+  if (rrc_ptr->serving_cell->has_sib3()) {
+    Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f\n",
+         rrc_ptr->cell_resel_cfg.Qrxlevmin,
+         rrc_ptr->cell_resel_cfg.Qrxlevminoffset);
+  } else {
+    Info("Cell selection criteria: not available\n");
+  }
+  Info("Current serving cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
+  neigh_index                = 0;
+  cs_result                  = cs_result_t::no_cell;
+  state                      = search_state_t::cell_selection;
+  discard_serving            = false;
+  serv_cell_select_attempted = false;
   return start_cell_selection();
 }
 
@@ -528,20 +538,34 @@ proc_outcome_t rrc::cell_selection_proc::react(const cell_select_event_t& event)
   return proc_outcome_t::yield;
 }
 
+proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
+{
+  if (rrc_ptr->phy_sync_state == phy_in_sync and rrc_ptr->phy->cell_is_camping()) {
+    cs_result = cs_result_t::same_cell;
+    return proc_outcome_t::success;
+  }
+
+  Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->serving_cell->to_string().c_str());
+
+  state = search_state_t::serv_cell_camp;
+  if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
+    Error("Failed to launch PHY Cell Selection\n");
+    return proc_outcome_t::error;
+  }
+  serv_cell_select_attempted = true;
+  return proc_outcome_t::yield;
+}
+
 proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
 {
-  Info("Current PHY state: %s\n", rrc_ptr->phy_sync_state == phy_in_sync ? "in-sync" : "out-of-sync");
-  if (rrc_ptr->serving_cell->has_sib3()) {
-    Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f\n",
-         rrc_ptr->cell_resel_cfg.Qrxlevmin,
-         rrc_ptr->cell_resel_cfg.Qrxlevminoffset);
-  } else {
-    Info("Cell selection criteria: not available\n");
-  }
-  Info("Current serving cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
-
   // Neighbour cells are sorted in descending order of RSRP
   for (; neigh_index < rrc_ptr->neighbour_cells.size(); ++neigh_index) {
+    // If the serving cell is stronger, attempt to select it
+    if (not serv_cell_select_attempted and rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp()) and
+        rrc_ptr->serving_cell->greater(rrc_ptr->neighbour_cells[neigh_index].get())) {
+      return start_serv_cell_selection();
+    }
+
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
      * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
     // Matches S criteria
@@ -565,19 +589,9 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
   }
   // Iteration over neighbor cells is over.
 
-  if (rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
-    if (rrc_ptr->phy_sync_state != phy_in_sync || not rrc_ptr->phy->cell_is_camping()) {
-      Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->serving_cell->to_string().c_str());
-
-      state = search_state_t::serv_cell_camp;
-      if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
-        Error("Failed to launch PHY Cell Selection\n");
-        return proc_outcome_t::error;
-      }
-      return proc_outcome_t::yield;
-    }
-    cs_result = cs_result_t::same_cell;
-    return proc_outcome_t::success;
+  // If serving cell is weaker, but couldn't select neighbors
+  if (not serv_cell_select_attempted and rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
+    return start_serv_cell_selection();
   }
 
   // If can not find any suitable cell, search again
@@ -613,13 +627,13 @@ srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const cell_
   if (event.cs_ret) {
     Info("Selected serving cell OK.\n");
     cs_result = cs_result_t::same_cell;
-  } else {
-    rrc_ptr->phy_sync_state = phy_unknown_sync;
-    rrc_ptr->serving_cell->set_rsrp(-INFINITY);
-    Error("Could not camp on serving cell.\n");
+    return proc_outcome_t::success;
   }
 
-  return event.cs_ret ? proc_outcome_t::success : proc_outcome_t::error;
+  rrc_ptr->phy_sync_state = phy_unknown_sync;
+  rrc_ptr->serving_cell->set_rsrp(-INFINITY);
+  Warning("Could not camp on serving cell.\n");
+  return proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_wait_in_sync()
@@ -633,8 +647,8 @@ proc_outcome_t rrc::cell_selection_proc::step_wait_in_sync()
       state = search_state_t::cell_config;
     } else {
       Info("PHY is in SYNC but cell selection did not pass. Go back to select step.\n");
-      cs_result       = cs_result_t::no_cell;
-      neigh_index     = 0;    // TODO: go back to the start?
+      cs_result = cs_result_t::no_cell;
+      neigh_index++;
       discard_serving = true; // Discard this cell
       return start_cell_selection();
     }

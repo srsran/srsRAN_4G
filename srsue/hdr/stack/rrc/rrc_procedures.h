@@ -160,6 +160,7 @@ public:
   srslte::proc_outcome_t react(const cell_select_event_t& event);
 
 private:
+  srslte::proc_outcome_t start_serv_cell_selection();
   srslte::proc_outcome_t start_cell_selection();
   srslte::proc_outcome_t step_cell_selection(const cell_select_event_t& event);
   srslte::proc_outcome_t step_serv_cell_camp(const cell_select_event_t& event);
@@ -175,6 +176,7 @@ private:
   cs_result_t                                                     cs_result;
   search_state_t                                                  state;
   uint32_t                                                        neigh_index;
+  bool                                                            serv_cell_select_attempted = false;
   srslte::proc_future_t<phy_interface_rrc_lte::cell_search_ret_t> cell_search_fut;
   srslte::proc_future_t<void>                                     serv_cell_cfg_fut;
   bool                                                            discard_serving = false;
