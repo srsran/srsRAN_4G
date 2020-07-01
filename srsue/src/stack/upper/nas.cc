@@ -831,7 +831,7 @@ bool nas::integrity_check(byte_buffer_t* pdu)
       if (exp_mac[i] != mac[i]) {
         nas_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
                          "Received: count=%d, [%02x %02x %02x %02x]\n",
-                         ctxt.rx_count,
+                         count_est,
                          exp_mac[0],
                          exp_mac[1],
                          exp_mac[2],
@@ -845,7 +845,7 @@ bool nas::integrity_check(byte_buffer_t* pdu)
       }
     }
     nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d  [%02x %02x %02x %02x]\n",
-                  ctxt.rx_count,
+                  count_est,
                   pdu->msg[5],
                   mac[0],
                   mac[1],
