@@ -365,6 +365,9 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_s* msg)
                                old_reest_pdcp_state[lcid].last_submitted_pdcp_rx_sn);
       }
 
+      // Make sure UE capabilities are copied over to new RNTI
+      eutra_capabilities = parent->users[old_rnti]->eutra_capabilities;
+
       old_reest_rnti = old_rnti;
       state          = RRC_STATE_WAIT_FOR_CON_REEST_COMPLETE;
       set_activity_timeout(UE_RESPONSE_RX_TIMEOUT);
