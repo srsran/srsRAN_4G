@@ -116,14 +116,6 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     enable_security_tx_sn = -1;
   }
 
-  log->info_hex(sdu->msg,
-                sdu->N_bytes,
-                "TX %s SDU, SN=%d, integrity=%s, encryption=%s",
-                rrc->get_rb_name(lcid).c_str(),
-                tx_count,
-                srslte_direction_text[integrity_direction],
-                srslte_direction_text[encryption_direction]);
-
   write_data_header(sdu, tx_count);
 
   // Append MAC (SRBs only)
@@ -140,8 +132,15 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   if (encryption_direction == DIRECTION_TX || encryption_direction == DIRECTION_TXRX) {
     cipher_encrypt(
         &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
-    log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
   }
+
+  log->info_hex(sdu->msg,
+                sdu->N_bytes,
+                "TX %s PDU, SN=%d, integrity=%s, encryption=%s",
+                rrc->get_rb_name(lcid).c_str(),
+                tx_count,
+                srslte_direction_text[integrity_direction],
+                srslte_direction_text[encryption_direction]);
 
   // Incremente NEXT_PDCP_TX_SN and TX_HFN
   st.next_pdcp_tx_sn++;
