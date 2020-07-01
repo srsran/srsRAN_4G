@@ -214,8 +214,9 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   // Perform decryption
   if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
     cipher_decrypt(&pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, count, &pdu->msg[cfg.hdr_len_bytes]);
-    log->info_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
+
+  log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
 
   // Extract MAC
   uint8_t mac[4];
@@ -244,7 +245,6 @@ void pdcp_entity_lte::handle_srb_pdu(srslte::unique_byte_buffer_t pdu)
   }
 
   // Pass to upper layers
-  log->debug_hex(pdu->msg, pdu->N_bytes, "Passing SDU to upper layers");
   rrc->write_pdu(lcid, std::move(pdu));
 }
 
@@ -261,8 +261,9 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
   uint32_t count = (st.rx_hfn << cfg.sn_len) | sn;
   if (encryption_direction == DIRECTION_RX || encryption_direction == DIRECTION_TXRX) {
     cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
-    log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
+
+  log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
 
   st.next_pdcp_rx_sn = sn + 1;
   if (st.next_pdcp_rx_sn > maximum_pdcp_sn) {
@@ -271,7 +272,6 @@ void pdcp_entity_lte::handle_um_drb_pdu(srslte::unique_byte_buffer_t pdu)
   }
 
   // Pass to upper layers
-  log->info_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
   gw->write_pdu(lcid, std::move(pdu));
 }
 
@@ -325,13 +325,12 @@ void pdcp_entity_lte::handle_am_drb_pdu(srslte::unique_byte_buffer_t pdu)
 
   // Decrypt
   cipher_decrypt(pdu->msg, pdu->N_bytes, count, pdu->msg);
-  log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+  log->debug_hex(pdu->msg, pdu->N_bytes, "%s Rx SDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
 
   // Update info on last PDU submitted to upper layers
   st.last_submitted_pdcp_rx_sn = sn;
 
   // Pass to upper layers
-  log->info_hex(pdu->msg, pdu->N_bytes, "%s Rx PDU SN=%d", rrc->get_rb_name(lcid).c_str(), sn);
   gw->write_pdu(lcid, std::move(pdu));
 }
 
