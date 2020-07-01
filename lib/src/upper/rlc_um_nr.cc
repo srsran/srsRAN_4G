@@ -205,7 +205,13 @@ int rlc_um_nr::rlc_um_nr_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t* p
 
 void rlc_um_nr::rlc_um_nr_tx::debug_state()
 {
-  log->debug("%s TX_Next = %d\n", rb_name.c_str(), TX_Next);
+  log->debug("%s TX_Next=%d, next_so=%d\n", rb_name.c_str(), TX_Next, next_so);
+}
+
+void rlc_um_nr::rlc_um_nr_tx::reset()
+{
+  TX_Next = 0;
+  next_so = 0;
 }
 
 /****************************************************************************

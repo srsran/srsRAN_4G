@@ -105,6 +105,7 @@ protected:
 
     // helper functions
     virtual void debug_state() = 0;
+    virtual void reset()       = 0;
   };
 
   // Receiver sub-class base

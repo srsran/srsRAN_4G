@@ -219,6 +219,11 @@ void rlc_um_lte::rlc_um_lte_tx::debug_state()
   log->debug("%s vt_us = %d\n", rb_name.c_str(), vt_us);
 }
 
+void rlc_um_lte::rlc_um_lte_tx::reset()
+{
+  vt_us = 0;
+}
+
 /****************************************************************************
  * Rx subclass implementation
  ***************************************************************************/

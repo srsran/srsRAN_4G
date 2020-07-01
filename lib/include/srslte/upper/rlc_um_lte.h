@@ -63,6 +63,8 @@ private:
     uint32_t get_buffer_state();
 
   private:
+    void reset();
+
     /****************************************************************************
      * State variables and counters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7

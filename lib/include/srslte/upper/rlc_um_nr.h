@@ -63,6 +63,8 @@ private:
     uint32_t get_buffer_state();
 
   private:
+    void reset();
+
     uint32_t TX_Next = 0; // send state as defined in TS 38.322 v15.3 Section 7
                           // It holds the value of the SN to be assigned for the next newly generated UMD PDU with
                           // segment. It is initially set to 0, and is updated after the UM RLC entity submits a UMD PDU

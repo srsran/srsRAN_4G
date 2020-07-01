@@ -215,6 +215,7 @@ rlc_um_base::rlc_um_base_tx::~rlc_um_base_tx() {}
 void rlc_um_base::rlc_um_base_tx::stop()
 {
   empty_queue();
+  reset();
 }
 
 void rlc_um_base::rlc_um_base_tx::reestablish()
