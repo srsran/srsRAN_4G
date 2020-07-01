@@ -134,7 +134,7 @@ private:
   gw_interface_stack*     gw  = nullptr;
 
   // Thread
-  static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  static const int STACK_MAIN_THREAD_PRIO = 4;
 
   srslte::task_multiqueue pending_tasks;
   int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;

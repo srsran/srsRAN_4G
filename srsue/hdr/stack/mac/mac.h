@@ -115,9 +115,6 @@ private:
 
   bool is_in_window(uint32_t tti, int* start, int* len);
 
-  static const int MAC_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
-  static const int MAC_PDU_THREAD_PRIO  = 5;
-
   // Interaction with PHY
   phy_interface_mac_lte*                     phy_h   = nullptr;
   rlc_interface_mac*                         rlc_h   = nullptr;

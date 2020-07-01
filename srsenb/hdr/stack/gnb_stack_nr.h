@@ -114,7 +114,7 @@ private:
   uint32_t current_tti = 10240;
 
   // Thread
-  static const int                 STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  static const int                 STACK_MAIN_THREAD_PRIO = 4;
   srslte::task_multiqueue          pending_tasks;
   std::vector<srslte::move_task_t> deferred_stack_tasks; ///< enqueues stack tasks from within. Avoids locking
   srslte::task_thread_pool         background_tasks;     ///< Thread pool used for long, low-priority tasks

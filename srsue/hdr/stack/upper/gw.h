@@ -69,7 +69,7 @@ public:
   void add_mch_port(uint32_t lcid, uint32_t port);
 
 private:
-  static const int GW_THREAD_PRIO = 7;
+  static const int GW_THREAD_PRIO = -1;
 
   stack_interface_gw*       stack  = nullptr;
   srslte::byte_buffer_pool* pool   = nullptr;

@@ -118,7 +118,7 @@ public:
   void                                   defer_task(srslte::move_task_t task) final;
 
 private:
-  static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  static const int STACK_MAIN_THREAD_PRIO = 4;
   // thread loop
   void run_thread() override;
   void stop_impl();
