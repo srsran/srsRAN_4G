@@ -548,7 +548,7 @@ proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
   Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->serving_cell->to_string().c_str());
 
   state = search_state_t::serv_cell_camp;
-  if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
+  if (not rrc_ptr->phy_cell_selector.launch(*rrc_ptr->serving_cell)) {
     Error("Failed to launch PHY Cell Selection\n");
     return proc_outcome_t::error;
   }
@@ -580,7 +580,7 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
       Info("Selected cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
 
       state = search_state_t::cell_selection;
-      if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
+      if (not rrc_ptr->phy_cell_selector.launch(*rrc_ptr->serving_cell)) {
         Error("Failed to launch PHY Cell Selection\n");
         return proc_outcome_t::error;
       }

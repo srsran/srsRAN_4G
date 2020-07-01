@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES rrc.cc rrc_procedures.cc rrc_meas.cc)
+set(SOURCES rrc.cc rrc_procedures.cc rrc_meas.cc rrc_cell.cc)
 add_library(srsue_rrc STATIC ${SOURCES})
 
 if(ENABLE_5GNR)
