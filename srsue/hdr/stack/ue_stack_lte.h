@@ -165,7 +165,7 @@ private:
   gw_interface_stack*      gw  = nullptr;
 
   // Thread
-  static const int        STACK_MAIN_THREAD_PRIO = 4;
+  static const int        STACK_MAIN_THREAD_PRIO = 4; // Next lower priority after PHY workers
   srslte::task_multiqueue pending_tasks;
   int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, stack_queue_id = -1, background_queue_id = -1;
   srslte::task_thread_pool             background_tasks;     ///< Thread pool used for long, low-priority tasks
