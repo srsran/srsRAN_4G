@@ -995,6 +995,7 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
           0) {
     return SRSLTE_SUCCESS;
   }
+  parent->rrc_log->info("SCells activatived for rnti=0x%x\n", rnti);
 
   const cell_info_common* pcell_cfg = get_ue_cc_cfg(UE_PCELL_CC_IDX);
   if (pcell_cfg->cell_cfg.scell_list.empty()) {

@@ -1326,7 +1326,7 @@ void cc_sched_ue::set_dl_cqi(uint32_t tti_tx_dl, uint32_t dl_cqi_)
   if (ue_cc_idx > 0 and active != cfg->supported_cc_list[ue_cc_idx].active) {
     if (dl_cqi_rx) {
       active = cfg->supported_cc_list[ue_cc_idx].active;
-      log_h->info("SCell index=%d is now %s\n", ue_cc_idx, active ? "active" : "inactive");
+      log_h->info("SCHED: SCell index=%d is now %s\n", ue_cc_idx, active ? "active" : "inactive");
     }
   }
 }
