@@ -579,7 +579,6 @@ private:
   void leave_connected();
   void stop_timers();
   void start_con_restablishment(asn1::rrc::reest_cause_e cause);
-  void start_cell_reselection();
 
   void log_rr_config_common();
   void log_phy_config_dedicated();

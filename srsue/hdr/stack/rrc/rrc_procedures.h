@@ -259,6 +259,7 @@ public:
   srslte::proc_outcome_t step();
   srslte::proc_outcome_t react(bool timeout);
   static const char*     name() { return "Go Idle"; }
+  void                   then(const srslte::proc_state_t& result);
 
 private:
   static const uint32_t rlc_flush_timeout_ms = 60; // TS 36.331 Sec 5.3.8.3
@@ -270,15 +271,19 @@ private:
 class rrc::cell_reselection_proc
 {
 public:
+  const static uint32_t cell_reselection_periodicity_ms = 20;
+
   cell_reselection_proc(rrc* rrc_);
   srslte::proc_outcome_t init();
   srslte::proc_outcome_t step();
   static const char*     name() { return "Cell Reselection"; }
+  void                   then(const srslte::proc_state_t& result);
 
 private:
   rrc* rrc_ptr;
 
-  srslte::proc_future_t<cs_result_t> cell_selection_fut;
+  srslte::timer_handler::unique_timer reselection_timer;
+  srslte::proc_future_t<cs_result_t>  cell_selection_fut;
 };
 
 class rrc::connection_reest_proc

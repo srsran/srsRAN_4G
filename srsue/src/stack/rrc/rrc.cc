@@ -253,16 +253,6 @@ void rrc::run_tti()
   // Run state machine
   switch (state) {
     case RRC_STATE_IDLE:
-
-      /* CAUTION: The execution of cell_search() and cell_selection() take more than 1 ms
-       * and will slow down MAC TTI ticks. This has no major effect at the moment because
-       * the UE is in IDLE but we could consider splitting MAC and RRC threads to avoid this
-       */
-
-      // If attached but not camping on the cell, perform cell reselection
-      if (nas->is_attached()) {
-        start_cell_reselection();
-      }
       break;
     case RRC_STATE_CONNECTED:
       measurements->run_tti();
@@ -1249,24 +1239,6 @@ void rrc::start_con_restablishment(reest_cause_e cause)
   }
 
   callback_list.add_proc(connection_reest);
-}
-
-void rrc::start_cell_reselection()
-{
-  if (neighbour_cells.empty() and phy_sync_state == phy_in_sync and phy->cell_is_camping()) {
-    // don't bother with cell selection if there are no neighbours and we are already camping
-    return;
-  }
-
-  if (cell_reselector.is_busy()) {
-    // it is already running
-    return;
-  }
-
-  if (not cell_reselector.launch()) {
-    rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
-  }
-  callback_list.add_proc(cell_reselector);
 }
 
 void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,

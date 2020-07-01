@@ -1101,14 +1101,44 @@ proc_outcome_t rrc::go_idle_proc::step()
   return proc_outcome_t::yield;
 }
 
+void rrc::go_idle_proc::then(const srslte::proc_state_t& result)
+{
+  if (not rrc_ptr->cell_reselector.launch()) {
+    rrc_ptr->rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
+    return;
+  }
+  rrc_ptr->callback_list.add_proc(rrc_ptr->cell_reselector);
+}
+
 /**************************************
  *    Cell Reselection procedure
  *************************************/
 
-rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
+rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_)
+{
+  // Timer for cell reselection procedure to self-relaunch periodically
+  reselection_timer = rrc_ptr->stack->get_unique_timer();
+  reselection_timer.set(cell_reselection_periodicity_ms, [this](uint32_t tid) {
+    if (not rrc_ptr->cell_reselector.launch()) {
+      rrc_ptr->rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
+      return;
+    }
+    rrc_ptr->callback_list.add_proc(rrc_ptr->cell_reselector);
+  });
+}
 
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
+  if (not rrc_ptr->nas->is_attached() or rrc_ptr->is_connected()) {
+    // check if rrc is still idle
+    return proc_outcome_t::success;
+  }
+
+  if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->phy_sync_state == phy_in_sync and rrc_ptr->phy->cell_is_camping()) {
+    // don't bother with cell selection if there are no neighbours and we are already camping
+    return proc_outcome_t::success;
+  }
+
   Info("Starting...\n");
   if (not rrc_ptr->cell_selector.launch(&cell_selection_fut)) {
     Error("Failed to initiate a Cell Selection procedure...\n");
@@ -1148,6 +1178,14 @@ proc_outcome_t rrc::cell_reselection_proc::step()
   }
   Info("Finished successfully\n");
   return srslte::proc_outcome_t::success;
+}
+
+void rrc::cell_reselection_proc::then(const srslte::proc_state_t& result)
+{
+  // Schedule cell reselection periodically, while rrc is idle
+  if (not rrc_ptr->is_connected() and rrc_ptr->nas->is_attached()) {
+    reselection_timer.run();
+  }
 }
 
 /**************************************
