@@ -41,6 +41,7 @@ set(ENB_PHY_TEST_DURATION 128)
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - 100 PRB
 add_test(enb_phy_test_tm1 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=1)
+set_tests_properties(enb_phy_test_tm1 PROPERTIES LABELS "long;phy;srsenb")
 
 # Single carrier TM2 eNb PHY test:
 #  - Single carrier
@@ -48,6 +49,7 @@ add_test(enb_phy_test_tm1 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cel
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - 6 PRB
 add_test(enb_phy_test_tm2 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=2)
+set_tests_properties(enb_phy_test_tm2 PROPERTIES LABELS "long;phy;srsenb")
 
 # Single carrier TM3 eNb PHY test:
 #  - Single carrier
@@ -55,6 +57,7 @@ add_test(enb_phy_test_tm2 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cel
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - 6 PRB
 add_test(enb_phy_test_tm3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=3)
+set_tests_properties(enb_phy_test_tm3 PROPERTIES LABELS "long;phy;srsenb")
 
 # Single carrier eNb PHY test:
 #  - Single carrier
@@ -62,6 +65,7 @@ add_test(enb_phy_test_tm3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cel
 #  - 1 eNb cell/carrier (no carrier aggregation)
 #  - 6 PRB
 add_test(enb_phy_test_tm4 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=4)
+set_tests_properties(enb_phy_test_tm4 PROPERTIES LABELS "long;phy;srsenb")
 
 # Five carrier aggregation using PUCCH3:
 #  - 6 eNb cell/carrier
@@ -101,4 +105,5 @@ add_test(enb_phy_test_tm4_ca_cs enb_phy_test --duration=${ENB_PHY_TEST_DURATION}
 #  - 2 Aggregated carriers
 #  - 100 PRB
 #  - PUCCH format 1b with Channel selection ACK/NACK feedback mode
-add_test(long_enb_phy_test_tm1_ca_cs_ho enb_phy_test --duration=1000 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=cs --cell.nof_prb=100 --tm=1 --rotation=100)
+add_test(enb_phy_test_tm1_ca_cs_ho enb_phy_test --duration=1000 --nof_enb_cells=3 --ue_cell_list=2,0 --ack_mode=cs --cell.nof_prb=100 --tm=1 --rotation=100)
+set_tests_properties(enb_phy_test_tm1_ca_cs_ho PROPERTIES LABELS "long;phy;srsenb")
