@@ -530,6 +530,14 @@ proc_outcome_t rrc::cell_selection_proc::react(const cell_select_event_t& event)
 
 proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
 {
+  Info("Current PHY state: %s\n", rrc_ptr->phy_sync_state == phy_in_sync ? "in-sync" : "out-of-sync");
+  if (rrc_ptr->serving_cell->has_sib3()) {
+    Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f\n",
+         rrc_ptr->cell_resel_cfg.Qrxlevmin,
+         rrc_ptr->cell_resel_cfg.Qrxlevminoffset);
+  } else {
+    Info("Cell selection criteria: not available\n");
+  }
   Info("Current serving cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
 
   // Neighbour cells are sorted in descending order of RSRP
@@ -557,9 +565,9 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
   }
   // Iteration over neighbor cells is over.
 
-  if (rrc_ptr->phy_sync_state == phy_in_sync && rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
-    if (not rrc_ptr->phy->cell_is_camping()) {
-      Info("Serving cell %s is in-sync but not camping. Selecting it...\n", rrc_ptr->serving_cell->to_string().c_str());
+  if (rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
+    if (rrc_ptr->phy_sync_state != phy_in_sync || not rrc_ptr->phy->cell_is_camping()) {
+      Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->serving_cell->to_string().c_str());
 
       state = search_state_t::serv_cell_camp;
       if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->serving_cell->phy_cell)) {
