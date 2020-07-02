@@ -246,8 +246,7 @@ nas::nas(srslte::task_handler_interface* task_handler_) :
   t3421(task_handler_->get_unique_timer()),
   reattach_timer(task_handler_->get_unique_timer()),
   nas_log{"NAS"}
-{
-}
+{}
 
 void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
@@ -823,7 +822,7 @@ bool nas::integrity_check(byte_buffer_t* pdu)
     uint8_t* mac        = &pdu->msg[1];
 
     // generate expected MAC
-    uint32_t count_est = (ctxt.rx_count & 0x0FF0u) | pdu->msg[5];
+    uint32_t count_est = (ctxt.rx_count & 0x00FFFF00u) | pdu->msg[5];
     integrity_generate(
         &k_nas_int[16], count_est, SECURITY_DIRECTION_DOWNLINK, &pdu->msg[5], pdu->N_bytes - 5, &exp_mac[0]);
 
@@ -999,11 +998,11 @@ int nas::apply_security_config(srslte::unique_byte_buffer_t& pdu, uint8_t sec_hd
  */
 void nas::reset_security_context()
 {
-  have_guti = false;
-  have_ctxt = false;
+  have_guti       = false;
+  have_ctxt       = false;
   current_sec_hdr = LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS;
-  ctxt      = {};
-  ctxt.ksi  = LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE;
+  ctxt            = {};
+  ctxt.ksi        = LIBLTE_MME_NAS_KEY_SET_IDENTIFIER_NO_KEY_AVAILABLE;
 }
 
 /*******************************************************************************
