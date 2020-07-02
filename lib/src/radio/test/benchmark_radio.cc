@@ -40,7 +40,7 @@ using namespace srslte;
 #define SRSLTE_MAX_RADIOS 3
 
 static std::array<std::string, SRSLTE_MAX_RADIOS> radios_args = {"auto", "auto", "auto"};
-static char radio_device[64];
+static char                                       radio_device[64];
 
 static log_filter  log_h;
 static std::string file_pattern = "radio%d.dat";
@@ -62,10 +62,10 @@ static float       rf_gain         = -1.0;
 #include <semaphore.h>
 static pthread_t   plot_thread;
 static sem_t       plot_sem;
-static uint32_t    plot_sf_idx                        = 0;
-static plot_real_t fft_plot[SRSLTE_MAX_RADIOS]        = {};
-static cf_t*       fft_plot_buffer[SRSLTE_MAX_RADIOS] = {};
-static float*      fft_plot_temp                      = nullptr;
+static uint32_t    plot_sf_idx                          = 0;
+static plot_real_t fft_plot[SRSLTE_MAX_RADIOS]          = {};
+static cf_t*       fft_plot_buffer[SRSLTE_MAX_CHANNELS] = {};
+static float*      fft_plot_temp                        = nullptr;
 static uint32_t    fft_plot_buffer_size;
 srslte_dft_plan_t  dft_spectrum = {};
 #endif /* ENABLE_GUI */
@@ -174,14 +174,17 @@ static void* plot_thread_run(void* arg)
   sdrgui_init();
 
   for (uint32_t i = 0; i < nof_radios; i++) {
-    char str_buf[32] = {};
-    snprintf(str_buf, 32, "Radio %d spectrum", i);
-    plot_real_init(&fft_plot[i]);
-    plot_real_setTitle(&fft_plot[i], str_buf);
-    plot_real_setXAxisAutoScale(&fft_plot[i], true);
-    plot_real_setYAxisAutoScale(&fft_plot[i], true);
+    for (uint32_t j = 0; j < nof_ports; j++) {
+      uint32_t plot_idx    = i * nof_ports + j;
+      char     str_buf[32] = {};
+      snprintf(str_buf, 32, "Radio %d Port %d spectrum", i, j);
+      plot_real_init(&fft_plot[plot_idx]);
+      plot_real_setTitle(&fft_plot[plot_idx], str_buf);
+      plot_real_setXAxisAutoScale(&fft_plot[plot_idx], true);
+      plot_real_setYAxisAutoScale(&fft_plot[plot_idx], true);
 
-    plot_scatter_addToWindowGrid(&fft_plot[i], (char*)"pdsch_ue", 0, i);
+      plot_scatter_addToWindowGrid(&fft_plot[plot_idx], (char*)"pdsch_ue", i, j);
+    }
   }
 
   while (fft_plot_enable) {
@@ -189,13 +192,17 @@ static void* plot_thread_run(void* arg)
 
     if (fft_plot_buffer_size) {
       for (uint32_t r = 0; r < nof_radios; r++) {
-        srslte_vec_abs_square_cf(fft_plot_buffer[r], fft_plot_temp, fft_plot_buffer_size);
+        for (uint32_t p = 0; p < nof_ports; p++) {
+          uint32_t plot_idx = r * nof_ports + p;
 
-        for (uint32_t j = 0; j < fft_plot_buffer_size; j++) {
-          fft_plot_temp[j] = srslte_convert_power_to_dB(fft_plot_temp[j]);
+          srslte_vec_abs_square_cf(fft_plot_buffer[plot_idx], fft_plot_temp, fft_plot_buffer_size);
+
+          for (uint32_t j = 0; j < fft_plot_buffer_size; j++) {
+            fft_plot_temp[j] = srslte_convert_power_to_dB(fft_plot_temp[j]);
+          }
+
+          plot_real_setNewData(&fft_plot[plot_idx], fft_plot_temp, fft_plot_buffer_size);
         }
-
-        plot_real_setNewData(&fft_plot[r], fft_plot_temp, fft_plot_buffer_size);
       }
     }
   }
@@ -212,10 +219,13 @@ static int init_plots(uint32_t frame_size)
   }
 
   for (uint32_t r = 0; r < nof_radios; r++) {
-    fft_plot_buffer[r] = srslte_vec_cf_malloc(frame_size);
-    if (!fft_plot_buffer[r]) {
-      ERROR("Error: Allocating buffer\n");
-      return SRSLTE_ERROR;
+    for (uint32_t p = 0; p < nof_ports; p++) {
+      uint32_t plot_idx         = r * nof_ports + p;
+      fft_plot_buffer[plot_idx] = srslte_vec_cf_malloc(frame_size);
+      if (!fft_plot_buffer[plot_idx]) {
+        ERROR("Error: Allocating buffer\n");
+        return SRSLTE_ERROR;
+      }
     }
   }
 
@@ -439,7 +449,10 @@ int main(int argc, char** argv)
     if (fft_plot_enable) {
       if (frame_size != nof_samples) {
         for (uint32_t r = 0; r < nof_radios; r++) {
-          srslte_dft_run(&dft_spectrum, buffers[r][0], fft_plot_buffer[r]);
+          for (uint32_t p = 0; p < nof_ports; p++) {
+            uint32_t plot_idx = r * nof_ports + p;
+            srslte_dft_run(&dft_spectrum, buffers[r][p], fft_plot_buffer[plot_idx]);
+          }
         }
       } else {
         fft_plot_enable = false;
@@ -545,8 +558,11 @@ clean_exit:
   pthread_join(plot_thread, NULL);
   srslte_dft_plan_free(&dft_spectrum);
   for (uint32_t r = 0; r < nof_radios; r++) {
-    if (fft_plot_buffer[r]) {
-      free(fft_plot_buffer[r]);
+    for (uint32_t p = 0; p < nof_ports; p++) {
+      uint32_t plot_idx = r * nof_ports + p;
+      if (fft_plot_buffer[plot_idx]) {
+        free(fft_plot_buffer[plot_idx]);
+      }
     }
   }
   if (fft_plot_temp) {
