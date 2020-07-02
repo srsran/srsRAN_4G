@@ -126,8 +126,8 @@ public:
           return err;
         }
 
-        size_t max_samp      = 0;
-        err                  = get_rx_stream(max_samp);
+        size_t max_samp = 0;
+        err             = get_rx_stream(max_samp);
 
         // If no error getting RX stream, return
         if (err == UHD_ERROR_NONE) {

@@ -120,7 +120,7 @@ struct rf_uhd_handler_t {
 
   double current_master_clock = 0.0;
 
-  bool               rx_stream_enabled = false;
+  bool rx_stream_enabled = false;
 
   std::mutex tx_mutex;
   std::mutex rx_mutex;

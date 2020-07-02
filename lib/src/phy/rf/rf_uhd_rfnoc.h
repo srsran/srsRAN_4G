@@ -56,8 +56,8 @@ private:
 
   // Constant parameters
   const std::string RADIO_BLOCK_NAME = "Radio";
-  const std::string                  DDC_BLOCK_NAME = "DDC";
-  const std::string                  DUC_BLOCK_NAME = "DUC";
+  const std::string DDC_BLOCK_NAME   = "DDC";
+  const std::string DUC_BLOCK_NAME   = "DUC";
 #ifdef UHD_ENABLE_CUSTOM_RFNOC
   const std::string DDC_CUSTOM_BLOCK_NAME = "DDCch2";
   const std::string DUC_CUSTOM_BLOCK_NAME = "DUCch2";
@@ -69,7 +69,7 @@ private:
   const uhd::fs_path              TREE_RX_SENSORS     = "/mboards/0/dboards/A/rx_frontends/0/sensors";
   const std::string               TX_ANTENNA_PORT     = "TX/RX";
   const std::string               RX_ANTENNA_PORT     = "RX2";
-  const size_t                    spp                 = 246;
+  const size_t                    spp                 = 1920 / 8;
 
   // Primary parameters
   double              master_clock_rate = 184.32e6;
@@ -78,8 +78,7 @@ private:
   size_t              nof_channels      = 1; ///< Number of Channels per Radio
   std::vector<double> rx_freq_hz;
   std::vector<double> tx_freq_hz;
-  size_t              nof_samples_per_packet = spp * 4 + 2 * sizeof(uint64_t);
-  size_t              dma_fifo_depth         = 8192UL * 4096UL;
+  size_t              dma_fifo_depth = 8192UL * 4096UL;
 
   // Radio control
   std::vector<uhd::rfnoc::radio_ctrl::sptr> radio_ctrl = {};
@@ -181,7 +180,10 @@ private:
           radio_ctrl[i]->set_tx_antenna(TX_ANTENNA_PORT, 0);
 
           radio_ctrl[i]->enable_rx_timestamps(true, 0);
-          radio_ctrl[i]->set_arg("spp", spp);
+
+          if (spp) {
+            radio_ctrl[i]->set_arg("spp", spp);
+          }
         }
 
         // Sleep for some time
@@ -274,6 +276,12 @@ private:
 
   uhd_error connect()
   {
+    size_t nof_samples_per_packet = 0;
+
+    if (spp != 0) {
+      nof_samples_per_packet = spp * 4 + 2 * sizeof(uint64_t);
+    }
+
     UHD_SAFE_C_SAVE_ERROR(this,
 
                           // Get Tx and Rx Graph
@@ -437,7 +445,8 @@ public:
         this, uhd::stream_args_t stream_args("fc32", "sc16");
 
         stream_args.channels.resize(nof_radios * nof_channels);
-        stream_args.args["spp"] = std::to_string(spp);
+
+        if (spp != 0) { stream_args.args["spp"] = std::to_string(spp); }
 
         // Populate stream arguments with RF-NOC blocks interfaces
         size_t channel_count = 0;
@@ -461,7 +470,7 @@ public:
         this, uhd::stream_args_t stream_args("fc32", "sc16");
 
         stream_args.channels.resize(nof_radios * nof_channels);
-        stream_args.args["spp"] = std::to_string(spp);
+        if (spp != 0) { stream_args.args["spp"] = std::to_string(spp); }
 
         // Populate stream arguments with RF-NOC blocks interfaces
         size_t channel_count = 0;
@@ -546,33 +555,34 @@ public:
     tx_freq_hz[ch] = target_freq;
     actual_freq    = tx_freq_hz[ch];
 
-    UHD_SAFE_C_SAVE_ERROR(this,
+    Debug("Tuning Tx " << ch << " to " << actual_freq / 1e6 << " MHz...");
+    size_t i = ch / nof_channels;
 
-                          // For each radio...
-                          for (size_t i = 0; i < nof_radios; i++) {
-                            // Calculate center frequency from average
-                            double center_freq_hz = 0.0;
-                            for (size_t j = 0; j < nof_channels; j++) {
-                              if (not std::isnormal(tx_freq_hz[i * nof_channels + j])) {
-                                tx_freq_hz[i * nof_channels + j] = target_freq;
-                              }
-                              center_freq_hz += tx_freq_hz[i * nof_channels + j];
-                            }
-                            center_freq_hz /= nof_channels;
+    // Calculate center frequency from average
+    double center_freq_hz = 0.0;
+    for (size_t j = 0; j < nof_channels; j++) {
+      if (not std::isnormal(tx_freq_hz[i * nof_channels + j])) {
+        tx_freq_hz[i * nof_channels + j] = target_freq;
+      }
+      center_freq_hz += tx_freq_hz[i * nof_channels + j];
+    }
+    center_freq_hz /= nof_channels;
 
-                            // Set Radio Tx freq
-                            UHD_LOG_DEBUG(radio_id[i], "Setting TX Freq: " << center_freq_hz / 1e6 << " MHz...");
-                            radio_ctrl[i]->set_tx_frequency(center_freq_hz, 0);
-                            center_freq_hz = radio_ctrl[i]->get_tx_frequency(0);
-                            UHD_LOG_DEBUG(radio_id[i], "Actual TX Freq: " << center_freq_hz / 1e6 << " MHz...");
+    UHD_SAFE_C_SAVE_ERROR(
+        this,
 
-                            // Setup DUC
-                            for (size_t j = 0; j < nof_channels; j++) {
-                              double freq_hz = tx_freq_hz[nof_channels * i + j] - center_freq_hz;
-                              UHD_LOG_DEBUG(duc_id[i], "Setting " << j << " freq: " << freq_hz / 1e6 << " MHz ...");
-                              duc_ctrl[i]->set_arg("freq", std::to_string(freq_hz), j);
-                            }
-                          })
+        // Set Radio Tx freq
+        UHD_LOG_DEBUG(radio_id[i], "Setting TX Freq: " << center_freq_hz / 1e6 << " MHz...");
+        radio_ctrl[i]->set_tx_frequency(center_freq_hz, 0);
+        center_freq_hz = radio_ctrl[i]->get_tx_frequency(0);
+        UHD_LOG_DEBUG(radio_id[i], "Actual TX Freq: " << center_freq_hz / 1e6 << " MHz...");
+
+        // Setup DUC
+        for (size_t j = 0; j < nof_channels; j++) {
+          double freq_hz = tx_freq_hz[nof_channels * i + j] - center_freq_hz;
+          UHD_LOG_DEBUG(duc_id[i], "Setting " << j << " freq: " << freq_hz / 1e6 << " MHz ...");
+          duc_ctrl[i]->set_arg("freq", std::to_string(freq_hz), j);
+        })
   }
   uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq) override
   {
@@ -596,30 +606,34 @@ public:
     rx_freq_hz[ch] = target_freq;
     actual_freq    = rx_freq_hz[ch];
 
-    UHD_SAFE_C_SAVE_ERROR(this, for (size_t i = 0; i < nof_radios; i++) {
-      // Calculate center frequency from average
-      double center_freq_hz = 0.0;
-      for (size_t j = 0; j < nof_channels; j++) {
-        if (not std::isnormal(rx_freq_hz[i * nof_channels + j])) {
-          rx_freq_hz[i * nof_channels + j] = target_freq;
-        }
-        center_freq_hz += rx_freq_hz[i * nof_channels + j];
-      }
-      center_freq_hz /= nof_channels;
+    Debug("Tuning Rx " << ch << " to " << actual_freq / 1e6 << " MHz...");
+    size_t i = ch / nof_channels;
 
-      // Set Radio Tx freq
-      UHD_LOG_DEBUG(radio_id[i], "Setting RX Freq: " << center_freq_hz / 1e6 << " MHz...");
-      radio_ctrl[i]->set_rx_frequency(center_freq_hz, 0);
-      center_freq_hz = radio_ctrl[i]->get_rx_frequency(0);
-      UHD_LOG_DEBUG(radio_id[i], "Actual RX Freq: " << center_freq_hz / 1e6 << " MHz...");
-
-      // Setup DDC
-      for (size_t j = 0; j < nof_channels; j++) {
-        double freq_hz = center_freq_hz - rx_freq_hz[nof_channels * i + j];
-        UHD_LOG_DEBUG(ddc_id[i], "Setting " << j << " freq: " << freq_hz / 1e6 << " MHz ...");
-        ddc_ctrl[i]->set_arg("freq", freq_hz, j);
+    // Calculate center frequency from average
+    double center_freq_hz = 0.0;
+    for (size_t j = 0; j < nof_channels; j++) {
+      if (not std::isnormal(rx_freq_hz[i * nof_channels + j])) {
+        rx_freq_hz[i * nof_channels + j] = target_freq;
       }
-    })
+      center_freq_hz += rx_freq_hz[i * nof_channels + j];
+    }
+    center_freq_hz /= nof_channels;
+
+    UHD_SAFE_C_SAVE_ERROR(
+        this,
+
+        // Set Radio Tx freq
+        UHD_LOG_DEBUG(radio_id[i], "Setting RX Freq: " << center_freq_hz / 1e6 << " MHz...");
+        radio_ctrl[i]->set_rx_frequency(center_freq_hz, 0);
+        center_freq_hz = radio_ctrl[i]->get_rx_frequency(0);
+        UHD_LOG_DEBUG(radio_id[i], "Actual RX Freq: " << center_freq_hz / 1e6 << " MHz...");
+
+        // Setup DDC
+        for (size_t j = 0; j < nof_channels; j++) {
+          double freq_hz = center_freq_hz - rx_freq_hz[nof_channels * i + j];
+          UHD_LOG_DEBUG(ddc_id[i], "Setting " << j << " freq: " << freq_hz / 1e6 << " MHz ...");
+          ddc_ctrl[i]->set_arg("freq", freq_hz, j);
+        })
   }
 };
 
