@@ -159,7 +159,7 @@ void lte_ttcn3_phy::reset()
   log.debug("%s not implemented.\n", __FUNCTION__);
 };
 
-// The interface for MAC
+// The interface for MAC (called from Stack thread context)
 void lte_ttcn3_phy::configure_prach_params()
 {
   log.debug("%s not implemented.\n", __FUNCTION__);
@@ -167,6 +167,7 @@ void lte_ttcn3_phy::configure_prach_params()
 
 void lte_ttcn3_phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm, float ta_base_sec)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   log.info("Sending PRACH with preamble %d on PCID=%d\n", preamble_idx, pcell.info.id);
   prach_tti_tx = current_tti;
   ra_trans_cnt++;
@@ -372,8 +373,6 @@ void lte_ttcn3_phy::run_tti()
     sr_pending = false;
     sr_tx_tti  = current_tti;
   }
-
-  stack->run_tti(current_tti, 1);
 }
 
 void lte_ttcn3_phy::set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) {}

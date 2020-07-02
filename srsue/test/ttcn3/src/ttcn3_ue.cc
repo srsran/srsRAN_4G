@@ -146,6 +146,7 @@ void ttcn3_ue::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t mac_gra
 void ttcn3_ue::set_current_tti(uint32_t tti)
 {
   phy->set_current_tti(tti);
+  stack->run_tti(tti, 1);
 }
 
 uint16_t ttcn3_ue::get_dl_sched_rnti(uint32_t tti)
