@@ -138,9 +138,8 @@ public:
   const static int                MAX_NEIGHBOUR_CELLS = 8;
   typedef std::unique_ptr<cell_t> unique_cell_t;
 
-  bool          add_neighbour_cell_unsorted(const rrc_interface_phy_lte::phy_meas_t& meas);
+  bool          add_neighbour_cell(const rrc_interface_phy_lte::phy_meas_t& meas);
   bool          add_neighbour_cell(unique_cell_t cell);
-  bool          add_neighbour_cell_unsorted(unique_cell_t cell);
   void          rem_last_neighbour();
   unique_cell_t remove_neighbour_cell(uint32_t earfcn, uint32_t pci);
   void          clean_neighbours();
@@ -162,6 +161,8 @@ public:
   iterator end() { return neighbour_cells.end(); }
 
 private:
+  bool add_neighbour_cell_unsorted(unique_cell_t cell);
+
   srslte::log_ref log_h{"RRC"};
 
   unique_cell_t              serving_cell;

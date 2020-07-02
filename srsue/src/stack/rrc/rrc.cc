@@ -385,7 +385,7 @@ void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
       c->set_cfo(m.cfo_hz);
     } else {
       // or just set initial value
-      neighbour_added |= neighbour_cells.add_neighbour_cell_unsorted(m);
+      neighbour_added |= neighbour_cells.add_neighbour_cell(m);
     }
 
     if (m.earfcn == 0) {

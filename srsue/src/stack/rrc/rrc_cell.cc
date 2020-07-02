@@ -167,7 +167,7 @@ const cell_t* cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci
 }
 
 // If only neighbour PCI is provided, copy full cell from serving cell
-bool cell_list::add_neighbour_cell_unsorted(const rrc_interface_phy_lte::phy_meas_t& meas)
+bool cell_list::add_neighbour_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
 {
   phy_interface_rrc_lte::phy_cell_t phy_cell = {};
   phy_cell.earfcn                            = meas.earfcn;
@@ -176,7 +176,7 @@ bool cell_list::add_neighbour_cell_unsorted(const rrc_interface_phy_lte::phy_mea
   c.get()->set_rsrp(meas.rsrp);
   c.get()->set_rsrq(meas.rsrq);
   c.get()->set_cfo(meas.cfo_hz);
-  return add_neighbour_cell_unsorted(std::move(c));
+  return add_neighbour_cell(std::move(c));
 }
 
 bool cell_list::add_neighbour_cell(unique_cell_t new_cell)
