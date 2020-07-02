@@ -131,6 +131,25 @@ private:
   std::map<uint32_t, uint32_t> sib_info_map; ///< map of sib_index to index of schedInfoList in SIB1
 };
 
+class cell_list
+{
+public:
+  const static int                MAX_NEIGHBOUR_CELLS = 8;
+  typedef std::unique_ptr<cell_t> unique_cell_t;
+
+  bool add_neighbour(unique_cell_t cell);
+  void rem_last_neighbour();
+
+  cell_t* get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci);
+  void    log_neighbour_cells() const;
+
+private:
+  void sort_neighbour_cells();
+
+  srslte::log_ref            log_h{"RRC"};
+  std::vector<unique_cell_t> neighbour_cells;
+};
+
 } // namespace srsue
 
 #endif // SRSLTE_RRC_CELL_H

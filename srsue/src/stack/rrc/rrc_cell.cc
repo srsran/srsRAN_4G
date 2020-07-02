@@ -146,4 +146,94 @@ uint16_t cell_t::get_mnc() const
   return 0;
 }
 
+/*********************************************
+ *           Neighbour Cell List
+ ********************************************/
+
+cell_t* cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
+{
+  for (unique_cell_t& cell : neighbour_cells) {
+    if (cell->equals(earfcn, pci)) {
+      return cell.get();
+    }
+  }
+  return nullptr;
+}
+
+bool cell_list::add_neighbour(unique_cell_t new_cell)
+{
+  // Make sure cell is valid
+  if (!new_cell->is_valid()) {
+    log_h->error("Trying to add cell %s but is not valid", new_cell->to_string().c_str());
+    return false;
+  }
+
+  // If cell exists, update RSRP value
+  cell_t* existing_cell = get_neighbour_cell_handle(new_cell->get_earfcn(), new_cell->get_pci());
+  if (existing_cell != nullptr) {
+    if (std::isnormal(new_cell.get()->get_rsrp())) {
+      existing_cell->set_rsrp(new_cell.get()->get_rsrp());
+    }
+    log_h->info("Updated neighbour cell %s rsrp=%f\n", new_cell->to_string().c_str(), new_cell.get()->get_rsrp());
+    return true;
+  }
+
+  if (neighbour_cells.size() >= MAX_NEIGHBOUR_CELLS) {
+    // If there isn't space, keep the strongest only
+    if (not new_cell->greater(neighbour_cells.back().get())) {
+      log_h->warning("Could not add cell %s: no space in neighbours\n", new_cell->to_string().c_str());
+      return false;
+    }
+
+    rem_last_neighbour();
+  }
+
+  log_h->info(
+      "Adding neighbour cell %s, nof_neighbours=%zd\n", new_cell->to_string().c_str(), neighbour_cells.size() + 1);
+  neighbour_cells.push_back(std::move(new_cell));
+
+  sort_neighbour_cells();
+  return true;
+}
+
+void cell_list::rem_last_neighbour()
+{
+  if (not neighbour_cells.empty()) {
+    unique_cell_t& c = neighbour_cells.back();
+    log_h->debug("Delete cell %s from neighbor list.\n", c->to_string().c_str());
+    neighbour_cells.pop_back();
+  }
+}
+
+// Sort neighbour cells by decreasing order of RSRP
+void cell_list::sort_neighbour_cells()
+{
+  std::sort(std::begin(neighbour_cells), std::end(neighbour_cells), [](const unique_cell_t& a, const unique_cell_t& b) {
+    return a->greater(b.get());
+  });
+
+  log_neighbour_cells();
+}
+
+void cell_list::log_neighbour_cells() const
+{
+  if (not neighbour_cells.empty()) {
+    const int32_t MAX_STR_LEN          = 512;
+    char          ordered[MAX_STR_LEN] = {};
+    int           n                    = 0;
+    n += snprintf(ordered, MAX_STR_LEN, "[%s", neighbour_cells[0]->to_string().c_str());
+    for (uint32_t i = 1; i < neighbour_cells.size(); i++) {
+      if (n < MAX_STR_LEN) { // make sure there is still room left
+        int m = snprintf(&ordered[n], (size_t)MAX_STR_LEN - n, " | %s", neighbour_cells[i]->to_string().c_str());
+        if (m > 0) {
+          n += m;
+        }
+      }
+    }
+    log_h->debug("Neighbours: %s]\n", ordered);
+  } else {
+    log_h->debug("Neighbours: Empty\n");
+  }
+}
+
 } // namespace srsue
