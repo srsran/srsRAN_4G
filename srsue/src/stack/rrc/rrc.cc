@@ -563,6 +563,16 @@ void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool disc
   }
 }
 
+int rrc::start_cell_select()
+{
+  if (not cell_selector.launch()) {
+    rrc_log->error("Failed to initiate a Cell Selection procedure...\n");
+    return SRSLTE_ERROR;
+  }
+  callback_list.add_proc(cell_selector);
+  return SRSLTE_SUCCESS;
+}
+
 void rrc::delete_last_neighbour()
 {
   if (not neighbour_cells.empty()) {

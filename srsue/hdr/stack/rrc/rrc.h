@@ -357,6 +357,7 @@ protected:
   // Moved to protected to be accessible by unit tests
   void set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving);
   bool has_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
+  int  start_cell_select();
 
 private:
   typedef struct {
@@ -402,11 +403,11 @@ private:
 
   uint32_t cell_clean_cnt = 0;
 
-  uint16_t                    ho_src_rnti = 0;
-  cell_t                      ho_src_cell = {};
-  srslte::phy_cfg_t           current_phy_cfg, previous_phy_cfg = {};
-  srslte::mac_cfg_t           current_mac_cfg, previous_mac_cfg = {};
-  bool                        current_scell_configured[SRSLTE_MAX_CARRIERS] = {};
+  uint16_t          ho_src_rnti = 0;
+  cell_t            ho_src_cell = {};
+  srslte::phy_cfg_t current_phy_cfg, previous_phy_cfg = {};
+  srslte::mac_cfg_t current_mac_cfg, previous_mac_cfg = {};
+  bool              current_scell_configured[SRSLTE_MAX_CARRIERS] = {};
 
   srslte::as_security_config_t sec_cfg = {};
 

@@ -47,8 +47,7 @@ public:
                   uint32_t           cc_idx    = 0,
                   uint32_t           earfcn    = 0,
                   srslte_cell_t*     cell_info = nullptr) override
-  {
-  }
+  {}
   void              set_config_tdd(srslte_tdd_config_t& tdd_config) override {}
   void              set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) override {}
   void              set_config_mbsfn_sib13(const srslte::sib13_t& sib13) override {}
@@ -103,6 +102,14 @@ private:
   std::map<uint32_t, std::set<uint32_t> > cells_started;
   uint32_t                                serving_pci    = 0;
   uint32_t                                serving_earfcn = 0;
+};
+
+class stack_test final : public stack_test_dummy
+{
+public:
+  void start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) override { last_selected_cell = *cell; }
+
+  phy_interface_rrc_lte::phy_cell_t last_selected_cell = {};
 };
 
 class nas_test : public srsue::nas
@@ -238,18 +245,27 @@ public:
 
   void set_serving_cell(uint32_t pci, uint32_t earfcn)
   {
-    std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
-    rrc_interface_phy_lte::phy_meas_t              meas     = {};
-    meas.pci                                                = pci;
-    meas.earfcn                                             = earfcn;
-    phy_meas.push_back(meas); // neighbour cell
-    new_cell_meas(phy_meas);
-    run_tti(1);
+    if (not has_neighbour_cell(earfcn, pci)) {
+      add_neighbour_cell(pci, earfcn);
+    }
     phytest.set_serving_cell(pci, earfcn);
     rrc::set_serving_cell({pci, earfcn}, false);
   }
 
-  bool has_neighbour_cell(const uint32_t earfcn, const uint32_t pci) { return rrc::has_neighbour_cell(earfcn, pci); }
+  void add_neighbour_cell(uint32_t pci, uint32_t earfcn, float rsrp = 0)
+  {
+    std::vector<rrc_interface_phy_lte::phy_meas_t> phy_meas = {};
+    rrc_interface_phy_lte::phy_meas_t              meas     = {};
+    meas.pci                                                = pci;
+    meas.earfcn                                             = earfcn;
+    meas.rsrp                                               = rsrp;
+    phy_meas.push_back(meas); // neighbour cell
+    new_cell_meas(phy_meas);
+    run_tti(1);
+  }
+
+  using rrc::has_neighbour_cell;
+  using rrc::start_cell_select;
 
   bool get_meas_res(meas_results_s& meas_res) { return pdcptest->get_meas_res(meas_res); }
 
@@ -262,32 +278,74 @@ private:
   srslte::byte_buffer_pool*  pool = nullptr;
 };
 
-// Test Cell sear
+// Test Cell select
 int cell_select_test()
 {
-  srslte::log_ref log1("RRC_MEAS");
+  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
   log1->set_level(srslte::LOG_LEVEL_DEBUG);
   log1->set_hex_limit(-1);
+  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log->set_hex_limit(-1);
 
   printf("==========================================================\n");
   printf("======            Cell Select Testing      ===============\n");
   printf("==========================================================\n");
 
-  stack_test_dummy stack;
-  rrc_test         rrctest(log1, &stack);
-  rrctest.init();
-  rrctest.connect();
+  {
+    stack_test stack;
+    rrc_test   rrctest(log1, &stack);
+    rrctest.init();
+    rrctest.connect();
 
-  // Add a first serving cell
-  rrctest.set_serving_cell(1, 1);
+    // Add a first serving cell
+    rrctest.add_neighbour_cell(1, 1, 2.0);
+    rrctest.set_serving_cell(1, 1);
+    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
+    TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
 
-  // Add a second serving cell
-  rrctest.set_serving_cell(2, 2);
+    // Add a second serving cell
+    rrctest.add_neighbour_cell(2, 2, 1.0);
+    rrctest.set_serving_cell(2, 2);
+    TESTASSERT(rrctest.has_neighbour_cell(1, 1));
+    TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
 
-  // Select the second serving cell
-  rrctest.set_serving_cell(2, 2);
+    // Start cell selection procedure. The RRC will start with strongest cell
+    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    TESTASSERT(stack.last_selected_cell.earfcn == 1);
+    TESTASSERT(stack.last_selected_cell.pci == 1);
+    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
+    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
 
-  TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
+    // PHY reports back the result
+    rrctest.cell_select_completed(true);
+    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
+    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
+    // Note: cell selection procedure is not done yet at this point.
+  }
+
+  {
+    stack_test stack;
+    rrc_test   rrctest(log1, &stack);
+    rrctest.init();
+    rrctest.connect();
+
+    rrctest.add_neighbour_cell(1, 1, 2.0);
+    rrctest.add_neighbour_cell(2, 2, 1.0);
+    rrctest.set_serving_cell(1, 1);
+    TESTASSERT(not rrctest.has_neighbour_cell(1, 1));
+    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
+
+    // Start cell selection procedure. The RRC will start with strongest cell
+    TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
+    //    TESTASSERT(stack.last_selected_cell.earfcn == 1);
+    //    TESTASSERT(stack.last_selected_cell.pci == 1);
+    //    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
+    //    TESTASSERT(!rrctest.has_neighbour_cell(1, 1)); // selected current serving cell bc it is stronger
+    //
+    //    rrctest.cell_select_completed(false); // failed to set serving cell
+    //    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
+    //    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -720,9 +778,11 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
                         report_interv_e                      report_interv)
 {
 
-  srslte::log_ref log1("RRC_MEAS");
+  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
   log1->set_level(srslte::LOG_LEVEL_DEBUG);
   log1->set_hex_limit(-1);
+  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log->set_hex_limit(-1);
 
   printf("==========================================================\n");
   printf("============       Report Testing  A1      ===============\n");
@@ -854,9 +914,11 @@ int a1event_report_test(uint32_t                             a1_rsrp_th,
 int a3event_report_test(uint32_t a3_offset, uint32_t hyst, bool report_on_leave)
 {
 
-  srslte::log_ref log1("RRC_MEAS");
+  srslte::log_ref log1("RRC_MEAS"), rrc_log("RRC");
   log1->set_level(srslte::LOG_LEVEL_DEBUG);
   log1->set_hex_limit(-1);
+  rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log->set_hex_limit(-1);
 
   printf("==========================================================\n");
   printf("============       Report Testing A3       ===============\n");
