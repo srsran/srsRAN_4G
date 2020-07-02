@@ -292,6 +292,8 @@ int cell_select_test()
   printf("==========================================================\n");
 
   {
+    // CHECK: The starting serving cell pci=2 is the weakest, and cell selection procedure chooses pci=1
+    // CHECK: phy cell selection is successful, and rrc remains in pci=1
     stack_test stack;
     rrc_test   rrctest(log1, &stack);
     rrctest.init();
@@ -324,6 +326,9 @@ int cell_select_test()
   }
 
   {
+    // CHECK: The starting serving cell pci=1 is the strongest, and the cell selection procedure calls phy_cell_select
+    // for pci=1.
+    // CHECK: Cell selection fails in the phy, and rrc moves to pci=2
     stack_test stack;
     rrc_test   rrctest(log1, &stack);
     rrctest.init();
@@ -337,14 +342,14 @@ int cell_select_test()
 
     // Start cell selection procedure. The RRC will start with strongest cell
     TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
-    //    TESTASSERT(stack.last_selected_cell.earfcn == 1);
-    //    TESTASSERT(stack.last_selected_cell.pci == 1);
-    //    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
-    //    TESTASSERT(!rrctest.has_neighbour_cell(1, 1)); // selected current serving cell bc it is stronger
-    //
-    //    rrctest.cell_select_completed(false); // failed to set serving cell
-    //    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
-    //    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
+    TESTASSERT(stack.last_selected_cell.earfcn == 1);
+    TESTASSERT(stack.last_selected_cell.pci == 1);
+    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
+    TESTASSERT(!rrctest.has_neighbour_cell(1, 1)); // selected current serving cell bc it is stronger
+
+    rrctest.cell_select_completed(false); // failed to set serving cell
+    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
+    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
   }
 
   return SRSLTE_SUCCESS;
