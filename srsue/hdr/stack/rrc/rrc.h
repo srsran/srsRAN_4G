@@ -148,7 +148,7 @@ public:
 protected:
   // Moved to protected to be accessible by unit tests
   void set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving);
-  bool has_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
+  bool has_neighbour_cell(uint32_t earfcn, uint32_t pci) const;
   int  start_cell_select();
 
 private:
@@ -239,25 +239,10 @@ private:
   }
 
   // List of strongest neighbour cell
-  const static int NEIGHBOUR_TIMEOUT   = 5;
-  const static int NOF_NEIGHBOUR_CELLS = 8;
+  cell_list neighbour_cells;
 
   typedef std::unique_ptr<cell_t> unique_cell_t;
-  std::vector<unique_cell_t>      neighbour_cells;
   unique_cell_t                   serving_cell = nullptr;
-  void                            set_serving_cell(uint32_t cell_idx);
-
-  unique_cell_t      remove_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
-  cell_t*            get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci);
-  int                find_neighbour_cell(uint32_t earfcn, uint32_t pci);
-  bool               add_neighbour_cell(phy_meas_t meas);
-  bool               add_neighbour_cell(unique_cell_t new_cell);
-  void               log_neighbour_cells();
-  void               sort_neighbour_cells();
-  void               clean_neighbours();
-  void               delete_last_neighbour();
-  std::string        print_neighbour_cells();
-  std::set<uint32_t> get_neighbour_pcis(uint32_t earfcn);
 
   bool                     initiated                  = false;
   asn1::rrc::reest_cause_e m_reest_cause              = asn1::rrc::reest_cause_e::nulltype;

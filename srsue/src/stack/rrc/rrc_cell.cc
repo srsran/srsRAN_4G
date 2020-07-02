@@ -152,15 +152,43 @@ uint16_t cell_t::get_mnc() const
 
 cell_t* cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
 {
-  for (unique_cell_t& cell : neighbour_cells) {
-    if (cell->equals(earfcn, pci)) {
-      return cell.get();
-    }
-  }
-  return nullptr;
+  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
+    return cell->equals(earfcn, pci);
+  });
+  return it != neighbour_cells.end() ? it->get() : nullptr;
 }
 
-bool cell_list::add_neighbour(unique_cell_t new_cell)
+const cell_t* cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const
+{
+  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
+    return cell->equals(earfcn, pci);
+  });
+  return it != neighbour_cells.end() ? it->get() : nullptr;
+}
+
+// If only neighbour PCI is provided, copy full cell from serving cell
+bool cell_list::add_neighbour_cell_unsorted(const rrc_interface_phy_lte::phy_meas_t& meas)
+{
+  phy_interface_rrc_lte::phy_cell_t phy_cell = {};
+  phy_cell.earfcn                            = meas.earfcn;
+  phy_cell.pci                               = meas.pci;
+  unique_cell_t c                            = unique_cell_t(new cell_t(phy_cell));
+  c.get()->set_rsrp(meas.rsrp);
+  c.get()->set_rsrq(meas.rsrq);
+  c.get()->set_cfo(meas.cfo_hz);
+  return add_neighbour_cell_unsorted(std::move(c));
+}
+
+bool cell_list::add_neighbour_cell(unique_cell_t new_cell)
+{
+  bool ret = add_neighbour_cell_unsorted(std::move(new_cell));
+  if (ret) {
+    sort_neighbour_cells();
+  }
+  return ret;
+}
+
+bool cell_list::add_neighbour_cell_unsorted(unique_cell_t new_cell)
 {
   // Make sure cell is valid
   if (!new_cell->is_valid()) {
@@ -191,8 +219,6 @@ bool cell_list::add_neighbour(unique_cell_t new_cell)
   log_h->info(
       "Adding neighbour cell %s, nof_neighbours=%zd\n", new_cell->to_string().c_str(), neighbour_cells.size() + 1);
   neighbour_cells.push_back(std::move(new_cell));
-
-  sort_neighbour_cells();
   return true;
 }
 
@@ -203,6 +229,19 @@ void cell_list::rem_last_neighbour()
     log_h->debug("Delete cell %s from neighbor list.\n", c->to_string().c_str());
     neighbour_cells.pop_back();
   }
+}
+
+cell_list::unique_cell_t cell_list::remove_neighbour_cell(uint32_t earfcn, uint32_t pci)
+{
+  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
+    return cell->equals(earfcn, pci);
+  });
+  if (it != neighbour_cells.end()) {
+    auto retval = std::move(*it);
+    it          = neighbour_cells.erase(it);
+    return retval;
+  }
+  return nullptr;
 }
 
 // Sort neighbour cells by decreasing order of RSRP
@@ -234,6 +273,52 @@ void cell_list::log_neighbour_cells() const
   } else {
     log_h->debug("Neighbours: Empty\n");
   }
+}
+
+//! Called by main RRC thread to remove neighbours from which measurements have not been received in a while
+void cell_list::clean_neighbours()
+{
+  struct timeval now;
+  gettimeofday(&now, nullptr);
+
+  for (auto it = neighbour_cells.begin(); it != neighbour_cells.end();) {
+    if ((*it)->timeout_secs(now) > NEIGHBOUR_TIMEOUT) {
+      log_h->info("Neighbour PCI=%d timed out. Deleting\n", (*it)->get_pci());
+      it = neighbour_cells.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
+std::string cell_list::print_neighbour_cells() const
+{
+  if (neighbour_cells.empty()) {
+    return "";
+  }
+  std::string s;
+  s.reserve(256);
+  for (auto it = neighbour_cells.begin(); it != neighbour_cells.end() - 1; ++it) {
+    s += (*it)->to_string() + ", ";
+  }
+  s += neighbour_cells.back()->to_string();
+  return s;
+}
+
+std::set<uint32_t> cell_list::get_neighbour_pcis(uint32_t earfcn) const
+{
+  std::set<uint32_t> pcis = {};
+  for (const unique_cell_t& cell : neighbour_cells) {
+    if (cell->get_earfcn() == earfcn) {
+      pcis.insert(cell->get_pci());
+    }
+  }
+  return pcis;
+}
+
+bool cell_list::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
+{
+  return get_neighbour_cell_handle(earfcn, pci) != nullptr;
 }
 
 } // namespace srsue

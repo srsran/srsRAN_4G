@@ -134,19 +134,37 @@ private:
 class cell_list
 {
 public:
+  const static int                NEIGHBOUR_TIMEOUT   = 5;
   const static int                MAX_NEIGHBOUR_CELLS = 8;
   typedef std::unique_ptr<cell_t> unique_cell_t;
 
-  bool add_neighbour(unique_cell_t cell);
-  void rem_last_neighbour();
+  bool          add_neighbour_cell_unsorted(const rrc_interface_phy_lte::phy_meas_t& meas);
+  bool          add_neighbour_cell(unique_cell_t cell);
+  bool          add_neighbour_cell_unsorted(unique_cell_t cell);
+  void          rem_last_neighbour();
+  unique_cell_t remove_neighbour_cell(uint32_t earfcn, uint32_t pci);
+  void          clean_neighbours();
+  void          sort_neighbour_cells();
 
-  cell_t* get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci);
-  void    log_neighbour_cells() const;
+  cell_t*            get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci);
+  const cell_t*      get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const;
+  void               log_neighbour_cells() const;
+  std::string        print_neighbour_cells() const;
+  std::set<uint32_t> get_neighbour_pcis(uint32_t earfcn) const;
+  bool               has_neighbour_cell(uint32_t earfcn, uint32_t pci) const;
+  size_t             nof_neighbours() const { return neighbour_cells.size(); }
+  cell_t&            operator[](size_t idx) { return *neighbour_cells[idx]; }
+  const cell_t&      operator[](size_t idx) const { return *neighbour_cells[idx]; }
+  cell_t&            at(size_t idx) { return *neighbour_cells.at(idx); }
+
+  using iterator = std::vector<unique_cell_t>::iterator;
+  iterator begin() { return neighbour_cells.begin(); }
+  iterator end() { return neighbour_cells.end(); }
 
 private:
-  void sort_neighbour_cells();
+  srslte::log_ref log_h{"RRC"};
 
-  srslte::log_ref            log_h{"RRC"};
+  unique_cell_t              serving_cell;
   std::vector<unique_cell_t> neighbour_cells;
 };
 

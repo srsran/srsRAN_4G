@@ -167,7 +167,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
 {
   m.state = state;
   // Save strongest cells metrics
-  for (auto& c : neighbour_cells) {
+  for (unique_cell_t& c : neighbour_cells) {
     rrc_interface_phy_lte::phy_meas_t meas = {};
     meas.cfo_hz                            = c->get_cfo_hz();
     meas.earfcn                            = c->get_earfcn();
@@ -250,7 +250,7 @@ void rrc::run_tti()
   // Clean old neighbours
   cell_clean_cnt++;
   if (cell_clean_cnt == 1000) {
-    clean_neighbours();
+    neighbour_cells.clean_neighbours();
     cell_clean_cnt = 0;
   }
 }
@@ -358,7 +358,7 @@ void rrc::process_cell_meas()
     }
     process_new_cell_meas(m);
   }
-  sort_neighbour_cells();
+  neighbour_cells.sort_neighbour_cells();
 }
 
 void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
@@ -376,7 +376,7 @@ void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
       }
       // Or update/add RRC neighbour cell database
     } else {
-      c = get_neighbour_cell_handle(m.earfcn, m.pci);
+      c = neighbour_cells.get_neighbour_cell_handle(m.earfcn, m.pci);
     }
     // Filter RSRP/RSRQ measurements if cell exits
     if (c != nullptr) {
@@ -385,7 +385,7 @@ void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
       c->set_cfo(m.cfo_hz);
     } else {
       // or just set initial value
-      neighbour_added = add_neighbour_cell(m);
+      neighbour_added |= neighbour_cells.add_neighbour_cell_unsorted(m);
     }
 
     if (m.earfcn == 0) {
@@ -489,7 +489,7 @@ void rrc::cell_reselection(float rsrp, float rsrq)
     phy->meas_stop();
   } else {
     // UE must start intra-frequency measurements
-    auto pci = get_neighbour_pcis(serving_cell->get_earfcn());
+    auto pci = neighbour_cells.get_neighbour_pcis(serving_cell->get_earfcn());
     phy->set_cells_to_meas(serving_cell->get_earfcn(), pci);
   }
 
@@ -501,19 +501,20 @@ void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool disc
 {
   if (has_neighbour_cell(phy_cell.earfcn, phy_cell.pci)) {
     // Remove future serving cell from neighbours to make space for current serving cell
-    unique_cell_t new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
+    unique_cell_t new_serving_cell = neighbour_cells.remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
     bool same_cell = (phy_cell.earfcn == serving_cell->get_earfcn() and phy_cell.pci == serving_cell->get_pci());
 
     // Move serving cell to neighbours list
     if (serving_cell->is_valid() and not same_cell and not discard_serving) {
-      if (not add_neighbour_cell(std::move(serving_cell))) {
+      if (not neighbour_cells.add_neighbour_cell(std::move(serving_cell))) {
         rrc_log->info("Serving cell not added to list of neighbours. Worse than current neighbours\n");
       }
     }
     // Set new serving cell
     serving_cell = std::move(new_serving_cell);
-    rrc_log->info(
-        "Setting serving cell %s, nof_neighbours=%zd\n", serving_cell->to_string().c_str(), neighbour_cells.size());
+    rrc_log->info("Setting serving cell %s, nof_neighbours=%zd\n",
+                  serving_cell->to_string().c_str(),
+                  neighbour_cells.nof_neighbours());
   } else {
     rrc_log->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.pci);
   }
@@ -529,166 +530,9 @@ int rrc::start_cell_select()
   return SRSLTE_SUCCESS;
 }
 
-void rrc::delete_last_neighbour()
+bool rrc::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
 {
-  if (not neighbour_cells.empty()) {
-    auto& it = neighbour_cells.back();
-    rrc_log->debug("Delete cell %s from neighbor list.\n", (*it).to_string().c_str());
-    neighbour_cells.pop_back();
-  }
-}
-
-/* Called by main RRC thread to remove neighbours from which measurements have not been received in a while
- */
-void rrc::clean_neighbours()
-{
-  struct timeval now;
-  gettimeofday(&now, NULL);
-
-  for (auto it = neighbour_cells.begin(); it != neighbour_cells.end();) {
-    if ((*it)->timeout_secs(now) > NEIGHBOUR_TIMEOUT) {
-      rrc_log->info("Neighbour PCI=%d timed out. Deleting\n", (*it)->get_pci());
-      it = neighbour_cells.erase(it);
-    } else {
-      ++it;
-    }
-  }
-}
-
-void rrc::log_neighbour_cells()
-{
-  if (not neighbour_cells.empty()) {
-    const int32_t MAX_STR_LEN          = 512;
-    char          ordered[MAX_STR_LEN] = {};
-    int           n                    = 0;
-    n += snprintf(ordered, MAX_STR_LEN, "[%s", neighbour_cells[0]->to_string().c_str());
-    for (uint32_t i = 1; i < neighbour_cells.size(); i++) {
-      if (n < MAX_STR_LEN) { // make sure there is still room left
-        int m = snprintf(&ordered[n], (size_t)MAX_STR_LEN - n, " | %s", neighbour_cells[i]->to_string().c_str());
-        if (m > 0) {
-          n += m;
-        }
-      }
-    }
-    rrc_log->debug("Neighbours: %s]\n", ordered);
-  } else {
-    rrc_log->debug("Neighbours: Empty\n");
-  }
-}
-
-// Sort neighbour cells by decreasing order of RSRP
-void rrc::sort_neighbour_cells()
-{
-  std::sort(std::begin(neighbour_cells), std::end(neighbour_cells), [](const unique_cell_t& a, const unique_cell_t& b) {
-    return a->greater(b.get());
-  });
-
-  log_neighbour_cells();
-}
-
-bool rrc::add_neighbour_cell(unique_cell_t new_cell)
-{
-  bool ret = false;
-  // Make sure cell is valid
-  if (!new_cell->is_valid()) {
-    rrc_log->error("Trying to add cell %s but is not valid", new_cell->to_string().c_str());
-    return ret;
-  }
-  // If cell exists, update RSRP value
-  cell_t* existing_cell = get_neighbour_cell_handle(new_cell->get_earfcn(), new_cell->get_pci());
-  if (existing_cell != nullptr) {
-    if (std::isnormal(new_cell.get()->get_rsrp())) {
-      existing_cell->set_rsrp(new_cell.get()->get_rsrp());
-    }
-    ret = true;
-  } else {
-    // If doesn't exists, add it if there is enough space
-    if (neighbour_cells.size() < NOF_NEIGHBOUR_CELLS) {
-      ret = true;
-      // If there isn't space, keep the strongest only
-    } else if (new_cell->greater(neighbour_cells.back().get())) {
-      // delete last neighbour cell
-      delete_last_neighbour();
-      ret = true;
-    }
-  }
-  if (ret) {
-    rrc_log->info(
-        "Adding neighbour cell %s, nof_neighbours=%zd\n", new_cell->to_string().c_str(), neighbour_cells.size() + 1);
-    neighbour_cells.push_back(std::move(new_cell));
-  } else {
-    rrc_log->warning("Could not add cell %s: no space in neighbours\n", new_cell->to_string().c_str());
-  }
-
-  sort_neighbour_cells();
-  return ret;
-}
-
-// If only neighbour PCI is provided, copy full cell from serving cell
-bool rrc::add_neighbour_cell(phy_meas_t meas)
-{
-  phy_interface_rrc_lte::phy_cell_t phy_cell = {};
-  phy_cell.earfcn                            = meas.earfcn;
-  phy_cell.pci                               = meas.pci;
-  unique_cell_t c                            = unique_cell_t(new cell_t(phy_cell));
-  c.get()->set_rsrp(meas.rsrp);
-  c.get()->set_rsrq(meas.rsrq);
-  c.get()->set_cfo(meas.cfo_hz);
-  return add_neighbour_cell(std::move(c));
-}
-
-// This will remove the cell from the current neighbour list
-rrc::unique_cell_t rrc::remove_neighbour_cell(const uint32_t earfcn, const uint32_t pci)
-{
-  auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
-    return cell->equals(earfcn, pci);
-  });
-  if (it != neighbour_cells.end()) {
-    auto retval = std::move(*it);
-    it          = neighbour_cells.erase(it);
-    return retval;
-  }
-  return nullptr;
-}
-
-cell_t* rrc::get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci)
-{
-  for (auto& cell : neighbour_cells) {
-    if (cell->equals(earfcn, pci)) {
-      return cell.get();
-    }
-  }
-  return nullptr;
-}
-
-bool rrc::has_neighbour_cell(const uint32_t earfcn, const uint32_t pci)
-{
-  return get_neighbour_cell_handle(earfcn, pci) != nullptr;
-}
-
-std::string rrc::print_neighbour_cells()
-{
-  if (neighbour_cells.empty()) {
-    return "";
-  }
-  std::string s;
-  s.reserve(256);
-  for (auto it = neighbour_cells.begin(); it != neighbour_cells.end() - 1; ++it) {
-    s += (*it)->to_string() + ", ";
-  }
-  s += neighbour_cells.back()->to_string();
-  return s;
-}
-
-std::set<uint32_t> rrc::get_neighbour_pcis(uint32_t earfcn)
-{
-  std::set<uint32_t> pcis = {};
-  for (auto& cell : neighbour_cells) {
-    if (cell->get_earfcn() == earfcn) {
-      pcis.insert(cell->get_pci());
-    }
-  }
-  return pcis;
+  return neighbour_cells.has_neighbour_cell(earfcn, pci);
 }
 
 /*******************************************************************************
@@ -1251,27 +1095,19 @@ void rrc::send_srb1_msg(const ul_dcch_msg_s& msg)
 
 std::set<uint32_t> rrc::get_cells(const uint32_t earfcn)
 {
-  return get_neighbour_pcis(earfcn);
+  return neighbour_cells.get_neighbour_pcis(earfcn);
 }
 
 float rrc::get_cell_rsrp(const uint32_t earfcn, const uint32_t pci)
 {
-  cell_t* c = get_neighbour_cell_handle(earfcn, pci);
-  if (c != nullptr) {
-    return c->get_rsrp();
-  } else {
-    return NAN;
-  }
+  cell_t* c = neighbour_cells.get_neighbour_cell_handle(earfcn, pci);
+  return (c != nullptr) ? c->get_rsrp() : NAN;
 }
 
 float rrc::get_cell_rsrq(const uint32_t earfcn, const uint32_t pci)
 {
-  cell_t* c = get_neighbour_cell_handle(earfcn, pci);
-  if (c != nullptr) {
-    return c->get_rsrq();
-  } else {
-    return NAN;
-  }
+  cell_t* c = neighbour_cells.get_neighbour_cell_handle(earfcn, pci);
+  return (c != nullptr) ? c->get_rsrq() : NAN;
 }
 
 cell_t* rrc::get_serving_cell()

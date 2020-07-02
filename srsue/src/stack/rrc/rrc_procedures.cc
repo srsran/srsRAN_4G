@@ -121,7 +121,7 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
   Info("Cell found in this frequency. Setting new serving cell EARFCN=%d PCI=%d ...\n", new_cell.earfcn, new_cell.pci);
 
   // Create a cell with NaN RSRP. Will be updated by new_phy_meas() during SIB search.
-  if (not rrc_ptr->add_neighbour_cell(unique_cell_t(new cell_t(new_cell)))) {
+  if (not rrc_ptr->neighbour_cells.add_neighbour_cell(unique_cell_t(new cell_t(new_cell)))) {
     Error("Could not add new found cell\n");
     return proc_outcome_t::error;
   }
@@ -494,7 +494,8 @@ rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {
  */
 proc_outcome_t rrc::cell_selection_proc::init()
 {
-  if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->phy_sync_state == phy_in_sync and rrc_ptr->phy->cell_is_camping()) {
+  if (rrc_ptr->neighbour_cells.nof_neighbours() == 0 and rrc_ptr->phy_sync_state == phy_in_sync and
+      rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     Debug("Skipping Cell Selection Procedure as there are no neighbour and cell is camping.\n");
     cs_result = cs_result_t::same_cell;
@@ -502,7 +503,7 @@ proc_outcome_t rrc::cell_selection_proc::init()
   }
 
   Info("Starting...\n");
-  Info("Current neighbor cells: [%s]\n", rrc_ptr->print_neighbour_cells().c_str());
+  Info("Current neighbor cells: [%s]\n", rrc_ptr->neighbour_cells.print_neighbour_cells().c_str());
   Info("Current PHY state: %s\n", rrc_ptr->phy_sync_state == phy_in_sync ? "in-sync" : "out-of-sync");
   if (rrc_ptr->serving_cell->has_sib3()) {
     Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f\n",
@@ -559,23 +560,23 @@ proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
 proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
 {
   // Neighbour cells are sorted in descending order of RSRP
-  for (; neigh_index < rrc_ptr->neighbour_cells.size(); ++neigh_index) {
+  for (; neigh_index < rrc_ptr->neighbour_cells.nof_neighbours(); ++neigh_index) {
     // If the serving cell is stronger, attempt to select it
     if (not serv_cell_select_attempted and rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp()) and
-        rrc_ptr->serving_cell->greater(rrc_ptr->neighbour_cells[neigh_index].get())) {
+        rrc_ptr->serving_cell->greater(&rrc_ptr->neighbour_cells[neigh_index])) {
       return start_serv_cell_selection();
     }
 
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
      * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
     // Matches S criteria
-    float rsrp = rrc_ptr->neighbour_cells.at(neigh_index)->get_rsrp();
+    float rsrp = rrc_ptr->neighbour_cells.at(neigh_index).get_rsrp();
 
     if (rrc_ptr->phy_sync_state != phy_in_sync or
         (rrc_ptr->cell_selection_criteria(rsrp) and rsrp > rrc_ptr->serving_cell->get_rsrp() + 5)) {
       // currently connected and verifies cell selection criteria
       // Try to select Cell
-      rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index)->phy_cell, discard_serving);
+      rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index).phy_cell, discard_serving);
       discard_serving = false;
       Info("Selected cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
 
@@ -635,7 +636,7 @@ srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const cell_
   rrc_ptr->phy_sync_state = phy_unknown_sync;
   rrc_ptr->serving_cell->set_rsrp(-INFINITY);
   Warning("Could not camp on serving cell.\n");
-  return neigh_index >= rrc_ptr->neighbour_cells.size() ? proc_outcome_t::error : proc_outcome_t::yield;
+  return neigh_index >= rrc_ptr->neighbour_cells.nof_neighbours() ? proc_outcome_t::error : proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_wait_in_sync()
@@ -1129,7 +1130,8 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
-  if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->phy_sync_state == phy_in_sync and rrc_ptr->phy->cell_is_camping()) {
+  if (rrc_ptr->neighbour_cells.nof_neighbours() == 0 and rrc_ptr->phy_sync_state == phy_in_sync and
+      rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     return proc_outcome_t::success;
   }
@@ -1448,7 +1450,8 @@ srslte::proc_outcome_t rrc::ho_proc::react(srsue::cell_select_event_t ev)
     return proc_outcome_t::yield;
   }
   // Check if cell has not been deleted in the meantime
-  cell_t* target_cell = rrc_ptr->get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
+  cell_t* target_cell =
+      rrc_ptr->neighbour_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
   if (target_cell == nullptr) {
     Error("Cell removed from list of neighbours. Aborting handover preparation\n");
     return proc_outcome_t::error;
@@ -1535,7 +1538,8 @@ srslte::proc_outcome_t rrc::ho_proc::step()
       rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded);
     }
 
-    cell_t* target_cell = rrc_ptr->get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
+    cell_t* target_cell =
+        rrc_ptr->neighbour_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
     if (not rrc_ptr->phy_cell_selector.launch(*target_cell)) {
       Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
       return proc_outcome_t::error;
