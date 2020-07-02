@@ -252,9 +252,7 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   return ret;
 }
 
-bool radio::rx_dev(const uint32_t&            device_idx,
-                   const rf_buffer_interface& buffer,
-                   srslte_timestamp_t*        rxd_time)
+bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer, srslte_timestamp_t* rxd_time)
 {
   if (!is_initialized) {
     return false;
@@ -354,9 +352,7 @@ bool radio::open_dev(const uint32_t& device_idx, const std::string& device_name,
   return true;
 }
 
-bool radio::tx_dev(const uint32_t&           device_idx,
-                   rf_buffer_interface&      buffer,
-                   const srslte_timestamp_t& tx_time_)
+bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, const srslte_timestamp_t& tx_time_)
 {
   uint32_t     nof_samples   = buffer.get_nof_samples();
   uint32_t     sample_offset = 0;
@@ -556,8 +552,20 @@ void radio::set_channel_rx_offset(uint32_t ch, int32_t offset_samples)
   // Calculate device index
   uint32_t device_idx = (nof_antennas * (uint32_t)physical_channel_idx) / nof_channels_x_dev;
 
+  // Skip correction if device matches the first logical channel
+  int      main_physical_channel_idx = rx_channel_mapping.get_carrier_idx(0);
+  uint32_t main_device_idx           = (nof_antennas * (uint32_t)main_physical_channel_idx) / nof_channels_x_dev;
+  if (device_idx == main_device_idx) {
+    return;
+  }
+
   // Bound device index
   if (device_idx >= rx_offset_n.size()) {
+    return;
+  }
+
+  // Skip correction if it has already been set
+  if (rx_offset_n[device_idx] != 0) {
     return;
   }
 
