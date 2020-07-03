@@ -886,11 +886,16 @@ int srslte_uci_data_info(srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_data
   uint32_t nof_acks = srslte_uci_cfg_total_ack(uci_cfg);
   if (nof_acks) {
     n = srslte_print_check(str, str_len, n, ", ack=");
-    for (uint32_t i = 0; i < nof_acks; i++) {
-      n = srslte_print_check(str, str_len, n, "%d", uci_data->ack.ack_value[i]);
-    }
-    if (uci_cfg->ack[0].N_bundle) {
-      n = srslte_print_check(str, str_len, n, ", n_bundle=%d", uci_cfg->ack[0].N_bundle);
+    if (uci_data->ack.valid) {
+
+      for (uint32_t i = 0; i < nof_acks; i++) {
+        n = srslte_print_check(str, str_len, n, "%d", uci_data->ack.ack_value[i]);
+      }
+      if (uci_cfg->ack[0].N_bundle) {
+        n = srslte_print_check(str, str_len, n, ", n_bundle=%d", uci_cfg->ack[0].N_bundle);
+      }
+    } else {
+      n = srslte_print_check(str, str_len, n, "invalid");
     }
   }
 

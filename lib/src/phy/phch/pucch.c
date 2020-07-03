@@ -809,7 +809,7 @@ static bool decode_signal(srslte_pucch_t*     q,
       break;
     case SRSLTE_PUCCH_FORMAT_3:
       corr     = (float)decode_signal_format3(q, sf, cfg, pucch_bits, q->z) / 4800.0f;
-      detected = true;
+      detected = corr > cfg->threshold_data_valid_format3;
       break;
     default:
       ERROR("PUCCH format %d not implemented\n", cfg->format);
@@ -831,7 +831,7 @@ static void decode_bits(srslte_pucch_cfg_t* cfg,
     uint32_t nof_ack = srslte_uci_cfg_total_ack(&cfg->uci_cfg);
     memcpy(uci_data->ack.ack_value, pucch_bits, nof_ack);
     uci_data->scheduling_request = (pucch_bits[nof_ack] == 1);
-    uci_data->ack.valid          = true;
+    uci_data->ack.valid          = pucch_found;
   } else {
     // If was looking for scheduling request, update value
     if (cfg->uci_cfg.is_scheduling_request_tti) {
