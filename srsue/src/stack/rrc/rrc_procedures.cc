@@ -590,7 +590,9 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
   // Iteration over neighbor cells is over.
 
   // If serving cell is weaker, but couldn't select neighbors
-  if (not serv_cell_select_attempted and rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
+  if (serv_cell_select_attempted) {
+    return proc_outcome_t::error;
+  } else if (rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
     return start_serv_cell_selection();
   }
 
@@ -633,7 +635,7 @@ srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const cell_
   rrc_ptr->phy_sync_state = phy_unknown_sync;
   rrc_ptr->serving_cell->set_rsrp(-INFINITY);
   Warning("Could not camp on serving cell.\n");
-  return proc_outcome_t::yield;
+  return neigh_index >= rrc_ptr->neighbour_cells.size() ? proc_outcome_t::error : proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_wait_in_sync()
