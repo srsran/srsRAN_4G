@@ -243,6 +243,7 @@ public:
 
   int          sim_cfg(sim_sched_args args);
   virtual int  add_user(uint16_t rnti, const ue_ctxt_test_cfg& ue_cfg_);
+  virtual int  reconf_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_);
   virtual void rem_user(uint16_t rnti);
   virtual int  process_results();
   int          process_tti_events(const tti_ev& tti_ev);

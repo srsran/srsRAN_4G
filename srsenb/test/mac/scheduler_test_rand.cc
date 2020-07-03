@@ -442,10 +442,12 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
 
   sched_sim_event_generator generator;
 
-  sim_gen.sim_args.cell_cfg                        = {generate_default_cell_cfg(nof_prb)};
-  sim_gen.sim_args.default_ue_sim_cfg.periodic_cqi = true;
-  sim_gen.sim_args.start_tti                       = 0;
-  sim_gen.sim_args.sim_log                         = log_global.get();
+  sim_gen.sim_args.cell_cfg                             = {generate_default_cell_cfg(nof_prb)};
+  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg            = generate_default_ue_cfg();
+  sim_gen.sim_args.default_ue_sim_cfg.periodic_cqi      = true;
+  sim_gen.sim_args.default_ue_sim_cfg.ue_cfg.maxharq_tx = std::uniform_int_distribution<>{1, 5}(srsenb::get_rand_gen());
+  sim_gen.sim_args.start_tti                            = 0;
+  sim_gen.sim_args.sim_log                              = log_global.get();
   sim_gen.sim_args.sched_args.pdsch_mcs =
       boolean_dist() ? -1 : std::uniform_int_distribution<>{0, 24}(srsenb::get_rand_gen());
   sim_gen.sim_args.sched_args.pusch_mcs =
@@ -470,7 +472,8 @@ sched_sim_events rand_sim_params(uint32_t nof_ttis)
     bool is_prach_tti =
         srslte_prach_tti_opportunity_config_fdd(sim_gen.sim_args.cell_cfg[CARRIER_IDX].prach_config, tti, -1);
     if (is_prach_tti and generator.current_users.size() < max_nof_users and srsenb::randf() < P_prach) {
-      generator.add_new_default_user(connection_dur_dist(srsenb::get_rand_gen()));
+      generator.add_new_default_user(connection_dur_dist(srsenb::get_rand_gen()),
+                                     sim_gen.sim_args.default_ue_sim_cfg.ue_cfg);
     }
     generator.step_tti();
   }

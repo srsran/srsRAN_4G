@@ -55,6 +55,8 @@ sim_sched_args generate_default_sim_args(uint32_t nof_prb, uint32_t nof_ccs)
 {
   sim_sched_args sim_args;
 
+  sim_args.default_ue_sim_cfg.ue_cfg = generate_default_ue_cfg2();
+
   // setup two cells
   std::vector<srsenb::sched_interface::cell_cfg_t> cell_cfg(nof_ccs, generate_default_cell_cfg(nof_prb));
   cell_cfg[0].scell_list.resize(1);
@@ -89,18 +91,6 @@ int test_scell_activation(test_scell_activation_params params)
   uint32_t nof_ccs   = 2;
   uint32_t start_tti = 0; // rand_int(0, 10240);
 
-  /* Setup simulation arguments struct */
-  sim_sched_args sim_args = generate_default_sim_args(nof_prb, nof_ccs);
-  sim_args.sim_log        = log_global.get();
-  sim_args.start_tti      = start_tti;
-
-  /* Simulation Objects Setup */
-  sched_sim_event_generator generator;
-  // Setup scheduler
-  common_sched_tester tester;
-  tester.init(nullptr);
-  tester.sim_cfg(sim_args);
-
   /* Internal configurations. Do not touch */
   float          ul_sr_exps[]   = {1, 4}; // log rand
   float          dl_data_exps[] = {1, 4}; // log rand
@@ -117,15 +107,29 @@ int test_scell_activation(test_scell_activation_params params)
   std::shuffle(cc_idxs.begin(), cc_idxs.end(), get_rand_gen());
   std::iter_swap(cc_idxs.begin(), std::find(cc_idxs.begin(), cc_idxs.end(), params.pcell_idx));
 
+  /* Setup simulation arguments struct */
+  sim_sched_args sim_args = generate_default_sim_args(nof_prb, nof_ccs);
+  sim_args.sim_log        = log_global.get();
+  sim_args.start_tti      = start_tti;
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list.resize(1);
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].active           = true;
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].enb_cc_idx       = cc_idxs[0];
+  sim_args.default_ue_sim_cfg.ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
+  sim_args.default_ue_sim_cfg.ue_cfg.dl_cfg.cqi_report.pmi_idx             = 0;
+
+  /* Simulation Objects Setup */
+  sched_sim_event_generator generator;
+  // Setup scheduler
+  common_sched_tester tester;
+  tester.init(nullptr);
+  tester.sim_cfg(sim_args);
+
   /* Simulation */
 
   // Event PRACH: PRACH takes place for "rnti1", and carrier "pcell_idx"
   generator.step_until(prach_tti);
-  tti_ev::user_cfg_ev* user                                      = generator.add_new_default_user(duration);
-  user->ue_sim_cfg->ue_cfg.supported_cc_list[0].enb_cc_idx       = cc_idxs[0];
-  user->rnti                                                     = rnti1;
-  user->ue_sim_cfg->ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
-  user->ue_sim_cfg->ue_cfg.dl_cfg.cqi_report.pmi_idx             = 0;
+  tti_ev::user_cfg_ev* user = generator.add_new_default_user(duration, sim_args.default_ue_sim_cfg.ue_cfg);
+  user->rnti                = rnti1;
   tester.test_next_ttis(generator.tti_events);
   TESTASSERT(tester.ue_tester->user_exists(rnti1));
 
@@ -159,7 +163,7 @@ int test_scell_activation(test_scell_activation_params params)
       }
     }
   };
-  generate_data(20, P_dl, P_ul_sr, randf());
+  generate_data(20, 1.0, P_ul_sr, randf());
   tester.test_next_ttis(generator.tti_events);
 
   // Event: Reconf Complete. Activate SCells. Check if CE correctly transmitted

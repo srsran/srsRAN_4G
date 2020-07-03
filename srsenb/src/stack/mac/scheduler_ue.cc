@@ -1178,10 +1178,6 @@ void cc_sched_ue::reset()
 
 void cc_sched_ue::set_cfg(const sched_interface::ue_cfg_t& cfg_)
 {
-  if (cfg != nullptr and cfg->maxharq_tx == cfg_.maxharq_tx) {
-    // nothing changed
-    return;
-  }
   cfg = &cfg_;
   // Config HARQ processes
   harq_ent.set_cfg(cfg->maxharq_tx);

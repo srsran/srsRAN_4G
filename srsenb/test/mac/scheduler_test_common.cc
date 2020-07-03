@@ -610,7 +610,7 @@ int ue_ctxt_test::test_harqs(cc_result result)
       CONDERROR(h.ndi != data.dci.tb[0].ndi, "Invalid ndi for retx\n");
       CONDERROR(not h.active, "retx for inactive dl harq pid=%d\n", h.pid);
       CONDERROR(h.tti_tx > current_tti_rx, "harq pid=%d reused too soon\n", h.pid);
-      CONDERROR(h.nof_retxs + 1 >= sim_cfg.ue_cfg.maxharq_tx,
+      CONDERROR(h.nof_retxs + 1 > sim_cfg.ue_cfg.maxharq_tx,
                 "The number of retx=%d exceeded its max=%d\n",
                 h.nof_retxs + 1,
                 sim_cfg.ue_cfg.maxharq_tx);
@@ -893,7 +893,9 @@ int common_sched_tester::sim_cfg(sim_sched_args args)
 
 int common_sched_tester::add_user(uint16_t rnti, const ue_ctxt_test_cfg& ue_cfg_)
 {
-  CONDERROR(ue_cfg(rnti, ue_cfg_.ue_cfg) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
+  CONDERROR(ue_cfg(rnti, generate_rach_ue_cfg(ue_cfg_.ue_cfg)) != SRSLTE_SUCCESS,
+            "Configuring new user rnti=0x%x to sched\n",
+            rnti);
   //        CONDERROR(!srslte_prach_tti_opportunity_config_fdd(
   //            sched_cell_params[CARRIER_IDX].cfg.prach_config, tti_info.tti_params.tti_rx, -1),
   //                  "New user added in a non-PRACH TTI\n");
@@ -909,6 +911,14 @@ int common_sched_tester::add_user(uint16_t rnti, const ue_ctxt_test_cfg& ue_cfg_
   ue_tester->add_user(rnti, rar_info.preamble_idx, ue_cfg_);
 
   tester_log->info("Adding user rnti=0x%x\n", rnti);
+  return SRSLTE_SUCCESS;
+}
+
+int common_sched_tester::reconf_user(uint16_t rnti, const sched_interface::ue_cfg_t& ue_cfg_)
+{
+  CONDERROR(not ue_tester->user_exists(rnti), "User must already exist to be configured\n");
+  CONDERROR(ue_cfg(rnti, ue_cfg_) != SRSLTE_SUCCESS, "Configuring new user rnti=0x%x to sched\n", rnti);
+  ue_tester->user_reconf(rnti, ue_cfg_);
   return SRSLTE_SUCCESS;
 }
 
@@ -959,8 +969,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
         TESTASSERT(add_user(ue_ev.rnti, *ue_ev.ue_sim_cfg) == SRSLTE_SUCCESS);
       } else {
         // reconfiguration
-        TESTASSERT(ue_cfg(ue_ev.rnti, ue_ev.ue_sim_cfg->ue_cfg) == SRSLTE_SUCCESS);
-        ue_tester->user_reconf(ue_ev.rnti, ue_ev.ue_sim_cfg->ue_cfg);
+        TESTASSERT(reconf_user(ue_ev.rnti, ue_ev.ue_sim_cfg->ue_cfg) == SRSLTE_SUCCESS);
       }
     }
 
@@ -976,10 +985,14 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
       bearer_ue_cfg(ue_ev.rnti, 0, ue_ev.bearer_cfg.get());
     }
 
-    auto* user = ue_tester->get_user_ctxt(ue_ev.rnti);
+    const ue_ctxt_test* user = ue_tester->get_user_ctxt(ue_ev.rnti);
 
     if (user != nullptr and not user->msg4_tti.is_valid() and user->msg3_tti.is_valid() and user->msg3_tti <= tic) {
       // Msg3 has been received but Msg4 has not been yet transmitted
+      // Setup default UE config
+      reconf_user(user->rnti, generate_setup_ue_cfg(sim_args0.default_ue_sim_cfg.ue_cfg));
+
+      // Schedule RRC Setup and ConRes CE
       uint32_t pending_dl_new_data = ue_db[ue_ev.rnti].get_pending_dl_new_data();
       if (pending_dl_new_data == 0) {
         uint32_t lcid = RB_ID_SRB0; // Use SRB0 to schedule Msg4
@@ -1000,6 +1013,7 @@ int common_sched_tester::process_tti_events(const tti_ev& tti_ev)
         if (user->drb_cfg_flag or pending_dl_new_data == 0) {
           // If RRCSetup finished
           if (not user->drb_cfg_flag) {
+            reconf_user(user->rnti, sim_args0.default_ue_sim_cfg.ue_cfg);
             // setup lcid==drb1 bearer
             sched::ue_bearer_cfg_t cfg = {};
             cfg.direction              = ue_bearer_cfg_t::BOTH;
