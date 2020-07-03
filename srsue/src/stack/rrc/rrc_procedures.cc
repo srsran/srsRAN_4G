@@ -1103,7 +1103,7 @@ proc_outcome_t rrc::go_idle_proc::step()
 
 void rrc::go_idle_proc::then(const srslte::proc_state_t& result)
 {
-  if (not rrc_ptr->cell_reselector.launch()) {
+  if (rrc_ptr->nas->is_attached() and not rrc_ptr->cell_reselector.launch()) {
     rrc_ptr->rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
     return;
   }
@@ -1129,11 +1129,6 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
-  if (not rrc_ptr->nas->is_attached() or rrc_ptr->is_connected()) {
-    // check if rrc is still idle
-    return proc_outcome_t::success;
-  }
-
   if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->phy_sync_state == phy_in_sync and rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     return proc_outcome_t::success;
