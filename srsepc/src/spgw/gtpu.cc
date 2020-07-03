@@ -197,12 +197,9 @@ int spgw::gtpu::init_s1u(spgw_args_t* args)
 
 void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
 {
-  uint8_t  version = 0;
-  uint32_t dest_ip;
   bool     usr_found = false;
   bool     ctr_found = false;
 
-  struct in_addr                                       dest_addr;
   std::map<uint32_t, srslte::gtpc_f_teid_ie>::iterator gtpu_fteid_it;
   std::map<in_addr_t, uint32_t>::iterator              gtpc_teid_it;
   srslte::gtpc_f_teid_ie                               enb_fteid;
