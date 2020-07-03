@@ -55,6 +55,7 @@ rrc::rrc(stack_interface_rrc* stack_) :
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
   rrc_log("RRC"),
+  measurements(new rrc_meas()),
   phy_cell_selector(this),
   cell_searcher(this),
   si_acquirer(this),
@@ -66,11 +67,8 @@ rrc::rrc(stack_interface_rrc* stack_) :
   plmn_searcher(this),
   cell_reselector(this),
   connection_reest(this),
-  ho_handler(this),
-  serving_cell(unique_cell_t(new cell_t()))
-{
-  measurements = std::unique_ptr<rrc_meas>(new rrc_meas());
-}
+  ho_handler(this)
+{}
 
 rrc::~rrc() = default;
 
@@ -167,7 +165,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
 {
   m.state = state;
   // Save strongest cells metrics
-  for (unique_cell_t& c : neighbour_cells) {
+  for (unique_cell_t& c : meas_cells) {
     rrc_interface_phy_lte::phy_meas_t meas = {};
     meas.cfo_hz                            = c->get_cfo_hz();
     meas.earfcn                            = c->get_earfcn();
@@ -250,7 +248,7 @@ void rrc::run_tti()
   // Clean old neighbours
   cell_clean_cnt++;
   if (cell_clean_cnt == 1000) {
-    neighbour_cells.clean_neighbours();
+    meas_cells.clean_neighbours();
     cell_clean_cnt = 0;
   }
 }
@@ -267,12 +265,12 @@ void rrc::run_tti()
 
 uint16_t rrc::get_mcc()
 {
-  return serving_cell->get_mcc();
+  return meas_cells.serving_cell().get_mcc();
 }
 
 uint16_t rrc::get_mnc()
 {
-  return serving_cell->get_mnc();
+  return meas_cells.serving_cell().get_mnc();
 }
 
 /* NAS interface to search for available PLMNs.
@@ -358,46 +356,19 @@ void rrc::process_cell_meas()
     }
     process_new_cell_meas(m);
   }
-  neighbour_cells.sort_neighbour_cells();
 }
 
 void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
 {
-  bool neighbour_added = false;
-  rrc_log->debug("MEAS:  Processing measurement of %zd cells\n", meas.size());
-  for (auto& m : meas) {
-    cell_t* c = nullptr;
-    // Get serving_cell handle if it's the serving cell
-    if (m.earfcn == 0 or (m.earfcn == serving_cell->get_earfcn() and m.pci == serving_cell->get_pci())) {
-      c = serving_cell.get();
-      if (c == nullptr || !serving_cell->is_valid()) {
-        rrc_log->error("MEAS:  Received serving cell measurement but undefined or invalid\n");
-        return;
-      }
-      // Or update/add RRC neighbour cell database
-    } else {
-      c = neighbour_cells.get_neighbour_cell_handle(m.earfcn, m.pci);
-    }
-    // Filter RSRP/RSRQ measurements if cell exits
-    if (c != nullptr) {
-      c->set_rsrp(measurements->rsrp_filter(m.rsrp, c->get_rsrp()));
-      c->set_rsrq(measurements->rsrq_filter(m.rsrq, c->get_rsrq()));
-      c->set_cfo(m.cfo_hz);
-    } else {
-      // or just set initial value
-      neighbour_added |= neighbour_cells.add_neighbour_cell(m);
-    }
+  const static std::function<void(cell_t&, const phy_meas_t&)> filter = [this](cell_t& c, const phy_meas_t& m) {
+    c.set_rsrp(measurements->rsrp_filter(m.rsrp, c.get_rsrp()));
+    c.set_rsrq(measurements->rsrq_filter(m.rsrq, c.get_rsrq()));
+    c.set_cfo(m.cfo_hz);
+  };
 
-    if (m.earfcn == 0) {
-      rrc_log->info("MEAS:  New measurement serving cell: rsrp=%.2f dBm.\n", m.rsrp);
-    } else {
-      rrc_log->info("MEAS:  New measurement neighbour cell: earfcn=%d, pci=%d, rsrp=%.2f dBm, cfo=%+.1f Hz\n",
-                    m.earfcn,
-                    m.pci,
-                    m.rsrp,
-                    m.cfo_hz);
-    }
-  }
+  rrc_log->debug("MEAS:  Processing measurement of %zd cells\n", meas.size());
+
+  bool neighbour_added = meas_cells.process_new_cell_meas(meas, filter);
 
   // Instruct measurements subclass to update phy with new cells to measure based on strongest neighbours
   if (state == RRC_STATE_CONNECTED && neighbour_added) {
@@ -409,7 +380,7 @@ void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
 void rrc::out_of_sync()
 {
   // CAUTION: We do not lock in this function since they are called from real-time threads
-  if (serving_cell && rrc_log) {
+  if (meas_cells.serving_cell().is_valid() && rrc_log) {
     phy_sync_state = phy_out_of_sync;
 
     // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
@@ -464,7 +435,7 @@ void rrc::in_sync()
 // Cell selection criteria Section 5.2.3.2 of 36.304
 bool rrc::cell_selection_criteria(float rsrp, float rsrq)
 {
-  return (get_srxlev(rsrp) > 0 || !serving_cell->has_sib3());
+  return (get_srxlev(rsrp) > 0 || !meas_cells.serving_cell().has_sib3());
 }
 
 float rrc::get_srxlev(float Qrxlevmeas)
@@ -489,8 +460,8 @@ void rrc::cell_reselection(float rsrp, float rsrq)
     phy->meas_stop();
   } else {
     // UE must start intra-frequency measurements
-    auto pci = neighbour_cells.get_neighbour_pcis(serving_cell->get_earfcn());
-    phy->set_cells_to_meas(serving_cell->get_earfcn(), pci);
+    auto pci = meas_cells.get_neighbour_pcis(meas_cells.serving_cell().get_earfcn());
+    phy->set_cells_to_meas(meas_cells.serving_cell().get_earfcn(), pci);
   }
 
   // TODO: Inter-frequency cell reselection
@@ -499,25 +470,7 @@ void rrc::cell_reselection(float rsrp, float rsrq)
 // Set new serving cell
 void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving)
 {
-  if (has_neighbour_cell(phy_cell.earfcn, phy_cell.pci)) {
-    // Remove future serving cell from neighbours to make space for current serving cell
-    unique_cell_t new_serving_cell = neighbour_cells.remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
-    bool same_cell = (phy_cell.earfcn == serving_cell->get_earfcn() and phy_cell.pci == serving_cell->get_pci());
-
-    // Move serving cell to neighbours list
-    if (serving_cell->is_valid() and not same_cell and not discard_serving) {
-      if (not neighbour_cells.add_neighbour_cell(std::move(serving_cell))) {
-        rrc_log->info("Serving cell not added to list of neighbours. Worse than current neighbours\n");
-      }
-    }
-    // Set new serving cell
-    serving_cell = std::move(new_serving_cell);
-    rrc_log->info("Setting serving cell %s, nof_neighbours=%zd\n",
-                  serving_cell->to_string().c_str(),
-                  neighbour_cells.nof_neighbours());
-  } else {
-    rrc_log->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.pci);
-  }
+  meas_cells.set_serving_cell(phy_cell, discard_serving);
 }
 
 int rrc::start_cell_select()
@@ -532,7 +485,7 @@ int rrc::start_cell_select()
 
 bool rrc::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
 {
-  return neighbour_cells.has_neighbour_cell(earfcn, pci);
+  return meas_cells.has_neighbour_cell(earfcn, pci);
 }
 
 /*******************************************************************************
@@ -546,7 +499,7 @@ bool rrc::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
  *******************************************************************************/
 std::string rrc::print_mbms()
 {
-  mcch_msg_type_c   msg = serving_cell->mcch.msg;
+  mcch_msg_type_c   msg = meas_cells.serving_cell().mcch.msg;
   std::stringstream ss;
   for (uint32_t i = 0; i < msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9.size(); i++) {
     ss << "PMCH: " << i << std::endl;
@@ -572,14 +525,14 @@ std::string rrc::print_mbms()
 bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
 {
   bool ret = false;
-  if (!serving_cell->has_mcch) {
+  if (!meas_cells.serving_cell().has_mcch) {
     rrc_log->error("MCCH not available at MBMS Service Start\n");
     return ret;
   }
 
   rrc_log->info("%s\n", print_mbms().c_str());
 
-  mcch_msg_type_c msg = serving_cell->mcch.msg;
+  mcch_msg_type_c msg = meas_cells.serving_cell().mcch.msg;
   for (uint32_t i = 0; i < msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9.size(); i++) {
     pmch_info_r9_s* pmch = &msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[i];
     for (uint32_t j = 0; j < pmch->mbms_session_info_list_r9.size(); j++) {
@@ -723,10 +676,10 @@ void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint1
     cellid = ho_src_cell.get_cell_id();
   } else if (cause == reest_cause_e::other_fail) {
     // use source PCI after RLF
-    cellid = serving_cell->get_cell_id();
+    cellid = meas_cells.serving_cell().get_cell_id();
   } else {
-    pci    = serving_cell->get_pci();
-    cellid = serving_cell->get_cell_id();
+    pci    = meas_cells.serving_cell().get_pci();
+    cellid = meas_cells.serving_cell().get_cell_id();
   }
 
   // Compute shortMAC-I
@@ -1095,24 +1048,24 @@ void rrc::send_srb1_msg(const ul_dcch_msg_s& msg)
 
 std::set<uint32_t> rrc::get_cells(const uint32_t earfcn)
 {
-  return neighbour_cells.get_neighbour_pcis(earfcn);
+  return meas_cells.get_neighbour_pcis(earfcn);
 }
 
 float rrc::get_cell_rsrp(const uint32_t earfcn, const uint32_t pci)
 {
-  cell_t* c = neighbour_cells.get_neighbour_cell_handle(earfcn, pci);
+  cell_t* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
   return (c != nullptr) ? c->get_rsrp() : NAN;
 }
 
 float rrc::get_cell_rsrq(const uint32_t earfcn, const uint32_t pci)
 {
-  cell_t* c = neighbour_cells.get_neighbour_cell_handle(earfcn, pci);
+  cell_t* c = meas_cells.get_neighbour_cell_handle(earfcn, pci);
   return (c != nullptr) ? c->get_rsrq() : NAN;
 }
 
 cell_t* rrc::get_serving_cell()
 {
-  return serving_cell.get();
+  return &meas_cells.serving_cell();
 }
 
 /*******************************************************************************
@@ -1163,7 +1116,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
 
   if (dlsch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
     rrc_log->info("Processing SIB1 (1/1)\n");
-    serving_cell->set_sib1(dlsch_msg.msg.c1().sib_type1());
+    meas_cells.serving_cell().set_sib1(dlsch_msg.msg.c1().sib_type1());
     si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
     handle_sib1();
   } else {
@@ -1173,22 +1126,22 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
       rrc_log->info("Processing SIB%d (%d/%d)\n", sib_list[i].type().to_number(), i, sib_list.size());
       switch (sib_list[i].type().value) {
         case sib_info_item_c::types::sib2:
-          if (not serving_cell->has_sib2()) {
-            serving_cell->set_sib2(sib_list[i].sib2());
+          if (not meas_cells.serving_cell().has_sib2()) {
+            meas_cells.serving_cell().set_sib2(sib_list[i].sib2());
             si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib2();
           break;
         case sib_info_item_c::types::sib3:
-          if (not serving_cell->has_sib3()) {
-            serving_cell->set_sib3(sib_list[i].sib3());
+          if (not meas_cells.serving_cell().has_sib3()) {
+            meas_cells.serving_cell().set_sib3(sib_list[i].sib3());
             si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib3();
           break;
         case sib_info_item_c::types::sib13_v920:
-          if (not serving_cell->has_sib13()) {
-            serving_cell->set_sib13(sib_list[i].sib13_v920());
+          if (not meas_cells.serving_cell().has_sib13()) {
+            meas_cells.serving_cell().set_sib13(sib_list[i].sib13_v920());
             si_acquirer.trigger(si_acquire_proc::sib_received_ev{});
           }
           handle_sib13();
@@ -1202,9 +1155,9 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
 
 void rrc::handle_sib1()
 {
-  const sib_type1_s* sib1 = serving_cell->sib1ptr();
+  const sib_type1_s* sib1 = meas_cells.serving_cell().sib1ptr();
   rrc_log->info("SIB1 received, CellID=%d, si_window=%d, sib2_period=%d\n",
-                serving_cell->get_cell_id() & 0xfff,
+                meas_cells.serving_cell().get_cell_id() & 0xfff,
                 sib1->si_win_len.to_number(),
                 sib1->sched_info_list[0].si_periodicity.to_number());
 
@@ -1230,7 +1183,7 @@ void rrc::handle_sib2()
 {
   rrc_log->info("SIB2 received\n");
 
-  const sib_type2_s* sib2 = serving_cell->sib2ptr();
+  const sib_type2_s* sib2 = meas_cells.serving_cell().sib2ptr();
 
   // Apply RACH and timeAlginmentTimer configuration
   set_mac_cfg_t_rach_cfg_common(&current_mac_cfg, sib2->rr_cfg_common.rach_cfg_common);
@@ -1298,7 +1251,7 @@ void rrc::handle_sib3()
 {
   rrc_log->info("SIB3 received\n");
 
-  const sib_type3_s* sib3 = serving_cell->sib3ptr();
+  const sib_type3_s* sib3 = meas_cells.serving_cell().sib3ptr();
 
   // cellReselectionInfoCommon
   cell_resel_cfg.q_hyst = sib3->cell_resel_info_common.q_hyst.to_number();
@@ -1319,7 +1272,7 @@ void rrc::handle_sib13()
 {
   rrc_log->info("SIB13 received\n");
 
-  const sib_type13_r9_s* sib13 = serving_cell->sib13ptr();
+  const sib_type13_r9_s* sib13 = meas_cells.serving_cell().sib13ptr();
 
   phy->set_config_mbsfn_sib13(srslte::make_sib13(*sib13));
   add_mrb(0, 0); // Add MRB0
@@ -1388,7 +1341,7 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     return;
   }
   // TODO: handle MCCH notifications and update MCCH
-  if (0 != lcid or serving_cell->has_mcch) {
+  if (0 != lcid or meas_cells.serving_cell().has_mcch) {
     return;
   }
   parse_pdu_mch(lcid, std::move(pdu));
@@ -1397,14 +1350,15 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   asn1::cbit_ref bref(pdu->msg, pdu->N_bytes);
-  if (serving_cell->mcch.unpack(bref) != asn1::SRSASN_SUCCESS or
-      serving_cell->mcch.msg.type().value != mcch_msg_type_c::types_opts::c1) {
+  if (meas_cells.serving_cell().mcch.unpack(bref) != asn1::SRSASN_SUCCESS or
+      meas_cells.serving_cell().mcch.msg.type().value != mcch_msg_type_c::types_opts::c1) {
     rrc_log->error("Failed to unpack MCCH message\n");
     return;
   }
-  serving_cell->has_mcch = true;
-  phy->set_config_mbsfn_mcch(srslte::make_mcch_msg(serving_cell->mcch));
-  log_rrc_message("MCH", Rx, pdu.get(), serving_cell->mcch, serving_cell->mcch.msg.c1().type().to_string());
+  meas_cells.serving_cell().has_mcch = true;
+  phy->set_config_mbsfn_mcch(srslte::make_mcch_msg(meas_cells.serving_cell().mcch));
+  log_rrc_message(
+      "MCH", Rx, pdu.get(), meas_cells.serving_cell().mcch, meas_cells.serving_cell().mcch.msg.c1().type().to_string());
   if (args.mbms_service_id >= 0) {
     rrc_log->info("Attempting to auto-start MBMS service %d\n", args.mbms_service_id);
     mbms_service_start(args.mbms_service_id, args.mbms_service_port);
@@ -1640,8 +1594,8 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
  *******************************************************************************/
 void rrc::enable_capabilities()
 {
-  bool enable_ul_64 =
-      args.ue_category >= 5 && serving_cell->sib2ptr()->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
+  bool enable_ul_64 = args.ue_category >= 5 &&
+                      meas_cells.serving_cell().sib2ptr()->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64 ? "Enabling" : "Disabling");
 }
 
@@ -2067,7 +2021,7 @@ void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config)
   }
 
   // Initialise default parameters from primary cell
-  earfcn = serving_cell->get_earfcn();
+  earfcn = meas_cells.serving_cell().get_earfcn();
 
   // Parse identification
   if (scell_config.cell_identif_r10_present) {
@@ -2282,7 +2236,7 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 
   // Update RRC Integrity keys
   int ncc = setup->crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
-  usim->generate_as_keys_ho(serving_cell->get_pci(), serving_cell->get_earfcn(), ncc, &sec_cfg);
+  usim->generate_as_keys_ho(meas_cells.serving_cell().get_pci(), meas_cells.serving_cell().get_earfcn(), ncc, &sec_cfg);
   pdcp->config_security_all(sec_cfg);
 
   // Apply the Radio Resource configuration

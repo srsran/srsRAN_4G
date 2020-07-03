@@ -131,19 +131,53 @@ private:
   std::map<uint32_t, uint32_t> sib_info_map; ///< map of sib_index to index of schedInfoList in SIB1
 };
 
-class cell_list
+//! Universal methods to extract pci/earfcn and compare the two values
+template <typename T>
+uint32_t get_pci(const T& t)
 {
+  return t.pci;
+}
+template <>
+inline uint32_t get_pci(const cell_t& t)
+{
+  return t.get_pci();
+}
+template <typename T>
+uint32_t get_earfcn(const T& t)
+{
+  return t.earfcn;
+}
+template <>
+inline uint32_t get_earfcn(const cell_t& t)
+{
+  return t.get_earfcn();
+}
+template <typename T, typename U>
+bool is_same_cell(const T& lhs, const U& rhs)
+{
+  return get_pci(lhs) == get_pci(rhs) and get_earfcn(lhs) == get_earfcn(rhs);
+}
+
+class meas_cell_list
+{
+  using phy_meas_t = rrc_interface_phy_lte::phy_meas_t;
+
 public:
   const static int                NEIGHBOUR_TIMEOUT   = 5;
   const static int                MAX_NEIGHBOUR_CELLS = 8;
   typedef std::unique_ptr<cell_t> unique_cell_t;
 
-  bool          add_neighbour_cell(const rrc_interface_phy_lte::phy_meas_t& meas);
+  meas_cell_list();
+
+  bool          add_neighbour_cell(const phy_meas_t& meas);
   bool          add_neighbour_cell(unique_cell_t cell);
   void          rem_last_neighbour();
   unique_cell_t remove_neighbour_cell(uint32_t earfcn, uint32_t pci);
   void          clean_neighbours();
   void          sort_neighbour_cells();
+
+  bool process_new_cell_meas(const std::vector<phy_meas_t>&                         meas,
+                             const std::function<void(cell_t&, const phy_meas_t&)>& filter_meas);
 
   cell_t*            get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci);
   const cell_t*      get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const;
@@ -156,6 +190,12 @@ public:
   const cell_t&      operator[](size_t idx) const { return *neighbour_cells[idx]; }
   cell_t&            at(size_t idx) { return *neighbour_cells.at(idx); }
 
+  // serving cell handling
+  int set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving);
+
+  cell_t&       serving_cell() { return *serv_cell; }
+  const cell_t& serving_cell() const { return *serv_cell; }
+
   using iterator = std::vector<unique_cell_t>::iterator;
   iterator begin() { return neighbour_cells.begin(); }
   iterator end() { return neighbour_cells.end(); }
@@ -165,7 +205,7 @@ private:
 
   srslte::log_ref log_h{"RRC"};
 
-  unique_cell_t              serving_cell;
+  unique_cell_t              serv_cell;
   std::vector<unique_cell_t> neighbour_cells;
 };
 

@@ -121,16 +121,16 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
   Info("Cell found in this frequency. Setting new serving cell EARFCN=%d PCI=%d ...\n", new_cell.earfcn, new_cell.pci);
 
   // Create a cell with NaN RSRP. Will be updated by new_phy_meas() during SIB search.
-  if (not rrc_ptr->neighbour_cells.add_neighbour_cell(unique_cell_t(new cell_t(new_cell)))) {
+  if (not rrc_ptr->meas_cells.add_neighbour_cell(unique_cell_t(new cell_t(new_cell)))) {
     Error("Could not add new found cell\n");
     return proc_outcome_t::error;
   }
 
-  rrc_ptr->set_serving_cell(new_cell, false);
+  rrc_ptr->meas_cells.set_serving_cell(new_cell, false);
 
   // set new serving cell in PHY
   state = state_t::phy_cell_select;
-  if (not rrc_ptr->phy_cell_selector.launch(*rrc_ptr->serving_cell)) {
+  if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->meas_cells.serving_cell())) {
     Error("Couldn't start phy cell selection\n");
     return proc_outcome_t::error;
   }
@@ -139,11 +139,11 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
 
 proc_outcome_t rrc::cell_search_proc::step_wait_measurement()
 {
-  if (not std::isnormal(rrc_ptr->serving_cell->get_rsrp())) {
+  if (not std::isnormal(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
     return proc_outcome_t::yield;
   }
 
-  if (rrc_ptr->serving_cell->has_sib1()) {
+  if (rrc_ptr->meas_cells.serving_cell().has_sib1()) {
     Info("Cell has SIB1\n");
     // What do we do????
     return proc_outcome_t::success;
@@ -176,7 +176,7 @@ proc_outcome_t rrc::cell_search_proc::react(const cell_select_event_t& event)
     return proc_outcome_t::error;
   }
 
-  if (not std::isnormal(rrc_ptr->serving_cell->get_rsrp())) {
+  if (not std::isnormal(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
     Info("No valid measurement found for the serving cell. Wait for valid measurement...\n");
   }
   state = state_t::wait_measurement;
@@ -297,7 +297,7 @@ rrc::si_acquire_proc::si_acquire_proc(rrc* parent_) :
 proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
 {
   // make sure we dont already have the SIB of interest
-  if (rrc_ptr->serving_cell->has_sib(sib_index_)) {
+  if (rrc_ptr->meas_cells.serving_cell().has_sib(sib_index_)) {
     Info("The UE has already acquired SIB%d\n", sib_index + 1);
     return proc_outcome_t::success;
   }
@@ -305,13 +305,13 @@ proc_outcome_t rrc::si_acquire_proc::init(uint32_t sib_index_)
 
   // make sure SIB1 is captured before other SIBs
   sib_index = sib_index_;
-  if (sib_index > 0 and not rrc_ptr->serving_cell->has_sib1()) {
+  if (sib_index > 0 and not rrc_ptr->meas_cells.serving_cell().has_sib1()) {
     Error("Trying to acquire SIB%d but SIB1 not received yet\n", sib_index + 1);
     return proc_outcome_t::error;
   }
 
   // compute the si-Periodicity and schedInfoList index
-  auto ret = compute_si_periodicity_and_idx(sib_index, rrc_ptr->serving_cell->sib1ptr());
+  auto ret = compute_si_periodicity_and_idx(sib_index, rrc_ptr->meas_cells.serving_cell().sib1ptr());
   if (ret.second < 0) {
     Info("Could not find SIB%d scheduling in SIB1\n", sib_index + 1);
     return proc_outcome_t::error;
@@ -347,7 +347,8 @@ void rrc::si_acquire_proc::start_si_acquire()
 
   // Instruct MAC to decode SIB (non-blocking)
   tti_point tti = rrc_ptr->stack->get_current_tti();
-  auto      ret = compute_si_window(tti.to_uint(), sib_index, sched_index, period, rrc_ptr->serving_cell->sib1ptr());
+  auto      ret =
+      compute_si_window(tti.to_uint(), sib_index, sched_index, period, rrc_ptr->meas_cells.serving_cell().sib1ptr());
   tti_point si_win_start = tti_point{ret.first};
   if (si_win_start < tti) {
     Error("The SI Window start was incorrectly calculated. si_win_start=%d, tti=%d\n",
@@ -375,12 +376,12 @@ void rrc::si_acquire_proc::start_si_acquire()
 
 proc_outcome_t rrc::si_acquire_proc::react(sib_received_ev ev)
 {
-  return rrc_ptr->serving_cell->has_sib(sib_index) ? proc_outcome_t::success : proc_outcome_t::yield;
+  return rrc_ptr->meas_cells.serving_cell().has_sib(sib_index) ? proc_outcome_t::success : proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::si_acquire_proc::react(si_acq_timer_expired ev)
 {
-  if (rrc_ptr->serving_cell->has_sib(sib_index)) {
+  if (rrc_ptr->meas_cells.serving_cell().has_sib(sib_index)) {
     return proc_outcome_t::success;
   }
 
@@ -423,7 +424,7 @@ proc_outcome_t rrc::serving_cell_config_proc::init(const std::vector<uint32_t>& 
     return proc_outcome_t::error;
   }
 
-  rrc_ptr->serving_cell->has_mcch = false;
+  rrc_ptr->meas_cells.serving_cell().has_mcch = false;
 
   req_idx = 0;
   return launch_sib_acquire();
@@ -434,8 +435,8 @@ srslte::proc_outcome_t rrc::serving_cell_config_proc::launch_sib_acquire()
   // Obtain the SIBs if not available or apply the configuration if available
   for (; req_idx < required_sibs.size(); req_idx++) {
     uint32_t required_sib = required_sibs[req_idx];
-    if (not rrc_ptr->serving_cell->has_sib(required_sib)) {
-      if (required_sib < 2 or rrc_ptr->serving_cell->is_sib_scheduled(required_sib)) {
+    if (not rrc_ptr->meas_cells.serving_cell().has_sib(required_sib)) {
+      if (required_sib < 2 or rrc_ptr->meas_cells.serving_cell().is_sib_scheduled(required_sib)) {
         Info("Cell has no SIB%d. Obtaining SIB%d\n", required_sib + 1, required_sib + 1);
         if (not rrc_ptr->si_acquirer.launch(&si_acquire_fut, required_sib)) {
           Error("SI Acquire is already running...\n");
@@ -471,7 +472,7 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
     return proc_outcome_t::yield;
   }
   uint32_t required_sib = required_sibs[req_idx];
-  if (si_acquire_fut.is_error() or not rrc_ptr->serving_cell->has_sib(required_sib)) {
+  if (si_acquire_fut.is_error() or not rrc_ptr->meas_cells.serving_cell().has_sib(required_sib)) {
     if (required_sib < 2) {
       log_h->warning("Serving Cell Configuration has failed\n");
       return proc_outcome_t::error;
@@ -494,7 +495,7 @@ rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {
  */
 proc_outcome_t rrc::cell_selection_proc::init()
 {
-  if (rrc_ptr->neighbour_cells.nof_neighbours() == 0 and rrc_ptr->phy_sync_state == phy_in_sync and
+  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_sync_state == phy_in_sync and
       rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     Debug("Skipping Cell Selection Procedure as there are no neighbour and cell is camping.\n");
@@ -503,16 +504,16 @@ proc_outcome_t rrc::cell_selection_proc::init()
   }
 
   Info("Starting...\n");
-  Info("Current neighbor cells: [%s]\n", rrc_ptr->neighbour_cells.print_neighbour_cells().c_str());
+  Info("Current neighbor cells: [%s]\n", rrc_ptr->meas_cells.print_neighbour_cells().c_str());
   Info("Current PHY state: %s\n", rrc_ptr->phy_sync_state == phy_in_sync ? "in-sync" : "out-of-sync");
-  if (rrc_ptr->serving_cell->has_sib3()) {
+  if (rrc_ptr->meas_cells.serving_cell().has_sib3()) {
     Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f\n",
          rrc_ptr->cell_resel_cfg.Qrxlevmin,
          rrc_ptr->cell_resel_cfg.Qrxlevminoffset);
   } else {
     Info("Cell selection criteria: not available\n");
   }
-  Info("Current serving cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
+  Info("Current serving cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
   neigh_index                = 0;
   cs_result                  = cs_result_t::no_cell;
   state                      = search_state_t::cell_selection;
@@ -546,10 +547,10 @@ proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
     return proc_outcome_t::success;
   }
 
-  Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->serving_cell->to_string().c_str());
+  Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
   state = search_state_t::serv_cell_camp;
-  if (not rrc_ptr->phy_cell_selector.launch(*rrc_ptr->serving_cell)) {
+  if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->meas_cells.serving_cell())) {
     Error("Failed to launch PHY Cell Selection\n");
     return proc_outcome_t::error;
   }
@@ -560,28 +561,29 @@ proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
 proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
 {
   // Neighbour cells are sorted in descending order of RSRP
-  for (; neigh_index < rrc_ptr->neighbour_cells.nof_neighbours(); ++neigh_index) {
+  for (; neigh_index < rrc_ptr->meas_cells.nof_neighbours(); ++neigh_index) {
     // If the serving cell is stronger, attempt to select it
-    if (not serv_cell_select_attempted and rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp()) and
-        rrc_ptr->serving_cell->greater(&rrc_ptr->neighbour_cells[neigh_index])) {
+    if (not serv_cell_select_attempted and
+        rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp()) and
+        rrc_ptr->meas_cells.serving_cell().greater(&rrc_ptr->meas_cells[neigh_index])) {
       return start_serv_cell_selection();
     }
 
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
-     * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
+     * meas_cells[i]->plmn_equals(selected_plmn_id) && */
     // Matches S criteria
-    float rsrp = rrc_ptr->neighbour_cells.at(neigh_index).get_rsrp();
+    float rsrp = rrc_ptr->meas_cells.at(neigh_index).get_rsrp();
 
     if (rrc_ptr->phy_sync_state != phy_in_sync or
-        (rrc_ptr->cell_selection_criteria(rsrp) and rsrp > rrc_ptr->serving_cell->get_rsrp() + 5)) {
+        (rrc_ptr->cell_selection_criteria(rsrp) and rsrp > rrc_ptr->meas_cells.serving_cell().get_rsrp() + 5)) {
       // currently connected and verifies cell selection criteria
       // Try to select Cell
-      rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index).phy_cell, discard_serving);
+      rrc_ptr->set_serving_cell(rrc_ptr->meas_cells.at(neigh_index).phy_cell, discard_serving);
       discard_serving = false;
-      Info("Selected cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
+      Info("Selected cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
       state = search_state_t::cell_selection;
-      if (not rrc_ptr->phy_cell_selector.launch(*rrc_ptr->serving_cell)) {
+      if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->meas_cells.serving_cell())) {
         Error("Failed to launch PHY Cell Selection\n");
         return proc_outcome_t::error;
       }
@@ -593,7 +595,7 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
   // If serving cell is weaker, but couldn't select neighbors
   if (serv_cell_select_attempted) {
     return proc_outcome_t::error;
-  } else if (rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
+  } else if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
     return start_serv_cell_selection();
   }
 
@@ -634,15 +636,15 @@ srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const cell_
   }
 
   rrc_ptr->phy_sync_state = phy_unknown_sync;
-  rrc_ptr->serving_cell->set_rsrp(-INFINITY);
+  rrc_ptr->meas_cells.serving_cell().set_rsrp(-INFINITY);
   Warning("Could not camp on serving cell.\n");
-  return neigh_index >= rrc_ptr->neighbour_cells.nof_neighbours() ? proc_outcome_t::error : proc_outcome_t::yield;
+  return neigh_index >= rrc_ptr->meas_cells.nof_neighbours() ? proc_outcome_t::error : proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_wait_in_sync()
 {
   if (rrc_ptr->phy_sync_state == phy_in_sync) {
-    if (rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
+    if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
       Info("PHY is in SYNC and cell selection passed\n");
       if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, rrc_ptr->ue_required_sibs)) {
         return proc_outcome_t::error;
@@ -681,7 +683,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_config()
     return proc_outcome_t::yield;
   }
   if (serv_cell_cfg_fut.is_success()) {
-    rrc_ptr->rrc_log->console("Selected cell: %s\n", rrc_ptr->serving_cell->to_string().c_str());
+    rrc_ptr->rrc_log->console("Selected cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
     Info("All SIBs of serving cell obtained successfully\n");
     cs_result = cs_result_t::changed_cell;
     return proc_outcome_t::success;
@@ -757,12 +759,12 @@ proc_outcome_t rrc::plmn_search_proc::step()
   }
 
   if (cell_search_fut.value()->found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND) {
-    if (rrc_ptr->serving_cell->has_sib1()) {
+    if (rrc_ptr->meas_cells.serving_cell().has_sib1()) {
       // Save PLMN and TAC to NAS
-      for (uint32_t i = 0; i < rrc_ptr->serving_cell->nof_plmns(); i++) {
+      for (uint32_t i = 0; i < rrc_ptr->meas_cells.serving_cell().nof_plmns(); i++) {
         if (nof_plmns < MAX_FOUND_PLMNS) {
-          found_plmns[nof_plmns].plmn_id = rrc_ptr->serving_cell->get_plmn(i);
-          found_plmns[nof_plmns].tac     = rrc_ptr->serving_cell->get_tac();
+          found_plmns[nof_plmns].plmn_id = rrc_ptr->meas_cells.serving_cell().get_plmn(i);
+          found_plmns[nof_plmns].tac     = rrc_ptr->meas_cells.serving_cell().get_tac();
           nof_plmns++;
         } else {
           Error("No more space for plmns (%d)\n", nof_plmns);
@@ -1012,7 +1014,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
     if (paging.sys_info_mod_present) {
       Info("Received System Information notification update request.\n");
       // invalidate and then update all SIBs of serving cell
-      rrc_ptr->serving_cell->reset_sibs();
+      rrc_ptr->meas_cells.serving_cell().reset_sibs();
 
       // create a serving cell config procedure and push it to callback list
       if (not rrc_ptr->serv_cell_cfg.launch(&serv_cfg_fut, rrc_ptr->ue_required_sibs)) {
@@ -1130,7 +1132,7 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
-  if (rrc_ptr->neighbour_cells.nof_neighbours() == 0 and rrc_ptr->phy_sync_state == phy_in_sync and
+  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_sync_state == phy_in_sync and
       rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     return proc_outcome_t::success;
@@ -1207,8 +1209,8 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
     // Save reestablishment cause and current C-RNTI
     reest_rnti        = uernti.crnti;
     reest_cause       = cause;
-    reest_source_pci  = rrc_ptr->serving_cell->get_pci(); // needed for reestablishment with another cell
-    reest_source_freq = rrc_ptr->serving_cell->get_earfcn();
+    reest_source_pci  = rrc_ptr->meas_cells.serving_cell().get_pci(); // needed for reestablishment with another cell
+    reest_source_freq = rrc_ptr->meas_cells.serving_cell().get_earfcn();
 
     // the initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
     // Cannot be called from here because it has PHY-MAC re-configuration that should be performed in a different thread
@@ -1274,14 +1276,15 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step_cell_reselection()
     // Cell reselection finished or not started
     if (rrc_ptr->phy_sync_state == phy_in_sync) {
       // In-sync, check SIBs
-      if (rrc_ptr->serving_cell->has_sib1() && rrc_ptr->serving_cell->has_sib2() && rrc_ptr->serving_cell->has_sib3()) {
+      if (rrc_ptr->meas_cells.serving_cell().has_sib1() && rrc_ptr->meas_cells.serving_cell().has_sib2() &&
+          rrc_ptr->meas_cells.serving_cell().has_sib3()) {
         Info("In-sync, SIBs available. Going to cell criteria\n");
         return cell_criteria();
       } else {
         Info("SIBs missing (%d, %d, %d), launching serving cell configuration procedure\n",
-             rrc_ptr->serving_cell->has_sib1(),
-             rrc_ptr->serving_cell->has_sib2(),
-             rrc_ptr->serving_cell->has_sib3());
+             rrc_ptr->meas_cells.serving_cell().has_sib1(),
+             rrc_ptr->meas_cells.serving_cell().has_sib2(),
+             rrc_ptr->meas_cells.serving_cell().has_sib3());
         std::vector<uint32_t> required_sibs = {0, 1, 2};
         if (!rrc_ptr->serv_cell_cfg.launch(required_sibs)) {
           Error("Failed to initiate configure serving cell\n");
@@ -1317,7 +1320,8 @@ proc_outcome_t rrc::connection_reest_proc::step_cell_configuration()
     // SIBs adquisition not started or finished
     if (rrc_ptr->phy_sync_state == phy_in_sync) {
       // In-sync
-      if (rrc_ptr->serving_cell->has_sib1() && rrc_ptr->serving_cell->has_sib2() && rrc_ptr->serving_cell->has_sib3()) {
+      if (rrc_ptr->meas_cells.serving_cell().has_sib1() && rrc_ptr->meas_cells.serving_cell().has_sib2() &&
+          rrc_ptr->meas_cells.serving_cell().has_sib3()) {
         // All SIBs are available
         return cell_criteria();
       } else {
@@ -1342,7 +1346,7 @@ proc_outcome_t rrc::connection_reest_proc::step_cell_configuration()
 srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
 {
   // Perform cell selection in accordance to 36.304
-  if (rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
+  if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
     // Actions following cell reselection while T311 is running 5.3.7.3
     // Upon selecting a suitable E-UTRA cell, the UE shall:
     Info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
@@ -1407,7 +1411,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   recfg_r8                                  = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
   asn1::rrc::mob_ctrl_info_s* mob_ctrl_info = &recfg_r8.mob_ctrl_info;
 
-  if (recfg_r8.mob_ctrl_info.target_pci == rrc_ptr->serving_cell->get_pci()) {
+  if (recfg_r8.mob_ctrl_info.target_pci == rrc_ptr->meas_cells.serving_cell().get_pci()) {
     rrc_ptr->rrc_log->console("Warning: Received HO command to own cell\n");
     Warning("Received HO command to own cell\n");
     return proc_outcome_t::error;
@@ -1419,18 +1423,18 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
                             recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
 
   target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
-                                                        : rrc_ptr->serving_cell->get_earfcn();
+                                                        : rrc_ptr->meas_cells.serving_cell().get_earfcn();
 
   if (not rrc_ptr->has_neighbour_cell(target_earfcn, mob_ctrl_info->target_pci)) {
     rrc_ptr->rrc_log->console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
     Error("Could not find target cell earfcn=%d, pci=%d\n",
-          rrc_ptr->serving_cell->get_earfcn(),
+          rrc_ptr->meas_cells.serving_cell().get_earfcn(),
           mob_ctrl_info->target_pci);
     return proc_outcome_t::error;
   }
 
   // Save serving cell and current configuration
-  ho_src_cell = *rrc_ptr->serving_cell;
+  ho_src_cell = rrc_ptr->meas_cells.serving_cell();
   mac_interface_rrc::ue_rnti_t uernti;
   rrc_ptr->mac->get_rntis(&uernti);
   ho_src_rnti = uernti.crnti;
@@ -1450,8 +1454,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(srsue::cell_select_event_t ev)
     return proc_outcome_t::yield;
   }
   // Check if cell has not been deleted in the meantime
-  cell_t* target_cell =
-      rrc_ptr->neighbour_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
+  cell_t* target_cell = rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
   if (target_cell == nullptr) {
     Error("Cell removed from list of neighbours. Aborting handover preparation\n");
     return proc_outcome_t::error;
@@ -1460,7 +1463,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(srsue::cell_select_event_t ev)
   if (not ev.cs_ret) {
     Error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
           target_cell->to_string().c_str(),
-          rrc_ptr->serving_cell->to_string().c_str());
+          rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
     // Remove cell from list to avoid cell re-selection, picking the same cell
     target_cell->set_rsrp(-INFINITY);
@@ -1503,7 +1506,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(srsue::cell_select_event_t ev)
   }
 
   rrc_ptr->usim->generate_as_keys_ho(
-      recfg_r8.mob_ctrl_info.target_pci, rrc_ptr->serving_cell->get_earfcn(), ncc, &rrc_ptr->sec_cfg);
+      recfg_r8.mob_ctrl_info.target_pci, rrc_ptr->meas_cells.serving_cell().get_earfcn(), ncc, &rrc_ptr->sec_cfg);
 
   rrc_ptr->pdcp->config_security_all(rrc_ptr->sec_cfg);
 
@@ -1539,7 +1542,7 @@ srslte::proc_outcome_t rrc::ho_proc::step()
     }
 
     cell_t* target_cell =
-        rrc_ptr->neighbour_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
+        rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
     if (not rrc_ptr->phy_cell_selector.launch(*target_cell)) {
       Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
       return proc_outcome_t::error;

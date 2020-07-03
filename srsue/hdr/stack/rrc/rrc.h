@@ -238,11 +238,13 @@ private:
     }
   }
 
-  // List of strongest neighbour cell
-  cell_list neighbour_cells;
+  // Measurements private subclass
+  class rrc_meas;
+  std::unique_ptr<rrc_meas> measurements;
 
-  typedef std::unique_ptr<cell_t> unique_cell_t;
-  unique_cell_t                   serving_cell = nullptr;
+  // List of strongest neighbour cell
+  using unique_cell_t = std::unique_ptr<cell_t>;
+  meas_cell_list meas_cells;
 
   bool                     initiated                  = false;
   asn1::rrc::reest_cause_e m_reest_cause              = asn1::rrc::reest_cause_e::nulltype;
@@ -250,10 +252,6 @@ private:
   uint16_t                 m_reest_source_pci         = 0;
   bool                     reestablishment_started    = false;
   bool                     reestablishment_successful = false;
-
-  // Measurements private subclass
-  class rrc_meas;
-  std::unique_ptr<rrc_meas> measurements;
 
   // Interface from rrc_meas
   void               send_srb1_msg(const asn1::rrc::ul_dcch_msg_s& msg);

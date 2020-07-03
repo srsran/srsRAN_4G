@@ -150,7 +150,9 @@ uint16_t cell_t::get_mnc() const
  *           Neighbour Cell List
  ********************************************/
 
-cell_t* cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
+meas_cell_list::meas_cell_list() : serv_cell(new cell_t()) {}
+
+cell_t* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
 {
   auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
     return cell->equals(earfcn, pci);
@@ -158,7 +160,7 @@ cell_t* cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci)
   return it != neighbour_cells.end() ? it->get() : nullptr;
 }
 
-const cell_t* cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const
+const cell_t* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci) const
 {
   auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
     return cell->equals(earfcn, pci);
@@ -167,7 +169,7 @@ const cell_t* cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_t pci
 }
 
 // If only neighbour PCI is provided, copy full cell from serving cell
-bool cell_list::add_neighbour_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
+bool meas_cell_list::add_neighbour_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
 {
   phy_interface_rrc_lte::phy_cell_t phy_cell = {};
   phy_cell.earfcn                            = meas.earfcn;
@@ -179,7 +181,7 @@ bool cell_list::add_neighbour_cell(const rrc_interface_phy_lte::phy_meas_t& meas
   return add_neighbour_cell(std::move(c));
 }
 
-bool cell_list::add_neighbour_cell(unique_cell_t new_cell)
+bool meas_cell_list::add_neighbour_cell(unique_cell_t new_cell)
 {
   bool ret = add_neighbour_cell_unsorted(std::move(new_cell));
   if (ret) {
@@ -188,11 +190,16 @@ bool cell_list::add_neighbour_cell(unique_cell_t new_cell)
   return ret;
 }
 
-bool cell_list::add_neighbour_cell_unsorted(unique_cell_t new_cell)
+bool meas_cell_list::add_neighbour_cell_unsorted(unique_cell_t new_cell)
 {
   // Make sure cell is valid
   if (!new_cell->is_valid()) {
     log_h->error("Trying to add cell %s but is not valid", new_cell->to_string().c_str());
+    return false;
+  }
+
+  if (is_same_cell(serving_cell(), *new_cell)) {
+    log_h->error("Added neighbour cell %s is equal to serving cell\n", new_cell->to_string().c_str());
     return false;
   }
 
@@ -222,7 +229,7 @@ bool cell_list::add_neighbour_cell_unsorted(unique_cell_t new_cell)
   return true;
 }
 
-void cell_list::rem_last_neighbour()
+void meas_cell_list::rem_last_neighbour()
 {
   if (not neighbour_cells.empty()) {
     unique_cell_t& c = neighbour_cells.back();
@@ -231,7 +238,7 @@ void cell_list::rem_last_neighbour()
   }
 }
 
-cell_list::unique_cell_t cell_list::remove_neighbour_cell(uint32_t earfcn, uint32_t pci)
+meas_cell_list::unique_cell_t meas_cell_list::remove_neighbour_cell(uint32_t earfcn, uint32_t pci)
 {
   auto it = find_if(neighbour_cells.begin(), neighbour_cells.end(), [&](const unique_cell_t& cell) {
     return cell->equals(earfcn, pci);
@@ -245,7 +252,7 @@ cell_list::unique_cell_t cell_list::remove_neighbour_cell(uint32_t earfcn, uint3
 }
 
 // Sort neighbour cells by decreasing order of RSRP
-void cell_list::sort_neighbour_cells()
+void meas_cell_list::sort_neighbour_cells()
 {
   std::sort(std::begin(neighbour_cells), std::end(neighbour_cells), [](const unique_cell_t& a, const unique_cell_t& b) {
     return a->greater(b.get());
@@ -254,7 +261,7 @@ void cell_list::sort_neighbour_cells()
   log_neighbour_cells();
 }
 
-void cell_list::log_neighbour_cells() const
+void meas_cell_list::log_neighbour_cells() const
 {
   if (not neighbour_cells.empty()) {
     const int32_t MAX_STR_LEN          = 512;
@@ -276,7 +283,7 @@ void cell_list::log_neighbour_cells() const
 }
 
 //! Called by main RRC thread to remove neighbours from which measurements have not been received in a while
-void cell_list::clean_neighbours()
+void meas_cell_list::clean_neighbours()
 {
   struct timeval now;
   gettimeofday(&now, nullptr);
@@ -291,7 +298,7 @@ void cell_list::clean_neighbours()
   }
 }
 
-std::string cell_list::print_neighbour_cells() const
+std::string meas_cell_list::print_neighbour_cells() const
 {
   if (neighbour_cells.empty()) {
     return "";
@@ -305,7 +312,7 @@ std::string cell_list::print_neighbour_cells() const
   return s;
 }
 
-std::set<uint32_t> cell_list::get_neighbour_pcis(uint32_t earfcn) const
+std::set<uint32_t> meas_cell_list::get_neighbour_pcis(uint32_t earfcn) const
 {
   std::set<uint32_t> pcis = {};
   for (const unique_cell_t& cell : neighbour_cells) {
@@ -316,9 +323,73 @@ std::set<uint32_t> cell_list::get_neighbour_pcis(uint32_t earfcn) const
   return pcis;
 }
 
-bool cell_list::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
+bool meas_cell_list::has_neighbour_cell(uint32_t earfcn, uint32_t pci) const
 {
   return get_neighbour_cell_handle(earfcn, pci) != nullptr;
+}
+
+int meas_cell_list::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving)
+{
+  // Remove future serving cell from neighbours to make space for current serving cell
+  unique_cell_t new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
+  if (new_serving_cell == nullptr) {
+    log_h->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.pci);
+    return SRSLTE_ERROR;
+  }
+
+  // Set new serving cell
+  std::swap(serv_cell, new_serving_cell);
+  auto& old_serv_cell = new_serving_cell;
+  log_h->info("Setting serving cell %s, nof_neighbours=%zd\n", serv_cell->to_string().c_str(), nof_neighbours());
+
+  // Re-add old serving cell to list of neighbours
+  if (old_serv_cell->is_valid() and not is_same_cell(phy_cell, *old_serv_cell) and not discard_serving) {
+    if (not add_neighbour_cell(std::move(old_serv_cell))) {
+      log_h->info("Serving cell not added to list of neighbours. Worse than current neighbours\n");
+    }
+  }
+  return SRSLTE_SUCCESS;
+}
+
+bool meas_cell_list::process_new_cell_meas(const std::vector<phy_meas_t>&                         meas,
+                                           const std::function<void(cell_t&, const phy_meas_t&)>& filter_meas)
+{
+  bool neighbour_added = false;
+  for (const auto& m : meas) {
+    cell_t* c = nullptr;
+
+    // Get serving_cell handle if it's the serving cell
+    bool is_serving_cell = m.earfcn == 0 or is_same_cell(m, serving_cell());
+    if (is_serving_cell) {
+      c = serv_cell.get();
+      if (not serving_cell().is_valid()) {
+        log_h->error("MEAS:  Received serving cell measurement but undefined or invalid\n");
+        continue;
+      }
+    } else {
+      // Or update/add RRC neighbour cell database
+      c = get_neighbour_cell_handle(m.earfcn, m.pci);
+    }
+
+    // Filter RSRP/RSRQ measurements if cell exits
+    if (c != nullptr) {
+      filter_meas(*c, m);
+    } else {
+      // or just set initial value
+      neighbour_added |= add_neighbour_cell(m);
+    }
+
+    if (is_serving_cell) {
+      log_h->info("MEAS:  New measurement serving cell: rsrp=%.2f dBm.\n", m.rsrp);
+    } else {
+      log_h->info("MEAS:  New measurement neighbour cell: earfcn=%d, pci=%d, rsrp=%.2f dBm, cfo=%+.1f Hz\n",
+                  m.earfcn,
+                  m.pci,
+                  m.rsrp,
+                  m.cfo_hz);
+    }
+  }
+  return neighbour_added;
 }
 
 } // namespace srsue
