@@ -360,7 +360,7 @@ void rrc::process_cell_meas()
 
 void rrc::process_new_cell_meas(const std::vector<phy_meas_t>& meas)
 {
-  const static std::function<void(cell_t&, const phy_meas_t&)> filter = [this](cell_t& c, const phy_meas_t& m) {
+  const std::function<void(cell_t&, const phy_meas_t&)> filter = [this](cell_t& c, const phy_meas_t& m) {
     c.set_rsrp(measurements->rsrp_filter(m.rsrp, c.get_rsrp()));
     c.set_rsrq(measurements->rsrq_filter(m.rsrq, c.get_rsrq()));
     c.set_cfo(m.cfo_hz);
