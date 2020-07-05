@@ -169,7 +169,7 @@ const cell_t* meas_cell_list::get_neighbour_cell_handle(uint32_t earfcn, uint32_
 }
 
 // If only neighbour PCI is provided, copy full cell from serving cell
-bool meas_cell_list::add_neighbour_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
+bool meas_cell_list::add_meas_cell(const rrc_interface_phy_lte::phy_meas_t& meas)
 {
   phy_interface_rrc_lte::phy_cell_t phy_cell = {};
   phy_cell.earfcn                            = meas.earfcn;
@@ -178,12 +178,12 @@ bool meas_cell_list::add_neighbour_cell(const rrc_interface_phy_lte::phy_meas_t&
   c.get()->set_rsrp(meas.rsrp);
   c.get()->set_rsrq(meas.rsrq);
   c.get()->set_cfo(meas.cfo_hz);
-  return add_neighbour_cell(std::move(c));
+  return add_meas_cell(std::move(c));
 }
 
-bool meas_cell_list::add_neighbour_cell(unique_cell_t new_cell)
+bool meas_cell_list::add_meas_cell(unique_cell_t cell)
 {
-  bool ret = add_neighbour_cell_unsorted(std::move(new_cell));
+  bool ret = add_neighbour_cell_unsorted(std::move(cell));
   if (ret) {
     sort_neighbour_cells();
   }
@@ -199,8 +199,9 @@ bool meas_cell_list::add_neighbour_cell_unsorted(unique_cell_t new_cell)
   }
 
   if (is_same_cell(serving_cell(), *new_cell)) {
-    log_h->error("Added neighbour cell %s is equal to serving cell\n", new_cell->to_string().c_str());
-    return false;
+    log_h->info("Added neighbour cell %s is serving cell\n", new_cell->to_string().c_str());
+    serv_cell = std::move(new_cell);
+    return true;
   }
 
   // If cell exists, update RSRP value
@@ -344,7 +345,7 @@ int meas_cell_list::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell,
 
   // Re-add old serving cell to list of neighbours
   if (old_serv_cell->is_valid() and not is_same_cell(phy_cell, *old_serv_cell) and not discard_serving) {
-    if (not add_neighbour_cell(std::move(old_serv_cell))) {
+    if (not add_meas_cell(std::move(old_serv_cell))) {
       log_h->info("Serving cell not added to list of neighbours. Worse than current neighbours\n");
     }
   }
@@ -376,7 +377,7 @@ bool meas_cell_list::process_new_cell_meas(const std::vector<phy_meas_t>&       
       filter_meas(*c, m);
     } else {
       // or just set initial value
-      neighbour_added |= add_neighbour_cell(m);
+      neighbour_added |= add_meas_cell(m);
     }
 
     if (is_serving_cell) {

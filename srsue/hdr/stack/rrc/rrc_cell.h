@@ -169,8 +169,8 @@ public:
 
   meas_cell_list();
 
-  bool          add_neighbour_cell(const phy_meas_t& meas);
-  bool          add_neighbour_cell(unique_cell_t cell);
+  bool          add_meas_cell(const phy_meas_t& meas);
+  bool          add_meas_cell(unique_cell_t cell);
   void          rem_last_neighbour();
   unique_cell_t remove_neighbour_cell(uint32_t earfcn, uint32_t pci);
   void          clean_neighbours();
