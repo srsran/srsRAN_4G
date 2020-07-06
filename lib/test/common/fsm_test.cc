@@ -28,6 +28,15 @@
 struct ev1 {};
 struct ev2 {};
 
+std::vector<std::string> calls;
+template <typename State>
+void call_log_helper(State* state, srslte::log_ref& log_h, const char* type)
+{
+  std::string callname = srslte::get_type_name<State>() + "::" + type;
+  log_h->info("%s custom called\n", callname.c_str());
+  calls.push_back(callname);
+}
+
 class fsm1 : public srslte::fsm_t<fsm1>
 {
 public:
@@ -39,7 +48,9 @@ public:
     void enter(fsm1* f);
   };
   struct state1 {
-    void enter(fsm1* f);
+    void enter(fsm1* f) {}
+    void enter(fsm1* f, const ev1& ev);
+    void enter(fsm1* f, const ev2& ev);
     void exit(fsm1* f);
   };
 
@@ -53,13 +64,13 @@ public:
     struct state_inner {
       void enter(fsm2* f)
       {
-        f->log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(*this).c_str());
+        call_log_helper(this, f->log_h, "enter");
         f->parent_fsm()->inner_enter_counter++;
       }
     };
     struct state_inner2 {
-      void enter(fsm2* f) { f->log_h->info("fsm1::%s::enter called\n", srslte::get_type_name(*this).c_str()); }
-      void exit(fsm2* f) { f->log_h->info("fsm1::%s::exit called\n", srslte::get_type_name(*this).c_str()); }
+      void enter(fsm2* f) { call_log_helper(this, f->log_h, "enter"); }
+      void exit(fsm2* f) { call_log_helper(this, f->log_h, "exit"); }
     };
 
     explicit fsm2(fsm1* f_) : nested_fsm_t(f_) {}
@@ -67,19 +78,22 @@ public:
     fsm2& operator=(fsm2&&) = default;
     ~fsm2() { log_h->info("%s being destroyed!", get_type_name(*this).c_str()); }
 
+    void enter(fsm1* f) { call_log_helper(this, f->log_h, "enter"); }
+    void exit(fsm1* f) { call_log_helper(this, f->log_h, "exit"); }
+
   private:
-    void inner_action1(state_inner& s, state_inner& d, const ev1& e);
-    void inner_action2(state_inner& s, state_inner2& d, const ev2& e);
-    void inner_action3(state_inner2& s, state1& d, const ev2& e);
+    void inner_action1(state_inner& s, const ev1& e);
+    void inner_action2(state_inner& s, const ev2& e);
+    void inner_action3(state_inner2& s, const ev2& e);
 
   protected:
     // list of states
     state_list<state_inner, state_inner2> states{this};
     // clang-format off
     using transitions = transition_table<
-      //      Start         Target    Event        Action
+      //     Start       Target       Event    Action
       //  +------------+-------------+----+----------------------+
-      row<state_inner,  state_inner,  ev1, &fsm2::inner_action1  >,
+      upd<state_inner,                ev1, &fsm2::inner_action1  >,
       row<state_inner,  state_inner2, ev2, &fsm2::inner_action2  >,
       row<state_inner2, state1,       ev2, &fsm2::inner_action3  >
       //  +------------+-------------+----+----------------------+
@@ -88,9 +102,9 @@ public:
   };
 
 private:
-  void action1(idle_st& s, state1& d, const ev1& e);
-  void action2(state1& s, fsm2& d, const ev1& e);
-  void action3(state1& s, idle_st& d, const ev2& e);
+  void action1(idle_st& s, const ev1& e);
+  void action2(state1& s, const ev1& e);
+  void action3(state1& s, const ev2& e);
 
 protected:
   void foo(ev1 e) { foo_counter++; }
@@ -102,59 +116,64 @@ protected:
   using transitions = transition_table<
     //      Start         Target    Event        Action
     //  +------------+-------------+----+------------------+
-    row< idle_st,     state1,       ev1,  &fsm1::action1>,
-    row< state1,      fsm2,         ev1,  &fsm1::action2>,
-    row< state1,      idle_st,      ev2,  &fsm1::action3>
-  //  +------------+-------------+----+--------------------+
+    row< idle_st,     state1,       ev1,  &fsm1::action1   >,
+    row< state1,      fsm2,         ev1,  &fsm1::action2   >,
+    row< state1,      idle_st,      ev2,  &fsm1::action3   >
+    //  +------------+-------------+----+------------------+
   >;
   // clang-format on
 };
 
 void fsm1::idle_st::enter(fsm1* f)
 {
-  f->log_h->info("%s::enter custom called\n", srslte::get_type_name(*this).c_str());
+  call_log_helper(this, f->log_h, "enter");
   f->idle_enter_counter++;
 }
-void fsm1::state1::enter(fsm1* f)
+void fsm1::state1::enter(fsm1* f, const ev1& ev)
 {
-  f->log_h->info("%s::enter custom called\n", srslte::get_type_name(*this).c_str());
+  call_log_helper(this, f->log_h, "enter");
+  f->state1_enter_counter++;
+}
+void fsm1::state1::enter(fsm1* f, const ev2& ev)
+{
+  call_log_helper(this, f->log_h, "enter2");
   f->state1_enter_counter++;
 }
 void fsm1::state1::exit(fsm1* f)
 {
-  f->log_h->info("%s::exit custom called\n", srslte::get_type_name(*this).c_str());
+  call_log_helper(this, f->log_h, "exit");
 }
 
 // FSM event handlers
-void fsm1::fsm2::inner_action1(state_inner& s, state_inner& d, const ev1& e)
+void fsm1::fsm2::inner_action1(state_inner& s, const ev1& e)
 {
-  log_h->info("fsm2::state_inner::react called\n");
+  call_log_helper(this, log_h, "inner_action1");
 }
 
-void fsm1::fsm2::inner_action2(state_inner& s, state_inner2& d, const ev2& e)
+void fsm1::fsm2::inner_action2(state_inner& s, const ev2& e)
 {
-  log_h->info("fsm2::state_inner::react called\n");
+  call_log_helper(this, log_h, "inner_action2");
 }
 
-void fsm1::fsm2::inner_action3(state_inner2& s, state1& d, const ev2& e)
+void fsm1::fsm2::inner_action3(state_inner2& s, const ev2& e)
 {
   log_h->info("fsm2::state_inner2::react called\n");
 }
 
-void fsm1::action1(idle_st& s, state1& d, const ev1& e)
+void fsm1::action1(idle_st& s, const ev1& e)
 {
-  log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
+  call_log_helper(this, log_h, "action1");
   foo(e);
 }
 
-void fsm1::action2(state1& s, fsm2& d, const ev1& ev)
+void fsm1::action2(state1& s, const ev1& ev)
 {
-  log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
+  call_log_helper(this, log_h, "action2");
 }
 
-void fsm1::action3(state1& s, idle_st& d, const ev2& ev)
+void fsm1::action3(state1& s, const ev2& ev)
 {
-  log_h->info("%s::react called\n", srslte::get_type_name(s).c_str());
+  call_log_helper(this, log_h, "action3");
 }
 
 // Static Checks
@@ -240,6 +259,21 @@ int test_hsm()
   TESTASSERT(f.is_in_state<fsm1::fsm2>());
   TESTASSERT(f.get_if_current_state<fsm1::fsm2>()->current_state_name() == "state_inner");
 
+  // Ensure correct call order
+  TESTASSERT(calls[0] == srslte::get_type_name<fsm1::idle_st>() + "::enter"); // enter for init state called
+  TESTASSERT(calls[1] == srslte::get_type_name<fsm1>() + "::action1");
+  TESTASSERT(calls[2] == srslte::get_type_name<fsm1::state1>() + "::enter");
+  TESTASSERT(calls[3] == srslte::get_type_name<fsm1>() + "::action2");
+  TESTASSERT(calls[4] == srslte::get_type_name<fsm1::state1>() + "::exit");
+  TESTASSERT(calls[5] == srslte::get_type_name<fsm1::fsm2>() + "::enter"); // entry is recursive
+  TESTASSERT(calls[6] == srslte::get_type_name<fsm1::fsm2::state_inner>() + "::enter");
+  TESTASSERT(calls[7] == srslte::get_type_name<fsm1::fsm2>() + "::inner_action1");
+  TESTASSERT(calls[8] == srslte::get_type_name<fsm1::fsm2>() + "::inner_action2");
+  TESTASSERT(calls[9] == srslte::get_type_name<fsm1::fsm2::state_inner2>() + "::enter");
+  TESTASSERT(calls[10] == srslte::get_type_name<fsm1::fsm2::state_inner2>() + "::exit");
+  TESTASSERT(calls[11] == srslte::get_type_name<fsm1::fsm2>() + "::exit");     // exit is recursive
+  TESTASSERT(calls[12] == srslte::get_type_name<fsm1::state1>() + "::enter2"); // differentiates different entry funcs
+
   return SRSLTE_SUCCESS;
 }
 
@@ -251,51 +285,79 @@ struct procevent1 {
 
 struct proc1 : public srslte::proc_fsm_t<proc1, int> {
 public:
-  struct procstate1 {};
+  struct procstate1 {
+    void enter(proc1* f, const srslte::proc_launch_ev<int>& ev);
+  };
 
-  proc1(srslte::log_ref log_) : base_t(log_) {}
+  explicit proc1(srslte::log_ref log_) : base_t(log_) {}
 
 protected:
   // Transitions
-  void init(idle_st& s, procstate1& d, const srslte::proc_launch_ev<int*>& ev);
+  void handle_success(procstate1& s, const procevent1& ev);
+  void handle_failure(procstate1& s, const procevent1& ev);
 
-  void handle_success(procstate1& s, idle_st& d, const procevent1& ev);
+  bool is_success(procstate1& s, const procevent1& ev) { return ev.is_success; }
 
-  void handle_failure(procstate1& s, idle_st& d, const procevent1& ev);
-
-  bool is_success(procstate1& s, const procevent1& ev) const { return ev.is_success; }
-
-  bool is_failure(procstate1& s, const procevent1& ev) const { return not ev.is_success; }
+  bool is_failure(procstate1& s, const procevent1& ev) { return not ev.is_success; }
 
   state_list<idle_st, procstate1> states{this, idle_st{}, procstate1{}};
   // clang-format off
   using transitions = transition_table<
-    //      Start         Target             Event                        Action            Guard (optional)
-    //  +------------+-------------+----------------------------+------------------------+--------------------+
-    row< idle_st,      procstate1,  srslte::proc_launch_ev<int*>, &proc1::init                                >,
-    row< procstate1,   idle_st,     procevent1,                   &proc1::handle_success, &proc1::is_success  >,
-    row< procstate1,   idle_st,     procevent1,                   &proc1::handle_failure, &proc1::is_failure  >
-    //  +------------+-------------+----------------------------+------------------------+--------------------+
+    //      Start         Target      Event              Action                Guard (optional)
+    //  +------------+-------------+----------------+------------------------+--------------------+
+    row< idle_st,      procstate1,  launch_ev<int>                                                >,
+    upd< procstate1,                procevent1,       &proc1::handle_success, &proc1::is_success  >,
+    upd< procstate1,                procevent1,       &proc1::handle_failure, &proc1::is_failure  >,
+    from_any_state<    idle_st,     complete_ev                                                   >
+    //  +------------+-------------+----------------+------------------------+--------------------+
   >;
   // clang-format on
 };
 
-void proc1::init(idle_st& s, procstate1& d, const srslte::proc_launch_ev<int*>& ev)
+void proc1::procstate1::enter(proc1* f, const launch_ev<int>& ev)
 {
-  log_h->info("started!\n");
+  f->log_h->info("started!\n");
 }
 
-void proc1::handle_success(procstate1& s, idle_st& d, const procevent1& ev)
+void proc1::handle_success(procstate1& s, const procevent1& ev)
 {
   log_h->info("success!\n");
-  d = {true, 5};
+  trigger(complete_ev{5});
 }
 
-void proc1::handle_failure(procstate1& s, idle_st& d, const procevent1& ev)
+void proc1::handle_failure(procstate1& s, const procevent1& ev)
 {
   log_h->info("failure!\n");
-  d = {false, 3};
+  trigger(complete_ev{3});
 }
+
+struct proc_listener_fsm : public srslte::fsm_t<proc_listener_fsm> {
+public:
+  struct st1 {};
+  struct st2 {};
+  using proc1_st = srslte::proc_wait_st<proc1>;
+
+  explicit proc_listener_fsm(srslte::log_ref log_, proc1* proc_ptr_) :
+    base_t(log_),
+    states(this, st1{}, st2{}, proc1_st{proc_ptr_})
+  {}
+
+protected:
+  bool is_success(proc1_st& s, const proc1::complete_ev& ev) { return ev.result; }
+
+  // clang-format off
+  state_list<st1, st2, proc1_st > states;
+  using f = proc_listener_fsm;
+  using transitions = transition_table<
+    //      Start         Target             Event             Action                 Guard (optional)
+    //  +--------------+--------------+-----------------------+------------------------+-------------------+
+    row<  st1,           proc1_st,      int                                                                >,
+    row<  proc1_st,      st2,           proc1::complete_ev,    nullptr,                 &f::is_success     >,
+    row<  proc1_st,      st1,           proc1::complete_ev                                                 >
+    //  +--------------+--------------+-----------------------+------------------------+-------------------+
+  >;
+  // clang-format on
+};
 
 int test_fsm_proc()
 {
@@ -305,20 +367,41 @@ int test_fsm_proc()
 
   int v = 2;
   TESTASSERT(proc.current_state_name() == "idle_st");
-  proc.launch(&v);
+  proc.trigger(srslte::proc_launch_ev<int>{v});
   TESTASSERT(proc.current_state_name() == "procstate1");
-  proc.launch(&v);
+  proc.trigger(srslte::proc_launch_ev<int>{v});
   TESTASSERT(proc.current_state_name() == "procstate1");
-  proc.trigger(5);
+  proc.trigger(srslte::proc_launch_ev<int>{5});
   TESTASSERT(proc.current_state_name() == "procstate1");
   proc.trigger(procevent1{true});
   TESTASSERT(proc.current_state_name() == "idle_st");
-  TESTASSERT(proc.get_state<proc1::idle_st>()->is_success());
-  proc.launch(&v);
+  TESTASSERT(proc.get_result() == 5);
+  proc.trigger(srslte::proc_launch_ev<int>{v});
   TESTASSERT(proc.current_state_name() == "procstate1");
   proc.trigger(procevent1{false});
   TESTASSERT(proc.current_state_name() == "idle_st");
-  TESTASSERT(not proc.get_state<proc1::idle_st>()->is_success());
+  TESTASSERT(proc.get_result() == 3);
+
+  {
+    proc_listener_fsm outer_fsm{srslte::logmap::get("TEST"), &proc};
+    TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::st1>());
+    outer_fsm.trigger(6);
+    TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::proc1_st>());
+    TESTASSERT(proc.is_running());
+    proc.trigger(procevent1{true});
+    TESTASSERT(not proc.is_running());
+    TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::st2>());
+  }
+
+  {
+    proc_listener_fsm outer_fsm{srslte::logmap::get("TEST"), &proc};
+    TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::st1>());
+    proc.trigger(srslte::proc_launch_ev<int>{v});
+    TESTASSERT(proc.is_running());
+    outer_fsm.trigger(7);
+    TESTASSERT(outer_fsm.is_in_state<proc_listener_fsm::st1>());
+    TESTASSERT(proc.is_running());
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -379,7 +462,8 @@ protected:
     row< emm_ta_updating_initiated,  emm_registered,             tau_outcome_ev            >,
     row< emm_ta_updating_initiated,  emm_deregistered,           tau_reject_other_cause_ev >,
     row< emm_deregistered_initiated, emm_deregistered,           detach_accept_ev          >,
-    from_any_state<emm_deregistered, power_off_ev>
+    from_any_state<                  emm_deregistered,           power_off_ev              >
+  //  +-----------------------------+-------------------------+-----------------------------+
   >;
   // clang-format on
 };
@@ -463,8 +547,8 @@ struct fsm3 : public srslte::fsm_t<fsm3> {
   fsm3() : base_t(srslte::log_ref{"TEST"}) {}
 
 protected:
-  void handle_ev1(st1& s, st2& d, const ev1& ev) { trigger(ev2{}); }
-  void handle_ev2(st2& s, st1& d, const ev2& ev)
+  void handle_ev1(st1& s, const ev1& ev) { trigger(ev2{}); }
+  void handle_ev2(st2& s, const ev2& ev)
   {
     if (s.counter < 2) {
       trigger(ev1{});
@@ -478,6 +562,7 @@ protected:
   //  +------------------------+-------------------------+-------------------+--------------------+
   row<  st1,                      st2,                     ev1,                &fsm3::handle_ev1>,
   row<  st2,                      st1,                     ev2,                &fsm3::handle_ev2>
+  //  +------------------------+-------------------------+-------------------+--------------------+
   >;
   // clang-format on
 };

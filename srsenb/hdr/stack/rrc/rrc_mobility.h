@@ -149,7 +149,7 @@ private:
     const cell_ctxt_dedicated* source_cell_ctxt = nullptr;
     uint16_t                   last_temp_crnti  = SRSLTE_INVALID_RNTI;
 
-    void enter(rrc_mobility* f);
+    void enter(rrc_mobility* f, const ho_meas_report_ev& meas_report);
   };
   struct s1_target_ho_st {
     uint32_t target_cell_id;
@@ -158,42 +158,39 @@ private:
     ho_meas_report_ev report;
 
     struct wait_ho_req_ack_st {
-      void enter(s1_source_ho_st* f);
+      void enter(s1_source_ho_st* f, const ho_meas_report_ev& ev);
     };
     struct status_transfer_st {
       void enter(s1_source_ho_st* f);
-
-      bool is_ho_cmd_sent = false;
     };
 
     explicit s1_source_ho_st(rrc_mobility* parent_) : base_t(parent_) {}
 
   private:
-    void handle_ho_cmd(wait_ho_req_ack_st& s, status_transfer_st& d, const srslte::unique_byte_buffer_t& container);
+    bool send_ho_cmd(wait_ho_req_ack_st& s, const srslte::unique_byte_buffer_t& container);
 
   protected:
     using fsm = s1_source_ho_st;
     state_list<wait_ho_req_ack_st, status_transfer_st> states{this};
     // clang-format off
     using transitions = transition_table<
-    //                    Start                 Target                   Event                      Action
-    //               +-------------------+------------------+------------------------------+---------------------------+
-      from_any_state< idle_st,                                srslte::failure_ev                                       >,
-                 row< wait_ho_req_ack_st, status_transfer_st, srslte::unique_byte_buffer_t, &fsm::handle_ho_cmd        >
-    //               +-------------------+------------------+------------------------------+--------- -----------------+
+    //                 Start                 Target                   Event               Action    Guard
+    //            +-------------------+------------------+------------------------------+---------+---------------------+
+    from_any_state<                     idle_st,            srslte::failure_ev                                          >,
+               row< wait_ho_req_ack_st, status_transfer_st, srslte::unique_byte_buffer_t, nullptr, &fsm::send_ho_cmd    >,
+               row< wait_ho_req_ack_st, idle_st           , srslte::unique_byte_buffer_t                                >
+    //            +-------------------+------------------+------------------------------+---------+---------------------+
     >;
     // clang-format on
   };
 
   // FSM guards
-  bool needs_s1_ho(idle_st& s, const ho_meas_report_ev& meas_report) const;
-  bool needs_intraenb_ho(idle_st& s, const ho_meas_report_ev& meas_report) const;
+  bool needs_s1_ho(idle_st& s, const ho_meas_report_ev& meas_report);
+  bool needs_intraenb_ho(idle_st& s, const ho_meas_report_ev& meas_report);
 
   // FSM transition handlers
-  void handle_s1_meas_report(idle_st& s, s1_source_ho_st& d, const ho_meas_report_ev& meas_report);
-  void handle_intraenb_meas_report(idle_st& s, intraenb_ho_st& d, const ho_meas_report_ev& meas_report);
-  void handle_crnti_ce(intraenb_ho_st& s, intraenb_ho_st& d, const user_crnti_upd_ev& ev);
-  void handle_recfg_complete(intraenb_ho_st& s, idle_st& d, const recfg_complete_ev& ev);
+  void handle_crnti_ce(intraenb_ho_st& s, const user_crnti_upd_ev& ev);
+  void handle_recfg_complete(intraenb_ho_st& s, const recfg_complete_ev& ev);
 
 protected:
   // states
@@ -207,12 +204,14 @@ protected:
   using fsm = rrc_mobility;
   // clang-format off
   using transitions = transition_table<
-  //      Start        Target             Event              Action                            Guard (optional)
-  // +---------------+----------------+--------------------+---------------------------------+-------------------------+
-  row< idle_st,        s1_source_ho_st, ho_meas_report_ev, &fsm::handle_s1_meas_report,        &fsm::needs_s1_ho       >,
-  row< idle_st,        intraenb_ho_st,  ho_meas_report_ev, &fsm::handle_intraenb_meas_report,  &fsm::needs_intraenb_ho >,
-  row< intraenb_ho_st, intraenb_ho_st,  user_crnti_upd_ev, &fsm::handle_crnti_ce                                       >,
-  row< intraenb_ho_st, idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                                 >
+  //      Start        Target             Event                Action                      Guard
+  // +---------------+----------------+--------------------+---------------------------+-------------------------+
+  row< idle_st,        s1_source_ho_st, ho_meas_report_ev,  nullptr,                     &fsm::needs_s1_ho       >,
+  row< idle_st,        intraenb_ho_st,  ho_meas_report_ev,  nullptr,                     &fsm::needs_intraenb_ho >,
+  // +---------------+----------------+--------------------+---------------------------+-------------------------+
+  upd< intraenb_ho_st,                  user_crnti_upd_ev, &fsm::handle_crnti_ce                                 >,
+  row< intraenb_ho_st, idle_st,         recfg_complete_ev, &fsm::handle_recfg_complete                           >
+  // +---------------+----------------+--------------------+---------------------------+-------------------------+
   >;
   // clang-format on
 };
