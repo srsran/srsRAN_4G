@@ -1383,6 +1383,7 @@ void srslte_ue_dl_gen_ack(const srslte_cell_t*      cell,
                           const srslte_pdsch_ack_t* ack_info,
                           srslte_uci_data_t*        uci_data)
 {
+  uci_data->value.ack.valid = true; //< Always true for UE transmitter
   if (cell->frame_type == SRSLTE_FDD) {
     gen_ack_fdd(ack_info, uci_data);
   } else {

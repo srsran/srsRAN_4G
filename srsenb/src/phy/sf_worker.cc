@@ -203,6 +203,9 @@ void sf_worker::work_imp()
   // Configure UL subframe
   ul_sf.tti = tti_rx;
 
+  // Set UL grant availability prior to any UL processing
+  phy->ue_db.set_ul_grant_available(tti_rx, ul_grants);
+
   // Process UL
   for (uint32_t cc = 0; cc < cc_workers.size(); cc++) {
     cc_workers[cc]->work_ul(ul_sf, ul_grants[cc]);

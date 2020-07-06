@@ -85,10 +85,10 @@ cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_
   phy->set_pdsch_cfg(&pmch_cfg.pdsch_cfg); // set same config in PMCH decoder
 
   // Define MBSFN subframes channel estimation and save default one
-  chest_mbsfn_cfg.filter_type          = SRSLTE_CHEST_FILTER_TRIANGLE;
-  chest_mbsfn_cfg.filter_coef[0]       = 0.1;
-  chest_mbsfn_cfg.estimator_alg        = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
-  chest_mbsfn_cfg.noise_alg            = SRSLTE_NOISE_ALG_PSS;
+  chest_mbsfn_cfg.filter_type    = SRSLTE_CHEST_FILTER_TRIANGLE;
+  chest_mbsfn_cfg.filter_coef[0] = 0.1;
+  chest_mbsfn_cfg.estimator_alg  = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
+  chest_mbsfn_cfg.noise_alg      = SRSLTE_NOISE_ALG_PSS;
 
   chest_default_cfg = ue_dl_cfg.chest_cfg;
 
@@ -641,17 +641,12 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
     pid = phy->ul_pidof(CURRENT_TTI_TX, &sf_cfg_ul.tdd_config);
   }
 
-  /* Generate CQI reports if required, note that in case both aperiodic
-   * and periodic ones present, only aperiodic is sent (36.213 section 7.2) */
-  if (ul_grant_available && dci_ul.cqi_request) {
+  /*
+   * Generate aperiodic CQI report if required, note that in case both aperiodic and periodic ones present, only
+   * aperiodic is sent (36.213 section 7.2)
+   */
+  if (ul_grant_available and dci_ul.cqi_request and uci_data != nullptr) {
     set_uci_aperiodic_cqi(uci_data);
-  } else {
-    /* Check PCell and enabled secondary cells */
-    if (cc_idx == 0 || phy->scell_cfg[cc_idx].enabled) {
-      // 3GPP 36.213 Section 7.2
-      // If the UE is configured with more than one serving cell, it transmits CSI for activated serving cell(s) only.
-      set_uci_periodic_cqi(uci_data);
-    }
   }
 
   /* Send UL dci or HARQ information (from PHICH) to MAC and receive actions*/
@@ -690,14 +685,14 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   }
 
   // PCell sends SR and ACK
-  if (cc_idx == 0) {
+  if (uci_data != nullptr) {
     set_uci_sr(uci_data);
     // This must be called after set_uci_sr() and set_uci_*_cqi
     set_uci_ack(uci_data, ul_grant_available, dci_ul.dai, ul_action.tb.enabled);
   }
 
   // Generate uplink signal, include uci data on only PCell
-  signal_ready = encode_uplink(&ul_action, (cc_idx == 0) ? uci_data : nullptr);
+  signal_ready = encode_uplink(&ul_action, uci_data);
 
   // Prepare to receive ACK through PHICH
   if (ul_action.expect_ack) {
@@ -927,7 +922,7 @@ void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
   }
 }
 
-void cc_worker::upd_config_dci(srslte_dci_cfg_t &dci_cfg)
+void cc_worker::upd_config_dci(srslte_dci_cfg_t& dci_cfg)
 {
   ue_dl_cfg.cfg.dci = dci_cfg;
 }

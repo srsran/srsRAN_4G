@@ -52,6 +52,8 @@ public:
   void set_crnti(uint16_t rnti);
   void enable_pregen_signals(bool enabled);
 
+  void set_uci_periodic_cqi(srslte_uci_data_t* uci_data);
+
   bool work_dl_regular();
   bool work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg);
   bool work_ul(srslte_uci_data_t* uci_data);
@@ -84,7 +86,6 @@ private:
   /* Methods for UL */
   bool     encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srslte_uci_data_t* uci_data);
   void     set_uci_sr(srslte_uci_data_t* uci_data);
-  void     set_uci_periodic_cqi(srslte_uci_data_t* uci_data);
   void     set_uci_aperiodic_cqi(srslte_uci_data_t* uci_data);
   void     set_uci_ack(srslte_uci_data_t* uci_data, bool is_grant_available, uint32_t dai_ul, bool is_pusch_available);
   uint32_t get_wideband_cqi();

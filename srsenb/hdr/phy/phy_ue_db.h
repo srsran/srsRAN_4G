@@ -86,6 +86,7 @@ private:
     uint8_t                                          last_ri    = 0;  ///< Last reported rank indicator
     std::array<srslte_ra_tb_t, SRSLTE_MAX_HARQ_PROC> last_tb    = {}; ///< Stores last PUSCH Resource allocation
     srslte::phy_cfg_t                                phy_cfg;         ///< Configuration, it has a default constructor
+    std::array<bool, TTIMOD_SZ> is_grant_available;                   ///< Indicates whether there is an available grant
   } cell_info_t;
 
   /**
@@ -155,6 +156,18 @@ private:
    * @return the SCell index as described above.
    */
   inline uint32_t _get_ue_cc_idx(uint16_t rnti, uint32_t enb_cc_idx) const;
+
+  /**
+   * Gets the eNb Cell/Carrier index in which the UCI shall be carried. This corresponds to the serving cell with lowest
+   * index that has an UL grant available.
+   *
+   * If no grant is available in the indicated TTI, it returns the number of the eNb Cells/Carriers.
+   *
+   * @param tti The UL processing TTI
+   * @param rnti Temporal UE ID
+   * @return the eNb Cell/Carrier with lowest serving cell index that has an UL grant
+   */
+  uint32_t _get_uci_enb_cc_idx(uint32_t tti, uint16_t rnti) const;
 
   /**
    * Checks if a given RNTI exists in the database
@@ -358,7 +371,7 @@ public:
    * identifier.
    *
    * @param rnti the UE temporal ID
-   * @param cc_idx the cell/carrier origin of the transmission
+   * @param enb_cc_idx the cell/carrier origin of the transmission
    * @param pid HARQ process identifier
    * @param tb the Resource Allocation for the PUSCH transport block
    */
@@ -375,6 +388,14 @@ public:
    * @return the Resource Allocation for the PUSCH transport block
    */
   srslte_ra_tb_t get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uint32_t pid) const;
+
+  /**
+   * Flags to true the UL grant available for a given TTI, RNTI and eNb cell/carrier index
+   * @param tti the current TTI
+   * @param rnti
+   * @param enb_cc_idx
+   */
+  void set_ul_grant_available(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_sched_list);
 };
 
 } // namespace srsenb

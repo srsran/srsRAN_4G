@@ -101,6 +101,7 @@ inline void phy_ue_db::_set_common_config_rnti(uint16_t rnti, srslte::phy_cfg_t&
   phy_cfg.ul_cfg.pucch.threshold_format1             = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1;
   phy_cfg.ul_cfg.pucch.threshold_data_valid_format1a = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT1A;
   phy_cfg.ul_cfg.pucch.threshold_data_valid_format2  = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT2;
+  phy_cfg.ul_cfg.pucch.threshold_data_valid_format3  = SRSLTE_PUCCH_DEFAULT_THRESHOLD_FORMAT3;
   phy_cfg.ul_cfg.pucch.threshold_dmrs_detection      = SRSLTE_PUCCH_DEFAULT_THRESHOLD_DMRS;
 }
 
@@ -117,6 +118,18 @@ inline uint32_t phy_ue_db::_get_ue_cc_idx(uint16_t rnti, uint32_t enb_cc_idx) co
   }
 
   return ue_cc_idx;
+}
+
+uint32_t phy_ue_db::_get_uci_enb_cc_idx(uint32_t tti, uint16_t rnti) const
+{
+  // Find the lowest index available PUSCH grant
+  for (const cell_info_t& cell_info : ue_db.at(rnti).cell_info) {
+    if (cell_info.is_grant_available[TTIMOD(tti)]) {
+      return cell_info.enb_cc_idx;
+    }
+  }
+
+  return (uint32_t)cell_cfg_list->size();
 }
 
 inline int phy_ue_db::_assert_rnti(uint16_t rnti) const
@@ -456,13 +469,32 @@ bool phy_ue_db::fill_uci_cfg(uint32_t          tti,
   // Reset UCI CFG, avoid returning carrying cached information
   uci_cfg = {};
 
-  // Assert rnti and cell exits and it is PCell
-  if (_assert_enb_pcell(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
+  // Assert Cell List configuration
+  if (_assert_cell_list_cfg() != SRSLTE_SUCCESS) {
     return false;
   }
 
-  // Assert Cell List configuration
-  if (_assert_cell_list_cfg() != SRSLTE_SUCCESS) {
+  // Assert eNb Cell/Carrier for the given RNTI
+  if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
+    return false;
+  }
+
+  // Get the eNb cell/carrier index with lowest serving cell index (ue_cc_idx) that has an available grant.
+  uint32_t uci_enb_cc_id         = _get_uci_enb_cc_idx(tti, rnti);
+  bool     pusch_grant_available = (uci_enb_cc_id < (uint32_t)cell_cfg_list->size());
+
+  // There is a PUSCH grant available for the provided RNTI in at least one serving cell and this call is for PUCCH
+  if (pusch_grant_available and not is_pusch_available) {
+    return false;
+  }
+
+  // There is a PUSCH grant and enb_cc_idx with lowest ue_cc_idx with a grant
+  if (pusch_grant_available and uci_enb_cc_id != enb_cc_idx) {
+    return false;
+  }
+
+  // No PUSCH grant for this TTI and cell and no enb_cc_idx is not the PCell
+  if (not pusch_grant_available and _get_ue_cc_idx(rnti, enb_cc_idx) != 0) {
     return false;
   }
 
@@ -524,8 +556,8 @@ void phy_ue_db::send_uci_data(uint32_t                  tti,
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  // Assert UE RNTI database entry and eNb cell/carrier must be primary cell
-  if (_assert_enb_pcell(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
+  // Assert UE RNTI database entry and eNb cell/carrier must be active
+  if (_assert_active_enb_cc(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
     return;
   }
 
@@ -638,4 +670,30 @@ srslte_ra_tb_t phy_ue_db::get_last_ul_tb(uint16_t rnti, uint32_t enb_cc_idx, uin
 
   // Returns the latest stored UL transmission grant
   return ue_db.at(rnti).cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].last_tb[pid % SRSLTE_FDD_NOF_HARQ];
+}
+
+void phy_ue_db::set_ul_grant_available(uint32_t tti, const stack_interface_phy_lte::ul_sched_list_t& ul_sched_list)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  // Reset all available grants flags for the given TTI
+  for (auto& ue : ue_db) {
+    for (cell_info_t& cell_info : ue.second.cell_info) {
+      cell_info.is_grant_available[TTIMOD(tti)] = false;
+    }
+  }
+
+  // For each eNb Cell/Carrier grant set a flag to the corresponding RNTI
+  for (uint32_t enb_cc_idx = 0; enb_cc_idx < (uint32_t)ul_sched_list.size(); enb_cc_idx++) {
+    const stack_interface_phy_lte::ul_sched_t& ul_sched = ul_sched_list[enb_cc_idx];
+    for (uint32_t i = 0; i < ul_sched.nof_grants; i++) {
+      const stack_interface_phy_lte::ul_sched_grant_t& ul_sched_grant = ul_sched.pusch[i];
+      uint16_t                                         rnti           = ul_sched_grant.dci.rnti;
+      // Check that eNb Cell/Carrier is active for the given RNTI
+      if (_assert_active_enb_cc(rnti, enb_cc_idx) == SRSLTE_SUCCESS) {
+        // Rise Grant available flag
+        ue_db[rnti].cell_info[_get_ue_cc_idx(rnti, enb_cc_idx)].is_grant_available[TTIMOD(tti)] = true;
+      }
+    }
+  }
 }

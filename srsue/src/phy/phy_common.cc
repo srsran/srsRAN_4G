@@ -364,6 +364,18 @@ bool phy_common::get_ul_pending_grant(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, u
   return ret;
 }
 
+uint32_t phy_common::get_ul_uci_cc(uint32_t tti_tx) const
+{
+  std::lock_guard<std::mutex> lock(pending_ul_grant_mutex);
+  for (uint32_t cc = 0; cc < args->nof_carriers; cc++) {
+    const pending_ul_grant_t& grant = pending_ul_grant[TTIMOD(tti_tx)][cc];
+    if (grant.enable) {
+      return cc;
+    }
+  }
+  return 0; // Return Primary cell
+}
+
 // SF->TTI at which PHICH is received
 void phy_common::set_ul_received_ack(srslte_dl_sf_cfg_t* sf,
                                      uint32_t            cc_idx,

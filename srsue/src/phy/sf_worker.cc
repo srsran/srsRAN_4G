@@ -245,12 +245,22 @@ void sf_worker::work_imp()
         srslte_uci_data_t uci_data;
         reset_uci(&uci_data);
 
-        // Loop through all carriers. Do in reverse order since control information from SCells is transmitted in PCell
+        uint32_t uci_cc_idx = phy->get_ul_uci_cc(TTI_TX(tti));
+
+        // Fill periodic CQI data; In case of periodic CSI report collision, lower carrier index have preference, so
+        // iterate through all carriers in inverse order.
         for (int carrier_idx = phy->args->nof_carriers - 1; carrier_idx >= 0; carrier_idx--) {
-          tx_signal_ready |= cc_workers[carrier_idx]->work_ul(&uci_data);
+          if (carrier_idx == 0 or phy->scell_cfg[carrier_idx].configured) {
+            cc_workers[carrier_idx]->set_uci_periodic_cqi(&uci_data);
+          }
+        }
+
+        // Loop through all carriers
+        for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_carriers; carrier_idx++) {
+          tx_signal_ready |= cc_workers[carrier_idx]->work_ul(uci_cc_idx == carrier_idx ? &uci_data : nullptr);
 
           // Set signal pointer based on offset
-          tx_signal_ptr.set((uint32_t)carrier_idx, 0, phy->args->nof_rx_ant, cc_workers[carrier_idx]->get_tx_buffer(0));
+          tx_signal_ptr.set(carrier_idx, 0, phy->args->nof_rx_ant, cc_workers[carrier_idx]->get_tx_buffer(0));
         }
       }
     }

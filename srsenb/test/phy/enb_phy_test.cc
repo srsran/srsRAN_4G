@@ -187,8 +187,7 @@ public:
     }
   }
 
-  bool tx(srslte::rf_buffer_interface&          buffer,
-          const srslte::rf_timestamp_interface& tx_time) override
+  bool tx(srslte::rf_buffer_interface& buffer, const srslte::rf_timestamp_interface& tx_time) override
   {
     int err = SRSLTE_SUCCESS;
 
@@ -209,8 +208,7 @@ public:
     return err >= SRSLTE_SUCCESS;
   }
   void tx_end() override {}
-  bool rx_now(srslte::rf_buffer_interface&    buffer,
-              srslte::rf_timestamp_interface& rxd_time) override
+  bool rx_now(srslte::rf_buffer_interface& buffer, srslte::rf_timestamp_interface& rxd_time) override
   {
     int err = SRSLTE_SUCCESS;
 
@@ -981,8 +979,32 @@ public:
     return SRSLTE_SUCCESS;
   }
 
+  void fill_uci(uint32_t             cc_idx,
+                srslte_ue_ul_cfg_t&  ue_ul_cfg,
+                srslte_uci_data_t&   uci_data,
+                srslte_pdsch_ack_t&  pdsch_ack,
+                srslte_pusch_data_t& pusch_data)
+  {
+    // Generate scheduling request
+    srslte_ue_ul_gen_sr(&ue_ul_cfg, &sf_ul_cfg, &uci_data, (bool)(sf_ul_cfg.tti % 20 == 0));
+
+    // Generate Acknowledgements
+    srslte_ue_dl_gen_ack(&ue_dl_v[cc_idx]->cell, &sf_dl_cfg, &pdsch_ack, &uci_data);
+
+    if (uci_data.cfg.cqi.ri_len) {
+      last_ri[uci_data.cfg.cqi.scell_index] = uci_data.value.ri;
+    }
+
+    // Set UCI only for lowest serving cell index
+    pusch_data.uci                 = uci_data.value;
+    ue_ul_cfg.ul_cfg.pusch.uci_cfg = uci_data.cfg;
+    ue_ul_cfg.ul_cfg.pucch.uci_cfg = uci_data.cfg;
+  }
+
   int work_ul(srslte_pdsch_ack_t& pdsch_ack, srslte_uci_data_t& uci_data)
   {
+    bool first_pusch = true;
+
     // Zero all IQ UL buffers
     for (auto& buffer : buffers) {
       srslte_vec_cf_zero(buffer, SRSLTE_SF_LEN_PRB(ue_ul_v[0]->cell.nof_prb));
@@ -1022,26 +1044,13 @@ public:
         ue_ul_cfg.ul_cfg.pusch.softbuffers.tx = &softbuffer_tx;
         ue_ul_cfg.grant_available             = true;
         pdsch_ack.is_pusch_available          = true;
-      }
 
-      // Generate
-      if (i == 0) {
-        // Generate scheduling request
-        srslte_ue_ul_gen_sr(&ue_ul_cfg, &sf_ul_cfg, &uci_data, (bool)(sf_ul_cfg.tti % 20 == 0));
+        // Generate UCI data
+        if (first_pusch) {
+          fill_uci(cc_idx, ue_ul_cfg, uci_data, pdsch_ack, pusch_data);
 
-        // Generate Acknowledgements
-        srslte_ue_dl_gen_ack(&ue_dl_v[cc_idx]->cell, &sf_dl_cfg, &pdsch_ack, &uci_data);
-
-        if (uci_data.cfg.cqi.ri_len) {
-          last_ri[uci_data.cfg.cqi.scell_index] = uci_data.value.ri;
+          first_pusch = false;
         }
-      }
-
-      // Set UCI only for PCel
-      if (i == 0) {
-        pusch_data.uci                 = uci_data.value;
-        ue_ul_cfg.ul_cfg.pusch.uci_cfg = uci_data.cfg;
-        ue_ul_cfg.ul_cfg.pucch.uci_cfg = uci_data.cfg;
       }
 
       // Work UL
@@ -1051,6 +1060,31 @@ public:
       srslte_ue_ul_info(&ue_ul_cfg, &sf_ul_cfg, &pusch_data.uci, str, sizeof(str));
       if (str[0]) {
         log_h.info("[UL INFO %d] %s\n", i, str);
+      }
+    }
+
+    // If no PUSCH, send PUCCH
+    if (first_pusch) {
+      uint32_t           cc_idx    = phy_rrc_cfg[0].enb_cc_idx;
+      srslte::phy_cfg_t& dedicated = phy_rrc_cfg[0].phy_cfg;
+
+      srslte_ue_ul_cfg_t ue_ul_cfg          = {};
+      ue_ul_cfg.ul_cfg                      = dedicated.ul_cfg;
+      ue_ul_cfg.ul_cfg.pusch.softbuffers.tx = &softbuffer_tx;
+      ue_ul_cfg.ul_cfg.pucch.rnti           = rnti;
+      ue_ul_cfg.cc_idx                      = 0; // SCell index
+
+      srslte_pusch_data_t pusch_data = {};
+
+      fill_uci(cc_idx, ue_ul_cfg, uci_data, pdsch_ack, pusch_data);
+
+      // Work UL PUCCH
+      TESTASSERT(srslte_ue_ul_encode(ue_ul_v[cc_idx], &sf_ul_cfg, &ue_ul_cfg, &pusch_data) >= SRSLTE_SUCCESS);
+
+      char str[256] = {};
+      srslte_ue_ul_info(&ue_ul_cfg, &sf_ul_cfg, &pusch_data.uci, str, sizeof(str));
+      if (str[0]) {
+        log_h.info("[UL INFO %d] %s\n", 0, str);
       }
     }
 
@@ -1226,6 +1260,8 @@ public:
     dedicated.ul_cfg.pucch.n1_pucch_an_cs[2][1]    = N_pucch_1 + 5;
     dedicated.ul_cfg.pucch.n1_pucch_an_cs[3][1]    = N_pucch_1 + 6;
     dedicated.ul_cfg.pusch.uci_offset.I_offset_ack = 7;
+    dedicated.ul_cfg.pusch.uci_offset.I_offset_ri  = 7;
+    dedicated.ul_cfg.pusch.uci_offset.I_offset_cqi = 7;
 
     // Configure UE PHY
     std::array<bool, SRSLTE_MAX_CARRIERS> activation = {}; ///< Activation/Deactivation vector

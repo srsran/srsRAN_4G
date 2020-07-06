@@ -227,10 +227,6 @@ void cc_worker::work_ul(const srslte_ul_sf_cfg_t& ul_sf_cfg, stack_interface_phy
   ul_sf = ul_sf_cfg;
   log_h->step(ul_sf.tti);
 
-  for (auto& ue : ue_db) {
-    ue.second->is_grant_available = false;
-  }
-
   // Process UL signal
   srslte_enb_ul_fft(&enb_ul);
 
@@ -291,11 +287,13 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   // Get UE configuration
   ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
 
-  // mark this tti as having an ul dci to avoid pucch
-  ue_db[rnti]->is_grant_available = true;
-
   // Fill UCI configuration
-  phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, ul_grant.dci.cqi_request, true, ul_cfg.pusch.uci_cfg);
+  bool uci_required =
+      phy->ue_db.fill_uci_cfg(tti_rx, cc_idx, rnti, ul_grant.dci.cqi_request, true, ul_cfg.pusch.uci_cfg);
+
+  if (ul_cfg.pusch.softbuffers.rx) {
+    srslte_softbuffer_rx_reset(ul_cfg.pusch.softbuffers.rx);
+  }
 
   // Compute UL grant
   srslte_pusch_grant_t& grant = ul_cfg.pusch.grant;
@@ -347,7 +345,9 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
   }
 
   // Send UCI data to MAC
-  phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pusch.uci_cfg, pusch_res.uci);
+  if (uci_required) {
+    phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pusch.uci_cfg, pusch_res.uci);
+  }
 
   // Save statistics only if data was provided
   if (ul_grant.data != nullptr) {
@@ -393,7 +393,7 @@ int cc_worker::decode_pucch()
     uint16_t rnti = iter.first;
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
-    if (SRSLTE_RNTI_ISUSER(rnti) and not ue_db[rnti]->is_grant_available and phy->ue_db.is_pcell(rnti, cc_idx)) {
+    if (SRSLTE_RNTI_ISUSER(rnti) and phy->ue_db.is_pcell(rnti, cc_idx)) {
       srslte_ul_cfg_t ul_cfg = phy->ue_db.get_ul_config(rnti, cc_idx);
 
       // Check if user needs to receive PUCCH

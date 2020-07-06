@@ -130,6 +130,14 @@ public:
   void set_ul_pending_grant(srslte_dl_sf_cfg_t* sf, uint32_t cc_idx, srslte_dci_ul_t* dci);
   bool get_ul_pending_grant(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, uint32_t* pid, srslte_dci_ul_t* dci);
 
+  /**
+   * If there is a UL Grant it returns the lowest index component carrier that has a grant, otherwise it returns 0.
+   *
+   * @param tti_tx TTI in which the transmission is happening
+   * @return The number of carrier if a grant is available, otherwise 0
+   */
+  uint32_t get_ul_uci_cc(uint32_t tti_tx) const;
+
   void set_rar_grant_tti(uint32_t tti);
 
   void set_dl_pending_ack(srslte_dl_sf_cfg_t*         sf,
@@ -138,10 +146,7 @@ public:
                           srslte_pdsch_ack_resource_t resource);
   bool get_dl_pending_ack(srslte_ul_sf_cfg_t* sf, uint32_t cc_idx, srslte_pdsch_ack_cc_t* ack);
 
-  void worker_end(void*                   h,
-                  bool                    tx_enable,
-                  srslte::rf_buffer_t&    buffer,
-                  srslte::rf_timestamp_t& tx_time);
+  void worker_end(void* h, bool tx_enable, srslte::rf_buffer_t& buffer, srslte::rf_timestamp_t& tx_time);
 
   void set_cell(const srslte_cell_t& c);
   void set_nof_workers(uint32_t nof_workers);
@@ -184,7 +189,7 @@ private:
   std::mutex              mtch_mutex;
   std::condition_variable mtch_cvar;
 
-  uint32_t           nof_workers = 0;
+  uint32_t nof_workers = 0;
 
   bool is_pending_tx_end = false;
 
@@ -216,7 +221,7 @@ private:
     srslte_dci_ul_t dci;
   } pending_ul_grant_t;
   pending_ul_grant_t pending_ul_grant[TTIMOD_SZ][SRSLTE_MAX_CARRIERS] = {};
-  std::mutex         pending_ul_grant_mutex;
+  mutable std::mutex pending_ul_grant_mutex;
 
   typedef struct {
     bool                        enable;

@@ -1127,6 +1127,12 @@ int rrc::ue::fill_scell_to_addmod_list(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_
     srslte::set_phy_cfg_t_scell_config(&scell_phy_rrc_ded.phy_cfg, cell);
     scell_phy_rrc_ded.configured = true;
 
+    // Set PUSCH dedicated configuration following 3GPP TS 36.331 R 10 Section 6.3.2 Radio resource control information
+    // elements - PUSCH-Config
+    //   One value applies for all serving cells with an uplink (the associated functionality is common i.e. not
+    //   performed independently for each cell).
+    scell_phy_rrc_ded.phy_cfg.ul_cfg.pusch.uci_offset = phy_rrc_dedicated_list[0].phy_cfg.ul_cfg.pusch.uci_offset;
+
     // Get corresponding eNB CC index
     scell_phy_rrc_ded.enb_cc_idx = cc_cfg->enb_cc_idx;
 

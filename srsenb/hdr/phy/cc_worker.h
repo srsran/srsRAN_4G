@@ -103,8 +103,7 @@ private:
       // Do nothing
     }
 
-    bool                 is_grant_available = false;
-    srslte_phich_grant_t phich_grant        = {};
+    srslte_phich_grant_t phich_grant = {};
 
     void     metrics_read(phy_metrics_t* metrics);
     void     metrics_dl(uint32_t mcs);
