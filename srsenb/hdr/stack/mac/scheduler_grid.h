@@ -206,7 +206,7 @@ public:
   virtual const rbgmask_t& get_dl_mask() const                                                     = 0;
   virtual uint32_t         get_tti_tx_dl() const                                                   = 0;
   virtual uint32_t         get_nof_ctrl_symbols() const                                            = 0;
-  virtual bool             is_dl_alloc(sched_ue* user) const                                       = 0;
+  virtual bool             is_dl_alloc(const sched_ue* user) const                                 = 0;
 };
 
 //! generic interface used by UL scheduler algorithm
@@ -216,7 +216,7 @@ public:
   virtual alloc_outcome_t  alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc) = 0;
   virtual const prbmask_t& get_ul_mask() const                                           = 0;
   virtual uint32_t         get_tti_tx_ul() const                                         = 0;
-  virtual bool             is_ul_alloc(sched_ue* user) const                             = 0;
+  virtual bool             is_ul_alloc(const sched_ue* user) const                       = 0;
 };
 
 /** Description: Stores the RAR, broadcast, paging, DL data, UL data allocations for the given subframe
@@ -311,10 +311,10 @@ public:
   // getters
   uint32_t            get_tti_rx() const { return tti_params.tti_rx; }
   const tti_params_t& get_tti_params() const { return tti_params; }
+  bool                is_dl_alloc(const sched_ue* user) const final;
+  bool                is_ul_alloc(const sched_ue* user) const final;
 
 private:
-  bool        is_dl_alloc(sched_ue* user) const final;
-  bool        is_ul_alloc(sched_ue* user) const final;
   ctrl_code_t alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
   int         generate_format1a(uint32_t         rb_start,
                                 uint32_t         l_crb,
