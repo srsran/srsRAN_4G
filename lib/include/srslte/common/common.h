@@ -57,6 +57,8 @@
 #define TTIMOD_SZ 20
 #define TTIMOD(tti) (tti % TTIMOD_SZ)
 
+#define INVALID_TTI 10241
+
 #define PHICH_MAX_SF 6 // Maximum PHICH in a subframe (1 in FDD, > 1 in TDD, see table 9.1.2-1 36.213)
 
 #define ASYNC_DL_SCHED (FDD_HARQ_DELAY_UL_MS <= 4)

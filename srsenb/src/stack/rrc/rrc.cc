@@ -359,6 +359,14 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 {
   constexpr static int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
 
+  if (tti == paging_tti) {
+    *payload_len = byte_buf_paging.N_bytes;
+    rrc_log->debug("Sending paging to extra carriers. Payload len=%d, TTI=%d\n", *payload_len, tti);
+    return true;
+  } else {
+    paging_tti = INVALID_TTI;
+  }
+
   if (pending_paging.empty()) {
     return false;
   }
@@ -432,6 +440,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
                   N_bits);
     log_rrc_message("PCCH-Message", Tx, &byte_buf_paging, pcch_msg, pcch_msg.msg.c1().type().to_string());
 
+    paging_tti = tti; // Store paging tti for other carriers
     return true;
   }
 
