@@ -208,7 +208,8 @@ public:
                        ul_harq_proc::ul_alloc_t          alloc,
                        bool                              needs_pdcch,
                        srslte_dci_location_t             cce_range,
-                       int                               explicit_mcs = -1);
+                       int                               explicit_mcs = -1,
+                       bool                              carriers_uci = false);
 
   srslte_dci_format_t get_dci_format();
   sched_dci_cce_t*    get_locations(uint32_t enb_cc_idx, uint32_t current_cfi, uint32_t sf_idx);

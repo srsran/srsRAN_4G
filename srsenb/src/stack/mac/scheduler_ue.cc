@@ -669,7 +669,8 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
                                ul_harq_proc::ul_alloc_t          alloc,
                                bool                              needs_pdcch,
                                srslte_dci_location_t             dci_pos,
-                               int                               explicit_mcs)
+                               int                               explicit_mcs,
+                               bool                              carries_uci)
 {
   ul_harq_proc*    h   = get_ul_harq(tti, cc_idx);
   srslte_dci_ul_t* dci = &data->dci;
@@ -698,6 +699,12 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
       uint32_t N_srs     = 0;
       uint32_t nof_re    = (2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs) * alloc.L * SRSLTE_NRE;
       tbs                = carriers[cc_idx].alloc_tbs_ul(alloc.L, nof_re, req_bytes, &mcs);
+
+      if (carries_uci) {
+        // Reduce MCS to fit UCI
+        mcs -= std::min(main_cc_params->sched_cfg->uci_mcs_dec, mcs);
+        tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, false, true), alloc.L) / 8;
+      }
     }
     h->new_tx(tti, mcs, tbs, alloc, nof_retx);
 

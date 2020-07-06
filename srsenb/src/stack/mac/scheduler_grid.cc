@@ -1045,6 +1045,27 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
   }
 }
 
+//! Finds eNB CC Idex that currently holds UCI
+int get_enb_cc_idx_with_uci(const sf_sched_result& sf_result, const sched_ue* user)
+{
+  uint32_t ue_cc_idx      = sf_result.enb_cc_list.size();
+  int      sel_enb_cc_idx = -1;
+  for (uint32_t enbccidx = 0; enbccidx < sf_result.enb_cc_list.size(); ++enbccidx) {
+    for (uint32_t j = 0; j < sf_result.enb_cc_list[enbccidx].ul_sched_result.nof_dci_elems; ++j) {
+      // Checks all the UL grants already allocated for the given rnti
+      if (sf_result.enb_cc_list[enbccidx].ul_sched_result.pusch[j].dci.rnti == user->get_rnti()) {
+        auto p = user->get_cell_index(enbccidx);
+        // If the UE CC Idx is the lowest so far
+        if (p.first and p.second < ue_cc_idx) {
+          ue_cc_idx      = p.second;
+          sel_enb_cc_idx = enbccidx;
+        }
+      }
+    }
+  }
+  return sel_enb_cc_idx;
+}
+
 void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result,
                                    sched_interface::ul_sched_res_t*    ul_result)
 {
@@ -1060,13 +1081,17 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
       cce_range = dci_result[ul_alloc.dci_idx]->dci_pos;
     }
 
-    /* Set fixed mcs if specified */
+    // Set fixed mcs if specified
     int fixed_mcs = (ul_alloc.type == ul_alloc_t::MSG3) ? ul_alloc.mcs : -1;
+
+    // If UCI is encoded in the current carrier
+    uint32_t uci_enb_cc_idx = get_enb_cc_idx_with_uci(*cc_results, user);
+    bool     carries_uci    = uci_enb_cc_idx == cc_cfg->enb_cc_idx;
 
     /* Generate DCI Format1A */
     uint32_t pending_data_before = user->get_pending_ul_new_data(get_tti_tx_ul());
     int      tbs                 = user->generate_format0(
-        pusch, get_tti_tx_ul(), cell_index, ul_alloc.alloc, ul_alloc.needs_pdcch(), cce_range, fixed_mcs);
+        pusch, get_tti_tx_ul(), cell_index, ul_alloc.alloc, ul_alloc.needs_pdcch(), cce_range, fixed_mcs, carries_uci);
 
     ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cell_index);
     if (tbs <= 0) {
