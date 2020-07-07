@@ -165,7 +165,9 @@ public:
 
   bool new_subh()
   {
-    if (nof_subheaders < (int)max_subheaders - 1 && rem_len > 0 && buffer_tx->get_headroom() > 1) {
+    if (nof_subheaders < (int)max_subheaders - 1 &&
+        rem_len >= 2 /* Even a MAC CE with one byte (e.g. PHR) needs a 1 Byte subheader */
+        && buffer_tx->get_headroom() > 1) {
       nof_subheaders++;
       return next();
     } else {
