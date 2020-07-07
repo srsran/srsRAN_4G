@@ -135,10 +135,10 @@ int rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uint8_t*
   int pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
 
   if (pdu_space <= head_len + 1) {
-    log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
-                 rb_name.c_str(),
-                 nof_bytes,
-                 head_len);
+    log->info("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
+              rb_name.c_str(),
+              nof_bytes,
+              head_len);
     return 0;
   }
 
