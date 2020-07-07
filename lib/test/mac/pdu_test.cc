@@ -222,7 +222,7 @@ int mac_sch_pdu_pack_test1()
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
   // compare with TV
@@ -284,7 +284,7 @@ int mac_sch_pdu_pack_test2()
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
   // compare with TV
@@ -349,7 +349,7 @@ int mac_sch_pdu_pack_test3()
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
   // compare with TV
@@ -399,7 +399,7 @@ int mac_sch_pdu_pack_test4()
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
   // compare with TV
@@ -482,7 +482,7 @@ int mac_sch_pdu_pack_test6()
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
   return SRSLTE_SUCCESS;
@@ -528,7 +528,7 @@ int mac_sch_pdu_pack_test7()
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1, 0);
 #endif
 
   return SRSLTE_SUCCESS;
@@ -635,7 +635,7 @@ int mac_sch_pdu_pack_error_test()
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1,0);
 #endif
 
   return SRSLTE_SUCCESS;
@@ -677,14 +677,14 @@ int mac_mch_pdu_pack_test1()
   mac_log->info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1,0);
 #endif
 
   // compare with TV
   TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1, 0);
 #endif
 
   return SRSLTE_SUCCESS;
@@ -704,7 +704,7 @@ int mac_sch_pdu_unpack_test1()
   TESTASSERT(pdu.next() == false);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1,0);
 #endif
 
   return SRSLTE_SUCCESS;
@@ -724,7 +724,7 @@ int mac_sch_pdu_unpack_test2()
   TESTASSERT(pdu.next() == false);
 
 #if HAVE_PCAP
-  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1);
+  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1,0);
 #endif
 
   return SRSLTE_SUCCESS;
@@ -744,7 +744,7 @@ int mac_slsch_pdu_unpack_test1()
   mac_log.set_hex_limit(100000);
 
 #if HAVE_PCAP
-  pcap_handle->write_sl_crnti(tv, sizeof(tv), CRNTI, true, 1);
+  pcap_handle->write_sl_crnti(tv, sizeof(tv), CRNTI, true, 1, 0);
 #endif
 
   return SRSLTE_SUCCESS;
