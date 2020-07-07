@@ -239,7 +239,7 @@ struct apply_first_guard_pass<FSM, type_list<> > {
   template <typename SrcState, typename Event>
   static bool trigger(FSM* f, SrcState& s, const Event& ev)
   {
-    f->log_fsm_activity("FSM \"%s\": Unhandled event caught: \"%s\"\n",
+    f->get_log()->debug("FSM \"%s\": Unhandled event caught: \"%s\"\n",
                         get_type_name<typename FSM::derived_t>().c_str(),
                         get_type_name<Event>().c_str());
     return false;
@@ -491,6 +491,8 @@ public:
   void set_fsm_event_log_level(srslte::LOG_LEVEL_ENUM e) { fsm_event_log_level = e; }
 
   srslte::log_ref get_log() const { return log_h; }
+
+  bool is_trigger_locked() const { return trigger_locked; }
 
   //! Log FSM activity method, e.g. state transitions
   template <typename... Args>

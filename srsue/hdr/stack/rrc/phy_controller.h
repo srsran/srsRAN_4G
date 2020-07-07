@@ -49,7 +49,6 @@ public:
   using cell_search_cmd = srslte::event_callback<cell_srch_res>;
   struct in_sync_ev {};
   struct out_sync_ev {};
-  struct timeout_ev {};
 
   explicit phy_controller(phy_interface_rrc_lte* phy_, stack_interface_rrc* stack_);
 
@@ -58,18 +57,13 @@ public:
   bool start_cell_search(const srslte::event_callback<cell_srch_res>& on_complete);
   bool cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t found_cell);
   bool cell_selection_completed(bool outcome);
-  void in_sync() { trigger(in_sync_ev{}); }
+  void in_sync();
   void out_sync() { trigger(out_sync_ev{}); }
 
   // state getters
   bool cell_is_camping() { return phy->cell_is_camping(); }
   bool is_in_sync() const { return is_in_state<in_sync_st>(); }
 
-private:
-  phy_interface_rrc_lte* phy   = nullptr;
-  stack_interface_rrc*   stack = nullptr;
-
-protected:
   // states
   struct unknown_st {};
   struct in_sync_st {};
@@ -86,10 +80,9 @@ protected:
     void enter(phy_controller* f, const cell_sel_cmd& ev);
     void exit(phy_controller* f);
 
-    srslte::timer_handler::unique_timer  wait_in_sync_timer;
-    phy_cell_t                           target_cell = {};
-    cell_sel_res                         result      = {};
-    srslte::event_callback<cell_sel_res> csel_callback;
+    srslte::timer_handler::unique_timer wait_in_sync_timer;
+    phy_cell_t                          target_cell = {};
+    cell_sel_res                        result      = {};
 
   protected:
     // guard functions
@@ -109,16 +102,23 @@ protected:
     row< wait_result,     unknown_st,     cell_sel_res                                           >,
     // +----------------+---------------+--------------+------------------+----------------------+
     row< wait_in_sync,    in_sync_st,     in_sync_ev,    &c::set_success                         >,
-    row< wait_in_sync,    out_sync_st,    timeout_ev                                             >
+    row< wait_in_sync,    unknown_st,     timeout_ev                                             >
     // +----------------+---------------+--------------+------------------+----------------------+
     >;
     // clang-format on
   };
   struct searching_cell {
     void enter(phy_controller* f, const cell_search_cmd& cmd);
-
-    std::vector<srslte::event_callback<cell_srch_res> > csearch_callbacks;
   };
+
+private:
+  phy_interface_rrc_lte* phy   = nullptr;
+  stack_interface_rrc*   stack = nullptr;
+
+  std::vector<srslte::event_callback<cell_srch_res> > csearch_callbacks;
+  srslte::event_callback<cell_sel_res>                csel_callback;
+
+protected:
   state_list<unknown_st, in_sync_st, out_sync_st, searching_cell, selecting_cell> states{this,
                                                                                          unknown_st{},
                                                                                          in_sync_st{},
@@ -148,8 +148,8 @@ protected:
   row< out_sync_st,     searching_cell,   cell_search_cmd >,
   row< out_sync_st,     in_sync_st,       in_sync_ev >,
   // +----------------+-----------------+------------------+------------------------------+---------------------+
-  row< searching_cell,  unknown_st,       cell_srch_res,     &c::handle_cell_search_res >,
-  upd< searching_cell,                    cell_search_cmd,   &c::share_cell_search_res >
+  row< searching_cell,  unknown_st,       cell_srch_res,     &c::handle_cell_search_res                         >,
+  upd< searching_cell,                    cell_search_cmd,   &c::share_cell_search_res                          >
   // +----------------+-----------------+------------------+------------------------------+---------------------+
   >;
   // clang-format on

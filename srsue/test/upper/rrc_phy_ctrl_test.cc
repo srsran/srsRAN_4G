@@ -46,10 +46,16 @@ int test_phy_ctrl_fsm()
   // TEST: Correct initiation of Cell Search state
   bool                          csearch_res_present = false;
   phy_controller::cell_srch_res csearch_res         = {};
-  auto cell_sel_callback = [&csearch_res_present, &csearch_res](const phy_controller::cell_srch_res& result) {
-    csearch_res_present = true;
-    csearch_res         = result;
-  };
+  auto                          cell_sel_callback =
+      [&csearch_res_present, &csearch_res, &phy_ctrl](const phy_controller::cell_srch_res& result) {
+        csearch_res_present = true;
+        csearch_res         = result;
+        if (phy_ctrl.current_state_name() == "searching_cell" or phy_ctrl.is_trigger_locked()) {
+          phy_ctrl.get_log()->error(
+              "When caller is signalled with cell search result, cell search state cannot be active\n");
+          exit(1);
+        }
+      };
   TESTASSERT(phy_ctrl.start_cell_search(cell_sel_callback));
   TESTASSERT(not phy_ctrl.is_in_sync());
 
@@ -76,7 +82,14 @@ int test_phy_ctrl_fsm()
 
   // TEST: Correct initiation of Cell Select state
   int  cell_select_success = -1;
-  auto csel_callback       = [&cell_select_success](const bool& res) { cell_select_success = res ? 1 : 0; };
+  auto csel_callback       = [&cell_select_success, &phy_ctrl](const bool& res) {
+    cell_select_success = res ? 1 : 0;
+    if (phy_ctrl.current_state_name() == "selecting_cell" or phy_ctrl.is_trigger_locked()) {
+      phy_ctrl.get_log()->error(
+          "When caller is signalled with cell selection result, cell selection state cannot be active\n");
+      exit(1);
+    }
+  };
   phy_ctrl.start_cell_select(found_cell, csel_callback);
   TESTASSERT(not phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");

@@ -46,8 +46,9 @@ proc_outcome_t rrc::cell_search_proc::init()
 {
   Info("Starting...\n");
   state = state_t::phy_cell_search;
-  if (not rrc_ptr->phy_ctrl->start_cell_search(
-          [this](const phy_controller::cell_srch_res& res) { rrc_ptr->cell_searcher.trigger(res); })) {
+  rrc_ptr->phy_ctrl->start_cell_search(
+      [this](const phy_controller::cell_srch_res& res) { rrc_ptr->cell_searcher.trigger(res); });
+  if (not rrc_ptr->phy_ctrl->is_in_state<phy_controller::searching_cell>()) {
     Warning("Failed to initiate Cell Search.\n");
     return proc_outcome_t::error;
   }
@@ -546,7 +547,8 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
 
       state            = search_state_t::cell_selection;
       auto on_complete = [this](const bool& result) { rrc_ptr->cell_selector.trigger(cell_select_event_t{result}); };
-      if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete)) {
+      rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete);
+      if (not rrc_ptr->phy_ctrl->is_in_state<phy_controller::selecting_cell>()) {
         Error("Failed to launch PHY Cell Selection\n");
         return proc_outcome_t::error;
       }
@@ -1487,7 +1489,8 @@ srslte::proc_outcome_t rrc::ho_proc::step()
     cell_t* target_cell = 
         rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
     auto    on_complete = [this](const bool& result) { rrc_ptr->ho_handler.trigger(cell_select_event_t{result}); };
-    if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell->phy_cell, on_complete)) {
+    rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete);
+    if (not rrc_ptr->phy_ctrl->is_in_state<phy_controller::selecting_cell>()) {
       Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
       return proc_outcome_t::error;
     }
