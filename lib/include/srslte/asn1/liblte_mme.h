@@ -2211,7 +2211,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_request_type_ie(uint8** ie_ptr, uint8 bit_of
 *********************************************************************/
 // Defines
 #define LIBLTE_MME_PACKET_FILTER_LIST_MAX_SIZE 15
-#define LIBLTE_MME_PACKET_FILTER_MAX_SIZE 20
+#define LIBLTE_MME_PACKET_FILTER_MAX_SIZE 60
 #define LIBLTE_MME_PARAMETER_LIST_MAX_SIZE 15
 #define LIBLTE_MME_PARAMETER_MAX_SIZE 20
 #define LIBLTE_MME_TFT_PACKET_FILTER_COMPONENT_TYPE_ID_IPV4_REMOTE_ADDRESS_TYPE 0x10
