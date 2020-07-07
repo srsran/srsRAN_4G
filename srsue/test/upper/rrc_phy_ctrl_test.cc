@@ -84,7 +84,7 @@ int test_phy_ctrl_fsm()
   // TEST: Cell Selection state ignores events other than the cell selection result, and callback is called
   phy_ctrl.in_sync();
   TESTASSERT(not phy_ctrl.is_in_sync());
-  phy_ctrl.cell_selection_completed(true);
+  TESTASSERT(phy_ctrl.cell_selection_completed(true));
   // Note: Still in cell selection, but now waiting for the first in_sync
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
   TESTASSERT(not phy_ctrl.is_in_sync());
@@ -96,7 +96,7 @@ int test_phy_ctrl_fsm()
 
   // TEST: Cell Selection with timeout being reached
   cell_select_success = -1;
-  phy_ctrl.start_cell_select(found_cell, csel_callback);
+  TESTASSERT(phy_ctrl.start_cell_select(found_cell, csel_callback));
   TESTASSERT(not phy_ctrl.is_in_sync());
   phy_ctrl.cell_selection_completed(true);
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");

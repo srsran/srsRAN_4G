@@ -23,6 +23,7 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
+#include "srsue/hdr/stack/rrc/phy_controller.h"
 #include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
 #include <cstdlib>
@@ -57,7 +58,6 @@ rrc::rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_) :
   drb_up(false),
   rrc_log("RRC"),
   measurements(new rrc_meas()),
-  phy_cell_selector(this),
   cell_searcher(this),
   si_acquirer(this),
   serv_cell_cfg(this),
@@ -115,6 +115,8 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   gw   = gw_;
 
   args = args_;
+
+  phy_ctrl.reset(new phy_controller{phy, stack});
 
   state            = RRC_STATE_IDLE;
   plmn_is_selected = false;
@@ -382,7 +384,7 @@ void rrc::out_of_sync()
 {
   // CAUTION: We do not lock in this function since they are called from real-time threads
   if (meas_cells.serving_cell().is_valid() && rrc_log) {
-    phy_sync_state = phy_out_of_sync;
+    phy_ctrl->out_sync();
 
     // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
     //   T301, T304 nor T311 is running:
@@ -412,7 +414,7 @@ void rrc::out_of_sync()
 void rrc::in_sync()
 {
   // CAUTION: We do not lock in this function since they are called from real-time threads
-  phy_sync_state = phy_in_sync;
+  phy_ctrl->in_sync();
   if (t310.is_running()) {
     n311_cnt++;
     if (n311_cnt == N311) {
@@ -1008,12 +1010,12 @@ void rrc::start_con_restablishment(reest_cause_e cause)
 void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
                                 const phy_interface_rrc_lte::phy_cell_t&        found_cell)
 {
-  cell_searcher.trigger(cell_search_proc::cell_search_event_t{cs_ret, found_cell});
+  phy_ctrl->cell_search_completed(cs_ret, found_cell);
 }
 
 void rrc::cell_select_completed(bool cs_ret)
 {
-  phy_cell_selector.trigger(cell_select_event_t{cs_ret});
+  phy_ctrl->cell_selection_completed(cs_ret);
 }
 
 /**

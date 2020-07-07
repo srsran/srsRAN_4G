@@ -126,7 +126,7 @@ void phy_controller::handle_cell_search_res(searching_cell& s, const cell_srch_r
       log_h->info("PHY cell search completed. Found cell %s\n", to_string(result.found_cell).c_str());
       break;
     case cell_search_ret_t::CELL_NOT_FOUND:
-      log_h->warning("PHY cell search completed. No cells found\n");
+      log_h->warning("PHY cell search completed. No cells found.\n");
       break;
     default:
       log_h->error("Invalid cell search result\n");

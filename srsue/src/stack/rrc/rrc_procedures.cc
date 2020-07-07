@@ -36,42 +36,6 @@ using srslte::proc_outcome_t;
 using srslte::tti_point;
 
 /**************************************
- *    PHY Cell Select Procedure
- *************************************/
-
-rrc::phy_cell_select_proc::phy_cell_select_proc(rrc* parent_) : rrc_ptr(parent_) {}
-
-srslte::proc_outcome_t rrc::phy_cell_select_proc::init(const cell_t& target_cell_)
-{
-  target_cell = &target_cell_;
-  Info("Starting for %s\n", target_cell->to_string().c_str());
-  rrc_ptr->start_phy_cell_select(&target_cell->phy_cell);
-  return proc_outcome_t::yield;
-}
-
-srslte::proc_outcome_t rrc::phy_cell_select_proc::react(cell_select_event_t ev)
-{
-  if (not ev.cs_ret) {
-    Error("Couldn't select new serving cell\n");
-    return proc_outcome_t::error;
-  }
-  return proc_outcome_t::success;
-}
-
-void rrc::phy_cell_select_proc::then(const srslte::proc_state_t& result)
-{
-  Info("Finished %s\n", result.is_success() ? "successfully" : "with error");
-  // Warn other procedures that depend on this procedure
-  if (rrc_ptr->cell_searcher.is_busy()) {
-    rrc_ptr->cell_searcher.trigger(cell_select_event_t{result.is_success()});
-  } else if (rrc_ptr->cell_selector.is_busy()) {
-    rrc_ptr->cell_selector.trigger(cell_select_event_t{result.is_success()});
-  } else {
-    rrc_ptr->ho_handler.trigger(cell_select_event_t{result.is_success()});
-  }
-}
-
-/**************************************
  *       Cell Search Procedure
  *************************************/
 
@@ -82,7 +46,11 @@ proc_outcome_t rrc::cell_search_proc::init()
 {
   Info("Starting...\n");
   state = state_t::phy_cell_search;
-  rrc_ptr->start_phy_cell_search();
+  if (not rrc_ptr->phy_ctrl->start_cell_search(
+          [this](const phy_controller::cell_srch_res& res) { rrc_ptr->cell_searcher.trigger(res); })) {
+    Warning("Failed to initiate Cell Search.\n");
+    return proc_outcome_t::error;
+  }
   return proc_outcome_t::yield;
 }
 
@@ -129,8 +97,9 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
   rrc_ptr->meas_cells.set_serving_cell(new_cell, false);
 
   // set new serving cell in PHY
-  state = state_t::phy_cell_select;
-  if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->meas_cells.serving_cell())) {
+  state            = state_t::phy_cell_select;
+  auto on_complete = [this](const bool& result) { rrc_ptr->cell_searcher.trigger(cell_select_event_t{result}); };
+  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete)) {
     Error("Couldn't start phy cell selection\n");
     return proc_outcome_t::error;
   }
@@ -183,7 +152,7 @@ proc_outcome_t rrc::cell_search_proc::react(const cell_select_event_t& event)
   return proc_outcome_t::yield;
 }
 
-proc_outcome_t rrc::cell_search_proc::react(const cell_search_event_t& event)
+proc_outcome_t rrc::cell_search_proc::react(const phy_controller::cell_srch_res& event)
 {
   if (state != state_t::phy_cell_search) {
     Error("Received unexpected cell search result\n");
@@ -191,22 +160,14 @@ proc_outcome_t rrc::cell_search_proc::react(const cell_search_event_t& event)
   }
   search_result = event;
 
-  Info("PHY cell search completed.\n");
   // Transition to SI Acquire or finish
-  switch (search_result.cs_ret.found) {
-    case phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND:
-      return handle_cell_found(search_result.found_cell);
-    case phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND:
-      rrc_ptr->phy_sync_state = phy_unknown_sync;
-      Info("No cells found.\n");
-      // do nothing
-      return proc_outcome_t::success;
-    case phy_interface_rrc_lte::cell_search_ret_t::ERROR:
-      Error("Error while performing cell search\n");
-      // TODO: check what errors can happen (currently not handled in our code)
-      return proc_outcome_t::error;
+  if (search_result.cs_ret.found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND) {
+    return handle_cell_found(search_result.found_cell);
+  } else if (search_result.cs_ret.found == phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND) {
+    // No cells found. Do nothing
+    return proc_outcome_t::success;
   }
-  return proc_outcome_t::yield;
+  return proc_outcome_t::error;
 }
 
 /****************************************************************
@@ -495,7 +456,7 @@ rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {
  */
 proc_outcome_t rrc::cell_selection_proc::init()
 {
-  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_sync_state == phy_in_sync and
+  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_ctrl->is_in_sync() and
       rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     Debug("Skipping Cell Selection Procedure as there are no neighbour and cell is camping.\n");
@@ -505,7 +466,7 @@ proc_outcome_t rrc::cell_selection_proc::init()
 
   Info("Starting...\n");
   Info("Current neighbor cells: [%s]\n", rrc_ptr->meas_cells.print_neighbour_cells().c_str());
-  Info("Current PHY state: %s\n", rrc_ptr->phy_sync_state == phy_in_sync ? "in-sync" : "out-of-sync");
+  Info("Current PHY state: %s\n", rrc_ptr->phy_ctrl->is_in_sync() ? "in-sync" : "out-of-sync");
   if (rrc_ptr->meas_cells.serving_cell().has_sib3()) {
     Info("Cell selection criteria: Qrxlevmin=%f, Qrxlevminoffset=%f\n",
          rrc_ptr->cell_resel_cfg.Qrxlevmin,
@@ -542,15 +503,16 @@ proc_outcome_t rrc::cell_selection_proc::react(const cell_select_event_t& event)
 
 proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
 {
-  if (rrc_ptr->phy_sync_state == phy_in_sync and rrc_ptr->phy->cell_is_camping()) {
+  if (rrc_ptr->phy_ctrl->is_in_sync() and rrc_ptr->phy->cell_is_camping()) {
     cs_result = cs_result_t::same_cell;
     return proc_outcome_t::success;
   }
 
   Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
-  state = search_state_t::serv_cell_camp;
-  if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->meas_cells.serving_cell())) {
+  state            = search_state_t::serv_cell_camp;
+  auto on_complete = [this](const bool& result) { rrc_ptr->cell_selector.trigger(cell_select_event_t{result}); };
+  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete)) {
     Error("Failed to launch PHY Cell Selection\n");
     return proc_outcome_t::error;
   }
@@ -574,7 +536,7 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
     // Matches S criteria
     float rsrp = rrc_ptr->meas_cells.at(neigh_index).get_rsrp();
 
-    if (rrc_ptr->phy_sync_state != phy_in_sync or
+    if (not rrc_ptr->phy_ctrl->is_in_sync() or
         (rrc_ptr->cell_selection_criteria(rsrp) and rsrp > rrc_ptr->meas_cells.serving_cell().get_rsrp() + 5)) {
       // currently connected and verifies cell selection criteria
       // Try to select Cell
@@ -582,8 +544,9 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
       discard_serving = false;
       Info("Selected cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
-      state = search_state_t::cell_selection;
-      if (not rrc_ptr->phy_cell_selector.launch(rrc_ptr->meas_cells.serving_cell())) {
+      state            = search_state_t::cell_selection;
+      auto on_complete = [this](const bool& result) { rrc_ptr->cell_selector.trigger(cell_select_event_t{result}); };
+      if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete)) {
         Error("Failed to launch PHY Cell Selection\n");
         return proc_outcome_t::error;
       }
@@ -610,17 +573,23 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_selection(const cell_select_event_t& event)
 {
-  rrc_ptr->phy_sync_state = phy_unknown_sync;
-
   if (event.cs_ret) {
     // successful selection
-    Info("Wait PHY to be in-synch\n");
-    state = search_state_t::wait_in_sync;
-    return step();
+    if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
+      Info("PHY is in SYNC and cell selection passed\n");
+      if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, rrc_ptr->ue_required_sibs)) {
+        return proc_outcome_t::error;
+      }
+      state = search_state_t::cell_config;
+      return proc_outcome_t::yield;
+    }
+    Info("PHY is in SYNC but cell selection did not pass. Go back to select step.\n");
+    cs_result = cs_result_t::no_cell;
+  } else {
+    Error("Could not camp on serving cell.\n");
   }
 
-  Error("Could not camp on serving cell.\n");
-  discard_serving = true;
+  discard_serving = true; // Discard this cell
   // Continue to next neighbour cell
   ++neigh_index;
   return start_cell_selection();
@@ -635,30 +604,9 @@ srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const cell_
     return proc_outcome_t::success;
   }
 
-  rrc_ptr->phy_sync_state = phy_unknown_sync;
   rrc_ptr->meas_cells.serving_cell().set_rsrp(-INFINITY);
   Warning("Could not camp on serving cell.\n");
   return neigh_index >= rrc_ptr->meas_cells.nof_neighbours() ? proc_outcome_t::error : proc_outcome_t::yield;
-}
-
-proc_outcome_t rrc::cell_selection_proc::step_wait_in_sync()
-{
-  if (rrc_ptr->phy_sync_state == phy_in_sync) {
-    if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
-      Info("PHY is in SYNC and cell selection passed\n");
-      if (not rrc_ptr->serv_cell_cfg.launch(&serv_cell_cfg_fut, rrc_ptr->ue_required_sibs)) {
-        return proc_outcome_t::error;
-      }
-      state = search_state_t::cell_config;
-    } else {
-      Info("PHY is in SYNC but cell selection did not pass. Go back to select step.\n");
-      cs_result = cs_result_t::no_cell;
-      neigh_index++;
-      discard_serving = true; // Discard this cell
-      return start_cell_selection();
-    }
-  }
-  return proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_search()
@@ -703,8 +651,6 @@ proc_outcome_t rrc::cell_selection_proc::step()
     case search_state_t::serv_cell_camp:
       // this state waits for phy event
       return proc_outcome_t::yield;
-    case search_state_t::wait_in_sync:
-      return step_wait_in_sync();
     case search_state_t::cell_config:
       return step_cell_config();
     case search_state_t::cell_search:
@@ -955,11 +901,9 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
     switch (cs_ret) {
       case cs_result_t::same_cell:
         log_h->warning("Did not reselect cell but serving cell is out-of-sync.\n");
-        rrc_ptr->phy_sync_state = phy_unknown_sync;
         break;
       case cs_result_t::changed_cell:
         log_h->warning("Selected a new cell but could not camp on. Setting out-of-sync.\n");
-        rrc_ptr->phy_sync_state = phy_unknown_sync;
         break;
       default:
         log_h->warning("Could not find any suitable cell to connect\n");
@@ -1132,7 +1076,7 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
-  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_sync_state == phy_in_sync and
+  if (rrc_ptr->meas_cells.nof_neighbours() == 0 and rrc_ptr->phy_ctrl->is_in_sync() and
       rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     return proc_outcome_t::success;
@@ -1171,7 +1115,6 @@ proc_outcome_t rrc::cell_reselection_proc::step()
     case cs_result_t::same_cell:
       if (!rrc_ptr->phy->cell_is_camping()) {
         Warning("Did not reselect cell but serving cell is out-of-sync.\n");
-        rrc_ptr->phy_sync_state = phy_unknown_sync;
       }
       break;
   }
@@ -1274,7 +1217,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step_cell_reselection()
     }
 
     // Cell reselection finished or not started
-    if (rrc_ptr->phy_sync_state == phy_in_sync) {
+    if (rrc_ptr->phy_ctrl->is_in_sync()) {
       // In-sync, check SIBs
       if (rrc_ptr->meas_cells.serving_cell().has_sib1() && rrc_ptr->meas_cells.serving_cell().has_sib2() &&
           rrc_ptr->meas_cells.serving_cell().has_sib3()) {
@@ -1318,7 +1261,7 @@ proc_outcome_t rrc::connection_reest_proc::step_cell_configuration()
     }
 
     // SIBs adquisition not started or finished
-    if (rrc_ptr->phy_sync_state == phy_in_sync) {
+    if (rrc_ptr->phy_ctrl->is_in_sync()) {
       // In-sync
       if (rrc_ptr->meas_cells.serving_cell().has_sib1() && rrc_ptr->meas_cells.serving_cell().has_sib2() &&
           rrc_ptr->meas_cells.serving_cell().has_sib3()) {
@@ -1541,9 +1484,10 @@ srslte::proc_outcome_t rrc::ho_proc::step()
       rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded);
     }
 
-    cell_t* target_cell =
+    cell_t* target_cell = 
         rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
-    if (not rrc_ptr->phy_cell_selector.launch(*target_cell)) {
+    auto    on_complete = [this](const bool& result) { rrc_ptr->ho_handler.trigger(cell_select_event_t{result}); };
+    if (not rrc_ptr->phy_ctrl->start_cell_select(target_cell->phy_cell, on_complete)) {
       Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
       return proc_outcome_t::error;
     }

@@ -66,6 +66,9 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
+
+class phy_controller;
+
 class rrc : public rrc_interface_nas,
             public rrc_interface_phy_lte,
             public rrc_interface_mac,
@@ -191,8 +194,8 @@ private:
 
   bool drb_up = false;
 
-  typedef enum { phy_unknown_sync = 0, phy_in_sync, phy_out_of_sync } phy_sync_state_t;
-  phy_sync_state_t phy_sync_state = phy_unknown_sync;
+  // PHY controller state machine
+  std::unique_ptr<phy_controller> phy_ctrl;
 
   rrc_args_t args = {};
 
@@ -290,7 +293,6 @@ private:
   enum class cs_result_t { changed_cell, same_cell, no_cell };
 
   // RRC procedures (fwd declared)
-  class phy_cell_select_proc;
   class cell_search_proc;
   class si_acquire_proc;
   class serving_cell_config_proc;
@@ -302,7 +304,6 @@ private:
   class cell_reselection_proc;
   class connection_reest_proc;
   class ho_proc;
-  srslte::proc_t<phy_cell_select_proc>                                       phy_cell_selector;
   srslte::proc_t<cell_search_proc, phy_interface_rrc_lte::cell_search_ret_t> cell_searcher;
   srslte::proc_t<si_acquire_proc>                                            si_acquirer;
   srslte::proc_t<serving_cell_config_proc>                                   serv_cell_cfg;

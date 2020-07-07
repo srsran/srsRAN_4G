@@ -19,6 +19,7 @@
  *
  */
 
+#include "phy_controller.h"
 #include "srslte/common/log.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
 #include <map>
@@ -43,36 +44,16 @@ struct cell_select_event_t {
  *         Procedures
  *******************************/
 
-class rrc::phy_cell_select_proc
-{
-public:
-  explicit phy_cell_select_proc(rrc* parent_);
-  srslte::proc_outcome_t init(const cell_t& target_cell);
-  srslte::proc_outcome_t react(cell_select_event_t ev);
-  void                   then(const srslte::proc_state_t& result);
-  srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
-  static const char*     name() { return "PHY Cell Select"; }
-
-private:
-  // args
-  rrc*          rrc_ptr;
-  const cell_t* target_cell;
-};
-
 class rrc::cell_search_proc
 {
 public:
-  struct cell_search_event_t {
-    phy_interface_rrc_lte::cell_search_ret_t cs_ret;
-    phy_interface_rrc_lte::phy_cell_t        found_cell;
-  };
   enum class state_t { phy_cell_search, si_acquire, wait_measurement, phy_cell_select };
 
   explicit cell_search_proc(rrc* parent_);
   srslte::proc_outcome_t init();
   srslte::proc_outcome_t step();
   srslte::proc_outcome_t step_si_acquire();
-  srslte::proc_outcome_t react(const cell_search_event_t& event);
+  srslte::proc_outcome_t react(const phy_controller::cell_srch_res& event);
   srslte::proc_outcome_t react(const cell_select_event_t& event);
   srslte::proc_outcome_t step_wait_measurement();
 
@@ -86,9 +67,9 @@ private:
   rrc* rrc_ptr;
 
   // state vars
-  cell_search_event_t         search_result;
-  srslte::proc_future_t<void> si_acquire_fut;
-  state_t                     state;
+  phy_controller::cell_srch_res search_result;
+  srslte::proc_future_t<void>   si_acquire_fut;
+  state_t                       state;
 };
 
 /****************************************************************
@@ -164,7 +145,6 @@ private:
   srslte::proc_outcome_t start_cell_selection();
   srslte::proc_outcome_t step_cell_selection(const cell_select_event_t& event);
   srslte::proc_outcome_t step_serv_cell_camp(const cell_select_event_t& event);
-  srslte::proc_outcome_t step_wait_in_sync();
   srslte::proc_outcome_t step_cell_search();
   srslte::proc_outcome_t step_cell_config();
 
@@ -172,7 +152,7 @@ private:
   rrc* rrc_ptr;
 
   // state variables
-  enum class search_state_t { cell_selection, serv_cell_camp, wait_in_sync, cell_config, cell_search };
+  enum class search_state_t { cell_selection, serv_cell_camp, cell_config, cell_search };
   cs_result_t                                                     cs_result;
   search_state_t                                                  state;
   uint32_t                                                        neigh_index;
