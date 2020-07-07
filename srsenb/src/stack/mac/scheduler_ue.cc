@@ -752,9 +752,9 @@ bool sched_ue::needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_be_sent)
 bool sched_ue::needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_be_sent)
 {
   bool ret = false;
-  if (phy_config_dedicated_enabled && cfg.aperiodic_cqi_period && get_pending_dl_new_data() > 0) {
+  if (phy_config_dedicated_enabled && cfg.supported_cc_list[0].aperiodic_cqi_period && get_pending_dl_new_data() > 0) {
     uint32_t interval = srslte_tti_interval(tti, carriers[cc_idx].dl_cqi_tti);
-    bool     needscqi = interval >= cfg.aperiodic_cqi_period;
+    bool     needscqi = interval >= cfg.supported_cc_list[0].aperiodic_cqi_period;
     if (needscqi) {
       uint32_t interval_sent = srslte_tti_interval(tti, cqi_request_tti);
       if (interval_sent >= 16) {

@@ -733,6 +733,18 @@ std::pair<alloc_outcome_t, uint32_t> sf_sched::alloc_rar(uint32_t aggr_lvl, cons
   return ret;
 }
 
+bool is_periodic_cqi_expected(const sched_interface::ue_cfg_t& ue_cfg, uint32_t tti_tx_ul)
+{
+  for (const sched_interface::ue_cfg_t::cc_cfg_t& cc : ue_cfg.supported_cc_list) {
+    if (cc.dl_cfg.cqi_report.periodic_configured) {
+      if (srslte_cqi_periodic_send(&cc.dl_cfg.cqi_report, tti_tx_ul, SRSLTE_FDD)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid)
 {
   if (is_dl_alloc(user)) {
@@ -755,8 +767,7 @@ alloc_outcome_t sf_sched::alloc_dl_user(sched_ue* user, const rbgmask_t& user_ma
   // Check if there is space in the PUCCH for HARQ ACKs
   const sched_interface::ue_cfg_t& ue_cfg     = user->get_ue_cfg();
   bool                             has_scells = ue_cfg.supported_cc_list.size() > 1;
-  const srslte_cqi_report_cfg_t&   cqi_report = ue_cfg.dl_cfg.cqi_report;
-  if (has_scells and srslte_cqi_periodic_send(&cqi_report, get_tti_tx_ul(), SRSLTE_FDD)) {
+  if (has_scells and is_periodic_cqi_expected(ue_cfg, get_tti_tx_ul())) {
     bool has_pusch_grant = is_ul_alloc(user) or cc_results->is_ul_alloc(user->get_rnti());
     if (not has_pusch_grant) {
       // Try to allocate small PUSCH grant, if there are no allocated PUSCH grants for this TTI yet

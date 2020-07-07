@@ -65,13 +65,13 @@ inline srsenb::sched_interface::ue_cfg_t generate_default_ue_cfg()
 {
   srsenb::sched_interface::ue_cfg_t ue_cfg = {};
 
-  ue_cfg.aperiodic_cqi_period = 40;
-  ue_cfg.maxharq_tx           = 5;
-  ue_cfg.dl_cfg.tm            = SRSLTE_TM1;
+  ue_cfg.maxharq_tx = 5;
   ue_cfg.supported_cc_list.resize(1);
-  ue_cfg.supported_cc_list[0].enb_cc_idx = 0;
-  ue_cfg.supported_cc_list[0].active     = true;
-  ue_cfg.ue_bearers[0].direction         = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  ue_cfg.supported_cc_list[0].aperiodic_cqi_period = 40;
+  ue_cfg.supported_cc_list[0].enb_cc_idx           = 0;
+  ue_cfg.supported_cc_list[0].active               = true;
+  ue_cfg.supported_cc_list[0].dl_cfg.tm            = SRSLTE_TM1;
+  ue_cfg.ue_bearers[0].direction                   = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
   return ue_cfg;
 }
@@ -104,12 +104,12 @@ inline srsenb::sched_interface::ue_cfg_t generate_setup_ue_cfg(const srsenb::sch
 
   cfg.maxharq_tx                               = final_cfg.maxharq_tx;
   cfg.ue_bearers[srsenb::RB_ID_SRB1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  cfg.dl_cfg.tm                                = SRSLTE_TM1;
+  cfg.supported_cc_list[0].dl_cfg.tm           = SRSLTE_TM1;
   cfg.continuous_pusch                         = final_cfg.continuous_pusch;
 
-  cfg.dl_cfg.cqi_report    = final_cfg.dl_cfg.cqi_report;
-  cfg.pucch_cfg            = final_cfg.pucch_cfg;
-  cfg.aperiodic_cqi_period = final_cfg.aperiodic_cqi_period;
+  cfg.supported_cc_list[0].dl_cfg.cqi_report    = final_cfg.supported_cc_list[0].dl_cfg.cqi_report;
+  cfg.pucch_cfg                                 = final_cfg.pucch_cfg;
+  cfg.supported_cc_list[0].aperiodic_cqi_period = final_cfg.supported_cc_list[0].aperiodic_cqi_period;
 
   return cfg;
 }

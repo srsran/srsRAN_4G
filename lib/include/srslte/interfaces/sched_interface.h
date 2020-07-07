@@ -131,17 +131,17 @@ public:
 
   struct ue_cfg_t {
     struct cc_cfg_t {
-      bool     active     = false;
-      uint32_t enb_cc_idx = 0; ///< eNB CC index
+      bool            active               = false;
+      uint32_t        enb_cc_idx           = 0; ///< eNB CC index
+      srslte_dl_cfg_t dl_cfg               = {};
+      uint32_t        aperiodic_cqi_period = 0; // if 0 is periodic CQI
     };
     /* ue capabilities, etc */
-    uint32_t                            maxharq_tx           = 5;
-    bool                                continuous_pusch     = false;
-    srslte_uci_offset_cfg_t             uci_offset           = {};
-    srslte_pucch_cfg_t                  pucch_cfg            = {};
-    uint32_t                            aperiodic_cqi_period = 0; // if 0 is periodic CQI
-    srslte_dl_cfg_t                     dl_cfg;
-    std::array<ue_bearer_cfg_t, MAX_LC> ue_bearers = {};
+    uint32_t                            maxharq_tx       = 5;
+    bool                                continuous_pusch = false;
+    srslte_uci_offset_cfg_t             uci_offset       = {};
+    srslte_pucch_cfg_t                  pucch_cfg        = {};
+    std::array<ue_bearer_cfg_t, MAX_LC> ue_bearers       = {};
     std::vector<cc_cfg_t>               supported_cc_list; ///< list of UE supported CCs. First index for PCell
     ant_info_ded_t                      dl_ant_info;
     bool                                use_tbs_index_alt = false;

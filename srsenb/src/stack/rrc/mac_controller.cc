@@ -93,7 +93,7 @@ int rrc::ue::mac_controller::apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s&
   current_sched_ue_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
   // Set basic antenna configuration
-  current_sched_ue_cfg.dl_cfg.tm = SRSLTE_TM1;
+  current_sched_ue_cfg.supported_cc_list[0].dl_cfg.tm = SRSLTE_TM1;
 
   // Apply common PhyConfig updates (e.g. SR/CQI resources, antenna cfg)
   if (rr_cfg.phys_cfg_ded_present) {
@@ -132,6 +132,14 @@ void rrc::ue::mac_controller::handle_con_reconf(const asn1::rrc::rrc_conn_recfg_
     apply_phy_cfg_updates_common(conn_recfg.rr_cfg_ded.phys_cfg_ded);
   }
 
+  // Store Scells Configuration
+  if (conn_recfg.non_crit_ext_present and conn_recfg.non_crit_ext.non_crit_ext_present and
+      conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext_present and
+      conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present) {
+    pending_scells_cfg.reset(new asn1::rrc::scell_to_add_mod_list_r10_l{
+        conn_recfg.non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10});
+  }
+
   if (conn_recfg.mob_ctrl_info_present) {
     // Handover Command
     handle_con_reconf_with_mobility();
@@ -154,6 +162,9 @@ void rrc::ue::mac_controller::handle_con_reconf_complete()
     }
     list[ue_cc_idx].active     = true;
     list[ue_cc_idx].enb_cc_idx = ue_cell.cell_common->enb_cc_idx;
+    if (ue_cc_idx > 0) {
+      apply_scell_cfg_updates(ue_cc_idx);
+    }
   }
 
   // Setup all bearers
@@ -212,15 +223,16 @@ void rrc::ue::mac_controller::apply_phy_cfg_updates_common(const asn1::rrc::phys
   }
 
   // Apply CQI config
+  auto& pcell_cfg = current_sched_ue_cfg.supported_cc_list[0];
   if (phy_cfg.cqi_report_cfg_present) {
     if (phy_cfg.cqi_report_cfg.cqi_report_periodic_present) {
-      auto& cqi_cfg                                              = phy_cfg.cqi_report_cfg.cqi_report_periodic.setup();
-      current_sched_ue_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_cfg.cqi_pmi_cfg_idx;
-      current_sched_ue_cfg.pucch_cfg.n_pucch                     = cqi_cfg.cqi_pucch_res_idx;
-      current_sched_ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
+      auto& cqi_cfg                                   = phy_cfg.cqi_report_cfg.cqi_report_periodic.setup();
+      current_sched_ue_cfg.pucch_cfg.n_pucch          = cqi_cfg.cqi_pucch_res_idx;
+      pcell_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_cfg.cqi_pmi_cfg_idx;
+      pcell_cfg.dl_cfg.cqi_report.periodic_configured = true;
     } else if (phy_cfg.cqi_report_cfg.cqi_report_mode_aperiodic_present) {
-      current_sched_ue_cfg.aperiodic_cqi_period                   = rrc_cfg->cqi_cfg.period;
-      current_sched_ue_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
+      pcell_cfg.aperiodic_cqi_period                   = rrc_cfg->cqi_cfg.period;
+      pcell_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
     }
   }
 
@@ -236,10 +248,58 @@ void rrc::ue::mac_controller::apply_phy_cfg_updates_common(const asn1::rrc::phys
       current_sched_ue_cfg.dl_ant_info = srslte::make_ant_info_ded(phy_cfg.ant_info.explicit_value());
     } else {
       log_h->warning("No antenna configuration provided\n");
-      current_sched_ue_cfg.dl_cfg.tm           = SRSLTE_TM1;
+      pcell_cfg.dl_cfg.tm                      = SRSLTE_TM1;
       current_sched_ue_cfg.dl_ant_info.tx_mode = sched_interface::ant_info_ded_t::tx_mode_t::tm1;
     }
   }
+}
+
+void rrc::ue::mac_controller::apply_scell_cfg_updates(uint32_t ue_cc_idx)
+{
+  if (pending_scells_cfg == nullptr) {
+    return;
+  }
+
+  // Check if SCell ue_cc_idx is configured in this message
+  auto it = std::find_if(
+      pending_scells_cfg->begin(),
+      pending_scells_cfg->end(),
+      [&ue_cc_idx](const asn1::rrc::scell_to_add_mod_r10_s& scell) { return scell.scell_idx_r10 == ue_cc_idx; });
+  if (it == pending_scells_cfg->end()) {
+    return;
+  }
+
+  asn1::rrc::scell_to_add_mod_r10_s&   asn1_scell = *it;
+  sched_interface::ue_cfg_t::cc_cfg_t& scell_cfg  = current_sched_ue_cfg.supported_cc_list[ue_cc_idx];
+
+  if (asn1_scell.rr_cfg_ded_scell_r10_present) {
+    if (asn1_scell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10_present) {
+      if (asn1_scell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10_present) {
+        auto& ul_cfg = asn1_scell.rr_cfg_ded_scell_r10.phys_cfg_ded_scell_r10.ul_cfg_r10;
+
+        // Set CQI Config
+        if (ul_cfg.cqi_report_cfg_scell_r10_present) {
+
+          if (ul_cfg.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10_present and
+              ul_cfg.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.type().value == setup_opts::setup) {
+            // periodic CQI
+            auto& periodic = ul_cfg.cqi_report_cfg_scell_r10.cqi_report_periodic_scell_r10.setup();
+            scell_cfg.dl_cfg.cqi_report.periodic_configured = true;
+            scell_cfg.dl_cfg.cqi_report.pmi_idx             = periodic.cqi_pmi_cfg_idx;
+          } else if (ul_cfg.cqi_report_cfg_scell_r10.cqi_report_mode_aperiodic_r10_present) {
+            // aperiodic CQI
+            scell_cfg.dl_cfg.cqi_report.aperiodic_configured =
+                ul_cfg.cqi_report_cfg_scell_r10.cqi_report_mode_aperiodic_r10_present;
+            scell_cfg.aperiodic_cqi_period = ul_cfg.cqi_report_cfg_scell_r10.cqi_report_mode_aperiodic_r10.to_number();
+          } else {
+            log_h->error("Invalid Scell %d CQI configuration\n", ue_cc_idx);
+          }
+        }
+      }
+    }
+  }
+
+  pending_scells_cfg.reset();
 }
 
 } // namespace srsenb

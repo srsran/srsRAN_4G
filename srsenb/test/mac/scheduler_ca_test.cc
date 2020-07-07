@@ -112,10 +112,10 @@ int test_scell_activation(test_scell_activation_params params)
   sim_args.sim_log        = log_global.get();
   sim_args.start_tti      = start_tti;
   sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list.resize(1);
-  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].active           = true;
-  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].enb_cc_idx       = cc_idxs[0];
-  sim_args.default_ue_sim_cfg.ue_cfg.dl_cfg.cqi_report.periodic_configured = true;
-  sim_args.default_ue_sim_cfg.ue_cfg.dl_cfg.cqi_report.pmi_idx             = 0;
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].active                                = true;
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].enb_cc_idx                            = cc_idxs[0];
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.periodic_configured = true;
+  sim_args.default_ue_sim_cfg.ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.pmi_idx             = 0;
 
   /* Simulation Objects Setup */
   sched_sim_event_generator generator;

@@ -530,7 +530,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   TESTASSERT(ue_cfg.pucch_cfg.sr_configured);
   TESTASSERT(ue_cfg.pucch_cfg.n_pucch_sr == phy_cfg_ded.sched_request_cfg.setup().sr_pucch_res_idx);
   TESTASSERT(ue_cfg.pucch_cfg.I_sr == phy_cfg_ded.sched_request_cfg.setup().sr_cfg_idx);
-  TESTASSERT(ue_cfg.dl_cfg.cqi_report.pmi_idx ==
+  TESTASSERT(ue_cfg.supported_cc_list[0].dl_cfg.cqi_report.pmi_idx ==
              phy_cfg_ded.cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx);
   TESTASSERT(ue_cfg.pucch_cfg.n_pucch == phy_cfg_ded.cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx);
 

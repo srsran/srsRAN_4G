@@ -50,6 +50,7 @@ private:
   int  apply_basic_conn_cfg(const asn1::rrc::rr_cfg_ded_s& rr_cfg);
   void apply_current_bearers_cfg();
   void apply_phy_cfg_updates_common(const asn1::rrc::phys_cfg_ded_s& phy_cfg);
+  void apply_scell_cfg_updates(uint32_t ue_cc_idx);
 
   srslte::log_ref           log_h;
   rrc_cfg_t*                rrc_cfg              = nullptr;
@@ -57,6 +58,9 @@ private:
   mac_interface_rrc*        mac                  = nullptr;
   sched_interface::ue_cfg_t current_sched_ue_cfg = {};
   bool                      crnti_set            = false;
+
+  // pending changes
+  std::unique_ptr<asn1::rrc::scell_to_add_mod_list_r10_l> pending_scells_cfg;
 };
 
 } // namespace srsenb

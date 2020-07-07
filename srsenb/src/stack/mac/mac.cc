@@ -480,7 +480,7 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     ue_cfg.supported_cc_list.back().active     = true;
     ue_cfg.supported_cc_list.back().enb_cc_idx = enb_cc_idx;
     ue_cfg.ue_bearers[0].direction             = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-    ue_cfg.dl_cfg.tm                           = SRSLTE_TM1;
+    ue_cfg.supported_cc_list[0].dl_cfg.tm      = SRSLTE_TM1;
     if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
       Error("Registering new user rnti=0x%x to SCHED\n", rnti);
       return;
