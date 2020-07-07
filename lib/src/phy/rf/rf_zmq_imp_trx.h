@@ -32,7 +32,7 @@
 #define NSAMPLES2NBYTES(X) (((uint32_t)(X)) * sizeof(cf_t))
 #define NBYTES2NSAMPLES(X) ((X) / sizeof(cf_t))
 #define ZMQ_MAX_BUFFER_SIZE (NSAMPLES2NBYTES(3072000)) // 10 subframes at 20 MHz
-#define ZMQ_TIMEOUT_MS (1000)
+#define ZMQ_TIMEOUT_MS (2000)
 #define ZMQ_BASERATE_DEFAULT_HZ (23040000)
 #define ZMQ_ID_STRLEN 16
 #define ZMQ_MAX_GAIN_DB (30.0f)
