@@ -679,6 +679,9 @@ private:
   ProcFSM* proc_ptr = nullptr;
 };
 
+template <typename Event>
+using event_callback = std::function<void(const Event&)>;
+
 } // namespace srslte
 
 #endif // SRSLTE_FSM_H
