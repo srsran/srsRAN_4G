@@ -73,16 +73,22 @@ public:
                       const LIBLTE_MME_PACKET_FILTER_STRUCT& tft_,
                       srslte::log*                           log_);
   bool match(const srslte::unique_byte_buffer_t& pdu);
+  bool filter_contains(uint16_t filtertype);
 
   uint8_t  eps_bearer_id;
   uint8_t  lcid;
   uint8_t  id;
   uint8_t  eval_precedence;
-  uint16_t active_filters;
+  uint32_t active_filters;
   uint32_t ipv4_remote_addr;
+  uint32_t ipv4_remote_addr_mask;
   uint32_t ipv4_local_addr;
+  uint32_t ipv4_local_addr_mask;
   uint8_t  ipv6_remote_addr[16];
+  uint8_t  ipv6_remote_addr_mask[16];
   uint8_t  ipv6_remote_addr_length;
+  uint8_t  ipv6_local_addr[16];
+  uint8_t  ipv6_local_addr_mask[16];
   uint8_t  ipv6_local_addr_length;
   uint8_t  protocol_id;
   uint16_t single_local_port;
