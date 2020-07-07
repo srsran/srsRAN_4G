@@ -22,6 +22,7 @@
 #include "srsue/hdr/stack/upper/tft_packet_filter.h"
 #include "srslte/upper/ipv6.h"
 #include <linux/ip.h>
+#include <linux/tcp.h>
 #include <linux/udp.h>
 
 namespace srsue {
@@ -38,64 +39,145 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t                                
   log(log_)
 {
   int idx = 0;
+  uint32_t length_in_bytes = 0;
+  uint32_t remaining_bits  = 0;
   while (idx < tft.filter_size) {
     uint8_t filter_type = tft.filter[idx];
     idx++;
     switch (filter_type) {
       // IPv4
       case IPV4_LOCAL_ADDR_TYPE:
-        active_filters = IPV4_LOCAL_ADDR_FLAG;
+        active_filters |= IPV4_LOCAL_ADDR_FLAG;
         memcpy(&ipv4_local_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
         idx += IPV4_ADDR_SIZE;
-        break;
-      case IPV4_REMOTE_ADDR_TYPE:
-        active_filters = IPV4_REMOTE_ADDR_FLAG;
-        memcpy(&ipv4_remote_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
+        memcpy(&ipv4_local_addr_mask, &tft.filter[idx], IPV4_ADDR_SIZE);
         idx += IPV4_ADDR_SIZE;
         break;
+
+      case IPV4_REMOTE_ADDR_TYPE:
+        active_filters |= IPV4_REMOTE_ADDR_FLAG;
+        memcpy(&ipv4_remote_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
+        idx += IPV4_ADDR_SIZE;
+        memcpy(&ipv4_remote_addr_mask, &tft.filter[idx], IPV4_ADDR_SIZE);
+        idx += IPV4_ADDR_SIZE;
+        break;
+
       // IPv6
       case IPV6_REMOTE_ADDR_TYPE:
+        active_filters |= IPV6_REMOTE_ADDR_FLAG;
+        memcpy(&ipv6_remote_addr, &tft.filter[idx], IPV6_ADDR_SIZE);
+        idx += IPV6_ADDR_SIZE;
+        memcpy(&ipv6_remote_addr_mask, &tft.filter[idx], IPV6_ADDR_SIZE);
+        idx += IPV6_ADDR_SIZE;
+        ipv6_remote_addr_length = IPV6_ADDR_SIZE;
         break;
-      case IPV6_REMOTE_ADDR_LENGTH_TYPE:
+
+      case IPV6_REMOTE_ADDR_LENGTH_TYPE: // "IPv6 remote address/prefix length type"
+        active_filters |= IPV6_REMOTE_ADDR_LENGTH_FLAG;
+        memcpy(&ipv6_remote_addr, &tft.filter[idx], IPV6_ADDR_SIZE);
+        idx += IPV6_ADDR_SIZE;
+        ipv6_remote_addr_length = tft.filter[idx++];
+        // convert address length to mask:
+        length_in_bytes = ipv6_remote_addr_length / 8;
+        remaining_bits  = ipv6_remote_addr_length % 8;
+        for (uint i = 0; i < 16; i++)
+          ipv6_remote_addr_mask[i] = 0;
+        for (uint i = 0; i < length_in_bytes; i++)
+          ipv6_remote_addr_mask[i] = 0xff;
+        if (remaining_bits > 0)
+          ipv6_remote_addr_mask[length_in_bytes] = 0xff - ((1 << (8 - remaining_bits)) - 1);
         break;
+
       case IPV6_LOCAL_ADDR_LENGTH_TYPE:
+        active_filters |= IPV6_LOCAL_ADDR_LENGTH_FLAG;
+        memcpy(&ipv6_local_addr, &tft.filter[idx], IPV6_ADDR_SIZE);
+        idx += IPV6_ADDR_SIZE;
+        ipv6_local_addr_length = tft.filter[idx++];
+        // convert address length to mask:
+        length_in_bytes = ipv6_local_addr_length / 8;
+        remaining_bits  = ipv6_local_addr_length % 8;
+        for (uint i = 0; i < 16; i++)
+          ipv6_local_addr_mask[i] = 0;
+        for (uint i = 0; i < length_in_bytes; i++)
+          ipv6_local_addr_mask[i] = 0xff;
+        if (remaining_bits > 0)
+          ipv6_local_addr_mask[length_in_bytes] = 0xff - ((1 << (8 - remaining_bits)) - 1);
         break;
+
       // Ports
       case SINGLE_LOCAL_PORT_TYPE:
-        active_filters = SINGLE_LOCAL_PORT_FLAG;
+        active_filters |= SINGLE_LOCAL_PORT_FLAG;
         memcpy(&single_local_port, &tft.filter[idx], 2);
         idx += 2;
         break;
+
       case SINGLE_REMOTE_PORT_TYPE:
-        active_filters = SINGLE_REMOTE_PORT_FLAG;
+        active_filters |= SINGLE_REMOTE_PORT_FLAG;
         memcpy(&single_remote_port, &tft.filter[idx], 2);
         idx += 2;
         break;
+
       case LOCAL_PORT_RANGE_TYPE:
+        active_filters |= LOCAL_PORT_RANGE_FLAG;
+        memcpy(&local_port_range[0], &tft.filter[idx], 2);
+        memcpy(&local_port_range[1], &tft.filter[idx + 2], 2);
+        if (local_port_range[0] > local_port_range[1]) { // wrong order
+          uint16_t t          = local_port_range[0];
+          local_port_range[0] = local_port_range[1];
+          local_port_range[1] = t;
+        }
+        idx += 4;
         break;
+
       case REMOTE_PORT_RANGE_TYPE:
+        active_filters |= REMOTE_PORT_RANGE_FLAG;
+        memcpy(&remote_port_range[0], &tft.filter[idx], 2);
+        memcpy(&remote_port_range[1], &tft.filter[idx + 2], 2);
+        if (remote_port_range[0] > remote_port_range[1]) { // wrong order
+          uint16_t t           = remote_port_range[0];
+          remote_port_range[0] = remote_port_range[1];
+          remote_port_range[1] = t;
+        }
+        idx += 4;
         break;
+
       // Protocol/Next Header
       case PROTOCOL_ID_TYPE:
+        active_filters |= PROTOCOL_ID_FLAG;
+        protocol_id = tft.filter[idx++];
         break;
+
       // Type of service/Traffic class
       case TYPE_OF_SERVICE_TYPE:
-        active_filters = TYPE_OF_SERVICE_FLAG;
-        memcpy(&type_of_service, &tft.filter[idx], 1);
-        idx += 1;
-        memcpy(&type_of_service_mask, &tft.filter[idx], 1);
-        idx += 1;
+        active_filters |= TYPE_OF_SERVICE_FLAG;
+        type_of_service      = tft.filter[idx++];
+        type_of_service_mask = tft.filter[idx++];
         break;
+
       // Flow label
       case FLOW_LABEL_TYPE:
+        active_filters |= FLOW_LABEL_FLAG;
+        memcpy(&flow_label, &tft.filter[idx], 3);
+        idx += 3;
         break;
+
       // IPsec security parameter
       case SECURITY_PARAMETER_INDEX_TYPE:
+        active_filters |= SECURITY_PARAMETER_INDEX_FLAG;
+        memcpy(&security_parameter_index, &tft.filter[idx], 4);
+        idx += 4;
         break;
+
       default:
+        log->error("ERROR: wrong type: 0x%02x\n", filter_type);
         return;
     }
   }
+}
+
+bool inline tft_packet_filter_t::filter_contains(uint16_t filtertype)
+{
+  return (active_filters & filtertype) != 0;
 }
 
 /*
@@ -119,22 +201,22 @@ bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
   }
 
   // Match IP Header to active filters
-  if ((active_filters & ip_flags) != 0 && !match_ip(pdu)) {
+  if (filter_contains(ip_flags) && !match_ip(pdu)) {
     return false;
   }
 
   // Check Protocol ID/Next Header Field
-  if ((active_filters & PROTOCOL_ID_FLAG) != 0 && !match_protocol(pdu)) {
+  if (filter_contains(PROTOCOL_ID_FLAG) && !match_protocol(pdu)) {
     return false;
   }
 
   // Check Ports/Port Range
-  if ((active_filters & port_flags) != 0 && !match_port(pdu)) {
+  if (filter_contains(port_flags) && !match_port(pdu)) {
     return false;
   }
 
   // Check Type of Service/Traffic class
-  if ((active_filters & TYPE_OF_SERVICE_FLAG) != 0 && !match_type_of_service(pdu)) {
+  if (filter_contains(TYPE_OF_SERVICE_FLAG) && !match_type_of_service(pdu)) {
     return false;
   }
 
@@ -145,21 +227,32 @@ bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
-
+  // It is implied, that this is always an OUTGOING packet
   if (ip_pkt->version == 4) {
     // Check match on IPv4 packet
-    if (active_filters & IPV4_LOCAL_ADDR_FLAG) {
-      if (memcmp(&ipv4_local_addr, &ip_pkt->saddr, IPV4_ADDR_SIZE) != 0) {
+    if (filter_contains(IPV4_LOCAL_ADDR_FLAG)) {
+      if ((ip_pkt->saddr & ipv4_local_addr_mask) != (ipv4_local_addr & ipv4_local_addr_mask)) {
         return false;
       }
     }
-    if (active_filters & IPV4_REMOTE_ADDR_FLAG) {
-      if (memcmp(&ipv4_remote_addr, &ip_pkt->daddr, IPV4_ADDR_SIZE) != 0) {
+
+    if (filter_contains(IPV4_REMOTE_ADDR_FLAG)) {
+      if ((ip_pkt->daddr & ipv4_remote_addr_mask) != (ipv4_remote_addr & ipv4_remote_addr_mask)) {
         return false;
       }
     }
   } else if (ip_pkt->version == 6) {
-    // Check match on IPv6 (TODO)
+    // Check match on IPv6
+    if (filter_contains(IPV6_REMOTE_ADDR_FLAG | IPV6_REMOTE_ADDR_LENGTH_FLAG)) {
+      bool match = true;
+      for (int i = 0; i < ipv6_remote_addr_length; i++) {
+        match &= ((ipv6_remote_addr[i] ^ ip6_pkt->daddr.__in6_u.__u6_addr8[i]) & ipv6_remote_addr_mask[i]) == 0;
+        if (!match) {
+          return false;
+        }
+      }
+      return true;
+    }
   } else {
     // Error
     return false;
@@ -178,7 +271,7 @@ bool tft_packet_filter_t::match_protocol(const srslte::unique_byte_buffer_t& pdu
       return false;
     }
   } else if (ip_pkt->version == 6) {
-    // Check match on IPv6 (TODO)
+    // Check match on IPv6 packet
     if (ip6_pkt->nexthdr != protocol_id) {
       return false;
     }
@@ -195,7 +288,7 @@ bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer
 
   if (ip_pkt->version == 4) {
     // Check match on IPv4 packet
-    if (ip_pkt->tos != type_of_service) {
+    if ((ip_pkt->tos ^ type_of_service) & type_of_service_mask) {
       return false;
     }
   } else if (ip_pkt->version == 6) {
@@ -223,6 +316,7 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
   struct udphdr*  udp_pkt;
+  struct tcphdr*  tcp_pkt;
 
   if (ip_pkt->version == 4) {
     switch (ip_pkt->protocol) {
@@ -240,7 +334,49 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
         }
         break;
       case TCP_PROTOCOL:
+        tcp_pkt = (struct tcphdr*)&pdu->msg[ip_pkt->ihl * 4];
+        if (active_filters & SINGLE_LOCAL_PORT_FLAG) {
+          if (tcp_pkt->source != single_local_port) {
+            return false;
+          }
+        }
+        if (active_filters & SINGLE_REMOTE_PORT_FLAG) {
+          if (tcp_pkt->dest != single_remote_port) {
+            return false;
+          }
+        }
+        break;
+      default:
         return false;
+    }
+  } else if (ip_pkt->version == 6) {
+    switch (ip6_pkt->nexthdr) {
+      case UDP_PROTOCOL:
+        udp_pkt = (struct udphdr*)&pdu->msg[sizeof(ipv6hdr)];
+        if (active_filters & SINGLE_LOCAL_PORT_FLAG) {
+          if (udp_pkt->source != single_local_port) {
+            return false;
+          }
+        }
+        if (active_filters & SINGLE_REMOTE_PORT_FLAG) {
+          if (udp_pkt->dest != single_remote_port) {
+            return false;
+          }
+        }
+        break;
+      case TCP_PROTOCOL:
+        tcp_pkt = (struct tcphdr*)&pdu->msg[sizeof(ipv6hdr)];
+        if (active_filters & SINGLE_LOCAL_PORT_FLAG) {
+          if (tcp_pkt->source != single_local_port) {
+            return false;
+          }
+        }
+        if (active_filters & SINGLE_REMOTE_PORT_FLAG) {
+          if (tcp_pkt->dest != single_remote_port) {
+            return false;
+          }
+        }
+        break;
       default:
         return false;
     }
