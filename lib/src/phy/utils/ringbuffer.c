@@ -177,15 +177,20 @@ int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_
 {
   int             ret = SRSLTE_SUCCESS;
   uint8_t*        ptr = (uint8_t*)p;
-  struct timespec towait;
-  struct timeval  now;
+  struct timespec towait = {};
 
   // Get current time and update timeout
   if (timeout_ms > 0) {
-    gettimeofday(&now, NULL);
-    towait.tv_sec  = now.tv_sec + timeout_ms / 1000U;
-    towait.tv_nsec = (now.tv_usec + 1000UL * (timeout_ms % 1000U)) * 1000UL;
+    struct timespec now = {};
+    timespec_get(&now, TIME_UTC);
+
+    // check nsec wrap-around
+    towait.tv_sec = now.tv_sec + timeout_ms / 1000L;
+    long nsec     = now.tv_nsec + ((timeout_ms % 1000U) * 1000UL);
+    towait.tv_sec += nsec / 1000000000L;
+    towait.tv_nsec = nsec % 1000000000L;
   }
+
   // Lock mutex
   pthread_mutex_lock(&q->mutex);
 
@@ -216,7 +221,11 @@ int srslte_ringbuffer_read_timed_block(srslte_ringbuffer_t* q, void* p, int nof_
     }
     q->count -= nof_bytes;
     ret = nof_bytes;
+  } else if (ret == EINVAL) {
+    fprintf(stderr, "Error: pthread_cond_timedwait() returned EINVAL, timeout value corrupted.\n");
+    ret = SRSLTE_ERROR;
   } else {
+    printf("ret=%d %s\n", ret, strerror(ret));
     ret = SRSLTE_ERROR;
   }
 
