@@ -71,10 +71,7 @@ void phy_controller::selecting_cell::enter(phy_controller* f, const cell_sel_cmd
   csel_callback   = ev.callback;
   csel_res.result = false;
 
-  f->log_h->info("Starting \"%s\" for pci=%d, earfcn=%d\n",
-                 srslte::get_type_name(*this).c_str(),
-                 target_cell.pci,
-                 target_cell.earfcn);
+  fsmInfo("Starting for pci=%d, earfcn=%d\n", target_cell.pci, target_cell.earfcn);
   f->stack->start_cell_select(&target_cell);
 }
 
@@ -83,15 +80,13 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
   wait_in_sync_timer.stop();
 
   if (csel_res.result) {
-    log_h->info("Cell %s successfully selected\n", to_string(target_cell).c_str());
+    fsmInfo("Cell %s successfully selected\n", to_string(target_cell).c_str());
   } else {
-    log_h->warning("Failed to select cell %s\n", to_string(target_cell).c_str());
+    fsmWarning("Failed to select cell %s\n", to_string(target_cell).c_str());
   }
 
   // Signal result back to FSM that called cell selection
-  auto& copied_callback = csel_callback;
-  bool  result          = csel_res.result;
-  f->stack->defer_task([copied_callback, result]() { copied_callback(result); });
+  f->stack->defer_task(srslte::make_move_task(csel_callback, csel_res.result));
 }
 
 void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f, const cell_sel_res& ev)
@@ -109,7 +104,7 @@ bool phy_controller::start_cell_search(const srslte::event_callback<cell_srch_re
 {
   trigger(cell_search_cmd{on_complete});
   if (not is_in_state<searching_cell>()) {
-    log_h->warning("Failed to launch cell search\n");
+    fsmWarning("Failed to launch cell search\n");
     return false;
   }
   return true;
@@ -140,25 +135,18 @@ void phy_controller::handle_cell_search_res(searching_cell& s, const cell_srch_r
 {
   switch (result.cs_ret.found) {
     case cell_search_ret_t::CELL_FOUND:
-      log_h->info("PHY cell search completed. Found cell %s\n", to_string(result.found_cell).c_str());
+      fsmInfo("PHY cell search completed. Found cell %s\n", to_string(result.found_cell).c_str());
       break;
     case cell_search_ret_t::CELL_NOT_FOUND:
-      log_h->warning("PHY cell search completed. No cells found.\n");
+      fsmWarning("PHY cell search completed. No cells found.\n");
       break;
     default:
-      log_h->error("Invalid cell search result\n");
+      fsmError("Invalid cell search result\n");
       // TODO: check what errors can happen (currently not handled in our code)
   }
 
   // Signal result back to FSM that called cell search
-  auto& moved_callbacks = csearch_callbacks;
-  stack->defer_task(std::bind(
-      [result](std::vector<srslte::event_callback<cell_srch_res> >& callbacks) {
-        for (auto& f : callbacks) {
-          f(result);
-        }
-      },
-      std::move(moved_callbacks)));
+  stack->defer_task(srslte::make_move_task(std::move(csearch_callbacks), result));
 }
 
 void phy_controller::share_cell_search_res(searching_cell& s, const cell_search_cmd& cmd)

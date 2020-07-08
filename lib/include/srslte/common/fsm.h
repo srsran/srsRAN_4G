@@ -31,6 +31,17 @@
 #include <memory>
 #include <tuple>
 
+#define otherfsmDebug(f, fmt, ...) f->get_log()->debug("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
+#define otherfsmInfo(f, fmt, ...) f->get_log()->info("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
+#define otherfsmWarning(f, fmt, ...)                                                                                   \
+  f->get_log()->warning("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
+#define otherfsmError(f, fmt, ...) f->get_log()->error("FSM \"%s\" - " fmt, get_type_name(*f).c_str(), ##__VA_ARGS__)
+
+#define fsmDebug(fmt, ...) otherfsmDebug(this, fmt, ##__VA_ARGS__)
+#define fsmInfo(fmt, ...) otherfsmInfo(this, fmt, ##__VA_ARGS__)
+#define fsmWarning(fmt, ...) otherfsmWarning(this, fmt, ##__VA_ARGS__)
+#define fsmError(fmt, ...) otherfsmError(this, fmt, ##__VA_ARGS__)
+
 namespace srslte {
 
 //! Forward declarations
@@ -215,16 +226,16 @@ struct apply_first_guard_pass<FSM, type_list<First, Rows...> > {
     if (triggered) {
       // Log Transition
       if (std::is_same<src_state, dest_state>::value) {
-        f->log_fsm_activity("FSM \"%s\": Event \"%s\" updated state \"%s\"\n",
-                            get_type_name<typename FSM::derived_t>().c_str(),
-                            get_type_name<event_type>().c_str(),
-                            get_type_name<src_state>().c_str());
+        otherfsmInfo(static_cast<typename FSM::derived_t*>(f),
+                     "Event \"%s\" triggered state \"%s\" update\n",
+                     get_type_name<event_type>().c_str(),
+                     get_type_name<src_state>().c_str());
       } else {
-        f->log_fsm_activity("FSM \"%s\": Transition detected - %s -> %s (cause: %s)",
-                            get_type_name<typename FSM::derived_t>().c_str(),
-                            get_type_name<src_state>().c_str(),
-                            get_type_name<dest_state>().c_str(),
-                            get_type_name<event_type>().c_str());
+        otherfsmInfo(static_cast<typename FSM::derived_t*>(f),
+                     "transition detected - %s -> %s (cause: %s)",
+                     get_type_name<src_state>().c_str(),
+                     get_type_name<dest_state>().c_str(),
+                     get_type_name<event_type>().c_str());
         // Apply state change operations
         state_traits<FSM, src_state>::template transit_state<dest_state>(f, ev);
       }
@@ -239,9 +250,8 @@ struct apply_first_guard_pass<FSM, type_list<> > {
   template <typename SrcState, typename Event>
   static bool trigger(FSM* f, SrcState& s, const Event& ev)
   {
-    f->get_log()->debug("FSM \"%s\": Unhandled event caught: \"%s\"\n",
-                        get_type_name<typename FSM::derived_t>().c_str(),
-                        get_type_name<Event>().c_str());
+    otherfsmDebug(
+        static_cast<typename FSM::derived_t*>(f), "unhandled event caught: \"%s\"\n", get_type_name<Event>().c_str());
     return false;
   }
 };
@@ -681,6 +691,10 @@ private:
   ProcFSM* proc_ptr = nullptr;
 };
 
+/**************************************
+ *      Event Trigger Scheduling
+ *************************************/
+
 template <typename Event>
 struct event_callback {
   event_callback() = default;
@@ -693,8 +707,33 @@ struct event_callback {
   void operator()(const Event& ev) { callback(ev); }
   void operator()(const Event& ev) const { callback(ev); }
 
+  srslte::move_task_t to_move_task(const Event& ev)
+  {
+    auto& copied_callback = callback;
+    return [copied_callback, ev]() { copied_callback(ev); };
+  }
+
   std::function<void(const Event&)> callback;
 };
+
+template <typename Event>
+srslte::move_task_t make_move_task(const event_callback<Event>& callback, const Event& ev)
+{
+  auto& copied_callback = callback;
+  return [copied_callback, ev]() { copied_callback(ev); };
+}
+
+template <typename Event>
+srslte::move_task_t make_move_task(std::vector<event_callback<Event> >&& callbacks, const Event& ev)
+{
+  return std::bind(
+      [ev](const std::vector<event_callback<Event> >& callbacks) {
+        for (const auto& callback : callbacks) {
+          callback(ev);
+        }
+      },
+      std::move(callbacks));
+}
 
 } // namespace srslte
 
