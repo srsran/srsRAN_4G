@@ -26,10 +26,7 @@
 
 namespace srslte {
 
-pdcp::pdcp(srslte::task_handler_interface* task_executor_, const char* logname) :
-  task_executor(task_executor_),
-  pdcp_log(logname)
-{}
+pdcp::pdcp(srslte::task_sched_handle task_sched_, const char* logname) : task_sched(task_sched_), pdcp_log(logname) {}
 
 pdcp::~pdcp()
 {
@@ -110,13 +107,13 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
       // create NR entity for 18bit SN length
 
 #ifdef HAVE_5GNR
-      entity.reset(new pdcp_entity_nr{rlc, rrc, gw, task_executor, pdcp_log, lcid, cfg});
+      entity.reset(new pdcp_entity_nr{rlc, rrc, gw, task_sched, pdcp_log, lcid, cfg});
 #else
       pdcp_log->error("Invalid PDCP configuration.\n");
       return;
 #endif
     } else {
-      entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_executor, pdcp_log, lcid, cfg});
+      entity.reset(new pdcp_entity_lte{rlc, rrc, gw, task_sched, pdcp_log, lcid, cfg});
     }
     if (not pdcp_array.insert(std::make_pair(lcid, std::move(entity))).second) {
       pdcp_log->error("Error inserting PDCP entity in to array.\n");
@@ -142,7 +139,7 @@ void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
     if (not pdcp_array_mrb
                 .insert(std::make_pair(lcid,
                                        std::unique_ptr<pdcp_entity_lte>(
-                                           new pdcp_entity_lte(rlc, rrc, gw, task_executor, pdcp_log, lcid, cfg))))
+                                           new pdcp_entity_lte(rlc, rrc, gw, task_sched, pdcp_log, lcid, cfg))))
                 .second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       return;

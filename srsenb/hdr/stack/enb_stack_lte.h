@@ -133,6 +133,10 @@ private:
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
 
+  // task handling
+  srslte::task_scheduler                 task_sched;
+  srslte::task_multiqueue::queue_handler enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
+
   // components that layers depend on (need to be destroyed after layers)
   std::unique_ptr<srslte::rx_multisocket_handler> rx_sockets;
 
@@ -162,10 +166,6 @@ private:
 
   // state
   bool started = false;
-
-  // task handling
-  srslte::task_scheduler                 task_sched;
-  srslte::task_multiqueue::queue_handler enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
 
   srslte::block_queue<stack_metrics_t> pending_stack_metrics;
 };

@@ -47,7 +47,7 @@ ttcn3_syssim::ttcn3_syssim(srslte::logger_file* logger_file_, ttcn3_ue* ue_) :
   rlc(ss_rlc_log->get_service_name().c_str()),
   signal_handler(&running),
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); }),
-  pdcp(&stack, ss_pdcp_log->get_service_name().c_str())
+  pdcp(&stack.task_sched, ss_pdcp_log->get_service_name().c_str())
 {
   if (ue->init(all_args_t{}, logger, this, "INIT_TEST") != SRSLTE_SUCCESS) {
     ue->stop();

@@ -100,7 +100,7 @@ public:
     rlc(log),
     rrc(log),
     gw(log),
-    pdcp(&rlc, &rrc, &gw, &stack, log, 0, cfg)
+    pdcp(&rlc, &rrc, &gw, &stack.task_sched, log, 0, cfg)
   {
     pdcp.config_security(sec_cfg_);
     pdcp.enable_integrity(srslte::DIRECTION_TXRX);

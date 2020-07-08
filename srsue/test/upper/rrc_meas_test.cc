@@ -115,14 +115,14 @@ public:
 class nas_test : public srsue::nas
 {
 public:
-  nas_test(srslte::task_handler_interface* t) : srsue::nas(t) {}
+  nas_test(srslte::task_sched_handle t) : srsue::nas(t) {}
   bool is_attached() override { return false; }
 };
 
 class pdcp_test : public srslte::pdcp
 {
 public:
-  pdcp_test(const char* logname, srslte::task_handler_interface* t) : srslte::pdcp(t, logname) {}
+  pdcp_test(const char* logname, srslte::task_sched_handle t) : srslte::pdcp(t, logname) {}
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = false) override
   {
     ul_dcch_msg_s  ul_dcch_msg;
@@ -180,8 +180,8 @@ public:
   rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) : rrc(stack_), stack(stack_)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
-    nastest  = std::unique_ptr<nas_test>(new nas_test(stack));
-    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), stack));
+    nastest  = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
+    pdcptest = std::unique_ptr<pdcp_test>(new pdcp_test(log_->get_service_name().c_str(), &stack->task_sched));
   };
   void init() { rrc::init(&phytest, nullptr, nullptr, pdcptest.get(), nastest.get(), nullptr, nullptr, {}); }
 

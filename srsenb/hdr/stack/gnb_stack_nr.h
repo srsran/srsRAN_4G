@@ -80,11 +80,11 @@ public:
   void process_pdus() final;
 
   // Task Handling interface
-  srslte::timer_handler::unique_timer    get_unique_timer() final { return timers.get_unique_timer(); }
-  srslte::task_multiqueue::queue_handler make_task_queue() final { return pending_tasks.get_queue_handler(); }
+  srslte::timer_handler::unique_timer    get_unique_timer() final { return task_sched.get_unique_timer(); }
+  srslte::task_multiqueue::queue_handler make_task_queue() final { return task_sched.make_task_queue(); }
   srslte::task_multiqueue::queue_handler make_task_queue(uint32_t qsize) final
   {
-    return pending_tasks.get_queue_handler(qsize);
+    return task_sched.make_task_queue(qsize);
   }
   void enqueue_background_task(std::function<void(uint32_t)> f) final;
   void notify_background_task_result(srslte::move_task_t task) final;
@@ -100,8 +100,10 @@ private:
   srslte::logger*         logger = nullptr;
   phy_interface_stack_nr* phy    = nullptr;
 
-  /* Functions for MAC Timers */
-  srslte::timer_handler timers;
+  // task scheduling
+  static const int                       STACK_MAIN_THREAD_PRIO = 4;
+  srslte::task_scheduler                 task_sched;
+  srslte::task_multiqueue::queue_handler sync_task_queue, ue_task_queue, gw_task_queue, mac_task_queue;
 
   // derived
   std::unique_ptr<mac_nr>    m_mac;
@@ -116,13 +118,6 @@ private:
   // state
   bool     running     = false;
   uint32_t current_tti = 10240;
-
-  // Thread
-  static const int                 STACK_MAIN_THREAD_PRIO = 4;
-  srslte::task_multiqueue          pending_tasks;
-  std::vector<srslte::move_task_t> deferred_stack_tasks; ///< enqueues stack tasks from within. Avoids locking
-  srslte::task_thread_pool         background_tasks;     ///< Thread pool used for long, low-priority tasks
-  int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
 };
 
 } // namespace srsenb

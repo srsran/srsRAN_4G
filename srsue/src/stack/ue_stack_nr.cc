@@ -28,16 +28,14 @@ namespace srsue {
 
 ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
   logger(logger_),
-  timers(64),
   thread("STACK"),
-  pending_tasks(64),
-  background_tasks(2),
+  task_sched(64, 2, 64),
   rlc_log("RLC"),
   pdcp_log("PDCP"),
   pool_log("POOL")
 {
   mac.reset(new mac_nr());
-  pdcp.reset(new srslte::pdcp(this, "PDCP"));
+  pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
   rlc.reset(new srslte::rlc("RLC"));
   rrc.reset(new rrc_nr());
 
@@ -45,13 +43,9 @@ ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
   pool_log->set_level(srslte::LOG_LEVEL_ERROR);
   byte_buffer_pool::get_instance()->set_log(pool_log.get());
 
-  ue_queue_id         = pending_tasks.add_queue();
-  sync_queue_id       = pending_tasks.add_queue();
-  gw_queue_id         = pending_tasks.add_queue();
-  mac_queue_id        = pending_tasks.add_queue();
-  background_queue_id = pending_tasks.add_queue();
-
-  background_tasks.start();
+  ue_task_queue   = task_sched.make_task_queue();
+  sync_task_queue = task_sched.make_task_queue();
+  gw_task_queue   = task_sched.make_task_queue();
 }
 
 ue_stack_nr::~ue_stack_nr()
@@ -88,8 +82,8 @@ int ue_stack_nr::init(const stack_args_t& args_)
   mac_nr_args_t mac_args = {};
   mac_args.pcap          = args.pcap;
   mac_args.drb_lcid      = 4;
-  mac->init(mac_args, phy, rlc.get(), &timers, this);
-  rlc->init(pdcp.get(), rrc.get(), &timers, 0 /* RB_ID_SRB0 */);
+  mac->init(mac_args, phy, rlc.get(), task_sched.get_timer_handler(), this);
+  rlc->init(pdcp.get(), rrc.get(), task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp->init(rlc.get(), rrc.get(), gw);
 
   // TODO: where to put RRC args?
@@ -98,7 +92,7 @@ int ue_stack_nr::init(const stack_args_t& args_)
   rrc_args.log_hex_limit     = args.log.rrc_hex_limit;
   rrc_args.coreless.drb_lcid = 4;
   rrc_args.coreless.ip_addr  = "192.168.1.3";
-  rrc->init(phy, mac.get(), rlc.get(), pdcp.get(), gw, &timers, this, rrc_args);
+  rrc->init(phy, mac.get(), rlc.get(), pdcp.get(), gw, task_sched.get_timer_handler(), this, rrc_args);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -109,7 +103,7 @@ int ue_stack_nr::init(const stack_args_t& args_)
 void ue_stack_nr::stop()
 {
   if (running) {
-    pending_tasks.try_push(ue_queue_id, [this]() { stop_impl(); });
+    ue_task_queue.try_push([this]() { stop_impl(); });
     wait_thread_finish();
   }
 }
@@ -155,10 +149,7 @@ bool ue_stack_nr::get_metrics(stack_metrics_t* metrics)
 void ue_stack_nr::run_thread()
 {
   while (running) {
-    srslte::move_task_t task{};
-    if (pending_tasks.wait_pop(&task) >= 0) {
-      task();
-    }
+    task_sched.run_next_external_task();
   }
 }
 
@@ -179,11 +170,9 @@ void ue_stack_nr::run_thread()
 void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
 {
   if (pdcp != nullptr) {
-    std::pair<bool, move_task_t> ret = pending_tasks.try_push(
-        gw_queue_id,
-        std::bind([this, lcid, blocking](
-                      srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu), blocking); },
-                  std::move(sdu)));
+    std::pair<bool, move_task_t> ret = gw_task_queue.try_push(std::bind(
+        [this, lcid, blocking](srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu), blocking); },
+        std::move(sdu)));
     if (not ret.first) {
       pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
     }
@@ -209,14 +198,14 @@ void ue_stack_nr::out_of_sync()
 
 void ue_stack_nr::run_tti(uint32_t tti)
 {
-  pending_tasks.push(sync_queue_id, [this, tti]() { run_tti_impl(tti); });
+  sync_task_queue.push([this, tti]() { run_tti_impl(tti); });
 }
 
 void ue_stack_nr::run_tti_impl(uint32_t tti)
 {
   mac->run_tti(tti);
   rrc->run_tti(tti);
-  timers.step_all();
+  task_sched.tic();
 }
 
 /********************
@@ -239,23 +228,23 @@ void ue_stack_nr::start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cel
 
 void ue_stack_nr::enqueue_background_task(std::function<void(uint32_t)> f)
 {
-  background_tasks.push_task(std::move(f));
+  task_sched.enqueue_background_task(std::move(f));
 }
 
 void ue_stack_nr::notify_background_task_result(srslte::move_task_t task)
 {
   // run the notification in the stack thread
-  pending_tasks.push(background_queue_id, std::move(task));
+  task_sched.notify_background_task_result(std::move(task));
 }
 
 void ue_stack_nr::defer_callback(uint32_t duration_ms, std::function<void()> func)
 {
-  timers.defer_callback(duration_ms, func);
+  task_sched.defer_callback(duration_ms, std::move(func));
 }
 
 void ue_stack_nr::defer_task(srslte::move_task_t task)
 {
-  deferred_stack_tasks.push_back(std::move(task));
+  task_sched.defer_task(std::move(task));
 }
 
 } // namespace srsue

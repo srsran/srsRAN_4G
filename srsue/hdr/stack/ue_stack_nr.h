@@ -97,11 +97,11 @@ public:
   srslte::tti_point get_current_tti() { return srslte::tti_point{0}; };
 
   // Task Handling interface
-  srslte::timer_handler::unique_timer    get_unique_timer() final { return timers.get_unique_timer(); }
-  srslte::task_multiqueue::queue_handler make_task_queue() final { return pending_tasks.get_queue_handler(); }
+  srslte::timer_handler::unique_timer    get_unique_timer() final { return task_sched.get_unique_timer(); }
+  srslte::task_multiqueue::queue_handler make_task_queue() final { return task_sched.make_task_queue(); }
   srslte::task_multiqueue::queue_handler make_task_queue(uint32_t qsize) final
   {
-    return pending_tasks.get_queue_handler(qsize);
+    return task_sched.make_task_queue(qsize);
   }
   void enqueue_background_task(std::function<void(uint32_t)> f) final;
   void notify_background_task_result(srslte::move_task_t task) final;
@@ -116,8 +116,9 @@ private:
   bool                running = false;
   srsue::stack_args_t args    = {};
 
-  // timers
-  srslte::timer_handler timers;
+  // task scheduler
+  srslte::task_scheduler                 task_sched;
+  srslte::task_multiqueue::queue_handler sync_task_queue, ue_task_queue, gw_task_queue;
 
   // UE stack logging
   srslte::logger* logger = nullptr;
@@ -139,11 +140,6 @@ private:
 
   // Thread
   static const int STACK_MAIN_THREAD_PRIO = 4;
-
-  srslte::task_multiqueue pending_tasks;
-  int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
-  srslte::task_thread_pool         background_tasks;     ///< Thread pool used for long, low-priority tasks
-  std::vector<srslte::move_task_t> deferred_stack_tasks; ///< enqueues stack tasks from within. Avoids locking
 };
 
 } // namespace srsue

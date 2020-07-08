@@ -25,23 +25,20 @@
 
 namespace srsenb {
 
-gnb_stack_nr::gnb_stack_nr(srslte::logger* logger_) : logger(logger_), timers(128), thread("gNB"), background_tasks(1)
+gnb_stack_nr::gnb_stack_nr(srslte::logger* logger_) : logger(logger_), task_sched{512, 1, 128}, thread("gNB")
 {
   m_mac.reset(new mac_nr());
   m_rlc.reset(new rlc_nr("RLC"));
-  m_pdcp.reset(new pdcp_nr(this, "PDCP"));
-  m_rrc.reset(new rrc_nr(&timers));
+  m_pdcp.reset(new pdcp_nr(&task_sched, "PDCP"));
+  m_rrc.reset(new rrc_nr(task_sched.get_timer_handler()));
   m_sdap.reset(new sdap());
   m_gw.reset(new srsue::gw());
   //  m_gtpu.reset(new srsenb::gtpu());
 
-  ue_queue_id         = pending_tasks.add_queue();
-  sync_queue_id       = pending_tasks.add_queue();
-  gw_queue_id         = pending_tasks.add_queue();
-  mac_queue_id        = pending_tasks.add_queue();
-  background_queue_id = pending_tasks.add_queue();
-
-  background_tasks.start();
+  ue_task_queue   = task_sched.make_task_queue();
+  sync_task_queue = task_sched.make_task_queue();
+  gw_task_queue   = task_sched.make_task_queue();
+  mac_task_queue  = task_sched.make_task_queue();
 }
 
 gnb_stack_nr::~gnb_stack_nr()
@@ -85,7 +82,7 @@ int gnb_stack_nr::init(const srsenb::stack_args_t& args_, const rrc_nr_cfg_t& rr
 
   srslte::logmap::get("RLC")->set_level(args.log.rlc_level);
   srslte::logmap::get("RLC")->set_hex_limit(args.log.rlc_hex_limit);
-  m_rlc->init(m_pdcp.get(), m_rrc.get(), m_mac.get(), &timers);
+  m_rlc->init(m_pdcp.get(), m_rrc.get(), m_mac.get(), task_sched.get_timer_handler());
 
   pdcp_nr_args_t pdcp_args = {};
   pdcp_args.log_level      = args.log.pdcp_level;
@@ -140,29 +137,25 @@ bool gnb_stack_nr::switch_on()
 void gnb_stack_nr::run_thread()
 {
   while (running) {
-    srslte::move_task_t task{};
-    pending_tasks.wait_pop(&task);
-    if (running) {
-      task();
-    }
+    task_sched.run_next_external_task();
   }
 }
 
 void gnb_stack_nr::run_tti(uint32_t tti)
 {
   current_tti = tti;
-  pending_tasks.push(sync_queue_id, [this, tti]() { run_tti_impl(tti); });
+  sync_task_queue.push([this, tti]() { run_tti_impl(tti); });
 }
 
 void gnb_stack_nr::run_tti_impl(uint32_t tti)
 {
   //  m_ngap->run_tti();
-  timers.step_all();
+  task_sched.tic();
 }
 
 void gnb_stack_nr::process_pdus()
 {
-  pending_tasks.push(mac_queue_id, [this]() { m_mac->process_pdus(); });
+  mac_task_queue.push([this]() { m_mac->process_pdus(); });
 }
 
 /********************************************************
@@ -205,23 +198,23 @@ bool gnb_stack_nr::is_lcid_enabled(uint32_t lcid)
 
 void gnb_stack_nr::enqueue_background_task(std::function<void(uint32_t)> f)
 {
-  background_tasks.push_task(std::move(f));
+  task_sched.enqueue_background_task(std::move(f));
 }
 
 void gnb_stack_nr::notify_background_task_result(srslte::move_task_t task)
 {
   // run the notification in the stack thread
-  pending_tasks.push(background_queue_id, std::move(task));
+  task_sched.notify_background_task_result(std::move(task));
 }
 
 void gnb_stack_nr::defer_callback(uint32_t duration_ms, std::function<void()> func)
 {
-  timers.defer_callback(duration_ms, func);
+  task_sched.defer_callback(duration_ms, func);
 }
 
 void gnb_stack_nr::defer_task(srslte::move_task_t task)
 {
-  deferred_stack_tasks.push_back(std::move(task));
+  task_sched.defer_task(std::move(task));
 }
 
 } // namespace srsenb

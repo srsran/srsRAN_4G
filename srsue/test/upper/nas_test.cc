@@ -231,7 +231,7 @@ int security_command_test()
   usim.init(&args);
 
   {
-    srsue::nas nas(&stack);
+    srsue::nas nas(&stack.task_sched);
     nas_args_t cfg;
     cfg.eia = "1,2,3";
     cfg.eea = "0,1,2,3";
@@ -298,7 +298,7 @@ int mme_attach_request_test()
     nas_cfg.force_imsi_attach = true;
     nas_cfg.apn_name          = "test123";
     test_stack_dummy stack(&pdcp_dummy);
-    srsue::nas       nas(&stack);
+    srsue::nas       nas(&stack.task_sched);
     srsue::gw        gw;
 
     nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
@@ -377,7 +377,7 @@ int esm_info_request_test()
   pool = byte_buffer_pool::get_instance();
 
   {
-    srsue::nas nas(&stack);
+    srsue::nas nas(&stack.task_sched);
     nas_args_t cfg;
     cfg.apn_name          = "srslte";
     cfg.apn_user          = "srsuser";
@@ -429,7 +429,7 @@ int dedicated_eps_bearer_test()
 
   srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
-  srsue::nas nas(&stack);
+  srsue::nas nas(&stack.task_sched);
   nas_args_t cfg        = {};
   cfg.force_imsi_attach = true; // make sure we get a fresh security context
   nas.init(&usim, &rrc_dummy, &gw, cfg);

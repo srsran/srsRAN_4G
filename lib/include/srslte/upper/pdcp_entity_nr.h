@@ -28,6 +28,7 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include <map>
@@ -41,13 +42,13 @@ namespace srslte {
 class pdcp_entity_nr final : public pdcp_entity_base
 {
 public:
-  pdcp_entity_nr(srsue::rlc_interface_pdcp*      rlc_,
-                 srsue::rrc_interface_pdcp*      rrc_,
-                 srsue::gw_interface_pdcp*       gw_,
-                 srslte::task_handler_interface* task_executor_,
-                 srslte::log_ref                 log_,
-                 uint32_t                        lcid,
-                 pdcp_config_t                   cfg_);
+  pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
+                 srsue::rrc_interface_pdcp* rrc_,
+                 srsue::gw_interface_pdcp*  gw_,
+                 srslte::task_sched_handle  task_sched_,
+                 srslte::log_ref            log_,
+                 uint32_t                   lcid,
+                 pdcp_config_t              cfg_);
   ~pdcp_entity_nr() final;
   void reset() final;
   void reestablish() final;

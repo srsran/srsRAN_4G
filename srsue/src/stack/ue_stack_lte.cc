@@ -40,8 +40,8 @@ ue_stack_lte::ue_stack_lte() :
   rlc("RLC"),
   mac("MAC "),
   rrc(this),
-  pdcp(this, "PDCP"),
-  nas(this),
+  pdcp(&task_sched, "PDCP"),
+  nas(&task_sched),
   thread("STACK"),
   task_sched(512, 2, 64),
   tti_tprof("tti_tprof", "STCK", TTI_STAT_PERIOD)

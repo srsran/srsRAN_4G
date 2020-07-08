@@ -24,6 +24,7 @@
 
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp_entity_lte.h"
 
@@ -32,7 +33,7 @@ namespace srslte {
 class pdcp : public srsue::pdcp_interface_rlc, public srsue::pdcp_interface_rrc
 {
 public:
-  pdcp(srslte::task_handler_interface* task_executor_, const char* logname);
+  pdcp(srslte::task_sched_handle task_sched_, const char* logname);
   virtual ~pdcp();
   void init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_);
   void stop();
@@ -66,11 +67,11 @@ public:
   void write_pdu_pcch(unique_byte_buffer_t sdu) override;
 
 private:
-  srsue::rlc_interface_pdcp*      rlc           = nullptr;
-  srsue::rrc_interface_pdcp*      rrc           = nullptr;
-  srsue::gw_interface_pdcp*       gw            = nullptr;
-  srslte::task_handler_interface* task_executor = nullptr;
-  srslte::log_ref                 pdcp_log;
+  srsue::rlc_interface_pdcp* rlc = nullptr;
+  srsue::rrc_interface_pdcp* rrc = nullptr;
+  srsue::gw_interface_pdcp*  gw  = nullptr;
+  srslte::task_sched_handle  task_sched;
+  srslte::log_ref            pdcp_log;
 
   std::map<uint16_t, std::unique_ptr<pdcp_entity_base> > pdcp_array, pdcp_array_mrb;
 

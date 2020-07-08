@@ -27,6 +27,7 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/security.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/pdcp_interface_types.h"
@@ -59,7 +60,7 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PD
 class pdcp_entity_base
 {
 public:
-  pdcp_entity_base(srslte::task_handler_interface* task_executor_, srslte::log_ref log_);
+  pdcp_entity_base(task_sched_handle task_sched_, srslte::log_ref log_);
   pdcp_entity_base(pdcp_entity_base&&) = default;
   virtual ~pdcp_entity_base();
   virtual void reset()       = 0;
@@ -119,7 +120,7 @@ public:
   // RLC interface
   virtual void write_pdu(unique_byte_buffer_t pdu) = 0;
 
-  virtual void get_bearer_state(pdcp_lte_state_t* state) = 0;
+  virtual void get_bearer_state(pdcp_lte_state_t* state)       = 0;
   virtual void set_bearer_state(const pdcp_lte_state_t& state) = 0;
 
   // COUNT, HFN and SN helpers
@@ -128,8 +129,8 @@ public:
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
 protected:
-  srslte::log_ref                 log;
-  srslte::task_handler_interface* task_executor = nullptr;
+  srslte::log_ref           log;
+  srslte::task_sched_handle task_sched;
 
   bool               active               = false;
   uint32_t           lcid                 = 0;

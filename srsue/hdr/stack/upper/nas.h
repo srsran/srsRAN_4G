@@ -29,6 +29,7 @@
 #include "srslte/common/nas_pcap.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srsue/hdr/stack/upper/nas_common.h"
 #include "srsue/hdr/stack/upper/nas_metrics.h"
@@ -40,7 +41,7 @@ namespace srsue {
 class nas : public nas_interface_rrc, public nas_interface_ue, public srslte::timer_callback
 {
 public:
-  explicit nas(srslte::task_handler_interface* task_handler_);
+  explicit nas(srslte::task_sched_handle task_sched_);
   virtual ~nas() = default;
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
@@ -134,7 +135,7 @@ private:
   uint8_t transaction_id = 0;
 
   // timers
-  srslte::task_handler_interface*     task_handler = nullptr;
+  srslte::task_sched_handle           task_sched;
   srslte::timer_handler::unique_timer t3402;          // started when attach attempt counter reached 5
   srslte::timer_handler::unique_timer t3410;          // started when attach request is sent, on expiry, start t3411
   srslte::timer_handler::unique_timer t3411;          // started when attach failed

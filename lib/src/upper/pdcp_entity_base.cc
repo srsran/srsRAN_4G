@@ -26,11 +26,10 @@
 
 namespace srslte {
 
-pdcp_entity_base::pdcp_entity_base(srslte::task_handler_interface* task_executor_, srslte::log_ref log_) :
+pdcp_entity_base::pdcp_entity_base(task_sched_handle task_sched_, srslte::log_ref log_) :
   log(log_),
-  task_executor(task_executor_)
-{
-}
+  task_sched(task_sched_)
+{}
 
 pdcp_entity_base::~pdcp_entity_base() {}
 

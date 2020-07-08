@@ -39,7 +39,7 @@ struct pdcp_nr_args_t {
 class pdcp_nr : public pdcp_interface_rlc_nr, public pdcp_interface_sdap_nr, public pdcp_interface_rrc_nr
 {
 public:
-  explicit pdcp_nr(srslte::task_handler_interface* task_executor_, const char* logname);
+  explicit pdcp_nr(srslte::task_sched_handle task_sched_, const char* logname);
   virtual ~pdcp_nr() = default;
   void init(const pdcp_nr_args_t&   args_,
             rlc_interface_pdcp_nr*  rlc_,
@@ -116,7 +116,7 @@ private:
 
   std::map<uint32_t, user_interface> users;
 
-  srslte::task_handler_interface* task_executor;
+  srslte::task_sched_handle task_sched;
 };
 
 } // namespace srsenb

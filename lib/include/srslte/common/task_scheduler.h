@@ -46,7 +46,11 @@ public:
     }
   }
 
-  void stop() { background_tasks.stop(); }
+  void stop()
+  {
+    background_tasks.stop();
+    external_tasks.reset();
+  }
 
   srslte::timer_handler::unique_timer get_unique_timer() final { return timers.get_unique_timer(); }
 

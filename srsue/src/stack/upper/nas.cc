@@ -136,7 +136,7 @@ proc_outcome_t nas::plmn_search_proc::react(const plmn_search_complete_t& t)
 
 nas::rrc_connect_proc::rrc_connect_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_)
 {
-  timeout_timer = nas_ptr->task_handler->get_unique_timer();
+  timeout_timer = nas_ptr->task_sched.get_unique_timer();
   timeout_timer.set(attach_timeout_ms,
                     [this](uint32_t tid) { nas_ptr->rrc_connector.trigger(nas::rrc_connect_proc::attach_timeout{}); });
 }
@@ -235,16 +235,16 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
  *   NAS
  ********************************************************************/
 
-nas::nas(srslte::task_handler_interface* task_handler_) :
+nas::nas(srslte::task_sched_handle task_sched_) :
   pool(byte_buffer_pool::get_instance()),
   plmn_searcher(this),
   rrc_connector(this),
-  task_handler(task_handler_),
-  t3402(task_handler_->get_unique_timer()),
-  t3410(task_handler_->get_unique_timer()),
-  t3411(task_handler_->get_unique_timer()),
-  t3421(task_handler_->get_unique_timer()),
-  reattach_timer(task_handler_->get_unique_timer()),
+  task_sched(task_sched_),
+  t3402(task_sched_.get_unique_timer()),
+  t3410(task_sched_.get_unique_timer()),
+  t3411(task_sched_.get_unique_timer()),
+  t3421(task_sched_.get_unique_timer()),
+  reattach_timer(task_sched_.get_unique_timer()),
   nas_log{"NAS"}
 {}
 
@@ -406,7 +406,7 @@ void nas::start_attach_proc(srslte::proc_state_t* result, srslte::establishment_
           }
           if (!res.is_success()) {
             // try again ..
-            task_handler->defer_callback(reattach_timer_duration_ms, [&]() { start_attach_proc(nullptr, cause_); });
+            task_sched.defer_callback(reattach_timer_duration_ms, [&]() { start_attach_proc(nullptr, cause_); });
           }
         });
       } else {
@@ -2499,7 +2499,7 @@ void nas::handle_airplane_mode_sim()
     // check if we're already attached, if so, schedule airplane mode command
     if (state == EMM_STATE_REGISTERED) {
       // NAS is attached
-      task_handler->defer_callback(cfg.sim.airplane_t_on_ms, [&]() {
+      task_sched.defer_callback(cfg.sim.airplane_t_on_ms, [&]() {
         // Enabling air-plane mode
         send_detach_request(true);
         airplane_mode_state = ENABLED;
@@ -2509,7 +2509,7 @@ void nas::handle_airplane_mode_sim()
     // check if we are already deregistered, if so, schedule command to turn off airplone mode again
     if (state == EMM_STATE_DEREGISTERED) {
       // NAS is deregistered
-      task_handler->defer_callback(cfg.sim.airplane_t_off_ms, [&]() {
+      task_sched.defer_callback(cfg.sim.airplane_t_off_ms, [&]() {
         // Disabling airplane mode again
         start_attach_proc(nullptr, srslte::establishment_cause_t::mo_sig);
         airplane_mode_state = DISABLED;
@@ -2519,7 +2519,7 @@ void nas::handle_airplane_mode_sim()
 
   // schedule another call
   if (cfg.sim.airplane_t_on_ms > 0 || cfg.sim.airplane_t_off_ms > 0) {
-    task_handler->defer_callback(1000, [&]() { handle_airplane_mode_sim(); });
+    task_sched.defer_callback(1000, [&]() { handle_airplane_mode_sim(); });
   }
 }
 

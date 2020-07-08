@@ -33,7 +33,7 @@ namespace srsenb {
 class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:
-  pdcp(srslte::task_handler_interface* task_executor_, const char* logname);
+  pdcp(srslte::task_sched_handle task_sched_, const char* logname);
   virtual ~pdcp() {}
   void init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_);
   void stop();
@@ -104,12 +104,12 @@ private:
 
   std::map<uint32_t, user_interface> users;
 
-  rlc_interface_pdcp*             rlc;
-  rrc_interface_pdcp*             rrc;
-  gtpu_interface_pdcp*            gtpu;
-  srslte::task_handler_interface* task_executor;
-  srslte::log_ref                 log_h;
-  srslte::byte_buffer_pool*       pool;
+  rlc_interface_pdcp*       rlc;
+  rrc_interface_pdcp*       rrc;
+  gtpu_interface_pdcp*      gtpu;
+  srslte::task_sched_handle task_sched;
+  srslte::log_ref           log_h;
+  srslte::byte_buffer_pool* pool;
 };
 
 } // namespace srsenb

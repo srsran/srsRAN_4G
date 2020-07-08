@@ -32,7 +32,7 @@ namespace srsenb {
 enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
   task_sched(512, 0, 128),
   logger(logger_),
-  pdcp(this, "PDCP"),
+  pdcp(&task_sched, "PDCP"),
   thread("STACK")
 {
   enb_task_queue  = task_sched.make_task_queue();
