@@ -682,7 +682,19 @@ private:
 };
 
 template <typename Event>
-using event_callback = std::function<void(const Event&)>;
+struct event_callback {
+  event_callback() = default;
+  template <typename FSM>
+  explicit event_callback(FSM* f)
+  {
+    callback = [f](const Event& ev) { f->trigger(ev); };
+  }
+
+  void operator()(const Event& ev) { callback(ev); }
+  void operator()(const Event& ev) const { callback(ev); }
+
+  std::function<void(const Event&)> callback;
+};
 
 } // namespace srslte
 

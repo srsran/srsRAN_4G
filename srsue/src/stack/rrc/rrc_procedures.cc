@@ -45,9 +45,8 @@ rrc::cell_search_proc::cell_search_proc(rrc* parent_) : rrc_ptr(parent_) {}
 proc_outcome_t rrc::cell_search_proc::init()
 {
   Info("Starting...\n");
-  state            = state_t::phy_cell_search;
-  auto on_complete = [this](const phy_controller::cell_srch_res& res) { rrc_ptr->cell_searcher.trigger(res); };
-  rrc_ptr->phy_ctrl->start_cell_search(on_complete);
+  state = state_t::phy_cell_search;
+  rrc_ptr->phy_ctrl->start_cell_search(srslte::event_callback<phy_controller::cell_srch_res>{&rrc_ptr->cell_searcher});
   if (not rrc_ptr->phy_ctrl->is_in_state<phy_controller::searching_cell>()) {
     Warning("Failed to initiate Cell Search.\n");
     return proc_outcome_t::error;
@@ -98,9 +97,9 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
   rrc_ptr->meas_cells.set_serving_cell(new_cell, false);
 
   // set new serving cell in PHY
-  state            = state_t::phy_cell_select;
-  auto on_complete = [this](const bool& result) { rrc_ptr->cell_searcher.trigger(cell_select_event_t{result}); };
-  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete)) {
+  state = state_t::phy_cell_select;
+  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell,
+                                               srslte::event_callback<bool>{&rrc_ptr->cell_searcher})) {
     Error("Couldn't start phy cell selection\n");
     return proc_outcome_t::error;
   }
@@ -129,14 +128,14 @@ proc_outcome_t rrc::cell_search_proc::step_wait_measurement()
   return step();
 }
 
-proc_outcome_t rrc::cell_search_proc::react(const cell_select_event_t& event)
+proc_outcome_t rrc::cell_search_proc::react(const bool& cs_ret)
 {
   if (state != state_t::phy_cell_select) {
     Warning("Received unexpected cell search result\n");
     return proc_outcome_t::yield;
   }
 
-  if (not event.cs_ret) {
+  if (not cs_ret) {
     Error("Couldn't select new serving cell\n");
     return proc_outcome_t::error;
   }
@@ -484,7 +483,7 @@ proc_outcome_t rrc::cell_selection_proc::init()
   return start_cell_selection();
 }
 
-proc_outcome_t rrc::cell_selection_proc::react(const cell_select_event_t& event)
+proc_outcome_t rrc::cell_selection_proc::react(const bool& event)
 {
   switch (state) {
     case search_state_t::cell_selection: {
@@ -511,9 +510,9 @@ proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
 
   Info("Not camping on serving cell %s. Selecting it...\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
-  state            = search_state_t::serv_cell_camp;
-  auto on_complete = [this](const bool& result) { rrc_ptr->cell_selector.trigger(cell_select_event_t{result}); };
-  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete)) {
+  state = search_state_t::serv_cell_camp;
+  if (not rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell,
+                                               srslte::event_callback<bool>{&rrc_ptr->cell_selector})) {
     Error("Failed to launch PHY Cell Selection\n");
     return proc_outcome_t::error;
   }
@@ -545,9 +544,9 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
       discard_serving = false;
       Info("Selected cell: %s\n", rrc_ptr->meas_cells.serving_cell().to_string().c_str());
 
-      state            = search_state_t::cell_selection;
-      auto on_complete = [this](const bool& result) { rrc_ptr->cell_selector.trigger(cell_select_event_t{result}); };
-      rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete);
+      state = search_state_t::cell_selection;
+      rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell,
+                                           srslte::event_callback<bool>{&rrc_ptr->cell_selector});
       if (not rrc_ptr->phy_ctrl->is_in_state<phy_controller::selecting_cell>()) {
         Error("Failed to launch PHY Cell Selection\n");
         return proc_outcome_t::error;
@@ -573,9 +572,9 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
   return step();
 }
 
-proc_outcome_t rrc::cell_selection_proc::step_cell_selection(const cell_select_event_t& event)
+proc_outcome_t rrc::cell_selection_proc::step_cell_selection(const bool& cs_ret)
 {
-  if (event.cs_ret) {
+  if (cs_ret) {
     // successful selection
     if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
       Info("PHY is in SYNC and cell selection passed\n");
@@ -597,10 +596,10 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection(const cell_select_e
   return start_cell_selection();
 }
 
-srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const cell_select_event_t& event)
+srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const bool& cs_ret)
 {
   // if we are now camping, the proc was successful
-  if (event.cs_ret) {
+  if (cs_ret) {
     Info("Selected serving cell OK.\n");
     cs_result = cs_result_t::same_cell;
     return proc_outcome_t::success;
@@ -1392,7 +1391,7 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   return proc_outcome_t::yield;
 }
 
-srslte::proc_outcome_t rrc::ho_proc::react(srsue::cell_select_event_t ev)
+srslte::proc_outcome_t rrc::ho_proc::react(const bool& cs_ret)
 {
   if (state != wait_phy_cell_select_complete) {
     Warning("Received unexpected PHY Cell Selection event\n");
@@ -1405,7 +1404,7 @@ srslte::proc_outcome_t rrc::ho_proc::react(srsue::cell_select_event_t ev)
     return proc_outcome_t::error;
   }
 
-  if (not ev.cs_ret) {
+  if (not cs_ret) {
     Error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
           target_cell->to_string().c_str(),
           rrc_ptr->meas_cells.serving_cell().to_string().c_str());
@@ -1486,10 +1485,10 @@ srslte::proc_outcome_t rrc::ho_proc::step()
       rrc_ptr->apply_rr_config_dedicated(&recfg_r8.rr_cfg_ded);
     }
 
-    cell_t* target_cell = 
+    cell_t* target_cell =
         rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
-    auto    on_complete = [this](const bool& result) { rrc_ptr->ho_handler.trigger(cell_select_event_t{result}); };
-    rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell, on_complete);
+    rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell,
+                                         srslte::event_callback<bool>{&rrc_ptr->ho_handler});
     if (not rrc_ptr->phy_ctrl->is_in_state<phy_controller::selecting_cell>()) {
       Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
       return proc_outcome_t::error;

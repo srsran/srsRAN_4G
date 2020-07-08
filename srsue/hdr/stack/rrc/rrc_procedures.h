@@ -31,16 +31,6 @@
 namespace srsue {
 
 /********************************
- *           Events
- *******************************/
-
-// background workers use this event to signal the result of a cell select phy procedure
-struct cell_select_event_t {
-  explicit cell_select_event_t(bool c_) : cs_ret(c_) {}
-  bool cs_ret;
-};
-
-/********************************
  *         Procedures
  *******************************/
 
@@ -54,7 +44,7 @@ public:
   srslte::proc_outcome_t step();
   srslte::proc_outcome_t step_si_acquire();
   srslte::proc_outcome_t react(const phy_controller::cell_srch_res& event);
-  srslte::proc_outcome_t react(const cell_select_event_t& event);
+  srslte::proc_outcome_t react(const bool& event);
   srslte::proc_outcome_t step_wait_measurement();
 
   phy_interface_rrc_lte::cell_search_ret_t get_result() const { return search_result.cs_ret; }
@@ -138,13 +128,13 @@ public:
   void                   then(const srslte::proc_result_t<cs_result_t>& proc_result) const;
   cs_result_t            get_result() const { return cs_result; }
   static const char*     name() { return "Cell Selection"; }
-  srslte::proc_outcome_t react(const cell_select_event_t& event);
+  srslte::proc_outcome_t react(const bool& event);
 
 private:
   srslte::proc_outcome_t start_serv_cell_selection();
   srslte::proc_outcome_t start_cell_selection();
-  srslte::proc_outcome_t step_cell_selection(const cell_select_event_t& event);
-  srslte::proc_outcome_t step_serv_cell_camp(const cell_select_event_t& event);
+  srslte::proc_outcome_t step_cell_selection(const bool& event);
+  srslte::proc_outcome_t step_serv_cell_camp(const bool& event);
   srslte::proc_outcome_t step_cell_search();
   srslte::proc_outcome_t step_cell_config();
 
@@ -299,7 +289,7 @@ public:
 
   explicit ho_proc(rrc* rrc_);
   srslte::proc_outcome_t init(const asn1::rrc::rrc_conn_recfg_s& rrc_reconf);
-  srslte::proc_outcome_t react(cell_select_event_t ev);
+  srslte::proc_outcome_t react(const bool& ev);
   srslte::proc_outcome_t react(t304_expiry ev);
   srslte::proc_outcome_t react(ra_completed_ev ev);
   srslte::proc_outcome_t step();

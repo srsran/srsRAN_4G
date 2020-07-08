@@ -25,12 +25,51 @@
 
 namespace srsue {
 
+struct cell_search_result_test {
+  cell_search_result_test(phy_controller* phy_ctrl_) : phy_ctrl(phy_ctrl_) {}
+
+  void trigger(const phy_controller::cell_srch_res& result_)
+  {
+    trigger_called = true;
+    result         = result_;
+
+    if (phy_ctrl->current_state_name() == "searching_cell" or phy_ctrl->is_trigger_locked()) {
+      phy_ctrl->get_log()->error(
+          "When caller is signalled with cell search result, cell search state cannot be active\n");
+      exit(1);
+    }
+  }
+
+  bool                          trigger_called = false;
+  phy_controller::cell_srch_res result         = {};
+  phy_controller*               phy_ctrl       = nullptr;
+};
+
+struct cell_select_result_test {
+  cell_select_result_test(phy_controller* phy_ctrl_) : phy_ctrl(phy_ctrl_) {}
+
+  void trigger(const bool& result_)
+  {
+    result = result_ ? 1 : 0;
+    if (phy_ctrl->current_state_name() == "selecting_cell" or phy_ctrl->is_trigger_locked()) {
+      phy_ctrl->get_log()->error(
+          "When caller is signalled with cell select result, cell select state cannot be active\n");
+      exit(1);
+    }
+  }
+
+  int             result   = -1;
+  phy_controller* phy_ctrl = nullptr;
+};
+
 int test_phy_ctrl_fsm()
 {
-  srslte::log_ref     test_log{"TEST"};
-  stack_test_dummy    stack;
-  phy_dummy_interface phy;
-  phy_controller      phy_ctrl{&phy, &stack};
+  srslte::log_ref         test_log{"TEST"};
+  stack_test_dummy        stack;
+  phy_dummy_interface     phy;
+  phy_controller          phy_ctrl{&phy, &stack};
+  cell_search_result_test csearch_tester{&phy_ctrl};
+  cell_select_result_test csel_tester{&phy_ctrl};
 
   TESTASSERT(not phy_ctrl.is_in_sync());
   TESTASSERT(not phy_ctrl.cell_is_camping());
@@ -44,19 +83,7 @@ int test_phy_ctrl_fsm()
   TESTASSERT(phy_ctrl.is_in_sync());
 
   // TEST: Correct initiation of Cell Search state
-  bool                          csearch_res_present = false;
-  phy_controller::cell_srch_res csearch_res         = {};
-  auto                          cell_sel_callback =
-      [&csearch_res_present, &csearch_res, &phy_ctrl](const phy_controller::cell_srch_res& result) {
-        csearch_res_present = true;
-        csearch_res         = result;
-        if (phy_ctrl.current_state_name() == "searching_cell" or phy_ctrl.is_trigger_locked()) {
-          phy_ctrl.get_log()->error(
-              "When caller is signalled with cell search result, cell search state cannot be active\n");
-          exit(1);
-        }
-      };
-  TESTASSERT(phy_ctrl.start_cell_search(cell_sel_callback));
+  TESTASSERT(phy_ctrl.start_cell_search(srslte::event_callback<phy_controller::cell_srch_res>{&csearch_tester}));
   TESTASSERT(not phy_ctrl.is_in_sync());
 
   // TEST: Cell Search only listens to a cell search result event
@@ -75,25 +102,16 @@ int test_phy_ctrl_fsm()
 
   // TEST: Check propagation of cell search result to caller
   stack.run_tti();
-  TESTASSERT(csearch_res_present);
-  TESTASSERT(csearch_res.cs_ret.found == cs_ret.found);
-  TESTASSERT(csearch_res.found_cell.pci == found_cell.pci);
-  TESTASSERT(csearch_res.found_cell.earfcn == found_cell.earfcn);
+  TESTASSERT(csearch_tester.trigger_called);
+  TESTASSERT(csearch_tester.result.cs_ret.found == cs_ret.found);
+  TESTASSERT(csearch_tester.result.found_cell.pci == found_cell.pci);
+  TESTASSERT(csearch_tester.result.found_cell.earfcn == found_cell.earfcn);
   phy_ctrl.in_sync();
   TESTASSERT(phy_ctrl.is_in_sync());
   phy_ctrl.out_sync();
 
   // TEST: Correct initiation of Cell Select state
-  int  cell_select_success = -1;
-  auto csel_callback       = [&cell_select_success, &phy_ctrl](const bool& res) {
-    cell_select_success = res ? 1 : 0;
-    if (phy_ctrl.current_state_name() == "selecting_cell" or phy_ctrl.is_trigger_locked()) {
-      phy_ctrl.get_log()->error(
-          "When caller is signalled with cell selection result, cell selection state cannot be active\n");
-      exit(1);
-    }
-  };
-  phy_ctrl.start_cell_select(found_cell, csel_callback);
+  phy_ctrl.start_cell_select(found_cell, srslte::event_callback<bool>{&csel_tester});
   TESTASSERT(not phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
 
@@ -104,22 +122,22 @@ int test_phy_ctrl_fsm()
   // Note: Still in cell selection, but now waiting for the first in_sync
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
   TESTASSERT(not phy_ctrl.is_in_sync());
-  TESTASSERT(cell_select_success < 0);
+  TESTASSERT(csel_tester.result < 0);
   phy_ctrl.in_sync();
   TESTASSERT(phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() != "selecting_cell");
 
   // TEST: Propagation of cell selection result to caller
   stack.run_tti();
-  TESTASSERT(cell_select_success == 1);
+  TESTASSERT(csel_tester.result == 1);
 
   // TEST: Cell Selection with timeout being reached
-  cell_select_success = -1;
-  TESTASSERT(phy_ctrl.start_cell_select(found_cell, csel_callback));
+  csel_tester.result = -1;
+  TESTASSERT(phy_ctrl.start_cell_select(found_cell, srslte::event_callback<bool>{&csel_tester}));
   TESTASSERT(not phy_ctrl.is_in_sync());
   phy_ctrl.cell_selection_completed(true);
   TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
-  TESTASSERT(cell_select_success < 0);
+  TESTASSERT(csel_tester.result < 0);
 
   for (uint32_t i = 0; i < phy_controller::wait_sync_timeout_ms; ++i) {
     TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
@@ -129,7 +147,7 @@ int test_phy_ctrl_fsm()
 
   // TEST: Propagation of cell selection result to caller
   stack.run_tti();
-  TESTASSERT(cell_select_success == 0);
+  TESTASSERT(csel_tester.result == 0);
 
   test_log->info("Finished RRC PHY controller test successfully\n");
   return SRSLTE_SUCCESS;
