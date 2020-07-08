@@ -59,7 +59,7 @@ int test_phy_ctrl_fsm()
   TESTASSERT(phy_ctrl.start_cell_search(cell_sel_callback));
   TESTASSERT(not phy_ctrl.is_in_sync());
 
-  // TEST: Cell Search only listens to a cell search result event and calls provided callback on completion
+  // TEST: Cell Search only listens to a cell search result event
   phy_ctrl.in_sync();
   TESTASSERT(not phy_ctrl.is_in_sync());
   phy_ctrl.out_sync();
@@ -72,6 +72,9 @@ int test_phy_ctrl_fsm()
   found_cell.earfcn = 2;
   phy_ctrl.cell_search_completed(cs_ret, found_cell);
   TESTASSERT(phy_ctrl.current_state_name() != "searching_cell");
+
+  // TEST: Check propagation of cell search result to caller
+  stack.run_tti();
   TESTASSERT(csearch_res_present);
   TESTASSERT(csearch_res.cs_ret.found == cs_ret.found);
   TESTASSERT(csearch_res.found_cell.pci == found_cell.pci);
@@ -105,6 +108,9 @@ int test_phy_ctrl_fsm()
   phy_ctrl.in_sync();
   TESTASSERT(phy_ctrl.is_in_sync());
   TESTASSERT(phy_ctrl.current_state_name() != "selecting_cell");
+
+  // TEST: Propagation of cell selection result to caller
+  stack.run_tti();
   TESTASSERT(cell_select_success == 1);
 
   // TEST: Cell Selection with timeout being reached
@@ -120,6 +126,9 @@ int test_phy_ctrl_fsm()
     stack.run_tti();
   }
   TESTASSERT(phy_ctrl.current_state_name() != "selecting_cell");
+
+  // TEST: Propagation of cell selection result to caller
+  stack.run_tti();
   TESTASSERT(cell_select_success == 0);
 
   test_log->info("Finished RRC PHY controller test successfully\n");

@@ -41,19 +41,23 @@ public:
     cell_search_ret_t cs_ret;
     phy_cell_t        found_cell;
   };
-  using cell_sel_res = bool;
-  struct cell_sel_cmd {
-    phy_cell_t                           phy_cell;
-    srslte::event_callback<cell_sel_res> callback;
+  struct cell_sel_res {
+    bool result;
   };
-  using cell_search_cmd = srslte::event_callback<cell_srch_res>;
+  struct cell_sel_cmd {
+    phy_cell_t                   phy_cell;
+    srslte::event_callback<bool> callback;
+  };
+  struct cell_search_cmd {
+    srslte::event_callback<cell_srch_res> callback;
+  };
   struct in_sync_ev {};
   struct out_sync_ev {};
 
   explicit phy_controller(phy_interface_rrc_lte* phy_, stack_interface_rrc* stack_);
 
   // PHY procedures interfaces
-  bool start_cell_select(const phy_cell_t& phy_cell, const srslte::event_callback<cell_sel_res>& on_complete);
+  bool start_cell_select(const phy_cell_t& phy_cell, const srslte::event_callback<bool>& on_complete);
   bool start_cell_search(const srslte::event_callback<cell_srch_res>& on_complete);
   bool cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t found_cell);
   bool cell_selection_completed(bool outcome);
@@ -71,7 +75,7 @@ public:
   struct selecting_cell : public subfsm_t<selecting_cell> {
     struct timeout_ev {};
 
-    struct wait_result {};
+    struct wait_csel_res {};
     struct wait_in_sync {
       void enter(selecting_cell* f, const cell_sel_res& ev);
     };
@@ -82,24 +86,25 @@ public:
 
     srslte::timer_handler::unique_timer wait_in_sync_timer;
     phy_cell_t                          target_cell = {};
-    cell_sel_res                        result      = {};
+    cell_sel_res                        csel_res    = {};
+    srslte::event_callback<bool>        csel_callback;
 
   protected:
     // guard functions
-    bool is_cell_selected(wait_result& s, const cell_sel_res& ev) { return ev; }
+    bool is_cell_selected(wait_csel_res& s, const cell_sel_res& ev) { return ev.result; }
 
     // event handlers
-    void set_success(wait_in_sync& s, const in_sync_ev& ev) { result = true; }
+    void set_success(wait_in_sync& s, const in_sync_ev& ev) { csel_res.result = true; }
 
-    state_list<wait_result, wait_in_sync> states{this};
+    state_list<wait_csel_res, wait_in_sync> states{this};
 
     // clang-format off
     using c           = selecting_cell;
     using transitions = transition_table<
     //    Start            Target          Event          Action             Guard
     // +----------------+---------------+--------------+------------------+----------------------+
-    row< wait_result,     wait_in_sync,   cell_sel_res,  nullptr,           &c::is_cell_selected >,
-    row< wait_result,     unknown_st,     cell_sel_res                                           >,
+    row< wait_csel_res,   wait_in_sync,   cell_sel_res,  nullptr,           &c::is_cell_selected >,
+    row< wait_csel_res,   unknown_st,     cell_sel_res                                           >,
     // +----------------+---------------+--------------+------------------+----------------------+
     row< wait_in_sync,    in_sync_st,     in_sync_ev,    &c::set_success                         >,
     row< wait_in_sync,    unknown_st,     timeout_ev                                             >
@@ -116,7 +121,6 @@ private:
   stack_interface_rrc*   stack = nullptr;
 
   std::vector<srslte::event_callback<cell_srch_res> > csearch_callbacks;
-  srslte::event_callback<cell_sel_res>                csel_callback;
 
 protected:
   state_list<unknown_st, in_sync_st, out_sync_st, searching_cell, selecting_cell> states{this,
@@ -133,24 +137,24 @@ protected:
   // clang-format off
   using c = phy_controller;
   using transitions = transition_table<
-  //   Start            Target           Event                 Action                       Guard
-  // +----------------+-----------------+------------------+------------------------------+---------------------+
-  row< unknown_st,      selecting_cell,   cell_sel_cmd >,
-  row< unknown_st,      searching_cell,   cell_search_cmd >,
-  row< unknown_st,      in_sync_st,       in_sync_ev >,
-  row< unknown_st,      out_sync_st,      out_sync_ev >,
-  // +----------------+-----------------+------------------+------------------------------+---------------------+
-  row< in_sync_st,      selecting_cell,   cell_sel_cmd >,
-  row< in_sync_st,      searching_cell,   cell_search_cmd >,
-  row< in_sync_st,      out_sync_st,      out_sync_ev >,
-  // +----------------+-----------------+------------------+------------------------------+---------------------+
-  row< out_sync_st,     selecting_cell,   cell_sel_cmd >,
-  row< out_sync_st,     searching_cell,   cell_search_cmd >,
-  row< out_sync_st,     in_sync_st,       in_sync_ev >,
-  // +----------------+-----------------+------------------+------------------------------+---------------------+
-  row< searching_cell,  unknown_st,       cell_srch_res,     &c::handle_cell_search_res                         >,
-  upd< searching_cell,                    cell_search_cmd,   &c::share_cell_search_res                          >
-  // +----------------+-----------------+------------------+------------------------------+---------------------+
+  //   Start            Target           Event                   Action
+  // +----------------+-----------------+------------------+------------------------------+
+  row< unknown_st,      selecting_cell,   cell_sel_cmd                                    >,
+  row< unknown_st,      searching_cell,   cell_search_cmd                                 >,
+  row< unknown_st,      in_sync_st,       in_sync_ev                                      >,
+  row< unknown_st,      out_sync_st,      out_sync_ev                                     >,
+  // +----------------+-----------------+------------------+------------------------------+
+  row< in_sync_st,      selecting_cell,   cell_sel_cmd                                    >,
+  row< in_sync_st,      searching_cell,   cell_search_cmd                                 >,
+  row< in_sync_st,      out_sync_st,      out_sync_ev                                     >,
+  // +----------------+-----------------+------------------+------------------------------+
+  row< out_sync_st,     selecting_cell,   cell_sel_cmd                                    >,
+  row< out_sync_st,     searching_cell,   cell_search_cmd                                 >,
+  row< out_sync_st,     in_sync_st,       in_sync_ev                                      >,
+  // +----------------+-----------------+------------------+------------------------------+
+  row< searching_cell,  unknown_st,       cell_srch_res,     &c::handle_cell_search_res   >,
+  upd< searching_cell,                    cell_search_cmd,   &c::share_cell_search_res    >
+  // +----------------+-----------------+------------------+------------------------------+
   >;
   // clang-format on
 };

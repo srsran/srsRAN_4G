@@ -45,9 +45,9 @@ rrc::cell_search_proc::cell_search_proc(rrc* parent_) : rrc_ptr(parent_) {}
 proc_outcome_t rrc::cell_search_proc::init()
 {
   Info("Starting...\n");
-  state = state_t::phy_cell_search;
-  rrc_ptr->phy_ctrl->start_cell_search(
-      [this](const phy_controller::cell_srch_res& res) { rrc_ptr->cell_searcher.trigger(res); });
+  state            = state_t::phy_cell_search;
+  auto on_complete = [this](const phy_controller::cell_srch_res& res) { rrc_ptr->cell_searcher.trigger(res); };
+  rrc_ptr->phy_ctrl->start_cell_search(on_complete);
   if (not rrc_ptr->phy_ctrl->is_in_state<phy_controller::searching_cell>()) {
     Warning("Failed to initiate Cell Search.\n");
     return proc_outcome_t::error;
