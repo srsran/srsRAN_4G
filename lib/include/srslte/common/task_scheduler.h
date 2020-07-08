@@ -46,6 +46,8 @@ public:
     }
   }
 
+  void stop() { background_tasks.stop(); }
+
   srslte::timer_handler::unique_timer get_unique_timer() final { return timers.get_unique_timer(); }
 
   //! Creates new queue for tasks coming from external thread
@@ -127,10 +129,10 @@ private:
     internal_tasks.clear();
   }
 
+  srslte::task_thread_pool background_tasks;         ///< Thread pool used for long, low-priority tasks
   int                      background_queue_id = -1; ///< Queue for handling the outcomes of tasks run in the background
   srslte::task_multiqueue  external_tasks;
   srslte::timer_handler    timers;
-  srslte::task_thread_pool background_tasks;       ///< Thread pool used for long, low-priority tasks
   std::vector<srslte::move_task_t> internal_tasks; ///< enqueues stack tasks from within main thread. Avoids locking
 };
 

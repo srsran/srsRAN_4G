@@ -29,6 +29,7 @@
 
 #include "mac/mac.h"
 #include "rrc/rrc.h"
+#include "srslte/common/task_scheduler.h"
 #include "upper/gtpu.h"
 #include "upper/pdcp.h"
 #include "upper/rlc.h"
@@ -36,7 +37,6 @@
 
 #include "enb_stack_base.h"
 #include "srsenb/hdr/enb.h"
-#include "srslte/common/multiqueue.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_rrc_interface_types.h"
 
@@ -134,7 +134,6 @@ private:
   rrc_cfg_t    rrc_cfg = {};
 
   // components that layers depend on (need to be destroyed after layers)
-  srslte::timer_handler                           timers;
   std::unique_ptr<srslte::rx_multisocket_handler> rx_sockets;
 
   srsenb::mac       mac;
@@ -162,11 +161,12 @@ private:
   phy_interface_stack_lte* phy = nullptr;
 
   // state
-  bool                    started = false;
-  srslte::task_multiqueue pending_tasks;
-  int enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1, gtpu_queue_id = -1, mac_queue_id = -1,
-      stack_queue_id = -1;
-  std::vector<srslte::move_task_t>     deferred_stack_tasks; ///< enqueues stack tasks from within. Avoids locking
+  bool started = false;
+
+  // task handling
+  srslte::task_scheduler                 task_sched;
+  srslte::task_multiqueue::queue_handler enb_task_queue, gtpu_task_queue, mme_task_queue, sync_task_queue;
+
   srslte::block_queue<stack_metrics_t> pending_stack_metrics;
 };
 
