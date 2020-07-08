@@ -199,12 +199,12 @@ void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, boo
  */
 void ue_stack_nr::in_sync()
 {
-  // pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.in_sync(); }});
+  // pending_tasks.push(sync_task_queue, task_t{[this](task_t*) { rrc.in_sync(); }});
 }
 
 void ue_stack_nr::out_of_sync()
 {
-  // pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.out_of_sync(); }});
+  // pending_tasks.push(sync_task_queue, task_t{[this](task_t*) { rrc.out_of_sync(); }});
 }
 
 void ue_stack_nr::run_tti(uint32_t tti)

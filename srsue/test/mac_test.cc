@@ -342,26 +342,11 @@ public:
     mac_h = mac_;
     phy_h = phy_;
   }
-  bool events_exist()
-  {
-    for (int i = 0; i < pending_tasks.nof_queues(); ++i) {
-      if (not pending_tasks.empty(i)) {
-        return true;
-      }
-    }
-    return false;
-  }
   void run_tti(uint32_t tti)
   {
     mac_h->run_tti(tti);
     // flush all events
-    if (events_exist()) {
-      srslte::move_task_t task{};
-      if (pending_tasks.wait_pop(&task) >= 0) {
-        task();
-      }
-    }
-    timers.step_all();
+    stack_test_dummy::run_tti();
   }
 
 private:

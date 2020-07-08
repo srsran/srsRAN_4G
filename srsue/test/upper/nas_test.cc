@@ -168,7 +168,9 @@ public:
   {
     running = true;
     while (running) {
-      timers.step_all();
+      task_sched.tic();
+      while (task_sched.try_run_next_external_task()) {
+      }
       nas->run_tti();
     }
   }

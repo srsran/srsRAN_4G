@@ -38,10 +38,10 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
                                srslte::pdcp_t_reordering_t::ms500,
                                discard_timeout};
 
-  pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
-  srslte::pdcp_entity_nr* pdcp   = &pdcp_hlp.pdcp;
-  rlc_dummy*              rlc    = &pdcp_hlp.rlc;
-  srslte::timer_handler*  timers = &pdcp_hlp.stack.timers;
+  pdcp_nr_test_helper      pdcp_hlp(cfg, sec_cfg, log);
+  srslte::pdcp_entity_nr*  pdcp  = &pdcp_hlp.pdcp;
+  rlc_dummy*               rlc   = &pdcp_hlp.rlc;
+  srsue::stack_test_dummy* stack = &pdcp_hlp.stack;
 
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
@@ -51,7 +51,7 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
   pdcp->write_sdu(std::move(sdu), true);
 
   for (uint32_t i = 0; i < static_cast<uint32_t>(cfg.discard_timer) - 1; ++i) {
-    timers->step_all();
+    stack->run_tti();
   }
   TESTASSERT(rlc->discard_count == 0);
 
@@ -63,7 +63,7 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
   }
 
   // Last timer step
-  timers->step_all();
+  stack->run_tti();
 
   // Check if RLC was notified of SDU discard
   if (imediate_notify) {

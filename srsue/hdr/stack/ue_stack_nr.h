@@ -99,10 +99,14 @@ public:
   // Task Handling interface
   srslte::timer_handler::unique_timer    get_unique_timer() final { return timers.get_unique_timer(); }
   srslte::task_multiqueue::queue_handler make_task_queue() final { return pending_tasks.get_queue_handler(); }
-  void                                   enqueue_background_task(std::function<void(uint32_t)> f) final;
-  void                                   notify_background_task_result(srslte::move_task_t task) final;
-  void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) final;
-  void                                   defer_task(srslte::move_task_t task) final;
+  srslte::task_multiqueue::queue_handler make_task_queue(uint32_t qsize) final
+  {
+    return pending_tasks.get_queue_handler(qsize);
+  }
+  void enqueue_background_task(std::function<void(uint32_t)> f) final;
+  void notify_background_task_result(srslte::move_task_t task) final;
+  void defer_callback(uint32_t duration_ms, std::function<void()> func) final;
+  void defer_task(srslte::move_task_t task) final;
 
 private:
   void run_thread() final;

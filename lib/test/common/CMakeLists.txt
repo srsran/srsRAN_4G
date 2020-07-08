@@ -98,6 +98,10 @@ add_executable(expected_test expected_test.cc)
 target_link_libraries(expected_test srslte_common)
 add_test(expected_test expected_test)
 
+add_executable(task_scheduler_test task_scheduler_test.cc)
+target_link_libraries(task_scheduler_test srslte_common)
+add_test(task_scheduler_test task_scheduler_test)
+
 if(ENABLE_5GNR)
   add_executable(pnf_dummy pnf_dummy.cc)
   target_link_libraries(pnf_dummy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})

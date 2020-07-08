@@ -102,6 +102,7 @@ public:
     }
     bool                   try_push(const myobj& value) { return parent->try_push(queue_id, value); }
     std::pair<bool, myobj> try_push(myobj&& value) { return parent->try_push(queue_id, std::move(value)); }
+    size_t                 size() { return parent->size(queue_id); }
 
   private:
     multiqueue_handler<myobj>* parent   = nullptr;
@@ -293,6 +294,7 @@ public:
   }
 
   queue_handler get_queue_handler() { return {this, add_queue()}; }
+  queue_handler get_queue_handler(uint32_t size) { return {this, add_queue(size)}; }
 
 private:
   bool is_queue_active_(int qidx) const { return running and queues[qidx].active; }

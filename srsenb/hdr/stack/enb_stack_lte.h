@@ -112,6 +112,7 @@ public:
   /* Stack-MAC interface */
   srslte::timer_handler::unique_timer    get_unique_timer() final;
   srslte::task_multiqueue::queue_handler make_task_queue() final;
+  srslte::task_multiqueue::queue_handler make_task_queue(uint32_t qsize) final;
   void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) final;
   void                                   enqueue_background_task(std::function<void(uint32_t)> task) final;
   void                                   notify_background_task_result(srslte::move_task_t task) final;

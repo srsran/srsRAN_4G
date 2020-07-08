@@ -43,10 +43,10 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
                                   srslte::pdcp_discard_timer_t::infinity};
 
   pdcp_lte_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
-  srslte::pdcp_entity_lte* pdcp_rx   = &pdcp_hlp_rx.pdcp;
-  gw_dummy*                gw_rx     = &pdcp_hlp_rx.gw;
-  rrc_dummy*               rrc_rx    = &pdcp_hlp_rx.rrc;
-  srslte::timer_handler*   timers_rx = &pdcp_hlp_rx.stack.timers;
+  srslte::pdcp_entity_lte* pdcp_rx = &pdcp_hlp_rx.pdcp;
+  gw_dummy*                gw_rx   = &pdcp_hlp_rx.gw;
+  rrc_dummy*               rrc_rx  = &pdcp_hlp_rx.rrc;
+  srsue::stack_test_dummy* stack   = &pdcp_hlp_rx.stack;
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
   // Generate test message and encript/decript SDU.
@@ -55,7 +55,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
     // Decript and integrity check the PDU
     pdcp_rx->write_pdu(std::move(event.pkt));
     for (uint32_t i = 0; i < event.ticks; ++i) {
-      timers_rx->step_all();
+      stack->run_tti();
     }
   }
 

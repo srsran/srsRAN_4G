@@ -187,7 +187,9 @@ public:
 
   void run_tti(uint32_t tti_)
   {
-    stack->timers.step_all();
+    stack->task_sched.tic();
+    while (stack->task_sched.try_run_next_external_task()) {
+    }
     rrc::run_tti();
   }
 

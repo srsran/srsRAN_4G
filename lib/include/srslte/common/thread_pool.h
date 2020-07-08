@@ -106,6 +106,7 @@ public:
   void     push_task(const task_t& task);
   void     push_task(task_t&& task);
   uint32_t nof_pending_tasks();
+  size_t   nof_workers() const { return workers.size(); }
 
 private:
   class worker_t : public thread

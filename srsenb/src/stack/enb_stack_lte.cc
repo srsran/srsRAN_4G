@@ -266,6 +266,11 @@ srslte::task_multiqueue::queue_handler enb_stack_lte::make_task_queue()
   return pending_tasks.get_queue_handler();
 }
 
+srslte::task_multiqueue::queue_handler enb_stack_lte::make_task_queue(uint32_t qsize)
+{
+  return pending_tasks.get_queue_handler(qsize);
+}
+
 void enb_stack_lte::defer_callback(uint32_t duration_ms, std::function<void()> func)
 {
   timers.defer_callback(duration_ms, func);
