@@ -248,19 +248,14 @@ void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
   rx_sockets->add_socket_pdu_handler(fd, gtpu_m1u_handler);
 }
 
-srslte::timer_handler::unique_timer enb_stack_lte::get_unique_timer()
+srslte::unique_timer enb_stack_lte::get_unique_timer()
 {
   return task_sched.get_unique_timer();
 }
 
-srslte::task_multiqueue::queue_handler enb_stack_lte::make_task_queue()
+srslte::task_queue_handle enb_stack_lte::make_task_queue()
 {
   return task_sched.make_task_queue();
-}
-
-srslte::task_multiqueue::queue_handler enb_stack_lte::make_task_queue(uint32_t qsize)
-{
-  return task_sched.make_task_queue(qsize);
 }
 
 void enb_stack_lte::defer_callback(uint32_t duration_ms, std::function<void()> func)

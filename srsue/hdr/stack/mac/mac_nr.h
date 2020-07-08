@@ -111,7 +111,7 @@ private:
   srslte::unique_byte_buffer_t tx_buffer  = nullptr;
   srslte::unique_byte_buffer_t rlc_buffer = nullptr;
 
-  srslte::task_multiqueue::queue_handler stack_task_dispatch_queue;
+  srslte::task_multiqueue::queue_handle stack_task_dispatch_queue;
 };
 
 } // namespace srsue

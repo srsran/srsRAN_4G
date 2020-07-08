@@ -126,16 +126,12 @@ public:
   tti_point get_current_tti() final { return current_tti; }
 
   // Task Handling interface
-  srslte::timer_handler::unique_timer    get_unique_timer() final { return task_sched.get_unique_timer(); }
-  srslte::task_multiqueue::queue_handler make_task_queue() final { return task_sched.make_task_queue(); }
-  srslte::task_multiqueue::queue_handler make_task_queue(uint32_t queue_size) final
-  {
-    return task_sched.make_task_queue(queue_size);
-  }
-  void enqueue_background_task(std::function<void(uint32_t)> f) final;
-  void notify_background_task_result(srslte::move_task_t task) final;
-  void defer_callback(uint32_t duration_ms, std::function<void()> func) final;
-  void defer_task(srslte::move_task_t task) final;
+  srslte::unique_timer                  get_unique_timer() final { return task_sched.get_unique_timer(); }
+  srslte::task_multiqueue::queue_handle make_task_queue() final { return task_sched.make_task_queue(); }
+  void                                  enqueue_background_task(std::function<void(uint32_t)> f) final;
+  void                                  notify_background_task_result(srslte::move_task_t task) final;
+  void                                  defer_callback(uint32_t duration_ms, std::function<void()> func) final;
+  void                                  defer_task(srslte::move_task_t task) final;
 
 private:
   void run_thread() final;
@@ -167,10 +163,10 @@ private:
   gw_interface_stack*      gw  = nullptr;
 
   // Thread
-  static const int                       STACK_MAIN_THREAD_PRIO = 4; // Next lower priority after PHY workers
-  srslte::block_queue<stack_metrics_t>   pending_stack_metrics;
-  task_scheduler                         task_sched;
-  srslte::task_multiqueue::queue_handler sync_task_queue, ue_task_queue, gw_queue_id;
+  static const int                      STACK_MAIN_THREAD_PRIO = 4; // Next lower priority after PHY workers
+  srslte::block_queue<stack_metrics_t>  pending_stack_metrics;
+  task_scheduler                        task_sched;
+  srslte::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_queue_id;
 
   // TTI stats
   srslte::tprof<srslte::sliding_window_stats_ms> tti_tprof;

@@ -330,6 +330,8 @@ private:
   std::mutex                     mutex; // Protect priority queue
 };
 
+using unique_timer = timer_handler::unique_timer;
+
 } // namespace srslte
 
 #endif // SRSLTE_TIMERS_H

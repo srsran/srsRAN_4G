@@ -124,7 +124,7 @@ private:
   mac_args_t  args  = {};
 
   // derived from args
-  srslte::task_multiqueue::queue_handler stack_task_queue;
+  srslte::task_multiqueue::queue_handle stack_task_queue;
 
   bool started = false;
 

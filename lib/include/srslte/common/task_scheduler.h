@@ -52,14 +52,11 @@ public:
     external_tasks.reset();
   }
 
-  srslte::timer_handler::unique_timer get_unique_timer() final { return timers.get_unique_timer(); }
+  srslte::unique_timer get_unique_timer() final { return timers.get_unique_timer(); }
 
   //! Creates new queue for tasks coming from external thread
-  srslte::task_multiqueue::queue_handler make_task_queue() final { return external_tasks.get_queue_handler(); }
-  srslte::task_multiqueue::queue_handler make_task_queue(uint32_t size) final
-  {
-    return external_tasks.get_queue_handler(size);
-  }
+  srslte::task_queue_handle make_task_queue() final { return external_tasks.get_queue_handler(); }
+  srslte::task_queue_handle make_task_queue(uint32_t qsize) { return external_tasks.get_queue_handler(qsize); }
 
   //! Delays a task processing by duration_ms
   void defer_callback(uint32_t duration_ms, std::function<void()> func) final
@@ -140,13 +137,13 @@ private:
   std::vector<srslte::move_task_t> internal_tasks; ///< enqueues stack tasks from within main thread. Avoids locking
 };
 
-//! Handle to provide to classes/functions running within main thread
+//! Task scheduler handle given to classes/functions running within the main control thread
 class task_sched_handle
 {
 public:
   task_sched_handle(task_scheduler* sched_) : sched(sched_) {}
 
-  srslte::timer_handler::unique_timer get_unique_timer() { return sched->get_unique_timer(); }
+  srslte::unique_timer get_unique_timer() { return sched->get_unique_timer(); }
   void enqueue_background_task(std::function<void(uint32_t)> f) { sched->enqueue_background_task(std::move(f)); }
   void notify_background_task_result(srslte::move_task_t task)
   {

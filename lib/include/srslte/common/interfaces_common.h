@@ -91,13 +91,12 @@ public:
 class task_handler_interface
 {
 public:
-  virtual srslte::timer_handler::unique_timer    get_unique_timer()                                               = 0;
-  virtual srslte::task_multiqueue::queue_handler make_task_queue()                                                = 0;
-  virtual srslte::task_multiqueue::queue_handler make_task_queue(uint32_t queue_size)                             = 0;
-  virtual void                                   defer_callback(uint32_t duration_ms, std::function<void()> func) = 0;
-  virtual void                                   defer_task(srslte::move_task_t func)                             = 0;
-  virtual void                                   enqueue_background_task(std::function<void(uint32_t)> task)      = 0;
-  virtual void                                   notify_background_task_result(srslte::move_task_t task)          = 0;
+  virtual srslte::timer_handler::unique_timer   get_unique_timer()                                               = 0;
+  virtual srslte::task_multiqueue::queue_handle make_task_queue()                                                = 0;
+  virtual void                                  defer_callback(uint32_t duration_ms, std::function<void()> func) = 0;
+  virtual void                                  defer_task(srslte::move_task_t func)                             = 0;
+  virtual void                                  enqueue_background_task(std::function<void(uint32_t)> task)      = 0;
+  virtual void                                  notify_background_task_result(srslte::move_task_t task)          = 0;
 };
 
 class stack_interface_phy_nr

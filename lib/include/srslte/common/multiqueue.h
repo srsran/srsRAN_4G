@@ -90,11 +90,11 @@ class multiqueue_handler
   };
 
 public:
-  class queue_handler
+  class queue_handle
   {
   public:
-    queue_handler() = default;
-    queue_handler(multiqueue_handler<myobj>* parent_, int id) : parent(parent_), queue_id(id) {}
+    queue_handle() = default;
+    queue_handle(multiqueue_handler<myobj>* parent_, int id) : parent(parent_), queue_id(id) {}
     template <typename FwdRef>
     void push(FwdRef&& value)
     {
@@ -293,8 +293,8 @@ public:
     return is_queue_active_(qidx);
   }
 
-  queue_handler get_queue_handler() { return {this, add_queue()}; }
-  queue_handler get_queue_handler(uint32_t size) { return {this, add_queue(size)}; }
+  queue_handle get_queue_handler() { return {this, add_queue()}; }
+  queue_handle get_queue_handler(uint32_t size) { return {this, add_queue(size)}; }
 
 private:
   bool is_queue_active_(int qidx) const { return running and queues[qidx].active; }
@@ -325,7 +325,8 @@ private:
 };
 
 //! Specialization for tasks
-using task_multiqueue = multiqueue_handler<move_task_t>;
+using task_multiqueue   = multiqueue_handler<move_task_t>;
+using task_queue_handle = task_multiqueue::queue_handle;
 
 } // namespace srslte
 

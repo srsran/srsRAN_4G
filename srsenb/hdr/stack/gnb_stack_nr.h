@@ -80,16 +80,12 @@ public:
   void process_pdus() final;
 
   // Task Handling interface
-  srslte::timer_handler::unique_timer    get_unique_timer() final { return task_sched.get_unique_timer(); }
-  srslte::task_multiqueue::queue_handler make_task_queue() final { return task_sched.make_task_queue(); }
-  srslte::task_multiqueue::queue_handler make_task_queue(uint32_t qsize) final
-  {
-    return task_sched.make_task_queue(qsize);
-  }
-  void enqueue_background_task(std::function<void(uint32_t)> f) final;
-  void notify_background_task_result(srslte::move_task_t task) final;
-  void defer_callback(uint32_t duration_ms, std::function<void()> func) final;
-  void defer_task(srslte::move_task_t task) final;
+  srslte::timer_handler::unique_timer   get_unique_timer() final { return task_sched.get_unique_timer(); }
+  srslte::task_multiqueue::queue_handle make_task_queue() final { return task_sched.make_task_queue(); }
+  void                                  enqueue_background_task(std::function<void(uint32_t)> f) final;
+  void                                  notify_background_task_result(srslte::move_task_t task) final;
+  void                                  defer_callback(uint32_t duration_ms, std::function<void()> func) final;
+  void                                  defer_task(srslte::move_task_t task) final;
 
 private:
   void run_thread() final;
@@ -101,9 +97,9 @@ private:
   phy_interface_stack_nr* phy    = nullptr;
 
   // task scheduling
-  static const int                       STACK_MAIN_THREAD_PRIO = 4;
-  srslte::task_scheduler                 task_sched;
-  srslte::task_multiqueue::queue_handler sync_task_queue, ue_task_queue, gw_task_queue, mac_task_queue;
+  static const int                      STACK_MAIN_THREAD_PRIO = 4;
+  srslte::task_scheduler                task_sched;
+  srslte::task_multiqueue::queue_handle sync_task_queue, ue_task_queue, gw_task_queue, mac_task_queue;
 
   // derived
   std::unique_ptr<mac_nr>    m_mac;
