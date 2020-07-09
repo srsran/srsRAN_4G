@@ -149,7 +149,7 @@ bool ue_stack_nr::get_metrics(stack_metrics_t* metrics)
 void ue_stack_nr::run_thread()
 {
   while (running) {
-    task_sched.run_next_external_task();
+    task_sched.run_next_task();
   }
 }
 

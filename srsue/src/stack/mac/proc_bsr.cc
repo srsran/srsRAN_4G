@@ -33,19 +33,19 @@ bsr_proc::bsr_proc()
   triggered_bsr_type = NONE;
 }
 
-void bsr_proc::init(sr_proc*                        sr_,
-                    rlc_interface_mac*              rlc_,
-                    srslte::log_ref                 log_h_,
-                    srslte::task_handler_interface* task_handler_)
+void bsr_proc::init(sr_proc*                       sr_,
+                    rlc_interface_mac*             rlc_,
+                    srslte::log_ref                log_h_,
+                    srslte::ext_task_sched_handle* task_sched_)
 {
-  log_h        = log_h_;
-  rlc          = rlc_;
-  sr           = sr_;
-  task_handler = task_handler_;
+  log_h      = log_h_;
+  rlc        = rlc_;
+  sr         = sr_;
+  task_sched = task_sched_;
 
-  timer_periodic           = task_handler->get_unique_timer();
-  timer_retx               = task_handler->get_unique_timer();
-  timer_queue_status_print = task_handler->get_unique_timer();
+  timer_periodic           = task_sched->get_unique_timer();
+  timer_retx               = task_sched->get_unique_timer();
+  timer_queue_status_print = task_sched->get_unique_timer();
 
   reset();
 

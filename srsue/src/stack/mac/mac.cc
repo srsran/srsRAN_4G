@@ -35,12 +35,13 @@
 
 namespace srsue {
 
-mac::mac(const char* logname) :
+mac::mac(const char* logname, ext_task_sched_handle task_sched_) :
   log_h(srslte::logmap::get(logname)),
   mch_msg(10, log_h),
   mux_unit(log_h),
   demux_unit(log_h),
-  pcap(nullptr)
+  pcap(nullptr),
+  task_sched(task_sched_)
 {
   // Create PCell HARQ entities
   auto ul = ul_harq_entity_ptr(new ul_harq_entity(PCELL_CC_IDX));
@@ -70,26 +71,22 @@ mac::~mac()
   srslte_softbuffer_rx_free(&mch_softbuffer);
 }
 
-bool mac::init(phy_interface_mac_lte*  phy,
-               rlc_interface_mac*      rlc,
-               rrc_interface_mac*      rrc,
-               task_handler_interface* stack_)
+bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc)
 {
-  phy_h   = phy;
-  rlc_h   = rlc;
-  rrc_h   = rrc;
-  stack_h = stack_;
+  phy_h = phy;
+  rlc_h = rlc;
+  rrc_h = rrc;
 
-  timer_alignment = stack_h->get_unique_timer();
+  timer_alignment = task_sched.get_unique_timer();
 
   // Create Stack task dispatch queue
-  stack_task_dispatch_queue = stack_h->make_task_queue();
+  stack_task_dispatch_queue = task_sched.make_task_queue();
 
-  bsr_procedure.init(&sr_procedure, rlc_h, log_h, stack_h);
-  phr_procedure.init(phy_h, log_h, stack_h);
+  bsr_procedure.init(&sr_procedure, rlc_h, log_h, &task_sched);
+  phr_procedure.init(phy_h, log_h, &task_sched);
   mux_unit.init(rlc_h, &bsr_procedure, &phr_procedure);
   demux_unit.init(phy_h, rlc_h, this, &timer_alignment);
-  ra_procedure.init(phy_h, rrc, log_h, &uernti, &timer_alignment, &mux_unit, stack_h);
+  ra_procedure.init(phy_h, rrc, log_h, &uernti, &timer_alignment, &mux_unit, &task_sched);
   sr_procedure.init(&ra_procedure, phy_h, rrc, log_h);
 
   // Create UL/DL unique HARQ pointers

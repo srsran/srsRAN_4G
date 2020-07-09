@@ -194,7 +194,7 @@ bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
 void enb_stack_lte::run_thread()
 {
   while (started) {
-    task_sched.run_next_external_task();
+    task_sched.run_next_task();
   }
 }
 

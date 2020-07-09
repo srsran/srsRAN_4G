@@ -188,8 +188,7 @@ public:
   void run_tti(uint32_t tti_)
   {
     stack->task_sched.tic();
-    while (stack->task_sched.try_run_next_external_task()) {
-    }
+    stack->task_sched.run_pending_tasks();
     rrc::run_tti();
   }
 

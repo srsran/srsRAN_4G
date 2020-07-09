@@ -57,7 +57,7 @@ class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
 public:
   bsr_proc();
   void
-       init(sr_proc* sr_proc, rlc_interface_mac* rlc, srslte::log_ref log_h, srslte::task_handler_interface* task_handler_);
+       init(sr_proc* sr_proc, rlc_interface_mac* rlc, srslte::log_ref log_h, srslte::ext_task_sched_handle* task_sched_);
   void step(uint32_t tti);
   void reset();
   void set_config(srslte::bsr_cfg_t& bsr_cfg);
@@ -73,10 +73,10 @@ private:
 
   std::mutex mutex;
 
-  srslte::task_handler_interface* task_handler;
-  srslte::log_ref                 log_h;
-  rlc_interface_mac*              rlc;
-  sr_proc*                        sr;
+  srslte::ext_task_sched_handle* task_sched;
+  srslte::log_ref                log_h;
+  rlc_interface_mac*             rlc;
+  sr_proc*                       sr;
 
   srslte::bsr_cfg_t bsr_cfg;
 

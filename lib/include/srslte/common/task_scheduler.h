@@ -74,7 +74,7 @@ public:
       background_tasks.push_task(std::move(f));
     } else {
       external_tasks.push(background_queue_id,
-                          std::bind([](const std::function<void(uint32_t)>& task) { task(-1); }, std::move(f)));
+                          std::bind([](const std::function<void(uint32_t)>& task) { task(0); }, std::move(f)));
     }
   }
 
@@ -87,33 +87,31 @@ public:
 
   //! Updates timers, and run any pending internal tasks.
   //  CAUTION: Should be called in main thread
-  void tic()
-  {
-    timers.step_all();
-    run_all_internal_tasks();
-  }
+  void tic() { timers.step_all(); }
 
   //! Processes the next task in the multiqueue.
   //  CAUTION: This is a blocking call
-  bool run_next_external_task()
+  bool run_next_task()
   {
     srslte::move_task_t task{};
     if (external_tasks.wait_pop(&task) >= 0) {
       task();
+      run_all_internal_tasks();
       return true;
     }
+    run_all_internal_tasks();
     return false;
   }
 
   //! Processes the next task in the multiqueue if it exists.
-  bool try_run_next_external_task()
+  void run_pending_tasks()
   {
+    run_all_internal_tasks();
     srslte::move_task_t task{};
-    if (external_tasks.try_pop(&task) >= 0) {
+    while (external_tasks.try_pop(&task) >= 0) {
       task();
-      return true;
+      run_all_internal_tasks();
     }
-    return false;
   }
 
   srslte::timer_handler* get_timer_handler() { return &timers; }
@@ -154,6 +152,24 @@ public:
     sched->defer_callback(duration_ms, std::move(func));
   }
   void defer_task(srslte::move_task_t func) { sched->defer_task(std::move(func)); }
+
+private:
+  task_scheduler* sched;
+};
+
+//! Task scheduler handle given to classes/functions running outside of main control thread
+class ext_task_sched_handle
+{
+public:
+  ext_task_sched_handle(task_scheduler* sched_) : sched(sched_) {}
+
+  srslte::unique_timer get_unique_timer() { return sched->get_unique_timer(); }
+  void enqueue_background_task(std::function<void(uint32_t)> f) { sched->enqueue_background_task(std::move(f)); }
+  void notify_background_task_result(srslte::move_task_t task)
+  {
+    sched->notify_background_task_result(std::move(task));
+  }
+  srslte::task_queue_handle make_task_queue() { return sched->make_task_queue(); }
 
 private:
   task_scheduler* sched;

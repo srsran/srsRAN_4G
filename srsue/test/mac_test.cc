@@ -388,9 +388,9 @@ int mac_unpack_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
 
   // create dummy DL action and grant and push MAC PDU
   mac_interface_phy_lte::tb_action_dl_t dl_action;
@@ -439,9 +439,9 @@ int mac_ul_sch_pdu_test1()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -502,9 +502,9 @@ int mac_ul_logical_channel_prioritization_test1()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -610,9 +610,9 @@ int mac_ul_logical_channel_prioritization_test2()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -705,9 +705,9 @@ int mac_ul_logical_channel_prioritization_test3()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -787,9 +787,9 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -868,9 +868,9 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -958,9 +958,9 @@ int mac_ul_sch_pdu_one_byte_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -1013,9 +1013,9 @@ int mac_ul_sch_pdu_two_byte_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -1068,9 +1068,9 @@ int mac_ul_sch_pdu_three_byte_test()
   stack_dummy stack;
 
   // the actual MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -1309,9 +1309,9 @@ int mac_random_access_test()
       asn1::rrc::rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_opts::sf8;
 
   // Configure MAC
-  mac mac("MAC");
+  mac mac("MAC", &stack.task_sched);
   stack.init(&mac, &phy);
-  mac.init(&phy, &rlc, &rrc, &stack);
+  mac.init(&phy, &rlc, &rrc);
   srslte::mac_cfg_t mac_cfg;
   set_mac_cfg_t_rach_cfg_common(&mac_cfg, rach_cfg);
   mac.set_config(mac_cfg);
@@ -1449,6 +1449,7 @@ int mac_random_access_test()
   rrc.ho_finish        = false;
   my_test.preamble_idx = 3;
   mac.start_noncont_ho(my_test.preamble_idx, 0);
+  stack.run_pending_tasks();
   my_test.nof_prachs            = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   my_test.rar_nof_invalid_rapid = rach_cfg.ra_supervision_info.ra_resp_win_size.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
@@ -1465,6 +1466,7 @@ int mac_random_access_test()
   rrc.ho_finish        = false;
   my_test.preamble_idx = 3;
   mac.start_noncont_ho(my_test.preamble_idx, 0);
+  stack.run_pending_tasks();
   my_test.nof_prachs            = 1;
   my_test.rar_nof_invalid_rapid = 0;
   my_test.check_ra_successful   = true;

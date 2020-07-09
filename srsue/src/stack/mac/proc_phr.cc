@@ -38,17 +38,15 @@ phr_proc::phr_proc()
   phr_cfg          = {};
 }
 
-void phr_proc::init(phy_interface_mac_lte*          phy_h_,
-                    srslte::log_ref                 log_h_,
-                    srslte::task_handler_interface* task_handler_)
+void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::log_ref log_h_, srslte::ext_task_sched_handle* task_sched_)
 {
-  phy_h        = phy_h_;
-  log_h        = log_h_;
-  task_handler = task_handler_;
-  initiated    = true;
+  phy_h      = phy_h_;
+  log_h      = log_h_;
+  task_sched = task_sched_;
+  initiated  = true;
 
-  timer_periodic = task_handler->get_unique_timer();
-  timer_prohibit = task_handler->get_unique_timer();
+  timer_periodic = task_sched->get_unique_timer();
+  timer_prohibit = task_sched->get_unique_timer();
 
   reset();
 }

@@ -169,8 +169,7 @@ public:
     running = true;
     while (running) {
       task_sched.tic();
-      while (task_sched.try_run_next_external_task()) {
-      }
+      task_sched.run_pending_tasks();
       nas->run_tti();
     }
   }

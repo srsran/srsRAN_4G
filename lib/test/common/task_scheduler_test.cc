@@ -32,7 +32,7 @@ int test_task_scheduler_no_pool()
   // TEST: deferring task does not run the task until the next tic
   task_sched.defer_task([&state]() { state = task_result::internal; });
   TESTASSERT(state == task_result::null);
-  task_sched.tic();
+  task_sched.run_pending_tasks();
   TESTASSERT(state == task_result::internal);
 
   // TEST: check delaying of task
@@ -42,6 +42,7 @@ int test_task_scheduler_no_pool()
   for (int i = 0; i < dur; ++i) {
     TESTASSERT(state == task_result::null);
     task_sched.tic();
+    task_sched.run_pending_tasks();
   }
   TESTASSERT(state == task_result::timer);
 
@@ -51,11 +52,9 @@ int test_task_scheduler_no_pool()
     task_sched.notify_background_task_result([&state]() { state = task_result::external; });
   });
   TESTASSERT(state == task_result::null);
-  task_sched.tic();
+  task_sched.run_next_task(); // runs background task
   TESTASSERT(state == task_result::null);
-  task_sched.run_next_external_task(); // runs background task
-  TESTASSERT(state == task_result::null);
-  task_sched.run_next_external_task(); // runs notification
+  task_sched.run_next_task(); // runs notification
   TESTASSERT(state == task_result::external);
 
   return SRSLTE_SUCCESS;
@@ -70,9 +69,9 @@ int test_task_scheduler_with_pool()
     task_sched.notify_background_task_result([&state]() { state = task_result::external; });
   });
   TESTASSERT(state == task_result::null);
-  task_sched.tic();
+  task_sched.run_pending_tasks();
   TESTASSERT(state == task_result::null);
-  task_sched.run_next_external_task(); // waits and runs notification
+  task_sched.run_next_task(); // waits and runs notification
   TESTASSERT(state == task_result::external);
 
   return SRSLTE_SUCCESS;

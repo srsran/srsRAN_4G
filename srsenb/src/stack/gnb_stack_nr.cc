@@ -137,7 +137,7 @@ bool gnb_stack_nr::switch_on()
 void gnb_stack_nr::run_thread()
 {
   while (running) {
-    task_sched.run_next_external_task();
+    task_sched.run_next_task();
   }
 }
 

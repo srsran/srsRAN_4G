@@ -40,9 +40,12 @@ public:
     return srslte::tti_point{task_sched.get_timer_handler()->get_cur_time() % 10240};
   }
   srslte::task_multiqueue::queue_handle make_task_queue() final { return task_sched.make_task_queue(); }
-  void                                  enqueue_background_task(std::function<void(uint32_t)> f) override { f(0); }
-  void                                  notify_background_task_result(srslte::move_task_t task) override { task(); }
-  void                                  defer_callback(uint32_t duration_ms, std::function<void()> func) final
+  void                                  enqueue_background_task(std::function<void(uint32_t)> f) override
+  {
+    task_sched.enqueue_background_task(std::move(f));
+  }
+  void notify_background_task_result(srslte::move_task_t task) override { task(); }
+  void defer_callback(uint32_t duration_ms, std::function<void()> func) final
   {
     task_sched.defer_callback(duration_ms, std::move(func));
   }
@@ -54,10 +57,11 @@ public:
     // update clock and run internal tasks
     task_sched.tic();
 
-    // Runs all pending external tasks
-    while (task_sched.try_run_next_external_task()) {
-    }
+    task_sched.run_pending_tasks();
   }
+
+  // run pending tasks without updating timers
+  void run_pending_tasks() { task_sched.run_pending_tasks(); }
 
   srslte::task_scheduler task_sched{512, 0, 100};
 };

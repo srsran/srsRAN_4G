@@ -56,17 +56,17 @@ void ra_proc::init(phy_interface_mac_lte*               phy_h_,
                    mac_interface_rrc::ue_rnti_t*        rntis_,
                    srslte::timer_handler::unique_timer* time_alignment_timer_,
                    mux*                                 mux_unit_,
-                   srslte::task_handler_interface*      stack_)
+                   srslte::ext_task_sched_handle*       task_sched_)
 {
-  phy_h    = phy_h_;
-  log_h    = log_h_;
-  rntis    = rntis_;
-  mux_unit = mux_unit_;
-  rrc      = rrc_;
-  stack    = stack_;
+  phy_h      = phy_h_;
+  log_h      = log_h_;
+  rntis      = rntis_;
+  mux_unit   = mux_unit_;
+  rrc        = rrc_;
+  task_sched = task_sched_;
 
   time_alignment_timer        = time_alignment_timer_;
-  contention_resolution_timer = stack->get_unique_timer();
+  contention_resolution_timer = task_sched->get_unique_timer();
 
   srslte_softbuffer_rx_init(&softbuffer_rar, 10);
 
@@ -232,7 +232,7 @@ void ra_proc::state_completition()
   state            = WAITING_COMPLETION;
   uint16_t rnti    = rntis->crnti;
   uint32_t task_id = current_task_id;
-  stack->enqueue_background_task([this, rnti, task_id](uint32_t worker_id) {
+  task_sched->enqueue_background_task([this, rnti, task_id](uint32_t worker_id) {
     phy_h->set_crnti(rnti);
     // signal MAC RA proc to go back to idle
     notify_ra_completed(task_id);
@@ -285,10 +285,10 @@ void ra_proc::initialization()
   // Instruct phy to configure PRACH
   state            = WAITING_PHY_CONFIG;
   uint32_t task_id = current_task_id;
-  stack->enqueue_background_task([this, task_id](uint32_t worker_id) {
+  task_sched->enqueue_background_task([this, task_id](uint32_t worker_id) {
     phy_h->configure_prach_params();
     // notify back MAC
-    stack->notify_background_task_result([this, task_id]() { notify_phy_config_completed(task_id); });
+    task_sched->notify_background_task_result([this, task_id]() { notify_phy_config_completed(task_id); });
   });
 }
 

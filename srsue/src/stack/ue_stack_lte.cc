@@ -38,7 +38,7 @@ ue_stack_lte::ue_stack_lte() :
   usim(nullptr),
   phy(nullptr),
   rlc("RLC"),
-  mac("MAC "),
+  mac("MAC", &task_sched),
   rrc(this),
   pdcp(&task_sched, "PDCP"),
   nas(&task_sched),
@@ -122,7 +122,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   // add sync queue
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
-  mac.init(phy, &rlc, &rrc, this);
+  mac.init(phy, &rlc, &rrc);
   rlc.init(&pdcp, &rrc, task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
@@ -223,7 +223,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 void ue_stack_lte::run_thread()
 {
   while (running) {
-    task_sched.run_next_external_task();
+    task_sched.run_next_task();
   }
 }
 
