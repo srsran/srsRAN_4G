@@ -171,13 +171,15 @@ int tft_filter_test_ipv4_local_addr()
   ip_msg1 = allocate_unique_buffer(*pool);
   ip_msg2 = allocate_unique_buffer(*pool);
 
-  // Filter length: 5 bytes
+  // Filter length: 9 bytes
   // Filter type:   IPv4 local address
   // Local address: 127.0.0.1
-  uint8_t filter_message[5];
-  uint8_t filter_size = 5;
+  // Subnet mask:   255.0.0.0
+  uint8_t filter_message[9];
+  uint8_t filter_size = 9;
   filter_message[0]   = IPV4_LOCAL_ADDR_TYPE;
   inet_pton(AF_INET, "127.0.0.1", &filter_message[1]);
+  inet_pton(AF_INET, "255.0.0.0", &filter_message[5]);
 
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
@@ -267,13 +269,15 @@ int tft_filter_test_ipv4_tos()
   ip_msg1 = allocate_unique_buffer(*pool);
   ip_msg2 = allocate_unique_buffer(*pool);
 
-  // Filter length: 2 bytes
+  // Filter length: 3 bytes
   // Filter type:   Type of service
   // ToS:           4
-  uint8_t filter_message[2];
-  uint8_t filter_size = 2;
+  // ToS mask:      255
+  uint8_t filter_message[3];
+  uint8_t filter_size = 3;
   filter_message[0]   = TYPE_OF_SERVICE_TYPE;
   filter_message[1]   = 4;
+  filter_message[2]   = 255;
 
   // Set IP test message
   ip_msg1->N_bytes = ip_message_len1;
