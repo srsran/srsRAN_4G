@@ -142,7 +142,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
                 srslte_direction_text[integrity_direction],
                 srslte_direction_text[encryption_direction]);
 
-  // Incremente NEXT_PDCP_TX_SN and TX_HFN
+  // Increment NEXT_PDCP_TX_SN and TX_HFN
   st.next_pdcp_tx_sn++;
   if (st.next_pdcp_tx_sn > maximum_pdcp_sn) {
     st.tx_hfn++;
