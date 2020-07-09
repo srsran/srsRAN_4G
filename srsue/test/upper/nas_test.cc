@@ -311,6 +311,8 @@ int mme_attach_request_test()
     gw.init(gw_args, logger, &stack);
     stack.init(&nas);
 
+    usleep(5000); // Wait for stack to initialize before stoping it.
+
     // trigger test
     stack.switch_on();
     stack.stop();
