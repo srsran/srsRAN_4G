@@ -30,14 +30,14 @@ int test_erab_setup(bool qci_exists)
 {
   printf("\n===== TEST: test_erab_setup()  =====\n");
   srslte::scoped_log<srslte::test_log_filter> rrc_log("RRC ");
-  srslte::timer_handler                       timers;
+  srslte::task_scheduler                      task_sched;
   srslte::unique_byte_buffer_t                pdu;
 
   srsenb::all_args_t args;
   rrc_cfg_t          cfg;
   TESTASSERT(test_helpers::parse_default_cfg(&cfg, args) == SRSLTE_SUCCESS);
 
-  srsenb::rrc                       rrc;
+  srsenb::rrc                       rrc{&task_sched};
   mac_dummy                         mac;
   rlc_dummy                         rlc;
   test_dummies::pdcp_mobility_dummy pdcp;
@@ -46,7 +46,7 @@ int test_erab_setup(bool qci_exists)
   gtpu_dummy                        gtpu;
   rrc_log->set_level(srslte::LOG_LEVEL_INFO);
   rrc_log->set_hex_limit(1024);
-  rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers);
+  rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
 
   uint16_t                  rnti = 0x46;
   sched_interface::ue_cfg_t ue_cfg;
@@ -58,7 +58,7 @@ int test_erab_setup(bool qci_exists)
   rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
 
   // Do all the handshaking until the first RRC Connection Reconf
-  test_helpers::bring_rrc_to_reconf_state(rrc, timers, rnti);
+  test_helpers::bring_rrc_to_reconf_state(rrc, *task_sched.get_timer_handler(), rnti);
 
   rrc_log->set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log->set_hex_limit(1024);

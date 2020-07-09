@@ -556,10 +556,6 @@ public:
   virtual void add_gtpu_m1u_socket_handler(int fd) = 0;
 };
 
-// STACK interface for MAC
-class stack_interface_mac_lte : public srslte::task_handler_interface
-{};
-
 } // namespace srsenb
 
 #endif // SRSLTE_ENB_INTERFACES_H

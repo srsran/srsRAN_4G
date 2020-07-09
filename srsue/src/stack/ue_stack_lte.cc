@@ -39,7 +39,7 @@ ue_stack_lte::ue_stack_lte() :
   phy(nullptr),
   rlc("RLC"),
   mac("MAC", &task_sched),
-  rrc(this),
+  rrc(this, &task_sched),
   pdcp(&task_sched, "PDCP"),
   nas(&task_sched),
   thread("STACK"),
@@ -303,55 +303,6 @@ void ue_stack_lte::run_tti_impl(uint32_t tti, uint32_t tti_jump)
   if (sync_task_queue.size() > SYNC_QUEUE_WARN_THRESHOLD) {
     stack_log->warning("Detected slow task processing (sync_queue_len=%zd).\n", sync_task_queue.size());
   }
-}
-
-/***************************
- * Task Handling Interface
- **************************/
-
-void ue_stack_lte::enqueue_background_task(std::function<void(uint32_t)> f)
-{
-  task_sched.enqueue_background_task(std::move(f));
-}
-
-void ue_stack_lte::notify_background_task_result(srslte::move_task_t task)
-{
-  // run the notification in the stack thread
-  task_sched.notify_background_task_result(std::move(task));
-}
-
-void ue_stack_lte::defer_callback(uint32_t duration_ms, std::function<void()> func)
-{
-  task_sched.defer_callback(duration_ms, std::move(func));
-}
-
-void ue_stack_lte::defer_task(srslte::move_task_t task)
-{
-  task_sched.defer_task(std::move(task));
-}
-
-/********************
- *  RRC Interface
- *******************/
-
-void ue_stack_lte::start_cell_search()
-{
-  task_sched.enqueue_background_task([this](uint32_t worker_id) {
-    phy_interface_rrc_lte::phy_cell_t        found_cell;
-    phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
-    // notify back RRC
-    task_sched.notify_background_task_result([this, found_cell, ret]() { rrc.cell_search_completed(ret, found_cell); });
-  });
-}
-
-void ue_stack_lte::start_cell_select(const phy_interface_rrc_lte::phy_cell_t* phy_cell)
-{
-  phy_interface_rrc_lte::phy_cell_t cell_copy = *phy_cell;
-  task_sched.enqueue_background_task([this, cell_copy](uint32_t worker_id) {
-    bool ret = phy->cell_select(&cell_copy);
-    // notify back RRC
-    task_sched.notify_background_task_result([this, ret]() { rrc.cell_select_completed(ret); });
-  });
 }
 
 } // namespace srsue

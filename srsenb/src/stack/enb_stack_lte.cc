@@ -33,7 +33,10 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
   task_sched(512, 0, 128),
   logger(logger_),
   pdcp(&task_sched, "PDCP"),
-  thread("STACK")
+  thread("STACK"),
+  mac(&task_sched),
+  s1ap(&task_sched),
+  rrc(&task_sched)
 {
   enb_task_queue  = task_sched.make_task_queue();
   mme_task_queue  = task_sched.make_task_queue();
@@ -105,11 +108,11 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   sync_task_queue = task_sched.make_task_queue(args.sync_queue_size);
 
   // Init all layers
-  mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, this, mac_log);
+  mac.init(args.mac, rrc_cfg.cell_list, phy, &rlc, &rrc, mac_log);
   rlc.init(&pdcp, &rrc, &mac, task_sched.get_timer_handler(), rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
-  rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, task_sched.get_timer_handler());
-  if (s1ap.init(args.s1ap, &rrc, task_sched.get_timer_handler(), this) != SRSLTE_SUCCESS) {
+  rrc.init(rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
+  if (s1ap.init(args.s1ap, &rrc, this) != SRSLTE_SUCCESS) {
     stack_log->error("Couldn't initialize S1AP\n");
     return SRSLTE_ERROR;
   }
@@ -246,36 +249,6 @@ void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
     gtpu_task_queue.push(std::bind(task_handler, std::move(pdu)));
   };
   rx_sockets->add_socket_pdu_handler(fd, gtpu_m1u_handler);
-}
-
-srslte::unique_timer enb_stack_lte::get_unique_timer()
-{
-  return task_sched.get_unique_timer();
-}
-
-srslte::task_queue_handle enb_stack_lte::make_task_queue()
-{
-  return task_sched.make_task_queue();
-}
-
-void enb_stack_lte::defer_callback(uint32_t duration_ms, std::function<void()> func)
-{
-  task_sched.defer_callback(duration_ms, std::move(func));
-}
-
-void enb_stack_lte::enqueue_background_task(std::function<void(uint32_t)> task)
-{
-  task_sched.enqueue_background_task(task);
-}
-
-void enb_stack_lte::notify_background_task_result(srslte::move_task_t task)
-{
-  task_sched.notify_background_task_result(std::move(task));
-}
-
-void enb_stack_lte::defer_task(srslte::move_task_t task)
-{
-  task_sched.defer_task(std::move(task));
 }
 
 } // namespace srsenb

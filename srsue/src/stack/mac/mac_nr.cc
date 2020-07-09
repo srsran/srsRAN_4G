@@ -26,7 +26,10 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-mac_nr::mac_nr() : pool(srslte::byte_buffer_pool::get_instance()), log_h("MAC")
+mac_nr::mac_nr(srslte::ext_task_sched_handle task_sched_) :
+  pool(srslte::byte_buffer_pool::get_instance()),
+  log_h("MAC"),
+  task_sched(task_sched_)
 {
   tx_buffer  = srslte::allocate_unique_buffer(*pool);
   rlc_buffer = srslte::allocate_unique_buffer(*pool);
@@ -37,20 +40,14 @@ mac_nr::~mac_nr()
   stop();
 }
 
-int mac_nr::init(const mac_nr_args_t&            args_,
-                 phy_interface_mac_nr*           phy_,
-                 rlc_interface_mac*              rlc_,
-                 srslte::timer_handler*          timers_,
-                 srslte::task_handler_interface* stack_)
+int mac_nr::init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy_, rlc_interface_mac* rlc_)
 {
-  args   = args_;
-  phy    = phy_;
-  rlc    = rlc_;
-  timers = timers_;
-  stack  = stack_;
+  args = args_;
+  phy  = phy_;
+  rlc  = rlc_;
 
   // Create Stack task dispatch queue
-  stack_task_dispatch_queue = stack->make_task_queue();
+  stack_task_dispatch_queue = task_sched.make_task_queue();
 
   // Set up pcap
   if (args.pcap.enable) {

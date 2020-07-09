@@ -37,7 +37,7 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc() : rrc_log("RRC")
+rrc::rrc(srslte::task_sched_handle task_sched_) : rrc_log("RRC"), task_sched(task_sched_)
 {
   pending_paging.clear();
 }
@@ -50,16 +50,14 @@ void rrc::init(const rrc_cfg_t&       cfg_,
                rlc_interface_rrc*     rlc_,
                pdcp_interface_rrc*    pdcp_,
                s1ap_interface_rrc*    s1ap_,
-               gtpu_interface_rrc*    gtpu_,
-               srslte::timer_handler* timers_)
+               gtpu_interface_rrc*    gtpu_)
 {
-  phy    = phy_;
-  mac    = mac_;
-  rlc    = rlc_;
-  pdcp   = pdcp_;
-  gtpu   = gtpu_;
-  s1ap   = s1ap_;
-  timers = timers_;
+  phy  = phy_;
+  mac  = mac_;
+  rlc  = rlc_;
+  pdcp = pdcp_;
+  gtpu = gtpu_;
+  s1ap = s1ap_;
 
   pool = srslte::byte_buffer_pool::get_instance();
 
@@ -530,7 +528,7 @@ void rrc::process_release_complete(uint16_t rnti)
       user_it->second->send_connection_release();
     }
     // delay user deletion for ~50 TTI (until RRC release is sent)
-    timers->defer_callback(50, [this, rnti]() { rem_user_thread(rnti); });
+    task_sched.defer_callback(50, [this, rnti]() { rem_user_thread(rnti); });
   } else {
     rrc_log->error("Received ReleaseComplete for unknown rnti=0x%x\n", rnti);
   }

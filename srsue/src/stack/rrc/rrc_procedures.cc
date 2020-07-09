@@ -45,7 +45,7 @@ srslte::proc_outcome_t rrc::phy_cell_select_proc::init(const cell_t& target_cell
 {
   target_cell = &target_cell_;
   Info("Starting for %s\n", target_cell->to_string().c_str());
-  rrc_ptr->stack->start_cell_select(&target_cell->phy_cell);
+  rrc_ptr->start_phy_cell_select(&target_cell->phy_cell);
   return proc_outcome_t::yield;
 }
 
@@ -82,7 +82,7 @@ proc_outcome_t rrc::cell_search_proc::init()
 {
   Info("Starting...\n");
   state = state_t::phy_cell_search;
-  rrc_ptr->stack->start_cell_search();
+  rrc_ptr->start_phy_cell_search();
   return proc_outcome_t::yield;
 }
 
@@ -283,8 +283,8 @@ compute_si_window(uint32_t tti, uint32_t sib_index, uint32_t n, uint32_t T, cons
 rrc::si_acquire_proc::si_acquire_proc(rrc* parent_) :
   rrc_ptr(parent_),
   log_h(srslte::logmap::get("RRC")),
-  si_acq_timeout(rrc_ptr->stack->get_unique_timer()),
-  si_acq_retry_timer(rrc_ptr->stack->get_unique_timer())
+  si_acq_timeout(rrc_ptr->task_sched.get_unique_timer()),
+  si_acq_retry_timer(rrc_ptr->task_sched.get_unique_timer())
 {
   // SIB acquisition procedure timeout.
   // NOTE: The standard does not specify this timeout
@@ -1067,7 +1067,7 @@ proc_outcome_t rrc::process_pcch_proc::react(paging_complete e)
 
 rrc::go_idle_proc::go_idle_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_)
 {
-  rlc_flush_timer = rrc_ptr->stack->get_unique_timer();
+  rlc_flush_timer = rrc_ptr->task_sched.get_unique_timer();
   rlc_flush_timer.set(rlc_flush_timeout_ms, [this](uint32_t tid) { rrc_ptr->idle_setter.trigger(true); });
 }
 
@@ -1120,7 +1120,7 @@ void rrc::go_idle_proc::then(const srslte::proc_state_t& result)
 rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_)
 {
   // Timer for cell reselection procedure to self-relaunch periodically
-  reselection_timer = rrc_ptr->stack->get_unique_timer();
+  reselection_timer = rrc_ptr->task_sched.get_unique_timer();
   reselection_timer.set(cell_reselection_periodicity_ms, [this](uint32_t tid) {
     if (not rrc_ptr->cell_reselector.launch()) {
       rrc_ptr->rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");

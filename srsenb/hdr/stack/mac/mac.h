@@ -26,6 +26,7 @@
 #include "scheduler_metric.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/task_scheduler.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/interfaces/enb_interfaces.h"
@@ -41,14 +42,13 @@ namespace srsenb {
 class mac final : public mac_interface_phy_lte, public mac_interface_rlc, public mac_interface_rrc
 {
 public:
-  mac();
+  mac(srslte::ext_task_sched_handle task_sched_);
   ~mac();
   bool init(const mac_args_t&        args_,
             const cell_list_t&       cells_,
             phy_interface_stack_lte* phy,
             rlc_interface_mac*       rlc,
             rrc_interface_mac*       rrc,
-            stack_interface_mac_lte* stack_,
             srslte::log_ref          log_h);
   void stop();
 
@@ -114,11 +114,11 @@ private:
   pthread_rwlock_t rwlock = {};
 
   // Interaction with PHY
-  phy_interface_stack_lte* phy_h = nullptr;
-  rlc_interface_mac*       rlc_h = nullptr;
-  rrc_interface_mac*       rrc_h = nullptr;
-  stack_interface_mac_lte* stack = nullptr;
-  srslte::log_ref          log_h;
+  phy_interface_stack_lte*      phy_h = nullptr;
+  rlc_interface_mac*            rlc_h = nullptr;
+  rrc_interface_mac*            rrc_h = nullptr;
+  srslte::ext_task_sched_handle task_sched;
+  srslte::log_ref               log_h;
 
   cell_list_t cells = {};
   mac_args_t  args  = {};
@@ -153,7 +153,7 @@ private:
 
   const static int NOF_BCCH_DLSCH_MSG = sched_interface::MAX_SIBS;
 
-  const static int       pcch_payload_buffer_len                      = 1024;
+  const static int pcch_payload_buffer_len = 1024;
   typedef struct {
     uint8_t                pcch_payload_buffer[pcch_payload_buffer_len] = {};
     srslte_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG]       = {};

@@ -618,12 +618,10 @@ class gw_interface_stack : public gw_interface_nas, public gw_interface_rrc, pub
 {};
 
 // STACK interface for RRC
-class stack_interface_rrc : public srslte::task_handler_interface
+class stack_interface_rrc
 {
 public:
-  virtual void              start_cell_search()                                              = 0;
-  virtual void              start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) = 0;
-  virtual srslte::tti_point get_current_tti()                                                = 0;
+  virtual srslte::tti_point get_current_tti() = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

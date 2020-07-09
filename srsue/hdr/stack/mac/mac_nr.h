@@ -41,14 +41,10 @@ struct mac_nr_args_t {
 class mac_nr final : public mac_interface_phy_nr, public mac_interface_rrc_nr
 {
 public:
-  mac_nr();
+  mac_nr(srslte::ext_task_sched_handle task_sched_);
   ~mac_nr();
 
-  int  init(const mac_nr_args_t&            args_,
-            phy_interface_mac_nr*           phy,
-            rlc_interface_mac*              rlc,
-            srslte::timer_handler*          timers_,
-            srslte::task_handler_interface* stack_);
+  int  init(const mac_nr_args_t& args_, phy_interface_mac_nr* phy, rlc_interface_mac* rlc);
   void stop();
 
   void reset();
@@ -81,15 +77,14 @@ private:
   void get_ul_data(const mac_nr_grant_ul_t& grant, phy_interface_stack_nr::tx_request_t* tx_request);
 
   /// Interaction with rest of the stack
-  phy_interface_mac_nr*           phy   = nullptr;
-  rlc_interface_mac*              rlc   = nullptr;
-  srslte::task_handler_interface* stack = nullptr;
+  phy_interface_mac_nr*         phy = nullptr;
+  rlc_interface_mac*            rlc = nullptr;
+  srslte::ext_task_sched_handle task_sched;
 
   std::unique_ptr<srslte::mac_nr_pcap> pcap = nullptr;
   srslte::log_ref                      log_h;
-  srslte::byte_buffer_pool*            pool   = nullptr;
-  srslte::timer_handler*               timers = nullptr;
-  mac_nr_args_t                        args   = {};
+  srslte::byte_buffer_pool*            pool = nullptr;
+  mac_nr_args_t                        args = {};
 
   bool started = false;
 

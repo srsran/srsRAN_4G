@@ -268,7 +268,7 @@ struct mobility_test_params {
 };
 
 struct mobility_tester {
-  explicit mobility_tester(const mobility_test_params& args_) : args(args_)
+  explicit mobility_tester(const mobility_test_params& args_) : args(args_), rrc(&task_sched)
   {
     rrc_log->set_level(srslte::LOG_LEVEL_INFO);
     rrc_log->set_hex_limit(1024);
@@ -279,15 +279,14 @@ struct mobility_tester {
   {
     rrc_log->set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
     // Do all the handshaking until the first RRC Connection Reconf
-    test_helpers::bring_rrc_to_reconf_state(rrc, timers, rnti);
+    test_helpers::bring_rrc_to_reconf_state(rrc, *task_sched.get_timer_handler(), rnti);
     rrc_log->set_level(srslte::LOG_LEVEL_INFO);
     return SRSLTE_SUCCESS;
   }
 
-  mobility_test_params args;
-
+  mobility_test_params                        args;
   srslte::scoped_log<srslte::test_log_filter> rrc_log{"RRC"};
-  srslte::timer_handler                       timers;
+  srslte::task_scheduler                      task_sched;
   rrc_cfg_t                                   cfg;
 
   srsenb::rrc                       rrc;
@@ -300,8 +299,9 @@ struct mobility_tester {
 
   void tic()
   {
-    timers.step_all();
+    task_sched.tic();
     rrc.tti_clock();
+    task_sched.run_pending_tasks();
   };
 
   const uint16_t rnti = 0x46;
@@ -321,7 +321,7 @@ protected:
   }
   int setup_rrc_common()
   {
-    rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers);
+    rrc.init(cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu);
 
     // add user
     sched_interface::ue_cfg_t ue_cfg;

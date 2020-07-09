@@ -54,9 +54,13 @@ public:
   void              set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) override {}
   cell_search_ret_t cell_search(phy_cell_t* cell) override { return {}; }
   bool              cell_is_camping() override { return false; }
-  bool              cell_select(const phy_cell_t* cell = nullptr) override { return false; }
-  void              reset() override {}
-  void              enable_pregen_signals(bool enable) override {}
+  bool              cell_select(const phy_cell_t* cell = nullptr) override
+  {
+    last_selected_cell = *cell;
+    return true;
+  }
+  void reset() override {}
+  void enable_pregen_signals(bool enable) override {}
 
   void set_cells_to_meas(uint32_t earfcn, const std::set<uint32_t>& pci) override
   {
@@ -96,20 +100,14 @@ public:
     }
   }
 
+  phy_interface_rrc_lte::phy_cell_t last_selected_cell = {};
+
 private:
   bool                                    meas_reset_called = false;
   std::set<uint32_t>                      freqs_started;
   std::map<uint32_t, std::set<uint32_t> > cells_started;
   uint32_t                                serving_pci    = 0;
   uint32_t                                serving_earfcn = 0;
-};
-
-class stack_test final : public stack_test_dummy
-{
-public:
-  void start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) override { last_selected_cell = *cell; }
-
-  phy_interface_rrc_lte::phy_cell_t last_selected_cell = {};
 };
 
 class nas_test : public srsue::nas
@@ -177,7 +175,7 @@ class rrc_test : public rrc
   srsue::stack_test_dummy* stack = nullptr;
 
 public:
-  rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) : rrc(stack_), stack(stack_)
+  rrc_test(srslte::log_ref log_, stack_test_dummy* stack_) : rrc(stack_, &stack_->task_sched), stack(stack_)
   {
     pool     = srslte::byte_buffer_pool::get_instance();
     nastest  = std::unique_ptr<nas_test>(new nas_test(&stack->task_sched));
@@ -295,8 +293,8 @@ int cell_select_test()
   {
     // CHECK: The starting serving cell pci=2 is the weakest, and cell selection procedure chooses pci=1
     // CHECK: phy cell selection is successful, and rrc remains in pci=1
-    stack_test stack;
-    rrc_test   rrctest(log1, &stack);
+    stack_test_dummy stack;
+    rrc_test         rrctest(log1, &stack);
     rrctest.init();
     rrctest.connect();
 
@@ -314,8 +312,9 @@ int cell_select_test()
 
     // Start cell selection procedure. The RRC will start with strongest cell
     TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
-    TESTASSERT(stack.last_selected_cell.earfcn == 1);
-    TESTASSERT(stack.last_selected_cell.pci == 1);
+    stack.run_pending_tasks();
+    TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 1);
+    TESTASSERT(rrctest.phytest.last_selected_cell.pci == 1);
     TESTASSERT(rrctest.has_neighbour_cell(2, 2));
     TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
 
@@ -330,8 +329,8 @@ int cell_select_test()
     // CHECK: The starting serving cell pci=1 is the strongest, and the cell selection procedure calls phy_cell_select
     // for pci=1.
     // CHECK: Cell selection fails in the phy, and rrc moves to pci=2
-    stack_test stack;
-    rrc_test   rrctest(log1, &stack);
+    stack_test_dummy stack;
+    rrc_test         rrctest(log1, &stack);
     rrctest.init();
     rrctest.connect();
 
@@ -343,8 +342,9 @@ int cell_select_test()
 
     // Start cell selection procedure. The RRC will start with strongest cell
     TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
-    TESTASSERT(stack.last_selected_cell.earfcn == 1);
-    TESTASSERT(stack.last_selected_cell.pci == 1);
+    stack.run_pending_tasks();
+    TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 1);
+    TESTASSERT(rrctest.phytest.last_selected_cell.pci == 1);
     TESTASSERT(rrctest.has_neighbour_cell(2, 2));
     TESTASSERT(!rrctest.has_neighbour_cell(1, 1)); // selected current serving cell bc it is stronger
 

@@ -219,24 +219,20 @@ void s1ap::s1_setup_proc_t::then(const srslte::proc_state_t& result) const
  *                     S1AP class
  *********************************************************/
 
-s1ap::s1ap() : s1setup_proc(this) {}
+s1ap::s1ap(srslte::task_sched_handle task_sched_) : s1setup_proc(this), task_sched(task_sched_) {}
 
-int s1ap::init(s1ap_args_t                       args_,
-               rrc_interface_s1ap*               rrc_,
-               srslte::timer_handler*            timers_,
-               srsenb::stack_interface_s1ap_lte* stack_)
+int s1ap::init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srsenb::stack_interface_s1ap_lte* stack_)
 {
   rrc      = rrc_;
   args     = args_;
   s1ap_log = srslte::logmap::get("S1AP");
-  timers   = timers_;
   stack    = stack_;
   pool     = srslte::byte_buffer_pool::get_instance();
 
   build_tai_cgi();
 
   // Setup MME reconnection timer
-  mme_connect_timer    = timers->get_unique_timer();
+  mme_connect_timer    = task_sched.get_unique_timer();
   auto mme_connect_run = [this](uint32_t tid) {
     if (not s1setup_proc.launch()) {
       s1ap_log->error("Failed to initiate S1Setup procedure.\n");
@@ -244,7 +240,7 @@ int s1ap::init(s1ap_args_t                       args_,
   };
   mme_connect_timer.set(10000, mme_connect_run);
   // Setup S1Setup timeout
-  s1setup_timeout              = timers->get_unique_timer();
+  s1setup_timeout              = task_sched.get_unique_timer();
   uint32_t s1setup_timeout_val = 5000;
   s1setup_timeout.set(s1setup_timeout_val, [this](uint32_t tid) {
     s1_setup_proc_t::s1setupresult res;
@@ -1248,10 +1244,10 @@ s1ap::ue::ue(s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), s1ap_log(s1ap_ptr_->s1ap_lo
   stream_id = s1ap_ptr->next_ue_stream_id;
 
   // initialize timers
-  ts1_reloc_prep = s1ap_ptr->timers->get_unique_timer();
+  ts1_reloc_prep = s1ap_ptr->task_sched.get_unique_timer();
   ts1_reloc_prep.set(ts1_reloc_prep_timeout_ms,
                      [this](uint32_t tid) { ho_prep_proc.trigger(ho_prep_proc_t::ts1_reloc_prep_expired{}); });
-  ts1_reloc_overall = s1ap_ptr->timers->get_unique_timer();
+  ts1_reloc_overall = s1ap_ptr->task_sched.get_unique_timer();
   ts1_reloc_overall.set(ts1_reloc_overall_timeout_ms, [](uint32_t tid) { /* TODO */ });
 }
 

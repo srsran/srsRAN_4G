@@ -47,7 +47,7 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_, const sched_interface::ue_cfg_t& sch
 {
   mac_ctrl.reset(new mac_controller{this, sched_ue_cfg});
 
-  activity_timer = outer_rrc->timers->get_unique_timer();
+  activity_timer = outer_rrc->task_sched.get_unique_timer();
   set_activity_timeout(MSG3_RX_TIMEOUT); // next UE response is Msg3
   mobility_handler.reset(new rrc_mobility(this));
 

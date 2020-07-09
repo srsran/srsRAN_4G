@@ -51,7 +51,6 @@ class gnb_stack_nr final : public srsenb::enb_stack_base,
                            public stack_interface_phy_nr,
                            public stack_interface_mac,
                            public srsue::stack_interface_gw,
-                           public srslte::task_handler_interface,
                            public srslte::thread
 {
 public:
@@ -78,14 +77,6 @@ public:
 
   // MAC interface to trigger processing of received PDUs
   void process_pdus() final;
-
-  // Task Handling interface
-  srslte::timer_handler::unique_timer   get_unique_timer() final { return task_sched.get_unique_timer(); }
-  srslte::task_multiqueue::queue_handle make_task_queue() final { return task_sched.make_task_queue(); }
-  void                                  enqueue_background_task(std::function<void(uint32_t)> f) final;
-  void                                  notify_background_task_result(srslte::move_task_t task) final;
-  void                                  defer_callback(uint32_t duration_ms, std::function<void()> func) final;
-  void                                  defer_task(srslte::move_task_t task) final;
 
 private:
   void run_thread() final;

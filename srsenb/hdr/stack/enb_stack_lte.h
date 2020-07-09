@@ -46,7 +46,6 @@ class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
                             public stack_interface_s1ap_lte,
                             public stack_interface_gtpu_lte,
-                            public stack_interface_mac_lte,
                             public srslte::thread
 {
 public:
@@ -108,14 +107,6 @@ public:
   void remove_mme_socket(int fd) override;
   void add_gtpu_s1u_socket_handler(int fd) override;
   void add_gtpu_m1u_socket_handler(int fd) override;
-
-  /* Stack-MAC interface */
-  srslte::unique_timer      get_unique_timer() final;
-  srslte::task_queue_handle make_task_queue() final;
-  void                      defer_callback(uint32_t duration_ms, std::function<void()> func) final;
-  void                      enqueue_background_task(std::function<void(uint32_t)> task) final;
-  void                      notify_background_task_result(srslte::move_task_t task) final;
-  void                      defer_task(srslte::move_task_t task) final;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = 4;

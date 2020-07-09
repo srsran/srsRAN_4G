@@ -192,29 +192,4 @@ bool gnb_stack_nr::is_lcid_enabled(uint32_t lcid)
   return (lcid == args.coreless.drb_lcid);
 }
 
-/***************************
- * Task Handling Interface
- **************************/
-
-void gnb_stack_nr::enqueue_background_task(std::function<void(uint32_t)> f)
-{
-  task_sched.enqueue_background_task(std::move(f));
-}
-
-void gnb_stack_nr::notify_background_task_result(srslte::move_task_t task)
-{
-  // run the notification in the stack thread
-  task_sched.notify_background_task_result(std::move(task));
-}
-
-void gnb_stack_nr::defer_callback(uint32_t duration_ms, std::function<void()> func)
-{
-  task_sched.defer_callback(duration_ms, func);
-}
-
-void gnb_stack_nr::defer_task(srslte::move_task_t task)
-{
-  task_sched.defer_task(std::move(task));
-}
-
 } // namespace srsenb

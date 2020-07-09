@@ -337,7 +337,7 @@ void rrc::rrc_meas::var_meas_report_list::set_measId(const uint32_t            m
   // triggerType ‘event’ as well as for triggerType ‘periodical’
   if (!varMeasReportList.at(measId).periodic_timer.is_valid() &&
       (report_cfg.report_amount.to_number() > 1 || report_cfg.report_amount.to_number() == -1)) {
-    varMeasReportList.at(measId).periodic_timer = rrc_ptr->stack->get_unique_timer();
+    varMeasReportList.at(measId).periodic_timer = rrc_ptr->task_sched.get_unique_timer();
     varMeasReportList.at(measId).periodic_timer.set(report_cfg.report_interv.to_number());
   }
   varMeasReportList.at(measId).report_cfg       = std::move(report_cfg);

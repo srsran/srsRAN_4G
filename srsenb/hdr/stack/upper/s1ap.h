@@ -35,6 +35,7 @@
 #include "s1ap_metrics.h"
 #include "srslte/common/network_utils.h"
 #include "srslte/common/stack_procedure.h"
+#include "srslte/common/task_scheduler.h"
 #include <unordered_map>
 
 namespace srsenb {
@@ -55,11 +56,8 @@ public:
   static const uint32_t ts1_reloc_prep_timeout_ms    = 10000;
   static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
 
-  s1ap();
-  int  init(s1ap_args_t                       args_,
-            rrc_interface_s1ap*               rrc_,
-            srslte::timer_handler*            timers_,
-            srsenb::stack_interface_s1ap_lte* stack_);
+  s1ap(srslte::task_sched_handle task_sched_);
+  int  init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srsenb::stack_interface_s1ap_lte* stack_);
   void stop();
   void get_metrics(s1ap_metrics_t& m);
 
@@ -103,14 +101,15 @@ private:
   srslte::log_ref                   s1ap_log;
   srslte::byte_buffer_pool*         pool  = nullptr;
   srsenb::stack_interface_s1ap_lte* stack = nullptr;
+  srslte::task_sched_handle         task_sched;
 
-  srslte::socket_handler_t            s1ap_socket;
-  struct sockaddr_in                  mme_addr            = {}; // MME address
-  bool                                mme_connected       = false;
-  bool                                running             = false;
-  uint32_t                            next_enb_ue_s1ap_id = 1; // Next ENB-side UE identifier
-  uint16_t                            next_ue_stream_id   = 1; // Next UE SCTP stream identifier
-  srslte::timer_handler::unique_timer mme_connect_timer, s1setup_timeout;
+  srslte::socket_handler_t s1ap_socket;
+  struct sockaddr_in       mme_addr            = {}; // MME address
+  bool                     mme_connected       = false;
+  bool                     running             = false;
+  uint32_t                 next_enb_ue_s1ap_id = 1; // Next ENB-side UE identifier
+  uint16_t                 next_ue_stream_id   = 1; // Next UE SCTP stream identifier
+  srslte::unique_timer     mme_connect_timer, s1setup_timeout;
 
   // Protocol IEs sent with every UL S1AP message
   asn1::s1ap::tai_s        tai;
@@ -152,8 +151,7 @@ private:
     class ho_prep_proc_t
     {
     public:
-      struct ts1_reloc_prep_expired {
-      };
+      struct ts1_reloc_prep_expired {};
       ho_prep_proc_t(s1ap::ue* ue_);
       srslte::proc_outcome_t
                              init(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
@@ -207,9 +205,9 @@ private:
     srslte::log_ref s1ap_log;
 
     // state
-    bool                                release_requested = false;
-    srslte::timer_handler::unique_timer ts1_reloc_prep;    ///< TS1_{RELOCprep} - max time for HO preparation
-    srslte::timer_handler::unique_timer ts1_reloc_overall; ///< TS1_{RELOCOverall}
+    bool                 release_requested = false;
+    srslte::unique_timer ts1_reloc_prep;    ///< TS1_{RELOCprep} - max time for HO preparation
+    srslte::unique_timer ts1_reloc_overall; ///< TS1_{RELOCOverall}
   };
 
   class user_list
@@ -235,9 +233,6 @@ private:
     std::unordered_map<uint32_t, std::unique_ptr<ue> > users; // maps ENB_S1AP_ID to user
   };
   user_list users;
-
-  // timers
-  srslte::timer_handler* timers = nullptr;
 
   // procedures
   class s1_setup_proc_t

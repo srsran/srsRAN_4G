@@ -34,7 +34,7 @@ ue_stack_nr::ue_stack_nr(srslte::logger* logger_) :
   pdcp_log("PDCP"),
   pool_log("POOL")
 {
-  mac.reset(new mac_nr());
+  mac.reset(new mac_nr(&task_sched));
   pdcp.reset(new srslte::pdcp(&task_sched, "PDCP"));
   rlc.reset(new srslte::rlc("RLC"));
   rrc.reset(new rrc_nr());
@@ -82,7 +82,7 @@ int ue_stack_nr::init(const stack_args_t& args_)
   mac_nr_args_t mac_args = {};
   mac_args.pcap          = args.pcap;
   mac_args.drb_lcid      = 4;
-  mac->init(mac_args, phy, rlc.get(), task_sched.get_timer_handler(), this);
+  mac->init(mac_args, phy, rlc.get());
   rlc->init(pdcp.get(), rrc.get(), task_sched.get_timer_handler(), 0 /* RB_ID_SRB0 */);
   pdcp->init(rlc.get(), rrc.get(), gw);
 
@@ -206,45 +206,6 @@ void ue_stack_nr::run_tti_impl(uint32_t tti)
   mac->run_tti(tti);
   rrc->run_tti(tti);
   task_sched.tic();
-}
-
-/********************
- * low MAC Interface
- *******************/
-
-void ue_stack_nr::start_cell_search()
-{
-  // not implemented
-}
-
-void ue_stack_nr::start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell)
-{
-  // not implemented
-}
-
-/***************************
- * Task Handling Interface
- **************************/
-
-void ue_stack_nr::enqueue_background_task(std::function<void(uint32_t)> f)
-{
-  task_sched.enqueue_background_task(std::move(f));
-}
-
-void ue_stack_nr::notify_background_task_result(srslte::move_task_t task)
-{
-  // run the notification in the stack thread
-  task_sched.notify_background_task_result(std::move(task));
-}
-
-void ue_stack_nr::defer_callback(uint32_t duration_ms, std::function<void()> func)
-{
-  task_sched.defer_callback(duration_ms, std::move(func));
-}
-
-void ue_stack_nr::defer_task(srslte::move_task_t task)
-{
-  task_sched.defer_task(std::move(task));
 }
 
 } // namespace srsue

@@ -49,8 +49,9 @@ const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0, 1, 2, 12}; // SIB1,
   Base functions
 *******************************************************************************/
 
-rrc::rrc(stack_interface_rrc* stack_) :
+rrc::rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_) :
   stack(stack_),
+  task_sched(task_sched_),
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
@@ -120,12 +121,12 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   security_is_activated = false;
 
-  t300 = stack->get_unique_timer();
-  t301 = stack->get_unique_timer();
-  t302 = stack->get_unique_timer();
-  t310 = stack->get_unique_timer();
-  t311 = stack->get_unique_timer();
-  t304 = stack->get_unique_timer();
+  t300 = task_sched.get_unique_timer();
+  t301 = task_sched.get_unique_timer();
+  t302 = task_sched.get_unique_timer();
+  t310 = task_sched.get_unique_timer();
+  t311 = task_sched.get_unique_timer();
+  t304 = task_sched.get_unique_timer();
 
   ue_identity_configured = false;
 
@@ -1363,6 +1364,26 @@ void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     rrc_log->info("Attempting to auto-start MBMS service %d\n", args.mbms_service_id);
     mbms_service_start(args.mbms_service_id, args.mbms_service_port);
   }
+}
+
+void rrc::start_phy_cell_search()
+{
+  task_sched.enqueue_background_task([this](uint32_t worker_id) {
+    phy_interface_rrc_lte::phy_cell_t        found_cell;
+    phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
+    // notify back RRC
+    task_sched.notify_background_task_result([this, found_cell, ret]() { cell_search_completed(ret, found_cell); });
+  });
+}
+
+void rrc::start_phy_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell)
+{
+  phy_interface_rrc_lte::phy_cell_t cell_copy = *cell;
+  task_sched.enqueue_background_task([this, cell_copy](uint32_t worker_id) {
+    bool ret = phy->cell_select(&cell_copy);
+    // notify back RRC
+    task_sched.notify_background_task_result([this, ret]() { cell_select_completed(ret); });
+  });
 }
 
 /*******************************************************************************

@@ -25,10 +25,11 @@
 #include "interfaces_common.h"
 #include "multiqueue.h"
 #include "thread_pool.h"
+#include "timers.h"
 
 namespace srslte {
 
-class task_scheduler : public srslte::task_handler_interface
+class task_scheduler
 {
 public:
   explicit task_scheduler(uint32_t default_extern_tasks_size = 512,
@@ -52,23 +53,20 @@ public:
     external_tasks.reset();
   }
 
-  srslte::unique_timer get_unique_timer() final { return timers.get_unique_timer(); }
+  srslte::unique_timer get_unique_timer() { return timers.get_unique_timer(); }
 
   //! Creates new queue for tasks coming from external thread
-  srslte::task_queue_handle make_task_queue() final { return external_tasks.get_queue_handler(); }
+  srslte::task_queue_handle make_task_queue() { return external_tasks.get_queue_handler(); }
   srslte::task_queue_handle make_task_queue(uint32_t qsize) { return external_tasks.get_queue_handler(qsize); }
 
   //! Delays a task processing by duration_ms
-  void defer_callback(uint32_t duration_ms, std::function<void()> func) final
-  {
-    timers.defer_callback(duration_ms, func);
-  }
+  void defer_callback(uint32_t duration_ms, std::function<void()> func) { timers.defer_callback(duration_ms, func); }
 
   //! Enqueues internal task to be run in next tic
-  void defer_task(srslte::move_task_t func) final { internal_tasks.push_back(std::move(func)); }
+  void defer_task(srslte::move_task_t func) { internal_tasks.push_back(std::move(func)); }
 
   //! Delegates a task to a thread pool that runs in the background
-  void enqueue_background_task(std::function<void(uint32_t)> f) final
+  void enqueue_background_task(std::function<void(uint32_t)> f)
   {
     if (background_tasks.nof_workers() > 0) {
       background_tasks.push_task(std::move(f));
@@ -79,7 +77,7 @@ public:
   }
 
   //! Defer the handling of the result of a background task to next tic
-  void notify_background_task_result(srslte::move_task_t task) final
+  void notify_background_task_result(srslte::move_task_t task)
   {
     // run the notification in next tic
     external_tasks.push(background_queue_id, std::move(task));
@@ -170,6 +168,10 @@ public:
     sched->notify_background_task_result(std::move(task));
   }
   srslte::task_queue_handle make_task_queue() { return sched->make_task_queue(); }
+  void                      defer_callback(uint32_t duration_ms, std::function<void()> func)
+  {
+    sched->defer_callback(duration_ms, std::move(func));
+  }
 
 private:
   task_scheduler* sched;

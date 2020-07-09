@@ -211,7 +211,7 @@ void ttcn3_ue::set_test_loop_mode(const test_loop_mode_state_t mode, const uint3
       break;
     case TEST_LOOP_MODE_B_ACTIVE:
       log.info("Activating Test loop mode B with %d ms PDU delay\n", ip_pdu_delay_ms_);
-      pdu_delay_timer = stack->get_unique_timer();
+      pdu_delay_timer = stack->get_task_sched().get_unique_timer();
       if (ip_pdu_delay_ms_ > 0) {
         pdu_delay_timer.set(ip_pdu_delay_ms_, [this](uint32_t tid) { timer_expired(tid); });
       }
@@ -236,7 +236,7 @@ void ttcn3_ue::send_queued_data()
     if (not stack->switch_on()) {
       log.warning("Could not reestablish the connection\n");
     }
-    stack->defer_callback(500, [&]() { send_queued_data(); });
+    stack->get_task_sched().defer_callback(500, [&]() { send_queued_data(); });
     return;
   }
 

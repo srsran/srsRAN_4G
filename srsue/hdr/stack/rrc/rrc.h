@@ -74,7 +74,7 @@ class rrc : public rrc_interface_nas,
             public srslte::timer_callback
 {
 public:
-  rrc(stack_interface_rrc* stack_);
+  rrc(stack_interface_rrc* stack_, srslte::task_sched_handle task_sched_);
   ~rrc();
 
   void init(phy_interface_rrc_lte* phy_,
@@ -162,9 +162,12 @@ private:
   srslte::block_queue<cmd_msg_t> cmd_q;
 
   void process_pcch(srslte::unique_byte_buffer_t pdu);
+  void start_phy_cell_search();
+  void start_phy_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell);
 
   stack_interface_rrc*      stack = nullptr;
-  srslte::byte_buffer_pool* pool  = nullptr;
+  srslte::task_sched_handle task_sched;
+  srslte::byte_buffer_pool* pool = nullptr;
   srslte::log_ref           rrc_log;
   phy_interface_rrc_lte*    phy  = nullptr;
   mac_interface_rrc*        mac  = nullptr;

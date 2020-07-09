@@ -32,24 +32,10 @@ class stack_test_dummy : public stack_interface_rrc
 public:
   stack_test_dummy() {}
 
-  srslte::timer_handler::unique_timer get_unique_timer() override { return task_sched.get_unique_timer(); }
-  void                                start_cell_search() override {}
-  void                                start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) override {}
-  srslte::tti_point                   get_current_tti() override
+  srslte::tti_point get_current_tti() override
   {
     return srslte::tti_point{task_sched.get_timer_handler()->get_cur_time() % 10240};
   }
-  srslte::task_multiqueue::queue_handle make_task_queue() final { return task_sched.make_task_queue(); }
-  void                                  enqueue_background_task(std::function<void(uint32_t)> f) override
-  {
-    task_sched.enqueue_background_task(std::move(f));
-  }
-  void notify_background_task_result(srslte::move_task_t task) override { task(); }
-  void defer_callback(uint32_t duration_ms, std::function<void()> func) final
-  {
-    task_sched.defer_callback(duration_ms, std::move(func));
-  }
-  void defer_task(srslte::move_task_t task) final { task_sched.defer_task(std::move(task)); }
 
   // Testing utility functions
   void run_tti()

@@ -121,17 +121,9 @@ public:
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp.is_lcid_enabled(lcid); }
 
   // Interface for RRC
-  void      start_cell_search() final;
-  void      start_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell) final;
   tti_point get_current_tti() final { return current_tti; }
 
-  // Task Handling interface
-  srslte::unique_timer                  get_unique_timer() final { return task_sched.get_unique_timer(); }
-  srslte::task_multiqueue::queue_handle make_task_queue() final { return task_sched.make_task_queue(); }
-  void                                  enqueue_background_task(std::function<void(uint32_t)> f) final;
-  void                                  notify_background_task_result(srslte::move_task_t task) final;
-  void                                  defer_callback(uint32_t duration_ms, std::function<void()> func) final;
-  void                                  defer_task(srslte::move_task_t task) final;
+  srslte::ext_task_sched_handle get_task_sched() { return {&task_sched}; }
 
 private:
   void run_thread() final;

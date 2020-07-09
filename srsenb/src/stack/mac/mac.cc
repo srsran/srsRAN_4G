@@ -36,7 +36,11 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-mac::mac() : rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload(), common_buffers(SRSLTE_MAX_CARRIERS)
+mac::mac(srslte::ext_task_sched_handle task_sched_) :
+  rar_pdu_msg(sched_interface::MAX_RAR_LIST),
+  rar_payload(),
+  common_buffers(SRSLTE_MAX_CARRIERS),
+  task_sched(task_sched_)
 {
   pthread_rwlock_init(&rwlock, nullptr);
 }
@@ -52,7 +56,6 @@ bool mac::init(const mac_args_t&        args_,
                phy_interface_stack_lte* phy,
                rlc_interface_mac*       rlc,
                rrc_interface_mac*       rrc,
-               stack_interface_mac_lte* stack_,
                srslte::log_ref          log_h_)
 {
   started = false;
@@ -61,13 +64,12 @@ bool mac::init(const mac_args_t&        args_,
     phy_h = phy;
     rlc_h = rlc;
     rrc_h = rrc;
-    stack = stack_;
     log_h = log_h_;
 
     args  = args_;
     cells = cells_;
 
-    stack_task_queue = stack->make_task_queue();
+    stack_task_queue = task_sched.make_task_queue();
 
     scheduler.init(rrc);
 
@@ -242,7 +244,7 @@ int mac::ue_rem(uint16_t rnti)
 
   // Remove UE from the perspective of L1
   // Note: Let any pending retx ACK to arrive, so that PHY recognizes rnti
-  stack->defer_callback(FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS, [this, rnti]() {
+  task_sched.defer_callback(FDD_HARQ_DELAY_DL_MS + FDD_HARQ_DELAY_UL_MS, [this, rnti]() {
     phy_h->rem_rnti(rnti);
     ues_to_rem.erase(rnti);
     Info("User rnti=0x%x removed from MAC/PHY\n", rnti);
