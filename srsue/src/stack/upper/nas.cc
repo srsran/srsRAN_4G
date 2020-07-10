@@ -809,7 +809,6 @@ void nas::integrity_generate(uint8_t* key_128,
 
 // This function depends to a valid k_nas_int.
 // This key is generated in the security mode command.
-
 bool nas::integrity_check(byte_buffer_t* pdu)
 {
   if (pdu == nullptr) {
