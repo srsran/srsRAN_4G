@@ -113,6 +113,14 @@ public:
     return ret;
   }
 
+  bool full()
+  { // queue is full?
+    pthread_mutex_lock(&mutex);
+    bool ret = not check_queue_space_unlocked(false);
+    pthread_mutex_unlock(&mutex);
+    return ret;
+  }
+
   void clear()
   { // remove all items
     myobj* item = NULL;
