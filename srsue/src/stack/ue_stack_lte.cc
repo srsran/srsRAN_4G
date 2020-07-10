@@ -241,12 +241,10 @@ void ue_stack_lte::run_thread()
  * @param sdu
  * @param blocking
  */
-void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
+void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
-  auto task = [this, lcid, blocking](srslte::unique_byte_buffer_t& sdu) {
-    pdcp.write_sdu(lcid, std::move(sdu), blocking);
-  };
-  bool ret = gw_queue_id.try_push(std::bind(task, std::move(sdu))).first;
+  auto task = [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp.write_sdu(lcid, std::move(sdu)); };
+  bool ret  = gw_queue_id.try_push(std::bind(task, std::move(sdu))).first;
   if (not ret) {
     pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
   }

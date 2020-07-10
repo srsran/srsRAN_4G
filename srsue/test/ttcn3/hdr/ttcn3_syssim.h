@@ -177,11 +177,13 @@ public:
 
   std::string get_rb_name(uint32_t lcid);
 
-  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
+  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu);
 
   void discard_sdu(uint32_t lcid, uint32_t sn);
 
   bool rb_is_um(uint32_t lcid);
+
+  bool sdu_queue_is_full(uint32_t lcid);
 
   void set_as_security(const ttcn3_helpers::timing_info_t        timing,
                        std::array<uint8_t, 32>                   k_rrc_enc_,

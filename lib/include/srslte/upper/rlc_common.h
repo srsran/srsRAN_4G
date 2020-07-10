@@ -237,7 +237,7 @@ public:
 
     unique_byte_buffer_t s;
     while (tx_sdu_resume_queue.try_pop(&s)) {
-      write_sdu(std::move(s), false);
+      write_sdu(std::move(s));
     }
     suspended = false;
     return true;
@@ -252,12 +252,12 @@ public:
     }
   }
 
-  void write_sdu_s(unique_byte_buffer_t sdu, bool blocking)
+  void write_sdu_s(unique_byte_buffer_t sdu)
   {
     if (suspended) {
       queue_tx_sdu(std::move(sdu));
     } else {
-      write_sdu(std::move(sdu), blocking);
+      write_sdu(std::move(sdu));
     }
   }
 
@@ -268,8 +268,9 @@ public:
   virtual void                 reset_metrics() = 0;
 
   // PDCP interface
-  virtual void write_sdu(unique_byte_buffer_t sdu, bool blocking) = 0;
+  virtual void write_sdu(unique_byte_buffer_t sdu)                = 0;
   virtual void discard_sdu(uint32_t discard_sn)                   = 0;
+  virtual bool sdu_queue_is_full()                                = 0;
 
   // MAC interface
   virtual bool     has_data() = 0;

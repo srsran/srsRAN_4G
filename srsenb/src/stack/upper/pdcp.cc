@@ -146,8 +146,7 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
 {
   if (users.count(rnti)) {
     if (rnti != SRSLTE_MRNTI) {
-      // TODO: expose blocking mode as function param
-      users[rnti].pdcp->write_sdu(lcid, std::move(sdu), false);
+      users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
     } else {
       users[rnti].pdcp->write_sdu_mch(lcid, std::move(sdu));
     }
@@ -159,7 +158,7 @@ void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::unique_byte_buf
   gtpu->write_pdu(rnti, lcid, std::move(pdu));
 }
 
-void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
+void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   rlc->write_sdu(rnti, lcid, std::move(sdu));
 }
@@ -172,6 +171,11 @@ void pdcp::user_interface_rlc::discard_sdu(uint32_t lcid, uint32_t discard_sn)
 bool pdcp::user_interface_rlc::rb_is_um(uint32_t lcid)
 {
   return rlc->rb_is_um(rnti, lcid);
+}
+
+bool pdcp::user_interface_rlc::sdu_queue_is_full(uint32_t lcid)
+{
+  return rlc->sdu_queue_is_full(rnti, lcid);
 }
 
 void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)

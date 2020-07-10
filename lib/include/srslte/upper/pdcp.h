@@ -45,7 +45,7 @@ public:
   void reestablish() override;
   void reestablish(uint32_t lcid) override;
   void reset() override;
-  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking) override;
+  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu) override;
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
   void add_bearer(uint32_t lcid, pdcp_config_t cnfg) override;
   void add_bearer_mrb(uint32_t lcid, pdcp_config_t cnfg);

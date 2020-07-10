@@ -88,7 +88,7 @@ public:
   void new_grant_ul(const uint32_t cc_idx, const mac_nr_grant_ul_t& grant) final { mac->new_grant_ul(cc_idx, grant); }
 
   // Interface for GW
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final;
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp->is_lcid_enabled(lcid); }
 
   // Interface for RRC

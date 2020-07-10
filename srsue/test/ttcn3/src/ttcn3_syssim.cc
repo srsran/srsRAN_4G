@@ -902,7 +902,7 @@ void ttcn3_syssim::add_dcch_pdu_impl(uint32_t lcid, unique_byte_buffer_t pdu, bo
 {
   // push to PDCP and create DL grant for it
   log->info("Writing PDU (%d B) to LCID=%d\n", pdu->N_bytes, lcid);
-  pdcp.write_sdu(lcid, std::move(pdu), true);
+  pdcp.write_sdu(lcid, std::move(pdu));
   bearer_follow_on_map[lcid] = follow_on_flag;
 }
 
@@ -1063,12 +1063,11 @@ std::string ttcn3_syssim::get_rb_name(uint32_t lcid)
   return std::string("RB");
 };
 
-void ttcn3_syssim::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
+void ttcn3_syssim::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   log->info_hex(sdu->msg, sdu->N_bytes, "Received SDU on LCID=%d\n", lcid);
 
-  uint8_t* mac_pdu_ptr;
-  mac_pdu_ptr = mac_msg_dl.write_packet(log);
+  uint8_t* mac_pdu_ptr = mac_msg_dl.write_packet(log);
   log->info_hex(mac_pdu_ptr, mac_msg_dl.get_pdu_len(), "DL MAC PDU:\n");
 
   // Prepare MAC grant for CCCH
@@ -1087,6 +1086,11 @@ void ttcn3_syssim::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool block
 void ttcn3_syssim::discard_sdu(uint32_t lcid, uint32_t sn) {}
 
 bool ttcn3_syssim::rb_is_um(uint32_t lcid)
+{
+  return false;
+}
+
+bool ttcn3_syssim::sdu_queue_is_full(uint32_t lcid)
 {
   return false;
 }

@@ -53,8 +53,9 @@ public:
   void                 reset_metrics() override;
 
   // PDCP interface
-  void write_sdu(unique_byte_buffer_t sdu, bool blocking) override;
+  void write_sdu(unique_byte_buffer_t sdu) override;
   void discard_sdu(uint32_t discard_sn) override;
+  bool sdu_queue_is_full() override;
 
   // MAC interface
   bool     has_data() override;

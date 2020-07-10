@@ -53,8 +53,9 @@ public:
   uint32_t   get_bearer();
 
   // PDCP interface
-  void write_sdu(unique_byte_buffer_t sdu, bool blocking = true);
+  void write_sdu(unique_byte_buffer_t sdu);
   void discard_sdu(uint32_t discard_sn);
+  bool sdu_queue_is_full();
 
   // MAC interface
   bool     has_data();
@@ -82,6 +83,7 @@ protected:
     void             empty_queue();
     void             write_sdu(unique_byte_buffer_t sdu);
     void             discard_sdu(uint32_t discard_sn);
+    bool             sdu_queue_is_full();
     int              try_write_sdu(unique_byte_buffer_t sdu);
     void             reset_metrics();
     bool             has_data();

@@ -214,7 +214,7 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t s
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     if (rnti != SRSLTE_MRNTI) {
-      users[rnti].rlc->write_sdu(lcid, std::move(sdu), false);
+      users[rnti].rlc->write_sdu(lcid, std::move(sdu));
     } else {
       users[rnti].rlc->write_sdu_mch(lcid, std::move(sdu));
     }
@@ -237,6 +237,17 @@ bool rlc::rb_is_um(uint16_t rnti, uint32_t lcid)
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     ret = users[rnti].rlc->rb_is_um(lcid);
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
+}
+
+bool rlc::sdu_queue_is_full(uint16_t rnti, uint32_t lcid)
+{
+  bool ret = false;
+  pthread_rwlock_rdlock(&rwlock);
+  if (users.count(rnti)) {
+    ret = users[rnti].rlc->sdu_queue_is_full(lcid);
   }
   pthread_rwlock_unlock(&rwlock);
   return ret;

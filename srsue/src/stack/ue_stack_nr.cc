@@ -167,12 +167,11 @@ void ue_stack_nr::run_thread()
  * @param sdu
  * @param blocking
  */
-void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
+void ue_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   if (pdcp != nullptr) {
     std::pair<bool, move_task_t> ret = gw_task_queue.try_push(std::bind(
-        [this, lcid, blocking](srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu), blocking); },
-        std::move(sdu)));
+        [this, lcid](srslte::unique_byte_buffer_t& sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }, std::move(sdu)));
     if (not ret.first) {
       pdcp_log->warning("GW SDU with lcid=%d was discarded.\n", lcid);
     }

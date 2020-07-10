@@ -104,8 +104,13 @@ void pdcp_entity_lte::reset()
 }
 
 // GW/RRC interface
-void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu)
 {
+  if (rlc->sdu_queue_is_full(lcid)) {
+    log->info_hex(sdu->msg, sdu->N_bytes, "Dropping %s SDU due to full queue", rrc->get_rb_name(lcid).c_str());
+    return;
+  }
+
   // Get COUNT to be used with this packet
   uint32_t tx_count = COUNT(st.tx_hfn, st.next_pdcp_tx_sn);
 
@@ -149,7 +154,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     st.next_pdcp_tx_sn = 0;
   }
 
-  rlc->write_sdu(lcid, std::move(sdu), blocking);
+  rlc->write_sdu(lcid, std::move(sdu));
 }
 
 // RLC interface

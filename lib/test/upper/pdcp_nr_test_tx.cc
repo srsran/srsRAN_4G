@@ -51,7 +51,7 @@ int test_tx(uint32_t                     n_packets,
     // Test SDU
     srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
     sdu->append_bytes(sdu1, sizeof(sdu1));
-    pdcp->write_sdu(std::move(sdu), true);
+    pdcp->write_sdu(std::move(sdu));
   }
 
   srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);

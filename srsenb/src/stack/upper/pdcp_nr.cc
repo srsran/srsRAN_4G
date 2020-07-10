@@ -114,7 +114,7 @@ void pdcp_nr::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
 void pdcp_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   if (users.count(rnti)) {
-    users[rnti].pdcp->write_sdu(lcid, std::move(sdu), false);
+    users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
   } else {
     m_log->error("Can't write SDU. RNTI=0x%X doesn't exist.\n", rnti);
   }
@@ -125,7 +125,7 @@ void pdcp_nr::user_interface_sdap::write_pdu(uint32_t lcid, srslte::unique_byte_
   sdap->write_pdu(rnti, lcid, std::move(pdu));
 }
 
-void pdcp_nr::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
+void pdcp_nr::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   rlc->write_sdu(rnti, lcid, std::move(sdu));
 }
@@ -138,6 +138,11 @@ void pdcp_nr::user_interface_rlc::discard_sdu(uint32_t lcid, uint32_t discard_sn
 bool pdcp_nr::user_interface_rlc::rb_is_um(uint32_t lcid)
 {
   return rlc->rb_is_um(rnti, lcid);
+}
+
+bool pdcp_nr::user_interface_rlc::sdu_queue_is_full(uint32_t lcid)
+{
+  return rlc->sdu_queue_is_full(rnti, lcid);
 }
 
 void pdcp_nr::user_interface_rrc::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)

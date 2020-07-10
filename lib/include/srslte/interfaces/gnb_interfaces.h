@@ -69,6 +69,7 @@ public:
    * RLC PDUs according to TB size. */
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
   virtual bool rb_is_um(uint16_t rnti, uint32_t lcid)                                    = 0;
+  virtual bool sdu_queue_is_full(uint16_t rnti, uint32_t lcid)                           = 0;
 };
 class rlc_interface_rrc_nr
 {

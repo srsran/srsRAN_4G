@@ -83,10 +83,10 @@ bool pdcp::is_lcid_enabled(uint32_t lcid)
   return valid_lcids_cached.count(lcid) > 0;
 }
 
-void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
+void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   if (valid_lcid(lcid)) {
-    pdcp_array.at(lcid)->write_sdu(std::move(sdu), blocking);
+    pdcp_array.at(lcid)->write_sdu(std::move(sdu));
   } else {
     pdcp_log->warning("Writing sdu: lcid=%d. Deallocating sdu\n", lcid);
   }
@@ -95,7 +95,7 @@ void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   if (valid_mch_lcid(lcid)) {
-    pdcp_array_mrb.at(lcid)->write_sdu(std::move(sdu), true);
+    pdcp_array_mrb.at(lcid)->write_sdu(std::move(sdu));
   }
 }
 

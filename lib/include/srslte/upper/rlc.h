@@ -56,10 +56,11 @@ public:
   void get_metrics(rlc_metrics_t& m);
 
   // PDCP interface
-  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
+  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu);
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
   bool rb_is_um(uint32_t lcid);
   void discard_sdu(uint32_t lcid, uint32_t discard_sn);
+  bool sdu_queue_is_full(uint32_t lcid);
 
   // MAC interface
   bool     has_data(const uint32_t lcid);

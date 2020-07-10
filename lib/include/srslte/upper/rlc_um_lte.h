@@ -61,6 +61,7 @@ private:
     bool     configure(const rlc_config_t& cfg, std::string rb_name);
     int      build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes);
     uint32_t get_buffer_state();
+    bool     sdu_queue_is_full();
 
   private:
     void reset();

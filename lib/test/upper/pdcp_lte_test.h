@@ -116,7 +116,7 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
 
   srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
   *sdu                             = *in_sdu;
-  pdcp->write_sdu(std::move(sdu), true);
+  pdcp->write_sdu(std::move(sdu));
   srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
   rlc->get_last_sdu(out_pdu);
 
@@ -128,14 +128,14 @@ std::vector<pdcp_test_event_t> gen_expected_pdus_vector(const srslte::unique_byt
                                                         const std::vector<uint32_t>&        tx_nexts,
                                                         uint8_t                             pdcp_sn_len,
                                                         srslte::pdcp_rb_type_t              rb_type,
-                                                        srslte::as_security_config_t        sec_cfg,
+                                                        srslte::as_security_config_t        sec_cfg_,
                                                         srslte::byte_buffer_pool*           pool,
                                                         srslte::log_ref                     log)
 {
   std::vector<pdcp_test_event_t> pdu_vec;
   for (uint32_t tx_next : tx_nexts) {
     pdcp_test_event_t event;
-    event.pkt   = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, rb_type, sec_cfg, pool, log);
+    event.pkt   = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, rb_type, sec_cfg_, pool, log);
     event.ticks = 0;
     pdu_vec.push_back(std::move(event));
   }

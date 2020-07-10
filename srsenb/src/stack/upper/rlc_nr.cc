@@ -150,7 +150,7 @@ void rlc_nr::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_
 
   if (users.count(rnti)) {
     if (rnti != SRSLTE_MRNTI) {
-      users[rnti].m_rlc->write_sdu(lcid, std::move(sdu), false);
+      users[rnti].m_rlc->write_sdu(lcid, std::move(sdu));
       tx_queue = users[rnti].m_rlc->get_buffer_state(lcid);
     } else {
       users[rnti].m_rlc->write_sdu_mch(lcid, std::move(sdu));
@@ -174,6 +174,14 @@ bool rlc_nr::rb_is_um(uint16_t rnti, uint32_t lcid)
   return ret;
 }
 
+bool rlc_nr::sdu_queue_is_full(uint16_t rnti, uint32_t lcid)
+{
+  bool ret = false;
+  if (users.count(rnti)) {
+    ret = users[rnti].m_rlc->sdu_queue_is_full(lcid);
+  }
+  return ret;
+}
 void rlc_nr::user_interface::max_retx_attempted()
 {
   m_rrc->max_retx_attempted(rnti);

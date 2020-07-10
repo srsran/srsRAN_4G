@@ -68,9 +68,10 @@ private:
     uint16_t                       rnti;
     srsenb::rlc_interface_pdcp_nr* rlc;
     // rlc_interface_pdcp_nr
-    void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final;
+    void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;
     void discard_sdu(uint32_t lcid, uint32_t discard_sn) final;
     bool rb_is_um(uint32_t lcid) final;
+    bool sdu_queue_is_full(uint32_t lcid) final;
   };
 
   class user_interface_sdap : public srsue::gw_interface_pdcp

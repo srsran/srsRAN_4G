@@ -86,6 +86,8 @@ public:
 
   bool is_empty() { return queue.empty(); }
 
+  bool is_full() { return queue.full(); }
+
 private:
   block_queue<unique_byte_buffer_t> queue;
   uint32_t                          unread_bytes;

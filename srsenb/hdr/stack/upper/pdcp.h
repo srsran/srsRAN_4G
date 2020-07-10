@@ -62,9 +62,10 @@ private:
     uint16_t                    rnti;
     srsenb::rlc_interface_pdcp* rlc;
     // rlc_interface_pdcp
-    void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking);
+    void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
     void discard_sdu(uint32_t lcid, uint32_t discard_sn);
     bool rb_is_um(uint32_t lcid);
+    bool sdu_queue_is_full(uint32_t lcid);
   };
 
   class user_interface_gtpu : public srsue::gw_interface_pdcp

@@ -48,7 +48,7 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
   // Test SDU
   srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
   sdu->append_bytes(sdu1, sizeof(sdu1));
-  pdcp->write_sdu(std::move(sdu), true);
+  pdcp->write_sdu(std::move(sdu));
 
   for (uint32_t i = 0; i < static_cast<uint32_t>(cfg.discard_timer) - 1; ++i) {
     stack->run_tti();

@@ -233,7 +233,7 @@ public:
   virtual void reestablish()                                                                                        = 0;
   virtual void reestablish(uint32_t lcid)                                                                           = 0;
   virtual void reset()                                                                                              = 0;
-  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)                            = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)                                           = 0;
   virtual void add_bearer(uint32_t lcid, srslte::pdcp_config_t cnfg)                                                = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                                    = 0;
   virtual void config_security(uint32_t lcid, srslte::as_security_config_t sec_cfg)                                 = 0;
@@ -258,38 +258,45 @@ public:
 class pdcp_interface_gw
 {
 public:
-  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) = 0;
-  virtual bool is_lcid_enabled(uint32_t lcid)                                            = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
+  virtual bool is_lcid_enabled(uint32_t lcid)                             = 0;
 };
 
 // RLC interface for RRC
 class rlc_interface_rrc
 {
 public:
-  virtual void reset()                                                                          = 0;
-  virtual void reestablish()                                                                    = 0;
-  virtual void reestablish(uint32_t lcid)                                                       = 0;
-  virtual void add_bearer(uint32_t lcid, const srslte::rlc_config_t& cnfg)                      = 0;
-  virtual void add_bearer_mrb(uint32_t lcid)                                                    = 0;
-  virtual void del_bearer(uint32_t lcid)                                                        = 0;
-  virtual void suspend_bearer(uint32_t lcid)                                                    = 0;
-  virtual void resume_bearer(uint32_t lcid)                                                     = 0;
-  virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                = 0;
-  virtual bool has_bearer(uint32_t lcid)                                                        = 0;
-  virtual bool has_data(const uint32_t lcid)                                                    = 0;
-  virtual bool is_suspended(const uint32_t lcid)                                                = 0;
-  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) = 0;
+  virtual void reset()                                                     = 0;
+  virtual void reestablish()                                               = 0;
+  virtual void reestablish(uint32_t lcid)                                  = 0;
+  virtual void add_bearer(uint32_t lcid, const srslte::rlc_config_t& cnfg) = 0;
+  virtual void add_bearer_mrb(uint32_t lcid)                               = 0;
+  virtual void del_bearer(uint32_t lcid)                                   = 0;
+  virtual void suspend_bearer(uint32_t lcid)                               = 0;
+  virtual void resume_bearer(uint32_t lcid)                                = 0;
+  virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)           = 0;
+  virtual bool has_bearer(uint32_t lcid)                                   = 0;
+  virtual bool has_data(const uint32_t lcid)                               = 0;
+  virtual bool is_suspended(const uint32_t lcid)                           = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)  = 0;
 };
 
 // RLC interface for PDCP
 class rlc_interface_pdcp
 {
 public:
-  /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
-   * RLC PDUs according to TB size. */
-  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) = 0;
-  virtual void discard_sdu(uint32_t lcid, uint32_t discard_sn)                                  = 0;
-  virtual bool rb_is_um(uint32_t lcid)                                                          = 0;
+  ///< PDCP calls RLC to push an RLC SDU. SDU gets placed into the buffer
+  ///< MAC pulls RLC PDUs according to TB size
+  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
+
+  ///< Indicate RLC that a certain SN can be discarded
+  virtual void discard_sdu(uint32_t lcid, uint32_t discard_sn) = 0;
+
+  ///< Helper to query RLC mode
+  virtual bool rb_is_um(uint32_t lcid) = 0;
+
+  ///< Allow PDCP to query SDU queue status
+  virtual bool sdu_queue_is_full(uint32_t lcid) = 0;
 };
 
 // RLC interface for MAC

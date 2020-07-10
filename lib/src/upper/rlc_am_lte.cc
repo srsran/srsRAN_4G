@@ -127,9 +127,9 @@ void rlc_am_lte::reset_metrics()
  * PDCP interface
  ***************************************************************************/
 
-void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu)
 {
-  if (tx.write_sdu(std::move(sdu), blocking) == SRSLTE_SUCCESS) {
+  if (tx.write_sdu(std::move(sdu)) == SRSLTE_SUCCESS) {
     metrics.num_tx_sdus++;
   }
 }
@@ -138,6 +138,11 @@ void rlc_am_lte::discard_sdu(uint32_t discard_sn)
 {
   tx.discard_sdu(discard_sn);
   metrics.num_lost_sdus++;
+}
+
+bool rlc_am_lte::sdu_queue_is_full()
+{
+  return tx.sdu_queue_is_full();
 }
 
 /****************************************************************************
@@ -353,7 +358,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
   return n_bytes;
 }
 
-int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu)
 {
   if (!tx_enabled) {
     return SRSLTE_ERROR;
@@ -364,30 +369,23 @@ int rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking
     return SRSLTE_ERROR;
   }
 
-  if (blocking) {
-    // block on write to queue
+  uint8_t*                                 msg_ptr   = sdu->msg;
+  uint32_t                                 nof_bytes = sdu->N_bytes;
+  srslte::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
+  if (ret) {
     log->info_hex(
-        sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)\n", RB_NAME, sdu->N_bytes, tx_sdu_queue.size());
-    tx_sdu_queue.write(std::move(sdu));
+        msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)\n", RB_NAME, nof_bytes, tx_sdu_queue.size());
   } else {
-    // non-blocking write
-    uint8_t*                                 msg_ptr   = sdu->msg;
-    uint32_t                                 nof_bytes = sdu->N_bytes;
-    srslte::error_type<unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
-    if (ret) {
-      log->info_hex(
-          msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)\n", RB_NAME, nof_bytes, tx_sdu_queue.size());
-    } else {
-      // in case of fail, the try_write returns back the sdu
-      log->info_hex(ret.error()->msg,
-                    ret.error()->N_bytes,
-                    "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)\n",
-                    RB_NAME,
-                    ret.error()->N_bytes,
-                    tx_sdu_queue.size());
-    }
+    // in case of fail, the try_write returns back the sdu
+    log->warning_hex(ret.error()->msg,
+                     ret.error()->N_bytes,
+                     "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)\n",
+                     RB_NAME,
+                     ret.error()->N_bytes,
+                     tx_sdu_queue.size());
     return SRSLTE_ERROR;
   }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -397,6 +395,11 @@ void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
     return;
   }
   log->warning("Discard SDU not implemented yet\n");
+}
+
+bool rlc_am_lte::rlc_am_lte_tx::sdu_queue_is_full()
+{
+  return tx_sdu_queue.is_full();
 }
 
 int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)

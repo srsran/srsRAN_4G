@@ -87,7 +87,7 @@ public:
   void        write_pdu_pcch(unique_byte_buffer_t pdu) {}
   void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
-  void        write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) {}
+  void        write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
   bool        is_lcid_enabled(uint32_t lcid) { return false; }
 };
 
@@ -159,10 +159,7 @@ public:
     }
     return proc_result.is_success();
   }
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
-  {
-    pdcp->write_sdu(lcid, std::move(sdu), blocking);
-  }
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) { pdcp->write_sdu(lcid, std::move(sdu)); }
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
   void run_thread()
   {

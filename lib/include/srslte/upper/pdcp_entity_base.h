@@ -115,7 +115,7 @@ public:
   void config_security(as_security_config_t sec_cfg_);
 
   // GW/SDAP/RRC interface
-  virtual void write_sdu(unique_byte_buffer_t sdu, bool blocking) = 0;
+  virtual void write_sdu(unique_byte_buffer_t sdu) = 0;
 
   // RLC interface
   virtual void write_pdu(unique_byte_buffer_t pdu) = 0;

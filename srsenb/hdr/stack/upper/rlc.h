@@ -63,6 +63,7 @@ public:
   void        discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t discard_sn);
   bool        rb_is_um(uint16_t rnti, uint32_t lcid);
   std::string get_rb_name(uint32_t lcid);
+  bool        sdu_queue_is_full(uint16_t rnti, uint32_t lcid);
 
   // rlc_interface_mac
   int  read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);

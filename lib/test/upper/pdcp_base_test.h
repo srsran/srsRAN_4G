@@ -51,7 +51,7 @@ public:
     pdu->N_bytes = last_pdcp_pdu->N_bytes;
     return;
   }
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true)
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
   {
     log->info_hex(sdu->msg, sdu->N_bytes, "RLC SDU");
     last_pdcp_pdu.swap(sdu);
@@ -72,6 +72,7 @@ private:
   srslte::unique_byte_buffer_t last_pdcp_pdu;
 
   bool rb_is_um(uint32_t lcid) { return false; }
+  bool sdu_queue_is_full(uint32_t lcid) { return false; };
 };
 
 class rrc_dummy : public srsue::rrc_interface_pdcp

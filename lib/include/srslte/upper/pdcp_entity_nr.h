@@ -54,7 +54,7 @@ public:
   void reestablish() final;
 
   // RRC interface
-  void write_sdu(unique_byte_buffer_t sdu, bool blocking) final;
+  void write_sdu(unique_byte_buffer_t sdu) final;
 
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu) final;

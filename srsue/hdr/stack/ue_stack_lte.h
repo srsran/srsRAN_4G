@@ -116,7 +116,7 @@ public:
   void run_tti(uint32_t tti, uint32_t tti_jump) final;
 
   // Interface for GW
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final;
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu) final;
 
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp.is_lcid_enabled(lcid); }
 

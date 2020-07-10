@@ -185,7 +185,7 @@ void rlc::empty_queue()
   PDCP interface
 *******************************************************************************/
 
-void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
+void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   // TODO: rework build PDU logic to allow large SDUs (without concatenation)
   if (sdu->N_bytes > RLC_MAX_SDU_SIZE) {
@@ -194,7 +194,7 @@ void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
   }
 
   if (valid_lcid(lcid)) {
-    rlc_array.at(lcid)->write_sdu_s(std::move(sdu), blocking);
+    rlc_array.at(lcid)->write_sdu_s(std::move(sdu));
     update_bsr(lcid);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
@@ -204,7 +204,7 @@ void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 void rlc::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   if (valid_lcid_mrb(lcid)) {
-    rlc_array_mrb.at(lcid)->write_sdu(std::move(sdu), false); // write in non-blocking mode by default
+    rlc_array_mrb.at(lcid)->write_sdu(std::move(sdu));
     update_bsr_mch(lcid);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
@@ -232,6 +232,15 @@ void rlc::discard_sdu(uint32_t lcid, uint32_t discard_sn)
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Ignoring discard SDU\n", lcid);
   }
+}
+
+bool rlc::sdu_queue_is_full(uint32_t lcid)
+{
+  if (valid_lcid(lcid)) {
+    return rlc_array.at(lcid)->sdu_queue_is_full();
+  }
+  rlc_log->warning("RLC LCID %d doesn't exist. Ignoring queue check\n", lcid);
+  return false;
 }
 
 /*******************************************************************************

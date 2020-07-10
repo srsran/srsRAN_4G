@@ -70,7 +70,7 @@ public:
   int rx_data_indication(rx_data_ind_t& grant);
 
   // Temporary GW interface
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking);
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
   bool is_lcid_enabled(uint32_t lcid);
   bool switch_on();
   void run_tti(uint32_t tti);

@@ -278,7 +278,7 @@ void gw::run_thread()
           if (stack->is_lcid_enabled(lcid)) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
-            stack->write_sdu(lcid, std::move(pdu), false);
+            stack->write_sdu(lcid, std::move(pdu));
             do {
               pdu = srslte::allocate_unique_buffer(*pool);
               if (!pdu) {

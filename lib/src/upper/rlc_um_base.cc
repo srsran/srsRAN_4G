@@ -91,7 +91,7 @@ void rlc_um_base::empty_queue()
 /****************************************************************************
  * PDCP interface
  ***************************************************************************/
-void rlc_um_base::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+void rlc_um_base::write_sdu(unique_byte_buffer_t sdu)
 {
   if (not tx_enabled || not tx) {
     log->debug("%s is currently deactivated. Dropping SDU (%d B)\n", rb_name.c_str(), sdu->N_bytes);
@@ -99,15 +99,12 @@ void rlc_um_base::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     return;
   }
 
-  if (blocking) {
+  int sdu_bytes = sdu->N_bytes; //< Store SDU length for book-keeping
+  if (tx->try_write_sdu(std::move(sdu)) == SRSLTE_SUCCESS) {
     metrics.num_tx_sdus++;
-    metrics.num_tx_sdu_bytes += sdu->N_bytes;
-    tx->write_sdu(std::move(sdu));
-
+    metrics.num_tx_sdu_bytes += sdu_bytes;
   } else {
-    if (tx->try_write_sdu(std::move(sdu)) != SRSLTE_SUCCESS) {
-      metrics.num_lost_sdus++;
-    }
+    metrics.num_lost_sdus++;
   }
 }
 
@@ -120,6 +117,12 @@ void rlc_um_base::discard_sdu(uint32_t discard_sn)
   tx->discard_sdu(discard_sn);
   metrics.num_lost_sdus++;
 }
+
+bool rlc_um_base::sdu_queue_is_full()
+{
+  return tx->sdu_queue_is_full();
+}
+
 /****************************************************************************
  * MAC interface
  ***************************************************************************/
@@ -268,12 +271,12 @@ int rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", rb_name.c_str(), nof_bytes, tx_sdu_queue.size());
       return SRSLTE_SUCCESS;
     } else {
-      log->info_hex(ret.error()->msg,
-                    ret.error()->N_bytes,
-                    "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
-                    rb_name.c_str(),
-                    ret.error()->N_bytes,
-                    tx_sdu_queue.size());
+      log->warning_hex(ret.error()->msg,
+                       ret.error()->N_bytes,
+                       "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                       rb_name.c_str(),
+                       ret.error()->N_bytes,
+                       tx_sdu_queue.size());
     }
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");
@@ -284,6 +287,11 @@ int rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
 void rlc_um_base::rlc_um_base_tx::discard_sdu(uint32_t discard_sn)
 {
   log->warning("RLC UM: Discard SDU not implemented yet.\n");
+}
+
+bool rlc_um_base::rlc_um_base_tx::sdu_queue_is_full()
+{
+  return tx_sdu_queue.is_full();
 }
 
 int rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)

@@ -71,7 +71,7 @@ void pdcp_entity_nr::reset()
 }
 
 // SDAP/RRC interface
-void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu)
 {
   // Log SDU
   log->info_hex(sdu->msg,
@@ -120,7 +120,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 
   // Check if PDCP is associated with more than on RLC entity TODO
   // Write to lower layers
-  rlc->write_sdu(lcid, std::move(sdu), blocking);
+  rlc->write_sdu(lcid, std::move(sdu));
 }
 
 // RLC interface

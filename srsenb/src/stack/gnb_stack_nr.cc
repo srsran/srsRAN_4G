@@ -182,7 +182,7 @@ int gnb_stack_nr::rx_data_indication(rx_data_ind_t& grant)
 }
 
 // Temporary GW interface
-void gnb_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
+void gnb_stack_nr::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   m_pdcp->write_sdu(args.coreless.rnti, lcid, std::move(sdu));
 }
