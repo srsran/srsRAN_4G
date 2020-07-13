@@ -299,7 +299,7 @@ void rrc::ue::mac_controller::apply_scell_cfg_updates(uint32_t ue_cc_idx)
     }
   }
 
-  pending_scells_cfg.reset();
+  pending_scells_cfg->erase(it);
 }
 
 } // namespace srsenb

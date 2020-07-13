@@ -200,6 +200,18 @@ public:
       delete[] old_data;
     }
   }
+  iterator erase(iterator it)
+  {
+    if (it < begin() or it >= end()) {
+      log_warning("Trying to access out-of-bounds iterator.\n");
+      return end();
+    }
+
+    std::copy(it + 1, end(), it);
+    size_--;
+
+    return it + 1;
+  }
   bool operator==(const dyn_array<T>& other) const
   {
     return size() == other.size() and std::equal(data_, data_ + size(), other.data_);
