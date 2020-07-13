@@ -45,6 +45,7 @@ static float                 n0_dbm  = 30.0f - 20.0f;
 static srslte_channel_awgn_t channel = {};
 
 #define CHEST_TEST_SRS_SNR_DB_TOLERANCE 10.0f
+#define CHEST_TEST_SRS_TA_US_TOLERANCE 0.5f
 
 void usage(char* prog)
 {
@@ -160,7 +161,7 @@ int srs_test_context_run(srs_test_context_t* q)
     // Assert SRS measurements
     TESTASSERT(fabsf(q->chest_ul_res.snr_db - snr_db) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
     TESTASSERT(fabsf(q->chest_ul_res.noise_estimate_dbm - n0_dbm) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
-    TESTASSERT(fabsf(q->chest_ul_res.ta_us) < 0.1f);
+    TESTASSERT(fabsf(q->chest_ul_res.ta_us) < CHEST_TEST_SRS_TA_US_TOLERANCE);
   }
 
   return SRSLTE_SUCCESS;
