@@ -82,8 +82,8 @@ static inline int parse_string(char* args, const char* config_arg_base, int chan
       printf("CHx %s=%s\n", config_arg_base, config_str);
     }
 
-    strncpy(param_dst, config_str, RF_PARAM_LEN);
-    param_dst[RF_PARAM_LEN - 1] = 0;
+    memcpy(param_dst, config_str, RF_PARAM_LEN);
+    param_dst[RF_PARAM_LEN - 1] = '\0';
 
     // concatenate key=value and remove both (avoid removing the same value twice if it occurs twice in rf_args)
     char config_pair[RF_PARAM_LEN * 2] = {0};
