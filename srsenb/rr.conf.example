@@ -58,7 +58,7 @@ cell_list =
     tac = 0x0007;
     pci = 1;
     // root_seq_idx = 204;
-    dl_earfcn = 3400;
+    dl_earfcn = 3350;
     //ul_earfcn = 21400;
     ho_active = false;
 

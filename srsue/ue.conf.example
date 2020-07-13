@@ -28,7 +28,7 @@
 #                     Default is auto (yes for UHD, no for rest)
 #####################################################################
 [rf]
-dl_earfcn = 3400
+dl_earfcn = 3350
 freq_offset = 0
 tx_gain = 80
 #rx_gain = 40

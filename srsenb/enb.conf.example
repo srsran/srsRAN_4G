@@ -59,7 +59,7 @@ drb_config = drb.conf
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
 #####################################################################
 [rf]
-#dl_earfcn = 3400
+#dl_earfcn = 3350
 tx_gain = 80
 rx_gain = 40
 
