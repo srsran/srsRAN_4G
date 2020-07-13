@@ -26,8 +26,8 @@
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/upper/byte_buffer_queue.h"
 #include "srslte/upper/rlc_common.h"
-#include "srslte/upper/rlc_tx_queue.h"
 
 namespace srslte {
 
@@ -77,7 +77,7 @@ private:
   rlc_bearer_metrics_t metrics = {};
 
   // Thread-safe queues for MAC messages
-  rlc_tx_queue ul_queue;
+  byte_buffer_queue ul_queue;
 };
 
 } // namespace srslte

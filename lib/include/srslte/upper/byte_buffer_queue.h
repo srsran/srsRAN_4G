@@ -19,16 +19,16 @@
  *
  */
 
-/******************************************************************************
- *  File:         rlc_tx_queue.h
- *  Description:  Queue used in RLC TM/UM/AM TX queues.
- *                Uses a blocking queue with bounded capacity to block higher layers
- *                when pushing Uplink traffic
- *  Reference:
- *****************************************************************************/
+/*
+ * @file byte_buffer_queue.h
+ *
+ * @brief Queue of unique pointers to byte buffers used in PDCP and RLC TX queues.
+ *        Uses a blocking queue with bounded capacity to block higher layers
+ *        when pushing uplink traffic
+ */
 
-#ifndef SRSLTE_MSG_QUEUE_H
-#define SRSLTE_MSG_QUEUE_H
+#ifndef SRSLTE_BYTE_BUFFERQUEUE_H
+#define SRSLTE_BYTE_BUFFERQUEUE_H
 
 #include "srslte/common/block_queue.h"
 #include "srslte/common/common.h"
@@ -36,14 +36,10 @@
 
 namespace srslte {
 
-class rlc_tx_queue : public block_queue<unique_byte_buffer_t>::call_mutexed_itf
+class byte_buffer_queue : public block_queue<unique_byte_buffer_t>::call_mutexed_itf
 {
 public:
-  rlc_tx_queue(int capacity = 128) : queue(capacity)
-  {
-    unread_bytes = 0;
-    queue.set_mutexed_itf(this);
-  }
+  byte_buffer_queue(int capacity = 128) : queue(capacity) { queue.set_mutexed_itf(this); }
   // increase/decrease unread_bytes inside push/pop mutexed operations
   void pushing(const unique_byte_buffer_t& msg) final { unread_bytes += msg->N_bytes; }
   void popping(const unique_byte_buffer_t& msg) final
@@ -90,9 +86,9 @@ public:
 
 private:
   block_queue<unique_byte_buffer_t> queue;
-  uint32_t                          unread_bytes;
+  uint32_t                          unread_bytes = 0;
 };
 
 } // namespace srslte
 
-#endif // SRSLTE_MSG_QUEUE_H
+#endif // SRSLTE_BYTE_BUFFERQUEUE_H

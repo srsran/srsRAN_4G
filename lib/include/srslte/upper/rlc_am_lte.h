@@ -27,9 +27,9 @@
 #include "srslte/common/log.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/upper/byte_buffer_queue.h"
 #include "srslte/upper/rlc_am_base.h"
 #include "srslte/upper/rlc_common.h"
-#include "srslte/upper/rlc_tx_queue.h"
 #include <deque>
 #include <list>
 #include <map>
@@ -154,7 +154,7 @@ private:
     rlc_am_config_t cfg = {};
 
     // TX SDU buffers
-    rlc_tx_queue         tx_sdu_queue;
+    byte_buffer_queue    tx_sdu_queue;
     unique_byte_buffer_t tx_sdu;
 
     bool tx_enabled = false;

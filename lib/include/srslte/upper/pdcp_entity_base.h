@@ -31,6 +31,7 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/pdcp_interface_types.h"
+#include "srslte/upper/byte_buffer_queue.h"
 
 namespace srslte {
 

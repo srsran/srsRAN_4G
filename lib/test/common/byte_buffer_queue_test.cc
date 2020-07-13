@@ -22,13 +22,13 @@
 #define NMSGS 1000000
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/upper/rlc_tx_queue.h"
+#include "srslte/upper/byte_buffer_queue.h"
 #include <stdio.h>
 
 using namespace srslte;
 
 typedef struct {
-  rlc_tx_queue* q;
+  byte_buffer_queue* q;
 } args_t;
 
 void* write_thread(void* a)
@@ -47,7 +47,7 @@ void* write_thread(void* a)
 int main(int argc, char** argv)
 {
   bool                 result;
-  rlc_tx_queue         q;
+  byte_buffer_queue    q;
   unique_byte_buffer_t b;
   pthread_t            thread;
   args_t               args;

@@ -27,9 +27,9 @@ add_executable(logger_test logger_test.cc)
 target_link_libraries(logger_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 add_test(logger_test logger_test)
 
-add_executable(msg_queue_test msg_queue_test.cc)
-target_link_libraries(msg_queue_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
-add_test(msg_queue_test msg_queue_test)
+add_executable(byte_buffer_queue_test byte_buffer_queue_test.cc)
+target_link_libraries(byte_buffer_queue_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+add_test(byte_buffer_queue_test byte_buffer_queue_test)
 
 add_executable(test_eia1 test_eia1.cc)
 target_link_libraries(test_eia1 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
