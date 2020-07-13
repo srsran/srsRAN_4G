@@ -31,6 +31,7 @@
 #define THROW_BAD_FUNCTION_CALL(const char* cause) throw std::bad_function_call{};
 #else
 #include <cstdio>
+#include <stdlib.h>
 #define THROW_BAD_FUNCTION_CALL(cause)                                                                             \
   fprintf(stderr, "ERROR: exception thrown due to bad function call (cause: %s)\n", cause);                            \
   std::abort()
