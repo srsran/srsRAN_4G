@@ -889,7 +889,7 @@ int rf_zmq_send_timed_multi(void*  h,
                       nsamples_baseband);
 
           int   n   = 0;
-          cf_t* src = data[i];
+          cf_t* src = buffers[i];
           for (int k = 0; k < nsamples; k++) {
             // perform zero order hold
             for (int j = 0; j < decim_factor; j++, n++) {
