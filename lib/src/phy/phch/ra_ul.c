@@ -292,12 +292,13 @@ int srslte_ra_ul_dci_to_grant(srslte_cell_t*              cell,
   // Compute PRB allocation
   if (!ra_ul_grant_to_grant_prb_allocation(dci, grant, hopping_cfg->n_rb_ho, cell->nof_prb)) {
 
-    // Compute MCS
+    // copy default values from DCI. RV can be updated by ul_fill_ra_mcs() in case of Adaptive retx (mcs>28)
     grant->tb.mcs_idx = dci->tb.mcs_idx;
+    grant->tb.rv      = dci->tb.rv;
+
+    // Compute MCS
     ul_fill_ra_mcs(&grant->tb, &grant->last_tb, grant->L_prb, dci->cqi_request);
 
-    // copy RV
-    grant->tb.rv = dci->tb.rv;
 
     /* Compute RE assuming shortened is false*/
     srslte_ra_ul_compute_nof_re(grant, cell->cp, 0);
