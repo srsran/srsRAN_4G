@@ -292,17 +292,17 @@ void rlc_um_lte::rlc_um_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
 {
   rlc_umd_pdu_header_t header;
   rlc_um_read_data_pdu_header(payload, nof_bytes, cfg.um.rx_sn_field_length, &header);
-  log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN: %d (%d B)", rb_name.c_str(), header.sn, nof_bytes);
+  log->info_hex(payload, nof_bytes, "RX %s Rx data PDU SN=%d (%d B)", rb_name.c_str(), header.sn, nof_bytes);
 
   if (RX_MOD_BASE(header.sn) >= RX_MOD_BASE(vr_uh - cfg.um.rx_window_size) &&
       RX_MOD_BASE(header.sn) < RX_MOD_BASE(vr_ur)) {
-    log->info("%s SN: %d outside rx window [%d:%d] - discarding\n", rb_name.c_str(), header.sn, vr_ur, vr_uh);
+    log->info("%s SN=%d outside rx window [%d:%d] - discarding\n", rb_name.c_str(), header.sn, vr_ur, vr_uh);
     return;
   }
 
   std::map<uint32_t, rlc_umd_pdu_t>::iterator it = rx_window.find(header.sn);
   if (rx_window.end() != it) {
-    log->info("%s Discarding duplicate SN: %d\n", rb_name.c_str(), header.sn);
+    log->info("%s Discarding duplicate SN=%d\n", rb_name.c_str(), header.sn);
     return;
   }
 
@@ -489,10 +489,10 @@ void rlc_um_lte::rlc_um_lte_rx::reassemble_rx_sdus()
       // Check if the first part of the PDU is a middle or end segment
       if (rx_sdu->N_bytes == 0 && i == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
         log->warning_hex(
-            rx_window[vr_ur].buf->msg, len, "Dropping first %d B of SN %d due to lost start segment\n", len, vr_ur);
+            rx_window[vr_ur].buf->msg, len, "Dropping first %d B of SN=%d due to lost start segment\n", len, vr_ur);
 
         if (rx_window[vr_ur].buf->N_bytes < len) {
-          log->error("Dropping remaining remainder of SN %d too (N_bytes=%u < len=%d)\n",
+          log->error("Dropping remaining remainder of SN=%d too (N_bytes=%u < len=%d)\n",
                      vr_ur,
                      rx_window[vr_ur].buf->N_bytes,
                      len);
@@ -673,7 +673,7 @@ void rlc_um_lte::rlc_um_lte_rx::timer_expired(uint32_t timeout_id)
     // 36.322 v10 Section 5.1.2.2.4
     log->info("%s reordering timeout expiry - updating vr_ur and reassembling\n", rb_name.c_str());
 
-    log->warning("Lost PDU SN: %d\n", vr_ur);
+    log->warning("Lost PDU SN=%d\n", vr_ur);
 
     pdu_lost = true;
     if (rx_sdu != NULL) {

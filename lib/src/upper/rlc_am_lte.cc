@@ -315,7 +315,7 @@ uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
   // Bytes needed for retx
   if (not retx_queue.empty()) {
     rlc_amd_retx_t retx = retx_queue.front();
-    log->debug("%s Buffer state - retx - SN: %d, Segment: %s, %d:%d\n",
+    log->debug("%s Buffer state - retx - SN=%d, Segment: %s, %d:%d\n",
                RB_NAME,
                retx.sn,
                retx.is_segment ? "true" : "false",
@@ -627,7 +627,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_byt
     parent->rrc->max_retx_attempted();
   }
 
-  log->info("%s Retx PDU scheduled for tx. SN: %d, retx count: %d\n", RB_NAME, retx.sn, tx_window[retx.sn].retx_count);
+  log->info("%s Retx PDU scheduled for tx. SN=%d, retx count: %d\n", RB_NAME, retx.sn, tx_window[retx.sn].retx_count);
 
   debug_state();
   return (ptr - payload) + tx_window[retx.sn].buf->N_bytes;
@@ -816,7 +816,7 @@ int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_byt
     log->console("retx_queue size: %zd PDUs\n", retx_queue.size());
     std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator txit;
     for (txit = tx_window.begin(); txit != tx_window.end(); txit++) {
-      log->console("tx_window - SN: %d\n", txit->first);
+      log->console("tx_window - SN=%d\n", txit->first);
     }
     exit(-1);
 #else
@@ -1239,7 +1239,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
       log->info("%s Status packet requested through polling bit\n", RB_NAME);
       do_status = true;
     }
-    log->info("%s SN: %d outside rx window [%d:%d] - discarding\n", RB_NAME, header.sn, vr_r, vr_mr);
+    log->info("%s SN=%d outside rx window [%d:%d] - discarding\n", RB_NAME, header.sn, vr_r, vr_mr);
     return;
   }
 
@@ -1249,7 +1249,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
       log->info("%s Status packet requested through polling bit\n", RB_NAME);
       do_status = true;
     }
-    log->info("%s Discarding duplicate SN: %d\n", RB_NAME, header.sn);
+    log->info("%s Discarding duplicate SN=%d\n", RB_NAME, header.sn);
     return;
   }
 
@@ -1268,7 +1268,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_b
 
   // check available space for payload
   if (nof_bytes > pdu.buf->get_tailroom()) {
-    log->error("%s Discarding SN: %d of size %d B (available space %d B)\n",
+    log->error("%s Discarding SN=%d of size %d B (available space %d B)\n",
                RB_NAME,
                header.sn,
                nof_bytes,
@@ -1357,7 +1357,7 @@ void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_segment(uint8_t*              pa
       log->info("%s Status packet requested through polling bit\n", RB_NAME);
       do_status = true;
     }
-    log->info("%s SN: %d outside rx window [%d:%d] - discarding\n", RB_NAME, header.sn, vr_r, vr_mr);
+    log->info("%s SN=%d outside rx window [%d:%d] - discarding\n", RB_NAME, header.sn, vr_r, vr_mr);
     return;
   }
 
@@ -1719,7 +1719,7 @@ void rlc_am_lte::rlc_am_lte_rx::print_rx_segments()
   for (it = rx_segments.begin(); it != rx_segments.end(); it++) {
     std::list<rlc_amd_rx_pdu_t>::iterator segit;
     for (segit = it->second.segments.begin(); segit != it->second.segments.end(); segit++) {
-      ss << "    SN:" << segit->header.sn << " SO:" << segit->header.so << " N:" << segit->buf->N_bytes
+      ss << "    SN=" << segit->header.sn << " SO:" << segit->header.so << " N:" << segit->buf->N_bytes
          << " N_li: " << segit->header.N_li << std::endl;
     }
   }

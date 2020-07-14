@@ -111,7 +111,7 @@ void rlc_um_base::write_sdu(unique_byte_buffer_t sdu)
 void rlc_um_base::discard_sdu(uint32_t discard_sn)
 {
   if (not tx_enabled || not tx) {
-    log->debug("%s is currently deactivated. Ignoring SDU discard (SN %u)\n", rb_name.c_str(), discard_sn);
+    log->debug("%s is currently deactivated. Ignoring SDU discard (SN=%u)\n", rb_name.c_str(), discard_sn);
     return;
   }
   tx->discard_sdu(discard_sn);
