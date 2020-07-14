@@ -65,9 +65,9 @@ struct cell_select_result_test {
 int test_phy_ctrl_fsm()
 {
   srslte::log_ref         test_log{"TEST"};
-  stack_test_dummy        stack;
+  srslte::task_scheduler  task_sched;
   phy_dummy_interface     phy;
-  phy_controller          phy_ctrl{&phy, &stack};
+  phy_controller          phy_ctrl{&phy, &task_sched};
   cell_search_result_test csearch_tester{&phy_ctrl};
   cell_select_result_test csel_tester{&phy_ctrl};
 
@@ -101,7 +101,7 @@ int test_phy_ctrl_fsm()
   TESTASSERT(phy_ctrl.current_state_name() != "searching_cell");
 
   // TEST: Check propagation of cell search result to caller
-  stack.run_tti();
+  task_sched.run_pending_tasks();
   TESTASSERT(csearch_tester.trigger_called);
   TESTASSERT(csearch_tester.result.cs_ret.found == cs_ret.found);
   TESTASSERT(csearch_tester.result.found_cell.pci == found_cell.pci);
@@ -128,7 +128,7 @@ int test_phy_ctrl_fsm()
   TESTASSERT(phy_ctrl.current_state_name() != "selecting_cell");
 
   // TEST: Propagation of cell selection result to caller
-  stack.run_tti();
+  task_sched.run_pending_tasks();
   TESTASSERT(csel_tester.result == 1);
 
   // TEST: Cell Selection with timeout being reached
@@ -141,12 +141,13 @@ int test_phy_ctrl_fsm()
 
   for (uint32_t i = 0; i < phy_controller::wait_sync_timeout_ms; ++i) {
     TESTASSERT(phy_ctrl.current_state_name() == "selecting_cell");
-    stack.run_tti();
+    task_sched.tic();
+    task_sched.run_pending_tasks();
   }
   TESTASSERT(phy_ctrl.current_state_name() != "selecting_cell");
 
   // TEST: Propagation of cell selection result to caller
-  stack.run_tti();
+  task_sched.run_pending_tasks();
   TESTASSERT(csel_tester.result == 0);
 
   test_log->info("Finished RRC PHY controller test successfully\n");

@@ -30,10 +30,10 @@ std::string to_string(const phy_interface_rrc_lte::phy_cell_t& cell)
   return buffer;
 }
 
-phy_controller::phy_controller(srsue::phy_interface_rrc_lte* phy_, srsue::stack_interface_rrc* stack_) :
+phy_controller::phy_controller(srsue::phy_interface_rrc_lte* phy_, srslte::task_sched_handle task_sched_) :
   base_t(srslte::log_ref{"RRC"}),
   phy(phy_),
-  stack(stack_)
+  task_sched(task_sched_)
 {}
 
 /**************************************
@@ -62,7 +62,7 @@ void phy_controller::in_sync()
 
 phy_controller::selecting_cell::selecting_cell(phy_controller* parent_) : nested_fsm_t(parent_)
 {
-  wait_in_sync_timer = parent_fsm()->stack->get_unique_timer();
+  wait_in_sync_timer = parent_fsm()->task_sched.get_unique_timer();
 }
 
 void phy_controller::selecting_cell::enter(phy_controller* f, const cell_sel_cmd& ev)
@@ -72,7 +72,12 @@ void phy_controller::selecting_cell::enter(phy_controller* f, const cell_sel_cmd
   csel_res.result = false;
 
   fsmInfo("Starting for pci=%d, earfcn=%d\n", target_cell.pci, target_cell.earfcn);
-  f->stack->start_cell_select(&target_cell);
+  phy_interface_rrc_lte::phy_cell_t cell_copy = target_cell;
+  f->task_sched.enqueue_background_task([f, cell_copy](uint32_t worker_id) {
+    bool ret = f->phy->cell_select(&cell_copy);
+    // notify back RRC
+    f->task_sched.notify_background_task_result([f, ret]() { f->cell_selection_completed(ret); });
+  });
 }
 
 void phy_controller::selecting_cell::exit(phy_controller* f)
@@ -86,7 +91,7 @@ void phy_controller::selecting_cell::exit(phy_controller* f)
   }
 
   // Signal result back to FSM that called cell selection
-  f->stack->defer_task(srslte::make_move_task(csel_callback, csel_res.result));
+  f->task_sched.defer_task(srslte::make_move_task(csel_callback, csel_res.result));
 }
 
 void phy_controller::selecting_cell::wait_in_sync::enter(selecting_cell* f, const cell_sel_res& ev)
@@ -126,9 +131,14 @@ bool phy_controller::cell_search_completed(cell_search_ret_t cs_ret, phy_cell_t 
 
 void phy_controller::searching_cell::enter(phy_controller* f, const cell_search_cmd& cmd)
 {
-  f->log_h->info("Initiated Cell search\n");
+  otherfsmInfo(f, "Initiating Cell search\n");
   f->csearch_callbacks.emplace_back(cmd.callback);
-  f->stack->start_cell_search();
+  f->task_sched.enqueue_background_task([f](uint32_t worker_id) {
+    phy_interface_rrc_lte::phy_cell_t        found_cell;
+    phy_interface_rrc_lte::cell_search_ret_t ret = f->phy->cell_search(&found_cell);
+    // notify back RRC
+    f->task_sched.notify_background_task_result([f, found_cell, ret]() { f->cell_search_completed(ret, found_cell); });
+  });
 }
 
 void phy_controller::handle_cell_search_res(searching_cell& s, const cell_srch_res& result)
@@ -146,7 +156,7 @@ void phy_controller::handle_cell_search_res(searching_cell& s, const cell_srch_r
   }
 
   // Signal result back to FSM that called cell search
-  stack->defer_task(srslte::make_move_task(std::move(csearch_callbacks), result));
+  task_sched.defer_task(srslte::make_move_task(std::move(csearch_callbacks), result));
 }
 
 void phy_controller::share_cell_search_res(searching_cell& s, const cell_search_cmd& cmd)

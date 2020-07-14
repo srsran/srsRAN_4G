@@ -165,8 +165,6 @@ private:
   srslte::block_queue<cmd_msg_t> cmd_q;
 
   void process_pcch(srslte::unique_byte_buffer_t pdu);
-  void start_phy_cell_search();
-  void start_phy_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell);
 
   stack_interface_rrc*      stack = nullptr;
   srslte::task_sched_handle task_sched;

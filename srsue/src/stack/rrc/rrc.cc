@@ -116,7 +116,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   args = args_;
 
-  phy_ctrl.reset(new phy_controller{phy, stack});
+  phy_ctrl.reset(new phy_controller{phy, task_sched});
 
   state            = RRC_STATE_IDLE;
   plmn_is_selected = false;
@@ -1366,26 +1366,6 @@ void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     rrc_log->info("Attempting to auto-start MBMS service %d\n", args.mbms_service_id);
     mbms_service_start(args.mbms_service_id, args.mbms_service_port);
   }
-}
-
-void rrc::start_phy_cell_search()
-{
-  task_sched.enqueue_background_task([this](uint32_t worker_id) {
-    phy_interface_rrc_lte::phy_cell_t        found_cell;
-    phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
-    // notify back RRC
-    task_sched.notify_background_task_result([this, found_cell, ret]() { cell_search_completed(ret, found_cell); });
-  });
-}
-
-void rrc::start_phy_cell_select(const phy_interface_rrc_lte::phy_cell_t* cell)
-{
-  phy_interface_rrc_lte::phy_cell_t cell_copy = *cell;
-  task_sched.enqueue_background_task([this, cell_copy](uint32_t worker_id) {
-    bool ret = phy->cell_select(&cell_copy);
-    // notify back RRC
-    task_sched.notify_background_task_result([this, ret]() { cell_select_completed(ret); });
-  });
 }
 
 /*******************************************************************************

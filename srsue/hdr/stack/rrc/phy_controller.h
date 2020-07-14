@@ -54,7 +54,7 @@ public:
   struct in_sync_ev {};
   struct out_sync_ev {};
 
-  explicit phy_controller(phy_interface_rrc_lte* phy_, stack_interface_rrc* stack_);
+  explicit phy_controller(phy_interface_rrc_lte* phy_, srslte::task_sched_handle task_sched_);
 
   // PHY procedures interfaces
   bool start_cell_select(const phy_cell_t& phy_cell, const srslte::event_callback<bool>& on_complete);
@@ -117,8 +117,8 @@ public:
   };
 
 private:
-  phy_interface_rrc_lte* phy   = nullptr;
-  stack_interface_rrc*   stack = nullptr;
+  phy_interface_rrc_lte*    phy = nullptr;
+  srslte::task_sched_handle task_sched;
 
   std::vector<srslte::event_callback<cell_srch_res> > csearch_callbacks;
 
