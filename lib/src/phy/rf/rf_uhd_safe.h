@@ -129,8 +129,8 @@ public:
 
     UHD_SAFE_C_SAVE_ERROR(this, uhd::stream_cmd_t stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
                           stream_cmd.time_spec = time_spec;
-                          stream_cmd.time_spec += 0.1;
-                          stream_cmd.stream_now = false;
+                          stream_cmd.time_spec += delay;
+                          stream_cmd.stream_now = not std::isnormal(delay);
 
                           rx_stream->issue_stream_cmd(stream_cmd);)
   }
