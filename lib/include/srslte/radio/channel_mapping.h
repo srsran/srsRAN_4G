@@ -59,7 +59,7 @@ public:
       low_freq  = low_freq_;
       high_freq = high_freq_;
     }
-    bool contains(float freq)
+    bool contains(float freq) const
     {
       if (low_freq == 0 && high_freq == 0) {
         return true;
@@ -67,8 +67,8 @@ public:
         return freq >= low_freq && freq <= high_freq;
       }
     }
-    float get_low() { return low_freq; }
-    float get_high() { return high_freq; }
+    float get_low() const { return low_freq; }
+    float get_high() const { return high_freq; }
 
   private:
     float low_freq  = 0;
@@ -81,6 +81,19 @@ public:
     band_cfg band;
     uint32_t carrier_idx;
   } channel_cfg_t;
+
+  typedef struct {
+    uint32_t carrier_idx; // Physical channel index of all channels
+    uint32_t device_idx;  // RF Device index
+    uint32_t channel_idx; // Channel index in the RF Device
+  } device_mapping_t;
+
+  /**
+   * Sets the number of the RF device channels and antennas per carrier
+   * @param nof_channels_x_dev_ Number of RF channels per device
+   * @param nof_antennas_ number of antennas per carrrier
+   */
+  void set_config(const uint32_t& nof_channels_x_dev_, const uint32_t& nof_antennas_);
 
   /**
    * Sets the channel configuration. If no channels are configured no physical channels can be allocated
@@ -105,14 +118,14 @@ public:
   bool release_freq(const uint32_t& logical_ch);
 
   /**
-   * Obtains the carrier index configured in set_channels() in the radio to which the logical channel logical_ch has
-   * been mapped to
+   * Obtains the physical information configured in set_channels() in the radio to which the logical channel logical_ch
+   * has been mapped to
    * @param logical_ch logical channel index
-   * @return <0 if logical_ch is not allocated, true otherwise
+   * @return A device mapping structure carrying the mapping information
    *
    * @see channel_cfg_t
    */
-  int get_carrier_idx(const uint32_t& logical_ch);
+  device_mapping_t get_device_mapping(const uint32_t& logical_ch, const uint32_t& antenna_idx = 0) const;
 
   /**
    * Checks if the channel has been allocated using allocate_freq()
@@ -120,12 +133,20 @@ public:
    * @param logical_ch logical channel index
    * @return true if the channel is allocated, false otherwise
    */
-  bool is_allocated(const uint32_t& logical_ch);
+  bool is_allocated(const uint32_t& logical_ch) const;
+
+  /**
+   * Represents the channel mapping into a string
+   * @return a string representing the current channel mapping
+   */
+  std::string to_string() const;
 
 private:
   std::list<channel_cfg_t>          available_channels = {};
   std::map<uint32_t, channel_cfg_t> allocated_channels = {};
-  std::mutex                        mutex              = {};
+  mutable std::mutex                mutex              = {};
+  uint32_t                          nof_antennas       = 1;
+  uint32_t                          nof_channels_x_dev = 1;
 };
 
 } // namespace srslte

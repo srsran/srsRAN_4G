@@ -21,8 +21,15 @@
 
 #include "srslte/radio/channel_mapping.h"
 #include "srslte/phy/utils/debug.h"
+#include <sstream>
 
 namespace srslte {
+
+void channel_mapping::set_config(const uint32_t& nof_channels_x_dev_, const uint32_t& nof_antennas_)
+{
+  nof_channels_x_dev = nof_channels_x_dev_;
+  nof_antennas       = nof_antennas_;
+}
 
 bool channel_mapping::allocate_freq(const uint32_t& logical_ch, const float& freq)
 {
@@ -40,10 +47,11 @@ bool channel_mapping::allocate_freq(const uint32_t& logical_ch, const float& fre
     if (c->band.contains(freq)) {
       allocated_channels[logical_ch] = *c;
       available_channels.erase(c);
+      printf("-- Current mapping: %s\n", to_string().c_str());
       return true;
     }
   }
-  ERROR("allocate_freq: No channels available for frequency=%.1f\n", freq);
+  ERROR("allocate_freq: No channels available for frequency=%.1f %s\n", freq, to_string().c_str());
   return false;
 }
 
@@ -58,19 +66,38 @@ bool channel_mapping::release_freq(const uint32_t& logical_ch)
   return false;
 }
 
-int channel_mapping::get_carrier_idx(const uint32_t& logical_ch)
+channel_mapping::device_mapping_t channel_mapping::get_device_mapping(const uint32_t& logical_ch,
+                                                                      const uint32_t& antenna_idx) const
 {
   std::lock_guard<std::mutex> lock(mutex);
-  if (allocated_channels.count(logical_ch)) {
-    return allocated_channels[logical_ch].carrier_idx;
+  if (allocated_channels.count(logical_ch) > 0) {
+    uint32_t carrier_idx = allocated_channels.at(logical_ch).carrier_idx;
+    uint32_t channel_idx = carrier_idx * nof_antennas + antenna_idx;
+    return {carrier_idx, channel_idx / nof_channels_x_dev, channel_idx % nof_channels_x_dev};
   }
-  return -1;
+  return {UINT32_MAX, UINT32_MAX, UINT32_MAX};
 }
 
-bool channel_mapping::is_allocated(const uint32_t& logical_ch)
+bool channel_mapping::is_allocated(const uint32_t& logical_ch) const
 {
   std::lock_guard<std::mutex> lock(mutex);
   return allocated_channels.count(logical_ch) > 0;
+}
+
+std::string channel_mapping::to_string() const
+{
+  std::stringstream ss;
+  ss << "[";
+  for (const auto& c : allocated_channels) {
+    uint32_t carrier_idx = allocated_channels.at(c.first).carrier_idx;
+    uint32_t channel_idx = carrier_idx * nof_antennas;
+    ss << "{carrier: " << c.first << ", device: " << channel_idx / nof_channels_x_dev
+       << ", channel: " << channel_idx % nof_channels_x_dev
+       << ", center_freq: " << (c.second.band.get_low() + c.second.band.get_high()) / 2e6 << " MHz },";
+  }
+  ss << "]";
+
+  return ss.str();
 }
 
 } // namespace srslte

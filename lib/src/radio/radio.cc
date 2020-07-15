@@ -32,12 +32,19 @@ radio::radio(srslte::log_filter* log_h_) : logger(nullptr), log_h(log_h_), zeros
 {
   zeros = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
   srslte_vec_cf_zero(zeros, SRSLTE_SF_LEN_MAX);
+  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    dummy_buffers[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
+    srslte_vec_cf_zero(dummy_buffers[i], SRSLTE_SF_LEN_MAX);
+  }
 }
 
 radio::radio(srslte::logger* logger_) : logger(logger_), log_h(nullptr), zeros(nullptr)
 {
   zeros = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
   srslte_vec_cf_zero(zeros, SRSLTE_SF_LEN_MAX);
+  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    dummy_buffers[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
+  }
 }
 
 radio::~radio()
@@ -45,6 +52,13 @@ radio::~radio()
   if (zeros) {
     free(zeros);
     zeros = nullptr;
+  }
+
+  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    if (dummy_buffers[i]) {
+      free(dummy_buffers[i]);
+      dummy_buffers[i] = nullptr;
+    }
   }
 }
 
@@ -114,6 +128,9 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   rf_devices.resize(device_args_list.size());
   rf_info.resize(device_args_list.size());
   rx_offset_n.resize(device_args_list.size());
+
+  tx_channel_mapping.set_config(nof_channels_x_dev, nof_antennas);
+  rx_channel_mapping.set_config(nof_channels_x_dev, nof_antennas);
 
   // Init and start Radios
   for (uint32_t device_idx = 0; device_idx < (uint32_t)device_args_list.size(); device_idx++) {
@@ -267,6 +284,12 @@ bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer
   double* frac_secs = rxd_time ? &rxd_time->frac_secs : nullptr;
 
   void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
+
+  // Discard channels not allocated, need to point to valid buffer
+  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    radio_buffers[i] = dummy_buffers[i];
+  }
+
   if (not map_channels(rx_channel_mapping, device_idx, 0, buffer, radio_buffers)) {
     log_h->error("Mapping logical channels to physical channels for transmission\n");
     return false;
@@ -437,6 +460,12 @@ bool radio::tx_dev(const uint32_t& device_idx, rf_buffer_interface& buffer, cons
   srslte_timestamp_add(&end_of_burst_time[device_idx], 0, (double)nof_samples / cur_tx_srate);
 
   void* radio_buffers[SRSLTE_MAX_CHANNELS] = {};
+
+  // Discard channels not allocated, need to point to valid buffer
+  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    radio_buffers[i] = zeros;
+  }
+
   if (not map_channels(tx_channel_mapping, device_idx, sample_offset, buffer, radio_buffers)) {
     log_h->error("Mapping logical channels to physical channels for transmission\n");
     return false;
@@ -484,31 +513,28 @@ void radio::set_rx_freq(const uint32_t& carrier_idx, const double& freq)
 
   // Map carrier index to physical channel
   if (rx_channel_mapping.allocate_freq(carrier_idx, freq)) {
-    uint32_t physical_channel_idx = rx_channel_mapping.get_carrier_idx(carrier_idx);
-    log_h->info("Mapping RF channel %d to logical carrier %d on f_rx=%.1f MHz\n",
-                physical_channel_idx * nof_antennas,
+    channel_mapping::device_mapping_t device_mapping = rx_channel_mapping.get_device_mapping(carrier_idx);
+    log_h->info("Mapping RF channel %d (device=%d, channel=%d) to logical carrier %d on f_rx=%.1f MHz\n",
+                device_mapping.carrier_idx,
+                device_mapping.device_idx,
+                device_mapping.channel_idx,
                 carrier_idx,
                 freq / 1e6);
-    if (cur_rx_freqs[physical_channel_idx] != freq) {
-      if ((physical_channel_idx + 1) * nof_antennas <= nof_channels) {
-        cur_rx_freqs[physical_channel_idx] = freq;
+    if (cur_rx_freqs[device_mapping.carrier_idx] != freq) {
+      if ((device_mapping.carrier_idx + 1) * nof_antennas <= nof_channels) {
+        cur_rx_freqs[device_mapping.carrier_idx] = freq;
         for (uint32_t i = 0; i < nof_antennas; i++) {
-          uint32_t phys_antenna_idx = physical_channel_idx * nof_antennas + i;
-
-          // From channel number deduce RF device index and channel
-          uint32_t rf_device_idx  = phys_antenna_idx / nof_channels_x_dev;
-          uint32_t rf_channel_idx = phys_antenna_idx % nof_channels_x_dev;
-
-          srslte_rf_set_rx_freq(&rf_devices[rf_device_idx], rf_channel_idx, freq + freq_offset);
+          channel_mapping::device_mapping_t dm = rx_channel_mapping.get_device_mapping(carrier_idx, 0);
+          srslte_rf_set_rx_freq(&rf_devices[dm.device_idx], dm.channel_idx, freq + freq_offset);
         }
       } else {
         log_h->error("set_rx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
-                     physical_channel_idx,
+                     device_mapping.carrier_idx,
                      nof_antennas,
                      nof_channels);
       }
     } else {
-      log_h->info("RF channel %d already on freq\n", physical_channel_idx * nof_antennas);
+      log_h->info("RF Rx channel %d already on freq\n", device_mapping.carrier_idx);
     }
   } else {
     log_h->error("set_rx_freq: Could not allocate frequency %.1f MHz to carrier %d\n", freq / 1e6, carrier_idx);
@@ -547,19 +573,15 @@ void radio::set_rx_srate(const double& srate)
 
 void radio::set_channel_rx_offset(uint32_t ch, int32_t offset_samples)
 {
-  int physical_channel_idx = rx_channel_mapping.get_carrier_idx(ch);
+  uint32_t device_idx = rx_channel_mapping.get_device_mapping(ch, 0).device_idx;
 
   // Return if invalid index
-  if (physical_channel_idx < SRSLTE_SUCCESS) {
+  if (device_idx >= rf_devices.size()) {
     return;
   }
 
-  // Calculate device index
-  uint32_t device_idx = (nof_antennas * (uint32_t)physical_channel_idx) / nof_channels_x_dev;
-
   // Skip correction if device matches the first logical channel
-  int      main_physical_channel_idx = rx_channel_mapping.get_carrier_idx(0);
-  uint32_t main_device_idx           = (nof_antennas * (uint32_t)main_physical_channel_idx) / nof_channels_x_dev;
+  uint32_t main_device_idx = rx_channel_mapping.get_device_mapping(0, 0).device_idx;
   if (device_idx == main_device_idx) {
     return;
   }
@@ -588,31 +610,29 @@ void radio::set_tx_freq(const uint32_t& carrier_idx, const double& freq)
 
   // Map carrier index to physical channel
   if (tx_channel_mapping.allocate_freq(carrier_idx, freq)) {
-    uint32_t physical_channel_idx = tx_channel_mapping.get_carrier_idx(carrier_idx);
-    log_h->info("Mapping RF channel %d to logical carrier %d on f_tx=%.1f MHz\n",
-                physical_channel_idx * nof_antennas,
+    channel_mapping::device_mapping_t device_mapping = tx_channel_mapping.get_device_mapping(carrier_idx);
+    log_h->info("Mapping RF channel %d (device=%d, channel=%d) to logical carrier %d on f_tx=%.1f MHz\n",
+                device_mapping.carrier_idx,
+                device_mapping.device_idx,
+                device_mapping.channel_idx,
                 carrier_idx,
                 freq / 1e6);
-    if (cur_tx_freqs[physical_channel_idx] != freq) {
-      if ((physical_channel_idx + 1) * nof_antennas <= nof_channels) {
-        cur_tx_freqs[physical_channel_idx] = freq;
+    if (cur_tx_freqs[device_mapping.carrier_idx] != freq) {
+      if ((device_mapping.carrier_idx + 1) * nof_antennas <= nof_channels) {
+        cur_tx_freqs[device_mapping.carrier_idx] = freq;
         for (uint32_t i = 0; i < nof_antennas; i++) {
-          uint32_t phys_antenna_idx = physical_channel_idx * nof_antennas + i;
+          device_mapping = tx_channel_mapping.get_device_mapping(carrier_idx, i);
 
-          // From channel number deduce RF device index and channel
-          uint32_t rf_device_idx  = phys_antenna_idx / nof_channels_x_dev;
-          uint32_t rf_channel_idx = phys_antenna_idx % nof_channels_x_dev;
-
-          srslte_rf_set_tx_freq(&rf_devices[rf_device_idx], rf_channel_idx, freq + freq_offset);
+          srslte_rf_set_tx_freq(&rf_devices[device_mapping.device_idx], device_mapping.channel_idx, freq + freq_offset);
         }
       } else {
         log_h->error("set_tx_freq: physical_channel_idx=%d for %d antennas exceeds maximum channels (%d)\n",
-                     physical_channel_idx,
+                     device_mapping.carrier_idx,
                      nof_antennas,
                      nof_channels);
       }
     } else {
-      log_h->info("RF channel %d already on freq\n", physical_channel_idx * nof_antennas);
+      log_h->info("RF Tx channel %d already on freq\n", device_mapping.carrier_idx);
     }
   } else {
     log_h->error("set_tx_freq: Could not allocate frequency %.1f MHz to carrier %d\n", freq / 1e6, carrier_idx);
@@ -835,16 +855,12 @@ void radio::rf_msg_callback(void* arg, srslte_rf_error_t error)
   }
 }
 
-bool radio::map_channels(channel_mapping&           map,
+bool radio::map_channels(const channel_mapping&     map,
                          uint32_t                   device_idx,
                          uint32_t                   sample_offset,
                          const rf_buffer_interface& buffer,
                          void*                      radio_buffers[SRSLTE_MAX_CHANNELS])
 {
-  // Discard channels not allocated, need to point to valid buffer
-  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
-    radio_buffers[i] = zeros;
-  }
   // Conversion from safe C++ std::array to the unsafe C interface. We must ensure that the RF driver implementation
   // accepts up to SRSLTE_MAX_CHANNELS buffers
   for (uint32_t i = 0; i < nof_carriers; i++) {
@@ -853,25 +869,17 @@ bool radio::map_channels(channel_mapping&           map,
       continue;
     }
 
-    // Get physical channel
-    uint32_t physical_idx = map.get_carrier_idx(i);
-
     // Map each antenna
     for (uint32_t j = 0; j < nof_antennas; j++) {
+      channel_mapping::device_mapping_t physical_idx = map.get_device_mapping(i, j);
+
       // Detect mapping out-of-bounds
-      if (physical_idx * nof_antennas + j >= SRSLTE_MAX_CHANNELS) {
+      if (physical_idx.channel_idx >= nof_channels_x_dev) {
         return false;
       }
 
-      // Calculate actual physical port index
-      uint32_t phys_chan_idx = physical_idx * nof_antennas + j;
-
-      // Deduce physical device and port
-      uint32_t rf_device_idx  = phys_chan_idx / nof_channels_x_dev;
-      uint32_t rf_channel_idx = phys_chan_idx % nof_channels_x_dev;
-
       // Set pointer if device index matches
-      if (rf_device_idx == device_idx) {
+      if (physical_idx.device_idx == device_idx) {
         cf_t* ptr = buffer.get(i, j, nof_antennas);
 
         // Add sample offset only if it is a valid pointer
@@ -879,7 +887,7 @@ bool radio::map_channels(channel_mapping&           map,
           ptr += sample_offset;
         }
 
-        radio_buffers[rf_channel_idx] = ptr;
+        radio_buffers[physical_idx.channel_idx] = ptr;
       }
     }
   }

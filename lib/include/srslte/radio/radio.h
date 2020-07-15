@@ -103,6 +103,8 @@ private:
   srslte::logger*               logger      = nullptr;
   phy_interface_radio*          phy         = nullptr;
   cf_t*                         zeros       = nullptr;
+  cf_t*                                  buffer      = nullptr;
+  std::array<cf_t*, SRSLTE_MAX_CHANNELS> dummy_buffers;
 
   rf_timestamp_t end_of_burst_time  = {};
   bool           is_start_of_burst  = false;
@@ -191,7 +193,7 @@ private:
    * @param radio_buffers Actual physical radio buffer
    * @return It returns true if the mapping was successful, otherwise it returns false.
    */
-  bool map_channels(channel_mapping&           map,
+  bool map_channels(const channel_mapping&     map,
                     uint32_t                   device_idx,
                     uint32_t                   sample_offset,
                     const rf_buffer_interface& buffer,
