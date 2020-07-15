@@ -41,7 +41,7 @@ fi
 
 target=$1
 
-echo "Running code format check between ${target} and ${commit} .."
+echo "Running code format check between current state and ${target} .."
 
 # run clang-format
 diff="$(git diff -U0 ${target} | clang-format-diff -p1 | python3 -c 'data = open(0).read(); print(data); exit(1 if data else 0)')"
