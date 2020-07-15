@@ -1049,15 +1049,19 @@ void sf_sched::set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_
 int get_enb_cc_idx_with_uci(const sf_sched*        sf_sched,
                             const sf_sched_result& other_cc_results,
                             const sched_ue*        user,
-                            uint32_t               enb_cc_idx)
+                            uint32_t               current_enb_cc_idx)
 {
   uint32_t ue_cc_idx      = other_cc_results.enb_cc_list.size();
   int      sel_enb_cc_idx = -1;
 
   // Check if UCI needs to be allocated for current CC
-  const sched_interface::ue_cfg_t& ue_cfg     = user->get_ue_cfg();
-  const srslte_cqi_report_cfg_t&   cqi_report = ue_cfg.dl_cfg.cqi_report;
-  bool                             needs_uci =
+  const sched_interface::ue_cfg_t& ue_cfg = user->get_ue_cfg();
+  auto                             p      = user->get_cell_index(current_enb_cc_idx);
+  if (not p.first) {
+    return sel_enb_cc_idx;
+  }
+  const srslte_cqi_report_cfg_t& cqi_report = ue_cfg.supported_cc_list[p.second].dl_cfg.cqi_report;
+  bool                           needs_uci =
       srslte_cqi_periodic_send(&cqi_report, sf_sched->get_tti_tx_ul(), SRSLTE_FDD) or sf_sched->is_dl_alloc(user);
 
   // Check remaining CCs, if UCI is pending
@@ -1075,8 +1079,8 @@ int get_enb_cc_idx_with_uci(const sf_sched*        sf_sched,
 
   // If UL grant allocated in current carrier
   if (sf_sched->is_ul_alloc(user)) {
-    ue_cc_idx      = user->get_cell_index(enb_cc_idx).second;
-    sel_enb_cc_idx = enb_cc_idx;
+    ue_cc_idx      = user->get_cell_index(current_enb_cc_idx).second;
+    sel_enb_cc_idx = current_enb_cc_idx;
   }
 
   for (uint32_t enbccidx = 0; enbccidx < other_cc_results.enb_cc_list.size(); ++enbccidx) {
