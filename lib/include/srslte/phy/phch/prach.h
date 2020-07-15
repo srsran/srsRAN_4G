@@ -123,8 +123,9 @@ typedef struct {
 
 typedef struct {
   int   idx;
-  float   offset;
+  float offset;
   float factor;
+  float phase;
 } srslte_prach_cancellation_t;
 
 typedef struct SRSLTE_API {
@@ -208,5 +209,16 @@ SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t* p, float factor);
 SRSLTE_API int srslte_prach_free(srslte_prach_t* p);
 
 SRSLTE_API int srslte_prach_print_seqs(srslte_prach_t* p);
+
+SRSLTE_API int srslte_prach_process(srslte_prach_t*             p,
+                                    cf_t*                       signal,
+                                    uint32_t*                   indices,
+                                    float*                      t_offsets,
+                                    float*                      peak_to_avg,
+                                    uint32_t*                   n_indices,
+                                    int                         cancellation_idx,
+                                    srslte_prach_cancellation_t prach_cancel,
+                                    uint32_t                    begin,
+                                    uint32_t                    sig_len);
 
 #endif // SRSLTE_PRACH_H

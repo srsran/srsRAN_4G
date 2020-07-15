@@ -274,6 +274,8 @@ SRSLTE_API void srslte_vec_abs_dB_cf(const cf_t* x, float default_value, float* 
  */
 SRSLTE_API void srslte_vec_arg_deg_cf(const cf_t* x, float default_value, float* arg, const uint32_t len);
 
+SRSLTE_API float srslte_mean_arg_cf(const cf_t* x, uint32_t len);
+
 SRSLTE_API void srslte_vec_interleave(const cf_t* x, const cf_t* y, cf_t* z, const int len);
 
 SRSLTE_API void srslte_vec_interleave_add(const cf_t* x, const cf_t* y, cf_t* z, const int len);

@@ -33,7 +33,7 @@
 #include "srslte/phy/phch/prach.h"
 #include "srslte/phy/utils/debug.h"
 char* input_file_name = NULL;
-
+#define PRACH_SRATE 1048750
 
 #define MAX_LEN 70176
 int offset                = -1;
@@ -45,7 +45,7 @@ uint32_t n_seqs           = 64;
 uint32_t num_ra_preambles = 0; // use default
 
 bool     test_successive_cancellation = false;
-bool     test_offset_calculation      = false;
+bool                   test_offset_calculation      = true;
 srslte_filesource_t    fsrc;
 
 void usage(char* prog)
@@ -96,18 +96,23 @@ void stagger_prach_powers(srslte_prach_t prach, cf_t *preamble, cf_t* preamble_s
   for (int seq_index = 0; seq_index < n_seqs; seq_index++) {
     srslte_prach_gen(&prach, seq_index, freq_offset, preamble);
     if (seq_index == 0) {
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach.N_cp + prach.N_seq);
       srslte_vec_sc_prod_cfc(preamble, 0.1, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 1) {
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.4), preamble, prach.N_cp + prach.N_seq);
       srslte_vec_sc_prod_cfc(preamble, 0.4, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 2) {
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach.N_cp + prach.N_seq);
       srslte_vec_sc_prod_cfc(preamble, 0.07, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 3) {
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.9), preamble, prach.N_cp + prach.N_seq);
       srslte_vec_sc_prod_cfc(preamble,0.6, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 4) {
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.3), preamble, prach.N_cp + prach.N_seq);
       srslte_vec_sc_prod_cfc(preamble, 1, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 5) {
@@ -151,15 +156,16 @@ int main(int argc, char** argv)
 
 
   int  srate = srslte_sampling_freq_hz(nof_prb);
-  int  divisor = srate/1048750;
+  int  divisor = srate / PRACH_SRATE;
   if (test_offset_calculation) {
-    n_seqs                       = 15;
-    prach_cfg.num_ra_preambles   = 15;
+    n_seqs                       = 1;
+    prach_cfg.num_ra_preambles   = 4;
     prach_cfg.zero_corr_zone     = 0;
     printf("limiting number of preambles to 15 for offset calculation test\n");
     for (int i = 0; i < 15; i++) {
       offsets[i] = ((rand()%(25*divisor)));
     }
+    memset(offsets, 0, sizeof(int) * 64);
   }
   if (test_successive_cancellation) {
     printf("limiting number of preambles to 6 for successive cancellation test\n");
@@ -206,9 +212,12 @@ int main(int argc, char** argv)
   if (preamble_format == 2 || preamble_format == 3) {
     prach_len /= 2;
   }
-
+  struct timeval t[3];
+  gettimeofday(&t[1], NULL);
   srslte_prach_detect_offset(&prach, 0, &preamble_sum[prach.N_cp], prach_len, indices, t_offsets , NULL, &n_indices);
-
+  gettimeofday(&t[2], NULL);
+  get_time_interval(t);
+  printf("texec=%ld us\n", t[0].tv_usec);
   int err = 0;
   if (n_indices != n_seqs) {
     printf("n_indices %d n_seq %d\n", n_indices, n_seqs);
