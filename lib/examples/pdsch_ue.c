@@ -606,7 +606,8 @@ int main(int argc, char** argv)
   srslte_chest_dl_cfg_t chest_pdsch_cfg = {};
   chest_pdsch_cfg.cfo_estimate_enable   = prog_args.enable_cfo_ref;
   chest_pdsch_cfg.cfo_estimate_sf_mask  = 1023;
-  chest_pdsch_cfg.estimator_alg        = srslte_chest_dl_str2estimator_alg(prog_args.estimator_alg);
+  chest_pdsch_cfg.estimator_alg         = srslte_chest_dl_str2estimator_alg(prog_args.estimator_alg);
+  chest_pdsch_cfg.sync_error_enable     = true;
 
   // Special configuration for MBSFN channel estimation
   srslte_chest_dl_cfg_t chest_mbsfn_cfg = {};
@@ -670,7 +671,7 @@ int main(int argc, char** argv)
   // Variables for measurements
   uint32_t nframes = 0;
   float    rsrp0 = 0.0, rsrp1 = 0.0, rsrq = 0.0, snr = 0.0, enodebrate = 0.0, uerate = 0.0, procrate = 0.0,
-        sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS];
+        sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS], sync_err[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   bool decode_pdsch = false;
 
   for (int i = 0; i < SRSLTE_MAX_LAYERS; i++) {
@@ -860,6 +861,16 @@ int main(int argc, char** argv)
             snr               = SRSLTE_VEC_EMA(ue_dl.chest_res.snr_db, snr, 0.05f);
             enodebrate        = SRSLTE_VEC_EMA(enb_bits / 1000.0f, enodebrate, 0.05f);
             uerate            = SRSLTE_VEC_EMA(ue_bits / 1000.0f, uerate, 0.001f);
+            if (chest_pdsch_cfg.sync_error_enable) {
+              for (uint32_t i = 0; i < cell.nof_ports; i++) {
+                for (uint32_t j = 0; j < prog_args.rf_nof_rx_ant; j++) {
+                  sync_err[i][j] = SRSLTE_VEC_EMA(ue_dl.chest.sync_err[i][j], sync_err[i][j], 0.001f);
+                  if (!isnormal(sync_err[i][j])) {
+                    sync_err[i][j] = 0.0f;
+                  }
+                }
+              }
+            }
             float elapsed     = (float)t[0].tv_usec + t[0].tv_sec * 1.0e+6f;
             if (elapsed != 0.0f) {
               procrate = SRSLTE_VEC_EMA(ue_bits / elapsed, procrate, 0.01f);
@@ -919,6 +930,13 @@ int main(int argc, char** argv)
                 PRINT_LINE("            κ: %.1f dB, RI=%d (Condition number, 0 dB => Best)", cn, ri);
               }
               PRINT_LINE("");
+            }
+            if (chest_pdsch_cfg.sync_error_enable) {
+              for (uint32_t i = 0; i < cell.nof_ports; i++) {
+                for (uint32_t j = 0; j < prog_args.rf_nof_rx_ant; j++) {
+                  PRINT_LINE("sync_err[%d][%d]=%f", i, j, sync_err[i][j]);
+                }
+              }
             }
             PRINT_LINE("Press enter maximum printing debug log of 1 subframe.");
             PRINT_LINE("");
