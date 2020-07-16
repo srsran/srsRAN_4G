@@ -183,7 +183,7 @@ void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 {
   std::lock_guard<std::mutex> lock(mutex);
   if (cc_idx < cc_workers.size()) {
-    Info("Setting configuration for cc_worker=%d, cc=%d\n", get_id(), cc_idx);
+    Info("Setting configuration for worker=%d, cc=%d\n", get_id(), cc_idx);
     // Search common SS in PCell only
     if (cc_idx > 0) {
       phy_cfg.dl_cfg.dci_common_ss = true;
@@ -205,6 +205,7 @@ void sf_worker::work_imp()
   srslte::rf_buffer_t tx_signal_ptr = {};
   if (!cell_initiated) {
     phy->worker_end(this, false, tx_signal_ptr, tx_time);
+    return;
   }
 
   bool     rx_signal_ok    = false;
@@ -248,8 +249,10 @@ void sf_worker::work_imp()
         uint32_t uci_cc_idx = phy->get_ul_uci_cc(TTI_TX(tti));
 
         // Fill periodic CQI data; In case of periodic CSI report collision, lower carrier index have preference, so
-        // iterate through all carriers in inverse order.
-        for (int carrier_idx = phy->args->nof_carriers - 1; carrier_idx >= 0; carrier_idx--) {
+        // stop as soon as either CQI data is enabled or RI is carried
+        for (uint32_t carrier_idx = 0; carrier_idx < phy->args->nof_carriers and not uci_data.cfg.cqi.data_enable and
+                                       uci_data.cfg.cqi.ri_len == 0;
+             carrier_idx++) {
           if (carrier_idx == 0 or phy->scell_cfg[carrier_idx].configured) {
             cc_workers[carrier_idx]->set_uci_periodic_cqi(&uci_data);
           }
