@@ -43,6 +43,73 @@ private:
   uhd_error set_tx_subdev(const std::string& string) { UHD_SAFE_C_SAVE_ERROR(this, usrp->set_tx_subdev_spec(string);) }
   uhd_error set_rx_subdev(const std::string& string) { UHD_SAFE_C_SAVE_ERROR(this, usrp->set_rx_subdev_spec(string);) }
 
+  uhd_error test_ad936x_device(uint32_t nof_channels)
+  {
+
+    uhd_error err = set_rx_rate(1.92e6);
+    if (err != UHD_ERROR_NONE) {
+      return err;
+    }
+
+    size_t max_samp = 0;
+    err             = get_rx_stream(max_samp);
+    if (err != UHD_ERROR_NONE) {
+      return err;
+    }
+
+    // Allocate buffers
+    std::vector<float> data(max_samp * 2);
+    std::vector<void*> buf(nof_channels);
+    for (auto& b : buf) {
+      b = data.data();
+    }
+
+    uhd::rx_metadata_t md              = {};
+    size_t             nof_rxd_samples = 0;
+
+    // If no error getting RX stream, try to receive once
+    err = start_rx_stream(0.1);
+    if (err != UHD_ERROR_NONE) {
+      return err;
+    }
+
+    // Flush Stream
+    do {
+      err = receive(buf.data(), max_samp, md, 0.0f, false, nof_rxd_samples);
+      if (err != UHD_ERROR_NONE) {
+        return err;
+      }
+    } while (md.error_code != uhd::rx_metadata_t::ERROR_CODE_TIMEOUT);
+
+    // Receive
+    err = receive(buf.data(), max_samp, md, 2.0f, false, nof_rxd_samples);
+
+    if (err != UHD_ERROR_NONE) {
+      return err;
+    }
+
+    if (md.error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) {
+      last_error = md.strerror();
+      return UHD_ERROR_IO;
+    }
+
+    // Stop stream
+    err = stop_rx_stream();
+    if (err != UHD_ERROR_NONE) {
+      return err;
+    }
+
+    // Flush Stream
+    do {
+      err = receive(buf.data(), max_samp, md, 0.0f, false, nof_rxd_samples);
+      if (err != UHD_ERROR_NONE) {
+        return err;
+      }
+    } while (md.error_code != uhd::rx_metadata_t::ERROR_CODE_TIMEOUT);
+
+    return err;
+  }
+
 public:
   uhd_error usrp_make(const uhd::device_addr_t& dev_addr_, uint32_t nof_channels) override
   {
@@ -121,20 +188,14 @@ public:
       Info("The device is based on AD9361, get RX stream for checking LIBUSB_TRANSFER_ERROR");
       uint32_t ntrials = 10;
       do {
-        err = set_rx_rate(1.92e6);
-        if (err != UHD_ERROR_NONE) {
-          return err;
-        }
-
-        size_t max_samp = 0;
-        err             = get_rx_stream(max_samp);
 
         // If no error getting RX stream, return
+        err = test_ad936x_device(nof_channels);
         if (err == UHD_ERROR_NONE) {
           return err;
         }
 
-        // Close USRP
+        // Otherwise, close USRP and open again
         usrp = nullptr;
 
         Warning("Failed to open Rx stream '" << last_error << "', trying to open device again. " << ntrials
