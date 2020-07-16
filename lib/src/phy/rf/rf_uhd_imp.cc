@@ -92,9 +92,14 @@ static const double RF_UHD_IMP_TIMED_COMMAND_DELAY_S = 0.1;
 static const double RF_UHD_IMP_TRX_TIMEOUT_S = 0.5;
 
 /**
- * Transmit asynchronous message receiver timeout
+ * Receive asynchronous message receiver timeout
  */
-static const double RF_UHD_IMP_ASYNCH_MSG_TIMEOUT_S = 0.1;
+static const double RF_UHD_IMP_ASYNCH_MSG_TIMEOUT_S = 0.0;
+
+/**
+ * Asynchronous message receiver sleep time
+ */
+static const std::chrono::milliseconds RF_UHD_IMP_ASYNCH_MSG_SLEEP_MS = std::chrono::milliseconds(100);
 
 /**
  * Maximum of Rx Trials
@@ -258,6 +263,8 @@ static void* async_thread(void* h)
         } else {
           ERROR("UHD unhandled event code %d\n", event_code);
         }
+      } else {
+        std::this_thread::sleep_for(RF_UHD_IMP_ASYNCH_MSG_SLEEP_MS);
       }
     }
   }
@@ -1327,7 +1334,7 @@ int rf_uhd_send_timed_multi(void*  h,
 
     // Set start of burst. Time spec only for the first packet in the burst
     md.start_of_burst = is_start_of_burst;
-    md.has_time_spec  = has_time_spec;
+    md.has_time_spec  = is_start_of_burst or has_time_spec;
 
     // middle packets are never end of burst, last one as defined
     if (nsamples - n > (int)tx_samples) {
