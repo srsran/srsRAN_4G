@@ -118,7 +118,7 @@ private:
 };
 
 typedef std::unique_ptr<ul_harq_entity> ul_harq_entity_ptr;
-typedef std::vector<ul_harq_entity_ptr> ul_harq_entity_vector;
+typedef std::array<ul_harq_entity_ptr, SRSLTE_MAX_CARRIERS> ul_harq_entity_vector;
 
 } // namespace srsue
 

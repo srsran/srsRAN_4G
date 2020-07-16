@@ -44,14 +44,8 @@ mac::mac(const char* logname, ext_task_sched_handle task_sched_) :
   task_sched(task_sched_)
 {
   // Create PCell HARQ entities
-  auto ul = ul_harq_entity_ptr(new ul_harq_entity(PCELL_CC_IDX));
-  auto dl = dl_harq_entity_ptr(new dl_harq_entity(PCELL_CC_IDX));
-
-  ul_harq.clear();
-  dl_harq.clear();
-
-  ul_harq.push_back(std::move(ul));
-  dl_harq.push_back(std::move(dl));
+  ul_harq.at(PCELL_CC_IDX) = ul_harq_entity_ptr(new ul_harq_entity(PCELL_CC_IDX));
+  dl_harq.at(PCELL_CC_IDX) = dl_harq_entity_ptr(new dl_harq_entity(PCELL_CC_IDX));
 
   srslte_softbuffer_rx_init(&pch_softbuffer, 100);
   srslte_softbuffer_rx_init(&mch_softbuffer, 100);
@@ -90,8 +84,8 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
   sr_procedure.init(&ra_procedure, phy_h, rrc, log_h);
 
   // Create UL/DL unique HARQ pointers
-  ul_harq.at(0)->init(log_h, &uernti, &ra_procedure, &mux_unit);
-  dl_harq.at(0)->init(log_h, &uernti, &demux_unit);
+  ul_harq.at(PCELL_CC_IDX)->init(log_h, &uernti, &ra_procedure, &mux_unit);
+  dl_harq.at(PCELL_CC_IDX)->init(log_h, &uernti, &demux_unit);
 
   reset();
 
@@ -116,10 +110,14 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
   pcap = pcap_;
   for (auto& r : dl_harq) {
-    r->start_pcap(pcap);
+    if (r != nullptr) {
+      r->start_pcap(pcap);
+    }
   }
   for (auto& r : ul_harq) {
-    r->start_pcap(pcap);
+    if (r != nullptr) {
+      r->start_pcap(pcap);
+    }
   }
   ra_procedure.start_pcap(pcap);
 }
@@ -129,22 +127,27 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
 void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
 {
   if (cc_idx < SRSLTE_MAX_CARRIERS) {
-    // Create as many HARQ entities as carriers required
-    while (ul_harq.size() < cc_idx + 1) {
-      auto ul = ul_harq_entity_ptr(new ul_harq_entity(cc_idx));
+    if (enable and ul_harq.at(cc_idx) == nullptr) {
+      ul_harq_entity_ptr ul = ul_harq_entity_ptr(new ul_harq_entity(cc_idx));
       ul->init(log_h, &uernti, &ra_procedure, &mux_unit);
       ul->set_config(ul_harq_cfg);
-      ul_harq.push_back(std::move(ul));
+
+      if (pcap != nullptr) {
+        ul->start_pcap(pcap);
+      }
+
+      ul_harq.at(cc_idx) = std::move(ul);
     }
-    while (dl_harq.size() < cc_idx + 1) {
-      auto dl = dl_harq_entity_ptr(new dl_harq_entity(cc_idx));
+
+    if (enable and dl_harq.at(cc_idx) == nullptr) {
+      dl_harq_entity_ptr dl = dl_harq_entity_ptr(new dl_harq_entity(cc_idx));
       dl->init(log_h, &uernti, &demux_unit);
 
-      if (pcap) {
+      if (pcap != nullptr) {
         dl->start_pcap(pcap);
       }
 
-      dl_harq.push_back(std::move(dl));
+      dl_harq.at(cc_idx) = std::move(dl);
     }
   }
 }
@@ -168,14 +171,8 @@ void mac::reset()
 
   timer_alignment.stop();
 
+  // Releases UL resources and Resets HARQ processes
   timer_alignment_expire();
-
-  for (auto& r : dl_harq) {
-    r->reset();
-  }
-  for (auto& r : ul_harq) {
-    r->reset();
-  }
 
   mux_unit.msg3_flush();
   mux_unit.reset();
@@ -430,6 +427,12 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
     }
   } else {
 
+    // Assert DL HARQ entity
+    if (dl_harq.at(cc_idx) == nullptr) {
+      Error("HARQ entity %d has not been created\n", cc_idx);
+      return;
+    }
+
     dl_harq.at(cc_idx)->tb_decoded(grant, ack);
     process_pdus();
 
@@ -470,6 +473,12 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
     if (grant.rnti == uernti.crnti && ra_procedure.is_contention_resolution()) {
       ra_procedure.pdcch_to_crnti(false);
     }
+    // Assert DL HARQ entity
+    if (dl_harq.at(cc_idx) == nullptr) {
+      Error("HARQ entity %d has not been created\n", cc_idx);
+      return;
+    }
+
     dl_harq.at(cc_idx)->new_grant_dl(grant, action);
   } else {
     /* Discard */
@@ -498,9 +507,12 @@ uint32_t mac::get_current_tti()
 
 void mac::reset_harq(uint32_t cc_idx)
 {
-  if (cc_idx < dl_harq.size()) {
-    dl_harq.at(cc_idx)->reset();
+  if (ul_harq.at(cc_idx) != nullptr) {
     ul_harq.at(cc_idx)->reset();
+  }
+
+  if (dl_harq.at(cc_idx) != nullptr) {
+    dl_harq.at(cc_idx)->reset();
   }
 }
 
@@ -518,6 +530,13 @@ void mac::new_grant_ul(uint32_t                               cc_idx,
     is_first_ul_grant = false;
     phr_procedure.start_timer();
   }
+
+  // Assert UL HARQ entity
+  if (ul_harq.at(cc_idx) == nullptr) {
+    Error("HARQ entity %d has not been created\n", cc_idx);
+    return;
+  }
+
   ul_harq.at(cc_idx)->new_grant_ul(grant, action);
   metrics[cc_idx].tx_pkts++;
 
@@ -566,10 +585,14 @@ void mac::timer_alignment_expire()
 {
   rrc_h->release_pucch_srs();
   for (auto& r : dl_harq) {
-    r->reset();
+    if (r != nullptr) {
+      r->reset();
+    }
   }
   for (auto& r : ul_harq) {
-    r->reset();
+    if (r != nullptr) {
+      r->reset();
+    }
   }
 }
 
@@ -675,9 +698,9 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
        rx_pkts ? ((float)100 * rx_errors / rx_pkts) : 0.0f,
        dl_avg_ret,
        tx_pkts ? ((float)100 * tx_errors / tx_pkts) : 0.0f,
-       ul_harq.at(0)->get_average_retx());
+       ul_harq.at(PCELL_CC_IDX)->get_average_retx());
 
-  metrics[0].ul_buffer = (int)bsr_procedure.get_buffer_state();
+  metrics[PCELL_CC_IDX].ul_buffer = (int)bsr_procedure.get_buffer_state();
   memcpy(m, metrics, sizeof(mac_metrics_t) * SRSLTE_MAX_CARRIERS);
   m = metrics;
   bzero(&metrics, sizeof(mac_metrics_t) * SRSLTE_MAX_CARRIERS);

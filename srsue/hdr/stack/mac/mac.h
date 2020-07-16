@@ -133,8 +133,8 @@ private:
   demux demux_unit;
 
   /* DL/UL HARQ */
-  dl_harq_entity_vector dl_harq;
-  ul_harq_entity_vector ul_harq;
+  dl_harq_entity_vector dl_harq = {};
+  ul_harq_entity_vector ul_harq = {};
   ul_harq_cfg_t         ul_harq_cfg;
 
   /* MAC Uplink-related Procedures */
