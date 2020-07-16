@@ -83,7 +83,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu)
 
   // Check for COUNT overflow
   if (tx_overflow) {
-    log->warning("TX_NEXT has overflowed. Droping packet\n");
+    log->warning("TX_NEXT has overflowed. Dropping packet\n");
     return;
   }
   if (tx_next + 1 == 0) {
