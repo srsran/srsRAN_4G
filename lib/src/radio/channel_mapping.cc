@@ -47,7 +47,6 @@ bool channel_mapping::allocate_freq(const uint32_t& logical_ch, const float& fre
     if (c->band.contains(freq)) {
       allocated_channels[logical_ch] = *c;
       available_channels.erase(c);
-      printf("-- Current mapping: %s\n", to_string().c_str());
       return true;
     }
   }
