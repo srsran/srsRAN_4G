@@ -56,11 +56,12 @@ pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
   st.last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
 
   log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
-  log->info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN %d\n",
+  log->info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN: %d, discard timer: %d ms\n",
             cfg.sn_len,
             cfg.hdr_len_bytes,
             reordering_window,
-            maximum_pdcp_sn);
+            maximum_pdcp_sn,
+            static_cast<uint32_t>(cfg.discard_timer));
 
   // Check supported config
   if (!check_valid_config()) {
