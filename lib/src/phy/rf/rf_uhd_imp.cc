@@ -1206,19 +1206,18 @@ int rf_uhd_recv_with_time_multi(void*    h,
       log_overflow(handler);
     } else if (error_code == uhd::rx_metadata_t::ERROR_CODE_LATE_COMMAND) {
       log_late(handler, true);
-    } else if (error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {
-      ERROR("Error in metadata '%s'.\n", md.to_pp_string(true).c_str());
-
-      if (handler->tx_state == RF_UHD_IMP_TX_STATE_BURST) {
-        handler->tx_state = RF_UHD_IMP_TX_STATE_END_OF_BURST;
-      }
+    } else if (error_code == uhd::rx_metadata_t::ERROR_CODE_TIMEOUT) {
+      ERROR("Error timed out while receiving samples from UHD.\n");
 
       if (RH_UHD_IMP_PROHIBITED_STOP_START.count(handler->devname) == 0) {
         // Stop Rx stream
         rf_uhd_stop_rx_stream_unsafe(handler);
       }
 
-      return SRSLTE_ERROR;
+      return -1;
+    } else if (error_code != uhd::rx_metadata_t::ERROR_CODE_NONE) {
+      ERROR("Error %s was returned during streaming. Aborting.\n", md.to_pp_string(true).c_str());
+      INFO("Error %s was returned during streaming. Aborting.\n", md.to_pp_string(true).c_str());
     }
   }
 
