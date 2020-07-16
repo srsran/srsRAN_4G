@@ -160,9 +160,25 @@ private:
           document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["InitialCellPower"]["MaxReferencePower"];
       assert(ref_power.IsInt());
 
+      const Value& att = document["Request"]["Cell"]["AddOrReconfigure"]["Basic"]["InitialCellPower"]["Attenuation"];
+
+      float att_value = 0;
+      if (att.HasMember("Value")) {
+        att_value = att["Value"].GetInt();
+      } else if (att.HasMember("Off")) {
+        // is there other values than Off=True?
+        assert(att["Off"].GetBool() == true);
+        if (att["Off"].GetBool() == true) {
+          // use high attenuation value  (-145dB RX power as per TS 36.508 Sec 6.2.2.1-1 is a non-suitable Off cell)
+          att_value = 90.0;
+        }
+      }
+
       // Now configure cell
       syssim->set_cell_config(
           ttcn3_helpers::get_timing_info(document), cell_name.GetString(), earfcn.GetInt(), cell, ref_power.GetInt());
+      log->info("Configuring attenuation of %s to %.2f dB\n", cell_name.GetString(), att_value);
+      syssim->set_cell_attenuation(ttcn3_helpers::get_timing_info(document), cell_name.GetString(), att_value);
     }
 
     // Pull out SIBs and send to syssim
