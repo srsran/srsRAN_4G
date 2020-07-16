@@ -279,7 +279,6 @@ void demux::mch_start_rx(uint32_t lcid)
 
 bool demux::process_ce(srslte::sch_subh* subh)
 {
-  uint32_t cc_idx = 0;
   switch (subh->dl_sch_ce_type()) {
     case srslte::dl_sch_lcid::CON_RES_ID:
       // Do nothing
@@ -288,9 +287,7 @@ bool demux::process_ce(srslte::sch_subh* subh)
       parse_ta_cmd(subh);
       break;
     case srslte::dl_sch_lcid::SCELL_ACTIVATION:
-      cc_idx = (uint32_t)subh->get_activation_deactivation_cmd();
-      phy_h->set_activation_deactivation_scell(cc_idx);
-      mac->reset_harq(cc_idx);
+      phy_h->set_activation_deactivation_scell((uint32_t)subh->get_activation_deactivation_cmd());
       break;
     case srslte::dl_sch_lcid::PADDING:
       break;
