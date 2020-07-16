@@ -33,8 +33,8 @@ radio::radio(srslte::log_filter* log_h_) : logger(nullptr), log_h(log_h_), zeros
   zeros = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
   srslte_vec_cf_zero(zeros, SRSLTE_SF_LEN_MAX);
   for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
-    dummy_buffers[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX);
-    srslte_vec_cf_zero(dummy_buffers[i], SRSLTE_SF_LEN_MAX);
+    dummy_buffers[i] = srslte_vec_cf_malloc(SRSLTE_SF_LEN_MAX * SRSLTE_NOF_SF_X_FRAME);
+    srslte_vec_cf_zero(dummy_buffers[i], SRSLTE_SF_LEN_MAX * SRSLTE_NOF_SF_X_FRAME);
   }
 }
 
