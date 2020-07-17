@@ -184,7 +184,7 @@ public:
     std::string dboard_name = usrp->get_device()->get_tree()->access<std::string>(TREE_DBOARD_RX_FRONTEND_NAME).get();
 
     // Detect if it a AD9361 based device
-    if (dboard_name.find("FE-RX") != std::string::npos) {
+    if (dboard_name.find("FE-RX") != std::string::npos and false) {
       Info("The device is based on AD9361, get RX stream for checking LIBUSB_TRANSFER_ERROR");
       uint32_t ntrials = 10;
       do {
