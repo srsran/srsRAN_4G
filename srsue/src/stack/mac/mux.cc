@@ -74,7 +74,7 @@ void mux::step()
 bool mux::is_pending_any_sdu()
 {
   for (auto& channel : logical_channels) {
-    if (rlc->has_data(channel.lcid)) {
+    if (rlc->has_data_locked(channel.lcid)) {
       return true;
     }
   }

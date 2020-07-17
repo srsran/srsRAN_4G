@@ -182,7 +182,7 @@ void rlc::empty_queue()
 }
 
 /*******************************************************************************
-  PDCP interface
+  PDCP interface (called from Stack thread and therefore no lock required)
 *******************************************************************************/
 
 void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu)
@@ -244,27 +244,12 @@ bool rlc::sdu_queue_is_full(uint32_t lcid)
 }
 
 /*******************************************************************************
-  MAC interface
+  MAC interface (mostly called from PHY workers, lock needs to be hold)
 *******************************************************************************/
-bool rlc::has_data(uint32_t lcid)
+bool rlc::has_data_locked(const uint32_t lcid)
 {
-  bool has_data = false;
-
-  if (valid_lcid(lcid)) {
-    has_data = rlc_array.at(lcid)->has_data();
-  }
-
-  return has_data;
-}
-bool rlc::is_suspended(const uint32_t lcid)
-{
-  bool ret = false;
-
-  if (valid_lcid(lcid)) {
-    ret = rlc_array.at(lcid)->is_suspended();
-  }
-
-  return ret;
+  rwlock_read_guard lock(rwlock);
+  return has_data(lcid);
 }
 
 uint32_t rlc::get_buffer_state(uint32_t lcid)
@@ -288,7 +273,6 @@ uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
   uint32_t ret = 0;
 
   rwlock_read_guard lock(rwlock);
-
   if (valid_lcid_mrb(lcid)) {
     ret = rlc_array_mrb.at(lcid)->get_buffer_state();
   }
@@ -326,6 +310,7 @@ int rlc::read_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   return ret;
 }
 
+// Write PDU methods are called from Stack thread context, no need to acquire the lock
 void rlc::write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
   if (valid_lcid(lcid)) {
@@ -373,9 +358,31 @@ void rlc::write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 }
 
 /*******************************************************************************
-  RRC interface
+  RRC interface (write-lock ONLY needs to be hold for all calls modifying the RLC array)
 *******************************************************************************/
+bool rlc::is_suspended(const uint32_t lcid)
+{
+  bool ret = false;
 
+  if (valid_lcid(lcid)) {
+    ret = rlc_array.at(lcid)->is_suspended();
+  }
+
+  return ret;
+}
+
+bool rlc::has_data(uint32_t lcid)
+{
+  bool has_data = false;
+
+  if (valid_lcid(lcid)) {
+    has_data = rlc_array.at(lcid)->has_data();
+  }
+
+  return has_data;
+}
+
+// Methods modifying the RLC array need to acquire the write-lock
 void rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
 {
   rwlock_write_guard lock(rwlock);
@@ -533,6 +540,7 @@ void rlc::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
   }
 }
 
+// Further RRC calls executed from Stack thread, no need to hold lock
 void rlc::suspend_bearer(uint32_t lcid)
 {
   if (valid_lcid(lcid)) {
@@ -569,7 +577,6 @@ bool rlc::has_bearer(uint32_t lcid)
 /*******************************************************************************
   Helpers (Lock must be hold when calling those)
 *******************************************************************************/
-
 bool rlc::valid_lcid(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_RADIO_BEARERS) {

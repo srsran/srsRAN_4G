@@ -55,7 +55,7 @@ public:
 class rlc_dummy_interface : public rlc_interface_mac
 {
 public:
-  bool     has_data(const uint32_t lcid) override { return false; }
+  bool     has_data_locked(const uint32_t lcid) override { return false; }
   uint32_t get_buffer_state(const uint32_t lcid) override { return 0; }
   int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override { return 0; }
   void     write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) override {}
