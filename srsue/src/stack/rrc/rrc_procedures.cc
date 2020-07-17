@@ -1355,15 +1355,15 @@ srslte::proc_outcome_t rrc::ho_proc::init(const asn1::rrc::rrc_conn_recfg_s& rrc
   recfg_r8                                  = rrc_reconf.crit_exts.c1().rrc_conn_recfg_r8();
   asn1::rrc::mob_ctrl_info_s* mob_ctrl_info = &recfg_r8.mob_ctrl_info;
 
-  if (recfg_r8.mob_ctrl_info.target_pci == rrc_ptr->meas_cells.serving_cell().get_pci()) {
+  if (mob_ctrl_info->target_pci == rrc_ptr->meas_cells.serving_cell().get_pci()) {
     rrc_ptr->rrc_log->console("Warning: Received HO command to own cell\n");
     Warning("Received HO command to own cell\n");
     return proc_outcome_t::error;
   }
 
-  Info("Received HO command to target PCell=%d\n", recfg_r8.mob_ctrl_info.target_pci);
+  Info("Received HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
   rrc_ptr->rrc_log->console("Received HO command to target PCell=%d, NCC=%d\n",
-                            recfg_r8.mob_ctrl_info.target_pci,
+                            mob_ctrl_info->target_pci,
                             recfg_r8.security_cfg_ho.handov_type.intra_lte().next_hop_chaining_count);
 
   target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
@@ -1487,8 +1487,10 @@ srslte::proc_outcome_t rrc::ho_proc::step()
 
     cell_t* target_cell =
         rrc_ptr->meas_cells.get_neighbour_cell_handle(target_earfcn, recfg_r8.mob_ctrl_info.target_pci);
-    rrc_ptr->phy_ctrl->start_cell_select(rrc_ptr->meas_cells.serving_cell().phy_cell,
-                                         srslte::event_callback<bool>{&rrc_ptr->ho_handler});
+
+    Info("Starting cell selection of target cell %s\n", target_cell->to_string().c_str());
+
+    rrc_ptr->phy_ctrl->start_cell_select(target_cell->phy_cell, srslte::event_callback<bool>{&rrc_ptr->ho_handler});
     if (not rrc_ptr->phy_ctrl->is_in_state<phy_controller::selecting_cell>()) {
       Error("Failed to launch the selection of target cell %s\n", target_cell->to_string().c_str());
       return proc_outcome_t::error;
