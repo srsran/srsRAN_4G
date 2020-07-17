@@ -101,7 +101,6 @@ public:
   }
 
   phy_interface_rrc_lte::phy_cell_t last_selected_cell = {};
-
 private:
   bool                                    meas_reset_called = false;
   std::set<uint32_t>                      freqs_started;
@@ -313,15 +312,15 @@ int cell_select_test()
     // Start cell selection procedure. The RRC will start with strongest cell
     TESTASSERT(rrctest.start_cell_select() == SRSLTE_SUCCESS);
     stack.run_pending_tasks();
-    TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 1);
-    TESTASSERT(rrctest.phytest.last_selected_cell.pci == 1);
-    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
-    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
+    TESTASSERT(rrctest.phytest.last_selected_cell.earfcn == 2);
+    TESTASSERT(rrctest.phytest.last_selected_cell.pci == 2);
+    TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
+    TESTASSERT(rrctest.has_neighbour_cell(1, 1));
 
     // PHY reports back the result
     rrctest.cell_select_completed(true);
-    TESTASSERT(rrctest.has_neighbour_cell(2, 2));
-    TESTASSERT(!rrctest.has_neighbour_cell(1, 1));
+    TESTASSERT(!rrctest.has_neighbour_cell(2, 2));
+    TESTASSERT(rrctest.has_neighbour_cell(1, 1));
     // Note: cell selection procedure is not done yet at this point.
   }
 

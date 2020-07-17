@@ -520,24 +520,32 @@ proc_outcome_t rrc::cell_selection_proc::start_serv_cell_selection()
   return proc_outcome_t::yield;
 }
 
+/** Cell selection procedure defined in 36.304 5.2
+ * The procedure starts with Stored Information Cell Selection. In our implementation,
+ * we use known neighbour cells. If that fails, the procedure continues with Initial Cell Selection .
+ *
+ * The standard requires the UE to attach to any cell that meets the Cell Selection Criteria on any frequency.
+ * On each frequency, the UE shall select the strongest cell.
+ *
+ * In our implementation, we will try to select the strongest cell of all known frequencies, if they are still
+ * available, or the strongest of all available cells we've found on any frequency.
+ */
 proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
 {
-  // Neighbour cells are sorted in descending order of RSRP
+  // First of all, try to re-select the current serving cell if it meets the criteria
+  if (not serv_cell_select_attempted and
+      rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
+    return start_serv_cell_selection();
+  }
+
+  // If serving is not available, use the stored information (known neighbours) to find the strongest
+  // cell that meets the selection criteria.
   for (; neigh_index < rrc_ptr->meas_cells.nof_neighbours(); ++neigh_index) {
-    // If the serving cell is stronger, attempt to select it
-    if (not serv_cell_select_attempted and
-        rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp()) and
-        rrc_ptr->meas_cells.serving_cell().greater(&rrc_ptr->meas_cells[neigh_index])) {
-      return start_serv_cell_selection();
-    }
 
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
      * meas_cells[i]->plmn_equals(selected_plmn_id) && */
     // Matches S criteria
-    float rsrp = rrc_ptr->meas_cells.at(neigh_index).get_rsrp();
-
-    if (not rrc_ptr->phy_ctrl->is_in_sync() or
-        (rrc_ptr->cell_selection_criteria(rsrp) and rsrp > rrc_ptr->meas_cells.serving_cell().get_rsrp() + 5)) {
+    if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.at(neigh_index).get_rsrp())) {
       // currently connected and verifies cell selection criteria
       // Try to select Cell
       rrc_ptr->set_serving_cell(rrc_ptr->meas_cells.at(neigh_index).phy_cell, discard_serving);
@@ -554,17 +562,9 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
       return proc_outcome_t::yield;
     }
   }
-  // Iteration over neighbor cells is over.
 
-  // If serving cell is weaker, but couldn't select neighbors
-  if (serv_cell_select_attempted) {
-    return proc_outcome_t::error;
-  } else if (rrc_ptr->cell_selection_criteria(rrc_ptr->meas_cells.serving_cell().get_rsrp())) {
-    return start_serv_cell_selection();
-  }
-
-  // If can not find any suitable cell, search again
-  Info("Cell selection and reselection in IDLE did not find any suitable cell. Searching again\n");
+  // If any of the known cells meets the selection criteria or could not be selected, search again.
+  Info("Could not select any kown cell. Searching new cells\n");
   if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
     return proc_outcome_t::error;
   }
@@ -607,7 +607,7 @@ srslte::proc_outcome_t rrc::cell_selection_proc::step_serv_cell_camp(const bool&
 
   rrc_ptr->meas_cells.serving_cell().set_rsrp(-INFINITY);
   Warning("Could not camp on serving cell.\n");
-  return neigh_index >= rrc_ptr->meas_cells.nof_neighbours() ? proc_outcome_t::error : proc_outcome_t::yield;
+  return start_cell_selection();
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_search()
