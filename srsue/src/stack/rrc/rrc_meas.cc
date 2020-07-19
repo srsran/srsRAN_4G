@@ -494,7 +494,7 @@ void rrc::rrc_meas::var_meas_cfg::eval_triggers()
     float  Ms   = is_rsrp(report_cfg.trigger_quant.value) ? serv_cell->get_rsrp() : serv_cell->get_rsrq();
 
     if (!std::isnormal(Ms)) {
-      log_h->warning("MEAS:  Serving cell Ms=%f invalid when evaluating triggers\n", Ms);
+      log_h->debug("MEAS:  Serving cell Ms=%f invalid when evaluating triggers\n", Ms);
       return;
     }
 

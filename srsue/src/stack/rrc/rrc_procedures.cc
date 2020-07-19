@@ -564,7 +564,7 @@ proc_outcome_t rrc::cell_selection_proc::start_cell_selection()
   }
 
   // If any of the known cells meets the selection criteria or could not be selected, search again.
-  Info("Could not select any kown cell. Searching new cells\n");
+  Info("Could not select any known cell. Searching new cells\n");
   if (not rrc_ptr->cell_searcher.launch(&cell_search_fut)) {
     return proc_outcome_t::error;
   }
@@ -590,6 +590,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection(const bool& cs_ret)
     Error("Could not camp on serving cell.\n");
   }
 
+  rrc_ptr->meas_cells.serving_cell().set_rsrp(-INFINITY);
   discard_serving = true; // Discard this cell
   // Continue to next neighbour cell
   ++neigh_index;
