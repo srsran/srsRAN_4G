@@ -212,6 +212,7 @@ public:
     dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8() = rrc_conn_recfg;
     pdcptest->expecting_reconf_complete                                      = true;
     send_dcch_msg(dl_dcch_msg);
+    stack->task_sched.run_pending_tasks();
     pdcptest->expecting_reconf_complete = false;
 
     return !pdcptest->get_error() && pdcptest->received_reconf_complete;

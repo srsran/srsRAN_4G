@@ -881,27 +881,37 @@ bool rrc::con_reconfig(rrc_conn_recfg_s* reconfig)
     }
   }
 
-  apply_scell_config(reconfig_r8);
+  rrc_conn_recfg_r8_ies_s reconfig_r8_ = *reconfig_r8;
+  task_sched.enqueue_background_task([this, reconfig_r8_](uint32_t worker_id) mutable {
+    // Apply configurations without blocking stack
+    apply_scell_config(&reconfig_r8_);
 
-  if (!measurements->parse_meas_config(
-          reconfig_r8, reestablishment_successful, connection_reest.get()->get_source_earfcn())) {
-    return false;
-  }
+    // notify back RRC
+    task_sched.defer_task([this, reconfig_r8_]() {
+      const rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig_r8_;
 
-  send_rrc_con_reconfig_complete();
+      if (!measurements->parse_meas_config(
+              reconfig_r8, reestablishment_successful, connection_reest.get()->get_source_earfcn())) {
+        return;
+      }
 
-  unique_byte_buffer_t nas_sdu;
-  for (uint32_t i = 0; i < reconfig_r8->ded_info_nas_list.size(); i++) {
-    nas_sdu = srslte::allocate_unique_buffer(*pool);
-    if (nas_sdu.get()) {
-      memcpy(nas_sdu->msg, reconfig_r8->ded_info_nas_list[i].data(), reconfig_r8->ded_info_nas_list[i].size());
-      nas_sdu->N_bytes = reconfig_r8->ded_info_nas_list[i].size();
-      nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
-    } else {
-      rrc_log->error("Fatal Error: Couldn't allocate PDU in handle_rrc_con_reconfig().\n");
-      return false;
-    }
-  }
+      send_rrc_con_reconfig_complete();
+
+      unique_byte_buffer_t nas_sdu;
+      for (uint32_t i = 0; i < reconfig_r8->ded_info_nas_list.size(); i++) {
+        nas_sdu = srslte::allocate_unique_buffer(*pool);
+        if (nas_sdu.get()) {
+          memcpy(nas_sdu->msg, reconfig_r8->ded_info_nas_list[i].data(), reconfig_r8->ded_info_nas_list[i].size());
+          nas_sdu->N_bytes = reconfig_r8->ded_info_nas_list[i].size();
+          nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
+        } else {
+          rrc_log->error("Fatal Error: Couldn't allocate PDU in handle_rrc_con_reconfig().\n");
+          return;
+        }
+      }
+    });
+  });
+
   return true;
 }
 
