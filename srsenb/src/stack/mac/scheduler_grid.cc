@@ -1051,33 +1051,47 @@ int get_enb_cc_idx_with_uci(const sf_sched*        sf_sched,
                             const sched_ue*        user,
                             uint32_t               current_enb_cc_idx)
 {
-  uint32_t ue_cc_idx      = other_cc_results.enb_cc_list.size();
-  int      sel_enb_cc_idx = -1;
-
-  // Check if UCI needs to be allocated for current CC
-  const sched_interface::ue_cfg_t& ue_cfg = user->get_ue_cfg();
-  auto                             p      = user->get_cell_index(current_enb_cc_idx);
-  if (not p.first) {
-    return sel_enb_cc_idx;
+  if (not user->get_cell_index(current_enb_cc_idx).first) {
+    return -1;
   }
-  const srslte_cqi_report_cfg_t& cqi_report = ue_cfg.supported_cc_list[p.second].dl_cfg.cqi_report;
-  bool                           needs_uci =
-      srslte_cqi_periodic_send(&cqi_report, sf_sched->get_tti_tx_ul(), SRSLTE_FDD) or sf_sched->is_dl_alloc(user);
 
-  // Check remaining CCs, if UCI is pending
-  for (uint32_t i = 0; i < other_cc_results.enb_cc_list.size() and not needs_uci; ++i) {
-    for (uint32_t j = 0; j < other_cc_results.enb_cc_list[i].dl_sched_result.nof_data_elems and not needs_uci; ++j) {
-      if (other_cc_results.enb_cc_list[i].dl_sched_result.data[j].dci.rnti == user->get_rnti()) {
-        needs_uci = true;
+  // Check if UCI needs to be allocated
+  bool                             needs_uci = false;
+  const sched_interface::ue_cfg_t& ue_cfg    = user->get_ue_cfg();
+  for (uint32_t enbccidx = 0; enbccidx < other_cc_results.enb_cc_list.size() and not needs_uci; ++enbccidx) {
+    auto p = user->get_cell_index(enbccidx);
+    if (not p.first) {
+      continue;
+    }
+    uint32_t ueccidx = p.second;
+
+    // Check if CQI is pending for this CC
+    const srslte_cqi_report_cfg_t& cqi_report = ue_cfg.supported_cc_list[ueccidx].dl_cfg.cqi_report;
+    needs_uci = srslte_cqi_periodic_send(&cqi_report, sf_sched->get_tti_tx_ul(), SRSLTE_FDD);
+    if (needs_uci) {
+      break;
+    }
+
+    // Check if DL alloc is pending
+    if (enbccidx == current_enb_cc_idx) {
+      needs_uci = sf_sched->is_dl_alloc(user);
+    } else {
+      auto& dl_result = other_cc_results.enb_cc_list[enbccidx].dl_sched_result;
+      for (uint32_t j = 0; j < dl_result.nof_data_elems; ++j) {
+        if (dl_result.data[j].dci.rnti == user->get_rnti()) {
+          needs_uci = true;
+          break;
+        }
       }
     }
   }
-
   if (not needs_uci) {
-    return sel_enb_cc_idx;
+    return -1;
   }
 
   // If UL grant allocated in current carrier
+  uint32_t ue_cc_idx      = other_cc_results.enb_cc_list.size();
+  int      sel_enb_cc_idx = -1;
   if (sf_sched->is_ul_alloc(user)) {
     ue_cc_idx      = user->get_cell_index(current_enb_cc_idx).second;
     sel_enb_cc_idx = current_enb_cc_idx;
@@ -1118,8 +1132,8 @@ void sf_sched::set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_resul
     int fixed_mcs = (ul_alloc.type == ul_alloc_t::MSG3) ? ul_alloc.mcs : -1;
 
     // If UCI is encoded in the current carrier
-    uint32_t uci_enb_cc_idx = get_enb_cc_idx_with_uci(this, *cc_results, user, cc_cfg->enb_cc_idx);
-    bool     carries_uci    = uci_enb_cc_idx == cc_cfg->enb_cc_idx;
+    int  uci_enb_cc_idx = get_enb_cc_idx_with_uci(this, *cc_results, user, cc_cfg->enb_cc_idx);
+    bool carries_uci    = uci_enb_cc_idx == (int)cc_cfg->enb_cc_idx;
 
     /* Generate DCI Format1A */
     uint32_t pending_data_before = user->get_pending_ul_new_data(get_tti_tx_ul());
