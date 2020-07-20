@@ -94,16 +94,15 @@ public:
   static void rf_msg_callback(void* arg, srslte_rf_error_t error);
 
 private:
-  std::vector<srslte_rf_t>      rf_devices  = {};
-  std::vector<srslte_rf_info_t> rf_info     = {};
-  std::vector<int32_t>          rx_offset_n = {};
-  rf_metrics_t                  rf_metrics  = {};
-  log_filter                    log_local   = {};
-  log_filter*                   log_h       = nullptr;
-  srslte::logger*               logger      = nullptr;
-  phy_interface_radio*          phy         = nullptr;
-  cf_t*                         zeros       = nullptr;
-  cf_t*                                  buffer      = nullptr;
+  std::vector<srslte_rf_t>               rf_devices  = {};
+  std::vector<srslte_rf_info_t>          rf_info     = {};
+  std::vector<int32_t>                   rx_offset_n = {};
+  rf_metrics_t                           rf_metrics  = {};
+  log_filter                             log_local   = {};
+  log_filter*                            log_h       = nullptr;
+  srslte::logger*                        logger      = nullptr;
+  phy_interface_radio*                   phy         = nullptr;
+  cf_t*                                  zeros       = nullptr;
   std::array<cf_t*, SRSLTE_MAX_CHANNELS> dummy_buffers;
 
   rf_timestamp_t end_of_burst_time  = {};

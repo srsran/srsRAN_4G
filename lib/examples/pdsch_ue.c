@@ -613,7 +613,7 @@ int main(int argc, char** argv)
   srslte_chest_dl_cfg_t chest_mbsfn_cfg = {};
   chest_mbsfn_cfg.filter_type           = SRSLTE_CHEST_FILTER_TRIANGLE;
   chest_mbsfn_cfg.filter_coef[0]        = 0.1;
-  chest_mbsfn_cfg.estimator_alg        = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
+  chest_mbsfn_cfg.estimator_alg         = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
   chest_mbsfn_cfg.noise_alg             = SRSLTE_NOISE_ALG_PSS;
 
   // Allocate softbuffer buffers
@@ -671,7 +671,7 @@ int main(int argc, char** argv)
   // Variables for measurements
   uint32_t nframes = 0;
   float    rsrp0 = 0.0, rsrp1 = 0.0, rsrq = 0.0, snr = 0.0, enodebrate = 0.0, uerate = 0.0, procrate = 0.0,
-        sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS], sync_err[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+        sinr[SRSLTE_MAX_LAYERS][SRSLTE_MAX_CODEBOOKS] = {}, sync_err[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS] = {};
   bool decode_pdsch = false;
 
   for (int i = 0; i < SRSLTE_MAX_LAYERS; i++) {
@@ -871,7 +871,7 @@ int main(int argc, char** argv)
                 }
               }
             }
-            float elapsed     = (float)t[0].tv_usec + t[0].tv_sec * 1.0e+6f;
+            float elapsed = (float)t[0].tv_usec + t[0].tv_sec * 1.0e+6f;
             if (elapsed != 0.0f) {
               procrate = SRSLTE_VEC_EMA(ue_bits / elapsed, procrate, 0.01f);
             }
