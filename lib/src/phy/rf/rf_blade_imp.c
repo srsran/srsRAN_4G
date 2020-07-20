@@ -29,6 +29,8 @@
 #define UNUSED __attribute__((unused))
 #define CONVERT_BUFFER_SIZE (240 * 1024)
 
+cf_t zero_mem[64 * 1024];
+
 typedef struct {
   struct bladerf*     dev;
   bladerf_sample_rate rx_rate;
@@ -418,7 +420,11 @@ int rf_blade_recv_with_time_multi(void*    h,
                                   time_t*  secs,
                                   double*  frac_secs)
 {
-  return rf_blade_recv_with_time(h, *data, nsamples, blocking, secs, frac_secs);
+  void* ptr = NULL;
+  if (data != NULL) {
+    ptr = data[0];
+  }
+  return rf_blade_recv_with_time(h, ptr, nsamples, blocking, secs, frac_secs);
 }
 
 int rf_blade_recv_with_time(void*       h,
@@ -456,7 +462,9 @@ int rf_blade_recv_with_time(void*       h,
   }
 
   timestamp_to_secs(handler->rx_rate, meta.timestamp, secs, frac_secs);
-  srslte_vec_convert_if(handler->rx_buffer, 2048, data, 2 * nsamples);
+  if (data != NULL) {
+    srslte_vec_convert_if(handler->rx_buffer, 2048, data, 2 * nsamples);
+  }
 
   return nsamples;
 }
@@ -471,8 +479,12 @@ int rf_blade_send_timed_multi(void*  h,
                               bool   is_start_of_burst,
                               bool   is_end_of_burst)
 {
+  void* ptr = NULL;
+  if (data != NULL) {
+    ptr = data[0];
+  }
   return rf_blade_send_timed(
-      h, data[0], nsamples, secs, frac_secs, has_time_spec, blocking, is_start_of_burst, is_end_of_burst);
+      h, ptr, nsamples, secs, frac_secs, has_time_spec, blocking, is_start_of_burst, is_end_of_burst);
 }
 
 int rf_blade_send_timed(void*       h,
@@ -496,6 +508,10 @@ int rf_blade_send_timed(void*       h,
   if (2 * nsamples > CONVERT_BUFFER_SIZE) {
     ERROR("TX failed: nsamples exceeds buffer size (%d>%d)\n", nsamples, CONVERT_BUFFER_SIZE);
     return -1;
+  }
+
+  if (data == NULL) {
+    data = zero_mem;
   }
 
   srslte_vec_convert_fi(data, 2048, handler->tx_buffer, 2 * nsamples);

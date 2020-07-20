@@ -102,7 +102,6 @@ private:
   log_filter*                   log_h       = nullptr;
   srslte::logger*               logger      = nullptr;
   phy_interface_radio*          phy         = nullptr;
-  cf_t*                         zeros       = nullptr;
 
   rf_timestamp_t end_of_burst_time  = {};
   bool           is_start_of_burst  = false;

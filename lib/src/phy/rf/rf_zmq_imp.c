@@ -613,7 +613,7 @@ int rf_zmq_recv_with_time_multi(void*    h,
         // Traverse all channels, break if mapped
         if (buffers[j] == NULL && rf_zmq_rx_match_freq(&handler->receiver[j], handler->rx_freq_mhz[i])) {
           // Available buffer and matched frequency with receiver
-          buffers[j] = (cf_t*)data[i];
+          buffers[j] = (cf_t*)(data != NULL ? data[i] : NULL);
           mapped     = true;
         }
       }
@@ -822,7 +822,7 @@ int rf_zmq_send_timed_multi(void*  h,
         // Traverse all channels, break if mapped
         if (buffers[j] == NULL && rf_zmq_tx_match_freq(&handler->transmitter[j], handler->tx_freq_mhz[i])) {
           // Available buffer and matched frequency with receiver
-          buffers[j] = (cf_t*)data[i];
+          buffers[j] = (cf_t*)(data != NULL ? data[i] : NULL);
           mapped     = true;
         }
       }
