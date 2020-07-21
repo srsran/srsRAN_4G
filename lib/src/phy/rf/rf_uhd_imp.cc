@@ -154,8 +154,7 @@ void suppress_handler(const char* x)
   // do nothing
 }
 
-static cf_t zero_mem[64 * 1024]  = {};
-static cf_t dummy_mem[64 * 1024] = {};
+static cf_t zero_mem[64 * 1024] = {};
 
 #define print_usrp_error(h)                                                                                            \
   do {                                                                                                                 \
@@ -1172,15 +1171,9 @@ int rf_uhd_recv_with_time_multi(void*    h,
   // Receive stream in multiple blocks
   while (rxd_samples_total < nsamples && trials < RF_UHD_IMP_MAX_RX_TRIALS) {
     void* buffs_ptr[SRSLTE_MAX_CHANNELS] = {};
-    if (data != nullptr) {
-      for (uint32_t i = 0; i < handler->nof_rx_channels; i++) {
-        cf_t* data_c = (cf_t*)(data[i] ? data[i] : dummy_mem);
-        buffs_ptr[i] = &data_c[rxd_samples_total];
-      }
-    } else {
-      for (uint32_t i = 0; i < handler->nof_rx_channels; i++) {
-        buffs_ptr[i] = dummy_mem;
-      }
+    for (uint32_t i = 0; i < handler->nof_rx_channels; i++) {
+      cf_t* data_c = (cf_t*)data[i];
+      buffs_ptr[i] = &data_c[rxd_samples_total];
     }
 
     size_t num_samps_left = nsamples - rxd_samples_total;
@@ -1317,16 +1310,10 @@ int rf_uhd_send_timed_multi(void*  h,
 
   // Generate transmission buffer pointers
   cf_t* data_c[SRSLTE_MAX_CHANNELS] = {};
-  if (data != nullptr) {
-    for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
-      if (i < handler->nof_tx_channels) {
-        data_c[i] = (data[i] != nullptr) ? (cf_t*)(data[i]) : zero_mem;
-      } else {
-        data_c[i] = zero_mem;
-      }
-    }
-  } else {
-    for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
+    if (i < handler->nof_tx_channels) {
+      data_c[i] = (data[i] != nullptr) ? (cf_t*)(data[i]) : zero_mem;
+    } else {
       data_c[i] = zero_mem;
     }
   }

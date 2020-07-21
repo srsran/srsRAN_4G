@@ -74,7 +74,6 @@ typedef struct {
 } rf_soapy_handler_t;
 
 cf_t zero_mem[64 * 1024];
-cf_t dummy_mem[64 * 1024];
 
 static void log_overflow(rf_soapy_handler_t* h)
 {
@@ -824,16 +823,9 @@ int rf_soapy_recv_with_time_multi(void*    h,
 #endif
 
     void* buffs_ptr[SRSLTE_MAX_PORTS] = {};
-
-    if (data != NULL) {
-      for (int i = 0; i < handler->num_rx_channels; i++) {
-        cf_t* data_c = (cf_t*)data[i] ? data[i] : dummy_mem;
-        buffs_ptr[i] = &data_c[n];
-      }
-    } else {
-      for (int i = 0; i < handler->num_rx_channels; i++) {
-        buffs_ptr[i] = dummy_mem;
-      }
+    for (int i = 0; i < handler->num_rx_channels; i++) {
+      cf_t* data_c = (cf_t*)data[i];
+      buffs_ptr[i] = &data_c[n];
     }
 
     ret = SoapySDRDevice_readStream(
@@ -951,15 +943,9 @@ int rf_soapy_send_timed_multi(void*  h,
 #endif
 
     const void* buffs_ptr[SRSLTE_MAX_PORTS] = {};
-    if (data != NULL) {
-      for (int i = 0; i < handler->num_tx_channels; i++) {
-        cf_t* data_c = data[i] ? data[i] : zero_mem;
-        buffs_ptr[i] = &data_c[n];
-      }
-    } else {
-      for (int i = 0; i < handler->num_rx_channels; i++) {
-        buffs_ptr[i] = zero_mem;
-      }
+    for (int i = 0; i < handler->num_tx_channels; i++) {
+      cf_t* data_c = data[i] ? data[i] : zero_mem;
+      buffs_ptr[i] = &data_c[n];
     }
 
     ret = SoapySDRDevice_writeStream(
