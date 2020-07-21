@@ -53,7 +53,6 @@ int srslte_sync_init(srslte_sync_t* q, uint32_t frame_size, uint32_t max_offset,
 }
 int srslte_sync_init_decim(srslte_sync_t* q, uint32_t frame_size, uint32_t max_offset, uint32_t fft_size, int decimate)
 {
-
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL && fft_size_isvalid(fft_size)) {

@@ -59,7 +59,7 @@ private:
   uint32_t                            channel  = 0;
   srslte_sync_t                       find_pss = {};
   int32_t                             sf_len   = 0;
-  std::array<cf_t, SRSLTE_SF_LEN_MAX> temp;
+  std::array<cf_t, 2 * SRSLTE_SF_LEN_MAX> temp;
 
   /**
    * Executes the PSS search state
@@ -110,14 +110,18 @@ private:
 public:
   /**
    * Constructor
+   *
+   * Init PSS search object with twice the max subframe length to support max cell bandwidth.
+   *
    * @param _callback provides the class for giving feedback
    * @param _channel provides the channel index where the feedback needs to be applied
    */
   sync(sync_callback* _callback, uint32_t _channel) : callback(_callback), channel(_channel)
   {
     // Initialise Find PSS object
-    if (srslte_sync_init(&find_pss, SRSLTE_SF_LEN_MAX, SRSLTE_SF_LEN_MAX, SRSLTE_SYMBOL_SZ_MAX) != SRSLTE_SUCCESS) {
-      ERROR("Initiating Synchroniser\n");
+    if (srslte_sync_init(&find_pss, 2 * SRSLTE_SF_LEN_MAX, 2 * SRSLTE_SF_LEN_MAX, SRSLTE_SYMBOL_SZ_MAX) !=
+        SRSLTE_SUCCESS) {
+      ERROR("Initiating Synchronizer\n");
     }
   }
 
