@@ -188,7 +188,7 @@ static inline void generate_taps(srslte_channel_fading_t* q, float time)
 static inline void filter_segment(srslte_channel_fading_t* q, const cf_t* input, cf_t* output, uint32_t nsamples)
 {
   // Fill Input vector
-  memcpy(q->temp, input, sizeof(cf_t) * nsamples);
+  srslte_vec_cf_copy(q->temp, input, nsamples);
   srslte_vec_cf_zero(&q->temp[nsamples], q->N - nsamples);
 
   // Do FFT
@@ -203,12 +203,12 @@ static inline void filter_segment(srslte_channel_fading_t* q, const cf_t* input,
   // Add state
   srslte_vec_sum_ccc(q->temp, q->state, q->temp, q->state_len);
 
-  // Copy output
-  memcpy(output, q->temp, sizeof(cf_t) * nsamples);
+  // Copy the first nsamples into the output
+  srslte_vec_cf_copy(output, q->temp, nsamples);
 
-  // Copy state
+  // Copy the rest of the samples into the state
   q->state_len = q->N - nsamples;
-  memcpy(q->state, &q->temp[q->state_len], sizeof(cf_t) * q->state_len);
+  srslte_vec_cf_copy(q->state, &q->temp[nsamples], q->state_len);
 }
 
 int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const char* model, uint32_t seed)
