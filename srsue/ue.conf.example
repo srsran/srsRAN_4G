@@ -289,7 +289,7 @@ enable = false
 #                                   empty: use empty subcarriers in the boarder of pss/sss signal
 # pdsch_max_its:        Maximum number of turbo decoder iterations (Default 4)
 # pdsch_meas_evm:       Measure PDSCH EVM, increases CPU load (default false)
-# nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
+# nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 3)
 # equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
 #                       non-negative real number to indicate a regularized zf coefficient.
 #                       Default is MMSE.

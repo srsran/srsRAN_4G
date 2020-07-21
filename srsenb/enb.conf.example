@@ -271,7 +271,7 @@ pusch_max_mcs    = 16
 #
 # pusch_max_its:        Maximum number of turbo decoder iterations (Default 4)
 # pusch_8bit_decoder:   Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)
-# nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
+# nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 3)
 # metrics_period_secs:  Sets the period at which metrics are requested from the eNB. 
 # metrics_csv_enable:   Write eNB metrics to CSV file.
 # metrics_csv_filename: File path to use for CSV metrics.
