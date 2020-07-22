@@ -64,9 +64,11 @@ private:
 #endif // UHD_ENABLE_CUSTOM_RFNOC
 
   const std::string               DMA_FIFO_BLOCK_NAME = "DmaFIFO";
+  const std::string               FIFO_BLOCK_NAME     = "FIFO";
   const std::chrono::milliseconds SETUP_TIME_MS       = std::chrono::milliseconds(1000UL);
   const uhd::fs_path              TREE_MBOARD_SENSORS = "/mboards/0/sensors";
   const uhd::fs_path              TREE_RX_SENSORS     = "/mboards/0/dboards/A/rx_frontends/0/sensors";
+  const uhd::fs_path              TREE_TIME_NOW       = "/mboards/0/time/now";
   const std::string               TX_ANTENNA_PORT     = "TX/RX";
   const std::string               RX_ANTENNA_PORT     = "RX2";
   const size_t                    spp                 = 1920 / 8;
@@ -96,8 +98,9 @@ private:
   std::vector<uhd::rfnoc::block_id_t>            duc_id   = {};
 
   // DMA FIFO Control
-  uhd::rfnoc::dma_fifo_block_ctrl::sptr dma_ctrl = {};
-  uhd::rfnoc::block_id_t                dma_id   = {};
+  bool                                           use_dma   = false;
+  std::vector<uhd::rfnoc::block_ctrl_base::sptr> fifo_ctrl = {};
+  std::vector<uhd::rfnoc::block_id_t>            fifo_id   = {};
 
   uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) override
   {
@@ -275,19 +278,39 @@ private:
           }
         }
 
+        // Check whether using DMA or FIFO
+        use_dma = device3->find_blocks(FIFO_BLOCK_NAME).size() < (nof_radios * nof_channels);
+
         // Create DMA FIFO control
-        dma_id   = uhd::rfnoc::block_id_t(0, DMA_FIFO_BLOCK_NAME);
-        dma_ctrl = device3->get_block_ctrl<uhd::rfnoc::dma_fifo_block_ctrl>(dma_id);
+        if (use_dma) {
+          // One FIFO for all channels
+          fifo_id.resize(1);
+          fifo_ctrl.resize(1);
 
-        // Configure DMA Channels
-        for (size_t i = 0; i < nof_radios * nof_channels; i++) {
-          uhd::device_addr_t dma_fifo_args;
-          dma_fifo_args.set("base_addr", std::to_string(dma_fifo_depth * i));
-          dma_fifo_args.set("depth", std::to_string(dma_fifo_depth));
+          // Get block
+          fifo_id[0]   = uhd::rfnoc::block_id_t(0, DMA_FIFO_BLOCK_NAME);
+          fifo_ctrl[0] = device3->get_block_ctrl<uhd::rfnoc::block_ctrl_base>(fifo_id[0]);
 
-          UHD_LOG_DEBUG(dma_id, "Setting channel " << i << " args: " << dma_fifo_args.to_string());
+          // Configure DMA Channels
+          for (size_t i = 0; i < nof_radios * nof_channels; i++) {
+            uhd::device_addr_t dma_fifo_args;
+            dma_fifo_args.set("base_addr", std::to_string(dma_fifo_depth * i));
+            dma_fifo_args.set("depth", std::to_string(dma_fifo_depth));
 
-          dma_ctrl->set_args(dma_fifo_args, i);
+            UHD_LOG_DEBUG(fifo_id[0], "Setting channel " << i << " args: " << dma_fifo_args.to_string());
+
+            fifo_ctrl[0]->set_args(dma_fifo_args, i);
+          }
+        } else {
+          // One FIFO for every channel
+          fifo_id.resize(nof_radios * nof_channels);
+          fifo_ctrl.resize(nof_radios * nof_channels);
+
+          for (size_t i = 0; i < nof_radios * nof_channels; i++) {
+            // Get block
+            fifo_id[i]   = uhd::rfnoc::block_id_t(0, FIFO_BLOCK_NAME, i);
+            fifo_ctrl[i] = device3->get_block_ctrl<uhd::rfnoc::block_ctrl_base>(fifo_id[i]);
+          }
         })
   }
 
@@ -299,29 +322,38 @@ private:
       nof_samples_per_packet = spp * 4 + 2 * sizeof(uint64_t);
     }
 
-    UHD_SAFE_C_SAVE_ERROR(this,
+    UHD_SAFE_C_SAVE_ERROR(
+        this,
 
-                          // Get Tx and Rx Graph
-                          graph = device3->create_graph("graph");
+        // Get Tx and Rx Graph
+        graph = device3->create_graph("graph");
 
-                          for (size_t i = 0; i < nof_radios; i++) {
-                            // Radio -> DDC
-                            UHD_LOG_DEBUG(graph->get_name(), "Connecting " << radio_id[i] << " -> " << ddc_id[i]);
-                            graph->connect(radio_id[i], 0, ddc_id[i], 0, nof_samples_per_packet);
+        for (size_t i = 0; i < nof_radios; i++) {
+          // Radio -> DDC
+          UHD_LOG_DEBUG(graph->get_name(), "Connecting " << radio_id[i] << " -> " << ddc_id[i]);
+          graph->connect(radio_id[i], 0, ddc_id[i], 0, nof_samples_per_packet);
 
-                            // DUC -> Radio
-                            UHD_LOG_DEBUG(graph->get_name(), "Connecting " << duc_id[i] << " -> " << radio_id[i]);
-                            graph->connect(duc_id[i], 0, radio_id[i], 0, nof_samples_per_packet);
+          // DUC -> Radio
+          UHD_LOG_DEBUG(graph->get_name(), "Connecting " << duc_id[i] << " -> " << radio_id[i]);
+          graph->connect(duc_id[i], 0, radio_id[i], 0, nof_samples_per_packet);
 
-                            // DMA FIFO -> DUC
-                            for (size_t j = 0; j < nof_channels; j++) {
-                              size_t dma_port = i * nof_channels + j;
-                              UHD_LOG_DEBUG(graph->get_name(),
-                                            "Connecting " << dma_id << ":" << dma_port << " -> " << duc_id[i] << ":"
-                                                          << j);
-                              graph->connect(dma_id, dma_port, duc_id[i], j, nof_samples_per_packet);
-                            }
-                          })
+          if (use_dma) {
+            // DMA FIFO -> DUC
+            for (size_t j = 0; j < nof_channels; j++) {
+              size_t dma_port = i * nof_channels + j;
+              UHD_LOG_DEBUG(graph->get_name(),
+                            "Connecting " << fifo_id[0] << ":" << dma_port << " -> " << duc_id[i] << ":" << j);
+              graph->connect(fifo_id[0], dma_port, duc_id[i], j, nof_samples_per_packet);
+            }
+          } else {
+            // FIFO -> DUC
+            for (size_t j = 0; j < nof_channels; j++) {
+              size_t fifo_idx = i * nof_channels + j;
+              UHD_LOG_DEBUG(graph->get_name(), "Connecting " << fifo_id[fifo_idx] << ":0 -> " << duc_id[i] << ":" << j);
+              graph->connect(fifo_id[fifo_idx], 0, duc_id[i], j, nof_samples_per_packet);
+            }
+          }
+        })
   }
 
   uhd_error connect_loopback()
@@ -332,25 +364,34 @@ private:
       nof_samples_per_packet = spp * 4 + 2 * sizeof(uint64_t);
     }
 
-    UHD_SAFE_C_SAVE_ERROR(this,
+    UHD_SAFE_C_SAVE_ERROR(
+        this,
 
-                          // Get Tx and Rx Graph
-                          graph = device3->create_graph("graph");
+        // Get Tx and Rx Graph
+        graph = device3->create_graph("graph");
 
-                          for (size_t i = 0; i < nof_radios; i++) {
-                            // DUC -> DDC
-                            UHD_LOG_DEBUG(graph->get_name(), "Connecting " << duc_id[i] << " -> " << ddc_id[i]);
-                            graph->connect(duc_id[i], 0, ddc_id[i], 0, nof_samples_per_packet);
+        for (size_t i = 0; i < nof_radios; i++) {
+          // DUC -> DDC
+          UHD_LOG_DEBUG(graph->get_name(), "Connecting " << duc_id[i] << " -> " << ddc_id[i]);
+          graph->connect(duc_id[i], 0, ddc_id[i], 0, nof_samples_per_packet);
 
-                            for (size_t j = 0; j < nof_channels; j++) {
-                              // DMA FIFO -> DUC
-                              size_t dma_port = i * nof_channels + j;
-                              UHD_LOG_DEBUG(graph->get_name(),
-                                            "Connecting " << dma_id << ":" << dma_port << " -> " << duc_id[i] << ":"
-                                                          << j);
-                              graph->connect(dma_id, dma_port, duc_id[i], j, nof_samples_per_packet);
-                            }
-                          })
+          if (use_dma) {
+            for (size_t j = 0; j < nof_channels; j++) {
+              // DMA FIFO -> DUC
+              size_t dma_port = i * nof_channels + j;
+              UHD_LOG_DEBUG(graph->get_name(),
+                            "Connecting " << fifo_id[0] << ":" << dma_port << " -> " << duc_id[i] << ":" << j);
+              graph->connect(fifo_id[0], dma_port, duc_id[i], j, nof_samples_per_packet);
+            }
+          } else {
+            for (size_t j = 0; j < nof_channels; j++) {
+              // DMA FIFO -> DUC
+              size_t fifo_idx = i * nof_channels + j;
+              UHD_LOG_DEBUG(graph->get_name(), "Connecting " << fifo_id[fifo_idx] << ":0 -> " << duc_id[i] << ":" << j);
+              graph->connect(fifo_id[fifo_idx], 0, duc_id[i], j, nof_samples_per_packet);
+            }
+          }
+        })
   }
 
 public:
@@ -452,12 +493,8 @@ public:
   }
   uhd_error get_time_now(uhd::time_spec_t& timespec) override
   {
-    if (loopback) {
-      timespec = 0.0;
-      return UHD_ERROR_NONE;
-    }
-
-    UHD_SAFE_C_SAVE_ERROR(this, timespec = radio_ctrl[0]->get_time_now(););
+    UHD_SAFE_C_SAVE_ERROR(this, timespec = device3->get_tree()->access<uhd::time_spec_t>(TREE_TIME_NOW).get();
+                          Info("-- " << timespec.get_real_secs());)
   }
   uhd_error set_sync_source(const std::string& source) override
   {
@@ -536,10 +573,15 @@ public:
         for (size_t i = 0; i < nof_radios; i++) {
           for (size_t j = 0; j < nof_channels; j++, channel_count++) {
             std::string channel_str = std::to_string(channel_count);
-
-            stream_args.args["block_id" + channel_str]   = dma_id;
-            stream_args.args["block_port" + channel_str] = channel_str;
-            stream_args.channels[channel_count]          = channel_count;
+            if (use_dma) {
+              stream_args.args["block_id" + channel_str]   = fifo_id[0];
+              stream_args.args["block_port" + channel_str] = channel_str;
+              stream_args.channels[channel_count]          = channel_count;
+            } else {
+              stream_args.args["block_id" + channel_str]   = fifo_id[channel_count];
+              stream_args.args["block_port" + channel_str] = "0";
+              stream_args.channels[channel_count]          = channel_count;
+            }
           }
         }
 
