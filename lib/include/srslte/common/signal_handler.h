@@ -28,6 +28,7 @@
 #define SRSLTE_SIGNAL_HANDLER_H
 
 #include "srslte/common/logger_file.h"
+#include "srslte/srslog/sink.h"
 #include <signal.h>
 #include <stdio.h>
 
@@ -38,6 +39,7 @@ extern "C" {
 #define SRSLTE_TERM_TIMEOUT_S (5)
 
 // static vars required by signal handling
+static srslog::sink*       log_sink = nullptr;
 static srslte::logger_file logger_file;
 static bool                running = true;
 
@@ -46,7 +48,11 @@ static void srslte_signal_handler(int signal)
   switch (signal) {
     case SIGALRM:
       fprintf(stderr, "Couldn't stop after %ds. Forcing exit.\n", SRSLTE_TERM_TIMEOUT_S);
+      //:TODO: refactor the sighandler, should not depend on log utilities
       logger_file.stop();
+      if (log_sink) {
+        log_sink->flush();
+      }
       raise(SIGKILL);
     default:
       // all other registered signals try to stop the app gracefully

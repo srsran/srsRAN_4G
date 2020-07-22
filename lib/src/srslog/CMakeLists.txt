@@ -18,9 +18,13 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(mac)
-add_subdirectory(phy)
-add_subdirectory(srslog)
-add_subdirectory(upper)
+set(SOURCES
+    srslog.cpp
+    backend_worker.cpp)
+
+add_subdirectory(bundled/fmt)
+
+find_package(Threads REQUIRED)
+
+add_library(srslog STATIC ${SOURCES})
+target_link_libraries(srslog fmt "${CMAKE_THREAD_LIBS_INIT}")

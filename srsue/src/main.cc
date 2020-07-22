@@ -22,9 +22,11 @@
 #include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
+#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/common/signal_handler.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/srslte.h"
 #include "srslte/version.h"
 #include "srsue/hdr/metrics_csv.h"
@@ -600,31 +602,44 @@ static void* input_loop(void*)
   return nullptr;
 }
 
+/// Adjusts the input value in args from kbytes to bytes.
+static size_t fixup_log_file_maxsize(int x)
+{
+  return (x < 0) ? 0 : size_t(x) * 1024u;
+}
+
 int main(int argc, char* argv[])
 {
   srslte_register_signal_handler();
   srslte_debug_handle_crash(argc, argv);
 
   all_args_t args = {};
-  if (parse_args(&args, argc, argv) != SRSLTE_SUCCESS) {
-    return SRSLTE_ERROR;
-  };
-
-  // Setup logging
-  srslte::logger_stdout logger_stdout;
-  srslte::logger*       logger = nullptr;
-  if (args.log.filename == "stdout") {
-    logger = &logger_stdout;
-  } else {
-    logger_file.init(args.log.filename, args.log.file_max_size);
-    logger = &logger_file;
+  if (int err = parse_args(&args, argc, argv)) {
+    return err;
   }
-  srslte::logmap::set_default_logger(logger);
+
+  // Setup logging.
+  log_sink = (args.log.filename == "stdout")
+                 ? srslog::create_stdout_sink()
+                 : srslog::create_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size));
+  if (!log_sink) {
+    return SRSLTE_ERROR;
+  }
+  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
+  if (!chan) {
+    return SRSLTE_ERROR;
+  }
+  srslte::srslog_wrapper log_wrapper(*chan);
+
+  // Start the log backend.
+  srslog::init();
+
+  srslte::logmap::set_default_logger(&log_wrapper);
   log_args(argc, argv, "UE");
 
   // Create UE instance
   srsue::ue ue;
-  if (ue.init(args, logger)) {
+  if (ue.init(args, &log_wrapper)) {
     ue.stop();
     return SRSLTE_SUCCESS;
   }

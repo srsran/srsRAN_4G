@@ -23,9 +23,9 @@ find_package(SCTP REQUIRED)
 #######################################################################
 # COMMON TESTS
 #######################################################################
-add_executable(logger_test logger_test.cc)
-target_link_libraries(logger_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
-add_test(logger_test logger_test)
+add_executable(logger_file_test logger_file_test.cc)
+target_link_libraries(logger_file_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
+add_test(logger_file_test logger_file_test)
 
 add_executable(byte_buffer_queue_test byte_buffer_queue_test.cc)
 target_link_libraries(byte_buffer_queue_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})

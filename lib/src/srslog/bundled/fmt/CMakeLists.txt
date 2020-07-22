@@ -18,9 +18,9 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(mac)
-add_subdirectory(phy)
-add_subdirectory(srslog)
-add_subdirectory(upper)
+set(SOURCES
+    format.cc
+    os.cc)
+
+add_library(fmt STATIC ${SOURCES})
+target_include_directories(fmt PUBLIC ../../../../include/srslte/srslog/bundled)
