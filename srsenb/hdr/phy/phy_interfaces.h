@@ -46,6 +46,7 @@ struct phy_args_t {
   std::string            type;
   srslte::phy_log_args_t log;
 
+  float       sampling_rate_hz    = 0.0f;
   float       max_prach_offset_us = 10;
   int         pusch_max_its       = 10;
   bool        pusch_8bit_decoder  = false;

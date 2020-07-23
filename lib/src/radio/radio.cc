@@ -54,11 +54,12 @@ radio::~radio()
     zeros = nullptr;
   }
 
-  for (uint32_t i = 0; i < SRSLTE_MAX_CHANNELS; i++) {
-    if (dummy_buffers[i]) {
-      free(dummy_buffers[i]);
-      dummy_buffers[i] = nullptr;
-    }
+  for (srslte_resampler_fft_t& q : interpolators) {
+    srslte_resampler_fft_free(&q);
+  }
+
+  for (srslte_resampler_fft_t& q : decimators) {
+    srslte_resampler_fft_free(&q);
   }
 }
 
@@ -96,6 +97,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   nof_channels = args.nof_antennas * args.nof_carriers;
   nof_antennas = args.nof_antennas;
   nof_carriers = args.nof_carriers;
+  fix_srate_hz = args.srate_hz;
 
   cur_tx_freqs.resize(nof_carriers);
   cur_rx_freqs.resize(nof_carriers);
@@ -258,7 +260,18 @@ bool radio::start_agc(bool tx_gain_same_rx)
 
 bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time)
 {
-  bool ret = true;
+  bool        ret = true;
+  rf_buffer_t buffer_rx;
+  uint32_t    ratio = SRSLTE_MAX(1, decimators[0].ratio);
+
+  // If the interpolator have been set, interpolate
+  for (uint32_t ch = 0; ch < nof_channels; ch++) {
+    // Use rx buffer if decimator is required
+    buffer_rx.set(ch, ratio > 1 ? rx_buffer[ch].data() : buffer.get(ch));
+  }
+
+  // Set new buffer size
+  buffer_rx.set_nof_samples(buffer.get_nof_samples() * ratio);
 
   if (not radio_is_streaming) {
     for (srslte_rf_t& rf_device : rf_devices) {
@@ -275,7 +288,14 @@ bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time
   }
 
   for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_devices.size(); device_idx++) {
-    ret &= rx_dev(device_idx, buffer, rxd_time.get_ptr(device_idx));
+    ret &= rx_dev(device_idx, buffer_rx, rxd_time.get_ptr(device_idx));
+  }
+
+  // Perform decimation
+  if (ratio > 1) {
+    for (uint32_t ch = 0; ch < nof_channels; ch++) {
+      srslte_resampler_fft_run(&decimators[ch], buffer_rx.get(ch), buffer.get(ch), buffer_rx.get_nof_samples());
+    }
   }
 
   return ret;
@@ -341,6 +361,20 @@ bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer
 bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_time)
 {
   bool ret = true;
+
+  // If the interpolator have been set, interpolate
+  if (interpolators[0].ratio > 1) {
+    for (uint32_t ch = 0; ch < nof_channels; ch++) {
+      // Perform actual interpolation
+      srslte_resampler_fft_run(&interpolators[ch], buffer.get(ch), tx_buffer[ch].data(), buffer.get_nof_samples());
+
+      // Set the buffer pointer
+      buffer.set(ch, tx_buffer[ch].data());
+    }
+
+    // Set new buffer size
+    buffer.set_nof_samples(buffer.get_nof_samples() * interpolators[0].ratio);
+  }
 
   for (uint32_t device_idx = 0; device_idx < (uint32_t)rf_devices.size(); device_idx++) {
     ret &= tx_dev(device_idx, buffer, tx_time.get(device_idx));
@@ -573,8 +607,29 @@ void radio::set_rx_srate(const double& srate)
   if (!is_initialized) {
     return;
   }
-  for (srslte_rf_t& rf_device : rf_devices) {
-    srslte_rf_set_rx_srate(&rf_device, srate);
+  // If fix sampling rate...
+  if (std::isnormal(fix_srate_hz)) {
+    // If the sampling rate was not set, set it
+    if (not std::isnormal(cur_rx_srate)) {
+      for (srslte_rf_t& rf_device : rf_devices) {
+        cur_rx_srate = srslte_rf_set_rx_srate(&rf_device, fix_srate_hz);
+      }
+    }
+
+    // Update decimators
+    uint32_t ratio = (uint32_t)ceil(cur_rx_srate / srate);
+    for (uint32_t ch = 0; ch < nof_channels; ch++) {
+      srslte_resampler_fft_init(&decimators[ch], SRSLTE_RESAMPLER_MODE_DECIMATE, ratio);
+
+      if (rx_buffer[ch].empty()) {
+        rx_buffer[ch].resize(SRSLTE_SF_LEN_MAX * 5);
+      }
+    }
+
+  } else {
+    for (srslte_rf_t& rf_device : rf_devices) {
+      cur_rx_srate = srslte_rf_set_rx_srate(&rf_device, srate);
+    }
   }
 }
 
@@ -794,8 +849,28 @@ void radio::set_tx_srate(const double& srate)
     return;
   }
 
-  for (srslte_rf_t& rf_device : rf_devices) {
-    cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
+  // If fix sampling rate...
+  if (std::isnormal(fix_srate_hz)) {
+    // If the sampling rate was not set, set it
+    if (not std::isnormal(cur_tx_srate)) {
+      for (srslte_rf_t& rf_device : rf_devices) {
+        cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, fix_srate_hz);
+      }
+    }
+
+    // Update interpolators
+    uint32_t ratio = (uint32_t)ceil(cur_tx_srate / srate);
+    for (uint32_t ch = 0; ch < nof_channels; ch++) {
+      srslte_resampler_fft_init(&interpolators[ch], SRSLTE_RESAMPLER_MODE_INTERPOLATE, ratio);
+
+      if (tx_buffer[ch].empty()) {
+        tx_buffer[ch].resize(5 * SRSLTE_SF_LEN_MAX);
+      }
+    }
+  } else {
+    for (srslte_rf_t& rf_device : rf_devices) {
+      cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
+    }
   }
 
   // Get calibrated advanced

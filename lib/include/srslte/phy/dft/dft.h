@@ -43,6 +43,10 @@
  *  Reference:
  *********************************************************************************************/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum { SRSLTE_DFT_COMPLEX, SRSLTE_REAL } srslte_dft_mode_t;
 
 typedef enum { SRSLTE_DFT_FORWARD, SRSLTE_DFT_BACKWARD } srslte_dft_dir_t;
@@ -119,5 +123,9 @@ SRSLTE_API void srslte_dft_run_c(srslte_dft_plan_t* plan, const cf_t* in, cf_t* 
 SRSLTE_API void srslte_dft_run_guru_c(srslte_dft_plan_t* plan);
 
 SRSLTE_API void srslte_dft_run_r(srslte_dft_plan_t* plan, const float* in, float* out);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_DFT_H

@@ -42,6 +42,7 @@ typedef struct {
 typedef struct {
   std::string type;
   std::string log_level;
+  double      srate_hz;
   float       dl_freq;
   float       ul_freq;
   float       freq_offset;

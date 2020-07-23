@@ -26,6 +26,7 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/radio_interfaces.h"
+#include "srslte/phy/resampling/resampler.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/radio/radio_base.h"
 #include "srslte/srslte.h"
@@ -94,16 +95,20 @@ public:
   static void rf_msg_callback(void* arg, srslte_rf_error_t error);
 
 private:
-  std::vector<srslte_rf_t>               rf_devices  = {};
-  std::vector<srslte_rf_info_t>          rf_info     = {};
-  std::vector<int32_t>                   rx_offset_n = {};
-  rf_metrics_t                           rf_metrics  = {};
-  log_filter                             log_local   = {};
-  log_filter*                            log_h       = nullptr;
-  srslte::logger*                        logger      = nullptr;
-  phy_interface_radio*                   phy         = nullptr;
-  cf_t*                                  zeros       = nullptr;
-  std::array<cf_t*, SRSLTE_MAX_CHANNELS> dummy_buffers;
+  std::vector<srslte_rf_t>                                rf_devices  = {};
+  std::vector<srslte_rf_info_t>                           rf_info     = {};
+  std::vector<int32_t>                                    rx_offset_n = {};
+  rf_metrics_t                                            rf_metrics  = {};
+  log_filter                                              log_local   = {};
+  log_filter*                                             log_h       = nullptr;
+  srslte::logger*                                         logger      = nullptr;
+  phy_interface_radio*                                    phy         = nullptr;
+  cf_t*                                                   zeros       = nullptr;
+  std::array<cf_t*, SRSLTE_MAX_CHANNELS>                  dummy_buffers;
+  std::array<std::vector<cf_t>, SRSLTE_MAX_CHANNELS>      tx_buffer;
+  std::array<std::vector<cf_t>, SRSLTE_MAX_CHANNELS>      rx_buffer;
+  std::array<srslte_resampler_fft_t, SRSLTE_MAX_CHANNELS> interpolators = {};
+  std::array<srslte_resampler_fft_t, SRSLTE_MAX_CHANNELS> decimators    = {};
 
   rf_timestamp_t end_of_burst_time  = {};
   bool           is_start_of_burst  = false;
@@ -116,6 +121,8 @@ private:
   bool           continuous_tx      = false;
   double         freq_offset        = 0.0;
   double         cur_tx_srate       = 0.0;
+  double         cur_rx_srate       = 0.0;
+  double         fix_srate_hz       = 0.0;
   uint32_t       nof_antennas       = 0;
   uint32_t       nof_channels       = 0;
   uint32_t       nof_channels_x_dev = 0;
