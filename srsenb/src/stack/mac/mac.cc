@@ -443,6 +443,46 @@ uint16_t mac::allocate_rnti()
   return rnti;
 }
 
+uint16_t mac::reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg)
+{
+  // Get pre-allocated UE object
+  if (ue_pool.empty()) {
+    Error("Ignoring RACH attempt. UE pool empty.\n");
+    return SRSLTE_INVALID_RNTI;
+  }
+  auto     ue_ptr = ue_pool.wait_pop();
+  uint16_t rnti   = ue_ptr->get_rnti();
+
+  // Set PCAP if available
+  if (pcap != nullptr) {
+    ue_ptr->start_pcap(pcap);
+  }
+
+  {
+    srslte::rwlock_write_guard lock(rwlock);
+    ue_db[rnti] = std::move(ue_ptr);
+  }
+
+  // Add new user to the scheduler so that it can RX/TX SRB0
+  if (scheduler.ue_cfg(rnti, ue_cfg) != SRSLTE_SUCCESS) {
+    Error("Registering new user rnti=0x%x to SCHED\n", rnti);
+    return SRSLTE_INVALID_RNTI;
+  }
+
+  // Register new user in RRC
+  rrc_h->add_user(rnti, ue_cfg);
+
+  // Add temporal rnti to the PHY
+  if (phy_h->add_rnti(rnti, ue_cfg.supported_cc_list[0].enb_cc_idx) != SRSLTE_SUCCESS) {
+    Error("Registering c-rnti=0x%x to PHY\n", rnti);
+    return SRSLTE_INVALID_RNTI;
+  }
+
+  // Allocate one new UE object in advance
+  prealloc_ue(1);
+  return rnti;
+}
+
 void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
   static srslte::mutexed_tprof<srslte::avg_time_stats> rach_tprof("rach_tprof", "MAC", 1);

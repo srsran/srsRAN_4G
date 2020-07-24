@@ -559,6 +559,13 @@ bool s1ap::handle_initiatingmessage(const init_msg_s& msg)
       return handle_erabsetuprequest(msg.value.erab_setup_request());
     case s1ap_elem_procs_o::init_msg_c::types_opts::ue_context_mod_request:
       return handle_uecontextmodifyrequest(msg.value.ue_context_mod_request());
+    case s1ap_elem_procs_o::init_msg_c::types_opts::ho_request: {
+      bool outcome = handle_ho_request(msg.value.ho_request());
+      if (not outcome) {
+        send_ho_failure(msg.value.ho_request().protocol_ies.mme_ue_s1ap_id.value.value);
+      }
+      return outcome;
+    }
     default:
       s1ap_log->error("Unhandled initiating message: %s\n", msg.value.type().to_string().c_str());
   }
@@ -788,6 +795,106 @@ bool s1ap::handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg)
   }
   u->ho_prep_proc.trigger(msg);
   return true;
+}
+
+/**************************************************************
+ * TS 36.413 - Section 8.4.2 - "Handover Resource Allocation"
+ *************************************************************/
+
+bool s1ap::handle_ho_request(const asn1::s1ap::ho_request_s& msg)
+{
+  s1ap_log->info("Received S1 HO Request\n");
+  s1ap_log->console("Received S1 HO Request\n");
+
+  if (msg.ext or msg.protocol_ies.ho_restrict_list_present or
+      msg.protocol_ies.handov_type.value.value != handov_type_opts::intralte) {
+    s1ap_log->error("Not handling S1AP non-intra LTE handovers and extensions\n");
+    return false;
+  }
+
+  // Confirm the UE does not exist in TeNB
+  if (users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value) != nullptr) {
+    s1ap_log->error("The provided MME_UE_S1AP_ID=%ld is already connected to the cell\n",
+                    msg.protocol_ies.mme_ue_s1ap_id.value.value);
+    return false;
+  }
+
+  // Create user ctxt object and associated MME context
+  std::unique_ptr<ue> ue_ptr{new ue{this}};
+  ue_ptr->ctxt.mme_ue_s1ap_id_present = true;
+  ue_ptr->ctxt.mme_ue_s1ap_id         = msg.protocol_ies.mme_ue_s1ap_id.value.value;
+  if (users.add_user(std::move(ue_ptr)) == nullptr) {
+    return false;
+  }
+
+  // Unpack Transparent Container
+  sourceenb_to_targetenb_transparent_container_s container;
+  asn1::cbit_ref bref{msg.protocol_ies.source_to_target_transparent_container.value.data(),
+                      msg.protocol_ies.source_to_target_transparent_container.value.size()};
+  if (container.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    s1ap_log->error("Failed to unpack SourceToTargetTransparentContainer\n");
+    return false;
+  }
+
+  // Handle Handover Resource Allocation
+  srslte::unique_byte_buffer_t ho_cmd = srslte::allocate_unique_buffer(*pool);
+  uint16_t                     rnti   = rrc->start_ho_ue_resource_alloc(msg, container, *ho_cmd);
+  if (rnti == SRSLTE_INVALID_RNTI) {
+    return false;
+  }
+
+  return send_ho_req_ack(msg, rnti, std::move(ho_cmd));
+}
+
+bool s1ap::send_ho_failure(uint32_t mme_ue_s1ap_id)
+{
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_unsuccessful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
+  ho_fail_ies_container& container = tx_pdu.unsuccessful_outcome().value.ho_fail().protocol_ies;
+
+  container.mme_ue_s1ap_id.value = mme_ue_s1ap_id;
+  // TODO: Setup cause
+  container.cause.value.set_radio_network().value = cause_radio_network_opts::ho_target_not_allowed;
+
+  return sctp_send_s1ap_pdu(tx_pdu, SRSLTE_INVALID_RNTI, "HandoverFailure");
+}
+
+bool s1ap::send_ho_req_ack(const asn1::s1ap::ho_request_s& msg, uint16_t rnti, srslte::unique_byte_buffer_t ho_cmd)
+{
+  s1ap_pdu_c tx_pdu;
+  tx_pdu.set_successful_outcome().load_info_obj(ASN1_S1AP_ID_HO_RES_ALLOC);
+  ho_request_ack_ies_container& container = tx_pdu.successful_outcome().value.ho_request_ack().protocol_ies;
+
+  ue* ue_ptr        = users.find_ue_mmeid(msg.protocol_ies.mme_ue_s1ap_id.value.value);
+  ue_ptr->ctxt.rnti = rnti;
+
+  container.mme_ue_s1ap_id.value = msg.protocol_ies.mme_ue_s1ap_id.value.value;
+  container.enb_ue_s1ap_id.value = ue_ptr->ctxt.enb_ue_s1ap_id;
+
+  // TODO: Add admitted E-RABs
+  for (const auto& erab : msg.protocol_ies.erab_to_be_setup_list_ho_req.value) {
+    const erab_to_be_setup_item_ho_req_s& erabsetup = erab.value.erab_to_be_setup_item_ho_req();
+    container.erab_admitted_list.value.push_back({});
+    container.erab_admitted_list.value.back().load_info_obj(ASN1_S1AP_ID_ERAB_ADMITTED_ITEM);
+    auto& c                   = container.erab_admitted_list.value.back().value.erab_admitted_item();
+    c.erab_id                 = erabsetup.erab_id;
+    c.gtp_teid                = erabsetup.gtp_teid;
+    c.transport_layer_address = erabsetup.transport_layer_address;
+  }
+  asn1::s1ap::targetenb_to_sourceenb_transparent_container_s transparent_container;
+  transparent_container.rrc_container.resize(ho_cmd->N_bytes);
+  memcpy(transparent_container.rrc_container.data(), ho_cmd->msg, ho_cmd->N_bytes);
+
+  auto&         pdu = ho_cmd; // reuse pdu
+  asn1::bit_ref bref{pdu->msg, pdu->get_tailroom()};
+  if (transparent_container.pack(bref) != asn1::SRSASN_SUCCESS) {
+    s1ap_log->error("Failed to pack TargeteNBToSourceeNBTransparentContainer\n");
+    return false;
+  }
+  container.target_to_source_transparent_container.value.resize(bref.distance_bytes());
+  memcpy(container.target_to_source_transparent_container.value.data(), pdu->msg, bref.distance_bytes());
+
+  return sctp_send_s1ap_pdu(tx_pdu, rnti, "HandoverRequestAcknowledge");
 }
 
 /*******************************************************************************
@@ -1166,12 +1273,12 @@ bool s1ap::sctp_send_s1ap_pdu(const asn1::s1ap::s1ap_pdu_c& tx_pdu, uint32_t rnt
     pcap->write_s1ap(buf->msg, buf->N_bytes);
   }
 
-  if (rnti > 0) {
+  if (rnti != SRSLTE_INVALID_RNTI) {
     s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s for rnti=0x%x", procedure_name, rnti);
   } else {
     s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s to MME", procedure_name);
   }
-  uint16_t streamid = rnti == 0 ? NONUE_STREAM_ID : users.find_ue_rnti(rnti)->stream_id;
+  uint16_t streamid = rnti == SRSLTE_INVALID_RNTI ? NONUE_STREAM_ID : users.find_ue_rnti(rnti)->stream_id;
 
   ssize_t n_sent = sctp_sendmsg(s1ap_socket.fd(),
                                 buf->msg,

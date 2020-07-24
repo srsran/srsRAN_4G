@@ -397,6 +397,7 @@ bool protocol_ie_single_container_s<ies_set_paramT_>::load_info_obj(const uint32
   value = ies_set_paramT_::get_value(id);
   return value.type().value != ies_set_paramT_::value_c::types_opts::nulltype;
 }
+template bool protocol_ie_single_container_s<erab_admitted_item_ies_o>::load_info_obj(const uint32_t& id_);
 
 // ProtocolIE-FieldPair{S1AP-PROTOCOL-IES-PAIR : IEsSetParam} ::= SEQUENCE{{S1AP-PROTOCOL-IES-PAIR}}
 template <class ies_set_paramT_>

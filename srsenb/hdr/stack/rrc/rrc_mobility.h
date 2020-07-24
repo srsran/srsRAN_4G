@@ -86,6 +86,10 @@ public:
   rrc*       get_rrc() { return rrc_ptr; }
   const rrc* get_rrc() const { return rrc_ptr; }
 
+  uint16_t start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                                      const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                                      srslte::byte_buffer_t&                                            ho_cmd);
+
 private:
   // args
   rrc*             rrc_ptr = nullptr;
@@ -106,6 +110,11 @@ public:
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
   void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
   bool is_ho_running() const { return not is_in_state<idle_st>(); }
+
+  // S1-Handover
+  bool start_s1_tenb_ho(const asn1::s1ap::ho_request_s&                                   msg,
+                        const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                        srslte::byte_buffer_t&                                            ho_cmd);
 
 private:
   // Handover from source cell

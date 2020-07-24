@@ -93,19 +93,20 @@ public:
   int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override;
   int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override;
 
+  /* Handover-related */
+  uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override;
+
   bool process_pdus();
 
   void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   void
   write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override;
 
-  /* Allocate C-RNTI */
-  uint16_t allocate_rnti() final;
-
 private:
   static const uint32_t cfi = 3;
 
-  bool check_ue_exists(uint16_t rnti);
+  bool     check_ue_exists(uint16_t rnti);
+  uint16_t allocate_rnti();
 
   std::mutex rnti_mutex;
 

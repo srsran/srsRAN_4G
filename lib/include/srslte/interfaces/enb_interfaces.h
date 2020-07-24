@@ -299,7 +299,7 @@ public:
    * Allocate a C-RNTI for a new user, without adding it to the phy layer and scheduler yet
    * @return value of the allocated C-RNTI
    */
-  virtual uint16_t allocate_rnti() = 0;
+  virtual uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) = 0;
 };
 
 class mac_interface_rlc
@@ -435,6 +435,10 @@ public:
    * @param container TargeteNB RRCConnectionReconfiguration message with MobilityControlInfo
    */
   virtual void ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t container) = 0;
+  virtual uint16_t
+  start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                             const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                             srslte::byte_buffer_t&                                            ho_cmd) = 0;
 };
 
 // GTPU interface for PDCP

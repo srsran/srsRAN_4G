@@ -81,6 +81,8 @@ public:
                         srslte::plmn_id_t            target_plmn,
                         srslte::unique_byte_buffer_t rrc_container) override;
   bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override;
+  bool send_ho_failure(uint32_t mme_ue_s1ap_id);
+  bool send_ho_req_ack(const asn1::s1ap::ho_request_s& msg, uint16_t rnti, srslte::unique_byte_buffer_t ho_cmd);
   // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
 
   // Stack interface
@@ -145,6 +147,7 @@ private:
   // handover
   bool handle_hopreparationfailure(const asn1::s1ap::ho_prep_fail_s& msg);
   bool handle_s1hocommand(const asn1::s1ap::ho_cmd_s& msg);
+  bool handle_ho_request(const asn1::s1ap::ho_request_s& msg);
 
   // UE-specific data and procedures
   struct ue {
@@ -193,9 +196,6 @@ private:
     ue_ctxt_t ctxt      = {};
     uint16_t  stream_id = 1;
 
-    // user procedures
-    srslte::proc_t<ho_prep_proc_t> ho_prep_proc;
-
   private:
     bool
     send_ho_required(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
@@ -209,6 +209,10 @@ private:
     bool                 release_requested = false;
     srslte::unique_timer ts1_reloc_prep;    ///< TS1_{RELOCprep} - max time for HO preparation
     srslte::unique_timer ts1_reloc_overall; ///< TS1_{RELOCOverall}
+
+  public:
+    // user procedures
+    srslte::proc_t<ho_prep_proc_t> ho_prep_proc;
   };
 
   class user_list

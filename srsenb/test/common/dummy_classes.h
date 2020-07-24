@@ -39,7 +39,7 @@ public:
   void phy_config_enabled(uint16_t rnti, bool enabled) override {}
   void write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override
   {}
-  uint16_t allocate_rnti() override { return last_rnti++; }
+  uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override { return last_rnti++; }
 
   uint16_t last_rnti = 70;
 };

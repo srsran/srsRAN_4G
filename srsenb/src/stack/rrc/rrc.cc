@@ -462,6 +462,13 @@ void rrc::ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique
   users.at(rnti)->mobility_handler->handle_ho_preparation_complete(is_success, std::move(rrc_container));
 }
 
+uint16_t rrc::start_ho_ue_resource_alloc(const asn1::s1ap::ho_request_s&                                   msg,
+                                         const asn1::s1ap::sourceenb_to_targetenb_transparent_container_s& container,
+                                         srslte::byte_buffer_t&                                            ho_cmd)
+{
+  return enb_mobility_cfg->start_ho_ue_resource_alloc(msg, container, ho_cmd);
+}
+
 /*******************************************************************************
   Private functions
   All private functions are not mutexed and must be called from a mutexed environment
