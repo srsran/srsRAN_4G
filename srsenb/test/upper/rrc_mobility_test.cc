@@ -375,10 +375,10 @@ int test_s1ap_mobility(mobility_test_params test_params)
   /* Receive MeasReport from UE (correct if PCI=2) */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x0D, 0xBC, 0x80}; // PCI == 3
-    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+    test_helpers::copy_msg_to_buffer(pdu, meas_report);
   } else {
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
-    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+    test_helpers::copy_msg_to_buffer(pdu, meas_report);
   }
   tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
   tester.tic();
@@ -395,7 +395,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
   if (test_params.fail_at == mobility_test_params::test_event::concurrent_ho) {
     s1ap.last_ho_required = {};
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
-    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+    test_helpers::copy_msg_to_buffer(pdu, meas_report);
     tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
     tester.tic();
     TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
@@ -430,7 +430,7 @@ int test_s1ap_mobility(mobility_test_params test_params)
                                     0x01, 0x48, 0x04, 0xbc, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x02, 0xa0, 0x07, 0xa0,
                                     0x10, 0x00, 0x01, 0x00, 0x05, 0x00, 0xa7, 0xd0, 0xc1, 0xf6, 0xaf, 0x3e, 0x12, 0xcc,
                                     0x86, 0x0d, 0x30, 0x00, 0x0b, 0x5a, 0x02, 0x17, 0x86, 0x00, 0x05, 0xa0, 0x20};
-  test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container, sizeof(ho_cmd_rrc_container));
+  test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container);
   TESTASSERT(s1ap.last_enb_status.rnti != tester.rnti);
   tester.rrc.ho_preparation_complete(tester.rnti, true, std::move(pdu));
   TESTASSERT(s1ap.last_enb_status.status_present);
@@ -458,10 +458,10 @@ int test_intraenb_mobility(mobility_test_params test_params)
   /* Receive MeasReport from UE (correct if PCI=2) */
   if (test_params.fail_at == mobility_test_params::test_event::wrong_measreport) {
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x0D, 0xBC, 0x80}; // PCI == 3
-    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+    test_helpers::copy_msg_to_buffer(pdu, meas_report);
   } else {
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
-    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+    test_helpers::copy_msg_to_buffer(pdu, meas_report);
   }
   tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
   tester.tic();
@@ -481,7 +481,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
   if (test_params.fail_at == mobility_test_params::test_event::concurrent_ho) {
     tester.pdcp.last_sdu  = {};
     uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
-    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+    test_helpers::copy_msg_to_buffer(pdu, meas_report);
     tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
     tester.tic();
     TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
@@ -523,7 +523,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
 
   /* Test Case: Terminate first Handover. No extra messages should be sent DL. SR/CQI resources match recfg message */
   uint8_t recfg_complete[] = {0x10, 0x00};
-  test_helpers::copy_msg_to_buffer(pdu, recfg_complete, sizeof(recfg_complete));
+  test_helpers::copy_msg_to_buffer(pdu, recfg_complete);
   tester.rrc.write_pdu(tester.rnti, rb_id_t::RB_ID_SRB2, std::move(pdu));
   TESTASSERT(tester.pdcp.last_sdu.sdu == nullptr);
   sched_interface::ue_cfg_t& ue_cfg = tester.mac.ue_db[tester.rnti];
@@ -536,7 +536,7 @@ int test_intraenb_mobility(mobility_test_params test_params)
 
   /* Test Case: The RRC should be able to start a new handover */
   uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x05, 0xBC, 0x80}; // PCI == 1
-  test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+  test_helpers::copy_msg_to_buffer(pdu, meas_report);
   tester.rrc.write_pdu(tester.rnti, 1, std::move(pdu));
   tester.tic();
   TESTASSERT(tester.s1ap.last_ho_required.rrc_container == nullptr);

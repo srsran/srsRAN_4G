@@ -23,7 +23,8 @@
 #define SRSENB_TEST_HELPERS_H
 
 #include "srsenb/test/common/dummy_classes.h"
-#include <srslte/common/log_filter.h>
+#include "srslte/adt/span.h"
+#include "srslte/common/log_filter.h"
 
 using namespace srsenb;
 using namespace asn1::rrc;
@@ -203,9 +204,9 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
 }
 
 template <typename ASN1Type>
-bool unpack_asn1(ASN1Type& asn1obj, const srslte::unique_byte_buffer_t& pdu)
+bool unpack_asn1(ASN1Type& asn1obj, const srslte::byte_span pdu)
 {
-  asn1::cbit_ref bref{pdu->msg, pdu->N_bytes};
+  asn1::cbit_ref bref{pdu.data(), (uint32_t)pdu.size()};
   if (asn1obj.unpack(bref) != asn1::SRSASN_SUCCESS) {
     srslte::logmap::get("TEST")->error("Failed to unpack ASN1 type\n");
     return false;
@@ -213,12 +214,12 @@ bool unpack_asn1(ASN1Type& asn1obj, const srslte::unique_byte_buffer_t& pdu)
   return true;
 }
 
-void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, uint8_t* msg, size_t nof_bytes)
+void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, srslte::byte_span msg)
 {
   srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
   pdu                            = srslte::allocate_unique_buffer(*pool, true);
-  memcpy(pdu->msg, msg, nof_bytes);
-  pdu->N_bytes = nof_bytes;
+  memcpy(pdu->msg, msg.data(), msg.size());
+  pdu->N_bytes = msg.size();
 }
 
 int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, uint16_t rnti)
@@ -227,7 +228,7 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
 
   // Send RRCConnectionRequest
   uint8_t rrc_conn_request[] = {0x40, 0x12, 0xf6, 0xfb, 0xe2, 0xc6};
-  copy_msg_to_buffer(pdu, rrc_conn_request, sizeof(rrc_conn_request));
+  copy_msg_to_buffer(pdu, rrc_conn_request);
   rrc.write_pdu(rnti, 0, std::move(pdu));
   timers.step_all();
   rrc.tti_clock();
@@ -236,7 +237,7 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
   uint8_t rrc_conn_setup_complete[] = {0x20, 0x00, 0x40, 0x2e, 0x90, 0x50, 0x49, 0xe8, 0x06, 0x0e, 0x82, 0xa2,
                                        0x17, 0xec, 0x13, 0xe2, 0x0f, 0x00, 0x02, 0x02, 0x5e, 0xdf, 0x7c, 0x58,
                                        0x05, 0xc0, 0xc0, 0x00, 0x08, 0x04, 0x03, 0xa0, 0x23, 0x23, 0xc0};
-  copy_msg_to_buffer(pdu, rrc_conn_setup_complete, sizeof(rrc_conn_setup_complete));
+  copy_msg_to_buffer(pdu, rrc_conn_setup_complete);
   rrc.write_pdu(rnti, 1, std::move(pdu));
   timers.step_all();
   rrc.tti_clock();
@@ -266,7 +267,7 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
 
   // Send SecurityModeComplete
   uint8_t sec_mode_complete[] = {0x28, 0x00};
-  copy_msg_to_buffer(pdu, sec_mode_complete, sizeof(sec_mode_complete));
+  copy_msg_to_buffer(pdu, sec_mode_complete);
   rrc.write_pdu(rnti, 1, std::move(pdu));
   timers.step_all();
   rrc.tti_clock();
@@ -274,14 +275,14 @@ int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, u
   // send UE cap info
   uint8_t ue_cap_info[] = {0x38, 0x01, 0x01, 0x0c, 0x98, 0x00, 0x00, 0x18, 0x00, 0x0f,
                            0x30, 0x20, 0x80, 0x00, 0x01, 0x00, 0x0e, 0x01, 0x00, 0x00};
-  copy_msg_to_buffer(pdu, ue_cap_info, sizeof(ue_cap_info));
+  copy_msg_to_buffer(pdu, ue_cap_info);
   rrc.write_pdu(rnti, 1, std::move(pdu));
   timers.step_all();
   rrc.tti_clock();
 
   // RRCConnectionReconfiguration was sent. Send RRCConnectionReconfigurationComplete
   uint8_t rrc_conn_reconf_complete[] = {0x10, 0x00};
-  copy_msg_to_buffer(pdu, rrc_conn_reconf_complete, sizeof(rrc_conn_reconf_complete));
+  copy_msg_to_buffer(pdu, rrc_conn_reconf_complete);
   rrc.write_pdu(rnti, 1, std::move(pdu));
   timers.step_all();
   rrc.tti_clock();
