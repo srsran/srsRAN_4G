@@ -18,10 +18,11 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(asn1)
-add_subdirectory(common)
-add_subdirectory(mac)
-add_subdirectory(phy)
-add_subdirectory(srslog)
-add_subdirectory(upper)
-add_subdirectory(adt)
+#######################################################################
+# ADT TESTS
+#######################################################################
+
+add_executable(scope_exit_test scope_exit_test.cc)
+target_link_libraries(scope_exit_test srslte_common)
+add_test(scope_exit_test scope_exit_test)
+
