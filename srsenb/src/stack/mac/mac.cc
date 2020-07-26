@@ -491,12 +491,6 @@ void mac::rach_detected(uint32_t tti, uint32_t enb_cc_idx, uint32_t preamble_idx
     // Register new user in RRC
     rrc_h->add_user(rnti, ue_cfg);
 
-    // Add temporal rnti to the PHY
-    if (phy_h->add_rnti(rnti, enb_cc_idx) != SRSLTE_SUCCESS) {
-      Error("Registering temporal-rnti=0x%x to PHY\n", rnti);
-      return;
-    }
-
     // Trigger scheduler RACH
     scheduler.dl_rach_info(enb_cc_idx, rar_info);
 

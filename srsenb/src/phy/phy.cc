@@ -150,24 +150,6 @@ void phy::stop()
 }
 
 /***** MAC->PHY interface **********/
-int phy::add_rnti(uint16_t rnti, uint32_t pcell_index)
-{
-  if (SRSLTE_RNTI_ISUSER(rnti)) {
-    // Create default PHY configuration with the desired PCell index
-    phy_interface_rrc_lte::phy_rrc_cfg_list_t phy_rrc_dedicated_list(1);
-    phy_rrc_dedicated_list[0].enb_cc_idx = pcell_index;
-
-    workers_common.ue_db.addmod_rnti(rnti, phy_rrc_dedicated_list);
-  }
-
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    if (workers[i].add_rnti(rnti, pcell_index) != SRSLTE_SUCCESS) {
-      return SRSLTE_ERROR;
-    }
-  }
-
-  return SRSLTE_SUCCESS;
-}
 
 void phy::rem_rnti(uint16_t rnti)
 {

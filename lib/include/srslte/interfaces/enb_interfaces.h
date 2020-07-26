@@ -188,15 +188,6 @@ public:
 class phy_interface_mac_lte
 {
 public:
-  /**
-   * Interface for MAC to add or modify user in the active UE database setting. This function requires a primary cell
-   * (PCell) index and a list of secondary cells (SCell) for the UE. The elements in the list SCell list must follow the
-   * UE's SCell indexes order.
-   *
-   * @param rnti identifier of the user
-   * @param pcell_index Primary cell (PCell) index
-   */
-  virtual int add_rnti(uint16_t rnti, uint32_t pcell_index) = 0;
 
   /**
    * Removes an RNTI context from all the physical layer components, including secondary cells
