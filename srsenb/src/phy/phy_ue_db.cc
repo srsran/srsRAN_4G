@@ -311,13 +311,14 @@ void phy_ue_db::addmod_rnti(uint16_t rnti, const phy_interface_rrc_lte::phy_rrc_
       ue.pcell_cfg_stash = phy_rrc_dedicated.phy_cfg;
       _set_common_config_rnti(rnti, ue.pcell_cfg_stash);
     } else if (phy_rrc_dedicated.configured) {
-      //
-      cell_info.phy_cfg = phy_rrc_dedicated.phy_cfg;
-      _set_common_config_rnti(rnti, cell_info.phy_cfg);
+      // Only set to inactive if cell is not already configured
+      if (cell_info.state == cell_state_t::cell_state_none) {
+        cell_info.phy_cfg = phy_rrc_dedicated.phy_cfg;
+        _set_common_config_rnti(rnti, cell_info.phy_cfg);
 
-      // Set Cell state, all inactive by default
-      cell_info.state = cell_state_secondary_inactive;
-
+        // Set Cell state, all inactive by default
+        cell_info.state = cell_state_secondary_inactive;
+      }
       // Count Serving cell
       nof_configured_scell++;
     } else {
@@ -387,7 +388,6 @@ void phy_ue_db::activate_deactivate_scell(uint16_t rnti, uint32_t ue_cc_idx, boo
     ERROR("RNTI 0x%X SCell %d has received an activation MAC command but it was not configured\n", rnti, ue_cc_idx);
     return;
   }
-
   // Set scell state
   cell_info.state = (activate) ? cell_state_secondary_active : cell_state_secondary_inactive;
 }
