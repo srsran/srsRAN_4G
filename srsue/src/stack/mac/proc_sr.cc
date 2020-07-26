@@ -91,7 +91,8 @@ void sr_proc::step(uint32_t tti)
                  sr_cfg.dsr_transmax);
             log_h->console("Scheduling request failed: releasing RRC connection...\n");
             rrc->release_pucch_srs();
-            is_pending_sr = false;
+            ra->start_mac_order();
+            reset();
           }
         }
       } else {
