@@ -550,8 +550,7 @@ int srslte_pusch_decode(srslte_pusch_t*        q,
     ret      = srslte_ulsch_decode(&q->ul_sch, cfg, q->q, q->g, seq->c, out->data, &out->uci);
     out->crc = (ret == 0);
 
-    // Accept ACK only if SNR is above threshold
-    out->uci.ack.valid        = channel->snr_db > ACK_SNR_TH;
+    // Save number of iterations
     out->avg_iterations_block = q->ul_sch.avg_iterations;
 
     // Save O_cqi for power control

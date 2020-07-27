@@ -1046,6 +1046,7 @@ static int uci_decode_ri_ack(srslte_sch_t*       q,
                                    cqi_len,
                                    q->ack_ri_bits,
                                    uci_data->ack.ack_value,
+                                   &uci_data->ack.valid,
                                    srslte_uci_cfg_total_ack(&cfg->uci_cfg),
                                    false);
     if (ret < 0) {
@@ -1065,8 +1066,17 @@ static int uci_decode_ri_ack(srslte_sch_t*       q,
     if (cfg->grant.tb.tbs == 0) {
       beta /= get_beta_cqi_offset(cfg->uci_offset.I_offset_cqi);
     }
-    ret = srslte_uci_decode_ack_ri(
-        cfg, q_bits, c_seq, beta, nb_q / Qm, cqi_len, q->ack_ri_bits, &uci_data->ri, cfg->uci_cfg.cqi.ri_len, true);
+    ret = srslte_uci_decode_ack_ri(cfg,
+                                   q_bits,
+                                   c_seq,
+                                   beta,
+                                   nb_q / Qm,
+                                   cqi_len,
+                                   q->ack_ri_bits,
+                                   &uci_data->ri,
+                                   NULL,
+                                   cfg->uci_cfg.cqi.ri_len,
+                                   true);
     if (ret < 0) {
       return ret;
     }

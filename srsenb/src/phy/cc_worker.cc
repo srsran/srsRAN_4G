@@ -339,9 +339,6 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
         phy->stack->ta_info(ul_sf.tti, rnti, enb_ul.chest_res.ta_us);
       }
     }
-    pusch_res.uci.ack.valid = true;
-  } else {
-    pusch_res.uci.ack.valid = false;
   }
 
   // Send UCI data to MAC

@@ -672,14 +672,18 @@ encode_ack_long(const uint8_t* data, uint32_t O_ack, uint8_t Q_m, uint32_t Q_pri
   return Q_ack;
 }
 
-static void decode_ri_ack_1bit(const int16_t* q_bits, const uint8_t* c_seq, uint8_t data[1])
+static int32_t decode_ri_ack_1bit(const int16_t* q_bits, const uint8_t* c_seq, uint8_t data[1])
 {
+  int32_t sum = (int32_t)(q_bits[0] + q_bits[1]);
+
   if (data) {
-    data[0] = ((q_bits[0] + q_bits[1]) > 0) ? 1 : 0;
+    data[0] = (sum > 0) ? 1 : 0;
   }
+
+  return abs(sum);
 }
 
-static bool decode_ri_ack_2bits(const int16_t* llr, uint32_t Qm, uint8_t data[2])
+static int32_t decode_ri_ack_2bits(const int16_t* llr, uint32_t Qm, uint8_t data[2])
 {
   uint32_t p0 = Qm * 0 + 0;
   uint32_t p1 = Qm * 0 + 1;
@@ -688,11 +692,17 @@ static bool decode_ri_ack_2bits(const int16_t* llr, uint32_t Qm, uint8_t data[2]
   uint32_t p4 = Qm * 2 + 0;
   uint32_t p5 = Qm * 2 + 1;
 
-  data[0] = ((llr[p0] + llr[p3]) > 0) ? 1 : 0;
-  data[1] = ((llr[p1] + llr[p4]) > 0) ? 1 : 0;
+  int16_t sum1 = llr[p0] + llr[p3];
+  int16_t sum2 = llr[p1] + llr[p4];
+  int16_t sum3 = llr[p2] + llr[p5];
 
-  // Return parity check
-  return ((llr[p2] + llr[p5]) > 0) == ((data[0] ^ data[1]) == 1);
+  data[0] = (sum1 > 0) ? 1 : 0;
+  data[1] = (sum2 > 0) ? 1 : 0;
+
+  bool parity_check = (sum3 > 0) == (data[0] ^ data[1]);
+
+  // Return 0 if parity check is not valid
+  return (parity_check ? (abs(sum1) + abs(sum2) + abs(sum3)) : 0);
 }
 
 // Table 5.2.2.6-A
@@ -795,6 +805,7 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
                              uint32_t            O_cqi,
                              srslte_uci_bit_t*   ack_ri_bits,
                              uint8_t*            data,
+                             bool*               valid,
                              uint32_t            nof_bits,
                              bool                is_ri)
 {
@@ -843,16 +854,22 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
   }
 
   /// Decode UCI HARQ/ACK bits as described in 5.2.2.6 of 36.212
+  int32_t thr  = count_acc * ((Qm < 4) ? 100 : (Qm < 6) ? 200 : (Qm < 8) ? 700 : 1000) / 2;
+  int32_t corr = 0;
   switch (nof_bits) {
     case 1:
-      decode_ri_ack_1bit(llr_acc, c_seq, data);
+      corr = decode_ri_ack_1bit(llr_acc, c_seq, data);
       break;
     case 2:
-      decode_ri_ack_2bits(llr_acc, Qm, data);
+      corr = decode_ri_ack_2bits(llr_acc, Qm, data);
       break;
     default:
       // For more than 2 bits...
-      srslte_uci_decode_m_basis_bits(llr_acc, SRSLTE_UCI_M_BASIS_SEQ_LEN, data, nof_bits);
+      corr = srslte_uci_decode_m_basis_bits(llr_acc, SRSLTE_UCI_M_BASIS_SEQ_LEN, data, nof_bits);
+  }
+
+  if (valid) {
+    *valid = corr > thr;
   }
 
   return (int)Qprime;
