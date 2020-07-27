@@ -46,6 +46,12 @@
  *  Based on 3GPP TS 36.211 version 10.7.0 Release 10.
  */
 
+typedef struct {
+  int   idx;
+  float factor;
+  cf_t  phase_array[2 * 839];
+} srslte_prach_cancellation_t;
+
 typedef struct SRSLTE_API {
   // Parameters from higher layers (extracted from SIB2)
   uint32_t config_idx;
@@ -90,14 +96,17 @@ typedef struct SRSLTE_API {
   cf_t* signal_fft;
   float detect_factor;
 
-  uint32_t deadzone;
-  float    peak_values[65];
-  uint32_t peak_offsets[65];
-  uint32_t            num_ra_preambles;
-  bool                successive_cancellation;
-  bool                freq_domain_offset_calc;
-  srslte_tdd_config_t tdd_config;
-  uint32_t            current_prach_idx;
+  uint32_t                    deadzone;
+  float                       peak_values[65];
+  uint32_t                    peak_offsets[65];
+  uint32_t                    num_ra_preambles;
+  bool                        successive_cancellation;
+  bool                        freq_domain_offset_calc;
+  srslte_tdd_config_t         tdd_config;
+  uint32_t                    current_prach_idx;
+  cf_t*                       cross;
+  cf_t*                       corr_freq;
+  srslte_prach_cancellation_t prach_cancel;
 
 } srslte_prach_t;
 
@@ -123,11 +132,6 @@ typedef struct {
   bool                enable_freq_domain_offset_calc;
 } srslte_prach_cfg_t;
 
-typedef struct {
-  int   idx;
-  float factor;
-  cf_t  phase_array[2 * 839];
-} srslte_prach_cancellation_t;
 
 typedef struct SRSLTE_API {
   uint32_t f;
@@ -218,7 +222,6 @@ SRSLTE_API int srslte_prach_process(srslte_prach_t*             p,
                                     float*                      peak_to_avg,
                                     uint32_t*                   n_indices,
                                     int                         cancellation_idx,
-                                    srslte_prach_cancellation_t prach_cancel,
                                     uint32_t                    begin,
                                     uint32_t                    sig_len);
 

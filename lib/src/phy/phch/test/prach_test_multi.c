@@ -44,12 +44,11 @@ uint32_t zero_corr_zone   = 1;
 uint32_t n_seqs           = 64;
 uint32_t num_ra_preambles = 0; // use default
 
-bool test_successive_cancellation =
-    false;                            // this enables the successive cancellation algorithm, computationally complex
-bool test_offset_calculation = false; // this should not be enabled in make test, only for use in manual testing
-bool stagger_prach_power_and_phase =
-    false; // this will make the prachs have different power and phases, more realistic scenario
-bool                   freq_domain_offset_calc = false; // this will work best with one or two simultaenous prach
+bool freq_domain_offset_calc       = false;
+bool test_successive_cancellation  = false;
+bool test_offset_calculation       = false;
+bool stagger_prach_power_and_phase = false;
+// this will work best with one or two simultaenous prach
 srslte_filesource_t    fsrc;
 
 void usage(char* prog)
@@ -105,11 +104,11 @@ void stagger_prach_powers(srslte_prach_t prach, cf_t *preamble, cf_t* preamble_s
     }
     if (seq_index == 1) {
       srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 1), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 1, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.8, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 2) {
       srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.2, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.05, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 3) {
       srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.9), preamble, prach.N_cp + prach.N_seq);
@@ -163,7 +162,9 @@ int main(int argc, char** argv)
   int  srate = srslte_sampling_freq_hz(nof_prb);
   int  divisor = srate / PRACH_SRATE;
   if (test_offset_calculation || test_successive_cancellation || stagger_prach_power_and_phase) {
-    n_seqs                       = 6;
+    if (n_seqs > 6) {
+      n_seqs = 6;
+    }
     prach_cfg.zero_corr_zone     = 0;
     prach_cfg.num_ra_preambles   = 8;
     printf("limiting number of preambles to 6\n");
