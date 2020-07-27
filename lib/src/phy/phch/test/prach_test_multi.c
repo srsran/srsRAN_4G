@@ -44,8 +44,12 @@ uint32_t zero_corr_zone   = 1;
 uint32_t n_seqs           = 64;
 uint32_t num_ra_preambles = 0; // use default
 
-bool     test_successive_cancellation = false;
-bool                   test_offset_calculation      = true;
+bool test_successive_cancellation =
+    false;                            // this enables the successive cancellation algorithm, computationally complex
+bool test_offset_calculation = false; // this should not be enabled in make test, only for use in manual testing
+bool stagger_prach_power_and_phase =
+    false; // this will make the prachs have different power and phases, more realistic scenario
+bool                   freq_domain_offset_calc = false; // this will work best with one or two simultaenous prach
 srslte_filesource_t    fsrc;
 
 void usage(char* prog)
@@ -90,36 +94,37 @@ void parse_args(int argc, char** argv)
     }
   }
 }
-
+// this function staggers power and phase of the different PRACH signals for more realisitc testing
 void stagger_prach_powers(srslte_prach_t prach, cf_t *preamble, cf_t* preamble_sum, int freq_offset, int n_seqs, int *offsets) {
 
   for (int seq_index = 0; seq_index < n_seqs; seq_index++) {
     srslte_prach_gen(&prach, seq_index, freq_offset, preamble);
     if (seq_index == 0) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.1, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.5), preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 1, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 1) {
-      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.4), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.4, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 1), preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 1, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 2) {
       srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.1), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 0.07, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.2, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 3) {
       srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.9), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble,0.6, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.7, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 4) {
       srslte_vec_sc_prod_ccc(preamble, cexpf(_Complex_I * 0.3), preamble, prach.N_cp + prach.N_seq);
-      srslte_vec_sc_prod_cfc(preamble, 1, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.15, preamble, prach.N_cp + prach.N_seq);
     }
     if (seq_index == 5) {
-      srslte_vec_sc_prod_cfc(preamble, 0.05, preamble, prach.N_cp + prach.N_seq);
+      srslte_vec_sc_prod_cfc(preamble, 0.15, preamble, prach.N_cp + prach.N_seq);
     }
+    int off = (offset == -1) ? offsets[seq_index] : offset;
     for (int i = 0; i < prach.N_cp + prach.N_seq; i++) {
-      preamble_sum[i] += preamble[i];
+      preamble_sum[i + off] += preamble[i];
     }
   }
 }
@@ -153,26 +158,20 @@ int main(int argc, char** argv)
   prach_cfg.zero_corr_zone                 = zero_corr_zone;
   prach_cfg.num_ra_preambles               = num_ra_preambles;
   prach_cfg.enable_successive_cancellation = test_successive_cancellation;
-
+  prach_cfg.enable_freq_domain_offset_calc = freq_domain_offset_calc;
 
   int  srate = srslte_sampling_freq_hz(nof_prb);
   int  divisor = srate / PRACH_SRATE;
-  if (test_offset_calculation) {
-    n_seqs                       = 1;
-    prach_cfg.num_ra_preambles   = 4;
+  if (test_offset_calculation || test_successive_cancellation || stagger_prach_power_and_phase) {
+    n_seqs                       = 6;
     prach_cfg.zero_corr_zone     = 0;
-    printf("limiting number of preambles to 15 for offset calculation test\n");
-    for (int i = 0; i < 15; i++) {
-      offsets[i] = ((rand()%(25*divisor)));
+    prach_cfg.num_ra_preambles   = 8;
+    printf("limiting number of preambles to 6\n");
+    if (test_offset_calculation) {
+      for (int i = 0; i < 6; i++) {
+        offsets[i] = (rand() % 50);
+      }
     }
-    memset(offsets, 0, sizeof(int) * 64);
-  }
-  if (test_successive_cancellation) {
-    printf("limiting number of preambles to 6 for successive cancellation test\n");
-    prach_cfg.num_ra_preambles = 6;
-    n_seqs                     = 6;
-    prach_cfg.zero_corr_zone   = 0;
-    memset(offsets, 0, sizeof(int) * 64);
   }
 
   if (srslte_prach_init(&prach, srslte_symbol_sz(nof_prb))) {
@@ -192,13 +191,13 @@ int main(int argc, char** argv)
     indices[i] = 0;
 
   srslte_prach_set_detect_factor(&prach, 10);
-  if (test_successive_cancellation) {
+  if (stagger_prach_power_and_phase) {
     stagger_prach_powers(prach, preamble, preamble_sum, prach_cfg.freq_offset, n_seqs, offsets);
   } else {
     for (seq_index = 0; seq_index < n_seqs; seq_index++) {
       srslte_prach_gen(&prach, seq_index, prach_cfg.freq_offset, preamble);
+      int off = (offset == -1) ? offsets[seq_index] : offset;
       for (int i = prach.N_cp; i < prach.N_cp + prach.N_seq; i++) {
-        int off = (offset == -1)?offsets[seq_index]:offset;
         preamble_sum[i + off] += preamble[i];
       }
     }
@@ -227,7 +226,10 @@ int main(int argc, char** argv)
     if (test_offset_calculation) {
       int error =  (int)(t_offsets[i] * srate) - offsets[i];
       if (abs(error) > divisor) {
-        printf("preamble %d has incorrect offset calculated as %d, should be %d\n", i, (int)(t_offsets[i] * srate) , offsets[i]);
+        printf("preamble %d has incorrect offset calculated as %d, should be %d\n",
+               indices[i],
+               (int)(t_offsets[i] * srate),
+               offsets[i]);
         err++;
       }
     }

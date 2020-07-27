@@ -95,6 +95,7 @@ typedef struct SRSLTE_API {
   uint32_t peak_offsets[65];
   uint32_t            num_ra_preambles;
   bool                successive_cancellation;
+  bool                freq_domain_offset_calc;
   srslte_tdd_config_t tdd_config;
   uint32_t            current_prach_idx;
 
@@ -119,13 +120,13 @@ typedef struct {
   bool                hs_flag;
   srslte_tdd_config_t tdd_config;
   bool                enable_successive_cancellation;
+  bool                enable_freq_domain_offset_calc;
 } srslte_prach_cfg_t;
 
 typedef struct {
   int   idx;
-  float offset;
   float factor;
-  float phase;
+  cf_t  phase_array[2 * 839];
 } srslte_prach_cancellation_t;
 
 typedef struct SRSLTE_API {

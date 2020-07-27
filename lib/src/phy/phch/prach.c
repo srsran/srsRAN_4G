@@ -34,7 +34,7 @@ float save_corr[4096];
 
 // PRACH detection threshold is PRACH_DETECT_FACTOR*average
 #define PRACH_DETECT_FACTOR 18
-
+#define SUCCESSIVE_CANCELLATION_ITS 4
 #define N_SEQS 64         // Number of prach sequences available
 #define N_RB_SC 12        // Number of subcarriers per resource block
 #define DELTA_F 15000     // Normal subcarrier spacing
@@ -43,7 +43,7 @@ float save_corr[4096];
 #define PHI 7             // PRACH phi parameter
 #define PHI_4 2           // PRACH phi parameter for format 4
 #define MAX_ROOTS 838     // Max number of root sequences
-
+#define PRACH_CANCELLATION_HARD
 #define PRACH_AMP 1.0
 
 int srslte_prach_set_cell_(srslte_prach_t*      p,
@@ -408,6 +408,11 @@ int srslte_prach_set_cell_(srslte_prach_t*      p,
     p->detect_factor           = PRACH_DETECT_FACTOR;
     p->num_ra_preambles        = cfg->num_ra_preambles;
     p->successive_cancellation = cfg->enable_successive_cancellation;
+    if (p->successive_cancellation && cfg->zero_corr_zone != 0) {
+      printf("successive cancellation only currently supported with zero_correlation_zone_config of 0 - disabling\n");
+      p->successive_cancellation = false;
+    }
+    p->freq_domain_offset_calc = cfg->enable_freq_domain_offset_calc;
     if (&cfg->tdd_config) {
       p->tdd_config = cfg->tdd_config;
     }
@@ -571,14 +576,18 @@ int srslte_prach_detect(srslte_prach_t* p,
 /// be detected more easily in the subsequent searches
 void srslte_prach_cancellation (srslte_prach_t* p, cf_t *signal, uint32_t begin, int sig_len, srslte_prach_cancellation_t prach_cancel)
 {
-  cf_t sub[sig_len];
-  memcpy(sub,&p->td_signals[p->root_seqs_idx[prach_cancel.idx]][p->N_cp], sig_len*sizeof(cf_t));
-  srslte_vec_sc_prod_cfc(sub, prach_cancel.factor, sub, p->N_seq);
-  int offset = (int) (prach_cancel.offset*sig_len*DELTA_F_RA);
-  srslte_vec_sc_prod_ccc(sub, cexpf(_Complex_I * prach_cancel.phase), sub, sig_len);
-  srslte_vec_sub_ccc(&signal[offset], sub, &signal[offset], sig_len);
-  srslte_dft_run(&p->fft, signal, p->signal_fft);
-  memcpy(p->prach_bins, &p->signal_fft[begin], p->N_zc * sizeof(cf_t));
+  cf_t sub[p->N_zc * 2];
+  memcpy(sub, &p->dft_seqs[p->root_seqs_idx[prach_cancel.idx]][0], p->N_zc * sizeof(cf_t));
+  srslte_vec_prod_ccc(sub, prach_cancel.phase_array, sub, p->N_zc);
+#ifdef PRACH_CANCELLATION_HARD
+  cf_t res[p->N_zc * 2];
+  srslte_vec_prod_conj_ccc(p->prach_bins, sub, res, p->N_zc);
+  srslte_dft_run(&p->zc_ifft, p->corr_spec, p->corr_spec);
+  srslte_vec_abs_square_cf(p->corr_spec, p->corr, p->N_zc);
+  prach_cancel.factor = sqrt(p->corr[0] / (p->N_zc * p->N_zc));
+#endif
+  srslte_vec_sc_prod_cfc(sub, prach_cancel.factor, sub, p->N_zc);
+  srslte_vec_sub_ccc(p->prach_bins, sub, p->prach_bins, p->N_zc);
 }
 
 // this function checks if we have already detected and stored this particular PRACH index and if so, doesnt store it
@@ -591,7 +600,7 @@ bool srslte_prach_have_stored(srslte_prach_t* p,int current_idx, uint32_t* indic
   }
   return false;
 }
-
+// set the offset based on the time domain time offset estimation
 float srslte_prach_set_offset(srslte_prach_t* p, int n_win) {
   float corr = 1.0;
   if (p->peak_offsets[n_win] > 30) {
@@ -601,6 +610,28 @@ float srslte_prach_set_offset(srslte_prach_t* p, int n_win) {
     corr = 1.91;
   }
   return corr * p->peak_offsets[n_win] / (DELTA_F_RA * p->N_zc);
+}
+
+// calculates the timing offset of the incoming PRACH by calculating the phase in frequency - alternative to time domain
+// approach
+int srslte_prach_calculate_time_offset(srslte_prach_t* p, cf_t* cross)
+{
+  float freq_domain_phase = cargf(srslte_vec_acc_cc(cross, p->N_zc));
+  float ratio             = (float)(p->N_ifft_ul * DELTA_F) / (float)(MAX_N_zc * DELTA_F_RA);
+  int   time_offset       = round((ratio * freq_domain_phase * p->N_zc) / (2 * M_PI));
+  return time_offset;
+}
+// calculates the aggregate phase offset of the incomming PRACH signal so it can be applied to the reference signal
+// before it is subtracted from the input
+void srslte_prach_calculate_correction_array(srslte_prach_t*              p,
+                                             cf_t*                        corr_freq,
+                                             srslte_prach_cancellation_t* prach_cancel)
+{
+  float phase[p->N_zc];
+  srslte_vec_arg_deg_cf(corr_freq, 0, phase, p->N_zc);
+  for (int i = 0; i < p->N_zc; i++) {
+    prach_cancel->phase_array[i] = cexpf(_Complex_I * (phase[i] / (180.0f / M_PI)));
+  }
 }
 
 // This function carries out the main processing on the incomming PRACH signal
@@ -618,11 +649,19 @@ int srslte_prach_process(srslte_prach_t*             p,
   float max_to_cancel = 0;
   cancellation_idx    = -1;
   int max_idx         = 0;
+  cf_t cross[p->N_zc];
+  cf_t corr_freq[p->N_zc];
+  bzero(cross, sizeof(cf_t) * p->N_zc);
+  bzero(corr_freq, sizeof(cf_t) * p->N_zc);
   for (int i = 0; i < p->num_ra_preambles; i++) {
     cf_t* root_spec = p->dft_seqs[p->root_seqs_idx[i]];
 
     srslte_vec_prod_conj_ccc(p->prach_bins, root_spec, p->corr_spec, p->N_zc);
 
+    srslte_vec_prod_conj_ccc(p->corr_spec, &p->corr_spec[1], cross, p->N_zc - 1);
+    if (p->successive_cancellation) {
+      memcpy(corr_freq, p->corr_spec, p->N_zc * sizeof(cf_t));
+    }
     srslte_dft_run(&p->zc_ifft, p->corr_spec, p->corr_spec);
 
     srslte_vec_abs_square_cf(p->corr_spec, p->corr, p->N_zc);
@@ -657,33 +696,35 @@ int srslte_prach_process(srslte_prach_t*             p,
         }
       }
     }
-    if (max_peak > p->detect_factor * corr_ave) {
+    if (max_peak > (p->detect_factor * corr_ave)) {
       for (int j = 0; j < n_wins; j++) {
         if (p->peak_values[j] > p->detect_factor * corr_ave) {
           if (indices) {
             if (p->successive_cancellation) {
               if (max_peak > max_to_cancel) {
-                cancellation_idx    = (i * n_wins) + j;
-                max_to_cancel       = max_peak;
-                prach_cancel.idx    = cancellation_idx;
-                prach_cancel.offset = srslte_prach_set_offset(p, j);
-                prach_cancel.factor = sqrt((max_peak / 2) / ((sig_len / 2) * p->N_zc * p->N_zc));
-                prach_cancel.phase  = cargf(p->corr_spec[max_idx]);
+                cancellation_idx = (i * n_wins) + j;
+                max_to_cancel    = max_peak;
+                prach_cancel.idx = cancellation_idx; // this stores the best candidate for the successive cancellation
+                prach_cancel.factor = (sqrt(
+                    max_peak / (p->N_zc * p->N_zc))); // this is the scaling factor for the successive cancellation
+                srslte_prach_calculate_correction_array(
+                    p, corr_freq, &prach_cancel); // this calculates the correction array for the PRACH sig before it is
+                                                  // used to cancel
               }
               if (srslte_prach_have_stored(p, ((i * n_wins) + j), indices, *n_indices)) {
                 break;
               }
             }
-            srslte_vec_fprint_c(stdout, p->corr_spec, 10) printf("max_idx %d\n", max_idx);
-            printf("cargf(p->corr_spec[max_idx]) %f\n", cargf(p->corr_spec[max_idx]));
             indices[*n_indices] = (i * n_wins) + j;
           }
           if (peak_to_avg) {
             peak_to_avg[*n_indices] = p->peak_values[j] / corr_ave;
           }
           if (t_offsets) {
-            t_offsets[*n_indices] = srslte_prach_set_offset(p, j);
-            printf("t_offsets[*n_indices]  %f\n", t_offsets[*n_indices]);
+            t_offsets[*n_indices] =
+                (p->freq_domain_offset_calc)
+                    ? (((float)srslte_prach_calculate_time_offset(p, cross)) / ((float)p->N_ifft_ul * DELTA_F))
+                    : (srslte_prach_set_offset(p, j));
           }
           (*n_indices)++;
         }
@@ -691,6 +732,7 @@ int srslte_prach_process(srslte_prach_t*             p,
     }
   }
   if (cancellation_idx != -1) {
+    // if a peak has been found, this applies cancellation, if many found, subtracts strongest
     srslte_prach_cancellation(p, signal, begin, sig_len, prach_cancel);
   } else {
     return 1;
@@ -729,7 +771,7 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
     uint32_t begin   = PHI + (K * k_0) + (K / 2);
 
     memcpy(p->prach_bins, &p->signal_fft[begin], p->N_zc * sizeof(cf_t));
-    int loops = (p->successive_cancellation) ? p->num_ra_preambles : 1;
+    int loops = (p->successive_cancellation) ? SUCCESSIVE_CANCELLATION_ITS : 1;
     // if successive cancellation is enabled, we perform the entire search process p->num_ra_preambles times, removing
     // the highest power PRACH preamble each time.
     for (int l = 0; l < loops; l++) {
