@@ -31,6 +31,8 @@ private:
   const uhd::fs_path              TREE_DBOARD_RX_FRONTEND_NAME = "/mboards/0/dboards/A/rx_frontends/A/name";
   const std::chrono::milliseconds FE_RX_RESET_SLEEP_TIME_MS    = std::chrono::milliseconds(2000UL);
   uhd::stream_args_t              stream_args;
+  double                          lo_freq_tx_hz = 0.0;
+  double                          lo_freq_rx_hz = 0.0;
 
   uhd_error usrp_make_internal(const uhd::device_addr_t& dev_addr) override
   {
@@ -139,6 +141,18 @@ public:
     std::string spp;
     if (dev_addr.has_key("spp")) {
       spp = dev_addr.pop("spp");
+    }
+
+    // Tx LO frequency
+    if (dev_addr.has_key("lo_freq_tx_hz")) {
+      lo_freq_tx_hz = dev_addr.cast("lo_freq_tx_hz", lo_freq_tx_hz);
+      dev_addr.pop("lo_freq_tx_hz");
+    }
+
+    // Rx LO frequency
+    if (dev_addr.has_key("lo_freq_rx_hz")) {
+      lo_freq_rx_hz = dev_addr.cast("lo_freq_rx_hz", lo_freq_rx_hz);
+      dev_addr.pop("lo_freq_rx_hz");
     }
 
     // Make USRP
@@ -294,15 +308,34 @@ public:
   uhd_error get_tx_gain(double& gain) override { UHD_SAFE_C_SAVE_ERROR(this, gain = usrp->get_tx_gain();) }
   uhd_error set_tx_freq(uint32_t ch, double target_freq, double& actual_freq) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, uhd::tune_request_t tune_request(target_freq);
-                          uhd::tune_result_t tune_result = usrp->set_tx_freq(tune_request, ch);
-                          actual_freq                    = tune_result.target_rf_freq;)
+    // Create Tune request
+    uhd::tune_request_t tune_request(target_freq);
+
+    // If the LO frequency is defined, force a LO frequency and use the
+    if (std::isnormal(lo_freq_tx_hz)) {
+      tune_request.rf_freq         = lo_freq_tx_hz;
+      tune_request.rf_freq_policy  = uhd::tune_request_t::POLICY_MANUAL;
+      tune_request.dsp_freq_policy = uhd::tune_request_t::POLICY_AUTO;
+    }
+
+    UHD_SAFE_C_SAVE_ERROR(this, uhd::tune_result_t tune_result = usrp->set_tx_freq(tune_request, ch);
+                          actual_freq = tune_result.target_rf_freq;)
   }
   uhd_error set_rx_freq(uint32_t ch, double target_freq, double& actual_freq) override
   {
-    UHD_SAFE_C_SAVE_ERROR(this, uhd::tune_request_t tune_request(target_freq);
-                          uhd::tune_result_t tune_result = usrp->set_rx_freq(tune_request, ch);
-                          actual_freq                    = tune_result.target_rf_freq;)
+
+    // Create Tune request
+    uhd::tune_request_t tune_request(target_freq);
+
+    // If the LO frequency is defined, force a LO frequency and use the
+    if (std::isnormal(lo_freq_rx_hz)) {
+      tune_request.rf_freq         = lo_freq_rx_hz;
+      tune_request.rf_freq_policy  = uhd::tune_request_t::POLICY_MANUAL;
+      tune_request.dsp_freq_policy = uhd::tune_request_t::POLICY_AUTO;
+    }
+
+    UHD_SAFE_C_SAVE_ERROR(this, uhd::tune_result_t tune_result = usrp->set_rx_freq(tune_request, ch);
+                          actual_freq = tune_result.target_rf_freq;)
   }
 };
 
