@@ -181,7 +181,7 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
   // Set individual gains
   for (uint32_t i = 0; i < args.nof_carriers; i++) {
     if (args.tx_gain_ch[i] > 0) {
-      for (uint32_t j = 0; j < nof_antennas; i++) {
+      for (uint32_t j = 0; j < nof_antennas; j++) {
         uint32_t phys_antenna_idx = i * nof_antennas + j;
 
         // From channel number deduce RF device index and channel
