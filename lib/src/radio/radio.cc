@@ -198,6 +198,26 @@ int radio::init(const rf_args_t& args, phy_interface_radio* phy_)
     }
   }
 
+  // Set individual gains
+  for (uint32_t i = 0; i < args.nof_carriers; i++) {
+    if (args.rx_gain_ch[i] > 0) {
+      for (uint32_t j = 0; j < nof_antennas; j++) {
+        uint32_t phys_antenna_idx = i * nof_antennas + j;
+
+        // From channel number deduce RF device index and channel
+        uint32_t rf_device_idx  = phys_antenna_idx / nof_channels_x_dev;
+        uint32_t rf_channel_idx = phys_antenna_idx % nof_channels_x_dev;
+
+        log_h->info(
+            "Setting individual rx_gain=%.1f on dev=%d ch=%d\n", args.rx_gain_ch[i], rf_device_idx, rf_channel_idx);
+        if (srslte_rf_set_rx_gain_ch(&rf_devices[rf_device_idx], rf_channel_idx, args.rx_gain_ch[i]) < 0) {
+          log_h->error(
+              "Setting channel rx_gain=%.1f on dev=%d ch=%d\n", args.rx_gain_ch[i], rf_device_idx, rf_channel_idx);
+        }
+      }
+    }
+  }
+
   // Set resampler buffers to 5 ms
   if (std::isnormal(fix_srate_hz)) {
     for (auto& buf : rx_buffer) {
@@ -277,9 +297,9 @@ bool radio::start_agc(bool tx_gain_same_rx)
 bool radio::rx_now(rf_buffer_interface& buffer, rf_timestamp_interface& rxd_time)
 {
   std::unique_lock<std::mutex> lock(rx_mutex);
-  bool        ret = true;
-  rf_buffer_t buffer_rx;
-  uint32_t    ratio = SRSLTE_MAX(1, decimators[0].ratio);
+  bool                         ret = true;
+  rf_buffer_t                  buffer_rx;
+  uint32_t                     ratio = SRSLTE_MAX(1, decimators[0].ratio);
 
   // If the interpolator have been set, interpolate
   for (uint32_t ch = 0; ch < nof_channels; ch++) {
@@ -379,7 +399,7 @@ bool radio::rx_dev(const uint32_t& device_idx, const rf_buffer_interface& buffer
 
 bool radio::tx(rf_buffer_interface& buffer, const rf_timestamp_interface& tx_time)
 {
-  bool ret = true;
+  bool                         ret = true;
   std::unique_lock<std::mutex> lock(tx_mutex);
 
   // If the interpolator have been set, interpolate

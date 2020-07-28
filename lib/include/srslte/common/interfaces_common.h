@@ -47,6 +47,7 @@ typedef struct {
   float       ul_freq;
   float       freq_offset;
   float       rx_gain;
+  float       rx_gain_ch[SRSLTE_MAX_CARRIERS];
   float       tx_gain;
   float       tx_gain_ch[SRSLTE_MAX_CARRIERS];
   float       tx_max_power;
