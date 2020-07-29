@@ -175,10 +175,9 @@ void srslte_enb_ul_fft(srslte_enb_ul_t* q)
 
 static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* res)
 {
-  int                ret                               = SRSLTE_SUCCESS;
-  uint32_t           n_pucch_i[SRSLTE_PUCCH_MAX_ALLOC] = {};
-  srslte_pucch_res_t pucch_res                         = {};
-  uint32_t           uci_cfg_total_ack                 = srslte_uci_cfg_total_ack(&cfg->uci_cfg);
+  int      ret                               = SRSLTE_SUCCESS;
+  uint32_t n_pucch_i[SRSLTE_PUCCH_MAX_ALLOC] = {};
+  uint32_t uci_cfg_total_ack                 = srslte_uci_cfg_total_ack(&cfg->uci_cfg);
 
   // Drop CQI if there is collision with ACK
   if (!cfg->simul_cqi_ack && uci_cfg_total_ack > 0 && cfg->uci_cfg.cqi.data_enable) {
@@ -204,6 +203,8 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
 
   // Iterate possible resources and select the one with higher correlation
   for (int i = 0; i < nof_resources && ret == SRSLTE_SUCCESS; i++) {
+    srslte_pucch_res_t pucch_res = {};
+
     // Configure resource
     cfg->n_pucch = n_pucch_i[i];
 
@@ -211,6 +212,12 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
     if (srslte_chest_ul_estimate_pucch(&q->chest, ul_sf, cfg, q->sf_symbols, &q->chest_res)) {
       ERROR("Error estimating PUCCH DMRS\n");
       return SRSLTE_ERROR;
+    }
+
+    // Copy measurements
+    if (cfg->meas_ta_en) {
+      pucch_res.ta_valid = !(isnan(q->chest_res.ta_us) || isinf(q->chest_res.ta_us));
+      pucch_res.ta_us    = q->chest_res.ta_us;
     }
 
     ret = srslte_pucch_decode(&q->pucch, ul_sf, cfg, &q->chest_res, q->sf_symbols, &pucch_res);

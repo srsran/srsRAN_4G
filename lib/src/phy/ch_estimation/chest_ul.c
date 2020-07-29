@@ -455,6 +455,26 @@ int srslte_chest_ul_estimate_pucch(srslte_chest_ul_t*     q,
     srslte_vec_prod_conj_ccc(q->pilot_recv_signal, q->pilot_known_signal, q->pilot_estimates, nrefs_sf);
   }
 
+  if (cfg->meas_ta_en && n_rs > 0) {
+    float ta_err = 0.0;
+    for (int ns = 0; ns < SRSLTE_NOF_SLOTS_PER_SF; ns++) {
+      for (int i = 0; i < n_rs; i++) {
+        ta_err += srslte_vec_estimate_frequency(&q->pilot_estimates[(i + ns * n_rs) * SRSLTE_NRE], SRSLTE_NRE) /
+                  (float)(SRSLTE_NOF_SLOTS_PER_SF * n_rs);
+      }
+    }
+
+    // Calculate actual time alignment error in micro-seconds
+    if (isnormal(ta_err)) {
+      ta_err /= 15e3f;                             // Convert from normalized frequency to seconds
+      ta_err *= 1e6f;                              // Convert to micro-seconds
+      ta_err     = roundf(ta_err * 10.0f) / 10.0f; // Round to one tenth of micro-second
+      res->ta_us = ta_err;
+    } else {
+      res->ta_us = 0.0f;
+    }
+  }
+
   if (res->ce != NULL) {
     /* TODO: Currently averaging entire slot, performance good enough? */
     for (int ns = 0; ns < 2; ns++) {

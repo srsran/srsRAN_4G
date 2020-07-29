@@ -332,12 +332,9 @@ void cc_worker::decode_pusch_rnti(stack_interface_phy_lte::ul_sched_grant_t& ul_
     // Notify MAC UL channel quality
     phy->stack->snr_info(ul_sf.tti, rnti, cc_idx, snr_db);
 
-    if (ul_grant.dci.tb.rv == 0) {
-      // Notify MAC of Time Alignment only if it enabled and valid measurement, ignore value otherwise
-      if (ul_cfg.pusch.meas_ta_en and not std::isnan(enb_ul.chest_res.ta_us) and
-          not std::isinf(enb_ul.chest_res.ta_us)) {
-        phy->stack->ta_info(ul_sf.tti, rnti, enb_ul.chest_res.ta_us);
-      }
+    // Notify MAC of Time Alignment only if it enabled and valid measurement, ignore value otherwise
+    if (ul_cfg.pusch.meas_ta_en and not std::isnan(enb_ul.chest_res.ta_us) and not std::isinf(enb_ul.chest_res.ta_us)) {
+      phy->stack->ta_info(ul_sf.tti, rnti, enb_ul.chest_res.ta_us);
     }
   }
 
@@ -403,6 +400,10 @@ int cc_worker::decode_pucch()
 
         // Send UCI data to MAC
         phy->ue_db.send_uci_data(tti_rx, rnti, cc_idx, ul_cfg.pucch.uci_cfg, pucch_res.uci_data);
+
+        if (pucch_res.detected and pucch_res.ta_valid) {
+          phy->stack->ta_info(tti_rx, rnti, pucch_res.ta_us);
+        }
 
         // Logging
         if (log_h->get_level() >= srslte::LOG_LEVEL_INFO) {

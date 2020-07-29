@@ -94,6 +94,10 @@ typedef struct SRSLTE_API {
   float              dmrs_correlation;
   float              correlation;
   bool               detected;
+
+  // PUCCH Measurements
+  bool  ta_valid;
+  float ta_us;
 } srslte_pucch_res_t;
 
 SRSLTE_API int srslte_pucch_init_ue(srslte_pucch_t* q);

@@ -1394,6 +1394,10 @@ void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_pucch_res_t* pucch_res
 
     n = srslte_print_check(str, str_len, n, ", corr=%.3f", pucch_res->correlation);
 
-    srslte_uci_data_info(&cfg->uci_cfg, &pucch_res->uci_data, &str[n], str_len - n);
+    n += srslte_uci_data_info(&cfg->uci_cfg, &pucch_res->uci_data, &str[n], str_len - n);
+
+    if (pucch_res->ta_valid) {
+      n = srslte_print_check(str, str_len, n, ", ta=%.1f us", pucch_res->ta_us);
+    }
   }
 }

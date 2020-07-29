@@ -57,6 +57,7 @@ struct phy_args_t {
   bool        pusch_meas_epre     = true;
   bool        pusch_meas_evm      = false;
   bool        pusch_meas_ta       = true;
+  bool        pucch_meas_ta       = true;
 
   srslte::channel::args_t dl_channel_args;
   srslte::channel::args_t ul_channel_args;
