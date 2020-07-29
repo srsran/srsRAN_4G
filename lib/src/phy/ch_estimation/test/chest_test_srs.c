@@ -40,12 +40,19 @@ static srslte_refsignal_srs_cfg_t        srs_cfg        = {};
 
 static uint32_t test_counter = 0;
 
-static float                 snr_db  = 10.0f;
+static float                 snr_db  = 20.0f;
 static float                 n0_dbm  = 30.0f - 20.0f;
 static srslte_channel_awgn_t channel = {};
 
 #define CHEST_TEST_SRS_SNR_DB_TOLERANCE 10.0f
 #define CHEST_TEST_SRS_TA_US_TOLERANCE 0.5f
+
+// SRS index and sub-frame configuration possible values limited to SF=0
+#define I_SRS_COUNT 9
+static const uint32_t i_srs_values[I_SRS_COUNT] = {0, 2, 7, 17, 37, 77, 157, 317, 637};
+
+#define SF_CONFIG_COUNT 9
+static const uint32_t sf_config_values[SF_CONFIG_COUNT] = {0, 1, 3, 7, 9, 13, 14};
 
 void usage(char* prog)
 {
@@ -133,36 +140,38 @@ int srs_test_context_run(srs_test_context_t* q)
        srs_cfg.n_srs,
        srs_cfg.I_srs);
 
-  for (ul_sf_cfg.tti = 0; ul_sf_cfg.tti < SRSLTE_NOF_SF_X_FRAME; ul_sf_cfg.tti++) {
-    // Set resource grid to zero
-    srslte_vec_cf_zero(q->sf_symbols, q->sf_size);
+  // Assert SRS transmission SF
+  TESTASSERT(srslte_refsignal_srs_send_cs(srs_cfg.subframe_config, ul_sf_cfg.tti) == 1);
+  TESTASSERT(srslte_refsignal_srs_send_cs(srs_cfg.subframe_config, ul_sf_cfg.tti) == 1);
 
-    // Put sounding reference signals
-    TESTASSERT(srslte_refsignal_srs_put(
-                   &q->refsignal_ul, &srs_cfg, ul_sf_cfg.tti, q->srs_pregen.r[ul_sf_cfg.tti], q->sf_symbols) ==
-               SRSLTE_SUCCESS);
+  // Set resource grid to zero
+  srslte_vec_cf_zero(q->sf_symbols, q->sf_size);
 
-    // Apply AWGN channel
-    if (!isnan(snr_db) && !isinf(snr_db)) {
-      srslte_channel_awgn_run_c(&channel, q->sf_symbols, q->sf_symbols, q->sf_size);
-    }
+  // Put sounding reference signals
+  TESTASSERT(srslte_refsignal_srs_put(
+                 &q->refsignal_ul, &srs_cfg, ul_sf_cfg.tti, q->srs_pregen.r[ul_sf_cfg.tti], q->sf_symbols) ==
+             SRSLTE_SUCCESS);
 
-    // Estimate
-    TESTASSERT(srslte_chest_ul_estimate_srs(
-                   &q->chest_ul, &ul_sf_cfg, &srs_cfg, &dmrs_pusch_cfg, q->sf_symbols, &q->chest_ul_res) ==
-               SRSLTE_SUCCESS);
-
-    INFO("RESULTS: tti=%d; snr_db=%+.1f; noise_estimate_dbm=%+.1f; ta_us=%+.1f;\n",
-         ul_sf_cfg.tti,
-         q->chest_ul_res.snr_db,
-         q->chest_ul_res.noise_estimate_dbm,
-         q->chest_ul_res.ta_us);
-
-    // Assert SRS measurements
-    TESTASSERT(fabsf(q->chest_ul_res.snr_db - snr_db) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
-    TESTASSERT(fabsf(q->chest_ul_res.noise_estimate_dbm - n0_dbm) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
-    TESTASSERT(fabsf(q->chest_ul_res.ta_us) < CHEST_TEST_SRS_TA_US_TOLERANCE);
+  // Apply AWGN channel
+  if (!isnan(snr_db) && !isinf(snr_db)) {
+    srslte_channel_awgn_run_c(&channel, q->sf_symbols, q->sf_symbols, q->sf_size);
   }
+
+  // Estimate
+  TESTASSERT(srslte_chest_ul_estimate_srs(
+                 &q->chest_ul, &ul_sf_cfg, &srs_cfg, &dmrs_pusch_cfg, q->sf_symbols, &q->chest_ul_res) ==
+             SRSLTE_SUCCESS);
+
+  INFO("RESULTS: tti=%d; snr_db=%+.1f; noise_estimate_dbm=%+.1f; ta_us=%+.1f;\n",
+       ul_sf_cfg.tti,
+       q->chest_ul_res.snr_db,
+       q->chest_ul_res.noise_estimate_dbm,
+       q->chest_ul_res.ta_us);
+
+  // Assert SRS measurements
+  TESTASSERT(fabsf(q->chest_ul_res.snr_db - snr_db) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
+  TESTASSERT(fabsf(q->chest_ul_res.noise_estimate_dbm - n0_dbm) < CHEST_TEST_SRS_SNR_DB_TOLERANCE);
+  TESTASSERT(fabsf(q->chest_ul_res.ta_us) < CHEST_TEST_SRS_TA_US_TOLERANCE);
 
   return SRSLTE_SUCCESS;
 }
@@ -217,9 +226,13 @@ int main(int argc, char** argv)
           printf("Failed setting context: bw_cfg=%d; B=%d; n_srs=%d;\n", srs_cfg.bw_cfg, srs_cfg.B, srs_cfg.n_srs);
         }
 
-        for (srs_cfg.subframe_config = 0; srs_cfg.subframe_config < 16 && !ret; srs_cfg.subframe_config++) {
+        for (uint32_t sf_config = 0; sf_config < SF_CONFIG_COUNT && !ret; sf_config++) {
+          srs_cfg.subframe_config = sf_config_values[sf_config];
+
           for (srs_cfg.b_hop = 0; srs_cfg.b_hop < 4 && !ret; srs_cfg.b_hop++) {
-            for (srs_cfg.I_srs = 0; srs_cfg.I_srs < 1024 && !ret; srs_cfg.I_srs += 123) {
+            for (uint32_t i_srs = 0; i_srs < I_SRS_COUNT && !ret; i_srs++) {
+              srs_cfg.I_srs = i_srs_values[i_srs];
+
               // Run actual test
               ret = srs_test_context_run(&context);
               if (!ret) {
