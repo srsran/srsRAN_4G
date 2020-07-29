@@ -214,12 +214,6 @@ static int get_pucch(srslte_enb_ul_t* q, srslte_ul_sf_cfg_t* ul_sf, srslte_pucch
       return SRSLTE_ERROR;
     }
 
-    // Copy measurements
-    if (cfg->meas_ta_en) {
-      pucch_res.ta_valid = !(isnan(q->chest_res.ta_us) || isinf(q->chest_res.ta_us));
-      pucch_res.ta_us    = q->chest_res.ta_us;
-    }
-
     ret = srslte_pucch_decode(&q->pucch, ul_sf, cfg, &q->chest_res, q->sf_symbols, &pucch_res);
     if (ret < SRSLTE_SUCCESS) {
       ERROR("Error decoding PUCCH\n");
