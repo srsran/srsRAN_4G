@@ -201,7 +201,7 @@ void rrc::run_tti()
   }
 
   if (simulate_rlf) {
-    radio_link_failure();
+    radio_link_failure_process();
     simulate_rlf = false;
   }
 
@@ -237,7 +237,7 @@ void rrc::run_tti()
           process_pcch(std::move(msg.pdu));
           break;
         case cmd_msg_t::RLF:
-          radio_link_failure();
+          radio_link_failure_process();
           break;
         case cmd_msg_t::HO_COMPLETE:
           ho_handler.trigger(ho_proc::ra_completed_ev{msg.lcid > 0});
@@ -560,10 +560,22 @@ bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
  *
  *******************************************************************************/
 
-/* Detection of radio link failure (5.3.11.3)
- * Upon T310 expiry, RA problem or RLC max retx
+/*
+ * This function is called from T310 expiry, RA problem or RLC max retx
+ * Pushes a command to the command queue to process the actions in the background
  */
-void rrc::radio_link_failure()
+void rrc::radio_link_failure_push_cmd()
+{
+  cmd_msg_t msg;
+  msg.command = cmd_msg_t::RLF;
+  cmd_q.push(std::move(msg));
+}
+
+/*
+ * Perform the actions upon detection of radio link failure (5.3.11.3)
+ * This function must be executed from the main RRC task to avoid stack loops
+ */
+void rrc::radio_link_failure_process()
 {
   // TODO: Generate and store failure report
   rrc_log->warning("Detected Radio-Link Failure\n");
@@ -592,16 +604,14 @@ void rrc::max_retx_attempted()
 {
   // TODO: Handle the radio link failure
   rrc_log->warning("Max RLC reTx attempted\n");
-  cmd_msg_t msg;
-  msg.command = cmd_msg_t::RLF;
-  cmd_q.push(std::move(msg));
+  radio_link_failure_push_cmd();
 }
 
 void rrc::timer_expired(uint32_t timeout_id)
 {
   if (timeout_id == t310.id()) {
     rrc_log->info("Timer T310 expired: Radio Link Failure\n");
-    radio_link_failure();
+    radio_link_failure_push_cmd();
   } else if (timeout_id == t311.id()) {
     if (connection_reest.is_idle()) {
       rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");

@@ -350,7 +350,8 @@ private:
   void ho_failed();
   void start_go_idle();
   void rrc_connection_release(const std::string& cause);
-  void radio_link_failure();
+  void radio_link_failure_push_cmd();
+  void radio_link_failure_process();
   void leave_connected();
   void stop_timers();
   void start_con_restablishment(asn1::rrc::reest_cause_e cause);
