@@ -1691,7 +1691,7 @@ float srslte_vec_estimate_frequency_simd(const cf_t* x, int len)
     }
 
     // Accumulate using horizontal addition
-    for (int k = 2; k < SRSLTE_SIMD_CF_SIZE; k *= 2) {
+    for (int k = 1; k < SRSLTE_SIMD_CF_SIZE; k *= 2) {
       _sum.re = srslte_simd_f_hadd(_sum.re, _sum.re);
       _sum.im = srslte_simd_f_hadd(_sum.im, _sum.im);
     }
