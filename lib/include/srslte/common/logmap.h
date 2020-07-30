@@ -24,8 +24,10 @@
 
 #include "srslte/common/log.h"
 #include "srslte/common/logger.h"
+#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/singleton.h"
 
+#include <memory>
 #include <mutex>
 #include <unordered_map>
 
@@ -85,13 +87,11 @@ protected:
 private:
   log_ref get_impl(std::string servicename);
 
-  // consts
-  std::unique_ptr<logger> logger_stdout_val;
-
   // default cfg
-  logger*                default_logger    = nullptr;
-  srslte::LOG_LEVEL_ENUM default_log_level = LOG_LEVEL_WARNING;
-  int                    default_hex_limit = 1024;
+  std::unique_ptr<srslog_wrapper> stdout_channel;
+  logger*                         default_logger    = nullptr;
+  srslte::LOG_LEVEL_ENUM          default_log_level = LOG_LEVEL_WARNING;
+  int                             default_hex_limit = 1024;
 
   // state
   std::mutex                                             mutex;

@@ -47,7 +47,7 @@ set_tests_properties(enb_phy_test_tm1 PROPERTIES LABELS "long;phy;srsenb")
 #  - Single carrier
 #  - Transmission Mode 2
 #  - 1 eNb cell/carrier (no carrier aggregation)
-#  - 6 PRB
+#  - 100 PRB
 add_test(enb_phy_test_tm2 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=2)
 set_tests_properties(enb_phy_test_tm2 PROPERTIES LABELS "long;phy;srsenb")
 
@@ -55,7 +55,7 @@ set_tests_properties(enb_phy_test_tm2 PROPERTIES LABELS "long;phy;srsenb")
 #  - Single carrier
 #  - Transmission Mode 3
 #  - 1 eNb cell/carrier (no carrier aggregation)
-#  - 6 PRB
+#  - 100 PRB
 add_test(enb_phy_test_tm3 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=3)
 set_tests_properties(enb_phy_test_tm3 PROPERTIES LABELS "long;phy;srsenb")
 
@@ -63,7 +63,7 @@ set_tests_properties(enb_phy_test_tm3 PROPERTIES LABELS "long;phy;srsenb")
 #  - Single carrier
 #  - Transmission Mode 4
 #  - 1 eNb cell/carrier (no carrier aggregation)
-#  - 6 PRB
+#  - 100 PRB
 add_test(enb_phy_test_tm4 enb_phy_test --duration=${ENB_PHY_TEST_DURATION} --cell.nof_prb=100 --tm=4)
 set_tests_properties(enb_phy_test_tm4 PROPERTIES LABELS "long;phy;srsenb")
 

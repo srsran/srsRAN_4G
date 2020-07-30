@@ -27,7 +27,9 @@
 #include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
+#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/signal_handler.h"
+#include "srslte/srslog/srslog.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <signal.h>
@@ -386,44 +388,52 @@ int main(int argc, char* argv[])
   all_args_t args;
   parse_args(&args, argc, argv);
 
-  srslte::logger_stdout logger_stdout;
-  srslte::logger*       logger;
-
-  /*Init logger*/
-  if (args.log_args.filename == "stdout") {
-    logger = &logger_stdout;
-  } else {
-    logger_file.init(args.log_args.filename);
-    logger_file.log_char("\n\n");
-    logger_file.log_char(get_build_string().c_str());
-    logger_file.log_char("\n---  Software Radio Systems EPC log ---\n\n");
-    logger = &logger_file;
+  // Setup logging.
+  log_sink = (args.log_args.filename == "stdout") ? srslog::create_stdout_sink()
+                                                  : srslog::create_file_sink(args.log_args.filename);
+  if (!log_sink) {
+    return SRSLTE_ERROR;
   }
-  srslte::logmap::set_default_logger(logger);
+  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
+  if (!chan) {
+    return SRSLTE_ERROR;
+  }
+  srslte::srslog_wrapper log_wrapper(*chan);
+
+  // Start the log backend.
+  srslog::init();
+
+  if (args.log_args.filename != "stdout") {
+    log_wrapper.log_char("\n\n");
+    log_wrapper.log_char(get_build_string().c_str());
+    log_wrapper.log_char("\n---  Software Radio Systems EPC log ---\n\n");
+  }
+
+  srslte::logmap::set_default_logger(&log_wrapper);
   log_args(argc, argv, "EPC");
 
   srslte::log_filter nas_log;
-  nas_log.init("NAS ", logger);
+  nas_log.init("NAS ", &log_wrapper);
   nas_log.set_level(level(args.log_args.nas_level));
   nas_log.set_hex_limit(args.log_args.nas_hex_limit);
 
   srslte::log_filter s1ap_log;
-  s1ap_log.init("S1AP", logger);
+  s1ap_log.init("S1AP", &log_wrapper);
   s1ap_log.set_level(level(args.log_args.s1ap_level));
   s1ap_log.set_hex_limit(args.log_args.s1ap_hex_limit);
 
   srslte::log_filter mme_gtpc_log;
-  mme_gtpc_log.init("MME GTPC", logger);
+  mme_gtpc_log.init("MME GTPC", &log_wrapper);
   mme_gtpc_log.set_level(level(args.log_args.mme_gtpc_level));
   mme_gtpc_log.set_hex_limit(args.log_args.mme_gtpc_hex_limit);
 
   srslte::log_filter hss_log;
-  hss_log.init("HSS ", logger);
+  hss_log.init("HSS ", &log_wrapper);
   hss_log.set_level(level(args.log_args.hss_level));
   hss_log.set_hex_limit(args.log_args.hss_hex_limit);
 
   srslte::log_filter spgw_gtpc_log;
-  spgw_gtpc_log.init("SPGW GTPC", logger);
+  spgw_gtpc_log.init("SPGW GTPC", &log_wrapper);
   spgw_gtpc_log.set_level(level(args.log_args.spgw_gtpc_level));
   spgw_gtpc_log.set_hex_limit(args.log_args.spgw_gtpc_hex_limit);
 
@@ -432,7 +442,7 @@ int main(int argc, char* argv[])
   gtpu_log->set_hex_limit(args.log_args.mme_gtpc_hex_limit);
 
   srslte::log_filter spgw_log;
-  spgw_log.init("SPGW", logger);
+  spgw_log.init("SPGW", &log_wrapper);
   spgw_log.set_level(level(args.log_args.spgw_level));
   spgw_log.set_hex_limit(args.log_args.spgw_hex_limit);
 

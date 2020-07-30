@@ -44,7 +44,6 @@ int test_cell_cfg(const srsenb::sched_interface::cell_cfg_t& cellcfg)
  */
 int test_sib_generation()
 {
-  srslte::logger_stdout logger;
   srslte::timer_handler timers_db(128);
 
   mac_dummy  mac_obj;
@@ -73,7 +72,6 @@ int test_sib_generation()
 
 int test_rrc_setup()
 {
-  srslte::logger_stdout logger;
   srslte::timer_handler timers_db(128);
 
   mac_dummy  mac_obj;

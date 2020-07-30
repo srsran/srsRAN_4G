@@ -27,7 +27,6 @@ set(SOURCES arch_select.cc
             liblte_security.cc
             log_filter.cc
             logmap.cc
-            logger_file.cc
             logger_srslog_wrapper.cc
             mac_pcap.cc
             nas_pcap.cc
@@ -58,6 +57,6 @@ add_dependencies(srslte_common gen_build_info)
 add_executable(arch_select arch_select.cc)
 
 target_include_directories(srslte_common PUBLIC ${SEC_INCLUDE_DIRS})
-target_link_libraries(srslte_common srslte_phy ${SEC_LIBRARIES})
+target_link_libraries(srslte_common srslte_phy srslog ${SEC_LIBRARIES})
 
 add_subdirectory(test)

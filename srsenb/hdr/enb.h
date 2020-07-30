@@ -45,7 +45,6 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/common/logger_file.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/security.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
@@ -144,8 +143,6 @@ private:
   std::unique_ptr<srslte::radio_base> radio = nullptr;
   std::unique_ptr<enb_phy_base>       phy   = nullptr;
 
-  srslte::logger_stdout logger_stdout;
-  srslte::logger_file   logger_file;
   srslte::logger*       logger = nullptr;
   srslte::log_ref       log; // Own logger for eNB
 

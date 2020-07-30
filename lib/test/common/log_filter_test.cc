@@ -23,16 +23,17 @@
 #define NMSGS 100
 
 #include "srslte/common/log_filter.h"
-#include "srslte/common/logger_file.h"
+#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/logmap.h"
 #include "srslte/common/test_common.h"
+#include "srslte/srslog/srslog.h"
 #include <stdio.h>
 
 using namespace srslte;
 
 typedef struct {
-  logger_file* l;
-  int          thread_id;
+  logger* l;
+  int     thread_id;
 } args_t;
 
 void* thread_loop(void* a)
@@ -78,8 +79,10 @@ void* thread_loop_hex(void* a)
 
 void write(std::string filename)
 {
-  logger_file l;
-  l.init(filename);
+  srslog::sink*          s    = srslog::create_file_sink(filename);
+  srslog::log_channel*   chan = srslog::create_log_channel("write", *s);
+  srslte::srslog_wrapper l(*chan);
+
   pthread_t threads[NTHREADS];
   args_t    args[NTHREADS];
   for (int i = 0; i < NTHREADS; i++) {
@@ -121,7 +124,15 @@ bool read(std::string filename)
 
 int basic_hex_test()
 {
-  logger_stdout l;
+  srslog::sink* s = srslog::find_sink("stdout");
+  if (!s) {
+    return SRSLTE_ERROR;
+  }
+  srslog::log_channel* chan = srslog::create_log_channel("basic_hex_test", *s);
+  if (!chan) {
+    return SRSLTE_ERROR;
+  }
+  srslte::srslog_wrapper l(*chan);
 
   log_filter filter("layer", &l);
   filter.set_level(LOG_LEVEL_DEBUG);
@@ -183,11 +194,10 @@ int test_log_ref()
 
 int full_test()
 {
-  bool        result;
   std::string f("log.txt");
   write(f);
 #if 0
-  result = read(f);
+  bool result = read(f);
   remove(f.c_str());
   if(result) {
     printf("Passed\n");
@@ -203,6 +213,12 @@ int full_test()
 
 int main(int argc, char** argv)
 {
+  // Setup logging.
+  srslog::sink* log_sink = srslog::create_stdout_sink();
+  if (!log_sink) {
+    return SRSLTE_ERROR;
+  }
+
   TESTASSERT(basic_hex_test() == SRSLTE_SUCCESS);
   TESTASSERT(full_test() == SRSLTE_SUCCESS);
   TESTASSERT(test_log_singleton() == SRSLTE_SUCCESS);

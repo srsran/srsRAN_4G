@@ -28,6 +28,7 @@
 #include <sys/time.h>
 
 #include "srslte/common/log_filter.h"
+#include "srslte/srslog/srslog.h"
 
 namespace srslte {
 
@@ -42,12 +43,30 @@ log_filter::log_filter() : log()
   logger_h    = NULL;
 }
 
+/// Creates a log channel that writes to stdout.
+static srslog::log_channel* create_or_get_default_logger()
+{
+  srslog::sink* s = srslog::create_stdout_sink();
+  if (!s) {
+    s = srslog::find_sink("stdout");
+  }
+  srslog::log_channel* log = srslog::create_log_channel("log_filter_default", *s);
+  if (!log) {
+    log = srslog::find_log_channel("log_filter_default");
+  }
+
+  srslog::init();
+
+  return log;
+}
+
 log_filter::log_filter(std::string layer) : log()
 {
-  do_tti      = false;
-  time_src    = NULL;
-  time_format = TIME;
-  init(layer, &def_logger_stdout, do_tti);
+  do_tti         = false;
+  time_src       = NULL;
+  time_format    = TIME;
+  default_logger = std::unique_ptr<srslog_wrapper>(new srslog_wrapper(*create_or_get_default_logger()));
+  init(layer, default_logger.get(), do_tti);
 }
 
 log_filter::log_filter(std::string layer, logger* logger_, bool tti) : log()
@@ -57,7 +76,8 @@ log_filter::log_filter(std::string layer, logger* logger_, bool tti) : log()
   time_format = TIME;
 
   if (!logger_) {
-    logger_ = &def_logger_stdout;
+    default_logger = std::unique_ptr<srslog_wrapper>(new srslog_wrapper(*create_or_get_default_logger()));
+    logger_        = default_logger.get();
   }
 
   init(std::move(layer), logger_, tti);

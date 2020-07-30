@@ -21,7 +21,9 @@
 
 #include "srsue/test/ttcn3/hdr/ttcn3_syssim.h"
 #include "dut_utils.h"
+#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/mac/pdu_queue.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
@@ -35,13 +37,14 @@
 #include "ttcn3_ut_interface.h"
 #include <functional>
 
-ttcn3_syssim::ttcn3_syssim(srslte::logger_file* logger_file_, ttcn3_ue* ue_) :
+ttcn3_syssim::ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_) :
   log{"SS  "},
   mac_msg_ul(20, ss_mac_log),
   mac_msg_dl(20, ss_mac_log),
   pdus(128),
-  logger(logger_file_),
+  logger_stdout(logger_stdout_),
   logger_file(logger_file_),
+  logger_ptr(&logger_file_),
   pool(byte_buffer_pool::get_instance()),
   ue(ue_),
   rlc(ss_rlc_log->get_service_name().c_str()),
@@ -49,7 +52,7 @@ ttcn3_syssim::ttcn3_syssim(srslte::logger_file* logger_file_, ttcn3_ue* ue_) :
   timer_handler(create_tti_timer(), [&](uint64_t res) { new_tti_indication(res); }),
   pdcp(&stack.task_sched, ss_pdcp_log->get_service_name().c_str())
 {
-  if (ue->init(all_args_t{}, logger, this, "INIT_TEST") != SRSLTE_SUCCESS) {
+  if (ue->init(all_args_t{}, logger_ptr, this, "INIT_TEST") != SRSLTE_SUCCESS) {
     ue->stop();
     fprintf(stderr, "Couldn't initialize UE.\n");
   }
@@ -63,20 +66,20 @@ int ttcn3_syssim::init(const all_args_t& args_)
 
   // Make sure to get SS logging as well
   if (args.log.filename == "stdout") {
-    logger = &logger_stdout;
+    logger_ptr = &logger_stdout;
   }
-  srslte::logmap::set_default_logger(logger);
+  srslte::logmap::set_default_logger(logger_ptr);
 
   // init and configure logging
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS  ", logger, true}});
-  ut_log.init("UT  ", logger);
-  sys_log.init("SYS ", logger);
-  ip_sock_log.init("IP_S", logger);
-  ip_ctrl_log.init("IP_C", logger);
-  srb_log.init("SRB  ", logger);
-  drb_log.init("DRB  ", logger);
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-RLC", logger}});
-  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-PDCP", logger}});
+  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS  ", logger_ptr, true}});
+  ut_log.init("UT  ", logger_ptr);
+  sys_log.init("SYS ", logger_ptr);
+  ip_sock_log.init("IP_S", logger_ptr);
+  ip_ctrl_log.init("IP_C", logger_ptr);
+  srb_log.init("SRB  ", logger_ptr);
+  drb_log.init("DRB  ", logger_ptr);
+  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-RLC", logger_ptr}});
+  srslte::logmap::register_log(std::unique_ptr<srslte::log>{new log_filter{"SS-PDCP", logger_ptr}});
 
   log->set_level(args.log.all_level);
   ut_log.set_level(args.log.all_level);
@@ -405,10 +408,13 @@ void ttcn3_syssim::tc_start(const char* name)
 
   // set up logging
   if (args.log.filename == "stdout") {
-    logger = &logger_stdout;
+    logger_ptr = &logger_stdout;
   } else {
-    logger_file->init(get_filename_with_tc_name(local_args.log.filename, run_id, tc_name).c_str(), -1);
-    logger = logger_file;
+    const std::string&   file_tc_name = get_filename_with_tc_name(local_args.log.filename, run_id, tc_name);
+    srslog::sink*        s            = srslog::create_file_sink(file_tc_name);
+    srslog::log_channel* c            = srslog::create_log_channel(file_tc_name, *s);
+    test_case_logger                  = std::unique_ptr<srslte::logger>(new srslte::srslog_wrapper(*c));
+    logger_ptr                        = test_case_logger.get();
   }
 
   log->info("Initializing UE ID=%d for TC=%s\n", run_id, tc_name.c_str());
@@ -419,7 +425,7 @@ void ttcn3_syssim::tc_start(const char* name)
   local_args.stack.pcap.nas_filename = get_filename_with_tc_name(args.stack.pcap.nas_filename, run_id, tc_name);
 
   // bring up UE
-  if (ue->init(local_args, logger, this, tc_name)) {
+  if (ue->init(local_args, logger_ptr, this, tc_name)) {
     ue->stop();
     std::string err("Couldn't initialize UE.\n");
     log->error("%s\n", err.c_str());
@@ -443,8 +449,6 @@ void ttcn3_syssim::tc_end()
 
   // stop TTI timer
   del_epoll(timer_handler.get_timer_fd(), epoll_fd);
-
-  logger_file->stop();
 
   run_id++;
 

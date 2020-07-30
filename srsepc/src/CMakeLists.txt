@@ -41,6 +41,7 @@ target_link_libraries( srsepc  srsepc_mme
                                s1ap_asn1
                                srslte_upper
                                srslte_common
+                               srslog
                                ${CMAKE_THREAD_LIBS_INIT}
                                ${Boost_LIBRARIES}
                                ${SEC_LIBRARIES}
@@ -51,8 +52,9 @@ add_executable(srsmbms mbms-gw/main.cc )
 target_link_libraries(srsmbms   srsepc_mbms_gw
                                 srslte_upper
                                 srslte_common
-                                ${CMAKE_THREAD_LIBS_INIT} 
-                                ${Boost_LIBRARIES} 
+                                srslog
+                                ${CMAKE_THREAD_LIBS_INIT}
+                                ${Boost_LIBRARIES}
                                 ${SEC_LIBRARIES}
                                 ${LIBCONFIGPP_LIBRARIES}
                                 ${SCTP_LIBRARIES})

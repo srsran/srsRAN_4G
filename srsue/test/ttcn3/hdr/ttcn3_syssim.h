@@ -49,7 +49,7 @@ class ttcn3_syssim : public syssim_interface_phy,
                      public srslte::pdu_queue::process_callback
 {
 public:
-  ttcn3_syssim(srslte::logger_file* logger_file_, ttcn3_ue* ue_);
+  ttcn3_syssim(srslte::logger& logger_file_, srslte::logger& logger_stdout_, ttcn3_ue* ue_);
 
   ~ttcn3_syssim();
 
@@ -225,19 +225,20 @@ private:
   epoll_signal_handler               signal_handler;
 
   // Logging stuff
-  srslte::logger_stdout logger_stdout;
-  srslte::logger_file*  logger_file = nullptr;
-  srslte::logger*       logger      = nullptr;
-  srslte::log_ref       log;
-  srslte::log_filter    ut_log;
-  srslte::log_filter    sys_log;
-  srslte::log_filter    ip_sock_log;
-  srslte::log_filter    ip_ctrl_log;
-  srslte::log_filter    srb_log;
-  srslte::log_filter    drb_log;
-  srslte::log_ref       ss_mac_log{"SS-MAC"};
-  srslte::log_ref       ss_rlc_log{"SS-RLC"};
-  srslte::log_ref       ss_pdcp_log{"SS-PDCP"};
+  srslte::logger&         logger_stdout;
+  srslte::logger&         logger_file;
+  std::unique_ptr<logger> test_case_logger;
+  srslte::logger*         logger_ptr = nullptr;
+  srslte::log_ref         log;
+  srslte::log_filter      ut_log;
+  srslte::log_filter      sys_log;
+  srslte::log_filter      ip_sock_log;
+  srslte::log_filter      ip_ctrl_log;
+  srslte::log_filter      srb_log;
+  srslte::log_filter      drb_log;
+  srslte::log_ref         ss_mac_log{"SS-MAC"};
+  srslte::log_ref         ss_rlc_log{"SS-RLC"};
+  srslte::log_ref         ss_pdcp_log{"SS-PDCP"};
 
   all_args_t args = {};
 

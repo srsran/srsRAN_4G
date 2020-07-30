@@ -36,8 +36,8 @@ add_library(enb_cfg_parser parser.cc enb_cfg_parser.cc)
 
 add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc)
 
-set(SRSENB_SOURCES srsenb_phy srsenb_stack srsenb_upper srsenb_mac srsenb_rrc)
-set(SRSLTE_SOURCES srslte_common srslte_mac srslte_phy srslte_upper srslte_radio rrc_asn1 s1ap_asn1 enb_cfg_parser)
+set(SRSENB_SOURCES srsenb_phy srsenb_stack srsenb_upper srsenb_mac srsenb_rrc srslog)
+set(SRSLTE_SOURCES srslte_common srslte_mac srslte_phy srslte_upper srslte_radio rrc_asn1 s1ap_asn1 enb_cfg_parser srslog)
 
 if(ENABLE_5GNR)
   set(SRSENB_SOURCES ${SRSENB_SOURCES} srsgnb_phy srsgnb_stack srsgnb_upper srsgnb_mac srsgnb_rrc)

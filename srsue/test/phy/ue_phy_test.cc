@@ -18,9 +18,12 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
+#include <srslte/common/logger_srslog_wrapper.h>
 #include <srslte/common/test_common.h>
 #include <srslte/common/threads.h>
 #include <srslte/phy/utils/random.h>
+#include <srslte/srslog/srslog.h>
 #include <srslte/srslte.h>
 #include <srsue/hdr/phy/phy.h>
 
@@ -320,8 +323,7 @@ private:
   };
 
   // Common instances
-  srslte::logger_stdout main_logger;
-  srslte::log_filter    log_h;
+  srslte::log_filter log_h;
 
   // Dummy instances
   dummy_stack stack;
@@ -343,9 +345,9 @@ private:
   std::condition_variable cvar;
 
 public:
-  phy_test_bench(const srsue::phy_args_t& phy_args, const srslte_cell_t& cell) :
-    stack(main_logger),
-    radio(main_logger, cell.nof_ports, srslte_sampling_freq_hz(cell.nof_prb)),
+  phy_test_bench(const srsue::phy_args_t& phy_args, const srslte_cell_t& cell, srslte::logger& logger_) :
+    stack(logger_),
+    radio(logger_, cell.nof_ports, srslte_sampling_freq_hz(cell.nof_prb)),
     thread("phy_test_bench"),
     log_h("test bench")
   {
@@ -353,7 +355,7 @@ public:
     sf_len = SRSLTE_SF_LEN_PRB(cell.nof_prb);
 
     // Initialise UE
-    phy = std::unique_ptr<srsue::phy>(new srsue::phy(&main_logger));
+    phy = std::unique_ptr<srsue::phy>(new srsue::phy(&logger_));
     phy->init(phy_args, &stack, &radio);
 
     // Initialise DL baseband buffers
@@ -481,8 +483,23 @@ int main(int argc, char** argv)
   // Set custom test cell and arguments here
   phy_args.log.phy_level = "info";
 
+  // Setup logging.
+  srslog::sink* log_sink = srslog::create_stdout_sink();
+  if (!log_sink) {
+    return SRSLTE_ERROR;
+  }
+  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
+  if (!chan) {
+    return SRSLTE_ERROR;
+  }
+  srslte::srslog_wrapper log_wrapper(*chan);
+
+  // Start the log backend.
+  srslog::init();
+
   // Create test bench
-  std::unique_ptr<phy_test_bench> phy_test = std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, cell));
+  std::unique_ptr<phy_test_bench> phy_test =
+      std::unique_ptr<phy_test_bench>(new phy_test_bench(phy_args, cell, log_wrapper));
   phy_test->set_loglevel("info");
 
   // Start test bench

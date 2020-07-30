@@ -35,7 +35,7 @@
 
 #include "srslte/common/log.h"
 #include "srslte/common/logger.h"
-#include "srslte/common/logger_stdout.h"
+#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/phy/common/timestamp.h"
 
 namespace srslte {
@@ -75,15 +75,14 @@ public:
   void set_time_src(time_itf* source, time_format_t format);
 
 protected:
-  logger* logger_h;
-  bool    do_tti;
+  std::unique_ptr<logger> default_logger;
+  logger*                 logger_h;
+  bool                    do_tti;
 
   static const int char_buff_size = logger::preallocated_log_str_size - 64 * 3;
 
   time_itf*     time_src;
   time_format_t time_format;
-
-  logger_stdout def_logger_stdout;
 
   void        all_log(srslte::LOG_LEVEL_ENUM level,
                       uint32_t               tti,

@@ -31,7 +31,6 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/common/logger_file.h"
 #include "srslte/interfaces/epc_interfaces.h"
 #include <cstddef>
 #include <fstream>

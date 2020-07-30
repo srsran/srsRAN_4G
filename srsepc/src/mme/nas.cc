@@ -25,6 +25,7 @@
 #include "srslte/common/security.h"
 #include <cmath>
 #include <inttypes.h> // for printing uint64_t
+#include <sys/timerfd.h>
 
 namespace srsepc {
 

@@ -24,6 +24,7 @@
 #include <iostream>
 #include <mutex>
 #include <srsenb/hdr/phy/phy.h>
+#include <srslte/common/logger_srslog_wrapper.h>
 #include <srslte/common/string_helpers.h>
 #include <srslte/common/test_common.h>
 #include <srslte/common/threads.h>
@@ -31,6 +32,7 @@
 #include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/phch/pusch_cfg.h>
 #include <srslte/phy/utils/random.h>
+#include <srslte/srslog/srslog.h>
 #include <srslte/srslte.h>
 
 static inline bool dl_ack_value(uint32_t ue_cc_idx, uint32_t tti)
@@ -1176,7 +1178,6 @@ private:
   unique_srsenb_phy_t   enb_phy;
   unique_dummy_ue_phy_t ue_phy;
   srslte::log_filter    log_h;
-  srslte::logger_stdout logger_stdout;
 
   args_t                                            args = {};   ///< Test arguments
   srsenb::phy_args_t                                phy_args;    ///< PHY arguments
@@ -1192,7 +1193,7 @@ private:
   change_state_t change_state = change_state_assert;
 
 public:
-  explicit phy_test_bench(args_t& args_) : log_h("TEST BENCH")
+  phy_test_bench(args_t& args_, srslte::logger& logger_) : log_h("TEST BENCH")
   {
     // Copy test arguments
     args = args_;
@@ -1290,7 +1291,7 @@ public:
     stack->set_active_cell_list(args.ue_cell_list);
 
     /// eNb PHY initialisation instance
-    enb_phy = unique_srsenb_phy_t(new srsenb::phy(&logger_stdout));
+    enb_phy = unique_srsenb_phy_t(new srsenb::phy(&logger_));
 
     /// Initiate eNb PHY with the given RNTI
     enb_phy->init(phy_args, phy_cfg, radio.get(), stack.get());
@@ -1446,8 +1447,20 @@ int main(int argc, char** argv)
   // Initialize secondary parameters
   test_args.init();
 
+  // Setup logging.
+  srslog::sink* log_sink = srslog::create_stdout_sink();
+  if (!log_sink) {
+    return SRSLTE_ERROR;
+  }
+
+  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
+  if (!chan) {
+    return SRSLTE_ERROR;
+  }
+  srslte::srslog_wrapper log_wrapper(*chan);
+
   // Create Test Bench
-  unique_phy_test_bench test_bench = unique_phy_test_bench(new phy_test_bench(test_args));
+  unique_phy_test_bench test_bench = unique_phy_test_bench(new phy_test_bench(test_args, log_wrapper));
 
   // Run Simulation
   for (uint32_t i = 0; i < test_args.duration; i++) {

@@ -21,7 +21,7 @@
 
 #include "srslte/common/logmap.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/common/logger_stdout.h"
+#include "srslte/srslog/srslog.h"
 
 using namespace srslte;
 
@@ -30,9 +30,27 @@ log_ref::log_ref(const char* name)
   ptr_ = srslte::logmap::get(name).ptr_;
 }
 
-logmap::logmap() : logger_stdout_val(new logger_stdout{})
+/// Creates a log channel that writes to stdout.
+static srslog::log_channel* create_or_get_default_logger()
 {
-  default_logger = logger_stdout_val.get();
+  srslog::sink* s = srslog::create_stdout_sink();
+  if (!s) {
+    s = srslog::find_sink("stdout");
+  }
+  srslog::log_channel* log = srslog::create_log_channel("logmap_default", *s);
+  if (!log) {
+    log = srslog::find_log_channel("logmap_default");
+  }
+
+  srslog::init();
+
+  return log;
+}
+
+logmap::logmap()
+{
+  stdout_channel = std::unique_ptr<srslog_wrapper>(new srslog_wrapper(*create_or_get_default_logger()));
+  default_logger = stdout_channel.get();
 }
 
 // Access to log map by servicename. If servicename does not exist, create a new log_filter with default cfg

@@ -20,7 +20,6 @@
  */
 
 #include "srslte/common/log_filter.h"
-#include "srslte/common/logger_stdout.h"
 #include "srslte/common/rlc_pcap.h"
 #include "srslte/common/test_common.h"
 #include "srslte/common/threads.h"

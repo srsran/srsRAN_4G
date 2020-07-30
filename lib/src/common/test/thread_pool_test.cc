@@ -19,9 +19,11 @@
  *
  */
 #include <srslte/common/log_filter.h>
+#include <srslte/common/logger_srslog_wrapper.h>
 #include <srslte/common/thread_pool.h>
 #include <srslte/common/tti_sempahore.h>
 #include <srslte/phy/utils/random.h>
+#include <srslte/srslog/srslog.h>
 
 class dummy_radio
 {
@@ -128,8 +130,21 @@ int main(int argc, char** argv)
   std::vector<std::unique_ptr<dummy_worker> > workers;
   srslte::tti_semaphore<uint32_t>             tti_semaphore;
 
+  // Setup logging.
+  srslog::sink* s = srslog::create_stdout_sink();
+  if (!s) {
+    return SRSLTE_ERROR;
+  }
+  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *s);
+  if (!chan) {
+    return SRSLTE_ERROR;
+  }
+  srslte::srslog_wrapper logger(*chan);
+
+  // Start the log backend.
+  srslog::init();
+
   // Loggers
-  srslte::logger_stdout                             logger;
   srslte::log_filter                                radio_log("radio", &logger);
   std::vector<std::unique_ptr<srslte::log_filter> > worker_logs;
 

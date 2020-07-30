@@ -21,8 +21,10 @@
 
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/logmap.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslog/srslog.h"
 #include "srslte/test/ue_test_interfaces.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/pdcp_entity_lte.h"
@@ -269,6 +271,14 @@ int mme_attach_request_test()
   srslte::log_filter usim_log("USIM");
   srslte::log_filter gw_log("GW");
 
+  // Setup logging.
+  srslog::sink *log_sink = srslog::find_sink("stdout");
+  srslog::log_channel* chan = srslog::create_log_channel("mme_attach_request_test", *log_sink);
+  srslte::srslog_wrapper log_wrapper(*chan);
+
+  // Start the log backend.
+  srslog::init();
+
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
   gw_log.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -293,6 +303,7 @@ int mme_attach_request_test()
     nas_args_t nas_cfg;
     nas_cfg.force_imsi_attach = true;
     nas_cfg.apn_name          = "test123";
+
     test_stack_dummy stack(&pdcp_dummy);
     srsue::nas       nas(&stack.task_sched);
     srsue::gw        gw;
@@ -304,8 +315,8 @@ int mme_attach_request_test()
     gw_args.tun_dev_name     = "tun0";
     gw_args.log.gw_level     = "debug";
     gw_args.log.gw_hex_limit = 100000;
-    srslte::logger_stdout def_logstdout;
-    srslte::logger*       logger = &def_logstdout;
+
+    srslte::logger*       logger = &log_wrapper;
     gw.init(gw_args, logger, &stack);
     stack.init(&nas);
 

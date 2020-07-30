@@ -18,8 +18,11 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
 #include "srslte/common/config_file.h"
+#include "srslte/common/logger_srslog_wrapper.h"
+#include "srslte/srslog/srslog.h"
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <signal.h>
@@ -192,19 +195,25 @@ int main(int argc, char* argv[])
   all_args_t args;
   parse_args(&args, argc, argv);
 
-  srslte::logger_stdout logger_stdout;
-  srslte::logger_file   logger_file;
-  srslte::logger*       logger;
-
-  /*Init logger*/
-  if (!args.log_args.filename.compare("stdout")) {
-    logger = &logger_stdout;
-  } else {
-    logger_file.init(args.log_args.filename);
-    logger_file.log_char("\n---  Software Radio Systems MBMS log ---\n\n");
-    logger = &logger_file;
+  srslog::sink* log_sink = (args.log_args.filename == "stdout") ? srslog::create_stdout_sink()
+                                                                : srslog::create_file_sink(args.log_args.filename);
+  if (!log_sink) {
+    return SRSLTE_ERROR;
   }
-  srslte::logmap::set_default_logger(logger);
+  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
+  if (!chan) {
+    return SRSLTE_ERROR;
+  }
+  srslte::srslog_wrapper log_wrapper(*chan);
+
+  // Start the log backend.
+  srslog::init();
+
+  if (args.log_args.filename != "stdout") {
+    log_wrapper.log_char("\n---  Software Radio Systems MBMS log ---\n\n");
+  }
+
+  srslte::logmap::set_default_logger(&log_wrapper);
 
   srslte::log_ref mbms_gw_log{"MBMS"};
   mbms_gw_log->set_level(level(args.log_args.mbms_gw_level));

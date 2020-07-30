@@ -28,7 +28,9 @@
 #include "srslte/common/common_helper.h"
 #include "srslte/common/config_file.h"
 #include "srslte/common/crash_handler.h"
+#include "srslte/common/logger_srslog_wrapper.h"
 #include "srslte/common/signal_handler.h"
+#include "srslte/srslog/srslog.h"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -127,7 +129,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("pcap.filename",  bpo::value<string>(&args->stack.mac_pcap.filename)->default_value("enb_mac.pcap"), "MAC layer capture filename")
     ("pcap.s1ap_enable",   bpo::value<bool>(&args->stack.s1ap_pcap.enable)->default_value(false),         "Enable S1AP packet captures for wireshark")
     ("pcap.s1ap_filename", bpo::value<string>(&args->stack.s1ap_pcap.filename)->default_value("enb_s1ap.pcap"), "S1AP layer capture filename")
-   
+
     /* MCS section */
     ("scheduler.pdsch_mcs", bpo::value<int>(&args->stack.mac.sched.pdsch_mcs)->default_value(-1), "Optional fixed PDSCH MCS (ignores reported CQIs if specified)")
     ("scheduler.pdsch_max_mcs", bpo::value<int>(&args->stack.mac.sched.pdsch_max_mcs)->default_value(-1), "Optional PDSCH MCS limit")
@@ -201,7 +203,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     // NR section
     ("scheduler.tb_len", bpo::value<int>(&args->stack.mac.nr_tb_size)->default_value(1520), "Default TB size")
-    
+
     // VNF params
     ("vnf.type", bpo::value<string>(&args->phy.vnf_args.type)->default_value("gnb"), "VNF instance type [gnb,ue]")
     ("vnf.addr", bpo::value<string>(&args->phy.vnf_args.bind_addr)->default_value("localhost"), "Address to bind VNF interface")
@@ -416,6 +418,12 @@ void* input_loop(void* m)
   return nullptr;
 }
 
+/// Adjusts the input value in args from kbytes to bytes.
+static size_t fixup_log_file_maxsize(int x)
+{
+  return (x < 0) ? 0 : size_t(x) * 1024u;
+}
+
 int main(int argc, char* argv[])
 {
   srslte_register_signal_handler();
@@ -428,23 +436,30 @@ int main(int argc, char* argv[])
   srslte_debug_handle_crash(argc, argv);
   parse_args(&args, argc, argv);
 
-  srslte::logger_stdout logger_stdout;
-
-  // Set logger
-  srslte::logger* logger = nullptr;
-  if (args.log.filename == "stdout") {
-    logger = &logger_stdout;
-  } else {
-    logger_file.init(args.log.filename, args.log.file_max_size);
-    logger = &logger_file;
+  // Setup logging.
+  log_sink = (args.log.filename == "stdout")
+                 ? srslog::create_stdout_sink()
+                 : srslog::create_file_sink(args.log.filename, fixup_log_file_maxsize(args.log.file_max_size));
+  if (!log_sink) {
+    return SRSLTE_ERROR;
   }
-  srslte::logmap::set_default_logger(logger);
+
+  srslog::log_channel* chan = srslog::create_log_channel("main_channel", *log_sink);
+  if (!chan) {
+    return SRSLTE_ERROR;
+  }
+  srslte::srslog_wrapper log_wrapper(*chan);
+
+  // Start the log backend.
+  srslog::init();
+
+  srslte::logmap::set_default_logger(&log_wrapper);
   srslte::logmap::get("COMMON")->set_level(srslte::LOG_LEVEL_INFO);
   log_args(argc, argv, "ENB");
 
   // Create eNB
   unique_ptr<srsenb::enb> enb{new srsenb::enb};
-  if (enb->init(args, logger) != SRSLTE_SUCCESS) {
+  if (enb->init(args, &log_wrapper) != SRSLTE_SUCCESS) {
     enb->stop();
     return SRSLTE_ERROR;
   }
