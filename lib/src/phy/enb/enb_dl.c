@@ -27,12 +27,12 @@
 #include <string.h>
 
 #define CURRENT_FFTSIZE srslte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN SRSLTE_SF_LEN(CURRENT_FFTSIZE)
-
-#define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_NOF_RE(q->cell)
 
-#define SRSLTE_ENB_RF_AMP 0.1
+static float enb_dl_get_norm_factor(uint32_t nof_prb)
+{
+  return 0.05f / sqrtf(nof_prb);
+}
 
 int srslte_enb_dl_init(srslte_enb_dl_t* q, cf_t* out_buffer[SRSLTE_MAX_PORTS], uint32_t max_prb)
 {
@@ -408,7 +408,7 @@ int srslte_enb_dl_put_pmch(srslte_enb_dl_t* q, srslte_pmch_cfg_t* pmch_cfg, uint
 void srslte_enb_dl_gen_signal(srslte_enb_dl_t* q)
 {
   // TODO: PAPR control
-  float norm_factor = 0.05f / sqrtf(q->cell.nof_prb);
+  float norm_factor = enb_dl_get_norm_factor(q->cell.nof_prb);
 
   if (q->dl_sf.sf_type == SRSLTE_SF_MBSFN) {
     srslte_ofdm_tx_sf(&q->ifft_mbsfn);
@@ -641,4 +641,10 @@ void srslte_enb_dl_get_ack(const srslte_cell_t*      cell,
   } else {
     ERROR("Not implemented for TDD\n");
   }
+}
+
+float srslte_enb_dl_get_maximum_signal_power_dBfs(uint32_t nof_prb)
+{
+  return srslte_convert_amplitude_to_dB(enb_dl_get_norm_factor(nof_prb)) +
+         srslte_convert_power_to_dB((float)nof_prb * SRSLTE_NRE) + 3.0f;
 }

@@ -160,4 +160,11 @@ SRSLTE_API void srslte_enb_dl_get_ack(const srslte_cell_t*      cell,
                                       const srslte_uci_value_t* uci_value,
                                       srslte_pdsch_ack_t*       pdsch_ack);
 
+/**
+ * Gets the maximum signal power in decibels full scale. It is equivalent to the transmit power if all resource elements
+ * were populated.
+ * @return The maximum power
+ */
+SRSLTE_API float srslte_enb_dl_get_maximum_signal_power_dBfs(uint32_t nof_prb);
+
 #endif // SRSLTE_ENB_DL_H

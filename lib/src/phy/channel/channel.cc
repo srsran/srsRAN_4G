@@ -78,7 +78,7 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_channels)
   if (channel_args.awgn_enable && ret == SRSLTE_SUCCESS) {
     awgn = (srslte_channel_awgn_t*)calloc(sizeof(srslte_channel_awgn_t), 1);
     ret  = srslte_channel_awgn_init(awgn, 1234);
-    srslte_channel_awgn_set_n0(awgn, args.awgn_n0_dBfs);
+    srslte_channel_awgn_set_n0(awgn, args.awgn_signal_power_dBfs - args.awgn_snr_dB);
   }
 
   // Create high speed train
@@ -262,5 +262,12 @@ void channel::set_srate(uint32_t srate)
 
     // Update sampling rate
     current_srate = srate;
+  }
+}
+
+void channel::set_signal_power_dBfs(float power_dBfs)
+{
+  if (awgn != nullptr) {
+    srslte_channel_awgn_set_n0(awgn, power_dBfs - args.awgn_snr_dB);
   }
 }

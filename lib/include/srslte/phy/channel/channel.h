@@ -40,8 +40,9 @@ public:
     bool enable = false;
 
     // AWGN options
-    bool  awgn_enable  = false;
-    float awgn_n0_dBfs = -30.0f;
+    bool  awgn_enable            = false;
+    float awgn_signal_power_dBfs = 0.0f;
+    float awgn_snr_dB            = 30.0f;
 
     // Fading options
     bool        fading_enable = false;
@@ -70,6 +71,7 @@ public:
   ~channel();
   void set_logger(log_filter* _log_h);
   void set_srate(uint32_t srate);
+  void set_signal_power_dBfs(float power_dBfs);
   void run(cf_t* in[SRSLTE_MAX_CHANNELS], cf_t* out[SRSLTE_MAX_CHANNELS], uint32_t len, const srslte_timestamp_t& t);
 
 private:
